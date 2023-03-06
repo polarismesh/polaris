@@ -548,6 +548,26 @@ func TestRemoveInstance(t *testing.T) {
 		time.Sleep(time.Second)
 		discoverSuit.removeCommonInstance(t, serviceResp, instanceResp.GetId().GetValue())
 	})
+	t.Run("反注册，获取不到心跳信息", func(t *testing.T) {
+		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1111)
+		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
+
+		time.Sleep(time.Second)
+		discoverSuit.HeartBeat(t, serviceResp, instanceResp.GetId().GetValue())
+		resp := discoverSuit.GetLastHeartBeat(t, serviceResp, instanceResp.GetId().GetValue())
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+
+		time.Sleep(time.Second)
+		discoverSuit.removeCommonInstance(t, serviceResp, instanceResp.GetId().GetValue())
+		time.Sleep(time.Second)
+		resp = discoverSuit.GetLastHeartBeat(t, serviceResp, instanceResp.GetId().GetValue())
+		if !respNotFound(resp) {
+			t.Fatalf("heart beat resp should be not found, but got %v", resp)
+		}
+		t.Logf("pass")
+	})
 }
 
 // 测试从数据库拉取实例信息

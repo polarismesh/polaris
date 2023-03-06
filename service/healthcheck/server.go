@@ -47,19 +47,20 @@ var (
 
 // Server health checks the main server
 type Server struct {
-	storage        store.Store
-	defaultChecker plugin.HealthChecker
-	checkers       map[int32]plugin.HealthChecker
-	cacheProvider  *CacheProvider
-	timeAdjuster   *TimeAdjuster
-	dispatcher     *Dispatcher
-	checkScheduler *CheckScheduler
-	history        plugin.History
-	discoverEvent  plugin.DiscoverChannel
-	localHost      string
-	bc             *batch.Controller
-	serviceCache   cache.ServiceCache
-	instanceCache  cache.InstanceCache
+	storage              store.Store
+	defaultChecker       plugin.HealthChecker
+	checkers             map[int32]plugin.HealthChecker
+	cacheProvider        *CacheProvider
+	timeAdjuster         *TimeAdjuster
+	dispatcher           *Dispatcher
+	checkScheduler       *CheckScheduler
+	history              plugin.History
+	discoverEvent        plugin.DiscoverChannel
+	localHost            string
+	bc                   *batch.Controller
+	serviceCache         cache.ServiceCache
+	instanceCache        cache.InstanceCache
+	instanceEventChannel chan *model.InstanceEvent
 }
 
 // Initialize 初始化
@@ -122,9 +123,18 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 		hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)
 	server.dispatcher = newDispatcher(ctx, server, hcOpt.OmitReplicated)
 
+	server.instanceEventChannel = make(chan *model.InstanceEvent, 1000)
+	go server.handleInstanceEventWorker(ctx)
+
 	leaderChangeEventHandler := newLeaderChangeEventHandler(server.cacheProvider, hcOpt.MinCheckInterval)
 	if err = eventhub.Subscribe(eventhub.LeaderChangeEventTopic, "selfServiceChecker",
 		leaderChangeEventHandler); err != nil {
+		return err
+	}
+
+	instanceEventHandler := newInstanceEventHealthCheckHandler(ctx, server.instanceEventChannel)
+	if err = eventhub.Subscribe(eventhub.InstanceEventTopic, "instanceHealthChecker",
+		instanceEventHandler); err != nil {
 		return err
 	}
 	if err = server.storage.StartLeaderElection(store.ELECTION_KEY_SELF_SERVICE_CHECKER); err != nil {
@@ -239,10 +249,42 @@ func (s *Server) GetLastHeartbeat(req *apiservice.Instance) *apiservice.Response
 	req.Port = insCache.Proto.Port
 	req.VpcId = insCache.Proto.GetVpcId()
 	req.HealthCheck = insCache.Proto.GetHealthCheck()
+	req.Metadata = make(map[string]string, 3)
 	req.Metadata["last-heartbeat-timestamp"] = strconv.Itoa(int(queryResp.LastHeartbeatSec))
 	req.Metadata["last-heartbeat-time"] = commontime.Time2String(time.Unix(queryResp.LastHeartbeatSec, 0))
 	req.Metadata["system-time"] = commontime.Time2String(time.Unix(currentTimeSec(), 0))
 	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
+}
+
+func (s *Server) handleInstanceEventWorker(ctx context.Context) {
+	for {
+		select {
+		case event := <-s.instanceEventChannel:
+			switch event.EType {
+			case model.EventInstanceOffline:
+				insCache := s.cacheProvider.GetInstance(event.Id)
+				if insCache == nil {
+					log.Errorf("[Health Check] cannot get instance from cache, instance id is %s", event.Id)
+					break
+				}
+				checker, ok := s.checkers[int32(insCache.HealthCheck().GetType())]
+				if !ok {
+					log.Errorf("[Health Check]heart beat type not found checkType %d",
+						int32(insCache.HealthCheck().GetType()))
+					break
+				}
+				log.Infof("[Health Check]delete instance heart beat information, id is %s", event.Id)
+				err := checker.Delete(event.Id)
+				if err != nil {
+					log.Errorf("[Health Check]addr is %s:%d, id is %s, delete err is %s",
+						insCache.Host(), insCache.Port(), insCache.ID(), err)
+				}
+			}
+		case <-ctx.Done():
+			log.Infof("[Health Check]instance event handler loop stopped")
+			return
+		}
+	}
 }
 
 func currentTimeSec() int64 {
