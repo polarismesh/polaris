@@ -44,4 +44,6 @@ const (
 	// DefaultSelfPreservationDuration instance unhealthy check point to preservation,
 	// instances over 15 min won't get preservation
 	DefaultSelfPreservationDuration = 15 * time.Minute
+	DefaultListenIP                 = "0.0.0.0"
+	DefaultListenPort               = 8761
 )

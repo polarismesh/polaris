@@ -158,7 +158,6 @@ func (a *ApplicationsBuilder) constructApplication(app *Application, instances [
 			continue
 		}
 		instanceInfo := buildInstance(app.Name, instance.Proto, instance.ModifyTime.UnixNano()/1e6)
-		instanceInfo.RealInstances[instance.Revision()] = instance
 		status := instanceInfo.Status
 		app.StatusCounts[status] = app.StatusCounts[status] + 1
 		app.Instance = append(app.Instance, instanceInfo)
@@ -183,71 +182,6 @@ func buildHashCode(version string, hashBuilder map[string]int, newApps *Applicat
 	// 构建hashValue
 	newApps.AppsHashCode = buildHashStr(hashBuilder)
 	newApps.VersionsDelta = version
-}
-
-func (a *ApplicationsBuilder) buildDeltaApps(oldAppsCache *ApplicationsRespCache, newAppsCache *ApplicationsRespCache,
-	latestDeltaAppsCache *ApplicationsRespCache) *ApplicationsRespCache {
-	var instCount int
-	newApps := newAppsCache.AppsResp.Applications
-	// 1. 创建新的delta对象
-	newDeltaApps := &Applications{
-		VersionsDelta: newApps.VersionsDelta,
-		AppsHashCode:  newApps.AppsHashCode,
-		Application:   make([]*Application, 0),
-	}
-	// 2. 拷贝老的delta内容
-	var oldDeltaApps *Applications
-	if latestDeltaAppsCache != nil {
-		oldDeltaApps = latestDeltaAppsCache.AppsResp.Applications
-	}
-	if oldDeltaApps != nil && len(oldDeltaApps.Application) > 0 {
-		for _, app := range oldDeltaApps.Application {
-			newDeltaApps.Application = append(newDeltaApps.Application, app)
-			instCount += len(app.Instance)
-		}
-	}
-	// 3. 比较revision是否发生变更
-	if oldAppsCache.Revision != newAppsCache.Revision {
-		// 3. 比较修改和新增
-		oldApps := oldAppsCache.AppsResp.Applications
-		applications := newApps.Application
-		if len(applications) > 0 {
-			for _, application := range applications {
-				var oldApplication = oldApps.GetApplication(application.Name)
-				if oldApplication == nil {
-					// 新增，全部加入
-					newDeltaApps.Application = append(newDeltaApps.Application, application)
-					instCount += len(application.Instance)
-					continue
-				}
-				// 修改，需要比较实例的变更
-				diffApp := diffApplication(oldApplication, application)
-				if diffApp != nil && len(diffApp.Instance) > 0 {
-					newDeltaApps.Application = append(newDeltaApps.Application, diffApp)
-					instCount += len(diffApp.Instance)
-				}
-			}
-		}
-		// 4. 比较删除
-		oldApplications := oldApps.Application
-		if len(oldApplications) > 0 {
-			for _, application := range oldApplications {
-				var newApplication = newApps.GetApplication(application.Name)
-				if newApplication == nil {
-					// 删除
-					deletedApplication := &Application{
-						Name: application.Name,
-					}
-					for _, instance := range application.Instance {
-						deletedApplication.Instance = append(deletedApplication.Instance, instance.Clone(ActionDeleted))
-					}
-					newDeltaApps.Application = append(newDeltaApps.Application, deletedApplication)
-					instCount += len(deletedApplication.Instance)
-				}
-			}
-		}
-	}
-	return constructResponseCache(newDeltaApps, instCount, true)
 }
 
 func parseStatus(instance *apiservice.Instance) string {
@@ -369,7 +303,7 @@ func buildInstance(appName string, instance *apiservice.Instance, lastModifyTime
 		Metadata: &Metadata{
 			Meta: make(map[string]interface{}),
 		},
-		RealInstances: make(map[string]*model.Instance),
+		RealInstance: instance,
 	}
 	instanceInfo.AppName = appName
 	// 属于eureka注册的实例
