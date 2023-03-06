@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/polarismesh/polaris/common/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
 // PortWrapper 端口包装类
@@ -297,8 +297,8 @@ type InstanceInfo struct {
 
 	ActionType string `json:"actionType" xml:"actionType"`
 
-	// 实际的北极星实例模型, key为revision
-	RealInstances map[string]*model.Instance `json:"-" xml:"-"`
+	// 实际的北极星实例模型
+	RealInstance *apiservice.Instance `json:"-" xml:"-"`
 }
 
 // Clone 对实例进行拷贝
@@ -333,18 +333,7 @@ func (i *InstanceInfo) Clone(actionType string) *InstanceInfo {
 
 // Equals 判断实例是否发生变更
 func (i *InstanceInfo) Equals(another *InstanceInfo) bool {
-	if len(i.RealInstances) != len(another.RealInstances) {
-		return false
-	}
-	if len(i.RealInstances) == 0 {
-		return true
-	}
-	for revision := range i.RealInstances {
-		if _, ok := another.RealInstances[revision]; !ok {
-			return false
-		}
-	}
-	return true
+	return i.RealInstance.GetRevision().GetValue() == another.RealInstance.GetRevision().GetValue()
 }
 
 // Application 服务数据
