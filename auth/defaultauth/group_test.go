@@ -126,7 +126,6 @@ func newGroupTest(t *testing.T) *GroupTest {
 }
 
 func (g *GroupTest) Clean() {
-	g.ctrl.Finish()
 	g.cancel()
 	time.Sleep(5 * time.Second)
 	g.ctrl.Finish()
