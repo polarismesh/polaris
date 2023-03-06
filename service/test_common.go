@@ -679,7 +679,8 @@ func (d *DiscoverTestSuit) HeartBeat(t *testing.T, service *apiservice.Service, 
 	}
 }
 
-func (d *DiscoverTestSuit) GetLastHeartBeat(t *testing.T, service *apiservice.Service, instanceID string) *apiservice.Response {
+func (d *DiscoverTestSuit) GetLastHeartBeat(t *testing.T, service *apiservice.Service,
+	instanceID string) *apiservice.Response {
 	req := &apiservice.Instance{
 		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
 		Id:           utils.NewStringValue(instanceID),
@@ -687,7 +688,6 @@ func (d *DiscoverTestSuit) GetLastHeartBeat(t *testing.T, service *apiservice.Se
 
 	return d.healthCheckServer.GetLastHeartbeat(req)
 }
-
 
 // 生成服务的主要数据
 func genMainService(id int) *apiservice.Service {
