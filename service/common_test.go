@@ -15,19 +15,16 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package service_test
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/boltdb/bolt"
 	_ "github.com/go-sql-driver/mysql"
@@ -38,19 +35,12 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
-	"gopkg.in/yaml.v2"
 
-	"github.com/polarismesh/polaris/auth"
 	_ "github.com/polarismesh/polaris/auth/defaultauth"
-	"github.com/polarismesh/polaris/cache"
 	_ "github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/eventhub"
-	commonlog "github.com/polarismesh/polaris/common/log"
-	"github.com/polarismesh/polaris/common/metrics"
+	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/utils"
-	ns "github.com/polarismesh/polaris/namespace"
-	"github.com/polarismesh/polaris/plugin"
 	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
 	_ "github.com/polarismesh/polaris/plugin/discoverevent/local"
 	_ "github.com/polarismesh/polaris/plugin/discoverstat/discoverlocal"
@@ -85,67 +75,8 @@ const (
 	tblClient                 = "client"
 )
 
-type Bootstrap struct {
-	Logger map[string]*commonlog.Options
-}
-
-type TestConfig struct {
-	Bootstrap    Bootstrap          `yaml:"bootstrap"`
-	Cache        cache.Config       `yaml:"cache"`
-	Namespace    ns.Config          `yaml:"namespace"`
-	Naming       Config             `yaml:"naming"`
-	Config       Config             `yaml:"config"`
-	HealthChecks healthcheck.Config `yaml:"healthcheck"`
-	Store        store.Config       `yaml:"store"`
-	Auth         auth.Config        `yaml:"auth"`
-	Plugin       plugin.Config      `yaml:"plugin"`
-}
-
 type DiscoverTestSuit struct {
-	cfg                 *TestConfig
-	server              DiscoverServer
-	healthCheckServer   *healthcheck.Server
-	namespaceSvr        ns.NamespaceOperateServer
-	cancelFlag          bool
-	updateCacheInterval time.Duration
-	defaultCtx          context.Context
-	cancel              context.CancelFunc
-	storage             store.Store
-}
-
-func (d *DiscoverTestSuit) DiscoverServer() DiscoverServer {
-	return d.server
-}
-
-func (d *DiscoverTestSuit) HealthCheckServer() *healthcheck.Server {
-	return d.healthCheckServer
-}
-
-// 加载配置
-func (d *DiscoverTestSuit) loadConfig() error {
-
-	d.cfg = new(TestConfig)
-
-	confFileName := testdata.Path("service_test.yaml")
-	if os.Getenv("STORE_MODE") == "sqldb" {
-		fmt.Printf("run store mode : sqldb\n")
-		confFileName = testdata.Path("service_test_sqldb.yaml")
-		d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey,
-			"nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
-	}
-	file, err := os.Open(confFileName)
-	if err != nil {
-		fmt.Printf("[ERROR] %v\n", err)
-		return err
-	}
-
-	err = yaml.NewDecoder(file).Decode(d.cfg)
-	if err != nil {
-		fmt.Printf("[ERROR] %v\n", err)
-		return err
-	}
-
-	return err
+	testsuit.DiscoverTestSuit
 }
 
 // 判断一个resp是否执行成功
@@ -298,9 +229,9 @@ func (d *DiscoverTestSuit) Destroy() {
 }
 
 func (d *DiscoverTestSuit) cleanReportClient() {
-	if d.storage.Name() == sqldb.STORENAME {
+	if d.Storage.Name() == sqldb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -317,9 +248,9 @@ func (d *DiscoverTestSuit) cleanReportClient() {
 
 			commitDbTx(dbTx)
 		}()
-	} else if d.storage.Name() == boltdb.STORENAME {
+	} else if d.Storage.Name() == boltdb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -371,10 +302,10 @@ func (d *DiscoverTestSuit) cleanNamespace(name string) {
 
 	log.Infof("clean namespace: %s", name)
 
-	if d.storage.Name() == sqldb.STORENAME {
+	if d.Storage.Name() == sqldb.STORENAME {
 		str := "delete from namespace where name = ?"
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -388,9 +319,9 @@ func (d *DiscoverTestSuit) cleanNamespace(name string) {
 
 			commitDbTx(dbTx)
 		}()
-	} else if d.storage.Name() == boltdb.STORENAME {
+	} else if d.Storage.Name() == boltdb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -411,9 +342,9 @@ func (d *DiscoverTestSuit) cleanNamespace(name string) {
 // 从数据库彻底删除全部服务
 func (d *DiscoverTestSuit) cleanAllService() {
 
-	if d.storage.Name() == sqldb.STORENAME {
+	if d.Storage.Name() == sqldb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -439,9 +370,9 @@ func (d *DiscoverTestSuit) cleanAllService() {
 
 			commitDbTx(dbTx)
 		}()
-	} else if d.storage.Name() == boltdb.STORENAME {
+	} else if d.Storage.Name() == boltdb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -464,9 +395,9 @@ func (d *DiscoverTestSuit) cleanAllService() {
 // 从数据库彻底删除服务
 func (d *DiscoverTestSuit) cleanService(name, namespace string) {
 
-	if d.storage.Name() == sqldb.STORENAME {
+	if d.Storage.Name() == sqldb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -503,9 +434,9 @@ func (d *DiscoverTestSuit) cleanService(name, namespace string) {
 
 			commitDbTx(dbTx)
 		}()
-	} else if d.storage.Name() == boltdb.STORENAME {
+	} else if d.Storage.Name() == boltdb.STORENAME {
 		func() {
-			svc, err := d.storage.GetService(name, namespace)
+			svc, err := d.Storage.GetService(name, namespace)
 			if err != nil {
 				panic(err)
 			}
@@ -513,7 +444,7 @@ func (d *DiscoverTestSuit) cleanService(name, namespace string) {
 				return
 			}
 
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -542,9 +473,9 @@ func (d *DiscoverTestSuit) cleanServiceName(name string, namespace string) {
 // clean services
 func (d *DiscoverTestSuit) cleanServices(services []*apiservice.Service) {
 
-	if d.storage.Name() == sqldb.STORENAME {
+	if d.Storage.Name() == sqldb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -568,12 +499,12 @@ func (d *DiscoverTestSuit) cleanServices(services []*apiservice.Service) {
 
 			commitDbTx(dbTx)
 		}()
-	} else if d.storage.Name() == boltdb.STORENAME {
+	} else if d.Storage.Name() == boltdb.STORENAME {
 		func() {
 			ids := make([]string, 0, len(services))
 
 			for _, service := range services {
-				svc, err := d.storage.GetService(service.GetName().GetValue(), service.GetNamespace().GetValue())
+				svc, err := d.Storage.GetService(service.GetName().GetValue(), service.GetNamespace().GetValue())
 				if err != nil {
 					panic(err)
 				}
@@ -581,7 +512,7 @@ func (d *DiscoverTestSuit) cleanServices(services []*apiservice.Service) {
 				ids = append(ids, svc.ID)
 			}
 
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -609,9 +540,9 @@ func (d *DiscoverTestSuit) cleanInstance(instanceID string) {
 	}
 	log.Infof("clean instance: %s", instanceID)
 
-	if d.storage.Name() == sqldb.STORENAME {
+	if d.Storage.Name() == sqldb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -628,9 +559,9 @@ func (d *DiscoverTestSuit) cleanInstance(instanceID string) {
 
 			commitDbTx(dbTx)
 		}()
-	} else if d.storage.Name() == boltdb.STORENAME {
+	} else if d.Storage.Name() == boltdb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -660,7 +591,7 @@ func (d *DiscoverTestSuit) createCommonService(t *testing.T, id int) (*apiservic
 
 	d.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
 
-	resp := d.server.CreateServices(d.defaultCtx, []*apiservice.Service{serviceReq})
+	resp := d.DiscoverServer().CreateServices(d.DefaultCtx, []*apiservice.Service{serviceReq})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
@@ -694,7 +625,7 @@ func (d *DiscoverTestSuit) GetLastHeartBeat(t *testing.T, service *apiservice.Se
 func genMainService(id int) *apiservice.Service {
 	return &apiservice.Service{
 		Name:       utils.NewStringValue(fmt.Sprintf("test-service-%d", id)),
-		Namespace:  utils.NewStringValue(DefaultNamespace),
+		Namespace:  utils.NewStringValue(service.DefaultNamespace),
 		Metadata:   make(map[string]string),
 		Ports:      utils.NewStringValue(fmt.Sprintf("ports-%d", id)),
 		Business:   utils.NewStringValue(fmt.Sprintf("business-%d", id)),
@@ -709,14 +640,14 @@ func genMainService(id int) *apiservice.Service {
 
 // removeCommonService
 func (d *DiscoverTestSuit) removeCommonServices(t *testing.T, req []*apiservice.Service) {
-	if resp := d.server.DeleteServices(d.defaultCtx, req); !respSuccess(resp) {
+	if resp := d.DiscoverServer().DeleteServices(d.DefaultCtx, req); !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
 }
 
 // removeCommonService
 func (d *DiscoverTestSuit) removeCommonServiceAliases(t *testing.T, req []*apiservice.ServiceAlias) {
-	if resp := d.server.DeleteServiceAliases(d.defaultCtx, req); !respSuccess(resp) {
+	if resp := d.DiscoverServer().DeleteServiceAliases(d.DefaultCtx, req); !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
 }
@@ -764,7 +695,7 @@ func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *apiservice.Se
 		},
 	}
 
-	resp := d.server.CreateInstances(d.defaultCtx, []*apiservice.Instance{instanceReq})
+	resp := d.DiscoverServer().CreateInstances(d.DefaultCtx, []*apiservice.Instance{instanceReq})
 	if respSuccess(resp) {
 		return instanceReq, resp.Responses[0].GetInstance()
 	}
@@ -779,7 +710,7 @@ func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *apiservice.Se
 		instanceReq.GetVpcId().GetValue(), instanceReq.GetHost().GetValue(), instanceReq.GetPort().GetValue())
 	d.cleanInstance(InstanceID)
 	t.Logf("repeatd create instance(%s)", InstanceID)
-	resp = d.server.CreateInstances(d.defaultCtx, []*apiservice.Instance{instanceReq})
+	resp = d.DiscoverServer().CreateInstances(d.DefaultCtx, []*apiservice.Instance{instanceReq})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
@@ -799,7 +730,7 @@ func (d *DiscoverTestSuit) addHostPortInstance(t *testing.T, service *apiservice
 		Healthy:      utils.NewBoolValue(true),
 		Isolate:      utils.NewBoolValue(false),
 	}
-	resp := d.server.CreateInstances(d.defaultCtx, []*apiservice.Instance{instanceReq})
+	resp := d.DiscoverServer().CreateInstances(d.DefaultCtx, []*apiservice.Instance{instanceReq})
 	if respSuccess(resp) {
 		return instanceReq, resp.Responses[0].GetInstance()
 	}
@@ -813,7 +744,7 @@ func (d *DiscoverTestSuit) addHostPortInstance(t *testing.T, service *apiservice
 // 添加一个实例
 func (d *DiscoverTestSuit) addInstance(t *testing.T, ins *apiservice.Instance) (
 	*apiservice.Instance, *apiservice.Instance) {
-	resp := d.server.CreateInstances(d.defaultCtx, []*apiservice.Instance{ins})
+	resp := d.DiscoverServer().CreateInstances(d.DefaultCtx, []*apiservice.Instance{ins})
 	if !respSuccess(resp) {
 		if resp.GetCode().GetValue() == api.ExistedResource {
 			id, _ := utils.CalculateInstanceID(ins.GetNamespace().GetValue(), ins.GetService().GetValue(),
@@ -824,7 +755,7 @@ func (d *DiscoverTestSuit) addInstance(t *testing.T, ins *apiservice.Instance) (
 		return ins, resp.Responses[0].GetInstance()
 	}
 
-	resp = d.server.CreateInstances(d.defaultCtx, []*apiservice.Instance{ins})
+	resp = d.DiscoverServer().CreateInstances(d.DefaultCtx, []*apiservice.Instance{ins})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
@@ -839,7 +770,7 @@ func (d *DiscoverTestSuit) removeCommonInstance(t *testing.T, service *apiservic
 		Id:           utils.NewStringValue(instanceID),
 	}
 
-	resp := d.server.DeleteInstances(d.defaultCtx, []*apiservice.Instance{req})
+	resp := d.DiscoverServer().DeleteInstances(d.DefaultCtx, []*apiservice.Instance{req})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
@@ -857,7 +788,7 @@ func (d *DiscoverTestSuit) removeInstanceWithAttrs(
 		Host:         utils.NewStringValue(instance.GetHost().GetValue()),
 		Port:         utils.NewUInt32Value(instance.GetPort().GetValue()),
 	}
-	if resp := d.server.DeleteInstances(d.defaultCtx, []*apiservice.Instance{req}); !respSuccess(resp) {
+	if resp := d.DiscoverServer().DeleteInstances(d.DefaultCtx, []*apiservice.Instance{req}); !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
 }
@@ -905,7 +836,7 @@ func (d *DiscoverTestSuit) createCommonRoutingConfig(
 
 	// TODO 是否应该先删除routing
 
-	resp := d.server.CreateRoutingConfigs(d.defaultCtx, []*apitraffic.Routing{conf})
+	resp := d.DiscoverServer().CreateRoutingConfigs(d.DefaultCtx, []*apitraffic.Routing{conf})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
@@ -914,7 +845,7 @@ func (d *DiscoverTestSuit) createCommonRoutingConfig(
 }
 
 // 创建一个路由配置
-func (d *DiscoverTestSuit) createCommonRoutingConfigV1IntoOldStore(t *testing.T, service *apiservice.Service,
+func (d *DiscoverTestSuit) createCommonRoutingConfigV1IntoOldStore(t *testing.T, svc *apiservice.Service,
 	inCount int, outCount int) (*apitraffic.Routing, *apitraffic.Routing) {
 
 	inBounds := make([]*apitraffic.Route, 0, inCount)
@@ -931,8 +862,8 @@ func (d *DiscoverTestSuit) createCommonRoutingConfigV1IntoOldStore(t *testing.T,
 			},
 		}
 		destination := &apitraffic.Destination{
-			Service:   service.Name,
-			Namespace: service.Namespace,
+			Service:   svc.Name,
+			Namespace: svc.Namespace,
 			Metadata: map[string]*apimodel.MatchString{
 				fmt.Sprintf("in-metadata-%d", i): matchString,
 			},
@@ -949,13 +880,13 @@ func (d *DiscoverTestSuit) createCommonRoutingConfigV1IntoOldStore(t *testing.T,
 	}
 
 	conf := &apitraffic.Routing{
-		Service:      utils.NewStringValue(service.GetName().GetValue()),
-		Namespace:    utils.NewStringValue(service.GetNamespace().GetValue()),
+		Service:      utils.NewStringValue(svc.GetName().GetValue()),
+		Namespace:    utils.NewStringValue(svc.GetNamespace().GetValue()),
 		Inbounds:     inBounds,
-		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
+		ServiceToken: utils.NewStringValue(svc.GetToken().GetValue()),
 	}
 
-	resp := d.server.(*serverAuthAbility).targetServer.CreateRoutingConfig(d.defaultCtx, conf)
+	resp := d.OriginDiscoverServer().(*service.Server).CreateRoutingConfig(d.DefaultCtx, conf)
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
@@ -1068,7 +999,7 @@ func (d *DiscoverTestSuit) createCommonRoutingConfigV2(t *testing.T, cnt int32) 
 // 创建一个路由配置
 func (d *DiscoverTestSuit) createCommonRoutingConfigV2WithReq(
 	t *testing.T, rules []*apitraffic.RouteRule) []*apitraffic.RouteRule {
-	resp := d.server.CreateRoutingConfigsV2(d.defaultCtx, rules)
+	resp := d.DiscoverServer().CreateRoutingConfigsV2(d.DefaultCtx, rules)
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
@@ -1095,7 +1026,7 @@ func (d *DiscoverTestSuit) createCommonRoutingConfigV2WithReq(
 
 // 删除一个路由配置
 func (d *DiscoverTestSuit) deleteCommonRoutingConfig(t *testing.T, req *apitraffic.Routing) {
-	resp := d.server.DeleteRoutingConfigs(d.defaultCtx, []*apitraffic.Routing{req})
+	resp := d.DiscoverServer().DeleteRoutingConfigs(d.DefaultCtx, []*apitraffic.Routing{req})
 	if !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
 	}
@@ -1103,7 +1034,7 @@ func (d *DiscoverTestSuit) deleteCommonRoutingConfig(t *testing.T, req *apitraff
 
 // 删除一个路由配置
 func (d *DiscoverTestSuit) deleteCommonRoutingConfigV2(t *testing.T, req *apitraffic.RouteRule) {
-	resp := d.server.DeleteRoutingConfigsV2(d.defaultCtx, []*apitraffic.RouteRule{req})
+	resp := d.DiscoverServer().DeleteRoutingConfigsV2(d.DefaultCtx, []*apitraffic.RouteRule{req})
 	if !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo())
 	}
@@ -1111,7 +1042,7 @@ func (d *DiscoverTestSuit) deleteCommonRoutingConfigV2(t *testing.T, req *apitra
 
 // 更新一个路由配置
 func (d *DiscoverTestSuit) updateCommonRoutingConfig(t *testing.T, req *apitraffic.Routing) {
-	resp := d.server.UpdateRoutingConfigs(d.defaultCtx, []*apitraffic.Routing{req})
+	resp := d.DiscoverServer().UpdateRoutingConfigs(d.DefaultCtx, []*apitraffic.Routing{req})
 	if !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
 	}
@@ -1120,9 +1051,9 @@ func (d *DiscoverTestSuit) updateCommonRoutingConfig(t *testing.T, req *apitraff
 // 彻底删除一个路由配置
 func (d *DiscoverTestSuit) cleanCommonRoutingConfig(service string, namespace string) {
 
-	if d.storage.Name() == sqldb.STORENAME {
+	if d.Storage.Name() == sqldb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -1144,9 +1075,9 @@ func (d *DiscoverTestSuit) cleanCommonRoutingConfig(service string, namespace st
 
 			commitDbTx(dbTx)
 		}()
-	} else if d.storage.Name() == boltdb.STORENAME {
+	} else if d.Storage.Name() == boltdb.STORENAME {
 		func() {
-			svc, err := d.storage.GetService(service, namespace)
+			svc, err := d.Storage.GetService(service, namespace)
 			if err != nil {
 				panic(err)
 			}
@@ -1155,7 +1086,7 @@ func (d *DiscoverTestSuit) cleanCommonRoutingConfig(service string, namespace st
 				return
 			}
 
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -1185,9 +1116,9 @@ func (d *DiscoverTestSuit) cleanCommonRoutingConfig(service string, namespace st
 }
 
 func (d *DiscoverTestSuit) truncateCommonRoutingConfigV2() {
-	if d.storage.Name() == sqldb.STORENAME {
+	if d.Storage.Name() == sqldb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -1202,10 +1133,10 @@ func (d *DiscoverTestSuit) truncateCommonRoutingConfigV2() {
 
 			commitDbTx(dbTx)
 		}()
-	} else if d.storage.Name() == boltdb.STORENAME {
+	} else if d.Storage.Name() == boltdb.STORENAME {
 		func() {
 
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -1228,9 +1159,9 @@ func (d *DiscoverTestSuit) truncateCommonRoutingConfigV2() {
 // 彻底删除一个路由配置
 func (d *DiscoverTestSuit) cleanCommonRoutingConfigV2(rules []*apitraffic.RouteRule) {
 
-	if d.storage.Name() == sqldb.STORENAME {
+	if d.Storage.Name() == sqldb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -1255,10 +1186,10 @@ func (d *DiscoverTestSuit) cleanCommonRoutingConfigV2(rules []*apitraffic.RouteR
 
 			commitDbTx(dbTx)
 		}()
-	} else if d.storage.Name() == boltdb.STORENAME {
+	} else if d.Storage.Name() == boltdb.STORENAME {
 		func() {
 
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -1484,7 +1415,7 @@ func (d *DiscoverTestSuit) createCommonRateLimit(
 		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
 	}
 
-	resp := d.server.CreateRateLimits(d.defaultCtx, []*apitraffic.Rule{rateLimit})
+	resp := d.DiscoverServer().CreateRateLimits(d.DefaultCtx, []*apitraffic.Rule{rateLimit})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
@@ -1493,14 +1424,14 @@ func (d *DiscoverTestSuit) createCommonRateLimit(
 
 // 删除限流规则
 func (d *DiscoverTestSuit) deleteRateLimit(t *testing.T, rateLimit *apitraffic.Rule) {
-	if resp := d.server.DeleteRateLimits(d.defaultCtx, []*apitraffic.Rule{rateLimit}); !respSuccess(resp) {
+	if resp := d.DiscoverServer().DeleteRateLimits(d.DefaultCtx, []*apitraffic.Rule{rateLimit}); !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
 	}
 }
 
 // 更新单个限流规则
 func (d *DiscoverTestSuit) updateRateLimit(t *testing.T, rateLimit *apitraffic.Rule) {
-	if resp := d.server.UpdateRateLimits(d.defaultCtx, []*apitraffic.Rule{rateLimit}); !respSuccess(resp) {
+	if resp := d.DiscoverServer().UpdateRateLimits(d.DefaultCtx, []*apitraffic.Rule{rateLimit}); !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
 	}
 }
@@ -1508,9 +1439,9 @@ func (d *DiscoverTestSuit) updateRateLimit(t *testing.T, rateLimit *apitraffic.R
 // 彻底删除限流规则
 func (d *DiscoverTestSuit) cleanRateLimit(id string) {
 
-	if d.storage.Name() == sqldb.STORENAME {
+	if d.Storage.Name() == sqldb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -1526,9 +1457,9 @@ func (d *DiscoverTestSuit) cleanRateLimit(id string) {
 
 			commitDbTx(dbTx)
 		}()
-	} else if d.storage.Name() == boltdb.STORENAME {
+	} else if d.Storage.Name() == boltdb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -1549,9 +1480,9 @@ func (d *DiscoverTestSuit) cleanRateLimit(id string) {
 // 彻底删除限流规则版本号
 func (d *DiscoverTestSuit) cleanRateLimitRevision(service, namespace string) {
 
-	if d.storage.Name() == sqldb.STORENAME {
+	if d.Storage.Name() == sqldb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -1568,10 +1499,10 @@ func (d *DiscoverTestSuit) cleanRateLimitRevision(service, namespace string) {
 
 			commitDbTx(dbTx)
 		}()
-	} else if d.storage.Name() == boltdb.STORENAME {
+	} else if d.Storage.Name() == boltdb.STORENAME {
 		func() {
 
-			svc, err := d.storage.GetService(service, namespace)
+			svc, err := d.Storage.GetService(service, namespace)
 			if err != nil {
 				panic(err)
 			}
@@ -1580,7 +1511,7 @@ func (d *DiscoverTestSuit) cleanRateLimitRevision(service, namespace string) {
 				panic("service not found " + service + ", namespace" + namespace)
 			}
 
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -1704,7 +1635,7 @@ func (d *DiscoverTestSuit) createCommonCircuitBreaker(
 	t *testing.T, id int) (*apifault.CircuitBreaker, *apifault.CircuitBreaker) {
 	circuitBreaker := &apifault.CircuitBreaker{
 		Name:       utils.NewStringValue(fmt.Sprintf("name-test-%d", id)),
-		Namespace:  utils.NewStringValue(DefaultNamespace),
+		Namespace:  utils.NewStringValue(service.DefaultNamespace),
 		Owners:     utils.NewStringValue("owner-test"),
 		Comment:    utils.NewStringValue("comment-test"),
 		Department: utils.NewStringValue("department-test"),
@@ -1784,7 +1715,7 @@ func (d *DiscoverTestSuit) createCommonCircuitBreaker(
 	circuitBreaker.Inbounds = inbounds
 	circuitBreaker.Outbounds = outbounds
 
-	resp := d.server.CreateCircuitBreakers(d.defaultCtx, []*apifault.CircuitBreaker{circuitBreaker})
+	resp := d.DiscoverServer().CreateCircuitBreakers(d.DefaultCtx, []*apifault.CircuitBreaker{circuitBreaker})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
@@ -1804,7 +1735,7 @@ func (d *DiscoverTestSuit) createCommonCircuitBreakerVersion(t *testing.T, cb *a
 		Token:     cb.GetToken(),
 	}
 
-	resp := d.server.CreateCircuitBreakerVersions(d.defaultCtx, []*apifault.CircuitBreaker{cbVersion})
+	resp := d.DiscoverServer().CreateCircuitBreakerVersions(d.DefaultCtx, []*apifault.CircuitBreaker{cbVersion})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
@@ -1813,16 +1744,16 @@ func (d *DiscoverTestSuit) createCommonCircuitBreakerVersion(t *testing.T, cb *a
 
 // 删除熔断规则
 func (d *DiscoverTestSuit) deleteCircuitBreaker(t *testing.T, circuitBreaker *apifault.CircuitBreaker) {
-	if resp := d.server.DeleteCircuitBreakers(
-		d.defaultCtx, []*apifault.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
+	if resp := d.DiscoverServer().DeleteCircuitBreakers(
+		d.DefaultCtx, []*apifault.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
 	}
 }
 
 // 更新熔断规则内容
 func (d *DiscoverTestSuit) updateCircuitBreaker(t *testing.T, circuitBreaker *apifault.CircuitBreaker) {
-	if resp := d.server.UpdateCircuitBreakers(
-		d.defaultCtx, []*apifault.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
+	if resp := d.DiscoverServer().UpdateCircuitBreakers(
+		d.DefaultCtx, []*apifault.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
 		t.Fatalf("%s", resp.GetInfo().GetValue())
 	}
 }
@@ -1835,7 +1766,7 @@ func (d *DiscoverTestSuit) releaseCircuitBreaker(
 		CircuitBreaker: cb,
 	}
 
-	resp := d.server.ReleaseCircuitBreakers(d.defaultCtx, []*apiservice.ConfigRelease{release})
+	resp := d.DiscoverServer().ReleaseCircuitBreakers(d.DefaultCtx, []*apiservice.ConfigRelease{release})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
@@ -1849,7 +1780,7 @@ func (d *DiscoverTestSuit) unBindCircuitBreaker(
 		CircuitBreaker: cb,
 	}
 
-	resp := d.server.UnBindCircuitBreakers(d.defaultCtx, []*apiservice.ConfigRelease{unbind})
+	resp := d.DiscoverServer().UnBindCircuitBreakers(d.DefaultCtx, []*apiservice.ConfigRelease{unbind})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
@@ -1912,9 +1843,9 @@ func buildCircuitBreakerKey(id, version string) string {
 func (d *DiscoverTestSuit) cleanCircuitBreaker(id, version string) {
 	log.Infof("clean circuit breaker, id: %s, version: %s", id, version)
 
-	if d.storage.Name() == sqldb.STORENAME {
+	if d.Storage.Name() == sqldb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -1930,9 +1861,9 @@ func (d *DiscoverTestSuit) cleanCircuitBreaker(id, version string) {
 
 			commitDbTx(dbTx)
 		}()
-	} else if d.storage.Name() == boltdb.STORENAME {
+	} else if d.Storage.Name() == boltdb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -1954,9 +1885,9 @@ func (d *DiscoverTestSuit) cleanCircuitBreaker(id, version string) {
 // 彻底删除熔断规则发布记录
 func (d *DiscoverTestSuit) cleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
 
-	if d.storage.Name() == sqldb.STORENAME {
+	if d.Storage.Name() == sqldb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -1973,13 +1904,13 @@ func (d *DiscoverTestSuit) cleanCircuitBreakerRelation(name, namespace, ruleID, 
 
 			commitDbTx(dbTx)
 		}()
-	} else if d.storage.Name() == boltdb.STORENAME {
+	} else if d.Storage.Name() == boltdb.STORENAME {
 		func() {
-			releations, err := d.storage.GetCircuitBreakerRelation(ruleID, ruleVersion)
+			releations, err := d.Storage.GetCircuitBreakerRelation(ruleID, ruleVersion)
 			if err != nil {
 				panic(err)
 			}
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}

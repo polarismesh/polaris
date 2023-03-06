@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package service_test
 
 import (
 	"context"
@@ -59,7 +59,7 @@ func mockReportClients(cnt int) []*apiservice.Client {
 func TestServer_ReportClient(t *testing.T) {
 	t.Run("正常客户端上报", func(t *testing.T) {
 		discoverSuit := &DiscoverTestSuit{}
-		if err := discoverSuit.initialize(); err != nil {
+		if err := discoverSuit.Initialize(); err != nil {
 			t.Fatal(err)
 		}
 		defer discoverSuit.Destroy()
@@ -68,7 +68,7 @@ func TestServer_ReportClient(t *testing.T) {
 		defer discoverSuit.cleanReportClient()
 
 		for i := range clients {
-			resp := discoverSuit.server.ReportClient(discoverSuit.defaultCtx, clients[i])
+			resp := discoverSuit.DiscoverServer().ReportClient(discoverSuit.DefaultCtx, clients[i])
 			assert.True(t, respSuccess(resp), resp.GetInfo().GetValue())
 		}
 	})
@@ -77,7 +77,7 @@ func TestServer_ReportClient(t *testing.T) {
 func TestServer_GetReportClient(t *testing.T) {
 	t.Run("客户端上报-查询客户端信息", func(t *testing.T) {
 		discoverSuit := &DiscoverTestSuit{}
-		if err := discoverSuit.initialize(); err != nil {
+		if err := discoverSuit.Initialize(); err != nil {
 			t.Fatal(err)
 		}
 		defer discoverSuit.Destroy()
@@ -90,17 +90,17 @@ func TestServer_GetReportClient(t *testing.T) {
 		for i := range clients {
 			go func(client *apiservice.Client) {
 				defer wait.Done()
-				resp := discoverSuit.server.ReportClient(discoverSuit.defaultCtx, client)
+				resp := discoverSuit.DiscoverServer().ReportClient(discoverSuit.DefaultCtx, client)
 				assert.True(t, respSuccess(resp), resp.GetInfo().GetValue())
 				t.Logf("create one client success : %s", client.GetId().GetValue())
 			}(clients[i])
 		}
 
 		wait.Wait()
-		time.Sleep(discoverSuit.updateCacheInterval * 5)
+		time.Sleep(discoverSuit.UpdateCacheInterval() * 5)
 		t.Log("finish sleep to wait cache refresh")
 
-		resp := discoverSuit.server.GetPrometheusTargets(context.Background(), map[string]string{})
+		resp := discoverSuit.DiscoverServer().GetPrometheusTargets(context.Background(), map[string]string{})
 		assert.Equal(t, apiv1.ExecuteSuccess, resp.Code)
 		assert.True(t, len(resp.Response) >= 0 && len(resp.Response) <= 5)
 	})

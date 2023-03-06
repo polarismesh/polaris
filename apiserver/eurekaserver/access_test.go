@@ -30,11 +30,11 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/service"
+	testsuit "github.com/polarismesh/polaris/test/suit"
 )
 
 func createEurekaServerForTest(
-	discoverSuit *service.DiscoverTestSuit, options map[string]interface{}) (*EurekaServer, error) {
+	discoverSuit *testsuit.DiscoverTestSuit, options map[string]interface{}) (*EurekaServer, error) {
 	eurekaSrv := &EurekaServer{
 		namingServer:      discoverSuit.DiscoverServer(),
 		healthCheckServer: discoverSuit.HealthCheckServer(),
@@ -142,7 +142,7 @@ func checkInstanceAction(t *testing.T, applications *Applications, appName strin
 
 // 测试新建实例
 func TestCreateInstance(t *testing.T) {
-	discoverSuit := &service.DiscoverTestSuit{}
+	discoverSuit := &testsuit.DiscoverTestSuit{}
 	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}

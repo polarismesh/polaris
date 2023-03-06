@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package service_test
 
 import (
 	"context"
@@ -36,7 +36,7 @@ import (
 func TestDiscoverInstances(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -58,8 +58,8 @@ func TestDiscoverInstances(t *testing.T) {
 			reqInstances = append(reqInstances, req)
 		}
 		Convey("正常服务发现，返回的数据齐全", func() {
-			time.Sleep(discoverSuit.updateCacheInterval)
-			out := discoverSuit.server.ServiceInstancesCache(discoverSuit.defaultCtx, service)
+			time.Sleep(discoverSuit.UpdateCacheInterval())
+			out := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, service)
 			So(respSuccess(out), ShouldEqual, true)
 			So(len(out.GetInstances()), ShouldEqual, count)
 			for _, resp := range out.GetInstances() {
@@ -79,15 +79,15 @@ func TestDiscoverInstances(t *testing.T) {
 			}
 		})
 		Convey("service-metadata修改，revision会修改", func() {
-			out := discoverSuit.server.ServiceInstancesCache(discoverSuit.defaultCtx, service)
+			out := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, service)
 			So(respSuccess(out), ShouldEqual, true)
 			oldRevision := out.GetService().GetRevision().GetValue()
 
 			service.Metadata = make(map[string]string)
 			service.Metadata["new-metadata1"] = "1233"
 			service.Metadata["new-metadata2"] = "2342"
-			resp := discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*apiservice.Service{service})
-			time.Sleep(discoverSuit.updateCacheInterval)
+			resp := discoverSuit.DiscoverServer().UpdateServices(discoverSuit.DefaultCtx, []*apiservice.Service{service})
+			time.Sleep(discoverSuit.UpdateCacheInterval())
 			So(respSuccess(resp), ShouldEqual, true)
 			So(resp.Responses[0].GetService().GetRevision().GetValue(), ShouldNotEqual, oldRevision)
 			So(resp.Responses[0].GetService().GetMetadata()["new-metadata1"], ShouldEqual, "1233")
@@ -101,7 +101,7 @@ func TestDiscoverInstances(t *testing.T) {
 func TestDiscoverCircuitBreaker(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -111,14 +111,14 @@ func TestDiscoverCircuitBreaker(t *testing.T) {
 		defer cleanCircuitBreakerRules(discoverSuit, resp)
 		service := &apiservice.Service{Name: utils.NewStringValue("testDestService"), Namespace: utils.NewStringValue("test")}
 		Convey("正常获取熔断规则", func() {
-			time.Sleep(discoverSuit.updateCacheInterval)
-			out := discoverSuit.server.GetCircuitBreakerWithCache(discoverSuit.defaultCtx, service)
+			time.Sleep(discoverSuit.UpdateCacheInterval())
+			out := discoverSuit.DiscoverServer().GetCircuitBreakerWithCache(discoverSuit.DefaultCtx, service)
 			So(respSuccess(out), ShouldEqual, true)
 			So(len(out.GetCircuitBreaker().GetRules()), ShouldEqual, len(rules))
 			t.Logf("pass: out is %+v", out)
 
 			// 再次请求
-			out = discoverSuit.server.GetCircuitBreakerWithCache(discoverSuit.defaultCtx, out.GetService())
+			out = discoverSuit.DiscoverServer().GetCircuitBreakerWithCache(discoverSuit.DefaultCtx, out.GetService())
 			So(respSuccess(out), ShouldEqual, true)
 			So(out.GetCode().GetValue(), ShouldEqual, api.DataNoChange)
 			t.Logf("pass: out is %+v", out)
@@ -130,7 +130,7 @@ func TestDiscoverCircuitBreaker(t *testing.T) {
 func TestDiscoverCircuitBreaker2(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -140,8 +140,8 @@ func TestDiscoverCircuitBreaker2(t *testing.T) {
 		defer cleanCircuitBreakerRules(discoverSuit, resp)
 		service := &apiservice.Service{Name: utils.NewStringValue("testDestService"), Namespace: utils.NewStringValue("default")}
 		Convey("熔断规则不存在", func() {
-			time.Sleep(discoverSuit.updateCacheInterval)
-			out := discoverSuit.server.GetCircuitBreakerWithCache(discoverSuit.defaultCtx, service)
+			time.Sleep(discoverSuit.UpdateCacheInterval())
+			out := discoverSuit.DiscoverServer().GetCircuitBreakerWithCache(discoverSuit.DefaultCtx, service)
 			So(respSuccess(out), ShouldEqual, true)
 			So(len(out.GetCircuitBreaker().GetRules()), ShouldEqual, 0)
 			t.Logf("pass: out is %+v", out)
@@ -153,7 +153,7 @@ func TestDiscoverCircuitBreaker2(t *testing.T) {
 func TestDiscoverService(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -185,15 +185,15 @@ func TestDiscoverService(t *testing.T) {
 
 		expectService1.Metadata = meta
 		expectService2.Metadata = meta
-		_ = discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*apiservice.Service{expectService1})
-		_ = discoverSuit.server.UpdateServices(discoverSuit.defaultCtx, []*apiservice.Service{expectService1})
-		time.Sleep(discoverSuit.updateCacheInterval)
+		_ = discoverSuit.DiscoverServer().UpdateServices(discoverSuit.DefaultCtx, []*apiservice.Service{expectService1})
+		_ = discoverSuit.DiscoverServer().UpdateServices(discoverSuit.DefaultCtx, []*apiservice.Service{expectService1})
+		time.Sleep(discoverSuit.UpdateCacheInterval())
 
 		Convey("正常获取服务", func() {
 			requestService := &apiservice.Service{
 				Metadata: requestMeta,
 			}
-			out := discoverSuit.server.GetServiceWithCache(discoverSuit.defaultCtx, requestService)
+			out := discoverSuit.DiscoverServer().GetServiceWithCache(discoverSuit.DefaultCtx, requestService)
 			So(respSuccess(out), ShouldEqual, true)
 			if len(out.GetServices()) == 2 {
 				t.Logf("pass: out service is %+v", out.GetServices())
@@ -208,7 +208,7 @@ func TestDiscoverService(t *testing.T) {
 			requestService := &apiservice.Service{
 				Metadata: requestMeta,
 			}
-			out := discoverSuit.server.GetServiceWithCache(discoverSuit.defaultCtx, requestService)
+			out := discoverSuit.DiscoverServer().GetServiceWithCache(discoverSuit.DefaultCtx, requestService)
 			So(respSuccess(out), ShouldEqual, true)
 			if len(out.GetServices()) == 0 {
 				t.Logf("pass: out service is %+v", out.GetServices())
@@ -223,7 +223,7 @@ func TestDiscoverService(t *testing.T) {
 func TestDiscoverService2(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -231,7 +231,7 @@ func TestDiscoverService2(t *testing.T) {
 	Convey("服务正常测试", t, func() {
 		Convey("元数据不存在", func() {
 			service := &apiservice.Service{}
-			out := discoverSuit.server.GetServiceWithCache(discoverSuit.defaultCtx, service)
+			out := discoverSuit.DiscoverServer().GetServiceWithCache(discoverSuit.DefaultCtx, service)
 			So(respSuccess(out), ShouldEqual, true)
 			t.Logf("pass: out is %+v", out)
 		})
@@ -239,7 +239,7 @@ func TestDiscoverService2(t *testing.T) {
 			service := &apiservice.Service{
 				Metadata: make(map[string]string),
 			}
-			out := discoverSuit.server.GetServiceWithCache(discoverSuit.defaultCtx, service)
+			out := discoverSuit.DiscoverServer().GetServiceWithCache(discoverSuit.DefaultCtx, service)
 			So(respSuccess(out), ShouldEqual, true)
 			t.Logf("pass: out is %+v", out)
 		})
@@ -249,7 +249,7 @@ func TestDiscoverService2(t *testing.T) {
 func TestDiscoverServerV2(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -259,7 +259,7 @@ func TestDiscoverServerV2(t *testing.T) {
 		Namespace: utils.NewStringValue("in-source-service-1"),
 	}
 
-	createSvcResp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{svc})
+	createSvcResp := discoverSuit.DiscoverServer().CreateServices(discoverSuit.DefaultCtx, []*apiservice.Service{svc})
 	if !respSuccess(createSvcResp) {
 		t.Fatalf("error: %s", createSvcResp.GetInfo().GetValue())
 	}
@@ -267,16 +267,16 @@ func TestDiscoverServerV2(t *testing.T) {
 	_ = discoverSuit.createCommonRoutingConfigV2(t, 3)
 	defer discoverSuit.truncateCommonRoutingConfigV2()
 
-	time.Sleep(discoverSuit.updateCacheInterval * 5)
+	time.Sleep(discoverSuit.UpdateCacheInterval() * 5)
 
 	t.Run("空请求", func(t *testing.T) {
-		resp := discoverSuit.server.GetRouterConfigWithCache(context.Background(), nil)
+		resp := discoverSuit.DiscoverServer().GetRouterConfigWithCache(context.Background(), nil)
 
 		assert.Equal(t, api.EmptyRequest, resp.Code.GetValue())
 	})
 
 	t.Run("没有带服务名", func(t *testing.T) {
-		resp := discoverSuit.server.GetRouterConfigWithCache(context.Background(), &apiservice.Service{
+		resp := discoverSuit.DiscoverServer().GetRouterConfigWithCache(context.Background(), &apiservice.Service{
 			Namespace: &wrappers.StringValue{Value: "string"},
 		})
 
@@ -284,7 +284,7 @@ func TestDiscoverServerV2(t *testing.T) {
 	})
 
 	t.Run("没有带命名空间", func(t *testing.T) {
-		resp := discoverSuit.server.GetRouterConfigWithCache(context.Background(), &apiservice.Service{
+		resp := discoverSuit.DiscoverServer().GetRouterConfigWithCache(context.Background(), &apiservice.Service{
 			Name: &wrappers.StringValue{Value: "string"},
 		})
 
@@ -292,7 +292,7 @@ func TestDiscoverServerV2(t *testing.T) {
 	})
 
 	t.Run("查询v2版本的路由规则", func(t *testing.T) {
-		resp := discoverSuit.server.GetRouterConfigWithCache(context.Background(), &apiservice.Service{
+		resp := discoverSuit.DiscoverServer().GetRouterConfigWithCache(context.Background(), &apiservice.Service{
 			Name:      &wrappers.StringValue{Value: "in-source-service-1"},
 			Namespace: &wrappers.StringValue{Value: "in-source-service-1"},
 		})
@@ -307,7 +307,7 @@ func TestDiscoverServerV2(t *testing.T) {
 func TestDiscoverRateLimits(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -319,22 +319,22 @@ func TestDiscoverRateLimits(t *testing.T) {
 		defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 		defer discoverSuit.cleanRateLimitRevision(service.GetName().GetValue(), service.GetNamespace().GetValue())
 		Convey("正常获取限流规则", func() {
-			time.Sleep(discoverSuit.updateCacheInterval)
-			out := discoverSuit.server.GetRateLimitWithCache(discoverSuit.defaultCtx, service)
+			time.Sleep(discoverSuit.UpdateCacheInterval())
+			out := discoverSuit.DiscoverServer().GetRateLimitWithCache(discoverSuit.DefaultCtx, service)
 			So(respSuccess(out), ShouldEqual, true)
 			So(len(out.GetRateLimit().GetRules()), ShouldEqual, 1)
 			checkRateLimit(t, rateLimitResp, out.GetRateLimit().GetRules()[0])
 			t.Logf("pass: out is %+v", out)
 			// 再次请求
-			out = discoverSuit.server.GetRateLimitWithCache(discoverSuit.defaultCtx, out.GetService())
+			out = discoverSuit.DiscoverServer().GetRateLimitWithCache(discoverSuit.DefaultCtx, out.GetService())
 			So(respSuccess(out), ShouldEqual, true)
 			So(out.GetCode().GetValue(), ShouldEqual, api.DataNoChange)
 			t.Logf("pass: out is %+v", out)
 		})
 		Convey("限流规则已删除", func() {
 			discoverSuit.deleteRateLimit(t, rateLimitResp)
-			time.Sleep(discoverSuit.updateCacheInterval)
-			out := discoverSuit.server.GetRateLimitWithCache(discoverSuit.defaultCtx, service)
+			time.Sleep(discoverSuit.UpdateCacheInterval())
+			out := discoverSuit.DiscoverServer().GetRateLimitWithCache(discoverSuit.DefaultCtx, service)
 			So(respSuccess(out), ShouldEqual, true)
 			So(len(out.GetRateLimit().GetRules()), ShouldEqual, 0)
 			t.Logf("pass: out is %+v", out)
@@ -346,7 +346,7 @@ func TestDiscoverRateLimits(t *testing.T) {
 func TestDiscoverRateLimits2(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -355,8 +355,8 @@ func TestDiscoverRateLimits2(t *testing.T) {
 		_, service := discoverSuit.createCommonService(t, 1)
 		defer discoverSuit.cleanServiceName(service.GetName().GetValue(), service.GetNamespace().GetValue())
 		Convey("限流规则不存在", func() {
-			time.Sleep(discoverSuit.updateCacheInterval)
-			out := discoverSuit.server.GetRateLimitWithCache(discoverSuit.defaultCtx, service)
+			time.Sleep(discoverSuit.UpdateCacheInterval())
+			out := discoverSuit.DiscoverServer().GetRateLimitWithCache(discoverSuit.DefaultCtx, service)
 			So(respSuccess(out), ShouldEqual, true)
 			So(out.GetRateLimit(), ShouldBeNil)
 			t.Logf("pass: out is %+v", out)
@@ -364,8 +364,8 @@ func TestDiscoverRateLimits2(t *testing.T) {
 		Convey("服务不存在", func() {
 			services := []*apiservice.Service{service}
 			discoverSuit.removeCommonServices(t, services)
-			time.Sleep(discoverSuit.updateCacheInterval)
-			out := discoverSuit.server.GetRateLimitWithCache(discoverSuit.defaultCtx, service)
+			time.Sleep(discoverSuit.UpdateCacheInterval())
+			out := discoverSuit.DiscoverServer().GetRateLimitWithCache(discoverSuit.DefaultCtx, service)
 			So(respSuccess(out), ShouldEqual, false)
 			t.Logf("pass: out is %+v", out)
 		})

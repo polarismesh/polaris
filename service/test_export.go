@@ -24,16 +24,40 @@ import (
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/service/batch"
 	"github.com/polarismesh/polaris/service/healthcheck"
 	"github.com/polarismesh/polaris/store"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
+
+// GetBatchController .
+func (s *Server) GetBatchController() *batch.Controller {
+	return s.bc
+}
+
+// MockBatchController .
+func (s *Server) MockBatchController(bc *batch.Controller) {
+	s.bc = bc
+}
+
+func TestNewServer(mockStore store.Store, nsSvr namespace.NamespaceOperateServer,
+	cacheMgr *cache.CacheManager) *Server {
+	return &Server{
+		storage:             mockStore,
+		namespaceSvr:        nsSvr,
+		caches:              cacheMgr,
+		createServiceSingle: &singleflight.Group{},
+		hooks:               []ResourceHook{},
+	}
+}
 
 // TestInitialize 初始化
 func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, bc *batch.Controller,
 	cacheMgr *cache.CacheManager, storage store.Store, namespaceSvr namespace.NamespaceOperateServer,
-	healthSvr *healthcheck.Server, authSvr auth.AuthServer) (DiscoverServer, error) {
+	healthSvr *healthcheck.Server, authSvr auth.AuthServer) (DiscoverServer, DiscoverServer, error) {
 	namingServer.healthServer = healthSvr
 	namingServer.storage = storage
 	// 注入命名空间管理模块
@@ -52,5 +76,22 @@ func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Conf
 	namingServer.createServiceSingle = &singleflight.Group{}
 	// 插件初始化
 	pluginInitialize()
-	return newServerAuthAbility(namingServer, authSvr), nil
+	return newServerAuthAbility(namingServer, authSvr), namingServer, nil
+}
+
+// TestSerialCreateInstance .
+func (s *Server) TestSerialCreateInstance(
+	ctx context.Context, svcId string, req *apiservice.Instance, ins *apiservice.Instance) (
+	*model.Instance, *apiservice.Response) {
+	return s.serialCreateInstance(ctx, svcId, req, ins)
+}
+
+// TestCheckCreateInstance .
+func TestCheckCreateInstance(req *apiservice.Instance) (string, *apiservice.Response) {
+	return checkCreateInstance(req)
+}
+
+// TestIsEmptyLocation .
+func TestIsEmptyLocation(loc *apimodel.Location) bool {
+	return isEmptyLocation(loc)
 }

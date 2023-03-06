@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package service_test
 
 import (
 	"context"
@@ -92,7 +92,7 @@ func (l *CacheListener) OnBatchDeleted(value interface{}) {
 func TestCreateRateLimit(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -102,7 +102,7 @@ func TestCreateRateLimit(t *testing.T) {
 	defer discoverSuit.cleanRateLimitRevision(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
 	t.Run("正常创建限流规则", func(t *testing.T) {
-		_ = discoverSuit.server.Cache().Clear()
+		_ = discoverSuit.DiscoverServer().Cache().Clear()
 
 		time.Sleep(5 * time.Second)
 
@@ -110,25 +110,25 @@ func TestCreateRateLimit(t *testing.T) {
 		defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 
 		// 等待缓存更新
-		time.Sleep(discoverSuit.updateCacheInterval)
-		resp := discoverSuit.server.GetRateLimitWithCache(context.Background(), serviceResp)
+		time.Sleep(discoverSuit.UpdateCacheInterval())
+		resp := discoverSuit.DiscoverServer().GetRateLimitWithCache(context.Background(), serviceResp)
 		checkRateLimit(t, rateLimitReq, resp.GetRateLimit().GetRules()[0])
 	})
 
 	t.Run("创建限流规则，删除，再创建，可以正常创建", func(t *testing.T) {
-		_ = discoverSuit.server.Cache().Clear()
+		_ = discoverSuit.DiscoverServer().Cache().Clear()
 		time.Sleep(5 * time.Second)
 
 		rateLimitReq, rateLimitResp := discoverSuit.createCommonRateLimit(t, serviceResp, 3)
 		defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 		discoverSuit.deleteRateLimit(t, rateLimitResp)
-		if resp := discoverSuit.server.CreateRateLimits(discoverSuit.defaultCtx, []*apitraffic.Rule{rateLimitReq}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().CreateRateLimits(discoverSuit.DefaultCtx, []*apitraffic.Rule{rateLimitReq}); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 
 		// 等待缓存更新
-		time.Sleep(discoverSuit.updateCacheInterval)
-		resp := discoverSuit.server.GetRateLimitWithCache(context.Background(), serviceResp)
+		time.Sleep(discoverSuit.UpdateCacheInterval())
+		resp := discoverSuit.DiscoverServer().GetRateLimitWithCache(context.Background(), serviceResp)
 		checkRateLimit(t, rateLimitReq, resp.GetRateLimit().GetRules()[0])
 		discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 	})
@@ -136,7 +136,7 @@ func TestCreateRateLimit(t *testing.T) {
 	t.Run("重复创建限流规则，返回成功", func(t *testing.T) {
 		rateLimitReq, rateLimitResp := discoverSuit.createCommonRateLimit(t, serviceResp, 3)
 		defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
-		if resp := discoverSuit.server.CreateRateLimits(discoverSuit.defaultCtx, []*apitraffic.Rule{rateLimitReq}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().CreateRateLimits(discoverSuit.DefaultCtx, []*apitraffic.Rule{rateLimitReq}); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Log("pass")
@@ -146,12 +146,12 @@ func TestCreateRateLimit(t *testing.T) {
 
 	t.Run("创建限流规则时，没有传递token，返回失败", func(t *testing.T) {
 
-		oldCtx := discoverSuit.defaultCtx
+		oldCtx := discoverSuit.DefaultCtx
 
-		discoverSuit.defaultCtx = context.Background()
+		discoverSuit.DefaultCtx = context.Background()
 
 		defer func() {
-			discoverSuit.defaultCtx = oldCtx
+			discoverSuit.DefaultCtx = oldCtx
 		}()
 
 		rateLimit := &apitraffic.Rule{
@@ -159,7 +159,7 @@ func TestCreateRateLimit(t *testing.T) {
 			Namespace: serviceResp.GetNamespace(),
 			Labels:    map[string]*apimodel.MatchString{},
 		}
-		if resp := discoverSuit.server.CreateRateLimits(discoverSuit.defaultCtx, []*apitraffic.Rule{rateLimit}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().CreateRateLimits(discoverSuit.DefaultCtx, []*apitraffic.Rule{rateLimit}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -172,7 +172,7 @@ func TestCreateRateLimit(t *testing.T) {
 	// 		Namespace:    serviceResp.GetNamespace(),
 	// 		ServiceToken: serviceResp.GetToken(),
 	// 	}
-	// 	if resp := discoverSuit.server.CreateRateLimits(discoverSuit.defaultCtx, []*apitraffic.Rule{rateLimit}); !respSuccess(resp) {
+	// 	if resp := discoverSuit.DiscoverServer().CreateRateLimits(discoverSuit.DefaultCtx, []*apitraffic.Rule{rateLimit}); !respSuccess(resp) {
 	// 		t.Logf("pass: %s", resp.GetInfo().GetValue())
 	// 	} else {
 	// 		t.Fatalf("error")
@@ -202,7 +202,7 @@ func TestCreateRateLimit(t *testing.T) {
 			},
 			ServiceToken: serviceResp.GetToken(),
 		}
-		if resp := discoverSuit.server.CreateRateLimits(discoverSuit.defaultCtx, []*apitraffic.Rule{rateLimit}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().CreateRateLimits(discoverSuit.DefaultCtx, []*apitraffic.Rule{rateLimit}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatalf("error")
@@ -249,7 +249,7 @@ func TestCreateRateLimit(t *testing.T) {
 			Labels:       map[string]*apimodel.MatchString{},
 			ServiceToken: serviceResp.GetToken(),
 		}
-		if resp := discoverSuit.server.CreateRateLimits(discoverSuit.defaultCtx, []*apitraffic.Rule{rateLimit}); respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().CreateRateLimits(discoverSuit.DefaultCtx, []*apitraffic.Rule{rateLimit}); respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatalf("error : %s", resp.GetInfo().GetValue())
@@ -263,7 +263,7 @@ func TestCreateRateLimit(t *testing.T) {
 func TestDeleteRateLimit(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -277,7 +277,7 @@ func TestDeleteRateLimit(t *testing.T) {
 			"service":   service.GetName().GetValue(),
 			"namespace": service.GetNamespace().GetValue(),
 		}
-		resp := discoverSuit.server.GetRateLimits(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.DiscoverServer().GetRateLimits(discoverSuit.DefaultCtx, filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error")
 		}
@@ -308,15 +308,15 @@ func TestDeleteRateLimit(t *testing.T) {
 		defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 		rateLimitReq.ServiceToken = utils.NewStringValue("")
 
-		oldCtx := discoverSuit.defaultCtx
+		oldCtx := discoverSuit.DefaultCtx
 
-		discoverSuit.defaultCtx = context.Background()
+		discoverSuit.DefaultCtx = context.Background()
 
 		defer func() {
-			discoverSuit.defaultCtx = oldCtx
+			discoverSuit.DefaultCtx = oldCtx
 		}()
 
-		if resp := discoverSuit.server.DeleteRateLimits(discoverSuit.defaultCtx, []*apitraffic.Rule{rateLimitReq}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().DeleteRateLimits(discoverSuit.DefaultCtx, []*apitraffic.Rule{rateLimitReq}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -348,7 +348,7 @@ func TestDeleteRateLimit(t *testing.T) {
 func TestUpdateRateLimit(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -367,7 +367,7 @@ func TestUpdateRateLimit(t *testing.T) {
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),
 		}
-		resp := discoverSuit.server.GetRateLimits(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.DiscoverServer().GetRateLimits(discoverSuit.DefaultCtx, filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error")
 		}
@@ -377,7 +377,7 @@ func TestUpdateRateLimit(t *testing.T) {
 
 	t.Run("更新一个不存在的限流规则", func(t *testing.T) {
 		discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
-		if resp := discoverSuit.server.UpdateRateLimits(discoverSuit.defaultCtx, []*apitraffic.Rule{rateLimitResp}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UpdateRateLimits(discoverSuit.DefaultCtx, []*apitraffic.Rule{rateLimitResp}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatalf("error")
@@ -385,15 +385,15 @@ func TestUpdateRateLimit(t *testing.T) {
 	})
 
 	t.Run("更新限流规则时，没有传递token，正常", func(t *testing.T) {
-		oldCtx := discoverSuit.defaultCtx
-		discoverSuit.defaultCtx = context.Background()
+		oldCtx := discoverSuit.DefaultCtx
+		discoverSuit.DefaultCtx = context.Background()
 
 		defer func() {
-			discoverSuit.defaultCtx = oldCtx
+			discoverSuit.DefaultCtx = oldCtx
 		}()
 
 		rateLimitResp.ServiceToken = utils.NewStringValue("")
-		if resp := discoverSuit.server.UpdateRateLimits(discoverSuit.defaultCtx, []*apitraffic.Rule{rateLimitResp}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UpdateRateLimits(discoverSuit.DefaultCtx, []*apitraffic.Rule{rateLimitResp}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatalf("error")
@@ -418,7 +418,7 @@ func TestUpdateRateLimit(t *testing.T) {
 					"service":   serviceResp.GetName().GetValue(),
 					"namespace": serviceResp.GetNamespace().GetValue(),
 				}
-				resp := discoverSuit.server.GetRateLimits(discoverSuit.defaultCtx, filters)
+				resp := discoverSuit.DiscoverServer().GetRateLimits(discoverSuit.DefaultCtx, filters)
 				if !respSuccess(resp) {
 					errs <- fmt.Errorf("error : %v", resp)
 				}
@@ -442,7 +442,7 @@ func TestUpdateRateLimit(t *testing.T) {
 
 func TestDisableRateLimit(t *testing.T) {
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -471,13 +471,13 @@ func TestDisableRateLimit(t *testing.T) {
 			}
 
 			t.Logf("start run : %s", label)
-			if resp := discoverSuit.server.EnableRateLimits(discoverSuit.defaultCtx, ruleContents); !respSuccess(resp) {
+			if resp := discoverSuit.DiscoverServer().EnableRateLimits(discoverSuit.DefaultCtx, ruleContents); !respSuccess(resp) {
 				t.Fatalf("error: %s", resp.GetInfo().GetValue())
 			}
 			filters := map[string]string{
 				"id": rateLimitResp.GetId().GetValue(),
 			}
-			resp := discoverSuit.server.GetRateLimits(discoverSuit.defaultCtx, filters)
+			resp := discoverSuit.DiscoverServer().GetRateLimits(discoverSuit.DefaultCtx, filters)
 			if !respSuccess(resp) {
 				t.Fatalf("error : %s", resp.GetInfo().GetValue())
 			}
@@ -493,7 +493,7 @@ func TestDisableRateLimit(t *testing.T) {
 
 			var ok bool
 			for i := 0; i < 3; i++ {
-				discoverResp := discoverSuit.server.GetRateLimitWithCache(discoverSuit.defaultCtx, serviceResp)
+				discoverResp := discoverSuit.DiscoverServer().GetRateLimitWithCache(discoverSuit.DefaultCtx, serviceResp)
 				if !respSuccess(discoverResp) {
 					t.Fatalf("error: %s", resp.GetInfo().GetValue())
 				}
@@ -538,7 +538,7 @@ func TestDisableRateLimit(t *testing.T) {
 func TestGetRateLimit(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -567,7 +567,7 @@ func TestGetRateLimit(t *testing.T) {
 		filters := map[string]string{
 			"service": serviceName,
 		}
-		resp := discoverSuit.server.GetRateLimits(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.DiscoverServer().GetRateLimits(discoverSuit.DefaultCtx, filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -581,7 +581,7 @@ func TestGetRateLimit(t *testing.T) {
 		filters := map[string]string{
 			"namespace": namespaceName,
 		}
-		resp := discoverSuit.server.GetRateLimits(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.DiscoverServer().GetRateLimits(discoverSuit.DefaultCtx, filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -595,7 +595,7 @@ func TestGetRateLimit(t *testing.T) {
 		filters := map[string]string{
 			"namespace": "Development",
 		}
-		resp := discoverSuit.server.GetRateLimits(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.DiscoverServer().GetRateLimits(discoverSuit.DefaultCtx, filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -610,7 +610,7 @@ func TestGetRateLimit(t *testing.T) {
 			"service":   serviceName,
 			"namespace": namespaceName,
 		}
-		resp := discoverSuit.server.GetRateLimits(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.DiscoverServer().GetRateLimits(discoverSuit.DefaultCtx, filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -625,7 +625,7 @@ func TestGetRateLimit(t *testing.T) {
 			"offset": "1",
 			"limit":  "5",
 		}
-		resp := discoverSuit.server.GetRateLimits(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.DiscoverServer().GetRateLimits(discoverSuit.DefaultCtx, filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -640,7 +640,7 @@ func TestGetRateLimit(t *testing.T) {
 			"name":  "rule_name_0",
 			"brief": "true",
 		}
-		resp := discoverSuit.server.GetRateLimits(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.DiscoverServer().GetRateLimits(discoverSuit.DefaultCtx, filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -655,7 +655,7 @@ func TestGetRateLimit(t *testing.T) {
 			"namespace": namespaceName,
 			"offset":    "-5",
 		}
-		resp := discoverSuit.server.GetRateLimits(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.DiscoverServer().GetRateLimits(discoverSuit.DefaultCtx, filters)
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
@@ -669,7 +669,7 @@ func TestGetRateLimit(t *testing.T) {
 			"namespace": namespaceName,
 			"limit":     "-5",
 		}
-		resp := discoverSuit.server.GetRateLimits(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.DiscoverServer().GetRateLimits(discoverSuit.DefaultCtx, filters)
 		if !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
@@ -682,7 +682,7 @@ func TestGetRateLimit(t *testing.T) {
 func TestCheckRatelimitFieldLen(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -697,7 +697,7 @@ func TestCheckRatelimitFieldLen(t *testing.T) {
 		str := genSpecialStr(129)
 		oldName := rateLimit.Service
 		rateLimit.Service = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateRateLimits(discoverSuit.defaultCtx, []*apitraffic.Rule{rateLimit})
+		resp := discoverSuit.DiscoverServer().CreateRateLimits(discoverSuit.DefaultCtx, []*apitraffic.Rule{rateLimit})
 		rateLimit.Service = oldName
 		if resp.Code.Value != api.InvalidServiceName {
 			t.Fatalf("%+v", resp)
@@ -707,7 +707,7 @@ func TestCheckRatelimitFieldLen(t *testing.T) {
 		str := genSpecialStr(129)
 		oldNamespace := rateLimit.Namespace
 		rateLimit.Namespace = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateRateLimits(discoverSuit.defaultCtx, []*apitraffic.Rule{rateLimit})
+		resp := discoverSuit.DiscoverServer().CreateRateLimits(discoverSuit.DefaultCtx, []*apitraffic.Rule{rateLimit})
 		rateLimit.Namespace = oldNamespace
 		if resp.Code.Value != api.InvalidNamespaceName {
 			t.Fatalf("%+v", resp)
@@ -717,7 +717,7 @@ func TestCheckRatelimitFieldLen(t *testing.T) {
 		str := genSpecialStr(2049)
 		oldName := rateLimit.Name
 		rateLimit.Name = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateRateLimits(discoverSuit.defaultCtx, []*apitraffic.Rule{rateLimit})
+		resp := discoverSuit.DiscoverServer().CreateRateLimits(discoverSuit.DefaultCtx, []*apitraffic.Rule{rateLimit})
 		rateLimit.Name = oldName
 		if resp.Code.Value != api.InvalidRateLimitName {
 			t.Fatalf("%+v", resp)

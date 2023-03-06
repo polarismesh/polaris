@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package service_test
 
 import (
 	"context"
@@ -29,11 +29,12 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/common/model"
+	testsuit "github.com/polarismesh/polaris/test/suit"
 )
 
 func TestInstanceCheck(t *testing.T) {
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -51,7 +52,7 @@ func TestInstanceCheck(t *testing.T) {
 	})
 	instanceIds := map[string]bool{instanceId1: true, instanceId2: true}
 	for id := range instanceIds {
-		resp := discoverSuit.server.RegisterInstance(context.Background(), &apiservice.Instance{Id: wrapperspb.String(id),
+		resp := discoverSuit.DiscoverServer().RegisterInstance(context.Background(), &apiservice.Instance{Id: wrapperspb.String(id),
 			Service: wrapperspb.String("testSvc"), Namespace: wrapperspb.String("default"),
 			Host: wrapperspb.String("127.0.0.1"), Port: wrapperspb.UInt32(8888), Weight: wrapperspb.UInt32(100),
 			HealthCheck: &apiservice.HealthCheck{Type: apiservice.HealthCheck_HEARTBEAT, Heartbeat: &apiservice.HeartbeatHealthCheck{
@@ -64,16 +65,16 @@ func TestInstanceCheck(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		for instanceId := range instanceIds {
 			fmt.Printf("%d report instance for %s, round 1\n", i, instanceId)
-			discoverSuit.healthCheckServer.Report(
+			discoverSuit.HealthCheckServer().Report(
 				context.Background(), &apiservice.Instance{Id: &wrapperspb.StringValue{Value: instanceId}})
 		}
 		time.Sleep(1 * time.Second)
 	}
 
-	instance1 := discoverSuit.server.Cache().Instance().GetInstance(instanceId1)
+	instance1 := discoverSuit.DiscoverServer().Cache().Instance().GetInstance(instanceId1)
 	assert.NotNil(t, instance1)
 	assert.Equal(t, true, instance1.Proto.GetHealthy().GetValue())
-	instance2 := discoverSuit.server.Cache().Instance().GetInstance(instanceId2)
+	instance2 := discoverSuit.DiscoverServer().Cache().Instance().GetInstance(instanceId2)
 	assert.NotNil(t, instance2)
 	assert.Equal(t, true, instance2.Proto.GetHealthy().GetValue())
 
@@ -81,22 +82,22 @@ func TestInstanceCheck(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		for instanceId := range instanceIds {
 			fmt.Printf("%d report instance for %s, round 2\n", i, instanceId)
-			discoverSuit.healthCheckServer.Report(
+			discoverSuit.HealthCheckServer().Report(
 				context.Background(), &apiservice.Instance{Id: &wrapperspb.StringValue{Value: instanceId}})
 		}
 		time.Sleep(1 * time.Second)
 	}
-	instance1 = discoverSuit.server.Cache().Instance().GetInstance(instanceId1)
+	instance1 = discoverSuit.DiscoverServer().Cache().Instance().GetInstance(instanceId1)
 	assert.NotNil(t, instance1)
 	assert.Equal(t, true, instance1.Proto.GetHealthy().GetValue())
-	instance2 = discoverSuit.server.Cache().Instance().GetInstance(instanceId2)
+	instance2 = discoverSuit.DiscoverServer().Cache().Instance().GetInstance(instanceId2)
 	assert.NotNil(t, instance2)
 	assert.Equal(t, false, instance2.Proto.GetHealthy().GetValue())
 }
 
 func TestInstanceImmediatelyCheck(t *testing.T) {
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -114,7 +115,7 @@ func TestInstanceImmediatelyCheck(t *testing.T) {
 	})
 	instanceIds := map[string]bool{instanceId1: true, instanceId2: true}
 	for id := range instanceIds {
-		resp := discoverSuit.server.RegisterInstance(context.Background(), &apiservice.Instance{Id: wrapperspb.String(id),
+		resp := discoverSuit.DiscoverServer().RegisterInstance(context.Background(), &apiservice.Instance{Id: wrapperspb.String(id),
 			Service: wrapperspb.String("testSvc"), Namespace: wrapperspb.String("default"),
 			Host: wrapperspb.String("127.0.0.1"), Port: wrapperspb.UInt32(8888), Weight: wrapperspb.UInt32(100),
 			HealthCheck: &apiservice.HealthCheck{Type: apiservice.HealthCheck_HEARTBEAT, Heartbeat: &apiservice.HeartbeatHealthCheck{
@@ -126,7 +127,7 @@ func TestInstanceImmediatelyCheck(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		for instanceId := range instanceIds {
 			fmt.Printf("%d report instance for %s, round 2\n", i, instanceId)
-			hbResp := discoverSuit.healthCheckServer.Report(
+			hbResp := discoverSuit.HealthCheckServer().Report(
 				context.Background(), &apiservice.Instance{Id: &wrapperspb.StringValue{Value: instanceId}})
 			assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), hbResp.GetCode().GetValue())
 		}
@@ -136,7 +137,7 @@ func TestInstanceImmediatelyCheck(t *testing.T) {
 
 func TestInstanceCheckReplicated(t *testing.T) {
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(func(cfg *TestConfig) {
+	if err := discoverSuit.Initialize(func(cfg *testsuit.TestConfig) {
 		cfg.HealthChecks.OmitReplicated = true
 	}); err != nil {
 		t.Fatal(err)
@@ -172,36 +173,36 @@ func TestInstanceCheckReplicated(t *testing.T) {
 		if instance.GetId().GetValue() == instanceId1 {
 			instance.Metadata = map[string]string{model.MetadataReplicated: "true"}
 		}
-		resp := discoverSuit.server.RegisterInstance(context.Background(), instance)
+		resp := discoverSuit.DiscoverServer().RegisterInstance(context.Background(), instance)
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue())
 	}
 	for i := 0; i < 50; i++ {
 		instanceId := instanceId2
 		fmt.Printf("%d report instance for %s, round 1\n", i, instanceId)
-		discoverSuit.healthCheckServer.Report(
+		discoverSuit.HealthCheckServer().Report(
 			context.Background(), &apiservice.Instance{Id: &wrapperspb.StringValue{Value: instanceId}})
 		time.Sleep(1 * time.Second)
 	}
 
-	instance1 := discoverSuit.server.Cache().Instance().GetInstance(instanceId1)
+	instance1 := discoverSuit.DiscoverServer().Cache().Instance().GetInstance(instanceId1)
 	assert.NotNil(t, instance1)
 	assert.Equal(t, true, instance1.Proto.GetHealthy().GetValue())
-	instance2 := discoverSuit.server.Cache().Instance().GetInstance(instanceId2)
+	instance2 := discoverSuit.DiscoverServer().Cache().Instance().GetInstance(instanceId2)
 	assert.NotNil(t, instance2)
 	assert.Equal(t, true, instance2.Proto.GetHealthy().GetValue())
 
 	for i := 0; i < 50; i++ {
 		instanceId := instanceId1
 		fmt.Printf("%d report instance for %s, round 1\n", i, instanceId)
-		discoverSuit.healthCheckServer.Report(
+		discoverSuit.HealthCheckServer().Report(
 			context.Background(), &apiservice.Instance{Id: &wrapperspb.StringValue{Value: instanceId}})
 		time.Sleep(1 * time.Second)
 	}
 
-	instance1 = discoverSuit.server.Cache().Instance().GetInstance(instanceId1)
+	instance1 = discoverSuit.DiscoverServer().Cache().Instance().GetInstance(instanceId1)
 	assert.NotNil(t, instance1)
 	assert.Equal(t, true, instance1.Proto.GetHealthy().GetValue())
-	instance2 = discoverSuit.server.Cache().Instance().GetInstance(instanceId2)
+	instance2 = discoverSuit.DiscoverServer().Cache().Instance().GetInstance(instanceId2)
 	assert.NotNil(t, instance2)
 	assert.Equal(t, false, instance2.Proto.GetHealthy().GetValue())
 }

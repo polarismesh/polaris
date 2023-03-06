@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package service_test
 
 import (
 	"context"
@@ -33,6 +33,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/service"
 )
 
 func TestServer_CreateCircuitBreakerJson(t *testing.T) {
@@ -156,7 +157,7 @@ func TestServer_CreateCircuitBreakerJson(t *testing.T) {
 func TestCreateCircuitBreaker(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -171,7 +172,7 @@ func TestCreateCircuitBreaker(t *testing.T) {
 		_, circuitBreakerResp := discoverSuit.createCommonCircuitBreaker(t, 0)
 		defer discoverSuit.cleanCircuitBreaker(circuitBreakerResp.GetId().GetValue(), circuitBreakerResp.GetVersion().GetValue())
 
-		if resp := discoverSuit.server.CreateCircuitBreakers(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{circuitBreakerResp}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().CreateCircuitBreakers(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{circuitBreakerResp}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -190,7 +191,7 @@ func TestCreateCircuitBreaker(t *testing.T) {
 
 	t.Run("创建熔断规则时，没有传递负责人，返回错误", func(t *testing.T) {
 		circuitBreaker := &apifault.CircuitBreaker{}
-		if resp := discoverSuit.server.CreateCircuitBreakers(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().CreateCircuitBreakers(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -199,10 +200,10 @@ func TestCreateCircuitBreaker(t *testing.T) {
 
 	t.Run("创建熔断规则时，没有传递规则名，返回错误", func(t *testing.T) {
 		circuitBreaker := &apifault.CircuitBreaker{
-			Namespace: utils.NewStringValue(DefaultNamespace),
+			Namespace: utils.NewStringValue(service.DefaultNamespace),
 			Owners:    utils.NewStringValue("test"),
 		}
-		if resp := discoverSuit.server.CreateCircuitBreakers(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().CreateCircuitBreakers(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -214,7 +215,7 @@ func TestCreateCircuitBreaker(t *testing.T) {
 			Name:   utils.NewStringValue("name-test-1"),
 			Owners: utils.NewStringValue("test"),
 		}
-		if resp := discoverSuit.server.CreateCircuitBreakers(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().CreateCircuitBreakers(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{circuitBreaker}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -241,7 +242,7 @@ func TestCreateCircuitBreaker(t *testing.T) {
 func TestCreateCircuitBreakerVersion(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -262,7 +263,7 @@ func TestCreateCircuitBreakerVersion(t *testing.T) {
 			Token:   cbResp.GetToken(),
 		}
 
-		resp := discoverSuit.server.CreateCircuitBreakerVersions(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{cbVersionReq})
+		resp := discoverSuit.DiscoverServer().CreateCircuitBreakerVersions(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{cbVersionReq})
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -281,7 +282,7 @@ func TestCreateCircuitBreakerVersion(t *testing.T) {
 			Token:     cbResp.GetToken(),
 		}
 
-		resp := discoverSuit.server.CreateCircuitBreakerVersions(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{cbVersionReq})
+		resp := discoverSuit.DiscoverServer().CreateCircuitBreakerVersions(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{cbVersionReq})
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -312,7 +313,7 @@ func TestCreateCircuitBreakerVersion(t *testing.T) {
 			Owners:  cbResp.GetOwners(),
 		}
 
-		if resp := discoverSuit.server.CreateCircuitBreakerVersions(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{version}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().CreateCircuitBreakerVersions(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{version}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -320,7 +321,7 @@ func TestCreateCircuitBreakerVersion(t *testing.T) {
 	})
 
 	t.Run("创建master版本的熔断规则，返回错误", func(t *testing.T) {
-		if resp := discoverSuit.server.CreateCircuitBreakerVersions(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{cbResp}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().CreateCircuitBreakerVersions(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{cbResp}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -333,7 +334,7 @@ func TestCreateCircuitBreakerVersion(t *testing.T) {
 			Token:  cbResp.GetToken(),
 			Owners: cbResp.GetOwners(),
 		}
-		if resp := discoverSuit.server.CreateCircuitBreakerVersions(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{version}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().CreateCircuitBreakerVersions(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{version}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -346,7 +347,7 @@ func TestCreateCircuitBreakerVersion(t *testing.T) {
 			Version: cbResp.GetVersion(),
 			Owners:  cbResp.GetOwners(),
 		}
-		if resp := discoverSuit.server.CreateCircuitBreakerVersions(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{version}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().CreateCircuitBreakerVersions(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{version}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -359,7 +360,7 @@ func TestCreateCircuitBreakerVersion(t *testing.T) {
 			Token:     cbResp.GetToken(),
 			Namespace: cbResp.GetNamespace(),
 		}
-		if resp := discoverSuit.server.CreateCircuitBreakerVersions(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{version}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().CreateCircuitBreakerVersions(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{version}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -372,7 +373,7 @@ func TestCreateCircuitBreakerVersion(t *testing.T) {
 			Token:   cbResp.GetToken(),
 			Name:    cbResp.GetName(),
 		}
-		if resp := discoverSuit.server.CreateCircuitBreakerVersions(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{version}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().CreateCircuitBreakerVersions(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{version}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -401,7 +402,7 @@ func TestCreateCircuitBreakerVersion(t *testing.T) {
 func Test_DeleteCircuitBreaker(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -410,7 +411,7 @@ func Test_DeleteCircuitBreaker(t *testing.T) {
 		filters := map[string]string{
 			"id": id,
 		}
-		resp := discoverSuit.server.GetCircuitBreakerVersions(context.Background(), filters)
+		resp := discoverSuit.DiscoverServer().GetCircuitBreakerVersions(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatal("error")
 		}
@@ -525,7 +526,7 @@ func Test_DeleteCircuitBreaker(t *testing.T) {
 			Version: cbResp.GetVersion(),
 		}
 
-		if resp := discoverSuit.server.DeleteCircuitBreakers(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{rule}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().DeleteCircuitBreakers(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{rule}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -543,7 +544,7 @@ func Test_DeleteCircuitBreaker(t *testing.T) {
 			Token:     cbResp.GetToken(),
 		}
 
-		if resp := discoverSuit.server.DeleteCircuitBreakers(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{rule}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().DeleteCircuitBreakers(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{rule}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -569,14 +570,14 @@ func Test_DeleteCircuitBreaker(t *testing.T) {
 			cbVersionResp.GetId().GetValue(), cbVersionResp.GetVersion().GetValue())
 
 		// // 删除master版本
-		// if resp := discoverSuit.server.DeleteCircuitBreakers(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{cbResp}); !respSuccess(resp) {
+		// if resp := discoverSuit.DiscoverServer().DeleteCircuitBreakers(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{cbResp}); !respSuccess(resp) {
 		// 	t.Logf("pass: %s", resp.GetInfo().GetValue())
 		// } else {
 		// 	t.Fatalf("error : %s", resp.GetInfo().GetValue())
 		// }
 
 		// 删除其他版本
-		if resp := discoverSuit.server.DeleteCircuitBreakers(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{cbVersionResp}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().DeleteCircuitBreakers(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{cbVersionResp}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -631,7 +632,7 @@ func Test_DeleteCircuitBreaker(t *testing.T) {
 func TestUpdateCircuitBreaker(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -649,7 +650,7 @@ func TestUpdateCircuitBreaker(t *testing.T) {
 			"version": cbResp.GetVersion().GetValue(),
 		}
 
-		resp := discoverSuit.server.GetCircuitBreaker(context.Background(), filters)
+		resp := discoverSuit.DiscoverServer().GetCircuitBreaker(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatal("error")
 		}
@@ -657,7 +658,7 @@ func TestUpdateCircuitBreaker(t *testing.T) {
 	})
 
 	t.Run("没有更新任何字段，返回不需要更新", func(t *testing.T) {
-		if resp := discoverSuit.server.UpdateCircuitBreakers(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{cbResp}); respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UpdateCircuitBreakers(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{cbResp}); respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -670,7 +671,7 @@ func TestUpdateCircuitBreaker(t *testing.T) {
 			Version: cbResp.GetVersion(),
 			Token:   cbResp.GetToken(),
 		}
-		if resp := discoverSuit.server.UpdateCircuitBreakers(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{rule}); respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UpdateCircuitBreakers(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{rule}); respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -684,7 +685,7 @@ func TestUpdateCircuitBreaker(t *testing.T) {
 			Token:   cbResp.GetToken(),
 			Owners:  utils.NewStringValue(""),
 		}
-		if resp := discoverSuit.server.UpdateCircuitBreakers(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{rule}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UpdateCircuitBreakers(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{rule}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -696,7 +697,7 @@ func TestUpdateCircuitBreaker(t *testing.T) {
 		_, cbVersionResp := discoverSuit.createCommonCircuitBreakerVersion(t, cbResp, 0)
 		defer discoverSuit.cleanCircuitBreaker(cbVersionResp.GetId().GetValue(), cbVersionResp.GetVersion().GetValue())
 
-		if resp := discoverSuit.server.UpdateCircuitBreakers(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{cbVersionResp}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UpdateCircuitBreakers(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{cbVersionResp}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -705,7 +706,7 @@ func TestUpdateCircuitBreaker(t *testing.T) {
 
 	t.Run("更新不存在的熔断规则，返回错误", func(t *testing.T) {
 		discoverSuit.cleanCircuitBreaker(cbResp.GetId().GetValue(), cbResp.GetVersion().GetValue())
-		if resp := discoverSuit.server.UpdateCircuitBreakers(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{cbResp}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UpdateCircuitBreakers(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{cbResp}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -717,7 +718,7 @@ func TestUpdateCircuitBreaker(t *testing.T) {
 			Id:      cbResp.GetId(),
 			Version: cbResp.GetVersion(),
 		}
-		if resp := discoverSuit.server.UpdateCircuitBreakers(discoverSuit.defaultCtx, []*apifault.CircuitBreaker{rule}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UpdateCircuitBreakers(discoverSuit.DefaultCtx, []*apifault.CircuitBreaker{rule}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -744,7 +745,7 @@ func TestUpdateCircuitBreaker(t *testing.T) {
 					"id":      cbResp.GetId().GetValue(),
 					"version": cbResp.GetVersion().GetValue(),
 				}
-				resp := discoverSuit.server.GetCircuitBreaker(context.Background(), filters)
+				resp := discoverSuit.DiscoverServer().GetCircuitBreaker(context.Background(), filters)
 				if !respSuccess(resp) {
 					errs <- fmt.Errorf("error : %v", resp)
 					return
@@ -776,7 +777,7 @@ func TestUpdateCircuitBreaker(t *testing.T) {
 func TestUnBindCircuitBreaker(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -794,11 +795,11 @@ func TestUnBindCircuitBreaker(t *testing.T) {
 	defer discoverSuit.cleanCircuitBreaker(cbVersionResp.GetId().GetValue(), cbVersionResp.GetVersion().GetValue())
 
 	t.Run("解绑规则时没有传递token，返回错误", func(t *testing.T) {
-		oldCtx := discoverSuit.defaultCtx
-		discoverSuit.defaultCtx = context.Background()
+		oldCtx := discoverSuit.DefaultCtx
+		discoverSuit.DefaultCtx = context.Background()
 
 		defer func() {
-			discoverSuit.defaultCtx = oldCtx
+			discoverSuit.DefaultCtx = oldCtx
 		}()
 
 		unbind := &apiservice.ConfigRelease{
@@ -809,7 +810,7 @@ func TestUnBindCircuitBreaker(t *testing.T) {
 			CircuitBreaker: cbVersionResp,
 		}
 
-		if resp := discoverSuit.server.UnBindCircuitBreakers(discoverSuit.defaultCtx, []*apiservice.ConfigRelease{unbind}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UnBindCircuitBreakers(discoverSuit.DefaultCtx, []*apiservice.ConfigRelease{unbind}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -825,7 +826,7 @@ func TestUnBindCircuitBreaker(t *testing.T) {
 			CircuitBreaker: cbVersionResp,
 		}
 
-		if resp := discoverSuit.server.UnBindCircuitBreakers(discoverSuit.defaultCtx, []*apiservice.ConfigRelease{unbind}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UnBindCircuitBreakers(discoverSuit.DefaultCtx, []*apiservice.ConfigRelease{unbind}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -842,7 +843,7 @@ func TestUnBindCircuitBreaker(t *testing.T) {
 			CircuitBreaker: cbVersionResp,
 		}
 
-		if resp := discoverSuit.server.UnBindCircuitBreakers(discoverSuit.defaultCtx, []*apiservice.ConfigRelease{unbind}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UnBindCircuitBreakers(discoverSuit.DefaultCtx, []*apiservice.ConfigRelease{unbind}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -855,7 +856,7 @@ func TestUnBindCircuitBreaker(t *testing.T) {
 			CircuitBreaker: cbResp,
 		}
 
-		if resp := discoverSuit.server.UnBindCircuitBreakers(discoverSuit.defaultCtx, []*apiservice.ConfigRelease{unbind}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UnBindCircuitBreakers(discoverSuit.DefaultCtx, []*apiservice.ConfigRelease{unbind}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -871,7 +872,7 @@ func TestUnBindCircuitBreaker(t *testing.T) {
 			},
 		}
 
-		if resp := discoverSuit.server.UnBindCircuitBreakers(discoverSuit.defaultCtx, []*apiservice.ConfigRelease{unbind}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UnBindCircuitBreakers(discoverSuit.DefaultCtx, []*apiservice.ConfigRelease{unbind}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error")
@@ -908,7 +909,7 @@ func TestUnBindCircuitBreaker(t *testing.T) {
 func TestGetCircuitBreaker(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -959,7 +960,7 @@ func TestGetCircuitBreaker(t *testing.T) {
 			"id": cbResp.GetId().GetValue(),
 		}
 
-		resp := discoverSuit.server.GetCircuitBreakerVersions(context.Background(), filters)
+		resp := discoverSuit.DiscoverServer().GetCircuitBreakerVersions(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -976,7 +977,7 @@ func TestGetCircuitBreaker(t *testing.T) {
 			"id": cbResp.GetId().GetValue(),
 		}
 
-		resp := discoverSuit.server.GetReleaseCircuitBreakers(context.Background(), filters)
+		resp := discoverSuit.DiscoverServer().GetReleaseCircuitBreakers(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -994,7 +995,7 @@ func TestGetCircuitBreaker(t *testing.T) {
 			"version": releaseVersion.GetVersion().GetValue(),
 		}
 
-		resp := discoverSuit.server.GetCircuitBreaker(context.Background(), filters)
+		resp := discoverSuit.DiscoverServer().GetCircuitBreaker(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -1007,7 +1008,7 @@ func TestGetCircuitBreaker(t *testing.T) {
 			"namespace": svc.GetNamespace().GetValue(),
 		}
 
-		resp := discoverSuit.server.GetCircuitBreakerByService(context.Background(), filters)
+		resp := discoverSuit.DiscoverServer().GetCircuitBreakerByService(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -1021,7 +1022,7 @@ func TestGetCircuitBreaker(t *testing.T) {
 func TestGetCircuitBreaker2(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -1039,7 +1040,7 @@ func TestGetCircuitBreaker2(t *testing.T) {
 			"id": cbResp.GetId().GetValue(),
 		}
 
-		resp := discoverSuit.server.GetCircuitBreakerVersions(context.Background(), filters)
+		resp := discoverSuit.DiscoverServer().GetCircuitBreakerVersions(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -1056,7 +1057,7 @@ func TestGetCircuitBreaker2(t *testing.T) {
 			"id": cbResp.GetId().GetValue(),
 		}
 
-		resp := discoverSuit.server.GetReleaseCircuitBreakers(context.Background(), filters)
+		resp := discoverSuit.DiscoverServer().GetReleaseCircuitBreakers(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -1074,7 +1075,7 @@ func TestGetCircuitBreaker2(t *testing.T) {
 			"version": cbResp.GetVersion().GetValue(),
 		}
 
-		resp := discoverSuit.server.GetCircuitBreaker(context.Background(), filters)
+		resp := discoverSuit.DiscoverServer().GetCircuitBreaker(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -1092,7 +1093,7 @@ func TestGetCircuitBreaker2(t *testing.T) {
 			"namespace": serviceResp.GetNamespace().GetValue(),
 		}
 
-		resp := discoverSuit.server.GetCircuitBreakerByService(context.Background(), filters)
+		resp := discoverSuit.DiscoverServer().GetCircuitBreakerByService(context.Background(), filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
