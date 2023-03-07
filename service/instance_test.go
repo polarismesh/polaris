@@ -2246,13 +2246,7 @@ func (mgr *mockTrxManager) Create(svc, namespace string) *mockTrx {
 }
 
 func TestCreateInstanceLockService(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	t.Cleanup(func() {
-		ctrl.Finish()
-	})
-
-	createMockResource := func() (*Server, *mock.MockStore) {
+	createMockResource := func(ctrl *gomock.Controller) (*Server, *mock.MockStore) {
 		var (
 			err      error
 			cacheMgr *cache.CacheManager
@@ -2320,7 +2314,11 @@ func TestCreateInstanceLockService(t *testing.T) {
 	ins.Id = utils.NewStringValue(instanceID)
 
 	t.Run("正常创建实例", func(t *testing.T) {
-		svr, mockStore := createMockResource()
+		ctrl := gomock.NewController(t)
+		t.Cleanup(func() {
+			ctrl.Finish()
+		})
+		svr, mockStore := createMockResource(ctrl)
 		mockStore.EXPECT().GetInstance(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockStore.EXPECT().CreateTransaction().DoAndReturn(func() (store.Transaction, error) {
 			return trxMgr.Create(req.GetService().GetValue(), req.GetNamespace().GetValue()), nil
@@ -2332,7 +2330,11 @@ func TestCreateInstanceLockService(t *testing.T) {
 	})
 
 	t.Run("创建实例的同时删除服务", func(t *testing.T) {
-		svr, mockStore := createMockResource()
+		ctrl := gomock.NewController(t)
+		t.Cleanup(func() {
+			ctrl.Finish()
+		})
+		svr, mockStore := createMockResource(ctrl)
 		mockStore.EXPECT().GetInstance(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockStore.EXPECT().CreateTransaction().DoAndReturn(func() (store.Transaction, error) {
 			return trxMgr.Create(req.GetService().GetValue(), req.GetNamespace().GetValue()), nil
