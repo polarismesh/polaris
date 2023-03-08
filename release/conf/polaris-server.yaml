@@ -391,17 +391,20 @@ cache:
 # Maintain configuration
 maintain:
   jobs:
-    ## Clean up long term unhealthy instance
-    #- name: DeleteUnHealthyInstance
-    #  cronSpec: "0 * * * ?"
-    #  option:
-    #    instanceDeleteTimeout: 60m
-    ## Delete auto-created service without an instance
-    #- name: DeleteEmptyAutoCreatedService
-    #  cronSpec: "0 * * * ?"
-    ## Clean soft deleted instances
-    #- name: CleanDeletedInstances
-    #  cronSpec: "0 1 * * ?"
+    # Clean up long term unhealthy instance
+    - name: DeleteUnHealthyInstance
+      enable: false
+      cronSpec: "0 * * * ?"
+      option:
+        instanceDeleteTimeout: 60m
+    # Delete auto-created service without an instance
+    - name: DeleteEmptyAutoCreatedService
+      enable: false
+      cronSpec: "0 * * * ?"
+    # Clean soft deleted instances
+    - name: CleanDeletedInstances
+      enable: false
+      cronSpec: "0 1 * * ?"
   
 # Storage configuration
 store:

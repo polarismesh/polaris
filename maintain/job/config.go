@@ -20,6 +20,7 @@ package job
 // JobcConfig maintain job configuration
 type JobConfig struct {
 	Name     string                 `yaml:"name"`
+	Enable   bool                   `yaml:"enable"`
 	CronSpec string                 `yaml:"cronSpec"`
 	Option   map[string]interface{} `yaml:"option"`
 }

@@ -54,6 +54,10 @@ func NewMaintainJobs(namingServer service.DiscoverServer, storage store.Store) *
 // StartMaintainJobs
 func (mj *MaintainJobs) StartMaintianJobs(configs []JobConfig) error {
 	for _, cfg := range configs {
+		if !cfg.Enable {
+			log.Infof("[Maintain][Job] job (%s) not enable", cfg.Name)
+			continue
+		}
 		job, ok := mj.jobs[cfg.Name]
 		if !ok {
 			return fmt.Errorf("[Maintain][Job] job (%s) not exist", cfg.Name)
