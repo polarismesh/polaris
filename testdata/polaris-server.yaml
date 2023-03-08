@@ -337,6 +337,8 @@ healthcheck:
   minCheckInterval: 1s
   maxCheckInterval: 30s
   clientReportInterval: 120s
+  # 忽略复制过来的实例，不对其进行健康状态的转换
+  omitReplicated: false
   batch:
     heartbeat:
       open: true

@@ -140,6 +140,7 @@ type EurekaServer struct {
 	deltaExpireInterval    time.Duration
 	enableSelfPreservation bool
 	replicateWorker        *ReplicateWorker
+	eventHandlerHandler    *EurekaInstanceEventHandler
 }
 
 // GetPort 获取端口
@@ -155,8 +156,16 @@ func (h *EurekaServer) GetProtocol() string {
 // Initialize 初始化HTTP API服务器
 func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interface{},
 	api map[string]apiserver.APIConfig) error {
-	h.listenIP = option[optionListenIP].(string)
-	h.listenPort = uint32(option[optionListenPort].(int))
+	if ipValue, ok := option[optionListenIP]; ok {
+		h.listenIP = ipValue.(string)
+	} else {
+		h.listenIP = DefaultListenIP
+	}
+	if portValue, ok := option[optionListenPort]; ok {
+		h.listenPort = uint32(portValue.(int))
+	} else {
+		h.listenPort = uint32(DefaultListenPort)
+	}
 	h.option = option
 	h.openAPI = api
 
@@ -171,13 +180,23 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 
 	if replicatePeersValue, ok := option[optionPeerNodesToReplicate]; ok {
 		replicatePeerObjs := replicatePeersValue.([]interface{})
+		replicatePeers := make([]string, 0, len(replicatePeerObjs))
 		if len(replicatePeerObjs) > 0 {
-			replicatePeers := make([]string, 0, len(replicatePeerObjs))
 			for _, replicatePeerObj := range replicatePeerObjs {
+				replicatePeerStr := replicatePeerObj.(string)
+				if replicatePeerStr == utils.LocalHost {
+					// If the url represents this host, do not replicate to yourself.
+					continue
+				}
 				replicatePeers = append(replicatePeers, replicatePeerObj.(string))
 			}
+		}
+		if len(replicatePeers) > 0 {
 			h.replicateWorker = NewReplicateWorker(ctx, replicatePeers)
-			if err := eventhub.Subscribe(eventhub.InstanceEventTopic, "eureka-replication", h.handleInstanceEvent); nil != err {
+			h.eventHandlerHandler = &EurekaInstanceEventHandler{
+				BaseInstanceEventHandler: service.NewBaseInstanceEventHandler(h.namingServer), svr: h}
+			if err := eventhub.Subscribe(
+				eventhub.InstanceEventTopic, "eureka-replication", h.eventHandlerHandler); nil != err {
 				return err
 			}
 		}
@@ -187,7 +206,7 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 	if value, ok := option[optionRefreshInterval]; ok {
 		refreshInterval = value.(int)
 	}
-	if refreshInterval < DefaultRefreshInterval {
+	if refreshInterval == 0 {
 		refreshInterval = DefaultRefreshInterval
 	}
 
@@ -195,7 +214,7 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 	if value, ok := option[optionDeltaExpireInterval]; ok {
 		deltaExpireInterval = value.(int)
 	}
-	if deltaExpireInterval < DefaultDetailExpireInterval {
+	if deltaExpireInterval == 0 {
 		deltaExpireInterval = DefaultDetailExpireInterval
 	}
 
@@ -235,6 +254,7 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 			CustomEurekaParameters[k.(string)] = fmt.Sprintf("%v", v)
 		}
 	}
+
 	log.Infof("[EUREKA] custom eureka parameters: %v", CustomEurekaParameters)
 	return nil
 }

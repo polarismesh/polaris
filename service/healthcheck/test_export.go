@@ -22,6 +22,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/polarismesh/polaris/common/eventhub"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/service/batch"
 	"github.com/polarismesh/polaris/store"
@@ -54,7 +56,12 @@ func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batc
 			}
 
 			testServer.checkers[int32(checker.Type())] = checker
+			if nil == testServer.defaultChecker {
+				testServer.defaultChecker = checker
+			}
 		}
+	} else {
+		return nil, fmt.Errorf("[healthcheck]no checker config")
 	}
 
 	testServer.storage = storage
@@ -67,10 +74,15 @@ func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batc
 	testServer.timeAdjuster = newTimeAdjuster(ctx, storage)
 	testServer.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval,
 		hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)
-	testServer.dispatcher = newDispatcher(ctx, testServer)
+	testServer.dispatcher = newDispatcher(ctx, testServer, hcOpt.OmitReplicated)
 
-	testServer.discoverCh = make(chan eventWrapper, 32)
-	go testServer.receiveEventAndPush()
+	testServer.instanceEventChannel = make(chan *model.InstanceEvent, 1000)
+	go testServer.handleInstanceEventWorker(ctx)
+
+	instanceEventHandler := newInstanceEventHealthCheckHandler(ctx, server.instanceEventChannel)
+	if err := eventhub.Subscribe(eventhub.InstanceEventTopic, "instanceHealthChecker",
+		instanceEventHandler); err != nil {
+	}
 
 	finishInit = true
 

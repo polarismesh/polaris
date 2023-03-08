@@ -19,7 +19,6 @@ package eventhub
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -99,13 +98,10 @@ func Test_topic_subscribe(t *testing.T) {
 		{
 			name: "topic subscribe",
 			args: args{
-				ctx:  context.Background(),
-				name: "sub1",
-				handler: func(ctx context.Context, i interface{}) error {
-					fmt.Printf("handle event=%v\n", i)
-					return nil
-				},
-				opts: []SubOption{WithQueueSize(100)},
+				ctx:     context.Background(),
+				name:    "sub1",
+				handler: &printEventHandler{},
+				opts:    []SubOption{WithQueueSize(100)},
 			},
 			wantErr: nil,
 		},
@@ -135,12 +131,9 @@ func Test_topic_unsubscribe(t *testing.T) {
 		{
 			name: "topic unsubscribe",
 			args: args{
-				ctx:  context.Background(),
-				name: "sub1",
-				handler: func(ctx context.Context, i interface{}) error {
-					fmt.Printf("handle event=%v\n", i)
-					return nil
-				},
+				ctx:     context.Background(),
+				name:    "sub1",
+				handler: &printEventHandler{},
 			},
 			wantErr: nil,
 		},
@@ -171,14 +164,11 @@ func Test_topic_run(t *testing.T) {
 		{
 			name: "topic run",
 			args: args{
-				ctx:  context.Background(),
-				name: "sub1",
-				handler: func(ctx context.Context, i interface{}) error {
-					fmt.Printf("handle event=%v\n", i)
-					return nil
-				},
-				opts: []SubOption{WithQueueSize(100)},
-				num:  100,
+				ctx:     context.Background(),
+				name:    "sub1",
+				handler: &printEventHandler{},
+				opts:    []SubOption{WithQueueSize(100)},
+				num:     100,
 			},
 		},
 	}

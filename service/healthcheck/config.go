@@ -35,6 +35,7 @@ type Config struct {
 	ClientCheckTtl      time.Duration          `yaml:"clientCheckTtl"`
 	Checkers            []plugin.ConfigEntry   `yaml:"checkers"`
 	Batch               map[string]interface{} `yaml:"batch"`
+	OmitReplicated      bool                   `yaml:"omitReplicated"`
 }
 
 const (

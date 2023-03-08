@@ -58,12 +58,9 @@ func TestEventHub_Publish(t *testing.T) {
 		{
 			name: "publish event",
 			args: args{
-				topic: "test1",
-				name:  "subscribe1",
-				handler: func(ctx context.Context, i interface{}) error {
-					fmt.Printf("handle event=%v\n", i)
-					return nil
-				},
+				topic:    "test1",
+				name:     "subscribe1",
+				handler:  &printEventHandler{},
 				eventNum: 100,
 			},
 		},
@@ -83,6 +80,20 @@ func TestEventHub_Publish(t *testing.T) {
 	}
 }
 
+type printEventHandler struct {
+}
+
+// PreProcess do preprocess logic for event
+func (p *printEventHandler) PreProcess(ctx context.Context, value any) any {
+	return value
+}
+
+// OnEvent event process logic
+func (p *printEventHandler) OnEvent(ctx context.Context, any2 any) error {
+	fmt.Printf("handle event=%v", any2)
+	return nil
+}
+
 func TestEventHub_Subscribe(t *testing.T) {
 	type args struct {
 		topic   string
@@ -98,13 +109,10 @@ func TestEventHub_Subscribe(t *testing.T) {
 		{
 			name: "subscribe topic",
 			args: args{
-				topic: "test2",
-				name:  "subscribe2",
-				handler: func(ctx context.Context, i interface{}) error {
-					fmt.Printf("handle event=%v", i)
-					return nil
-				},
-				opts: []SubOption{WithQueueSize(100)},
+				topic:   "test2",
+				name:    "subscribe2",
+				handler: &printEventHandler{},
+				opts:    []SubOption{WithQueueSize(100)},
 			},
 			wantErr: nil,
 		},
@@ -132,12 +140,9 @@ func TestEventHub_Unsubscribe(t *testing.T) {
 		{
 			name: "unsubscribe topic",
 			args: args{
-				topic: "test3",
-				name:  "subscribe3",
-				handler: func(ctx context.Context, i interface{}) error {
-					fmt.Printf("handle event=%v\n", i)
-					return nil
-				},
+				topic:   "test3",
+				name:    "subscribe3",
+				handler: &printEventHandler{},
 			},
 			wantErr: nil,
 		},

@@ -27,6 +27,7 @@ type ReportRequest struct {
 	QueryRequest
 	LocalHost  string
 	CurTimeSec int64
+	Count      int64
 }
 
 // CheckRequest check heartbeat request
@@ -57,6 +58,7 @@ type QueryResponse struct {
 	Server           string
 	Exists           bool
 	LastHeartbeatSec int64
+	Count            int64
 }
 
 // AddCheckRequest add check request

@@ -311,8 +311,8 @@ func (s *Server) asyncDeleteInstance(
 	start := time.Now()
 	rid := utils.ParseRequestID(ctx)
 	pid := utils.ParsePlatformID(ctx)
-
-	future := s.bc.AsyncDeleteInstance(ins)
+	allowAsyncRegis, _ := ctx.Value(utils.ContextOpenAsyncRegis).(bool)
+	future := s.bc.AsyncDeleteInstance(ins, !allowAsyncRegis)
 	if err := future.Wait(); err != nil {
 		// 如果发现不存在资源，意味着实例已经被删除，直接返回成功
 		if future.Code() == apimodel.Code_NotFoundResource {

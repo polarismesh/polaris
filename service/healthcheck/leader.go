@@ -46,8 +46,13 @@ func newLeaderChangeEventHandler(cacheProvider *CacheProvider,
 	}
 }
 
-// checkSelfServiceInstances
-func (handler *LeaderChangeEventHandler) handle(ctx context.Context, i interface{}) error {
+// PreProcess do preprocess logic for event
+func (handler *LeaderChangeEventHandler) PreProcess(ctx context.Context, value any) any {
+	return value
+}
+
+// OnEvent event trigger
+func (handler *LeaderChangeEventHandler) OnEvent(ctx context.Context, i interface{}) error {
 	e := i.(store.LeaderChangeEvent)
 	if e.Key != store.ElectionKeySelfServiceChecker {
 		return nil

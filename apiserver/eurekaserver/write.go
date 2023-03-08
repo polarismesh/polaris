@@ -28,6 +28,7 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 func buildBaseInstance(instance *InstanceInfo, namespace string, appId string) *apiservice.Instance {
@@ -175,9 +176,13 @@ func (h *EurekaServer) registerInstances(
 	ctx context.Context, appId string, instance *InstanceInfo, replicated bool) uint32 {
 	ctx = context.WithValue(
 		ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
+	ctx = context.WithValue(ctx, utils.ContextOpenAsyncRegis, true)
 	appId = formatWriteName(appId)
 	// 1. 先转换数据结构
 	totalInstance := convertEurekaInstance(instance, h.namespace, appId)
+	if replicated {
+		totalInstance.Metadata[model.MetadataReplicated] = "true"
+	}
 	// 3. 注册实例
 	resp := h.namingServer.RegisterInstance(ctx, totalInstance)
 	// 4. 注册成功，则返回
@@ -205,6 +210,7 @@ func (h *EurekaServer) deregisterInstance(
 	ctx context.Context, appId string, instanceId string, replicated bool) uint32 {
 	ctx = context.WithValue(
 		ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
+	ctx = context.WithValue(ctx, utils.ContextOpenAsyncRegis, true)
 	resp := h.namingServer.DeregisterInstance(ctx, &apiservice.Instance{Id: &wrappers.StringValue{Value: instanceId}})
 	return resp.GetCode().GetValue()
 }

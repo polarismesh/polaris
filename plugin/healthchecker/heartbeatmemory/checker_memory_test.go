@@ -31,28 +31,26 @@ func TestMemoryHealthChecker_Query(t *testing.T) {
 	mhc := MemoryHealthChecker{
 		hbRecords: new(sync.Map),
 	}
-	test := HeartbeatRecord{
-		Server:     "127.0.0.1",
+	id := "key1"
+	reportRequest := &plugin.ReportRequest{
+		QueryRequest: plugin.QueryRequest{
+			InstanceId: id,
+		},
+		LocalHost:  "127.0.0.1",
 		CurTimeSec: 1,
+		Count:      5,
 	}
-	mhc.hbRecords.Store("key", test)
+	err := mhc.Report(reportRequest)
+	assert.Nil(t, err)
 
 	queryRequest := plugin.QueryRequest{
-		InstanceId: "key",
-		Host:       "127.0.0.2",
-		Port:       80,
-		Healthy:    true,
+		InstanceId: id,
 	}
 	qr, err := mhc.Query(&queryRequest)
-	if err != nil {
-		t.Error(err)
-	}
-	if qr.Server != "127.0.0.1" {
-		t.Error()
-	}
-	if qr.LastHeartbeatSec != 1 {
-		t.Error()
-	}
+	assert.Nil(t, err)
+	assert.Equal(t, reportRequest.LocalHost, qr.Server)
+	assert.Equal(t, reportRequest.Count, qr.Count)
+	assert.Equal(t, reportRequest.CurTimeSec, qr.LastHeartbeatSec)
 }
 
 func TestMemoryHealthChecker_Check(t *testing.T) {

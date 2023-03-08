@@ -25,6 +25,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type noopEventHandler struct {
+}
+
+// PreProcess do preprocess logic for event
+func (p *noopEventHandler) PreProcess(ctx context.Context, value any) any {
+	return value
+}
+
+// OnEvent event process logic
+func (p *noopEventHandler) OnEvent(ctx context.Context, any2 any) error {
+	return nil
+}
+
 func Test_newSubscription(t *testing.T) {
 	type args struct {
 		name    string
@@ -40,14 +53,14 @@ func Test_newSubscription(t *testing.T) {
 			name: "new sub",
 			args: args{
 				name:    "sub1",
-				handler: func(ctx context.Context, i interface{}) error { return nil },
+				handler: &noopEventHandler{},
 				opts:    []SubOption{WithQueueSize(100)},
 			},
 			want: &subscription{
 				name:    "sub1",
 				queue:   make(chan Event, 100),
 				closeCh: make(chan struct{}),
-				handler: func(ctx context.Context, i interface{}) error { return nil },
+				handler: &noopEventHandler{},
 				opts: &SubOptions{
 					QueueSize: 100,
 				},
@@ -57,13 +70,13 @@ func Test_newSubscription(t *testing.T) {
 			name: "new sub no sub option",
 			args: args{
 				name:    "sub2",
-				handler: func(ctx context.Context, i interface{}) error { return nil },
+				handler: &noopEventHandler{},
 			},
 			want: &subscription{
 				name:    "sub2",
 				queue:   make(chan Event, defaultQueueSize),
 				closeCh: make(chan struct{}),
-				handler: func(ctx context.Context, i interface{}) error { return nil },
+				handler: &noopEventHandler{},
 				opts: &SubOptions{
 					QueueSize: defaultQueueSize,
 				},
@@ -73,14 +86,14 @@ func Test_newSubscription(t *testing.T) {
 			name: "new sub with invalid sub option",
 			args: args{
 				name:    "sub3",
-				handler: func(ctx context.Context, i interface{}) error { return nil },
+				handler: &noopEventHandler{},
 				opts:    []SubOption{WithQueueSize(0)},
 			},
 			want: &subscription{
 				name:    "sub3",
 				queue:   make(chan Event, defaultQueueSize),
 				closeCh: make(chan struct{}),
-				handler: func(ctx context.Context, i interface{}) error { return nil },
+				handler: &noopEventHandler{},
 				opts: &SubOptions{
 					QueueSize: defaultQueueSize,
 				},
@@ -115,13 +128,28 @@ func Test_subscription_send(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := newSubscription("sub1", func(ctx context.Context, i interface{}) error { return nil })
+			s := newSubscription("sub1", &noopEventHandler{})
 			for i := 0; i < tt.args.num; i++ {
 				s.send(tt.args.ctx, i)
 			}
 			assert.Equal(t, tt.args.num, len(s.queue))
 		})
 	}
+}
+
+type counterEventHandler struct {
+	got int
+}
+
+// PreProcess do preprocess logic for event
+func (p *counterEventHandler) PreProcess(ctx context.Context, value any) any {
+	return value
+}
+
+// OnEvent event process logic
+func (p *counterEventHandler) OnEvent(ctx context.Context, any2 any) error {
+	p.got++
+	return nil
 }
 
 func Test_subscription_receive(t *testing.T) {
@@ -145,11 +173,7 @@ func Test_subscription_receive(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var got int
-			handler := func(ctx context.Context, i interface{}) error {
-				got++
-				return nil
-			}
+			handler := &counterEventHandler{}
 			s := newSubscription("sub1", handler)
 			go func() {
 				for i := 0; i < tt.args.num; i++ {
@@ -159,7 +183,7 @@ func Test_subscription_receive(t *testing.T) {
 			go s.receive(tt.args.ctx)
 			time.Sleep(2 * time.Second)
 			s.close(tt.args.ctx)
-			assert.Equal(t, tt.want, got)
+			assert.Equal(t, tt.want, handler.got)
 		})
 	}
 }

@@ -36,6 +36,7 @@ var log = commonLog.GetScopeOrDefaultByName(commonLog.HealthcheckLoggerName)
 type HeartbeatRecord struct {
 	Server     string
 	CurTimeSec int64
+	Count      int64
 }
 
 // MemoryHealthChecker memory health checker
@@ -69,6 +70,7 @@ func (r *MemoryHealthChecker) Report(request *plugin.ReportRequest) error {
 	record := HeartbeatRecord{
 		Server:     request.LocalHost,
 		CurTimeSec: request.CurTimeSec,
+		Count:      request.Count,
 	}
 	r.hbRecords.Store(request.InstanceId, record)
 	log.Debugf("[HealthCheck][MemoryCheck]add hb record, instanceId %s, record %+v", request.InstanceId, record)
@@ -88,6 +90,7 @@ func (r *MemoryHealthChecker) Query(request *plugin.QueryRequest) (*plugin.Query
 	return &plugin.QueryResponse{
 		Server:           record.Server,
 		LastHeartbeatSec: record.CurTimeSec,
+		Count:            record.Count,
 	}, nil
 }
 
@@ -107,7 +110,6 @@ func (r *MemoryHealthChecker) Check(request *plugin.CheckRequest) (*plugin.Check
 		if curTimeSec-lastHeartbeatTime >= int64(request.ExpireDurationSec) {
 			// 心跳超时
 			checkResp.Healthy = false
-			_ = r.Delete(request.InstanceId)
 
 			if request.Healthy {
 				log.Infof("[Health Check][MemoryCheck]health check expired, "+
