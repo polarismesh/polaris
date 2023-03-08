@@ -18,11 +18,13 @@
 package job
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/robfig/cron/v3"
 
 	commonlog "github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/store"
 )
@@ -42,7 +44,7 @@ func NewMaintainJobs(namingServer service.DiscoverServer, storage store.Store) *
 	return &MaintainJobs{
 		jobs: map[string]maintainJob{
 			"DeleteUnHealthyInstance":       &deleteUnHealthyInstanceJob{namingServer: namingServer, storage: storage},
-			"DeleteEmptyAutoCreatedService": &deleteEmptyAutoCreatedServiceJob{namingServer: namingServer},
+			"DeleteEmptyAutoCreatedService": &deleteEmptyAutoCreatedServiceJob{namingServer: namingServer, storage: storage},
 			"CleanDeletedInstances":         &cleanDeletedInstancesJob{storage: storage},
 		},
 		startedJobs: map[string]maintainJob{},
@@ -117,4 +119,23 @@ func newCronCmd(name string, job maintainJob, storage store.Store) func() {
 type maintainJob interface {
 	init(cfg map[string]interface{}) error
 	execute()
+}
+
+func getMasterAccountToken(storage store.Store) (string, error) {
+	user, err := storage.GetUserByName("polaris", "")
+	if err != nil {
+		return "", err
+	}
+	return user.Token, nil
+}
+
+func buildContext(storage store.Store) (context.Context, error) {
+	token, err := getMasterAccountToken(storage)
+	if err != nil {
+		return nil, err
+	}
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, utils.ContextAuthTokenKey, token)
+	ctx = context.WithValue(ctx, utils.ContextOperator, "maintain-job")
+	return ctx, nil
 }

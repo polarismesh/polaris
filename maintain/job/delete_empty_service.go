@@ -18,7 +18,6 @@
 package job
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 
@@ -26,10 +25,12 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/service"
+	"github.com/polarismesh/polaris/store"
 )
 
 type deleteEmptyAutoCreatedServiceJob struct {
 	namingServer service.DiscoverServer
+	storage      store.Store
 }
 
 func (job *deleteEmptyAutoCreatedServiceJob) init(raw map[string]interface{}) error {
@@ -53,7 +54,12 @@ func (job *deleteEmptyAutoCreatedServiceJob) getEmptyAutoCreatedServices() ([]*a
 		"offset": strconv.Itoa(int(offset))}
 
 	for {
-		resp := job.namingServer.GetServices(context.Background(), query)
+		ctx, err := buildContext(job.storage)
+		if err != nil {
+			log.Errorf("[Maintain][Job][DeleteUnHealthyInstance] build conetxt, err: %v", err)
+			return nil, err
+		}
+		resp := job.namingServer.GetServices(ctx, query)
 		if api.CalcCode(resp) != 200 {
 			return nil, fmt.Errorf("GetServices err, code: %d, info: %s", resp.Code.GetValue(), resp.Info.GetValue())
 		}
@@ -88,7 +94,12 @@ func (job *deleteEmptyAutoCreatedServiceJob) deleteEmptyAutoCreatedServices() er
 			j = len(emptyServices)
 		}
 
-		resp := job.namingServer.DeleteServices(context.Background(), emptyServices[i:j])
+		ctx, err := buildContext(job.storage)
+		if err != nil {
+			log.Errorf("[Maintain][Job][DeleteUnHealthyInstance] build conetxt, err: %v", err)
+			return err
+		}
+		resp := job.namingServer.DeleteServices(ctx, emptyServices[i:j])
 		if api.CalcCode(resp) != 200 {
 			log.Errorf("[Maintain][Job][DeleteEmptyAutoCreatedService] delete services err, code: %d, info: %s",
 				resp.Code.GetValue(), resp.Info.GetValue())

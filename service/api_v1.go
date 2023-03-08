@@ -187,9 +187,6 @@ type InstanceOperateServer interface {
 
 	// GetInstanceLabels Get an instance tag under a service
 	GetInstanceLabels(ctx context.Context, query map[string]string) *apiservice.Response
-
-	// CleanInstance Clean up instance
-	CleanInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response
 }
 
 // ClientServer Client related operation  Client operation interface definition

@@ -186,7 +186,7 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 		return err
 	}
 
-	namingSvr, err := service.GetOriginServer()
+	namingSvr, err := service.GetServer()
 	if err != nil {
 		return err
 	}

@@ -18,7 +18,6 @@
 package job
 
 import (
-	"context"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -79,7 +78,12 @@ func (job *deleteUnHealthyInstanceJob) execute() {
 			req = append(req, &apiservice.Instance{Id: utils.NewStringValue(id)})
 		}
 
-		resp := job.namingServer.DeleteInstances(context.Background(), req)
+		ctx, err := buildContext(job.storage)
+		if err != nil {
+			log.Errorf("[Maintain][Job][DeleteUnHealthyInstance] build conetxt, err: %v", err)
+			return
+		}
+		resp := job.namingServer.DeleteInstances(ctx, req)
 		if api.CalcCode(resp) == 200 {
 			log.Infof("[Maintain][Job][DeleteUnHealthyInstance] delete instance count %d, list: %v",
 				len(instanceIds), instanceIds)
