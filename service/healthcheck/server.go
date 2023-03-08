@@ -126,7 +126,7 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 		leaderChangeEventHandler.handle); err != nil {
 		return err
 	}
-	if err = server.storage.StartLeaderElection(store.ELECTION_KEY_SELF_SERVICE_CHECKER); err != nil {
+	if err = server.storage.StartLeaderElection(store.ElectionKeySelfServiceChecker); err != nil {
 		return err
 	}
 

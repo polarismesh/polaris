@@ -24,8 +24,8 @@ import (
 )
 
 const (
-	ELECTION_KEY_SELF_SERVICE_CHECKER = "polaris.checker"
-	ELECTION_KEY_MAINTAIN_JOB_PRFIX   = "MaintainJob."
+	ElectionKeySelfServiceChecker = "polaris.checker"
+	ElectionKeyMaintainJobPrefix  = "MaintainJob."
 )
 
 type MaintainStore interface {

@@ -67,7 +67,7 @@ func (mj *MaintainJobs) StartMaintianJobs(configs []JobConfig) error {
 			log.Errorf("[Maintain][Job] job (%s) fail to init, err: %v", cfg.Name, err)
 			return fmt.Errorf("[Maintain][Job] job (%s) fail to init", cfg.Name)
 		}
-		err = mj.storage.StartLeaderElection(store.ELECTION_KEY_MAINTAIN_JOB_PRFIX + cfg.Name)
+		err = mj.storage.StartLeaderElection(store.ElectionKeyMaintainJobPrefix + cfg.Name)
 		if err != nil {
 			log.Errorf("[Maintain][Job][%s] start leader election err: %v", cfg.Name, err)
 			return err
@@ -99,7 +99,7 @@ func newCron() *cron.Cron {
 
 func newCronCmd(name string, job maintainJob, storage store.Store) func() {
 	return func() {
-		if !storage.IsLeader(store.ELECTION_KEY_MAINTAIN_JOB_PRFIX + name) {
+		if !storage.IsLeader(store.ElectionKeyMaintainJobPrefix + name) {
 			log.Infof("[Maintain][Job][%s] I am follower", name)
 			return
 		}
