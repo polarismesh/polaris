@@ -225,6 +225,10 @@ func (h *EurekaServer) updateStatus(
 		ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
 	resp := h.namingServer.UpdateInstance(ctx, &apiservice.Instance{
 		Id: &wrappers.StringValue{Value: instanceId}, Isolate: &wrappers.BoolValue{Value: isolated}})
+	// eureka实例的状态转换可能没有触发isolated的变化
+	if resp.GetCode().GetValue() == api.NoNeedUpdate {
+		return api.ExecuteSuccess
+	}
 	return resp.GetCode().GetValue()
 }
 
