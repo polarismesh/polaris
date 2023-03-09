@@ -314,6 +314,9 @@ func (cfr *configFileReleaseStore) CountConfigFileReleaseEachGroup() (map[string
 	ret := make(map[string]map[string]int64)
 	for i := range values {
 		file := values[i].(*model.ConfigFileRelease)
+		if !file.Valid {
+			continue
+		}
 		if _, ok := ret[file.Namespace]; !ok {
 			ret[file.Namespace] = map[string]int64{}
 		}

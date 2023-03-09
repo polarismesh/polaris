@@ -128,6 +128,7 @@ type discoveryMetricHandle struct {
 }
 
 func (h *discoveryMetricHandle) handle(ms []metrics.DiscoveryMetric) {
+	h.rest()
 	for i := range ms {
 		m := ms[i]
 		switch m.Type {
@@ -145,4 +146,15 @@ func (h *discoveryMetricHandle) handle(ms []metrics.DiscoveryMetric) {
 			clientInstanceTotal.Set(float64(m.Total))
 		}
 	}
+}
+
+func (h *discoveryMetricHandle) rest() {
+	serviceCount.Reset()
+	serviceAbnormalCount.Reset()
+	serviceOfflineCount.Reset()
+	serviceOnlineCount.Reset()
+	instanceCount.Reset()
+	instanceAbnormalCount.Reset()
+	instanceIsolateCount.Reset()
+	instanceOnlineCount.Reset()
 }

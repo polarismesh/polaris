@@ -66,6 +66,9 @@ type configMetricHandle struct {
 }
 
 func (h *configMetricHandle) handle(ms []metrics.ConfigMetrics) {
+	configGroupTotal.Reset()
+	configFileTotal.Reset()
+	releaseConfigFileTotal.Reset()
 	for i := range ms {
 		m := ms[i]
 		switch m.Type {

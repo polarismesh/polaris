@@ -336,6 +336,9 @@ func (cf *configFileStore) CountConfigFileEachGroup() (map[string]map[string]int
 	ret := make(map[string]map[string]int64)
 	for i := range values {
 		file := values[i].(*model.ConfigFile)
+		if !file.Valid {
+			continue
+		}
 		if _, ok := ret[file.Namespace]; !ok {
 			ret[file.Namespace] = map[string]int64{}
 		}
