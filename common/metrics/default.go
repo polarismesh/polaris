@@ -19,7 +19,6 @@ package metrics
 
 import (
 	"net/http"
-	"sync/atomic"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
@@ -28,9 +27,6 @@ import (
 
 var (
 	registry = prometheus.NewRegistry()
-
-	lastRedisReadFailureReport  atomic.Value
-	lastRedisWriteFailureReport atomic.Value
 )
 
 // GetRegistry 获取 metrics 的 registry
@@ -43,7 +39,6 @@ func GetHttpHandler() http.Handler {
 	// 添加 Golang runtime metrics
 	registry.MustRegister(collectors.NewGoCollector(
 		collectors.WithGoCollections(collectors.GoRuntimeMetricsCollection),
-		collectors.WithGoCollections(collectors.GoRuntimeMemStatsCollection),
 	))
 	return promhttp.HandlerFor(registry, promhttp.HandlerOpts{EnableOpenMetrics: true})
 }
@@ -52,4 +47,5 @@ func GetHttpHandler() http.Handler {
 func InitMetrics() {
 	registerSysMetrics()
 	registerClientMetrics()
+	registerAPIMetrics()
 }

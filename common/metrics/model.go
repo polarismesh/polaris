@@ -22,14 +22,20 @@ import (
 	"time"
 )
 
+// CallMetricType .
 type CallMetricType string
 
 const (
-	SystemCallMetric        CallMetricType = "inner"
-	ServerCallMetric        CallMetricType = "server"
-	RedisCallMetric         CallMetricType = "redis"
-	StoreCallMetric         CallMetricType = "db"
-	ProtobufCacheCallMetric CallMetricType = "protobuf"
+	// SystemCallMetric Time consuming statistics of some asynchronous tasks inside
+	SystemCallMetric CallMetricType = "innerCall"
+	// ServerCallMetric Apiserver-layer interface call consumption statistics
+	ServerCallMetric CallMetricType = "serverCall"
+	// RedisCallMetric Redis call time consumption statistics
+	RedisCallMetric CallMetricType = "redisCall"
+	// StoreCallMetric Store call time consumption statistics
+	StoreCallMetric CallMetricType = "storeCall"
+	// ProtobufCacheCallMetric PB encode cache call/hit statistics
+	ProtobufCacheCallMetric CallMetricType = "pbCacheCall"
 )
 
 type CallMetric struct {

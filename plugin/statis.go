@@ -26,6 +26,7 @@ import (
 
 var (
 	statisOnce sync.Once
+	_statis    Statis
 )
 
 type ComponentType string
@@ -49,45 +50,109 @@ type Statis interface {
 	ReportConfigMetrics(metric ...metrics.ConfigMetrics)
 }
 
-type noopStatis struct {
+// compositeStatis is used to receive discover events from the agent
+type compositeStatis struct {
+	chain   []Statis
+	options []ConfigEntry
 }
 
-func (n *noopStatis) Name() string {
-	return "noopStatis"
+func (c *compositeStatis) Name() string {
+	return "compositeStatis"
 }
 
-func (n *noopStatis) Initialize(c *ConfigEntry) error {
+func (c *compositeStatis) Initialize(config *ConfigEntry) error {
+	for i := range c.options {
+		entry := c.options[i]
+		item, exist := pluginSet[entry.Name]
+		if !exist {
+			log.Errorf("plugin Statis not found target: %s", entry.Name)
+			continue
+		}
+
+		statis, ok := item.(Statis)
+		if !ok {
+			log.Errorf("plugin target: %s not Statis", entry.Name)
+			continue
+		}
+
+		if err := statis.Initialize(&entry); err != nil {
+			return err
+		}
+		c.chain = append(c.chain, statis)
+	}
 	return nil
 }
 
-func (n *noopStatis) Destroy() error {
+func (c *compositeStatis) Destroy() error {
+	for i := range c.chain {
+		if err := c.chain[i].Destroy(); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 // ReportCallMetrics report call metrics info
-func (n *noopStatis) ReportCallMetrics(metric metrics.CallMetric) {}
+func (c *compositeStatis) ReportCallMetrics(metric metrics.CallMetric) {
+	for i := range c.chain {
+		c.chain[i].ReportCallMetrics(metric)
+	}
+}
 
 // ReportDiscoveryMetrics report discovery metrics
-func (n *noopStatis) ReportDiscoveryMetrics(metric ...metrics.DiscoveryMetric) {}
+func (c *compositeStatis) ReportDiscoveryMetrics(metric ...metrics.DiscoveryMetric) {
+	for i := range c.chain {
+		c.chain[i].ReportDiscoveryMetrics(metric...)
+	}
+}
 
 // ReportConfigMetrics report config_center metrics
-func (n *noopStatis) ReportConfigMetrics(metric ...metrics.ConfigMetrics) {}
+func (c *compositeStatis) ReportConfigMetrics(metric ...metrics.ConfigMetrics) {
+	for i := range c.chain {
+		c.chain[i].ReportConfigMetrics(metric...)
+	}
+}
 
 // GetStatis Get statistical plugin
 func GetStatis() Statis {
-	c := &config.Statis
-
-	plugin, exist := pluginSet[c.Name]
-	if !exist {
-		return &noopStatis{}
+	if _statis != nil {
+		return _statis
 	}
-
 	statisOnce.Do(func() {
-		if err := plugin.Initialize(c); err != nil {
+		var (
+			entries        []ConfigEntry
+			defaultEntries = []ConfigEntry{
+				{
+					Name: "local",
+				},
+				{
+					Name: "prometheus",
+				},
+			}
+		)
+
+		if len(config.Statis.Entries) != 0 {
+			entries = append(entries, config.Statis.Entries...)
+		} else {
+			if config.Statis.Name == "local" {
+				entries = defaultEntries
+			} else {
+				entries = append(entries, ConfigEntry{
+					Name:   config.Statis.Name,
+					Option: config.Statis.Option,
+				})
+			}
+		}
+
+		_statis = &compositeStatis{
+			chain:   []Statis{},
+			options: entries,
+		}
+		if err := _statis.Initialize(nil); err != nil {
 			log.Errorf("Statis plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})
 
-	return plugin.(Statis)
+	return _statis
 }

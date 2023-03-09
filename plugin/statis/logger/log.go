@@ -15,8 +15,8 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package local
+package logger
 
-import commonLog "github.com/polarismesh/polaris/common/log"
+import commonlog "github.com/polarismesh/polaris/common/log"
 
-var log = commonLog.RegisterScope(PluginName, "", 0)
+var log = commonlog.RegisterScope(PluginName, "", 0)

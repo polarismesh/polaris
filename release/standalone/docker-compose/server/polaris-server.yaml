@@ -386,12 +386,11 @@ plugin:
       interval: 60 # 统计间隔，单位为秒
       outputPath: ./discover-statis
   statis:
-    name: local
-    option:
-      interval: 60 # 统计间隔，单位为秒
-      outputPath: ./statis
-  auth:
-    name: defaultAuth
+    entries:
+      - name: local
+        option:
+          interval: 60
+      - name: prometheus
   ratelimit:
     name: token-bucket
     option:

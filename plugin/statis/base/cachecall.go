@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package local
+package base
 
 import (
 	"context"
@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/plugin"
@@ -51,7 +52,7 @@ type CacheStatics struct {
 	CacheCallStatis *CacheCallStatis
 }
 
-func newCacheStatics(statis *CacheCallStatis) *CacheStatics {
+func NewCacheStatics(statis *CacheCallStatis) *CacheStatics {
 	return &CacheStatics{
 		mutex:           &sync.Mutex{},
 		statis:          make(map[string]*CacheCallStatisItem),
@@ -59,7 +60,7 @@ func newCacheStatics(statis *CacheCallStatis) *CacheStatics {
 	}
 }
 
-func (c *CacheStatics) add(ac metrics.CallMetric) {
+func (c *CacheStatics) Add(ac metrics.CallMetric) {
 	index := fmt.Sprintf("%v", ac.Protocol)
 	item, exist := c.statis[index]
 	if !exist {
@@ -118,17 +119,19 @@ type CacheCallStatis struct {
 	cacheStatics *CacheStatics
 }
 
-func newCacheCallStatis(ctx context.Context) (*CacheCallStatis, error) {
+func NewCacheCallStatis(ctx context.Context) (*CacheCallStatis, error) {
 	value := &CacheCallStatis{
 		cacheCall: make(chan metrics.CallMetric, 1024),
 	}
-	value.cacheStatics = newCacheStatics(value)
+	value.cacheStatics = NewCacheStatics(value)
 
 	go func() {
 		for {
 			select {
+			case <-ctx.Done():
+				return
 			case ac := <-value.cacheCall:
-				value.cacheStatics.add(ac)
+				value.cacheStatics.Add(ac)
 			}
 		}
 	}()
@@ -137,21 +140,13 @@ func newCacheCallStatis(ctx context.Context) (*CacheCallStatis, error) {
 }
 
 // add 添加接口调用数据
-func (a *CacheCallStatis) add(ac metrics.CallMetric) {
+func (a *CacheCallStatis) Add(ac metrics.CallMetric) {
 	select {
 	case a.cacheCall <- ac:
 	}
 }
 
 // log 打印接口调用统计
-func (a *CacheCallStatis) log(ctx context.Context) {
-	ticker := time.NewTicker(time.Minute)
-	for {
-		select {
-		case <-ctx.Done():
-			ticker.Stop()
-		case <-ticker.C:
-			a.cacheStatics.log()
-		}
-	}
+func (a *CacheCallStatis) deal() {
+	a.cacheStatics.log()
 }
