@@ -2257,7 +2257,7 @@ func TestCreateInstanceLockService(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		t.Cleanup(func() {
 			cancel()
-			time.Sleep(5*time.Second)
+			time.Sleep(5 * time.Second)
 		})
 
 		mockStore := mock.NewMockStore(ctrl)

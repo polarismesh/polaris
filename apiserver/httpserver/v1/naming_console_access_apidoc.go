@@ -38,7 +38,7 @@ var (
 )
 
 func enrichGetNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("获取命名空间列表").
+	return r.Doc("获取命名空间列表(Old)").
 		Metadata(restfulspec.KeyOpenAPITags, namespacesApiTags).
 		Param(restful.QueryParameter("name", "命名空间唯一名称").
 			DataType("string").Required(true)).
@@ -51,7 +51,7 @@ func enrichGetNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 
 func enrichCreateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
-		Doc("创建命名空间").
+		Doc("创建命名空间(Old)").
 		Metadata(restfulspec.KeyOpenAPITags, namespacesApiTags).
 		Reads([]apimodel.Namespace{}, "create namespaces").
 		Notes(enrichCreateNamespacesApiNotes)
@@ -59,7 +59,7 @@ func enrichCreateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 
 func enrichDeleteNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
-		Doc("删除命名空间").
+		Doc("删除命名空间(Old)").
 		Metadata(restfulspec.KeyOpenAPITags, namespacesApiTags).
 		Reads([]apimodel.Namespace{}, "delete namespaces").
 		Notes(enrichDeleteNamespacesApiNotes)
@@ -67,7 +67,7 @@ func enrichDeleteNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 
 func enrichUpdateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
-		Doc("更新命名空间").
+		Doc("更新命名空间(Old)").
 		Metadata(restfulspec.KeyOpenAPITags, namespacesApiTags).
 		Reads([]apimodel.Namespace{}, "update namespaces").
 		Notes(enrichUpdateNamespacesApiNotes)
@@ -75,13 +75,13 @@ func enrichUpdateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 
 func enrichGetNamespaceTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
-		Doc("查询命名空间Token").
+		Doc("查询命名空间Token(Old)").
 		Metadata(restfulspec.KeyOpenAPITags, namespacesApiTags).Deprecate()
 }
 
 func enrichUpdateNamespaceTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
-		Doc("更新命名空间Token").
+		Doc("更新命名空间Token(Old)").
 		Metadata(restfulspec.KeyOpenAPITags, namespacesApiTags).Deprecate()
 }
 
@@ -284,28 +284,28 @@ func enrichGetInstanceLabelsApiDocs(r *restful.RouteBuilder) *restful.RouteBuild
 }
 
 func enrichCreateRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("创建路由规则").
+	return r.Doc("创建路由规则(V1)").
 		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
 		Reads([]apitraffic.Routing{}, "create routing rules").
 		Notes(enrichCreateRoutingsApiNotes)
 }
 
 func enrichDeleteRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("删除路由规则").
+	return r.Doc("删除路由规则(V1)").
 		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
 		Reads([]apitraffic.Routing{}, "delete routing rules").
 		Notes(enrichDeleteRoutingsApiNotes)
 }
 
 func enrichUpdateRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("更新路由规则").
+	return r.Doc("更新路由规则(V1)").
 		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
 		Reads([]apitraffic.Routing{}, "update routing rules").
 		Notes(enrichUpdateRoutingsApiNotes)
 }
 
 func enrichGetRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("查询路由规则").
+	return r.Doc("查询路由规则(V1)").
 		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
 		Param(restful.PathParameter("service", "服务名称").DataType("string").
 			Required(false)).

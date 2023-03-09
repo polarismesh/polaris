@@ -347,7 +347,9 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 
 				ws := new(restful.WebService)
 				ws.Path("/core/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
-				h.GetClientServer(ws)
+				if err := h.GetClientServer(ws); err != nil {
+					return nil, err
+				}
 				if err := h.GetCoreV1ConsoleAccessServer(ws, apiConfig.Include); err != nil {
 					return nil, err
 				}
