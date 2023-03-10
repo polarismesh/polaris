@@ -60,14 +60,15 @@ import (
 	_ "github.com/polarismesh/polaris/plugin/password"
 	_ "github.com/polarismesh/polaris/plugin/ratelimit/lrurate"
 	_ "github.com/polarismesh/polaris/plugin/ratelimit/token"
-	_ "github.com/polarismesh/polaris/plugin/statis/local"
+	_ "github.com/polarismesh/polaris/plugin/statis/logger"
+	_ "github.com/polarismesh/polaris/plugin/statis/prometheus"
 	"github.com/polarismesh/polaris/service/batch"
 	"github.com/polarismesh/polaris/service/healthcheck"
 	"github.com/polarismesh/polaris/store"
 	"github.com/polarismesh/polaris/store/boltdb"
 	_ "github.com/polarismesh/polaris/store/boltdb"
 	sqldb "github.com/polarismesh/polaris/store/mysql"
-	"github.com/polarismesh/polaris/test/data"
+	testdata "github.com/polarismesh/polaris/test/data"
 )
 
 const (

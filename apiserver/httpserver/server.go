@@ -45,7 +45,6 @@ import (
 	"github.com/polarismesh/polaris/maintain"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
-	"github.com/polarismesh/polaris/plugin/statis/local"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/healthcheck"
 )
@@ -395,11 +394,7 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 		h.enableSwaggerAPI(wsContainer)
 	}
 
-	statis := plugin.GetStatis()
-	if _, ok := statis.(*local.StatisWorker); ok {
-		h.enablePrometheusAccess(wsContainer)
-	}
-
+	h.enablePrometheusAccess(wsContainer)
 	return wsContainer, nil
 }
 
