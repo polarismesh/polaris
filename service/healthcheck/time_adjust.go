@@ -55,7 +55,7 @@ func (t *TimeAdjuster) doTimeAdjust(ctx context.Context) {
 }
 
 func (t *TimeAdjuster) calcDiff() {
-	curTimeSecond, err := t.storage.GetUnixSecond()
+	curTimeSecond, err := t.storage.GetUnixSecond(time.Second)
 	if err != nil {
 		log.Errorf("[Health Check] fail to get now from store, err is %s", err.Error())
 		return

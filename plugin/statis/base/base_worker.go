@@ -89,7 +89,7 @@ func (s *BaseWorker) Run(ctx context.Context, interval time.Duration) {
 		return
 	}
 
-	nowSeconds, err := getStore.GetUnixSecond()
+	nowSeconds, err := getStore.GetUnixSecond(time.Second)
 	if err != nil {
 		log.Errorf("[APICall] get now second from store error, %v", err)
 		return

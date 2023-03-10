@@ -70,7 +70,7 @@ func newGroupTest(t *testing.T) *GroupTest {
 	storage := storemock.NewMockStore(ctrl)
 
 	storage.EXPECT().GetServicesCount().AnyTimes().Return(uint32(1), nil)
-	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
+	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 	storage.EXPECT().AddGroup(gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().UpdateUser(gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(append(users, newUsers...), nil)

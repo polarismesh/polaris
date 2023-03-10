@@ -36,7 +36,7 @@ import (
 func TestCacheManager_Start(t *testing.T) {
 	ctl := gomock.NewController(t)
 	storage := mock.NewMockStore(ctl)
-	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
+	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 	defer ctl.Finish()
 
 	conf := &Config{
@@ -69,7 +69,7 @@ func TestCacheManager_Start(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotNil(t, c)
 		beg := time.Unix(0, 0).Add(DefaultTimeDiff)
-		storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
+		storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 		storage.EXPECT().GetMoreInstances(beg, true, false, nil).Return(nil, nil).MaxTimes(1)
 		storage.EXPECT().GetMoreInstances(beg, false, false, nil).Return(nil, nil).MaxTimes(3)
 		storage.EXPECT().GetMoreServices(beg, true, false, false).Return(nil, nil).MaxTimes(1)
@@ -113,7 +113,7 @@ func TestCacheManager_Start(t *testing.T) {
 func TestRevisionWorker(t *testing.T) {
 	ctl := gomock.NewController(t)
 	storage := mock.NewMockStore(ctl)
-	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
+	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 	defer ctl.Finish()
 
 	t.Run("revision计算，chan可以正常收发", func(t *testing.T) {

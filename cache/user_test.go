@@ -40,7 +40,7 @@ func newTestUserCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *userC
 	uc := newUserCache(storage)
 	opt := map[string]interface{}{}
 	_ = uc.initialize(opt)
-	storage.EXPECT().GetUnixSecond().Return(time.Now().Unix(), nil).AnyTimes()
+	storage.EXPECT().GetUnixSecond(gomock.Any()).Return(time.Now().Unix(), nil).AnyTimes()
 
 	return ctl, storage, uc.(*userCache)
 }
@@ -49,7 +49,7 @@ func newPressTestUserCache(ctrl *gomock.Controller, storage *mock.MockStore) *us
 	uc := newUserCache(storage)
 	opt := map[string]interface{}{}
 	_ = uc.initialize(opt)
-	storage.EXPECT().GetUnixSecond().Return(time.Now().Unix(), nil).AnyTimes()
+	storage.EXPECT().GetUnixSecond(gomock.Any()).Return(time.Now().Unix(), nil).AnyTimes()
 
 	return uc.(*userCache)
 }

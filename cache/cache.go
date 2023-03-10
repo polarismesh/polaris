@@ -201,7 +201,7 @@ func (bc *baseCache) isFirstUpdate() bool {
 
 // update
 func (bc *baseCache) doCacheUpdate(name string, executor func() (map[string]time.Time, int64, error)) error {
-	curStoreTime, err := bc.s.GetUnixSecond()
+	curStoreTime, err := bc.s.GetUnixSecond(0)
 	if err != nil {
 		curStoreTime = bc.lastFetchTime
 		log.Warnf("[Cache][%s] get store timestamp fail, skip update lastMtime, err : %v", name, err)
@@ -222,8 +222,8 @@ func (bc *baseCache) doCacheUpdate(name string, executor func() (map[string]time
 		if len(bc.lastMtimes) != 0 {
 			for label, lastMtime := range lastMtimes {
 				preLastMtime := bc.lastMtimes[label]
-				log.Infof("[Cache][%s] lastMtime update from %s to %s",
-					label, preLastMtime, lastMtime)
+				log.Infof("[Cache][%s] lastFetchTime %s, lastMtime update from %s to %s",
+					label, time.Unix(bc.lastFetchTime, 0), preLastMtime, lastMtime)
 			}
 		}
 		bc.lastMtimes = lastMtimes

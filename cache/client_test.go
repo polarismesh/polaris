@@ -37,7 +37,7 @@ func newTestClientCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *cli
 
 	storage := mock.NewMockStore(ctl)
 	rlc := newClientCache(storage)
-	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
+	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 	var opt map[string]interface{}
 	_ = rlc.initialize(opt)
 	return ctl, storage, rlc
