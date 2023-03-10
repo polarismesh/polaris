@@ -9,7 +9,6 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
-
 	model "github.com/polarismesh/polaris/common/model"
 	store "github.com/polarismesh/polaris/store"
 )
@@ -1819,18 +1818,18 @@ func (mr *MockStoreMockRecorder) GetSystemServices() *gomock.Call {
 }
 
 // GetUnixSecond mocks base method.
-func (m *MockStore) GetUnixSecond() (int64, error) {
+func (m *MockStore) GetUnixSecond(maxWait time.Duration) (int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUnixSecond")
+	ret := m.ctrl.Call(m, "GetUnixSecond", maxWait)
 	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetUnixSecond indicates an expected call of GetUnixSecond.
-func (mr *MockStoreMockRecorder) GetUnixSecond() *gomock.Call {
+func (mr *MockStoreMockRecorder) GetUnixSecond(maxWait interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnixSecond", reflect.TypeOf((*MockStore)(nil).GetUnixSecond))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnixSecond", reflect.TypeOf((*MockStore)(nil).GetUnixSecond), maxWait)
 }
 
 // GetUser mocks base method.
@@ -2921,16 +2920,16 @@ func (m *MockToolStore) EXPECT() *MockToolStoreMockRecorder {
 }
 
 // GetUnixSecond mocks base method.
-func (m *MockToolStore) GetUnixSecond() (int64, error) {
+func (m *MockToolStore) GetUnixSecond(maxWait time.Duration) (int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUnixSecond")
+	ret := m.ctrl.Call(m, "GetUnixSecond", maxWait)
 	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetUnixSecond indicates an expected call of GetUnixSecond.
-func (mr *MockToolStoreMockRecorder) GetUnixSecond() *gomock.Call {
+func (mr *MockToolStoreMockRecorder) GetUnixSecond(maxWait interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnixSecond", reflect.TypeOf((*MockToolStore)(nil).GetUnixSecond))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnixSecond", reflect.TypeOf((*MockToolStore)(nil).GetUnixSecond), maxWait)
 }
