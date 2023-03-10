@@ -23,7 +23,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/polarismesh/polaris/common/log"
+	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/plugin"
@@ -95,7 +95,7 @@ func (c *CacheStatics) printStatics(staticsSlice []*CacheCallStatisItem, startSt
 			float64(item.hitCount)/float64(item.hitCount+item.missCount),
 		)
 	}
-	log.Info(msg)
+	commonlog.Info(msg)
 }
 
 // log and print the statics messages
