@@ -25,8 +25,8 @@ import (
 )
 
 var (
-	statisOnce sync.Once
-	_statis    Statis
+	statisMutex sync.Mutex
+	_statis     Statis
 )
 
 // Statis Statistical plugin interface
@@ -105,44 +105,44 @@ func (c *compositeStatis) ReportConfigMetrics(metric ...metrics.ConfigMetrics) {
 
 // GetStatis Get statistical plugin
 func GetStatis() Statis {
+	statisMutex.Lock()
+	defer statisMutex.Unlock()
 	if _statis != nil {
 		return _statis
 	}
-	statisOnce.Do(func() {
-		var (
-			entries        []ConfigEntry
-			defaultEntries = []ConfigEntry{
-				{
-					Name: "local",
-				},
-				{
-					Name: "prometheus",
-				},
-			}
-		)
+	var (
+		entries        []ConfigEntry
+		defaultEntries = []ConfigEntry{
+			{
+				Name: "local",
+			},
+			{
+				Name: "prometheus",
+			},
+		}
+	)
 
-		if len(config.Statis.Entries) != 0 {
-			entries = append(entries, config.Statis.Entries...)
+	if len(config.Statis.Entries) != 0 {
+		entries = append(entries, config.Statis.Entries...)
+	} else {
+		if config.Statis.Name == "local" {
+			entries = defaultEntries
 		} else {
-			if config.Statis.Name == "local" {
-				entries = defaultEntries
-			} else {
-				entries = append(entries, ConfigEntry{
-					Name:   config.Statis.Name,
-					Option: config.Statis.Option,
-				})
-			}
+			entries = append(entries, ConfigEntry{
+				Name:   config.Statis.Name,
+				Option: config.Statis.Option,
+			})
 		}
+	}
 
-		_statis = &compositeStatis{
-			chain:   []Statis{},
-			options: entries,
-		}
-		if err := _statis.Initialize(nil); err != nil {
-			log.Errorf("Statis plugin init err: %s", err.Error())
-			os.Exit(-1)
-		}
-	})
+	_statis = &compositeStatis{
+		chain:   []Statis{},
+		options: entries,
+	}
+	if err := _statis.Initialize(nil); err != nil {
+		log.Errorf("Statis plugin init err: %s", err.Error())
+		os.Exit(-1)
+	}
 
 	return _statis
 }
