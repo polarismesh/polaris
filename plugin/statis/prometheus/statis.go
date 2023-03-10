@@ -48,19 +48,6 @@ type StatisWorker struct {
 	metricVecCaches  map[string]*prometheus.GaugeVec
 }
 
-// newStatisWorker 初始化 PrometheusStatis
-func newStatisWorker() (*StatisWorker, error) {
-	statis := &StatisWorker{
-		metricVecCaches: make(map[string]*prometheus.GaugeVec),
-	}
-
-	if err := statis.registerMetrics(); err != nil {
-		return nil, err
-	}
-
-	return statis, nil
-}
-
 // Name 获取统计插件名称
 func (s *StatisWorker) Name() string {
 	return PluginName
@@ -69,22 +56,26 @@ func (s *StatisWorker) Name() string {
 // Initialize 初始化统计插件
 func (s *StatisWorker) Initialize(conf *plugin.ConfigEntry) error {
 	ctx, cancel := context.WithCancel(context.Background())
-	baseWorker, err := base.NewBaseWorker(ctx, s.metricsHandle)
-	if err != nil {
-		cancel()
-		return err
-	}
-
 	s.cancel = cancel
-	s.BaseWorker = baseWorker
+	s.metricVecCaches = make(map[string]*prometheus.GaugeVec)
 	s.discoveryHandler = &discoveryMetricHandle{}
 	s.configHandler = &configMetricHandle{}
+	if err := s.registerMetrics(); err != nil {
+		return err
+	}
 
 	// 设置统计打印周期
 	interval, _ := conf.Option["interval"].(int)
 	if interval == 0 {
 		interval = 60
 	}
+
+	baseWorker, err := base.NewBaseWorker(ctx, s.metricsHandle)
+	if err != nil {
+		cancel()
+		return err
+	}
+	s.BaseWorker = baseWorker
 
 	go s.Run(ctx, time.Duration(interval)*time.Second)
 	return nil

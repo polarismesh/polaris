@@ -74,7 +74,7 @@ var (
 			MetricType: TypeForGaugeVec,
 			LabelNames: []string{
 				metrics.LabelApi,
-				metrics.LabelNamespace,
+				metrics.LabelProtocol,
 				metrics.LabelErrCode,
 			},
 		},
@@ -84,7 +84,7 @@ var (
 			MetricType: TypeForGaugeVec,
 			LabelNames: []string{
 				metrics.LabelApi,
-				metrics.LabelNamespace,
+				metrics.LabelProtocol,
 				metrics.LabelErrCode,
 			},
 		},
@@ -94,7 +94,7 @@ var (
 			MetricType: TypeForGaugeVec,
 			LabelNames: []string{
 				metrics.LabelApi,
-				metrics.LabelNamespace,
+				metrics.LabelProtocol,
 				metrics.LabelErrCode,
 			},
 		},
@@ -104,7 +104,7 @@ var (
 			MetricType: TypeForGaugeVec,
 			LabelNames: []string{
 				metrics.LabelApi,
-				metrics.LabelNamespace,
+				metrics.LabelProtocol,
 				metrics.LabelErrCode,
 			},
 		},
@@ -114,7 +114,7 @@ var (
 			MetricType: TypeForGaugeVec,
 			LabelNames: []string{
 				metrics.LabelApi,
-				metrics.LabelNamespace,
+				metrics.LabelProtocol,
 				metrics.LabelErrCode,
 			},
 		},

@@ -118,14 +118,11 @@ func sendReply(futures interface{}, code apimodel.Code, result error) {
 }
 
 func reportRegisInstanceCost(begin, cur time.Time, code apimodel.Code) {
-	if code != apimodel.Code_ExecuteSuccess {
-		return
-	}
 	diff := cur.Sub(begin)
 	plugin.GetStatis().ReportCallMetrics(metrics.CallMetric{
 		Type:     metrics.SystemCallMetric,
 		API:      "AsyncRegisInstance",
-		Code:     int(apimodel.Code_ExecuteSuccess),
+		Code:     int(code),
 		Duration: diff,
 	})
 	metrics.ReportInstanceRegisCost(diff)

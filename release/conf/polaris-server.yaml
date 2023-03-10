@@ -429,11 +429,14 @@ plugin:
     option:
       interval: 60 # Statistical interval, the unit is second
   statis:
-    entries:
-      - name: local
-        option:
-          interval: 60
-      - name: prometheus
+    name: local
+    option:
+      interval: 60
+    # entries:
+    #   - name: local
+    #     option:
+    #       interval: 60
+    #   - name: prometheus
   ratelimit:
     name: token-bucket
     option:

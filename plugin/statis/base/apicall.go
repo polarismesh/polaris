@@ -26,7 +26,6 @@ import (
 
 	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
-	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/plugin"
 )
 
@@ -74,9 +73,10 @@ type ComponentStatics struct {
 
 func NewComponentStatics(ctx context.Context, t metrics.CallMetricType, handler MetricsHandler) *ComponentStatics {
 	c := &ComponentStatics{
-		t:      t,
-		acc:    make(chan *APICall, 1024),
-		statis: make(map[string]*APICallStatisItem),
+		t:       t,
+		acc:     make(chan *APICall, 1024),
+		statis:  make(map[string]*APICallStatisItem),
+		handler: handler,
 	}
 	go c.run(ctx)
 	return c
@@ -161,9 +161,10 @@ func (c *ComponentStatics) add(ac *APICall) {
 // collect log and print the statics messages
 func (c *ComponentStatics) deal() {
 	startTime := time.Now()
-	startStr := commontime.Time2String(startTime)
 	if len(c.statis) == 0 {
-		log.Info(fmt.Sprintf("Statis %s: No API Call\n", startStr))
+		c.mutex.Lock()
+		defer c.mutex.Unlock()
+		c.handler(c.t, startTime, nil)
 		return
 	}
 	defer func() {
@@ -202,7 +203,6 @@ func (c *ComponentStatics) deal() {
 	go func() {
 		c.mutex.Lock()
 		defer c.mutex.Unlock()
-
 		c.handler(c.t, startTime, duplicateStatis)
 	}()
 }

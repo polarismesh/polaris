@@ -95,21 +95,30 @@ func (s *StatisWorker) ReportConfigMetrics(metric ...metrics.ConfigMetrics) {
 
 func (a *StatisWorker) metricsHandle(mt metrics.CallMetricType, start time.Time,
 	statics []*base.APICallStatisItem) {
+	startStr := commontime.Time2String(start)
+	if len(statics) == 0 {
+		log.Info(fmt.Sprintf("Statis %s: No API Call\n", startStr))
+		return
+	}
 
 	scope := commonlog.GetScopeOrDefaultByName(string(mt))
 	if scope.Name() == commonlog.DefaultLoggerName {
 		scope = log
 	}
 
-	startStr := commontime.Time2String(start)
-	msg := fmt.Sprintf("Statis %s:\n", startStr)
+	header := fmt.Sprintf("Statis %s:\n", startStr)
 
-	msg += fmt.Sprintf(
+	header += fmt.Sprintf(
 		"%-48v|%12v|%12v|%12v|%12v|%12v|\n", "", "Code", "Count", "Min(ms)", "Max(ms)", "Avg(ms)")
 
+	var msg string
 	for i := range statics {
 		msg += statics[i].String()
 	}
+	if len(msg) == 0 {
+		log.Info(fmt.Sprintf("Statis %s: No API Call\n", startStr))
+		return
+	}
 
-	log.Info(msg)
+	log.Info(header + msg)
 }
