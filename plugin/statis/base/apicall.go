@@ -26,7 +26,6 @@ import (
 
 	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
-	"github.com/polarismesh/polaris/plugin"
 )
 
 // APICall 接口调用
@@ -35,7 +34,7 @@ type APICall struct {
 	Code      int
 	Duration  int64
 	Protocol  string
-	Component plugin.ComponentType
+	Component metrics.CallMetricType
 }
 
 // APICallStatisItem 接口调用统计条目

@@ -26,12 +26,10 @@ import (
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
 	commontime "github.com/polarismesh/polaris/common/time"
-	"github.com/polarismesh/polaris/plugin"
 )
 
 // CacheCall 接口调用
 type CacheCall struct {
-	component plugin.ComponentType
 	cacheType string
 	miss      bool
 	count     int32

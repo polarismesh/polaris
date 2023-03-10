@@ -29,16 +29,6 @@ var (
 	_statis    Statis
 )
 
-type ComponentType string
-
-const (
-	ComponentServer        ComponentType = "server"
-	ComponentRedis         ComponentType = "redis"
-	ComponentDB            ComponentType = "db"
-	ComponentInner         ComponentType = "inner"
-	ComponentProtobufCache ComponentType = "protobuf"
-)
-
 // Statis Statistical plugin interface
 type Statis interface {
 	Plugin

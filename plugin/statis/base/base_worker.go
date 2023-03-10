@@ -23,7 +23,6 @@ import (
 
 	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
-	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -56,7 +55,7 @@ func (s *BaseWorker) ReportCallMetrics(metric metrics.CallMetric) {
 			Protocol:  metric.Protocol,
 			Code:      metric.Code,
 			Duration:  int64(metric.Duration.Nanoseconds()),
-			Component: plugin.ComponentServer,
+			Component: metric.Type,
 		}
 		s.apiStatis.Add(item)
 	case metrics.SystemCallMetric:
@@ -65,7 +64,7 @@ func (s *BaseWorker) ReportCallMetrics(metric metrics.CallMetric) {
 			Protocol:  metric.Protocol,
 			Code:      metric.Code,
 			Duration:  int64(metric.Duration.Nanoseconds()),
-			Component: plugin.ComponentInner,
+			Component: metric.Type,
 		}
 		s.innerStatis.Add(item)
 	case metrics.RedisCallMetric:
@@ -74,7 +73,7 @@ func (s *BaseWorker) ReportCallMetrics(metric metrics.CallMetric) {
 			Protocol:  metric.Protocol,
 			Code:      metric.Code,
 			Duration:  int64(metric.Duration.Nanoseconds()),
-			Component: plugin.ComponentRedis,
+			Component: metric.Type,
 		}
 		s.redisStatis.Add(item)
 	case metrics.ProtobufCacheCallMetric:
