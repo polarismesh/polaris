@@ -250,7 +250,12 @@ func (s *Server) enableCircuitBreakerRule(
 	}
 	cbRuleId := &apifault.CircuitBreakerRule{Id: request.GetId()}
 	cbRule := &model.CircuitBreakerRule{
-		ID: request.GetId(), Namespace: request.GetNamespace(), Name: request.GetName(), Enable: request.GetEnable()}
+		ID:        request.GetId(),
+		Namespace: request.GetNamespace(),
+		Name:      request.GetName(),
+		Enable:    request.GetEnable(),
+		Revision:  utils.NewUUID(),
+	}
 	if err := s.storage.EnableCircuitBreakerRule(cbRule); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
 		return storeError2AnyResponse(err, cbRuleId)
