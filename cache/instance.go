@@ -220,12 +220,17 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (map[strin
 		return nil, 0, 0
 	}
 
+	addInstances := map[string]string{}
+	updateInstances := map[string]string{}
+	deleteInstances := map[string]string{}
+
 	lastMtime := ic.LastMtime().Unix()
 	update := 0
 	del := 0
 	affect := make(map[string]bool)
 	progress := 0
 	instanceCount := ic.instanceCount
+
 	for _, item := range ins {
 		progress++
 		if progress%50000 == 0 {
@@ -239,6 +244,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (map[strin
 		_, itemExist := ic.ids.Load(item.ID())
 		// 待删除的instance
 		if !item.Valid {
+			deleteInstances[item.ID()] = item.Revision()
 			del++
 			ic.ids.Delete(item.ID())
 			if itemExist {
@@ -264,9 +270,11 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (map[strin
 
 		ic.ids.Store(item.ID(), item)
 		if !itemExist {
+			addInstances[item.ID()] = item.Revision()
 			instanceCount++
 			ic.manager.onEvent(item, EventCreated)
 		} else {
+			updateInstances[item.ID()] = item.Revision()
 			ic.manager.onEvent(item, EventUpdated)
 		}
 		value, ok := ic.services.Load(item.ServiceID)
@@ -285,6 +293,10 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (map[strin
 			ic.instanceCount, instanceCount)
 		ic.instanceCount = instanceCount
 	}
+
+	log.Info("[Cache][Instance] instances change info", zap.Any("add", addInstances),
+		zap.Any("update", updateInstances), zap.Any("delete", deleteInstances))
+
 	ic.postProcessUpdatedServices(affect)
 	ic.manager.onEvent(affect, EventInstanceReload)
 	return map[string]time.Time{

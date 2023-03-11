@@ -73,7 +73,7 @@ type UserCache interface {
 	//  @return bool
 	IsOwner(id string) bool
 
-	// ListUserBelongGroupIDS
+	// GetUserLinkGroupIds
 	//  @param id
 	//  @return []string
 	GetUserLinkGroupIds(id string) []string
@@ -87,11 +87,6 @@ type userRefreshResult struct {
 	groupAdd    int
 	groupUpdate int
 	groupDel    int
-}
-
-type userNotify struct {
-	ResetStrategyCache bool
-	Principals         []model.Principal
 }
 
 // userCache 用户信息缓存

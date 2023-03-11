@@ -340,8 +340,7 @@ func (b *BaseGrpcServer) postprocess(stream *VirtualStream, m interface{}) {
 	}
 
 	// 接口调用统计
-	now := time.Now()
-	diff := now.Sub(stream.StartTime)
+	diff := time.Since(stream.StartTime)
 
 	// 打印耗时超过1s的请求
 	if diff > time.Second {
@@ -359,7 +358,7 @@ func (b *BaseGrpcServer) postprocess(stream *VirtualStream, m interface{}) {
 		API:      stream.Method,
 		Protocol: "gRPC",
 		Code:     int(stream.Code),
-		Duration: 0,
+		Duration: diff,
 	})
 }
 

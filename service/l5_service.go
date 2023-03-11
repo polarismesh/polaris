@@ -265,7 +265,7 @@ func (s *Server) getCalleeByRoute(route *model.Route) []*model.Callee {
 		func(_ string, entry *model.Instance) (b bool, e error) {
 			// 过滤掉不健康或者隔离状态的server
 			if !entry.Healthy() || entry.Isolate() {
-				return false, nil
+				return true, nil
 			}
 
 			hasInstance = true

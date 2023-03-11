@@ -457,6 +457,7 @@ func (nc *CacheManager) processRevisionWorker(req *revisionNotify) bool {
 	}
 
 	nc.setRevisions(req.serviceID, revision) // string -> string
+	log.Infof("[Cache] compute service id(%s) instances revision : %s", req.serviceID, revision)
 	return true
 }
 
