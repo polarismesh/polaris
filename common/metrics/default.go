@@ -47,5 +47,4 @@ func GetHttpHandler() http.Handler {
 func InitMetrics() {
 	registerSysMetrics()
 	registerClientMetrics()
-	registerAPIMetrics()
 }

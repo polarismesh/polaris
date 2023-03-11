@@ -114,9 +114,6 @@ func (s *StatisWorker) registerMetrics() error {
 
 // ReportCallMetrics report call metrics info
 func (s *StatisWorker) ReportCallMetrics(metric metrics.CallMetric) {
-	if metric.Type == metrics.ServerCallMetric {
-		metrics.ReportAPICall(metric)
-	}
 	s.BaseWorker.ReportCallMetrics(metric)
 }
 
