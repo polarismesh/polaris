@@ -164,6 +164,7 @@ func (ic *instanceCache) checkAll() {
 		"[Cache][Instance] instance count not match, expect %d, actual %d, fallback to load all",
 		count, ic.instanceCount)
 	ic.resetLastMtime(ic.name())
+	ic.resetLastFetchTime()
 }
 
 const maxLoadTimeDuration = 1 * time.Second

@@ -128,7 +128,9 @@ type Cache interface {
 
 // baseCache 对于 Cache 中的一些 func 做统一实现，避免重复逻辑
 type baseCache struct {
-	lock          sync.RWMutex
+	lock sync.RWMutex
+	// firtstUpdate Whether the cache is loaded for the first time
+	// this field can only make value on exec initialize/clean, and set it to false on exec update
 	firtstUpdate  bool
 	s             store.Store
 	lastFetchTime int64
@@ -171,7 +173,6 @@ func (bc *baseCache) resetLastFetchTime() {
 	bc.lock.Lock()
 	defer bc.lock.Unlock()
 	bc.lastFetchTime = 0
-	bc.firtstUpdate = true
 }
 
 func (bc *baseCache) LastMtime(label string) time.Time {
