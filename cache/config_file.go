@@ -116,6 +116,7 @@ func (fc *fileCache) initialize(opt map[string]interface{}) error {
 	go fc.configGroups.runCleanExpire(fc.ctx, time.Minute, int64(fc.expireTimeAfterWrite))
 	go fc.startClearExpireEntryTask(fc.ctx)
 	go fc.startLogStatusTask(fc.ctx)
+	go fc.reportMetricsInfo(fc.ctx)
 	return nil
 }
 

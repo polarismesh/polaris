@@ -33,6 +33,7 @@ import (
 	"github.com/polarismesh/polaris/apiserver"
 	connlimit "github.com/polarismesh/polaris/common/conn/limit"
 	"github.com/polarismesh/polaris/common/eventhub"
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/secure"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
@@ -461,7 +462,12 @@ func (h *EurekaServer) postproccess(req *restful.Request, rsp *restful.Response)
 	method := getEurekaApi(req.Request.Method, path)
 
 	if recordApiCall {
-		_ = h.statis.AddAPICall(method, "HTTP", int(code), diff.Nanoseconds())
+		h.statis.ReportCallMetrics(metrics.CallMetric{
+			API:      method,
+			Protocol: "HTTP",
+			Code:     int(code),
+			Duration: diff,
+		})
 	}
 }
 

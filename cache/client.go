@@ -38,8 +38,6 @@ const (
 	ClientName = "client"
 )
 
-var _ ClientCache = (*clientCache)(nil)
-
 // ClientIterProc client iter proc func
 type ClientIterProc func(key string, value *model.Client) bool
 
@@ -97,17 +95,11 @@ func (c *clientCache) initialize(_ map[string]interface{}) error {
 
 // update 更新缓存函数
 func (c *clientCache) update() error {
-	// 一分钟update一次
-	timeDiff := time.Since(c.lastUpdateTime).Minutes()
-	if !c.isFirstUpdate() && 1 > timeDiff {
-		log.Debug("[Cache][Client] update get storage ignore", zap.Float64("time-diff", timeDiff))
-		return nil
-	}
-
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := c.singleFlight.Do(c.name(), func() (interface{}, error) {
 		defer func() {
 			c.lastMtimeLogged = logLastMtime(c.lastMtimeLogged, c.LastMtime().Unix(), "Client")
+			c.reportMetricsInfo()
 		}()
 		return nil, c.doCacheUpdate(c.name(), c.realUpdate)
 	})

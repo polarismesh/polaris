@@ -24,6 +24,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"google.golang.org/grpc"
 
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/plugin"
 )
 
@@ -110,8 +111,12 @@ func (pc *protobufCache) Get(cacheType string, key string) *CacheObject {
 	}
 
 	val, exist := c.Get(key)
-
-	_ = plugin.GetStatis().AddCacheCall(plugin.ComponentProtobufCache, cacheType, exist, 1)
+	plugin.GetStatis().ReportCallMetrics(metrics.CallMetric{
+		Type:     metrics.ProtobufCacheCallMetric,
+		Protocol: cacheType,
+		Success:  exist,
+		Times:    1,
+	})
 
 	if val == nil {
 		return nil

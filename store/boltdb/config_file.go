@@ -31,6 +31,8 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+var _ store.ConfigFileStore = (*configFileStore)(nil)
+
 const (
 	tblConfigFile   string = "ConfigFile"
 	tblConfigFileID string = "ConfigFileID"
@@ -323,6 +325,30 @@ func (cf *configFileStore) CountByConfigFileGroup(namespace, group string) (uint
 	}
 
 	return uint64(len(ret)), nil
+}
+
+func (cf *configFileStore) CountConfigFileEachGroup() (map[string]map[string]int64, error) {
+	values, err := cf.handler.LoadValuesAll(tblConfigFile, &model.ConfigFile{})
+	if err != nil {
+		return nil, err
+	}
+
+	ret := make(map[string]map[string]int64)
+	for i := range values {
+		file := values[i].(*model.ConfigFile)
+		if !file.Valid {
+			continue
+		}
+		if _, ok := ret[file.Namespace]; !ok {
+			ret[file.Namespace] = map[string]int64{}
+		}
+		if _, ok := ret[file.Namespace][file.Group]; !ok {
+			ret[file.Namespace][file.Group] = 0
+		}
+		ret[file.Namespace][file.Group] = ret[file.Namespace][file.Group] + 1
+	}
+
+	return ret, nil
 }
 
 // doConfigFilePage 进行分页

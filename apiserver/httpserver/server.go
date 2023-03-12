@@ -45,7 +45,6 @@ import (
 	"github.com/polarismesh/polaris/maintain"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
-	"github.com/polarismesh/polaris/plugin/statis/local"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/healthcheck"
 )
@@ -347,7 +346,9 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 
 				ws := new(restful.WebService)
 				ws.Path("/core/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
-
+				if err := h.GetClientServer(ws); err != nil {
+					return nil, err
+				}
 				if err := h.GetCoreV1ConsoleAccessServer(ws, apiConfig.Include); err != nil {
 					return nil, err
 				}
@@ -393,11 +394,7 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 		h.enableSwaggerAPI(wsContainer)
 	}
 
-	statis := plugin.GetStatis()
-	if _, ok := statis.(*local.StatisWorker); ok {
-		h.enablePrometheusAccess(wsContainer)
-	}
-
+	h.enablePrometheusAccess(wsContainer)
 	return wsContainer, nil
 }
 
@@ -518,7 +515,13 @@ func (h *HTTPServer) postProcess(req *restful.Request, rsp *restful.Response) {
 	}
 
 	if recordApiCall {
-		_ = h.statis.AddAPICall(method, "HTTP", int(code), diff.Nanoseconds())
+		h.statis.ReportCallMetrics(metrics.CallMetric{
+			Type:     metrics.ServerCallMetric,
+			API:      method,
+			Protocol: "HTTP",
+			Code:     int(code),
+			Duration: diff,
+		})
 	}
 }
 

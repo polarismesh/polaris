@@ -268,9 +268,9 @@ func (s *stableStore) newStore() {
 
 	s.faultDetectRuleStore = &faultDetectRuleStore{master: s.master, slave: s.slave}
 
-	s.configFileGroupStore = &configFileGroupStore{db: s.master}
+	s.configFileGroupStore = &configFileGroupStore{master: s.master, slave: s.slave}
 
-	s.configFileStore = &configFileStore{db: s.master}
+	s.configFileStore = &configFileStore{master: s.master, slave: s.slave}
 
 	s.configFileReleaseStore = &configFileReleaseStore{db: s.master, slave: s.slave}
 

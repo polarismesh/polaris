@@ -15,8 +15,18 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package local
+package cache
 
-import commonLog "github.com/polarismesh/polaris/common/log"
+import (
+	"github.com/polarismesh/polaris/common/metrics"
+	"github.com/polarismesh/polaris/plugin"
+)
 
-var log = commonLog.RegisterScope(PluginName, "", 0)
+func (c *clientCache) reportMetricsInfo() {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	plugin.GetStatis().ReportDiscoveryMetrics(metrics.DiscoveryMetric{
+		Type:  metrics.ClientMetrics,
+		Total: int64(len(c.clients)),
+	})
+}

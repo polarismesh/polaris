@@ -51,7 +51,6 @@ func (svr *serverAuthAbility) CreateServices(
 	}
 
 	resp := svr.targetServer.CreateServices(ctx, reqs)
-
 	return resp
 }
 
@@ -109,7 +108,6 @@ func (svr *serverAuthAbility) UpdateServiceToken(
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
 	return svr.targetServer.UpdateServiceToken(ctx, req)
 }
 
@@ -155,7 +153,6 @@ func (svr *serverAuthAbility) GetServicesCount(ctx context.Context) *apiservice.
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
 	return svr.targetServer.GetServicesCount(ctx)
 }
 
@@ -169,7 +166,6 @@ func (svr *serverAuthAbility) GetServiceToken(ctx context.Context, req *apiservi
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
 	return svr.targetServer.GetServiceToken(ctx, req)
 }
 
@@ -184,6 +180,5 @@ func (svr *serverAuthAbility) GetServiceOwner(
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
 	return svr.targetServer.GetServiceOwner(ctx, req)
 }

@@ -24,6 +24,6 @@ type toolStore struct {
 }
 
 // GetUnixSecond 获取当前时间，单位秒
-func (t *toolStore) GetUnixSecond() (int64, error) {
+func (t *toolStore) GetUnixSecond(maxWait time.Duration) (int64, error) {
 	return time.Now().Unix(), nil
 }

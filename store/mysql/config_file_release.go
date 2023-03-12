@@ -25,6 +25,8 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+var _ store.ConfigFileReleaseStore = (*configFileReleaseStore)(nil)
+
 type configFileReleaseStore struct {
 	db    *BaseDB
 	slave *BaseDB
@@ -144,6 +146,38 @@ func (cfr *configFileReleaseStore) FindConfigFileReleaseByModifyTimeAfter(
 	}
 
 	return releases, nil
+}
+
+func (cfr *configFileReleaseStore) CountConfigFileReleaseEachGroup() (map[string]map[string]int64, error) {
+	metricsSql := "SELECT namespace, `group`, count(file_name) FROM config_file_release " +
+		" WHERE flag = 0 GROUP by namesapce, `group`"
+	rows, err := cfr.slave.Query(metricsSql)
+	if err != nil {
+		return nil, store.Error(err)
+	}
+
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	ret := map[string]map[string]int64{}
+	for rows.Next() {
+		var (
+			namespce string
+			group    string
+			cnt      int64
+		)
+
+		if err := rows.Scan(&namespce, &group, cnt); err != nil {
+			return nil, err
+		}
+		if _, ok := ret[namespce]; !ok {
+			ret[namespce] = map[string]int64{}
+		}
+		ret[namespce][group] = cnt
+	}
+
+	return ret, nil
 }
 
 func (cfr *configFileReleaseStore) baseQuerySql() string {

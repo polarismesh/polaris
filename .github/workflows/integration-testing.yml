@@ -105,7 +105,7 @@ jobs:
           cd ..
           ls -lstrh
           # 先测试普通的集成测试
-          pushd ./test
+          pushd ./test/integrate
           echo "[INTEGRATION TEST] begin"
           curl http://127.0.0.1:8090
           go test -count=1 -v -tags integration

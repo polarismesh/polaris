@@ -39,7 +39,7 @@ func newTestInstanceCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *i
 
 	storage := mock.NewMockStore(ctl)
 	ic := newInstanceCache(storage, make(chan *revisionNotify, 1024))
-	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
+	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 	opt := map[string]interface{}{
 		"disableBusiness": false,
 		"needMeta":        true,
@@ -147,7 +147,7 @@ func TestInstanceCache_Update(t *testing.T) {
 			storage.EXPECT().
 				GetMoreInstances(gomock.Any(), gomock.Any(), ic.needMeta, ic.systemServiceID).
 				Return(instances, nil),
-			storage.EXPECT().GetUnixSecond().Return(maxMtime.Unix(), nil).AnyTimes(),
+			storage.EXPECT().GetUnixSecond(gomock.Any()).Return(maxMtime.Unix(), nil).AnyTimes(),
 		)
 		if err := ic.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())

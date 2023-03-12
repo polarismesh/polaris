@@ -1264,7 +1264,7 @@ func TestConcurrencyCreateSameService(t *testing.T) {
 		)
 
 		mockStore := mock.NewMockStore(ctrl)
-		mockStore.EXPECT().GetUnixSecond().Return(time.Now().Unix(), nil).AnyTimes()
+		mockStore.EXPECT().GetUnixSecond(gomock.Any()).Return(time.Now().Unix(), nil).AnyTimes()
 		cacheMgr, err = cache.TestCacheInitialize(ctx, &cache.Config{
 			Open: true,
 		}, mockStore)

@@ -122,7 +122,7 @@ jobs:
           work_dir=$(ls | grep polaris-server-release | sed -n '1p')
           echo "work_dir is $work_dir"
 
-          cp -rf ./testdata/polaris-server.yaml $work_dir/
+          cp -rf ./test/data/polaris-server.yaml $work_dir/
 
           cd $work_dir
 
@@ -148,7 +148,7 @@ jobs:
           cd ..
           ls -lstrh
           # 先测试普通的集成测试
-          pushd ./test
+          pushd ./test/integrate
           echo "[INTEGRATION TEST] begin"
           curl http://127.0.0.1:8090
           go test -count=1 -v -tags integration -timeout 60m
@@ -157,12 +157,3 @@ jobs:
           cd $work_dir
           ./tool/stop.sh
           cd ..
-
-
-
-      # - name: run config-center interface tests
-      #   run: |
-      #     # 进行配置中心的集成测试
-      #     pushd ./test/config_center
-      #     go test -count=1 -v
-      #     popd

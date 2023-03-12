@@ -15,20 +15,8 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package metrics
+package logger
 
-import "github.com/prometheus/client_golang/prometheus"
+import commonlog "github.com/polarismesh/polaris/common/log"
 
-func registerDiscoveryMetrics() {
-	registry.MustRegister([]prometheus.Collector{
-		serviceCount,
-		serviceOnlineCount,
-		serviceAbnormalCount,
-		serviceOfflineCount,
-
-		instanceCount,
-		instanceOnlineCount,
-		instanceAbnormalCount,
-		instanceIsolateCount,
-	}...)
-}
+var log = commonlog.RegisterScope(PluginName, "", 0)

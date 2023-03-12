@@ -28,7 +28,7 @@ var (
 )
 
 func enrichCreateRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("创建路由规则").
+	return r.Doc("创建路由规则(V2)").
 		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
 		Operation("v2CreateRoutings").
 		Reads([]apitraffic.RouteRule{}).
@@ -36,14 +36,14 @@ func enrichCreateRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder 
 }
 
 func enrichDeleteRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("删除路由规则").
+	return r.Doc("删除路由规则(V2)").
 		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
 		Operation("v2DeleteRoutings").
 		Notes(enrichDeleteRoutingsApiNotes)
 }
 
 func enrichUpdateRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("更新路由规则").
+	return r.Doc("更新路由规则(V2)").
 		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
 		Operation("v2UpdateRoutings").
 		Reads([]apitraffic.RouteRule{}).
@@ -51,14 +51,14 @@ func enrichUpdateRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder 
 }
 
 func enrichGetRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("获取路由规则").
+	return r.Doc("获取路由规则(V2)").
 		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
 		Operation("v2GetRoutings").
 		Notes(enrichGetRoutingsApiNotes)
 }
 
 func enrichEnableRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("启用路由规则").
+	return r.Doc("启用路由规则(V2)").
 		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
 		Operation("v2EnableRoutings").
 		Notes(enrichEnableRoutingsApiNotes)

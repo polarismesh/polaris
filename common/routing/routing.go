@@ -369,7 +369,7 @@ func RoutingArguments2Labels(args []*apitraffic.SourceMatch) map[string]*apimode
 		case apitraffic.SourceMatch_COOKIE:
 			key = _labelKeyCookie + "." + argument.Key
 		case apitraffic.SourceMatch_PATH:
-			key = _labelKeyPath + "." + argument.Key
+			key = _labelKeyPath
 		default:
 			continue
 		}

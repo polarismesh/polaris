@@ -53,23 +53,27 @@ header: # `header` section is configurations for source codes license header.
     - "**"
 
   paths-ignore: # `paths-ignore` are the path list that will be ignored by license-eye.
-    - "**/*.md"
+    # folder
+    - "common/api/protoc"
+    - "deploy"
+    - "release"
     - "**/testdata/**"
-    - "**/go.mod"
-    - "**/go.sum"
+
+    # single file
     - "LICENSE"
     - ".gitignore"
     - "Makefile"
     - "Dockerfile"
-    - "**/*.pb.go"
     - "version"
     - ".golangci.yml"
     - ".github"
-    - "deploy"
-    - "**/*.proto"
     - "logo.svg"
-    - "release"
-    - "common/api/protoc"
+    - "**/*.pb.go"
+    - "**/*_mock.go"
+    - "**/*.proto"
+    - "**/*.md"
+    - "**/go.mod"
+    - "**/go.sum"
   comment: on-failure # on what condition license-eye will comment on the pull request, `on-failure`, `always`, `never`.
 
   # license-location-threshold specifies the index threshold where the license header can be located,

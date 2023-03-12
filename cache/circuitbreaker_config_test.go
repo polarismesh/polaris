@@ -36,7 +36,7 @@ func newTestCircuitBreakerCache(t *testing.T) (*gomock.Controller, *mock.MockSto
 
 	storage := mock.NewMockStore(ctl)
 	rlc := newCircuitBreakerCache(storage)
-	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
+	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 	var opt map[string]interface{}
 	_ = rlc.initialize(opt)
 	return ctl, storage, rlc
@@ -117,7 +117,7 @@ func TestCircuitBreakersUpdate(t *testing.T) {
 
 		currentTime := time.Now()
 		serviceWithCircuitBreakers[0].ModifyTime = currentTime
-		storage.EXPECT().GetUnixSecond().Return(currentTime.Unix(), nil).AnyTimes()
+		storage.EXPECT().GetUnixSecond(gomock.Any()).Return(currentTime.Unix(), nil).AnyTimes()
 		storage.EXPECT().GetCircuitBreakerRulesForCache(gomock.Any(), cbc.isFirstUpdate()).
 			Return(serviceWithCircuitBreakers, nil)
 		if err := cbc.update(); err != nil {

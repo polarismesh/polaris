@@ -23,8 +23,8 @@ package test
 import (
 	"testing"
 
-	"github.com/polarismesh/polaris/test/http"
-	"github.com/polarismesh/polaris/test/resource"
+	"github.com/polarismesh/polaris/test/integrate/http"
+	"github.com/polarismesh/polaris/test/integrate/resource"
 )
 
 /**

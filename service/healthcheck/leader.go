@@ -54,7 +54,7 @@ func (handler *LeaderChangeEventHandler) PreProcess(ctx context.Context, value a
 // OnEvent event trigger
 func (handler *LeaderChangeEventHandler) OnEvent(ctx context.Context, i interface{}) error {
 	e := i.(store.LeaderChangeEvent)
-	if e.Key != store.ELECTION_KEY_SELF_SERVICE_CHECKER {
+	if e.Key != store.ElectionKeySelfServiceChecker {
 		return nil
 	}
 

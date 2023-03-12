@@ -15,20 +15,21 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package local
+package base
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
 
+	commonlog "github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/metrics"
 	commontime "github.com/polarismesh/polaris/common/time"
-	"github.com/polarismesh/polaris/plugin"
 )
 
 // CacheCall 接口调用
 type CacheCall struct {
-	component string
 	cacheType string
 	miss      bool
 	count     int32
@@ -43,40 +44,39 @@ type CacheCallStatisItem struct {
 }
 
 // ComponentCacheStatics statics components
-type ComponentCacheStatics struct {
-	mutex *sync.Mutex
-
-	statis map[string]*CacheCallStatisItem
-
+type CacheStatics struct {
+	mutex           *sync.Mutex
+	statis          map[string]*CacheCallStatisItem
 	CacheCallStatis *CacheCallStatis
 }
 
-func newComponentCacheStatics(statis *CacheCallStatis) *ComponentCacheStatics {
-	return &ComponentCacheStatics{
+func NewCacheStatics(statis *CacheCallStatis) *CacheStatics {
+	return &CacheStatics{
 		mutex:           &sync.Mutex{},
 		statis:          make(map[string]*CacheCallStatisItem),
 		CacheCallStatis: statis,
 	}
 }
 
-func (c *ComponentCacheStatics) add(ac *CacheCall) {
-	index := fmt.Sprintf("%v", ac.cacheType)
+func (c *CacheStatics) Add(ac metrics.CallMetric) {
+	index := fmt.Sprintf("%v", ac.Protocol)
 	item, exist := c.statis[index]
 	if !exist {
 		c.statis[index] = &CacheCallStatisItem{
-			cacheType: ac.cacheType,
+			cacheType: ac.Protocol,
 		}
 	}
 
 	item = c.statis[index]
-	if ac.miss {
-		item.missCount += int64(ac.count)
+	if ac.Success {
+		item.hitCount += int64(ac.Times)
 	} else {
-		item.hitCount += int64(ac.count)
+		item.missCount += int64(ac.Times)
+
 	}
 }
 
-func (c *ComponentCacheStatics) printStatics(staticsSlice []*CacheCallStatisItem, startStr string) {
+func (c *CacheStatics) printStatics(staticsSlice []*CacheCallStatisItem, startStr string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	msg := fmt.Sprintf("Statis %s:\n", startStr)
@@ -93,11 +93,11 @@ func (c *ComponentCacheStatics) printStatics(staticsSlice []*CacheCallStatisItem
 			float64(item.hitCount)/float64(item.hitCount+item.missCount),
 		)
 	}
-	log.Info(msg)
+	commonlog.Info(msg)
 }
 
 // log and print the statics messages
-func (c *ComponentCacheStatics) log() {
+func (c *CacheStatics) log() {
 	if len(c.statis) == 0 {
 		return
 	}
@@ -113,32 +113,38 @@ func (c *ComponentCacheStatics) log() {
 
 // CacheCallStatis 接口调用统计
 type CacheCallStatis struct {
-	components       map[string]*ComponentCacheStatics
-	prometheusStatis *PrometheusStatis
+	cacheCall    chan metrics.CallMetric
+	cacheStatics *CacheStatics
 }
 
-func newCacheCallStatis(prometheusStatis *PrometheusStatis) (*CacheCallStatis, error) {
+func NewCacheCallStatis(ctx context.Context) (*CacheCallStatis, error) {
 	value := &CacheCallStatis{
-		components: make(map[string]*ComponentCacheStatics),
+		cacheCall: make(chan metrics.CallMetric, 1024),
 	}
+	value.cacheStatics = NewCacheStatics(value)
 
-	componentNames := []string{plugin.ComponentProtobufCache}
-	for _, componentName := range componentNames {
-		value.components[componentName] = newComponentCacheStatics(value)
-	}
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case ac := <-value.cacheCall:
+				value.cacheStatics.Add(ac)
+			}
+		}
+	}()
 
-	value.prometheusStatis = prometheusStatis
 	return value, nil
 }
 
 // add 添加接口调用数据
-func (a *CacheCallStatis) add(ac *CacheCall) {
-	a.components[ac.component].add(ac)
+func (a *CacheCallStatis) Add(ac metrics.CallMetric) {
+	select {
+	case a.cacheCall <- ac:
+	}
 }
 
 // log 打印接口调用统计
-func (a *CacheCallStatis) log() {
-	for _, component := range a.components {
-		component.log()
-	}
+func (a *CacheCallStatis) deal() {
+	a.cacheStatics.log()
 }
