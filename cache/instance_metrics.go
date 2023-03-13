@@ -18,12 +18,12 @@
 package cache
 
 import (
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/plugin"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 var preServiceInfos = map[string]map[string]struct{}{}

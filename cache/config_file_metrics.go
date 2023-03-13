@@ -21,11 +21,11 @@ import (
 	"context"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/plugin"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 func (fc *fileCache) reportMetricsInfo(ctx context.Context) {
