@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package service_test
 
 import (
 	"context"
@@ -34,6 +34,7 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/service"
 )
 
 const defaultAliasNs = "Production"
@@ -48,7 +49,7 @@ func (d *DiscoverTestSuit) createCommonAlias(service *apiservice.Service, alias 
 		Type:           typ,
 		Owners:         utils.NewStringValue("polaris"),
 	}
-	return d.server.CreateServiceAlias(d.defaultCtx, req)
+	return d.DiscoverServer().CreateServiceAlias(d.DefaultCtx, req)
 }
 
 // 创建别名，并检查
@@ -81,7 +82,7 @@ func isSid(alias string) bool {
 func TestCreateServiceAlias(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -112,21 +113,21 @@ func TestCreateServiceAlias(t *testing.T) {
 			AliasNamespace: serviceResp.Namespace,
 			Type:           apiservice.AliasType_CL5SID,
 		}
-		ctx := context.WithValue(discoverSuit.defaultCtx, utils.StringContext("polaris-token"),
+		ctx := context.WithValue(discoverSuit.DefaultCtx, utils.StringContext("polaris-token"),
 			serviceResp.GetToken().GetValue())
-		resp := discoverSuit.server.CreateServiceAlias(ctx, req)
+		resp := discoverSuit.DiscoverServer().CreateServiceAlias(ctx, req)
 		So(respSuccess(resp), ShouldEqual, true)
 		discoverSuit.cleanServiceName(resp.Alias.Alias.Value, serviceResp.GetNamespace().GetValue())
 
 		// 带上系统token，也可以成功
-		ctx = context.WithValue(discoverSuit.defaultCtx, utils.StringContext("polaris-token"),
+		ctx = context.WithValue(discoverSuit.DefaultCtx, utils.StringContext("polaris-token"),
 			"polaris@12345678")
-		resp = discoverSuit.server.CreateServiceAlias(ctx, req)
+		resp = discoverSuit.DiscoverServer().CreateServiceAlias(ctx, req)
 		So(respSuccess(resp), ShouldEqual, true)
 		discoverSuit.cleanServiceName(resp.Alias.Alias.Value, serviceResp.GetNamespace().GetValue())
 	})
 	Convey("不允许为别名创建别名", t, func() {
-		resp := discoverSuit.namespaceSvr.CreateNamespace(discoverSuit.defaultCtx, &apimodel.Namespace{
+		resp := discoverSuit.NamespaceServer().CreateNamespace(discoverSuit.DefaultCtx, &apimodel.Namespace{
 			Name: &wrapperspb.StringValue{Value: defaultAliasNs},
 		})
 		if !respSuccess(resp) {
@@ -154,13 +155,13 @@ func TestCreateServiceAlias(t *testing.T) {
 func TestCreateSid(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
 
 	Convey("创建不同命名空间的sid，可以返回符合规范的sid", t, func() {
-		for namespace, layout := range Namespace2SidLayoutID {
+		for namespace, layout := range service.Namespace2SidLayoutID {
 			service := &apiservice.Service{
 				Name:      utils.NewStringValue("sid-test-xxx"),
 				Namespace: utils.NewStringValue(namespace),
@@ -168,7 +169,7 @@ func TestCreateSid(t *testing.T) {
 				Owners:    utils.NewStringValue("owners111"),
 			}
 			discoverSuit.cleanServiceName(service.GetName().GetValue(), service.GetNamespace().GetValue())
-			serviceResp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{service})
+			serviceResp := discoverSuit.DiscoverServer().CreateServices(discoverSuit.DefaultCtx, []*apiservice.Service{service})
 			t.Logf("resp : %s", serviceResp.GetInfo().GetValue())
 			So(respSuccess(serviceResp), ShouldEqual, true)
 
@@ -189,7 +190,7 @@ func TestCreateSid(t *testing.T) {
 			Name:   utils.NewStringValue("other-namespace-xxx"),
 			Owners: utils.NewStringValue("aaa"),
 		}
-		So(respSuccess(discoverSuit.namespaceSvr.CreateNamespace(discoverSuit.defaultCtx, namespace)), ShouldEqual, true)
+		So(respSuccess(discoverSuit.NamespaceServer().CreateNamespace(discoverSuit.DefaultCtx, namespace)), ShouldEqual, true)
 		defer discoverSuit.cleanNamespace(namespace.Name.Value)
 
 		service := &apiservice.Service{
@@ -198,7 +199,7 @@ func TestCreateSid(t *testing.T) {
 			Revision:  utils.NewStringValue("revision111"),
 			Owners:    utils.NewStringValue("owners111"),
 		}
-		serviceResp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{service})
+		serviceResp := discoverSuit.DiscoverServer().CreateServices(discoverSuit.DefaultCtx, []*apiservice.Service{service})
 		So(respSuccess(serviceResp), ShouldEqual, true)
 		defer discoverSuit.cleanServiceName(service.GetName().GetValue(), service.GetNamespace().GetValue())
 		aliasResp := discoverSuit.createCommonAlias(serviceResp.Responses[0].Service, "", namespace.Name.Value, apiservice.AliasType_CL5SID)
@@ -211,7 +212,7 @@ func TestCreateSid(t *testing.T) {
 func TestConcurrencyCreateSid(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -272,7 +273,7 @@ func TestConcurrencyCreateSid(t *testing.T) {
 func TestExceptCreateAlias(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -333,12 +334,12 @@ func TestExceptCreateAlias(t *testing.T) {
 			Token:     utils.NewStringValue("123123123"),
 		}
 
-		oldCtx := discoverSuit.defaultCtx
+		oldCtx := discoverSuit.DefaultCtx
 
-		discoverSuit.defaultCtx = context.Background()
+		discoverSuit.DefaultCtx = context.Background()
 
 		defer func() {
-			discoverSuit.defaultCtx = oldCtx
+			discoverSuit.DefaultCtx = oldCtx
 		}()
 
 		resp := discoverSuit.createCommonAlias(service, "x1.x2.x3", service.Namespace.GetValue(), apiservice.AliasType_DEFAULT)
@@ -361,7 +362,7 @@ func TestExceptCreateAlias(t *testing.T) {
 func TestUpdateServiceAlias(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -383,14 +384,14 @@ func TestUpdateServiceAlias(t *testing.T) {
 			ServiceToken:   resp.GetAlias().GetServiceToken(),
 		}
 
-		repeatedResp := discoverSuit.server.UpdateServiceAlias(discoverSuit.defaultCtx, req)
+		repeatedResp := discoverSuit.DiscoverServer().UpdateServiceAlias(discoverSuit.DefaultCtx, req)
 		So(respSuccess(repeatedResp), ShouldEqual, true)
 
 		query := map[string]string{
 			"alias":     req.GetAlias().GetValue(),
 			"namespace": req.GetNamespace().GetValue(),
 		}
-		aliasResponse := discoverSuit.server.GetServiceAliases(discoverSuit.defaultCtx, query)
+		aliasResponse := discoverSuit.DiscoverServer().GetServiceAliases(discoverSuit.DefaultCtx, query)
 		// 判断负责人是否一致
 		So(aliasResponse.GetAliases()[0].GetOwners().GetValue(), ShouldEqual, "alias-owner-new")
 		t.Logf("pass, owner is %v", aliasResponse.GetAliases()[0].GetOwners().GetValue())
@@ -416,14 +417,14 @@ func TestUpdateServiceAlias(t *testing.T) {
 			ServiceToken:   resp.GetAlias().GetServiceToken(),
 		}
 
-		repeatedResp := discoverSuit.server.UpdateServiceAlias(discoverSuit.defaultCtx, req)
+		repeatedResp := discoverSuit.DiscoverServer().UpdateServiceAlias(discoverSuit.DefaultCtx, req)
 		So(respSuccess(repeatedResp), ShouldEqual, true)
 
 		query := map[string]string{
 			"alias":     req.GetAlias().GetValue(),
 			"namespace": req.GetNamespace().GetValue(),
 		}
-		aliasResponse := discoverSuit.server.GetServiceAliases(discoverSuit.defaultCtx, query)
+		aliasResponse := discoverSuit.DiscoverServer().GetServiceAliases(discoverSuit.DefaultCtx, query)
 		// 判断指向服务是否一致
 		So(aliasResponse.GetAliases()[0].GetService().GetValue(), ShouldEqual, serviceResp2.GetName().GetValue())
 		t.Logf("pass, service is %v", aliasResponse.GetAliases()[0].GetService().GetValue())
@@ -447,7 +448,7 @@ func TestUpdateServiceAlias(t *testing.T) {
 			Comment:      resp.GetAlias().GetComment(),
 			ServiceToken: resp.GetAlias().GetServiceToken(),
 		}
-		repeatedResp := discoverSuit.server.UpdateServiceAlias(discoverSuit.defaultCtx, req)
+		repeatedResp := discoverSuit.DiscoverServer().UpdateServiceAlias(discoverSuit.DefaultCtx, req)
 		if respSuccess(repeatedResp) {
 			t.Fatalf("error: %+v", repeatedResp)
 		}
@@ -462,7 +463,7 @@ func TestUpdateServiceAlias(t *testing.T) {
 		req := resp.GetAlias()
 		req.ServiceToken = utils.NewStringValue("")
 
-		repeatedResp := discoverSuit.server.UpdateServiceAlias(context.Background(), req)
+		repeatedResp := discoverSuit.DiscoverServer().UpdateServiceAlias(context.Background(), req)
 
 		if respSuccess(repeatedResp) {
 			t.Fatalf("error: %+v", repeatedResp)
@@ -475,7 +476,7 @@ func TestUpdateServiceAlias(t *testing.T) {
 func TestDeleteServiceAlias(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -489,7 +490,7 @@ func TestDeleteServiceAlias(t *testing.T) {
 		discoverSuit.removeCommonServiceAliases(t, []*apiservice.ServiceAlias{resp.Alias})
 
 		query := map[string]string{"name": resp.Alias.Alias.Value}
-		queryResp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, query)
+		queryResp := discoverSuit.DiscoverServer().GetServices(discoverSuit.DefaultCtx, query)
 		So(respSuccess(queryResp), ShouldEqual, true)
 		So(len(queryResp.Services), ShouldEqual, 0)
 	})
@@ -499,9 +500,9 @@ func TestDeleteServiceAlias(t *testing.T) {
 		So(respSuccess(resp), ShouldEqual, true)
 		defer discoverSuit.cleanServiceName(resp.Alias.Alias.Value, serviceResp.Namespace.Value)
 
-		ctx := context.WithValue(discoverSuit.defaultCtx, utils.StringContext("polaris-token"),
+		ctx := context.WithValue(discoverSuit.DefaultCtx, utils.StringContext("polaris-token"),
 			"polaris@12345678")
-		So(respSuccess(discoverSuit.server.DeleteServiceAliases(ctx, []*apiservice.ServiceAlias{resp.Alias})), ShouldEqual, true)
+		So(respSuccess(discoverSuit.DiscoverServer().DeleteServiceAliases(ctx, []*apiservice.ServiceAlias{resp.Alias})), ShouldEqual, true)
 	})
 
 }
@@ -510,7 +511,7 @@ func TestDeleteServiceAlias(t *testing.T) {
 func TestServiceAliasRelated(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -530,7 +531,7 @@ func TestServiceAliasRelated(t *testing.T) {
 			Host:         utils.NewStringValue("1.12.123.132"),
 			Port:         utils.NewUInt32Value(8080),
 		}
-		instanceResp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instance})
+		instanceResp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instance})
 		So(respSuccess(instanceResp), ShouldEqual, false)
 		t.Logf("alias create instance ret code(%d), msg(%s)",
 			instanceResp.Code.Value, instanceResp.Info.Value)
@@ -539,9 +540,9 @@ func TestServiceAliasRelated(t *testing.T) {
 		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 123)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
-		time.Sleep(discoverSuit.updateCacheInterval)
+		time.Sleep(discoverSuit.UpdateCacheInterval())
 		service := &apiservice.Service{Name: resp.Alias.Alias, Namespace: resp.Alias.Namespace}
-		disResp := discoverSuit.server.ServiceInstancesCache(discoverSuit.defaultCtx, service)
+		disResp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, service)
 		So(respSuccess(disResp), ShouldEqual, true)
 		So(len(disResp.Instances), ShouldEqual, 1)
 	})
@@ -552,7 +553,7 @@ func TestServiceAliasRelated(t *testing.T) {
 			ServiceToken: serviceResp.Token,
 			Inbounds:     make([]*apitraffic.Route, 0),
 		}
-		routingResp := discoverSuit.server.CreateRoutingConfigs(discoverSuit.defaultCtx, []*apitraffic.Routing{routing})
+		routingResp := discoverSuit.DiscoverServer().CreateRoutingConfigs(discoverSuit.DefaultCtx, []*apitraffic.Routing{routing})
 		So(respSuccess(routingResp), ShouldEqual, false)
 		t.Logf("create routing ret code(%d), info(%s)", routingResp.Code.Value, routingResp.Info.Value)
 	})
@@ -562,7 +563,7 @@ func TestServiceAliasRelated(t *testing.T) {
 
 	// 	time.Sleep(discoverSuit.updateCacheInterval)
 	// 	service := &apiservice.Service{Name: resp.Alias.Alias, Namespace: resp.Alias.Namespace}
-	// 	disResp := discoverSuit.server.GetRoutingConfigWithCache(discoverSuit.defaultCtx, service)
+	// 	disResp := discoverSuit.DiscoverServer().GetRoutingConfigWithCache(discoverSuit.DefaultCtx, service)
 	// 	So(respSuccess(disResp), ShouldEqual, true)
 	// 	So(len(disResp.Routing.Inbounds), ShouldEqual, 1)
 	// 	So(len(disResp.Routing.Outbounds), ShouldEqual, 0)
@@ -573,7 +574,7 @@ func TestServiceAliasRelated(t *testing.T) {
 func TestGetServiceAliases(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -593,27 +594,27 @@ func TestGetServiceAliases(t *testing.T) {
 	}
 
 	Convey("可以查询到全量别名", t, func() {
-		resp := discoverSuit.server.GetServiceAliases(discoverSuit.defaultCtx, nil)
+		resp := discoverSuit.DiscoverServer().GetServiceAliases(discoverSuit.DefaultCtx, nil)
 		So(respSuccess(resp), ShouldEqual, true)
 		So(len(resp.Aliases), ShouldBeGreaterThanOrEqualTo, count)
 		So(resp.Amount.Value, ShouldBeGreaterThanOrEqualTo, count)
 	})
 	Convey("offset,limit测试", t, func() {
 		query := map[string]string{"offset": "0", "limit": "100"}
-		resp := discoverSuit.server.GetServiceAliases(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetServiceAliases(discoverSuit.DefaultCtx, query)
 		So(respSuccess(resp), ShouldEqual, true)
 		So(len(resp.Aliases), ShouldBeGreaterThanOrEqualTo, count)
 		So(resp.Amount.Value, ShouldBeGreaterThanOrEqualTo, count)
 
 		query["limit"] = "0"
-		resp = discoverSuit.server.GetServiceAliases(discoverSuit.defaultCtx, query)
+		resp = discoverSuit.DiscoverServer().GetServiceAliases(discoverSuit.DefaultCtx, query)
 		So(respSuccess(resp), ShouldEqual, true)
 		So(len(resp.Aliases), ShouldEqual, 0)
 		So(resp.Amount.Value, ShouldBeGreaterThanOrEqualTo, count)
 	})
 	Convey("不合法的过滤条件", t, func() {
 		query := map[string]string{"xxx": "1", "limit": "100"}
-		resp := discoverSuit.server.GetServiceAliases(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetServiceAliases(discoverSuit.DefaultCtx, query)
 		So(respSuccess(resp), ShouldEqual, false)
 	})
 	Convey("过滤条件可以生效", t, func() {
@@ -622,21 +623,21 @@ func TestGetServiceAliases(t *testing.T) {
 			"service":   serviceResp.Name.Value,
 			"namespace": serviceResp.Namespace.Value,
 		}
-		resp := discoverSuit.server.GetServiceAliases(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetServiceAliases(discoverSuit.DefaultCtx, query)
 		So(respSuccess(resp), ShouldEqual, true)
 		So(len(resp.Aliases), ShouldEqual, 1)
 		So(resp.Amount.Value, ShouldEqual, 1)
 	})
 	Convey("找不到别名", t, func() {
 		query := map[string]string{"alias": "x1.1.x2.x3"}
-		resp := discoverSuit.server.GetServiceAliases(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetServiceAliases(discoverSuit.DefaultCtx, query)
 		So(respSuccess(resp), ShouldEqual, true)
 		So(len(resp.Aliases), ShouldEqual, 0)
 		So(resp.Amount.Value, ShouldEqual, 0)
 	})
 	// Convey("支持owner过滤", t, func() {
 	// 	query := map[string]string{"owner": "service-owner-203"}
-	// 	resp := discoverSuit.server.GetServiceAliases(discoverSuit.defaultCtx, query)
+	// 	resp := discoverSuit.DiscoverServer().GetServiceAliases(discoverSuit.DefaultCtx, query)
 	// 	So(respSuccess(resp), ShouldEqual, true)
 	// 	So(len(resp.Aliases), ShouldEqual, count)
 	// 	So(resp.Amount.Value, ShouldEqual, count)
@@ -647,7 +648,7 @@ func TestGetServiceAliases(t *testing.T) {
 func TestCheckServiceAliasFieldLen(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -665,7 +666,7 @@ func TestCheckServiceAliasFieldLen(t *testing.T) {
 		str := genSpecialStr(129)
 		oldService := serviceAlias.Service
 		serviceAlias.Service = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateServiceAlias(discoverSuit.defaultCtx, serviceAlias)
+		resp := discoverSuit.DiscoverServer().CreateServiceAlias(discoverSuit.DefaultCtx, serviceAlias)
 		serviceAlias.Service = oldService
 		if resp.Code.Value != api.InvalidServiceName {
 			t.Fatalf("%+v", resp)
@@ -675,7 +676,7 @@ func TestCheckServiceAliasFieldLen(t *testing.T) {
 		str := genSpecialStr(129)
 		oldNamespace := serviceAlias.Namespace
 		serviceAlias.Namespace = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateServiceAlias(discoverSuit.defaultCtx, serviceAlias)
+		resp := discoverSuit.DiscoverServer().CreateServiceAlias(discoverSuit.DefaultCtx, serviceAlias)
 		serviceAlias.Namespace = oldNamespace
 		if resp.Code.Value != api.InvalidNamespaceName {
 			t.Fatalf("%+v", resp)
@@ -685,7 +686,7 @@ func TestCheckServiceAliasFieldLen(t *testing.T) {
 		str := genSpecialStr(129)
 		oldAlias := serviceAlias.Alias
 		serviceAlias.Alias = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateServiceAlias(discoverSuit.defaultCtx, serviceAlias)
+		resp := discoverSuit.DiscoverServer().CreateServiceAlias(discoverSuit.DefaultCtx, serviceAlias)
 		serviceAlias.Alias = oldAlias
 		if resp.Code.Value != api.InvalidServiceAlias {
 			t.Fatalf("%+v", resp)
@@ -695,7 +696,7 @@ func TestCheckServiceAliasFieldLen(t *testing.T) {
 		str := genSpecialStr(1025)
 		oldComment := serviceAlias.Comment
 		serviceAlias.Comment = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateServiceAlias(discoverSuit.defaultCtx, serviceAlias)
+		resp := discoverSuit.DiscoverServer().CreateServiceAlias(discoverSuit.DefaultCtx, serviceAlias)
 		serviceAlias.Comment = oldComment
 		if resp.Code.Value != api.InvalidServiceAliasComment {
 			t.Fatalf("%+v", resp)
@@ -705,7 +706,7 @@ func TestCheckServiceAliasFieldLen(t *testing.T) {
 	// 	str := genSpecialStr(1025)
 	// 	oldOwner := serviceAlias.Owners
 	// 	serviceAlias.Owners = utils.NewStringValue(str)
-	// 	resp := discoverSuit.server.CreateServiceAlias(discoverSuit.defaultCtx, serviceAlias)
+	// 	resp := discoverSuit.DiscoverServer().CreateServiceAlias(discoverSuit.DefaultCtx, serviceAlias)
 	// 	serviceAlias.Owners = oldOwner
 	// 	if resp.Code.Value != api.InvalidServiceAliasOwners {
 	// 		t.Fatalf("%+v", resp)
@@ -717,7 +718,7 @@ func TestCheckServiceAliasFieldLen(t *testing.T) {
 func TestServiceAliasDifferentNamespace(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
