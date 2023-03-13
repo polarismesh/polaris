@@ -23,20 +23,13 @@ import (
 	"sync"
 	"time"
 
-<<<<<<< HEAD:plugin/statis/base/cachecall.go
 	commonlog "github.com/polarismesh/polaris/common/log"
-=======
->>>>>>> c97b0c1e... metrics:add cache update metrics:plugin/statis/local/cachecall_handle.go
 	"github.com/polarismesh/polaris/common/metrics"
 	commontime "github.com/polarismesh/polaris/common/time"
 )
 
 // CacheCall 接口调用
 type CacheCall struct {
-<<<<<<< HEAD:plugin/statis/base/cachecall.go
-=======
-	component plugin.ComponentType
->>>>>>> c97b0c1e... metrics:add cache update metrics:plugin/statis/local/cachecall_handle.go
 	cacheType string
 	miss      bool
 	count     int32
@@ -57,11 +50,7 @@ type CacheStatics struct {
 	CacheCallStatis *CacheCallStatis
 }
 
-<<<<<<< HEAD:plugin/statis/base/cachecall.go
 func NewCacheStatics(statis *CacheCallStatis) *CacheStatics {
-=======
-func newCacheStatics(statis *CacheCallStatis) *CacheStatics {
->>>>>>> c97b0c1e... metrics:add cache update metrics:plugin/statis/local/cachecall_handle.go
 	return &CacheStatics{
 		mutex:           &sync.Mutex{},
 		statis:          make(map[string]*CacheCallStatisItem),
@@ -69,11 +58,7 @@ func newCacheStatics(statis *CacheCallStatis) *CacheStatics {
 	}
 }
 
-<<<<<<< HEAD:plugin/statis/base/cachecall.go
 func (c *CacheStatics) Add(ac metrics.CallMetric) {
-=======
-func (c *CacheStatics) add(ac metrics.CallMetric) {
->>>>>>> c97b0c1e... metrics:add cache update metrics:plugin/statis/local/cachecall_handle.go
 	index := fmt.Sprintf("%v", ac.Protocol)
 	item, exist := c.statis[index]
 	if !exist {
@@ -132,32 +117,19 @@ type CacheCallStatis struct {
 	cacheStatics *CacheStatics
 }
 
-<<<<<<< HEAD:plugin/statis/base/cachecall.go
 func NewCacheCallStatis(ctx context.Context) (*CacheCallStatis, error) {
 	value := &CacheCallStatis{
 		cacheCall: make(chan metrics.CallMetric, 1024),
 	}
 	value.cacheStatics = NewCacheStatics(value)
-=======
-func newCacheCallStatis(ctx context.Context) (*CacheCallStatis, error) {
-	value := &CacheCallStatis{
-		cacheCall: make(chan metrics.CallMetric, 1024),
-	}
-	value.cacheStatics = newCacheStatics(value)
->>>>>>> c97b0c1e... metrics:add cache update metrics:plugin/statis/local/cachecall_handle.go
 
 	go func() {
 		for {
 			select {
-<<<<<<< HEAD:plugin/statis/base/cachecall.go
 			case <-ctx.Done():
 				return
 			case ac := <-value.cacheCall:
 				value.cacheStatics.Add(ac)
-=======
-			case ac := <-value.cacheCall:
-				value.cacheStatics.add(ac)
->>>>>>> c97b0c1e... metrics:add cache update metrics:plugin/statis/local/cachecall_handle.go
 			}
 		}
 	}()
@@ -166,30 +138,13 @@ func newCacheCallStatis(ctx context.Context) (*CacheCallStatis, error) {
 }
 
 // add 添加接口调用数据
-<<<<<<< HEAD:plugin/statis/base/cachecall.go
 func (a *CacheCallStatis) Add(ac metrics.CallMetric) {
-=======
-func (a *CacheCallStatis) add(ac metrics.CallMetric) {
->>>>>>> c97b0c1e... metrics:add cache update metrics:plugin/statis/local/cachecall_handle.go
 	select {
 	case a.cacheCall <- ac:
 	}
 }
 
 // log 打印接口调用统计
-<<<<<<< HEAD:plugin/statis/base/cachecall.go
 func (a *CacheCallStatis) deal() {
 	a.cacheStatics.log()
-=======
-func (a *CacheCallStatis) log(ctx context.Context) {
-	ticker := time.NewTicker(time.Minute)
-	for {
-		select {
-		case <-ctx.Done():
-			ticker.Stop()
-		case <-ticker.C:
-			a.cacheStatics.log()
-		}
-	}
->>>>>>> c97b0c1e... metrics:add cache update metrics:plugin/statis/local/cachecall_handle.go
 }

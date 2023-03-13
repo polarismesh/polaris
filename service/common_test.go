@@ -52,13 +52,11 @@ import (
 	_ "github.com/polarismesh/polaris/plugin/ratelimit/token"
 	_ "github.com/polarismesh/polaris/plugin/statis/logger"
 	_ "github.com/polarismesh/polaris/plugin/statis/prometheus"
-	"github.com/polarismesh/polaris/service/batch"
-	"github.com/polarismesh/polaris/service/healthcheck"
-	"github.com/polarismesh/polaris/store"
+	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/store/boltdb"
 	_ "github.com/polarismesh/polaris/store/boltdb"
 	sqldb "github.com/polarismesh/polaris/store/mysql"
-	testdata "github.com/polarismesh/polaris/test/data"
+	testsuit "github.com/polarismesh/polaris/test/suit"
 )
 
 const (
@@ -91,141 +89,6 @@ func respNotFound(resp api.ResponseMessage) bool {
 	res := apimodel.Code(resp.GetCode().GetValue()) == apimodel.Code_NotFoundResource
 
 	return res
-}
-
-type options func(cfg *TestConfig)
-
-func (d *DiscoverTestSuit) Initialize(opts ...options) error {
-	return d.initialize(opts...)
-}
-
-// 内部初始化函数
-func (d *DiscoverTestSuit) initialize(opts ...options) error {
-	// 初始化defaultCtx
-	d.defaultCtx = context.WithValue(context.Background(), utils.StringContext("request-id"), "test-1")
-	d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey,
-		"nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
-
-	if err := os.RemoveAll("polaris.bolt"); err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			panic(err)
-		}
-	}
-
-	if err := d.loadConfig(); err != nil {
-		panic(err)
-	}
-
-	for i := range opts {
-		opts[i](d.cfg)
-	}
-
-	_ = commonlog.Configure(d.cfg.Bootstrap.Logger)
-
-	commonlog.GetScopeOrDefaultByName(commonlog.DefaultLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeOrDefaultByName(commonlog.CacheLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeOrDefaultByName(commonlog.StoreLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-
-	metrics.TestInitMetrics()
-	eventhub.InitEventHub()
-
-	// 初始化存储层
-	store.SetStoreConfig(&d.cfg.Store)
-	s, _ := store.TestGetStore()
-	d.storage = s
-
-	plugin.SetPluginConfig(&d.cfg.Plugin)
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	d.cancel = cancel
-
-	// 初始化缓存模块
-	cacheMgn, err := cache.TestCacheInitialize(ctx, &d.cfg.Cache, s)
-	if err != nil {
-		panic(err)
-	}
-
-	// 初始化鉴权层
-	authSvr, err := auth.TestInitialize(ctx, &d.cfg.Auth, s, cacheMgn)
-	if err != nil {
-		panic(err)
-	}
-
-	// 初始化命名空间模块
-	namespaceSvr, err := ns.TestInitialize(ctx, &d.cfg.Namespace, s, cacheMgn, authSvr)
-	if err != nil {
-		panic(err)
-	}
-	d.namespaceSvr = namespaceSvr
-
-	// 批量控制器
-	namingBatchConfig, err := batch.ParseBatchConfig(d.cfg.Naming.Batch)
-	if err != nil {
-		panic(err)
-	}
-	healthBatchConfig, err := batch.ParseBatchConfig(d.cfg.HealthChecks.Batch)
-	if err != nil {
-		panic(err)
-	}
-
-	batchConfig := &batch.Config{
-		Register:         namingBatchConfig.Register,
-		Deregister:       namingBatchConfig.Register,
-		ClientRegister:   namingBatchConfig.ClientRegister,
-		ClientDeregister: namingBatchConfig.ClientDeregister,
-		Heartbeat:        healthBatchConfig.Heartbeat,
-	}
-
-	bc, err := batch.NewBatchCtrlWithConfig(s, cacheMgn, batchConfig)
-	if err != nil {
-		log.Errorf("new batch ctrl with config err: %s", err.Error())
-		panic(err)
-	}
-	bc.Start(ctx)
-
-	if len(d.cfg.HealthChecks.LocalHost) == 0 {
-		d.cfg.HealthChecks.LocalHost = utils.LocalHost // 补充healthCheck的配置
-	}
-	healthCheckServer, err := healthcheck.TestInitialize(ctx, &d.cfg.HealthChecks, d.cfg.Cache.Open, bc, d.storage)
-	if err != nil {
-		panic(err)
-	}
-	healthcheck.SetServer(healthCheckServer)
-	d.healthCheckServer = healthCheckServer
-	cacheProvider, err := healthCheckServer.CacheProvider()
-	if err != nil {
-		panic(err)
-	}
-	healthCheckServer.SetServiceCache(cacheMgn.Service())
-	healthCheckServer.SetInstanceCache(cacheMgn.Instance())
-
-	// 为 instance 的 cache 添加 健康检查的 Listener
-	cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
-	cacheMgn.AddListener(cache.CacheNameClient, []cache.Listener{cacheProvider})
-
-	val, err := TestInitialize(ctx, &d.cfg.Naming, &d.cfg.Cache, bc, cacheMgn, d.storage, namespaceSvr,
-		healthCheckServer, authSvr)
-	if err != nil {
-		panic(err)
-	}
-	d.server = val
-
-	// 多等待一会
-	d.updateCacheInterval = d.server.Cache().GetUpdateCacheInterval() + time.Millisecond*500
-
-	time.Sleep(5 * time.Second)
-	return nil
-}
-
-func (d *DiscoverTestSuit) Destroy() {
-	d.cancel()
-	time.Sleep(5 * time.Second)
-
-	_ = d.storage.Destroy()
-	time.Sleep(5 * time.Second)
 }
 
 func (d *DiscoverTestSuit) cleanReportClient() {
@@ -605,7 +468,7 @@ func (d *DiscoverTestSuit) HeartBeat(t *testing.T, service *apiservice.Service, 
 		Id:           utils.NewStringValue(instanceID),
 	}
 
-	resp := d.healthCheckServer.Report(d.defaultCtx, req)
+	resp := d.HealthCheckServer().Report(d.DefaultCtx, req)
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
@@ -618,7 +481,7 @@ func (d *DiscoverTestSuit) GetLastHeartBeat(t *testing.T, service *apiservice.Se
 		Id:           utils.NewStringValue(instanceID),
 	}
 
-	return d.healthCheckServer.GetLastHeartbeat(req)
+	return d.HealthCheckServer().GetLastHeartbeat(req)
 }
 
 // 生成服务的主要数据

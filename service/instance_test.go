@@ -2246,7 +2246,7 @@ func (mgr *mockTrxManager) Create(svc, namespace string) *mockTrx {
 }
 
 func TestCreateInstanceLockService(t *testing.T) {
-	createMockResource := func(t *testing.T, ctrl *gomock.Controller) (*Server, *mock.MockStore) {
+	createMockResource := func(t *testing.T, ctrl *gomock.Controller) (*service.Server, *mock.MockStore) {
 		var (
 			err      error
 			cacheMgr *cache.CacheManager

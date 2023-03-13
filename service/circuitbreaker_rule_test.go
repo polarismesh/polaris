@@ -25,11 +25,12 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/polarismesh/polaris/service"
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/polarismesh/polaris/service"
 )
 
 func buildUnnamedCircuitBreakerRule() *apifault.CircuitBreakerRule {

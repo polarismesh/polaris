@@ -20,6 +20,8 @@ package service
 import (
 	"context"
 
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"golang.org/x/sync/singleflight"
 
 	"github.com/polarismesh/polaris/auth"
@@ -29,8 +31,6 @@ import (
 	"github.com/polarismesh/polaris/service/batch"
 	"github.com/polarismesh/polaris/service/healthcheck"
 	"github.com/polarismesh/polaris/store"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
 // GetBatchController .
