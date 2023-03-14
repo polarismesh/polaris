@@ -168,7 +168,7 @@ func (cfr *configFileReleaseStore) CountConfigFileReleaseEachGroup() (map[string
 			cnt      int64
 		)
 
-		if err := rows.Scan(&namespce, &group, cnt); err != nil {
+		if err := rows.Scan(&namespce, &group, &cnt); err != nil {
 			return nil, err
 		}
 		if _, ok := ret[namespce]; !ok {

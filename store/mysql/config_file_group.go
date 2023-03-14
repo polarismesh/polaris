@@ -204,7 +204,7 @@ func (fg *configFileGroupStore) CountGroupEachNamespace() (map[string]int64, err
 			cnt      int64
 		)
 
-		if err := rows.Scan(&namespce, cnt); err != nil {
+		if err := rows.Scan(&namespce, &cnt); err != nil {
 			return nil, err
 		}
 		ret[namespce] = cnt
