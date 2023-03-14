@@ -21,6 +21,8 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/emicklei/go-restful/v3"
@@ -86,17 +88,31 @@ func (h *EurekaServer) BatchReplication(req *restful.Request, rsp *restful.Respo
 
 func (h *EurekaServer) doBatchReplicate(
 	replicateRequest *ReplicationList, token string) (*ReplicationListResponse, uint32) {
-	batchResponse := &ReplicationListResponse{ResponseList: []*ReplicationInstanceResponse{}}
+	batchResponse := &ReplicationListResponse{}
 	var resultCode = api.ExecuteSuccess
-	for _, instanceInfo := range replicateRequest.ReplicationList {
-		resp, code := h.dispatch(instanceInfo, token)
-		if code != api.ExecuteSuccess {
-			resultCode = code
-			log.Warnf("[EUREKA-SERVER] fail to process replicate instance request, code is %d, action %s, instance %s, app %s",
-				code, instanceInfo.Action, instanceInfo.Id, instanceInfo.AppName)
-		}
-		batchResponse.ResponseList = append(batchResponse.ResponseList, resp)
+	itemCount := len(replicateRequest.ReplicationList)
+	if itemCount == 0 {
+		return batchResponse, resultCode
 	}
+	batchResponse.ResponseList = make([]*ReplicationInstanceResponse, itemCount)
+	wg := &sync.WaitGroup{}
+	wg.Add(itemCount)
+	mutex := &sync.Mutex{}
+	for i, inst := range replicateRequest.ReplicationList {
+		go func(idx int, instanceInfo *ReplicationInstance) {
+			defer wg.Done()
+			resp, code := h.dispatch(instanceInfo, token)
+			if code != api.ExecuteSuccess {
+				atomic.CompareAndSwapUint32(&resultCode, api.ExecuteSuccess, code)
+				log.Warnf("[EUREKA-SERVER] fail to process replicate instance request, code is %d, action %s, instance %s, app %s",
+					code, instanceInfo.Action, instanceInfo.Id, instanceInfo.AppName)
+			}
+			mutex.Lock()
+			batchResponse.ResponseList[idx] = resp
+			mutex.Unlock()
+		}(i, inst)
+	}
+	wg.Wait()
 	return batchResponse, resultCode
 }
 
@@ -213,7 +229,7 @@ func (h *EurekaServer) handleInstanceEvent(ctx context.Context, i interface{}) e
 	appName := formatReadName(e.Service)
 	curTimeMilli := time.Now().UnixMilli()
 	switch e.EType {
-	case model.EventInstanceOnline:
+	case model.EventInstanceOnline, model.EventInstanceUpdate:
 		instanceInfo := eventToInstance(&e, appName, curTimeMilli)
 		h.replicateWorker.AddReplicateTask(&ReplicationInstance{
 			AppName:            appName,
@@ -242,22 +258,6 @@ func (h *EurekaServer) handleInstanceEvent(ctx context.Context, i interface{}) e
 			rInstance.OverriddenStatus = StatusOutOfService
 		}
 		h.replicateWorker.AddReplicateTask(rInstance)
-	case model.EventInstanceTurnHealth:
-		h.replicateWorker.AddReplicateTask(&ReplicationInstance{
-			AppName:            appName,
-			Id:                 e.Id,
-			LastDirtyTimestamp: curTimeMilli,
-			Status:             StatusUp,
-			Action:             actionStatusUpdate,
-		})
-	case model.EventInstanceTurnUnHealth:
-		h.replicateWorker.AddReplicateTask(&ReplicationInstance{
-			AppName:            appName,
-			Id:                 e.Id,
-			LastDirtyTimestamp: curTimeMilli,
-			Status:             StatusDown,
-			Action:             actionStatusUpdate,
-		})
 	case model.EventInstanceOpenIsolate:
 		h.replicateWorker.AddReplicateTask(&ReplicationInstance{
 			AppName:            appName,

@@ -158,7 +158,7 @@ func TestCreateInstance(t *testing.T) {
 	startPort := 8900
 	host := "127.0.1.1"
 	total := 10
-	instances := batchBuildInstances(appId, "127.0.1.1", 8900, &LeaseInfo{
+	instances := batchBuildInstances(appId, host, startPort, &LeaseInfo{
 		RenewalIntervalInSecs: 30,
 		DurationInSecs:        120,
 	}, total)
