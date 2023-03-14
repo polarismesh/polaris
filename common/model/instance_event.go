@@ -45,6 +45,8 @@ const (
 	EventInstanceOffline InstanceEventType = "InstanceOffline"
 	// EventInstanceSendHeartbeat Instance send heartbeat package to server
 	EventInstanceSendHeartbeat InstanceEventType = "InstanceSendHeartbeat"
+	// EventInstanceUpdate Instance metadata and info update event
+	EventInstanceUpdate InstanceEventType = "InstanceUpdate"
 )
 
 // CtxEventKeyMetadata 用于将metadata从Context中传入并取出
