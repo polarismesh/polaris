@@ -32,7 +32,8 @@ import (
 var _ NamespaceOperateServer = (*serverAuthAbility)(nil)
 
 // CreateNamespaceIfAbsent Create a single name space
-func (svr *serverAuthAbility) CreateNamespaceIfAbsent(ctx context.Context, req *apimodel.Namespace) error {
+func (svr *serverAuthAbility) CreateNamespaceIfAbsent(ctx context.Context,
+	req *apimodel.Namespace) (string, *apiservice.Response) {
 	return svr.targetServer.CreateNamespaceIfAbsent(ctx, req)
 }
 

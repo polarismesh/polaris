@@ -43,5 +43,5 @@ type NamespaceOperateServer interface {
 	// GetNamespaceToken Get the token with namespace
 	GetNamespaceToken(ctx context.Context, req *apimodel.Namespace) *apiservice.Response
 	// CreateNamespaceIfAbsent Create a single name space
-	CreateNamespaceIfAbsent(ctx context.Context, req *apimodel.Namespace) error
+	CreateNamespaceIfAbsent(ctx context.Context, req *apimodel.Namespace) (string, *apiservice.Response)
 }

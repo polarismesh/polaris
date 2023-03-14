@@ -43,37 +43,28 @@ type ServiceCache interface {
 	// GetNamespaceCntInfo Return to the service statistics according to the namespace,
 	// 	the count statistics and health instance statistics
 	GetNamespaceCntInfo(namespace string) model.NamespaceServiceCount
-
 	// GetAllNamespaces Return all namespaces
 	GetAllNamespaces() []string
-
 	// GetServiceByID According to ID query service information
 	GetServiceByID(id string) *model.Service
-
 	// GetServiceByName Inquiry service information according to service name
 	GetServiceByName(name string, namespace string) *model.Service
-
 	// IteratorServices Iterative Cache Service Information
 	IteratorServices(iterProc ServiceIterProc) error
-
 	// CleanNamespace Clear the cache of NameSpace
 	CleanNamespace(namespace string)
-
 	// GetServicesCount Get the number of services in the cache
 	GetServicesCount() int
-
 	// GetServiceByCl5Name Get the corresponding SID according to CL5name
 	GetServiceByCl5Name(cl5Name string) *model.Service
-
 	// GetServicesByFilter Serving the service filtering in the cache through Filter
 	GetServicesByFilter(serviceFilters *ServiceArgs,
 		instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.EnhancedService, error)
-
 	// Update Query trigger update interface
 	Update() error
 }
 
-// serviceCache 服务数据缓存实现类
+// serviceCache Service data cache implementation class
 type serviceCache struct {
 	*baseCache
 
