@@ -19,8 +19,10 @@ package heartbeatmemory
 
 import (
 	"sync"
+	"sync/atomic"
 
 	commonLog "github.com/polarismesh/polaris/common/log"
+	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/plugin"
 )
 
@@ -41,7 +43,8 @@ type HeartbeatRecord struct {
 
 // MemoryHealthChecker memory health checker
 type MemoryHealthChecker struct {
-	hbRecords *sync.Map
+	hbRecords      *sync.Map
+	suspendTimeSec int64
 }
 
 // Name return plugin name
@@ -94,6 +97,18 @@ func (r *MemoryHealthChecker) Query(request *plugin.QueryRequest) (*plugin.Query
 	}, nil
 }
 
+func (r *MemoryHealthChecker) skipCheck(instanceId string, expireDurationSec int64) bool {
+	suspendTimeSec := r.SuspendTimeSec()
+	localCurTimeSec := commontime.CurrentMillisecond() / 1000
+	if suspendTimeSec > 0 && localCurTimeSec >= suspendTimeSec && localCurTimeSec-suspendTimeSec < expireDurationSec {
+		log.Infof("[Health Check][MemoryCheck]health check redis suspended, "+
+			"suspendTimeSec is %d, localCurTimeSec is %d, expireDurationSec is %d, instanceId %s",
+			suspendTimeSec, localCurTimeSec, expireDurationSec, instanceId)
+		return true
+	}
+	return false
+}
+
 // Check Report process the instance check
 func (r *MemoryHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckResponse, error) {
 	queryResp, err := r.Query(&request.QueryRequest)
@@ -106,6 +121,10 @@ func (r *MemoryHealthChecker) Check(request *plugin.CheckRequest) (*plugin.Check
 	}
 	curTimeSec := request.CurTimeSec()
 	log.Debugf("[HealthCheck][MemoryCheck]check hb record, cur is %d, last is %d", curTimeSec, lastHeartbeatTime)
+	if r.skipCheck(request.InstanceId, int64(request.ExpireDurationSec)) {
+		checkResp.StayUnchanged = true
+		return checkResp, nil
+	}
 	if curTimeSec > lastHeartbeatTime {
 		if curTimeSec-lastHeartbeatTime >= int64(request.ExpireDurationSec) {
 			// 心跳超时
@@ -113,7 +132,7 @@ func (r *MemoryHealthChecker) Check(request *plugin.CheckRequest) (*plugin.Check
 
 			if request.Healthy {
 				log.Infof("[Health Check][MemoryCheck]health check expired, "+
-					"last hb timestamp is %d, curTimeSec is %d, expireDurationSec is %d instanceId %s",
+					"last hb timestamp is %d, curTimeSec is %d, expireDurationSec is %d, instanceId %s",
 					lastHeartbeatTime, curTimeSec, request.ExpireDurationSec, request.InstanceId)
 			} else {
 				checkResp.StayUnchanged = true
@@ -147,6 +166,17 @@ func (r *MemoryHealthChecker) RemoveFromCheck(request *plugin.AddCheckRequest) e
 func (r *MemoryHealthChecker) Delete(id string) error {
 	r.hbRecords.Delete(id)
 	return nil
+}
+
+func (r *MemoryHealthChecker) Suspend() {
+	curTimeMilli := commontime.CurrentMillisecond() / 1000
+	log.Infof("[Health Check][MemoryCheck] suspend checker, start time %d", curTimeMilli)
+	atomic.StoreInt64(&r.suspendTimeSec, curTimeMilli)
+}
+
+// SuspendTimeSec get suspend time in seconds
+func (r *MemoryHealthChecker) SuspendTimeSec() int64 {
+	return atomic.LoadInt64(&r.suspendTimeSec)
 }
 
 func init() {

@@ -74,7 +74,7 @@ func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batc
 	testServer.timeAdjuster = newTimeAdjuster(ctx, storage)
 	testServer.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval,
 		hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)
-	testServer.dispatcher = newDispatcher(ctx, testServer, hcOpt.OmitReplicated)
+	testServer.dispatcher = newDispatcher(ctx, testServer)
 
 	testServer.instanceEventChannel = make(chan *model.InstanceEvent, 1000)
 	go testServer.handleInstanceEventWorker(ctx)
