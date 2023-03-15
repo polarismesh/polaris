@@ -560,6 +560,111 @@ func (ss *serviceStore) getServiceByNameAndNs(name string, namespace string) (*m
 	return out, err
 }
 
+// getServiceByNs 通过命名空间拉取服务，支持命名空间名称模糊匹配
+func (ss *serviceStore) getServiceByNs(name, namespace string, isNamespaceFuzzy bool) ([]*model.Service, error) {
+
+	out, err := ss.getServiceByNsIgnoreValid(name, namespace, isNamespaceFuzzy)
+	if err != nil {
+		return nil, err
+	}
+
+	if out == nil {
+		return nil, nil
+	}
+
+	return out, err
+}
+
+// getServiceByNameValid 通过服务名称获取服务，服务需要有效
+func (ss *serviceStore) getServiceByNameValid(name string) ([]*model.Service, error) {
+	var out []*model.Service
+
+	fields := []string{svcFieldName, SvcFieldNamespace, SvcFieldValid}
+
+	svcSlice, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
+		func(m map[string]interface{}) bool {
+			valid, ok := m[SvcFieldValid]
+			if ok && !valid.(bool) {
+				return false
+			}
+			svcName, ok := m[SvcFieldName]
+			if !ok {
+				return false
+			}
+			return name == svcName
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(svcSlice) == 0 {
+		return nil, nil
+	}
+
+	out = make([]*model.Service, 0, len(svcSlice))
+	for _, v := range svcSlice {
+		svc := v.(*model.Service)
+		if !svc.Valid {
+			continue
+		}
+		out = append(out, v.(*model.Service))
+	}
+	if len(out) == 0 {
+		return nil, nil
+	}
+	return out, err
+}
+
+// getServiceByNs 通过命名空间拉取服务，支持命名空间名称模糊匹配
+func (ss *serviceStore) getServiceByNsIgnoreValid(name, namespace string, isNamespaceFuzzy bool) ([]*model.Service, error) {
+	var out []*model.Service
+
+	fields := []string{svcFieldName, SvcFieldNamespace, SvcFieldValid}
+
+	svcSlice, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
+		func(m map[string]interface{}) bool {
+			svcName, ok := m[SvcFieldName]
+			if !ok {
+				return false
+			}
+			if len(name) > 0 && name != svcName {
+				return false
+			}
+			svcNs, ok := m[SvcFieldNamespace]
+			if !ok {
+				return false
+			}
+			if isNamespaceFuzzy {
+				if utils.IsFuzzyMatch(svcNs.(string), namespace) {
+					return true
+				}
+			} else {
+				return svcNs.(string) == namespace
+			}
+			return false
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(svcSlice) == 0 {
+		return nil, nil
+	}
+
+	out = make([]*model.Service, 0, len(svcSlice))
+	for _, v := range svcSlice {
+		svc := v.(*model.Service)
+		if !svc.Valid {
+			continue
+		}
+		out = append(out, v.(*model.Service))
+	}
+	if len(out) == 0 {
+		return nil, nil
+	}
+	return out, err
+}
+
 func (ss *serviceStore) getServiceByNameAndNsIgnoreValid(name string, namespace string) (*model.Service, error) {
 	var out *model.Service
 

@@ -214,6 +214,48 @@ func TestGetNamespaces(t *testing.T) {
 		}
 	})
 
+	t.Run("前缀匹配可以正常过滤", func(t *testing.T) {
+		total := 50
+		for i := 0; i < total; i++ {
+			req, _ := discoverSuit.createCommonNamespace(t, i+200)
+			defer discoverSuit.cleanNamespace(req.GetName().GetValue())
+		}
+
+		query := map[string][]string{
+			"offset": {"0"},
+			"limit":  {"100"},
+			"name":   {"namespace-20*"},
+		}
+		resp := discoverSuit.namespaceSvr.GetNamespaces(discoverSuit.defaultCtx, query)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if resp.GetSize().GetValue() != 10 {
+			t.Fatalf("error: %d", resp.GetSize().GetValue())
+		}
+	})
+
+	t.Run("模糊匹配可以正常过滤", func(t *testing.T) {
+		total := 50
+		for i := 0; i < total; i++ {
+			req, _ := discoverSuit.createCommonNamespace(t, i+200)
+			defer discoverSuit.cleanNamespace(req.GetName().GetValue())
+		}
+
+		query := map[string][]string{
+			"offset": {"0"},
+			"limit":  {"100"},
+			"name":   {"*espace-21*"},
+		}
+		resp := discoverSuit.namespaceSvr.GetNamespaces(discoverSuit.defaultCtx, query)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if resp.GetSize().GetValue() != 10 {
+			t.Fatalf("error: %d", resp.GetSize().GetValue())
+		}
+	})
+
 	t.Run("分页参数可以正常过滤", func(t *testing.T) {
 		total := 20
 		for i := 0; i < total; i++ {

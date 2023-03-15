@@ -31,6 +31,7 @@ import (
 
 	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 type instanceStore struct {
@@ -363,7 +364,12 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 	name, isServiceName := filter["name"]
 	namespace, isNamespace := filter["namespace"]
 
-	if isServiceName && isNamespace {
+	svcIDFilterMap := make(map[string]struct{}, 0)
+	multiSvcIDFilter := false
+	namespaceIsFuzzy := utils.IsFuzzyName(namespace)
+
+	if isServiceName && isNamespace && !namespaceIsFuzzy {
+		// 精确查询，结果唯一
 		sStore := serviceStore{handler: i.handler}
 		svc, err := sStore.getServiceByNameAndNs(name, namespace)
 		if err != nil {
@@ -371,6 +377,30 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 			return 0, nil, err
 		}
 		filter["serviceID"] = svc.ID
+	} else if isNamespace {
+		// 多个结果
+		multiSvcIDFilter = true
+		sStore := serviceStore{handler: i.handler}
+		svcs, err := sStore.getServiceByNs(name, namespace, namespaceIsFuzzy)
+		if err != nil {
+			log.Errorf("[Store][boltdb] find service by ns prefix error, %v", err)
+			return 0, nil, err
+		}
+		for _, svc := range svcs {
+			svcIDFilterMap[svc.ID] = struct{}{}
+		}
+	} else if isServiceName {
+		// 多个结果
+		multiSvcIDFilter = true
+		sStore := serviceStore{handler: i.handler}
+		svcs, err := sStore.getServiceByNameValid(name)
+		if err != nil {
+			log.Errorf("[Store][boltdb] find service by ns prefix error, %v", err)
+			return 0, nil, err
+		}
+		for _, svc := range svcs {
+			svcIDFilterMap[svc.ID] = struct{}{}
+		}
 	}
 
 	svcIdsTmp := make(map[string]struct{})
@@ -421,6 +451,19 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 					return false
 				}
 				if sID != svcID {
+					return false
+				}
+			}
+			if multiSvcIDFilter {
+				sID, ok := m["ServiceID"]
+				if !ok {
+					return false
+				}
+				sIDStr, strOK := sID.(string)
+				if !strOK {
+					return false
+				}
+				if _, ok := svcIDFilterMap[sIDStr]; !ok {
 					return false
 				}
 			}

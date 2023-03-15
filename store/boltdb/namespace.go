@@ -21,10 +21,10 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 const (
@@ -181,7 +181,11 @@ func (n *namespaceStore) GetNamespaces(
 		for index, value := range filter {
 			compare := func(s string) bool {
 				for _, v := range value {
-					if strings.Contains(s, v) {
+					if utils.IsFuzzyName(v) {
+						if utils.IsFuzzyMatch(s, v) {
+							return true
+						}
+					} else if s == v {
 						return true
 					}
 				}
