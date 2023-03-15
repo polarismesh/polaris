@@ -702,7 +702,7 @@ func TestListInstances1(t *testing.T) {
 			"limit":     "100",
 			"namespace": "*fau*",
 		}
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -723,7 +723,7 @@ func TestListInstances1(t *testing.T) {
 			"limit":     "100",
 			"namespace": "defau*",
 		}
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -736,7 +736,7 @@ func TestListInstances1(t *testing.T) {
 			"limit":     "100",
 			"namespace": "defauxxxx*",
 		}
-		resp = discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -757,7 +757,7 @@ func TestListInstances1(t *testing.T) {
 			"limit":   "100",
 			"service": serviceResp.GetName().GetValue(),
 		}
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -770,7 +770,7 @@ func TestListInstances1(t *testing.T) {
 			"limit":     "100",
 			"namespace": serviceResp.GetNamespace().GetValue(),
 		}
-		resp = discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -781,7 +781,7 @@ func TestListInstances1(t *testing.T) {
 		query = map[string]string{
 			"limit": "100",
 		}
-		resp = discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
