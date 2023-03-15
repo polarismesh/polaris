@@ -253,8 +253,8 @@ func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace,
 				zap.String("group", group),
 				zap.String("fileName", fileName),
 				zap.Error(err))
+			return api.NewConfigFileResponse(apimodel.Code_StoreLayerException, nil)
 		}
-		return api.NewConfigFileResponse(apimodel.Code_StoreLayerException, nil)
 	}
 
 	err := s.storage.DeleteConfigFileRelease(s.getTx(ctx), namespace, group, fileName, deleteBy)

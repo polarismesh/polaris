@@ -483,6 +483,8 @@ func flag2valid(flag int) bool {
 
 // InstanceCount Service instance statistics
 type InstanceCount struct {
+	// IsolateInstanceCount 隔离状态的实例
+	IsolateInstanceCount uint32
 	// HealthyInstanceCount 健康实例数
 	HealthyInstanceCount uint32
 	// TotalInstanceCount 总实例数

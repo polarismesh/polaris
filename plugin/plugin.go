@@ -60,7 +60,7 @@ type Config struct {
 	CMDB                 ConfigEntry      `yaml:"cmdb"`
 	RateLimit            ConfigEntry      `yaml:"ratelimit"`
 	History              PluginChanConfig `yaml:"history"`
-	Statis               ConfigEntry      `yaml:"statis"`
+	Statis               PluginChanConfig `yaml:"statis"`
 	DiscoverStatis       ConfigEntry      `yaml:"discoverStatis"`
 	ParsePassword        ConfigEntry      `yaml:"parsePassword"`
 	Whitelist            ConfigEntry      `yaml:"whitelist"`
@@ -70,6 +70,7 @@ type Config struct {
 
 // PluginChanConfig 插件执行链配置
 type PluginChanConfig struct {
-	ConfigEntry
-	Entries []ConfigEntry
+	Name    string                 `yaml:"name"`
+	Option  map[string]interface{} `yaml:"option"`
+	Entries []ConfigEntry          `yaml:"entries"`
 }

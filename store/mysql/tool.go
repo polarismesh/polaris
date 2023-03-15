@@ -32,7 +32,7 @@ const (
 )
 
 // GetUnixSecond 获取当前时间，单位秒
-func (t *toolStore) GetUnixSecond() (int64, error) {
+func (t *toolStore) GetUnixSecond(maxWait time.Duration) (int64, error) {
 	startTime := time.Now()
 	rows, err := t.db.Query(nowSql)
 	if err != nil {
@@ -41,8 +41,8 @@ func (t *toolStore) GetUnixSecond() (int64, error) {
 	}
 	defer rows.Close()
 	timePass := time.Since(startTime)
-	if timePass > maxQueryInterval {
-		log.Infof("[Store][database] query now spend %s, exceed %s, skip", timePass, maxQueryInterval)
+	if maxWait != 0 && timePass > maxWait {
+		log.Infof("[Store][database] query now spend %s, exceed %s, skip", timePass, maxWait)
 		return 0, nil
 	}
 	var value int64

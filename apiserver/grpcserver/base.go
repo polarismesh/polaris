@@ -271,7 +271,13 @@ func (b *BaseGrpcServer) streamInterceptor(srv interface{}, ss grpc.ServerStream
 			)
 		}
 
-		_ = b.statis.AddAPICall(stream.Method, "gRPC", stream.Code, 0)
+		b.statis.ReportCallMetrics(metrics.CallMetric{
+			Type:     metrics.ServerCallMetric,
+			API:      stream.Method,
+			Protocol: "gRPC",
+			Code:     int(stream.Code),
+			Duration: 0,
+		})
 	}
 	return
 }
@@ -334,8 +340,7 @@ func (b *BaseGrpcServer) postprocess(stream *VirtualStream, m interface{}) {
 	}
 
 	// 接口调用统计
-	now := time.Now()
-	diff := now.Sub(stream.StartTime)
+	diff := time.Since(stream.StartTime)
 
 	// 打印耗时超过1s的请求
 	if diff > time.Second {
@@ -347,7 +352,14 @@ func (b *BaseGrpcServer) postprocess(stream *VirtualStream, m interface{}) {
 			zap.Duration("handling-time", diff),
 		)
 	}
-	_ = b.statis.AddAPICall(stream.Method, "gRPC", code, diff.Nanoseconds())
+
+	b.statis.ReportCallMetrics(metrics.CallMetric{
+		Type:     metrics.ServerCallMetric,
+		API:      stream.Method,
+		Protocol: "gRPC",
+		Code:     int(stream.Code),
+		Duration: diff,
+	})
 }
 
 // Restart restart gRPC server

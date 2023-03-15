@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package service_test
 
 import (
 	"fmt"
@@ -28,11 +28,13 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/polarismesh/polaris/service"
 )
 
 func buildUnnamedFaultDetectRule() *apifault.FaultDetectRule {
 	return &apifault.FaultDetectRule{
-		Namespace:   DefaultNamespace,
+		Namespace:   service.DefaultNamespace,
 		Description: "comment me",
 		TargetService: &apifault.FaultDetectRule_DestinationService{
 			Service:   "testDestService",
@@ -49,7 +51,7 @@ func buildUnnamedFaultDetectRule() *apifault.FaultDetectRule {
 func buildFaultDetectRule(index int) *apifault.FaultDetectRule {
 	return &apifault.FaultDetectRule{
 		Name:        fmt.Sprintf("test-faultdetect-rule-%d", index),
-		Namespace:   DefaultNamespace,
+		Namespace:   service.DefaultNamespace,
 		Description: "comment me",
 		TargetService: &apifault.FaultDetectRule_DestinationService{
 			Service:   "testDestService",
@@ -82,14 +84,14 @@ func createFaultDetectRules(discoverSuit *DiscoverTestSuit, count int) ([]*apifa
 		fbRule := buildFaultDetectRule(i)
 		fdRules = append(fdRules, fbRule)
 	}
-	resp := discoverSuit.server.CreateFaultDetectRules(discoverSuit.defaultCtx, fdRules)
+	resp := discoverSuit.DiscoverServer().CreateFaultDetectRules(discoverSuit.DefaultCtx, fdRules)
 	return fdRules, resp
 }
 
 func cleanFaultDetectRules(discoverSuit *DiscoverTestSuit, response *apiservice.BatchWriteResponse) {
 	fdRules := parseResponseToFaultDetectRules(response)
 	if len(fdRules) > 0 {
-		discoverSuit.server.DeleteFaultDetectRules(discoverSuit.defaultCtx, fdRules)
+		discoverSuit.DiscoverServer().DeleteFaultDetectRules(discoverSuit.DefaultCtx, fdRules)
 	}
 }
 
@@ -121,7 +123,7 @@ func parseResponseToFaultDetectRules(response *apiservice.BatchWriteResponse) []
 // TestCreateFaultDetectRule test create faultdetect rule
 func TestCreateFaultDetectRule(t *testing.T) {
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -137,7 +139,7 @@ func TestCreateFaultDetectRule(t *testing.T) {
 		defer cleanFaultDetectRules(discoverSuit, resp)
 		checkFaultDetectRuleResponse(t, fdRules, resp)
 
-		if resp := discoverSuit.server.CreateFaultDetectRules(discoverSuit.defaultCtx, fdRules); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().CreateFaultDetectRules(discoverSuit.DefaultCtx, fdRules); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error, duplicate rule can not be passed")
@@ -155,7 +157,7 @@ func TestCreateFaultDetectRule(t *testing.T) {
 
 	t.Run("创建探测规则时，没有传递规则名，返回错误", func(t *testing.T) {
 		fdRule := buildUnnamedFaultDetectRule()
-		if resp := discoverSuit.server.CreateFaultDetectRules(discoverSuit.defaultCtx, []*apifault.FaultDetectRule{fdRule}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().CreateFaultDetectRules(discoverSuit.DefaultCtx, []*apifault.FaultDetectRule{fdRule}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error, unnamed rule can not be passed")
@@ -170,7 +172,7 @@ func TestCreateFaultDetectRule(t *testing.T) {
 				defer wg.Done()
 				fdRule := buildFaultDetectRule(index)
 				fdRules := []*apifault.FaultDetectRule{fdRule}
-				resp := discoverSuit.server.CreateFaultDetectRules(discoverSuit.defaultCtx, fdRules)
+				resp := discoverSuit.DiscoverServer().CreateFaultDetectRules(discoverSuit.DefaultCtx, fdRules)
 				cleanFaultDetectRules(discoverSuit, resp)
 			}(i)
 		}

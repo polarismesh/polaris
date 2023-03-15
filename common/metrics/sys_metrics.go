@@ -19,9 +19,15 @@ package metrics
 
 import (
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+)
+
+var (
+	lastRedisReadFailureReport  atomic.Value
+	lastRedisWriteFailureReport atomic.Value
 )
 
 func registerSysMetrics() {

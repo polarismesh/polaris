@@ -28,7 +28,7 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	"github.com/polarismesh/polaris/common/utils"
-	"github.com/polarismesh/polaris/test/http"
+	"github.com/polarismesh/polaris/test/integrate/http"
 )
 
 // TestI18n 测试国际化信息

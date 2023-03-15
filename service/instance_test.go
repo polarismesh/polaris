@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package service_test
 
 import (
 	"context"
@@ -34,7 +34,6 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/sync/singleflight"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/auth"
@@ -43,6 +42,7 @@ import (
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
+	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/batch"
 	"github.com/polarismesh/polaris/store"
 	"github.com/polarismesh/polaris/store/mock"
@@ -52,7 +52,7 @@ import (
 func TestCreateInstance(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -61,14 +61,15 @@ func TestCreateInstance(t *testing.T) {
 	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
 	t.Run("正常创建实例-服务没有提前创建", func(t *testing.T) {
-		bc := namingServer.bc
-		namingServer.bc = nil
+		svr := discoverSuit.OriginDiscoverServer().(*service.Server)
+		bc := svr.GetBatchController()
+		svr.MockBatchController(nil)
 		defer func() {
-			namingServer.bc = bc
+			svr.MockBatchController(bc)
 		}()
 		instanceReq, instanceResp := discoverSuit.createCommonInstance(t, &apiservice.Service{
 			Name:      utils.NewStringValue("test-nocreate-service"),
-			Namespace: utils.NewStringValue(DefaultNamespace),
+			Namespace: utils.NewStringValue(service.DefaultNamespace),
 		}, 1000)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
@@ -109,7 +110,7 @@ func TestCreateInstance(t *testing.T) {
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
 		time.Sleep(time.Second)
-		resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{req})
+		resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{req})
 		if respSuccess(resp) {
 			t.Logf("pass: %+v", resp)
 		} else {
@@ -119,7 +120,7 @@ func TestCreateInstance(t *testing.T) {
 			t.Fatalf("error: %+v", resp)
 		}
 
-		discoverSuit.server.GetInstances(discoverSuit.defaultCtx, map[string]string{})
+		discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{})
 	})
 
 	t.Run("instance有metadata个数和字符要求的限制", func(t *testing.T) {
@@ -131,10 +132,10 @@ func TestCreateInstance(t *testing.T) {
 			Port:         utils.NewUInt32Value(456),
 			Metadata:     make(map[string]string),
 		}
-		for i := 0; i < MaxMetadataLength+1; i++ {
+		for i := 0; i < service.MaxMetadataLength+1; i++ {
 			instanceReq.Metadata[fmt.Sprintf("%d", i)] = fmt.Sprintf("%d", i)
 		}
-		if resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}); respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}); respSuccess(resp) {
 			t.Fatalf("error")
 		} else {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
@@ -149,7 +150,7 @@ func TestCreateInstance(t *testing.T) {
 			Port:         utils.NewUInt32Value(456),
 			HealthCheck:  &apiservice.HealthCheck{},
 		}
-		resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq})
+		resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq})
 		if !respSuccess(resp) {
 			t.Fatalf("error: %+v", resp)
 		}
@@ -160,17 +161,17 @@ func TestCreateInstance(t *testing.T) {
 		instanceReq.HealthCheck = &apiservice.HealthCheck{
 			Heartbeat: &apiservice.HeartbeatHealthCheck{},
 		}
-		resp = discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq})
+		resp = discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq})
 		if !respSuccess(resp) {
 			t.Fatalf("error: %+v", resp)
 		}
-		getResp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, map[string]string{"host": instanceReq.GetHost().GetValue()})
+		getResp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{"host": instanceReq.GetHost().GetValue()})
 		assert.True(t, getResp.GetCode().GetValue() == api.ExecuteSuccess)
 		t.Logf("%+v", getResp)
 		if getResp.GetInstances()[0].HealthCheck.Type != apiservice.HealthCheck_HEARTBEAT {
 			t.Fatalf("error")
 		}
-		if getResp.GetInstances()[0].HealthCheck.Heartbeat.Ttl.Value != DefaultTLL {
+		if getResp.GetInstances()[0].HealthCheck.Heartbeat.Ttl.Value != service.DefaultTLL {
 			t.Fatalf("error")
 		}
 	})
@@ -184,7 +185,7 @@ func TestCreateInstance(t *testing.T) {
 			Host:         utils.NewStringValue("123"),
 			Port:         utils.NewUInt32Value(456),
 		}
-		resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq})
+		resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq})
 		assert.True(t, resp.GetCode().GetValue() == api.ExecuteSuccess)
 		if resp.Responses[0].GetInstance().GetId().GetValue() != providedInstanceId {
 			t.Fatalf("error")
@@ -198,7 +199,7 @@ func TestCreateInstance(t *testing.T) {
 func TestCreateInstanceWithNoService(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -208,7 +209,7 @@ func TestCreateInstanceWithNoService(t *testing.T) {
 		serviceReq.Namespace = utils.NewStringValue("test-auth-namespace")
 		discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
 
-		resp := discoverSuit.server.CreateServices(discoverSuit.defaultCtx, []*apiservice.Service{serviceReq})
+		resp := discoverSuit.DiscoverServer().CreateServices(discoverSuit.DefaultCtx, []*apiservice.Service{serviceReq})
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -231,17 +232,17 @@ func TestCreateInstanceWithNoService(t *testing.T) {
 			Port:         utils.NewUInt32Value(1),
 		})
 
-		oldCtx := discoverSuit.defaultCtx
-		discoverSuit.defaultCtx = context.Background()
+		oldCtx := discoverSuit.DefaultCtx
+		discoverSuit.DefaultCtx = context.Background()
 
 		defer func() {
-			discoverSuit.defaultCtx = oldCtx
+			discoverSuit.DefaultCtx = oldCtx
 		}()
 
 		// 等待一段时间的刷新
-		time.Sleep(discoverSuit.updateCacheInterval * 5)
+		time.Sleep(discoverSuit.UpdateCacheInterval() * 5)
 
-		resps := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, reqs)
+		resps := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, reqs)
 		if respSuccess(resps) {
 			t.Fatalf("error : %s", resps.GetInfo().GetValue())
 		}
@@ -255,7 +256,7 @@ func TestCreateInstanceWithNoService(t *testing.T) {
 func TestCreateInstance2(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -268,7 +269,7 @@ func TestCreateInstance2(t *testing.T) {
 			serviceResps = append(serviceResps, serviceResp)
 		}
 
-		time.Sleep(discoverSuit.updateCacheInterval)
+		time.Sleep(discoverSuit.UpdateCacheInterval())
 		total := 20
 		var wg sync.WaitGroup
 		start := time.Now()
@@ -281,7 +282,7 @@ func TestCreateInstance2(t *testing.T) {
 				var resp *apiservice.Instance
 				req, resp = discoverSuit.createCommonInstance(t, serviceResps[index%10], index)
 				for c := 0; c < 10; c++ {
-					if updateResp := discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{req}); !respSuccess(updateResp) {
+					if updateResp := discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{req}); !respSuccess(updateResp) {
 						errs <- fmt.Errorf("error: %+v", updateResp)
 						return
 					}
@@ -309,7 +310,7 @@ func TestCreateInstance2(t *testing.T) {
 func TestUpdateInstanceManyTimes(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -337,7 +338,7 @@ func TestUpdateInstanceManyTimes(t *testing.T) {
 				proto.Unmarshal(marshalVal, ret)
 
 				ret.Weight.Value = uint32(rand.Int() % 32767)
-				if updateResp := discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(updateResp) {
+				if updateResp := discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(updateResp) {
 					errs <- fmt.Errorf("error: %+v", updateResp)
 					return
 				}
@@ -358,31 +359,30 @@ func TestUpdateInstanceManyTimes(t *testing.T) {
 
 // 测试获取实例
 func TestGetInstances(t *testing.T) {
-
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
 
 	t.Run("可以正常获取到实例信息", func(t *testing.T) {
-		_ = discoverSuit.server.Cache().Clear() // 为了防止影响，每个函数需要把缓存的内容清空
+		_ = discoverSuit.DiscoverServer().Cache().Clear() // 为了防止影响，每个函数需要把缓存的内容清空
 		time.Sleep(5 * time.Second)
 		_, serviceResp := discoverSuit.createCommonService(t, 320)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-		time.Sleep(discoverSuit.updateCacheInterval)
+		time.Sleep(discoverSuit.UpdateCacheInterval())
 		instanceReq, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 30)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
 		// 需要等待一会，等本地缓存更新
-		time.Sleep(discoverSuit.updateCacheInterval)
+		time.Sleep(discoverSuit.UpdateCacheInterval())
 
 		req := &apiservice.Service{
 			Name:      utils.NewStringValue(instanceResp.GetService().GetValue()),
 			Namespace: utils.NewStringValue(instanceResp.GetNamespace().GetValue()),
 		}
-		resp := discoverSuit.server.ServiceInstancesCache(discoverSuit.defaultCtx, req)
+		resp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, req)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -397,7 +397,7 @@ func TestGetInstances(t *testing.T) {
 		t.Logf("pass: %+v", resp.GetInstances()[0])
 	})
 	t.Run("注册实例，查询实例列表，实例反注册，revision会改变", func(t *testing.T) {
-		_ = discoverSuit.server.Cache().Clear() // 为了防止影响，每个函数需要把缓存的内容清空
+		_ = discoverSuit.DiscoverServer().Cache().Clear() // 为了防止影响，每个函数需要把缓存的内容清空
 		time.Sleep(5 * time.Second)
 		_, serviceResp := discoverSuit.createCommonService(t, 100)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -405,8 +405,8 @@ func TestGetInstances(t *testing.T) {
 		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 90)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
-		time.Sleep(discoverSuit.updateCacheInterval)
-		resp := discoverSuit.server.ServiceInstancesCache(discoverSuit.defaultCtx, serviceResp)
+		time.Sleep(discoverSuit.UpdateCacheInterval())
+		resp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, serviceResp)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -416,8 +416,8 @@ func TestGetInstances(t *testing.T) {
 		_, instanceResp = discoverSuit.createCommonInstance(t, serviceResp, 100)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
-		time.Sleep(discoverSuit.updateCacheInterval)
-		resp = discoverSuit.server.ServiceInstancesCache(discoverSuit.defaultCtx, serviceResp)
+		time.Sleep(discoverSuit.UpdateCacheInterval())
+		resp = discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, serviceResp)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -433,14 +433,14 @@ func TestGetInstances(t *testing.T) {
 func TestGetInstances1(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
 
 	discover := func(t *testing.T, service *apiservice.Service, check func(cnt int) bool) *apiservice.DiscoverResponse {
-		time.Sleep(discoverSuit.updateCacheInterval)
-		resp := discoverSuit.server.ServiceInstancesCache(discoverSuit.defaultCtx, service)
+		time.Sleep(discoverSuit.UpdateCacheInterval())
+		resp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, service)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -451,7 +451,7 @@ func TestGetInstances1(t *testing.T) {
 		return resp
 	}
 	t.Run("注册并反注册多个实例，可以正常获取", func(t *testing.T) {
-		_ = discoverSuit.server.Cache().Clear() // 为了防止影响，每个函数需要把缓存的内容清空
+		_ = discoverSuit.DiscoverServer().Cache().Clear() // 为了防止影响，每个函数需要把缓存的内容清空
 		time.Sleep(5 * time.Second)
 		_, serviceResp := discoverSuit.createCommonService(t, 320)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -478,7 +478,7 @@ func TestGetInstances1(t *testing.T) {
 		})
 	})
 	t.Run("传递revision， revision有变化则有数据，否则无数据返回", func(t *testing.T) {
-		_ = discoverSuit.server.Cache().Clear() // 为了防止影响，每个函数需要把缓存的内容清空
+		_ = discoverSuit.DiscoverServer().Cache().Clear() // 为了防止影响，每个函数需要把缓存的内容清空
 		time.Sleep(5 * time.Second)
 		_, serviceResp := discoverSuit.createCommonService(t, 100)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
@@ -491,7 +491,7 @@ func TestGetInstances1(t *testing.T) {
 		})
 
 		serviceResp.Revision = firstResp.Service.GetRevision()
-		if resp := discoverSuit.server.ServiceInstancesCache(discoverSuit.defaultCtx, serviceResp); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, serviceResp); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		} else {
 			if len(resp.Instances) != 0 {
@@ -514,7 +514,7 @@ func TestGetInstances1(t *testing.T) {
 func TestRemoveInstance(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -574,7 +574,7 @@ func TestRemoveInstance(t *testing.T) {
 func TestListInstances(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -589,7 +589,7 @@ func TestListInstances(t *testing.T) {
 		query := map[string]string{"offset": "0", "limit": "100"}
 		query["host"] = instanceReq.GetHost().GetValue()
 		query["port"] = strconv.FormatUint(uint64(instanceReq.GetPort().GetValue()), 10)
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -603,7 +603,7 @@ func TestListInstances(t *testing.T) {
 		_, serviceResp := discoverSuit.createCommonService(t, 115)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-		time.Sleep(discoverSuit.updateCacheInterval)
+		time.Sleep(discoverSuit.UpdateCacheInterval())
 		total := 50
 		for i := 0; i < total; i++ {
 			_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, i+1)
@@ -611,7 +611,7 @@ func TestListInstances(t *testing.T) {
 		}
 
 		query := map[string]string{"offset": "10", "limit": "20", "host": "127.0.0.1"}
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -626,7 +626,7 @@ func TestListInstances(t *testing.T) {
 		_, serviceResp := discoverSuit.createCommonService(t, 200)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-		time.Sleep(discoverSuit.updateCacheInterval)
+		time.Sleep(discoverSuit.UpdateCacheInterval())
 		total := 10
 		instance := new(apiservice.Instance)
 		for i := 0; i < total; i++ {
@@ -638,7 +638,7 @@ func TestListInstances(t *testing.T) {
 		host := instance.GetHost().GetValue()
 		port := strconv.FormatUint(uint64(instance.GetPort().GetValue()), 10)
 		query := map[string]string{"limit": "20", "host": host, "port": port}
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -652,7 +652,7 @@ func TestListInstances(t *testing.T) {
 func TestListInstances1(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -686,7 +686,7 @@ func TestListInstances1(t *testing.T) {
 			"namespace": serviceResp.GetNamespace().GetValue(),
 		}
 
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, total, 100)
 	})
 
@@ -704,7 +704,7 @@ func TestListInstances1(t *testing.T) {
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),
 		}
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, total/2, total/2)
 
 	})
@@ -718,28 +718,28 @@ func TestListInstances1(t *testing.T) {
 			"isolate":   "false",
 			"healthy":   "false",
 		}
-		checkAmountAndSize(t, discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query), 1, 1)
+		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 1, 1)
 
 		query["isolate"] = "true"
-		checkAmountAndSize(t, discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query), 0, 0)
+		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 0, 0)
 
 		query["isolate"] = "false"
 		query["healthy"] = "true"
-		checkAmountAndSize(t, discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query), 0, 0)
+		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 0, 0)
 
 		query["isolate"] = "0"
 		query["healthy"] = "0"
-		checkAmountAndSize(t, discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query), 1, 1)
+		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 1, 1)
 
 		query["health_status"] = "1"
-		checkAmountAndSize(t, discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query), 1, 1)
+		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 1, 1)
 
 		query["health_status"] = "0"
 		delete(query, "healthy")
-		checkAmountAndSize(t, discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query), 1, 1)
+		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 1, 1)
 
 		query["health_status"] = "1"
-		checkAmountAndSize(t, discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query), 0, 0)
+		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 0, 0)
 	})
 	t.Run("metadata条件测试", func(t *testing.T) {
 		_, instanceResp1 := discoverSuit.createCommonInstance(t, serviceResp, 10)
@@ -753,7 +753,7 @@ func TestListInstances1(t *testing.T) {
 			"keys":      "internal-personal-xxx",
 			"values":    "internal-personal-xxx_10",
 		}
-		checkAmountAndSize(t, discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query), 1, 1)
+		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 1, 1)
 		// 使用共同的元数据查询，返回两个实例
 		query = map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
@@ -761,7 +761,7 @@ func TestListInstances1(t *testing.T) {
 			"keys":      "my-meta-a1",
 			"values":    "1111",
 		}
-		checkAmountAndSize(t, discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query), 2, 2)
+		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 2, 2)
 		// 使用不存在的元数据查询，返回零个实例
 		query = map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
@@ -769,7 +769,7 @@ func TestListInstances1(t *testing.T) {
 			"keys":      "nokey",
 			"values":    "novalue",
 		}
-		checkAmountAndSize(t, discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query), 0, 0)
+		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 0, 0)
 	})
 	t.Run("metadata只有key或者value，返回错误", func(t *testing.T) {
 		query := map[string]string{
@@ -777,7 +777,7 @@ func TestListInstances1(t *testing.T) {
 			"namespace": serviceResp.GetNamespace().GetValue(),
 			"keys":      "internal-personal-xxx",
 		}
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if resp.GetCode().GetValue() != api.InvalidQueryInsParameter {
 			t.Fatalf("resp is %v, not InvalidQueryInsParameter", resp)
 		}
@@ -786,7 +786,7 @@ func TestListInstances1(t *testing.T) {
 			"namespace": serviceResp.GetNamespace().GetValue(),
 			"values":    "internal-personal-xxx",
 		}
-		resp = discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if resp.GetCode().GetValue() != api.InvalidQueryInsParameter {
 			t.Fatalf("resp is %v, not InvalidQueryInsParameter", resp)
 		}
@@ -797,7 +797,7 @@ func TestListInstances1(t *testing.T) {
 func TestInstancesContainLocation(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -829,13 +829,13 @@ func TestInstancesContainLocation(t *testing.T) {
 			Campus: utils.NewStringValue("campus1"),
 		},
 	}
-	resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instance})
+	resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instance})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
 	defer discoverSuit.cleanInstance(resp.Responses[0].GetInstance().GetId().GetValue())
 
-	getResp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, map[string]string{
+	getResp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{
 		"service": instance.GetService().GetValue(), "namespace": instance.GetNamespace().GetValue(),
 	})
 	if !respSuccess(getResp) {
@@ -848,8 +848,8 @@ func TestInstancesContainLocation(t *testing.T) {
 	t.Logf("%v", getInstances[0])
 	locationCheck(instance.GetLocation(), getInstances[0].GetLocation())
 
-	time.Sleep(discoverSuit.updateCacheInterval)
-	discoverResp := discoverSuit.server.ServiceInstancesCache(discoverSuit.defaultCtx, service)
+	time.Sleep(discoverSuit.UpdateCacheInterval())
+	discoverResp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, service)
 	if len(discoverResp.GetInstances()) != 1 {
 		t.Fatalf("error: %d", len(discoverResp.GetInstances()))
 	}
@@ -861,7 +861,7 @@ func TestInstancesContainLocation(t *testing.T) {
 func TestUpdateInstance(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -893,7 +893,7 @@ func TestUpdateInstance(t *testing.T) {
 		}
 		instanceReq.ServiceToken = serviceResp.Token
 
-		if resp := discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 
@@ -902,7 +902,7 @@ func TestUpdateInstance(t *testing.T) {
 			"host": instanceReq.GetHost().GetValue(),
 			"port": strconv.FormatUint(uint64(instanceReq.GetPort().GetValue()), 10),
 		}
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -923,7 +923,7 @@ func TestUpdateInstance(t *testing.T) {
 		namespaceName := serviceResp.GetNamespace().GetValue()
 		firstInstances := discoverSuit.getInstancesWithService(t, serviceName, namespaceName, 1)
 
-		if resp := discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 
@@ -939,10 +939,10 @@ func TestUpdateInstance(t *testing.T) {
 	})
 	t.Run("metadata太长，update会报错", func(t *testing.T) {
 		instanceReq.Metadata = make(map[string]string)
-		for i := 0; i < MaxMetadataLength+1; i++ {
+		for i := 0; i < service.MaxMetadataLength+1; i++ {
 			instanceReq.Metadata[fmt.Sprintf("%d", i)] = "a"
 		}
-		if resp := discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatalf("error")
@@ -956,7 +956,7 @@ func TestUpdateInstance(t *testing.T) {
 func TestUpdateIsolate(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -973,7 +973,7 @@ func TestUpdateIsolate(t *testing.T) {
 				Host:         utils.NewStringValue("127.0.0.1"),
 				Port:         utils.NewUInt32Value(uint32(i)),
 			}
-			resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq})
+			resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq})
 			if !respSuccess(resp) {
 				t.Fatalf("error: %s", resp.GetInfo().GetValue())
 			}
@@ -987,7 +987,7 @@ func TestUpdateIsolate(t *testing.T) {
 			Host:         utils.NewStringValue("127.0.0.1"),
 			Isolate:      utils.NewBoolValue(true),
 		}
-		if resp := discoverSuit.server.UpdateInstancesIsolate(discoverSuit.defaultCtx, []*apiservice.Instance{req}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UpdateInstancesIsolate(discoverSuit.DefaultCtx, []*apiservice.Instance{req}); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 		t.Log("pass")
@@ -1012,7 +1012,7 @@ func TestUpdateIsolate(t *testing.T) {
 						"internal-personal-xxx": fmt.Sprintf("internal-personal-xxx_%d", i),
 					},
 				}
-				resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq})
+				resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq})
 				if !respSuccess(resp) {
 					t.Fatalf("error: %s", resp.GetInfo().GetValue())
 				}
@@ -1023,7 +1023,7 @@ func TestUpdateIsolate(t *testing.T) {
 			}
 		}
 
-		if resp := discoverSuit.server.UpdateInstancesIsolate(discoverSuit.defaultCtx, instancesReq); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UpdateInstancesIsolate(discoverSuit.DefaultCtx, instancesReq); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 
@@ -1035,7 +1035,7 @@ func TestUpdateIsolate(t *testing.T) {
 				"host":      fmt.Sprintf("%d.%d.%d.%d", i, i, i, i),
 			}
 
-			resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, filter)
+			resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, filter)
 			if !respSuccess(resp) {
 				t.Fatalf("error: %s", resp.GetInfo().GetValue())
 			}
@@ -1067,7 +1067,7 @@ func TestUpdateIsolate(t *testing.T) {
 				defer wg.Done()
 				for c := 0; c < 16; c++ {
 					instanceReq.Isolate = utils.NewBoolValue(true)
-					if resp := discoverSuit.server.UpdateInstancesIsolate(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(resp) {
+					if resp := discoverSuit.DiscoverServer().UpdateInstancesIsolate(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(resp) {
 						errs <- fmt.Errorf("error: %+v", resp)
 						return
 					}
@@ -1091,7 +1091,7 @@ func TestUpdateIsolate(t *testing.T) {
 		instanceReq, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 456)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
-		resp := discoverSuit.server.UpdateInstancesIsolate(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq})
+		resp := discoverSuit.DiscoverServer().UpdateInstancesIsolate(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq})
 		if resp.GetCode().GetValue() == api.NoNeedUpdate {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
@@ -1106,7 +1106,7 @@ func TestUpdateIsolate(t *testing.T) {
 func TestDeleteInstanceByHost(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -1127,7 +1127,7 @@ func TestDeleteInstanceByHost(t *testing.T) {
 					Host:         utils.NewStringValue(fmt.Sprintf("%d.%d.%d.%d", i, i, i, i)),
 					Port:         utils.NewUInt32Value(uint32(j)),
 				}
-				resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq})
+				resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq})
 				if !respSuccess(resp) {
 					t.Fatalf("error: %s", resp.GetInfo().GetValue())
 				}
@@ -1136,7 +1136,7 @@ func TestDeleteInstanceByHost(t *testing.T) {
 			}
 		}
 
-		if resp := discoverSuit.server.DeleteInstancesByHost(discoverSuit.defaultCtx, instancesReq); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().DeleteInstancesByHost(discoverSuit.DefaultCtx, instancesReq); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 
@@ -1156,7 +1156,7 @@ func TestDeleteInstanceByHost(t *testing.T) {
 				Host:         utils.NewStringValue("127.0.0.2"),
 				Port:         utils.NewUInt32Value(uint32(i)),
 			}
-			resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq})
+			resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq})
 			if !respSuccess(resp) {
 				t.Fatalf("error: %s", resp.GetInfo().GetValue())
 			}
@@ -1170,7 +1170,7 @@ func TestDeleteInstanceByHost(t *testing.T) {
 			Host:         utils.NewStringValue("127.0.0.1"),
 			Isolate:      utils.NewBoolValue(true),
 		}
-		if resp := discoverSuit.server.DeleteInstancesByHost(discoverSuit.defaultCtx, []*apiservice.Instance{req}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().DeleteInstancesByHost(discoverSuit.DefaultCtx, []*apiservice.Instance{req}); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 		t.Log("pass")
@@ -1181,7 +1181,7 @@ func TestDeleteInstanceByHost(t *testing.T) {
 func TestUpdateHealthCheck(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -1191,7 +1191,7 @@ func TestUpdateHealthCheck(t *testing.T) {
 			"host": req.GetHost().GetValue(),
 			"port": strconv.FormatUint(uint64(req.GetPort().GetValue()), 10),
 		}
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -1211,14 +1211,14 @@ func TestUpdateHealthCheck(t *testing.T) {
 	t.Run("health_check可以随意关闭", func(t *testing.T) {
 		// 打开 -> 打开
 		instanceReq.Weight = utils.NewUInt32Value(300)
-		if resp := discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 		getAndCheck(t, instanceReq)
 
 		// 打开-> 关闭
 		instanceReq.EnableHealthCheck = utils.NewBoolValue(false)
-		if resp := discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 		instanceReq.HealthCheck = nil
@@ -1226,7 +1226,7 @@ func TestUpdateHealthCheck(t *testing.T) {
 
 		// 关闭 -> 关闭
 		instanceReq.Weight = utils.NewUInt32Value(200)
-		if resp := discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 		getAndCheck(t, instanceReq)
@@ -1239,7 +1239,7 @@ func TestUpdateHealthCheck(t *testing.T) {
 				Ttl: utils.NewUInt32Value(8),
 			},
 		}
-		if resp := discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 		getAndCheck(t, instanceReq)
@@ -1250,13 +1250,13 @@ func TestUpdateHealthCheck(t *testing.T) {
 				Ttl: utils.NewUInt32Value(0),
 			},
 		}
-		if resp := discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 		instanceReq.HealthCheck = &apiservice.HealthCheck{
 			Type: apiservice.HealthCheck_HEARTBEAT,
 			Heartbeat: &apiservice.HeartbeatHealthCheck{
-				Ttl: utils.NewUInt32Value(DefaultTLL),
+				Ttl: utils.NewUInt32Value(service.DefaultTLL),
 			},
 		}
 		getAndCheck(t, instanceReq)
@@ -1267,7 +1267,7 @@ func TestUpdateHealthCheck(t *testing.T) {
 func TestDeleteInstance(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -1277,7 +1277,7 @@ func TestDeleteInstance(t *testing.T) {
 
 	getInstance := func(t *testing.T, s *apiservice.Service, expect int) []*apiservice.Instance {
 		filters := map[string]string{"service": s.GetName().GetValue(), "namespace": s.GetNamespace().GetValue()}
-		getResp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, filters)
+		getResp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, filters)
 		if !respSuccess(getResp) {
 			t.Fatalf("error")
 		}
@@ -1302,7 +1302,7 @@ func TestDeleteInstance(t *testing.T) {
 			Host:         utils.NewStringValue("abc"),
 			Port:         utils.NewUInt32Value(8080),
 		}
-		resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{req})
+		resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{req})
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -1329,7 +1329,7 @@ func TestDeleteInstance(t *testing.T) {
 func TestBatchCreateInstances(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -1384,7 +1384,7 @@ func TestBatchCreateInstances(t *testing.T) {
 func TestCreateInstancesOrder(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -1403,7 +1403,7 @@ func TestCreateInstancesOrder(t *testing.T) {
 			})
 		}
 
-		resps := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, instances)
+		resps := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, instances)
 		if !respSuccess(resps) {
 			t.Fatalf("error: %+v", resps)
 		}
@@ -1420,7 +1420,7 @@ func TestCreateInstancesOrder(t *testing.T) {
 func TestBatchDeleteInstances(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -1438,7 +1438,7 @@ func TestBatchDeleteInstances(t *testing.T) {
 				Port:         utils.NewUInt32Value(uint32(j)),
 			})
 		}
-		resps := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, instances)
+		resps := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, instances)
 		if !respSuccess(resps) {
 			t.Fatalf("error: %+v", resps)
 		}
@@ -1456,7 +1456,7 @@ func TestBatchDeleteInstances(t *testing.T) {
 					wg.Done()
 				}()
 				req := &apiservice.Instance{Id: instance.Id, ServiceToken: service.Token}
-				if out := discoverSuit.server.DeleteInstances(discoverSuit.defaultCtx, []*apiservice.Instance{req}); !respSuccess(out) {
+				if out := discoverSuit.DiscoverServer().DeleteInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{req}); !respSuccess(out) {
 					errs <- fmt.Errorf("error: %+v", out)
 					return
 				}
@@ -1480,13 +1480,13 @@ func TestBatchDeleteInstances(t *testing.T) {
 			instance.ServiceToken = nil
 			instance.Id = nil
 		}
-		ctx := context.WithValue(discoverSuit.defaultCtx, utils.StringContext("polaris-token"), service.GetToken().GetValue())
-		if out := discoverSuit.server.DeleteInstances(ctx, instances); !respSuccess(out) {
+		ctx := context.WithValue(discoverSuit.DefaultCtx, utils.StringContext("polaris-token"), service.GetToken().GetValue())
+		if out := discoverSuit.DiscoverServer().DeleteInstances(ctx, instances); !respSuccess(out) {
 			t.Fatalf("error: %+v", out)
 		} else {
 			t.Logf("%+v", out)
 		}
-		resps := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, map[string]string{
+		resps := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{
 			"service":   service.GetName().GetValue(),
 			"namespace": service.GetNamespace().GetValue(),
 		})
@@ -1506,7 +1506,7 @@ func TestBatchDeleteInstances(t *testing.T) {
 func TestInstanceResponse(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -1521,7 +1521,7 @@ func TestInstanceResponse(t *testing.T) {
 			Host:         utils.NewStringValue("a.b.c.d"),
 			Port:         utils.NewUInt32Value(uint32(100)),
 		}
-		resps := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{ins})
+		resps := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{ins})
 		if !respSuccess(resps) {
 			t.Fatalf("error: %+v", resps)
 		}
@@ -1543,7 +1543,7 @@ func TestInstanceResponse(t *testing.T) {
 		req, resp := create()
 		defer discoverSuit.cleanInstance(resp.GetId().GetValue())
 		time.Sleep(time.Second)
-		resps := discoverSuit.server.DeleteInstances(discoverSuit.defaultCtx, []*apiservice.Instance{req})
+		resps := discoverSuit.DiscoverServer().DeleteInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{req})
 		if !respSuccess(resps) {
 			t.Fatalf("error: %+v", resps)
 		}
@@ -1561,7 +1561,7 @@ func TestInstanceResponse(t *testing.T) {
 func TestCreateInstancesBadCase2(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -1581,7 +1581,7 @@ func TestCreateInstancesBadCase2(t *testing.T) {
 			})
 		}
 
-		resps := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, instances)
+		resps := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, instances)
 		t.Logf("%+v", resps)
 		if respSuccess(resps) {
 			t.Fatalf("error: %+v", resps)
@@ -1601,7 +1601,7 @@ func TestCreateInstancesBadCase2(t *testing.T) {
 			Host:         utils.NewStringValue("a.b.c.d"),
 			Port:         utils.NewUInt32Value(uint32(100)),
 		}
-		resps := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instance})
+		resps := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instance})
 		if !respSuccess(resps) {
 			t.Fatalf("error: %+v", resps)
 		}
@@ -1615,7 +1615,7 @@ func TestCreateInstancesBadCase2(t *testing.T) {
 			})
 		}
 		time.Sleep(time.Second)
-		resps = discoverSuit.server.DeleteInstances(discoverSuit.defaultCtx, delReqs)
+		resps = discoverSuit.DiscoverServer().DeleteInstances(discoverSuit.DefaultCtx, delReqs)
 		if respSuccess(resps) {
 			t.Fatalf("error: %s", resps)
 		}
@@ -1634,7 +1634,7 @@ func TestCreateInstancesBadCase2(t *testing.T) {
 // 	t.Skip()
 
 // 	discoverSuit := &DiscoverTestSuit{}
-// 	if err := discoverSuit.initialize(func(cfg *config.Config) {
+// 	if err := discoverSuit.Initialize(func(cfg *config.Config) {
 // 	}); err != nil {
 // 		t.Fatal(err)
 // 	}
@@ -1644,14 +1644,14 @@ func TestCreateInstancesBadCase2(t *testing.T) {
 // 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
 // 		instanceReq, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 110)
-// 		discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq})
+// 		discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq})
 // 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 // 		for i := 0; i < 10; i++ {
-// 			resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq})
+// 			resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq})
 // 			So(resp.GetCode().GetValue(), ShouldEqual, apiservice.InstanceTooManyRequests)
 // 		}
 // 		time.Sleep(time.Second)
-// 		resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq})
+// 		resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq})
 // 		So(resp.GetCode().GetValue(), ShouldEqual, api.ExistedResource)
 // 	})
 // }
@@ -1660,7 +1660,7 @@ func TestCreateInstancesBadCase2(t *testing.T) {
 func TestInstanceNoNeedUpdate(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -1670,28 +1670,28 @@ func TestInstanceNoNeedUpdate(t *testing.T) {
 	instanceReq, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 222)
 	defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 	Convey("instance没有变更，不需要更新", t, func() {
-		resp := discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq})
+		resp := discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq})
 		So(resp.GetCode().GetValue(), ShouldEqual, api.NoNeedUpdate)
 	})
 	Convey("metadata为空，不需要更新", t, func() {
 		oldMeta := instanceReq.GetMetadata()
 		instanceReq.Metadata = nil
 		defer func() { instanceReq.Metadata = oldMeta }()
-		resp := discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq})
+		resp := discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq})
 		So(resp.GetCode().GetValue(), ShouldEqual, api.NoNeedUpdate)
 	})
 	Convey("healthCheck为nil，不需要更新", t, func() {
 		oldHealthCheck := instanceReq.GetHealthCheck()
 		instanceReq.HealthCheck = nil
 		defer func() { instanceReq.HealthCheck = oldHealthCheck }()
-		So(discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx,
+		So(discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx,
 			[]*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.NoNeedUpdate)
 	})
 }
 
 func TestUpdateInstanceField(t *testing.T) {
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -1705,14 +1705,14 @@ func TestUpdateInstanceField(t *testing.T) {
 	Convey("metadata变更", t, func() {
 		request := &apiservice.Instance{Id: wrapperspb.String(instId)}
 		request.Metadata = map[string]string{}
-		So(discoverSuit.server.UpdateInstance(
-			discoverSuit.defaultCtx, request).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+		So(discoverSuit.DiscoverServer().UpdateInstance(
+			discoverSuit.DefaultCtx, request).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 
 		request.Metadata = map[string]string{"123": "456", "789": "abc", "135": "246"}
-		So(discoverSuit.server.UpdateInstance(
-			discoverSuit.defaultCtx, request).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+		So(discoverSuit.DiscoverServer().UpdateInstance(
+			discoverSuit.DefaultCtx, request).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 
-		instance, err := discoverSuit.storage.GetInstance(instId)
+		instance, err := discoverSuit.Storage.GetInstance(instId)
 		So(err, ShouldBeNil)
 		So(instance.Proto.Host.GetValue(), ShouldEqual, instanceResp.Host.GetValue())
 	})
@@ -1720,17 +1720,17 @@ func TestUpdateInstanceField(t *testing.T) {
 	Convey("isolate变更", t, func() {
 		request := &apiservice.Instance{Id: wrapperspb.String(instId)}
 		request.Isolate = wrapperspb.Bool(true)
-		So(discoverSuit.server.UpdateInstance(
-			discoverSuit.defaultCtx, request).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
-		instance, err := discoverSuit.storage.GetInstance(instId)
+		So(discoverSuit.DiscoverServer().UpdateInstance(
+			discoverSuit.DefaultCtx, request).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+		instance, err := discoverSuit.Storage.GetInstance(instId)
 		So(err, ShouldBeNil)
 		So(instance.Proto.Isolate.GetValue(), ShouldEqual, true)
 
 		request.Isolate = wrapperspb.Bool(false)
-		So(discoverSuit.server.UpdateInstance(
-			discoverSuit.defaultCtx, request).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+		So(discoverSuit.DiscoverServer().UpdateInstance(
+			discoverSuit.DefaultCtx, request).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 
-		instance, err = discoverSuit.storage.GetInstance(instId)
+		instance, err = discoverSuit.Storage.GetInstance(instId)
 		So(err, ShouldBeNil)
 		So(instance.Proto.Isolate.GetValue(), ShouldEqual, false)
 	})
@@ -1742,7 +1742,7 @@ func TestUpdateInstanceField(t *testing.T) {
 func TestUpdateInstancesFiled(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -1753,24 +1753,24 @@ func TestUpdateInstancesFiled(t *testing.T) {
 	defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 	Convey("metadata变更", t, func() {
 		instanceReq.Metadata = map[string]string{}
-		So(discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+		So(discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 
 		instanceReq.Metadata = map[string]string{"123": "456", "789": "abc", "135": "246"}
-		So(discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+		So(discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 
 		instanceReq.Metadata["890"] = "678"
-		So(discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+		So(discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 
 		delete(instanceReq.Metadata, "135")
-		So(discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+		So(discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 	})
 	Convey("healthCheck变更", t, func() {
 		instanceReq.HealthCheck.Heartbeat.Ttl.Value = 33
-		So(discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+		So(discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 
 		instanceReq.EnableHealthCheck = utils.NewBoolValue(false)
-		So(discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
-		newInstanceResp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, map[string]string{
+		So(discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+		newInstanceResp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),
 		})
@@ -1778,37 +1778,37 @@ func TestUpdateInstancesFiled(t *testing.T) {
 		instanceReq.HealthCheck = nil
 
 		instanceReq.EnableHealthCheck = utils.NewBoolValue(true)
-		So(discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.NoNeedUpdate)
+		So(discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.NoNeedUpdate)
 
 		instanceReq.HealthCheck = &apiservice.HealthCheck{
 			Type:      apiservice.HealthCheck_HEARTBEAT,
 			Heartbeat: &apiservice.HeartbeatHealthCheck{Ttl: utils.NewUInt32Value(50)},
 		}
-		So(discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+		So(discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 	})
 	Convey("其他字段变更", t, func() {
 		instanceReq.Protocol.Value = "new-protocol-1"
-		So(discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+		So(discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 
 		instanceReq.Version.Value = "new-version-1"
-		So(discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+		So(discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 
 		instanceReq.Priority.Value = 88
-		So(discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+		So(discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 
 		instanceReq.Weight.Value = 500
-		So(discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+		So(discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 
 		instanceReq.Healthy.Value = true
-		So(discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+		So(discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 
 		instanceReq.Isolate.Value = true
-		So(discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+		So(discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 
 		instanceReq.LogicSet.Value = "new-logic-set-1"
-		So(discoverSuit.server.UpdateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+		So(discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 
-		newInstanceResp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, map[string]string{
+		newInstanceResp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),
 		})
@@ -1823,7 +1823,7 @@ func (d *DiscoverTestSuit) getInstancesWithService(t *testing.T, name string, na
 		"service":   name,
 		"namespace": namespace,
 	}
-	resp := d.server.GetInstances(d.defaultCtx, query)
+	resp := d.DiscoverServer().GetInstances(d.DefaultCtx, query)
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
@@ -1839,7 +1839,7 @@ func (d *DiscoverTestSuit) getInstancesWithService(t *testing.T, name string, na
 func TestCheckInstanceFieldLen(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -1861,7 +1861,7 @@ func TestCheckInstanceFieldLen(t *testing.T) {
 		str := genSpecialStr(129)
 		oldName := ins.Service
 		ins.Service = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{ins})
+		resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{ins})
 		ins.Service = oldName
 		if resp.Code.Value != api.InvalidServiceName {
 			t.Fatalf("%+v", resp)
@@ -1871,7 +1871,7 @@ func TestCheckInstanceFieldLen(t *testing.T) {
 		str := genSpecialStr(129)
 		oldHost := ins.Host
 		ins.Host = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{ins})
+		resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{ins})
 		ins.Host = oldHost
 		if resp.Code.Value != api.InvalidInstanceHost {
 			t.Fatalf("%+v", resp)
@@ -1881,7 +1881,7 @@ func TestCheckInstanceFieldLen(t *testing.T) {
 		str := genSpecialStr(129)
 		oldProtocol := ins.Protocol
 		ins.Protocol = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{ins})
+		resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{ins})
 		ins.Protocol = oldProtocol
 		if resp.Code.Value != api.InvalidInstanceProtocol {
 			t.Fatalf("%+v", resp)
@@ -1891,7 +1891,7 @@ func TestCheckInstanceFieldLen(t *testing.T) {
 		str := genSpecialStr(129)
 		oldVersion := ins.Version
 		ins.Version = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{ins})
+		resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{ins})
 		ins.Version = oldVersion
 		if resp.Code.Value != api.InvalidInstanceVersion {
 			t.Fatalf("%+v", resp)
@@ -1901,7 +1901,7 @@ func TestCheckInstanceFieldLen(t *testing.T) {
 		str := genSpecialStr(129)
 		oldLogicSet := ins.LogicSet
 		ins.LogicSet = utils.NewStringValue(str)
-		resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{ins})
+		resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{ins})
 		ins.LogicSet = oldLogicSet
 		if resp.Code.Value != api.InvalidInstanceLogicSet {
 			t.Fatalf("%+v", resp)
@@ -1911,7 +1911,7 @@ func TestCheckInstanceFieldLen(t *testing.T) {
 		str := genSpecialStr(129)
 		oldMetadata := ins.Metadata
 		oldMetadata[str] = str
-		resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{ins})
+		resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{ins})
 		ins.Metadata = make(map[string]string)
 		if resp.Code.Value != api.InvalidMetadata {
 			t.Fatalf("%+v", resp)
@@ -1920,7 +1920,7 @@ func TestCheckInstanceFieldLen(t *testing.T) {
 	t.Run("port超长", func(t *testing.T) {
 		oldPort := ins.Port
 		ins.Port = utils.NewUInt32Value(70000)
-		resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{ins})
+		resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{ins})
 		ins.Port = oldPort
 		if resp.Code.Value != api.InvalidInstancePort {
 			t.Fatalf("%+v", resp)
@@ -1929,7 +1929,7 @@ func TestCheckInstanceFieldLen(t *testing.T) {
 	t.Run("weight超长", func(t *testing.T) {
 		oldWeight := ins.Weight
 		ins.Weight = utils.NewUInt32Value(70000)
-		resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{ins})
+		resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{ins})
 		ins.Weight = oldWeight
 		if resp.Code.Value != api.InvalidParameter {
 			t.Fatalf("%+v", resp)
@@ -1938,7 +1938,7 @@ func TestCheckInstanceFieldLen(t *testing.T) {
 	t.Run("检测字段为空指针", func(t *testing.T) {
 		oldName := ins.Service
 		ins.Service = nil
-		resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{ins})
+		resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{ins})
 		ins.Service = oldName
 		if resp.Code.Value != api.InvalidServiceName {
 			t.Fatalf("%+v", resp)
@@ -1947,7 +1947,7 @@ func TestCheckInstanceFieldLen(t *testing.T) {
 	t.Run("检测字段为空", func(t *testing.T) {
 		oldName := ins.Service
 		ins.Service = utils.NewStringValue("")
-		resp := discoverSuit.server.CreateInstances(discoverSuit.defaultCtx, []*apiservice.Instance{ins})
+		resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{ins})
 		ins.Service = oldName
 		if resp.Code.Value != api.InvalidServiceName {
 			t.Fatalf("%+v", resp)
@@ -1959,7 +1959,7 @@ func TestCheckInstanceFieldLen(t *testing.T) {
 func TestCheckInstanceParam(t *testing.T) {
 
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -1974,7 +1974,7 @@ func TestCheckInstanceParam(t *testing.T) {
 	t.Run("只传service", func(t *testing.T) {
 		query := map[string]string{}
 		query["service"] = "test"
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if resp.Code.Value != api.InvalidQueryInsParameter {
 			t.Fatalf("%+v", resp)
 		}
@@ -1982,7 +1982,7 @@ func TestCheckInstanceParam(t *testing.T) {
 	t.Run("只传namespace", func(t *testing.T) {
 		query := map[string]string{}
 		query["namespace"] = "test"
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if resp.Code.Value != api.InvalidQueryInsParameter {
 			t.Fatalf("%+v", resp)
 		}
@@ -1990,7 +1990,7 @@ func TestCheckInstanceParam(t *testing.T) {
 	t.Run("只传port", func(t *testing.T) {
 		query := map[string]string{}
 		query["port"] = "123"
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if resp.Code.Value != api.InvalidQueryInsParameter {
 			t.Fatalf("%+v", resp)
 		}
@@ -1998,7 +1998,7 @@ func TestCheckInstanceParam(t *testing.T) {
 	t.Run("只传version", func(t *testing.T) {
 		query := map[string]string{}
 		query["version"] = "123"
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if resp.Code.Value != api.InvalidQueryInsParameter {
 			t.Fatalf("%+v", resp)
 		}
@@ -2006,7 +2006,7 @@ func TestCheckInstanceParam(t *testing.T) {
 	t.Run("只传protocol", func(t *testing.T) {
 		query := map[string]string{}
 		query["protocol"] = "http"
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if resp.Code.Value != api.InvalidQueryInsParameter {
 			t.Fatalf("%+v", resp)
 		}
@@ -2015,7 +2015,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query := map[string]string{}
 		query["service"] = "test"
 		query["port"] = "123"
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if resp.Code.Value != api.InvalidQueryInsParameter {
 			t.Fatalf("%+v", resp)
 		}
@@ -2024,7 +2024,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query := map[string]string{}
 		query["namespace"] = "test"
 		query["port"] = "123"
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if resp.Code.Value != api.InvalidQueryInsParameter {
 			t.Fatalf("%+v", resp)
 		}
@@ -2033,7 +2033,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query := map[string]string{}
 		query["service"] = instanceReq.GetService().Value
 		query["namespace"] = instanceReq.GetNamespace().Value
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
@@ -2043,7 +2043,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query["service"] = instanceReq.GetService().Value
 		query["namespace"] = instanceReq.GetNamespace().Value
 		query["host"] = instanceReq.GetHost().Value
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
@@ -2053,7 +2053,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query["service"] = instanceReq.GetService().Value
 		query["namespace"] = instanceReq.GetNamespace().Value
 		query["port"] = strconv.Itoa(int(instanceReq.GetPort().Value))
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
@@ -2061,7 +2061,7 @@ func TestCheckInstanceParam(t *testing.T) {
 	t.Run("传host", func(t *testing.T) {
 		query := map[string]string{}
 		query["host"] = instanceReq.GetHost().Value
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
@@ -2070,7 +2070,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query := map[string]string{}
 		query["host"] = instanceReq.GetHost().Value
 		query["namespace"] = instanceReq.GetNamespace().Value
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
@@ -2079,7 +2079,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query := map[string]string{}
 		query["host"] = instanceReq.GetHost().Value
 		query["port"] = strconv.Itoa(int(instanceReq.GetPort().Value))
-		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
@@ -2159,7 +2159,7 @@ func Test_isEmptyLocation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := isEmptyLocation(tt.args.loc); got != tt.want {
+			if got := service.TestIsEmptyLocation(tt.args.loc); got != tt.want {
 				t.Errorf("isEmptyLocation() = %v, want %v", got, tt.want)
 			}
 		})
@@ -2246,28 +2246,27 @@ func (mgr *mockTrxManager) Create(svc, namespace string) *mockTrx {
 }
 
 func TestCreateInstanceLockService(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	t.Cleanup(func() {
-		ctrl.Finish()
-	})
-
-	createMockResource := func() (*Server, *mock.MockStore) {
+	createMockResource := func(t *testing.T, ctrl *gomock.Controller) (*service.Server, *mock.MockStore) {
 		var (
 			err      error
 			cacheMgr *cache.CacheManager
 			nsSvr    namespace.NamespaceOperateServer
+			authSvr  auth.AuthServer
 		)
 
+		ctx, cancel := context.WithCancel(context.Background())
+		t.Cleanup(func() {
+			cancel()
+			time.Sleep(5 * time.Second)
+		})
+
 		mockStore := mock.NewMockStore(ctrl)
-		err = cache.Initialize(context.TODO(), &cache.Config{
+		cacheMgr, err = cache.TestCacheInitialize(ctx, &cache.Config{
 			Open: true,
 		}, mockStore)
 		assert.NoError(t, err)
-		cacheMgr, err = cache.GetCacheManager()
-		assert.NoError(t, err)
 
-		_, err = auth.TestInitialize(context.TODO(), &auth.Config{
+		authSvr, err = auth.TestInitialize(ctx, &auth.Config{
 			Name: "defaultAuth",
 			Option: map[string]interface{}{
 				"clientOpen":  false,
@@ -2276,20 +2275,12 @@ func TestCreateInstanceLockService(t *testing.T) {
 		}, mockStore, cacheMgr)
 		assert.NoError(t, err)
 
-		namespace.Initialize(context.TODO(), &namespace.Config{
+		nsSvr, err = namespace.TestInitialize(ctx, &namespace.Config{
 			AutoCreate: true,
-		}, mockStore, cacheMgr)
-		nsSvr, err = namespace.GetOriginServer()
+		}, mockStore, cacheMgr, authSvr)
 		assert.NoError(t, err)
 
-		svr := &Server{
-			storage:             mockStore,
-			namespaceSvr:        nsSvr,
-			caches:              cacheMgr,
-			createServiceSingle: &singleflight.Group{},
-			hooks:               []ResourceHook{},
-		}
-
+		svr := service.TestNewServer(mockStore, nsSvr, cacheMgr)
 		return svr, mockStore
 	}
 
@@ -2313,26 +2304,34 @@ func TestCreateInstanceLockService(t *testing.T) {
 		}
 	)
 
-	instanceID, checkError := checkCreateInstance(req)
+	instanceID, checkError := service.TestCheckCreateInstance(req)
 	assert.Nil(t, checkError)
 
 	ins := *req
 	ins.Id = utils.NewStringValue(instanceID)
 
 	t.Run("正常创建实例", func(t *testing.T) {
-		svr, mockStore := createMockResource()
+		ctrl := gomock.NewController(t)
+		t.Cleanup(func() {
+			ctrl.Finish()
+		})
+		svr, mockStore := createMockResource(t, ctrl)
 		mockStore.EXPECT().GetInstance(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockStore.EXPECT().CreateTransaction().DoAndReturn(func() (store.Transaction, error) {
 			return trxMgr.Create(req.GetService().GetValue(), req.GetNamespace().GetValue()), nil
 		}).AnyTimes()
 		mockStore.EXPECT().AddInstance(gomock.Any()).Return(nil).AnyTimes()
 
-		_, errResp := svr.serialCreateInstance(context.TODO(), "mock_svc_id", req, &ins)
+		_, errResp := svr.TestSerialCreateInstance(context.TODO(), "mock_svc_id", req, &ins)
 		assert.Nil(t, errResp)
 	})
 
 	t.Run("创建实例的同时删除服务", func(t *testing.T) {
-		svr, mockStore := createMockResource()
+		ctrl := gomock.NewController(t)
+		t.Cleanup(func() {
+			ctrl.Finish()
+		})
+		svr, mockStore := createMockResource(t, ctrl)
 		mockStore.EXPECT().GetInstance(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockStore.EXPECT().CreateTransaction().DoAndReturn(func() (store.Transaction, error) {
 			return trxMgr.Create(req.GetService().GetValue(), req.GetNamespace().GetValue()), nil
@@ -2366,7 +2365,7 @@ func TestCreateInstanceLockService(t *testing.T) {
 
 		go func() {
 			defer wait.Done()
-			_, resp := svr.serialCreateInstance(context.TODO(), "", req, &ins)
+			_, resp := svr.TestSerialCreateInstance(context.TODO(), "", req, &ins)
 			atomic.StoreUint32(&createInsCode, resp.GetCode().GetValue())
 		}()
 
@@ -2396,7 +2395,7 @@ func TestCreateInstanceLockService(t *testing.T) {
 // TestAsyncCreateInstanceLockService 异步服务实例注册时，能够 rlock 住服务，如果 rlock 发现服务不存在，则直接实例注册失败
 func TestAsyncCreateInstanceLockService(t *testing.T) {
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
@@ -2404,7 +2403,7 @@ func TestAsyncCreateInstanceLockService(t *testing.T) {
 		cancel()
 		discoverSuit.Destroy()
 	})
-	ctrl, err := batch.NewBatchCtrlWithConfig(discoverSuit.storage, discoverSuit.server.Cache(), &batch.Config{
+	ctrl, err := batch.NewBatchCtrlWithConfig(discoverSuit.Storage, discoverSuit.DiscoverServer().Cache(), &batch.Config{
 		Register: &batch.CtrlConfig{
 			Open:          true,
 			QueueSize:     1024,
@@ -2464,7 +2463,7 @@ func TestAsyncCreateInstanceLockService(t *testing.T) {
 			select {
 			case <-stopCh:
 			default:
-				resp := discoverSuit.server.DeleteServices(discoverSuit.defaultCtx, []*apiservice.Service{
+				resp := discoverSuit.DiscoverServer().DeleteServices(discoverSuit.DefaultCtx, []*apiservice.Service{
 					svcReq,
 				})
 				if resp.GetCode().GetValue() == uint32(apimodel.Code_ExecuteSuccess) {

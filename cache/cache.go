@@ -128,7 +128,9 @@ type Cache interface {
 
 // baseCache 对于 Cache 中的一些 func 做统一实现，避免重复逻辑
 type baseCache struct {
-	lock          sync.RWMutex
+	lock sync.RWMutex
+	// firtstUpdate Whether the cache is loaded for the first time
+	// this field can only make value on exec initialize/clean, and set it to false on exec update
 	firtstUpdate  bool
 	s             store.Store
 	lastFetchTime int64
@@ -167,6 +169,12 @@ func (bc *baseCache) resetLastMtime(label string) {
 	bc.lastMtimes[label] = time.Unix(0, 0)
 }
 
+func (bc *baseCache) resetLastFetchTime() {
+	bc.lock.Lock()
+	defer bc.lock.Unlock()
+	bc.lastFetchTime = 0
+}
+
 func (bc *baseCache) LastMtime(label string) time.Time {
 	bc.lock.RLock()
 	defer bc.lock.RUnlock()
@@ -194,7 +202,7 @@ func (bc *baseCache) isFirstUpdate() bool {
 
 // update
 func (bc *baseCache) doCacheUpdate(name string, executor func() (map[string]time.Time, int64, error)) error {
-	curStoreTime, err := bc.s.GetUnixSecond()
+	curStoreTime, err := bc.s.GetUnixSecond(0)
 	if err != nil {
 		curStoreTime = bc.lastFetchTime
 		log.Warnf("[Cache][%s] get store timestamp fail, skip update lastMtime, err : %v", name, err)
@@ -215,8 +223,8 @@ func (bc *baseCache) doCacheUpdate(name string, executor func() (map[string]time
 		if len(bc.lastMtimes) != 0 {
 			for label, lastMtime := range lastMtimes {
 				preLastMtime := bc.lastMtimes[label]
-				log.Infof("[Cache][%s] lastMtime update from %s to %s",
-					label, preLastMtime, lastMtime)
+				log.Infof("[Cache][%s] lastFetchTime %s, lastMtime update from %s to %s",
+					label, time.Unix(bc.lastFetchTime, 0), preLastMtime, lastMtime)
 			}
 		}
 		bc.lastMtimes = lastMtimes
@@ -450,6 +458,7 @@ func (nc *CacheManager) processRevisionWorker(req *revisionNotify) bool {
 	}
 
 	nc.setRevisions(req.serviceID, revision) // string -> string
+	log.Infof("[Cache] compute service id(%s) instances revision : %s", req.serviceID, revision)
 	return true
 }
 

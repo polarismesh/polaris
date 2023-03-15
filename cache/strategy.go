@@ -39,6 +39,10 @@ const (
 	StrategyRuleName = "strategyRule"
 )
 
+const (
+	removePrincipalChSize = 8
+)
+
 // StrategyCache is a cache for strategy rules.
 type StrategyCache interface {
 	Cache
@@ -74,17 +78,14 @@ type strategyCache struct {
 	userCache    UserCache
 	lastMtime    int64
 	singleFlight *singleflight.Group
-
-	principalCh chan interface{}
 }
 
 // newStrategyCache
-func newStrategyCache(storage store.Store, principalCh chan interface{}, userCache UserCache) StrategyCache {
+func newStrategyCache(storage store.Store, userCache UserCache) StrategyCache {
 	return &strategyCache{
-		baseCache:   newBaseCache(storage),
-		storage:     storage,
-		principalCh: principalCh,
-		userCache:   userCache,
+		baseCache: newBaseCache(storage),
+		storage:   storage,
+		userCache: userCache,
 	}
 }
 
@@ -182,7 +183,6 @@ func (sc *strategyCache) setStrategys(strategies []*model.StrategyDetail) (map[s
 		lastMtime = int64(math.Max(float64(lastMtime), float64(rule.ModifyTime.Unix())))
 	}
 
-	sc.postProcessPrincipalCh()
 	return map[string]time.Time{sc.name(): time.Unix(lastMtime, 0)}, add, update, remove
 }
 
@@ -326,25 +326,6 @@ func (sc *strategyCache) addPrincipalLink(principal model.Principal, rule *model
 		sc.uid2Strategy.save(principal.PrincipalID, rule.ID)
 	} else {
 		sc.groupid2Strategy.save(principal.PrincipalID, rule.ID)
-	}
-}
-
-// postProcessPrincipalCh
-func (sc *strategyCache) postProcessPrincipalCh() {
-	select {
-	case event := <-sc.principalCh:
-		principals := event.([]model.Principal)
-		for index := range principals {
-			principal := principals[index]
-
-			if principal.PrincipalRole == model.PrincipalUser {
-				sc.uid2Strategy.deleteAllLink(principal.PrincipalID)
-			} else {
-				sc.groupid2Strategy.deleteAllLink(principal.PrincipalID)
-			}
-		}
-	case <-time.After(100 * time.Millisecond):
-		return
 	}
 }
 

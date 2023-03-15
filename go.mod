@@ -83,8 +83,9 @@ require (
 )
 
 require (
-	github.com/polarismesh/specification v1.2.0-alpha.1
+	github.com/polarismesh/specification v1.2.0
 	github.com/robfig/cron/v3 v3.0.1
+  github.com/DATA-DOG/go-sqlmock v1.5.0
 )
 
 replace gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.2

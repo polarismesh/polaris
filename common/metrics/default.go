@@ -19,7 +19,6 @@ package metrics
 
 import (
 	"net/http"
-	"sync/atomic"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
@@ -28,9 +27,6 @@ import (
 
 var (
 	registry = prometheus.NewRegistry()
-
-	lastRedisReadFailureReport  atomic.Value
-	lastRedisWriteFailureReport atomic.Value
 )
 
 // GetRegistry 获取 metrics 的 registry
@@ -50,4 +46,7 @@ func GetHttpHandler() http.Handler {
 // InitMetrics 初始化 metrics 的所有指标
 func InitMetrics() {
 	registerSysMetrics()
+	registerClientMetrics()
+	registerConfigFileMetrics()
+	registerDiscoveryMetrics()
 }

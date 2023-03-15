@@ -398,14 +398,11 @@ data:
           interval: 60 # 统计间隔，单位为秒
           outputPath: ./discover-statis
       statis:
-        name: local
-        option:
-          interval: 60 # 统计间隔，单位为秒
-          outputPath: ./statis
-        # api 调用指标数据计算上报到 prometheus
-        # name: prometheus
-        # option:
-        #   interval: 60 # 统计间隔，单位为秒
+        entries:
+          - name: local
+            option:
+              interval: 60
+          - name: prometheus
       ratelimit:
         name: token-bucket
         option:

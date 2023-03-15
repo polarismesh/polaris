@@ -268,6 +268,8 @@ function installPolarisLimiter() {
   # 备份 polaris-limiter.yaml
   cp polaris-limiter.yaml polaris-limiter.yaml.bak
 
+ # 修改 polaris-server grpc 端口信息
+  sed -i "s/polaris-server-address: 127.0.0.1:8091/polaris-server-address: 127.0.0.1:${service_grpc_port}/g" polaris-limiter.yaml
   # 修改监听的 polaris-limiter http 端口信息
   sed -i "s/port: 8100/port: ${limiter_http_port}/g" polaris-limiter.yaml
   # 修改监听的 polaris-limiter grpc 端口信息

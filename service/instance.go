@@ -424,11 +424,10 @@ func (s *Server) UpdateInstance(ctx context.Context, req *apiservice.Instance) *
 	platformID := utils.ParsePlatformID(ctx)
 	log.Info(fmt.Sprintf("old instance: %+v", instance), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 
-	// 比对下更新前后的 isolate 状态
-	eventTypes := diffInstanceEvent(req, instance)
-
+	var eventTypes map[model.InstanceEventType]bool
+	var needUpdate bool
 	// 存储层操作
-	if needUpdate := s.updateInstanceAttribute(req, instance); !needUpdate {
+	if needUpdate, eventTypes = s.updateInstanceAttribute(req, instance); !needUpdate {
 		log.Info("update instance no data change, no need update",
 			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.String("instance", req.String()))
 		return api.NewInstanceResponse(apimodel.Code_NoNeedUpdate, req)
@@ -444,13 +443,13 @@ func (s *Server) UpdateInstance(ctx context.Context, req *apiservice.Instance) *
 	log.Info(msg, utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
 	s.RecordHistory(ctx, instanceRecordEntry(ctx, req, service, instance, model.OUpdate))
 
-	for i := range eventTypes {
+	for eventType := range eventTypes {
 		event := &model.InstanceEvent{
 			Id:         instance.ID(),
 			Namespace:  service.Namespace,
 			Service:    service.Name,
 			Instance:   instance.Proto,
-			EType:      eventTypes[i],
+			EType:      eventType,
 			CreateTime: time.Time{},
 		}
 		event.InjectMetadata(ctx)
@@ -599,63 +598,78 @@ func (s *Server) getInstancesMainByService(ctx context.Context, req *apiservice.
 /**
  * @brief 修改服务属性
  */
-func (s *Server) updateInstanceAttribute(req *apiservice.Instance, instance *model.Instance) bool {
+func (s *Server) updateInstanceAttribute(
+	req *apiservice.Instance, instance *model.Instance) (bool, map[model.InstanceEventType]bool) {
 	// #lizard forgives
 	instance.MallocProto()
 	needUpdate := false
 	insProto := instance.Proto
+	var updateEvents = make(map[model.InstanceEventType]bool)
 	if ok := instanceMetaNeedUpdate(req.GetMetadata(), instance.Metadata()); ok {
 		insProto.Metadata = req.GetMetadata()
 		needUpdate = true
+		updateEvents[model.EventInstanceUpdate] = true
 	}
 
 	if ok := instanceLocationNeedUpdate(req.GetLocation(), instance.Proto.GetLocation()); ok {
 		insProto.Location = req.Location
 		needUpdate = true
+		updateEvents[model.EventInstanceUpdate] = true
 	}
-
-	// if !needUpdate {
-	// 	// 不需要更新metadata，则置空
-	// 	insProto.Metadata = nil
-	// }
 
 	if req.GetProtocol() != nil && req.GetProtocol().GetValue() != instance.Protocol() {
 		insProto.Protocol = req.GetProtocol()
 		needUpdate = true
+		updateEvents[model.EventInstanceUpdate] = true
 	}
 
 	if req.GetVersion() != nil && req.GetVersion().GetValue() != instance.Version() {
 		insProto.Version = req.GetVersion()
 		needUpdate = true
+		updateEvents[model.EventInstanceUpdate] = true
 	}
 
 	if req.GetPriority() != nil && req.GetPriority().GetValue() != instance.Priority() {
 		insProto.Priority = req.GetPriority()
 		needUpdate = true
+		updateEvents[model.EventInstanceUpdate] = true
 	}
 
 	if req.GetWeight() != nil && req.GetWeight().GetValue() != instance.Weight() {
 		insProto.Weight = req.GetWeight()
 		needUpdate = true
+		updateEvents[model.EventInstanceUpdate] = true
 	}
 
 	if req.GetHealthy() != nil && req.GetHealthy().GetValue() != instance.Healthy() {
 		insProto.Healthy = req.GetHealthy()
 		needUpdate = true
+		if req.Healthy.GetValue() {
+			updateEvents[model.EventInstanceTurnHealth] = true
+		} else {
+			updateEvents[model.EventInstanceTurnUnHealth] = true
+		}
 	}
 
 	if req.GetIsolate() != nil && req.GetIsolate().GetValue() != instance.Isolate() {
 		insProto.Isolate = req.GetIsolate()
 		needUpdate = true
+		if req.Isolate.GetValue() {
+			updateEvents[model.EventInstanceOpenIsolate] = true
+		} else {
+			updateEvents[model.EventInstanceCloseIsolate] = true
+		}
 	}
 
 	if req.GetLogicSet() != nil && req.GetLogicSet().GetValue() != instance.LogicSet() {
 		insProto.LogicSet = req.GetLogicSet()
 		needUpdate = true
+		updateEvents[model.EventInstanceUpdate] = true
 	}
 
 	if ok := updateHealthCheck(req, instance); ok {
 		needUpdate = true
+		updateEvents[model.EventInstanceUpdate] = true
 	}
 
 	// 每次更改，都要生成一个新的uuid
@@ -663,7 +677,7 @@ func (s *Server) updateInstanceAttribute(req *apiservice.Instance, instance *mod
 		insProto.Revision = utils.NewStringValue(utils.NewUUID())
 	}
 
-	return needUpdate
+	return needUpdate, updateEvents
 }
 
 func instanceLocationNeedUpdate(req *apimodel.Location, old *apimodel.Location) bool {
@@ -1352,25 +1366,4 @@ func CheckDbInstanceFieldLen(req *apiservice.Instance) (*apiservice.Response, bo
 		return api.NewInstanceResponse(apimodel.Code_InvalidParameter, req), true
 	}
 	return nil, false
-}
-
-func diffInstanceEvent(req *apiservice.Instance, save *model.Instance) []model.InstanceEventType {
-	eventTypes := make([]model.InstanceEventType, 0)
-	if req.Isolate != nil && save.Isolate() != req.Isolate.GetValue() {
-		if req.Isolate.GetValue() {
-			eventTypes = append(eventTypes, model.EventInstanceOpenIsolate)
-		} else {
-			eventTypes = append(eventTypes, model.EventInstanceCloseIsolate)
-		}
-	}
-
-	if req.Healthy != nil && save.Healthy() != req.Healthy.GetValue() {
-		if req.Healthy.GetValue() {
-			eventTypes = append(eventTypes, model.EventInstanceTurnHealth)
-		} else {
-			eventTypes = append(eventTypes, model.EventInstanceTurnUnHealth)
-		}
-	}
-
-	return eventTypes
 }

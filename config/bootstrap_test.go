@@ -47,7 +47,7 @@ import (
 	_ "github.com/polarismesh/polaris/store/boltdb"
 	_ "github.com/polarismesh/polaris/store/mysql"
 	sqldb "github.com/polarismesh/polaris/store/mysql"
-	"github.com/polarismesh/polaris/testdata"
+	testdata "github.com/polarismesh/polaris/test/data"
 )
 
 type Bootstrap struct {

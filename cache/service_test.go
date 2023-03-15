@@ -42,7 +42,7 @@ func newTestServiceCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *se
 	ctl := gomock.NewController(t)
 
 	storage := mock.NewMockStore(ctl)
-	storage.EXPECT().GetUnixSecond().AnyTimes().Return(time.Now().Unix(), nil)
+	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 	notifier := make(chan *revisionNotify, 1024)
 	ic := newInstanceCache(storage, notifier)
 	sc := newServiceCache(storage, notifier, ic)

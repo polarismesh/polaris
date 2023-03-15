@@ -29,7 +29,7 @@ var (
 
 func enrichGetNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
-		Doc("查询命名空间列表").
+		Doc("查询命名空间列表(New)").
 		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).
 		Param(restful.QueryParameter("name", "命名空间唯一名称").DataType("string").Required(true)).
 		Param(restful.QueryParameter("offset", "查询偏移量").DataType("integer").Required(false).DefaultValue("0")).
@@ -39,7 +39,7 @@ func enrichGetNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 
 func enrichCreateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
-		Doc("创建命名空间").
+		Doc("创建命名空间(New)").
 		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).
 		Reads([]apimodel.Namespace{}, "create namespaces").
 		Notes(enrichCreateNamespacesApiNotes)
@@ -47,7 +47,7 @@ func enrichCreateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 
 func enrichDeleteNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
-		Doc("删除命名空间").
+		Doc("删除命名空间(New)").
 		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).
 		Reads([]apimodel.Namespace{}, "delete namespaces").
 		Notes(enrichDeleteNamespacesApiNotes)
@@ -55,7 +55,7 @@ func enrichDeleteNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 
 func enrichUpdateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
-		Doc("更新命名空间").
+		Doc("更新命名空间(New)").
 		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).
 		Reads([]apimodel.Namespace{}, "update namespaces").
 		Notes(enrichUpdateNamespacesApiNotes)
@@ -63,12 +63,12 @@ func enrichUpdateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 
 func enrichGetNamespaceTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
-		Doc("查询命名空间Token").
+		Doc("查询命名空间Token(New)").
 		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).Deprecate()
 }
 
 func enrichUpdateNamespaceTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
-		Doc("更新命名空间Token").
+		Doc("更新命名空间Token(New)").
 		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).Deprecate()
 }

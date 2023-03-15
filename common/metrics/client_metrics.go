@@ -71,8 +71,3 @@ func RemoveSDKClientConn() {
 func ResetSDKClientConn() {
 	sdkClientTotal.Set(0)
 }
-
-// SetSDKClientTotal reset client connection number
-func SetSDKClientTotal(cnt int64) {
-	clientInstanceTotal.Set(float64(cnt))
-}

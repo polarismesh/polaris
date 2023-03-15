@@ -18,7 +18,6 @@
 package cache
 
 import (
-	"strconv"
 	"sync"
 	"time"
 
@@ -134,6 +133,7 @@ func (ic *instanceCache) update() error {
 		defer func() {
 			ic.lastMtimeLogged = logLastMtime(ic.lastMtimeLogged, ic.LastMtime().Unix(), "Instance")
 			ic.checkAll()
+			ic.reportMetricsInfo()
 		}()
 		return nil, ic.doCacheUpdate(ic.name(), ic.realUpdate)
 	})
@@ -164,6 +164,7 @@ func (ic *instanceCache) checkAll() {
 		"[Cache][Instance] instance count not match, expect %d, actual %d, fallback to load all",
 		count, ic.instanceCount)
 	ic.resetLastMtime(ic.name())
+	ic.resetLastFetchTime()
 }
 
 const maxLoadTimeDuration = 1 * time.Second
@@ -220,12 +221,17 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (map[strin
 		return nil, 0, 0
 	}
 
+	addInstances := map[string]string{}
+	updateInstances := map[string]string{}
+	deleteInstances := map[string]string{}
+
 	lastMtime := ic.LastMtime().Unix()
 	update := 0
 	del := 0
 	affect := make(map[string]bool)
 	progress := 0
 	instanceCount := ic.instanceCount
+
 	for _, item := range ins {
 		progress++
 		if progress%50000 == 0 {
@@ -239,6 +245,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (map[strin
 		_, itemExist := ic.ids.Load(item.ID())
 		// 待删除的instance
 		if !item.Valid {
+			deleteInstances[item.ID()] = item.Revision()
 			del++
 			ic.ids.Delete(item.ID())
 			if itemExist {
@@ -264,9 +271,11 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (map[strin
 
 		ic.ids.Store(item.ID(), item)
 		if !itemExist {
+			addInstances[item.ID()] = item.Revision()
 			instanceCount++
 			ic.manager.onEvent(item, EventCreated)
 		} else {
+			updateInstances[item.ID()] = item.Revision()
 			ic.manager.onEvent(item, EventUpdated)
 		}
 		value, ok := ic.services.Load(item.ServiceID)
@@ -285,6 +294,10 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (map[strin
 			ic.instanceCount, instanceCount)
 		ic.instanceCount = instanceCount
 	}
+
+	log.Info("[Cache][Instance] instances change info", zap.Any("add", addInstances),
+		zap.Any("update", updateInstances), zap.Any("delete", deleteInstances))
+
 	ic.postProcessUpdatedServices(affect)
 	ic.manager.onEvent(affect, EventInstanceReload)
 	return map[string]time.Time{
@@ -329,6 +342,9 @@ func (ic *instanceCache) postProcessUpdatedServices(affect map[string]bool) {
 			instance := item.(*model.Instance)
 			if isInstanceHealthy(instance) {
 				count.HealthyInstanceCount++
+			}
+			if instance.Proto.GetIsolate().GetValue() {
+				count.IsolateInstanceCount++
 			}
 			return true
 		})
@@ -481,52 +497,4 @@ func iteratorInstancesProc(data *sync.Map, iterProc InstanceIterProc) error {
 
 	data.Range(proc)
 	return err
-}
-
-type servicePortsBucket struct {
-	lock sync.RWMutex
-	// servicePorts service-id -> []port
-	servicePorts map[string]map[string]struct{}
-}
-
-func (b *servicePortsBucket) reset() {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-
-	b.servicePorts = make(map[string]map[string]struct{})
-}
-
-func (b *servicePortsBucket) appendPort(serviceID string, port int) {
-	if serviceID == "" || port == 0 {
-		return
-	}
-
-	b.lock.Lock()
-	defer b.lock.Unlock()
-
-	if _, ok := b.servicePorts[serviceID]; !ok {
-		b.servicePorts[serviceID] = map[string]struct{}{}
-	}
-
-	ports := b.servicePorts[serviceID]
-	ports[strconv.FormatInt(int64(port), 10)] = struct{}{}
-}
-
-func (b *servicePortsBucket) listPort(serviceID string) []string {
-	b.lock.RLock()
-	defer b.lock.RUnlock()
-
-	ret := make([]string, 0, 4)
-
-	val, ok := b.servicePorts[serviceID]
-
-	if !ok {
-		return ret
-	}
-
-	for k := range val {
-		ret = append(ret, k)
-	}
-
-	return ret
 }

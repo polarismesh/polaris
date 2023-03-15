@@ -36,8 +36,7 @@ func init() {
 }
 
 const (
-	UsersName = "users"
-
+	UsersName         = "users"
 	NameLinkOwnerTemp = "%s@%s"
 )
 
@@ -74,7 +73,7 @@ type UserCache interface {
 	//  @return bool
 	IsOwner(id string) bool
 
-	// ListUserBelongGroupIDS
+	// GetUserLinkGroupIds
 	//  @param id
 	//  @return []string
 	GetUserLinkGroupIds(id string) []string
@@ -105,16 +104,14 @@ type userCache struct {
 	lastUserMtime  int64
 	lastGroupMtime int64
 
-	notifyCh     chan interface{}
 	singleFlight *singleflight.Group
 }
 
 // newUserCache
-func newUserCache(storage store.Store, notifyCh chan interface{}) UserCache {
+func newUserCache(storage store.Store) UserCache {
 	return &userCache{
 		baseCache: newBaseCache(storage),
 		storage:   storage,
-		notifyCh:  notifyCh,
 	}
 }
 
@@ -212,7 +209,6 @@ func (uc *userCache) setUserAndGroups(users []*model.User,
 	}, ownerSupplier)
 
 	uc.handlerGroupCacheUpdate(lastMimes, &ret, groups)
-	uc.postProcess(users, groups)
 	return lastMimes, ret
 }
 
@@ -356,7 +352,6 @@ func (uc *userCache) IsUserInGroup(userId, groupId string) bool {
 	if group == nil {
 		return false
 	}
-
 	_, exist := group.UserIds[userId]
 	return exist
 }
@@ -368,11 +363,9 @@ func (uc *userCache) GetUserByID(id string) *model.User {
 	}
 
 	val, ok := uc.users.get(id)
-
 	if !ok {
 		return nil
 	}
-
 	return val
 }
 
@@ -383,7 +376,6 @@ func (uc *userCache) GetUserByName(name, ownerName string) *model.User {
 	if !ok {
 		return nil
 	}
-
 	return val
 }
 
@@ -407,56 +399,8 @@ func (uc *userCache) GetUserLinkGroupIds(userId string) []string {
 		return nil
 	}
 	val, ok := uc.user2Groups.get(userId)
-
 	if !ok {
 		return nil
 	}
-
 	return val.toSlice()
-}
-
-func (uc *userCache) postProcess(users []*model.User, groups []*model.UserGroupDetail) {
-	userRemoves := make([]*model.User, 0, 8)
-	groupRemoves := make([]*model.UserGroup, 0, 8)
-
-	for index := range users {
-		user := users[index]
-		if !user.Valid {
-			userRemoves = append(userRemoves, user)
-		}
-	}
-
-	for index := range groups {
-		group := groups[index]
-		if !group.Valid {
-			groupRemoves = append(groupRemoves, group.UserGroup)
-		}
-	}
-
-	uc.onRemove(userRemoves, groupRemoves)
-}
-
-// onRemove 通知 listner 出现了批量的用户、用户组移除事件
-func (uc *userCache) onRemove(users []*model.User, groups []*model.UserGroup) {
-	principals := make([]model.Principal, 0, len(users)+len(groups))
-
-	for index := range users {
-		user := users[index]
-
-		principals = append(principals, model.Principal{
-			PrincipalID:   user.ID,
-			PrincipalRole: model.PrincipalUser,
-		})
-	}
-
-	for index := range groups {
-		group := groups[index]
-
-		principals = append(principals, model.Principal{
-			PrincipalID:   group.ID,
-			PrincipalRole: model.PrincipalGroup,
-		})
-	}
-
-	uc.notifyCh <- principals
 }

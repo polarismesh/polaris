@@ -25,8 +25,8 @@ import (
 )
 
 var (
-	discoverEventOnce        sync.Once
-	compositeDiscoverChannel *CompositeDiscoverChannel
+	discoverEventOnce sync.Once
+	_discoverChannel  DiscoverChannel
 )
 
 // DiscoverChannel is used to receive discover events from the agent
@@ -38,8 +38,8 @@ type DiscoverChannel interface {
 
 // GetDiscoverEvent Get service discovery event plug -in
 func GetDiscoverEvent() DiscoverChannel {
-	if compositeDiscoverChannel != nil {
-		return compositeDiscoverChannel
+	if _discoverChannel != nil {
+		return _discoverChannel
 	}
 
 	discoverEventOnce.Do(func() {
@@ -50,38 +50,41 @@ func GetDiscoverEvent() DiscoverChannel {
 		if len(config.DiscoverEvent.Entries) != 0 {
 			entries = append(entries, config.DiscoverEvent.Entries...)
 		} else {
-			entries = append(entries, config.DiscoverEvent.ConfigEntry)
+			entries = append(entries, ConfigEntry{
+				Name:   config.DiscoverEvent.Name,
+				Option: config.DiscoverEvent.Option,
+			})
 		}
 
-		compositeDiscoverChannel = newCompositeDiscoverChannel(entries)
-		if err := compositeDiscoverChannel.Initialize(nil); err != nil {
+		_discoverChannel = newCompositeDiscoverChannel(entries)
+		if err := _discoverChannel.Initialize(nil); err != nil {
 			log.Errorf("DiscoverChannel plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})
 
-	return compositeDiscoverChannel
+	return _discoverChannel
 }
 
 // newCompositeDiscoverChannel creates Composite DiscoverChannel
-func newCompositeDiscoverChannel(options []ConfigEntry) *CompositeDiscoverChannel {
-	return &CompositeDiscoverChannel{
+func newCompositeDiscoverChannel(options []ConfigEntry) *compositeDiscoverChannel {
+	return &compositeDiscoverChannel{
 		chain:   make([]DiscoverChannel, 0, len(options)),
 		options: options,
 	}
 }
 
-// CompositeDiscoverChannel is used to receive discover events from the agent
-type CompositeDiscoverChannel struct {
+// compositeDiscoverChannel is used to receive discover events from the agent
+type compositeDiscoverChannel struct {
 	chain   []DiscoverChannel
 	options []ConfigEntry
 }
 
-func (c *CompositeDiscoverChannel) Name() string {
+func (c *compositeDiscoverChannel) Name() string {
 	return "CompositeDiscoverChannel"
 }
 
-func (c *CompositeDiscoverChannel) Initialize(config *ConfigEntry) error {
+func (c *compositeDiscoverChannel) Initialize(config *ConfigEntry) error {
 	for i := range c.options {
 		entry := c.options[i]
 		item, exist := pluginSet[entry.Name]
@@ -104,7 +107,7 @@ func (c *CompositeDiscoverChannel) Initialize(config *ConfigEntry) error {
 	return nil
 }
 
-func (c *CompositeDiscoverChannel) Destroy() error {
+func (c *compositeDiscoverChannel) Destroy() error {
 	for i := range c.chain {
 		if err := c.chain[i].Destroy(); err != nil {
 			return err
@@ -114,7 +117,7 @@ func (c *CompositeDiscoverChannel) Destroy() error {
 }
 
 // PublishEvent Release a service event
-func (c *CompositeDiscoverChannel) PublishEvent(event model.InstanceEvent) {
+func (c *compositeDiscoverChannel) PublishEvent(event model.InstanceEvent) {
 	for i := range c.chain {
 		c.chain[i].PublishEvent(event)
 	}

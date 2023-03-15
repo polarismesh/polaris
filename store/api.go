@@ -113,5 +113,5 @@ type Tx interface {
 // ToolStore Storage related functions and tool interfaces
 type ToolStore interface {
 	// GetUnixSecond Get the current time
-	GetUnixSecond() (int64, error)
+	GetUnixSecond(maxWait time.Duration) (int64, error)
 }

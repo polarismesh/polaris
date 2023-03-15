@@ -27,6 +27,7 @@ import (
 
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/common/api/l5"
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/service"
 )
@@ -162,7 +163,13 @@ func (l *L5pbserver) PostProcess(req *cl5Request) {
 		)
 	}
 	code := calL5Code(req.code)
-	_ = l.statis.AddAPICall(cmdStr, "HTTP", code, diff.Nanoseconds())
+	l.statis.ReportCallMetrics(metrics.CallMetric{
+		Type:     metrics.ServerCallMetric,
+		API:      cmdStr,
+		Protocol: "HTTP",
+		Code:     int(code),
+		Duration: diff,
+	})
 	// 告警
 }
 

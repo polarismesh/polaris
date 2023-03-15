@@ -206,6 +206,44 @@ func (svr *serverAuthAbility) collectRateLimitAuthContext(ctx context.Context, r
 	)
 }
 
+// collectRouteRuleV2AuthContext 收集路由v2规则
+func (svr *serverAuthAbility) collectRouteRuleV2AuthContext(ctx context.Context, req []*apitraffic.RouteRule,
+	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
+	return model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithOperation(resourceOp),
+		model.WithModule(model.DiscoverModule),
+		model.WithMethod(methodName),
+		model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{}),
+	)
+}
+
+// collectRouteRuleV2AuthContext 收集熔断v2规则
+func (svr *serverAuthAbility) collectCircuitBreakerRuleV2AuthContext(ctx context.Context,
+	req []*apifault.CircuitBreakerRule,
+	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
+	return model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithOperation(resourceOp),
+		model.WithModule(model.DiscoverModule),
+		model.WithMethod(methodName),
+		model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{}),
+	)
+}
+
+// collectRouteRuleV2AuthContext 收集主动探测规则
+func (svr *serverAuthAbility) collectFaultDetectAuthContext(ctx context.Context,
+	req []*apifault.FaultDetectRule,
+	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
+	return model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithOperation(resourceOp),
+		model.WithModule(model.DiscoverModule),
+		model.WithMethod(methodName),
+		model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{}),
+	)
+}
+
 // queryServiceResource  根据所给的 service 信息，收集对应的 ResourceEntry 列表
 func (svr *serverAuthAbility) queryServiceResource(
 	req []*apiservice.Service) map[apisecurity.ResourceType][]model.ResourceEntry {

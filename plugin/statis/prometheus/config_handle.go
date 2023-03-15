@@ -15,8 +15,29 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package local
+package prometheus
 
-import commonLog "github.com/polarismesh/polaris/common/log"
+import (
+	"github.com/polarismesh/polaris/common/metrics"
+)
 
-var log = commonLog.RegisterScope(PluginName, "", 0)
+func newConfigMetricHandle() *configMetricHandle {
+	return &configMetricHandle{}
+}
+
+type configMetricHandle struct {
+}
+
+func (h *configMetricHandle) handle(ms []metrics.ConfigMetrics) {
+	for i := range ms {
+		m := ms[i]
+		switch m.Type {
+		case metrics.ConfigGroupMetric:
+			metrics.GetConfigGroupTotal().With(m.Labels).Set(float64(m.Total))
+		case metrics.FileMetric:
+			metrics.GetConfigFileTotal().With(m.Labels).Set(float64(m.Total))
+		case metrics.ReleaseFileMetric:
+			metrics.GetReleaseConfigFileTotal().With(m.Labels).Set(float64(m.Total))
+		}
+	}
+}

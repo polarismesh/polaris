@@ -28,7 +28,8 @@ import (
 )
 
 type configFileGroupStore struct {
-	db *BaseDB
+	master *BaseDB
+	slave  *BaseDB
 }
 
 // CreateConfigFileGroup 创建配置文件组
@@ -37,7 +38,7 @@ func (fg *configFileGroupStore) CreateConfigFileGroup(
 	createSql := "insert into config_file_group(name, namespace,comment,create_time, create_by, " +
 		" modify_time, modify_by, owner)" +
 		"value (?,?,?,sysdate(),?,sysdate(),?,?)"
-	_, err := fg.db.Exec(createSql, fileGroup.Name, fileGroup.Namespace, fileGroup.Comment,
+	_, err := fg.master.Exec(createSql, fileGroup.Name, fileGroup.Namespace, fileGroup.Comment,
 		fileGroup.CreateBy, fileGroup.ModifyBy, fileGroup.Owner)
 	if err != nil {
 		return nil, store.Error(err)
@@ -49,7 +50,7 @@ func (fg *configFileGroupStore) CreateConfigFileGroup(
 // GetConfigFileGroup 获取配置文件组
 func (fg *configFileGroupStore) GetConfigFileGroup(namespace, name string) (*model.ConfigFileGroup, error) {
 	querySql := fg.genConfigFileGroupSelectSql() + " where namespace=? and name=?"
-	rows, err := fg.db.Query(querySql, namespace, name)
+	rows, err := fg.master.Query(querySql, namespace, name)
 	if err != nil {
 		return nil, store.Error(err)
 	}
@@ -71,13 +72,13 @@ func (fg *configFileGroupStore) QueryConfigFileGroups(namespace, name string,
 	if namespace == "" {
 		countSql := "select count(*) from config_file_group where name like ?"
 		var count uint32
-		err := fg.db.QueryRow(countSql, name).Scan(&count)
+		err := fg.master.QueryRow(countSql, name).Scan(&count)
 		if err != nil {
 			return count, nil, err
 		}
 
 		s := fg.genConfigFileGroupSelectSql() + " where name like ? order by id desc limit ?,?"
-		rows, err := fg.db.Query(s, name, offset, limit)
+		rows, err := fg.master.Query(s, name, offset, limit)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -92,13 +93,13 @@ func (fg *configFileGroupStore) QueryConfigFileGroups(namespace, name string,
 	// 特定 namespace
 	countSql := "select count(*) from config_file_group where namespace=? and name like ?"
 	var count uint32
-	err := fg.db.QueryRow(countSql, namespace, name).Scan(&count)
+	err := fg.master.QueryRow(countSql, namespace, name).Scan(&count)
 	if err != nil {
 		return count, nil, err
 	}
 
 	s := fg.genConfigFileGroupSelectSql() + " where namespace=? and name like ? order by id desc limit ?,? "
-	rows, err := fg.db.Query(s, namespace, name, offset, limit)
+	rows, err := fg.master.Query(s, namespace, name, offset, limit)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -115,7 +116,7 @@ func (fg *configFileGroupStore) DeleteConfigFileGroup(namespace, name string) er
 	deleteSql := "delete from config_file_group where namespace = ? and name=?"
 
 	log.Infof("[Config][Storage] delete config file group(%s, %s)", namespace, name)
-	if _, err := fg.db.Exec(deleteSql, namespace, name); err != nil {
+	if _, err := fg.master.Exec(deleteSql, namespace, name); err != nil {
 		return err
 	}
 
@@ -127,7 +128,7 @@ func (fg *configFileGroupStore) UpdateConfigFileGroup(
 	fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
 	updateSql := "update config_file_group set comment = ?, modify_time = sysdate(), modify_by = ? " +
 		" where namespace = ? and name = ?"
-	_, err := fg.db.Exec(updateSql, fileGroup.Comment, fileGroup.ModifyBy, fileGroup.Namespace, fileGroup.Name)
+	_, err := fg.master.Exec(updateSql, fileGroup.Comment, fileGroup.ModifyBy, fileGroup.Namespace, fileGroup.Name)
 	if err != nil {
 		return nil, store.Error(err)
 	}
@@ -154,7 +155,7 @@ func (fg *configFileGroupStore) FindConfigFileGroups(namespace string,
 	}
 	querySql = fmt.Sprintf(querySql, strings.Join(inParamPlaceholders, ","))
 
-	rows, err := fg.db.Query(querySql, params...)
+	rows, err := fg.master.Query(querySql, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +170,7 @@ func (fg *configFileGroupStore) GetConfigFileGroupById(id uint64) (*model.Config
 	querySql := fg.genConfigFileGroupSelectSql()
 	querySql += fmt.Sprintf(" where id = %d", id)
 
-	rows, err := fg.db.Query(querySql)
+	rows, err := fg.master.Query(querySql)
 	if err != nil {
 		return nil, err
 	}
@@ -183,6 +184,33 @@ func (fg *configFileGroupStore) GetConfigFileGroupById(id uint64) (*model.Config
 	}
 
 	return cfgs[0], nil
+}
+
+func (fg *configFileGroupStore) CountGroupEachNamespace() (map[string]int64, error) {
+	metricsSql := "SELECT namespace, count(name) FROM config_file_group WHERE flag = 0 GROUP by namesapce"
+	rows, err := fg.slave.Query(metricsSql)
+	if err != nil {
+		return nil, store.Error(err)
+	}
+
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	ret := map[string]int64{}
+	for rows.Next() {
+		var (
+			namespce string
+			cnt      int64
+		)
+
+		if err := rows.Scan(&namespce, cnt); err != nil {
+			return nil, err
+		}
+		ret[namespce] = cnt
+	}
+
+	return ret, nil
 }
 
 func (fg *configFileGroupStore) genConfigFileGroupSelectSql() string {
