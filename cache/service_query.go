@@ -23,6 +23,7 @@ import (
 	"sync"
 
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -38,6 +39,8 @@ type ServiceArgs struct {
 	FuzzyName bool
 	// FuzzyBusiness 是否进行业务的模糊匹配
 	FuzzyBusiness bool
+	// FuzzyNamespace 是否进行命名空间的模糊匹配
+	FuzzyNamespace bool
 	// Namespace 条件中的命名空间
 	Namespace string
 	// Name 条件中的服务名
@@ -68,7 +71,7 @@ func (sc *serviceCache) GetServicesByFilter(serviceFilters *ServiceArgs,
 	var services []*model.Service
 
 	// 如果具有名字条件，并且不是模糊查询，直接获取对应命名空间下面的服务，并检查是否匹配所有条件
-	if serviceFilters.Name != "" && !serviceFilters.FuzzyName {
+	if serviceFilters.Name != "" && !serviceFilters.FuzzyName && !serviceFilters.FuzzyNamespace {
 		amount, services, err = sc.getServicesFromCacheByName(serviceFilters, instanceFilters, offset, limit)
 	} else {
 		amount, services, err = sc.getServicesByIteratingCache(serviceFilters, instanceFilters, offset, limit)
@@ -90,7 +93,8 @@ func (sc *serviceCache) GetServicesByFilter(serviceFilters *ServiceArgs,
 }
 
 func hasInstanceFilter(instanceFilters *store.InstanceArgs) bool {
-	if instanceFilters == nil || (len(instanceFilters.Hosts) == 0 && len(instanceFilters.Ports) == 0) {
+	if instanceFilters == nil || (len(instanceFilters.Hosts) == 0 && len(instanceFilters.Ports) == 0 &&
+		len(instanceFilters.Meta) == 0) {
 		return false
 	}
 	return true
@@ -116,6 +120,27 @@ func (sc *serviceCache) matchInstances(instances []*model.Instance, instanceFilt
 		matchedHost = true
 	}
 
+	matchedMeta := false
+	if len(instanceFilters.Meta) > 0 {
+		for _, instance := range instances {
+			instanceMetaMap := instance.Metadata()
+			instanceMatched := true
+			for key, metaPattern := range instanceFilters.Meta {
+				if instanceMetaValue, ok := instanceMetaMap[key]; !ok ||
+					!utils.IsFuzzyMatch(instanceMetaValue, metaPattern) {
+					instanceMatched = false
+					break
+				}
+			}
+			if instanceMatched {
+				matchedMeta = true
+				break
+			}
+		}
+	} else {
+		matchedMeta = true
+	}
+
 	var matchedPort bool
 	if len(instanceFilters.Ports) > 0 {
 		var ports = make(map[uint32]bool, len(instanceFilters.Ports))
@@ -131,7 +156,7 @@ func (sc *serviceCache) matchInstances(instances []*model.Instance, instanceFilt
 	} else {
 		matchedPort = true
 	}
-	return matchedHost && matchedPort
+	return matchedHost && matchedPort && matchedMeta
 }
 
 // GetAllNamespaces 返回所有的命名空间
@@ -150,14 +175,14 @@ func (sc *serviceCache) getServicesFromCacheByName(svcArgs *ServiceArgs, instArg
 	var res []*model.Service
 	if svcArgs.Namespace != "" {
 		svc := sc.GetServiceByName(svcArgs.Name, svcArgs.Namespace)
-		if svc != nil && !svc.IsAlias() && matchService(svc, svcArgs.Filter, svcArgs.Metadata, false) &&
+		if svc != nil && !svc.IsAlias() && matchService(svc, svcArgs.Filter, svcArgs.Metadata, false, false) &&
 			sc.matchInstance(svc, instArgs) {
 			res = append(res, svc)
 		}
 	} else {
 		for _, namespace := range sc.GetAllNamespaces() {
 			svc := sc.GetServiceByName(svcArgs.Name, namespace)
-			if svc != nil && !svc.IsAlias() && matchService(svc, svcArgs.Filter, svcArgs.Metadata, false) &&
+			if svc != nil && !svc.IsAlias() && matchService(svc, svcArgs.Filter, svcArgs.Metadata, false, false) &&
 				sc.matchInstance(svc, instArgs) {
 				res = append(res, svc)
 			}
@@ -196,26 +221,35 @@ func sortBeforeTrim(services []*model.Service, offset, limit uint32) (uint32, []
 }
 
 // matchService 根据查询条件比较一个服务是否符合条件
-func matchService(svc *model.Service, svcFilter map[string]string, metaFilter map[string]string, matchName bool) bool {
-	if !matchServiceFilter(svc, svcFilter, matchName) {
+func matchService(svc *model.Service, svcFilter map[string]string, metaFilter map[string]string,
+	matchName, matchNamespace bool) bool {
+	if !matchServiceFilter(svc, svcFilter, matchName, matchNamespace) {
 		return false
 	}
 	return matchMetadata(svc, metaFilter)
 }
 
 // matchServiceFilter 查询一个服务是否满足服务相关字段的条件
-func matchServiceFilter(svc *model.Service, svcFilter map[string]string, matchName bool) bool {
+func matchServiceFilter(svc *model.Service, svcFilter map[string]string, isFuzzyName, isFuzzyNamespace bool) bool {
 	var value string
 	var exist bool
-	if matchName {
+	if isFuzzyName {
 		// 走到这一步，一定是模糊匹配
 		if value, exist = svcFilter["name"]; exist {
-			searchVal := value[0 : len(value)-1]
-			if !strings.Contains(strings.ToLower(svc.Name), strings.ToLower(searchVal)) {
+			if !utils.IsFuzzyMatch(strings.ToLower(svc.Name), strings.ToLower(value)) {
 				return false
 			}
 		}
 	}
+	if isFuzzyNamespace {
+		// 走到这一步，一定是模糊匹配
+		if value, exist = svcFilter["namespace"]; exist {
+			if !utils.IsFuzzyMatch(strings.ToLower(svc.Namespace), strings.ToLower(value)) {
+				return false
+			}
+		}
+	}
+
 	if value, exist = svcFilter["business"]; exist &&
 		!strings.Contains(strings.ToLower(svc.Business), strings.ToLower(value)) {
 		return false
@@ -272,7 +306,7 @@ func (sc *serviceCache) getServicesByIteratingCache(
 			return
 		}
 		if !svcArgs.EmptyCondition {
-			if !matchService(svc, svcArgs.Filter, svcArgs.Metadata, true) {
+			if !matchService(svc, svcArgs.Filter, svcArgs.Metadata, svcArgs.FuzzyName, svcArgs.FuzzyNamespace) {
 				return
 			}
 		}
@@ -281,7 +315,7 @@ func (sc *serviceCache) getServicesByIteratingCache(
 		}
 		res = append(res, svc)
 	}
-	if len(svcArgs.Namespace) > 0 {
+	if len(svcArgs.Namespace) > 0 && !svcArgs.FuzzyNamespace {
 		// 从命名空间来找
 		spaces, ok := sc.names.Load(svcArgs.Namespace)
 		if !ok {

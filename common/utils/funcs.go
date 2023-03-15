@@ -19,6 +19,7 @@ package utils
 
 import (
 	"encoding/hex"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -54,6 +55,28 @@ func IsWildName(name string) bool {
 	return length >= 1 && name[length-1:length] == "*"
 }
 
+// IsFuzzyName 判断名字是否为通配名字，前缀或者后缀
+func IsFuzzyName(name string) bool {
+	return IsWildName(name) || isHeadFuzzyName(name)
+}
+
+// ParseFuzzyNameForSql 如果 name 是通配字符串，将通配字符*替换为sql中的%
+func ParseFuzzyNameForSql(name string) string {
+	if IsWildName(name) {
+		name = name[:len(name)-1] + "%"
+	}
+	if isHeadFuzzyName(name) {
+		name = "%" + name[1:]
+	}
+	return name
+}
+
+// isHeadFuzzyName 判断名字是否为通配名字，只支持后缀索引(名字第一个字符为*)
+func isHeadFuzzyName(name string) bool {
+	length := len(name)
+	return length >= 1 && name[0:1] == "*"
+}
+
 // ParseWildName 判断是否为格式化查询条件并且返回真正的查询信息
 func ParseWildName(name string) (string, bool) {
 	length := len(name)
@@ -64,6 +87,28 @@ func ParseWildName(name string) (string, bool) {
 	}
 
 	return name, false
+}
+
+// IsFuzzyMatch 判断 name 是否匹配 pattern，pattern 可以是前缀或者后缀
+func IsFuzzyMatch(name, pattern string) bool {
+	if IsWildName(pattern) {
+		pattern = strings.TrimRight(pattern, "*")
+		if strings.HasPrefix(name, pattern) {
+			return true
+		}
+		if isHeadFuzzyName(pattern) {
+			pattern = strings.TrimLeft(pattern, "*")
+			return strings.Contains(name, pattern)
+		}
+		return false
+	} else if isHeadFuzzyName(pattern) {
+		pattern = strings.TrimLeft(pattern, "*")
+		if strings.HasSuffix(name, pattern) {
+			return true
+		}
+		return false
+	}
+	return pattern == name
 }
 
 // NewUUID 返回一个随机的UUID

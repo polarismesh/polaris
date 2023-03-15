@@ -65,6 +65,11 @@ func AddNamespace(b *apiservice.BatchQueryResponse, namespace *apimodel.Namespac
 	b.Namespaces = append(b.Namespaces, namespace)
 }
 
+// AddNamespaceSummary 添加汇总信息
+func AddNamespaceSummary(b *apiservice.BatchQueryResponse, summary *apimodel.Summary) {
+	b.Summary = summary
+}
+
 // NewResponse 创建回复
 func NewResponse(code apimodel.Code) *apiservice.Response {
 	return &apiservice.Response{

@@ -1188,13 +1188,6 @@ func preGetInstances(query map[string]string) (map[string]string, map[string]str
 	if len(query) == 0 {
 		return nil, nil, api.NewBatchQueryResponse(apimodel.Code_EmptyQueryParameter)
 	}
-	_, serviceIsAvail := query["service"]
-	_, namespaceIsAvail := query["namespace"]
-	_, hostIsAvail := query["host"]
-	// 要么（service，namespace）存在，要么host存在，不然视为参数不完整
-	if !((serviceIsAvail && namespaceIsAvail) || hostIsAvail) {
-		return nil, nil, api.NewBatchQueryResponse(apimodel.Code_InvalidQueryInsParameter)
-	}
 
 	var metaFilter map[string]string
 	metaKey, metaKeyAvail := query["keys"]

@@ -82,7 +82,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-require github.com/polarismesh/specification v1.2.0
+require github.com/polarismesh/specification v1.2.1-alpha
 
 require github.com/DATA-DOG/go-sqlmock v1.5.0
 
