@@ -690,6 +690,106 @@ func TestListInstances1(t *testing.T) {
 		checkAmountAndSize(t, resp, total, 100)
 	})
 
+	t.Run("list实例，使用namespace，可以进行模糊匹配过滤", func(t *testing.T) {
+		total := 10
+		for i := 0; i < total; i++ {
+			_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, i+1)
+			defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
+		}
+
+		query := map[string]string{
+			"offset":    "0",
+			"limit":     "100",
+			"namespace": "*fau*",
+		}
+		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if len(resp.Instances) != total {
+			t.Fatalf("error: %d", len(resp.Instances))
+		}
+	})
+
+	t.Run("list实例，使用namespace，可以进行前缀匹配过滤", func(t *testing.T) {
+		total := 10
+		for i := 0; i < total; i++ {
+			_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, i+1)
+			defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
+		}
+
+		query := map[string]string{
+			"offset":    "0",
+			"limit":     "100",
+			"namespace": "defau*",
+		}
+		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if len(resp.Instances) != total {
+			t.Fatalf("error: %d", len(resp.Instances))
+		}
+
+		query = map[string]string{
+			"offset":    "0",
+			"limit":     "100",
+			"namespace": "defauxxxx*",
+		}
+		resp = discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if len(resp.Instances) != 0 {
+			t.Fatalf("error: %d", len(resp.Instances))
+		}
+	})
+
+	t.Run("list实例，使用namespace，service可选", func(t *testing.T) {
+		total := 10
+		for i := 0; i < total; i++ {
+			_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, i+1)
+			defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
+		}
+
+		query := map[string]string{
+			"offset":  "0",
+			"limit":   "100",
+			"service": serviceResp.GetName().GetValue(),
+		}
+		resp := discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if len(resp.Instances) != total {
+			t.Fatalf("error: %d", len(resp.Instances))
+		}
+
+		query = map[string]string{
+			"offset":    "0",
+			"limit":     "100",
+			"namespace": serviceResp.GetNamespace().GetValue(),
+		}
+		resp = discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if len(resp.Instances) != total {
+			t.Fatalf("error: %d", len(resp.Instances))
+		}
+
+		query = map[string]string{
+			"limit": "100",
+		}
+		resp = discoverSuit.server.GetInstances(discoverSuit.defaultCtx, query)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if len(resp.Instances) != total {
+			t.Fatalf("error: %d", len(resp.Instances))
+		}
+	})
+
 	t.Run("list实例，先删除实例，再查询会过滤删除的", func(t *testing.T) {
 		total := 50
 		for i := 0; i < total; i++ {

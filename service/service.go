@@ -20,6 +20,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
@@ -48,22 +49,25 @@ var (
 	serviceFilter           = 1 // 过滤服务的
 	instanceFilter          = 2 // 过滤实例的
 	serviceMetaFilter       = 3 // 过滤service Metadata的
+	instanceMetaFilter      = 4 // 过滤instance Metadata的
 	ServiceFilterAttributes = map[string]int{
-		"name":        serviceFilter,
-		"namespace":   serviceFilter,
-		"business":    serviceFilter,
-		"department":  serviceFilter,
-		"cmdb_mod1":   serviceFilter,
-		"cmdb_mod2":   serviceFilter,
-		"cmdb_mod3":   serviceFilter,
-		"owner":       serviceFilter,
-		"offset":      serviceFilter,
-		"limit":       serviceFilter,
-		"platform_id": serviceFilter,
-		"host":        instanceFilter,
-		"port":        instanceFilter,
-		"keys":        serviceMetaFilter,
-		"values":      serviceMetaFilter,
+		"name":            serviceFilter,
+		"namespace":       serviceFilter,
+		"business":        serviceFilter,
+		"department":      serviceFilter,
+		"cmdb_mod1":       serviceFilter,
+		"cmdb_mod2":       serviceFilter,
+		"cmdb_mod3":       serviceFilter,
+		"owner":           serviceFilter,
+		"offset":          serviceFilter,
+		"limit":           serviceFilter,
+		"platform_id":     serviceFilter,
+		"host":            instanceFilter,
+		"port":            instanceFilter,
+		"keys":            serviceMetaFilter,
+		"values":          serviceMetaFilter,
+		"instance_keys":   instanceMetaFilter,
+		"instance_values": instanceMetaFilter,
 	}
 )
 
@@ -337,6 +341,7 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *apis
 	serviceFilters := make(map[string]string)
 	instanceFilters := make(map[string]string)
 	var metaKeys, metaValues string
+	var inputInstMetaKeys, inputInstMetaValues string
 	for key, value := range query {
 		typ, ok := ServiceFilterAttributes[key]
 		if !ok {
@@ -358,12 +363,33 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *apis
 			} else {
 				metaValues = value
 			}
+		case typ == instanceMetaFilter:
+			if key == "instance_keys" {
+				inputInstMetaKeys = value
+			} else {
+				inputInstMetaValues = value
+			}
 		default:
 			instanceFilters[key] = value
 		}
 	}
 
-	instanceArgs, err := ParseInstanceArgs(instanceFilters)
+	instanceMetas := make(map[string]string)
+	if inputInstMetaKeys != "" {
+		instMetaKeys := strings.Split(inputInstMetaKeys, ",")
+		instMetaValues := strings.Split(inputInstMetaValues, ",")
+		if len(instMetaKeys) != len(instMetaValues) {
+			log.Errorf("[Server][Service][Query] length of instance meta %s and %s should be equal",
+				inputInstMetaKeys, inputInstMetaValues)
+			return api.NewBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter,
+				" length of instance_keys and instance_values are not equal")
+		}
+		for idx, key := range instMetaKeys {
+			instanceMetas[key] = instMetaValues[idx]
+		}
+	}
+
+	instanceArgs, err := ParseInstanceArgs(instanceFilters, instanceMetas)
 	if err != nil {
 		log.Errorf("[Server][Service][Query] instance args error: %s", err.Error())
 		return api.NewBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, err.Error())
@@ -413,6 +439,10 @@ func parseServiceArgs(filter map[string]string, metaFilter map[string]string, ct
 		log.Infof("[Server][Service][Query] fuzzy search with name %s", res.Name)
 		res.FuzzyName = true
 	}
+	if utils.IsFuzzyName(res.Namespace) {
+		log.Infof("[Server][Service][Query] fuzzy search with namespace %s", res.Namespace)
+		res.FuzzyNamespace = true
+	}
 	if business, ok := filter["business"]; ok {
 		log.Infof("[Server][Service][Query] fuzzy search with business %s, operator %s",
 			business, utils.ParseOperator(ctx))
@@ -425,7 +455,7 @@ func parseServiceArgs(filter map[string]string, metaFilter map[string]string, ct
 			res.EmptyCondition = true
 		}
 		// 只有一个命名空间条件，也是在这个命名空间下面的空条件匹配
-		if len(filter) == 1 && res.Namespace != "" {
+		if len(filter) == 1 && res.Namespace != "" && !res.FuzzyNamespace {
 			res.EmptyCondition = true
 		}
 	}
