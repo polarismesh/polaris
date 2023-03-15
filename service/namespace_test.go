@@ -226,7 +226,7 @@ func TestGetNamespaces(t *testing.T) {
 			"limit":  {"100"},
 			"name":   {"namespace-20*"},
 		}
-		resp := discoverSuit.namespaceSvr.GetNamespaces(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.NamespaceServer().GetNamespaces(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -247,7 +247,7 @@ func TestGetNamespaces(t *testing.T) {
 			"limit":  {"100"},
 			"name":   {"*espace-21*"},
 		}
-		resp := discoverSuit.namespaceSvr.GetNamespaces(discoverSuit.defaultCtx, query)
+		resp := discoverSuit.NamespaceServer().GetNamespaces(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}

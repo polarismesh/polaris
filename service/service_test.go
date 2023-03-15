@@ -801,7 +801,7 @@ func TestGetServices5(t *testing.T) {
 // 模糊匹配测试
 func TestGetService6(t *testing.T) {
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -815,7 +815,7 @@ func TestGetService6(t *testing.T) {
 		filters := map[string]string{"offset": "0",
 			"limit":     "100",
 			"namespace": "*ef*"}
-		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.DiscoverServer().GetServices(discoverSuit.DefaultCtx, filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -826,7 +826,7 @@ func TestGetService6(t *testing.T) {
 		filters = map[string]string{"offset": "0",
 			"limit":     "100",
 			"namespace": "def*"}
-		resp = discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters)
+		resp = discoverSuit.DiscoverServer().GetServices(discoverSuit.DefaultCtx, filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -845,7 +845,7 @@ func TestGetService6(t *testing.T) {
 		filters := map[string]string{"offset": "0",
 			"limit": "100",
 			"name":  "*est-service-21*"}
-		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.DiscoverServer().GetServices(discoverSuit.DefaultCtx, filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -868,7 +868,7 @@ func TestGetService6(t *testing.T) {
 			"instance_keys":   "2my-meta,my-meta-a1",
 			"instance_values": "my-meta-100,111*",
 		}
-		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.DiscoverServer().GetServices(discoverSuit.DefaultCtx, filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -884,7 +884,7 @@ func TestGetService6(t *testing.T) {
 			"instance_keys":   "2my-meta,my-meta-a1,my-1meta-o3",
 			"instance_values": "my-meta-100,1111,not-exists",
 		}
-		resp = discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters)
+		resp = discoverSuit.DiscoverServer().GetServices(discoverSuit.DefaultCtx, filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -899,7 +899,7 @@ func TestGetService6(t *testing.T) {
 			"instance_keys":   "2my-meta,my-meta-a1",
 			"instance_values": "my-meta-100,1111,oneMore",
 		}
-		resp := discoverSuit.server.GetServices(discoverSuit.defaultCtx, filters)
+		resp := discoverSuit.DiscoverServer().GetServices(discoverSuit.DefaultCtx, filters)
 		if resp.Code.Value != api.InvalidParameter {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
