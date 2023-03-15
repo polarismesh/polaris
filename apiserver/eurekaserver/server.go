@@ -142,6 +142,8 @@ type EurekaServer struct {
 	enableSelfPreservation bool
 	replicateWorker        *ReplicateWorker
 	eventHandlerHandler    *EurekaInstanceEventHandler
+
+	replicatePeers []string
 }
 
 // GetPort 获取端口
@@ -192,14 +194,9 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 				replicatePeers = append(replicatePeers, replicatePeerObj.(string))
 			}
 		}
-		if len(replicatePeers) > 0 {
-			h.replicateWorker = NewReplicateWorker(ctx, replicatePeers)
-			h.eventHandlerHandler = &EurekaInstanceEventHandler{
-				BaseInstanceEventHandler: service.NewBaseInstanceEventHandler(h.namingServer), svr: h}
-			if err := eventhub.Subscribe(
-				eventhub.InstanceEventTopic, "eureka-replication", h.eventHandlerHandler); nil != err {
-				return err
-			}
+		h.replicatePeers = replicatePeers
+		if len(h.replicatePeers) > 0 {
+			h.replicateWorker = NewReplicateWorker(ctx, h.replicatePeers)
 		}
 	}
 
@@ -207,7 +204,7 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 	if value, ok := option[optionRefreshInterval]; ok {
 		refreshInterval = value.(int)
 	}
-	if refreshInterval == 0 {
+	if refreshInterval <= 0 {
 		refreshInterval = DefaultRefreshInterval
 	}
 
@@ -215,7 +212,7 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 	if value, ok := option[optionDeltaExpireInterval]; ok {
 		deltaExpireInterval = value.(int)
 	}
-	if deltaExpireInterval == 0 {
+	if deltaExpireInterval <= 0 {
 		deltaExpireInterval = DefaultDetailExpireInterval
 	}
 
@@ -282,6 +279,15 @@ func (h *EurekaServer) Run(errCh chan error) {
 		log.Errorf("%v", err)
 		errCh <- err
 		return
+	}
+	if len(h.replicatePeers) > 0 {
+		h.eventHandlerHandler = &EurekaInstanceEventHandler{
+			BaseInstanceEventHandler: service.NewBaseInstanceEventHandler(h.namingServer), svr: h}
+		if err = eventhub.Subscribe(
+			eventhub.InstanceEventTopic, "eureka-replication", h.eventHandlerHandler); nil != err {
+			errCh <- err
+			return
+		}
 	}
 	h.worker = NewApplicationsWorker(h.refreshInterval, h.deltaExpireInterval, h.enableSelfPreservation,
 		h.namingServer, h.healthCheckServer, h.namespace)
