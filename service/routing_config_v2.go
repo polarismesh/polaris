@@ -76,7 +76,7 @@ func (s *Server) createRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 		return resp
 	}
 
-	conf, err := api2RoutingConfigV2(req)
+	conf, err := Api2RoutingConfigV2(req)
 	if err != nil {
 		log.Error("[Routing][V2] parse routing config v2 from request for create",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
@@ -182,7 +182,7 @@ func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 		return apiv1.NewResponse(apimodel.Code_NotFoundRouting)
 	}
 
-	reqModel, err := api2RoutingConfigV2(req)
+	reqModel, err := Api2RoutingConfigV2(req)
 	reqModel.Revision = utils.NewV2Revision()
 	if err != nil {
 		log.Error("[Routing][V2] parse routing config v2 from request for update",
@@ -493,8 +493,8 @@ func checkRoutingPolicyV2(req *apitraffic.RouteRule) *apiservice.Response {
 	return nil
 }
 
-// api2RoutingConfig Convert the API parameter to internal data structure
-func api2RoutingConfigV2(req *apitraffic.RouteRule) (*model.RouterConfig, error) {
+// Api2RoutingConfigV2 Convert the API parameter to internal data structure
+func Api2RoutingConfigV2(req *apitraffic.RouteRule) (*model.RouterConfig, error) {
 	out := &model.RouterConfig{
 		Valid: true,
 	}

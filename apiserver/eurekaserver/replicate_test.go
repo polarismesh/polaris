@@ -24,11 +24,11 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/service"
+	testsuit "github.com/polarismesh/polaris/test/suit"
 )
 
 func TestDispatchHeartbeat(t *testing.T) {
-	discoverSuit := &service.DiscoverTestSuit{}
+	discoverSuit := &testsuit.DiscoverTestSuit{}
 	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}

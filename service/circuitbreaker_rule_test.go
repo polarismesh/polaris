@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package service_test
 
 import (
 	"fmt"
@@ -29,11 +29,13 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/polarismesh/polaris/service"
 )
 
 func buildUnnamedCircuitBreakerRule() *apifault.CircuitBreakerRule {
 	return &apifault.CircuitBreakerRule{
-		Namespace:   DefaultNamespace,
+		Namespace:   service.DefaultNamespace,
 		Enable:      true,
 		Description: "comment me",
 		Level:       apifault.Level_GROUP,
@@ -54,7 +56,7 @@ func buildUnnamedCircuitBreakerRule() *apifault.CircuitBreakerRule {
 func buildCircuitBreakerRule(index int) *apifault.CircuitBreakerRule {
 	return &apifault.CircuitBreakerRule{
 		Name:        fmt.Sprintf("test-circuitbreaker-rule-%d", index),
-		Namespace:   DefaultNamespace,
+		Namespace:   service.DefaultNamespace,
 		Enable:      true,
 		Description: "comment me",
 		Level:       apifault.Level_GROUP,
@@ -120,12 +122,12 @@ func createCircuitBreakerRules(discoverSuit *DiscoverTestSuit, count int) ([]*ap
 		cbRule := buildCircuitBreakerRule(i)
 		cbRules = append(cbRules, cbRule)
 	}
-	resp := discoverSuit.server.CreateCircuitBreakerRules(discoverSuit.defaultCtx, cbRules)
+	resp := discoverSuit.DiscoverServer().CreateCircuitBreakerRules(discoverSuit.DefaultCtx, cbRules)
 	return cbRules, resp
 }
 
 func queryCircuitBreakerRules(discoverSuit *DiscoverTestSuit, query map[string]string) *apiservice.BatchQueryResponse {
-	return discoverSuit.server.GetCircuitBreakerRules(discoverSuit.defaultCtx, query)
+	return discoverSuit.DiscoverServer().GetCircuitBreakerRules(discoverSuit.DefaultCtx, query)
 }
 
 func cleanCircuitBreakerRules(discoverSuit *DiscoverTestSuit, response *apiservice.BatchWriteResponse) {
@@ -133,7 +135,7 @@ func cleanCircuitBreakerRules(discoverSuit *DiscoverTestSuit, response *apiservi
 	if len(cbRules) == 0 {
 		return
 	}
-	discoverSuit.server.DeleteCircuitBreakerRules(discoverSuit.defaultCtx, cbRules)
+	discoverSuit.DiscoverServer().DeleteCircuitBreakerRules(discoverSuit.DefaultCtx, cbRules)
 }
 
 func checkCircuitBreakerRuleResponse(t *testing.T, requests []*apifault.CircuitBreakerRule, response *apiservice.BatchWriteResponse) {
@@ -164,7 +166,7 @@ func parseResponseToCircuitBreakerRules(response *apiservice.BatchWriteResponse)
 // TestCreateCircuitBreakerRule test create circuitbreaker rule
 func TestCreateCircuitBreakerRule(t *testing.T) {
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -183,7 +185,7 @@ func TestCreateCircuitBreakerRule(t *testing.T) {
 		defer cleanCircuitBreakerRules(discoverSuit, firstResp)
 		checkCircuitBreakerRuleResponse(t, cbRules, firstResp)
 
-		if resp := discoverSuit.server.CreateCircuitBreakerRules(discoverSuit.defaultCtx, cbRules); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().CreateCircuitBreakerRules(discoverSuit.DefaultCtx, cbRules); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error, duplicate rule can not be passed")
@@ -200,7 +202,7 @@ func TestCreateCircuitBreakerRule(t *testing.T) {
 
 	t.Run("创建熔断规则时，没有传递规则名，返回错误", func(t *testing.T) {
 		cbRule := buildUnnamedCircuitBreakerRule()
-		if resp := discoverSuit.server.CreateCircuitBreakerRules(discoverSuit.defaultCtx, []*apifault.CircuitBreakerRule{cbRule}); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().CreateCircuitBreakerRules(discoverSuit.DefaultCtx, []*apifault.CircuitBreakerRule{cbRule}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
 		} else {
 			t.Fatal("error, unnamed rule can not be passed")
@@ -215,7 +217,7 @@ func TestCreateCircuitBreakerRule(t *testing.T) {
 				defer wg.Done()
 				cbRule := buildCircuitBreakerRule(index)
 				cbRules := []*apifault.CircuitBreakerRule{cbRule}
-				resp := discoverSuit.server.CreateCircuitBreakerRules(discoverSuit.defaultCtx, cbRules)
+				resp := discoverSuit.DiscoverServer().CreateCircuitBreakerRules(discoverSuit.DefaultCtx, cbRules)
 				cleanCircuitBreakerRules(discoverSuit, resp)
 			}(i)
 		}
@@ -226,18 +228,18 @@ func TestCreateCircuitBreakerRule(t *testing.T) {
 		cbRules, firstResp := createCircuitBreakerRules(discoverSuit, 5)
 		defer cleanCircuitBreakerRules(discoverSuit, firstResp)
 		checkCircuitBreakerRuleResponse(t, cbRules, firstResp)
-		batchResp := discoverSuit.server.GetCircuitBreakerRules(
-			discoverSuit.defaultCtx, map[string]string{"name": "test-circuitbreaker-rule"})
+		batchResp := discoverSuit.DiscoverServer().GetCircuitBreakerRules(
+			discoverSuit.DefaultCtx, map[string]string{"name": "test-circuitbreaker-rule"})
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), batchResp.GetCode().GetValue())
 		anyValues := batchResp.GetData()
 		assert.Equal(t, len(cbRules), len(anyValues))
-		batchResp = discoverSuit.server.GetCircuitBreakerRules(
-			discoverSuit.defaultCtx, map[string]string{"name": "test-circuitbreaker-rule", "srcNamespace": "test1"})
+		batchResp = discoverSuit.DiscoverServer().GetCircuitBreakerRules(
+			discoverSuit.DefaultCtx, map[string]string{"name": "test-circuitbreaker-rule", "srcNamespace": "test1"})
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), batchResp.GetCode().GetValue())
 		anyValues = batchResp.GetData()
 		assert.Equal(t, 0, len(anyValues))
-		batchResp = discoverSuit.server.GetCircuitBreakerRules(
-			discoverSuit.defaultCtx, map[string]string{"name": "test-circuitbreaker-rule", "dstService": "test1"})
+		batchResp = discoverSuit.DiscoverServer().GetCircuitBreakerRules(
+			discoverSuit.DefaultCtx, map[string]string{"name": "test-circuitbreaker-rule", "dstService": "test1"})
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), batchResp.GetCode().GetValue())
 		anyValues = batchResp.GetData()
 		assert.Equal(t, 0, len(anyValues))
