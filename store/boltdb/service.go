@@ -616,9 +616,10 @@ func (ss *serviceStore) getServiceByNameValid(name string) ([]*model.Service, er
 }
 
 // getServiceByNs 通过命名空间拉取服务，支持命名空间名称模糊匹配
-func (ss *serviceStore) getServiceByNsIgnoreValid(name, namespace string, isNamespaceFuzzy bool) ([]*model.Service, error) {
-	var out []*model.Service
+func (ss *serviceStore) getServiceByNsIgnoreValid(name, namespace string, isNamespaceFuzzy bool) (
+	[]*model.Service, error) {
 
+	var out []*model.Service
 	fields := []string{svcFieldName, SvcFieldNamespace, SvcFieldValid}
 
 	svcSlice, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
