@@ -21,6 +21,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/metrics"
@@ -30,9 +31,14 @@ import (
 func (fc *fileCache) reportMetricsInfo(ctx context.Context) {
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
+
+	var preGroup map[string]map[string]struct{}
+
 	for {
 		select {
 		case <-ticker.C:
+			tmpGroup := map[string]map[string]struct{}{}
+
 			configGroups, err := fc.storage.CountGroupEachNamespace()
 			if err != nil {
 				log.Error("[Cache][ConfigFile] report metrics for config_group each namespace", zap.Error(err))
@@ -49,6 +55,14 @@ func (fc *fileCache) reportMetricsInfo(ctx context.Context) {
 			if err != nil {
 				log.Error("[Cache][ConfigFile] report metrics for release config_file each group", zap.Error(err))
 				continue
+			}
+			for ns, groups := range configFiles {
+				if _, ok := tmpGroup[ns]; !ok {
+					tmpGroup[ns] = map[string]struct{}{}
+				}
+				for group := range groups {
+					tmpGroup[ns][group] = struct{}{}
+				}
 			}
 
 			metricValues := make([]metrics.ConfigMetrics, 0, 64)
@@ -89,10 +103,60 @@ func (fc *fileCache) reportMetricsInfo(ctx context.Context) {
 					})
 				}
 			}
-
+			cleanExpireConfigFileMetricLabel(preGroup, tmpGroup)
+			preGroup = tmpGroup
 			plugin.GetStatis().ReportConfigMetrics(metricValues...)
 		case <-ctx.Done():
 			return
 		}
 	}
+}
+
+func cleanExpireConfigFileMetricLabel(pre, curr map[string]map[string]struct{}) {
+	if len(pre) == 0 {
+		return
+	}
+
+	var (
+		removeNs = map[string]struct{}{}
+		remove   = map[string]map[string]struct{}{}
+	)
+
+	for ns, groups := range pre {
+		if _, ok := curr[ns]; !ok {
+			removeNs[ns] = struct{}{}
+		}
+		if _, ok := remove[ns]; !ok {
+			remove[ns] = map[string]struct{}{}
+		}
+		for group := range groups {
+			if _, ok := curr[ns][group]; !ok {
+				remove[ns][group] = struct{}{}
+			}
+		}
+	}
+
+	for ns := range removeNs {
+		metrics.GetConfigGroupTotal().Delete(prometheus.Labels{
+			metrics.LabelNamespace: ns,
+		})
+	}
+
+	for ns, groups := range remove {
+		for group := range groups {
+			metrics.GetConfigFileTotal().Delete(prometheus.Labels{
+				metrics.LabelNamespace: ns,
+				metrics.LabelGroup:     group,
+			})
+			metrics.GetReleaseConfigFileTotal().Delete(prometheus.Labels{
+				metrics.LabelNamespace: ns,
+				metrics.LabelGroup:     group,
+			})
+			metrics.GetConfigFileTotal().Delete(prometheus.Labels{
+				metrics.LabelNamespace: ns,
+				metrics.LabelGroup:     group,
+			})
+		}
+	}
+
 }

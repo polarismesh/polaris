@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package service_test
 
 import (
 	"context"
@@ -30,7 +30,7 @@ import (
 
 func TestClientCheck(t *testing.T) {
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.initialize(); err != nil {
+	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -51,30 +51,30 @@ func TestClientCheck(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		for clientId := range clientIds {
 			fmt.Printf("%d report client for %s, round 1\n", i, clientId)
-			discoverSuit.server.ReportClient(context.Background(),
+			discoverSuit.DiscoverServer().ReportClient(context.Background(),
 				&apiservice.Client{
 					Id: &wrapperspb.StringValue{Value: clientId}, Host: &wrapperspb.StringValue{Value: "127.0.0.1"}})
 		}
 		time.Sleep(1 * time.Second)
 	}
 
-	client1 := discoverSuit.server.Cache().Client().GetClient(clientId1)
+	client1 := discoverSuit.DiscoverServer().Cache().Client().GetClient(clientId1)
 	assert.NotNil(t, client1)
-	client2 := discoverSuit.server.Cache().Client().GetClient(clientId2)
+	client2 := discoverSuit.DiscoverServer().Cache().Client().GetClient(clientId2)
 	assert.NotNil(t, client2)
 
 	delete(clientIds, clientId2)
 	for i := 0; i < 50; i++ {
 		for clientId := range clientIds {
 			fmt.Printf("%d report client for %s, round 2\n", i, clientId)
-			discoverSuit.server.ReportClient(context.Background(),
+			discoverSuit.DiscoverServer().ReportClient(context.Background(),
 				&apiservice.Client{Id: &wrapperspb.StringValue{Value: clientId},
 					Host: &wrapperspb.StringValue{Value: "127.0.0.1"}, Type: apiservice.Client_SDK})
 		}
 		time.Sleep(1 * time.Second)
 	}
-	client1 = discoverSuit.server.Cache().Client().GetClient(clientId1)
+	client1 = discoverSuit.DiscoverServer().Cache().Client().GetClient(clientId1)
 	assert.NotNil(t, client1)
-	client2 = discoverSuit.server.Cache().Client().GetClient(clientId2)
+	client2 = discoverSuit.DiscoverServer().Cache().Client().GetClient(clientId2)
 	assert.Nil(t, client2)
 }
