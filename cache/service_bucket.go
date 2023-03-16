@@ -23,8 +23,9 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/polarismesh/polaris/common/model"
 	"go.uber.org/zap"
+
+	"github.com/polarismesh/polaris/common/model"
 )
 
 type serviceNamespaceBucket struct {

@@ -22,11 +22,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/polarismesh/polaris/common/utils"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // goos: linux

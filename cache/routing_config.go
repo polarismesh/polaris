@@ -84,9 +84,9 @@ func init() {
 // newRoutingConfigCache Return a object of operating RoutingConfigcache
 func newRoutingConfigCache(s store.Store, serviceCache ServiceCache) *routingConfigCache {
 	return &routingConfigCache{
-		baseCache:        newBaseCache(s),
-		storage:          s,
-		serviceCache:     serviceCache,
+		baseCache:    newBaseCache(s),
+		storage:      s,
+		serviceCache: serviceCache,
 	}
 }
 

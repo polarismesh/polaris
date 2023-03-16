@@ -316,7 +316,7 @@ func (sc *serviceCache) GetServiceByCl5Name(cl5Name string) *model.Service {
 func (sc *serviceCache) removeServices(service *model.Service) {
 	// Delete the index of serviceid
 	sc.ids.Delete(service.ID)
-	
+
 	// delete service item from name list
 	sc.serviceList.removeService(service)
 
