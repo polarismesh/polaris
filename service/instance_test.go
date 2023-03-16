@@ -825,6 +825,8 @@ func TestListInstances2(t *testing.T) {
 			"offset":    "0",
 			"limit":     "100",
 			"namespace": "*fau*",
+			"keys":      "my-meta-a1",
+			"values":    "1111",
 		}
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, 1, 1)
@@ -837,6 +839,8 @@ func TestListInstances2(t *testing.T) {
 			"offset":    "0",
 			"limit":     "100",
 			"namespace": "defau*",
+			"keys":      "my-meta-a1",
+			"values":    "1111",
 		}
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, 1, 1)
@@ -845,6 +849,8 @@ func TestListInstances2(t *testing.T) {
 			"offset":    "0",
 			"limit":     "100",
 			"namespace": "defauxxxx*",
+			"keys":      "my-meta-a1",
+			"values":    "1111",
 		}
 		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, 0, 0)
@@ -857,6 +863,8 @@ func TestListInstances2(t *testing.T) {
 			"offset":  "0",
 			"limit":   "100",
 			"service": serviceResp.GetName().GetValue(),
+			"keys":    "my-meta-a1",
+			"values":  "1111",
 		}
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, 1, 1)
@@ -865,6 +873,8 @@ func TestListInstances2(t *testing.T) {
 			"offset":    "0",
 			"limit":     "100",
 			"namespace": serviceResp.GetNamespace().GetValue(),
+			"keys":      "my-meta-a1",
+			"values":    "1111",
 		}
 		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, 1, 1)
