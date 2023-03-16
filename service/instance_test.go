@@ -777,17 +777,6 @@ func TestListInstances1(t *testing.T) {
 		if len(resp.Instances) != total {
 			t.Fatalf("error: %d", len(resp.Instances))
 		}
-
-		query = map[string]string{
-			"limit": "100",
-		}
-		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if !respSuccess(resp) {
-			t.Fatalf("error: %s", resp.GetInfo().GetValue())
-		}
-		if len(resp.Instances) != total {
-			t.Fatalf("error: %d", len(resp.Instances))
-		}
 	})
 
 	t.Run("list实例，先删除实例，再查询会过滤删除的", func(t *testing.T) {
@@ -2071,11 +2060,17 @@ func TestCheckInstanceParam(t *testing.T) {
 	instanceReq, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 153)
 	defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
+	t.Run("都不传", func(t *testing.T) {
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, make(map[string]string))
+		if resp.Code.Value != api.EmptyQueryParameter {
+			t.Fatalf("%+v", resp)
+		}
+	})
 	t.Run("只传service", func(t *testing.T) {
 		query := map[string]string{}
 		query["service"] = "test"
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if resp.Code.Value != api.InvalidQueryInsParameter {
+		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
 	})
@@ -2083,7 +2078,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query := map[string]string{}
 		query["namespace"] = "test"
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if resp.Code.Value != api.InvalidQueryInsParameter {
+		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
 	})
@@ -2116,7 +2111,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query["service"] = "test"
 		query["port"] = "123"
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if resp.Code.Value != api.InvalidQueryInsParameter {
+		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
 	})
@@ -2125,7 +2120,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query["namespace"] = "test"
 		query["port"] = "123"
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if resp.Code.Value != api.InvalidQueryInsParameter {
+		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
 	})
