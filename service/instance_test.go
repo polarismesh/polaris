@@ -820,6 +820,7 @@ func TestListInstances2(t *testing.T) {
 
 	t.Run("list实例，使用namespace，可以进行模糊匹配过滤", func(t *testing.T) {
 		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1001)
+		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 		query := map[string]string{
 			"offset":    "0",
 			"limit":     "100",
@@ -827,11 +828,11 @@ func TestListInstances2(t *testing.T) {
 		}
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, 1, 1)
-		discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 	})
 
 	t.Run("list实例，使用namespace，可以进行前缀匹配过滤", func(t *testing.T) {
 		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1002)
+		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 		query := map[string]string{
 			"offset":    "0",
 			"limit":     "100",
@@ -847,11 +848,11 @@ func TestListInstances2(t *testing.T) {
 		}
 		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, 0, 0)
-		discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 	})
 
 	t.Run("list实例，使用namespace，service可选", func(t *testing.T) {
 		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1003)
+		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 		query := map[string]string{
 			"offset":  "0",
 			"limit":   "100",
@@ -867,7 +868,6 @@ func TestListInstances2(t *testing.T) {
 		}
 		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, 1, 1)
-		discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 	})
 }
 
