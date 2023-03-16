@@ -690,95 +690,6 @@ func TestListInstances1(t *testing.T) {
 		checkAmountAndSize(t, resp, total, 100)
 	})
 
-	t.Run("list实例，使用namespace，可以进行模糊匹配过滤", func(t *testing.T) {
-		total := 10
-		for i := 0; i < total; i++ {
-			_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, i+1)
-			defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
-		}
-
-		query := map[string]string{
-			"offset":    "0",
-			"limit":     "100",
-			"namespace": "*fau*",
-		}
-		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if !respSuccess(resp) {
-			t.Fatalf("error: %s", resp.GetInfo().GetValue())
-		}
-		if len(resp.Instances) != total {
-			t.Fatalf("error: %d", len(resp.Instances))
-		}
-	})
-
-	t.Run("list实例，使用namespace，可以进行前缀匹配过滤", func(t *testing.T) {
-		total := 10
-		for i := 0; i < total; i++ {
-			_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, i+1)
-			defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
-		}
-
-		query := map[string]string{
-			"offset":    "0",
-			"limit":     "100",
-			"namespace": "defau*",
-		}
-		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if !respSuccess(resp) {
-			t.Fatalf("error: %s", resp.GetInfo().GetValue())
-		}
-		if len(resp.Instances) != total {
-			t.Fatalf("error: %d", len(resp.Instances))
-		}
-
-		query = map[string]string{
-			"offset":    "0",
-			"limit":     "100",
-			"namespace": "defauxxxx*",
-		}
-		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if !respSuccess(resp) {
-			t.Fatalf("error: %s", resp.GetInfo().GetValue())
-		}
-		if len(resp.Instances) != 0 {
-			t.Fatalf("error: %d", len(resp.Instances))
-		}
-	})
-
-	t.Run("list实例，使用namespace，service可选", func(t *testing.T) {
-		total := 10
-		for i := 0; i < total; i++ {
-			_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, i+1)
-			defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
-		}
-
-		query := map[string]string{
-			"offset":  "0",
-			"limit":   "100",
-			"service": serviceResp.GetName().GetValue(),
-		}
-		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if !respSuccess(resp) {
-			t.Fatalf("error: %s", resp.GetInfo().GetValue())
-		}
-		if len(resp.Instances) != total {
-			t.Fatalf("error: %d", len(resp.Instances))
-		}
-
-		query = map[string]string{
-			"offset":    "0",
-			"limit":     "100",
-			"namespace": serviceResp.GetNamespace().GetValue(),
-		}
-		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if !respSuccess(resp) {
-			t.Fatalf("error: %s", resp.GetInfo().GetValue())
-		}
-		if len(resp.Instances) != total {
-			t.Fatalf("error: %d", len(resp.Instances))
-		}
-	})
-
 	t.Run("list实例，先删除实例，再查询会过滤删除的", func(t *testing.T) {
 		total := 50
 		for i := 0; i < total; i++ {
@@ -879,6 +790,84 @@ func TestListInstances1(t *testing.T) {
 		if resp.GetCode().GetValue() != api.InvalidQueryInsParameter {
 			t.Fatalf("resp is %v, not InvalidQueryInsParameter", resp)
 		}
+	})
+}
+
+// 测试list实例列表
+func TestListInstances2(t *testing.T) {
+
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.Initialize(); err != nil {
+		t.Fatal(err)
+	}
+	defer discoverSuit.Destroy()
+
+	// 先任意找几个实例字段过滤
+	_, serviceResp := discoverSuit.createCommonService(t, 800)
+	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+
+	checkAmountAndSize := func(t *testing.T, resp *apiservice.BatchQueryResponse, expect int, size int) {
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if resp.GetAmount().GetValue() != uint32(expect) {
+			t.Fatalf("error: %d", resp.GetAmount().GetValue())
+		}
+		if len(resp.Instances) != size {
+			t.Fatalf("error: %d", len(resp.Instances))
+		}
+	}
+
+	total := 10
+	for i := 0; i < total; i++ {
+		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, i+2)
+		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
+	}
+
+	t.Run("list实例，使用namespace，可以进行模糊匹配过滤", func(t *testing.T) {
+		query := map[string]string{
+			"offset":    "0",
+			"limit":     "100",
+			"namespace": "*fau*",
+		}
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
+		checkAmountAndSize(t, resp, total, total)
+	})
+
+	t.Run("list实例，使用namespace，可以进行前缀匹配过滤", func(t *testing.T) {
+		query := map[string]string{
+			"offset":    "0",
+			"limit":     "100",
+			"namespace": "defau*",
+		}
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
+		checkAmountAndSize(t, resp, total, total)
+
+		query = map[string]string{
+			"offset":    "0",
+			"limit":     "100",
+			"namespace": "defauxxxx*",
+		}
+		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
+		checkAmountAndSize(t, resp, 0, 0)
+	})
+
+	t.Run("list实例，使用namespace，service可选", func(t *testing.T) {
+		query := map[string]string{
+			"offset":  "0",
+			"limit":   "100",
+			"service": serviceResp.GetName().GetValue(),
+		}
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
+		checkAmountAndSize(t, resp, total, total)
+
+		query = map[string]string{
+			"offset":    "0",
+			"limit":     "100",
+			"namespace": serviceResp.GetNamespace().GetValue(),
+		}
+		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
+		checkAmountAndSize(t, resp, total, total)
 	})
 }
 
