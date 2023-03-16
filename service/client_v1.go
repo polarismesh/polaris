@@ -159,9 +159,13 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Servic
 	} else {
 		revision, svcs = s.Cache().Service().ListAllServices()
 	}
+	if revision == "" {
+		return resp
+	}
+
 	log.Info("[Service][Discover] list servies", zap.Int("size", len(svcs)), zap.String("revision", revision))
 	if revision == req.GetRevision().GetValue() {
-		return api.NewDiscoverInstanceResponse(apimodel.Code_DataNoChange, req)
+		return api.NewDiscoverServiceResponse(apimodel.Code_DataNoChange, req)
 	}
 
 	ret := make([]*apiservice.Service, 0, len(svcs))
