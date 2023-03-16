@@ -180,9 +180,6 @@ func (h *EurekaServer) registerInstances(
 	appId = formatWriteName(appId)
 	// 1. 先转换数据结构
 	totalInstance := convertEurekaInstance(instance, h.namespace, appId)
-	if replicated {
-		totalInstance.Metadata[model.MetadataReplicated] = "true"
-	}
 	// 3. 注册实例
 	resp := h.namingServer.RegisterInstance(ctx, totalInstance)
 	// 4. 注册成功，则返回
