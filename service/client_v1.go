@@ -153,54 +153,37 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Servic
 	// 	return api.NewDiscoverServiceResponse(api.InvalidServiceMetadata, req)
 	// }
 
-	requestID := utils.ParseRequestID(ctx)
-
 	resp := api.NewDiscoverServiceResponse(apimodel.Code_ExecuteSuccess, req)
+	var (
+		revision string
+		svcs     []*model.Service
+	)
 
-	resp.Services = []*apiservice.Service{}
-
-	serviceIterProc := func(key string, value *model.Service) (bool, error) {
-		if checkServiceMetadata(req.GetMetadata(), value, req.Business.GetValue(), req.Namespace.GetValue()) {
-			service := &apiservice.Service{
-				Name:      utils.NewStringValue(value.Name),
-				Namespace: utils.NewStringValue(value.Namespace),
-			}
-			resp.Services = append(resp.Services, service)
-		}
-		return true, nil
+	if req.GetNamespace().GetValue() != "" {
+		revision, svcs = s.Cache().Service().ListServices(req.GetNamespace().GetValue())
+	} else {
+		revision, svcs = s.Cache().Service().ListAllServices()
 	}
 
-	if err := s.caches.Service().IteratorServices(serviceIterProc); err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return api.NewDiscoverServiceResponse(apimodel.Code_ExecuteException, req)
+	values := func() []*apiservice.Service {
+		ret := make([]*apiservice.Service, 0, len(svcs))
+		for i := range svcs {
+			ret = append(ret, &apiservice.Service{
+				Namespace: utils.NewStringValue(svcs[i].Namespace),
+				Name:      utils.NewStringValue(svcs[i].Name),
+			})
+		}
+		return ret
+	}()
+
+	resp.Services = values
+	resp.Service = &apiservice.Service{
+		Namespace: utils.NewStringValue(req.GetNamespace().GetValue()),
+		Name:      utils.NewStringValue(req.GetName().GetValue()),
+		Revision:  utils.NewStringValue(revision),
 	}
 
 	return resp
-}
-
-// checkServiceMetadata 判断请求元数据是否属于服务的元数据
-func checkServiceMetadata(requestMeta map[string]string, service *model.Service, business, namespace string) bool {
-	// if len(service.Meta) == 0 && len(business) == 0 {
-	// 	return false
-	// }
-	if len(business) > 0 && business != service.Business {
-		return false
-	}
-
-	if len(namespace) > 0 && namespace != service.Namespace {
-		return false
-	}
-
-	if len(requestMeta) != 0 {
-		for key, requestValue := range requestMeta {
-			value, ok := service.Meta[key]
-			if !ok || requestValue != value {
-				return false
-			}
-		}
-	}
-
-	return true
 }
 
 // ServiceInstancesCache 根据服务名查询服务实例列表

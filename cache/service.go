@@ -60,6 +60,10 @@ type ServiceCache interface {
 	// GetServicesByFilter Serving the service filtering in the cache through Filter
 	GetServicesByFilter(serviceFilters *ServiceArgs,
 		instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.EnhancedService, error)
+	// ListServices get service list and revision by namespace
+	ListServices(ns string) (string, []*model.Service)
+	// ListAllServices get all service and revision
+	ListAllServices() (string, []*model.Service)
 	// Update Query trigger update interface
 	Update() error
 }
@@ -73,6 +77,7 @@ type serviceCache struct {
 	names               *sync.Map // namespace -> [serviceName -> service]
 	cl5Sid2Name         *sync.Map // 兼容Cl5，sid -> name
 	cl5Names            *sync.Map // 兼容Cl5，name -> service
+	serviceList         *serviceNamespaceBucket
 	revisionCh          chan *revisionNotify
 	disableBusiness     bool
 	needMeta            bool
@@ -97,10 +102,11 @@ func init() {
 // newServiceCache 返回一个serviceCache
 func newServiceCache(storage store.Store, ch chan *revisionNotify, instCache InstanceCache) *serviceCache {
 	return &serviceCache{
-		baseCache:  newBaseCache(storage),
-		storage:    storage,
-		revisionCh: ch,
-		instCache:  instCache,
+		baseCache:   newBaseCache(storage),
+		storage:     storage,
+		revisionCh:  ch,
+		instCache:   instCache,
+		serviceList: newServiceNamespaceBucket(),
 	}
 }
 
@@ -197,6 +203,7 @@ func (sc *serviceCache) clear() error {
 	sc.cl5Names = new(sync.Map)
 	sc.namespaceServiceCnt = new(sync.Map)
 	sc.pendingServices = make(map[string]int8)
+	sc.serviceList = newServiceNamespaceBucket()
 	return nil
 }
 
@@ -285,7 +292,17 @@ func (sc *serviceCache) GetServicesCount() int {
 	return count
 }
 
-// GetServiceByCl5Name 根据cl5Name获取对应的sid
+// ListServices get service list and revision by namespace
+func (sc *serviceCache) ListServices(ns string) (string, []*model.Service) {
+	return sc.serviceList.ListServices(ns)
+}
+
+// ListAllServices get all service and revision
+func (sc *serviceCache) ListAllServices() (string, []*model.Service) {
+	return sc.serviceList.ListAllServices()
+}
+
+// GetServiceByCl5Name obtains the corresponding SID according to cl5Name
 func (sc *serviceCache) GetServiceByCl5Name(cl5Name string) *model.Service {
 	value, ok := sc.cl5Names.Load(genCl5Name(cl5Name))
 	if !ok {
@@ -295,23 +312,26 @@ func (sc *serviceCache) GetServiceByCl5Name(cl5Name string) *model.Service {
 	return value.(*model.Service)
 }
 
-// removeServices 从缓存中删除service数据
+// removeServices Delete the service data from the cache
 func (sc *serviceCache) removeServices(service *model.Service) {
-	// 删除serviceID的索引
+	// Delete the index of serviceid
 	sc.ids.Delete(service.ID)
+	
+	// delete service item from name list
+	sc.serviceList.removeService(service)
 
-	// 删除serviceName的索引
+	// Delete the index of servicename
 	spaceName := service.Namespace
 	if spaces, ok := sc.names.Load(spaceName); ok {
 		spaces.(*sync.Map).Delete(service.Name)
 	}
 
-	/******兼容cl5******/
+	/******Compatible CL5******/
 	if cl5Name, ok := sc.cl5Sid2Name.Load(service.Name); ok {
 		sc.cl5Sid2Name.Delete(service.Name)
 		sc.cl5Names.Delete(cl5Name)
 	}
-	/******兼容cl5******/
+	/******Compatible CL5******/
 }
 
 // setServices 服务缓存更新
@@ -360,6 +380,7 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 		}
 
 		sc.ids.Store(service.ID, service)
+		sc.serviceList.addService(service)
 		sc.revisionCh <- newRevisionNotify(service.ID, true)
 
 		spaces, ok := sc.names.Load(spaceName)
@@ -478,6 +499,8 @@ func (sc *serviceCache) postProcessUpdatedServices(affect map[string]bool) {
 			return true
 		})
 	}
+
+	sc.serviceList.reloadRevision()
 }
 
 // updateCl5SidAndNames 更新cl5的服务数据
