@@ -1,0 +1,117 @@
+# Tencent is pleased to support the open source community by making Polaris available.
+#
+# Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
+#
+# Licensed under the BSD 3-Clause License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software distributed
+# under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+# CONDITIONS OF ANY KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations under the License.
+
+name: Benchmark
+
+on:
+  push:
+    branches:
+      - main
+      - release*
+  pull_request:
+    branches:
+      - main
+      - release*
+
+permissions:
+  contents: write
+
+# Always force the use of Go modules
+env:
+  GO111MODULE: on
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        goarch: [ amd64 ]
+        goos: [ linux ]
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            vert: 1
+        exclude:
+          - os: ubuntu-latest
+            goos: windows
+          - os: ubuntu-latest
+            goos: darwin
+          - os: windows-latest
+            goos: linux
+          - os: windows-latest
+            goos: darwin
+          - os: macos-latest
+            goos: windows
+          - os: macos-latest
+            goos: linux
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      # Setup the environment.
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.19
+      # Checkout latest code
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      # Compile
+      - name: Build server
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: make build
+
+      # Run interface tests
+      - name: run discover interface tests
+        run: |
+          work_dir=$(ls | grep polaris-server-release | sed -n '1p')
+          echo "work_dir is $work_dir"
+          cd $work_dir
+
+          ls -alR
+
+          if [[ "$(uname)" == "Darwin" ]]; then
+              # Mac OS X 操作系统
+              echo "Run on MacOS"
+              sed -i '' 's/consoleOpen: true/consoleOpen: false/g' conf/polaris-server.yaml
+          else
+              # GNU/Linux操作系统
+              echo "Run on Linux"
+              sed -i 's/consoleOpen: \(true\|false\)/consoleOpen: false/g' conf/polaris-server.yaml
+          fi
+
+          chmod +x ./tool/*.sh
+          ./tool/start.sh
+
+          sleep 120s
+          ls -alR
+          cat ./log/stdout 2>&1
+
+          cd ..
+          ls -lstrh
+
+          pushd ./test/benchmark
+          echo "[BENCHMARK TEST] begin"
+          export BENCHMARK_SERVER_ADDRESS=127.0.0.1:8091
+          go test -bench .
+          echo "[BENCHMARK TEST] end"
+          popd
+          cd $work_dir
+          ./tool/stop.sh
+          cd ..
+
