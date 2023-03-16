@@ -23,7 +23,4 @@ const (
 
 	// MetaKeyBuildRevision build revision for server
 	MetaKeyBuildRevision = "build-revision"
-
-	// MetadataReplicated indicate the instance is replicated from other naming server
-	MetadataReplicated = "internal-replicated"
 )

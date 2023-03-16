@@ -15,115 +15,101 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package heartbeatmemory
+package heartbeatredis
 
 import (
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/polarismesh/polaris/common/redispool"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/plugin"
 )
 
-func TestMemoryHealthChecker_Query(t *testing.T) {
-	mhc := MemoryHealthChecker{
-		hbRecords: new(sync.Map),
-	}
-	id := "key1"
-	reportRequest := &plugin.ReportRequest{
-		QueryRequest: plugin.QueryRequest{
-			InstanceId: id,
-		},
-		LocalHost:  "127.0.0.1",
-		CurTimeSec: 1,
-		Count:      5,
-	}
-	err := mhc.Report(reportRequest)
-	assert.Nil(t, err)
-
-	queryRequest := plugin.QueryRequest{
-		InstanceId: id,
-	}
-	qr, err := mhc.Query(&queryRequest)
-	assert.Nil(t, err)
-	assert.Equal(t, reportRequest.LocalHost, qr.Server)
-	assert.Equal(t, reportRequest.Count, qr.Count)
-	assert.Equal(t, reportRequest.CurTimeSec, qr.LastHeartbeatSec)
+type mockPool struct {
+	setValues      map[string]map[string]bool
+	itemValues     map[string]string
+	compatible     bool
+	recoverTimeSec int64
 }
 
-func TestMemoryHealthChecker_Check(t *testing.T) {
-	mhc := MemoryHealthChecker{
-		hbRecords: new(sync.Map),
-	}
-	test := HeartbeatRecord{
-		Server:     "127.0.0.1",
-		CurTimeSec: 1,
-	}
-	mhc.hbRecords.Store("key", test)
+// Start 启动ckv连接池工作
+func (m *mockPool) Start() {
+	m.setValues = make(map[string]map[string]bool)
+	m.itemValues = make(map[string]string)
+}
 
-	queryRequest := plugin.CheckRequest{
-		QueryRequest: plugin.QueryRequest{
-			InstanceId: "key",
-			Host:       "127.0.0.2",
-			Port:       80,
-			Healthy:    true,
-		},
-		CurTimeSec: func() int64 {
-			return time.Now().Unix()
-		},
-		ExpireDurationSec: 15,
+// Sdd 使用连接池，向redis发起Sdd请求
+func (m *mockPool) Sdd(id string, members []string) *redispool.Resp {
+	values, ok := m.setValues[id]
+	if !ok {
+		values = make(map[string]bool)
+		m.setValues[id] = values
 	}
-	qr, err := mhc.Check(&queryRequest)
-	assert.NoError(t, err)
-	assert.False(t, qr.StayUnchanged)
+	for _, member := range members {
+		values[member] = true
+	}
+	return &redispool.Resp{Compatible: m.compatible}
+}
 
-	queryRequest = plugin.CheckRequest{
-		QueryRequest: plugin.QueryRequest{
-			InstanceId: "key",
-			Host:       "127.0.0.2",
-			Port:       80,
-			Healthy:    false,
-		},
-		CurTimeSec: func() int64 {
-			return time.Now().Unix()
-		},
-		ExpireDurationSec: 15,
+// Srem 使用连接池，向redis发起Srem请求
+func (m *mockPool) Srem(id string, members []string) *redispool.Resp {
+	values, ok := m.setValues[id]
+	if ok {
+		for _, member := range members {
+			delete(values, member)
+		}
 	}
-	qr, err = mhc.Check(&queryRequest)
-	assert.NoError(t, err)
-	assert.True(t, qr.StayUnchanged)
+	return &redispool.Resp{Compatible: m.compatible}
+}
 
-	test = HeartbeatRecord{
-		Server:     "127.0.0.1",
-		CurTimeSec: time.Now().Unix(),
+// Get 使用连接池，向redis发起Get请求
+func (m *mockPool) Get(id string) *redispool.Resp {
+	value, ok := m.itemValues[id]
+	return &redispool.Resp{
+		Value:      value,
+		Exists:     ok,
+		Compatible: m.compatible,
 	}
-	mhc.hbRecords.Store("key", test)
+}
 
-	queryRequest = plugin.CheckRequest{
-		QueryRequest: plugin.QueryRequest{
-			InstanceId: "key",
-			Host:       "127.0.0.2",
-			Port:       80,
-			Healthy:    false,
-		},
-		CurTimeSec: func() int64 {
-			return time.Now().Unix()
-		},
-		ExpireDurationSec: 15,
+// Set 使用连接池，向redis发起Set请求
+func (m *mockPool) Set(id string, redisObj redispool.RedisObject) *redispool.Resp {
+	value := redisObj.Serialize(m.compatible)
+	m.itemValues[id] = value
+	return &redispool.Resp{
+		Value:      value,
+		Exists:     true,
+		Compatible: m.compatible,
 	}
-	qr, err = mhc.Check(&queryRequest)
-	assert.NoError(t, err)
-	assert.False(t, qr.StayUnchanged)
+}
+
+// Del 使用连接池，向redis发起Del请求
+func (m *mockPool) Del(id string) *redispool.Resp {
+	delete(m.itemValues, id)
+	return &redispool.Resp{
+		Exists:     true,
+		Compatible: m.compatible,
+	}
+}
+
+// RecoverTimeSec the time second record when recover
+func (m *mockPool) RecoverTimeSec() int64 {
+	return m.recoverTimeSec
 }
 
 func TestReportAndCheck(t *testing.T) {
-	checker := MemoryHealthChecker{
-		hbRecords: new(sync.Map),
+	pool := &mockPool{}
+	checker := &RedisHealthChecker{
+		hbPool:    pool,
+		checkPool: pool,
 	}
+	checker.hbPool.Start()
+	checker.checkPool.Start()
+
 	startTime := commontime.CurrentMillisecond() / 1000
 	instanceId := "testId"
 	host := "localhost"
