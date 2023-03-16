@@ -818,30 +818,27 @@ func TestListInstances2(t *testing.T) {
 		}
 	}
 
-	total := 10
-	for i := 0; i < total; i++ {
-		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, i+2)
-		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
-	}
-
 	t.Run("list实例，使用namespace，可以进行模糊匹配过滤", func(t *testing.T) {
+		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1001)
 		query := map[string]string{
 			"offset":    "0",
 			"limit":     "100",
 			"namespace": "*fau*",
 		}
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		checkAmountAndSize(t, resp, total, total)
+		checkAmountAndSize(t, resp, 1, 1)
+		discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 	})
 
 	t.Run("list实例，使用namespace，可以进行前缀匹配过滤", func(t *testing.T) {
+		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1002)
 		query := map[string]string{
 			"offset":    "0",
 			"limit":     "100",
 			"namespace": "defau*",
 		}
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		checkAmountAndSize(t, resp, total, total)
+		checkAmountAndSize(t, resp, 1, 1)
 
 		query = map[string]string{
 			"offset":    "0",
@@ -850,16 +847,18 @@ func TestListInstances2(t *testing.T) {
 		}
 		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, 0, 0)
+		discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 	})
 
 	t.Run("list实例，使用namespace，service可选", func(t *testing.T) {
+		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1003)
 		query := map[string]string{
 			"offset":  "0",
 			"limit":   "100",
 			"service": serviceResp.GetName().GetValue(),
 		}
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		checkAmountAndSize(t, resp, total, total)
+		checkAmountAndSize(t, resp, 1, 1)
 
 		query = map[string]string{
 			"offset":    "0",
@@ -867,7 +866,8 @@ func TestListInstances2(t *testing.T) {
 			"namespace": serviceResp.GetNamespace().GetValue(),
 		}
 		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		checkAmountAndSize(t, resp, total, total)
+		checkAmountAndSize(t, resp, 1, 1)
+		discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 	})
 }
 
