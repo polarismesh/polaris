@@ -139,19 +139,14 @@ func (s *Server) GetPrometheusTargets(ctx context.Context,
 	}
 }
 
-// GetServiceWithCache 根据元数据查询服务
+// GetServiceWithCache 查询服务列表
 func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	if s.caches == nil {
 		return api.NewDiscoverServiceResponse(apimodel.Code_ClientAPINotOpen, req)
 	}
-
 	if req == nil {
 		return api.NewDiscoverServiceResponse(apimodel.Code_EmptyRequest, req)
 	}
-	// 可根据business查询服务
-	// if len(req.GetMetadata()) == 0 && len(req.Business.GetValue()) == 0 {
-	// 	return api.NewDiscoverServiceResponse(api.InvalidServiceMetadata, req)
-	// }
 
 	resp := api.NewDiscoverServiceResponse(apimodel.Code_ExecuteSuccess, req)
 	var (
@@ -164,19 +159,21 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Servic
 	} else {
 		revision, svcs = s.Cache().Service().ListAllServices()
 	}
+	log.Info("[Service][Discover] list servies", zap.Int("size", len(svcs)), zap.String("revision", revision))
+	if revision == req.GetRevision().GetValue() {
+		return api.NewDiscoverInstanceResponse(apimodel.Code_DataNoChange, req)
+	}
 
-	values := func() []*apiservice.Service {
-		ret := make([]*apiservice.Service, 0, len(svcs))
-		for i := range svcs {
-			ret = append(ret, &apiservice.Service{
-				Namespace: utils.NewStringValue(svcs[i].Namespace),
-				Name:      utils.NewStringValue(svcs[i].Name),
-			})
-		}
-		return ret
-	}()
+	ret := make([]*apiservice.Service, 0, len(svcs))
+	for i := range svcs {
+		ret = append(ret, &apiservice.Service{
+			Namespace: utils.NewStringValue(svcs[i].Namespace),
+			Name:      utils.NewStringValue(svcs[i].Name),
+			Metadata:  svcs[i].Meta,
+		})
+	}
 
-	resp.Services = values
+	resp.Services = ret
 	resp.Service = &apiservice.Service{
 		Namespace: utils.NewStringValue(req.GetNamespace().GetValue()),
 		Name:      utils.NewStringValue(req.GetName().GetValue()),
