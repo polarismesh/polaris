@@ -123,7 +123,7 @@ func Test_discoverCacheConvert(t *testing.T) {
 					},
 				},
 				CacheType: apiservice.DiscoverResponse_SERVICES.String(),
-				Key:       fmt.Sprintf("%s-%s-%s", "test", "test", "test"),
+				Key:       fmt.Sprintf("%s-%s-%s", "test", "", ""),
 			},
 		},
 		{
