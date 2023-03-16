@@ -77,7 +77,11 @@ jobs:
         run: make build
 
       # Run interface tests
+<<<<<<< HEAD
       - name: run benchmark
+=======
+      - name: run discover interface tests
+>>>>>>> 3360bddb... perf:优化查询服务列表的Discover请求耗时
         run: |
           work_dir=$(ls | grep polaris-server-release | sed -n '1p')
           echo "work_dir is $work_dir"
