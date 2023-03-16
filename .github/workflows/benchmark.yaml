@@ -77,7 +77,7 @@ jobs:
         run: make build
 
       # Run interface tests
-      - name: run discover interface tests
+      - name: run benchmark
         run: |
           work_dir=$(ls | grep polaris-server-release | sed -n '1p')
           echo "work_dir is $work_dir"
@@ -105,12 +105,12 @@ jobs:
           cd ..
           ls -lstrh
 
-          pushd ./test/benchmark
           echo "[BENCHMARK TEST] begin"
           export BENCHMARK_SERVER_ADDRESS=127.0.0.1:8091
+          pushd ./test/benchmark/grpc
           go test -bench .
-          echo "[BENCHMARK TEST] end"
           popd
+          echo "[BENCHMARK TEST] end"
           cd $work_dir
           ./tool/stop.sh
           cd ..
