@@ -607,7 +607,7 @@ func (h *EurekaServer) UpdateMetadata(req *restful.Request, rsp *restful.Respons
 		}
 		metadataMap[key] = values[0]
 	}
-	code := h.updateMetadata(context.Background(), instId, metadataMap)
+	code := h.updateMetadata(context.Background(), appId, instId, metadataMap)
 	writePolarisStatusCode(req, code)
 	if code == api.ExecuteSuccess {
 		log.Infof("[EUREKA-SERVER]instance metadata (instId=%s, appId=%s) has been updated successfully",
