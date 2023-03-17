@@ -269,7 +269,7 @@ func (h *EurekaServer) handleInstanceEvent(ctx context.Context, i interface{}) e
 			AppName:            appName,
 			Id:                 eurekaInstanceId,
 			LastDirtyTimestamp: curTimeMilli,
-			Status:   			StatusOutOfService,
+			Status:             StatusOutOfService,
 			Action:             actionStatusUpdate,
 		})
 	case model.EventInstanceCloseIsolate:
@@ -277,7 +277,7 @@ func (h *EurekaServer) handleInstanceEvent(ctx context.Context, i interface{}) e
 			AppName:            appName,
 			Id:                 eurekaInstanceId,
 			LastDirtyTimestamp: curTimeMilli,
-			Status:				StatusUp,
+			Status:             StatusUp,
 			Action:             actionStatusUpdate,
 		})
 
