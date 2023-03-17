@@ -317,7 +317,7 @@ func checkRegisterRequest(registrationRequest *RegistrationRequest, req *restful
 		writeHeader(http.StatusBadRequest, rsp)
 		return false
 	}
-	if len(registrationRequest.Instance.InstanceId) == 0 {
+	if len(registrationRequest.Instance.InstanceId) == 0 && len(registrationRequest.Instance.HostName) == 0 {
 		log.Errorf("[EUREKA-SERVER] fail to parse register request, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "instance id required")
 		writePolarisStatusCode(req, api.InvalidInstanceID)
@@ -362,9 +362,7 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 		writeHeader(http.StatusBadRequest, rsp)
 		return
 	}
-	if len(registrationRequest.Instance.InstanceId) == 0 {
-		registrationRequest.Instance.InstanceId = registrationRequest.Instance.HostName
-	}
+	
 	if !checkRegisterRequest(registrationRequest, req, rsp) {
 		return
 	}

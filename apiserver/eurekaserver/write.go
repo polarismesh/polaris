@@ -46,7 +46,11 @@ func buildBaseInstance(instance *InstanceInfo, namespace string, appId string) *
 	eurekaMetadata := make(map[string]string)
 
 	eurekaMetadata[MetadataRegisterFrom] = ServerEureka
-	eurekaMetadata[MetadataInstanceId] = instance.InstanceId
+	eurekaInstanceId := instance.InstanceId
+	if len(eurekaInstanceId) == 0 {
+		eurekaInstanceId = instance.HostName
+	}
+	eurekaMetadata[MetadataInstanceId] = eurekaInstanceId
 	if len(instance.AppGroupName) > 0 {
 		eurekaMetadata[MetadataAppGroupName] = instance.AppGroupName
 	}
@@ -80,7 +84,7 @@ func buildBaseInstance(instance *InstanceInfo, namespace string, appId string) *
 	if len(instance.SecureVipAddress) > 0 {
 		eurekaMetadata[MetadataSecureVipAddress] = instance.SecureVipAddress
 	}
-	targetInstance.Id = &wrappers.StringValue{Value: checkOrBuildNewInstanceId(appId, instance.InstanceId)}
+	targetInstance.Id = &wrappers.StringValue{Value: checkOrBuildNewInstanceId(appId, eurekaInstanceId)}
 	targetInstance.Metadata = eurekaMetadata
 	targetInstance.Service = &wrappers.StringValue{Value: appId}
 	targetInstance.Namespace = &wrappers.StringValue{Value: namespace}
