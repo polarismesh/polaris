@@ -43,6 +43,8 @@ var (
 		apiservice.DiscoverResponse_ROUTING.String():         {},
 		apiservice.DiscoverResponse_RATE_LIMIT.String():      {},
 		apiservice.DiscoverResponse_CIRCUIT_BREAKER.String(): {},
+		apiservice.DiscoverResponse_FAULT_DETECTOR.String():  {},
+		apiservice.DiscoverResponse_SERVICES.String():        {},
 	}
 )
 
@@ -172,14 +174,8 @@ func (g *GRPCServer) buildInitOptions(option map[string]interface{}) []grpcserve
 }
 
 // discoverCacheConvert 将 DiscoverResponse 转换为 grpcserver.CacheObject
-// 当前支持进行 pb cache 缓存的 Type
-// 1. DiscoverResponse_INSTANCE
-// 2. DiscoverResponse_ROUTING
-// 3. DiscoverResponse_RATE_LIMIT
-// 4. DiscoverResponse_CIRCUIT_BREAKER
 func discoverCacheConvert(m interface{}) *grpcserver.CacheObject {
 	resp, ok := m.(*apiservice.DiscoverResponse)
-
 	if !ok {
 		return nil
 	}

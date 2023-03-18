@@ -48,14 +48,8 @@ const (
 	outBound
 )
 
-func newRoutingBucketV1() *routingBucketV1 {
-	return &routingBucketV1{
-		rules: make(map[string]*model.RoutingConfig),
-	}
-}
-
-func newRoutingBucketV2() *routingBucketV2 {
-	return &routingBucketV2{
+func newRouteRuleBucket() *routeRuleBucket {
+	return &routeRuleBucket{
 		rules:       make(map[string]*model.ExtendRouterConfig),
 		level1Rules: map[string]map[string]struct{}{},
 		level2Rules: map[boundType]map[string]map[string]struct{}{
@@ -71,42 +65,8 @@ func newRoutingBucketV2() *routingBucketV2 {
 	}
 }
 
-// routingBucketV1 v1 路由规则缓存 bucket
-type routingBucketV1 struct {
-	lock  sync.RWMutex
-	rules map[string]*model.RoutingConfig
-}
-
-func (b *routingBucketV1) get(id string) *model.RoutingConfig {
-	b.lock.RLock()
-	defer b.lock.RUnlock()
-
-	return b.rules[id]
-}
-
-func (b *routingBucketV1) save(conf *model.RoutingConfig) {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-
-	b.rules[conf.ID] = conf
-}
-
-func (b *routingBucketV1) delete(id string) {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-
-	delete(b.rules, id)
-}
-
-func (b *routingBucketV1) size() int {
-	b.lock.RLock()
-	defer b.lock.RUnlock()
-
-	return len(b.rules)
-}
-
-// routingBucketV2 v2 路由规则缓存 bucket
-type routingBucketV2 struct {
+// routeRuleBucket v2 路由规则缓存 bucket
+type routeRuleBucket struct {
 	lock sync.RWMutex
 	// rules id => routing rule
 	rules map[string]*model.ExtendRouterConfig
@@ -122,23 +82,27 @@ type routingBucketV2 struct {
 	v1rulesToOld map[string]string
 }
 
-func (b *routingBucketV2) getV2(id string) *model.ExtendRouterConfig {
+func (b *routeRuleBucket) getV2(id string) *model.ExtendRouterConfig {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 
 	return b.rules[id]
 }
 
-func (b *routingBucketV2) saveV2(conf *model.ExtendRouterConfig) {
+func (b *routeRuleBucket) saveV2(conf *model.ExtendRouterConfig) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
 	b.rules[conf.ID] = conf
-
 	handler := func(bt boundType, item serviceInfo) {
-		// level3 级别 cache 处理
-		if item.GetService() == routingcommon.MatchAll && item.GetNamespace() == routingcommon.MatchAll {
-			b.level3Rules[bt][conf.ID] = struct{}{}
+		// level1 级别 cache 处理
+		if item.GetService() != routingcommon.MatchAll && item.GetNamespace() != routingcommon.MatchAll {
+			key := buildServiceKey(item.GetNamespace(), item.GetService())
+			if _, ok := b.level1Rules[key]; !ok {
+				b.level1Rules[key] = map[string]struct{}{}
+			}
+
+			b.level1Rules[key][conf.ID] = struct{}{}
 			return
 		}
 		// level2 级别 cache 处理
@@ -149,14 +113,10 @@ func (b *routingBucketV2) saveV2(conf *model.ExtendRouterConfig) {
 			b.level2Rules[bt][item.GetNamespace()][conf.ID] = struct{}{}
 			return
 		}
-		// level1 级别 cache 处理
-		if item.GetService() != routingcommon.MatchAll && item.GetNamespace() != routingcommon.MatchAll {
-			key := buildServiceKey(item.GetNamespace(), item.GetService())
-			if _, ok := b.level1Rules[key]; !ok {
-				b.level1Rules[key] = map[string]struct{}{}
-			}
-
-			b.level1Rules[key][conf.ID] = struct{}{}
+		// level3 级别 cache 处理
+		if item.GetService() == routingcommon.MatchAll && item.GetNamespace() == routingcommon.MatchAll {
+			b.level3Rules[bt][conf.ID] = struct{}{}
+			return
 		}
 	}
 
@@ -179,7 +139,7 @@ func (b *routingBucketV2) saveV2(conf *model.ExtendRouterConfig) {
 }
 
 // saveV1 保存 v1 级别的路由规则
-func (b *routingBucketV2) saveV1(v1rule *model.RoutingConfig, v2rules []*model.ExtendRouterConfig) {
+func (b *routeRuleBucket) saveV1(v1rule *model.RoutingConfig, v2rules []*model.ExtendRouterConfig) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
@@ -191,14 +151,14 @@ func (b *routingBucketV2) saveV1(v1rule *model.RoutingConfig, v2rules []*model.E
 	}
 }
 
-func (b *routingBucketV2) convertV2Size() uint32 {
+func (b *routeRuleBucket) convertV2Size() uint32 {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 
 	return uint32(len(b.v1rulesToOld))
 }
 
-func (b *routingBucketV2) deleteV2(id string) {
+func (b *routeRuleBucket) deleteV2(id string) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
@@ -239,7 +199,7 @@ func (b *routingBucketV2) deleteV2(id string) {
 }
 
 // deleteV1 删除 v1 的路由规则
-func (b *routingBucketV2) deleteV1(serviceId string) {
+func (b *routeRuleBucket) deleteV1(serviceId string) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
@@ -256,7 +216,7 @@ func (b *routingBucketV2) deleteV1(serviceId string) {
 }
 
 // size Number of routing-v2 cache rules
-func (b *routingBucketV2) size() int {
+func (b *routeRuleBucket) size() int {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 
@@ -272,7 +232,7 @@ type predicate func(item *model.ExtendRouterConfig) bool
 
 // listByServiceWithPredicate Inquire the routing rules of the V2 version through the service name,
 // and perform some filtering according to the Predicate
-func (b *routingBucketV2) listByServiceWithPredicate(service, namespace string,
+func (b *routeRuleBucket) listByServiceWithPredicate(service, namespace string,
 	predicate predicate) map[routingLevel][]*model.ExtendRouterConfig {
 	ret := make(map[routingLevel][]*model.ExtendRouterConfig)
 	tmpRecord := map[string]struct{}{}
@@ -280,7 +240,7 @@ func (b *routingBucketV2) listByServiceWithPredicate(service, namespace string,
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 
-	// Query Level1 level V2 version routing rules
+	// Query Level1 V2 version routing rules
 	key := buildServiceKey(namespace, service)
 	ids := b.level1Rules[key]
 	level1 := make([]*model.ExtendRouterConfig, 0, 4)
@@ -328,7 +288,7 @@ func (b *routingBucketV2) listByServiceWithPredicate(service, namespace string,
 }
 
 // foreach Traversing all routing rules
-func (b *routingBucketV2) foreach(proc RoutingIterProc) {
+func (b *routeRuleBucket) foreach(proc RoutingIterProc) {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 

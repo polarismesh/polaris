@@ -150,7 +150,7 @@ func (cfr *configFileReleaseStore) FindConfigFileReleaseByModifyTimeAfter(
 
 func (cfr *configFileReleaseStore) CountConfigFileReleaseEachGroup() (map[string]map[string]int64, error) {
 	metricsSql := "SELECT namespace, `group`, count(file_name) FROM config_file_release " +
-		" WHERE flag = 0 GROUP by namesapce, `group`"
+		" WHERE flag = 0 GROUP by namespace, `group`"
 	rows, err := cfr.slave.Query(metricsSql)
 	if err != nil {
 		return nil, store.Error(err)
@@ -168,7 +168,7 @@ func (cfr *configFileReleaseStore) CountConfigFileReleaseEachGroup() (map[string
 			cnt      int64
 		)
 
-		if err := rows.Scan(&namespce, &group, cnt); err != nil {
+		if err := rows.Scan(&namespce, &group, &cnt); err != nil {
 			return nil, err
 		}
 		if _, ok := ret[namespce]; !ok {

@@ -61,14 +61,17 @@ func (s *Server) CreateRateLimits(ctx context.Context, request []*apitraffic.Rul
 	for _, rateLimit := range request {
 		var response *apiservice.Response
 		// create service if absent
-		code, svcId, err := s.createWrapServiceIfAbsent(ctx, rateLimit)
-
-		if err != nil {
-			log.Errorf("[Service]fail to create ratelimit config, err: %v", err)
-			response = api.NewRateLimitResponse(code, rateLimit)
-		} else {
-			response = s.CreateRateLimit(ctx, rateLimit, svcId)
+		svcId, errResp := s.createWrapServiceIfAbsent(ctx, rateLimit)
+		if errResp != nil {
+			log.Errorf("[Service]fail to create ratelimit config, err: %v", errResp.String())
+			api.Collect(responses, errResp)
+			continue
 		}
+		if len(svcId) == 0 {
+			api.Collect(responses, api.NewResponseWithMsg(apimodel.Code_BadRequest, "service id is empty"))
+			continue
+		}
+		response = s.CreateRateLimit(ctx, rateLimit, svcId)
 		api.Collect(responses, response)
 	}
 	return api.FormatBatchWriteResponse(responses)
@@ -258,10 +261,13 @@ func (s *Server) UpdateRateLimit(ctx context.Context, req *apitraffic.Rule) *api
 		return resp
 	}
 	// create service if absent
-	code, svcId, err := s.createWrapServiceIfAbsent(ctx, req)
-	if err != nil {
-		log.Errorf("[Service]fail to create ratelimit config, err: %v", err)
-		return api.NewRateLimitResponse(code, req)
+	svcId, errResp := s.createWrapServiceIfAbsent(ctx, req)
+	if errResp != nil {
+		log.Errorf("[Service]fail to create ratelimit config, err: %v", errResp.String())
+		return errResp
+	}
+	if len(svcId) == 0 {
+		return api.NewResponseWithMsg(apimodel.Code_BadRequest, "service id is empty")
 	}
 	// 构造底层数据结构
 	rateLimit, err := api2RateLimit(svcId, req, data)

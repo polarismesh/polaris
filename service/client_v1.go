@@ -139,68 +139,48 @@ func (s *Server) GetPrometheusTargets(ctx context.Context,
 	}
 }
 
-// GetServiceWithCache 根据元数据查询服务
+// GetServiceWithCache 查询服务列表
 func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	if s.caches == nil {
 		return api.NewDiscoverServiceResponse(apimodel.Code_ClientAPINotOpen, req)
 	}
-
 	if req == nil {
 		return api.NewDiscoverServiceResponse(apimodel.Code_EmptyRequest, req)
 	}
-	// 可根据business查询服务
-	// if len(req.GetMetadata()) == 0 && len(req.Business.GetValue()) == 0 {
-	// 	return api.NewDiscoverServiceResponse(api.InvalidServiceMetadata, req)
-	// }
-
-	requestID := utils.ParseRequestID(ctx)
 
 	resp := api.NewDiscoverServiceResponse(apimodel.Code_ExecuteSuccess, req)
+	var (
+		revision string
+		svcs     []*model.Service
+	)
 
-	resp.Services = []*apiservice.Service{}
-
-	serviceIterProc := func(key string, value *model.Service) (bool, error) {
-		if checkServiceMetadata(req.GetMetadata(), value, req.Business.GetValue(), req.Namespace.GetValue()) {
-			service := &apiservice.Service{
-				Name:      utils.NewStringValue(value.Name),
-				Namespace: utils.NewStringValue(value.Namespace),
-			}
-			resp.Services = append(resp.Services, service)
-		}
-		return true, nil
+	if req.GetNamespace().GetValue() != "" {
+		revision, svcs = s.Cache().Service().ListServices(req.GetNamespace().GetValue())
+	} else {
+		revision, svcs = s.Cache().Service().ListAllServices()
+	}
+	log.Info("[Service][Discover] list servies", zap.Int("size", len(svcs)), zap.String("revision", revision))
+	if revision == req.GetRevision().GetValue() {
+		return api.NewDiscoverInstanceResponse(apimodel.Code_DataNoChange, req)
 	}
 
-	if err := s.caches.Service().IteratorServices(serviceIterProc); err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return api.NewDiscoverServiceResponse(apimodel.Code_ExecuteException, req)
+	ret := make([]*apiservice.Service, 0, len(svcs))
+	for i := range svcs {
+		ret = append(ret, &apiservice.Service{
+			Namespace: utils.NewStringValue(svcs[i].Namespace),
+			Name:      utils.NewStringValue(svcs[i].Name),
+			Metadata:  svcs[i].Meta,
+		})
+	}
+
+	resp.Services = ret
+	resp.Service = &apiservice.Service{
+		Namespace: utils.NewStringValue(req.GetNamespace().GetValue()),
+		Name:      utils.NewStringValue(req.GetName().GetValue()),
+		Revision:  utils.NewStringValue(revision),
 	}
 
 	return resp
-}
-
-// checkServiceMetadata 判断请求元数据是否属于服务的元数据
-func checkServiceMetadata(requestMeta map[string]string, service *model.Service, business, namespace string) bool {
-	// if len(service.Meta) == 0 && len(business) == 0 {
-	// 	return false
-	// }
-	if len(business) > 0 && business != service.Business {
-		return false
-	}
-
-	if len(namespace) > 0 && namespace != service.Namespace {
-		return false
-	}
-
-	if len(requestMeta) != 0 {
-		for key, requestValue := range requestMeta {
-			value, ok := service.Meta[key]
-			if !ok || requestValue != value {
-				return false
-			}
-		}
-	}
-
-	return true
 }
 
 // ServiceInstancesCache 根据服务名查询服务实例列表
@@ -414,7 +394,7 @@ func (s *Server) GetFaultDetectWithCache(ctx context.Context, req *apiservice.Se
 	}
 
 	out := s.caches.FaultDetector().GetFaultDetectConfig(req.GetName().GetValue(), req.GetNamespace().GetValue())
-	if out == nil {
+	if out == nil || out.Revision == "" {
 		return resp
 	}
 
@@ -458,7 +438,7 @@ func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *apiservice
 	}
 
 	out := s.caches.CircuitBreaker().GetCircuitBreakerConfig(req.GetName().GetValue(), req.GetNamespace().GetValue())
-	if out == nil {
+	if out == nil || out.Revision == "" {
 		return resp
 	}
 

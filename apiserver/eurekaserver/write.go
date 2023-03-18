@@ -97,24 +97,18 @@ func buildBaseInstance(instance *InstanceInfo, namespace string, appId string) *
 
 func buildHealthCheck(instance *InstanceInfo, targetInstance *apiservice.Instance, eurekaMetadata map[string]string) {
 	leaseInfo := instance.LeaseInfo
-	var durationInSecs int
-	var renewalIntervalInSecs int
+	durationInSecs := DefaultDuration
+	renewalIntervalInSecs := DefaultRenewInterval
 	if leaseInfo != nil {
-		renewalIntervalInSecs = leaseInfo.RenewalIntervalInSecs
-		durationInSecs = leaseInfo.DurationInSecs
-		if renewalIntervalInSecs == 0 {
-			renewalIntervalInSecs = DefaultRenewInterval
+		if leaseInfo.RenewalIntervalInSecs != 0 {
+			renewalIntervalInSecs = leaseInfo.RenewalIntervalInSecs
 		}
-		if durationInSecs == 0 {
-			durationInSecs = DefaultDuration
-		}
-		if renewalIntervalInSecs != DefaultRenewInterval {
-			eurekaMetadata[MetadataRenewalInterval] = strconv.Itoa(renewalIntervalInSecs)
-		}
-		if durationInSecs != DefaultDuration {
-			eurekaMetadata[MetadataDuration] = strconv.Itoa(durationInSecs)
+		if leaseInfo.DurationInSecs != 0 {
+			durationInSecs = leaseInfo.DurationInSecs
 		}
 	}
+	eurekaMetadata[MetadataRenewalInterval] = strconv.Itoa(renewalIntervalInSecs)
+	eurekaMetadata[MetadataDuration] = strconv.Itoa(durationInSecs)
 	durationMin := math.Ceil(float64(durationInSecs) / 3)
 	ttl := uint32(math.Min(durationMin, float64(renewalIntervalInSecs)))
 

@@ -51,15 +51,16 @@ func (s *Server) CreateConfigFileGroup(
 	groupName := configFileGroup.Name.GetValue()
 
 	// 如果 namespace 不存在则自动创建
-	if err := s.namespaceOperator.CreateNamespaceIfAbsent(ctx, &apimodel.Namespace{
+	_, errResp := s.namespaceOperator.CreateNamespaceIfAbsent(ctx, &apimodel.Namespace{
 		Name: utils.NewStringValue(namespace),
-	}); err != nil {
+	})
+	if errResp != nil {
 		log.Error("[Config][Service] create namespace failed.",
 			utils.ZapRequestID(requestID),
 			zap.String("namespace", namespace),
 			zap.String("group", groupName),
-			zap.Error(err))
-		return api.NewConfigFileGroupResponse(apimodel.Code_StoreLayerException, configFileGroup)
+			zap.String("err", errResp.String()))
+		return api.NewConfigFileGroupResponse(apimodel.Code(errResp.Code.GetValue()), configFileGroup)
 	}
 
 	fileGroup, err := s.storage.GetConfigFileGroup(namespace, groupName)

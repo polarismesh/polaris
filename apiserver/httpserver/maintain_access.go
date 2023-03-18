@@ -50,7 +50,8 @@ func (h *HTTPServer) GetMaintainAccessServer() *restful.WebService {
 	ws.Route(enrichSetLogOutputLevelApiDocs(ws.PUT("/log/outputlevel").To(h.SetLogOutputLevel)))
 	ws.Route(enrichListLeaderElectionsApiDocs(ws.GET("/leaders").To(h.ListLeaderElections)))
 	ws.Route(enrichReleaseLeaderElectionApiDocs(ws.POST("/leaders/release").To(h.ReleaseLeaderElection)))
-	ws.Route(ws.GET("/cmdb/info").To(h.GetCMDBInfo))
+	ws.Route(enrichGetCMDBInfoApiDocs(ws.GET("/cmdb/info").To(h.GetCMDBInfo)))
+	ws.Route(enrichGetReportClientsApiDocs(ws.GET("/report/clients").To(h.GetReportClients)))
 	return ws
 }
 
