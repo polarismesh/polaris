@@ -23,6 +23,7 @@ import (
 
 	"github.com/robfig/cron/v3"
 
+	"github.com/polarismesh/polaris/cache"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/service"
@@ -40,12 +41,16 @@ type MaintainJobs struct {
 }
 
 // NewMaintainJobs
-func NewMaintainJobs(namingServer service.DiscoverServer, storage store.Store) *MaintainJobs {
+func NewMaintainJobs(namingServer service.DiscoverServer, cacheMgn *cache.CacheManager,
+	storage store.Store) *MaintainJobs {
 	return &MaintainJobs{
 		jobs: map[string]maintainJob{
-			"DeleteUnHealthyInstance":       &deleteUnHealthyInstanceJob{namingServer: namingServer, storage: storage},
-			"DeleteEmptyAutoCreatedService": &deleteEmptyAutoCreatedServiceJob{namingServer: namingServer, storage: storage},
-			"CleanDeletedInstances":         &cleanDeletedInstancesJob{storage: storage},
+			"DeleteUnHealthyInstance": &deleteUnHealthyInstanceJob{
+				namingServer: namingServer, storage: storage},
+			"DeleteEmptyAutoCreatedService": &deleteEmptyAutoCreatedServiceJob{
+				namingServer: namingServer, cacheMgn: cacheMgn, storage: storage},
+			"CleanDeletedInstances": &cleanDeletedInstancesJob{
+				storage: storage},
 		},
 		startedJobs: map[string]maintainJob{},
 		scheduler:   newCron(),
@@ -107,6 +112,7 @@ func newCronCmd(name string, job maintainJob, storage store.Store) func() {
 	return func() {
 		if !storage.IsLeader(store.ElectionKeyMaintainJobPrefix + name) {
 			log.Infof("[Maintain][Job][%s] I am follower", name)
+			job.clear()
 			return
 		}
 		log.Infof("[Maintain][Job][%s] I am leader, job start", name)
@@ -119,6 +125,7 @@ func newCronCmd(name string, job maintainJob, storage store.Store) func() {
 type maintainJob interface {
 	init(cfg map[string]interface{}) error
 	execute()
+	clear()
 }
 
 func getMasterAccountToken(storage store.Store) (string, error) {

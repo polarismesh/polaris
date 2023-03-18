@@ -400,7 +400,9 @@ maintain:
     # Delete auto-created service without an instance
     - name: DeleteEmptyAutoCreatedService
       enable: false
-      cronSpec: "0 * * * ?"
+      cronSpec: "*/10 * * * ?"
+      option:
+        serviceDeleteTimeout: 30m
     # Clean soft deleted instances
     - name: CleanDeletedInstances
       enable: true

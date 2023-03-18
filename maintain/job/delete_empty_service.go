@@ -18,22 +18,49 @@
 package job
 
 import (
-	"fmt"
-	"strconv"
+	"time"
 
+	"github.com/mitchellh/mapstructure"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
+	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/store"
 )
 
+type deleteEmptyAutoCreatedServiceJobConfig struct {
+	serviceDeleteTimeout time.Duration `mapstructure:"serviceDeleteTimeout"`
+}
+
 type deleteEmptyAutoCreatedServiceJob struct {
-	namingServer service.DiscoverServer
-	storage      store.Store
+	cfg           *deleteEmptyAutoCreatedServiceJobConfig
+	namingServer  service.DiscoverServer
+	cacheMgn      *cache.CacheManager
+	storage       store.Store
+	emptyServices map[string]time.Time
 }
 
 func (job *deleteEmptyAutoCreatedServiceJob) init(raw map[string]interface{}) error {
+	cfg := &deleteEmptyAutoCreatedServiceJobConfig{}
+	decodeConfig := &mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
+		Result:     cfg,
+	}
+	decoder, err := mapstructure.NewDecoder(decodeConfig)
+	if err != nil {
+		log.Errorf("[Maintain][Job][DeleteEmptyAutoCreatedService] new config decoder err: %v", err)
+		return err
+	}
+	err = decoder.Decode(raw)
+	if err != nil {
+		log.Errorf("[Maintain][Job][DeleteEmptyAutoCreatedService] parse config err: %v", err)
+		return err
+	}
+	job.cfg = cfg
+	job.emptyServices = map[string]time.Time{}
 	return nil
 }
 
@@ -44,48 +71,44 @@ func (job *deleteEmptyAutoCreatedServiceJob) execute() {
 	}
 }
 
-func (job *deleteEmptyAutoCreatedServiceJob) getEmptyAutoCreatedServices() ([]*apiservice.Service, error) {
-	var emtpyServices []*apiservice.Service
-	var offset uint32 = 0
-	var query = map[string]string{
-		"keys":   service.MetadataInternalAutoCreated,
-		"values": "true",
-		"limit":  "100",
-		"offset": strconv.Itoa(int(offset))}
+func (job *deleteEmptyAutoCreatedServiceJob) clear() {
+	job.emptyServices = map[string]time.Time{}
+}
 
-	for {
-		ctx, err := buildContext(job.storage)
-		if err != nil {
-			log.Errorf("[Maintain][Job][DeleteUnHealthyInstance] build conetxt, err: %v", err)
-			return nil, err
+func (job *deleteEmptyAutoCreatedServiceJob) getEmptyAutoCreatedServices() []*model.Service {
+	var res []*model.Service
+	_ = job.cacheMgn.Service().IteratorServices(func(key string, svc *model.Service) (bool, error) {
+		if svc.IsAlias() {
+			return true, nil
 		}
-		resp := job.namingServer.GetServices(ctx, query)
-		if api.CalcCode(resp) != 200 {
-			return nil, fmt.Errorf("GetServices err, code: %d, info: %s", resp.Code.GetValue(), resp.Info.GetValue())
+		v, ok := svc.Meta[service.MetadataInternalAutoCreated]
+		if !ok || v != "true" {
+			return true, nil
 		}
+		count := job.cacheMgn.Instance().GetInstancesCountByServiceID(svc.ID)
+		if count.TotalInstanceCount == 0 {
+			res = append(res, svc)
+		}
+		return true, nil
+	})
 
-		for _, entry := range resp.Services {
-			if entry.TotalInstanceCount.GetValue() > 0 {
-				continue
-			}
-			emtpyServices = append(emtpyServices, entry)
+	var toDeleteServices []*model.Service
+	m := map[string]time.Time{}
+	for _, svc := range res {
+		value, ok := job.emptyServices[svc.ID]
+		if ok && time.Now().After(value.Add(job.cfg.serviceDeleteTimeout)) {
+			toDeleteServices = append(toDeleteServices, svc)
+		} else {
+			m[svc.ID] = time.Now()
 		}
-
-		nextOffset := offset + resp.Size.GetValue()
-		if nextOffset >= resp.Amount.GetValue() {
-			break
-		}
-		offset = nextOffset
-		query["offset"] = strconv.Itoa(int(offset))
 	}
-	return emtpyServices, nil
+	job.emptyServices = m
+
+	return toDeleteServices
 }
 
 func (job *deleteEmptyAutoCreatedServiceJob) deleteEmptyAutoCreatedServices() error {
-	emptyServices, err := job.getEmptyAutoCreatedServices()
-	if err != nil {
-		return err
-	}
+	emptyServices := job.getEmptyAutoCreatedServices()
 
 	deleteBatchSize := 100
 	for i := 0; i < len(emptyServices); i += deleteBatchSize {
@@ -99,7 +122,7 @@ func (job *deleteEmptyAutoCreatedServiceJob) deleteEmptyAutoCreatedServices() er
 			log.Errorf("[Maintain][Job][DeleteUnHealthyInstance] build conetxt, err: %v", err)
 			return err
 		}
-		resp := job.namingServer.DeleteServices(ctx, emptyServices[i:j])
+		resp := job.namingServer.DeleteServices(ctx, convertDeleteServiceRequest(emptyServices[i:j]))
 		if api.CalcCode(resp) != 200 {
 			log.Errorf("[Maintain][Job][DeleteEmptyAutoCreatedService] delete services err, code: %d, info: %s",
 				resp.Code.GetValue(), resp.Info.GetValue())
@@ -109,4 +132,15 @@ func (job *deleteEmptyAutoCreatedServiceJob) deleteEmptyAutoCreatedServices() er
 	log.Infof("[Maintain][Job][DeleteEmptyAutoCreatedService] delete empty auto-created services count %d",
 		len(emptyServices))
 	return nil
+}
+
+func convertDeleteServiceRequest(infos []*model.Service) []*apiservice.Service {
+	var entries = make([]*apiservice.Service, len(infos))
+	for i, info := range infos {
+		entries[i] = &apiservice.Service{
+			Namespace: utils.NewStringValue(info.Namespace),
+			Name:      utils.NewStringValue(info.Name),
+		}
+	}
+	return entries
 }

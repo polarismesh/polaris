@@ -20,6 +20,7 @@ package maintain
 import (
 	"sync"
 
+	"github.com/polarismesh/polaris/cache"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/healthcheck"
 	"github.com/polarismesh/polaris/store"
@@ -31,5 +32,6 @@ type Server struct {
 	mu                sync.Mutex
 	namingServer      service.DiscoverServer
 	healthCheckServer *healthcheck.Server
+	cacheMgn          *cache.CacheManager
 	storage           store.Store
 }

@@ -98,3 +98,6 @@ func (job *deleteUnHealthyInstanceJob) execute() {
 	log.Infof("[Maintain][Job][DeleteUnHealthyInstance] delete unhealthy instance count %d", count)
 
 }
+
+func (job *deleteUnHealthyInstanceJob) clear() {
+}

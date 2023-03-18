@@ -22,6 +22,7 @@ import (
 	"errors"
 
 	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/cache"
 	"github.com/polarismesh/polaris/maintain/job"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/healthcheck"
@@ -36,13 +37,13 @@ var (
 
 // Initialize 初始化
 func Initialize(ctx context.Context, cfg *Config, namingService service.DiscoverServer,
-	healthCheckServer *healthcheck.Server, storage store.Store) error {
+	healthCheckServer *healthcheck.Server, cacheMgn *cache.CacheManager, storage store.Store) error {
 
 	if finishInit {
 		return nil
 	}
 
-	err := initialize(ctx, cfg, namingService, healthCheckServer, storage)
+	err := initialize(ctx, cfg, namingService, healthCheckServer, cacheMgn, storage)
 	if err != nil {
 		return err
 	}
@@ -52,7 +53,7 @@ func Initialize(ctx context.Context, cfg *Config, namingService service.Discover
 }
 
 func initialize(_ context.Context, cfg *Config, namingService service.DiscoverServer,
-	healthCheckServer *healthcheck.Server, storage store.Store) error {
+	healthCheckServer *healthcheck.Server, cacheMgn *cache.CacheManager, storage store.Store) error {
 
 	authServer, err := auth.GetAuthServer()
 	if err != nil {
@@ -61,9 +62,10 @@ func initialize(_ context.Context, cfg *Config, namingService service.DiscoverSe
 
 	maintainServer.namingServer = namingService
 	maintainServer.healthCheckServer = healthCheckServer
+	maintainServer.cacheMgn = cacheMgn
 	maintainServer.storage = storage
 
-	maintainJobs := job.NewMaintainJobs(namingService, storage)
+	maintainJobs := job.NewMaintainJobs(namingService, cacheMgn, storage)
 	if err := maintainJobs.StartMaintianJobs(cfg.Jobs); err != nil {
 		return err
 	}

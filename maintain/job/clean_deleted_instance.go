@@ -45,3 +45,6 @@ func (job *cleanDeletedInstancesJob) execute() {
 		}
 	}
 }
+
+func (job *cleanDeletedInstancesJob) clear() {
+}
