@@ -68,7 +68,7 @@ func init() {
 
 // newFaultDetectCache faultDetectCache constructor
 func newFaultDetectCache(s store.Store) *faultDetectCache {
-	return &faultDetectCache{
+	fdCache := &faultDetectCache{
 		baseCache:        newBaseCache(s),
 		storage:          s,
 		svcSpecificRules: make(map[string]map[string]*model.ServiceWithFaultDetectRules),
@@ -78,6 +78,8 @@ func newFaultDetectCache(s store.Store) *faultDetectCache {
 			Name:      allMatched,
 		}),
 	}
+	fdCache.reloadRevision(fdCache.allWildcardRules)
+	return fdCache
 }
 
 // initialize 实现Cache接口的函数
@@ -111,6 +113,7 @@ func (f *faultDetectCache) clear() error {
 	f.allWildcardRules.Clear()
 	f.nsWildcardRules = make(map[string]*model.ServiceWithFaultDetectRules)
 	f.svcSpecificRules = make(map[string]map[string]*model.ServiceWithFaultDetectRules)
+	f.reloadRevision(f.allWildcardRules)
 	f.lock.Unlock()
 	return nil
 }
@@ -156,11 +159,9 @@ func (f *faultDetectCache) checkNamespaceSpecificCache(namespace string) *model.
 
 func (f *faultDetectCache) reloadRevision(svcRules *model.ServiceWithFaultDetectRules) {
 	rulesCount := svcRules.CountFaultDetectRules()
-	if rulesCount == 0 {
-		svcRules.Revision = ""
-		return
-	}
-	revisions := make([]string, 0, rulesCount)
+	revisions := make([]string, 0, rulesCount+2)
+	revisions = append(revisions, svcRules.Service.Namespace)
+	revisions = append(revisions, svcRules.Service.Name)
 	svcRules.IterateFaultDetectRules(func(rule *model.FaultDetectRule) {
 		revisions = append(revisions, rule.Revision)
 	})

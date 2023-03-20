@@ -69,7 +69,7 @@ func init() {
 
 // newCircuitBreakerCache 返回一个操作CircuitBreakerCache的对象
 func newCircuitBreakerCache(s store.Store) *circuitBreakerCache {
-	return &circuitBreakerCache{
+	cbCache := &circuitBreakerCache{
 		baseCache:       newBaseCache(s),
 		storage:         s,
 		circuitBreakers: make(map[string]map[string]*model.ServiceWithCircuitBreakerRules),
@@ -79,6 +79,8 @@ func newCircuitBreakerCache(s store.Store) *circuitBreakerCache {
 			Name:      allMatched,
 		}),
 	}
+	cbCache.reloadRevision(cbCache.allWildcardRules)
+	return cbCache
 }
 
 // initialize 实现Cache接口的函数
@@ -112,6 +114,7 @@ func (c *circuitBreakerCache) clear() error {
 	c.allWildcardRules.Clear()
 	c.nsWildcardRules = make(map[string]*model.ServiceWithCircuitBreakerRules)
 	c.circuitBreakers = make(map[string]map[string]*model.ServiceWithCircuitBreakerRules)
+	c.reloadRevision(c.allWildcardRules)
 	c.lock.Unlock()
 	return nil
 }
@@ -155,11 +158,9 @@ func (c *circuitBreakerCache) checkNamespaceSpecificCache(namespace string) *mod
 
 func (c *circuitBreakerCache) reloadRevision(svcRules *model.ServiceWithCircuitBreakerRules) {
 	rulesCount := svcRules.CountCircuitBreakerRules()
-	if rulesCount == 0 {
-		svcRules.Revision = ""
-		return
-	}
-	revisions := make([]string, 0, rulesCount)
+	revisions := make([]string, 0, rulesCount+2)
+	revisions = append(revisions, svcRules.Service.Namespace)
+	revisions = append(revisions, svcRules.Service.Name)
 	svcRules.IterateCircuitBreakerRules(func(rule *model.CircuitBreakerRule) {
 		revisions = append(revisions, rule.Revision)
 	})
