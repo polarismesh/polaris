@@ -70,18 +70,47 @@ func (c *circuitBreakerStore) CreateCircuitBreakerRule(cbRule *model.CircuitBrea
 	return nil
 }
 
+const (
+	cbFieldLevel        = "Level"
+	cbFieldSrcService   = "SrcService"
+	cbFieldSrcNamespace = "SrcNamespace"
+	cbFieldDstService   = "DstService"
+	cbFieldDstNamespace = "DstNamespace"
+	cbFieldDstMethod    = "DstMethod"
+)
+
 // UpdateCircuitBreakerRule update general circuitbreaker rule
 func (c *circuitBreakerStore) UpdateCircuitBreakerRule(cbRule *model.CircuitBreakerRule) error {
 	dbOp := c.handler
-	cbRule.Valid = true
-	cbRule.ModifyTime = time.Now()
+	return dbOp.Execute(true, func(tx *bolt.Tx) error {
+		properties := make(map[string]interface{})
+		properties[CommonFieldName] = cbRule.Name
+		properties[CommonFieldNamespace] = cbRule.Namespace
+		properties[CommonFieldDescription] = cbRule.Description
+		properties[cbFieldLevel] = cbRule.Level
+		properties[cbFieldSrcService] = cbRule.SrcService
+		properties[cbFieldSrcNamespace] = cbRule.SrcNamespace
+		properties[cbFieldDstService] = cbRule.DstService
+		properties[cbFieldDstNamespace] = cbRule.DstNamespace
+		properties[cbFieldDstMethod] = cbRule.DstMethod
+		properties[CommonFieldValid] = true
+		properties[CommonFieldModifyTime] = time.Now()
+		properties[CommonFieldRule] = cbRule.Rule
+		properties[CommonFieldRevision] = cbRule.Revision
+		properties[CommonFieldEnable] = cbRule.Enable
+		if cbRule.Enable {
+			properties[CommonFieldEnableTime] = time.Now()
+		} else {
+			properties[CommonFieldEnableTime] = time.Unix(0, 0)
+		}
 
-	if err := dbOp.SaveValue(tblCircuitBreakerRule, cbRule.ID, cbRule); err != nil {
-		log.Errorf("[Store][CircuitBreaker] update rule(%s) exec err: %s", cbRule.ID, err.Error())
-		return store.Error(err)
-	}
+		if err := updateValue(tx, tblCircuitBreakerRule, cbRule.ID, properties); err != nil {
+			log.Errorf("[Store][CircuitBreaker] update rule(%s) err: %s", cbRule.ID, err.Error())
+			return err
+		}
 
-	return nil
+		return nil
+	})
 }
 
 // DeleteCircuitBreakerRule delete general circuitbreaker rule

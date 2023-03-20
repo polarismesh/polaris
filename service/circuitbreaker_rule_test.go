@@ -244,4 +244,33 @@ func TestCreateCircuitBreakerRule(t *testing.T) {
 		anyValues = batchResp.GetData()
 		assert.Equal(t, 0, len(anyValues))
 	})
+
+	t.Run("创建熔断规则，更新，创建时间保持不变", func(t *testing.T) {
+		cbRules, firstResp := createCircuitBreakerRules(discoverSuit, 1)
+		defer cleanCircuitBreakerRules(discoverSuit, firstResp)
+		checkCircuitBreakerRuleResponse(t, cbRules, firstResp)
+
+		batchResp := discoverSuit.DiscoverServer().GetCircuitBreakerRules(
+			discoverSuit.DefaultCtx, map[string]string{"name": "test-circuitbreaker-rule"})
+		assert.Equal(t, int(apimodel.Code_ExecuteSuccess), int(batchResp.GetCode().GetValue()))
+		anyValues := batchResp.GetData()
+		msg := &apifault.CircuitBreakerRule{}
+		err := ptypes.UnmarshalAny(anyValues[0], msg)
+		assert.Nil(t, err)
+		lastCtime := msg.GetCtime()
+
+		cbRules[0].Description = "comment you"
+		updateResp := discoverSuit.DiscoverServer().UpdateCircuitBreakerRules(discoverSuit.DefaultCtx, cbRules)
+		assert.Equal(t, int(apimodel.Code_ExecuteSuccess), int(updateResp.GetCode().GetValue()))
+
+		batchResp = discoverSuit.DiscoverServer().GetCircuitBreakerRules(
+			discoverSuit.DefaultCtx, map[string]string{"name": "test-circuitbreaker-rule"})
+		assert.Equal(t, int(apimodel.Code_ExecuteSuccess), int(batchResp.GetCode().GetValue()))
+		anyValues = batchResp.GetData()
+		msg = &apifault.CircuitBreakerRule{}
+		err = ptypes.UnmarshalAny(anyValues[0], msg)
+		assert.Nil(t, err)
+		assert.Equal(t, lastCtime, msg.GetCtime())
+
+	})
 }

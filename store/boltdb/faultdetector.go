@@ -76,15 +76,26 @@ func (c *faultDetectStore) CreateFaultDetectRule(fdRule *model.FaultDetectRule) 
 // UpdateFaultDetectRule update fault detect rule
 func (c *faultDetectStore) UpdateFaultDetectRule(fdRule *model.FaultDetectRule) error {
 	dbOp := c.handler
-	fdRule.Valid = true
-	fdRule.ModifyTime = time.Now()
+	return dbOp.Execute(true, func(tx *bolt.Tx) error {
+		properties := make(map[string]interface{})
+		properties[CommonFieldName] = fdRule.Name
+		properties[CommonFieldNamespace] = fdRule.Namespace
+		properties[CommonFieldDescription] = fdRule.Description
+		properties[fdFieldDstService] = fdRule.DstService
+		properties[fdFieldDstNamespace] = fdRule.DstNamespace
+		properties[fdFieldDstMethod] = fdRule.DstMethod
+		properties[CommonFieldRule] = fdRule.Rule
+		properties[CommonFieldRevision] = fdRule.Revision
+		properties[CommonFieldValid] = true
+		properties[CommonFieldModifyTime] = time.Now()
 
-	if err := dbOp.SaveValue(tblFaultDetectRule, fdRule.ID, fdRule); err != nil {
-		log.Errorf("[Store][fault-detect] update rule(%s) exec err: %s", fdRule.ID, err.Error())
-		return store.Error(err)
-	}
+		if err := updateValue(tx, tblFaultDetectRule, fdRule.ID, properties); err != nil {
+			log.Errorf("[Store][fault-detect] delete rule(%s) err: %s", fdRule.ID, err.Error())
+			return err
+		}
 
-	return nil
+		return nil
+	})
 }
 
 // DeleteFaultDetectRule delete fault detect rule
