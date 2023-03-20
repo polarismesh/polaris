@@ -250,7 +250,7 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 	h.enableSelfPreservation = enableSelfPreservation
 
 	if value, ok := option[optionGenerateUniqueInstId]; ok {
-		h.generateUniqueInstId = value.(bool)
+		h.generateUniqueInstId, _ = value.(bool)
 	} else {
 		h.generateUniqueInstId = false
 	}
