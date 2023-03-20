@@ -18,9 +18,11 @@
 package service_test
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -177,5 +179,20 @@ func TestCreateFaultDetectRule(t *testing.T) {
 			}(i)
 		}
 		wg.Wait()
+	})
+
+	t.Run("创建探测规则，并通过客户端接口查询，返回正确规则", func(t *testing.T) {
+		fdRules, resp := createFaultDetectRules(discoverSuit, 1)
+		defer cleanFaultDetectRules(discoverSuit, resp)
+		checkFaultDetectRuleResponse(t, fdRules, resp)
+		time.Sleep(5 * time.Second)
+		discoverResp := discoverSuit.DiscoverServer().GetFaultDetectWithCache(context.Background(), &apiservice.Service{
+			Name:      &wrappers.StringValue{Value: "testDestService"},
+			Namespace: &wrappers.StringValue{Value: "test"},
+		})
+		assert.Equal(t, int(apimodel.Code_ExecuteSuccess), int(discoverResp.GetCode().GetValue()))
+		faultDetector := discoverResp.GetFaultDetector()
+		assert.NotNil(t, faultDetector)
+		assert.Equal(t, 1, len(faultDetector.GetRules()))
 	})
 }

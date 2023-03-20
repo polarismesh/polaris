@@ -21,6 +21,7 @@ package i18n
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/BurntSushi/toml"
 	ii18n "github.com/nicksnyder/go-i18n/v2/i18n"
@@ -28,18 +29,18 @@ import (
 	"golang.org/x/text/language"
 
 	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 var (
 	bundle       *ii18n.Bundle
 	i18nMsgCache map[uint32]*ii18n.Message
+	once         sync.Once
 )
 
 func init() {
 	bundle = ii18n.NewBundle(language.English)
 	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
-	LoadI18nMessageFile("conf/i18n/zh.toml")
-	LoadI18nMessageFile("conf/i18n/en.toml")
 }
 
 // LoadI18nMessageFile 加载i18n配置文件
@@ -51,6 +52,10 @@ func LoadI18nMessageFile(path string) {
 
 // Translate 国际化code所对应的msg信息
 func Translate(code uint32, langs ...string) (string, error) {
+	once.Do(func() {
+		LoadI18nMessageFile(utils.ConfDir + "i18n/zh.toml")
+		LoadI18nMessageFile(utils.ConfDir + "i18n/en.toml")
+	})
 	msg, ok := i18nMsgCache[code]
 	if !ok {
 		msg = &ii18n.Message{ID: fmt.Sprintf("%d", code)}
