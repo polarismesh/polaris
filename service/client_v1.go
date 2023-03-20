@@ -414,7 +414,7 @@ func (s *Server) GetFaultDetectWithCache(ctx context.Context, req *apiservice.Se
 	}
 
 	out := s.caches.FaultDetector().GetFaultDetectConfig(req.GetName().GetValue(), req.GetNamespace().GetValue())
-	if out == nil {
+	if out == nil || out.Revision == "" {
 		return resp
 	}
 
@@ -458,7 +458,7 @@ func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *apiservice
 	}
 
 	out := s.caches.CircuitBreaker().GetCircuitBreakerConfig(req.GetName().GetValue(), req.GetNamespace().GetValue())
-	if out == nil {
+	if out == nil || out.Revision == "" {
 		return resp
 	}
 

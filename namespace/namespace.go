@@ -19,7 +19,6 @@ package namespace
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -56,29 +55,32 @@ func (s *Server) CreateNamespaces(ctx context.Context, req []*apimodel.Namespace
 }
 
 // CreateNamespaceIfAbsent 创建命名空间，如果不存在
-func (s *Server) CreateNamespaceIfAbsent(ctx context.Context, req *apimodel.Namespace) error {
+func (s *Server) CreateNamespaceIfAbsent(ctx context.Context,
+	req *apimodel.Namespace) (string, *apiservice.Response) {
 	if !s.allowAutoCreate() {
-		return errors.New("not allow auto create namespace")
+		return "", api.NewResponseWithMsg(apimodel.Code_ExecuteException, "not allow auto create namespace")
 	}
-
 	if resp := checkCreateNamespace(req); resp != nil {
-		return errors.New(resp.GetInfo().GetValue())
+		return "", resp
 	}
-
-	if val := s.caches.Namespace().GetNamespace(req.GetName().GetValue()); val != nil {
-		return nil
+	name := req.GetName().GetValue()
+	if val := s.caches.Namespace().GetNamespace(name); val != nil {
+		return name, nil
 	}
-
-	_, err, _ := s.createNamespaceSingle.Do(req.GetName().GetValue(), func() (interface{}, error) {
-		resp := s.CreateNamespace(ctx, req)
-		code := resp.GetCode().GetValue()
-		if code == uint32(apimodel.Code_ExecuteSuccess) || code == uint32(apimodel.Code_ExistedResource) {
-			return nil, nil
-		}
-		return nil, errors.New(resp.GetInfo().GetValue())
+	ret, err, _ := s.createNamespaceSingle.Do(name, func() (interface{}, error) {
+		return s.CreateNamespace(ctx, req), nil
 	})
-
-	return err
+	if err != nil {
+		return "", api.NewResponseWithMsg(apimodel.Code_ExecuteException, err.Error())
+	}
+	var (
+		resp = ret.(*apiservice.Response)
+		code = resp.GetCode().GetValue()
+	)
+	if code == uint32(apimodel.Code_ExecuteSuccess) || code == uint32(apimodel.Code_ExistedResource) {
+		return name, nil
+	}
+	return "", resp
 }
 
 // CreateNamespace 创建单个命名空间
