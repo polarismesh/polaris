@@ -362,7 +362,7 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 		writeHeader(http.StatusBadRequest, rsp)
 		return
 	}
-	
+
 	if !checkRegisterRequest(registrationRequest, req, rsp) {
 		return
 	}

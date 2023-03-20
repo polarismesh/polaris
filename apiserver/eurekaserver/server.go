@@ -144,8 +144,8 @@ type EurekaServer struct {
 	replicateWorker        *ReplicateWorker
 	eventHandlerHandler    *EurekaInstanceEventHandler
 
-	replicatePeers []string
-	generateUniqueInstId   bool
+	replicatePeers       []string
+	generateUniqueInstId bool
 }
 
 // GetPort 获取端口
