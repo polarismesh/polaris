@@ -99,7 +99,8 @@ func (job *deleteEmptyAutoCreatedServiceJob) getAllEmptyAutoCreatedServices() []
 	return res
 }
 
-func (job *deleteEmptyAutoCreatedServiceJob) filterToDeletedServices(services []*model.Service, now time.Time, timeout time.Duration) []*model.Service {
+func (job *deleteEmptyAutoCreatedServiceJob) filterToDeletedServices(services []*model.Service,
+	now time.Time, timeout time.Duration) []*model.Service {
 	var toDeleteServices []*model.Service
 	m := map[string]time.Time{}
 	for _, svc := range services {
