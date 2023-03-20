@@ -29,18 +29,18 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
-type deleteUnHealthyInstanceJobConfig struct {
-	instanceDeleteTimeout time.Duration `mapstructure:"instanceDeleteTimeout"`
+type DeleteUnHealthyInstanceJobConfig struct {
+	InstanceDeleteTimeout time.Duration `mapstructure:"instanceDeleteTimeout"`
 }
 
 type deleteUnHealthyInstanceJob struct {
-	cfg          *deleteUnHealthyInstanceJobConfig
+	cfg          *DeleteUnHealthyInstanceJobConfig
 	namingServer service.DiscoverServer
 	storage      store.Store
 }
 
 func (job *deleteUnHealthyInstanceJob) init(raw map[string]interface{}) error {
-	cfg := &deleteUnHealthyInstanceJobConfig{}
+	cfg := &DeleteUnHealthyInstanceJobConfig{}
 	decodeConfig := &mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
 		Result:     cfg,
@@ -64,7 +64,7 @@ func (job *deleteUnHealthyInstanceJob) execute() {
 	batchSize := uint32(100)
 	var count int = 0
 	for {
-		instanceIds, err := job.storage.GetUnHealthyInstances(job.cfg.instanceDeleteTimeout, batchSize)
+		instanceIds, err := job.storage.GetUnHealthyInstances(job.cfg.InstanceDeleteTimeout, batchSize)
 		if err != nil {
 			log.Errorf("[Maintain][Job][DeleteUnHealthyInstance] get unhealthy instances, err: %v", err)
 			break

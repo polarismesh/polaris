@@ -31,12 +31,12 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
-type deleteEmptyAutoCreatedServiceJobConfig struct {
-	serviceDeleteTimeout time.Duration `mapstructure:"serviceDeleteTimeout"`
+type DeleteEmptyAutoCreatedServiceJobConfig struct {
+	ServiceDeleteTimeout time.Duration `mapstructure:"serviceDeleteTimeout"`
 }
 
 type deleteEmptyAutoCreatedServiceJob struct {
-	cfg           *deleteEmptyAutoCreatedServiceJobConfig
+	cfg           *DeleteEmptyAutoCreatedServiceJobConfig
 	namingServer  service.DiscoverServer
 	cacheMgn      *cache.CacheManager
 	storage       store.Store
@@ -44,7 +44,7 @@ type deleteEmptyAutoCreatedServiceJob struct {
 }
 
 func (job *deleteEmptyAutoCreatedServiceJob) init(raw map[string]interface{}) error {
-	cfg := &deleteEmptyAutoCreatedServiceJobConfig{}
+	cfg := &DeleteEmptyAutoCreatedServiceJobConfig{}
 	decodeConfig := &mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
 		Result:     cfg,
@@ -76,6 +76,11 @@ func (job *deleteEmptyAutoCreatedServiceJob) clear() {
 }
 
 func (job *deleteEmptyAutoCreatedServiceJob) getEmptyAutoCreatedServices() []*model.Service {
+	services := job.getAllEmptyAutoCreatedServices()
+	return job.filterToDeletedServices(services, time.Now(), job.cfg.ServiceDeleteTimeout)
+}
+
+func (job *deleteEmptyAutoCreatedServiceJob) getAllEmptyAutoCreatedServices() []*model.Service {
 	var res []*model.Service
 	_ = job.cacheMgn.Service().IteratorServices(func(key string, svc *model.Service) (bool, error) {
 		if svc.IsAlias() {
@@ -91,15 +96,22 @@ func (job *deleteEmptyAutoCreatedServiceJob) getEmptyAutoCreatedServices() []*mo
 		}
 		return true, nil
 	})
+	return res
+}
 
+func (job *deleteEmptyAutoCreatedServiceJob) filterToDeletedServices(services []*model.Service, now time.Time, timeout time.Duration) []*model.Service {
 	var toDeleteServices []*model.Service
 	m := map[string]time.Time{}
-	for _, svc := range res {
+	for _, svc := range services {
 		value, ok := job.emptyServices[svc.ID]
-		if ok && time.Now().After(value.Add(job.cfg.serviceDeleteTimeout)) {
+		if !ok {
+			m[svc.ID] = now
+			continue
+		}
+		if now.After(value.Add(timeout)) {
 			toDeleteServices = append(toDeleteServices, svc)
 		} else {
-			m[svc.ID] = time.Now()
+			m[svc.ID] = value
 		}
 	}
 	job.emptyServices = m
