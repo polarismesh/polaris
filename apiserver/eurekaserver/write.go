@@ -44,7 +44,8 @@ func checkOrBuildNewInstanceId(appId string, instId string, generateUniqueInstId
 	return lowerAppId + ":" + lowerInstIdId
 }
 
-func buildBaseInstance(instance *InstanceInfo, namespace string, appId string, generateUniqueInstId bool) *apiservice.Instance {
+func buildBaseInstance(
+	instance *InstanceInfo, namespace string, appId string, generateUniqueInstId bool) *apiservice.Instance {
 	targetInstance := &apiservice.Instance{}
 	eurekaMetadata := make(map[string]string)
 
@@ -87,7 +88,8 @@ func buildBaseInstance(instance *InstanceInfo, namespace string, appId string, g
 	if len(instance.SecureVipAddress) > 0 {
 		eurekaMetadata[MetadataSecureVipAddress] = instance.SecureVipAddress
 	}
-	targetInstance.Id = &wrappers.StringValue{Value: checkOrBuildNewInstanceId(appId, eurekaInstanceId, generateUniqueInstId)}
+	targetInstance.Id = &wrappers.StringValue{
+		Value: checkOrBuildNewInstanceId(appId, eurekaInstanceId, generateUniqueInstId)}
 	targetInstance.Metadata = eurekaMetadata
 	targetInstance.Service = &wrappers.StringValue{Value: appId}
 	targetInstance.Namespace = &wrappers.StringValue{Value: namespace}
@@ -149,7 +151,8 @@ func buildStatus(instance *InstanceInfo, targetInstance *apiservice.Instance) {
 	}
 }
 
-func convertEurekaInstance(instance *InstanceInfo, namespace string, appId string, generateUniqueInstId bool) *apiservice.Instance {
+func convertEurekaInstance(
+	instance *InstanceInfo, namespace string, appId string, generateUniqueInstId bool) *apiservice.Instance {
 	var secureEnable bool
 	var securePort int
 	var insecureEnable bool
@@ -254,7 +257,8 @@ func (h *EurekaServer) renew(ctx context.Context, appId string, instanceId strin
 	return code
 }
 
-func (h *EurekaServer) updateMetadata(ctx context.Context, appId string, instanceId string, metadata map[string]string) uint32 {
+func (h *EurekaServer) updateMetadata(
+	ctx context.Context, appId string, instanceId string, metadata map[string]string) uint32 {
 	instanceId = checkOrBuildNewInstanceId(appId, instanceId, h.generateUniqueInstId)
 	resp := h.namingServer.UpdateInstance(ctx,
 		&apiservice.Instance{Id: &wrappers.StringValue{Value: instanceId}, Metadata: metadata})
