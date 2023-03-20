@@ -307,7 +307,7 @@ func (s *Server) updateCircuitBreakerRule(
 		return storeError2Response(err)
 	}
 	if exists {
-		return api.NewResponse(apimodel.Code_ServiceExistedCircuitBreakers)
+		return api.NewResponse(apimodel.Code_ExistedResource)
 	}
 	if err := s.storage.UpdateCircuitBreakerRule(cbRule); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))

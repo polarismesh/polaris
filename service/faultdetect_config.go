@@ -205,7 +205,7 @@ func (s *Server) updateFaultDetectRule(ctx context.Context, request *apifault.Fa
 		return storeError2Response(err)
 	}
 	if exists {
-		return api.NewAnyDataResponse(apimodel.Code_FaultDetectRuleExisted, fdRuleId)
+		return api.NewAnyDataResponse(apimodel.Code_ExistedResource, fdRuleId)
 	}
 	if err := s.storage.UpdateFaultDetectRule(fdRule); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
