@@ -209,6 +209,7 @@ apiservers:
       refreshInterval: 10
       deltaExpireInterval: 60
       unhealthyExpireInterval: 180
+      generateUniqueInstId: false
       connLimit:
         openConnLimit: false
         maxConnPerHost: 1024

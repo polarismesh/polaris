@@ -30,6 +30,7 @@ const (
 	optionEnableSelfPreservation = "enableSelfPreservation"
 	optionPeerNodesToReplicate   = "peersToReplicate"
 	optionCustomValues           = "customValues"
+	optionGenerateUniqueInstId   = "generateUniqueInstId"
 )
 
 const (

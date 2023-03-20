@@ -145,6 +145,7 @@ type EurekaServer struct {
 	eventHandlerHandler    *EurekaInstanceEventHandler
 
 	replicatePeers []string
+	generateUniqueInstId   bool
 }
 
 // GetPort 获取端口
@@ -247,6 +248,12 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 		enableSelfPreservation = DefaultEnableSelfPreservation
 	}
 	h.enableSelfPreservation = enableSelfPreservation
+
+	if value, ok := option[optionGenerateUniqueInstId]; ok {
+		h.generateUniqueInstId = value.(bool)
+	} else {
+		h.generateUniqueInstId = false
+	}
 
 	if raw, _ := option[optionCustomValues].(map[interface{}]interface{}); raw != nil {
 		for k, v := range raw {
