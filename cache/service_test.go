@@ -86,6 +86,7 @@ func genModelService(total int) map[string]*model.Service {
 			ID:         fmt.Sprintf("ID-%d", i),
 			Namespace:  fmt.Sprintf("Namespace-%d", i),
 			Name:       fmt.Sprintf("Name-%d", i),
+			Revision:   utils.NewUUID(),
 			Valid:      true,
 			ModifyTime: time.Unix(int64(i), 0),
 		}
@@ -104,6 +105,7 @@ func genModelServiceByNamespace(total int, namespace string) map[string]*model.S
 			Namespace:  namespace,
 			Name:       fmt.Sprintf("Name-%d", i),
 			Valid:      true,
+			Revision:   utils.NewUUID(),
 			ModifyTime: time.Unix(int64(i), 0),
 		}
 		out[item.ID] = item

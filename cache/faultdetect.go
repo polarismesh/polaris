@@ -142,7 +142,6 @@ func (f *faultDetectCache) checkServiceSpecificCache(
 	log.Infof(
 		"checkServiceSpecificCache name %s, namespace %s, values %v", name, namespace, f.svcSpecificRules)
 	svcRules, ok := f.svcSpecificRules[namespace]
-	log.Infof("svcSpecificRules for ns %s, values %v", name, svcRules)
 	if ok {
 		return svcRules[name]
 	}
