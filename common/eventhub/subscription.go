@@ -24,8 +24,6 @@ import (
 	"github.com/polarismesh/polaris/common/log"
 )
 
-//go:generate gotests -w -all subscription.go
-
 const (
 	defaultQueueSize = 1024
 )
@@ -70,7 +68,9 @@ func newSubscription(name string, handler Handler, opts ...SubOption) *subscript
 func (s *subscription) send(ctx context.Context, event Event) {
 	select {
 	case s.queue <- event:
-		log.Debug(fmt.Sprintf("[EventHub] subscription:%s send event:%v", s.name, event))
+		if log.DebugEnabled() {
+			log.Debug(fmt.Sprintf("[EventHub] subscription:%s send event:%v", s.name, event))
+		}
 	case <-s.closeCh:
 		log.Info(fmt.Sprintf("[EventHub] subscription:%s send close", s.name))
 		return
