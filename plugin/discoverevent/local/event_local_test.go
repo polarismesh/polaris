@@ -90,6 +90,18 @@ func Test_discoverEventLocal_Run(t *testing.T) {
 			EType:      model.EventInstanceSendHeartbeat,
 			CreateTime: time.Time{},
 		})
+
+		l.PublishEvent(model.InstanceEvent{
+			Id:        "111111",
+			Namespace: "DemoNamespace",
+			Service:   "DemoService",
+			Instance: &apiservice.Instance{
+				Host: &wrappers.StringValue{Value: "127.0.0.1"},
+				Port: &wrappers.UInt32Value{Value: 8080},
+			},
+			EType:      model.EventInstanceUpdate,
+			CreateTime: time.Time{},
+		})
 	}
 
 	wait.Wait()
