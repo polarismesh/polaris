@@ -167,10 +167,19 @@ func (el *discoverEventLocal) Run(ctx context.Context) {
 	syncInterval := time.NewTicker(time.Duration(10) * time.Second)
 	defer syncInterval.Stop()
 
+	subscribeEvents := map[model.InstanceEventType]struct{}{
+		model.EventInstanceCloseIsolate: {},
+		model.EventInstanceOpenIsolate:  {},
+		model.EventInstanceOffline:      {},
+		model.EventInstanceOnline:       {},
+		model.EventInstanceTurnHealth:   {},
+		model.EventInstanceTurnUnHealth: {},
+	}
+
 	for {
 		select {
 		case event := <-el.eventCh:
-			if event.EType == model.EventInstanceSendHeartbeat {
+			if _, ok := subscribeEvents[event.EType]; !ok {
 				break
 			}
 

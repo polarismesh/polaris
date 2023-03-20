@@ -27,6 +27,7 @@ import (
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	"github.com/golang/protobuf/proto"
 
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -214,6 +215,9 @@ func (s *Server) RecordHistory(entry *model.RecordEntry) {
 // publishInstanceEvent 发布服务事件
 func (s *Server) publishInstanceEvent(serviceID string, event model.InstanceEvent) {
 	event.SvcId = serviceID
+	if event.Instance != nil {
+		event.Instance = proto.Clone(event.Instance).(*apiservice.Instance)
+	}
 	eventhub.Publish(eventhub.InstanceEventTopic, event)
 }
 

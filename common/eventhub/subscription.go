@@ -85,7 +85,9 @@ func (s *subscription) receive(ctx context.Context) {
 	for {
 		select {
 		case event := <-s.queue:
-			log.Debug(fmt.Sprintf("[EventHub] subscription:%s receive event:%v", s.name, event))
+			if log.DebugEnabled() {
+				log.Debug(fmt.Sprintf("[EventHub] subscription:%s receive event:%v", s.name, event))
+			}
 			event = s.handler.PreProcess(ctx, event)
 			if err := s.handler.OnEvent(ctx, event); err != nil {
 				log.Error(fmt.Sprintf("[EventHub] subscriptions:%s handler event error:%s", s.name, err.Error()))
