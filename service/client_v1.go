@@ -159,9 +159,13 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Servic
 	} else {
 		revision, svcs = s.Cache().Service().ListAllServices()
 	}
+	if revision == "" {
+		return resp
+	}
+
 	log.Info("[Service][Discover] list servies", zap.Int("size", len(svcs)), zap.String("revision", revision))
 	if revision == req.GetRevision().GetValue() {
-		return api.NewDiscoverInstanceResponse(apimodel.Code_DataNoChange, req)
+		return api.NewDiscoverServiceResponse(apimodel.Code_DataNoChange, req)
 	}
 
 	ret := make([]*apiservice.Service, 0, len(svcs))
@@ -373,18 +377,18 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *apiservice.Serv
 
 func (s *Server) GetFaultDetectWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	if s.caches == nil {
-		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_ClientAPINotOpen, req)
+		return api.NewDiscoverFaultDetectorResponse(apimodel.Code_ClientAPINotOpen, req)
 	}
 	requestID := utils.ParseRequestID(ctx)
 	if req == nil {
-		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_EmptyRequest, req)
+		return api.NewDiscoverFaultDetectorResponse(apimodel.Code_EmptyRequest, req)
 	}
 
 	if req.GetName().GetValue() == "" {
-		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_InvalidServiceName, req)
+		return api.NewDiscoverFaultDetectorResponse(apimodel.Code_InvalidServiceName, req)
 	}
 	if req.GetNamespace().GetValue() == "" {
-		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_InvalidNamespaceName, req)
+		return api.NewDiscoverFaultDetectorResponse(apimodel.Code_InvalidNamespaceName, req)
 	}
 	resp := api.NewDiscoverFaultDetectorResponse(apimodel.Code_ExecuteSuccess, nil)
 	// 服务名和request保持一致
@@ -408,7 +412,7 @@ func (s *Server) GetFaultDetectWithCache(ctx context.Context, req *apiservice.Se
 	resp.FaultDetector, err = faultDetectRule2ClientAPI(out)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_ExecuteException, req)
+		return api.NewDiscoverFaultDetectorResponse(apimodel.Code_ExecuteException, req)
 	}
 	return resp
 }
