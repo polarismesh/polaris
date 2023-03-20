@@ -42,7 +42,8 @@ func Test_discoverEventLocal_Run(t *testing.T) {
 			wait.Done()
 			et := eb.Next()
 			t.Logf("%v", et)
-			assert.NotEqual(t, model.EventInstanceSendHeartbeat, et.EType)
+			_, ok := subscribeEvents[et.EType]
+			assert.True(t, ok)
 		}
 	}
 

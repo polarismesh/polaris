@@ -161,13 +161,8 @@ func (el *discoverEventLocal) PublishEvent(event model.InstanceEvent) {
 	}
 }
 
-// Run 执行主逻辑
-func (el *discoverEventLocal) Run(ctx context.Context) {
-	// 定时刷新事件到日志的定时器
-	syncInterval := time.NewTicker(time.Duration(10) * time.Second)
-	defer syncInterval.Stop()
-
-	subscribeEvents := map[model.InstanceEventType]struct{}{
+var (
+	subscribeEvents = map[model.InstanceEventType]struct{}{
 		model.EventInstanceCloseIsolate: {},
 		model.EventInstanceOpenIsolate:  {},
 		model.EventInstanceOffline:      {},
@@ -175,6 +170,13 @@ func (el *discoverEventLocal) Run(ctx context.Context) {
 		model.EventInstanceTurnHealth:   {},
 		model.EventInstanceTurnUnHealth: {},
 	}
+)
+
+// Run 执行主逻辑
+func (el *discoverEventLocal) Run(ctx context.Context) {
+	// 定时刷新事件到日志的定时器
+	syncInterval := time.NewTicker(time.Duration(10) * time.Second)
+	defer syncInterval.Stop()
 
 	for {
 		select {
