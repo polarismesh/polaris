@@ -186,12 +186,17 @@ func (c *circuitBreakerCache) deleteCircuitBreakerFromServiceCache(id string, sv
 	defer c.lock.Unlock()
 	if len(svcKeys) == 0 {
 		// all wildcard
+		log.Infof("[Server][Service][CircuitBreaker] delete rule %s from all matched cache", id)
 		c.deleteAndReloadCircuitBreakerRules(c.allWildcardRules, id)
-		for _, rules := range c.nsWildcardRules {
+		for ns, rules := range c.nsWildcardRules {
+			log.Infof("[Server][Service][CircuitBreaker] delete rule %s from ns specified cache, "+
+				"namespace %s", id, ns)
 			c.deleteAndReloadCircuitBreakerRules(rules, id)
 		}
-		for _, svcRules := range c.circuitBreakers {
-			for _, rules := range svcRules {
+		for ns, svcRules := range c.circuitBreakers {
+			for svc, rules := range svcRules {
+				log.Infof("[Server][Service][CircuitBreaker] delete rule %s from svc specified cache, "+
+					"namespace %s, service %s", id, ns, svc)
 				c.deleteAndReloadCircuitBreakerRules(rules, id)
 			}
 		}
@@ -202,6 +207,8 @@ func (c *circuitBreakerCache) deleteCircuitBreakerFromServiceCache(id string, sv
 		if svcKey.Name == allMatched {
 			rules, ok := c.nsWildcardRules[svcKey.Namespace]
 			if ok {
+				log.Infof("[Server][Service][CircuitBreaker] delete rule %s from ns specified cache, "+
+					"namespace %s", id, svcKey.Namespace)
 				c.deleteAndReloadCircuitBreakerRules(rules, id)
 			}
 			svcRules, ok := c.circuitBreakers[svcKey.Namespace]
@@ -220,6 +227,8 @@ func (c *circuitBreakerCache) deleteCircuitBreakerFromServiceCache(id string, sv
 			if ok {
 				rules, ok := svcRules[svcToReload.Name]
 				if ok {
+					log.Infof("[Server][Service][CircuitBreaker] delete rule %s from svc specified cache, "+
+						"namespace %s, service %s", id, svcToReload.Namespace, svcToReload.Name)
 					c.deleteAndReloadCircuitBreakerRules(rules, id)
 				}
 			}
@@ -246,12 +255,17 @@ func (c *circuitBreakerCache) storeCircuitBreakerToServiceCache(
 	defer c.lock.Unlock()
 	if len(svcKeys) == 0 {
 		// all wildcard
+		log.Infof("[Server][Service][CircuitBreaker] add rule %s from all matched cache", entry.ID)
 		c.storeAndReloadCircuitBreakerRules(c.allWildcardRules, entry)
-		for _, rules := range c.nsWildcardRules {
+		for ns, rules := range c.nsWildcardRules {
+			log.Infof("[Server][Service][CircuitBreaker] add rule %s from ns specific cache, namespace %s",
+				entry.ID, ns)
 			c.storeAndReloadCircuitBreakerRules(rules, entry)
 		}
-		for _, svcRules := range c.circuitBreakers {
-			for _, rules := range svcRules {
+		for ns, svcRules := range c.circuitBreakers {
+			for svcName, rules := range svcRules {
+				log.Infof("[Server][Service][CircuitBreaker] add rule %s from svc specific cache, "+
+					"namespace %s, service %s", entry.ID, ns, svcName)
 				c.storeAndReloadCircuitBreakerRules(rules, entry)
 			}
 		}
@@ -270,6 +284,8 @@ func (c *circuitBreakerCache) storeCircuitBreakerToServiceCache(
 					wildcardRules.AddCircuitBreakerRule(rule)
 				})
 			}
+			log.Infof("[Server][Service][CircuitBreaker] add rule %s from ns specific cache, namespace %s",
+				entry.ID, svcKey.Namespace)
 			c.storeAndReloadCircuitBreakerRules(wildcardRules, entry)
 			svcRules, ok := c.circuitBreakers[svcKey.Namespace]
 			if ok {
@@ -306,6 +322,8 @@ func (c *circuitBreakerCache) storeCircuitBreakerToServiceCache(
 					})
 				}
 			}
+			log.Infof("[Server][Service][CircuitBreaker] add rule %s from svc specific cache, "+
+				"namespace %s, service %s", entry.ID, svcToReload.Namespace, svcToReload.Name)
 			c.storeAndReloadCircuitBreakerRules(rules, entry)
 		}
 	}

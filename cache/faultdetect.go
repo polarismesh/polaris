@@ -125,7 +125,6 @@ func (f *faultDetectCache) name() string {
 
 // GetFaultDetectConfig 根据serviceID获取探测规则
 func (f *faultDetectCache) GetFaultDetectConfig(name string, namespace string) *model.ServiceWithFaultDetectRules {
-	log.Infof("GetFaultDetectConfig: name %s, namespace %s", name, namespace)
 	// check service specific
 	rules := f.checkServiceSpecificCache(name, namespace)
 	if nil != rules {
@@ -186,12 +185,17 @@ func (f *faultDetectCache) deleteFaultDetectRuleFromServiceCache(id string, svcK
 	defer f.lock.Unlock()
 	if len(svcKeys) == 0 {
 		// all wildcard
+		log.Infof("[Server][Service][FaultDetector] delete rule %s from all matched cache", id)
 		f.deleteAndReloadFaultDetectRules(f.allWildcardRules, id)
-		for _, rules := range f.nsWildcardRules {
+		for ns, rules := range f.nsWildcardRules {
+			log.Infof("[Server][Service][FaultDetector] delete rule %s from ns specified cache, "+
+				"namespace %s", id, ns)
 			f.deleteAndReloadFaultDetectRules(rules, id)
 		}
-		for _, svcRules := range f.svcSpecificRules {
-			for _, rules := range svcRules {
+		for ns, svcRules := range f.svcSpecificRules {
+			for svc, rules := range svcRules {
+				log.Infof("[Server][Service][FaultDetector] delete rule %s from svc specified cache, "+
+					"namespace %s, service %s", id, ns, svc)
 				f.deleteAndReloadFaultDetectRules(rules, id)
 			}
 		}
@@ -202,6 +206,8 @@ func (f *faultDetectCache) deleteFaultDetectRuleFromServiceCache(id string, svcK
 		if svcKey.Name == allMatched {
 			rules, ok := f.nsWildcardRules[svcKey.Namespace]
 			if ok {
+				log.Infof("[Server][Service][FaultDetector] delete rule %s from ns specified cache, "+
+					"namespace %s", id, svcKey.Namespace)
 				f.deleteAndReloadFaultDetectRules(rules, id)
 			}
 			svcRules, ok := f.svcSpecificRules[svcKey.Namespace]
@@ -220,6 +226,8 @@ func (f *faultDetectCache) deleteFaultDetectRuleFromServiceCache(id string, svcK
 			if ok {
 				rules, ok := svcRules[svcToReload.Name]
 				if ok {
+					log.Infof("[Server][Service][FaultDetector] delete rule %s from svc specified cache, "+
+						"namespace %s, service %s", id, svcToReload.Namespace, svcToReload.Name)
 					f.deleteAndReloadFaultDetectRules(rules, id)
 				}
 			}
@@ -246,12 +254,17 @@ func (f *faultDetectCache) storeFaultDetectRuleToServiceCache(
 	defer f.lock.Unlock()
 	if len(svcKeys) == 0 {
 		// all wildcard
+		log.Infof("[Server][Service][FaultDetector] add rule %s from all matched cache", entry.ID)
 		f.storeAndReloadFaultDetectRules(f.allWildcardRules, entry)
-		for _, rules := range f.nsWildcardRules {
+		for ns, rules := range f.nsWildcardRules {
+			log.Infof("[Server][Service][FaultDetector] add rule %s from ns specific cache, namespace %s",
+				entry.ID, ns)
 			f.storeAndReloadFaultDetectRules(rules, entry)
 		}
-		for _, svcRules := range f.svcSpecificRules {
-			for _, rules := range svcRules {
+		for ns, svcRules := range f.svcSpecificRules {
+			for svcName, rules := range svcRules {
+				log.Infof("[Server][Service][FaultDetector] add rule %s from svc specific cache, "+
+					"namespace %s, service %s", entry.ID, ns, svcName)
 				f.storeAndReloadFaultDetectRules(rules, entry)
 			}
 		}
@@ -266,6 +279,8 @@ func (f *faultDetectCache) storeFaultDetectRuleToServiceCache(
 			if !ok {
 				wildcardRules = createAndStoreServiceWithFaultDetectRules(svcKey, svcKey.Namespace, f.nsWildcardRules)
 			}
+			log.Infof("[Server][Service][FaultDetector] add rule %s from ns specific cache, namespace %s",
+				entry.ID, svcKey.Namespace)
 			f.storeAndReloadFaultDetectRules(wildcardRules, entry)
 			svcRules, ok := f.svcSpecificRules[svcKey.Namespace]
 			if ok {
@@ -291,6 +306,8 @@ func (f *faultDetectCache) storeFaultDetectRuleToServiceCache(
 			if !ok {
 				rules = createAndStoreServiceWithFaultDetectRules(svcToReload, svcToReload.Name, svcRules)
 			}
+			log.Infof("[Server][Service][FaultDetector] add rule %s from svc specific cache, "+
+				"namespace %s, service %s", entry.ID, svcToReload.Namespace, svcToReload.Name)
 			f.storeAndReloadFaultDetectRules(rules, entry)
 		}
 	}

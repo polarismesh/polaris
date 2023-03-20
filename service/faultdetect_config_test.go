@@ -195,4 +195,32 @@ func TestCreateFaultDetectRule(t *testing.T) {
 		assert.NotNil(t, faultDetector)
 		assert.Equal(t, 1, len(faultDetector.GetRules()))
 	})
+
+	t.Run("创建探测规则，更新，创建时间保持不变", func(t *testing.T) {
+		fdRules, resp := createFaultDetectRules(discoverSuit, 1)
+		defer cleanFaultDetectRules(discoverSuit, resp)
+		checkFaultDetectRuleResponse(t, fdRules, resp)
+
+		batchResp := discoverSuit.DiscoverServer().GetFaultDetectRules(
+			discoverSuit.DefaultCtx, map[string]string{"name": "test-faultdetect-rule"})
+		assert.Equal(t, int(apimodel.Code_ExecuteSuccess), int(batchResp.GetCode().GetValue()))
+		anyValues := batchResp.GetData()
+		msg := &apifault.FaultDetectRule{}
+		err := ptypes.UnmarshalAny(anyValues[0], msg)
+		assert.Nil(t, err)
+		lastCtime := msg.GetCtime()
+
+		fdRules[0].Description = "comment you"
+		updateResp := discoverSuit.DiscoverServer().UpdateFaultDetectRules(discoverSuit.DefaultCtx, fdRules)
+		assert.Equal(t, int(apimodel.Code_ExecuteSuccess), int(updateResp.GetCode().GetValue()))
+
+		batchResp = discoverSuit.DiscoverServer().GetFaultDetectRules(
+			discoverSuit.DefaultCtx, map[string]string{"name": "test-faultdetect-rule"})
+		assert.Equal(t, int(apimodel.Code_ExecuteSuccess), int(batchResp.GetCode().GetValue()))
+		anyValues = batchResp.GetData()
+		msg = &apifault.FaultDetectRule{}
+		err = ptypes.UnmarshalAny(anyValues[0], msg)
+		assert.Nil(t, err)
+		assert.Equal(t, lastCtime, msg.GetCtime())
+	})
 }
