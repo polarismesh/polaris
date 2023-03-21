@@ -122,7 +122,7 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 	server.timeAdjuster = newTimeAdjuster(ctx, server.storage)
 	server.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval,
 		hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)
-	server.dispatcher = newDispatcher(ctx, server, hcOpt.OmitReplicated)
+	server.dispatcher = newDispatcher(ctx, server)
 
 	server.instanceEventChannel = make(chan *model.InstanceEvent, 1000)
 	go server.handleInstanceEventWorker(ctx)
@@ -291,11 +291,11 @@ func (s *Server) handleInstanceEventWorker(ctx context.Context) {
 	}
 }
 
-func currentTimeSec() int64 {
-	return time.Now().Unix() - server.timeAdjuster.GetDiff()
+// Checkers get all health checker, for test only
+func (s *Server) Checkers() map[int32]plugin.HealthChecker {
+	return s.checkers
 }
 
-type eventWrapper struct {
-	ServiceID string
-	Event     model.InstanceEvent
+func currentTimeSec() int64 {
+	return time.Now().Unix() - server.timeAdjuster.GetDiff()
 }

@@ -23,10 +23,12 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/redispool"
+	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 )
@@ -48,11 +50,12 @@ const (
 // RedisHealthChecker 心跳检测redis
 type RedisHealthChecker struct {
 	// 用于写入心跳数据的池
-	hbPool *redispool.Pool
+	hbPool redispool.Pool
 	// 用于检查回调的池
-	checkPool *redispool.Pool
-	cancel    context.CancelFunc
-	statis    plugin.Statis
+	checkPool      redispool.Pool
+	cancel         context.CancelFunc
+	statis         plugin.Statis
+	suspendTimeSec int64
 }
 
 // Name plugin name
@@ -73,9 +76,9 @@ func (r *RedisHealthChecker) Initialize(c *plugin.ConfigEntry) error {
 	r.statis = plugin.GetStatis()
 	var ctx context.Context
 	ctx, r.cancel = context.WithCancel(context.Background())
-	r.hbPool = redispool.NewPool(ctx, &config, r.statis)
+	r.hbPool = redispool.NewRedisPool(ctx, &config, r.statis)
 	r.hbPool.Start()
-	r.checkPool = redispool.NewPool(ctx, &config, r.statis)
+	r.checkPool = redispool.NewRedisPool(ctx, &config, r.statis)
 	r.checkPool.Start()
 	if err = r.registerSelf(); err != nil {
 		return fmt.Errorf("fail to register %s to redis, err is %v", utils.LocalHost, err)
@@ -91,7 +94,9 @@ func (r *RedisHealthChecker) registerSelf() error {
 
 // Destroy plugin destroy
 func (r *RedisHealthChecker) Destroy() error {
-	r.cancel()
+	if nil != r.cancel {
+		r.cancel()
+	}
 	return nil
 }
 
@@ -210,6 +215,26 @@ func (r *RedisHealthChecker) Query(request *plugin.QueryRequest) (*plugin.QueryR
 
 const maxCheckDuration = 500 * time.Second
 
+func (r *RedisHealthChecker) skipCheck(instanceId string, expireDurationSec int64) bool {
+	suspendTimeSec := r.SuspendTimeSec()
+	localCurTimeSec := commontime.CurrentMillisecond() / 1000
+	if suspendTimeSec > 0 && localCurTimeSec >= suspendTimeSec && localCurTimeSec-suspendTimeSec < expireDurationSec {
+		log.Infof("[Health Check][RedisCheck]health check redis suspended, "+
+			"suspendTimeSec is %d, localCurTimeSec is %d, expireDurationSec is %d, id %s",
+			suspendTimeSec, localCurTimeSec, expireDurationSec, instanceId)
+		return true
+	}
+	recoverTimeSec := r.checkPool.RecoverTimeSec()
+	// redis恢复期，不做变更
+	if recoverTimeSec > 0 && localCurTimeSec >= recoverTimeSec && localCurTimeSec-recoverTimeSec < expireDurationSec {
+		log.Infof("[Health Check][RedisCheck]health check redis on recover, "+
+			"recoverTimeSec is %d, localCurTimeSec is %d, expireDurationSec is %d, id %s",
+			suspendTimeSec, localCurTimeSec, expireDurationSec, instanceId)
+		return true
+	}
+	return false
+}
+
 // Check Report process the instance check
 func (r *RedisHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckResponse, error) {
 	var startTime = time.Now()
@@ -228,17 +253,11 @@ func (r *RedisHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckR
 	checkResp := &plugin.CheckResponse{
 		LastHeartbeatTimeSec: lastHeartbeatTime,
 	}
-	recoverTimeSec := r.checkPool.RecoverTimeSec()
-	localCurTimeSec := time.Now().Unix()
-	// redis恢复期，不做变更
-	if localCurTimeSec >= recoverTimeSec && localCurTimeSec-recoverTimeSec < int64(request.ExpireDurationSec) {
-		log.Infof("[Health Check][RedisCheck]health check redis on recover, "+
-			"recoverTimeSec is %d, localCurTimeSec is %d, expireDurationSec is %d, id %s",
-			recoverTimeSec, localCurTimeSec, request.ExpireDurationSec, request.InstanceId)
+	curTimeSec := request.CurTimeSec()
+	if r.skipCheck(request.InstanceId, int64(request.ExpireDurationSec)) {
 		checkResp.StayUnchanged = true
 		return checkResp, nil
 	}
-	curTimeSec := request.CurTimeSec()
 	// 出现时间倒退，不对心跳状态做变更
 	if curTimeSec < lastHeartbeatTime {
 		log.Infof("[Health Check][RedisCheck]time reverse, curTime is %d, last heartbeat time is %d, id %s",
@@ -295,6 +314,18 @@ func (r *RedisHealthChecker) RemoveFromCheck(request *plugin.AddCheckRequest) er
 func (r *RedisHealthChecker) Delete(id string) error {
 	resp := r.checkPool.Del(id)
 	return resp.Err
+}
+
+// Suspend checker for an entire expired interval
+func (r *RedisHealthChecker) Suspend() {
+	curTimeMilli := commontime.CurrentMillisecond() / 1000
+	log.Infof("[Health Check][RedisCheck] suspend checker, start time %d", curTimeMilli)
+	atomic.StoreInt64(&r.suspendTimeSec, curTimeMilli)
+}
+
+// SuspendTimeSec get suspend time in seconds
+func (r *RedisHealthChecker) SuspendTimeSec() int64 {
+	return atomic.LoadInt64(&r.suspendTimeSec)
 }
 
 func init() {
