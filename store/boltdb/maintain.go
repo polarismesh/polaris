@@ -22,6 +22,8 @@ import (
 	"sync"
 	"time"
 
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -131,4 +133,64 @@ func (m *maintainStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, er
 		return count, err
 	}
 	return count, nil
+}
+
+func (m *maintainStore) GetUnHealthyInstances(timeout time.Duration, limit uint32) ([]string, error) {
+	return m.getUnHealthyInstancesBefore(time.Now().Add(-timeout), limit)
+}
+
+func (m *maintainStore) getUnHealthyInstancesBefore(mtime time.Time, limit uint32) ([]string, error) {
+	fields := []string{insFieldProto, insFieldValid}
+	instances, err := m.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
+		func(m map[string]interface{}) bool {
+
+			valid, ok := m[insFieldValid]
+			if ok && !valid.(bool) {
+				return false
+			}
+
+			insProto, ok := m[insFieldProto]
+			if !ok {
+				return false
+			}
+
+			ins := insProto.(*apiservice.Instance)
+
+			insMtime, err := time.Parse("2006-01-02 15:04:05", ins.GetMtime().GetValue())
+			if err != nil {
+				log.Errorf("[Store][boltdb] parse instance mtime error, %v", err)
+				return false
+			}
+
+			if insMtime.Before(mtime) {
+				return false
+			}
+
+			if !ins.GetEnableHealthCheck().GetValue() {
+				return false
+			}
+
+			if ins.GetHealthy().GetValue() {
+				return false
+			}
+
+			return true
+		})
+
+	if err != nil {
+		log.Errorf("[Store][boltdb] load instance from kv error, %v", err)
+		return nil, err
+	}
+
+	var instanceIds []string
+	var count uint32 = 0
+	for _, v := range instances {
+		instanceIds = append(instanceIds, v.(*model.Instance).ID())
+		count += 1
+		if count >= limit {
+			break
+		}
+	}
+
+	return instanceIds, nil
 }
