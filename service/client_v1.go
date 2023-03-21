@@ -149,6 +149,7 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Servic
 	}
 
 	resp := api.NewDiscoverServiceResponse(apimodel.Code_ExecuteSuccess, req)
+<<<<<<< HEAD
 	var (
 		revision string
 		svcs     []*model.Service
@@ -166,6 +167,32 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Servic
 	log.Info("[Service][Discover] list servies", zap.Int("size", len(svcs)), zap.String("revision", revision))
 	if revision == req.GetRevision().GetValue() {
 		return api.NewDiscoverServiceResponse(apimodel.Code_DataNoChange, req)
+=======
+	resp.Services = []*apiservice.Service{}
+	serviceIterProc := func(key string, value *model.Service) (bool, error) {
+		if checkServiceMetadata(req.GetMetadata(), value, req.Business.GetValue(), req.Namespace.GetValue()) {
+			service := &apiservice.Service{
+				Name:      utils.NewStringValue(value.Name),
+				Namespace: utils.NewStringValue(value.Namespace),
+			}
+			resp.Services = append(resp.Services, service)
+		}
+		return true, nil
+	}
+
+	if err := s.caches.Service().IteratorServices(serviceIterProc); err != nil {
+		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
+		return api.NewDiscoverServiceResponse(apimodel.Code_ExecuteException, req)
+	}
+
+	return resp
+}
+
+// checkServiceMetadata 判断请求元数据是否属于服务的元数据
+func checkServiceMetadata(requestMeta map[string]string, service *model.Service, business, namespace string) bool {
+	if len(business) > 0 && business != service.Business {
+		return false
+>>>>>>> 4fb231a7... fix:查询治理规则返回服务原始名称
 	}
 
 	ret := make([]*apiservice.Service, 0, len(svcs))
@@ -240,6 +267,11 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Serv
 	resp.Service.Revision.Value = revision
 	resp.Service.Namespace = req.GetNamespace()
 	resp.Service.Name = req.GetName() // 别名场景，response需要保持和request的服务名一致
+	// 塞入源服务信息数据
+	resp.AliasFor = &apiservice.Service{
+		Namespace: utils.NewStringValue(service.Namespace),
+		Name:      utils.NewStringValue(service.Name),
+	}
 	// 填充instance数据
 	resp.Instances = make([]*apiservice.Instance, 0) // TODO
 	_ = s.caches.Instance().
@@ -280,6 +312,11 @@ func (s *Server) GetRoutingConfigWithCache(ctx context.Context, req *apiservice.
 	if svc == nil {
 		return api.NewDiscoverRoutingResponse(apimodel.Code_NotFoundService, req)
 	}
+	// 塞入源服务信息数据
+	resp.AliasFor = &apiservice.Service{
+		Namespace: utils.NewStringValue(svc.Namespace),
+		Name:      utils.NewStringValue(svc.Name),
+	}
 	out, err := s.caches.RoutingConfig().GetRoutingConfigV1(svc.ID, svc.Name, svc.Namespace)
 	if err != nil {
 		log.Error("[Server][Service][Routing] discover routing", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
@@ -308,12 +345,9 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *apiservice.Serv
 		return api.NewDiscoverRoutingResponse(apimodel.Code_ClientAPINotOpen, req)
 	}
 
-	requestID := utils.ParseRequestID(ctx)
-
 	if req == nil {
 		return api.NewDiscoverRateLimitResponse(apimodel.Code_EmptyRequest, req)
 	}
-
 	if req.GetName().GetValue() == "" {
 		return api.NewDiscoverRateLimitResponse(apimodel.Code_InvalidServiceName, req)
 	}
@@ -328,6 +362,11 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *apiservice.Serv
 	}
 
 	resp := api.NewDiscoverRateLimitResponse(apimodel.Code_ExecuteSuccess, nil)
+	// 塞入源服务信息数据
+	resp.AliasFor = &apiservice.Service{
+		Namespace: utils.NewStringValue(service.Namespace),
+		Name:      utils.NewStringValue(service.Name),
+	}
 	// 服务名和request保持一致
 	resp.Service = &apiservice.Service{
 		Name:      req.GetName(),
@@ -368,7 +407,7 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *apiservice.Serv
 
 	err := s.caches.RateLimit().GetRateLimit(service.ID, rateLimitIterProc)
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
 		return api.NewDiscoverRateLimitResponse(apimodel.Code_ExecuteException, req)
 	}
 
@@ -379,11 +418,9 @@ func (s *Server) GetFaultDetectWithCache(ctx context.Context, req *apiservice.Se
 	if s.caches == nil {
 		return api.NewDiscoverFaultDetectorResponse(apimodel.Code_ClientAPINotOpen, req)
 	}
-	requestID := utils.ParseRequestID(ctx)
 	if req == nil {
 		return api.NewDiscoverFaultDetectorResponse(apimodel.Code_EmptyRequest, req)
 	}
-
 	if req.GetName().GetValue() == "" {
 		return api.NewDiscoverFaultDetectorResponse(apimodel.Code_InvalidServiceName, req)
 	}
@@ -422,7 +459,6 @@ func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *apiservice
 	if s.caches == nil {
 		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_ClientAPINotOpen, req)
 	}
-	requestID := utils.ParseRequestID(ctx)
 	if req == nil {
 		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_EmptyRequest, req)
 	}
@@ -456,7 +492,7 @@ func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *apiservice
 	resp.Service.Revision = utils.NewStringValue(out.Revision)
 	resp.CircuitBreaker, err = circuitBreaker2ClientAPI(out, req.GetName().GetValue(), req.GetNamespace().GetValue())
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
 		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_ExecuteException, req)
 	}
 	return resp
