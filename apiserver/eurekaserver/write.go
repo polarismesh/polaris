@@ -200,7 +200,7 @@ func (h *EurekaServer) registerInstances(
 	ctx = context.WithValue(ctx, utils.ContextOpenAsyncRegis, true)
 	appId = formatWriteName(appId)
 	// 1. 先转换数据结构
-	totalInstance := convertEurekaInstance(instance, h.namespace, appId)
+	totalInstance := convertEurekaInstance(instance, h.namespace, appId, h.generateUniqueInstId)
 	if replicated {
 		totalInstance.Metadata[model.MetadataReplicated] = "true"
 	}
