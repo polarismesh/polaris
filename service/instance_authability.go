@@ -146,21 +146,6 @@ func (svr *serverAuthAbility) GetInstancesCount(ctx context.Context) *apiservice
 	return svr.targetServer.GetInstancesCount(ctx)
 }
 
-// CleanInstance clean instance
-func (svr *serverAuthAbility) CleanInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
-	authCtx := svr.collectInstanceAuthContext(
-		ctx, []*apiservice.Instance{req}, model.Delete, "CleanInstance")
-
-	_, err := svr.authMgn.CheckConsolePermission(authCtx)
-	if err != nil {
-		return api.NewResponseWithMsg(convertToErrCode(err), err.Error())
-	}
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
-	return svr.targetServer.CleanInstance(ctx, req)
-}
-
 func (svr *serverAuthAbility) GetInstanceLabels(ctx context.Context, query map[string]string) *apiservice.Response {
 	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Read, "GetInstanceLabels")
 	_, err := svr.authMgn.CheckConsolePermission(authCtx)

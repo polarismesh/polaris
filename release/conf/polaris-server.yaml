@@ -389,6 +389,26 @@ cache:
         expireTimeAfterWrite: 3600
     - name: faultDetectRule
 #    - name: l5 # Load L5 data
+# Maintain configuration
+maintain:
+  jobs:
+    # Clean up long term unhealthy instance
+    - name: DeleteUnHealthyInstance
+      enable: false
+      cronSpec: "0 0 * * ?"
+      option:
+        instanceDeleteTimeout: 60m
+    # Delete auto-created service without an instance
+    - name: DeleteEmptyAutoCreatedService
+      enable: false
+      cronSpec: "*/10 * * * ?"
+      option:
+        serviceDeleteTimeout: 30m
+    # Clean soft deleted instances
+    - name: CleanDeletedInstances
+      enable: true
+      cronSpec: "0 0 * * 1"
+  
 # Storage configuration
 store:
   # Standalone file storage plugin
