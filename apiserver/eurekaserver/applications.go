@@ -285,7 +285,6 @@ func parseLeaseInfo(leaseInfo *LeaseInfo, instance *apiservice.Instance) {
 }
 
 func buildInstance(appName string, instance *apiservice.Instance, lastModifyTime int64) *InstanceInfo {
-	eurekaInstanceId := instance.GetId().GetValue()
 	instanceInfo := &InstanceInfo{
 		CountryId: DefaultCountryIdInt,
 		Port: &PortWrapper{
@@ -307,12 +306,14 @@ func buildInstance(appName string, instance *apiservice.Instance, lastModifyTime
 	}
 	instanceInfo.AppName = appName
 	// 属于eureka注册的实例
-	instanceInfo.InstanceId = eurekaInstanceId
+	instanceInfo.InstanceId = instance.GetId().GetValue()
 	metadata := instance.GetMetadata()
 	if metadata == nil {
 		metadata = map[string]string{}
 	}
-	instanceInfo.AppName = appName
+	if eurekaInstanceId, ok := metadata[MetadataInstanceId]; ok {
+		instanceInfo.InstanceId = eurekaInstanceId
+	}
 	if hostName, ok := metadata[MetadataHostName]; ok {
 		instanceInfo.HostName = hostName
 	}
