@@ -15,23 +15,36 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package maintain
+package job
 
 import (
-	"sync"
-
-	"github.com/polarismesh/polaris/cache"
-	"github.com/polarismesh/polaris/service"
-	"github.com/polarismesh/polaris/service/healthcheck"
 	"github.com/polarismesh/polaris/store"
 )
 
-var _ MaintainOperateServer = (*Server)(nil)
+type cleanDeletedInstancesJob struct {
+	storage store.Store
+}
 
-type Server struct {
-	mu                sync.Mutex
-	namingServer      service.DiscoverServer
-	healthCheckServer *healthcheck.Server
-	cacheMgn          *cache.CacheManager
-	storage           store.Store
+func (job *cleanDeletedInstancesJob) init(raw map[string]interface{}) error {
+	return nil
+}
+
+func (job *cleanDeletedInstancesJob) execute() {
+	batchSize := uint32(100)
+	for {
+		count, err := job.storage.BatchCleanDeletedInstances(batchSize)
+		if err != nil {
+			log.Errorf("[Maintain][Job][CleanDeletedInstances] batch clean deleted instance, err: %v", err)
+			break
+		}
+
+		log.Infof("[Maintain][Job][CleanDeletedInstances] clean deleted instance count %d", count)
+
+		if count < batchSize {
+			break
+		}
+	}
+}
+
+func (job *cleanDeletedInstancesJob) clear() {
 }

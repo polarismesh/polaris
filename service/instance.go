@@ -833,33 +833,6 @@ func (s *Server) GetInstancesCount(ctx context.Context) *apiservice.BatchQueryRe
 	return out
 }
 
-// CleanInstance 清理无效的实例(flag == 1)
-func (s *Server) CleanInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
-	// 无效数据，不需要鉴权，直接删除
-	getInstanceID := func() (string, *apiservice.Response) {
-		if req.GetId() != nil {
-			if req.GetId().GetValue() == "" {
-				return "", api.NewInstanceResponse(apimodel.Code_InvalidInstanceID, req)
-			}
-			return req.GetId().GetValue(), nil
-		}
-		return utils.CheckInstanceTetrad(req)
-	}
-
-	instanceID, resp := getInstanceID()
-	if resp != nil {
-		return resp
-	}
-	if err := s.storage.CleanInstance(instanceID); err != nil {
-		log.Error("Clean instance",
-			zap.String("err", err.Error()), utils.ZapRequestID(utils.ParseRequestID(ctx)))
-		return api.NewInstanceResponse(apimodel.Code_StoreLayerException, req)
-	}
-
-	log.Info("Clean instance", utils.ZapRequestID(utils.ParseRequestID(ctx)), utils.ZapInstanceID(instanceID))
-	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
-}
-
 // update/delete instance前置条件
 func (s *Server) execInstancePreStep(ctx context.Context, req *apiservice.Instance) (
 	*model.Service, *model.Instance, *apiservice.Response) {
