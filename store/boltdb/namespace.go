@@ -170,6 +170,15 @@ func matchFieldValue(value string, pattern string) bool {
 	}
 }
 
+func matchFieldValueByPatterns(value string, patterns []string) bool {
+	for _, p := range patterns {
+		if matchFieldValue(value, p) {
+			return true
+		}
+	}
+	return false
+}
+
 // GetNamespaces get namespaces by offset and limit
 func (n *namespaceStore) GetNamespaces(
 	filter map[string][]string, offset, limit int) ([]*model.Namespace, uint32, error) {
@@ -185,29 +194,20 @@ func (n *namespaceStore) GetNamespaces(
 		if !ns.Valid {
 			continue
 		}
-		isFind := true
-		for index, value := range filter {
-			compare := func(s string) bool {
-				for _, v := range value {
-					if matchFieldValue(s, v) {
-						return true
-					}
-				}
-				return false
-			}
-
+		matched := true
+		for index, patterns := range filter {
 			if index == OwnerAttribute {
-				if isFind = compare(ns.Owner); !isFind {
+				if matched = matchFieldValueByPatterns(ns.Owner, patterns); !matched {
 					break
 				}
 			}
 			if index == NameAttribute {
-				if isFind = compare(ns.Name); !isFind {
+				if matched = matchFieldValueByPatterns(ns.Name, patterns); !matched {
 					break
 				}
 			}
 		}
-		if isFind {
+		if matched {
 			ret = append(ret, ns)
 		}
 	}
