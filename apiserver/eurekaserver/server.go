@@ -63,6 +63,7 @@ const (
 	MetadataSecurePort          = "internal-eureka-secure-port"
 	MetadataSecurePortEnabled   = "internal-eureka-secure-port-enabled"
 	MetadataReplicate           = "internal-eureka-replicate"
+	MetadataInstanceId          = "internal-eureka-instance-id"
 
 	ServerEureka = "eureka"
 
@@ -143,7 +144,8 @@ type EurekaServer struct {
 	replicateWorker        *ReplicateWorker
 	eventHandlerHandler    *EurekaInstanceEventHandler
 
-	replicatePeers []string
+	replicatePeers       []string
+	generateUniqueInstId bool
 }
 
 // GetPort 获取端口
@@ -246,6 +248,12 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 		enableSelfPreservation = DefaultEnableSelfPreservation
 	}
 	h.enableSelfPreservation = enableSelfPreservation
+
+	if value, ok := option[optionGenerateUniqueInstId]; ok {
+		h.generateUniqueInstId, _ = value.(bool)
+	} else {
+		h.generateUniqueInstId = false
+	}
 
 	if raw, _ := option[optionCustomValues].(map[interface{}]interface{}); raw != nil {
 		for k, v := range raw {

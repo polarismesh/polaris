@@ -112,18 +112,6 @@ func (s *Server) prepareCreateConfigFile(ctx context.Context,
 	configFile.CreateBy = utils.NewStringValue(userName)
 	configFile.ModifyBy = utils.NewStringValue(userName)
 
-	// 如果 namespace 不存在则自动创建
-	if err := s.namespaceOperator.CreateNamespaceIfAbsent(ctx, &apimodel.Namespace{
-		Name: configFile.Namespace,
-	}); err != nil {
-		log.Error("[Config][Service] create config file error because of create namespace failed.",
-			utils.ZapRequestIDByCtx(ctx),
-			zap.String("namespace", configFile.Namespace.GetValue()),
-			zap.String("group", configFile.Group.GetValue()),
-			zap.String("name", configFile.Name.GetValue()),
-			zap.Error(err))
-		return api.NewConfigFileResponse(apimodel.Code_StoreLayerException, configFile)
-	}
 	// 如果配置文件组不存在则自动创建
 	createGroupRsp := s.createConfigFileGroupIfAbsent(ctx, &apiconfig.ConfigFileGroup{
 		Namespace: configFile.Namespace,

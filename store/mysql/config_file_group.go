@@ -187,7 +187,7 @@ func (fg *configFileGroupStore) GetConfigFileGroupById(id uint64) (*model.Config
 }
 
 func (fg *configFileGroupStore) CountGroupEachNamespace() (map[string]int64, error) {
-	metricsSql := "SELECT namespace, count(name) FROM config_file_group WHERE flag = 0 GROUP by namesapce"
+	metricsSql := "SELECT namespace, count(name) FROM config_file_group GROUP by namespace"
 	rows, err := fg.slave.Query(metricsSql)
 	if err != nil {
 		return nil, store.Error(err)
@@ -204,7 +204,7 @@ func (fg *configFileGroupStore) CountGroupEachNamespace() (map[string]int64, err
 			cnt      int64
 		)
 
-		if err := rows.Scan(&namespce, cnt); err != nil {
+		if err := rows.Scan(&namespce, &cnt); err != nil {
 			return nil, err
 		}
 		ret[namespce] = cnt

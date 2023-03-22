@@ -104,7 +104,27 @@ func Test_discoverCacheConvert(t *testing.T) {
 					},
 				},
 			},
-			want: nil,
+			want: &grpcserver.CacheObject{
+				OriginVal: &apiservice.DiscoverResponse{
+					Code: &wrapperspb.UInt32Value{
+						Value: uint32(apimodel.Code_ExecuteSuccess),
+					},
+					Type: apiservice.DiscoverResponse_SERVICES,
+					Service: &apiservice.Service{
+						Name: &wrapperspb.StringValue{
+							Value: "",
+						},
+						Namespace: &wrapperspb.StringValue{
+							Value: "test",
+						},
+						Revision: &wrapperspb.StringValue{
+							Value: "",
+						},
+					},
+				},
+				CacheType: apiservice.DiscoverResponse_SERVICES.String(),
+				Key:       fmt.Sprintf("%s-%s-%s", "test", "", ""),
+			},
 		},
 		{
 			name: "DiscoverResponse_RATE_LIMIT",

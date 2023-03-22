@@ -118,3 +118,17 @@ func enrichReleaseLeaderElectionApiDocs(r *restful.RouteBuilder) *restful.RouteB
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
 		Notes(enrichReleaseLeaderElectionApiNotes)
 }
+
+func enrichGetCMDBInfoApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.
+		Doc("查询CMDB信息").
+		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
+		Notes(enrichReleaseLeaderElectionApiNotes)
+}
+
+func enrichGetReportClientsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.
+		Doc("查询SDK实例列表").
+		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
+		Notes(enrichReleaseLeaderElectionApiNotes)
+}

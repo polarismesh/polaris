@@ -61,6 +61,7 @@ var (
 func Start(configFilePath string) {
 	// 加载配置
 	ConfigFilePath = configFilePath
+	utils.ConfDir = parseConfDir(configFilePath)
 	cfg, err := boot_config.Load(configFilePath)
 	if err != nil {
 		fmt.Printf("[ERROR] load config fail\n")
@@ -186,7 +187,7 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 		return err
 	}
 
-	namingSvr, err := service.GetOriginServer()
+	namingSvr, err := service.GetServer()
 	if err != nil {
 		return err
 	}
@@ -196,7 +197,7 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 	}
 
 	// 初始化运维操作模块
-	if err := maintain.Initialize(ctx, namingSvr, healthCheckServer, s); err != nil {
+	if err := maintain.Initialize(ctx, &cfg.Maintain, namingSvr, healthCheckServer, cacheMgn, s); err != nil {
 		return err
 	}
 
@@ -280,6 +281,14 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 	}
 
 	return nil
+}
+
+func parseConfDir(path string) string {
+	slashIndex := strings.LastIndex(path, "/")
+	if slashIndex == -1 {
+		return "./"
+	}
+	return path[0 : slashIndex+1]
 }
 
 // StartConfigCenterComponents 启动配置中心模块

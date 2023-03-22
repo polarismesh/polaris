@@ -29,6 +29,8 @@ const (
 var (
 	// LocalHost local host
 	LocalHost = "127.0.0.1"
+	// ConfDir default config dir
+	ConfDir = "conf/"
 )
 
 const (

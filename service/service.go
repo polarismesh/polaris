@@ -95,8 +95,8 @@ func (s *Server) CreateService(ctx context.Context, req *apiservice.Service) *ap
 		return checkError
 	}
 
-	if code, err := s.createNamespaceIfAbsent(ctx, req); err != nil {
-		return api.NewServiceResponse(code, req)
+	if _, errResp := s.createNamespaceIfAbsent(ctx, req); errResp != nil {
+		return errResp
 	}
 
 	namespaceName := req.GetNamespace().GetValue()
@@ -523,16 +523,12 @@ func (s *Server) GetServiceOwner(ctx context.Context, req []*apiservice.Service)
 }
 
 // createNamespaceIfAbsent Automatically create namespaces
-func (s *Server) createNamespaceIfAbsent(ctx context.Context, svc *apiservice.Service) (apimodel.Code, error) {
-	err := s.Namespace().CreateNamespaceIfAbsent(ctx, &apimodel.Namespace{
+func (s *Server) createNamespaceIfAbsent(ctx context.Context, svc *apiservice.Service) (string, *apiservice.Response) {
+	val, errResp := s.Namespace().CreateNamespaceIfAbsent(ctx, &apimodel.Namespace{
 		Name:   utils.NewStringValue(svc.GetNamespace().GetValue()),
 		Owners: svc.Owners,
 	})
-	if err != nil {
-		return apimodel.Code_ExecuteException, err
-	}
-
-	return apimodel.Code_ExecuteSuccess, nil
+	return val, errResp
 }
 
 // createServiceModel 创建存储层服务模型

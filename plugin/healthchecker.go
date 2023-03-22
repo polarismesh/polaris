@@ -93,6 +93,10 @@ type HealthChecker interface {
 	AddToCheck(request *AddCheckRequest) error
 	// RemoveFromCheck removes the instances from check procedure
 	RemoveFromCheck(request *AddCheckRequest) error
+	// Suspend health checker for entire expired duration manually
+	Suspend()
+	// SuspendTimeSec get the suspend time in seconds
+	SuspendTimeSec() int64
 	// Delete delete the id
 	Delete(id string) error
 }

@@ -23,11 +23,15 @@ import (
 	"runtime/debug"
 	"time"
 
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	"go.uber.org/zap"
 
+	api "github.com/polarismesh/polaris/common/api/v1"
 	connlimit "github.com/polarismesh/polaris/common/conn/limit"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 )
 
@@ -135,7 +139,28 @@ func (s *Server) FreeOSMemory(_ context.Context) error {
 }
 
 func (s *Server) CleanInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
-	return s.namingServer.CleanInstance(ctx, req)
+	getInstanceID := func() (string, *apiservice.Response) {
+		if req.GetId() != nil {
+			if req.GetId().GetValue() == "" {
+				return "", api.NewInstanceResponse(apimodel.Code_InvalidInstanceID, req)
+			}
+			return req.GetId().GetValue(), nil
+		}
+		return utils.CheckInstanceTetrad(req)
+	}
+
+	instanceID, resp := getInstanceID()
+	if resp != nil {
+		return resp
+	}
+	if err := s.storage.CleanInstance(instanceID); err != nil {
+		log.Error("Clean instance",
+			zap.String("err", err.Error()), utils.ZapRequestID(utils.ParseRequestID(ctx)))
+		return api.NewInstanceResponse(apimodel.Code_StoreLayerException, req)
+	}
+
+	log.Info("Clean instance", utils.ZapRequestID(utils.ParseRequestID(ctx)), utils.ZapInstanceID(instanceID))
+	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
 func (s *Server) BatchCleanInstances(ctx context.Context, batchSize uint32) (uint32, error) {

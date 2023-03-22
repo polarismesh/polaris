@@ -228,12 +228,18 @@ func (h *EurekaServer) handleInstanceEvent(ctx context.Context, i interface{}) e
 	}
 	appName := formatReadName(e.Service)
 	curTimeMilli := time.Now().UnixMilli()
+	eurekaInstanceId := e.Id
+	if e.Instance.Metadata != nil {
+		if _, ok := e.Instance.Metadata[MetadataInstanceId]; ok {
+			eurekaInstanceId = e.Instance.Metadata[MetadataInstanceId]
+		}
+	}
 	switch e.EType {
 	case model.EventInstanceOnline, model.EventInstanceUpdate:
 		instanceInfo := eventToInstance(&e, appName, curTimeMilli)
 		h.replicateWorker.AddReplicateTask(&ReplicationInstance{
 			AppName:            appName,
-			Id:                 e.Id,
+			Id:                 eurekaInstanceId,
 			LastDirtyTimestamp: curTimeMilli,
 			Status:             StatusUp,
 			InstanceInfo:       instanceInfo,
@@ -242,14 +248,14 @@ func (h *EurekaServer) handleInstanceEvent(ctx context.Context, i interface{}) e
 	case model.EventInstanceOffline:
 		h.replicateWorker.AddReplicateTask(&ReplicationInstance{
 			AppName: appName,
-			Id:      e.Id,
+			Id:      eurekaInstanceId,
 			Action:  actionCancel,
 		})
 	case model.EventInstanceSendHeartbeat:
 		instanceInfo := eventToInstance(&e, appName, curTimeMilli)
 		rInstance := &ReplicationInstance{
 			AppName:      appName,
-			Id:           e.Id,
+			Id:           eurekaInstanceId,
 			Status:       StatusUp,
 			InstanceInfo: instanceInfo,
 			Action:       actionHeartbeat,
@@ -261,17 +267,18 @@ func (h *EurekaServer) handleInstanceEvent(ctx context.Context, i interface{}) e
 	case model.EventInstanceOpenIsolate:
 		h.replicateWorker.AddReplicateTask(&ReplicationInstance{
 			AppName:            appName,
-			Id:                 e.Id,
+			Id:                 eurekaInstanceId,
 			LastDirtyTimestamp: curTimeMilli,
-			OverriddenStatus:   StatusOutOfService,
-			Action:             actionHeartbeat,
+			Status:             StatusOutOfService,
+			Action:             actionStatusUpdate,
 		})
 	case model.EventInstanceCloseIsolate:
 		h.replicateWorker.AddReplicateTask(&ReplicationInstance{
 			AppName:            appName,
-			Id:                 e.Id,
+			Id:                 eurekaInstanceId,
 			LastDirtyTimestamp: curTimeMilli,
-			Action:             actionDeleteStatusOverride,
+			Status:             StatusUp,
+			Action:             actionStatusUpdate,
 		})
 
 	}
