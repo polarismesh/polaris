@@ -377,9 +377,9 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 		for _, svc := range svcs {
 			svcIDFilterSet[svc.ID] = struct{}{}
 		}
-	}
-	if len(svcIDFilterSet) == 0 {
-		return 0, make([]*model.Instance, 0), nil
+		if len(svcIDFilterSet) == 0 {
+			return 0, make([]*model.Instance, 0), nil
+		}
 	}
 
 	svcIdsTmp := make(map[string]struct{})
@@ -423,17 +423,20 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 				return false
 			}
 
-			// filter serviceID
-			sID, ok := m["ServiceID"]
-			if !ok {
-				return false
-			}
-			sIDStr, strOK := sID.(string)
-			if !strOK {
-				return false
-			}
-			if _, ok := svcIDFilterSet[sIDStr]; !ok {
-				return false
+			// 如果提供了 serviceName 或者 namespaceName 才过滤 serviceID
+			if isServiceName || isNamespace {
+				// filter serviceID
+				sID, ok := m["ServiceID"]
+				if !ok {
+					return false
+				}
+				sIDStr, strOK := sID.(string)
+				if !strOK {
+					return false
+				}
+				if _, ok := svcIDFilterSet[sIDStr]; !ok {
+					return false
+				}
 			}
 
 			// filter metadata
