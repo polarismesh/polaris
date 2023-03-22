@@ -49,30 +49,30 @@ func CollectMapKeys(filters map[string]string) []string {
 	return fields
 }
 
-// IsWildName 判断名字是否为通配名字，只支持前缀索引(名字最后为*)
-func IsWildName(name string) bool {
+// IsPrefixWildName 判断名字是否为通配名字，只支持前缀索引(名字最后为*)
+func IsPrefixWildName(name string) bool {
 	length := len(name)
 	return length >= 1 && name[length-1:length] == "*"
 }
 
-// IsFuzzyName 判断名字是否为通配名字，前缀或者后缀
-func IsFuzzyName(name string) bool {
-	return IsWildName(name) || isHeadFuzzyName(name)
+// IsWildName 判断名字是否为通配名字，前缀或者后缀
+func IsWildName(name string) bool {
+	return IsPrefixWildName(name) || IsSubfixWildName(name)
 }
 
-// ParseFuzzyNameForSql 如果 name 是通配字符串，将通配字符*替换为sql中的%
-func ParseFuzzyNameForSql(name string) string {
-	if IsWildName(name) {
+// ParseWildNameForSql 如果 name 是通配字符串，将通配字符*替换为sql中的%
+func ParseWildNameForSql(name string) string {
+	if IsPrefixWildName(name) {
 		name = name[:len(name)-1] + "%"
 	}
-	if isHeadFuzzyName(name) {
+	if IsSubfixWildName(name) {
 		name = "%" + name[1:]
 	}
 	return name
 }
 
-// isHeadFuzzyName 判断名字是否为通配名字，只支持后缀索引(名字第一个字符为*)
-func isHeadFuzzyName(name string) bool {
+// IsSubfixWildName 判断名字是否为通配名字，只支持后缀索引(名字第一个字符为*)
+func IsSubfixWildName(name string) bool {
 	length := len(name)
 	return length >= 1 && name[0:1] == "*"
 }
@@ -89,19 +89,19 @@ func ParseWildName(name string) (string, bool) {
 	return name, false
 }
 
-// IsFuzzyMatch 判断 name 是否匹配 pattern，pattern 可以是前缀或者后缀
-func IsFuzzyMatch(name, pattern string) bool {
-	if IsWildName(pattern) {
+// IsWildMatch 判断 name 是否匹配 pattern，pattern 可以是前缀或者后缀
+func IsWildMatch(name, pattern string) bool {
+	if IsPrefixWildName(pattern) {
 		pattern = strings.TrimRight(pattern, "*")
 		if strings.HasPrefix(name, pattern) {
 			return true
 		}
-		if isHeadFuzzyName(pattern) {
+		if IsSubfixWildName(pattern) {
 			pattern = strings.TrimLeft(pattern, "*")
 			return strings.Contains(name, pattern)
 		}
 		return false
-	} else if isHeadFuzzyName(pattern) {
+	} else if IsSubfixWildName(pattern) {
 		pattern = strings.TrimLeft(pattern, "*")
 		if strings.HasSuffix(name, pattern) {
 			return true

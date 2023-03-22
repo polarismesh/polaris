@@ -35,12 +35,12 @@ type ServiceArgs struct {
 	Metadata map[string]string
 	// SvcIds 是否按照服务的ID进行等值查询
 	SvcIds map[string]struct{}
-	// FuzzyName 是否进行名字的模糊匹配
-	FuzzyName bool
-	// FuzzyBusiness 是否进行业务的模糊匹配
-	FuzzyBusiness bool
-	// FuzzyNamespace 是否进行命名空间的模糊匹配
-	FuzzyNamespace bool
+	// WildName 是否进行名字的模糊匹配
+	WildName bool
+	// WildBusiness 是否进行业务的模糊匹配
+	WildBusiness bool
+	// WildNamespace 是否进行命名空间的模糊匹配
+	WildNamespace bool
 	// Namespace 条件中的命名空间
 	Namespace string
 	// Name 条件中的服务名
@@ -71,7 +71,7 @@ func (sc *serviceCache) GetServicesByFilter(serviceFilters *ServiceArgs,
 	var services []*model.Service
 
 	// 如果具有名字条件，并且不是模糊查询，直接获取对应命名空间下面的服务，并检查是否匹配所有条件
-	if serviceFilters.Name != "" && !serviceFilters.FuzzyName && !serviceFilters.FuzzyNamespace {
+	if serviceFilters.Name != "" && !serviceFilters.WildName && !serviceFilters.WildNamespace {
 		amount, services, err = sc.getServicesFromCacheByName(serviceFilters, instanceFilters, offset, limit)
 	} else {
 		amount, services, err = sc.getServicesByIteratingCache(serviceFilters, instanceFilters, offset, limit)
@@ -127,7 +127,7 @@ func (sc *serviceCache) matchInstances(instances []*model.Instance, instanceFilt
 			instanceMatched := true
 			for key, metaPattern := range instanceFilters.Meta {
 				if instanceMetaValue, ok := instanceMetaMap[key]; !ok ||
-					!utils.IsFuzzyMatch(instanceMetaValue, metaPattern) {
+					!utils.IsWildMatch(instanceMetaValue, metaPattern) {
 					instanceMatched = false
 					break
 				}
@@ -230,21 +230,19 @@ func matchService(svc *model.Service, svcFilter map[string]string, metaFilter ma
 }
 
 // matchServiceFilter 查询一个服务是否满足服务相关字段的条件
-func matchServiceFilter(svc *model.Service, svcFilter map[string]string, isFuzzyName, isFuzzyNamespace bool) bool {
+func matchServiceFilter(svc *model.Service, svcFilter map[string]string, isWildName, isWildNamespace bool) bool {
 	var value string
 	var exist bool
-	if isFuzzyName {
-		// 走到这一步，一定是模糊匹配
+	if isWildName {
 		if value, exist = svcFilter["name"]; exist {
-			if !utils.IsFuzzyMatch(strings.ToLower(svc.Name), strings.ToLower(value)) {
+			if !utils.IsWildMatch(strings.ToLower(svc.Name), strings.ToLower(value)) {
 				return false
 			}
 		}
 	}
-	if isFuzzyNamespace {
-		// 走到这一步，一定是模糊匹配
+	if isWildNamespace {
 		if value, exist = svcFilter["namespace"]; exist {
-			if !utils.IsFuzzyMatch(strings.ToLower(svc.Namespace), strings.ToLower(value)) {
+			if !utils.IsWildMatch(strings.ToLower(svc.Namespace), strings.ToLower(value)) {
 				return false
 			}
 		}
@@ -306,7 +304,7 @@ func (sc *serviceCache) getServicesByIteratingCache(
 			return
 		}
 		if !svcArgs.EmptyCondition {
-			if !matchService(svc, svcArgs.Filter, svcArgs.Metadata, svcArgs.FuzzyName, svcArgs.FuzzyNamespace) {
+			if !matchService(svc, svcArgs.Filter, svcArgs.Metadata, svcArgs.WildName, svcArgs.WildNamespace) {
 				return
 			}
 		}
@@ -315,7 +313,7 @@ func (sc *serviceCache) getServicesByIteratingCache(
 		}
 		res = append(res, svc)
 	}
-	if len(svcArgs.Namespace) > 0 && !svcArgs.FuzzyNamespace {
+	if len(svcArgs.Namespace) > 0 && !svcArgs.WildNamespace {
 		// 从命名空间来找
 		spaces, ok := sc.names.Load(svcArgs.Namespace)
 		if !ok {

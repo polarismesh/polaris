@@ -162,6 +162,14 @@ func (ns NamespaceSlice) Swap(i, j int) {
 	ns[i], ns[j] = ns[j], ns[i]
 }
 
+func matchFieldValue(value string, pattern string) bool {
+	if utils.IsWildName(pattern) {
+		return utils.IsWildMatch(value, pattern)
+	} else {
+		return pattern == value
+	}
+}
+
 // GetNamespaces get namespaces by offset and limit
 func (n *namespaceStore) GetNamespaces(
 	filter map[string][]string, offset, limit int) ([]*model.Namespace, uint32, error) {
@@ -181,11 +189,7 @@ func (n *namespaceStore) GetNamespaces(
 		for index, value := range filter {
 			compare := func(s string) bool {
 				for _, v := range value {
-					if utils.IsFuzzyName(v) {
-						if utils.IsFuzzyMatch(s, v) {
-							return true
-						}
-					} else if s == v {
+					if matchFieldValue(s, v) {
 						return true
 					}
 				}

@@ -437,16 +437,16 @@ func parseServiceArgs(filter map[string]string, metaFilter map[string]string, ct
 	var ok bool
 	if res.Name, ok = filter["name"]; ok && store.IsWildName(res.Name) {
 		log.Infof("[Server][Service][Query] fuzzy search with name %s", res.Name)
-		res.FuzzyName = true
+		res.WildName = true
 	}
-	if utils.IsFuzzyName(res.Namespace) {
+	if utils.IsWildName(res.Namespace) {
 		log.Infof("[Server][Service][Query] fuzzy search with namespace %s", res.Namespace)
-		res.FuzzyNamespace = true
+		res.WildNamespace = true
 	}
 	if business, ok := filter["business"]; ok {
 		log.Infof("[Server][Service][Query] fuzzy search with business %s, operator %s",
 			business, utils.ParseOperator(ctx))
-		res.FuzzyBusiness = true
+		res.WildBusiness = true
 	}
 	// 如果元数据条件是空的话，判断是否是空条件匹配
 	if len(metaFilter) == 0 {
@@ -455,7 +455,7 @@ func parseServiceArgs(filter map[string]string, metaFilter map[string]string, ct
 			res.EmptyCondition = true
 		}
 		// 只有一个命名空间条件，也是在这个命名空间下面的空条件匹配
-		if len(filter) == 1 && res.Namespace != "" && !res.FuzzyNamespace {
+		if len(filter) == 1 && res.Namespace != "" && !res.WildNamespace {
 			res.EmptyCondition = true
 		}
 	}

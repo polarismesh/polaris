@@ -181,8 +181,8 @@ func (rc *routingConfigCache) QueryRoutingConfigsV2(args *RoutingArgs) (uint32, 
 		}
 
 		if args.Name != "" {
-			name, fuzzy := utils.ParseWildName(args.Name)
-			if fuzzy {
+			name, isWild := utils.ParseWildName(args.Name)
+			if isWild {
 				if !strings.Contains(routeRule.Name, name) {
 					return
 				}

@@ -353,7 +353,7 @@ func (gs *groupStore) listSimpleGroups(filters map[string]string, offset uint32,
 				return false
 			}
 			if sName, ok := filters["name"]; ok {
-				if utils.IsWildName(sName) {
+				if utils.IsPrefixWildName(sName) {
 					sName = sName[:len(sName)-1]
 				}
 				if !strings.Contains(saveName, sName) {
@@ -396,7 +396,7 @@ func (gs *groupStore) listGroupByUser(filters map[string]string, offset uint32,
 
 			if sName, ok := filters["name"]; ok {
 				saveName, _ := m[GroupFieldName].(string)
-				if utils.IsWildName(sName) {
+				if utils.IsPrefixWildName(sName) {
 					sName = sName[:len(sName)-1]
 				}
 				if !strings.Contains(saveName, sName) {

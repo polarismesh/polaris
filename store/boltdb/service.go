@@ -561,9 +561,9 @@ func (ss *serviceStore) getServiceByNameAndNs(name string, namespace string) (*m
 }
 
 // getServiceByNs 通过命名空间拉取服务，支持命名空间名称模糊匹配
-func (ss *serviceStore) getServiceByNs(name, namespace string, isNamespaceFuzzy bool) ([]*model.Service, error) {
+func (ss *serviceStore) getServiceByNs(name, namespace string, isNamespaceWild bool) ([]*model.Service, error) {
 
-	out, err := ss.getServiceByNsIgnoreValid(name, namespace, isNamespaceFuzzy)
+	out, err := ss.getServiceByNsIgnoreValid(name, namespace, isNamespaceWild)
 	if err != nil {
 		return nil, err
 	}
@@ -616,7 +616,7 @@ func (ss *serviceStore) getServiceByNameValid(name string) ([]*model.Service, er
 }
 
 // getServiceByNs 通过命名空间拉取服务，支持命名空间名称模糊匹配
-func (ss *serviceStore) getServiceByNsIgnoreValid(name, namespace string, isNamespaceFuzzy bool) (
+func (ss *serviceStore) getServiceByNsIgnoreValid(name, namespace string, isNamespaceWild bool) (
 	[]*model.Service, error) {
 
 	var out []*model.Service
@@ -635,8 +635,8 @@ func (ss *serviceStore) getServiceByNsIgnoreValid(name, namespace string, isName
 			if !ok {
 				return false
 			}
-			if isNamespaceFuzzy {
-				if utils.IsFuzzyMatch(svcNs.(string), namespace) {
+			if isNamespaceWild {
+				if utils.IsWildMatch(svcNs.(string), namespace) {
 					return true
 				}
 			} else {
@@ -858,7 +858,7 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 				if !ok {
 					return false
 				}
-				if utils.IsWildName(namespace) {
+				if utils.IsPrefixWildName(namespace) {
 					return strings.Contains(svcNs.(string), namespace[0:len(namespace)-1])
 				}
 				if svcNs.(string) != namespace {
@@ -872,7 +872,7 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 				if !ok {
 					return false
 				}
-				if utils.IsWildName(name) {
+				if utils.IsPrefixWildName(name) {
 					return strings.Contains(svcName.(string), name[0:len(name)-1])
 				}
 				if svcName.(string) != name {
@@ -899,7 +899,7 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 				if !ok {
 					return false
 				}
-				if utils.IsWildName(department) {
+				if utils.IsPrefixWildName(department) {
 					return strings.Contains(svcDepartment.(string), department[0:len(department)-1])
 				}
 				if svcDepartment.(string) != department {
@@ -912,7 +912,7 @@ func (ss *serviceStore) getServices(serviceFilters, serviceMetas map[string]stri
 				if !ok {
 					return false
 				}
-				if utils.IsWildName(business) {
+				if utils.IsPrefixWildName(business) {
 					return strings.Contains(svcBusiness.(string), business[0:len(business)-1])
 				}
 				if svcBusiness.(string) != business {
@@ -953,6 +953,27 @@ func (ss *serviceStore) cleanInValidService(name, namespace string) error {
 	}
 
 	return nil
+}
+
+func (ss *serviceStore) GetServiceByNameAndNamespace(name string, namespace string, isNamespaceWild bool) (
+	[]*model.Service, error) {
+
+	if len(namespace) > 0 {
+		svcs, err := ss.getServiceByNs(name, namespace, isNamespaceWild)
+		if err != nil {
+			log.Errorf("[Store][boltdb] find service by ns prefix error, %v", err)
+			return nil, err
+		}
+		return svcs, err
+	} else if len(name) > 0 {
+		svcs, err := ss.getServiceByNameValid(name)
+		if err != nil {
+			log.Errorf("[Store][boltdb] find service by name error, %v", err)
+			return nil, err
+		}
+		return svcs, err
+	}
+	return nil, nil
 }
 
 func getRealServicesList(originServices map[string]*model.Service, offset, limit uint32) []*model.Service {
