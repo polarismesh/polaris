@@ -165,9 +165,8 @@ func (ns NamespaceSlice) Swap(i, j int) {
 func matchFieldValue(value string, pattern string) bool {
 	if utils.IsWildName(pattern) {
 		return utils.IsWildMatch(value, pattern)
-	} else {
-		return pattern == value
 	}
+	return pattern == value
 }
 
 func matchFieldValueByPatterns(value string, patterns []string) bool {
