@@ -20,6 +20,7 @@ package cache
 import (
 	"fmt"
 	"sort"
+	"sync"
 	"time"
 
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
@@ -48,10 +49,8 @@ type (
 	// RoutingConfigCache Cache interface configured by routing
 	RoutingConfigCache interface {
 		Cache
-		// GetRoutingConfigV1 Obtain routing configuration based on serviceid
-		GetRoutingConfigV1(id, service, namespace string) (*apitraffic.Routing, error)
-		// GetRoutingConfigV2 Obtain routing configuration based on serviceid
-		GetRoutingConfigV2(id, service, namespace string) ([]*apitraffic.RouteRule, error)
+		// GetRouterConfig Obtain routing configuration based on serviceid
+		GetRouterConfig(id, service, namespace string) (*apitraffic.Routing, error)
 		// GetRoutingConfigCount Get the total number of routing configuration cache
 		GetRoutingConfigCount() int
 		// QueryRoutingConfigsV2 Query Route Configuration List
@@ -73,6 +72,10 @@ type (
 		lastMtimeV2 time.Time
 
 		singleFlight singleflight.Group
+
+		// pendingV1RuleIds Records need to be converted from V1 to V2 routing rules ID
+		plock            sync.Mutex
+		pendingV1RuleIds map[string]*model.RoutingConfig
 	}
 )
 
@@ -141,21 +144,43 @@ func (rc *routingConfigCache) name() string {
 	return RoutingConfigName
 }
 
-// GetRoutingConfigV1 Obtain routing configuration based on serviceid
-// case 1: If there is only V2's routing rules, use V2
-// case 2: If there is only V1's routing rules, use V1
-// case 3: If there are routing rules for V1 and V2 at the same time, merge
-func (rc *routingConfigCache) GetRoutingConfigV1(id, service, namespace string) (*apitraffic.Routing, error) {
+// GetRouterConfig Obtain routing configuration based on serviceid
+func (rc *routingConfigCache) GetRouterConfig(id, service, namespace string) (*apitraffic.Routing, error) {
 	if id == "" && service == "" && namespace == "" {
 		return nil, nil
 	}
 
-	rules := rc.bucket.listByServiceWithPredicate(service, namespace,
-		func(item *model.ExtendRouterConfig) bool {
-			return item.Enable
-		})
+	routerRules := rc.bucket.listEnableRules(service, namespace)
+	inBounds, outBounds, revisions := rc.convertV2toV1(routerRules, service, namespace)
 
-	return formatRoutingResponseV1(rc.convertRoutingV2toV1(rules, service, namespace)), nil
+	rulesV2 := make([]*apitraffic.RouteRule, 0, len(routerRules))
+	for level := range routerRules {
+		items := routerRules[level]
+		for i := range items {
+			entry, err := items[i].ToApi()
+			if err != nil {
+				return nil, err
+			}
+			rulesV2 = append(rulesV2, entry)
+		}
+	}
+
+	revision, err := CompositeComputeRevision(revisions)
+	if err != nil {
+		log.Warn("[Cache][Routing] v2=>v1 compute revisions fail, use fake revision", zap.Error(err))
+		revision = utils.NewV2Revision()
+	}
+
+	resp := &apitraffic.Routing{
+		Namespace: utils.NewStringValue(namespace),
+		Service:   utils.NewStringValue(service),
+		Inbounds:  inBounds,
+		Outbounds: outBounds,
+		Rules:     rulesV2,
+		Revision:  utils.NewStringValue(revision),
+	}
+
+	return formatRoutingResponseV1(resp), nil
 }
 
 // formatRoutingResponseV1 Give the client's cache, no need to expose EXTENDINFO information data
@@ -173,28 +198,6 @@ func formatRoutingResponseV1(ret *apitraffic.Routing) *apitraffic.Routing {
 	return ret
 }
 
-// GetRoutingConfigV2 Obtain all V2 versions under the service information according to the service information
-func (rc *routingConfigCache) GetRoutingConfigV2(_, service, namespace string) ([]*apitraffic.RouteRule, error) {
-	v2rules := rc.bucket.listByServiceWithPredicate(service, namespace,
-		func(item *model.ExtendRouterConfig) bool {
-			return item.Enable
-		})
-
-	ret := make([]*apitraffic.RouteRule, 0, len(v2rules))
-	for level := range v2rules {
-		items := v2rules[level]
-		for i := range items {
-			entry, err := items[i].ToApi()
-			if err != nil {
-				return nil, err
-			}
-			ret = append(ret, entry)
-		}
-	}
-
-	return ret, nil
-}
-
 // IteratorRoutings
 func (rc *routingConfigCache) IteratorRoutings(iterProc RoutingIterProc) {
 	// need to traverse the Routing cache bucket of V2 here
@@ -208,6 +211,9 @@ func (rc *routingConfigCache) GetRoutingConfigCount() int {
 
 // setRoutingConfigV1 Update the data of the store to the cache and convert to v2 model
 func (rc *routingConfigCache) setRoutingConfigV1(lastMtimes map[string]time.Time, cs []*model.RoutingConfig) {
+	rc.plock.Lock()
+	defer rc.plock.Unlock()
+
 	if len(cs) == 0 {
 		return
 	}
@@ -224,8 +230,13 @@ func (rc *routingConfigCache) setRoutingConfigV1(lastMtimes map[string]time.Time
 			rc.bucket.deleteV1(entry.ID)
 			continue
 		}
+		rc.pendingV1RuleIds[entry.ID] = entry
+	}
+
+	for id := range rc.pendingV1RuleIds {
+		entry := rc.pendingV1RuleIds[id]
 		// Save to the new V2 cache
-		v2rule, err := rc.convertRoutingV1toV2(entry)
+		v2rule, err := rc.convertV1toV2(entry)
 		if err != nil {
 			log.Warn("[Cache] routing parse v1 => v2 fail, will try again next",
 				zap.String("rule-id", entry.ID), zap.Error(err))
@@ -236,6 +247,7 @@ func (rc *routingConfigCache) setRoutingConfigV1(lastMtimes map[string]time.Time
 				zap.String("rule-id", entry.ID))
 			continue
 		}
+		delete(rc.pendingV1RuleIds, id)
 		rc.bucket.saveV1(entry, v2rule)
 	}
 
@@ -276,7 +288,7 @@ func (rc *routingConfigCache) IsConvertFromV1(id string) (string, bool) {
 	return val, ok
 }
 
-func (rc *routingConfigCache) convertRoutingV1toV2(rule *model.RoutingConfig) ([]*model.ExtendRouterConfig, error) {
+func (rc *routingConfigCache) convertV1toV2(rule *model.RoutingConfig) ([]*model.ExtendRouterConfig, error) {
 	svc := rc.serviceCache.GetServiceByID(rule.ID)
 	if svc == nil {
 		s, err := rc.storage.GetServiceByID(rule.ID)
@@ -304,10 +316,10 @@ func (rc *routingConfigCache) convertRoutingV1toV2(rule *model.RoutingConfig) ([
 	return ret, nil
 }
 
-// convertRoutingV2toV1 The routing rules of the V2 version are converted to V1 version to return to the client,
+// convertV2toV1 The routing rules of the V2 version are converted to V1 version to return to the client,
 // which is used to compatible with SDK issuance configuration.
-func (rc *routingConfigCache) convertRoutingV2toV1(entries map[routingLevel][]*model.ExtendRouterConfig,
-	service, namespace string) *apitraffic.Routing {
+func (rc *routingConfigCache) convertV2toV1(entries map[routingLevel][]*model.ExtendRouterConfig,
+	service, namespace string) ([]*apitraffic.Route, []*apitraffic.Route, []string) {
 	level1 := entries[level1RoutingV2]
 	sort.Slice(level1, func(i, j int) bool {
 		return routingcommon.CompareRoutingV2(level1[i], level1[j])
@@ -331,11 +343,6 @@ func (rc *routingConfigCache) convertRoutingV2toV1(entries map[routingLevel][]*m
 	revisions = append(revisions, level1Revisions...)
 	revisions = append(revisions, level2Revisions...)
 	revisions = append(revisions, level3Revisions...)
-	revision, err := CompositeComputeRevision(revisions)
-	if err != nil {
-		log.Error("[Cache][Routing] v2=>v1 compute revisions", zap.Error(err))
-		return nil
-	}
 
 	inRoutes := make([]*apitraffic.Route, 0, len(level1inRoutes)+len(level2inRoutes)+len(level3inRoutes))
 	inRoutes = append(inRoutes, level1inRoutes...)
@@ -347,11 +354,5 @@ func (rc *routingConfigCache) convertRoutingV2toV1(entries map[routingLevel][]*m
 	outRoutes = append(outRoutes, level2outRoutes...)
 	outRoutes = append(outRoutes, level3outRoutes...)
 
-	return &apitraffic.Routing{
-		Service:   utils.NewStringValue(service),
-		Namespace: utils.NewStringValue(namespace),
-		Inbounds:  inRoutes,
-		Outbounds: outRoutes,
-		Revision:  utils.NewStringValue(revision),
-	}
+	return inRoutes, outRoutes, revisions
 }

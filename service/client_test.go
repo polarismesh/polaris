@@ -18,15 +18,12 @@
 package service_test
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	. "github.com/smartystreets/goconvey/convey"
-	"github.com/stretchr/testify/assert"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
@@ -243,63 +240,6 @@ func TestDiscoverService2(t *testing.T) {
 			So(respSuccess(out), ShouldEqual, true)
 			t.Logf("pass: out is %+v", out)
 		})
-	})
-}
-
-func TestDiscoverServerV2(t *testing.T) {
-
-	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.Initialize(); err != nil {
-		t.Fatal(err)
-	}
-	defer discoverSuit.Destroy()
-
-	svc := &apiservice.Service{
-		Name:      utils.NewStringValue("in-source-service-1"),
-		Namespace: utils.NewStringValue("in-source-service-1"),
-	}
-
-	createSvcResp := discoverSuit.DiscoverServer().CreateServices(discoverSuit.DefaultCtx, []*apiservice.Service{svc})
-	if !respSuccess(createSvcResp) {
-		t.Fatalf("error: %s", createSvcResp.GetInfo().GetValue())
-	}
-
-	_ = discoverSuit.createCommonRoutingConfigV2(t, 3)
-	defer discoverSuit.truncateCommonRoutingConfigV2()
-
-	time.Sleep(discoverSuit.UpdateCacheInterval() * 5)
-
-	t.Run("空请求", func(t *testing.T) {
-		resp := discoverSuit.DiscoverServer().GetRouterConfigWithCache(context.Background(), nil)
-
-		assert.Equal(t, api.EmptyRequest, resp.Code.GetValue())
-	})
-
-	t.Run("没有带服务名", func(t *testing.T) {
-		resp := discoverSuit.DiscoverServer().GetRouterConfigWithCache(context.Background(), &apiservice.Service{
-			Namespace: &wrappers.StringValue{Value: "string"},
-		})
-
-		assert.Equal(t, api.InvalidServiceName, resp.Code.GetValue())
-	})
-
-	t.Run("没有带命名空间", func(t *testing.T) {
-		resp := discoverSuit.DiscoverServer().GetRouterConfigWithCache(context.Background(), &apiservice.Service{
-			Name: &wrappers.StringValue{Value: "string"},
-		})
-
-		assert.Equal(t, api.InvalidNamespaceName, resp.Code.GetValue())
-	})
-
-	t.Run("查询v2版本的路由规则", func(t *testing.T) {
-		resp := discoverSuit.DiscoverServer().GetRouterConfigWithCache(context.Background(), &apiservice.Service{
-			Name:      &wrappers.StringValue{Value: "in-source-service-1"},
-			Namespace: &wrappers.StringValue{Value: "in-source-service-1"},
-		})
-
-		if !respSuccess(resp) {
-			t.Fatal(resp.GetInfo().GetValue())
-		}
 	})
 }
 

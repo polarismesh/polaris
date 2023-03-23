@@ -65,6 +65,55 @@ func newRouteRuleBucket() *routeRuleBucket {
 	}
 }
 
+// ServiceWithCircuitBreakerRules 与服务关系绑定的熔断规则
+type ServiceWithRouterRules struct {
+	mutex    sync.RWMutex
+	Service  model.ServiceKey
+	v2Rules  map[string]*model.ExtendRouterConfig
+	v1Rules  *apitraffic.Routing
+	Revision string
+}
+
+func NewServiceWithRouterRules(svcKey model.ServiceKey) *ServiceWithRouterRules {
+	return &ServiceWithRouterRules{
+		Service: svcKey,
+		v2Rules: make(map[string]*model.ExtendRouterConfig),
+	}
+}
+
+func (s *ServiceWithRouterRules) AddRouterRule(rule *model.ExtendRouterConfig) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.v2Rules[rule.ID] = rule
+}
+
+func (s *ServiceWithRouterRules) DelRouterRule(id string) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	delete(s.v2Rules, id)
+}
+
+func (s *ServiceWithRouterRules) IterateRouterRules(callback func(*model.ExtendRouterConfig)) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	for _, rule := range s.v2Rules {
+		callback(rule)
+	}
+}
+
+func (s *ServiceWithRouterRules) CountRouterRules() int {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	return len(s.v2Rules)
+}
+
+func (s *ServiceWithRouterRules) Clear() {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.v2Rules = make(map[string]*model.ExtendRouterConfig)
+	s.Revision = ""
+}
+
 // routeRuleBucket v2 路由规则缓存 bucket
 type routeRuleBucket struct {
 	lock sync.RWMutex
@@ -78,6 +127,15 @@ type routeRuleBucket struct {
 	level3Rules map[boundType]map[string]struct{}
 	// v1rules service-id => []*model.ExtendRouterConfig v1 版本的规则自动转为 v2 版本的规则，用于 v2 接口的数据查看
 	v1rules map[string][]*model.ExtendRouterConfig
+
+	// fetched service cache
+	// key1: namespace, key2: service
+	routerRules map[string]map[string]*ServiceWithRouterRules
+	// key1: namespace
+	nsWildcardRules map[string]*ServiceWithRouterRules
+	// all rules are wildcard specific
+	allWildcardRules *ServiceWithRouterRules
+
 	// v1rulesToOld 转为 v2 规则id 对应的原本的 v1 规则id 信息
 	v1rulesToOld map[string]string
 }
@@ -228,17 +286,19 @@ func (b *routeRuleBucket) size() int {
 	return cnt
 }
 
-type predicate func(item *model.ExtendRouterConfig) bool
 
-// listByServiceWithPredicate Inquire the routing rules of the V2 version through the service name,
+// listEnableRules Inquire the routing rules of the V2 version through the service name,
 // and perform some filtering according to the Predicate
-func (b *routeRuleBucket) listByServiceWithPredicate(service, namespace string,
-	predicate predicate) map[routingLevel][]*model.ExtendRouterConfig {
+func (b *routeRuleBucket) listEnableRules(service, namespace string) map[routingLevel][]*model.ExtendRouterConfig {
 	ret := make(map[routingLevel][]*model.ExtendRouterConfig)
 	tmpRecord := map[string]struct{}{}
 
 	b.lock.RLock()
 	defer b.lock.RUnlock()
+
+	predicate := func(item *model.ExtendRouterConfig) bool {
+		return item.Enable
+	}
 
 	// Query Level1 V2 version routing rules
 	key := buildServiceKey(namespace, service)
