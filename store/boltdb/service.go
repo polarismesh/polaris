@@ -556,7 +556,7 @@ func (ss *serviceStore) getServiceByNameAndNs(name string, namespace string) (*m
 	return out[0], err
 }
 
-//  getServiceByNameAndNsCommon 根据服务名和命名空间查询服务，支持模糊查询
+// getServiceByNameAndNsCommon 根据服务名和命名空间查询服务，支持模糊查询
 func (ss *serviceStore) getServiceByNameAndNsCommon(name string, namespace string, forceValid bool) (
 	[]*model.Service, error) {
 
