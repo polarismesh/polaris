@@ -1171,8 +1171,8 @@ func preGetInstances(query map[string]string) (map[string]string, map[string]str
 	_, serviceIsAvail := query["service"]
 	_, namespaceIsAvail := query["namespace"]
 	_, hostIsAvail := query["host"]
-	// 要么（service，namespace）存在，要么host存在，不然视为参数不完整
-	if !((serviceIsAvail && namespaceIsAvail) || hostIsAvail) {
+	// service namespace host 三个必须最少传一个
+	if !(serviceIsAvail || namespaceIsAvail || hostIsAvail) {
 		return nil, nil, api.NewBatchQueryResponse(apimodel.Code_InvalidQueryInsParameter)
 	}
 

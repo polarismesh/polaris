@@ -798,6 +798,114 @@ func TestGetServices5(t *testing.T) {
 	})
 }
 
+// 模糊匹配测试
+func TestGetService6(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.Initialize(); err != nil {
+		t.Fatal(err)
+	}
+	defer discoverSuit.Destroy()
+	t.Run("namespace模糊匹配过滤条件会生效", func(t *testing.T) {
+		total := 60
+		for i := 0; i < total; i++ {
+			_, serviceResp := discoverSuit.createCommonService(t, i+100)
+			defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+		}
+
+		filters := map[string]string{"offset": "0",
+			"limit":     "100",
+			"namespace": "*ef*"}
+		resp := discoverSuit.DiscoverServer().GetServices(discoverSuit.DefaultCtx, filters)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if len(resp.Services) != total {
+			t.Fatalf("error: %d", len(resp.Services))
+		}
+
+		filters = map[string]string{"offset": "0",
+			"limit":     "100",
+			"namespace": "def*"}
+		resp = discoverSuit.DiscoverServer().GetServices(discoverSuit.DefaultCtx, filters)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if len(resp.Services) != total {
+			t.Fatalf("error: %d", len(resp.Services))
+		}
+	})
+
+	t.Run("service模糊匹配过滤条件会生效", func(t *testing.T) {
+		total := 60
+		for i := 0; i < total; i++ {
+			_, serviceResp := discoverSuit.createCommonService(t, i+200)
+			defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+		}
+
+		filters := map[string]string{"offset": "0",
+			"limit": "100",
+			"name":  "*est-service-21*"}
+		resp := discoverSuit.DiscoverServer().GetServices(discoverSuit.DefaultCtx, filters)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if len(resp.Services) != 10 {
+			t.Fatalf("error: %d", len(resp.Services))
+		}
+	})
+
+	t.Run("instance_keys和instance_values模糊匹配过滤条件会生效", func(t *testing.T) {
+		_, serviceResp := discoverSuit.createCommonService(t, 999)
+		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+		total := 10
+		for i := 0; i < total; i++ {
+			_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, i+100)
+			defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
+		}
+
+		filters := map[string]string{"offset": "0",
+			"limit":           "100",
+			"instance_keys":   "2my-meta,my-meta-a1",
+			"instance_values": "my-meta-100,111*",
+		}
+		resp := discoverSuit.DiscoverServer().GetServices(discoverSuit.DefaultCtx, filters)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if len(resp.Services) != 1 {
+			t.Fatalf("error: %d", len(resp.Services))
+		}
+		if resp.Services[0].TotalInstanceCount.Value != uint32(total) {
+			t.Fatalf("error: %d", resp.Services[0].TotalInstanceCount.Value)
+		}
+
+		filters = map[string]string{"offset": "0",
+			"limit":           "100",
+			"instance_keys":   "2my-meta,my-meta-a1,my-1meta-o3",
+			"instance_values": "my-meta-100,1111,not-exists",
+		}
+		resp = discoverSuit.DiscoverServer().GetServices(discoverSuit.DefaultCtx, filters)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if len(resp.Services) != 0 {
+			t.Fatalf("error: %d", len(resp.Services))
+		}
+	})
+
+	t.Run("instance_keys和instance_values长度不相等会报错", func(t *testing.T) {
+		filters := map[string]string{"offset": "0",
+			"limit":           "100",
+			"instance_keys":   "2my-meta,my-meta-a1",
+			"instance_values": "my-meta-100,1111,oneMore",
+		}
+		resp := discoverSuit.DiscoverServer().GetServices(discoverSuit.DefaultCtx, filters)
+		if resp.Code.Value != api.InvalidParameter {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+	})
+}
+
 // 测试更新服务
 func TestUpdateService(t *testing.T) {
 

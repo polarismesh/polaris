@@ -793,6 +793,94 @@ func TestListInstances1(t *testing.T) {
 	})
 }
 
+// 测试list实例列表
+func TestListInstances2(t *testing.T) {
+
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.Initialize(); err != nil {
+		t.Fatal(err)
+	}
+	defer discoverSuit.Destroy()
+
+	// 先任意找几个实例字段过滤
+	_, serviceResp := discoverSuit.createCommonService(t, 800)
+	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+
+	checkAmountAndSize := func(t *testing.T, resp *apiservice.BatchQueryResponse, expect int, size int) {
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if resp.GetAmount().GetValue() != uint32(expect) {
+			t.Fatalf("error: %d", resp.GetAmount().GetValue())
+		}
+		if len(resp.Instances) != size {
+			t.Fatalf("error: %d", len(resp.Instances))
+		}
+	}
+
+	t.Run("list实例，使用namespace，可以进行模糊匹配过滤", func(t *testing.T) {
+		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1001)
+		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
+		query := map[string]string{
+			"offset":    "0",
+			"limit":     "100",
+			"namespace": "*fau*",
+			"keys":      "my-meta-a1",
+			"values":    "1111",
+		}
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
+		checkAmountAndSize(t, resp, 1, 1)
+	})
+
+	t.Run("list实例，使用namespace，可以进行前缀匹配过滤", func(t *testing.T) {
+		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1002)
+		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
+		query := map[string]string{
+			"offset":    "0",
+			"limit":     "100",
+			"namespace": "defau*",
+			"keys":      "my-meta-a1",
+			"values":    "1111",
+		}
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
+		checkAmountAndSize(t, resp, 1, 1)
+
+		query = map[string]string{
+			"offset":    "0",
+			"limit":     "100",
+			"namespace": "defauxxxx*",
+			"keys":      "my-meta-a1",
+			"values":    "1111",
+		}
+		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
+		checkAmountAndSize(t, resp, 0, 0)
+	})
+
+	t.Run("list实例，使用namespace，service可选", func(t *testing.T) {
+		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1003)
+		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
+		query := map[string]string{
+			"offset":  "0",
+			"limit":   "100",
+			"service": serviceResp.GetName().GetValue(),
+			"keys":    "my-meta-a1",
+			"values":  "1111",
+		}
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
+		checkAmountAndSize(t, resp, 1, 1)
+
+		query = map[string]string{
+			"offset":    "0",
+			"limit":     "100",
+			"namespace": serviceResp.GetNamespace().GetValue(),
+			"keys":      "my-meta-a1",
+			"values":    "1111",
+		}
+		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
+		checkAmountAndSize(t, resp, 1, 1)
+	})
+}
+
 // 测试地域获取
 func TestInstancesContainLocation(t *testing.T) {
 
@@ -1971,11 +2059,17 @@ func TestCheckInstanceParam(t *testing.T) {
 	instanceReq, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 153)
 	defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
+	t.Run("都不传", func(t *testing.T) {
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, make(map[string]string))
+		if resp.Code.Value != api.EmptyQueryParameter {
+			t.Fatalf("%+v", resp)
+		}
+	})
 	t.Run("只传service", func(t *testing.T) {
 		query := map[string]string{}
 		query["service"] = "test"
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if resp.Code.Value != api.InvalidQueryInsParameter {
+		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
 	})
@@ -1983,7 +2077,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query := map[string]string{}
 		query["namespace"] = "test"
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if resp.Code.Value != api.InvalidQueryInsParameter {
+		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
 	})
@@ -2016,7 +2110,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query["service"] = "test"
 		query["port"] = "123"
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if resp.Code.Value != api.InvalidQueryInsParameter {
+		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
 	})
@@ -2025,7 +2119,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query["namespace"] = "test"
 		query["port"] = "123"
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if resp.Code.Value != api.InvalidQueryInsParameter {
+		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
 	})

@@ -93,7 +93,7 @@ func Test_matchServiceFilter_ignoreServiceCI(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := matchServiceFilter(tt.args.svc, tt.args.svcFilter, tt.args.matchName); got != tt.want {
+			if got := matchServiceFilter(tt.args.svc, tt.args.svcFilter, tt.args.matchName, false); got != tt.want {
 				t.Errorf("matchServiceFilter() = %v, want %v", got, tt.want)
 			}
 		})
@@ -170,7 +170,7 @@ func Test_matchServiceFilter_business(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := matchServiceFilter(tt.args.svc, tt.args.svcFilter, tt.args.matchName); got != tt.want {
+			if got := matchServiceFilter(tt.args.svc, tt.args.svcFilter, tt.args.matchName, false); got != tt.want {
 				t.Errorf("matchServiceFilter() = %v, want %v, args %#v", got, tt.want, tt.args)
 			}
 		})
