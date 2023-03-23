@@ -84,7 +84,7 @@ require (
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
-	github.com/polarismesh/specification v1.2.1-alpha
+	github.com/polarismesh/specification v1.2.1-alpha.1
 	github.com/robfig/cron/v3 v3.0.1
 )
 

@@ -149,7 +149,6 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Servic
 	}
 
 	resp := api.NewDiscoverServiceResponse(apimodel.Code_ExecuteSuccess, req)
-<<<<<<< HEAD
 	var (
 		revision string
 		svcs     []*model.Service
@@ -167,32 +166,6 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Servic
 	log.Info("[Service][Discover] list servies", zap.Int("size", len(svcs)), zap.String("revision", revision))
 	if revision == req.GetRevision().GetValue() {
 		return api.NewDiscoverServiceResponse(apimodel.Code_DataNoChange, req)
-=======
-	resp.Services = []*apiservice.Service{}
-	serviceIterProc := func(key string, value *model.Service) (bool, error) {
-		if checkServiceMetadata(req.GetMetadata(), value, req.Business.GetValue(), req.Namespace.GetValue()) {
-			service := &apiservice.Service{
-				Name:      utils.NewStringValue(value.Name),
-				Namespace: utils.NewStringValue(value.Namespace),
-			}
-			resp.Services = append(resp.Services, service)
-		}
-		return true, nil
-	}
-
-	if err := s.caches.Service().IteratorServices(serviceIterProc); err != nil {
-		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
-		return api.NewDiscoverServiceResponse(apimodel.Code_ExecuteException, req)
-	}
-
-	return resp
-}
-
-// checkServiceMetadata 判断请求元数据是否属于服务的元数据
-func checkServiceMetadata(requestMeta map[string]string, service *model.Service, business, namespace string) bool {
-	if len(business) > 0 && business != service.Business {
-		return false
->>>>>>> 4fb231a7... fix:查询治理规则返回服务原始名称
 	}
 
 	ret := make([]*apiservice.Service, 0, len(svcs))
@@ -448,7 +421,7 @@ func (s *Server) GetFaultDetectWithCache(ctx context.Context, req *apiservice.Se
 	resp.Service.Revision = utils.NewStringValue(out.Revision)
 	resp.FaultDetector, err = faultDetectRule2ClientAPI(out)
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
 		return api.NewDiscoverFaultDetectorResponse(apimodel.Code_ExecuteException, req)
 	}
 	return resp
