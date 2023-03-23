@@ -57,7 +57,7 @@ func IsPrefixWildName(name string) bool {
 
 // IsWildName 判断名字是否为通配名字，前缀或者后缀
 func IsWildName(name string) bool {
-	return IsPrefixWildName(name) || IsSubfixWildName(name)
+	return IsPrefixWildName(name) || IsSuffixWildName(name)
 }
 
 // ParseWildNameForSql 如果 name 是通配字符串，将通配字符*替换为sql中的%
@@ -65,14 +65,14 @@ func ParseWildNameForSql(name string) string {
 	if IsPrefixWildName(name) {
 		name = name[:len(name)-1] + "%"
 	}
-	if IsSubfixWildName(name) {
+	if IsSuffixWildName(name) {
 		name = "%" + name[1:]
 	}
 	return name
 }
 
-// IsSubfixWildName 判断名字是否为通配名字，只支持后缀索引(名字第一个字符为*)
-func IsSubfixWildName(name string) bool {
+// IsSuffixWildName 判断名字是否为通配名字，只支持后缀索引(名字第一个字符为*)
+func IsSuffixWildName(name string) bool {
 	length := len(name)
 	return length >= 1 && name[0:1] == "*"
 }
@@ -89,6 +89,11 @@ func ParseWildName(name string) (string, bool) {
 	return name, false
 }
 
+// IsWildMatchIgnoreCase 判断 name 是否匹配 pattern，pattern 可以是前缀或者后缀，忽略大小写
+func IsWildMatchIgnoreCase(name, pattern string) bool {
+	return IsWildMatch(strings.ToLower(name), strings.ToLower(pattern))
+}
+
 // IsWildMatch 判断 name 是否匹配 pattern，pattern 可以是前缀或者后缀
 func IsWildMatch(name, pattern string) bool {
 	if IsPrefixWildName(pattern) {
@@ -96,12 +101,12 @@ func IsWildMatch(name, pattern string) bool {
 		if strings.HasPrefix(name, pattern) {
 			return true
 		}
-		if IsSubfixWildName(pattern) {
+		if IsSuffixWildName(pattern) {
 			pattern = strings.TrimLeft(pattern, "*")
 			return strings.Contains(name, pattern)
 		}
 		return false
-	} else if IsSubfixWildName(pattern) {
+	} else if IsSuffixWildName(pattern) {
 		pattern = strings.TrimLeft(pattern, "*")
 		if strings.HasSuffix(name, pattern) {
 			return true

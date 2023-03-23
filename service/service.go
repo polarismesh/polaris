@@ -35,7 +35,6 @@ import (
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/service/batch"
-	"github.com/polarismesh/polaris/store"
 )
 
 const (
@@ -340,8 +339,10 @@ func (s *Server) UpdateServiceToken(ctx context.Context, req *apiservice.Service
 func (s *Server) GetServices(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	serviceFilters := make(map[string]string)
 	instanceFilters := make(map[string]string)
-	var metaKeys, metaValues string
-	var inputInstMetaKeys, inputInstMetaValues string
+	var (
+		metaKeys, metaValues                   string
+		inputInstMetaKeys, inputInstMetaValues string
+	)
 	for key, value := range query {
 		typ, ok := ServiceFilterAttributes[key]
 		if !ok {
@@ -435,7 +436,7 @@ func parseServiceArgs(filter map[string]string, metaFilter map[string]string, ct
 		Namespace: filter["namespace"],
 	}
 	var ok bool
-	if res.Name, ok = filter["name"]; ok && store.IsWildName(res.Name) {
+	if res.Name, ok = filter["name"]; ok && utils.IsPrefixWildName(res.Name) {
 		log.Infof("[Server][Service][Query] fuzzy search with name %s", res.Name)
 		res.WildName = true
 	}

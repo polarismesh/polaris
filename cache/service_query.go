@@ -222,8 +222,8 @@ func sortBeforeTrim(services []*model.Service, offset, limit uint32) (uint32, []
 
 // matchService 根据查询条件比较一个服务是否符合条件
 func matchService(svc *model.Service, svcFilter map[string]string, metaFilter map[string]string,
-	matchName, matchNamespace bool) bool {
-	if !matchServiceFilter(svc, svcFilter, matchName, matchNamespace) {
+	isWildName, isWildNamespace bool) bool {
+	if !matchServiceFilter(svc, svcFilter, isWildName, isWildNamespace) {
 		return false
 	}
 	return matchMetadata(svc, metaFilter)
@@ -235,14 +235,14 @@ func matchServiceFilter(svc *model.Service, svcFilter map[string]string, isWildN
 	var exist bool
 	if isWildName {
 		if value, exist = svcFilter["name"]; exist {
-			if !utils.IsWildMatch(strings.ToLower(svc.Name), strings.ToLower(value)) {
+			if !utils.IsWildMatchIgnoreCase(svc.Name, value) {
 				return false
 			}
 		}
 	}
 	if isWildNamespace {
 		if value, exist = svcFilter["namespace"]; exist {
-			if !utils.IsWildMatch(strings.ToLower(svc.Namespace), strings.ToLower(value)) {
+			if !utils.IsWildMatchIgnoreCase(svc.Namespace, value) {
 				return false
 			}
 		}
