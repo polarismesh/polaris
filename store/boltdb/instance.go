@@ -31,7 +31,6 @@ import (
 
 	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
-	"github.com/polarismesh/polaris/common/utils"
 )
 
 type instanceStore struct {
@@ -364,12 +363,10 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 	name, isServiceName := filter["name"]
 	namespace, isNamespace := filter["namespace"]
 
-	isNamespaceWild := utils.IsWildName(namespace)
-
 	svcIDFilterSet := make(map[string]struct{}, 0)
 	if isNamespace || isServiceName {
 		sStore := serviceStore{handler: i.handler}
-		svcs, err := sStore.GetServiceByNameAndNamespace(name, namespace, isNamespaceWild)
+		svcs, err := sStore.GetServiceByNameAndNamespace(name, namespace)
 		if err != nil {
 			log.Errorf("[Store][boltdb] find service error, %v", err)
 			return 0, nil, err

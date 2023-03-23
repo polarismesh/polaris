@@ -544,105 +544,68 @@ func (ss *serviceStore) GetServicesBatch(services []*model.Service) ([]*model.Se
 
 func (ss *serviceStore) getServiceByNameAndNs(name string, namespace string) (*model.Service, error) {
 
-	out, err := ss.getServiceByNameAndNsIgnoreValid(name, namespace)
+	out, err := ss.getServiceByNameAndNsCommon(name, namespace, true)
 	if err != nil {
 		return nil, err
 	}
 
-	if out == nil {
+	if out == nil || len(out) == 0 {
 		return nil, nil
 	}
 
-	if !out.Valid {
-		return nil, nil
-	}
-
-	return out, err
+	return out[0], err
 }
 
-// getServiceByNs 通过命名空间拉取服务，支持命名空间名称模糊匹配
-func (ss *serviceStore) getServiceByNs(name, namespace string, isNamespaceWild bool) ([]*model.Service, error) {
-
-	out, err := ss.getServiceByNsIgnoreValid(name, namespace, isNamespaceWild)
-	if err != nil {
-		return nil, err
-	}
-
-	if out == nil {
-		return nil, nil
-	}
-
-	return out, err
-}
-
-// getServiceByNameValid 通过服务名称获取服务，服务需要有效
-func (ss *serviceStore) getServiceByNameValid(name string) ([]*model.Service, error) {
-	var out []*model.Service
-
-	fields := []string{svcFieldName, SvcFieldNamespace, SvcFieldValid}
-
-	svcSlice, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
-		func(m map[string]interface{}) bool {
-			valid, ok := m[SvcFieldValid]
-			if ok && !valid.(bool) {
-				return false
-			}
-			svcName, ok := m[SvcFieldName]
-			if !ok {
-				return false
-			}
-			return name == svcName
-		})
-	if err != nil {
-		return nil, err
-	}
-
-	if len(svcSlice) == 0 {
-		return nil, nil
-	}
-
-	out = make([]*model.Service, 0, len(svcSlice))
-	for _, v := range svcSlice {
-		svc := v.(*model.Service)
-		if !svc.Valid {
-			continue
-		}
-		out = append(out, v.(*model.Service))
-	}
-	if len(out) == 0 {
-		return nil, nil
-	}
-	return out, err
-}
-
-// getServiceByNs 通过命名空间拉取服务，支持命名空间名称模糊匹配
-func (ss *serviceStore) getServiceByNsIgnoreValid(name, namespace string, isNamespaceWild bool) (
+//  getServiceByNameAndNsCommon 根据服务名和命名空间查询服务，支持模糊查询
+func (ss *serviceStore) getServiceByNameAndNsCommon(name string, namespace string, forceValid bool) (
 	[]*model.Service, error) {
 
 	var out []*model.Service
 	fields := []string{svcFieldName, SvcFieldNamespace, SvcFieldValid}
 
+	isNameWild := utils.IsWildName(name)
+	isNamespaceWild := utils.IsWildName(namespace)
+
 	svcSlice, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool {
+			// valid field filter
+			if forceValid {
+				valid, ok := m[SvcFieldValid]
+				if ok && !valid.(bool) {
+					return false
+				}
+			}
+
+			// service name field filter
 			svcName, ok := m[SvcFieldName]
 			if !ok {
 				return false
 			}
-			if len(name) > 0 && name != svcName {
-				return false
+			if len(name) > 0 {
+				if isNameWild {
+					if !utils.IsWildMatch(svcName.(string), name) {
+						return false
+					}
+				} else if svcName.(string) != name {
+					return false
+				}
 			}
+
+			// namespace field filter
 			svcNs, ok := m[SvcFieldNamespace]
 			if !ok {
 				return false
 			}
-			if isNamespaceWild {
-				if utils.IsWildMatch(svcNs.(string), namespace) {
-					return true
+			if len(namespace) > 0 {
+				if isNamespaceWild {
+					if !utils.IsWildMatch(svcNs.(string), namespace) {
+						return false
+					}
+				} else if svcNs.(string) != namespace {
+					return false
 				}
-			} else {
-				return svcNs.(string) == namespace
 			}
-			return false
+			return true
 		})
 	if err != nil {
 		return nil, err
@@ -673,7 +636,6 @@ func (ss *serviceStore) getServiceByNameAndNsIgnoreValid(name string, namespace 
 
 	svc, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
 		func(m map[string]interface{}) bool {
-
 			svcName, ok := m[SvcFieldName]
 			if !ok {
 				return false
@@ -955,25 +917,8 @@ func (ss *serviceStore) cleanInValidService(name, namespace string) error {
 	return nil
 }
 
-func (ss *serviceStore) GetServiceByNameAndNamespace(name string, namespace string, isNamespaceWild bool) (
-	[]*model.Service, error) {
-
-	if len(namespace) > 0 {
-		svcs, err := ss.getServiceByNs(name, namespace, isNamespaceWild)
-		if err != nil {
-			log.Errorf("[Store][boltdb] find service by ns prefix error, %v", err)
-			return nil, err
-		}
-		return svcs, err
-	} else if len(name) > 0 {
-		svcs, err := ss.getServiceByNameValid(name)
-		if err != nil {
-			log.Errorf("[Store][boltdb] find service by name error, %v", err)
-			return nil, err
-		}
-		return svcs, err
-	}
-	return nil, nil
+func (ss *serviceStore) GetServiceByNameAndNamespace(name string, namespace string) ([]*model.Service, error) {
+	return ss.getServiceByNameAndNsCommon(name, namespace, true)
 }
 
 func getRealServicesList(originServices map[string]*model.Service, offset, limit uint32) []*model.Service {
