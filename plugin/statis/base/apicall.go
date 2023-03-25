@@ -104,6 +104,8 @@ func (a *ComponentStatics) run(ctx context.Context) {
 }
 
 func (c *ComponentStatics) add(ac *APICall) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	index := fmt.Sprintf("%v-%v", ac.Api, ac.Code)
 	item, exist := c.statis[index]
 	if exist {
@@ -166,7 +168,10 @@ func (c *ComponentStatics) deal() {
 		c.handler(c.t, startTime, nil)
 		return
 	}
+
+	c.mutex.Lock()
 	defer func() {
+		c.mutex.Unlock()
 		passDuration := time.Since(startTime)
 		if passDuration >= MaxLogWaitDuration {
 			log.Warnf("[APICall]api static log duration %s, pass max %s", passDuration, MaxLogWaitDuration)
