@@ -409,7 +409,10 @@ func (s *Server) GetFaultDetectWithCache(ctx context.Context, req *apiservice.Se
 	// 获取源服务
 	aliasFor := s.getServiceCache(req.GetName().GetValue(), req.GetNamespace().GetValue())
 	if aliasFor == nil {
-		return api.NewDiscoverFaultDetectorResponse(apimodel.Code_NotFoundService, req)
+		aliasFor = &model.Service{
+			Namespace: req.GetNamespace().GetValue(),
+			Name:      req.GetName().GetValue(),
+		}
 	}
 
 	out := s.caches.FaultDetector().GetFaultDetectConfig(aliasFor.Name, aliasFor.Namespace)
@@ -462,7 +465,10 @@ func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *apiservice
 	// 获取源服务
 	aliasFor := s.getServiceCache(req.GetName().GetValue(), req.GetNamespace().GetValue())
 	if aliasFor == nil {
-		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_NotFoundService, req)
+		aliasFor = &model.Service{
+			Namespace: req.GetNamespace().GetValue(),
+			Name:      req.GetName().GetValue(),
+		}
 	}
 	out := s.caches.CircuitBreaker().GetCircuitBreakerConfig(aliasFor.Name, aliasFor.Namespace)
 	if out == nil || out.Revision == "" {
