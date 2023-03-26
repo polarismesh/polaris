@@ -111,6 +111,20 @@ func (svr *serverAuthAbility) UpdateServiceToken(
 	return svr.targetServer.UpdateServiceToken(ctx, req)
 }
 
+func (svr *serverAuthAbility) GetAllServices(ctx context.Context,
+	query map[string]string) *apiservice.BatchQueryResponse {
+	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetAllServices")
+
+	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
+		return api.NewBatchQueryResponseWithMsg(convertToErrCode(err), err.Error())
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.targetServer.GetAllServices(ctx, query)
+}
+
 // GetServices 批量获取服务
 func (svr *serverAuthAbility) GetServices(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {

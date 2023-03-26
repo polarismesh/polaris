@@ -135,6 +135,9 @@ type ServiceOperateServer interface {
 	// GetServices Get a list of service
 	GetServices(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse
 
+	// GetAllServices Get all service list
+	GetAllServices(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse
+
 	// GetServicesCount Total number of services
 	GetServicesCount(ctx context.Context) *apiservice.BatchQueryResponse
 
@@ -218,9 +221,6 @@ type ClientServer interface {
 
 	// GetCircuitBreakerWithCache Fuse configuration information for obtaining services for clients
 	GetCircuitBreakerWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse
-
-	// GetRouterConfigWithCache User Client Get Service Routing Configuration Information
-	GetRouterConfigWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse
 
 	// GetFaultDetectWithCache User Client Get FaultDetect Rule Information
 	GetFaultDetectWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse
