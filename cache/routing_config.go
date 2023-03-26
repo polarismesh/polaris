@@ -97,6 +97,7 @@ func newRoutingConfigCache(s store.Store, serviceCache ServiceCache) *routingCon
 func (rc *routingConfigCache) initialize(_ map[string]interface{}) error {
 	rc.lastMtimeV1 = time.Unix(0, 0)
 	rc.lastMtimeV2 = time.Unix(0, 0)
+	rc.pendingV1RuleIds = make(map[string]*model.RoutingConfig)
 	rc.bucket = newRouteRuleBucket()
 	return nil
 }
@@ -133,6 +134,7 @@ func (rc *routingConfigCache) realUpdate() (map[string]time.Time, int64, error) 
 // clear The function of implementing the cache interface
 func (rc *routingConfigCache) clear() error {
 	rc.baseCache.clear()
+	rc.pendingV1RuleIds = make(map[string]*model.RoutingConfig)
 	rc.bucket = newRouteRuleBucket()
 	rc.lastMtimeV1 = time.Unix(0, 0)
 	rc.lastMtimeV2 = time.Unix(0, 0)
