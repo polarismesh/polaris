@@ -286,7 +286,6 @@ func (b *routeRuleBucket) size() int {
 	return cnt
 }
 
-
 // listEnableRules Inquire the routing rules of the V2 version through the service name,
 // and perform some filtering according to the Predicate
 func (b *routeRuleBucket) listEnableRules(service, namespace string) map[routingLevel][]*model.ExtendRouterConfig {
