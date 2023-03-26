@@ -135,6 +135,9 @@ type ServiceOperateServer interface {
 	// GetServices Get a list of service
 	GetServices(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse
 
+	// GetAllServices Get all service list
+	GetAllServices(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse
+
 	// GetServicesCount Total number of services
 	GetServicesCount(ctx context.Context) *apiservice.BatchQueryResponse
 

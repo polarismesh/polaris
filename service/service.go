@@ -335,6 +335,36 @@ func (s *Server) UpdateServiceToken(ctx context.Context, req *apiservice.Service
 	return api.NewServiceResponse(apimodel.Code_ExecuteSuccess, out)
 }
 
+func (s *Server) GetAllServices(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
+	var (
+		svcs []*model.Service
+	)
+
+	if ns, ok := query["namespace"]; ok && len(ns) > 0 {
+		_, svcs = s.Cache().Service().ListServices(ns)
+	} else {
+		_, svcs = s.Cache().Service().ListAllServices()
+	}
+
+	ret := make([]*apiservice.Service, 0, len(svcs))
+	for i := range svcs {
+		count := s.Cache().Instance().GetInstancesCountByServiceID(svcs[i].ID)
+		ret = append(ret, &apiservice.Service{
+			Namespace:            utils.NewStringValue(svcs[i].Namespace),
+			Name:                 utils.NewStringValue(svcs[i].Name),
+			TotalInstanceCount:   utils.NewUInt32Value(count.TotalInstanceCount),
+			HealthyInstanceCount: utils.NewUInt32Value(count.HealthyInstanceCount),
+			Metadata:             svcs[i].Meta,
+		})
+	}
+
+	resp := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
+	resp.Amount = utils.NewUInt32Value(uint32(len(ret)))
+	resp.Size = utils.NewUInt32Value(uint32(len(ret)))
+	resp.Services = ret
+	return resp
+}
+
 // GetServices 查询服务 注意：不包括别名
 func (s *Server) GetServices(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	serviceFilters := make(map[string]string)
