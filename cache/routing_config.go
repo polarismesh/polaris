@@ -43,8 +43,8 @@ const (
 )
 
 type (
-	// RoutingIterProc Method definition of routing rules
-	RoutingIterProc func(key string, value *model.ExtendRouterConfig)
+	// RouterRuleIterProc Method definition of routing rules
+	RouterRuleIterProc func(key string, value *model.ExtendRouterConfig)
 
 	// RoutingConfigCache Cache interface configured by routing
 	RoutingConfigCache interface {
@@ -57,6 +57,8 @@ type (
 		QueryRoutingConfigsV2(args *RoutingArgs) (uint32, []*model.ExtendRouterConfig, error)
 		// IsConvertFromV1 Whether the current routing rules are converted from the V1 rule
 		IsConvertFromV1(id string) (string, bool)
+		// IteratorRouterRule iterator router rule
+		IteratorRouterRule(iterProc RouterRuleIterProc)
 	}
 
 	// routingConfigCache Routing rules cache
@@ -200,8 +202,8 @@ func formatRoutingResponseV1(ret *apitraffic.Routing) *apitraffic.Routing {
 	return ret
 }
 
-// IteratorRoutings
-func (rc *routingConfigCache) IteratorRoutings(iterProc RoutingIterProc) {
+// IteratorRouterRule
+func (rc *routingConfigCache) IteratorRouterRule(iterProc RouterRuleIterProc) {
 	// need to traverse the Routing cache bucket of V2 here
 	rc.bucket.foreach(iterProc)
 }

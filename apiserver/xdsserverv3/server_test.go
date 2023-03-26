@@ -21,6 +21,7 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -36,11 +37,14 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/atomic"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/polarismesh/polaris/common/model"
+	testdata "github.com/polarismesh/polaris/test/data"
+	testsuit "github.com/polarismesh/polaris/test/suit"
 )
 
 func generateRateLimitString(ruleType apitraffic.Rule_Type) (string, string, map[string]*anypb.Any) {
@@ -160,7 +164,15 @@ func Test_makeLocalRateLimit(t *testing.T) {
 	localRateLimitStr, want1 := generateLocalRateLimitRule()
 	globalRateLimitStr, want2 := generateGlobalRateLimitRule()
 	type args struct {
-		conf []*model.RateLimit
+		svc *ServiceInfo
+	}
+	mockXds := &XDSServer{
+		RatelimitConfigGetter: func(serviceID string) []*model.RateLimit {
+			if serviceID == "mock_local" {
+				return localRateLimitStr
+			}
+			return globalRateLimitStr
+		},
 	}
 	tests := []struct {
 		name string
@@ -170,21 +182,25 @@ func Test_makeLocalRateLimit(t *testing.T) {
 		{
 			"make local rate limit for local rate limit config",
 			args{
-				localRateLimitStr,
+				&ServiceInfo{
+					ID: "mock_local",
+				},
 			},
 			want1,
 		},
 		{
 			"make local rate limit for global rate limit config",
 			args{
-				globalRateLimitStr,
+				&ServiceInfo{
+					ID: "mock_global",
+				},
 			},
 			want2,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := makeLocalRateLimit(tt.args.conf); !reflect.DeepEqual(got, tt.want) {
+			if got := mockXds.makeLocalRateLimit(tt.args.svc); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeLocalRateLimit() = %v, want %v", got, tt.want)
 			}
 		})
@@ -255,7 +271,7 @@ func TestNodeHashID(t *testing.T) {
 					},
 				},
 			},
-			TargetID: "default/" + TLSModeStrict,
+			TargetID: "sidecar~default/" + TLSModeStrict,
 		},
 		{
 			Node: &core.Node{
@@ -270,7 +286,7 @@ func TestNodeHashID(t *testing.T) {
 					},
 				},
 			},
-			TargetID: "polaris/" + TLSModePermissive,
+			TargetID: "sidecar~polaris/" + TLSModePermissive,
 		},
 		{
 			Node: &core.Node{
@@ -285,7 +301,7 @@ func TestNodeHashID(t *testing.T) {
 					},
 				},
 			},
-			TargetID: "default",
+			TargetID: "sidecar~default",
 		},
 		// bad case: wrong tls mode
 		{
@@ -301,14 +317,14 @@ func TestNodeHashID(t *testing.T) {
 					},
 				},
 			},
-			TargetID: "default",
+			TargetID: "sidecar~default",
 		},
 		// no node metadata
 		{
 			Node: &core.Node{
 				Id: "default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
 			},
-			TargetID: "default",
+			TargetID: "sidecar~default",
 		},
 		// metadata does not contain tls mode kv
 		{
@@ -324,7 +340,7 @@ func TestNodeHashID(t *testing.T) {
 					},
 				},
 			},
-			TargetID: "default",
+			TargetID: "sidecar~default",
 		},
 	}
 	for i, item := range testTable {
@@ -336,26 +352,46 @@ func TestNodeHashID(t *testing.T) {
 	}
 }
 
-//go:embed testdata/data.json
-var testServicesData []byte
+var (
+	testServicesData []byte
+	noInboundDump    []byte
+	permissiveDump   []byte
+	strictDump       []byte
+)
 
-//go:embed testdata/dump.yaml
-var noInboundDump []byte
-
-//go:embed testdata/permissive.dump.yaml
-var permissiveDump []byte
-
-//go:embed testdata/strict.dump.yaml
-var strictDump []byte
+func init() {
+	var err error
+	testServicesData, err = os.ReadFile(testdata.Path("xds/data.json"))
+	if err != nil {
+		panic(err)
+	}
+	noInboundDump, err = os.ReadFile(testdata.Path("xds/dump.yaml"))
+	if err != nil {
+		panic(err)
+	}
+	permissiveDump, err = os.ReadFile(testdata.Path("xds/permissive.dump.yaml"))
+	if err != nil {
+		panic(err)
+	}
+	strictDump, err = os.ReadFile(testdata.Path("xds/strict.dump.yaml"))
+	if err != nil {
+		panic(err)
+	}
+}
 
 func TestSnapshot(t *testing.T) {
+	discoverSuit := &testsuit.DiscoverTestSuit{}
+	err := discoverSuit.Initialize()
+	assert.NoError(t, err)
+
 	sis := map[string][]*ServiceInfo{}
-	json.Unmarshal(testServicesData, &sis)
+	_ = json.Unmarshal(testServicesData, &sis)
 
 	x := XDSServer{
 		CircuitBreakerConfigGetter: func(id string) *model.ServiceWithCircuitBreaker {
 			return nil
 		},
+		namingServer:          discoverSuit.DiscoverServer(),
 		RatelimitConfigGetter: func(serviceID string) []*model.RateLimit { return nil },
 		versionNum:            atomic.NewUint64(1),
 		cache:                 cache.NewSnapshotCache(true, cache.IDHash{}, nil),
