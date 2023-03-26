@@ -226,7 +226,7 @@ func TestParseNodeID(t *testing.T) {
 		},
 	}
 	for _, item := range testTable {
-		ns, id, hostip := parseNodeID(item.NodeID)
+		_, ns, id, hostip := parseNodeID(item.NodeID)
 		if ns != item.Namespace || id != item.UUID || hostip != item.HostIP {
 			t.Fatalf("parse node id [%s] expected ['%s' '%s' '%s'] got : ['%s' '%s' '%s']",
 				item.NodeID,

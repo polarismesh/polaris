@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -235,41 +234,6 @@ func (x *XDSServer) Restart(option map[string]interface{}, apiConf map[string]ap
 }
 
 type RatelimitConfigGetter func(serviceID string) []*model.RateLimit
-
-// PolarisNodeHash 存放 hash 方法
-type PolarisNodeHash struct{}
-
-// node id 的格式是:
-// 1. namespace/uuid~hostIp
-var nodeIDFormat = regexp.MustCompile(`^(\S+)\/([^~]+)~([^~]+)$`)
-
-func parseNodeID(nodeID string) (polarisNamespace, uuid, hostIP string) {
-	groups := nodeIDFormat.FindStringSubmatch(nodeID)
-	if len(groups) == 0 {
-		// invalid node format
-		return
-	}
-	polarisNamespace = groups[1]
-	uuid = groups[2]
-	hostIP = groups[3]
-	return
-}
-
-// ID id 的格式是 namespace/uuid~hostIp
-func (PolarisNodeHash) ID(node *core.Node) string {
-	if node == nil {
-		return ""
-	}
-	ns, _, _ := parseNodeID(node.Id)
-	if node.Metadata != nil && node.Metadata.Fields != nil {
-		tlsMode := node.Metadata.Fields[TLSModeTag].GetStringValue()
-		if tlsMode == TLSModePermissive || tlsMode == TLSModeStrict {
-			return ns + "/" + tlsMode
-		}
-	}
-
-	return ns
-}
 
 // GetProtocol 服务注册到北极星中的协议
 func (x *XDSServer) GetProtocol() string {
@@ -654,7 +618,12 @@ func generateServiceDomains(serviceInfo *ServiceInfo) []string {
 	return resDomains
 }
 
-func makeLocalRateLimit(conf []*model.RateLimit) map[string]*anypb.Any {
+func (x *XDSServer) makeLocalRateLimit(si *ServiceInfo) map[string]*anypb.Any {
+	ratelimitGetter := x.RatelimitConfigGetter
+	if ratelimitGetter == nil {
+		ratelimitGetter = x.namingServer.Cache().RateLimit().GetRateLimitByServiceID
+	}
+	conf := ratelimitGetter(si.ID)
 	filters := make(map[string]*anypb.Any)
 	if conf != nil {
 		rateLimitConf := &lrl.LocalRateLimit{
@@ -736,22 +705,29 @@ func makeLocalRateLimit(conf []*model.RateLimit) map[string]*anypb.Any {
 	return nil
 }
 
-func (x *XDSServer) makeVirtualHosts(services []*ServiceInfo) []types.Resource {
+type (
+	ServiceDomainBuilder   func(*ServiceInfo) []string
+	RoutesBuilder          func(*ServiceInfo) []*route.Route
+	PerFilterConfigBuilder func(*ServiceInfo) map[string]*anypb.Any
+)
+
+func (x *XDSServer) makeSidecarVirtualHosts(services []*ServiceInfo) []types.Resource {
+	return x.makeVirtualHosts(services, generateServiceDomains,
+		makeRoutes, x.makeLocalRateLimit)
+}
+
+func (x *XDSServer) makeVirtualHosts(services []*ServiceInfo, domainBuilder ServiceDomainBuilder,
+	routesBuilder RoutesBuilder, perfilterBuilder PerFilterConfigBuilder) []types.Resource {
 	// 每个 polaris serviceInfo 对应一个 virtualHost
 	var routeConfs []types.Resource
 	var hosts []*route.VirtualHost
 
 	for _, serviceInfo := range services {
-		ratelimitGetter := x.RatelimitConfigGetter
-		if ratelimitGetter == nil {
-			ratelimitGetter = x.namingServer.Cache().RateLimit().GetRateLimitByServiceID
-		}
-		rateLimitConf := ratelimitGetter(serviceInfo.ID)
 		hosts = append(hosts, &route.VirtualHost{
 			Name:                 serviceInfo.Name,
-			Domains:              generateServiceDomains(serviceInfo),
-			Routes:               makeRoutes(serviceInfo),
-			TypedPerFilterConfig: makeLocalRateLimit(rateLimitConf),
+			Domains:              domainBuilder(serviceInfo),
+			Routes:               routesBuilder(serviceInfo),
+			TypedPerFilterConfig: perfilterBuilder(serviceInfo),
 		})
 	}
 
@@ -803,7 +779,7 @@ func (x *XDSServer) makeSnapshot(ns, version string, services []*ServiceInfo) (e
 	resources := make(map[resource.Type][]types.Resource)
 	resources[resource.EndpointType] = makeEndpoints(services)
 	resources[resource.ClusterType] = x.makeClusters(services)
-	resources[resource.RouteType] = x.makeVirtualHosts(services)
+	resources[resource.RouteType] = x.makeSidecarVirtualHosts(services)
 	resources[resource.ListenerType] = makeListeners()
 	snapshot, err := cachev3.NewSnapshot(version, resources)
 	if err != nil {
@@ -827,7 +803,7 @@ func (x *XDSServer) makePermissiveSnapshot(ns, version string, services []*Servi
 	resources := make(map[resource.Type][]types.Resource)
 	resources[resource.EndpointType] = makeEndpoints(services)
 	resources[resource.ClusterType] = x.makePermissiveClusters(services)
-	resources[resource.RouteType] = x.makeVirtualHosts(services)
+	resources[resource.RouteType] = x.makeSidecarVirtualHosts(services)
 	resources[resource.ListenerType] = makePermissiveListeners()
 	snapshot, err := cachev3.NewSnapshot(version, resources)
 	if err != nil {
@@ -850,7 +826,7 @@ func (x *XDSServer) makeStrictSnapshot(ns, version string, services []*ServiceIn
 	resources := make(map[resource.Type][]types.Resource)
 	resources[resource.EndpointType] = makeEndpoints(services)
 	resources[resource.ClusterType] = x.makeStrictClusters(services)
-	resources[resource.RouteType] = x.makeVirtualHosts(services)
+	resources[resource.RouteType] = x.makeSidecarVirtualHosts(services)
 	resources[resource.ListenerType] = makeStrictListeners()
 	snapshot, err := cachev3.NewSnapshot(version, resources)
 	if err != nil {
