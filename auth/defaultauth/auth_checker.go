@@ -19,15 +19,19 @@ package defaultauth
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 
 	"github.com/pkg/errors"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"go.uber.org/zap"
 
+	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/store"
 )
 
 var (
@@ -37,6 +41,38 @@ var (
 	// ErrorInvalidParameter 不合法的参数
 	ErrorInvalidParameter error = errors.New(api.Code2Info(api.InvalidParameter))
 )
+
+// defaultAuthChecker 北极星自带的默认鉴权中心
+type defaultAuthChecker struct {
+	cacheMgn *cache.CacheManager
+}
+
+// Initialize 执行初始化动作
+func (d *defaultAuthChecker) Initialize(options *auth.Config, s store.Store, cacheMgn *cache.CacheManager) error {
+	contentBytes, err := json.Marshal(options.Option)
+	if err != nil {
+		return err
+	}
+
+	cfg := DefaultAuthConfig()
+	if err := json.Unmarshal(contentBytes, cfg); err != nil {
+		return err
+	}
+
+	if err := cfg.Verify(); err != nil {
+		return err
+	}
+
+	AuthOption = cfg
+	d.cacheMgn = cacheMgn
+
+	return nil
+}
+
+// Cache 获取缓存统一管理
+func (d *defaultAuthChecker) Cache() *cache.CacheManager {
+	return d.cacheMgn
+}
 
 // IsOpenConsoleAuth 针对控制台是否开启了操作鉴权
 func (d *defaultAuthChecker) IsOpenConsoleAuth() bool {
@@ -515,21 +551,22 @@ func checkAnyElementExist(userId string, waitSearch []model.ResourceEntry, searc
 	return true
 }
 
+// emptyVal 空对象，占位而已
+var emptyVal = struct{}{}
+
 // buildSearchMap 构建搜索 map
 func buildSearchMap(ss []model.StrategyResource) []*searchMap {
-	// emptyVal 空对象，占位而已
-	var emptyVal = struct{}{}
 
 	nsSearchMaps := &searchMap{
-		items:   make(map[string]interface{}),
+		items:   make(map[string]struct{}),
 		passAll: false,
 	}
 	svcSearchMaps := &searchMap{
-		items:   make(map[string]interface{}),
+		items:   make(map[string]struct{}),
 		passAll: false,
 	}
 	cfgSearchMaps := &searchMap{
-		items:   make(map[string]interface{}),
+		items:   make(map[string]struct{}),
 		passAll: false,
 	}
 
@@ -557,7 +594,7 @@ func buildSearchMap(ss []model.StrategyResource) []*searchMap {
 // searchMap 权限搜索map
 type searchMap struct {
 	// 某个资源策略的去重map
-	items map[string]interface{}
+	items map[string]struct{}
 	// 该资源策略是否允许全部操作
 	passAll bool
 }

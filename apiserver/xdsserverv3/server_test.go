@@ -31,6 +31,8 @@ import (
 	lrl "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
 	_struct "github.com/golang/protobuf/ptypes/struct"
@@ -396,10 +398,31 @@ func TestSnapshot(t *testing.T) {
 		versionNum:            atomic.NewUint64(1),
 		cache:                 cache.NewSnapshotCache(true, cache.IDHash{}, nil),
 	}
+
+	mockRouterRule := make([]*apitraffic.RouteRule, 0, 4)
+	mockRouterRuleData, err := os.ReadFile(testdata.Path("xds/router_rule_data.json"))
+	assert.NoError(t, err)
+
+	err = ParseArrayByText(func() proto.Message {
+		rule := &apitraffic.RouteRule{}
+		mockRouterRule = append(mockRouterRule, rule)
+		return rule
+	}, string(mockRouterRuleData))
+	assert.NoError(t, err)
+
+	resp := x.namingServer.CreateRoutingConfigsV2(discoverSuit.DefaultCtx, mockRouterRule)
+	assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
+	x.namingServer.Cache().TestUpdate()
 	x.pushRegistryInfoToXDSCache(sis)
 
 	snapshot, _ := x.cache.GetSnapshot("default")
 	dumpYaml := dumpSnapShot(snapshot)
+	if !bytes.Equal(noInboundDump, dumpYaml) {
+		t.Fatal(string(dumpYaml))
+	}
+
+	snapshot, _ = x.cache.GetSnapshot("gateway~default")
+	dumpYaml = dumpSnapShot(snapshot)
 	if !bytes.Equal(noInboundDump, dumpYaml) {
 		t.Fatal(string(dumpYaml))
 	}
@@ -415,4 +438,26 @@ func TestSnapshot(t *testing.T) {
 	if !bytes.Equal(strictDump, dumpYaml) {
 		t.Fatal(string(dumpYaml))
 	}
+}
+
+// ParseArrayByText 通过字符串解析PB数组对象
+func ParseArrayByText(createMessage func() proto.Message, text string) error {
+	jsonDecoder := json.NewDecoder(bytes.NewBuffer([]byte(text)))
+	return parseArray(createMessage, jsonDecoder)
+}
+
+func parseArray(createMessage func() proto.Message, jsonDecoder *json.Decoder) error {
+	// read open bracket
+	_, err := jsonDecoder.Token()
+	if err != nil {
+		return err
+	}
+	for jsonDecoder.More() {
+		protoMessage := createMessage()
+		err := jsonpb.UnmarshalNext(jsonDecoder, protoMessage)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

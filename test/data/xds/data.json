@@ -30,7 +30,7 @@
             "value": "service-a-pod-2"
           },
           "healthy": {
-            "value": true
+            "value": false
           },
           "host": {
             "value": "172.17.1.3"
@@ -78,7 +78,7 @@
         },
         {
           "id": {
-            "value": "service-a-pod-6"
+            "value": "service-a-pod-5"
           },
           "isolate": {
             "value": true
@@ -87,7 +87,7 @@
             "value": true
           },
           "host": {
-            "value": "172.17.1.5"
+            "value": "172.17.1.6"
           },
           "port": {
             "value": 80

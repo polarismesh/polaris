@@ -97,9 +97,7 @@ func (x *XDSServer) makeGatewayVirtualHosts(namespace string) []types.Resource {
 // require 1: 主调服务为全部命名空间&全部服务
 // require 2: 请求标签中必须设置 $path 参数
 func (x *XDSServer) makeGatewayRoutes(namespace string) []*route.Route {
-	var (
-		routes []*route.Route
-	)
+	routes := make([]*route.Route, 0, 16)
 
 	routerCache := x.namingServer.Cache().RoutingConfig()
 	routerCache.IteratorRouterRule(func(_ string, rule *model.ExtendRouterConfig) {
@@ -137,7 +135,7 @@ func (x *XDSServer) makeGatewayRoutes(namespace string) []*route.Route {
 					Service:   utils.NewStringValue(source.Service),
 					Metadata:  routercommon.RoutingArguments2Labels(source.GetArguments()),
 				}
-				buildRouteMatch(routeMatch, v1source)
+				buildGatewayRouteMatch(routeMatch, v1source)
 			}
 
 			totalWeight, weightedClusters := buildWeightClustersV2(subRule.GetDestinations())
@@ -162,7 +160,7 @@ func (x *XDSServer) makeGatewayRoutes(namespace string) []*route.Route {
 	return routes
 }
 
-func buildRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.Source) {
+func buildGatewayRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.Source) {
 	for name, matchString := range source.Metadata {
 		if name == model.LabelKeyPath {
 			if matchString.Type == apimodel.MatchString_EXACT {
@@ -172,7 +170,14 @@ func buildRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.Source
 				routeMatch.PathSpecifier = &route.RouteMatch_SafeRegex{SafeRegex: &v32.RegexMatcher{
 					Regex: matchString.GetValue().GetValue()}}
 			}
-		} else if strings.HasPrefix(name, model.LabelKeyHeader) {
+		}
+	}
+	buildCommonRouteMatch(routeMatch, source)
+}
+
+func buildCommonRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.Source) {
+	for name, matchString := range source.Metadata {
+		if strings.HasPrefix(name, model.LabelKeyHeader) {
 			headerSubName := name[len(model.LabelKeyHeader):]
 			if !(len(headerSubName) > 1 && strings.HasPrefix(headerSubName, ".")) {
 				continue
@@ -299,6 +304,5 @@ func isMatchGatewaySource(source *traffic_manage.SourceService) bool {
 	}
 
 	isMatchAll = source.Service == utils.MatchAll && source.Namespace == utils.MatchAll
-
 	return existPathLabel && isMatchAll
 }

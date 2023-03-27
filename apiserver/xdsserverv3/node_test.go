@@ -31,7 +31,66 @@ func Test_parseNodeID(t *testing.T) {
 		wantUuid             string
 		wantHostIP           string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "test-1",
+			args: args{
+				nodeID: "default/12345~127.0.0.1",
+			},
+			wantRunType:          "sidecar",
+			wantPolarisNamespace: "default",
+			wantUuid:             "12345",
+			wantHostIP:           "127.0.0.1",
+		},
+		{
+			name: "test-1",
+			args: args{
+				nodeID: "sidecar~default/12345~127.0.0.1",
+			},
+			wantRunType:          "sidecar",
+			wantPolarisNamespace: "default",
+			wantUuid:             "12345",
+			wantHostIP:           "127.0.0.1",
+		},
+		{
+			name: "test-1",
+			args: args{
+				nodeID: "gateway~default/12345~127.0.0.1",
+			},
+			wantRunType:          "gateway",
+			wantPolarisNamespace: "default",
+			wantUuid:             "12345",
+			wantHostIP:           "127.0.0.1",
+		},
+		{
+			name: "test-1",
+			args: args{
+				nodeID: "12345~127.0.0.1",
+			},
+			wantRunType:          "",
+			wantPolarisNamespace: "",
+			wantUuid:             "",
+			wantHostIP:           "",
+		},
+		{
+			name: "test-1",
+			args: args{
+				nodeID: "default/127.0.0.1",
+			},
+			wantRunType:          "",
+			wantPolarisNamespace: "",
+			wantUuid:             "",
+			wantHostIP:           "",
+		},
+		{
+			name: "test-1",
+			args: args{
+				nodeID: "sidecar~default/127.0.0.1",
+			},
+			wantRunType:          "",
+			wantPolarisNamespace: "",
+			wantUuid:             "",
+			wantHostIP:           "",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

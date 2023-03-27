@@ -39,6 +39,7 @@ import (
 	routeservice "github.com/envoyproxy/go-control-plane/envoy/service/route/v3"
 	runtimeservice "github.com/envoyproxy/go-control-plane/envoy/service/runtime/v3"
 	secretservice "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
+	v32 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
@@ -48,7 +49,9 @@ import (
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"go.uber.org/atomic"
 	"google.golang.org/grpc"
@@ -359,13 +362,17 @@ func isNormalEndpoint(ins *apiservice.Instance) bool {
 	if ins.GetIsolate().GetValue() {
 		return false
 	}
-	if ins.GetIsolate().GetValue() {
-		return false
-	}
 	if ins.GetWeight().GetValue() == 0 {
 		return false
 	}
-	return ins.GetHealthy().GetValue()
+	return true
+}
+
+func formatEndpointHealth(ins *apiservice.Instance) core.HealthStatus {
+	if ins.GetHealthy().GetValue() {
+		return core.HealthStatus_HEALTHY
+	}
+	return core.HealthStatus_UNHEALTHY
 }
 
 func makeEndpoints(services []*ServiceInfo) []types.Resource {
@@ -393,7 +400,9 @@ func makeEndpoints(services []*ServiceInfo) []types.Resource {
 						},
 					},
 				},
-				Metadata: getEndpointMetaFromPolarisIns(instance),
+				HealthStatus:        formatEndpointHealth(instance),
+				LoadBalancingWeight: utils.NewUInt32Value(instance.GetWeight().GetValue()),
+				Metadata:            getEndpointMetaFromPolarisIns(instance),
 			}
 
 			lbEndpoints = append(lbEndpoints, ep)
@@ -440,7 +449,7 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 				if matchAll {
 					break
 				} else {
-					buildRouteMatch(routeMatch, source)
+					buildSidecarRouteMatch(routeMatch, source)
 				}
 			}
 
@@ -666,7 +675,6 @@ func buildAllowAnyVHost() *route.VirtualHost {
 
 func (x *XDSServer) pushRegistryInfoToXDSCache(registryInfo map[string][]*ServiceInfo) error {
 	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
-
 	for ns, services := range registryInfo {
 		_ = x.makeSnapshot(ns, versionLocal, services)
 		_ = x.makePermissiveSnapshot(ns, versionLocal, services)
@@ -744,6 +752,21 @@ func (x *XDSServer) makeStrictSnapshot(ns, version string, services []*ServiceIn
 		return err
 	}
 	return
+}
+
+func buildSidecarRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.Source) {
+	for name, matchString := range source.Metadata {
+		if name == model.LabelKeyPath {
+			if matchString.Type == apimodel.MatchString_EXACT {
+				routeMatch.PathSpecifier = &route.RouteMatch_Path{
+					Path: matchString.GetValue().GetValue()}
+			} else if matchString.Type == apimodel.MatchString_REGEX {
+				routeMatch.PathSpecifier = &route.RouteMatch_SafeRegex{SafeRegex: &v32.RegexMatcher{
+					Regex: matchString.GetValue().GetValue()}}
+			}
+		}
+	}
+	buildCommonRouteMatch(routeMatch, source)
 }
 
 // syncPolarisServiceInfo 初始化本地 cache，初始化 xds cache
