@@ -57,7 +57,7 @@ header: # `header` section is configurations for source codes license header.
     - "common/api/protoc"
     - "deploy"
     - "release"
-    - test/data/xds"
+    - "test/data/xds"
 
     # single file
     - "LICENSE"
