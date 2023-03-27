@@ -79,7 +79,7 @@ func (x *XDSServer) makeGatewayVirtualHosts(namespace string) []types.Resource {
 		Domains: makeServiceGatewayDomains(),
 		Routes:  x.makeGatewayRoutes(namespace),
 	}
-	hosts = append(hosts, vHost, buildAllowAnyVHost())
+	hosts = append(hosts, vHost)
 
 	routeConfiguration := &route.RouteConfiguration{
 		Name: "polaris-router",
@@ -156,6 +156,21 @@ func (x *XDSServer) makeGatewayRoutes(namespace string) []*route.Route {
 
 			routes = append(routes, route)
 		}
+	})
+
+	routes = append(routes, &route.Route{
+		Match: &route.RouteMatch{
+			PathSpecifier: &route.RouteMatch_Prefix{
+				Prefix: "/",
+			},
+		},
+		Action: &route.Route_Route{
+			Route: &route.RouteAction{
+				ClusterSpecifier: &route.RouteAction_Cluster{
+					Cluster: "PassthroughCluster",
+				},
+			},
+		},
 	})
 
 	return routes

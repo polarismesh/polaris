@@ -21,6 +21,7 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
@@ -359,6 +360,7 @@ var (
 	noInboundDump    []byte
 	permissiveDump   []byte
 	strictDump       []byte
+	gatewayDump      []byte
 )
 
 func init() {
@@ -376,6 +378,10 @@ func init() {
 		panic(err)
 	}
 	strictDump, err = os.ReadFile(testdata.Path("xds/strict.dump.yaml"))
+	if err != nil {
+		panic(err)
+	}
+	gatewayDump, err = os.ReadFile(testdata.Path("xds/gateway.dump.yaml"))
 	if err != nil {
 		panic(err)
 	}
@@ -418,25 +424,26 @@ func TestSnapshot(t *testing.T) {
 	snapshot, _ := x.cache.GetSnapshot("default")
 	dumpYaml := dumpSnapShot(snapshot)
 	if !bytes.Equal(noInboundDump, dumpYaml) {
-		t.Fatal(string(dumpYaml))
+		t.Fatal("\n" + string(dumpYaml))
 	}
 
 	snapshot, _ = x.cache.GetSnapshot("gateway~default")
 	dumpYaml = dumpSnapShot(snapshot)
-	if !bytes.Equal(noInboundDump, dumpYaml) {
-		t.Fatal(string(dumpYaml))
+	if !bytes.Equal(gatewayDump, dumpYaml) {
+		fmt.Printf("\n%s\n", string(dumpYaml))
+		t.Fatal("\n" + string(dumpYaml))
 	}
 
 	snapshot, _ = x.cache.GetSnapshot("default/permissive")
 	dumpYaml = dumpSnapShot(snapshot)
 	if !bytes.Equal(permissiveDump, dumpYaml) {
-		t.Fatal(string(dumpYaml))
+		t.Fatal("\n" + string(dumpYaml))
 	}
 
 	snapshot, _ = x.cache.GetSnapshot("default/strict")
 	dumpYaml = dumpSnapShot(snapshot)
 	if !bytes.Equal(strictDump, dumpYaml) {
-		t.Fatal(string(dumpYaml))
+		t.Fatal("\n" + string(dumpYaml))
 	}
 }
 
