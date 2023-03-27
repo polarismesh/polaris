@@ -258,9 +258,12 @@ func buildCommonRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.
 	}
 }
 
-func buildWeightClustersV2(destinations []*traffic_manage.DestinationGroup) (uint32, []*route.WeightedCluster_ClusterWeight) {
-	var weightedClusters []*route.WeightedCluster_ClusterWeight
-	var totalWeight uint32
+func buildWeightClustersV2(destinations []*traffic_manage.DestinationGroup) (uint32,
+	[]*route.WeightedCluster_ClusterWeight) {
+	var (
+		weightedClusters []*route.WeightedCluster_ClusterWeight
+		totalWeight      uint32
+	)
 
 	// 使用 destinations 生成 weightedClusters。makeClusters() 也使用这个字段生成对应的 subset
 	for _, destination := range destinations {
