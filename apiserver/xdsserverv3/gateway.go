@@ -29,11 +29,12 @@ import (
 	resource "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+
 	"github.com/polarismesh/polaris/common/model"
 	routercommon "github.com/polarismesh/polaris/common/routing"
 	"github.com/polarismesh/polaris/common/utils"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 )
 
 // makeGatewaySnapshot nodeId must be like gateway~namespace
