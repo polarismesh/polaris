@@ -637,7 +637,7 @@ func (h *EurekaServer) QueryByVipAddress(req *restful.Request, rsp *restful.Resp
 	}
 	appsRespCache := h.worker.GetVipApps(VipCacheKey{
 		entityType:       entityTypeVip,
-		targetVipAddress: vipAddress,
+		targetVipAddress: formatReadName(vipAddress),
 	})
 	acceptValue := getParamFromEurekaRequestHeader(req, restful.HEADER_Accept)
 	if err := writeResponse(parseAcceptValue(acceptValue), appsRespCache, req, rsp); nil != err {
@@ -658,7 +658,7 @@ func (h *EurekaServer) QueryBySVipAddress(req *restful.Request, rsp *restful.Res
 	}
 	appsRespCache := h.worker.GetVipApps(VipCacheKey{
 		entityType:       entityTypeSVip,
-		targetVipAddress: vipAddress,
+		targetVipAddress: formatReadName(vipAddress),
 	})
 	acceptValue := getParamFromEurekaRequestHeader(req, restful.HEADER_Accept)
 	if err := writeResponse(parseAcceptValue(acceptValue), appsRespCache, req, rsp); nil != err {
