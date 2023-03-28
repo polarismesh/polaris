@@ -118,7 +118,7 @@ func (x *XDSServer) makeGatewayRoutes(namespace string) []*route.Route {
 			// 先判断 dest 的服务是否满足目标 namespace
 			var matchNamespace bool
 			for _, dest := range subRule.GetDestinations() {
-				if dest.Namespace == namespace {
+				if dest.Namespace == namespace && dest.Service != utils.MatchAll {
 					matchNamespace = true
 				}
 			}
