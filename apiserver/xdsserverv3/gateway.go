@@ -97,6 +97,7 @@ func (x *XDSServer) makeGatewayVirtualHosts(namespace string) []types.Resource {
 // 当前只有满足以下条件的路由规则支持转为 envoy_gateway 的 xds
 // require 1: 主调服务为全部命名空间&全部服务
 // require 2: 请求标签中必须设置 $path 参数
+// require 3: 被调服务的信息必须为精确的，即明确的 namespace 以及 service
 func (x *XDSServer) makeGatewayRoutes(namespace string) []*route.Route {
 	routes := make([]*route.Route, 0, 16)
 
