@@ -94,6 +94,7 @@ type XDSServer struct {
 	server          *grpc.Server
 	connLimitConfig *connlimit.Config
 
+	xdsNodesMgr                *XDSNodeManager
 	registryInfo               map[string][]*ServiceInfo
 	CircuitBreakerConfigGetter CircuitBreakerConfigGetter
 	RatelimitConfigGetter      RatelimitConfigGetter
@@ -101,13 +102,13 @@ type XDSServer struct {
 
 // Initialize 初始化
 func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{},
-	apiConf map[string]apiserver.APIConfig,
-) error {
-	x.cache = cachev3.NewSnapshotCache(false, PolarisNodeHash{},
-		commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName))
+	apiConf map[string]apiserver.APIConfig) error {
 	x.registryInfo = make(map[string][]*ServiceInfo)
 	x.listenPort = uint32(option["listenPort"].(int))
 	x.listenIP = option["listenIP"].(string)
+	x.xdsNodesMgr = newXDSNodeManager()
+	x.cache = NewSnapshotCache(cachev3.NewSnapshotCache(false, PolarisNodeHash{},
+		commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName)), x)
 
 	x.versionNum = atomic.NewUint64(0)
 	var err error
@@ -126,26 +127,25 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 		x.connLimitConfig = connConfig
 	}
 
-	err = x.initRegistryInfo()
-	if err != nil {
+	if err = x.initRegistryInfo(); err != nil {
 		log.Errorf("%v", err)
 		return err
 	}
 
-	err = x.getRegistryInfoWithCache(ctx, x.registryInfo)
-	if err != nil {
+	if err = x.getRegistryInfoWithCache(ctx, x.registryInfo); err != nil {
 		log.Errorf("%v", err)
 		return err
 	}
-
-	err = x.pushRegistryInfoToXDSCache(x.registryInfo)
-	if err != nil {
+	if err = x.pushRegistryInfoToXDSCache(x.registryInfo); err != nil {
+		log.Errorf("%v", err)
+		return err
+	}
+	if err = x.pushGatewayInfoToXDSCache(x.registryInfo); err != nil {
 		log.Errorf("%v", err)
 		return err
 	}
 
 	_ = x.startSynTask(ctx)
-
 	return nil
 }
 
@@ -153,7 +153,7 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 func (x *XDSServer) Run(errCh chan error) {
 	// 启动 grpc server
 	ctx := context.Background()
-	cb := &Callbacks{log: commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName)}
+	cb := &Callbacks{log: commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName), nodeMgr: x.xdsNodesMgr}
 	srv := serverv3.NewServer(ctx, x.cache, cb)
 	var grpcOptions []grpc.ServerOption
 	grpcOptions = append(grpcOptions, grpc.MaxConcurrentStreams(1000))
@@ -650,36 +650,12 @@ func (x *XDSServer) makeSidecarVirtualHosts(services []*ServiceInfo) []types.Res
 	return append(routeConfs, routeConfiguration)
 }
 
-func buildAllowAnyVHost() *route.VirtualHost {
-	return &route.VirtualHost{
-		Name:    "allow_any",
-		Domains: []string{"*"},
-		Routes: []*route.Route{
-			{
-				Match: &route.RouteMatch{
-					PathSpecifier: &route.RouteMatch_Prefix{
-						Prefix: "/",
-					},
-				},
-				Action: &route.Route_Route{
-					Route: &route.RouteAction{
-						ClusterSpecifier: &route.RouteAction_Cluster{
-							Cluster: "PassthroughCluster",
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
 func (x *XDSServer) pushRegistryInfoToXDSCache(registryInfo map[string][]*ServiceInfo) error {
 	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
 	for ns, services := range registryInfo {
 		_ = x.makeSnapshot(ns, versionLocal, services)
 		_ = x.makePermissiveSnapshot(ns, versionLocal, services)
 		_ = x.makeStrictSnapshot(ns, versionLocal, services)
-		_ = x.makeGatewaySnapshot("gateway~"+ns, versionLocal, services)
 	}
 	return nil
 }
@@ -870,7 +846,6 @@ func (x *XDSServer) initRegistryInfo() error {
 	for _, n := range namespaces {
 		x.registryInfo[n.Name.Value] = []*ServiceInfo{}
 	}
-
 	return nil
 }
 
@@ -917,6 +892,7 @@ func (x *XDSServer) startSynTask(ctx context.Context) error {
 
 		if len(needPush) > 0 {
 			_ = x.pushRegistryInfoToXDSCache(needPush)
+			_ = x.pushGatewayInfoToXDSCache(needPush)
 		}
 	}
 
@@ -998,4 +974,27 @@ func buildWeightClusters(serviceInfo *ServiceInfo,
 	}
 
 	return totalWeight, weightedClusters
+}
+
+func buildAllowAnyVHost() *route.VirtualHost {
+	return &route.VirtualHost{
+		Name:    "allow_any",
+		Domains: []string{"*"},
+		Routes: []*route.Route{
+			{
+				Match: &route.RouteMatch{
+					PathSpecifier: &route.RouteMatch_Prefix{
+						Prefix: "/",
+					},
+				},
+				Action: &route.Route_Route{
+					Route: &route.RouteAction{
+						ClusterSpecifier: &route.RouteAction_Cluster{
+							Cluster: "PassthroughCluster",
+						},
+					},
+				},
+			},
+		},
+	}
 }

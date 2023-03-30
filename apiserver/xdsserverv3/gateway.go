@@ -19,7 +19,10 @@ package xdsserverv3
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -37,14 +40,42 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
+func (x *XDSServer) pushGatewayInfoToXDSCache(registryInfo map[string][]*ServiceInfo) error {
+	nodes := x.xdsNodesMgr.ListGatewayNodes()
+	for i := range nodes {
+		node := nodes[i]
+		_ = x.buildGatewayXDSCache(nodes[i], registryInfo[node.Namespace])
+	}
+	return nil
+}
+
+func (x *XDSServer) buildGatewayXDSCache(xdsNode *XDSClient, services []*ServiceInfo) error {
+	if !xdsNode.IsGateway() {
+		return fmt.Errorf("xds node=%s run type not gateway or info is invalid", xdsNode.Node.Id)
+	}
+
+	if len(services) == 0 {
+		registryInfo := map[string][]*ServiceInfo{
+			xdsNode.Namespace: {},
+		}
+		_ = x.getRegistryInfoWithCache(context.Background(), registryInfo)
+		services = registryInfo[xdsNode.Namespace]
+	}
+
+	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
+	_ = x.makeGatewaySnapshot(xdsNode, versionLocal, services)
+	return nil
+}
+
 // makeGatewaySnapshot nodeId must be like gateway~namespace
-func (x *XDSServer) makeGatewaySnapshot(nodeId, version string, services []*ServiceInfo) (err error) {
-	namespace := strings.Split(nodeId, "~")[1]
+func (x *XDSServer) makeGatewaySnapshot(xdsNode *XDSClient, version string, services []*ServiceInfo) (err error) {
+	namespace := xdsNode.Namespace
+	nodeId := xdsNode.Node.Id
 
 	resources := make(map[resource.Type][]types.Resource)
 	resources[resource.EndpointType] = makeEndpoints(services)
 	resources[resource.ClusterType] = x.makeClusters(services)
-	resources[resource.RouteType] = x.makeGatewayVirtualHosts(namespace)
+	resources[resource.RouteType] = x.makeGatewayVirtualHosts(namespace, xdsNode)
 	resources[resource.ListenerType] = makeListeners()
 	snapshot, err := cachev3.NewSnapshot(version, resources)
 	if err != nil {
@@ -67,7 +98,7 @@ func makeServiceGatewayDomains() []string {
 	return []string{"*"}
 }
 
-func (x *XDSServer) makeGatewayVirtualHosts(namespace string) []types.Resource {
+func (x *XDSServer) makeGatewayVirtualHosts(namespace string, xdsNode *XDSClient) []types.Resource {
 	// 每个 polaris serviceInfo 对应一个 virtualHost
 	var (
 		routeConfs []types.Resource
@@ -77,7 +108,7 @@ func (x *XDSServer) makeGatewayVirtualHosts(namespace string) []types.Resource {
 	vHost := &route.VirtualHost{
 		Name:    "gateway-virtualhost",
 		Domains: makeServiceGatewayDomains(),
-		Routes:  x.makeGatewayRoutes(namespace),
+		Routes:  x.makeGatewayRoutes(namespace, xdsNode),
 	}
 	hosts = append(hosts, vHost)
 
@@ -92,14 +123,17 @@ func (x *XDSServer) makeGatewayVirtualHosts(namespace string) []types.Resource {
 	return append(routeConfs, routeConfiguration)
 }
 
-// makeGatewayRoutes 构建用于 envoy_gateway 场景的 route.Route 列表
-// 该场景下主要是针对 path 的规则转发，/serviceA => serviceA
-// 当前只有满足以下条件的路由规则支持转为 envoy_gateway 的 xds
-// require 1: 主调服务为全部命名空间&全部服务
-// require 2: 请求标签中必须设置 $path 参数
-// require 3: 被调服务的信息必须为精确的，即明确的 namespace 以及 service
-func (x *XDSServer) makeGatewayRoutes(namespace string) []*route.Route {
+// makeGatewayRoutes builds the route.Route list for the envoy_gateway scenario
+// In this scenario, it is mainly for the rule forwarding of path, /serviceA => serviceA
+// Currently only routing rules that meet the following conditions support xds converted to envoy_gateway
+// require 1: The calling service must match the GatewayService & GatewayNamespace in NodeProxy Metadata
+// require 2: The $path parameter must be set in the request tag
+// require 3: The information of the called service must be accurate, that is, a clear namespace and service
+func (x *XDSServer) makeGatewayRoutes(namespace string, xdsNode *XDSClient) []*route.Route {
 	routes := make([]*route.Route, 0, 16)
+
+	callerService := xdsNode.Metadata[GatewayServiceName]
+	callerNamespace := xdsNode.Metadata[GatewayNamespaceName]
 
 	routerCache := x.namingServer.Cache().RoutingConfig()
 	routerCache.IteratorRouterRule(func(_ string, rule *model.ExtendRouterConfig) {
@@ -117,7 +151,10 @@ func (x *XDSServer) makeGatewayRoutes(namespace string) []*route.Route {
 		for i := range rule.RuleRouting.Rules {
 			subRule := rule.RuleRouting.Rules[i]
 			// 先判断 dest 的服务是否满足目标 namespace
-			var matchNamespace bool
+			var (
+				matchNamespace    bool
+				findGatewaySource bool
+			)
 			for _, dest := range subRule.GetDestinations() {
 				if dest.Namespace == namespace && dest.Service != utils.MatchAll {
 					matchNamespace = true
@@ -128,9 +165,10 @@ func (x *XDSServer) makeGatewayRoutes(namespace string) []*route.Route {
 			}
 
 			for _, source := range subRule.Sources {
-				if !isMatchGatewaySource(source) {
+				if !isMatchGatewaySource(source, callerService, callerNamespace) {
 					continue
 				}
+				findGatewaySource = true
 
 				v1source := &traffic_manage.Source{
 					Namespace: utils.NewStringValue(source.Namespace),
@@ -140,21 +178,19 @@ func (x *XDSServer) makeGatewayRoutes(namespace string) []*route.Route {
 				buildGatewayRouteMatch(routeMatch, v1source)
 			}
 
-			totalWeight, weightedClusters := buildWeightClustersV2(subRule.GetDestinations())
+			if !findGatewaySource {
+				continue
+			}
 			route := &route.Route{
 				Match: routeMatch,
 				Action: &route.Route_Route{
 					Route: &route.RouteAction{
 						ClusterSpecifier: &route.RouteAction_WeightedClusters{
-							WeightedClusters: &route.WeightedCluster{
-								TotalWeight: &wrappers.UInt32Value{Value: totalWeight},
-								Clusters:    weightedClusters,
-							},
+							WeightedClusters: buildWeightClustersV2(subRule.GetDestinations()),
 						},
 					},
 				},
 			}
-
 			routes = append(routes, route)
 		}
 	})
@@ -274,8 +310,7 @@ func buildCommonRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.
 	}
 }
 
-func buildWeightClustersV2(destinations []*traffic_manage.DestinationGroup) (uint32,
-	[]*route.WeightedCluster_ClusterWeight) {
+func buildWeightClustersV2(destinations []*traffic_manage.DestinationGroup) *route.WeightedCluster {
 	var (
 		weightedClusters []*route.WeightedCluster_ClusterWeight
 		totalWeight      uint32
@@ -306,13 +341,16 @@ func buildWeightClustersV2(destinations []*traffic_manage.DestinationGroup) (uin
 		totalWeight += destination.Weight
 	}
 
-	return totalWeight, weightedClusters
+	return &route.WeightedCluster{
+		TotalWeight: &wrappers.UInt32Value{Value: totalWeight},
+		Clusters:    weightedClusters,
+	}
 }
 
-func isMatchGatewaySource(source *traffic_manage.SourceService) bool {
+func isMatchGatewaySource(source *traffic_manage.SourceService, service, namespace string) bool {
 	var (
 		existPathLabel bool
-		isMatchAll     bool
+		matchService   bool
 	)
 
 	args := source.GetArguments()
@@ -323,6 +361,6 @@ func isMatchGatewaySource(source *traffic_manage.SourceService) bool {
 		}
 	}
 
-	isMatchAll = source.Service == utils.MatchAll && source.Namespace == utils.MatchAll
-	return existPathLabel && isMatchAll
+	matchService = source.Service == service && source.Namespace == namespace
+	return existPathLabel && matchService
 }

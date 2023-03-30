@@ -50,18 +50,6 @@ func (s *Server) CreateConfigFile(ctx context.Context, configFile *apiconfig.Con
 	name := configFile.Name.GetValue()
 	requestID := utils.ParseRequestID(ctx)
 
-	// 如果配置文件组不存在则自动创建
-	createGroupRsp := s.createConfigFileGroupIfAbsent(ctx, &apiconfig.ConfigFileGroup{
-		Namespace: configFile.Namespace,
-		Name:      configFile.Group,
-		CreateBy:  configFile.CreateBy,
-		Comment:   utils.NewStringValue("auto created"),
-	})
-
-	if createGroupRsp.Code.GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
-		return api.NewConfigFileResponse(apimodel.Code(createGroupRsp.Code.GetValue()), configFile)
-	}
-
 	managedFile, err := s.storage.GetConfigFile(s.getTx(ctx), namespace, group, name)
 	if err != nil {
 		log.Error("[Config][Service] get config file error.",
