@@ -35,27 +35,4 @@ data:
     # operationServer:
     #   requestUrl:
     #   timeout: 5s
-    # 存储配置
-    store:
-    {{- if eq .Values.global.mode "cluster" }}
-    # 数据库存储插件
-    {{- with .Values.polaris.storage.db.console }}
-      name: defaultStore
-      option:
-        master:
-          dbType: mysql
-          dbUser: {{ .user }}
-          dbPwd: {{ .password }}
-          dbAddr: {{ .address }}
-          dbName: {{ .name }}
-          maxOpenConns: -1
-          maxIdleConns: -1
-          connMaxLifetime: 300 # 单位秒
-          txIsolationLevel: 2 #LevelReadCommitted
-    {{- end }}
-    {{- else }}
-    # 单机文件存储插件
-      name: boltdbStore
-      option:
-        path: ./polaris.bolt
-    {{- end }}
+
