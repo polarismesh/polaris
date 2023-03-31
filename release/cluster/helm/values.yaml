@@ -42,11 +42,6 @@ polaris:
         name: polaris_server
         user: root
         password: polaris@123456
-      console:
-        address: localhost:3306
-        name: polaris_console
-        user: root
-        password: polaris@123456
     redis:
       address: localhost:6379
       # ACL user from redis v6.0, remove it if ACL is not available
