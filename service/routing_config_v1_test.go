@@ -34,6 +34,7 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
+	testsuit "github.com/polarismesh/polaris/test/suit"
 )
 
 // 检查routingConfig前后是否一致
@@ -306,7 +307,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 		}
 		defer discoverSuit.Destroy()
 
-		rules := mockRoutingV2(t, 1)
+		rules := testsuit.MockRoutingV2(t, 1)
 		ruleRoutings := &apitraffic.RuleRoutingConfig{
 			Sources: []*apitraffic.SourceService{
 				{

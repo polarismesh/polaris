@@ -81,6 +81,8 @@ endpoints:
           socketAddress:
             address: 172.17.1.2
             portValue: 80
+      healthStatus: HEALTHY
+      loadBalancingWeight: 80
       metadata:
         filterMetadata:
           envoy.lb:
@@ -92,6 +94,18 @@ endpoints:
           socketAddress:
             address: 172.17.1.3
             portValue: 80
+      healthStatus: UNHEALTHY
+      loadBalancingWeight: 80
+      metadata:
+        filterMetadata:
+          envoy.lb: {}
+    - endpoint:
+        address:
+          socketAddress:
+            address: 172.17.1.4
+            portValue: 80
+      healthStatus: UNHEALTHY
+      loadBalancingWeight: 80
       metadata:
         filterMetadata:
           envoy.lb: {}

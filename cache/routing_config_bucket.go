@@ -347,7 +347,7 @@ func (b *routeRuleBucket) listEnableRules(service, namespace string) map[routing
 }
 
 // foreach Traversing all routing rules
-func (b *routeRuleBucket) foreach(proc RoutingIterProc) {
+func (b *routeRuleBucket) foreach(proc RouterRuleIterProc) {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 

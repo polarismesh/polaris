@@ -104,7 +104,8 @@ func makeListeners() []types.Resource {
 			},
 			ListenerFilters: []*listener.ListenerFilter{
 				{
-					Name: "envoy.filters.listener.original_dst",
+					// type.googleapis.com/envoy.extensions.filters.listener.original_dst.v3.OriginalDst
+					Name: wellknown.OriginalDestination,
 				},
 			},
 		},

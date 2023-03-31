@@ -1,0 +1,132 @@
+[
+    {
+        "id": "12e64aa1cc5540b3ac5c250b4563c79e",
+        "name": "zabc",
+        "namespace": "",
+        "enable": true,
+        "routing_policy": "RulePolicy",
+        "routing_config": {
+            "@type": "type.googleapis.com/v1.RuleRoutingConfig",
+            "sources": [],
+            "destinations": [],
+            "rules": [
+                {
+                    "name": "规则0",
+                    "sources": [
+                        {
+                            "service": "envoy_gateway",
+                            "namespace": "default",
+                            "arguments": [
+                                {
+                                    "type": "PATH",
+                                    "key": "$path",
+                                    "value": {
+                                        "type": "EXACT",
+                                        "value": "/service-a",
+                                        "value_type": "TEXT"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "destinations": [
+                        {
+                            "namespace": "default",
+                            "service": "service-a",
+                            "labels": {
+                                "aa": {
+                                    "type": "EXACT",
+                                    "value": "222",
+                                    "value_type": "TEXT"
+                                }
+                            },
+                            "priority": 0,
+                            "weight": 100,
+                            "transfer": "",
+                            "isolate": false,
+                            "name": "group-0"
+                        }
+                    ]
+                },
+                {
+                    "name": "规则0",
+                    "sources": [
+                        {
+                            "service": "envoy_gateway",
+                            "namespace": "default",
+                            "arguments": [
+                                {
+                                    "type": "PATH",
+                                    "key": "$path",
+                                    "value": {
+                                        "type": "EXACT",
+                                        "value": "/service-b",
+                                        "value_type": "TEXT"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "destinations": [
+                        {
+                            "namespace": "default",
+                            "service": "service-b",
+                            "labels": {
+                                "aa": {
+                                    "type": "EXACT",
+                                    "value": "222",
+                                    "value_type": "TEXT"
+                                }
+                            },
+                            "priority": 0,
+                            "weight": 100,
+                            "transfer": "",
+                            "isolate": false,
+                            "name": "group-0"
+                        }
+                    ]
+                },
+                {
+                    "name": "规则0",
+                    "sources": [
+                        {
+                            "service": "envoy_gateway",
+                            "namespace": "default_123",
+                            "arguments": [
+                                {
+                                    "type": "PATH",
+                                    "key": "$path",
+                                    "value": {
+                                        "type": "EXACT",
+                                        "value": "/service-b",
+                                        "value_type": "TEXT"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "destinations": [
+                        {
+                            "namespace": "default",
+                            "service": "service-b",
+                            "labels": {
+                                "aa": {
+                                    "type": "EXACT",
+                                    "value": "222",
+                                    "value_type": "TEXT"
+                                }
+                            },
+                            "priority": 0,
+                            "weight": 100,
+                            "transfer": "",
+                            "isolate": false,
+                            "name": "group-0"
+                        }
+                    ]
+                }
+            ]
+        },
+        "revision": "v2-34dce6baf5174c6f99bfcde3706403f9",
+        "priority": 0
+    }
+]

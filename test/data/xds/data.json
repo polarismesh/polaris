@@ -1,0 +1,102 @@
+{
+  "default": [
+    {
+      "ID": "service-a",
+      "Name": "service-a",
+      "Namespace": "default",
+      "Instances": [
+        {
+          "id": {
+            "value": "service-a-pod-1"
+          },
+          "healthy": {
+            "value": true
+          },
+          "host": {
+            "value": "172.17.1.2"
+          },
+          "port": {
+            "value": 80
+          },
+          "metadata": {
+            "polarismesh.cn/tls-mode": "strict"
+          },
+          "weight": {
+            "value": 80
+          }
+        },
+        {
+          "id": {
+            "value": "service-a-pod-2"
+          },
+          "healthy": {
+            "value": false
+          },
+          "host": {
+            "value": "172.17.1.3"
+          },
+          "port": {
+            "value": 80
+          },
+          "weight": {
+            "value": 80
+          }
+        },
+        {
+          "id": {
+            "value": "service-a-pod-3"
+          },
+          "healthy": {
+            "value": false
+          },
+          "host": {
+            "value": "172.17.1.4"
+          },
+          "port": {
+            "value": 80
+          },
+          "weight": {
+            "value": 80
+          }
+        },
+        {
+          "id": {
+            "value": "service-a-pod-4"
+          },
+          "healthy": {
+            "value": true
+          },
+          "host": {
+            "value": "172.17.1.5"
+          },
+          "port": {
+            "value": 80
+          },
+          "weight": {
+            "value": 0
+          }
+        },
+        {
+          "id": {
+            "value": "service-a-pod-5"
+          },
+          "isolate": {
+            "value": true
+          },
+          "healthy": {
+            "value": true
+          },
+          "host": {
+            "value": "172.17.1.6"
+          },
+          "port": {
+            "value": 80
+          },
+          "weight": {
+            "value": 80
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -27,7 +27,8 @@ import (
 )
 
 type Callbacks struct {
-	log *commonlog.Scope
+	log     *commonlog.Scope
+	nodeMgr *XDSNodeManager
 }
 
 func (cb *Callbacks) Report() {
@@ -45,6 +46,7 @@ func (cb *Callbacks) OnStreamClosed(id int64) {
 	if cb.log.DebugEnabled() {
 		cb.log.Debugf("stream %d closed", id)
 	}
+	cb.nodeMgr.DelNode(id)
 }
 
 func (cb *Callbacks) OnDeltaStreamOpen(_ context.Context, id int64, typ string) error {
@@ -66,6 +68,7 @@ func (cb *Callbacks) OnStreamRequest(id int64, req *discovery.DiscoveryRequest) 
 		str, _ := marshaler.MarshalToString(req)
 		cb.log.Debugf("on stream %d type %s request %s ", id, req.TypeUrl, str)
 	}
+	cb.nodeMgr.AddNodeIfAbsent(id, req.GetNode())
 	return nil
 }
 
@@ -79,6 +82,16 @@ func (cb *Callbacks) OnStreamResponse(_ context.Context, id int64, req *discover
 	}
 }
 
+func (cb *Callbacks) OnStreamDeltaRequest(id int64, req *discovery.DeltaDiscoveryRequest) error {
+	if cb.log.DebugEnabled() {
+		marshaler := jsonpb.Marshaler{}
+		str, _ := marshaler.MarshalToString(req)
+		cb.log.Debugf("on stream %d delta type %s request %s", id, req.TypeUrl, str)
+	}
+	cb.nodeMgr.AddNodeIfAbsent(id, req.GetNode())
+	return nil
+}
+
 func (cb *Callbacks) OnStreamDeltaResponse(id int64, req *discovery.DeltaDiscoveryRequest,
 	resp *discovery.DeltaDiscoveryResponse) {
 	if cb.log.DebugEnabled() {
@@ -87,15 +100,6 @@ func (cb *Callbacks) OnStreamDeltaResponse(id int64, req *discovery.DeltaDiscove
 		respstr, _ := marshaler.MarshalToString(resp)
 		cb.log.Debugf("on delta stream %d type %s request %s response %s", id, req.TypeUrl, reqstr, respstr)
 	}
-}
-
-func (cb *Callbacks) OnStreamDeltaRequest(id int64, req *discovery.DeltaDiscoveryRequest) error {
-	if cb.log.DebugEnabled() {
-		marshaler := jsonpb.Marshaler{}
-		str, _ := marshaler.MarshalToString(req)
-		cb.log.Debugf("on stream %d delta type %s request %s", id, req.TypeUrl, str)
-	}
-	return nil
 }
 
 func (cb *Callbacks) OnFetchRequest(_ context.Context, req *discovery.DiscoveryRequest) error {
