@@ -50,7 +50,6 @@ func (x *XDSNodeManager) AddNodeIfAbsent(streamId int64, node *core.Node) {
 	if node == nil {
 		return
 	}
-
 	x.lock.Lock()
 	defer x.lock.Unlock()
 
@@ -131,6 +130,7 @@ func (PolarisNodeHash) ID(node *core.Node) string {
 				return ret + "/" + tlsMode
 			}
 		}
+		return ret
 	}
 	return node.Id
 }

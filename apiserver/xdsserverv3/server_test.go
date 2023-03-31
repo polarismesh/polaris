@@ -345,6 +345,21 @@ func TestNodeHashID(t *testing.T) {
 			},
 			TargetID: "sidecar~default",
 		},
+		{
+			Node: &core.Node{
+				Id: "gateway~default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
+				Metadata: &_struct.Struct{
+					Fields: map[string]*structpb.Value{
+						"hello": &_struct.Value{
+							Kind: &_struct.Value_StringValue{
+								StringValue: "abc",
+							},
+						},
+					},
+				},
+			},
+			TargetID: "gateway~default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
+		},
 	}
 	for i, item := range testTable {
 		id := PolarisNodeHash{}.ID(item.Node)
@@ -399,6 +414,7 @@ func TestSnapshot(t *testing.T) {
 		CircuitBreakerConfigGetter: func(id string) *model.ServiceWithCircuitBreaker {
 			return nil
 		},
+		xdsNodesMgr:           newXDSNodeManager(),
 		namingServer:          discoverSuit.DiscoverServer(),
 		RatelimitConfigGetter: func(serviceID string) []*model.RateLimit { return nil },
 		versionNum:            atomic.NewUint64(1),
@@ -416,21 +432,25 @@ func TestSnapshot(t *testing.T) {
 	}, string(mockRouterRuleData))
 	assert.NoError(t, err)
 
+	x.xdsNodesMgr.AddNodeIfAbsent(1, &core.Node{
+		Id: "gateway~default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
+		Metadata: &structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				GatewayNamespaceName: structpb.NewStringValue("default"),
+				GatewayServiceName:   structpb.NewStringValue("envoy_gateway"),
+			},
+		},
+	})
+
 	resp := x.namingServer.CreateRoutingConfigsV2(discoverSuit.DefaultCtx, mockRouterRule)
 	assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
 	x.namingServer.Cache().TestUpdate()
 	x.pushRegistryInfoToXDSCache(sis)
+	x.pushGatewayInfoToXDSCache(sis)
 
 	snapshot, _ := x.cache.GetSnapshot("default")
 	dumpYaml := dumpSnapShot(snapshot)
 	if !bytes.Equal(noInboundDump, dumpYaml) {
-		t.Fatal("\n" + string(dumpYaml))
-	}
-
-	snapshot, _ = x.cache.GetSnapshot("gateway~default")
-	dumpYaml = dumpSnapShot(snapshot)
-	if !bytes.Equal(gatewayDump, dumpYaml) {
-		fmt.Printf("\n%s\n", string(dumpYaml))
 		t.Fatal("\n" + string(dumpYaml))
 	}
 
@@ -443,6 +463,13 @@ func TestSnapshot(t *testing.T) {
 	snapshot, _ = x.cache.GetSnapshot("default/strict")
 	dumpYaml = dumpSnapShot(snapshot)
 	if !bytes.Equal(strictDump, dumpYaml) {
+		t.Fatal("\n" + string(dumpYaml))
+	}
+
+	snapshot, _ = x.cache.GetSnapshot("gateway~default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1")
+	dumpYaml = dumpSnapShot(snapshot)
+	if !bytes.Equal(gatewayDump, dumpYaml) {
+		fmt.Printf("\n%s\n", string(dumpYaml))
 		t.Fatal("\n" + string(dumpYaml))
 	}
 }

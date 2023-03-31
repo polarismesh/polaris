@@ -116,18 +116,6 @@ routers:
             weight: 100
           totalWeight: 100
     - match:
-        path: /service-b
-      route:
-        weightedClusters:
-          clusters:
-          - metadataMatch:
-              filterMetadata:
-                envoy.lb:
-                  aa: "222"
-            name: service-b
-            weight: 100
-          totalWeight: 100
-    - match:
         prefix: /
       route:
         cluster: PassthroughCluster
