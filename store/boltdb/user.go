@@ -371,7 +371,7 @@ func (us *userStore) getUsers(filters map[string]string, offset uint32, limit ui
 			}
 
 			if name, ok := filters["name"]; ok {
-				if utils.IsWildName(name) {
+				if utils.IsPrefixWildName(name) {
 					if !strings.Contains(saveName, name[:len(name)-1]) {
 						return false
 					}
@@ -455,7 +455,7 @@ func (us *userStore) getGroupUsers(filters map[string]string, offset uint32, lim
 		}
 
 		if name, ok := filters["name"]; ok {
-			if utils.IsWildName(name) {
+			if utils.IsPrefixWildName(name) {
 				if !strings.Contains(user.Name, name[:len(name)-1]) {
 					return false
 				}

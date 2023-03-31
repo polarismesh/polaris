@@ -26,7 +26,7 @@
 400102 = "用户token非法" #InvalidUserToken
 400103 = "参数非法" #InvalidParameter
 400104 = "查询实例参数为空" #EmptyQueryParameter
-400105 = "查询实例, 需要(服务,命名空间)或主机作为参数" #InvalidQueryInsParameter
+400105 = "查询实例, 需要服务或命名空间或主机作为参数" #InvalidQueryInsParameter
 400110 = "命名空间名称非法" #InvalidNamespaceName
 400111 = "命名空间拥有人非法" #InvalidNamespaceOwners
 400112 = "命名空间token非法" #InvalidNamespaceToken

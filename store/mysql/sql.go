@@ -73,7 +73,7 @@ func genFilterSQL(filter map[string]string) (string, []interface{}) {
 			value = "%" + value + "%"
 		} else if key == "name" && utils.IsWildName(value) {
 			str += " name like ?"
-			value = "%" + value[0:len(value)-1] + "%"
+			value = utils.ParseWildNameForSql(value)
 		} else if key == "host" {
 			hosts := strings.Split(value, ",")
 			str += " host in (" + PlaceholdersN(len(hosts)) + ")"
@@ -85,6 +85,9 @@ func genFilterSQL(filter map[string]string) (string, []interface{}) {
 			managed, _ := strconv.ParseBool(value)
 			args = append(args, boolToInt(managed))
 			continue
+		} else if key == "namespace" && utils.IsWildName(value) {
+			str += " namespace like ?"
+			value = utils.ParseWildNameForSql(value)
 		} else {
 			str += " " + key + "=?"
 		}
@@ -118,7 +121,7 @@ func genServiceFilterSQL(filter map[string]string) (string, []interface{}) {
 		} else if key == "business" {
 			str += fmt.Sprintf(" %s like ?", key)
 			value = "%" + value + "%"
-		} else if key == "name" && utils.IsWildName(value) {
+		} else if key == "name" && utils.IsPrefixWildName(value) {
 			str += " name like ?"
 			value = "%" + value[0:len(value)-1] + "%"
 		} else {
@@ -251,7 +254,12 @@ func genNamespaceWhereSQLAndArgs(str string, filter map[string][]string, order *
 					str += "owner like ?"
 					item = "%" + item + "%"
 				} else {
-					str += index + "=?"
+					if index == NameAttribute && utils.IsWildName(item) {
+						str += "name like ?"
+						item = utils.ParseWildNameForSql(item)
+					} else {
+						str += index + "=?"
+					}
 				}
 				args = append(args, item)
 				firstItem = false

@@ -353,7 +353,7 @@ func (u *groupStore) listSimpleGroups(filters map[string]string, offset uint32, 
 			if newK, ok := groupAttribute[k]; ok {
 				k = newK
 			}
-			if utils.IsWildName(v) {
+			if utils.IsPrefixWildName(v) {
 				getSql += (" " + k + " like ? ")
 				countSql += (" " + k + " like ? ")
 				args = append(args, "%"+v[:len(v)-1]+"%")
@@ -399,7 +399,7 @@ func (u *groupStore) listGroupByUser(filters map[string]string, offset uint32, l
 			if newK, ok := userLinkGroupAttributeMapping[k]; ok {
 				k = newK
 			}
-			if utils.IsWildName(v) {
+			if utils.IsPrefixWildName(v) {
 				getSql += (" " + k + " like ? ")
 				countSql += (" " + k + " like ? ")
 				args = append(args, "%"+v[:len(v)-1]+"%")

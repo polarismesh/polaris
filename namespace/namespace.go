@@ -351,6 +351,7 @@ func (s *Server) GetNamespaces(ctx context.Context, query map[string][]string) *
 	out := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
 	out.Amount = utils.NewUInt32Value(amount)
 	out.Size = utils.NewUInt32Value(uint32(len(namespaces)))
+	var totalServiceCount, totalInstanceCount, totalHealthInstanceCount uint32
 	for _, namespace := range namespaces {
 		nsCntInfo := s.caches.Service().GetNamespaceCntInfo(namespace.Name)
 		api.AddNamespace(out, &apimodel.Namespace{
@@ -364,7 +365,15 @@ func (s *Server) GetNamespaces(ctx context.Context, query map[string][]string) *
 			TotalInstanceCount:       utils.NewUInt32Value(nsCntInfo.InstanceCnt.TotalInstanceCount),
 			TotalHealthInstanceCount: utils.NewUInt32Value(nsCntInfo.InstanceCnt.HealthyInstanceCount),
 		})
+		totalServiceCount += nsCntInfo.ServiceCount
+		totalInstanceCount += nsCntInfo.InstanceCnt.TotalInstanceCount
+		totalHealthInstanceCount += nsCntInfo.InstanceCnt.HealthyInstanceCount
 	}
+	api.AddNamespaceSummary(out, &apimodel.Summary{
+		TotalServiceCount:        totalServiceCount,
+		TotalInstanceCount:       totalInstanceCount,
+		TotalHealthInstanceCount: totalHealthInstanceCount,
+	})
 	return out
 }
 

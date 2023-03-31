@@ -126,6 +126,7 @@ func (h *HTTPServerV1) addDefaultAccess(ws *restful.WebService) {
 	ws.Route(enrichDeleteServicesApiDocs(ws.POST("/services/delete").To(h.DeleteServices)))
 	ws.Route(enrichUpdateServicesApiDocs(ws.PUT("/services").To(h.UpdateServices)))
 	ws.Route(enrichGetServicesApiDocs(ws.GET("/services").To(h.GetServices)))
+	ws.Route(enrichGetAllServicesApiDocs(ws.GET("/services/all").To(h.GetAllServices)))
 	ws.Route(enrichGetServicesCountApiDocs(ws.GET("/services/count").To(h.GetServicesCount)))
 	ws.Route(enrichGetServiceTokenApiDocs(ws.GET("/service/token").To(h.GetServiceToken)))
 	ws.Route(enrichUpdateServiceTokenApiDocs(ws.PUT("/service/token").To(h.UpdateServiceToken)))
@@ -393,6 +394,19 @@ func (h *HTTPServerV1) UpdateServices(req *restful.Request, rsp *restful.Respons
 		handler.WriteHeaderAndProto(ret)
 		return
 	}
+	handler.WriteHeaderAndProto(ret)
+}
+
+// GetAllServices 查询服务
+func (h *HTTPServerV1) GetAllServices(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	queryParams := httpcommon.ParseQueryParams(req)
+	ctx := handler.ParseHeaderContext()
+	ret := h.namingServer.GetAllServices(ctx, queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
 

@@ -535,7 +535,7 @@ func (ss *strategyStore) listStrategies(filters map[string]string, offset uint32
 			saveOwner, _ := m[StrategyFieldOwner].(string)
 
 			if name, ok := filters["name"]; ok {
-				if utils.IsWildName(name) {
+				if utils.IsPrefixWildName(name) {
 					name = name[:len(name)-1]
 				}
 				if !strings.Contains(saveName, name) {

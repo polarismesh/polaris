@@ -85,6 +85,13 @@ func enrichUpdateNamespaceTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBu
 		Metadata(restfulspec.KeyOpenAPITags, namespacesApiTags).Deprecate()
 }
 
+func enrichGetAllServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("获取全部服务列表").
+		Metadata(restfulspec.KeyOpenAPITags, servicesApiTags).
+		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").
+			Required(false))
+}
+
 func enrichGetServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("获取服务列表").
 		Metadata(restfulspec.KeyOpenAPITags, servicesApiTags).

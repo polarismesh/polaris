@@ -448,3 +448,32 @@ func (m *maintainStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, er
 	})
 	return uint32(rows), err
 }
+
+func (m *maintainStore) GetUnHealthyInstances(timeout time.Duration, limit uint32) ([]string, error) {
+	log.Infof("[Store][database] get unhealthy instances which mtime timeout %s (%d)", timeout, limit)
+	queryStr := "select id from instance where flag=0 and enable_health_check=1 and health_status=0 " +
+		"and mtime < FROM_UNIXTIME(UNIX_TIMESTAMP(SYSDATE()) - ?) limit ?"
+	rows, err := m.master.Query(queryStr, int32(timeout.Seconds()), limit)
+	if err != nil {
+		log.Errorf("[Store][database] get unhealthy instances, err: %s", err.Error())
+		return nil, store.Error(err)
+	}
+
+	var instanceIds []string
+	defer rows.Close()
+	for rows.Next() {
+		var id string
+		err := rows.Scan(&id)
+		if err != nil {
+			log.Errorf("[Store][database] fetch unhealthy instance rows, err: %s", err.Error())
+			return nil, store.Error(err)
+		}
+		instanceIds = append(instanceIds, id)
+	}
+	if err := rows.Err(); err != nil {
+		log.Errorf("[Store][database] fetch unhealthy instance rows next, err: %s", err.Error())
+		return nil, store.Error(err)
+	}
+
+	return instanceIds, nil
+}

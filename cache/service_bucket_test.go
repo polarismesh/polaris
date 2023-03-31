@@ -59,7 +59,6 @@ func Test_serviceNamespaceBucket(t *testing.T) {
 	bucket.reloadRevision()
 	assert.NotEmpty(t, bucket.revision)
 	assert.NotEqual(t, oldRevision, bucket.revision)
-
 	allRevision2, ret := bucket.ListAllServices()
 	assert.NotEqual(t, allRevision, allRevision2)
 	assert.Equal(t, int64(len(mockData)+len(newMockData)-1), int64(len(ret)))

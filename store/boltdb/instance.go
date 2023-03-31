@@ -363,18 +363,23 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 	name, isServiceName := filter["name"]
 	namespace, isNamespace := filter["namespace"]
 
-	if isServiceName && isNamespace {
+	svcIDFilterSet := make(map[string]struct{}, 0)
+	if isNamespace || isServiceName {
 		sStore := serviceStore{handler: i.handler}
-		svc, err := sStore.getServiceByNameAndNs(name, namespace)
+		svcs, err := sStore.GetServiceByNameAndNamespace(name, namespace)
 		if err != nil {
 			log.Errorf("[Store][boltdb] find service error, %v", err)
 			return 0, nil, err
 		}
-		filter["serviceID"] = svc.ID
+		for _, svc := range svcs {
+			svcIDFilterSet[svc.ID] = struct{}{}
+		}
+		if len(svcIDFilterSet) == 0 {
+			return 0, make([]*model.Instance, 0), nil
+		}
 	}
 
 	svcIdsTmp := make(map[string]struct{})
-
 	fields := []string{insFieldProto, insFieldServiceID, insFieldValid}
 
 	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
@@ -395,7 +400,6 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 			version, isVersion := filter["version"]
 			healthy, isHealthy := filter["health_status"]
 			isolate, isIsolate := filter["isolate"]
-			svcID, isSvcID := filter["serviceID"]
 
 			if isHost && host != ins.GetHost().GetValue() {
 				return false
@@ -415,15 +419,23 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 			if isIsolate && compareParam2BoolNotEqual(isolate, ins.GetIsolate().GetValue()) {
 				return false
 			}
-			if isSvcID {
+
+			// 如果提供了 serviceName 或者 namespaceName 才过滤 serviceID
+			if isServiceName || isNamespace {
+				// filter serviceID
 				sID, ok := m["ServiceID"]
 				if !ok {
 					return false
 				}
-				if sID != svcID {
+				sIDStr, strOK := sID.(string)
+				if !strOK {
+					return false
+				}
+				if _, ok := svcIDFilterSet[sIDStr]; !ok {
 					return false
 				}
 			}
+
 			// filter metadata
 			if len(metaFilter) > 0 {
 				var key, value string

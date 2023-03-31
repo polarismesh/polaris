@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -833,33 +834,6 @@ func (s *Server) GetInstancesCount(ctx context.Context) *apiservice.BatchQueryRe
 	return out
 }
 
-// CleanInstance 清理无效的实例(flag == 1)
-func (s *Server) CleanInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
-	// 无效数据，不需要鉴权，直接删除
-	getInstanceID := func() (string, *apiservice.Response) {
-		if req.GetId() != nil {
-			if req.GetId().GetValue() == "" {
-				return "", api.NewInstanceResponse(apimodel.Code_InvalidInstanceID, req)
-			}
-			return req.GetId().GetValue(), nil
-		}
-		return utils.CheckInstanceTetrad(req)
-	}
-
-	instanceID, resp := getInstanceID()
-	if resp != nil {
-		return resp
-	}
-	if err := s.storage.CleanInstance(instanceID); err != nil {
-		log.Error("Clean instance",
-			zap.String("err", err.Error()), utils.ZapRequestID(utils.ParseRequestID(ctx)))
-		return api.NewInstanceResponse(apimodel.Code_StoreLayerException, req)
-	}
-
-	log.Info("Clean instance", utils.ZapRequestID(utils.ParseRequestID(ctx)), utils.ZapInstanceID(instanceID))
-	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
-}
-
 // update/delete instance前置条件
 func (s *Server) execInstancePreStep(ctx context.Context, req *apiservice.Instance) (
 	*model.Service, *model.Instance, *apiservice.Response) {
@@ -964,8 +938,10 @@ func isEmptyLocation(loc *apimodel.Location) bool {
 }
 
 func (s *Server) sendDiscoverEvent(event model.InstanceEvent) {
-	// 发布隔离状态变化事件
-
+	if event.Instance != nil {
+		// In order not to cause `panic` in cause multi-corporate data op, do deep copy
+		event.Instance = proto.Clone(event.Instance).(*apiservice.Instance)
+	}
 	eventhub.Publish(eventhub.InstanceEventTopic, event)
 }
 
@@ -1195,8 +1171,8 @@ func preGetInstances(query map[string]string) (map[string]string, map[string]str
 	_, serviceIsAvail := query["service"]
 	_, namespaceIsAvail := query["namespace"]
 	_, hostIsAvail := query["host"]
-	// 要么（service，namespace）存在，要么host存在，不然视为参数不完整
-	if !((serviceIsAvail && namespaceIsAvail) || hostIsAvail) {
+	// service namespace host 三个必须最少传一个
+	if !(serviceIsAvail || namespaceIsAvail || hostIsAvail) {
 		return nil, nil, api.NewBatchQueryResponse(apimodel.Code_InvalidQueryInsParameter)
 	}
 

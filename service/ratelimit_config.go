@@ -91,15 +91,6 @@ func (s *Server) CreateRateLimit(ctx context.Context, req *apitraffic.Rule, svcI
 		return resp
 	}
 
-	tx, err := s.storage.CreateTransaction()
-	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-		return api.NewRateLimitResponse(apimodel.Code_StoreLayerException, req)
-	}
-	defer func() {
-		_ = tx.Commit()
-	}()
-
 	// 构造底层数据结构
 	data, err := api2RateLimit(svcId, req, nil)
 	if err != nil {
