@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package maintain
+package admin
 
 import (
 	"context"
@@ -27,7 +27,7 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-var _ MaintainOperateServer = (*serverAuthAbility)(nil)
+var _ AdminOperateServer = (*serverAuthAbility)(nil)
 
 func (svr *serverAuthAbility) GetServerConnections(ctx context.Context, req *ConnReq) (*ConnCountResp, error) {
 	authCtx := svr.collectMaintainAuthContext(ctx, model.Read, "GetServerConnections")

@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package maintain
+package admin
 
 import (
 	"context"
@@ -47,8 +47,8 @@ type ConnStatsResp struct {
 	Stats           []*connlimit.HostConnStat
 }
 
-// MaintainOperateServer Maintain related operation
-type MaintainOperateServer interface {
+// AdminOperateServer Maintain related operation
+type AdminOperateServer interface {
 	// GetServerConnections Get connection count
 	GetServerConnections(ctx context.Context, req *ConnReq) (*ConnCountResp, error)
 	// GetServerConnStats 获取连接缓存里面的统计信息
