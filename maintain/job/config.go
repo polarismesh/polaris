@@ -21,6 +21,6 @@ package job
 type JobConfig struct {
 	Name     string                 `yaml:"name"`
 	Enable   bool                   `yaml:"enable"`
-	CronSpec string                 `yaml:"cronSpec"`
+	Interval string                 `yaml:"interval"`
 	Option   map[string]interface{} `yaml:"option"`
 }

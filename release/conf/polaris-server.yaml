@@ -395,19 +395,22 @@ maintain:
     # Clean up long term unhealthy instance
     - name: DeleteUnHealthyInstance
       enable: false
-      cronSpec: "0 0 * * ?"
+      # job exec interval. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+      interval: 24h
       option:
         instanceDeleteTimeout: 60m
     # Delete auto-created service without an instance
     - name: DeleteEmptyAutoCreatedService
       enable: false
-      cronSpec: "*/10 * * * ?"
+      # job exec interval. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+      interval: 1h
       option:
         serviceDeleteTimeout: 30m
     # Clean soft deleted instances
     - name: CleanDeletedInstances
       enable: true
-      cronSpec: "0 0 * * 1"
+      # job exec interval. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+      interval: 24h
   
 # Storage configuration
 store:
