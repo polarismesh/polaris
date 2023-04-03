@@ -521,6 +521,7 @@ func rateLimit2Client(
 
 	rule := &apitraffic.Rule{}
 	rule.Id = utils.NewStringValue(rateLimit.ID)
+	rule.Name = utils.NewStringValue(rateLimit.Name)
 	rule.Service = utils.NewStringValue(service)
 	rule.Namespace = utils.NewStringValue(namespace)
 	rule.Priority = utils.NewUInt32Value(rateLimit.Priority)
