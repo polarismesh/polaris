@@ -244,13 +244,12 @@ func getConfigFilesFromZIP(data []byte) ([]*apiconfig.ConfigFile, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		// 解析文件组和文件名
 		var (
 			group string
 			name  string
 		)
-		tokens := strings.Split(file.Name, "/")
+		tokens := strings.SplitN(file.Name, "/", 2)
 		switch len(tokens) {
 		case 2:
 			group = tokens[0]
