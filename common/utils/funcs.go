@@ -44,6 +44,9 @@ func CollectMapKeys(filters map[string]string) []string {
 	fields := make([]string, 0, len(filters))
 	for k := range filters {
 		fields = append(fields, k)
+		if k != "" {
+			fields = append(fields, strings.ToUpper(string(k[:1]))+k[1:])
+		}
 	}
 
 	return fields
