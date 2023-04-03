@@ -21,6 +21,7 @@ import (
 	"errors"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -168,6 +169,10 @@ func (r *rateLimitStore) GetExtendRateLimits(
 			for k, v := range query {
 				if k == "name" || k == "method" || k == "labels" {
 					if !strings.Contains(m[k].(string), v) {
+						return false
+					}
+				} else if k == "disable" {
+					if v != strconv.FormatBool(m[RateLimitFieldDisable].(bool)) {
 						return false
 					}
 				} else {
