@@ -291,7 +291,7 @@ auth:
   option:
     # Token encrypted SALT, you need to rely on this SALT to decrypt the information of the Token when analyzing the Token
     # The length of SALT needs to satisfy the following one：len(salt) in [16, 24, 32]
-    salt: polaris@ecebb5b2f7d04980
+    salt: polarismesh@2021
     # Console power switch, open default
     consoleOpen: true
     # Customer inspection ability switch, default shutdown
