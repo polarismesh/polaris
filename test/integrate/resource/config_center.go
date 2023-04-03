@@ -59,10 +59,13 @@ func MockConfigFiles(group *apiconfig.ConfigFileGroup) []*apiconfig.ConfigFile {
 	ret := make([]*apiconfig.ConfigFile, 0, totalGroups)
 
 	for i := 0; i < totalGroups; i++ {
-
+		name := fmt.Sprintf(configFileNameTemp, utils.NewUUID(), i)
+		if i%2 == 0 {
+			name = fmt.Sprintf("dir%d/", i) + name
+		}
 		ret = append(ret, &apiconfig.ConfigFile{
 			Name: &wrapperspb.StringValue{
-				Value: fmt.Sprintf(configFileNameTemp, utils.NewUUID(), i),
+				Value: name,
 			},
 			Namespace: group.Namespace,
 			Group:     group.Name,
