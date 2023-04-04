@@ -79,9 +79,20 @@ func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batc
 	testServer.instanceEventChannel = make(chan *model.InstanceEvent, 1000)
 	go testServer.handleInstanceEventWorker(ctx)
 
+	leaderChangeEventHandler := newLeaderChangeEventHandler(testServer.cacheProvider, hcOpt.MinCheckInterval)
+	if err := eventhub.Subscribe(eventhub.LeaderChangeEventTopic, "selfServiceChecker",
+		leaderChangeEventHandler); err != nil {
+		return nil, err
+	}
+
 	instanceEventHandler := newInstanceEventHealthCheckHandler(ctx, server.instanceEventChannel)
 	if err := eventhub.Subscribe(eventhub.InstanceEventTopic, "instanceHealthChecker",
 		instanceEventHandler); err != nil {
+		return nil, err
+	}
+
+	if err := testServer.storage.StartLeaderElection(store.ElectionKeySelfServiceChecker); err != nil {
+		return nil, err
 	}
 
 	finishInit = true
