@@ -291,4 +291,7 @@ func (d *DiscoverTestSuit) Destroy() {
 
 	_ = d.Storage.Destroy()
 	time.Sleep(5 * time.Second)
+
+	healthcheck.TestDestroy()
+	time.Sleep(5 * time.Second)
 }

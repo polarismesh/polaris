@@ -99,3 +99,8 @@ func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batc
 
 	return testServer, nil
 }
+
+func TestDestroy() {
+	eventhub.Unsubscribe(eventhub.LeaderChangeEventTopic, "selfServiceChecker")
+	eventhub.Unsubscribe(eventhub.InstanceEventTopic, "instanceHealthChecker")
+}
