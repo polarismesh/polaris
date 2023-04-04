@@ -36,16 +36,16 @@ const (
 	LeaseTime = 10
 )
 
-// maintainStore implement MaintainStore interface
-type maintainStore struct {
+// adminStore implement adminStore interface
+type adminStore struct {
 	master  *BaseDB
 	leStore LeaderElectionStore
 	leMap   map[string]*leaderElectionStateMachine
 	mutex   sync.Mutex
 }
 
-func newMaintainStore(master *BaseDB) *maintainStore {
-	return &maintainStore{
+func newAdminStore(master *BaseDB) *adminStore {
+	return &adminStore{
 		master:  master,
 		leStore: &leaderElectionStore{master: master},
 		leMap:   make(map[string]*leaderElectionStateMachine),
@@ -350,7 +350,7 @@ func (le *leaderElectionStateMachine) setReleaseTickLimit() {
 }
 
 // StartLeaderElection start the election procedure
-func (m *maintainStore) StartLeaderElection(key string) error {
+func (m *adminStore) StartLeaderElection(key string) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	_, ok := m.leMap[key]
@@ -380,7 +380,7 @@ func (m *maintainStore) StartLeaderElection(key string) error {
 }
 
 // StopLeaderElections stop the election procedure
-func (m *maintainStore) StopLeaderElections() {
+func (m *adminStore) StopLeaderElections() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	for k, le := range m.leMap {
@@ -390,7 +390,7 @@ func (m *maintainStore) StopLeaderElections() {
 }
 
 // IsLeader check leader
-func (m *maintainStore) IsLeader(key string) bool {
+func (m *adminStore) IsLeader(key string) bool {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	le, ok := m.leMap[key]
@@ -401,12 +401,12 @@ func (m *maintainStore) IsLeader(key string) bool {
 }
 
 // ListLeaderElections list election records
-func (m *maintainStore) ListLeaderElections() ([]*model.LeaderElection, error) {
+func (m *adminStore) ListLeaderElections() ([]*model.LeaderElection, error) {
 	return m.leStore.ListLeaderElections()
 }
 
 // ReleaseLeaderElection release election lock
-func (m *maintainStore) ReleaseLeaderElection(key string) error {
+func (m *adminStore) ReleaseLeaderElection(key string) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	le, ok := m.leMap[key]
@@ -419,7 +419,7 @@ func (m *maintainStore) ReleaseLeaderElection(key string) error {
 }
 
 // BatchCleanDeletedInstances batch clean soft deleted instances
-func (m *maintainStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, error) {
+func (m *adminStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, error) {
 	log.Infof("[Store][database] batch clean soft deleted instances(%d)", batchSize)
 	var rows int64
 	err := m.master.processWithTransaction("batchCleanDeletedInstances", func(tx *BaseTx) error {
@@ -449,7 +449,7 @@ func (m *maintainStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, er
 	return uint32(rows), err
 }
 
-func (m *maintainStore) GetUnHealthyInstances(timeout time.Duration, limit uint32) ([]string, error) {
+func (m *adminStore) GetUnHealthyInstances(timeout time.Duration, limit uint32) ([]string, error) {
 	log.Infof("[Store][database] get unhealthy instances which mtime timeout %s (%d)", timeout, limit)
 	queryStr := "select id from instance where flag=0 and enable_health_check=1 and health_status=0 " +
 		"and mtime < FROM_UNIXTIME(UNIX_TIMESTAMP(SYSDATE()) - ?) limit ?"
