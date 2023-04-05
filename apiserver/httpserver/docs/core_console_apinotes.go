@@ -18,8 +18,7 @@
 package docs
 
 const (
-	EnrichGetNamespacesApiNotes = `
-
+	enrichGetNamespacesApiNotes = `
 | 参数名 | 类型   | 描述                                             | 是否必填 |
 | ------ | ------ | ------------------------------------------------ | -------- |
 | name   | string | 命名空间唯一名称                                 | 是       |
@@ -30,7 +29,7 @@ const (
 请求示例：
 
 ~~~
-GET /naming/v1/namespaces?name=&offset=&limit=
+GET /{core|naming}/v1/namespaces?name=&offset=&limit=
 
 # 开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header
 Header X-Polaris-Token: {访问凭据}
@@ -60,7 +59,7 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-	EnrichCreateNamespacesApiNotes = `
+	enrichCreateNamespacesApiNotes = `
 | 参数名           | 类型     | 描述                                                       | 是否必填 |
 | ---------------- | -------- | ---------------------------------------------------------- | -------- |
 | name             | string   | 命名空间唯一名称                                           | 是       |
@@ -74,7 +73,7 @@ Header X-Polaris-Token: {访问凭据}
 请求示例：
 
 ~~~
-POST /naming/v1/namespaces
+POST /{core|naming}/v1/namespaces
 
 # 开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header
 Header X-Polaris-Token: {访问凭据}
@@ -106,7 +105,7 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-	EnrichUpdateNamespacesApiNotes = `
+	enrichUpdateNamespacesApiNotes = `
 | 参数名           | 类型     | 描述                                                       | 是否必填 |
 | ---------------- | -------- | ---------------------------------------------------------- | -------- |
 | name             | string   | 命名空间唯一名称                                           | 是       |
@@ -120,7 +119,7 @@ Header X-Polaris-Token: {访问凭据}
 请求示例：
 
 ~~~
-PUT /naming/v1/namespaces
+PUT /{core|naming}/v1/namespaces
 
 # 开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header
 Header X-Polaris-Token: {访问凭据}
@@ -142,7 +141,7 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-	EnrichDeleteNamespacesApiNotes = `
+	enrichDeleteNamespacesApiNotes = `
 | 参数名 | 类型   | 描述                          | 是否必填 |
 | ------ | ------ | ----------------------------- | -------- |
 | name   | string | 命名空间唯一名称              | 是       |
@@ -151,7 +150,7 @@ Header X-Polaris-Token: {访问凭据}
 请求示例：
 
 ~~~
-POST /naming/v1/namespaces/delete
+POST /{core|naming}/v1/namespaces/delete
 
 # 开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header
 Header X-Polaris-Token: {访问凭据}
