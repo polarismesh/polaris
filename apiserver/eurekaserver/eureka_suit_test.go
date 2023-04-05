@@ -196,4 +196,7 @@ func (d *EurekaTestSuit) Destroy() {
 
 	d.storage.Destroy()
 	time.Sleep(5 * time.Second)
+
+	healthcheck.TestDestroy()
+	time.Sleep(5 * time.Second)
 }
