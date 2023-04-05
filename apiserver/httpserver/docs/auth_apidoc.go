@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package httpserver
+package docs
 
 import (
 	"github.com/emicklei/go-restful/v3"
@@ -29,14 +29,14 @@ var (
 	userGroupApiTags = []string{"Users"}
 )
 
-func enrichAuthStatusApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichAuthStatusApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("查询鉴权开关信息").
 		Metadata(restfulspec.KeyOpenAPITags, authApiTags).
 		Notes(enrichAuthStatusApiNotes)
 }
 
-func enrichCreateStrategyApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichCreateStrategyApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("创建鉴权策略").
 		Metadata(restfulspec.KeyOpenAPITags, authApiTags).
@@ -44,7 +44,7 @@ func enrichCreateStrategyApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder 
 		Notes(enrichCreateStrategyApiNotes)
 }
 
-func enrichUpdateStrategiesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichUpdateStrategiesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("更新鉴权策略").
 		Metadata(restfulspec.KeyOpenAPITags, authApiTags).
@@ -52,7 +52,7 @@ func enrichUpdateStrategiesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Notes(enrichUpdateStrategiesApiNotes)
 }
 
-func enrichGetStrategiesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetStrategiesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("查询鉴权策略列表").
 		Metadata(restfulspec.KeyOpenAPITags, authApiTags).
@@ -79,7 +79,7 @@ func enrichGetStrategiesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichGetStrategiesApiNotes)
 }
 
-func enrichGetPrincipalResourcesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetPrincipalResourcesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取鉴权策略详细").
 		Metadata(restfulspec.KeyOpenAPITags, authApiTags).
@@ -88,7 +88,7 @@ func enrichGetPrincipalResourcesApiDocs(r *restful.RouteBuilder) *restful.RouteB
 		Notes(enrichGetPrincipalResourcesApiNotes)
 }
 
-func enrichGetStrategyApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetStrategyApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取鉴权策略详细").
 		Metadata(restfulspec.KeyOpenAPITags, authApiTags).
@@ -96,7 +96,7 @@ func enrichGetStrategyApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichGetStrategyApiNotes)
 }
 
-func enrichDeleteStrategiesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichDeleteStrategiesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("删除鉴权策略").
 		Metadata(restfulspec.KeyOpenAPITags, authApiTags).
@@ -104,7 +104,7 @@ func enrichDeleteStrategiesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Notes(enrichDeleteStrategiesApiNotes)
 }
 
-func enrichLoginApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichLoginApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("用户登录").
 		Metadata(restfulspec.KeyOpenAPITags, usersApiTags).
@@ -112,7 +112,7 @@ func enrichLoginApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichLoginApiNotes)
 }
 
-func enrichGetUsersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetUsersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取用户").
 		Metadata(restfulspec.KeyOpenAPITags, usersApiTags).
@@ -127,7 +127,7 @@ func enrichGetUsersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichGetUsersApiNotes)
 }
 
-func enrichCreateUsersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichCreateUsersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("创建用户").
 		Metadata(restfulspec.KeyOpenAPITags, usersApiTags).
@@ -135,7 +135,7 @@ func enrichCreateUsersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichCreateUsersApiNotes)
 }
 
-func enrichDeleteUsersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichDeleteUsersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("删除用户").
 		Metadata(restfulspec.KeyOpenAPITags, usersApiTags).
@@ -143,7 +143,7 @@ func enrichDeleteUsersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichDeleteUsersApiNotes)
 }
 
-func enrichUpdateUserApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichUpdateUserApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("更新用户").
 		Metadata(restfulspec.KeyOpenAPITags, usersApiTags).
@@ -151,7 +151,7 @@ func enrichUpdateUserApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichUpdateUserApiNotes)
 }
 
-func enrichUpdateUserPasswordApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichUpdateUserPasswordApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("更新用户密码").
 		Metadata(restfulspec.KeyOpenAPITags, usersApiTags).
@@ -159,7 +159,7 @@ func enrichUpdateUserPasswordApiDocs(r *restful.RouteBuilder) *restful.RouteBuil
 		Notes(enrichUpdateUserPasswordApiNotes)
 }
 
-func enrichGetUserTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetUserTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取用户Token").
 		Metadata(restfulspec.KeyOpenAPITags, usersApiTags).
@@ -167,7 +167,7 @@ func enrichGetUserTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichGetUserTokenApiNotes)
 }
 
-func enrichUpdateUserTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichUpdateUserTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("更新用户Token").
 		Metadata(restfulspec.KeyOpenAPITags, usersApiTags).
@@ -175,7 +175,7 @@ func enrichUpdateUserTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder
 		Notes(enrichUpdateUserTokenApiNotes)
 }
 
-func enrichResetUserTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichResetUserTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("重置用户Token").
 		Metadata(restfulspec.KeyOpenAPITags, usersApiTags).
@@ -183,7 +183,7 @@ func enrichResetUserTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder 
 		Notes(enrichResetUserTokenApiNotes)
 }
 
-func enrichCreateGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichCreateGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("创建用户组").
 		Metadata(restfulspec.KeyOpenAPITags, userGroupApiTags).
@@ -191,7 +191,7 @@ func enrichCreateGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichCreateGroupApiNotes)
 }
 
-func enrichUpdateGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichUpdateGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("更新用户组").
 		Metadata(restfulspec.KeyOpenAPITags, userGroupApiTags).
@@ -199,7 +199,7 @@ func enrichUpdateGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichUpdateGroupsApiNotes)
 }
 
-func enrichGetGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("查询用户组列表").
 		Metadata(restfulspec.KeyOpenAPITags, userGroupApiTags).
@@ -213,7 +213,7 @@ func enrichGetGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichGetGroupsApiNotes)
 }
 
-func enrichGetGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取用户组详情").
 		Metadata(restfulspec.KeyOpenAPITags, userGroupApiTags).
@@ -221,7 +221,7 @@ func enrichGetGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichGetGroupApiNotes)
 }
 
-func enrichGetGroupTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetGroupTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取用户组 token").
 		Metadata(restfulspec.KeyOpenAPITags, userGroupApiTags).
@@ -229,7 +229,7 @@ func enrichGetGroupTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichGetGroupTokenApiNotes)
 }
 
-func enrichDeleteGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichDeleteGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("删除用户组").
 		Metadata(restfulspec.KeyOpenAPITags, userGroupApiTags).
@@ -237,7 +237,7 @@ func enrichDeleteGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichDeleteGroupsApiNotes)
 }
 
-func enrichUpdateGroupTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichUpdateGroupTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("更新用户组 token").
 		Metadata(restfulspec.KeyOpenAPITags, userGroupApiTags).
@@ -245,7 +245,7 @@ func enrichUpdateGroupTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Notes(enrichUpdateGroupTokenApiNotes)
 }
 
-func enrichResetGroupTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichResetGroupTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("重置用户组 token").
 		Metadata(restfulspec.KeyOpenAPITags, userGroupApiTags).

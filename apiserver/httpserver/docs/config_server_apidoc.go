@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package httpserver
+package docs
 
 import (
 	"github.com/emicklei/go-restful/v3"
@@ -28,7 +28,7 @@ var (
 	configClientApiTags  = []string{"Client"}
 )
 
-func enrichCreateConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichCreateConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("创建配置文件组").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
@@ -38,7 +38,7 @@ func enrichCreateConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteB
 			"  \"createBy\":\"ledou\"\n}\n```")
 }
 
-func enrichQueryConfigFileGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichQueryConfigFileGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("搜索配置文件组").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
@@ -51,7 +51,7 @@ func enrichQueryConfigFileGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteB
 			Required(true).DefaultValue("100"))
 }
 
-func enrichDeleteConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichDeleteConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("删除配置文件组").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
@@ -59,7 +59,7 @@ func enrichDeleteConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteB
 		Param(restful.QueryParameter("group", "配置文件分组").DataType("string").Required(true))
 }
 
-func enrichUpdateConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichUpdateConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("更新配置文件组").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
@@ -69,7 +69,7 @@ func enrichUpdateConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteB
 			"   \"createBy\":\"ledou\"\n}\n```")
 }
 
-func enrichCreateConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichCreateConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("创建配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
@@ -81,7 +81,7 @@ func enrichCreateConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 			"  \"createBy\":\"ledou\",\n    \"format\":\"properties\"\n}\n```\n")
 }
 
-func enrichGetConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("拉取配置").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
@@ -90,7 +90,7 @@ func enrichGetConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Param(restful.QueryParameter("name", "配置文件名").DataType("string").Required(true))
 }
 
-func enrichQueryConfigFilesByGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichQueryConfigFilesByGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("搜索配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
@@ -102,7 +102,7 @@ func enrichQueryConfigFilesByGroupApiDocs(r *restful.RouteBuilder) *restful.Rout
 			Required(true).DefaultValue("100"))
 }
 
-func enrichSearchConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichSearchConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("搜索配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
@@ -116,7 +116,7 @@ func enrichSearchConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 			Required(true).DefaultValue("100"))
 }
 
-func enrichUpdateConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichUpdateConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("更新配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
@@ -128,7 +128,7 @@ func enrichUpdateConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 			" \"createBy\":\"ledou\",\n    \"format\":\"properties\"\n}\n```\n")
 }
 
-func enrichDeleteConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichDeleteConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("删除配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
@@ -138,7 +138,7 @@ func enrichDeleteConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Param(restful.QueryParameter("deleteBy", "操作人").DataType("string").Required(false))
 }
 
-func enrichBatchDeleteConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichBatchDeleteConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("批量删除配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
@@ -148,7 +148,7 @@ func enrichBatchDeleteConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteB
 			"        \"namespace\":\"someNamespace\",\n         \"group\":\"someGroup\"\n     }\n]\n```")
 }
 
-func enrichExportConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichExportConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("导出配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
@@ -156,7 +156,7 @@ func enrichExportConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 			"        \"groups\":[\"someGroups\"]\n     \"names\":[\"application.properties\"],\n         }\n]\n```")
 }
 
-func enrichImportConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichImportConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("导入配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
@@ -170,7 +170,7 @@ func enrichImportConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 			"       \"namespace\":\"someNamespace\",\n         \"group\":\"someGroup\"\n     }\n]\n```")
 }
 
-func enrichPublishConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichPublishConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("发布配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
@@ -180,7 +180,7 @@ func enrichPublishConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuild
 			" \"group\":\"someGroup\",\n    \"comment\":\"发布第一个配置文件\",\n    \"createBy\":\"ledou\"\n}\n```")
 }
 
-func enrichGetConfigFileReleaseApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetConfigFileReleaseApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取配置文件最后一次全量发布信息").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
@@ -189,7 +189,7 @@ func enrichGetConfigFileReleaseApiDocs(r *restful.RouteBuilder) *restful.RouteBu
 		Param(restful.QueryParameter("name", "配置文件").DataType("string").Required(true))
 }
 
-func enrichGetConfigFileReleaseHistoryApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetConfigFileReleaseHistoryApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取配置文件发布历史记录").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
@@ -202,19 +202,19 @@ func enrichGetConfigFileReleaseHistoryApiDocs(r *restful.RouteBuilder) *restful.
 			Required(true).DefaultValue("100"))
 }
 
-func enrichGetAllConfigFileTemplatesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetAllConfigFileTemplatesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取配置模板").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags)
 }
 
-func enrichCreateConfigFileTemplateApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichCreateConfigFileTemplateApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("创建配置模板").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags)
 }
 
-func enrichGetConfigFileForClientApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetConfigFileForClientApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("拉取配置").
 		Metadata(restfulspec.KeyOpenAPITags, configClientApiTags).
@@ -225,7 +225,7 @@ func enrichGetConfigFileForClientApiDocs(r *restful.RouteBuilder) *restful.Route
 			DataType("integer").Required(true))
 }
 
-func enrichWatchConfigFileForClientApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichWatchConfigFileForClientApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("监听配置").
 		Metadata(restfulspec.KeyOpenAPITags, configClientApiTags).

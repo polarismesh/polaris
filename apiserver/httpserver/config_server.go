@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/emicklei/go-restful/v3"
+	"github.com/polarismesh/polaris/apiserver/httpserver/docs"
 )
 
 const (
@@ -60,38 +61,38 @@ func (h *HTTPServer) GetConfigAccessServer(include []string) (*restful.WebServic
 
 func (h *HTTPServer) bindConfigConsoleEndpoint(ws *restful.WebService) {
 	// 配置文件组
-	ws.Route(enrichCreateConfigFileGroupApiDocs(ws.POST("/configfilegroups").To(h.CreateConfigFileGroup)))
-	ws.Route(enrichQueryConfigFileGroupsApiDocs(ws.GET("/configfilegroups").To(h.QueryConfigFileGroups)))
-	ws.Route(enrichDeleteConfigFileGroupApiDocs(ws.DELETE("/configfilegroups").To(h.DeleteConfigFileGroup)))
-	ws.Route(enrichUpdateConfigFileGroupApiDocs(ws.PUT("/configfilegroups").To(h.UpdateConfigFileGroup)))
+	ws.Route(docs.EnrichCreateConfigFileGroupApiDocs(ws.POST("/configfilegroups").To(h.CreateConfigFileGroup)))
+	ws.Route(docs.EnrichQueryConfigFileGroupsApiDocs(ws.GET("/configfilegroups").To(h.QueryConfigFileGroups)))
+	ws.Route(docs.EnrichDeleteConfigFileGroupApiDocs(ws.DELETE("/configfilegroups").To(h.DeleteConfigFileGroup)))
+	ws.Route(docs.EnrichUpdateConfigFileGroupApiDocs(ws.PUT("/configfilegroups").To(h.UpdateConfigFileGroup)))
 
 	// 配置文件
-	ws.Route(enrichCreateConfigFileApiDocs(ws.POST("/configfiles").To(h.CreateConfigFile)))
-	ws.Route(enrichGetConfigFileApiDocs(ws.GET("/configfiles").To(h.GetConfigFile)))
-	ws.Route(enrichQueryConfigFilesByGroupApiDocs(ws.GET("/configfiles/by-group").To(h.QueryConfigFilesByGroup)))
-	ws.Route(enrichSearchConfigFileApiDocs(ws.GET("/configfiles/search").To(h.SearchConfigFile)))
-	ws.Route(enrichUpdateConfigFileApiDocs(ws.PUT("/configfiles").To(h.UpdateConfigFile)))
-	ws.Route(enrichDeleteConfigFileApiDocs(ws.DELETE("/configfiles").To(h.DeleteConfigFile)))
-	ws.Route(enrichBatchDeleteConfigFileApiDocs(ws.POST("/configfiles/batchdelete").To(h.BatchDeleteConfigFile)))
-	ws.Route(enrichExportConfigFileApiDocs(ws.POST("/configfiles/export").To(h.ExportConfigFile)))
-	ws.Route(enrichImportConfigFileApiDocs(ws.POST("/configfiles/import").To(h.ImportConfigFile)))
+	ws.Route(docs.EnrichCreateConfigFileApiDocs(ws.POST("/configfiles").To(h.CreateConfigFile)))
+	ws.Route(docs.EnrichGetConfigFileApiDocs(ws.GET("/configfiles").To(h.GetConfigFile)))
+	ws.Route(docs.EnrichQueryConfigFilesByGroupApiDocs(ws.GET("/configfiles/by-group").To(h.QueryConfigFilesByGroup)))
+	ws.Route(docs.EnrichSearchConfigFileApiDocs(ws.GET("/configfiles/search").To(h.SearchConfigFile)))
+	ws.Route(docs.EnrichUpdateConfigFileApiDocs(ws.PUT("/configfiles").To(h.UpdateConfigFile)))
+	ws.Route(docs.EnrichDeleteConfigFileApiDocs(ws.DELETE("/configfiles").To(h.DeleteConfigFile)))
+	ws.Route(docs.EnrichBatchDeleteConfigFileApiDocs(ws.POST("/configfiles/batchdelete").To(h.BatchDeleteConfigFile)))
+	ws.Route(docs.EnrichExportConfigFileApiDocs(ws.POST("/configfiles/export").To(h.ExportConfigFile)))
+	ws.Route(docs.EnrichImportConfigFileApiDocs(ws.POST("/configfiles/import").To(h.ImportConfigFile)))
 
 	// 配置文件发布
-	ws.Route(enrichPublishConfigFileApiDocs(ws.POST("/configfiles/release").To(h.PublishConfigFile)))
-	ws.Route(enrichGetConfigFileReleaseApiDocs(ws.GET("/configfiles/release").To(h.GetConfigFileRelease)))
+	ws.Route(docs.EnrichPublishConfigFileApiDocs(ws.POST("/configfiles/release").To(h.PublishConfigFile)))
+	ws.Route(docs.EnrichGetConfigFileReleaseApiDocs(ws.GET("/configfiles/release").To(h.GetConfigFileRelease)))
 
 	// 配置文件发布历史
-	ws.Route(enrichGetConfigFileReleaseHistoryApiDocs(ws.GET("/configfiles/releasehistory").
+	ws.Route(docs.EnrichGetConfigFileReleaseHistoryApiDocs(ws.GET("/configfiles/releasehistory").
 		To(h.GetConfigFileReleaseHistory)))
 
 	// config file template
-	ws.Route(enrichGetAllConfigFileTemplatesApiDocs(ws.GET("/configfiletemplates").To(h.GetAllConfigFileTemplates)))
-	ws.Route(enrichCreateConfigFileTemplateApiDocs(ws.POST("/configfiletemplates").To(h.CreateConfigFileTemplate)))
+	ws.Route(docs.EnrichGetAllConfigFileTemplatesApiDocs(ws.GET("/configfiletemplates").To(h.GetAllConfigFileTemplates)))
+	ws.Route(docs.EnrichCreateConfigFileTemplateApiDocs(ws.POST("/configfiletemplates").To(h.CreateConfigFileTemplate)))
 }
 
 func (h *HTTPServer) bindConfigClientEndpoint(ws *restful.WebService) {
-	ws.Route(enrichGetConfigFileForClientApiDocs(ws.GET("/GetConfigFile").To(h.getConfigFile)))
-	ws.Route(enrichWatchConfigFileForClientApiDocs(ws.POST("/WatchConfigFile").To(h.watchConfigFile)))
+	ws.Route(docs.EnrichGetConfigFileForClientApiDocs(ws.GET("/GetConfigFile").To(h.getConfigFile)))
+	ws.Route(docs.EnrichWatchConfigFileForClientApiDocs(ws.POST("/WatchConfigFile").To(h.watchConfigFile)))
 }
 
 // StopConfigServer 停止配置中心模块

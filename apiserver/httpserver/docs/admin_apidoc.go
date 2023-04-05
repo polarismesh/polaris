@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package httpserver
+package docs
 
 import (
 	"github.com/emicklei/go-restful/v3"
@@ -29,7 +29,7 @@ var (
 	maintainApiTags = []string{"Maintain"}
 )
 
-func enrichGetServerConnectionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetServerConnectionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取服务端连接数").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
@@ -38,7 +38,7 @@ func enrichGetServerConnectionsApiDocs(r *restful.RouteBuilder) *restful.RouteBu
 		Notes(enrichGetServerConnectionsApiNotes)
 }
 
-func enrichGetServerConnStatsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetServerConnStatsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取服务端连接统计信息").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
@@ -48,7 +48,7 @@ func enrichGetServerConnStatsApiDocs(r *restful.RouteBuilder) *restful.RouteBuil
 		Notes(enrichGetServerConnStatsApiNotes)
 }
 
-func enrichCloseConnectionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichCloseConnectionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("关闭指定client ip的连接").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
@@ -56,14 +56,14 @@ func enrichCloseConnectionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Notes(enrichCloseConnectionsApiNotes)
 }
 
-func enrichFreeOSMemoryApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichFreeOSMemoryApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("释放系统内存").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
 		Notes(enrichFreeOSMemoryApiNotes)
 }
 
-func enrichCleanInstanceApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichCleanInstanceApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("彻底清理flag=1的实例").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
@@ -71,14 +71,14 @@ func enrichCleanInstanceApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichCleanInstanceApiNotes)
 }
 
-func enrichBatchCleanInstancesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichBatchCleanInstancesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("彻底清理flag=1的实例").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
 		Notes(enrichBatchCleanInstancesApiNotes)
 }
 
-func enrichGetLastHeartbeatApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetLastHeartbeatApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取上一次心跳的时间").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
@@ -91,42 +91,42 @@ func enrichGetLastHeartbeatApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Notes(enrichGetLastHeartbeatApiNotes)
 }
 
-func enrichGetLogOutputLevelApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetLogOutputLevelApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取日志输出级别").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
 		Notes(enrichGetLogOutputLevelApiNotes)
 }
 
-func enrichSetLogOutputLevelApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichSetLogOutputLevelApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("设置日志输出级别").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
 		Notes(enrichSetLogOutputLevelApiNotes)
 }
 
-func enrichListLeaderElectionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichListLeaderElectionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取选主的结果").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
 		Notes(enrichListLeaderElectionsApiNotes)
 }
 
-func enrichReleaseLeaderElectionApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichReleaseLeaderElectionApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("主动放弃主身份").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
 		Notes(enrichReleaseLeaderElectionApiNotes)
 }
 
-func enrichGetCMDBInfoApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetCMDBInfoApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("查询CMDB信息").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
 		Notes(enrichReleaseLeaderElectionApiNotes)
 }
 
-func enrichGetReportClientsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetReportClientsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("查询SDK实例列表").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).

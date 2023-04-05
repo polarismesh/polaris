@@ -324,9 +324,6 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *apiservice.Serv
 		}
 	}
 
-	resp.RateLimit = &apitraffic.RateLimit{
-		Rules: []*apitraffic.Rule{},
-	}
 	rateLimitIterProc := func(value *model.RateLimit) {
 		rateLimit, err := rateLimit2Client(req.GetName().GetValue(), req.GetNamespace().GetValue(), value)
 		if err != nil {
@@ -346,6 +343,10 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *apiservice.Serv
 	if req.GetRevision().GetValue() == revision {
 		return api.NewDiscoverRateLimitResponse(apimodel.Code_DataNoChange, req)
 	}
+	resp.RateLimit = &apitraffic.RateLimit{
+		Revision: utils.NewStringValue(revision),
+		Rules:    []*apitraffic.Rule{},
+	}
 	for i := range rules {
 		rateLimitIterProc(rules[i])
 	}
@@ -359,6 +360,7 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *apiservice.Serv
 	resp.Service = &apiservice.Service{
 		Name:      req.GetName(),
 		Namespace: req.GetNamespace(),
+		Revision:  utils.NewStringValue(revision),
 	}
 	return resp
 }

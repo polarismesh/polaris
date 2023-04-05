@@ -15,14 +15,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package v1
-
-import "github.com/polarismesh/polaris/apiserver/httpserver/v1/apinotes"
+package docs
 
 const (
-	enrichRegisterInstanceApiNotes   = apinotes.EnrichRegisterInstanceApiNotes
-	enrichDeregisterInstanceApiNotes = apinotes.EnrichDeregisterInstanceApiNotes
-	enrichHeartbeatApiNotes          = apinotes.EnrichHeartbeatApiNotes
-	enrichReportClientApiNotes       = apinotes.EnrichReportClientApiNotes
-	enrichDiscoverApiNotes           = apinotes.EnrichDiscoverApiNotes
+	enrichRegisterInstanceApiNotes   = EnrichRegisterInstanceApiNotes
+	enrichDeregisterInstanceApiNotes = EnrichDeregisterInstanceApiNotes
+	enrichHeartbeatApiNotes          = EnrichHeartbeatApiNotes
+	enrichReportClientApiNotes       = EnrichReportClientApiNotes
+	enrichDiscoverApiNotes           = EnrichDiscoverApiNotes
 )

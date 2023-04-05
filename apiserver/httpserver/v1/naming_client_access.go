@@ -26,6 +26,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/apiserver"
+	"github.com/polarismesh/polaris/apiserver/httpserver/docs"
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
@@ -64,19 +65,19 @@ func (h *HTTPServerV1) GetClientAccessServer(include []string) (*restful.WebServ
 
 // addDiscoverAccess 增加服务发现接口
 func (h *HTTPServerV1) addDiscoverAccess(ws *restful.WebService) {
-	ws.Route(enrichReportClientApiDocs(ws.POST("/ReportClient").To(h.ReportClient)))
-	ws.Route(enrichDiscoverApiDocs(ws.POST("/Discover").To(h.Discover)))
+	ws.Route(docs.EnrichReportClientApiDocs(ws.POST("/ReportClient").To(h.ReportClient)))
+	ws.Route(docs.EnrichDiscoverApiDocs(ws.POST("/Discover").To(h.Discover)))
 }
 
 // addRegisterAccess 增加注册/反注册接口
 func (h *HTTPServerV1) addRegisterAccess(ws *restful.WebService) {
-	ws.Route(enrichRegisterInstanceApiDocs(ws.POST("/RegisterInstance").To(h.RegisterInstance)))
-	ws.Route(enrichDeregisterInstanceApiDocs(ws.POST("/DeregisterInstance").To(h.DeregisterInstance)))
+	ws.Route(docs.EnrichRegisterInstanceApiDocs(ws.POST("/RegisterInstance").To(h.RegisterInstance)))
+	ws.Route(docs.EnrichDeregisterInstanceApiDocs(ws.POST("/DeregisterInstance").To(h.DeregisterInstance)))
 }
 
 // addHealthCheckAccess 增加健康检查接口
 func (h *HTTPServerV1) addHealthCheckAccess(ws *restful.WebService) {
-	ws.Route(enrichHeartbeatApiDocs(ws.POST("/Heartbeat").To(h.Heartbeat)))
+	ws.Route(docs.EnrichHeartbeatApiDocs(ws.POST("/Heartbeat").To(h.Heartbeat)))
 }
 
 // ReportClient 客户端上报信息

@@ -456,3 +456,32 @@ func circuitBreakerRule2api(cbRule *model.CircuitBreakerRule) (*apifault.Circuit
 	}
 	return cbRule.Proto, nil
 }
+
+// circuitBreaker2ClientAPI 把内部数据结构转化为客户端API参数
+func circuitBreaker2ClientAPI(
+	req *model.ServiceWithCircuitBreakerRules, service string, namespace string) (*apifault.CircuitBreaker, error) {
+	if req == nil {
+		return nil, nil
+	}
+
+	out := &apifault.CircuitBreaker{}
+	out.Revision = &wrappers.StringValue{Value: req.Revision}
+	out.Rules = make([]*apifault.CircuitBreakerRule, 0, req.CountCircuitBreakerRules())
+	var iterateErr error
+	req.IterateCircuitBreakerRules(func(rule *model.CircuitBreakerRule) {
+		cbRule, err := circuitBreakerRule2api(rule)
+		if err != nil {
+			iterateErr = err
+			return
+		}
+		out.Rules = append(out.Rules, cbRule)
+	})
+	if nil != iterateErr {
+		return nil, iterateErr
+	}
+
+	out.Service = utils.NewStringValue(service)
+	out.ServiceNamespace = utils.NewStringValue(namespace)
+
+	return out, nil
+}
