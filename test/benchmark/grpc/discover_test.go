@@ -165,3 +165,59 @@ func Benchmark_DiscoverRouterRuleWithoutRevision(b *testing.B) {
 		}
 	}
 }
+
+// Benchmark_DiscoverInstancesWithoutRevision 压测获取实例列表的服务发现接口性能
+func Benchmark_DiscoverInstancesWithoutRevision(b *testing.B) {
+	b.SkipNow()
+	discoverClient, conn := prepareDiscoverClient(b)
+	defer conn.Close()
+
+	fmt.Println("begin do benchmark")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StartTimer()
+		err := discoverClient.Send(&apiservice.DiscoverRequest{
+			Type:    apiservice.DiscoverRequest_INSTANCE,
+			Service: &apiservice.Service{},
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+		resp, err := discoverClient.Recv()
+		if err != nil {
+			b.Fatal(err)
+		}
+		b.StopTimer()
+		if resp.GetCode().GetValue() > 300000 {
+			b.Fatal(resp)
+		}
+	}
+}
+
+// Benchmark_DiscoverRouterRuleWithoutRevision 压测获取路由规则的服务发现接口性能
+func Benchmark_DiscoverRouterRuleWithoutRevision(b *testing.B) {
+	b.SkipNow()
+	discoverClient, conn := prepareDiscoverClient(b)
+	defer conn.Close()
+
+	fmt.Println("begin do benchmark")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StartTimer()
+		err := discoverClient.Send(&apiservice.DiscoverRequest{
+			Type:    apiservice.DiscoverRequest_ROUTING,
+			Service: &apiservice.Service{},
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+		resp, err := discoverClient.Recv()
+		if err != nil {
+			b.Fatal(err)
+		}
+		b.StopTimer()
+		if resp.GetCode().GetValue() > 300000 {
+			b.Fatal(resp)
+		}
+	}
+}
