@@ -22,7 +22,7 @@ import (
 
 	"github.com/emicklei/go-restful/v3"
 
-	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
+	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/utils"
 )
 
 // GetPrometheusDiscoveryServer 注册用于prometheus服务发现的接口

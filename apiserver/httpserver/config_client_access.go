@@ -25,7 +25,7 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
+	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/utils"
 	api "github.com/polarismesh/polaris/common/api/v1"
 )
 

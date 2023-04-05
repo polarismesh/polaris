@@ -18,7 +18,7 @@
 package docs
 
 const (
-	EnrichCreateRoutingsApiNotes = `
+	enrichCreateRoutingsApiNotes = `
 为服务创建一个路由规则，以对服务进行流量调度，一个服务只能有一个路由规则。
 
 请求示例：
@@ -157,7 +157,7 @@ Header X-Polaris-Token: {访问凭据}
 | value      | string | 匹配的目标值                                                 | 是       |
 | value_type | string | 值类型，枚举值，支持：TEXT（文本，默认），PARAMETER（参数，路由规则值使用动态参数时用到） | 否       |
 `
-	EnrichDeleteRoutingsApiNotes = `
+	enrichDeleteRoutingsApiNotes = `
 删除服务下的路由规则
 
 请求示例：
@@ -197,7 +197,7 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-	EnrichUpdateRoutingsApiNotes = `
+	enrichUpdateRoutingsApiNotes = `
 更新服务下的路由规则的相关信息
 
 请求示例：
@@ -251,7 +251,7 @@ Header X-Polaris-Token: {访问凭据}
 | outbounds | route[] | 出流量规则 | 否 | 是 |
 | service_token | string | 鉴权token，当开启鉴权后需要传入 | 否 | 否 |
 `
-	EnrichGetRoutingsApiNotes = `
+	enrichGetRoutingsApiNotes = `
 请求示例：
 
 ~~~

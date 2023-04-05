@@ -205,7 +205,7 @@ func EnrichGetCircuitBreakerByServiceApiDocs(r *restful.RouteBuilder) *restful.R
 }
 
 func EnrichGetServiceOwnerApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("根据服务获取服务负责人").
+	return r.Doc("根据服务获取服务负责人").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, servicesApiTags).
 		Notes(enrichGetServiceOwnerApiNotes)
 }
@@ -298,28 +298,28 @@ func EnrichGetInstanceLabelsApiDocs(r *restful.RouteBuilder) *restful.RouteBuild
 }
 
 func EnrichCreateRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("创建路由规则(V1)").
+	return r.Doc("创建路由规则(V1)").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
 		Reads([]apitraffic.Routing{}, "create routing rules").
 		Notes(enrichCreateRoutingsApiNotes)
 }
 
 func EnrichDeleteRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("删除路由规则(V1)").
+	return r.Doc("删除路由规则(V1)").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
 		Reads([]apitraffic.Routing{}, "delete routing rules").
 		Notes(enrichDeleteRoutingsApiNotes)
 }
 
 func EnrichUpdateRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("更新路由规则(V1)").
+	return r.Doc("更新路由规则(V1)").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
 		Reads([]apitraffic.Routing{}, "update routing rules").
 		Notes(enrichUpdateRoutingsApiNotes)
 }
 
 func EnrichGetRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("查询路由规则(V1)").
+	return r.Doc("查询路由规则(V1)").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
 		Param(restful.PathParameter("service", "服务名称").DataType(typeNameString).
 			Required(false)).
@@ -589,60 +589,39 @@ func EnrichGetFaultDetectRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBui
 		Notes(enrichGetFaultDetectRulesApiNotes)
 }
 
-const (
-	enrichCreateRoutingsApiNotes = `
-创建路由规则
+func EnrichCreateRouterRuleApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("创建路由规则(V2)").
+		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
+		Operation("v2CreateRoutings").
+		Reads([]apitraffic.RouteRule{}).
+		Notes(enrichCreateRouterRuleApiNotes)
+}
 
-~~~
-POST /naming/v2/routings
+func EnrichDeleteRouterRuleApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("删除路由规则(V2)").
+		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
+		Operation("v2DeleteRoutings").
+		Notes(enrichDeleteRouterRuleApiNotes)
+}
 
-# 开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header
-Header X-Polaris-Token: {访问凭据}
+func EnrichUpdateRouterRuleApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("更新路由规则(V2)").
+		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
+		Operation("v2UpdateRoutings").
+		Reads([]apitraffic.RouteRule{}).
+		Notes(enrichUpdateRouterRuleApiNotes)
+}
 
-~~~
-`
-	enrichDeleteRoutingsApiNotes = `
-删除路由规则
+func EnrichGetRouterRuleApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("获取路由规则(V2)").
+		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
+		Operation("v2GetRoutings").
+		Notes(enrichGetRouterRuleApiNotes)
+}
 
-~~~
-DELETE /naming/v2/routings
-
-# 开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header
-Header X-Polaris-Token: {访问凭据}
-
-~~~
-`
-	enrichUpdateRoutingsApiNotes = `
-更新路由规则
-
-~~~
-PUT /naming/v2/routings
-
-# 开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header
-Header X-Polaris-Token: {访问凭据}
-
-~~~
-`
-	enrichGetRoutingsApiNotes = `
-获取路由规则
-
-~~~
-GET /naming/v2/routings
-
-# 开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header
-Header X-Polaris-Token: {访问凭据}
-
-~~~
-`
-	enrichEnableRoutingsApiNotes = `
-更新路由规则
-
-~~~
-PUT /naming/v2/routings
-
-# 开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header
-Header X-Polaris-Token: {访问凭据}
-
-~~~
-`
-)
+func EnrichEnableRouterRuleApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("启用路由规则(V2)").
+		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
+		Operation("v2EnableRoutings").
+		Notes(enrichEnableRouterRuleApiNotes)
+}

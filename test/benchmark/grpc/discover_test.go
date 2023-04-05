@@ -33,37 +33,9 @@ import (
 	"github.com/polarismesh/polaris/test/integrate/resource"
 )
 
-// begin do benchmark
-// goos: linux
-// goarch: amd64
-// pkg: github.com/polarismesh/polaris/test/benchmark/grpc
-// cpu: AMD EPYC 7K62 48-Core Processor
-// Benchmark_DiscoverServicesWithoutRevision-16            begin do benchmark
-// begin do benchmark
-//      763           1599653 ns/op
-// --- BENCH: Benchmark_DiscoverServicesWithoutRevision-16
-//     discover_test.go:100: connection server success
-//     discover_test.go:106: create discover client success
-//     discover_test.go:100: connection server success
-//     discover_test.go:106: create discover client success
-//     discover_test.go:100: connection server success
-//     discover_test.go:106: create discover client success
-// begin do benchmark
-// Benchmark_DiscoverServicesWithRevision-16               begin do benchmark
-// begin do benchmark
-//     4984            235381 ns/op
-// --- BENCH: Benchmark_DiscoverServicesWithRevision-16
-//     discover_test.go:100: connection server success
-//     discover_test.go:106: create discover client success
-//     discover_test.go:100: connection server success
-//     discover_test.go:106: create discover client success
-//     discover_test.go:100: connection server success
-//     discover_test.go:106: create discover client success
-// PASS
-// ok      github.com/polarismesh/polaris/test/benchmark/grpc      2.905s
-
 func init() {
-
+	prepareCreateService()
+	prepareCreateRouterRule()
 }
 
 func prepareCreateService() {
@@ -81,6 +53,15 @@ func prepareCreateService() {
 	if _, err := httpClient.CreateServices(svcs); err != nil {
 		panic(err)
 	}
+}
+
+func prepareCreateRouterRule() {
+	target := "127.0.0.1:8090"
+	if val := os.Getenv("BENCHMARK_SERVER_HTTP_ADDRESS"); len(val) > 0 {
+		target = val
+	}
+
+	_ = http.NewClient(target, "v1")
 }
 
 func prepareDiscoverClient(b *testing.B) (apiservice.PolarisGRPC_DiscoverClient, *grpc.ClientConn) {
@@ -157,5 +138,61 @@ func Benchmark_DiscoverServicesWithRevision(b *testing.B) {
 			b.Fatal(resp)
 		}
 		revision = resp.GetService().GetRevision().GetValue()
+	}
+}
+
+// Benchmark_DiscoverInstancesWithoutRevision 压测获取实例列表的服务发现接口性能
+func Benchmark_DiscoverInstancesWithoutRevision(b *testing.B) {
+	b.SkipNow()
+	discoverClient, conn := prepareDiscoverClient(b)
+	defer conn.Close()
+
+	fmt.Println("begin do benchmark")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StartTimer()
+		err := discoverClient.Send(&apiservice.DiscoverRequest{
+			Type:    apiservice.DiscoverRequest_INSTANCE,
+			Service: &apiservice.Service{},
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+		resp, err := discoverClient.Recv()
+		if err != nil {
+			b.Fatal(err)
+		}
+		b.StopTimer()
+		if resp.GetCode().GetValue() > 300000 {
+			b.Fatal(resp)
+		}
+	}
+}
+
+// Benchmark_DiscoverRouterRuleWithoutRevision 压测获取路由规则的服务发现接口性能
+func Benchmark_DiscoverRouterRuleWithoutRevision(b *testing.B) {
+	b.SkipNow()
+	discoverClient, conn := prepareDiscoverClient(b)
+	defer conn.Close()
+
+	fmt.Println("begin do benchmark")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StartTimer()
+		err := discoverClient.Send(&apiservice.DiscoverRequest{
+			Type:    apiservice.DiscoverRequest_ROUTING,
+			Service: &apiservice.Service{},
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+		resp, err := discoverClient.Recv()
+		if err != nil {
+			b.Fatal(err)
+		}
+		b.StopTimer()
+		if resp.GetCode().GetValue() > 300000 {
+			b.Fatal(resp)
+		}
 	}
 }

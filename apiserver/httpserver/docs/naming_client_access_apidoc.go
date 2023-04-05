@@ -21,7 +21,6 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 )
 
 var (
@@ -59,41 +58,3 @@ func EnrichDiscoverApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Metadata(restfulspec.KeyOpenAPITags, registerInstanceApiTags).
 		Notes(enrichDiscoverApiNotes)
 }
-
-func enrichCreateRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("创建路由规则(V2)").
-		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
-		Operation("v2CreateRoutings").
-		Reads([]apitraffic.RouteRule{}).
-		Notes(enrichCreateRoutingsApiNotes)
-}
-
-func enrichDeleteRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("删除路由规则(V2)").
-		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
-		Operation("v2DeleteRoutings").
-		Notes(enrichDeleteRoutingsApiNotes)
-}
-
-func enrichUpdateRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("更新路由规则(V2)").
-		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
-		Operation("v2UpdateRoutings").
-		Reads([]apitraffic.RouteRule{}).
-		Notes(enrichUpdateRoutingsApiNotes)
-}
-
-func enrichGetRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("获取路由规则(V2)").
-		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
-		Operation("v2GetRoutings").
-		Notes(enrichGetRoutingsApiNotes)
-}
-
-func enrichEnableRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("启用路由规则(V2)").
-		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
-		Operation("v2EnableRoutings").
-		Notes(enrichEnableRoutingsApiNotes)
-}
-

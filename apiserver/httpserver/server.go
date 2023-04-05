@@ -32,7 +32,7 @@ import (
 
 	"github.com/polarismesh/polaris/admin"
 	"github.com/polarismesh/polaris/apiserver"
-	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
+	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/utils"
 	v1 "github.com/polarismesh/polaris/apiserver/httpserver/v1"
 	v2 "github.com/polarismesh/polaris/apiserver/httpserver/v2"
 	"github.com/polarismesh/polaris/auth"

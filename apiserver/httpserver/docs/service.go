@@ -18,7 +18,7 @@
 package docs
 
 const (
-	EnrichGetServicesApiNotes = `
+	enrichGetServicesApiNotes = `
 请求示例：
 
 ~~~
@@ -76,7 +76,7 @@ Header X-Polaris-Token: {访问凭据}
 | amount | uint32 | 符合此查询条件的服务总数，例如查询命名空间为default的服务，总数为1000，本次返回100条，则amount为1000 |
 | size   | uint32 | 本次查询返回的服务个数，例如查询命名空间为default的服务，总数为1000，本次返回100条，则size为100      |
 `
-	EnrichCreateServicesApiNotes = `
+	enrichCreateServicesApiNotes = `
 请求示例：
 
 ~~~
@@ -136,7 +136,7 @@ Header X-Polaris-Token: {访问凭据}
 | remove_user_ids  | []string           | 被移除的可操作该资源的用户，**仅当开启北极星鉴权时生效**   | 否       |
 | remove_group_ids | []string           | 被移除的可操作该资源的用户组，**仅当开启北极星鉴权时生效** | 否       |
 `
-	EnrichDeleteServicesApiNotes = `
+	enrichDeleteServicesApiNotes = `
 删除一个不存在的服务，认为删除成功
 
 请求示例：
@@ -182,7 +182,7 @@ Header X-Polaris-Token: {访问凭据}
 | name      | string | 服务名   | 是       |
 | namespace | string | 命名空间 | 是       |
 `
-	EnrichUpdateServicesApiNotes = `
+	enrichUpdateServicesApiNotes = `
 请求示例：
 
 ~~~
@@ -243,7 +243,7 @@ Header X-Polaris-Token: {访问凭据}
 | remove_user_ids  | []string           | 被移除的可操作该资源的用户，**仅当开启北极星鉴权时生效**   | 否       |
 | remove_group_ids | []string           | 被移除的可操作该资源的用户组，**仅当开启北极星鉴权时生效** | 否       |
 `
-	EnrichGetServicesCountApiNotes = `
+	enrichGetServicesCountApiNotes = `
 请求示例：
 ~~~
 GET /naming/v1/services/count
@@ -272,7 +272,7 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-	EnrichCreateServiceAliasApiNotes = `
+	enrichCreateServiceAliasApiNotes = `
 用户可以为服务创建别名，可以通过别名来访问服务的资源数据。
 
 请求示例：
@@ -318,7 +318,7 @@ Header X-Polaris-Token: {访问凭据}
 | namespace       | string | 指向的服务所属命名空间 | 是   |
 | comment         | string | 服务别名描述           | 否   |
 `
-	EnrichUpdateServiceAliasApiNotes = `
+	enrichUpdateServiceAliasApiNotes = `
 请求示例：
 
 ~~~
@@ -362,7 +362,7 @@ Header X-Polaris-Token: {访问凭据}
 | namespace       | string | 指向的服务所属命名空间 | 是   |
 | comment         | string | 服务别名描述           | 否   |
 `
-	EnrichGetServiceAliasesApiNotes = `
+	enrichGetServiceAliasesApiNotes = `
 请求示例：
 
 ~~~
@@ -413,7 +413,7 @@ Header X-Polaris-Token: {访问凭据}
 | offset          | int    | 分页偏移，默认0              | 否   |
 | limit           | int    | 分页大小，默认为100，最大100 | 否   |
 `
-	EnrichDeleteServiceAliasesApiNotes = `
+	enrichDeleteServiceAliasesApiNotes = `
 请求示例：
 
 ~~~
@@ -457,4 +457,6 @@ Header X-Polaris-Token: {访问凭据}
 | alias           | string | 服务别名              | 是   |
 | alias_namespace | string | 服务别名所属命名空间  | 是   |
 `
+
+	enrichGetServiceOwnerApiNotes = ``
 )

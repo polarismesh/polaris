@@ -18,7 +18,7 @@
 package docs
 
 const (
-	EnrichRegisterInstanceApiNotes = `
+	enrichRegisterInstanceApiNotes = `
 请求示例
 
 ~~~
@@ -45,7 +45,7 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-	EnrichDeregisterInstanceApiNotes = `
+	enrichDeregisterInstanceApiNotes = `
 请求示例
 
 ~~~
@@ -55,7 +55,7 @@ POST /v1/DeRegisterInstance
 Header X-Polaris-Token: {访问凭据}
 ~~~
 `
-	EnrichHeartbeatApiNotes = `
+	enrichHeartbeatApiNotes = `
 
 请求示例
 
@@ -107,7 +107,7 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-	EnrichReportClientApiNotes = `
+	enrichReportClientApiNotes = `
 请求示例
 
 ~~~
@@ -128,5 +128,5 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-	EnrichDiscoverApiNotes = ``
+	enrichDiscoverApiNotes = ``
 )

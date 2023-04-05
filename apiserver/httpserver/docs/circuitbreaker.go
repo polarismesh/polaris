@@ -18,7 +18,7 @@
 package docs
 
 const (
-	EnrichGetCircuitBreakerByServiceApiNotes = `
+	enrichGetCircuitBreakerByServiceApiNotes = `
 请求示例：
 
 ~~~
@@ -111,7 +111,7 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-	EnrichCreateCircuitBreakersApiNotes = `
+enrichCreateCircuitBreakersApiNotes = `
 
 - 为服务创建一个熔断规则，以对服务下的故障节点进行剔除。
 - 熔断规则可以分为被调规则和主调规则：
@@ -187,7 +187,7 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-	EnrichCreateCircuitBreakerVersionsApiNotes = `
+enrichCreateCircuitBreakerVersionsApiNotes = `
 ~~~
 POST /naming/v1/circuitbreakers/version
 
@@ -243,7 +243,7 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-	EnrichDeleteCircuitBreakersApiNotes = `
+enrichDeleteCircuitBreakersApiNotes = `
 ~~~
 PUT /naming/v1/circuitbreakers/delete
 
@@ -257,7 +257,7 @@ Header X-Polaris-Token: {访问凭据}
 ]
 ~~~
 `
-	EnrichUpdateCircuitBreakersApiNotes = `
+enrichUpdateCircuitBreakersApiNotes = `
 请求示例：
 
 ~~~
@@ -309,7 +309,7 @@ Header X-Polaris-Token: {访问凭据}
 ]
 ~~~
 `
-	EnrichReleaseCircuitBreakersApiNotes = `
+enrichReleaseCircuitBreakersApiNotes = `
 ~~~
 POST /naming/v1/circuitbreakers/release
 
@@ -318,7 +318,7 @@ Header X-Polaris-Token: {访问凭据}
 
 ~~~
 `
-	EnrichUnBindCircuitBreakersApiNotes = `
+enrichUnBindCircuitBreakersApiNotes = `
 ~~~
 POST /naming/v1/circuitbreakers/unbind
 
@@ -327,7 +327,7 @@ Header X-Polaris-Token: {访问凭据}
 
 ~~~
 `
-	EnrichGetCircuitBreakersApiNotes = `
+enrichGetCircuitBreakersApiNotes = `
 请求示例：
 ~~~
 GET /naming/v1/circuitbreakers?id={参数值}&version={参数值}
@@ -337,7 +337,7 @@ Header X-Polaris-Token: {访问凭据}
 
 ~~~
 `
-	EnrichGetCircuitBreakerVersionsApiNotes = `
+enrichGetCircuitBreakerVersionsApiNotes = `
 请求示例：
 ~~~
 GET /naming/v1/circuitbreaker/versions?id={参数值}
@@ -347,7 +347,7 @@ Header X-Polaris-Token: {访问凭据}
 
 ~~~
 `
-	EnrichGetMasterCircuitBreakersApiNotes = `
+enrichGetMasterCircuitBreakersApiNotes = `
 请求示例：
 ~~~
 GET /naming/v1/circuitbreakers/master?id={参数值}
@@ -357,7 +357,7 @@ Header X-Polaris-Token: {访问凭据}
 
 ~~~
 `
-	EnrichGetReleaseCircuitBreakersApiNotes = `
+enrichGetReleaseCircuitBreakersApiNotes = `
 请求示例：
 ~~~
 GET /naming/v1/circuitbreakers/release?id={参数值}
@@ -367,7 +367,7 @@ Header X-Polaris-Token: {访问凭据}
 
 ~~~
 `
-	EnrichCreateCircuitBreakerRulesApiNotes = `
+enrichCreateCircuitBreakerRulesApiNotes = `
 创建一条或多条熔断规则。
 
 请求示例：
@@ -561,7 +561,7 @@ Header X-Polaris-Token: {访问凭据}
 | value   | string      | 降级应答的消息头的Value                                     | 是       |
 
 `
-	EnrichDeleteCircuitBreakerRulesApiNotes = `
+enrichDeleteCircuitBreakerRulesApiNotes = `
 删除一条或多条熔断规则。	
 	
 请求示例：
@@ -602,7 +602,7 @@ Header X-Polaris-Token: {访问凭据}
 ~~~
 
 `
-	EnrichUpdateCircuitBreakerRulesApiNotes = `
+enrichUpdateCircuitBreakerRulesApiNotes = `
 更新一条或多条熔断规则。
 
 请求示例：
@@ -700,7 +700,7 @@ Header X-Polaris-Token: {访问凭据}
 ~~~
 
 `
-	EnrichGetCircuitBreakerRulesApiNotes = `
+enrichGetCircuitBreakerRulesApiNotes = `
 根据输入条件查询一条或多条熔断规则。	
 	
 请求示例：
@@ -803,7 +803,7 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-	EnrichEnableCircuitBreakerRulesApiNotes = `
+enrichEnableCircuitBreakerRulesApiNotes = `
 请求示例：
 
 ~~~
@@ -836,6 +836,62 @@ PUT /naming/v1/circuitbreaker/rules/enable
   }
  ]
 }
+~~~
+`
+
+	enrichCreateRouterRuleApiNotes = `
+创建路由规则
+
+~~~
+POST /naming/v2/routings
+
+# 开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header
+Header X-Polaris-Token: {访问凭据}
+
+~~~
+`
+	enrichDeleteRouterRuleApiNotes = `
+删除路由规则
+
+~~~
+DELETE /naming/v2/routings
+
+# 开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header
+Header X-Polaris-Token: {访问凭据}
+
+~~~
+`
+	enrichUpdateRouterRuleApiNotes = `
+更新路由规则
+
+~~~
+PUT /naming/v2/routings
+
+# 开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header
+Header X-Polaris-Token: {访问凭据}
+
+~~~
+`
+	enrichGetRouterRuleApiNotes = `
+获取路由规则
+
+~~~
+GET /naming/v2/routings
+
+# 开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header
+Header X-Polaris-Token: {访问凭据}
+
+~~~
+`
+	enrichEnableRouterRuleApiNotes = `
+更新路由规则
+
+~~~
+PUT /naming/v2/routings
+
+# 开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header
+Header X-Polaris-Token: {访问凭据}
+
 ~~~
 `
 )

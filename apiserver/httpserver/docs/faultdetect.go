@@ -18,7 +18,7 @@
 package docs
 
 const (
-	EnrichGetFaultDetectRulesApiNotes = `
+	enrichGetFaultDetectRulesApiNotes = `
 根据输入条件查询一条或多条故障探测规则。	
 	
 请求示例：
@@ -99,7 +99,7 @@ Header X-Polaris-Token: {访问凭据}
 ~~~
 `
 
-	EnrichCreateFaultDetectRulesApiNotes = `
+enrichCreateFaultDetectRulesApiNotes = `
 创建一条或多条故障探测规则。
 
 请求示例：
@@ -230,7 +230,7 @@ Header X-Polaris-Token: {访问凭据}
 | receive  | []string  | UDP探测的发送的二进制应答数，用于对比应答是否正确                     | 否       |
 `
 
-	EnrichDeleteFaultDetectRulesApiNotes = `
+enrichDeleteFaultDetectRulesApiNotes = `
 删除一条或多条故障探测规则。
 
 请求示例：
@@ -271,7 +271,7 @@ Header X-Polaris-Token: {访问凭据}
 ~~~
 `
 
-	EnrichUpdateFaultDetectRulesApiNotes = `
+enrichUpdateFaultDetectRulesApiNotes = `
 更新一条或多条故障探测规则。
 
 请求示例：

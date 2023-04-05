@@ -18,7 +18,7 @@
 package docs
 
 const (
-	EnrichCreateInstancesApiNotes = `
+	enrichCreateInstancesApiNotes = `
 请求示例：
 
 ~~~
@@ -113,7 +113,7 @@ Header X-Polaris-Token: {访问凭据}
 | metadata            | map<string,string> | 实例标签信息，最多只能存储64对 *key-value*                     | 否       |
 | service_token       | string             | service的token信息                                         | 是       |
 `
-	EnrichDeleteInstancesApiNotes = `
+enrichDeleteInstancesApiNotes = `
 请求示例：
 
 ~~~
@@ -148,7 +148,7 @@ Header X-Polaris-Token: {访问凭据}
 | service   | string | 服务名称 | 是       |
 | namespace | string | 命名空间 | 是       |
 `
-	EnrichDeleteInstancesByHostApiNotes = `
+enrichDeleteInstancesByHostApiNotes = `
 请求示例：
 
 ~~~
@@ -183,7 +183,7 @@ Header X-Polaris-Token: {访问凭据}
 | service   | string | 服务名称 | 是       |
 | namespace | string | 命名空间 | 是       |
 `
-	EnrichUpdateInstancesApiNotes = `
+enrichUpdateInstancesApiNotes = `
 请求示例：
 
 ~~~
@@ -266,7 +266,7 @@ Header X-Polaris-Token: {访问凭据}
 | metadata            | map<string,string> | 实例标签信息，最多只能存储64对 *key-value*                      | 否     |
 | service_token       | string             | service的token信息                                          | 是     |
 `
-	EnrichUpdateInstancesIsolateApiNotes = `
+enrichUpdateInstancesIsolateApiNotes = `
 请求示例：
 
 ~~~
@@ -349,7 +349,7 @@ Header X-Polaris-Token: {访问凭据}
 | metadata            | map<string,string> | 实例标签信息，最多只能存储64对 *key-value*                         | 否   |
 | service_token       | string             | service的token信息                                           | 是   |
 `
-	EnrichGetInstancesApiNotes = `
+enrichGetInstancesApiNotes = `
 请求示例
 
 ~~~
@@ -416,7 +416,7 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-	EnrichGetInstancesCountApiNotes = `
+enrichGetInstancesCountApiNotes = `
 请求示例：
 ~~~
 GET /naming/v1/instances/count
@@ -447,7 +447,7 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-	EnrichGetInstanceLabelsApiNotes = `
+enrichGetInstanceLabelsApiNotes = `
 请求示例：
 ~~~
 GET /naming/v1/instances/labels?service=&namespace=&{参数key}={参数值}
