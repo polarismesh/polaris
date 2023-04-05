@@ -408,7 +408,7 @@ func Test_rateLimitStore_GetRateLimitsForCache(t *testing.T) {
 
 		testT_1 := time.Now().Add(time.Duration(-5) * time.Minute)
 
-		limits, _, err := r.GetRateLimitsForCache(testT_1, false)
+		limits, err := r.GetRateLimitsForCache(testT_1, false)
 		if err != nil {
 			t.Fatal(err)
 		}

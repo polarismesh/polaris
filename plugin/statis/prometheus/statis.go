@@ -127,6 +127,11 @@ func (s *StatisWorker) ReportConfigMetrics(metric ...metrics.ConfigMetrics) {
 	s.configHandler.handle(metric)
 }
 
+// ReportDiscoverCall report discover service times
+func (s *StatisWorker) ReportDiscoverCall(service, namespace string, ttMill int64) {
+	// ignore not support this
+}
+
 func (a *StatisWorker) metricsHandle(mt metrics.CallMetricType, start time.Time,
 	staticsSlice []*base.APICallStatisItem) {
 	if mt != metrics.ServerCallMetric {

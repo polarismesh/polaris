@@ -170,11 +170,11 @@ func Test_makeLocalRateLimit(t *testing.T) {
 		svc *ServiceInfo
 	}
 	mockXds := &XDSServer{
-		RatelimitConfigGetter: func(serviceID string) []*model.RateLimit {
-			if serviceID == "mock_local" {
-				return localRateLimitStr
+		RatelimitConfigGetter: func(key model.ServiceKey) ([]*model.RateLimit, string) {
+			if key.Name == "mock_local" {
+				return localRateLimitStr, ""
 			}
-			return globalRateLimitStr
+			return globalRateLimitStr, ""
 		},
 	}
 	tests := []struct {
@@ -416,7 +416,7 @@ func TestSnapshot(t *testing.T) {
 		},
 		xdsNodesMgr:           newXDSNodeManager(),
 		namingServer:          discoverSuit.DiscoverServer(),
-		RatelimitConfigGetter: func(serviceID string) []*model.RateLimit { return nil },
+		RatelimitConfigGetter: func(_ model.ServiceKey) ([]*model.RateLimit, string) { return nil, "" },
 		versionNum:            atomic.NewUint64(1),
 		cache:                 cache.NewSnapshotCache(true, cache.IDHash{}, nil),
 	}

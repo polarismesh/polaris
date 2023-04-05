@@ -235,7 +235,7 @@ func (x *XDSServer) Restart(option map[string]interface{}, apiConf map[string]ap
 	return nil
 }
 
-type RatelimitConfigGetter func(serviceID string) []*model.RateLimit
+type RatelimitConfigGetter func(serviceKey model.ServiceKey) ([]*model.RateLimit, string)
 
 // GetProtocol 服务注册到北极星中的协议
 func (x *XDSServer) GetProtocol() string {
@@ -531,9 +531,12 @@ func generateServiceDomains(serviceInfo *ServiceInfo) []string {
 func (x *XDSServer) makeLocalRateLimit(si *ServiceInfo) map[string]*anypb.Any {
 	ratelimitGetter := x.RatelimitConfigGetter
 	if ratelimitGetter == nil {
-		ratelimitGetter = x.namingServer.Cache().RateLimit().GetRateLimitByServiceID
+		ratelimitGetter = x.namingServer.Cache().RateLimit().GetRateLimitRules
 	}
-	conf := ratelimitGetter(si.ID)
+	conf, _ := ratelimitGetter(model.ServiceKey{
+		Namespace: si.Namespace,
+		Name:      si.Name,
+	})
 	filters := make(map[string]*anypb.Any)
 	if conf != nil {
 		rateLimitConf := &lrl.LocalRateLimit{

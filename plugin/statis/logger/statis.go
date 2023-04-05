@@ -93,6 +93,11 @@ func (s *StatisWorker) ReportDiscoveryMetrics(metric ...metrics.DiscoveryMetric)
 func (s *StatisWorker) ReportConfigMetrics(metric ...metrics.ConfigMetrics) {
 }
 
+// ReportDiscoverCall report discover service times
+func (s *StatisWorker) ReportDiscoverCall(service, namespace string, ttMill int64) {
+
+}
+
 func (a *StatisWorker) metricsHandle(mt metrics.CallMetricType, start time.Time,
 	statics []*base.APICallStatisItem) {
 	startStr := commontime.Time2String(start)
