@@ -28,7 +28,7 @@ const (
 	ElectionKeyMaintainJobPrefix  = "MaintainJob."
 )
 
-type MaintainStore interface {
+type AdminStore interface {
 	// StartLeaderElection start leader election
 	StartLeaderElection(key string) error
 

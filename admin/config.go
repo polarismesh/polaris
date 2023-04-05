@@ -15,23 +15,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package maintain
+package admin
 
-import (
-	"sync"
+import "github.com/polarismesh/polaris/admin/job"
 
-	"github.com/polarismesh/polaris/cache"
-	"github.com/polarismesh/polaris/service"
-	"github.com/polarismesh/polaris/service/healthcheck"
-	"github.com/polarismesh/polaris/store"
-)
-
-var _ MaintainOperateServer = (*Server)(nil)
-
-type Server struct {
-	mu                sync.Mutex
-	namingServer      service.DiscoverServer
-	healthCheckServer *healthcheck.Server
-	cacheMgn          *cache.CacheManager
-	storage           store.Store
+// Config maintain configuration
+type Config struct {
+	Jobs []job.JobConfig `yaml:"jobs"`
 }

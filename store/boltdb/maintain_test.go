@@ -38,7 +38,7 @@ func setup() {
 func teardown() {
 }
 
-func TestMaintainStore_BatchCleanDeletedInstances(t *testing.T) {
+func TestadminStore_BatchCleanDeletedInstances(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if err != nil {
 		t.Fatal(err)
@@ -48,7 +48,7 @@ func TestMaintainStore_BatchCleanDeletedInstances(t *testing.T) {
 		_ = os.RemoveAll("./table.bolt")
 	}()
 
-	store := &maintainStore{handler: handler}
+	store := &adminStore{handler: handler}
 	sStore := &serviceStore{handler: handler}
 	insStore := &instanceStore{handler: handler}
 
@@ -116,9 +116,9 @@ func TestMaintainStore_BatchCleanDeletedInstances(t *testing.T) {
 
 }
 
-func TestMaintainStore_StartLeaderElection(t *testing.T) {
+func TestadminStore_StartLeaderElection(t *testing.T) {
 	key := "TestElectKey"
-	mstore := &maintainStore{handler: nil, leMap: make(map[string]bool)}
+	mstore := &adminStore{handler: nil, leMap: make(map[string]bool)}
 	isLeader := mstore.IsLeader(key)
 	if isLeader {
 		t.Error("expect follower state")
@@ -131,9 +131,9 @@ func TestMaintainStore_StartLeaderElection(t *testing.T) {
 	}
 }
 
-func TestMaintainStore_ReleaseLeaderElection(t *testing.T) {
+func TestadminStore_ReleaseLeaderElection(t *testing.T) {
 	key := "TestElectKey"
-	mstore := &maintainStore{handler: nil, leMap: make(map[string]bool)}
+	mstore := &adminStore{handler: nil, leMap: make(map[string]bool)}
 	mstore.StartLeaderElection(key)
 	mstore.ReleaseLeaderElection(key)
 	isLeader := mstore.IsLeader(key)
@@ -142,9 +142,9 @@ func TestMaintainStore_ReleaseLeaderElection(t *testing.T) {
 	}
 }
 
-func TestMaintainStore_ListLeaderElections(t *testing.T) {
+func TestadminStore_ListLeaderElections(t *testing.T) {
 	key := "TestElectKey"
-	mstore := &maintainStore{handler: nil, leMap: make(map[string]bool)}
+	mstore := &adminStore{handler: nil, leMap: make(map[string]bool)}
 	mstore.StartLeaderElection(key)
 
 	out, err := mstore.ListLeaderElections()
@@ -162,7 +162,7 @@ func TestMaintainStore_ListLeaderElections(t *testing.T) {
 
 }
 
-func TestMaintainStore_getUnHealthyInstancesBefore(t *testing.T) {
+func TestadminStore_getUnHealthyInstancesBefore(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if err != nil {
 		t.Fatal(err)
@@ -172,7 +172,7 @@ func TestMaintainStore_getUnHealthyInstancesBefore(t *testing.T) {
 		_ = os.RemoveAll("./table.bolt")
 	}()
 
-	store := &maintainStore{handler: handler}
+	store := &adminStore{handler: handler}
 	sStore := &serviceStore{handler: handler}
 	insStore := &instanceStore{handler: handler}
 

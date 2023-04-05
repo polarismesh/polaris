@@ -72,7 +72,7 @@ type stableStore struct {
 	*routingConfigStoreV2
 
 	// maintain store
-	*maintainStore
+	*adminStore
 
 	// 主数据库，可以进行读写
 	master *BaseDB
@@ -207,8 +207,8 @@ func (s *stableStore) Destroy() error {
 		_ = s.slave.Close()
 	}
 
-	if s.maintainStore != nil {
-		s.maintainStore.StopLeaderElections()
+	if s.adminStore != nil {
+		s.adminStore.StopLeaderElections()
 	}
 
 	s.master = nil
@@ -284,7 +284,7 @@ func (s *stableStore) newStore() {
 
 	s.routingConfigStoreV2 = &routingConfigStoreV2{master: s.master, slave: s.slave}
 
-	s.maintainStore = newMaintainStore(s.master)
+	s.adminStore = newAdminStore(s.master)
 }
 
 func buildEtimeStr(enable bool) string {

@@ -22,7 +22,7 @@ import (
 	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
-	"github.com/polarismesh/polaris/maintain"
+	"github.com/polarismesh/polaris/admin"
 )
 
 var (
@@ -52,7 +52,7 @@ func enrichCloseConnectionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 	return r.
 		Doc("关闭指定client ip的连接").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
-		Reads([]maintain.ConnReq{}).
+		Reads([]admin.ConnReq{}).
 		Notes(enrichCloseConnectionsApiNotes)
 }
 

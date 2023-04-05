@@ -27,15 +27,15 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
+	"github.com/polarismesh/polaris/admin"
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
-	"github.com/polarismesh/polaris/maintain"
 )
 
 // GetMaintainAccessServer 运维接口
-func (h *HTTPServer) GetMaintainAccessServer() *restful.WebService {
+func (h *HTTPServer) GetAdminAccessServer() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.Path("/maintain/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
 
@@ -62,7 +62,7 @@ func (h *HTTPServer) GetMaintainAccessServer() *restful.WebService {
 func (h *HTTPServer) GetServerConnections(req *restful.Request, rsp *restful.Response) {
 	ctx := initContext(req)
 	params := httpcommon.ParseQueryParams(req)
-	connReq := maintain.ConnReq{
+	connReq := admin.ConnReq{
 		Protocol: params["protocol"],
 		Host:     params["host"],
 	}
@@ -87,7 +87,7 @@ func (h *HTTPServer) GetServerConnStats(req *restful.Request, rsp *restful.Respo
 		}
 	}
 
-	connReq := maintain.ConnReq{
+	connReq := admin.ConnReq{
 		Protocol: params["protocol"],
 		Host:     params["host"],
 		Amount:   amount,
@@ -105,7 +105,7 @@ func (h *HTTPServer) GetServerConnStats(req *restful.Request, rsp *restful.Respo
 func (h *HTTPServer) CloseConnections(req *restful.Request, rsp *restful.Response) {
 	log.Info("[MAINTAIN] Start doing close connections")
 	ctx := initContext(req)
-	var connReqs []maintain.ConnReq
+	var connReqs []admin.ConnReq
 	decoder := json.NewDecoder(req.Request.Body)
 	if err := decoder.Decode(&connReqs); err != nil {
 		log.Errorf("[MAINTAIN] close connection decode body err: %s", err.Error())
