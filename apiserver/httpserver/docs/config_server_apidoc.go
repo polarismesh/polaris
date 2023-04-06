@@ -42,12 +42,17 @@ func EnrichQueryConfigFileGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteB
 	return r.
 		Doc("搜索配置文件组").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Param(restful.QueryParameter("namespace", "命名空间，不填表示全部命名空间").DataType("string").Required(false)).
-		Param(restful.QueryParameter("group", "配置文件分组名，模糊搜索").DataType("string").Required(false)).
-		Param(restful.QueryParameter("fileName", "配置文件名称，模糊搜索").DataType("string").Required(false)).
-		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("integer").
+		Param(restful.QueryParameter("namespace", "命名空间，不填表示全部命名空间").
+			DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("group", "配置文件分组名，模糊搜索").
+			DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("fileName", "配置文件名称，模糊搜索").
+			DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").
+			DataType(DataType_Integer).
 			Required(false).DefaultValue("0")).
-		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType("integer").
+		Param(restful.QueryParameter("limit", "一页大小，最大为 100").
+			DataType(DataType_Integer).
 			Required(true).DefaultValue("100"))
 }
 
@@ -55,8 +60,8 @@ func EnrichDeleteConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteB
 	return r.
 		Doc("删除配置文件组").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(true)).
-		Param(restful.QueryParameter("group", "配置文件分组").DataType("string").Required(true))
+		Param(restful.QueryParameter("namespace", "命名空间").DataType(DataType_String).Required(true)).
+		Param(restful.QueryParameter("group", "配置文件分组").DataType(DataType_String).Required(true))
 }
 
 func EnrichUpdateConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -85,20 +90,20 @@ func EnrichGetConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("拉取配置").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(true)).
-		Param(restful.QueryParameter("group", "配置文件分组").DataType("string").Required(true)).
-		Param(restful.QueryParameter("name", "配置文件名").DataType("string").Required(true))
+		Param(restful.QueryParameter("namespace", "命名空间").DataType(DataType_String).Required(true)).
+		Param(restful.QueryParameter("group", "配置文件分组").DataType(DataType_String).Required(true)).
+		Param(restful.QueryParameter("name", "配置文件名").DataType(DataType_String).Required(true))
 }
 
 func EnrichQueryConfigFilesByGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("搜索配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(false)).
-		Param(restful.QueryParameter("group", "配置文件分组").DataType("string").Required(false)).
-		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("integer").
+		Param(restful.QueryParameter("namespace", "命名空间").DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("group", "配置文件分组").DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType(DataType_Integer).
 			Required(false).DefaultValue("0")).
-		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType("integer").
+		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType(DataType_Integer).
 			Required(true).DefaultValue("100"))
 }
 
@@ -106,13 +111,13 @@ func EnrichSearchConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 	return r.
 		Doc("搜索配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(false)).
-		Param(restful.QueryParameter("group", "配置文件分组").DataType("string").Required(false)).
-		Param(restful.QueryParameter("name", "配置文件").DataType("string").Required(false)).
-		Param(restful.QueryParameter("tags", "格式：key1,value1,key2,value2").DataType("string").Required(false)).
-		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("integer").
+		Param(restful.QueryParameter("namespace", "命名空间").DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("group", "配置文件分组").DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("name", "配置文件").DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("tags", "格式：key1,value1,key2,value2").DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType(DataType_Integer).
 			Required(false).DefaultValue("0")).
-		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType("integer").
+		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType(DataType_Integer).
 			Required(true).DefaultValue("100"))
 }
 
@@ -132,17 +137,17 @@ func EnrichDeleteConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 	return r.
 		Doc("删除配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(true)).
-		Param(restful.QueryParameter("group", "配置文件分组").DataType("string").Required(true)).
-		Param(restful.QueryParameter("name", "配置文件").DataType("string").Required(true)).
-		Param(restful.QueryParameter("deleteBy", "操作人").DataType("string").Required(false))
+		Param(restful.QueryParameter("namespace", "命名空间").DataType(DataType_String).Required(true)).
+		Param(restful.QueryParameter("group", "配置文件分组").DataType(DataType_String).Required(true)).
+		Param(restful.QueryParameter("name", "配置文件").DataType(DataType_String).Required(true)).
+		Param(restful.QueryParameter("deleteBy", "操作人").DataType(DataType_String).Required(false))
 }
 
 func EnrichBatchDeleteConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("批量删除配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Param(restful.QueryParameter("deleteBy", "操作人").DataType("string").Required(false)).
+		Param(restful.QueryParameter("deleteBy", "操作人").DataType(DataType_String).Required(false)).
 		Reads(apiconfig.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
 			" X-Polaris-Token: {访问凭据}\n```[\n     {\n         \"name\":\"application.properties\",\n "+
 			"        \"namespace\":\"someNamespace\",\n         \"group\":\"someGroup\"\n     }\n]\n```")
@@ -160,10 +165,10 @@ func EnrichImportConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 	return r.
 		Doc("导入配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(true)).
-		Param(restful.QueryParameter("group", "配置文件分组").DataType("string").Required(false)).
+		Param(restful.QueryParameter("namespace", "命名空间").DataType(DataType_String).Required(true)).
+		Param(restful.QueryParameter("group", "配置文件分组").DataType(DataType_String).Required(false)).
 		Param(restful.MultiPartFormParameter("conflict_handling",
-			"配置文件冲突处理，跳过skip，覆盖overwrite").DataType("string").Required(true)).
+			"配置文件冲突处理，跳过skip，覆盖overwrite").DataType(DataType_String).Required(true)).
 		Param(restful.MultiPartFormParameter("config", "配置文件").DataType("file").Required(true)).
 		Reads(apiconfig.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader"+
 			" X-Polaris-Token: {访问凭据}\n```[\n     {\n         \"name\":\"application.properties\",\n "+
@@ -184,21 +189,21 @@ func EnrichGetConfigFileReleaseApiDocs(r *restful.RouteBuilder) *restful.RouteBu
 	return r.
 		Doc("获取配置文件最后一次全量发布信息").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(true)).
-		Param(restful.QueryParameter("group", "配置文件分组").DataType("string").Required(true)).
-		Param(restful.QueryParameter("name", "配置文件").DataType("string").Required(true))
+		Param(restful.QueryParameter("namespace", "命名空间").DataType(DataType_String).Required(true)).
+		Param(restful.QueryParameter("group", "配置文件分组").DataType(DataType_String).Required(true)).
+		Param(restful.QueryParameter("name", "配置文件").DataType(DataType_String).Required(true))
 }
 
 func EnrichGetConfigFileReleaseHistoryApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取配置文件发布历史记录").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(true)).
-		Param(restful.QueryParameter("group", "配置文件分组").DataType("string").Required(false)).
-		Param(restful.QueryParameter("name", "配置文件").DataType("string").Required(false)).
-		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType("integer").
+		Param(restful.QueryParameter("namespace", "命名空间").DataType(DataType_String).Required(true)).
+		Param(restful.QueryParameter("group", "配置文件分组").DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("name", "配置文件").DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType(DataType_Integer).
 			Required(false).DefaultValue("0")).
-		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType("integer").
+		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType(DataType_Integer).
 			Required(true).DefaultValue("100"))
 }
 
@@ -218,11 +223,11 @@ func EnrichGetConfigFileForClientApiDocs(r *restful.RouteBuilder) *restful.Route
 	return r.
 		Doc("拉取配置").
 		Metadata(restfulspec.KeyOpenAPITags, configClientApiTags).
-		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(true)).
-		Param(restful.QueryParameter("group", "配置文件分组").DataType("string").Required(true)).
-		Param(restful.QueryParameter("fileName", "配置文件名").DataType("string").Required(true)).
+		Param(restful.QueryParameter("namespace", "命名空间").DataType(DataType_String).Required(true)).
+		Param(restful.QueryParameter("group", "配置文件分组").DataType(DataType_String).Required(true)).
+		Param(restful.QueryParameter("fileName", "配置文件名").DataType(DataType_String).Required(true)).
 		Param(restful.QueryParameter("version", "配置文件客户端版本号，刚启动时设置为 0").
-			DataType("integer").Required(true))
+			DataType(DataType_Integer).Required(true))
 }
 
 func EnrichWatchConfigFileForClientApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {

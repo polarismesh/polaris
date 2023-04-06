@@ -31,9 +31,12 @@ func EnrichGetNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("查询命名空间列表(New)").
 		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).
-		Param(restful.QueryParameter("name", "命名空间唯一名称").DataType("string").Required(true)).
-		Param(restful.QueryParameter("offset", "查询偏移量").DataType("integer").Required(false).DefaultValue("0")).
-		Param(restful.QueryParameter("limit", "查询条数，**最多查询100条**").DataType("integer").Required(false)).
+		Param(restful.QueryParameter("name", "命名空间唯一名称").
+			DataType(DataType_String).Required(true)).
+		Param(restful.QueryParameter("offset", "查询偏移量").
+			DataType(DataType_Integer).Required(false).DefaultValue("0")).
+		Param(restful.QueryParameter("limit", "查询条数，**最多查询100条**").
+			DataType(DataType_Integer).Required(false)).
 		Notes(enrichGetNamespacesApiNotes)
 }
 

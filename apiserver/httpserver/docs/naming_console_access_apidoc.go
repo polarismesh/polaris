@@ -121,7 +121,7 @@ func EnrichGetServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Param(restful.QueryParameter("values", "服务元数据名，keys和values需要同时填写，"+
 			"目前只支持查询一组元数据。").DataType(typeNameString).Required(false)).
 		Param(restful.QueryParameter("instance_keys", "实例标签key, key-1,key-2, instance_keys 和 "+
-			" instance_values 需要同时填写且必须元素个数一致").DataType("string").
+			" instance_values 需要同时填写且必须元素个数一致").DataType(DataType_String).
 			Required(false).DefaultValue("")).
 		Param(restful.QueryParameter("instance_values", "实例标签value, value-1,value-2, instance_keys "+
 			" 和 instance_values 需要同时填写且必须元素个数一致").
@@ -380,7 +380,7 @@ func EnrichGetRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Param(restful.PathParameter("method", "限流接口名，默认为模糊匹配 ").
 			DataType(typeNameString).Required(false)).
 		Param(restful.PathParameter("disable", "规则是否启用，true为不启用，false为启用").
-			DataType("boolean").Required(false)).
+			DataType(DataType_Bool).Required(false)).
 		Param(restful.PathParameter("brief",
 			"是否只显示概要信息，brief=true时，只返回规则列表概要信息，默认为false").
 			DataType("boolean").Required(false).DefaultValue("false")).
@@ -504,7 +504,7 @@ func EnrichGetCircuitBreakerRulesApiDocs(r *restful.RouteBuilder) *restful.Route
 	return r.Doc("查询熔断规则").
 		Metadata(restfulspec.KeyOpenAPITags, circuitBreakersApiTags).
 		Param(restful.PathParameter("brief", "是否只显示概要信息，brief=true时，则不返回规则详情，"+
-			"只返回规则列表概要信息，默认为false").DataType("boolean").
+			"只返回规则列表概要信息，默认为false").DataType(DataType_Bool).
 			Required(false).DefaultValue("false")).
 		Param(restful.PathParameter("offset", "分页的起始位置，默认为0").DataType(typeNameInteger).
 			Required(false).DefaultValue("0")).
@@ -571,7 +571,7 @@ func EnrichGetFaultDetectRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBui
 	return r.Doc("查询主动探测规则").
 		Metadata(restfulspec.KeyOpenAPITags, faultDetectsApiTags).
 		Param(restful.PathParameter("brief", "是否只显示概要信息，brief=true时，"+
-			"则不返回规则详情，只返回规则列表概要信息，默认为false").DataType("boolean").
+			"则不返回规则详情，只返回规则列表概要信息，默认为false").DataType(DataType_Bool).
 			Required(false).DefaultValue("false")).
 		Param(restful.PathParameter("offset", "分页的起始位置，默认为0").DataType(typeNameInteger).
 			Required(false).DefaultValue("0")).

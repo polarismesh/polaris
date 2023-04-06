@@ -33,8 +33,8 @@ func EnrichGetServerConnectionsApiDocs(r *restful.RouteBuilder) *restful.RouteBu
 	return r.
 		Doc("获取服务端连接数").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
-		Param(restful.QueryParameter("protocol", "查看指定协议").DataType("string").Required(true)).
-		Param(restful.QueryParameter("host", "查看指定host").DataType("string").Required(false)).
+		Param(restful.QueryParameter("protocol", "查看指定协议").DataType(DataType_String).Required(true)).
+		Param(restful.QueryParameter("host", "查看指定host").DataType(DataType_String).Required(false)).
 		Notes(enrichGetServerConnectionsApiNotes)
 }
 
@@ -42,9 +42,9 @@ func EnrichGetServerConnStatsApiDocs(r *restful.RouteBuilder) *restful.RouteBuil
 	return r.
 		Doc("获取服务端连接统计信息").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
-		Param(restful.QueryParameter("protocol", "查看指定协议").DataType("string").Required(true)).
-		Param(restful.QueryParameter("host", "查看指定host").DataType("string").Required(false)).
-		Param(restful.QueryParameter("amount", "总数").DataType("integer").Required(false)).
+		Param(restful.QueryParameter("protocol", "查看指定协议").DataType(DataType_String).Required(true)).
+		Param(restful.QueryParameter("host", "查看指定host").DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("amount", "总数").DataType(DataType_Integer).Required(false)).
 		Notes(enrichGetServerConnStatsApiNotes)
 }
 
@@ -82,12 +82,12 @@ func EnrichGetLastHeartbeatApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 	return r.
 		Doc("获取上一次心跳的时间").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
-		Param(restful.QueryParameter("id", "实例ID 如果存在则其它参数可不填").DataType("string").Required(false)).
-		Param(restful.QueryParameter("service", "服务名").DataType("string").Required(false)).
-		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(false)).
-		Param(restful.QueryParameter("host", "主机名").DataType("string").Required(false)).
-		Param(restful.QueryParameter("port", "端口").DataType("integer").Required(false)).
-		Param(restful.QueryParameter("vpv_id", "VPC ID").DataType("string").Required(false)).
+		Param(restful.QueryParameter("id", "实例ID 如果存在则其它参数可不填").DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("service", "服务名").DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("namespace", "命名空间").DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("host", "主机名").DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("port", "端口").DataType(DataType_Integer).Required(false)).
+		Param(restful.QueryParameter("vpv_id", "VPC ID").DataType(DataType_String).Required(false)).
 		Notes(enrichGetLastHeartbeatApiNotes)
 }
 
