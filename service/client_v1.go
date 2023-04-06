@@ -324,18 +324,6 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *apiservice.Serv
 		}
 	}
 
-	rateLimitIterProc := func(value *model.RateLimit) {
-		rateLimit, err := rateLimit2Client(req.GetName().GetValue(), req.GetNamespace().GetValue(), value)
-		if err != nil {
-			return
-		}
-		if rateLimit == nil {
-			return
-		}
-		resp.RateLimit.Rules = append(resp.RateLimit.Rules, rateLimit)
-		return
-	}
-
 	rules, revision := s.caches.RateLimit().GetRateLimitRules(model.ServiceKey{
 		Namespace: aliasFor.Namespace,
 		Name:      aliasFor.Name,
@@ -348,7 +336,11 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *apiservice.Serv
 		Rules:    []*apitraffic.Rule{},
 	}
 	for i := range rules {
-		rateLimitIterProc(rules[i])
+		rateLimit, err := rateLimit2Client(req.GetName().GetValue(), req.GetNamespace().GetValue(), rules[i])
+		if rateLimit == nil || err != nil {
+			continue
+		}
+		resp.RateLimit.Rules = append(resp.RateLimit.Rules, rateLimit)
 	}
 
 	// 塞入源服务信息数据

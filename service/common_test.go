@@ -1298,54 +1298,6 @@ func (d *DiscoverTestSuit) cleanRateLimit(id string) {
 
 // 彻底删除限流规则版本号
 func (d *DiscoverTestSuit) cleanRateLimitRevision(service, namespace string) {
-
-	if d.Storage.Name() == sqldb.STORENAME {
-		func() {
-			tx, err := d.Storage.StartTx()
-			if err != nil {
-				panic(err)
-			}
-
-			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
-
-			defer rollbackDbTx(dbTx)
-
-			str := "delete from ratelimit_revision using ratelimit_revision, service " +
-				"where service_id = service.id and name = ? and namespace = ?"
-			if _, err := dbTx.Exec(str, service, namespace); err != nil {
-				panic(err)
-			}
-
-			commitDbTx(dbTx)
-		}()
-	} else if d.Storage.Name() == boltdb.STORENAME {
-		func() {
-
-			svc, err := d.Storage.GetService(service, namespace)
-			if err != nil {
-				panic(err)
-			}
-
-			if svc == nil {
-				panic("service not found " + service + ", namespace" + namespace)
-			}
-
-			tx, err := d.Storage.StartTx()
-			if err != nil {
-				panic(err)
-			}
-
-			dbTx := tx.GetDelegateTx().(*bolt.Tx)
-
-			if err := dbTx.Bucket([]byte(tblRateLimitRevision)).DeleteBucket([]byte(svc.ID)); err != nil {
-				if !errors.Is(err, bolt.ErrBucketNotFound) {
-					rollbackBoltTx(dbTx)
-					panic(err)
-				}
-			}
-			commitBoltTx(dbTx)
-		}()
-	}
 }
 
 // 更新限流规则内容

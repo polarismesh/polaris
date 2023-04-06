@@ -78,17 +78,6 @@ func (r *rateLimitStore) CreateRateLimit(limit *model.RateLimit) error {
 		return ErrBadParam
 	}
 
-	tNow := time.Now()
-
-	limit.CreateTime = tNow
-	limit.ModifyTime = tNow
-	if !limit.Disable {
-		limit.EnableTime = tNow
-	} else {
-		limit.EnableTime = time.Unix(0, 0)
-	}
-	limit.Valid = true
-
 	return r.createRateLimit(limit)
 }
 
@@ -247,28 +236,22 @@ func (r *rateLimitStore) GetRateLimitsForCache(mtime time.Time,
 //	@return error
 func (r *rateLimitStore) createRateLimit(limit *model.RateLimit) error {
 	handler := r.handler
+	tNow := time.Now()
+	limit.CreateTime = tNow
+	limit.ModifyTime = tNow
+	if !limit.Disable {
+		limit.EnableTime = tNow
+	} else {
+		limit.EnableTime = time.Unix(0, 0)
+	}
+	limit.Valid = true
 	return handler.Execute(true, func(tx *bolt.Tx) error {
-
 		// create ratelimit_config
 		if err := saveValue(tx, tblRateLimitConfig, limit.ID, limit); err != nil {
 			log.Errorf("[Store][RateLimit] create rate_limit(%s, %s), %+v, err: %s",
 				limit.ID, limit.ServiceID, limit, err.Error())
 			return err
 		}
-
-		// create ratelimit_version
-		lastVer := &model.RateLimitRevision{
-			ServiceID:    limit.ServiceID,
-			LastRevision: limit.Revision,
-			ModifyTime:   time.Now(),
-		}
-
-		if err := saveValue(tx, tblRateLimitRevision, lastVer.ServiceID, lastVer); err != nil {
-			log.Errorf("[Store][RateLimit] create ratelimit_revision(%s, %s) err: %s",
-				limit.ID, limit.ServiceID, err.Error())
-			return err
-		}
-
 		return nil
 	})
 }
@@ -281,8 +264,6 @@ func (r *rateLimitStore) createRateLimit(limit *model.RateLimit) error {
 func (r *rateLimitStore) enableRateLimit(limit *model.RateLimit) error {
 	handler := r.handler
 	return handler.Execute(true, func(tx *bolt.Tx) error {
-		tNow := time.Now()
-
 		properties := make(map[string]interface{})
 		properties[RateLimitFieldDisable] = limit.Disable
 		properties[RateLimitFieldRevision] = limit.Revision
@@ -298,20 +279,6 @@ func (r *rateLimitStore) enableRateLimit(limit *model.RateLimit) error {
 				limit.ID, limit.ServiceID, err.Error())
 			return err
 		}
-
-		// create ratelimit_version
-		lastVer := &model.RateLimitRevision{
-			ServiceID:    limit.ServiceID,
-			LastRevision: limit.Revision,
-			ModifyTime:   tNow,
-		}
-
-		if err := saveValue(tx, tblRateLimitRevision, lastVer.ServiceID, lastVer); err != nil {
-			log.Errorf("[Store][RateLimit] update ratelimit_revision(%s, %s) err: %s",
-				limit.ID, limit.ServiceID, err.Error())
-			return err
-		}
-
 		return nil
 	})
 }
@@ -324,8 +291,6 @@ func (r *rateLimitStore) enableRateLimit(limit *model.RateLimit) error {
 func (r *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 	handler := r.handler
 	return handler.Execute(true, func(tx *bolt.Tx) error {
-		tNow := time.Now()
-
 		properties := make(map[string]interface{})
 		properties[RateLimitFieldName] = limit.Name
 		properties[RateLimitFieldMethod] = limit.Method
@@ -346,20 +311,6 @@ func (r *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 				limit.ID, limit.ServiceID, err.Error())
 			return err
 		}
-
-		// create ratelimit_version
-		lastVer := &model.RateLimitRevision{
-			ServiceID:    limit.ServiceID,
-			LastRevision: limit.Revision,
-			ModifyTime:   tNow,
-		}
-
-		if err := saveValue(tx, tblRateLimitRevision, lastVer.ServiceID, lastVer); err != nil {
-			log.Errorf("[Store][RateLimit] update ratelimit_revision(%s, %s) err: %s",
-				limit.ID, limit.ServiceID, err.Error())
-			return err
-		}
-
 		return nil
 	})
 }
@@ -383,18 +334,6 @@ func (r *rateLimitStore) deleteRateLimit(limit *model.RateLimit) error {
 				limit.ID, limit.ServiceID, err.Error())
 			return err
 		}
-
-		revisionProperties := make(map[string]interface{})
-		revisionProperties[RateLimitReviFieldServiceID] = limit.ServiceID
-		revisionProperties[RateLimitReviFieldLastRevision] = limit.Revision
-		revisionProperties[RateLimitReviFieldModifyTime] = time.Now()
-
-		if err := updateValue(tx, tblRateLimitRevision, limit.ServiceID, revisionProperties); err != nil {
-			log.Errorf("[Store][RateLimit] delete ratelimit_version(%s, %s) err: %s",
-				limit.ID, limit.ServiceID, err.Error())
-			return err
-		}
-
 		return nil
 	})
 }

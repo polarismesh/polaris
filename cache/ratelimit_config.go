@@ -144,7 +144,7 @@ func (rlc *rateLimitCache) setRateLimit(rateLimits []*model.RateLimit) map[strin
 
 		key := model.ServiceKey{
 			Namespace: item.Proto.GetNamespace().GetValue(),
-			Name:      item.Proto.GetName().GetValue(),
+			Name:      item.Proto.GetService().GetValue(),
 		}
 		updateService[key] = struct{}{}
 

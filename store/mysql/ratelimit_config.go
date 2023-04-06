@@ -84,15 +84,6 @@ func (rls *rateLimitStore) createRateLimit(limit *model.RateLimit) error {
 		return err
 	}
 
-	// 更新last_revision
-	str = `insert into ratelimit_revision(service_id,last_revision,mtime) values(?,?,sysdate()) on duplicate key update
-			last_revision = ?`
-	if _, err := tx.Exec(str, limit.ServiceID, limit.Revision, limit.Revision); err != nil {
-		log.Errorf("[Store][database][Create] update rate limit revision with service id(%s) err: %s",
-			limit.ServiceID, err.Error())
-		return err
-	}
-
 	if err := tx.Commit(); err != nil {
 		log.Errorf("[Store][database] create rate limit(%+v) commit tx err: %s", limit, err.Error())
 		return err
@@ -147,12 +138,6 @@ func (rls *rateLimitStore) enableRateLimit(limit *model.RateLimit) error {
 		return err
 	}
 
-	if err := updateLastRevision(tx, limit.ServiceID, limit.Revision); err != nil {
-		log.Errorf("[Store][database][Update] update rate limit revision with service id(%s) err: %s",
-			limit.ServiceID, err.Error())
-		return err
-	}
-
 	if err := tx.Commit(); err != nil {
 		log.Errorf("[Store][database] update rate limit(%+v) commit tx err: %s", limit, err.Error())
 		return err
@@ -178,12 +163,6 @@ func (rls *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 	if _, err := tx.Exec(str, limit.Name, limit.ServiceID, limit.Disable,
 		limit.Method, limit.Labels, limit.Priority, limit.Rule, limit.Revision, limit.ID); err != nil {
 		log.Errorf("[Store][database] update rate limit(%+v), sql %s, err: %s", limit, str, err)
-		return err
-	}
-
-	if err := updateLastRevision(tx, limit.ServiceID, limit.Revision); err != nil {
-		log.Errorf("[Store][database][Update] update rate limit revision with service id(%s) err: %s",
-			limit.ServiceID, err.Error())
 		return err
 	}
 
@@ -222,12 +201,6 @@ func (rls *rateLimitStore) deleteRateLimit(limit *model.RateLimit) error {
 	str := `update ratelimit_config set flag = 1, mtime = sysdate() where id = ?`
 	if _, err := tx.Exec(str, limit.ID); err != nil {
 		log.Errorf("[Store][database] delete rate limit(%+v) err: %s", limit, err)
-		return err
-	}
-
-	if err := updateLastRevision(tx, limit.ServiceID, limit.Revision); err != nil {
-		log.Errorf("[Store][database][Delete] update rate limit revision with service id(%s) err: %s",
-			limit.ServiceID, err.Error())
 		return err
 	}
 
@@ -541,13 +514,4 @@ func genFilterRateLimitSQL(query map[string]string) (string, []interface{}) {
 		args = append(args, arg)
 	}
 	return str, args
-}
-
-// updateLastRevision 更新last_revision
-func updateLastRevision(tx *BaseTx, serviceID string, revision string) error {
-	str := `update ratelimit_revision set last_revision = ?, mtime = sysdate() where service_id = ?`
-	if _, err := tx.Exec(str, revision, serviceID); err != nil {
-		return err
-	}
-	return nil
 }

@@ -111,7 +111,7 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-enrichCreateCircuitBreakersApiNotes = `
+	enrichCreateCircuitBreakersApiNotes = `
 
 - 为服务创建一个熔断规则，以对服务下的故障节点进行剔除。
 - 熔断规则可以分为被调规则和主调规则：
@@ -187,7 +187,7 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-enrichCreateCircuitBreakerVersionsApiNotes = `
+	enrichCreateCircuitBreakerVersionsApiNotes = `
 ~~~
 POST /naming/v1/circuitbreakers/version
 
@@ -243,7 +243,7 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-enrichDeleteCircuitBreakersApiNotes = `
+	enrichDeleteCircuitBreakersApiNotes = `
 ~~~
 PUT /naming/v1/circuitbreakers/delete
 
@@ -257,7 +257,7 @@ Header X-Polaris-Token: {访问凭据}
 ]
 ~~~
 `
-enrichUpdateCircuitBreakersApiNotes = `
+	enrichUpdateCircuitBreakersApiNotes = `
 请求示例：
 
 ~~~
@@ -309,7 +309,7 @@ Header X-Polaris-Token: {访问凭据}
 ]
 ~~~
 `
-enrichReleaseCircuitBreakersApiNotes = `
+	enrichReleaseCircuitBreakersApiNotes = `
 ~~~
 POST /naming/v1/circuitbreakers/release
 
@@ -318,7 +318,7 @@ Header X-Polaris-Token: {访问凭据}
 
 ~~~
 `
-enrichUnBindCircuitBreakersApiNotes = `
+	enrichUnBindCircuitBreakersApiNotes = `
 ~~~
 POST /naming/v1/circuitbreakers/unbind
 
@@ -327,7 +327,7 @@ Header X-Polaris-Token: {访问凭据}
 
 ~~~
 `
-enrichGetCircuitBreakersApiNotes = `
+	enrichGetCircuitBreakersApiNotes = `
 请求示例：
 ~~~
 GET /naming/v1/circuitbreakers?id={参数值}&version={参数值}
@@ -337,7 +337,7 @@ Header X-Polaris-Token: {访问凭据}
 
 ~~~
 `
-enrichGetCircuitBreakerVersionsApiNotes = `
+	enrichGetCircuitBreakerVersionsApiNotes = `
 请求示例：
 ~~~
 GET /naming/v1/circuitbreaker/versions?id={参数值}
@@ -347,7 +347,7 @@ Header X-Polaris-Token: {访问凭据}
 
 ~~~
 `
-enrichGetMasterCircuitBreakersApiNotes = `
+	enrichGetMasterCircuitBreakersApiNotes = `
 请求示例：
 ~~~
 GET /naming/v1/circuitbreakers/master?id={参数值}
@@ -357,7 +357,7 @@ Header X-Polaris-Token: {访问凭据}
 
 ~~~
 `
-enrichGetReleaseCircuitBreakersApiNotes = `
+	enrichGetReleaseCircuitBreakersApiNotes = `
 请求示例：
 ~~~
 GET /naming/v1/circuitbreakers/release?id={参数值}
@@ -367,7 +367,7 @@ Header X-Polaris-Token: {访问凭据}
 
 ~~~
 `
-enrichCreateCircuitBreakerRulesApiNotes = `
+	enrichCreateCircuitBreakerRulesApiNotes = `
 创建一条或多条熔断规则。
 
 请求示例：
@@ -561,7 +561,7 @@ Header X-Polaris-Token: {访问凭据}
 | value   | string      | 降级应答的消息头的Value                                     | 是       |
 
 `
-enrichDeleteCircuitBreakerRulesApiNotes = `
+	enrichDeleteCircuitBreakerRulesApiNotes = `
 删除一条或多条熔断规则。	
 	
 请求示例：
@@ -602,7 +602,7 @@ Header X-Polaris-Token: {访问凭据}
 ~~~
 
 `
-enrichUpdateCircuitBreakerRulesApiNotes = `
+	enrichUpdateCircuitBreakerRulesApiNotes = `
 更新一条或多条熔断规则。
 
 请求示例：
@@ -700,7 +700,7 @@ Header X-Polaris-Token: {访问凭据}
 ~~~
 
 `
-enrichGetCircuitBreakerRulesApiNotes = `
+	enrichGetCircuitBreakerRulesApiNotes = `
 根据输入条件查询一条或多条熔断规则。	
 	
 请求示例：
@@ -803,7 +803,7 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-enrichEnableCircuitBreakerRulesApiNotes = `
+	enrichEnableCircuitBreakerRulesApiNotes = `
 请求示例：
 
 ~~~
