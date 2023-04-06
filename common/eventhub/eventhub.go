@@ -23,13 +23,14 @@ import (
 )
 
 var (
-	once sync.Once
-	eh   *eventHub
+	initOnce  sync.Once
+	closeOnce sync.Once
+	eh        *eventHub
 )
 
 // InitEventHub initialize event hub
 func InitEventHub() {
-	once.Do(func() {
+	initOnce.Do(func() {
 		eh = &eventHub{
 			topics: make(map[string]*topic),
 		}
@@ -77,15 +78,17 @@ func Unsubscribe(topic string, name string) {
 
 // Shutdown shutdown event hub
 func Shutdown() {
-	eh.mu.Lock()
-	defer eh.mu.Unlock()
+	closeOnce.Do(func() {
+		eh.mu.Lock()
+		defer eh.mu.Unlock()
 
-	eh.cancel()
+		eh.cancel()
 
-	for _, t := range eh.topics {
-		t.close(eh.ctx)
-		delete(eh.topics, t.name)
-	}
+		for _, t := range eh.topics {
+			t.close(eh.ctx)
+			delete(eh.topics, t.name)
+		}
+	})
 }
 
 func (e *eventHub) createTopic(name string) *topic {

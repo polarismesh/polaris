@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInitEventHub(t *testing.T) {
+func Test_InitEventHub(t *testing.T) {
 	tests := []struct {
 		name string
 	}{
