@@ -753,6 +753,7 @@ func (s *Server) isServiceExistedResource(rid, pid string, service *model.Servic
 		return api.NewServiceResponse(apimodel.Code_ServiceExistedAlias, out)
 	}
 
+	// TODO will remove until have sync router rule v1 to v2
 	total, err = s.getRoutingCountWithService(service.ID)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
@@ -762,25 +763,6 @@ func (s *Server) isServiceExistedResource(rid, pid string, service *model.Servic
 	if total != 0 {
 		return api.NewServiceResponse(apimodel.Code_ServiceExistedRoutings, out)
 	}
-
-	total, err = s.getRateLimitingCountWithService(service.Name, service.Namespace)
-	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-		return api.NewServiceResponse(apimodel.Code_StoreLayerException, out)
-	}
-	if total != 0 {
-		return api.NewServiceResponse(apimodel.Code_ServiceExistedRateLimits, out)
-	}
-
-	total, err = s.getCircuitBreakerCountWithService(service.Name, service.Namespace)
-	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-		return api.NewServiceResponse(apimodel.Code_StoreLayerException, out)
-	}
-	if total != 0 {
-		return api.NewServiceResponse(apimodel.Code_ServiceExistedCircuitBreakers, out)
-	}
-
 	return nil
 }
 

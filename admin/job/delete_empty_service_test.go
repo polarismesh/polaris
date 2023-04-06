@@ -55,7 +55,6 @@ func Test_DeleteEmptyAutoCreatedServiceJobConfigInitErr(t *testing.T) {
 }
 
 func Test_FilterToDeletedServices(t *testing.T) {
-
 	job := deleteEmptyAutoCreatedServiceJob{}
 	t1, _ := time.Parse("2006-01-02 15:04:05", "2023-03-20 12:01:00")
 	t2, _ := time.Parse("2006-01-02 15:04:05", "2023-03-20 12:02:00")

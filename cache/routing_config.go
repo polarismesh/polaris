@@ -240,19 +240,21 @@ func (rc *routingConfigCache) setRoutingConfigV1(lastMtimes map[string]time.Time
 	for id := range rc.pendingV1RuleIds {
 		entry := rc.pendingV1RuleIds[id]
 		// Save to the new V2 cache
-		v2rule, err := rc.convertV1toV2(entry)
+		ok, v2rule, err := rc.convertV1toV2(entry)
 		if err != nil {
 			log.Warn("[Cache] routing parse v1 => v2 fail, will try again next",
 				zap.String("rule-id", entry.ID), zap.Error(err))
 			continue
 		}
-		if v2rule == nil {
+		if !ok {
 			log.Warn("[Cache] routing parse v1 => v2 is nil, will try again next",
 				zap.String("rule-id", entry.ID))
 			continue
 		}
-		delete(rc.pendingV1RuleIds, id)
-		rc.bucket.saveV1(entry, v2rule)
+		if ok && v2rule != nil {
+			delete(rc.pendingV1RuleIds, id)
+			rc.bucket.saveV1(entry, v2rule)
+		}
 	}
 
 	lastMtimes[rc.name()] = time.Unix(lastMtimeV1, 0)
@@ -292,32 +294,32 @@ func (rc *routingConfigCache) IsConvertFromV1(id string) (string, bool) {
 	return val, ok
 }
 
-func (rc *routingConfigCache) convertV1toV2(rule *model.RoutingConfig) ([]*model.ExtendRouterConfig, error) {
+func (rc *routingConfigCache) convertV1toV2(rule *model.RoutingConfig) (bool, []*model.ExtendRouterConfig, error) {
 	svc := rc.serviceCache.GetServiceByID(rule.ID)
 	if svc == nil {
 		s, err := rc.storage.GetServiceByID(rule.ID)
 		if err != nil {
-			return nil, err
+			return false, nil, err
 		}
 		if s == nil {
-			return nil, nil
+			return true, nil, nil
 		}
 		svc = s
 	}
 	if svc.IsAlias() {
-		return nil, fmt.Errorf("svc: %+v is alias", svc)
+		return false, nil, fmt.Errorf("svc: %+v is alias", svc)
 	}
 
 	in, out, err := routingcommon.ConvertRoutingV1ToExtendV2(svc.Name, svc.Namespace, rule)
 	if err != nil {
-		return nil, err
+		return false, nil, err
 	}
 
 	ret := make([]*model.ExtendRouterConfig, 0, len(in)+len(out))
 	ret = append(ret, in...)
 	ret = append(ret, out...)
 
-	return ret, nil
+	return true, ret, nil
 }
 
 // convertV2toV1 The routing rules of the V2 version are converted to V1 version to return to the client,
