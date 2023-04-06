@@ -64,6 +64,8 @@ type ServiceCache interface {
 	ListServices(ns string) (string, []*model.Service)
 	// ListAllServices get all service and revision
 	ListAllServices() (string, []*model.Service)
+	// ListServiceAlias list service link alias list
+	ListServiceAlias(namespace, name string) []*model.Service
 	// Update Query trigger update interface
 	Update() error
 }
@@ -77,6 +79,7 @@ type serviceCache struct {
 	names               *sync.Map // namespace -> [serviceName -> service]
 	cl5Sid2Name         *sync.Map // 兼容Cl5，sid -> name
 	cl5Names            *sync.Map // 兼容Cl5，name -> service
+	alias               *serviceAliasBucket
 	serviceList         *serviceNamespaceBucket
 	revisionCh          chan *revisionNotify
 	disableBusiness     bool
@@ -106,6 +109,7 @@ func newServiceCache(storage store.Store, ch chan *revisionNotify, instCache Ins
 		storage:     storage,
 		revisionCh:  ch,
 		instCache:   instCache,
+		alias:       newServiceAliasBucket(),
 		serviceList: newServiceNamespaceBucket(),
 	}
 }
@@ -203,6 +207,7 @@ func (sc *serviceCache) clear() error {
 	sc.cl5Names = new(sync.Map)
 	sc.namespaceServiceCnt = new(sync.Map)
 	sc.pendingServices = make(map[string]int8)
+	sc.alias = newServiceAliasBucket()
 	sc.serviceList = newServiceNamespaceBucket()
 	return nil
 }
@@ -302,6 +307,14 @@ func (sc *serviceCache) ListAllServices() (string, []*model.Service) {
 	return sc.serviceList.ListAllServices()
 }
 
+// ListServiceAlias get all service alias by target service
+func (sc *serviceCache) ListServiceAlias(namespace, name string) []*model.Service {
+	return sc.alias.getServiceAliases(&model.Service{
+		Namespace: namespace,
+		Name:      name,
+	})
+}
+
 // GetServiceByCl5Name obtains the corresponding SID according to cl5Name
 func (sc *serviceCache) GetServiceByCl5Name(cl5Name string) *model.Service {
 	value, ok := sc.cl5Names.Load(genCl5Name(cl5Name))
@@ -316,9 +329,10 @@ func (sc *serviceCache) GetServiceByCl5Name(cl5Name string) *model.Service {
 func (sc *serviceCache) removeServices(service *model.Service) {
 	// Delete the index of serviceid
 	sc.ids.Delete(service.ID)
-
 	// delete service item from name list
 	sc.serviceList.removeService(service)
+	// delete service all link alias info
+	sc.alias.cleanServiceAlias(service)
 
 	// Delete the index of servicename
 	spaceName := service.Namespace
@@ -351,6 +365,8 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 	changeNs := make(map[string]bool)
 	svcCount := sc.serviceCount
 
+	aliases := make([]*model.Service, 0, 32)
+
 	for _, service := range services {
 		progress++
 		if progress%20000 == 0 {
@@ -360,6 +376,10 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 		serviceMtime := service.ModifyTime.Unix()
 		if lastMtime < serviceMtime {
 			lastMtime = serviceMtime
+		}
+
+		if service.IsAlias() {
+			aliases = append(aliases, service)
 		}
 
 		spaceName := service.Namespace
@@ -401,6 +421,7 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 		sc.serviceCount = svcCount
 	}
 
+	sc.postProcessServiceAlias(aliases)
 	sc.postProcessUpdatedServices(changeNs)
 	return map[string]time.Time{
 		sc.name(): time.Unix(lastMtime, 0),
@@ -465,6 +486,24 @@ func (sc *serviceCache) watchCountChangeCh(ctx context.Context) {
 
 			sc.postProcessUpdatedServices(affect)
 			sc.pendingServices = newPendingServices
+		}
+	}
+}
+
+func (sc *serviceCache) postProcessServiceAlias(aliases []*model.Service) {
+	for i := range aliases {
+		alias := aliases[i]
+
+		_, aliasExist := sc.ids.Load(alias.ID)
+		aliasFor, aliasForExist := sc.ids.Load(alias.Reference)
+		if !aliasForExist {
+			continue
+		}
+
+		if aliasExist {
+			sc.alias.addServiceAlias(alias, aliasFor.(*model.Service))
+		} else {
+			sc.alias.delServiceAlias(alias, aliasFor.(*model.Service))
 		}
 	}
 }

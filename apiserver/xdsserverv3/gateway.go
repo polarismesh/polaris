@@ -21,22 +21,18 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
-	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	v32 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	resource "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
 	"github.com/polarismesh/polaris/common/model"
-	routercommon "github.com/polarismesh/polaris/common/routing"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -169,13 +165,7 @@ func (x *XDSServer) makeGatewayRoutes(namespace string, xdsNode *XDSClient) []*r
 					continue
 				}
 				findGatewaySource = true
-
-				v1source := &traffic_manage.Source{
-					Namespace: utils.NewStringValue(source.Namespace),
-					Service:   utils.NewStringValue(source.Service),
-					Metadata:  routercommon.RoutingArguments2Labels(source.GetArguments()),
-				}
-				buildGatewayRouteMatch(routeMatch, v1source)
+				buildGatewayRouteMatch(routeMatch, source)
 			}
 
 			if !findGatewaySource {
@@ -213,138 +203,20 @@ func (x *XDSServer) makeGatewayRoutes(namespace string, xdsNode *XDSClient) []*r
 	return routes
 }
 
-func buildGatewayRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.Source) {
-	for name, matchString := range source.Metadata {
-		if name == model.LabelKeyPath {
-			if matchString.Type == apimodel.MatchString_EXACT {
+func buildGatewayRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.SourceService) {
+	for i := range source.GetArguments() {
+		argument := source.GetArguments()[i]
+		if argument.Type == traffic_manage.SourceMatch_PATH {
+			if argument.Value.Type == apimodel.MatchString_EXACT {
 				routeMatch.PathSpecifier = &route.RouteMatch_Path{
-					Path: matchString.GetValue().GetValue()}
-			} else if matchString.Type == apimodel.MatchString_REGEX {
+					Path: argument.GetValue().GetValue().GetValue()}
+			} else if argument.Value.Type == apimodel.MatchString_REGEX {
 				routeMatch.PathSpecifier = &route.RouteMatch_SafeRegex{SafeRegex: &v32.RegexMatcher{
-					Regex: matchString.GetValue().GetValue()}}
+					Regex: argument.GetValue().GetValue().GetValue()}}
 			}
 		}
 	}
 	buildCommonRouteMatch(routeMatch, source)
-}
-
-func buildCommonRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.Source) {
-	for name, matchString := range source.Metadata {
-		if strings.HasPrefix(name, model.LabelKeyHeader) {
-			headerSubName := name[len(model.LabelKeyHeader):]
-			if !(len(headerSubName) > 1 && strings.HasPrefix(headerSubName, ".")) {
-				continue
-			}
-			headerSubName = headerSubName[1:]
-			var headerMatch *route.HeaderMatcher
-			if matchString.Type == apimodel.MatchString_EXACT {
-				headerMatch = &route.HeaderMatcher{
-					Name: headerSubName,
-					HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-						StringMatch: &v32.StringMatcher{
-							MatchPattern: &v32.StringMatcher_Exact{
-								Exact: matchString.GetValue().GetValue()}},
-					},
-				}
-			}
-			if matchString.Type == apimodel.MatchString_NOT_EQUALS {
-				headerMatch = &route.HeaderMatcher{
-					Name: headerSubName,
-					HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-						StringMatch: &v32.StringMatcher{
-							MatchPattern: &v32.StringMatcher_Exact{
-								Exact: matchString.GetValue().GetValue()}},
-					},
-					InvertMatch: true,
-				}
-			}
-			if matchString.Type == apimodel.MatchString_REGEX {
-				headerMatch = &route.HeaderMatcher{
-					Name: headerSubName,
-					HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-						StringMatch: &v32.StringMatcher{MatchPattern: &v32.StringMatcher_SafeRegex{
-							SafeRegex: &v32.RegexMatcher{
-								EngineType: &v32.RegexMatcher_GoogleRe2{
-									GoogleRe2: &v32.RegexMatcher_GoogleRE2{}},
-								Regex: matchString.GetValue().GetValue()}}},
-					},
-				}
-			}
-			if headerMatch != nil {
-				routeMatch.Headers = append(routeMatch.Headers, headerMatch)
-			}
-		} else if strings.HasPrefix(name, model.LabelKeyQuery) {
-			querySubName := name[len(model.LabelKeyQuery):]
-			if !(len(querySubName) > 1 && strings.HasPrefix(querySubName, ".")) {
-				continue
-			}
-			querySubName = querySubName[1:]
-			var queryMatcher *route.QueryParameterMatcher
-			if matchString.Type == apimodel.MatchString_EXACT {
-				queryMatcher = &route.QueryParameterMatcher{
-					Name: querySubName,
-					QueryParameterMatchSpecifier: &route.QueryParameterMatcher_StringMatch{
-						StringMatch: &v32.StringMatcher{
-							MatchPattern: &v32.StringMatcher_Exact{
-								Exact: matchString.GetValue().GetValue()}},
-					},
-				}
-			}
-			if matchString.Type == apimodel.MatchString_REGEX {
-				queryMatcher = &route.QueryParameterMatcher{
-					Name: querySubName,
-					QueryParameterMatchSpecifier: &route.QueryParameterMatcher_StringMatch{
-						StringMatch: &v32.StringMatcher{
-							MatchPattern: &v32.StringMatcher_SafeRegex{SafeRegex: &v32.RegexMatcher{
-								EngineType: &v32.RegexMatcher_GoogleRe2{
-									GoogleRe2: &v32.RegexMatcher_GoogleRE2{}},
-								Regex: matchString.GetValue().GetValue(),
-							}}},
-					},
-				}
-			}
-			if queryMatcher != nil {
-				routeMatch.QueryParameters = append(routeMatch.QueryParameters, queryMatcher)
-			}
-		}
-	}
-}
-
-func buildWeightClustersV2(destinations []*traffic_manage.DestinationGroup) *route.WeightedCluster {
-	var (
-		weightedClusters []*route.WeightedCluster_ClusterWeight
-		totalWeight      uint32
-	)
-
-	// 使用 destinations 生成 weightedClusters。makeClusters() 也使用这个字段生成对应的 subset
-	for _, destination := range destinations {
-		fields := make(map[string]*_struct.Value)
-		for k, v := range destination.GetLabels() {
-			fields[k] = &_struct.Value{
-				Kind: &_struct.Value_StringValue{
-					StringValue: v.Value.Value,
-				},
-			}
-		}
-
-		weightedClusters = append(weightedClusters, &route.WeightedCluster_ClusterWeight{
-			Name:   destination.Service,
-			Weight: utils.NewUInt32Value(destination.GetWeight()),
-			MetadataMatch: &core.Metadata{
-				FilterMetadata: map[string]*_struct.Struct{
-					"envoy.lb": {
-						Fields: fields,
-					},
-				},
-			},
-		})
-		totalWeight += destination.Weight
-	}
-
-	return &route.WeightedCluster{
-		TotalWeight: &wrappers.UInt32Value{Value: totalWeight},
-		Clusters:    weightedClusters,
-	}
 }
 
 func isMatchGatewaySource(source *traffic_manage.SourceService, service, namespace string) bool {

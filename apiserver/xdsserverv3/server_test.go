@@ -449,7 +449,7 @@ func TestSnapshot(t *testing.T) {
 	resp := x.namingServer.CreateRoutingConfigsV2(discoverSuit.DefaultCtx, mockRouterRule)
 	assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
 	x.namingServer.Cache().TestUpdate()
-	x.pushRegistryInfoToXDSCache(sis)
+	x.pushSidecarInfoToXDSCache(sis)
 	x.pushGatewayInfoToXDSCache(sis)
 
 	snapshot, _ := x.cache.GetSnapshot("default")
