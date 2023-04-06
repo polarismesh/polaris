@@ -100,10 +100,12 @@ func EnrichGetAllServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder 
 func EnrichGetServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("获取服务列表").
 		Metadata(restfulspec.KeyOpenAPITags, servicesApiTags).
-		Param(restful.QueryParameter("name", "服务名").DataType(typeNameString).
+		Param(restful.QueryParameter("name", "服务名, 前缀查询: name*; 后缀查询: *name; 全模糊查询: *name*").
+			DataType(typeNameString).
 			Required(false).
 			DefaultValue("demo-service")).
-		Param(restful.QueryParameter("namespace", "命名空间").DataType(typeNameString).
+		Param(restful.QueryParameter("namespace", "命名空间, 前缀查询: name*; 后缀查询: *name; 全模糊查询: *name*").
+			DataType(typeNameString).
 			Required(false).
 			DefaultValue("default")).
 		Param(restful.QueryParameter("business", "业务，默认模糊查询").DataType(typeNameString).
@@ -118,6 +120,13 @@ func EnrichGetServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 			"目前只支持查询一组元数据。").DataType(typeNameString).Required(false)).
 		Param(restful.QueryParameter("values", "服务元数据名，keys和values需要同时填写，"+
 			"目前只支持查询一组元数据。").DataType(typeNameString).Required(false)).
+		Param(restful.QueryParameter("instance_keys", "实例标签key, key-1,key-2, instance_keys 和 "+
+			" instance_values 需要同时填写且必须元素个数一致").DataType("string").
+			Required(false).DefaultValue("")).
+		Param(restful.QueryParameter("instance_values", "实例标签value, value-1,value-2, instance_keys "+
+			" 和 instance_values 需要同时填写且必须元素个数一致").
+			DataType(typeNameString).
+			Required(false)).
 		Param(restful.QueryParameter("offset", "查询偏移量").DataType(typeNameInteger).
 			Required(false).DefaultValue("0")).
 		Param(restful.QueryParameter("limit", "查询条数，**最多查询100条**").DataType(typeNameInteger).
@@ -250,11 +259,13 @@ func EnrichGetInstancesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Metadata(restfulspec.KeyOpenAPITags, instancesApiTags).
 		Param(restful.PathParameter("id", "实例ID").
 			DataType(typeNameString).Required(false)).
-		Param(restful.PathParameter("service", "服务名称").
+		Param(restful.QueryParameter("service", "service namespace host 三个必须最少传一个, "+
+			" 前缀查询: name*; 后缀查询: *name; 全模糊查询: *name*").
 			DataType(typeNameString).Required(false)).
-		Param(restful.PathParameter("namespace", "命名空间").
+		Param(restful.QueryParameter("namespace", "service namespace host 三个必须最少传一个, "+
+			" 前缀查询: name*; 后缀查询: *name; 全模糊查询: *name*").
 			DataType(typeNameString).Required(false)).
-		Param(restful.PathParameter("host", "实例IP").
+		Param(restful.QueryParameter("host", "service namespace host 三个必须最少传一个").
 			DataType(typeNameString).Required(false)).
 		Param(restful.PathParameter("keys", "标签key").
 			DataType(typeNameString).Required(false)).

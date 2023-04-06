@@ -360,24 +360,6 @@ Header X-Polaris-Token: {访问凭据}
 
 ~~~
 
-| 参数名      | 类型   | 描述             | 是否必填                                                        |
-| ----------- | ------ | ---------------- | ----------------------------------------------------------- |
-| service     | string | 服务名称         | 是                                                            |
-| namespace   | string | 命名空间         | 是                                                            |
-| host        | string | 实例IP           | 是(要么（service，namespace）存在，要么host存在，不然视为参数不完整) |
-| port        | uint   | 实例端口         | 否                                                            |
-| keys        | string | 标签key          | 只允许填写一个key                                               |
-| values      | string | 标签value        | 只允许填写一个value                                              |
-| healthy     | string | 实例健康状态     | 否                                                             |
-| isolate     | string | 实例隔离状态     | 否                                                            |
-| protocol    | string | 实例端口协议状态 | 否                                                             |
-| version     | string | 实例版本         | 否                                                            |
-| cmdb_region | string | 实例region信息   | 否                                                            |
-| cmdb_zone   | string | 实例zone信息     | 否                                                           |
-| cmdb_idc    | string | 实例idc信息      | 否                                                          |
-| offset      | uint   | 查询偏移量       | 否                                                        |
-| limit       | uint   | 查询条数         | 否                                                           |
-
 应答示例：
 ~~~json
 {

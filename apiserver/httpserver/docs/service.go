@@ -28,19 +28,6 @@ GET /naming/v1/services?参数名=参数值
 Header X-Polaris-Token: {访问凭据}
 ~~~
 
-| 参数名     | 类型   | 描述                                                               | 是否必填 |
-| ---------- | ------ | ------------------------------------------------------------------ | -------- |
-| name       | string | 服务名                                                             | 否       |
-| namespace  | string | 命名空间                                                           | 否       |
-| business   | string | 业务，默认模糊查询                                                 | 否       |
-| department | string | 部门                                                               | 否       |
-| host       | string | 实例IP，**多个IP以英文逗号分隔**                                   | 否       |
-| port       | string | **实例端口**，**多个端口以英文逗号分隔**                           | 否       |
-| keys       | string | 服务元数据名，keys和values需要同时填写，目前只支持查询一组元数据。 | 否       |
-| values     | string | 服务元数据值，keys和values需要同时填写，目前只支持查询一组元数据。 | 否       |
-| offset     | int    | 默认为0                                                            | 否       |
-| limit      | int    | 默认为100，最大100                                                 | 否       |
-
 应答示例：
 
 ~~~json

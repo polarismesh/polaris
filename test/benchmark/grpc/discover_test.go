@@ -34,7 +34,7 @@ import (
 )
 
 func init() {
-	prepareCreateService()
+	// prepareCreateService()
 	prepareCreateRouterRule()
 }
 
@@ -107,37 +107,6 @@ func Benchmark_DiscoverServicesWithoutRevision(b *testing.B) {
 		if resp.GetCode().GetValue() > 300000 {
 			b.Fatal(resp)
 		}
-	}
-}
-
-func Benchmark_DiscoverServicesWithRevision(b *testing.B) {
-	discoverClient, conn := prepareDiscoverClient(b)
-	defer conn.Close()
-
-	fmt.Println("begin do benchmark")
-	revision := ""
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		b.StartTimer()
-		err := discoverClient.Send(&apiservice.DiscoverRequest{
-			Type: apiservice.DiscoverRequest_SERVICES,
-			Service: &apiservice.Service{
-				Revision: utils.NewStringValue(revision),
-			},
-		})
-		if err != nil {
-			b.Fatal(err)
-		}
-		resp, err := discoverClient.Recv()
-		if err != nil {
-			b.Fatal(err)
-		}
-		b.StopTimer()
-		code := apimodel.Code(resp.GetCode().GetValue())
-		if code != apimodel.Code_ExecuteSuccess && code != apimodel.Code_DataNoChange {
-			b.Fatal(resp)
-		}
-		revision = resp.GetService().GetRevision().GetValue()
 	}
 }
 
