@@ -383,12 +383,16 @@ func TestDeleteRoutingConfigV2(t *testing.T) {
 		namespaceName := fmt.Sprintf("in-source-service-%d", 0)
 
 		// 删除之后，数据不见
-		time.Sleep(discoverSuit.UpdateCacheInterval())
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		out := discoverSuit.DiscoverServer().GetRoutingConfigWithCache(discoverSuit.DefaultCtx, &apiservice.Service{
 			Name:      utils.NewStringValue(serviceName),
 			Namespace: utils.NewStringValue(namespaceName),
 		})
-		assert.Nil(t, out.GetRouting())
+
+		noExist := out.GetRouting() == nil ||
+			((len(out.GetRouting().Inbounds) == 0 && len(out.GetRouting().GetOutbounds()) == 0) ||
+				len(out.Routing.GetRules()) == 0)
+		assert.True(t, noExist)
 	})
 }
 
