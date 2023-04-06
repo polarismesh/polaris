@@ -266,7 +266,6 @@ Header X-Polaris-Token: {访问凭据}
 | location            | Location           | 实例位置信息                                                 | 否     |
 | metadata            | map<string,string> | 实例标签信息，最多只能存储64对 *key-value*                      | 否     |
 `
-
 	enrichUpdateInstancesIsolateApiNotes = `
 请求示例：
 
