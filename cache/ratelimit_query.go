@@ -78,12 +78,8 @@ func (rlc *rateLimitCache) QueryRateLimitRules(args RateLimitRuleArgs) (uint32, 
 			return
 		}
 		if args.Name != "" {
-			name, isWild := utils.ParseWildName(args.Name)
-			if isWild {
-				if !strings.Contains(rule.Name, name) {
-					return
-				}
-			} else if args.Name != rule.Name {
+			name, _ := utils.ParseWildName(args.Name)
+			if !strings.Contains(rule.Name, name) {
 				return
 			}
 		}
