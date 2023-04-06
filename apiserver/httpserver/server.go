@@ -30,6 +30,7 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
+	"github.com/polarismesh/polaris/admin"
 	"github.com/polarismesh/polaris/apiserver"
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
 	v1 "github.com/polarismesh/polaris/apiserver/httpserver/v1"
@@ -42,7 +43,6 @@ import (
 	"github.com/polarismesh/polaris/common/secure"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/config"
-	"github.com/polarismesh/polaris/maintain"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/service"
@@ -65,7 +65,7 @@ type HTTPServer struct {
 	enableSwagger bool
 
 	server            *http.Server
-	maintainServer    maintain.MaintainOperateServer
+	maintainServer    admin.AdminOperateServer
 	namespaceServer   namespace.NamespaceOperateServer
 	namingServer      service.DiscoverServer
 	configServer      config.ConfigCenterServer
@@ -151,7 +151,7 @@ func (h *HTTPServer) Run(errCh chan error) {
 
 	var err error
 
-	h.maintainServer, err = maintain.GetServer()
+	h.maintainServer, err = admin.GetServer()
 	if err != nil {
 		log.Errorf("%v", err)
 		errCh <- err
@@ -327,8 +327,8 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 		switch name {
 		case "admin":
 			if apiConfig.Enable {
-				wsContainer.Add(h.GetAdminServer())
-				wsContainer.Add(h.GetMaintainAccessServer())
+				wsContainer.Add(h.GetIndexServer())
+				wsContainer.Add(h.GetAdminAccessServer())
 			}
 		case "console":
 			if apiConfig.Enable {

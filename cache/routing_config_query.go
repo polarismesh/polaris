@@ -198,7 +198,7 @@ func (rc *routingConfigCache) QueryRoutingConfigsV2(args *RoutingArgs) (uint32, 
 		res = append(res, routeRule)
 	}
 
-	rc.IteratorRoutings(func(key string, value *model.ExtendRouterConfig) {
+	rc.IteratorRouterRule(func(key string, value *model.ExtendRouterConfig) {
 		process(key, value)
 	})
 

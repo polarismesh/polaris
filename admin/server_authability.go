@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package maintain
+package admin
 
 import (
 	"context"
@@ -34,7 +34,7 @@ type serverAuthAbility struct {
 	authMgn      auth.AuthChecker
 }
 
-func newServerAuthAbility(targetServer *Server, authSvr auth.AuthServer) MaintainOperateServer {
+func newServerAuthAbility(targetServer *Server, authSvr auth.AuthServer) AdminOperateServer {
 	proxy := &serverAuthAbility{
 		targetServer: targetServer,
 		authSvr:      authSvr,

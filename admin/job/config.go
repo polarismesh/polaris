@@ -15,11 +15,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package maintain
+package job
 
-import "github.com/polarismesh/polaris/maintain/job"
-
-// Config maintain configuration
-type Config struct {
-	Jobs []job.JobConfig `yaml:"jobs"`
+// JobcConfig maintain job configuration
+type JobConfig struct {
+	Name     string                 `yaml:"name"`
+	Enable   bool                   `yaml:"enable"`
+	Interval string                 `yaml:"interval"`
+	Option   map[string]interface{} `yaml:"option"`
 }

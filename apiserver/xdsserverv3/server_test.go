@@ -21,6 +21,8 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
+	"fmt"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -30,17 +32,22 @@ import (
 	lrl "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/atomic"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/polarismesh/polaris/common/model"
+	testdata "github.com/polarismesh/polaris/test/data"
+	testsuit "github.com/polarismesh/polaris/test/suit"
 )
 
 func generateRateLimitString(ruleType apitraffic.Rule_Type) (string, string, map[string]*anypb.Any) {
@@ -160,7 +167,15 @@ func Test_makeLocalRateLimit(t *testing.T) {
 	localRateLimitStr, want1 := generateLocalRateLimitRule()
 	globalRateLimitStr, want2 := generateGlobalRateLimitRule()
 	type args struct {
-		conf []*model.RateLimit
+		svc *ServiceInfo
+	}
+	mockXds := &XDSServer{
+		RatelimitConfigGetter: func(serviceID string) []*model.RateLimit {
+			if serviceID == "mock_local" {
+				return localRateLimitStr
+			}
+			return globalRateLimitStr
+		},
 	}
 	tests := []struct {
 		name string
@@ -170,21 +185,25 @@ func Test_makeLocalRateLimit(t *testing.T) {
 		{
 			"make local rate limit for local rate limit config",
 			args{
-				localRateLimitStr,
+				&ServiceInfo{
+					ID: "mock_local",
+				},
 			},
 			want1,
 		},
 		{
 			"make local rate limit for global rate limit config",
 			args{
-				globalRateLimitStr,
+				&ServiceInfo{
+					ID: "mock_global",
+				},
 			},
 			want2,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := makeLocalRateLimit(tt.args.conf); !reflect.DeepEqual(got, tt.want) {
+			if got := mockXds.makeLocalRateLimit(tt.args.svc); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeLocalRateLimit() = %v, want %v", got, tt.want)
 			}
 		})
@@ -226,7 +245,7 @@ func TestParseNodeID(t *testing.T) {
 		},
 	}
 	for _, item := range testTable {
-		ns, id, hostip := parseNodeID(item.NodeID)
+		_, ns, id, hostip := parseNodeID(item.NodeID)
 		if ns != item.Namespace || id != item.UUID || hostip != item.HostIP {
 			t.Fatalf("parse node id [%s] expected ['%s' '%s' '%s'] got : ['%s' '%s' '%s']",
 				item.NodeID,
@@ -255,7 +274,7 @@ func TestNodeHashID(t *testing.T) {
 					},
 				},
 			},
-			TargetID: "default/" + TLSModeStrict,
+			TargetID: "sidecar~default/" + TLSModeStrict,
 		},
 		{
 			Node: &core.Node{
@@ -270,7 +289,7 @@ func TestNodeHashID(t *testing.T) {
 					},
 				},
 			},
-			TargetID: "polaris/" + TLSModePermissive,
+			TargetID: "sidecar~polaris/" + TLSModePermissive,
 		},
 		{
 			Node: &core.Node{
@@ -285,7 +304,7 @@ func TestNodeHashID(t *testing.T) {
 					},
 				},
 			},
-			TargetID: "default",
+			TargetID: "sidecar~default",
 		},
 		// bad case: wrong tls mode
 		{
@@ -301,14 +320,14 @@ func TestNodeHashID(t *testing.T) {
 					},
 				},
 			},
-			TargetID: "default",
+			TargetID: "sidecar~default",
 		},
 		// no node metadata
 		{
 			Node: &core.Node{
 				Id: "default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
 			},
-			TargetID: "default",
+			TargetID: "sidecar~default",
 		},
 		// metadata does not contain tls mode kv
 		{
@@ -324,7 +343,22 @@ func TestNodeHashID(t *testing.T) {
 					},
 				},
 			},
-			TargetID: "default",
+			TargetID: "sidecar~default",
+		},
+		{
+			Node: &core.Node{
+				Id: "gateway~default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
+				Metadata: &_struct.Struct{
+					Fields: map[string]*structpb.Value{
+						"hello": &_struct.Value{
+							Kind: &_struct.Value_StringValue{
+								StringValue: "abc",
+							},
+						},
+					},
+				},
+			},
+			TargetID: "gateway~default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
 		},
 	}
 	for i, item := range testTable {
@@ -336,47 +370,128 @@ func TestNodeHashID(t *testing.T) {
 	}
 }
 
-//go:embed testdata/data.json
-var testServicesData []byte
+var (
+	testServicesData []byte
+	noInboundDump    []byte
+	permissiveDump   []byte
+	strictDump       []byte
+	gatewayDump      []byte
+)
 
-//go:embed testdata/dump.yaml
-var noInboundDump []byte
-
-//go:embed testdata/permissive.dump.yaml
-var permissiveDump []byte
-
-//go:embed testdata/strict.dump.yaml
-var strictDump []byte
+func init() {
+	var err error
+	testServicesData, err = os.ReadFile(testdata.Path("xds/data.json"))
+	if err != nil {
+		panic(err)
+	}
+	noInboundDump, err = os.ReadFile(testdata.Path("xds/dump.yaml"))
+	if err != nil {
+		panic(err)
+	}
+	permissiveDump, err = os.ReadFile(testdata.Path("xds/permissive.dump.yaml"))
+	if err != nil {
+		panic(err)
+	}
+	strictDump, err = os.ReadFile(testdata.Path("xds/strict.dump.yaml"))
+	if err != nil {
+		panic(err)
+	}
+	gatewayDump, err = os.ReadFile(testdata.Path("xds/gateway.dump.yaml"))
+	if err != nil {
+		panic(err)
+	}
+}
 
 func TestSnapshot(t *testing.T) {
+	discoverSuit := &testsuit.DiscoverTestSuit{}
+	err := discoverSuit.Initialize()
+	assert.NoError(t, err)
+
 	sis := map[string][]*ServiceInfo{}
-	json.Unmarshal(testServicesData, &sis)
+	_ = json.Unmarshal(testServicesData, &sis)
 
 	x := XDSServer{
 		CircuitBreakerConfigGetter: func(id string) *model.ServiceWithCircuitBreaker {
 			return nil
 		},
+		xdsNodesMgr:           newXDSNodeManager(),
+		namingServer:          discoverSuit.DiscoverServer(),
 		RatelimitConfigGetter: func(serviceID string) []*model.RateLimit { return nil },
 		versionNum:            atomic.NewUint64(1),
 		cache:                 cache.NewSnapshotCache(true, cache.IDHash{}, nil),
 	}
+
+	mockRouterRule := make([]*apitraffic.RouteRule, 0, 4)
+	mockRouterRuleData, err := os.ReadFile(testdata.Path("xds/router_rule_data.json"))
+	assert.NoError(t, err)
+
+	err = ParseArrayByText(func() proto.Message {
+		rule := &apitraffic.RouteRule{}
+		mockRouterRule = append(mockRouterRule, rule)
+		return rule
+	}, string(mockRouterRuleData))
+	assert.NoError(t, err)
+
+	x.xdsNodesMgr.AddNodeIfAbsent(1, &core.Node{
+		Id: "gateway~default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
+		Metadata: &structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				GatewayNamespaceName: structpb.NewStringValue("default"),
+				GatewayServiceName:   structpb.NewStringValue("envoy_gateway"),
+			},
+		},
+	})
+
+	resp := x.namingServer.CreateRoutingConfigsV2(discoverSuit.DefaultCtx, mockRouterRule)
+	assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
+	x.namingServer.Cache().TestUpdate()
 	x.pushRegistryInfoToXDSCache(sis)
+	x.pushGatewayInfoToXDSCache(sis)
 
 	snapshot, _ := x.cache.GetSnapshot("default")
 	dumpYaml := dumpSnapShot(snapshot)
 	if !bytes.Equal(noInboundDump, dumpYaml) {
-		t.Fatal(string(dumpYaml))
+		t.Fatal("\n" + string(dumpYaml))
 	}
 
 	snapshot, _ = x.cache.GetSnapshot("default/permissive")
 	dumpYaml = dumpSnapShot(snapshot)
 	if !bytes.Equal(permissiveDump, dumpYaml) {
-		t.Fatal(string(dumpYaml))
+		t.Fatal("\n" + string(dumpYaml))
 	}
 
 	snapshot, _ = x.cache.GetSnapshot("default/strict")
 	dumpYaml = dumpSnapShot(snapshot)
 	if !bytes.Equal(strictDump, dumpYaml) {
-		t.Fatal(string(dumpYaml))
+		t.Fatal("\n" + string(dumpYaml))
 	}
+
+	snapshot, _ = x.cache.GetSnapshot("gateway~default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1")
+	dumpYaml = dumpSnapShot(snapshot)
+	if !bytes.Equal(gatewayDump, dumpYaml) {
+		fmt.Printf("\n%s\n", string(dumpYaml))
+		t.Fatal("\n" + string(dumpYaml))
+	}
+}
+
+// ParseArrayByText 通过字符串解析PB数组对象
+func ParseArrayByText(createMessage func() proto.Message, text string) error {
+	jsonDecoder := json.NewDecoder(bytes.NewBuffer([]byte(text)))
+	return parseArray(createMessage, jsonDecoder)
+}
+
+func parseArray(createMessage func() proto.Message, jsonDecoder *json.Decoder) error {
+	// read open bracket
+	_, err := jsonDecoder.Token()
+	if err != nil {
+		return err
+	}
+	for jsonDecoder.More() {
+		protoMessage := createMessage()
+		err := jsonpb.UnmarshalNext(jsonDecoder, protoMessage)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

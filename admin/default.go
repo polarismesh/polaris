@@ -15,22 +15,22 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package maintain
+package admin
 
 import (
 	"context"
 	"errors"
 
+	"github.com/polarismesh/polaris/admin/job"
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
-	"github.com/polarismesh/polaris/maintain/job"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/healthcheck"
 	"github.com/polarismesh/polaris/store"
 )
 
 var (
-	server         MaintainOperateServer
+	server         AdminOperateServer
 	maintainServer = &Server{}
 	finishInit     bool
 )
@@ -75,9 +75,9 @@ func initialize(_ context.Context, cfg *Config, namingService service.DiscoverSe
 }
 
 // GetServer 获取已经初始化好的Server
-func GetServer() (MaintainOperateServer, error) {
+func GetServer() (AdminOperateServer, error) {
 	if !finishInit {
-		return nil, errors.New("MaintainOperateServer has not done Initialize")
+		return nil, errors.New("AdminOperateServer has not done Initialize")
 	}
 
 	return server, nil
@@ -86,7 +86,7 @@ func GetServer() (MaintainOperateServer, error) {
 // GetOriginServer 获取已经初始化好的Server
 func GetOriginServer() (*Server, error) {
 	if !finishInit {
-		return nil, errors.New("MaintainOperateServer has not done Initialize")
+		return nil, errors.New("AdminOperateServer has not done Initialize")
 	}
 
 	return maintainServer, nil

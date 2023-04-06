@@ -115,6 +115,7 @@ func TestEurekaServer_renew(t *testing.T) {
 		s.EXPECT().GetInstancesCount().AnyTimes().Return(uint32(1), nil)
 		s.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 		s.EXPECT().GetServicesCount().Return(uint32(1), nil).AnyTimes()
+		s.EXPECT().StartLeaderElection(gomock.Any()).Times(1)
 		s.EXPECT().Destroy().Return(nil)
 		return nil
 	}); err != nil {

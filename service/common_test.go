@@ -798,63 +798,9 @@ func mockRoutingV1(serviceName, serviceNamespace string, inCount int) *apitraffi
 	return conf
 }
 
-func mockRoutingV2(t *testing.T, cnt int32) []*apitraffic.RouteRule {
-	rules := make([]*apitraffic.RouteRule, 0, cnt)
-	for i := int32(0); i < cnt; i++ {
-		matchString := &apimodel.MatchString{
-			Type:  apimodel.MatchString_EXACT,
-			Value: utils.NewStringValue(fmt.Sprintf("in-meta-value-%d", i)),
-		}
-		source := &apitraffic.SourceService{
-			Service:   fmt.Sprintf("in-source-service-%d", i),
-			Namespace: fmt.Sprintf("in-source-service-%d", i),
-			Arguments: []*apitraffic.SourceMatch{
-				{},
-			},
-		}
-		destination := &apitraffic.DestinationGroup{
-			Service:   fmt.Sprintf("in-destination-service-%d", i),
-			Namespace: fmt.Sprintf("in-destination-service-%d", i),
-			Labels: map[string]*apimodel.MatchString{
-				fmt.Sprintf("in-metadata-%d", i): matchString,
-			},
-			Priority: 120,
-			Weight:   100,
-			Transfer: "abcdefg",
-		}
-
-		entry := &apitraffic.RuleRoutingConfig{
-			Sources:      []*apitraffic.SourceService{source},
-			Destinations: []*apitraffic.DestinationGroup{destination},
-		}
-
-		any, err := ptypes.MarshalAny(entry)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		item := &apitraffic.RouteRule{
-			Id:            "",
-			Name:          fmt.Sprintf("test-routing-name-%d", i),
-			Namespace:     "",
-			Enable:        false,
-			RoutingPolicy: apitraffic.RoutingPolicy_RulePolicy,
-			RoutingConfig: any,
-			Revision:      "",
-			Etime:         "",
-			Priority:      0,
-			Description:   "",
-		}
-
-		rules = append(rules, item)
-	}
-
-	return rules
-}
-
 // 创建一个路由配置
 func (d *DiscoverTestSuit) createCommonRoutingConfigV2(t *testing.T, cnt int32) []*apitraffic.RouteRule {
-	rules := mockRoutingV2(t, cnt)
+	rules := testsuit.MockRoutingV2(t, cnt)
 
 	return d.createCommonRoutingConfigV2WithReq(t, rules)
 }

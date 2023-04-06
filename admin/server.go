@@ -15,44 +15,23 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth
+package admin
 
 import (
-	"encoding/json"
+	"sync"
 
-	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
+	"github.com/polarismesh/polaris/service"
+	"github.com/polarismesh/polaris/service/healthcheck"
 	"github.com/polarismesh/polaris/store"
 )
 
-// defaultAuthChecker 北极星自带的默认鉴权中心
-type defaultAuthChecker struct {
-	cacheMgn *cache.CacheManager
-}
+var _ AdminOperateServer = (*Server)(nil)
 
-// Initialize 执行初始化动作
-func (d *defaultAuthChecker) Initialize(options *auth.Config, s store.Store, cacheMgn *cache.CacheManager) error {
-	contentBytes, err := json.Marshal(options.Option)
-	if err != nil {
-		return err
-	}
-
-	cfg := DefaultAuthConfig()
-	if err := json.Unmarshal(contentBytes, cfg); err != nil {
-		return err
-	}
-
-	if err := cfg.Verify(); err != nil {
-		return err
-	}
-
-	AuthOption = cfg
-	d.cacheMgn = cacheMgn
-
-	return nil
-}
-
-// Cache 获取缓存统一管理
-func (d *defaultAuthChecker) Cache() *cache.CacheManager {
-	return d.cacheMgn
+type Server struct {
+	mu                sync.Mutex
+	namingServer      service.DiscoverServer
+	healthCheckServer *healthcheck.Server
+	cacheMgn          *cache.CacheManager
+	storage           store.Store
 }

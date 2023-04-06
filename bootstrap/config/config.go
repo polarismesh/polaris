@@ -25,12 +25,12 @@ import (
 
 	"gopkg.in/yaml.v2"
 
+	"github.com/polarismesh/polaris/admin"
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
 	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/config"
-	"github.com/polarismesh/polaris/maintain"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/service"
@@ -47,7 +47,7 @@ type Config struct {
 	Naming       service.Config     `yaml:"naming"`
 	Config       config.Config      `yaml:"config"`
 	HealthChecks healthcheck.Config `yaml:"healthcheck"`
-	Maintain     maintain.Config    `yaml:"maintain"`
+	Maintain     admin.Config       `yaml:"maintain"`
 	Store        store.Config       `yaml:"store"`
 	Auth         auth.Config        `yaml:"auth"`
 	Plugin       plugin.Config      `yaml:"plugin"`

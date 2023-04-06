@@ -26,11 +26,6 @@ data:
       polarisToken: "polaris@12345678"
     monitorServer:
       address: "polaris-prometheus:9090"
-    store:
-      # 单机文件存储插件
-      name: boltdbStore
-      option:
-        path: ./polaris.bolt
 kind: ConfigMap
 metadata:
   name: polaris-console-config

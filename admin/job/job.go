@@ -20,8 +20,7 @@ package job
 import (
 	"context"
 	"fmt"
-
-	"github.com/robfig/cron/v3"
+	"time"
 
 	"github.com/polarismesh/polaris/cache"
 	commonlog "github.com/polarismesh/polaris/common/log"
@@ -36,8 +35,8 @@ var log = commonlog.GetScopeOrDefaultByName(commonlog.DefaultLoggerName)
 type MaintainJobs struct {
 	jobs        map[string]maintainJob
 	startedJobs map[string]maintainJob
-	scheduler   *cron.Cron
 	storage     store.Store
+	cancel      context.CancelFunc
 }
 
 // NewMaintainJobs
@@ -53,13 +52,14 @@ func NewMaintainJobs(namingServer service.DiscoverServer, cacheMgn *cache.CacheM
 				storage: storage},
 		},
 		startedJobs: map[string]maintainJob{},
-		scheduler:   newCron(),
 		storage:     storage,
 	}
 }
 
 // StartMaintainJobs
 func (mj *MaintainJobs) StartMaintianJobs(configs []JobConfig) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	mj.cancel = cancel
 	for _, cfg := range configs {
 		if !cfg.Enable {
 			log.Infof("[Maintain][Job] job (%s) not enable", cfg.Name)
@@ -83,33 +83,27 @@ func (mj *MaintainJobs) StartMaintianJobs(configs []JobConfig) error {
 			log.Errorf("[Maintain][Job][%s] start leader election err: %v", cfg.Name, err)
 			return err
 		}
-		_, err = mj.scheduler.AddFunc(cfg.CronSpec, newCronCmd(cfg.Name, job, mj.storage))
+		dur, err := time.ParseDuration(cfg.Interval)
 		if err != nil {
-			log.Errorf("[Maintain][Job] job (%s) fail to start, err: %v", cfg.Name, err)
-			return fmt.Errorf("[Maintain][Job] job (%s) fail to start", cfg.Name)
+			log.Errorf("[Maintain][Job][%s] parse job exec interval err: %v", cfg.Name, err)
+			return err
 		}
+		runAdminJob(ctx, cfg.Name, dur, job, mj.storage)
 		mj.startedJobs[cfg.Name] = job
 	}
-	mj.scheduler.Start()
 	return nil
 }
 
 // StopMaintainJobs
 func (mj *MaintainJobs) StopMaintainJobs() {
-	ctx := mj.scheduler.Stop()
-	<-ctx.Done()
+	if mj.cancel != nil {
+		mj.cancel()
+	}
 	mj.startedJobs = map[string]maintainJob{}
 }
 
-func newCron() *cron.Cron {
-	return cron.New(cron.WithChain(
-		cron.Recover(cron.DefaultLogger)),
-		cron.WithParser(cron.NewParser(
-			cron.Minute|cron.Hour|cron.Dom|cron.Month|cron.Dow|cron.Descriptor)))
-}
-
-func newCronCmd(name string, job maintainJob, storage store.Store) func() {
-	return func() {
+func runAdminJob(ctx context.Context, name string, interval time.Duration, job maintainJob, storage store.Store) {
+	f := func() {
 		if !storage.IsLeader(store.ElectionKeyMaintainJobPrefix + name) {
 			log.Infof("[Maintain][Job][%s] I am follower", name)
 			job.clear()
@@ -118,8 +112,19 @@ func newCronCmd(name string, job maintainJob, storage store.Store) func() {
 		log.Infof("[Maintain][Job][%s] I am leader, job start", name)
 		job.execute()
 		log.Infof("[Maintain][Job][%s] I am leader, job end", name)
-
 	}
+
+	ticker := time.NewTicker(interval)
+	go func(ctx context.Context) {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				f()
+			}
+		}
+	}(ctx)
 }
 
 type maintainJob interface {

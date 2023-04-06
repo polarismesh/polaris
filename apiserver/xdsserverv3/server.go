@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -52,6 +51,7 @@ import (
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"go.uber.org/atomic"
 	"google.golang.org/grpc"
@@ -63,6 +63,7 @@ import (
 	connlimit "github.com/polarismesh/polaris/common/conn/limit"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/service"
 )
@@ -93,6 +94,7 @@ type XDSServer struct {
 	server          *grpc.Server
 	connLimitConfig *connlimit.Config
 
+	xdsNodesMgr                *XDSNodeManager
 	registryInfo               map[string][]*ServiceInfo
 	CircuitBreakerConfigGetter CircuitBreakerConfigGetter
 	RatelimitConfigGetter      RatelimitConfigGetter
@@ -100,13 +102,13 @@ type XDSServer struct {
 
 // Initialize 初始化
 func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{},
-	apiConf map[string]apiserver.APIConfig,
-) error {
-	x.cache = cachev3.NewSnapshotCache(false, PolarisNodeHash{},
-		commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName))
+	apiConf map[string]apiserver.APIConfig) error {
 	x.registryInfo = make(map[string][]*ServiceInfo)
 	x.listenPort = uint32(option["listenPort"].(int))
 	x.listenIP = option["listenIP"].(string)
+	x.xdsNodesMgr = newXDSNodeManager()
+	x.cache = NewSnapshotCache(cachev3.NewSnapshotCache(false, PolarisNodeHash{},
+		commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName)), x)
 
 	x.versionNum = atomic.NewUint64(0)
 	var err error
@@ -125,26 +127,25 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 		x.connLimitConfig = connConfig
 	}
 
-	err = x.initRegistryInfo()
-	if err != nil {
+	if err = x.initRegistryInfo(); err != nil {
 		log.Errorf("%v", err)
 		return err
 	}
 
-	err = x.getRegistryInfoWithCache(ctx, x.registryInfo)
-	if err != nil {
+	if err = x.getRegistryInfoWithCache(ctx, x.registryInfo); err != nil {
 		log.Errorf("%v", err)
 		return err
 	}
-
-	err = x.pushRegistryInfoToXDSCache(x.registryInfo)
-	if err != nil {
+	if err = x.pushRegistryInfoToXDSCache(x.registryInfo); err != nil {
+		log.Errorf("%v", err)
+		return err
+	}
+	if err = x.pushGatewayInfoToXDSCache(x.registryInfo); err != nil {
 		log.Errorf("%v", err)
 		return err
 	}
 
 	_ = x.startSynTask(ctx)
-
 	return nil
 }
 
@@ -152,7 +153,7 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 func (x *XDSServer) Run(errCh chan error) {
 	// 启动 grpc server
 	ctx := context.Background()
-	cb := &Callbacks{log: commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName)}
+	cb := &Callbacks{log: commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName), nodeMgr: x.xdsNodesMgr}
 	srv := serverv3.NewServer(ctx, x.cache, cb)
 	var grpcOptions []grpc.ServerOption
 	grpcOptions = append(grpcOptions, grpc.MaxConcurrentStreams(1000))
@@ -235,41 +236,6 @@ func (x *XDSServer) Restart(option map[string]interface{}, apiConf map[string]ap
 }
 
 type RatelimitConfigGetter func(serviceID string) []*model.RateLimit
-
-// PolarisNodeHash 存放 hash 方法
-type PolarisNodeHash struct{}
-
-// node id 的格式是:
-// 1. namespace/uuid~hostIp
-var nodeIDFormat = regexp.MustCompile(`^(\S+)\/([^~]+)~([^~]+)$`)
-
-func parseNodeID(nodeID string) (polarisNamespace, uuid, hostIP string) {
-	groups := nodeIDFormat.FindStringSubmatch(nodeID)
-	if len(groups) == 0 {
-		// invalid node format
-		return
-	}
-	polarisNamespace = groups[1]
-	uuid = groups[2]
-	hostIP = groups[3]
-	return
-}
-
-// ID id 的格式是 namespace/uuid~hostIp
-func (PolarisNodeHash) ID(node *core.Node) string {
-	if node == nil {
-		return ""
-	}
-	ns, _, _ := parseNodeID(node.Id)
-	if node.Metadata != nil && node.Metadata.Fields != nil {
-		tlsMode := node.Metadata.Fields[TLSModeTag].GetStringValue()
-		if tlsMode == TLSModePermissive || tlsMode == TLSModeStrict {
-			return ns + "/" + tlsMode
-		}
-	}
-
-	return ns
-}
 
 // GetProtocol 服务注册到北极星中的协议
 func (x *XDSServer) GetProtocol() string {
@@ -392,34 +358,54 @@ func getEndpointMetaFromPolarisIns(ins *apiservice.Instance) *core.Metadata {
 	return meta
 }
 
+func isNormalEndpoint(ins *apiservice.Instance) bool {
+	if ins.GetIsolate().GetValue() {
+		return false
+	}
+	if ins.GetWeight().GetValue() == 0 {
+		return false
+	}
+	return true
+}
+
+func formatEndpointHealth(ins *apiservice.Instance) core.HealthStatus {
+	if ins.GetHealthy().GetValue() {
+		return core.HealthStatus_HEALTHY
+	}
+	return core.HealthStatus_UNHEALTHY
+}
+
 func makeEndpoints(services []*ServiceInfo) []types.Resource {
 	var clusterLoads []types.Resource
 	for _, serviceInfo := range services {
 		var lbEndpoints []*endpoint.LbEndpoint
 		for _, instance := range serviceInfo.Instances {
 			// 只加入健康的实例
-			if instance.Healthy.Value {
-				ep := &endpoint.LbEndpoint{
-					HostIdentifier: &endpoint.LbEndpoint_Endpoint{
-						Endpoint: &endpoint.Endpoint{
-							Address: &core.Address{
-								Address: &core.Address_SocketAddress{
-									SocketAddress: &core.SocketAddress{
-										Protocol: core.SocketAddress_TCP,
-										Address:  instance.Host.Value,
-										PortSpecifier: &core.SocketAddress_PortValue{
-											PortValue: instance.Port.Value,
-										},
+			if !isNormalEndpoint(instance) {
+				continue
+			}
+			ep := &endpoint.LbEndpoint{
+				HostIdentifier: &endpoint.LbEndpoint_Endpoint{
+					Endpoint: &endpoint.Endpoint{
+						Address: &core.Address{
+							Address: &core.Address_SocketAddress{
+								SocketAddress: &core.SocketAddress{
+									Protocol: core.SocketAddress_TCP,
+									Address:  instance.Host.Value,
+									PortSpecifier: &core.SocketAddress_PortValue{
+										PortValue: instance.Port.Value,
 									},
 								},
 							},
 						},
 					},
-					Metadata: getEndpointMetaFromPolarisIns(instance),
-				}
-
-				lbEndpoints = append(lbEndpoints, ep)
+				},
+				HealthStatus:        formatEndpointHealth(instance),
+				LoadBalancingWeight: utils.NewUInt32Value(instance.GetWeight().GetValue()),
+				Metadata:            getEndpointMetaFromPolarisIns(instance),
 			}
+
+			lbEndpoints = append(lbEndpoints, ep)
 		}
 
 		cla := &endpoint.ClusterLoadAssignment{
@@ -437,6 +423,7 @@ func makeEndpoints(services []*ServiceInfo) []types.Resource {
 	return clusterLoads
 }
 
+// makeRoutes TODO 全部使用新的路由规则
 func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 	var routes []*route.Route
 	var matchAllRoute *route.Route
@@ -454,7 +441,7 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 					break
 				}
 				for name := range source.Metadata {
-					if name == "*" {
+					if name == utils.MatchAll {
 						matchAll = true
 						break
 					}
@@ -462,124 +449,11 @@ func makeRoutes(serviceInfo *ServiceInfo) []*route.Route {
 				if matchAll {
 					break
 				} else {
-					for name, matchString := range source.Metadata {
-						if name == model.LabelKeyPath {
-							if matchString.Type == apimodel.MatchString_EXACT {
-								routeMatch.PathSpecifier = &route.RouteMatch_Path{
-									Path: matchString.GetValue().GetValue()}
-							} else if matchString.Type == apimodel.MatchString_REGEX {
-								routeMatch.PathSpecifier = &route.RouteMatch_SafeRegex{SafeRegex: &v32.RegexMatcher{
-									Regex: matchString.GetValue().GetValue()}}
-							}
-						} else if strings.HasPrefix(name, model.LabelKeyHeader) {
-							headerSubName := name[len(model.LabelKeyHeader):]
-							if !(len(headerSubName) > 1 && strings.HasPrefix(headerSubName, ".")) {
-								continue
-							}
-							headerSubName = headerSubName[1:]
-							var headerMatch *route.HeaderMatcher
-							if matchString.Type == apimodel.MatchString_EXACT {
-								headerMatch = &route.HeaderMatcher{
-									Name: headerSubName,
-									HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-										StringMatch: &v32.StringMatcher{
-											MatchPattern: &v32.StringMatcher_Exact{
-												Exact: matchString.GetValue().GetValue()}},
-									},
-								}
-							}
-							if matchString.Type == apimodel.MatchString_NOT_EQUALS {
-								headerMatch = &route.HeaderMatcher{
-									Name: headerSubName,
-									HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-										StringMatch: &v32.StringMatcher{
-											MatchPattern: &v32.StringMatcher_Exact{
-												Exact: matchString.GetValue().GetValue()}},
-									},
-									InvertMatch: true,
-								}
-							}
-							if matchString.Type == apimodel.MatchString_REGEX {
-								headerMatch = &route.HeaderMatcher{
-									Name: headerSubName,
-									HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
-										StringMatch: &v32.StringMatcher{MatchPattern: &v32.StringMatcher_SafeRegex{
-											SafeRegex: &v32.RegexMatcher{
-												EngineType: &v32.RegexMatcher_GoogleRe2{
-													GoogleRe2: &v32.RegexMatcher_GoogleRE2{}},
-												Regex: matchString.GetValue().GetValue()}}},
-									},
-								}
-							}
-							if headerMatch != nil {
-								routeMatch.Headers = append(routeMatch.Headers, headerMatch)
-							}
-						} else if strings.HasPrefix(name, model.LabelKeyQuery) {
-							querySubName := name[len(model.LabelKeyQuery):]
-							if !(len(querySubName) > 1 && strings.HasPrefix(querySubName, ".")) {
-								continue
-							}
-							querySubName = querySubName[1:]
-							var queryMatcher *route.QueryParameterMatcher
-							if matchString.Type == apimodel.MatchString_EXACT {
-								queryMatcher = &route.QueryParameterMatcher{
-									Name: querySubName,
-									QueryParameterMatchSpecifier: &route.QueryParameterMatcher_StringMatch{
-										StringMatch: &v32.StringMatcher{
-											MatchPattern: &v32.StringMatcher_Exact{
-												Exact: matchString.GetValue().GetValue()}},
-									},
-								}
-							}
-							if matchString.Type == apimodel.MatchString_REGEX {
-								queryMatcher = &route.QueryParameterMatcher{
-									Name: querySubName,
-									QueryParameterMatchSpecifier: &route.QueryParameterMatcher_StringMatch{
-										StringMatch: &v32.StringMatcher{
-											MatchPattern: &v32.StringMatcher_SafeRegex{SafeRegex: &v32.RegexMatcher{
-												EngineType: &v32.RegexMatcher_GoogleRe2{
-													GoogleRe2: &v32.RegexMatcher_GoogleRE2{}},
-												Regex: matchString.GetValue().GetValue(),
-											}}},
-									},
-								}
-							}
-							if queryMatcher != nil {
-								routeMatch.QueryParameters = append(routeMatch.QueryParameters, queryMatcher)
-							}
-						}
-					}
+					buildSidecarRouteMatch(routeMatch, source)
 				}
 			}
 
-			var weightedClusters []*route.WeightedCluster_ClusterWeight
-			var totalWeight uint32
-
-			// 使用 destinations 生成 weightedClusters。makeClusters() 也使用这个字段生成对应的 subset
-			for _, destination := range inbound.Destinations {
-				fields := make(map[string]*_struct.Value)
-				for k, v := range destination.Metadata {
-					fields[k] = &_struct.Value{
-						Kind: &_struct.Value_StringValue{
-							StringValue: v.Value.Value,
-						},
-					}
-				}
-
-				weightedClusters = append(weightedClusters, &route.WeightedCluster_ClusterWeight{
-					Name:   serviceInfo.Name,
-					Weight: destination.Weight,
-					MetadataMatch: &core.Metadata{
-						FilterMetadata: map[string]*_struct.Struct{
-							"envoy.lb": {
-								Fields: fields,
-							},
-						},
-					},
-				})
-				totalWeight += destination.Weight.Value
-			}
-
+			totalWeight, weightedClusters := buildWeightClusters(serviceInfo, inbound.GetDestinations())
 			currentRoute := &route.Route{
 				Match: routeMatch,
 				Action: &route.Route_Route{
@@ -654,7 +528,12 @@ func generateServiceDomains(serviceInfo *ServiceInfo) []string {
 	return resDomains
 }
 
-func makeLocalRateLimit(conf []*model.RateLimit) map[string]*anypb.Any {
+func (x *XDSServer) makeLocalRateLimit(si *ServiceInfo) map[string]*anypb.Any {
+	ratelimitGetter := x.RatelimitConfigGetter
+	if ratelimitGetter == nil {
+		ratelimitGetter = x.namingServer.Cache().RateLimit().GetRateLimitByServiceID
+	}
+	conf := ratelimitGetter(si.ID)
 	filters := make(map[string]*anypb.Any)
 	if conf != nil {
 		rateLimitConf := &lrl.LocalRateLimit{
@@ -736,46 +615,29 @@ func makeLocalRateLimit(conf []*model.RateLimit) map[string]*anypb.Any {
 	return nil
 }
 
-func (x *XDSServer) makeVirtualHosts(services []*ServiceInfo) []types.Resource {
+type (
+	ServiceDomainBuilder   func(*ServiceInfo) []string
+	RoutesBuilder          func(*ServiceInfo) []*route.Route
+	PerFilterConfigBuilder func(*ServiceInfo) map[string]*anypb.Any
+)
+
+func (x *XDSServer) makeSidecarVirtualHosts(services []*ServiceInfo) []types.Resource {
 	// 每个 polaris serviceInfo 对应一个 virtualHost
 	var routeConfs []types.Resource
 	var hosts []*route.VirtualHost
 
 	for _, serviceInfo := range services {
-		ratelimitGetter := x.RatelimitConfigGetter
-		if ratelimitGetter == nil {
-			ratelimitGetter = x.namingServer.Cache().RateLimit().GetRateLimitByServiceID
-		}
-		rateLimitConf := ratelimitGetter(serviceInfo.ID)
-		hosts = append(hosts, &route.VirtualHost{
+		vHost := &route.VirtualHost{
 			Name:                 serviceInfo.Name,
 			Domains:              generateServiceDomains(serviceInfo),
 			Routes:               makeRoutes(serviceInfo),
-			TypedPerFilterConfig: makeLocalRateLimit(rateLimitConf),
-		})
+			TypedPerFilterConfig: x.makeLocalRateLimit(serviceInfo),
+		}
+		hosts = append(hosts, vHost)
 	}
 
 	// 最后是 allow_any
-	hosts = append(hosts, &route.VirtualHost{
-		Name:    "allow_any",
-		Domains: []string{"*"},
-		Routes: []*route.Route{
-			{
-				Match: &route.RouteMatch{
-					PathSpecifier: &route.RouteMatch_Prefix{
-						Prefix: "/",
-					},
-				},
-				Action: &route.Route_Route{
-					Route: &route.RouteAction{
-						ClusterSpecifier: &route.RouteAction_Cluster{
-							Cluster: "PassthroughCluster",
-						},
-					},
-				},
-			},
-		},
-	})
+	hosts = append(hosts, buildAllowAnyVHost())
 
 	routeConfiguration := &route.RouteConfiguration{
 		Name: "polaris-router",
@@ -790,7 +652,6 @@ func (x *XDSServer) makeVirtualHosts(services []*ServiceInfo) []types.Resource {
 
 func (x *XDSServer) pushRegistryInfoToXDSCache(registryInfo map[string][]*ServiceInfo) error {
 	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
-
 	for ns, services := range registryInfo {
 		_ = x.makeSnapshot(ns, versionLocal, services)
 		_ = x.makePermissiveSnapshot(ns, versionLocal, services)
@@ -803,7 +664,7 @@ func (x *XDSServer) makeSnapshot(ns, version string, services []*ServiceInfo) (e
 	resources := make(map[resource.Type][]types.Resource)
 	resources[resource.EndpointType] = makeEndpoints(services)
 	resources[resource.ClusterType] = x.makeClusters(services)
-	resources[resource.RouteType] = x.makeVirtualHosts(services)
+	resources[resource.RouteType] = x.makeSidecarVirtualHosts(services)
 	resources[resource.ListenerType] = makeListeners()
 	snapshot, err := cachev3.NewSnapshot(version, resources)
 	if err != nil {
@@ -827,7 +688,7 @@ func (x *XDSServer) makePermissiveSnapshot(ns, version string, services []*Servi
 	resources := make(map[resource.Type][]types.Resource)
 	resources[resource.EndpointType] = makeEndpoints(services)
 	resources[resource.ClusterType] = x.makePermissiveClusters(services)
-	resources[resource.RouteType] = x.makeVirtualHosts(services)
+	resources[resource.RouteType] = x.makeSidecarVirtualHosts(services)
 	resources[resource.ListenerType] = makePermissiveListeners()
 	snapshot, err := cachev3.NewSnapshot(version, resources)
 	if err != nil {
@@ -850,7 +711,7 @@ func (x *XDSServer) makeStrictSnapshot(ns, version string, services []*ServiceIn
 	resources := make(map[resource.Type][]types.Resource)
 	resources[resource.EndpointType] = makeEndpoints(services)
 	resources[resource.ClusterType] = x.makeStrictClusters(services)
-	resources[resource.RouteType] = x.makeVirtualHosts(services)
+	resources[resource.RouteType] = x.makeSidecarVirtualHosts(services)
 	resources[resource.ListenerType] = makeStrictListeners()
 	snapshot, err := cachev3.NewSnapshot(version, resources)
 	if err != nil {
@@ -867,6 +728,21 @@ func (x *XDSServer) makeStrictSnapshot(ns, version string, services []*ServiceIn
 		return err
 	}
 	return
+}
+
+func buildSidecarRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.Source) {
+	for name, matchString := range source.Metadata {
+		if name == model.LabelKeyPath {
+			if matchString.Type == apimodel.MatchString_EXACT {
+				routeMatch.PathSpecifier = &route.RouteMatch_Path{
+					Path: matchString.GetValue().GetValue()}
+			} else if matchString.Type == apimodel.MatchString_REGEX {
+				routeMatch.PathSpecifier = &route.RouteMatch_SafeRegex{SafeRegex: &v32.RegexMatcher{
+					Regex: matchString.GetValue().GetValue()}}
+			}
+		}
+	}
+	buildCommonRouteMatch(routeMatch, source)
 }
 
 // syncPolarisServiceInfo 初始化本地 cache，初始化 xds cache
@@ -970,7 +846,6 @@ func (x *XDSServer) initRegistryInfo() error {
 	for _, n := range namespaces {
 		x.registryInfo[n.Name.Value] = []*ServiceInfo{}
 	}
-
 	return nil
 }
 
@@ -1017,6 +892,7 @@ func (x *XDSServer) startSynTask(ctx context.Context) error {
 
 		if len(needPush) > 0 {
 			_ = x.pushRegistryInfoToXDSCache(needPush)
+			_ = x.pushGatewayInfoToXDSCache(needPush)
 		}
 	}
 
@@ -1065,4 +941,60 @@ func (x *XDSServer) checkUpdate(curServiceInfo, cacheServiceInfo []*ServiceInfo)
 	}
 
 	return false
+}
+
+func buildWeightClusters(serviceInfo *ServiceInfo,
+	destinations []*apitraffic.Destination) (uint32, []*route.WeightedCluster_ClusterWeight) {
+	var weightedClusters []*route.WeightedCluster_ClusterWeight
+	var totalWeight uint32
+
+	// 使用 destinations 生成 weightedClusters。makeClusters() 也使用这个字段生成对应的 subset
+	for _, destination := range destinations {
+		fields := make(map[string]*_struct.Value)
+		for k, v := range destination.Metadata {
+			fields[k] = &_struct.Value{
+				Kind: &_struct.Value_StringValue{
+					StringValue: v.Value.Value,
+				},
+			}
+		}
+
+		weightedClusters = append(weightedClusters, &route.WeightedCluster_ClusterWeight{
+			Name:   serviceInfo.Name,
+			Weight: destination.Weight,
+			MetadataMatch: &core.Metadata{
+				FilterMetadata: map[string]*_struct.Struct{
+					"envoy.lb": {
+						Fields: fields,
+					},
+				},
+			},
+		})
+		totalWeight += destination.Weight.Value
+	}
+
+	return totalWeight, weightedClusters
+}
+
+func buildAllowAnyVHost() *route.VirtualHost {
+	return &route.VirtualHost{
+		Name:    "allow_any",
+		Domains: []string{"*"},
+		Routes: []*route.Route{
+			{
+				Match: &route.RouteMatch{
+					PathSpecifier: &route.RouteMatch_Prefix{
+						Prefix: "/",
+					},
+				},
+				Action: &route.Route_Route{
+					Route: &route.RouteAction{
+						ClusterSpecifier: &route.RouteAction_Cluster{
+							Cluster: "PassthroughCluster",
+						},
+					},
+				},
+			},
+		},
+	}
 }

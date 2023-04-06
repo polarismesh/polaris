@@ -30,14 +30,14 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
-type maintainStore struct {
+type adminStore struct {
 	handler BoltHandler
 	leMap   map[string]bool
 	mutex   sync.Mutex
 }
 
 // StartLeaderElection
-func (m *maintainStore) StartLeaderElection(key string) error {
+func (m *adminStore) StartLeaderElection(key string) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -51,7 +51,7 @@ func (m *maintainStore) StartLeaderElection(key string) error {
 }
 
 // IsLeader
-func (m *maintainStore) IsLeader(key string) bool {
+func (m *adminStore) IsLeader(key string) bool {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -63,7 +63,7 @@ func (m *maintainStore) IsLeader(key string) bool {
 }
 
 // ListLeaderElections
-func (m *maintainStore) ListLeaderElections() ([]*model.LeaderElection, error) {
+func (m *adminStore) ListLeaderElections() ([]*model.LeaderElection, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -85,7 +85,7 @@ func (m *maintainStore) ListLeaderElections() ([]*model.LeaderElection, error) {
 }
 
 // ReleaseLeaderElection
-func (m *maintainStore) ReleaseLeaderElection(key string) error {
+func (m *adminStore) ReleaseLeaderElection(key string) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	v, ok := m.leMap[key]
@@ -102,7 +102,7 @@ func (m *maintainStore) ReleaseLeaderElection(key string) error {
 }
 
 // BatchCleanDeletedInstances
-func (m *maintainStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, error) {
+func (m *adminStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, error) {
 	fields := []string{insFieldValid}
 	values, err := m.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
@@ -135,11 +135,11 @@ func (m *maintainStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, er
 	return count, nil
 }
 
-func (m *maintainStore) GetUnHealthyInstances(timeout time.Duration, limit uint32) ([]string, error) {
+func (m *adminStore) GetUnHealthyInstances(timeout time.Duration, limit uint32) ([]string, error) {
 	return m.getUnHealthyInstancesBefore(time.Now().Add(-timeout), limit)
 }
 
-func (m *maintainStore) getUnHealthyInstancesBefore(mtime time.Time, limit uint32) ([]string, error) {
+func (m *adminStore) getUnHealthyInstancesBefore(mtime time.Time, limit uint32) ([]string, error) {
 	fields := []string{insFieldProto, insFieldValid}
 	instances, err := m.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
