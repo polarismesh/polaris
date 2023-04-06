@@ -126,8 +126,10 @@ func EnrichGetUsersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Param(restful.QueryParameter("name", "用户名称, 当前仅提供全模糊搜索").
 			DataType(typeNameString).
 			Required(false)).
-		Param(restful.QueryParameter("source", "用户来源").DataType(typeNameString).Required(false)).
-		Param(restful.QueryParameter("group_id", "用户组ID, 用于查询某个用户组下用户列表").DataType(typeNameString).
+		Param(restful.QueryParameter("source", "用户来源").
+			DataType(typeNameString).Required(false)).
+		Param(restful.QueryParameter("group_id", "用户组ID, 用于查询某个用户组下用户列表").
+			DataType(typeNameString).
 			Required(false)).
 		Param(restful.QueryParameter("offset", "查询偏移量, 默认为0").DataType(typeNameInteger).Required(false).
 			DefaultValue("0")).
