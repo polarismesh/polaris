@@ -129,7 +129,7 @@ type EurekaServer struct {
 	tlsInfo                *secure.TLSInfo
 	option                 map[string]interface{}
 	openAPI                map[string]apiserver.APIConfig
-	worker                 *ApplicationsWorker
+	workers                *ApplicationsWorkers
 	listenPort             uint32
 	listenIP               string
 	exitCh                 chan struct{}
@@ -297,7 +297,7 @@ func (h *EurekaServer) Run(errCh chan error) {
 			return
 		}
 	}
-	h.worker = NewApplicationsWorker(h.refreshInterval, h.deltaExpireInterval, h.enableSelfPreservation,
+	h.workers = NewApplicationsWorkers(h.refreshInterval, h.deltaExpireInterval, h.enableSelfPreservation,
 		h.namingServer, h.healthCheckServer, h.namespace)
 	h.statis = plugin.GetStatis()
 	// 初始化http server
@@ -543,7 +543,7 @@ func (h *EurekaServer) Stop() {
 	if h.server != nil {
 		_ = h.server.Close()
 	}
-	h.worker.Stop()
+	h.workers.Stop()
 }
 
 // Restart 重启eurekaServer

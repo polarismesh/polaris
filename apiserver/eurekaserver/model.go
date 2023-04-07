@@ -399,6 +399,7 @@ type StringMap map[string]interface{}
 
 // ReplicationInstance request for instance replicate
 type ReplicationInstance struct {
+	Namespace          string        `json:"namespace"`
 	AppName            string        `json:"appName"`
 	Id                 string        `json:"id"`
 	LastDirtyTimestamp int64         `json:"lastDirtyTimestamp"`

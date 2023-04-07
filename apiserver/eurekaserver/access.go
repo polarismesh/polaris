@@ -31,11 +31,12 @@ import (
 )
 
 const (
-	ParamAppId  string = "appId"
-	ParamInstId string = "instId"
-	ParamValue  string = "value"
-	ParamVip    string = "vipAddress"
-	ParamSVip   string = "svipAddress"
+	ParamAppId      string = "appId"
+	ParamInstId     string = "instId"
+	ParamValue      string = "value"
+	ParamVip        string = "vipAddress"
+	ParamSVip       string = "svipAddress"
+	HeaderNamespace string = "X-Polaris-Namespace"
 )
 
 // GetEurekaServer eureka web server
@@ -131,7 +132,8 @@ func parseAcceptValue(acceptValue string) map[string]bool {
 
 // GetAllApplications 全量拉取服务实例信息
 func (h *EurekaServer) GetAllApplications(req *restful.Request, rsp *restful.Response) {
-	appsRespCache := h.worker.GetCachedAppsWithLoad()
+	namespace := readNamespaceFromRequest(req, h.namespace)
+	appsRespCache := h.workers.Get(namespace).GetCachedAppsWithLoad()
 	remoteAddr := req.Request.RemoteAddr
 	acceptValue := getParamFromEurekaRequestHeader(req, restful.HEADER_Accept)
 	if err := writeResponse(parseAcceptValue(acceptValue), appsRespCache, req, rsp); nil != err {
@@ -148,7 +150,8 @@ func (h *EurekaServer) GetApplication(req *restful.Request, rsp *restful.Respons
 	appId := readAppIdFromRequest(req)
 
 	remoteAddr := req.Request.RemoteAddr
-	appsRespCache := h.worker.GetCachedAppsWithLoad()
+	namespace := readNamespaceFromRequest(req, h.namespace)
+	appsRespCache := h.workers.Get(namespace).GetCachedAppsWithLoad()
 	apps := appsRespCache.AppsResp.Applications
 	app := apps.GetApplication(appId)
 	if app == nil {
@@ -190,7 +193,8 @@ func (h *EurekaServer) GetAppInstance(req *restful.Request, rsp *restful.Respons
 		writeHeader(http.StatusBadRequest, rsp)
 		return
 	}
-	appsRespCache := h.worker.GetCachedAppsWithLoad()
+	namespace := readNamespaceFromRequest(req, h.namespace)
+	appsRespCache := h.workers.Get(namespace).GetCachedAppsWithLoad()
 	apps := appsRespCache.AppsResp.Applications
 	app := apps.GetApplication(appId)
 	if app == nil {
@@ -271,13 +275,14 @@ func writeResponse(acceptValues map[string]bool, appsRespCache *ApplicationsResp
 
 // GetDeltaApplications 增量拉取服务实例信息
 func (h *EurekaServer) GetDeltaApplications(req *restful.Request, rsp *restful.Response) {
-	appsRespCache := h.worker.GetDeltaApps()
+	namespace := readNamespaceFromRequest(req, h.namespace)
+	appsRespCache := h.workers.Get(namespace).GetDeltaApps()
 	if nil == appsRespCache {
-		ctx := h.worker.StartWorker()
+		ctx := h.workers.Get(namespace).StartWorker()
 		if nil != ctx {
 			<-ctx.Done()
 		}
-		appsRespCache = h.worker.GetDeltaApps()
+		appsRespCache = h.workers.Get(namespace).GetDeltaApps()
 	}
 	remoteAddr := req.Request.RemoteAddr
 	acceptValue := getParamFromEurekaRequestHeader(req, restful.HEADER_Accept)
@@ -378,9 +383,10 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 
 	ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, token)
 
+	namespace := readNamespaceFromRequest(req, h.namespace)
 	log.Infof("[EUREKA-SERVER]received instance register request, client: %s, instId: %s, appId: %s, ipAddr: %s",
 		remoteAddr, registrationRequest.Instance.InstanceId, appId, registrationRequest.Instance.IpAddr)
-	code := h.registerInstances(ctx, appId, registrationRequest.Instance, false)
+	code := h.registerInstances(ctx, namespace, appId, registrationRequest.Instance, false)
 	if code == api.ExecuteSuccess || code == api.ExistedResource || code == api.SameInstanceRequest {
 		log.Infof("[EUREKA-SERVER]instance (instId=%s, appId=%s) has been registered successfully, code is %d",
 			registrationRequest.Instance.InstanceId, appId, code)
@@ -414,6 +420,7 @@ func (h *EurekaServer) UpdateStatus(req *restful.Request, rsp *restful.Response)
 		return
 	}
 	status := req.QueryParameter(ParamValue)
+	namespace := readNamespaceFromRequest(req, h.namespace)
 	log.Infof("[EUREKA-SERVER]received instance updateStatus request, client: %s, instId: %s, appId: %s, status: %s",
 		remoteAddr, instId, appId, status)
 	// check status
@@ -422,7 +429,7 @@ func (h *EurekaServer) UpdateStatus(req *restful.Request, rsp *restful.Response)
 		writeHeader(http.StatusOK, rsp)
 		return
 	}
-	code := h.updateStatus(context.Background(), appId, instId, status, false)
+	code := h.updateStatus(context.Background(), namespace, appId, instId, status, false)
 	writePolarisStatusCode(req, code)
 	if code == api.ExecuteSuccess {
 		log.Infof("[EUREKA-SERVER]instance (instId=%s, appId=%s) has been updated successfully", instId, appId)
@@ -458,10 +465,12 @@ func (h *EurekaServer) DeleteStatus(req *restful.Request, rsp *restful.Response)
 		return
 	}
 
+	namespace := readNamespaceFromRequest(req, h.namespace)
+
 	log.Infof("[EUREKA-SERVER]received instance status delete request, client: %s, instId=%s, appId=%s",
 		remoteAddr, instId, appId)
 
-	code := h.updateStatus(context.Background(), appId, instId, StatusUp, false)
+	code := h.updateStatus(context.Background(), namespace, appId, instId, StatusUp, false)
 	writePolarisStatusCode(req, code)
 	if code == api.ExecuteSuccess {
 		log.Infof("[EUREKA-SERVER]instance status (instId=%s, appId=%s) has been deleted successfully",
@@ -497,7 +506,8 @@ func (h *EurekaServer) RenewInstance(req *restful.Request, rsp *restful.Response
 		writeHeader(http.StatusBadRequest, rsp)
 		return
 	}
-	code := h.renew(context.Background(), appId, instId, false)
+	namespace := readNamespaceFromRequest(req, h.namespace)
+	code := h.renew(context.Background(), namespace, appId, instId, false)
 	writePolarisStatusCode(req, code)
 	if code == api.ExecuteSuccess || code == api.HeartbeatExceedLimit {
 		writeHeader(http.StatusOK, rsp)
@@ -531,9 +541,10 @@ func (h *EurekaServer) CancelInstance(req *restful.Request, rsp *restful.Respons
 		writeHeader(http.StatusBadRequest, rsp)
 		return
 	}
+	namespace := readNamespaceFromRequest(req, h.namespace)
 	log.Infof("[EUREKA-SERVER]received instance deregistered request, client: %s, instId: %s, appId: %s",
 		remoteAddr, instId, appId)
-	code := h.deregisterInstance(context.Background(), appId, instId, false)
+	code := h.deregisterInstance(context.Background(), namespace, appId, instId, false)
 	writePolarisStatusCode(req, code)
 	if code == api.ExecuteSuccess || code == api.NotFoundResource || code == api.SameInstanceRequest {
 		writeHeader(http.StatusOK, rsp)
@@ -557,7 +568,8 @@ func (h *EurekaServer) GetInstance(req *restful.Request, rsp *restful.Response) 
 		writeHeader(http.StatusBadRequest, rsp)
 		return
 	}
-	appsRespCache := h.worker.GetCachedAppsWithLoad()
+	namespace := readNamespaceFromRequest(req, h.namespace)
+	appsRespCache := h.workers.Get(namespace).GetCachedAppsWithLoad()
 	apps := appsRespCache.AppsResp.Applications
 	instance := apps.GetInstance(instId)
 	if nil == instance {
@@ -596,6 +608,7 @@ func (h *EurekaServer) UpdateMetadata(req *restful.Request, rsp *restful.Respons
 		writeHeader(http.StatusBadRequest, rsp)
 		return
 	}
+	namespace := readNamespaceFromRequest(req, h.namespace)
 	queryValues := req.Request.URL.Query()
 	metadataMap := make(map[string]string, len(queryValues))
 	for key, values := range queryValues {
@@ -605,7 +618,7 @@ func (h *EurekaServer) UpdateMetadata(req *restful.Request, rsp *restful.Respons
 		}
 		metadataMap[key] = values[0]
 	}
-	code := h.updateMetadata(context.Background(), appId, instId, metadataMap)
+	code := h.updateMetadata(context.Background(), namespace, appId, instId, metadataMap)
 	writePolarisStatusCode(req, code)
 	if code == api.ExecuteSuccess {
 		log.Infof("[EUREKA-SERVER]instance metadata (instId=%s, appId=%s) has been updated successfully",
@@ -633,7 +646,9 @@ func (h *EurekaServer) QueryByVipAddress(req *restful.Request, rsp *restful.Resp
 		writeHeader(http.StatusBadRequest, rsp)
 		return
 	}
-	appsRespCache := h.worker.GetVipApps(VipCacheKey{
+
+	namespace := readNamespaceFromRequest(req, h.namespace)
+	appsRespCache := h.workers.Get(namespace).GetVipApps(VipCacheKey{
 		entityType:       entityTypeVip,
 		targetVipAddress: formatReadName(vipAddress),
 	})
@@ -654,7 +669,8 @@ func (h *EurekaServer) QueryBySVipAddress(req *restful.Request, rsp *restful.Res
 		writeHeader(http.StatusBadRequest, rsp)
 		return
 	}
-	appsRespCache := h.worker.GetVipApps(VipCacheKey{
+	namespace := readNamespaceFromRequest(req, h.namespace)
+	appsRespCache := h.workers.Get(namespace).GetVipApps(VipCacheKey{
 		entityType:       entityTypeSVip,
 		targetVipAddress: formatReadName(vipAddress),
 	})

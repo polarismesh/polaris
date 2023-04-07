@@ -37,9 +37,10 @@ func TestDispatchHeartbeat(t *testing.T) {
 	options := map[string]interface{}{optionRefreshInterval: 5, optionDeltaExpireInterval: 120}
 	eurekaSrv, err := createEurekaServerForTest(discoverSuit, options)
 	assert.Nil(t, err)
-	eurekaSrv.worker = NewApplicationsWorker(eurekaSrv.refreshInterval, eurekaSrv.deltaExpireInterval,
+	eurekaSrv.workers = NewApplicationsWorkers(eurekaSrv.refreshInterval, eurekaSrv.deltaExpireInterval,
 		eurekaSrv.enableSelfPreservation, eurekaSrv.namingServer, eurekaSrv.healthCheckServer, eurekaSrv.namespace)
 
+	namespace := "default"
 	appId := "TESTAPP"
 	startPort := 8900
 	host := "127.0.1.1"
@@ -54,6 +55,7 @@ func TestDispatchHeartbeat(t *testing.T) {
 	for i, instance := range instances {
 		log.Infof("replicate test: register %d", i)
 		replicateInstances.ReplicationList = append(replicateInstances.ReplicationList, &ReplicationInstance{
+			Namespace:    namespace,
 			AppName:      appId,
 			Id:           instance.InstanceId,
 			InstanceInfo: instance,
@@ -69,9 +71,10 @@ func TestDispatchHeartbeat(t *testing.T) {
 		replicateInstances = &ReplicationList{}
 		for _, instance := range instances {
 			replicateInstances.ReplicationList = append(replicateInstances.ReplicationList, &ReplicationInstance{
-				AppName: appId,
-				Id:      instance.InstanceId,
-				Action:  actionHeartbeat,
+				Namespace: namespace,
+				AppName:   appId,
+				Id:        instance.InstanceId,
+				Action:    actionHeartbeat,
 			})
 		}
 		_, code := eurekaSrv.doBatchReplicate(replicateInstances, "")

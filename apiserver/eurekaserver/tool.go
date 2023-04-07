@@ -84,3 +84,11 @@ func readAppIdFromRequest(req *restful.Request) string {
 	appId := req.PathParameter(ParamAppId)
 	return formatReadName(appId)
 }
+
+func readNamespaceFromRequest(req *restful.Request, defaultValue string) string {
+	namespace := req.HeaderParameter(HeaderNamespace)
+	if len(namespace) == 0 {
+		namespace = defaultValue
+	}
+	return namespace
+}

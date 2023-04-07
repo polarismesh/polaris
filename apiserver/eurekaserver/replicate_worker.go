@@ -130,6 +130,7 @@ func (r *ReplicateWorker) doReplicateToPeer(
 					task.Id, task.AppName, peer, task.InstanceInfo)
 				// do the re-register
 				registerTask := &ReplicationInstance{
+					Namespace:          task.Namespace,
 					AppName:            task.AppName,
 					Id:                 task.Id,
 					LastDirtyTimestamp: task.LastDirtyTimestamp,
