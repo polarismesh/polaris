@@ -243,12 +243,14 @@ func enrichUpdateInstancesIsolateApiDocs(r *restful.RouteBuilder) *restful.Route
 func enrichGetInstancesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("查询服务实例").
 		Metadata(restfulspec.KeyOpenAPITags, instancesApiTags).
+		Param(restful.PathParameter("service", "实例ID").
+			DataType("string").Required(false)).
 		Param(restful.PathParameter("service", "服务名称").
-			DataType("string").Required(true)).
+			DataType("string").Required(false)).
 		Param(restful.PathParameter("namespace", "命名空间").
-			DataType("string").Required(true)).
+			DataType("string").Required(false)).
 		Param(restful.PathParameter("host", "实例IP").
-			DataType("string").Required(true)).
+			DataType("string").Required(false)).
 		Param(restful.PathParameter("keys", "标签key").
 			DataType("string").Required(false)).
 		Param(restful.PathParameter("values", "标签value").

@@ -28,7 +28,6 @@ import (
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
@@ -187,73 +186,18 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Servic
 	return resp
 }
 
-func (s *Server) instancesCache(
-	ctx context.Context, req *apiservice.Service, instId string) *apiservice.DiscoverResponse {
-	var instances []*model.Instance
-	var revision string
-	if !utils.IsWildName(instId) {
-		instance := s.Cache().Instance().GetInstance(instId)
-		if nil != instance {
-			instances = append(instances, instance)
-		}
-	} else {
-		_ = s.Cache().Instance().IteratorInstances(func(key string, value *model.Instance) (bool, error) {
-			if utils.IsWildMatch(key, instId) {
-				instances = append(instances, value)
-			}
-			return true, nil
-		})
-	}
-	var revisions []string
-	resp := api.NewDiscoverInstanceResponse(apimodel.Code_ExecuteSuccess, req)
-	for _, instance := range instances {
-		svcId := instance.ServiceID
-		svc := s.Cache().Service().GetServiceByID(svcId)
-		if nil == svc {
-			continue
-		}
-		resp.Instances = append(resp.Instances, s.rawGetInstance(svc.Name, svc.Namespace, instance.Proto))
-		revisions = append(revisions, instance.Revision())
-	}
-	if len(resp.Instances) == 0 {
-		return api.NewDiscoverInstanceResponse(apimodel.Code_NotFoundResource, req)
-	}
-	revision, revisionErr := cache.CompositeComputeRevision(revisions)
-	if revisionErr != nil {
-		log.Errorf("[Server][Service][Instance] compute revision instance(%s) err: %s",
-			instId, revisionErr.Error())
-		return api.NewDiscoverInstanceResponse(apimodel.Code_ExecuteException, req)
-	}
-	resp.Service.Revision = utils.NewStringValue(revision)
-	return resp
-}
-
-func hasInstanceId(ctx context.Context) (string, bool) {
-	paramValue := ctx.Value(ContextDiscoverParam)
-	if nil != paramValue {
-		params := paramValue.(map[string]string)
-		instId, ok := params[ParamKeyInstanceId]
-		return instId, ok
-	}
-	return "", false
-}
-
 // ServiceInstancesCache 根据服务名查询服务实例列表
 func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+	if req == nil {
+		return api.NewDiscoverInstanceResponse(apimodel.Code_EmptyRequest, req)
+	}
 	if s.caches == nil {
 		return api.NewDiscoverInstanceResponse(apimodel.Code_ClientAPINotOpen, req)
-	}
-	if req == nil {
-		req = &apiservice.Service{Namespace: utils.NewStringValue(""), Name: utils.NewStringValue("")}
 	}
 	serviceName := req.GetName().GetValue()
 	namespaceName := req.GetNamespace().GetValue()
 
 	if serviceName == "" {
-		instId, ok := hasInstanceId(ctx)
-		if ok {
-			return s.instancesCache(ctx, req, instId)
-		}
 		return api.NewDiscoverInstanceResponse(apimodel.Code_InvalidServiceName, req)
 	}
 

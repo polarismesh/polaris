@@ -18,9 +18,7 @@
 package service_test
 
 import (
-	"context"
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
@@ -29,7 +27,6 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
-	"github.com/polarismesh/polaris/service"
 )
 
 // 测试discover instances
@@ -93,84 +90,6 @@ func TestDiscoverInstances(t *testing.T) {
 			convey.So(resp.Responses[0].GetService().GetMetadata()["new-metadata1"], convey.ShouldEqual, "1233")
 			convey.So(resp.Responses[0].GetService().GetMetadata()["new-metadata2"], convey.ShouldEqual, "2342")
 			serviceCheck(t, service, resp.Responses[0].GetService())
-		})
-	})
-}
-
-// 测试discover instances
-func TestDiscoverInstancesById(t *testing.T) {
-
-	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.Initialize(); err != nil {
-		t.Fatal(err)
-	}
-	defer discoverSuit.Destroy()
-
-	convey.Convey("服务发现Id测试", t, func() {
-		_, svc := discoverSuit.createCommonService(t, 1)
-		defer discoverSuit.cleanServiceName(svc.GetName().GetValue(), svc.GetNamespace().GetValue())
-		var instances []*apiservice.Instance
-		var reqInstances []*apiservice.Instance
-		defer func() {
-			for _, entry := range instances {
-				discoverSuit.cleanInstance(entry.GetId().GetValue())
-			}
-		}()
-
-		idPrefix := "prefix-"
-		prefixCount := 5
-		idSuffix := "-suffix"
-		suffixCount := 3
-		for i := 0; i < prefixCount; i++ {
-			req, instance := discoverSuit.createCommonInstanceById(
-				t, svc, i, fmt.Sprintf("%s%d", idPrefix, i))
-			instances = append(instances, instance)
-			reqInstances = append(reqInstances, req)
-		}
-		for i := 0; i < suffixCount; i++ {
-			req, instance := discoverSuit.createCommonInstanceById(
-				t, svc, i, fmt.Sprintf("%d%s", i, idSuffix))
-			instances = append(instances, instance)
-			reqInstances = append(reqInstances, req)
-		}
-		time.Sleep(discoverSuit.UpdateCacheInterval())
-		convey.Convey("根据精准匹配ID进行获取实例", func() {
-			instId := fmt.Sprintf("%s%d", idPrefix, 0)
-			ctx := context.WithValue(discoverSuit.DefaultCtx, service.ContextDiscoverParam,
-				map[string]string{service.ParamKeyInstanceId: instId})
-			out := discoverSuit.DiscoverServer().ServiceInstancesCache(ctx, nil)
-			convey.So(respSuccess(out), convey.ShouldEqual, true)
-			convey.So(len(out.GetInstances()), convey.ShouldEqual, 1)
-			instance := out.GetInstances()[0]
-			convey.So(instance.GetId().GetValue(), convey.ShouldEqual, instId)
-			convey.So(instance.GetNamespace().GetValue(), convey.ShouldEqual, svc.GetNamespace().GetValue())
-			convey.So(instance.GetService().GetValue(), convey.ShouldEqual, svc.GetName().GetValue())
-		})
-		convey.Convey("根据前缀匹配ID进行获取实例", func() {
-			instId := fmt.Sprintf("%s%s", idPrefix, "*")
-			ctx := context.WithValue(discoverSuit.DefaultCtx, service.ContextDiscoverParam,
-				map[string]string{service.ParamKeyInstanceId: instId})
-			out := discoverSuit.DiscoverServer().ServiceInstancesCache(ctx, nil)
-			convey.So(respSuccess(out), convey.ShouldEqual, true)
-			convey.So(len(out.GetInstances()), convey.ShouldEqual, prefixCount)
-			for _, instance := range out.GetInstances() {
-				convey.So(strings.HasPrefix(instance.GetId().GetValue(), idPrefix), convey.ShouldEqual, true)
-				convey.So(instance.GetNamespace().GetValue(), convey.ShouldEqual, svc.GetNamespace().GetValue())
-				convey.So(instance.GetService().GetValue(), convey.ShouldEqual, svc.GetName().GetValue())
-			}
-		})
-		convey.Convey("根据后缀匹配ID进行获取实例", func() {
-			instId := fmt.Sprintf("%s%s", "*", idSuffix)
-			ctx := context.WithValue(discoverSuit.DefaultCtx, service.ContextDiscoverParam,
-				map[string]string{service.ParamKeyInstanceId: instId})
-			out := discoverSuit.DiscoverServer().ServiceInstancesCache(ctx, nil)
-			convey.So(respSuccess(out), convey.ShouldEqual, true)
-			convey.So(len(out.GetInstances()), convey.ShouldEqual, suffixCount)
-			for _, instance := range out.GetInstances() {
-				convey.So(strings.HasSuffix(instance.GetId().GetValue(), idSuffix), convey.ShouldEqual, true)
-				convey.So(instance.GetNamespace().GetValue(), convey.ShouldEqual, svc.GetNamespace().GetValue())
-				convey.So(instance.GetService().GetValue(), convey.ShouldEqual, svc.GetName().GetValue())
-			}
 		})
 	})
 }

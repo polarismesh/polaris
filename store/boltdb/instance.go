@@ -31,6 +31,7 @@ import (
 
 	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 type instanceStore struct {
@@ -400,7 +401,19 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 			version, isVersion := filter["version"]
 			healthy, isHealthy := filter["health_status"]
 			isolate, isIsolate := filter["isolate"]
+			id, isId := filter["id"]
 
+			if isId {
+				if utils.IsWildName(id) {
+					if !utils.IsWildMatch(ins.GetId().GetValue(), id) {
+						return false
+					}
+				} else {
+					if id != ins.GetId().GetValue() {
+						return false
+					}
+				}
+			}
 			if isHost && host != ins.GetHost().GetValue() {
 				return false
 			}

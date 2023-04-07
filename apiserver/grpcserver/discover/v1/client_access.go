@@ -34,7 +34,6 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/utils"
-	"github.com/polarismesh/polaris/service"
 )
 
 var (
@@ -125,9 +124,6 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 				return err
 			}
 			continue
-		}
-		if len(in.Params) > 0 {
-			ctx = context.WithValue(ctx, service.ContextDiscoverParam, in.Params)
 		}
 		var out *apiservice.DiscoverResponse
 		switch in.Type {
