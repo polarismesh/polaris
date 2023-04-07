@@ -254,14 +254,6 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 			Instances: []*apiservice.Instance{},
 			Ports:     value.Ports,
 		}
-
-		if info.Ports == "" {
-			ports := x.namingServer.Cache().Instance().GetServicePorts(value.ID)
-			if len(ports) != 0 {
-				info.Ports = strings.Join(ports, ",")
-			}
-		}
-
 		registryInfo[value.Namespace] = append(registryInfo[value.Namespace], info)
 		return true, nil
 	}
@@ -299,9 +291,16 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 				return fmt.Errorf("error sync instances for %s", svc.Name)
 			}
 
-			svc.Aliases = x.namingServer.Cache().Service().ListServiceAlias(svc.Namespace, svc.Name)
+			svc.AliasFor = x.namingServer.Cache().Service().GetAliasFor(svc.Name, svc.Namespace)
 			svc.SvcInsRevision = resp.Service.Revision.Value
 			svc.Instances = resp.Instances
+			ports := x.namingServer.Cache().Instance().GetServicePorts(svc.ID)
+			if svc.AliasFor != nil {
+				ports = x.namingServer.Cache().Instance().GetServicePorts(svc.AliasFor.ID)
+			}
+			if len(ports) > 0 {
+				svc.Ports = strings.Join(ports, ",")
+			}
 
 			// 获取ratelimit配置
 			ratelimitResp := x.namingServer.GetRateLimitWithCache(ctx, s)
@@ -519,7 +518,6 @@ func buildWeightClustersV2(destinations []*traffic_manage.DestinationGroup) *rou
 		})
 		totalWeight += destination.Weight
 	}
-
 	return &route.WeightedCluster{
 		TotalWeight: &wrappers.UInt32Value{Value: totalWeight},
 		Clusters:    weightedClusters,

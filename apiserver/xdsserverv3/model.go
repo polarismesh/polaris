@@ -41,7 +41,7 @@ type ServiceInfo struct {
 	ID                   string
 	Name                 string
 	Namespace            string
-	Aliases              []*model.Service
+	AliasFor             *model.Service
 	Instances            []*apiservice.Instance
 	SvcInsRevision       string
 	Routing              *traffic_manage.Routing
@@ -56,9 +56,8 @@ func (s *ServiceInfo) matchService(ns, name string) bool {
 		return true
 	}
 
-	for i := range s.Aliases {
-		alias := s.Aliases[i]
-		if alias.Namespace == ns && alias.Name == name {
+	if s.AliasFor != nil {
+		if s.AliasFor.Namespace == ns && s.AliasFor.Name == name {
 			return true
 		}
 	}

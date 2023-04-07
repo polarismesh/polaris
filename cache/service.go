@@ -19,6 +19,7 @@ package cache
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
 
@@ -66,6 +67,8 @@ type ServiceCache interface {
 	ListAllServices() (string, []*model.Service)
 	// ListServiceAlias list service link alias list
 	ListServiceAlias(namespace, name string) []*model.Service
+	// GetAliasFor get alias refrence service info
+	GetAliasFor(name string, namespace string) *model.Service
 	// Update Query trigger update interface
 	Update() error
 }
@@ -217,18 +220,29 @@ func (sc *serviceCache) name() string {
 	return ServiceName
 }
 
+func (sc *serviceCache) GetAliasFor(name string, namespace string) *model.Service {
+	svc := sc.GetServiceByName(name, namespace)
+	if svc == nil {
+		return nil
+	}
+	if svc.Reference == "" {
+		return nil
+	}
+	return sc.GetServiceByID(svc.Reference)
+}
+
 // GetServiceByID 根据服务ID获取服务数据
 func (sc *serviceCache) GetServiceByID(id string) *model.Service {
 	if id == "" {
 		return nil
 	}
-
 	value, ok := sc.ids.Load(id)
 	if !ok {
 		return nil
 	}
-
-	return value.(*model.Service)
+	svc := value.(*model.Service)
+	sc.fillServicePorts(svc)
+	return svc
 }
 
 // GetServiceByName 根据服务名获取服务数据
@@ -245,8 +259,18 @@ func (sc *serviceCache) GetServiceByName(name string, namespace string) *model.S
 	if !ok {
 		return nil
 	}
+	svc := value.(*model.Service)
+	sc.fillServicePorts(svc)
+	return svc
+}
 
-	return value.(*model.Service)
+func (sc *serviceCache) fillServicePorts(svc *model.Service) {
+	if svc.Ports == "" {
+		ports := sc.instCache.GetServicePorts(svc.ID)
+		if len(ports) > 0 {
+			svc.Ports = strings.Join(ports, ",")
+		}
+	}
 }
 
 // CleanNamespace 清除Namespace对应的服务缓存
@@ -262,7 +286,9 @@ func (sc *serviceCache) IteratorServices(iterProc ServiceIterProc) error {
 	)
 
 	proc := func(k interface{}, v interface{}) bool {
-		cont, err = iterProc(k.(string), v.(*model.Service))
+		svc := v.(*model.Service)
+		sc.fillServicePorts(svc)
+		cont, err = iterProc(k.(string), svc)
 		if err != nil {
 			return false
 		}

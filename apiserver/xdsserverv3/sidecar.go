@@ -242,8 +242,10 @@ type (
 
 func (x *XDSServer) makeSidecarVirtualHosts(services []*ServiceInfo) []types.Resource {
 	// 每个 polaris serviceInfo 对应一个 virtualHost
-	var routeConfs []types.Resource
-	var hosts []*route.VirtualHost
+	var (
+		routeConfs []types.Resource
+		hosts      []*route.VirtualHost
+	)
 
 	for _, serviceInfo := range services {
 		vHost := &route.VirtualHost{
@@ -434,8 +436,10 @@ func makeEndpoints(services []*ServiceInfo) []types.Resource {
 
 // makeSidecarRoutes TODO 全部使用新的路由规则
 func makeSidecarRoutes(serviceInfo *ServiceInfo) []*route.Route {
-	var routes []*route.Route
-	var matchAllRoute *route.Route
+	var (
+		routes        []*route.Route
+		matchAllRoute *route.Route
+	)
 	// 路由目前只处理 inbounds
 	rules := filterInboundRouterRule(serviceInfo)
 	for _, rule := range rules {
@@ -508,12 +512,16 @@ func filterInboundRouterRule(svc *ServiceInfo) []*traffic_manage.SubRuleRouting 
 		}
 
 		for i, subRule := range routerRule.Rules {
+			var match bool
 			for _, dest := range subRule.GetDestinations() {
-				if dest.GetNamespace() != svc.Namespace || dest.GetService() != svc.Name {
-					continue
+				if svc.matchService(dest.GetNamespace(), dest.GetService()) {
+					match = true
+					break
 				}
 			}
-			ret = append(ret, routerRule.Rules[i])
+			if match {
+				ret = append(ret, routerRule.Rules[i])
+			}
 		}
 	}
 	return ret
@@ -552,7 +560,8 @@ func generateServiceDomains(serviceInfo *ServiceInfo) []string {
 
 	resDomains := domains
 	// 上面各种服务名加服务端口
-	ports := strings.Split(serviceInfo.Ports, ",")
+	portsStr := serviceInfo.Ports
+	ports := strings.Split(portsStr, ",")
 	for _, port := range ports {
 		if _, err := strconv.Atoi(port); err == nil {
 			// 如果是数字，则为每个域名产生一个带端口的域名
@@ -587,7 +596,8 @@ func buildAllowAnyVHost() *route.VirtualHost {
 	}
 }
 
-func buildWeightClustersForSidecar(svcInfo *ServiceInfo, destinations []*traffic_manage.DestinationGroup) *route.WeightedCluster {
+func buildWeightClustersForSidecar(svcInfo *ServiceInfo,
+	destinations []*traffic_manage.DestinationGroup) *route.WeightedCluster {
 	cluster := buildWeightClustersV2(destinations)
 	for i := range cluster.Clusters {
 		cluster.Clusters[i].Name = svcInfo.Name
