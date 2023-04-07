@@ -515,20 +515,20 @@ func (d *DiscoverTestSuit) removeCommonServiceAliases(t *testing.T, req []*apise
 	}
 }
 
-// 新增一个实例
-func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *apiservice.Service, id int) (
+// 新增一个实例ById
+func (d *DiscoverTestSuit) createCommonInstanceById(t *testing.T, svc *apiservice.Service, count int, instanceID string) (
 	*apiservice.Instance, *apiservice.Instance) {
 	instanceReq := &apiservice.Instance{
 		ServiceToken: utils.NewStringValue(svc.GetToken().GetValue()),
 		Service:      utils.NewStringValue(svc.GetName().GetValue()),
 		Namespace:    utils.NewStringValue(svc.GetNamespace().GetValue()),
-		VpcId:        utils.NewStringValue(fmt.Sprintf("vpcid-%d", id)),
-		Host:         utils.NewStringValue(fmt.Sprintf("9.9.9.%d", id)),
-		Port:         utils.NewUInt32Value(8000 + uint32(id)),
-		Protocol:     utils.NewStringValue(fmt.Sprintf("protocol-%d", id)),
-		Version:      utils.NewStringValue(fmt.Sprintf("version-%d", id)),
-		Priority:     utils.NewUInt32Value(1 + uint32(id)%10),
-		Weight:       utils.NewUInt32Value(1 + uint32(id)%1000),
+		VpcId:        utils.NewStringValue(fmt.Sprintf("vpcid-%d", count)),
+		Host:         utils.NewStringValue(fmt.Sprintf("9.9.9.%d", count)),
+		Port:         utils.NewUInt32Value(8000 + uint32(count)),
+		Protocol:     utils.NewStringValue(fmt.Sprintf("protocol-%d", count)),
+		Version:      utils.NewStringValue(fmt.Sprintf("version-%d", count)),
+		Priority:     utils.NewUInt32Value(1 + uint32(count)%10),
+		Weight:       utils.NewUInt32Value(1 + uint32(count)%1000),
 		HealthCheck: &apiservice.HealthCheck{
 			Type: apiservice.HealthCheck_HEARTBEAT,
 			Heartbeat: &apiservice.HeartbeatHealthCheck{
@@ -537,10 +537,10 @@ func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *apiservice.Se
 		},
 		Healthy:  utils.NewBoolValue(false), // 默认是非健康，因为打开了healthCheck
 		Isolate:  utils.NewBoolValue(false),
-		LogicSet: utils.NewStringValue(fmt.Sprintf("logic-set-%d", id)),
+		LogicSet: utils.NewStringValue(fmt.Sprintf("logic-set-%d", count)),
 		Metadata: map[string]string{
-			"internal-personal-xxx":        fmt.Sprintf("internal-personal-xxx_%d", id),
-			"2my-meta":                     fmt.Sprintf("my-meta-%d", id),
+			"internal-personal-xxx":        fmt.Sprintf("internal-personal-xxx_%d", count),
+			"2my-meta":                     fmt.Sprintf("my-meta-%d", count),
 			"my-meta-a1":                   "1111",
 			"smy-xmeta-h2":                 "2222",
 			"my-1meta-o3":                  "2222",
@@ -557,6 +557,9 @@ func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *apiservice.Se
 			"very-long-key-data-uuuuuuuuu": "P",
 		},
 	}
+	if len(instanceID) > 0 {
+		instanceReq.Id = utils.NewStringValue(instanceID)
+	}
 
 	resp := d.DiscoverServer().CreateInstances(d.DefaultCtx, []*apiservice.Instance{instanceReq})
 	if respSuccess(resp) {
@@ -567,18 +570,26 @@ func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *apiservice.Se
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
 
+	if len(instanceID) == 0 {
+		instanceID, _ = utils.CalculateInstanceID(
+			instanceReq.GetNamespace().GetValue(), instanceReq.GetService().GetValue(),
+			instanceReq.GetVpcId().GetValue(), instanceReq.GetHost().GetValue(), instanceReq.GetPort().GetValue())
+	}
 	// repeated
-	InstanceID, _ := utils.CalculateInstanceID(
-		instanceReq.GetNamespace().GetValue(), instanceReq.GetService().GetValue(),
-		instanceReq.GetVpcId().GetValue(), instanceReq.GetHost().GetValue(), instanceReq.GetPort().GetValue())
-	d.cleanInstance(InstanceID)
-	t.Logf("repeatd create instance(%s)", InstanceID)
+	d.cleanInstance(instanceID)
+	t.Logf("repeatd create instance(%s)", instanceID)
 	resp = d.DiscoverServer().CreateInstances(d.DefaultCtx, []*apiservice.Instance{instanceReq})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
 
 	return instanceReq, resp.Responses[0].GetInstance()
+}
+
+// 新增一个实例
+func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *apiservice.Service, count int) (
+	*apiservice.Instance, *apiservice.Instance) {
+	return d.createCommonInstanceById(t, svc, count, "")
 }
 
 // 指定 IP 和端口为一个服务创建实例

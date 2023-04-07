@@ -96,6 +96,12 @@ const (
 
 	// MaxDbRoutingName routing_config_v2 表
 	MaxDbRoutingName = MaxRuleName
+
+	// ContextDiscoverParam key for discover parameters in context
+	ContextDiscoverParam = utils.StringContext("discover-param")
+
+	// ParamKeyInstanceId key for parameter key instanceId
+	ParamKeyInstanceId = "instanceId"
 )
 
 // checkResourceName 检查资源Name
