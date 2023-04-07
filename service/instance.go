@@ -41,6 +41,7 @@ import (
 var (
 	// InstanceFilterAttributes 查询实例支持的过滤字段
 	InstanceFilterAttributes = map[string]bool{
+		"id":            true, // 实例ID
 		"service":       true, // 服务name
 		"namespace":     true, // 服务namespace
 		"host":          true,
@@ -1171,8 +1172,9 @@ func preGetInstances(query map[string]string) (map[string]string, map[string]str
 	_, serviceIsAvail := query["service"]
 	_, namespaceIsAvail := query["namespace"]
 	_, hostIsAvail := query["host"]
+	_, idIsAvail := query["id"]
 	// service namespace host 三个必须最少传一个
-	if !(serviceIsAvail || namespaceIsAvail || hostIsAvail) {
+	if !(serviceIsAvail || namespaceIsAvail || hostIsAvail || idIsAvail) {
 		return nil, nil, api.NewBatchQueryResponse(apimodel.Code_InvalidQueryInsParameter)
 	}
 

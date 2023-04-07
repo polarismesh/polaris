@@ -74,6 +74,13 @@ func genFilterSQL(filter map[string]string) (string, []interface{}) {
 		} else if key == "name" && utils.IsWildName(value) {
 			str += " name like ?"
 			value = utils.ParseWildNameForSql(value)
+		} else if key == "id" {
+			if utils.IsWildName(value) {
+				str += " instance.id like ?"
+				value = utils.ParseWildNameForSql(value)
+			} else {
+				str += " instance.id = ?"
+			}
 		} else if key == "host" {
 			hosts := strings.Split(value, ",")
 			str += " host in (" + PlaceholdersN(len(hosts)) + ")"

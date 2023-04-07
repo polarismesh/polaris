@@ -194,7 +194,6 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Serv
 	if s.caches == nil {
 		return api.NewDiscoverInstanceResponse(apimodel.Code_ClientAPINotOpen, req)
 	}
-
 	serviceName := req.GetName().GetValue()
 	namespaceName := req.GetNamespace().GetValue()
 
@@ -210,7 +209,8 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Serv
 	// 数据源都来自Cache，这里拿到的service，已经是源服务
 	service := s.getServiceCache(serviceName, namespaceName)
 	if service == nil {
-		log.Errorf("[Server][Service][Instance] not found name(%s) namespace(%s) service", serviceName, namespaceName)
+		log.Infof("[Server][Service][Instance] not found name(%s) namespace(%s) service",
+			serviceName, namespaceName)
 		return api.NewDiscoverInstanceResponse(apimodel.Code_NotFoundResource, req)
 	}
 	s.RecordDiscoverStatis(service.Name, service.Namespace)

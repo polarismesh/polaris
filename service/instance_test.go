@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -355,6 +356,75 @@ func TestUpdateInstanceManyTimes(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
+
+func TestGetInstancesById(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.Initialize(); err != nil {
+		t.Fatal(err)
+	}
+	defer discoverSuit.Destroy()
+
+	_, svc := discoverSuit.createCommonService(t, 1)
+	defer discoverSuit.cleanServiceName(svc.GetName().GetValue(), svc.GetNamespace().GetValue())
+	var instances []*apiservice.Instance
+	var reqInstances []*apiservice.Instance
+	defer func() {
+		for _, entry := range instances {
+			discoverSuit.cleanInstance(entry.GetId().GetValue())
+		}
+	}()
+
+	idPrefix := "prefix-"
+	prefixCount := 5
+	idSuffix := "-suffix"
+	suffixCount := 3
+	for i := 0; i < prefixCount; i++ {
+		req, instance := discoverSuit.createCommonInstanceById(
+			t, svc, i, fmt.Sprintf("%s%d", idPrefix, i))
+		instances = append(instances, instance)
+		reqInstances = append(reqInstances, req)
+	}
+	for i := 0; i < suffixCount; i++ {
+		req, instance := discoverSuit.createCommonInstanceById(
+			t, svc, i, fmt.Sprintf("%d%s", i, idSuffix))
+		instances = append(instances, instance)
+		reqInstances = append(reqInstances, req)
+	}
+	t.Run("根据精准匹配ID进行获取实例", func(t *testing.T) {
+		instId := fmt.Sprintf("%s%d", idPrefix, 0)
+		out := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{"id": instId})
+		assert.True(t, respSuccess(out))
+		assert.Equal(t, 1, len(out.GetInstances()))
+		//instance := out.GetInstances()[0]
+		for _, instance := range out.GetInstances() {
+			assert.Equal(t, instId, instance.GetId().GetValue())
+			assert.Equal(t, svc.GetNamespace().GetValue(), instance.GetNamespace().GetValue())
+			assert.Equal(t, svc.GetName().GetValue(), instance.GetService().GetValue())
+		}
+	})
+	t.Run("根据前缀匹配ID进行获取实例", func(t *testing.T) {
+		instId := fmt.Sprintf("%s%s", idPrefix, "*")
+		out := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{"id": instId})
+		assert.True(t, respSuccess(out))
+		assert.Equal(t, prefixCount, len(out.GetInstances()))
+		for _, instance := range out.GetInstances() {
+			assert.True(t, strings.HasPrefix(instance.GetId().GetValue(), idPrefix))
+			assert.Equal(t, svc.GetNamespace().GetValue(), instance.GetNamespace().GetValue())
+			assert.Equal(t, svc.GetName().GetValue(), instance.GetService().GetValue())
+		}
+	})
+	t.Run("根据后缀匹配ID进行获取实例", func(t *testing.T) {
+		instId := fmt.Sprintf("%s%s", "*", idSuffix)
+		out := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{"id": instId})
+		assert.True(t, respSuccess(out))
+		assert.Equal(t, suffixCount, len(out.GetInstances()))
+		for _, instance := range out.GetInstances() {
+			assert.True(t, strings.HasSuffix(instance.GetId().GetValue(), idSuffix))
+			assert.Equal(t, svc.GetNamespace().GetValue(), instance.GetNamespace().GetValue())
+			assert.Equal(t, svc.GetName().GetValue(), instance.GetService().GetValue())
+		}
+	})
 }
 
 // 测试获取实例
