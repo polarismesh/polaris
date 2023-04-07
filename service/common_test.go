@@ -1231,7 +1231,6 @@ func (d *DiscoverTestSuit) createCommonRateLimit(
 			},
 			AmountPercent: utils.NewUInt32Value(uint32(index)),
 		},
-		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
 	}
 
 	resp := d.DiscoverServer().CreateRateLimits(d.DefaultCtx, []*apitraffic.Rule{rateLimit})
