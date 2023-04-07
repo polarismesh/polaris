@@ -42,7 +42,7 @@ const (
 	typeNameInteger = "integer"
 )
 
-func enrichGetNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetNamespacesApiDocsOld(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("获取命名空间列表(Old)").
 		Metadata(restfulspec.KeyOpenAPITags, namespacesApiTags).
 		Param(restful.QueryParameter("name", "命名空间唯一名称").
