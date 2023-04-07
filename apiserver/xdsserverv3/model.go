@@ -18,9 +18,10 @@
 package xdsserverv3
 
 import (
-	"github.com/polarismesh/polaris/common/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+
+	"github.com/polarismesh/polaris/common/model"
 )
 
 const (
