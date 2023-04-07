@@ -881,11 +881,11 @@ func (s *Server) instanceAuth(ctx context.Context, req *apiservice.Instance, ser
 }
 
 // 获取api.instance
-func (s *Server) rawGetInstance(svcName string, namespace string, instance *apiservice.Instance) *apiservice.Instance {
+func (s *Server) getInstance(service *apiservice.Service, instance *apiservice.Instance) *apiservice.Instance {
 	out := &apiservice.Instance{
 		Id:                instance.GetId(),
-		Service:           utils.NewStringValue(svcName),
-		Namespace:         utils.NewStringValue(namespace),
+		Service:           service.GetName(),
+		Namespace:         service.GetNamespace(),
 		VpcId:             instance.GetVpcId(),
 		Host:              instance.GetHost(),
 		Port:              instance.GetPort(),
@@ -907,11 +907,6 @@ func (s *Server) rawGetInstance(svcName string, namespace string, instance *apis
 
 	s.packCmdb(out)
 	return out
-}
-
-// 获取api.instance
-func (s *Server) getInstance(service *apiservice.Service, instance *apiservice.Instance) *apiservice.Instance {
-	return s.rawGetInstance(service.GetName().GetValue(), service.GetNamespace().GetValue(), instance)
 }
 
 // 获取cmdb
