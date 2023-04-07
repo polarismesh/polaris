@@ -418,6 +418,7 @@ func TestUpdateRateLimit(t *testing.T) {
 					"service":   serviceResp.GetName().GetValue(),
 					"namespace": serviceResp.GetNamespace().GetValue(),
 				}
+				_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 				resp := discoverSuit.DiscoverServer().GetRateLimits(discoverSuit.DefaultCtx, filters)
 				if !respSuccess(resp) {
 					errs <- fmt.Errorf("error : %v", resp)
