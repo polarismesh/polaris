@@ -39,7 +39,7 @@ type rateLimitStore struct {
 
 // CreateRateLimit 新建限流规则
 func (rls *rateLimitStore) CreateRateLimit(limit *model.RateLimit) error {
-	if limit.ID == "" || limit.ServiceID == "" || limit.Revision == "" {
+	if limit.ID == "" || limit.Revision == "" {
 		return errors.New("[Store][database] create rate limit missing some params")
 	}
 	err := RetryTransaction("createRateLimit", func() error {
@@ -94,7 +94,7 @@ func (rls *rateLimitStore) createRateLimit(limit *model.RateLimit) error {
 
 // UpdateRateLimit 更新限流规则
 func (rls *rateLimitStore) UpdateRateLimit(limit *model.RateLimit) error {
-	if limit.ID == "" || limit.ServiceID == "" || limit.Revision == "" {
+	if limit.ID == "" || limit.Revision == "" {
 		return errors.New("[Store][database] update rate limit missing some params")
 	}
 
@@ -107,7 +107,7 @@ func (rls *rateLimitStore) UpdateRateLimit(limit *model.RateLimit) error {
 
 // EnableRateLimit 启用限流规则
 func (rls *rateLimitStore) EnableRateLimit(limit *model.RateLimit) error {
-	if limit.ID == "" || limit.ServiceID == "" || limit.Revision == "" {
+	if limit.ID == "" || limit.Revision == "" {
 		return errors.New("[Store][database] enable rate limit missing some params")
 	}
 
@@ -175,7 +175,7 @@ func (rls *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 
 // DeleteRateLimit 删除限流规则
 func (rls *rateLimitStore) DeleteRateLimit(limit *model.RateLimit) error {
-	if limit.ID == "" || limit.ServiceID == "" || limit.Revision == "" {
+	if limit.ID == "" || limit.Revision == "" {
 		return errors.New("[Store][database] delete rate limit missing some params")
 	}
 
