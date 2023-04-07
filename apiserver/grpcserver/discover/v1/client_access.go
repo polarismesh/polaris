@@ -125,6 +125,7 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 			}
 			continue
 		}
+
 		var out *apiservice.DiscoverResponse
 		switch in.Type {
 		case apiservice.DiscoverRequest_INSTANCE:

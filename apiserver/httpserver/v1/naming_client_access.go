@@ -150,6 +150,7 @@ func (h *HTTPServerV1) Discover(req *restful.Request, rsp *restful.Response) {
 		zap.String("user-agent", req.HeaderParameter("User-Agent")),
 		utils.ZapRequestID(req.HeaderParameter("Request-Id")),
 	)
+
 	var ret *apiservice.DiscoverResponse
 	switch discoverRequest.Type {
 	case apiservice.DiscoverRequest_INSTANCE:
