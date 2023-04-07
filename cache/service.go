@@ -67,7 +67,7 @@ type ServiceCache interface {
 	ListAllServices() (string, []*model.Service)
 	// ListServiceAlias list service link alias list
 	ListServiceAlias(namespace, name string) []*model.Service
-	// GetAliasFor get alias refrence service info
+	// GetAliasFor get alias reference service info
 	GetAliasFor(name string, namespace string) *model.Service
 	// Update Query trigger update interface
 	Update() error

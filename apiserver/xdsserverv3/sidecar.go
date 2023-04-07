@@ -598,9 +598,9 @@ func buildAllowAnyVHost() *route.VirtualHost {
 
 func buildWeightClustersForSidecar(svcInfo *ServiceInfo,
 	destinations []*traffic_manage.DestinationGroup) *route.WeightedCluster {
-	cluster := buildWeightClustersV2(destinations)
-	for i := range cluster.Clusters {
-		cluster.Clusters[i].Name = svcInfo.Name
+	weightClusters := buildWeightClustersV2(destinations)
+	for i := range weightClusters.Clusters {
+		weightClusters.Clusters[i].Name = svcInfo.Name
 	}
-	return cluster
+	return weightClusters
 }
