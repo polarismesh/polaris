@@ -18,6 +18,7 @@
 package v1
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/emicklei/go-restful/v3"
@@ -29,6 +30,7 @@ import (
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/service"
 )
 
 // GetClientAccessServer get client access server
@@ -150,7 +152,9 @@ func (h *HTTPServerV1) Discover(req *restful.Request, rsp *restful.Response) {
 		zap.String("user-agent", req.HeaderParameter("User-Agent")),
 		utils.ZapRequestID(req.HeaderParameter("Request-Id")),
 	)
-
+	if len(discoverRequest.Params) > 0 {
+		ctx = context.WithValue(ctx, service.ContextDiscoverParam, discoverRequest.Params)
+	}
 	var ret *apiservice.DiscoverResponse
 	switch discoverRequest.Type {
 	case apiservice.DiscoverRequest_INSTANCE:
