@@ -130,7 +130,8 @@ func (d *Dispatcher) reloadSelfContinuum() bool {
 		}] = true
 		checkPeers = append(checkPeers, plugin.CheckerPeer{
 			Host: instance.GetHost().GetValue(),
-			ID:   instance.GetId().GetValue(),
+			// DON'T MODIFY !!!
+			ID: instance.GetHost().GetValue(),
 		})
 	})
 	if len(nextBuckets) == 0 {
