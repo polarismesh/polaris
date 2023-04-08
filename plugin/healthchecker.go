@@ -25,6 +25,7 @@ import (
 type CheckerPeer struct {
 	Host string
 	ID   string
+	Port uint32
 }
 
 // ReportRequest report heartbeat request
