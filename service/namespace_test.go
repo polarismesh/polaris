@@ -20,7 +20,6 @@ package service_test
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -140,7 +139,7 @@ func TestRemoveNamespace(t *testing.T) {
 			reqs = append(reqs, resp)
 		}
 
-		time.Sleep(discoverSuit.UpdateCacheInterval())
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		discoverSuit.removeCommonNamespaces(t, reqs)
 		t.Logf("pass")
 	})
@@ -179,7 +178,7 @@ func TestUpdateNamespace(t *testing.T) {
 		req, resp := discoverSuit.createCommonNamespace(t, 200)
 		defer discoverSuit.cleanNamespace(resp.GetName().GetValue())
 
-		time.Sleep(discoverSuit.UpdateCacheInterval())
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 
 		req.Token = resp.Token
 		req.Comment = utils.NewStringValue("new-comment")

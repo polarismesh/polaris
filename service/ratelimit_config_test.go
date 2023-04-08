@@ -110,7 +110,7 @@ func TestCreateRateLimit(t *testing.T) {
 		defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 
 		// 等待缓存更新
-		time.Sleep(discoverSuit.UpdateCacheInterval())
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetRateLimitWithCache(context.Background(), serviceResp)
 		checkRateLimit(t, rateLimitReq, resp.GetRateLimit().GetRules()[0])
 	})
@@ -127,7 +127,7 @@ func TestCreateRateLimit(t *testing.T) {
 		}
 
 		// 等待缓存更新
-		time.Sleep(discoverSuit.UpdateCacheInterval())
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetRateLimitWithCache(context.Background(), serviceResp)
 		checkRateLimit(t, rateLimitReq, resp.GetRateLimit().GetRules()[0])
 		discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())

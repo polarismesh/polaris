@@ -337,6 +337,9 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *apiservice.Serv
 		Namespace: aliasFor.Namespace,
 		Name:      aliasFor.Name,
 	})
+	if len(rules) == 0 || revision == "" {
+		return resp
+	}
 	if req.GetRevision().GetValue() == revision {
 		return api.NewDiscoverRateLimitResponse(apimodel.Code_DataNoChange, req)
 	}
