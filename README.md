@@ -18,15 +18,8 @@ README：
 
 - [Introduction](#introduction)
 - [Getting started](#getting-started)
-  - [Download package](#download-package)
-  - [Start server](#start-server)
-  - [Verify installation](#verify-installation)
-- [Examples](#examples)
-  - [Service Discovery and HealthCheck](#service-discovery-and-healthcheck)
-  - [RateLimit](#ratelimit)
-  - [Flow Control](#flow-control)
-  - [Configuration management](#configuration-management)
-  - [More details](#more-details)
+- [How to develop service with Polaris](#how-to-develop-service-with-polaris)
+- [How to integrate gateway with Polairs](#how-to-integrate-gateway-with-polairs)
 - [Chat group](#chat-group)
 
 visit [website](https://polarismesh.cn/) to learn more
@@ -69,116 +62,100 @@ Features:
 
 ## Getting started
 
-### Download package
 
-You can download the latest standalone package from the addresses below, be aware of to choose the package named ```polaris-standalone-release-*.zip```, and filter the packages by os (windows10: windows, mac: darwin, Linux/Unix: linux).
+Download the standalone package of latest version from Github or Gitee Releases.
 
-- [github](https://github.com/polarismesh/polaris/releases)
-- [gitee](https://gitee.com/polarismesh/polaris/releases)
-
-Take ```polaris-standalone-release_v1.11.0-beta.2.linux.amd64.zip``` for example, you can use the following commands to unzip package:
-
-```
-unzip polaris-standalone-release_v1.11.0-beta.2.linux.amd64.zip
-cd polaris-standalone-release_v1.11.0-beta.2.linux 
-```
-
-### Start server
-
-Under Linux/Unix/Mac platform, use those commands to start polaris standalone server:
-
-```
-bash install.sh
-```
-
-Under Windows platform, use those commands to start polaris standalone server:
-
-```
-install.bat
-```
-
-### Verify installation
-
-```shell script
-curl http://127.0.0.1:8090
-```
-
-Return text is 'Polaris Server', proof features run smoothly
+- [Github Releases](https://github.com/polarismesh/polaris/releases)
+- [Gitee Releases](https://gitee.com/polarismesh/polaris/releases)
 
 If you want to learn more installation methods (changing ports, docker installation, cluster instanllation etc.), please refer: [Installation Guide](https://polarismesh.cn/docs/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/%E5%AE%89%E8%A3%85%E6%9C%8D%E5%8A%A1%E7%AB%AF/%E5%AE%89%E8%A3%85%E5%8D%95%E6%9C%BA%E7%89%88/#%E5%8D%95%E6%9C%BA%E7%89%88%E5%AE%89%E8%A3%85)
 
-## Examples
+**Linux**
 
-Polaris supports microservices built with multi-language, multi-framework, multi-mode (proxyless / proxy)  to access。
+Download the package named `polaris-standalone-release-*.linux.*.zip`.
 
-### Service Discovery and HealthCheck
+```
+unzip polaris-standalone-release-*.linux.*.zip
 
-(1) rpc framework examples:
+cd polaris-standalone-release-*.linux.*
 
-- [Spring Cloud Example](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/java%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91/spring-cloud/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/)
-- [Spring Boot Example](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/java%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91/spring-boot/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/)
-- [gRPC-Go Example](https://github.com/polarismesh/grpc-go-polaris/tree/main/examples/quickstart)
-- [dubbogo Example](https://github.com/apache/dubbo-go-samples/tree/master/polaris)
+bash install.sh
+```
 
-(2) multi-language examples:
+**Mac**
 
-- [Java Example](https://github.com/polarismesh/polaris-java/tree/main/polaris-examples/quickstart-example)
-- [Go Example](https://github.com/polarismesh/polaris-go/tree/main/examples/quickstart)
-- [C++ Example](https://github.com/polarismesh/polaris-cpp/tree/main/examples/quickstart)
+Download the package named `polaris-standalone-release-*.darwin.*.zip`.
 
-(3) proxy mode examples:
+```
+unzip polaris-standalone-release-*.darwin.*.zip
 
-- [Envoy Example](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/k8s%E5%92%8C%E7%BD%91%E6%A0%BC%E4%BB%A3%E7%90%86/envoy%E7%BD%91%E6%A0%BC%E6%8E%A5%E5%85%A5/#%E5%BF%AB%E9%80%9F%E6%8E%A5%E5%85%A5)
+cd polaris-standalone-release-*.darwin.*
 
-### RateLimit
+bash install.sh
+```
 
-(1) rpc framework examples:
+**Windows**
 
-- [Spring Cloud Example](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/java%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91/spring-cloud/%E6%9C%8D%E5%8A%A1%E9%99%90%E6%B5%81/)
-- [gRPC-Go Example](https://github.com/polarismesh/grpc-go-polaris/tree/main/examples/ratelimit/local)
+Download the package named `polaris-standalone-release-*.windows.*.zip`.
 
-(2) multi-language examples:
+```
+unzip polaris-standalone-release-*.windows.*.zip
 
+cd polaris-standalone-release-*.windows.*
 
-- [Java Example](https://github.com/polarismesh/polaris-java/tree/main/polaris-examples/ratelimit-example)
-- [Go Example](https://github.com/polarismesh/polaris-go/tree/main/examples/ratelimit)
-- [C++ Example](https://github.com/polarismesh/polaris-cpp/tree/main/examples/rate_limit)
+install.bat
+```
 
-(3) proxy mode examples: 
+Please run the command to verify the installation.
 
-- [Nginx Example](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/%E7%BD%91%E5%85%B3/%E4%BD%BF%E7%94%A8nginx/#%E8%AE%BF%E9%97%AE%E9%99%90%E6%B5%81)
+```
+curl http://127.0.0.1:8090
+```
 
-### Flow Control
+If the response is "Polaris Server", the installation is successful.
 
-(1) rpc framework examples:
+## How to develop service with Polaris
 
-- [Java Example](https://github.com/polarismesh/polaris-java/tree/main/polaris-examples/router-example/router-multienv-example)
-- [Go Example](https://github.com/polarismesh/polaris-go/tree/main/examples/route/dynamic)
+Polaris provides multi-mode data plane including SDK, development framework, Java agent and sidecar. You can select one or more mode to develop service according to business requirements. 
 
-(2) multi-language examples:
+The first three modes are used in proxyless service governance solution that has lower performance loss and resource cost. The last one is used in proxy service mesh solution that has lower coupling level.
 
-- [Java Example](https://github.com/polarismesh/polaris-java/tree/main/polaris-examples/router-example/router-multienv-example)
-- [Go Example](https://github.com/polarismesh/polaris-go/tree/main/examples/route/dynamic)
+Use Polaris multi-language SDK and call Polaris Client API directly:
 
-(3) proxy mode examples: 
+- [Polaris Java](https://github.com/polarismesh/polaris-java)
+- [Polaris Go](https://github.com/polarismesh/polaris-go)
+- [Polaris C/C++](https://github.com/polarismesh/polaris-cpp)
+- [Polaris PHP](https://github.com/polarismesh/polaris-php)
+- [Polaris Lua](https://github.com/polarismesh/polaris-lua)
 
-- [Envoy Example](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/k8s%E5%92%8C%E7%BD%91%E6%A0%BC%E4%BB%A3%E7%90%86/envoy%E7%BD%91%E6%A0%BC%E6%8E%A5%E5%85%A5/#%E6%B5%81%E9%87%8F%E8%B0%83%E5%BA%A6)
+Use HTTP or RPC frameworks already integrating Polaris Java SDK:
 
+- [spring cloud](https://github.com/Tencent/spring-cloud-tencent)
+- [spring boot](https://github.com/polarismesh/spring-boot-polaris)
+- dubbo-java
+  - [registry, discovery and routing](https://github.com/apache/dubbo-spi-extensions/tree/master/dubbo-registry-extensions)
+  - [circuit breaker and rate limiter](https://github.com/apache/dubbo-spi-extensions/tree/master/dubbo-filter-extensions)
+- [grpc-java](https://github.com/polarismesh/grpc-java-polaris)
 
-### Configuration management
+Use HTTP or RPC frameworks already integrating Polaris Go SDK:
 
-(1) rpc framework examples:
+- dubbo-go
+  - [registry, discovery and routing](https://github.com/apache/dubbo-go/tree/main/registry)
+  - [circuit breaker and rate limiter](https://github.com/apache/dubbo-go/tree/main/filter)
+  - [examples](https://github.com/apache/dubbo-go-samples/tree/master/polaris)
+- [grpc-go](https://github.com/polarismesh/grpc-go-polaris)
 
-- [Spring Cloud/Spring Boot Example](https://github.com/Tencent/spring-cloud-tencent/tree/main/spring-cloud-tencent-examples/polaris-config-example)
+Use K8s service and sidecar:
 
-(2) multi-language examples:
+- [Polaris Controller](https://github.com/polarismesh/polaris-controller)
+- [Polaris Sidecar](https://github.com/polarismesh/polaris-sidecar)
 
-- [Java Example](https://github.com/polarismesh/polaris-java/tree/main/polaris-examples/configuration-example)
-- [Go Example](https://github.com/polarismesh/polaris-go/tree/main/examples/configuration)
+## How to integrate gateway with Polairs
 
-### More details
+Gateway is important in distributed or microservice architecture. You can integrate multiple gateway with Polaris.
 
-More capabilities：[User Manual](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/)
+- [spring cloud gateway](https://github.com/Tencent/spring-cloud-tencent)
+- [nginx gateway](https://github.com/polarismesh/nginx-gateway)
 
 ## Chat group
 
