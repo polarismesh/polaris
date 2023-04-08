@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	commonhash "github.com/polarismesh/polaris/common/hash"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -85,7 +86,9 @@ func (p *Peer) Serve() error {
 
 func (p *Peer) Close() error {
 	if p.Conn != nil {
-		return p.Conn.Close()
+		if err := p.Conn.Close(); err != nil {
+			log.Errorf("peer:%s close", p.Host, zap.Error(err))
+		}
 	}
 	return nil
 }

@@ -27,9 +27,10 @@ func NewSegmentMap[K comparable, V any](soltNum int, hashFunc func(k K) int) *Se
 		solts = append(solts, map[K]V{})
 	}
 	return &SegmentMap[K, V]{
-		soltNum: soltNum,
-		locks:   locks,
-		solts:   solts,
+		soltNum:  soltNum,
+		locks:    locks,
+		solts:    solts,
+		hashFunc: hashFunc,
 	}
 }
 
@@ -48,6 +49,18 @@ func (s *SegmentMap[K, V]) Put(k K, v V) {
 	solt[k] = v
 }
 
+func (s *SegmentMap[K, V]) PutIfAbsent(k K, v V) (V, bool) {
+	lock, solt := s.caulIndex(k)
+	lock.Lock()
+	defer lock.Unlock()
+	oldVal, ok := solt[k]
+	if !ok {
+		solt[k] = v
+		return oldVal, true
+	}
+	return oldVal, false
+}
+
 func (s *SegmentMap[K, V]) Get(k K) (V, bool) {
 	lock, solt := s.caulIndex(k)
 	lock.RLock()
@@ -57,16 +70,18 @@ func (s *SegmentMap[K, V]) Get(k K) (V, bool) {
 	return v, ok
 }
 
-func (s *SegmentMap[K, V]) Del(k K) {
+func (s *SegmentMap[K, V]) Del(k K) bool {
 	lock, solt := s.caulIndex(k)
 	lock.Lock()
 	defer lock.Unlock()
 
+	_, ok := solt[k]
 	delete(solt, k)
+	return ok
 }
 
 func (s *SegmentMap[K, V]) Range(f func(k K, v V)) {
-	for i := 0; i < s.soltNum; i ++ {
+	for i := 0; i < s.soltNum; i++ {
 		lock := s.locks[i]
 		solt := s.solts[i]
 
@@ -79,6 +94,20 @@ func (s *SegmentMap[K, V]) Range(f func(k K, v V)) {
 			}
 		}()
 	}
+}
+
+func (s *SegmentMap[K, V]) Count() uint64 {
+	count := uint64(0)
+	for i := 0; i < s.soltNum; i++ {
+		lock := s.locks[i]
+		solt := s.solts[i]
+		func() {
+			lock.RLock()
+			defer lock.RUnlock()
+			count += uint64(len(solt))
+		}()
+	}
+	return count
 }
 
 func (s *SegmentMap[K, V]) caulIndex(k K) (*sync.RWMutex, map[K]V) {
