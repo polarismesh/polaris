@@ -20,6 +20,8 @@ package healthcheck
 import (
 	"sync"
 	"sync/atomic"
+
+	commonhash "github.com/polarismesh/polaris/common/hash"
 )
 
 // A concurrent safe shardMap for values
@@ -53,7 +55,7 @@ func NewShardMap(size uint32) *shardMap {
 
 // getShard returns shard under given instanceId.
 func (m *shardMap) getShard(instanceId string) *shard {
-	return m.shards[fnv32(instanceId)%m.shardSize]
+	return m.shards[commonhash.Fnv32(instanceId)%int(m.shardSize)]
 }
 
 // Store stores values under given instanceId.
@@ -138,15 +140,4 @@ func (m *shardMap) Range(fn func(instanceId string, value ItemWithChecker)) {
 // Count returns the number of elements within the map.
 func (m *shardMap) Count() int32 {
 	return atomic.LoadInt32(&m.size)
-}
-
-// FNV hash.
-func fnv32(key string) uint32 {
-	hash := uint32(2166136261)
-	const prime32 = uint32(16777619)
-	for i := 0; i < len(key); i++ {
-		hash *= prime32
-		hash ^= uint32(key[i])
-	}
-	return hash
 }

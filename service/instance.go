@@ -34,7 +34,6 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
-	instancecommon "github.com/polarismesh/polaris/common/service"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -179,7 +178,7 @@ func (s *Server) asyncCreateInstance(
 		return nil, api.NewInstanceResponse(future.Code(), req)
 	}
 
-	return instancecommon.CreateInstanceModel(svcId, req), nil
+	return model.CreateInstanceModel(svcId, req), nil
 }
 
 // 同步串行创建实例
@@ -202,7 +201,7 @@ func (s *Server) serialCreateInstance(
 		ins.Isolate = instance.Proto.Isolate
 	}
 	// 直接同步创建服务实例
-	data := instancecommon.CreateInstanceModel(svcId, ins)
+	data := model.CreateInstanceModel(svcId, ins)
 
 	// need lock service to protect not delete in create instance
 	_, releaseFunc, errCode := s.lockService(ctx, req.GetNamespace().GetValue(),

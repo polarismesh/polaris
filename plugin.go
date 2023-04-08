@@ -30,6 +30,7 @@ import (
 	_ "github.com/polarismesh/polaris/plugin/discoverevent/local"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/heartbeatmemory"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/heartbeatredis"
+	_ "github.com/polarismesh/polaris/plugin/healthchecker/heartbeatp2p"
 	_ "github.com/polarismesh/polaris/plugin/history/logger"
 	_ "github.com/polarismesh/polaris/plugin/password"
 	_ "github.com/polarismesh/polaris/plugin/ratelimit/lrurate"

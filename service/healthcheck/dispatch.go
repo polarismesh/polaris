@@ -25,7 +25,9 @@ import (
 
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
+	commonhash "github.com/polarismesh/polaris/common/hash"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 const (
@@ -45,8 +47,8 @@ type Dispatcher struct {
 	managedInstances            map[string]*InstanceWithChecker
 	managedClients              map[string]*ClientWithChecker
 
-	selfServiceBuckets map[Bucket]bool
-	continuum          *Continuum
+	selfServiceBuckets map[commonhash.Bucket]bool
+	continuum          *commonhash.Continuum
 	mutex              *sync.Mutex
 
 	noAvailableServers bool
@@ -99,7 +101,7 @@ func (d *Dispatcher) startDispatchingJob(ctx context.Context) {
 
 const weight = 100
 
-func compareBuckets(src map[Bucket]bool, dst map[Bucket]bool) bool {
+func compareBuckets(src map[commonhash.Bucket]bool, dst map[commonhash.Bucket]bool) bool {
 	if len(src) != len(dst) {
 		return false
 	}
@@ -115,15 +117,21 @@ func compareBuckets(src map[Bucket]bool, dst map[Bucket]bool) bool {
 }
 
 func (d *Dispatcher) reloadSelfContinuum() bool {
-	nextBuckets := make(map[Bucket]bool)
+	nextBuckets := make(map[commonhash.Bucket]bool)
+	checkPeers := make([]plugin.CheckerPeer, 0, len(nextBuckets))
+
 	d.svr.cacheProvider.RangeSelfServiceInstances(func(instance *apiservice.Instance) {
 		if instance.GetIsolate().GetValue() || !instance.GetHealthy().GetValue() {
 			return
 		}
-		nextBuckets[Bucket{
+		nextBuckets[commonhash.Bucket{
 			Host:   instance.GetHost().GetValue(),
 			Weight: weight,
 		}] = true
+		checkPeers = append(checkPeers, plugin.CheckerPeer{
+			Host: instance.GetHost().GetValue(),
+			ID:   instance.GetId().GetValue(),
+		})
 	})
 	if len(nextBuckets) == 0 {
 		d.noAvailableServers = true
@@ -141,7 +149,12 @@ func (d *Dispatcher) reloadSelfContinuum() bool {
 		d.noAvailableServers = false
 	}
 	d.selfServiceBuckets = nextBuckets
-	d.continuum = New(d.selfServiceBuckets)
+	d.continuum = commonhash.New(d.selfServiceBuckets)
+
+	// notify healthchecker current peer list
+	for i := range d.svr.checkers {
+		d.svr.checkers[i].SetCheckerPeers(checkPeers)
+	}
 	return true
 }
 

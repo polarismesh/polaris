@@ -30,7 +30,6 @@ import (
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
-	instancecommon "github.com/polarismesh/polaris/common/service"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
@@ -298,7 +297,7 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 	}
 	// 构造model数据
 	for _, entry := range remains {
-		ins := instancecommon.CreateInstanceModel(entry.serviceId, entry.request)
+		ins := model.CreateInstanceModel(entry.serviceId, entry.request)
 		entry.SetInstance(ins)
 	}
 
