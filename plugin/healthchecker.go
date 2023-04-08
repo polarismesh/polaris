@@ -22,6 +22,11 @@ import (
 	"sync"
 )
 
+type CheckerPeer struct {
+	Host string
+	ID   string
+}
+
 // ReportRequest report heartbeat request
 type ReportRequest struct {
 	QueryRequest
@@ -81,6 +86,8 @@ var (
 // HealthChecker health checker plugin interface
 type HealthChecker interface {
 	Plugin
+	// SetCheckerPeers set checker peer list
+	SetCheckerPeers(peers []CheckerPeer)
 	// Type for health check plugin, only one same type plugin is allowed
 	Type() HealthCheckType
 	// Report process heartbeat info report

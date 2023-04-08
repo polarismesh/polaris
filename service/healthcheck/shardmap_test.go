@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/polarismesh/polaris/common/model"
+	commonhash 	"github.com/polarismesh/polaris/common/hash"
 )
 
 const Parallelism = 1024 //  Used to represent the amount of  Concurrency
@@ -254,7 +255,7 @@ func TestShardMap_PutIfAbsent(t *testing.T) {
 			ServiceID: "a",
 		},
 		checker:   nil,
-		hashValue: hashString(instId1),
+		hashValue: commonhash.HashString(instId1),
 	}
 	_, isNew := m.PutIfAbsent(instId1, &item1)
 	if !isNew {
@@ -266,7 +267,7 @@ func TestShardMap_PutIfAbsent(t *testing.T) {
 			ServiceID: "b",
 		},
 		checker:   nil,
-		hashValue: hashString(instId1),
+		hashValue: commonhash.HashString(instId1),
 	}
 
 	pre, isNew := m.PutIfAbsent(instId1, &item2)
