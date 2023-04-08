@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package heartbeatp2p;
+
+message GetRecordsRequest { repeated string keys = 1; }
+
+message GetRecordsResponse { repeated HeartbeatRecord records = 1; }
+
+message DelRecordsRequest { repeated string keys = 1; }
+
+message DelRecordsResponse { repeated HeartbeatRecord records = 1; }
+
+message HeartbeatRecord {
+  string key = 1;
+  string value = 2;
+  bool exist = 3;
+}
+
+message PutRecordsRequest { repeated HeartbeatRecord records = 1; }
+
+message PutRecordsResponse {}
+
+service CheckerPeerService {
+  rpc GetRecords(GetRecordsRequest) returns (GetRecordsResponse);
+  rpc PutRecords(stream PutRecordsRequest) returns (stream PutRecordsResponse);
+  rpc DelRecords(stream DelRecordsRequest) returns (stream DelRecordsResponse);
+}
