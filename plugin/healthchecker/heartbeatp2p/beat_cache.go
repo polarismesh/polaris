@@ -20,31 +20,30 @@ package heartbeatp2p
 import (
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-// ReadBeatRecord
+// ReadBeatRecord Heartbeat records read results
 type ReadBeatRecord struct {
 	Record RecordValue
 	Exist  bool
 }
 
-// WriteBeatRecord
+// WriteBeatRecord Heartbeat record operation results
 type WriteBeatRecord struct {
 	Record RecordValue
 	Key    string
 }
 
-// RecordValue
+// RecordValue heatrtbeat record value
 type RecordValue struct {
 	Server     string
 	CurTimeSec int64
 	Count      int64
 }
 
-// ParseRecordValue
+// ParseRecordValue parse string to RecordValue
 func ParseRecordValue(s string) (*RecordValue, bool) {
 	infos := strings.Split(s, Split)
 	if len(infos) < 3 {
@@ -74,33 +73,30 @@ func (r RecordValue) String() string {
 }
 
 type (
-	// HashFunction
+	// HashFunction hash function to caul record id need locate in SegmentMap
 	HashFunction func(string) int
-	// RecordSaver
+	// RecordSaver beat record saver
 	RecordSaver func(req *PutRecordsRequest)
-	// RecordDelter
+	// RecordDelter beat record delter
 	RecordDelter func(req *DelRecordsRequest)
-	// RecordGetter
+	// RecordGetter beat record getter
 	RecordGetter func(req *GetRecordsRequest) *GetRecordsResponse
-	// BeatRecordCache
+	// BeatRecordCache Heartbeat data cache
 	BeatRecordCache interface {
-		// Get
+		// Get get records
 		Get(key ...string) map[string]*ReadBeatRecord
-		// Put
+		// Put put records
 		Put(records ...WriteBeatRecord)
-		// Del
+		// Del del records
 		Del(key ...string)
 	}
 )
 
+// newLocalBeatRecordCache
 func newLocalBeatRecordCache(soltNum int32, hashFunc HashFunction) BeatRecordCache {
-	soltLocks := make([]*sync.RWMutex, 0, soltNum)
-	solts := make([]map[string]RecordValue, 0, soltNum)
-	for i := 0; i < int(soltNum); i++ {
-		soltLocks = append(soltLocks, &sync.RWMutex{})
-		solts = append(solts, map[string]RecordValue{})
+	if soltNum == 0 {
+		soltNum = DefaultSoltNum
 	}
-
 	return &LocalBeatRecordCache{
 		beatCache: utils.NewSegmentMap[string, RecordValue](int(soltNum), func(k string) int {
 			return hashFunc(k)
@@ -140,6 +136,7 @@ func (lc *LocalBeatRecordCache) Del(keys ...string) {
 	}
 }
 
+// newRemoteBeatRecordCache
 func newRemoteBeatRecordCache(getter RecordGetter, saver RecordSaver,
 	delter RecordDelter) BeatRecordCache {
 	return &RemoteBeatRecordCache{
@@ -175,8 +172,7 @@ func (rc *RemoteBeatRecordCache) Get(keys ...string) map[string]*ReadBeatRecord 
 			continue
 		}
 		val.Exist = true
-		recordVal, ok := ParseRecordValue(record.Value)
-		if ok {
+		if recordVal, ok := ParseRecordValue(record.Value); ok {
 			val.Record = *recordVal
 		}
 	}
@@ -191,7 +187,7 @@ func (rc *RemoteBeatRecordCache) Put(records ...WriteBeatRecord) {
 		record := records[i]
 		req.Records = append(req.Records, &HeartbeatRecord{
 			Key:   record.Key,
-			Value: req.String(),
+			Value: record.Record.String(),
 		})
 	}
 	rc.saver(req)
