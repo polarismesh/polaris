@@ -18,9 +18,9 @@
 package heartbeatp2p
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	commonhash "github.com/polarismesh/polaris/common/hash"
 	commontime "github.com/polarismesh/polaris/common/time"
@@ -132,10 +132,10 @@ func (c *PeerToPeerHealthChecker) Type() plugin.HealthCheckType {
 // Report process heartbeat info report
 func (c *PeerToPeerHealthChecker) Report(request *plugin.ReportRequest) error {
 	key := request.InstanceId
-	index := c.hash.Hash(commonhash.HashString(key))
-	c.lock.RLock()
-	responsible := c.peers[index]
-	c.lock.RUnlock()
+	responsible, ok := c.findResponsiblePeer(key)
+	if !ok {
+		return fmt.Errorf("write key:%s not found responsible peer", key)
+	}
 
 	record := WriteBeatRecord{
 		Record: RecordValue{
@@ -170,7 +170,6 @@ func (c *PeerToPeerHealthChecker) Check(request *plugin.CheckRequest) (*plugin.C
 		if curTimeSec-lastHeartbeatTime >= int64(request.ExpireDurationSec) {
 			// 心跳超时
 			checkResp.Healthy = false
-
 			if request.Healthy {
 				log.Infof("[Health Check][P2P] health check expired, "+
 					"last hb timestamp is %d, curTimeSec is %d, expireDurationSec is %d, instanceId %s",
@@ -196,10 +195,10 @@ func (c *PeerToPeerHealthChecker) Check(request *plugin.CheckRequest) (*plugin.C
 // Query queries the heartbeat time
 func (c *PeerToPeerHealthChecker) Query(request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
 	key := request.InstanceId
-	index := c.hash.Hash(commonhash.HashString(key))
-	c.lock.RLock()
-	responsible := c.peers[index]
-	c.lock.RUnlock()
+	responsible, ok := c.findResponsiblePeer(key)
+	if !ok {
+		return nil, fmt.Errorf("query key:%s not found responsible peer", key)
+	}
 
 	ret := responsible.Cache.Get(key)
 	record, ok := ret[key]
@@ -217,23 +216,24 @@ func (c *PeerToPeerHealthChecker) Query(request *plugin.QueryRequest) (*plugin.Q
 }
 
 // AddToCheck add the instances to check procedure
+// not support in PeerToPeerHealthChecker
 func (c *PeerToPeerHealthChecker) AddToCheck(request *plugin.AddCheckRequest) error {
 	return nil
 }
 
 // RemoveFromCheck removes the instances from check procedure
+// not support in PeerToPeerHealthChecker
 func (c *PeerToPeerHealthChecker) RemoveFromCheck(request *plugin.AddCheckRequest) error {
 	return nil
 }
 
-// Delete delete the id
-func (c *PeerToPeerHealthChecker) Delete(id string) error {
-	index := c.hash.Hash(commonhash.HashString(id))
-	c.lock.RLock()
-	responsible := c.peers[index]
-	c.lock.RUnlock()
-
-	responsible.Cache.Del(id)
+// Delete delete record by key
+func (c *PeerToPeerHealthChecker) Delete(key string) error {
+	responsible, ok := c.findResponsiblePeer(key)
+	if !ok {
+		return fmt.Errorf("delete key:%s not found responsible peer", key)
+	}
+	responsible.Cache.Del(key)
 	return nil
 }
 
@@ -249,7 +249,13 @@ func (c *PeerToPeerHealthChecker) SuspendTimeSec() int64 {
 	return atomic.LoadInt64(&c.suspendTimeSec)
 }
 
-const maxCheckDuration = 500 * time.Second
+func (c *PeerToPeerHealthChecker) findResponsiblePeer(key string) (*Peer, bool) {
+	index := c.hash.Hash(commonhash.HashString(key))
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	responsible, ok := c.peers[index]
+	return responsible, ok
+}
 
 func (c *PeerToPeerHealthChecker) skipCheck(key string, expireDurationSec int64) bool {
 	suspendTimeSec := c.SuspendTimeSec()
