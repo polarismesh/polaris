@@ -100,6 +100,10 @@ func (r *RedisHealthChecker) Destroy() error {
 	return nil
 }
 
+func (r *RedisHealthChecker) SetCheckerPeers(peers []plugin.CheckerPeer) {
+
+}
+
 // Type for health check plugin, only one same type plugin is allowed
 func (r *RedisHealthChecker) Type() plugin.HealthCheckType {
 	return plugin.HealthCheckerHeartbeat
