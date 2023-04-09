@@ -39,7 +39,7 @@ Polaris is an open source system for service discovery and governance. It can be
 
 - It is a one-stop solution instead of registry center, service mesh and config center.
 - It provides multi-mode data plane, including SDK, development framework, Java agent and sidecar.
-- It is integrated into the most frequently used development frameworks, such as Spring Cloud, Dubbo and gRPC.
+- It is integrated into the most frequently used frameworks, such as Spring Cloud, Dubbo and gRPC.
 - It supports K8s service registry and automatic injection of sidecar for proxy service mesh.
 
 ## How to install 
@@ -133,7 +133,7 @@ Use K8s service and sidecar:
 
 ## How to integrate service gateway
 
-Gateway is important in distributed or microservice architecture. You can integrate different gateways with Polaris.
+You can integrate different service gateways with Polaris.
 
 - [spring cloud gateway](https://github.com/Tencent/spring-cloud-tencent)
 - [nginx gateway](https://github.com/polarismesh/nginx-gateway)
