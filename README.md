@@ -19,46 +19,28 @@ README：
 - [Introduction](#introduction)
 - [How to install](#how-to-install)
 - [How to develop service](#how-to-develop-service)
-- [How to integrate gateway with Polairs](#how-to-integrate-gateway-with-polairs)
+- [How to integrate service gateway](#how-to-integrate-service-gateway)
 - [Chat group](#chat-group)
 
-visit [website](https://polarismesh.cn/) to learn more
+visit [Website](https://polarismesh.cn/) to learn more
 
 ## Introduction
 
-Polaris is a cloud-native service discovery and governance center. It can be used to solve the problem of service
-connection, fault tolerance, traffic control and secure in distributed and microservice architecture.
+Polaris is an open source system for service discovery and governance. It can be used to solve the problem of service management, traffic control, fault tolerance and config management in distributed and microservice architecture.
 
-Functions:
+**Functions**:
 
-- <b>service discover, service register and health check</b>
+- service management: service discovery, service registry and health check 
+- traffic control: customizable routing, load balance, rate limiting and access control
+- fault tolerance: circuit breaker for service, interface and instance
+- config management: config version control, grayscale release and dynamic update
 
-  Register node addresses into service dynamically, and discover the addresses through the discovery mechnism. Also provide health-checking mechanism to remove the unhealthy instances from service in time. 
+**Features**:
 
-- <b>traffic control: request route and load balance</b>
-
-  Provide the mechanism to filter instances by request labels, instances metadata. Users can define rules to direct the request flowing into the locality nearby instances, or gray releasing version instances, etc.
-
-- <b>overload protection: circuit break and rate limit</b>
-
-  Provide the mechanism to reduce the request rate when burst request flowing into the entry services.
-
-  Provide the mechanism to collect the healthy statistic by the response, also kick of the services/interfaces/groups/instances when they are unhealthy.
-
-- <b>observability</b>
-
-  User can see the metrics and tracing through the vison diagram, to be aware of the api call status on time.
-
-- <b>config management</b>
-
-  Provide the mechanism to dynamic configuration subscribe, version management, notify change, to apply the configuration to application in time.
-
-Features:
-
-- It provides SDK for high-performance business scenario and sidecar for non-invasive development mode.
-- It provides multiple clients for different development languages, such as Java, Go, C++ and Nodejs.
-- It can integrate with different service frameworks and gateways, such as Spring Cloud, gRPC and Nginx.
-- It is compatible with Kubernetes and supports automatic injection of K8s service and Polaris sidecar.
+- It is a one-stop solution instead of registry center, service mesh and config center.
+- It provides multi-mode data plane, including SDK, development framework, Java agent and sidecar.
+- It is integrated into the most frequently used development frameworks, such as Spring Cloud, Dubbo and gRPC.
+- It supports K8s service registry and automatic injection of sidecar for proxy service mesh.
 
 ## How to install 
 
@@ -119,8 +101,6 @@ If the response is "Polaris Server", the installation is successful.
 
 Polaris provides multi-mode data plane including SDK, development framework, Java agent and sidecar. You can select one or more mode to develop service according to business requirements. 
 
-The first three modes are used in proxyless service governance solution that has lower performance loss and resource cost. The last one is used in proxy service mesh solution that has lower coupling level.
-
 Use Polaris multi-language SDK and call Polaris Client API directly:
 
 - [Polaris Java](https://github.com/polarismesh/polaris-java)
@@ -151,9 +131,9 @@ Use K8s service and sidecar:
 - [Polaris Controller](https://github.com/polarismesh/polaris-controller)
 - [Polaris Sidecar](https://github.com/polarismesh/polaris-sidecar)
 
-## How to integrate gateway with Polairs
+## How to integrate service gateway
 
-Gateway is important in distributed or microservice architecture. You can integrate multiple gateway with Polaris.
+Gateway is important in distributed or microservice architecture. You can integrate different gateways with Polaris.
 
 - [spring cloud gateway](https://github.com/Tencent/spring-cloud-tencent)
 - [nginx gateway](https://github.com/polarismesh/nginx-gateway)
