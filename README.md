@@ -17,8 +17,8 @@ English | [简体中文](./README-zh.md)
 README：
 
 - [Introduction](#introduction)
-- [Getting started](#getting-started)
-- [How to develop service with Polaris](#how-to-develop-service-with-polaris)
+- [How to install](#how-to-install)
+- [How to develop service](#how-to-develop-service)
 - [How to integrate gateway with Polairs](#how-to-integrate-gateway-with-polairs)
 - [Chat group](#chat-group)
 
@@ -60,15 +60,16 @@ Features:
 - It can integrate with different service frameworks and gateways, such as Spring Cloud, gRPC and Nginx.
 - It is compatible with Kubernetes and supports automatic injection of K8s service and Polaris sidecar.
 
-## Getting started
+## How to install 
 
+Here is how to install the standalone version. Visit [Installation Guide](https://polarismesh.cn/docs/使用指南/服务端安装) to learn more.
 
-Download the standalone package of latest version from Github or Gitee Releases.
+The release packages of standalone and cluster have been provided for Linux, Mac and Windows.
 
 - [Github Releases](https://github.com/polarismesh/polaris/releases)
 - [Gitee Releases](https://gitee.com/polarismesh/polaris/releases)
 
-If you want to learn more installation methods (changing ports, docker installation, cluster instanllation etc.), please refer: [Installation Guide](https://polarismesh.cn/docs/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/%E5%AE%89%E8%A3%85%E6%9C%8D%E5%8A%A1%E7%AB%AF/%E5%AE%89%E8%A3%85%E5%8D%95%E6%9C%BA%E7%89%88/#%E5%8D%95%E6%9C%BA%E7%89%88%E5%AE%89%E8%A3%85)
+Download the release package of last standalone version from Github or Gitee Releases.
 
 **Linux**
 
@@ -106,7 +107,7 @@ cd polaris-standalone-release-*.windows.*
 install.bat
 ```
 
-Please run the command to verify the installation.
+Run the command to verify the installation.
 
 ```
 curl http://127.0.0.1:8090
@@ -114,7 +115,7 @@ curl http://127.0.0.1:8090
 
 If the response is "Polaris Server", the installation is successful.
 
-## How to develop service with Polaris
+## How to develop service
 
 Polaris provides multi-mode data plane including SDK, development framework, Java agent and sidecar. You can select one or more mode to develop service according to business requirements. 
 
