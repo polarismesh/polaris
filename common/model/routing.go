@@ -91,7 +91,7 @@ func (r *ExtendRouterConfig) ToApi() (*apitraffic.RouteRule, error) {
 		}
 	}
 
-	return &apitraffic.RouteRule{
+	rule := &apitraffic.RouteRule{
 		Id:            r.ID,
 		Name:          r.Name,
 		Namespace:     r.Namespace,
@@ -104,7 +104,13 @@ func (r *ExtendRouterConfig) ToApi() (*apitraffic.RouteRule, error) {
 		Etime:         commontime.Time2String(r.EnableTime),
 		Priority:      r.Priority,
 		Description:   r.Description,
-	}, nil
+	}
+	if r.EnableTime.Year() > 2000 {
+		rule.Etime = commontime.Time2String(r.EnableTime)
+	} else {
+		rule.Etime = ""
+	}
+	return rule, nil
 }
 
 // RouterConfig Routing rules

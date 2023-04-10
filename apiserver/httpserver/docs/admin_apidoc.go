@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package httpserver
+package docs
 
 import (
 	"github.com/emicklei/go-restful/v3"
@@ -29,26 +29,26 @@ var (
 	maintainApiTags = []string{"Maintain"}
 )
 
-func enrichGetServerConnectionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetServerConnectionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取服务端连接数").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
-		Param(restful.QueryParameter("protocol", "查看指定协议").DataType("string").Required(true)).
-		Param(restful.QueryParameter("host", "查看指定host").DataType("string").Required(false)).
+		Param(restful.QueryParameter("protocol", "查看指定协议").DataType(DataType_String).Required(true)).
+		Param(restful.QueryParameter("host", "查看指定host").DataType(DataType_String).Required(false)).
 		Notes(enrichGetServerConnectionsApiNotes)
 }
 
-func enrichGetServerConnStatsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetServerConnStatsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取服务端连接统计信息").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
-		Param(restful.QueryParameter("protocol", "查看指定协议").DataType("string").Required(true)).
-		Param(restful.QueryParameter("host", "查看指定host").DataType("string").Required(false)).
-		Param(restful.QueryParameter("amount", "总数").DataType("integer").Required(false)).
+		Param(restful.QueryParameter("protocol", "查看指定协议").DataType(DataType_String).Required(true)).
+		Param(restful.QueryParameter("host", "查看指定host").DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("amount", "总数").DataType(DataType_Integer).Required(false)).
 		Notes(enrichGetServerConnStatsApiNotes)
 }
 
-func enrichCloseConnectionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichCloseConnectionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("关闭指定client ip的连接").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
@@ -56,14 +56,14 @@ func enrichCloseConnectionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Notes(enrichCloseConnectionsApiNotes)
 }
 
-func enrichFreeOSMemoryApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichFreeOSMemoryApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("释放系统内存").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
 		Notes(enrichFreeOSMemoryApiNotes)
 }
 
-func enrichCleanInstanceApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichCleanInstanceApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("彻底清理flag=1的实例").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
@@ -71,62 +71,62 @@ func enrichCleanInstanceApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichCleanInstanceApiNotes)
 }
 
-func enrichBatchCleanInstancesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichBatchCleanInstancesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("彻底清理flag=1的实例").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
 		Notes(enrichBatchCleanInstancesApiNotes)
 }
 
-func enrichGetLastHeartbeatApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetLastHeartbeatApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取上一次心跳的时间").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
-		Param(restful.QueryParameter("id", "实例ID 如果存在则其它参数可不填").DataType("string").Required(false)).
-		Param(restful.QueryParameter("service", "服务名").DataType("string").Required(false)).
-		Param(restful.QueryParameter("namespace", "命名空间").DataType("string").Required(false)).
-		Param(restful.QueryParameter("host", "主机名").DataType("string").Required(false)).
-		Param(restful.QueryParameter("port", "端口").DataType("integer").Required(false)).
-		Param(restful.QueryParameter("vpv_id", "VPC ID").DataType("string").Required(false)).
+		Param(restful.QueryParameter("id", "实例ID 如果存在则其它参数可不填").DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("service", "服务名").DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("namespace", "命名空间").DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("host", "主机名").DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("port", "端口").DataType(DataType_Integer).Required(false)).
+		Param(restful.QueryParameter("vpv_id", "VPC ID").DataType(DataType_String).Required(false)).
 		Notes(enrichGetLastHeartbeatApiNotes)
 }
 
-func enrichGetLogOutputLevelApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetLogOutputLevelApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取日志输出级别").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
 		Notes(enrichGetLogOutputLevelApiNotes)
 }
 
-func enrichSetLogOutputLevelApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichSetLogOutputLevelApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("设置日志输出级别").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
 		Notes(enrichSetLogOutputLevelApiNotes)
 }
 
-func enrichListLeaderElectionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichListLeaderElectionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取选主的结果").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
 		Notes(enrichListLeaderElectionsApiNotes)
 }
 
-func enrichReleaseLeaderElectionApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichReleaseLeaderElectionApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("主动放弃主身份").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
 		Notes(enrichReleaseLeaderElectionApiNotes)
 }
 
-func enrichGetCMDBInfoApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetCMDBInfoApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("查询CMDB信息").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
 		Notes(enrichReleaseLeaderElectionApiNotes)
 }
 
-func enrichGetReportClientsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetReportClientsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("查询SDK实例列表").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).

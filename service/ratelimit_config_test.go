@@ -110,7 +110,7 @@ func TestCreateRateLimit(t *testing.T) {
 		defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 
 		// 等待缓存更新
-		time.Sleep(discoverSuit.UpdateCacheInterval())
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetRateLimitWithCache(context.Background(), serviceResp)
 		checkRateLimit(t, rateLimitReq, resp.GetRateLimit().GetRules()[0])
 	})
@@ -127,7 +127,7 @@ func TestCreateRateLimit(t *testing.T) {
 		}
 
 		// 等待缓存更新
-		time.Sleep(discoverSuit.UpdateCacheInterval())
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetRateLimitWithCache(context.Background(), serviceResp)
 		checkRateLimit(t, rateLimitReq, resp.GetRateLimit().GetRules()[0])
 		discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
@@ -418,6 +418,7 @@ func TestUpdateRateLimit(t *testing.T) {
 					"service":   serviceResp.GetName().GetValue(),
 					"namespace": serviceResp.GetNamespace().GetValue(),
 				}
+				_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 				resp := discoverSuit.DiscoverServer().GetRateLimits(discoverSuit.DefaultCtx, filters)
 				if !respSuccess(resp) {
 					errs <- fmt.Errorf("error : %v", resp)
@@ -549,15 +550,14 @@ func TestGetRateLimit(t *testing.T) {
 	serviceName := ""
 	namespaceName := ""
 	for i := 0; i < serviceNum; i++ {
-		_, serviceResp := discoverSuit.createCommonService(t, i)
-		if i == 5 {
-			serviceName = serviceResp.GetName().GetValue()
-			namespaceName = serviceResp.GetNamespace().GetValue()
-		}
-		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
-		defer discoverSuit.cleanRateLimitRevision(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+		serviceName = fmt.Sprintf("ratelimit_service_%d", i)
+		namespaceName = fmt.Sprintf("ratelimit_namespace_%d", i)
+		defer discoverSuit.cleanRateLimitRevision(serviceName, namespaceName)
 		for j := 0; j < rateLimitsNum/serviceNum; j++ {
-			_, rateLimitResp := discoverSuit.createCommonRateLimit(t, serviceResp, j)
+			_, rateLimitResp := discoverSuit.createCommonRateLimit(t, &apiservice.Service{
+				Name:      utils.NewStringValue(serviceName),
+				Namespace: utils.NewStringValue(namespaceName),
+			}, j)
 			defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 			rateLimits = append(rateLimits, rateLimitResp)
 		}
@@ -585,8 +585,8 @@ func TestGetRateLimit(t *testing.T) {
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
-		if resp.GetSize().GetValue() != uint32(rateLimitsNum) {
-			t.Fatalf("expect num is %d, actual num is %d", serviceNum, resp.GetSize().GetValue())
+		if resp.GetSize().GetValue() != uint32(rateLimitsNum/serviceNum) {
+			t.Fatalf("expect num is %d, actual num is %d", rateLimitsNum/serviceNum, resp.GetSize().GetValue())
 		}
 		t.Logf("pass: num is %d", resp.GetSize().GetValue())
 	})

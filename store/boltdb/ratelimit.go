@@ -73,28 +73,17 @@ type rateLimitStore struct {
 
 // CreateRateLimit 新增限流规则
 func (r *rateLimitStore) CreateRateLimit(limit *model.RateLimit) error {
-	if limit.ID == "" || limit.ServiceID == "" || limit.Revision == "" {
+	if limit.ID == "" || limit.Revision == "" {
 		log.Error("[Store][boltdb] create ratelimit missing some params")
 		return ErrBadParam
 	}
-
-	tNow := time.Now()
-
-	limit.CreateTime = tNow
-	limit.ModifyTime = tNow
-	if !limit.Disable {
-		limit.EnableTime = tNow
-	} else {
-		limit.EnableTime = time.Unix(0, 0)
-	}
-	limit.Valid = true
 
 	return r.createRateLimit(limit)
 }
 
 // UpdateRateLimit 更新限流规则
 func (r *rateLimitStore) UpdateRateLimit(limit *model.RateLimit) error {
-	if limit.ID == "" || limit.ServiceID == "" || limit.Revision == "" {
+	if limit.ID == "" || limit.Revision == "" {
 		log.Error("[Store][boltdb] update ratelimit missing some params")
 		return ErrBadParam
 	}
@@ -104,7 +93,7 @@ func (r *rateLimitStore) UpdateRateLimit(limit *model.RateLimit) error {
 
 // EnableRateLimit 激活限流规则
 func (r *rateLimitStore) EnableRateLimit(limit *model.RateLimit) error {
-	if limit.ID == "" || limit.ServiceID == "" || limit.Revision == "" {
+	if limit.ID == "" || limit.Revision == "" {
 		log.Error("[Store][boltdb] update ratelimit missing some params")
 		return ErrBadParam
 	}
@@ -113,7 +102,7 @@ func (r *rateLimitStore) EnableRateLimit(limit *model.RateLimit) error {
 
 // DeleteRateLimit 删除限流规则
 func (r *rateLimitStore) DeleteRateLimit(limit *model.RateLimit) error {
-	if limit.ID == "" || limit.ServiceID == "" || limit.Revision == "" {
+	if limit.ID == "" || limit.Revision == "" {
 		log.Error("[Store][boltdb] delete ratelimit missing some params")
 		return ErrBadParam
 	}
@@ -125,33 +114,8 @@ func (r *rateLimitStore) DeleteRateLimit(limit *model.RateLimit) error {
 func (r *rateLimitStore) GetExtendRateLimits(
 	query map[string]string, offset uint32, limit uint32) (uint32, []*model.ExtendRateLimit, error) {
 
-	svcName, hasSvcName := query["service"]
-	svcNs, hasSvcNamespace := query["namespace"]
-
 	handler := r.handler
-	fields := []string{SvcFieldName, SvcFieldNamespace, SvcFieldValid}
-	services, err := r.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
-		func(m map[string]interface{}) bool {
-			validVal, ok := m[SvcFieldValid]
-			if ok && !validVal.(bool) {
-				return false
-			}
-
-			if hasSvcName && svcName != m[SvcFieldName].(string) {
-				return false
-			}
-			if hasSvcNamespace && svcNs != m[SvcFieldNamespace].(string) {
-				return false
-			}
-			return true
-		})
-
-	// Remove query parameters for the service
-	delete(query, "service")
-	delete(query, "namespace")
-	delete(query, "brief")
-
-	fields = append(utils.CollectMapKeys(query), RateConfFieldServiceID, RateConfFieldValid)
+	fields := append(utils.CollectMapKeys(query), RateConfFieldServiceID, RateConfFieldValid)
 
 	result, err := handler.LoadValuesByFilter(tblRateLimitConfig, fields, &model.RateLimit{},
 		func(m map[string]interface{}) bool {
@@ -159,11 +123,6 @@ func (r *rateLimitStore) GetExtendRateLimits(
 			if ok && !validVal.(bool) {
 				return false
 			}
-			rSvcId := m[RateConfFieldServiceID]
-			if _, ok := services[rSvcId.(string)]; !ok {
-				return false
-			}
-
 			delete(m, RateConfFieldValid)
 
 			for k, v := range query {
@@ -188,22 +147,13 @@ func (r *rateLimitStore) GetExtendRateLimits(
 	if err != nil {
 		return 0, nil, err
 	}
-
 	if len(result) == 0 {
 		return 0, []*model.ExtendRateLimit{}, nil
 	}
 
-	out := make([]*model.ExtendRateLimit, 0, 4)
-
-	for id, r := range result {
+	out := make([]*model.ExtendRateLimit, 0, len(result))
+	for _, r := range result {
 		var temp model.ExtendRateLimit
-		svc, ok := services[r.(*model.RateLimit).ServiceID].(*model.Service)
-		if ok {
-			temp.ServiceName = svc.Name
-			temp.NamespaceName = svc.Namespace
-		} else {
-			log.Warnf("[Store][boltdb] get service in ratelimit conf error, service is nil, id: %s", id)
-		}
 		temp.RateLimit = r.(*model.RateLimit)
 
 		out = append(out, &temp)
@@ -243,8 +193,8 @@ func (r *rateLimitStore) GetRateLimitWithID(id string) (*model.RateLimit, error)
 }
 
 // GetRateLimitsForCache 根据修改时间拉取增量限流规则及最新版本号
-func (r *rateLimitStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]*model.RateLimit,
-	[]*model.RateLimitRevision, error) {
+func (r *rateLimitStore) GetRateLimitsForCache(mtime time.Time,
+	firstUpdate bool) ([]*model.RateLimit, error) {
 	handler := r.handler
 
 	if firstUpdate {
@@ -252,58 +202,31 @@ func (r *rateLimitStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool
 	}
 
 	var (
-		serviceIds = make(map[string]struct{})
-		fields     = []string{RateConfFieldMtime, RateConfFieldServiceID}
+		fields = []string{RateConfFieldMtime, RateConfFieldServiceID}
 	)
 	limitResults, err := handler.LoadValuesByFilter(tblRateLimitConfig, fields, &model.RateLimit{},
 		func(m map[string]interface{}) bool {
 			mt := m[RateConfFieldMtime].(time.Time)
 			isAfter := !mt.Before(mtime)
-			if isAfter {
-				serviceIds[m[RateConfFieldServiceID].(string)] = struct{}{}
-			}
 			return isAfter
 		})
 
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if len(limitResults) == 0 {
-		return []*model.RateLimit{}, []*model.RateLimitRevision{}, nil
-	}
-
-	svcIds := make([]string, len(serviceIds))
-	pos := 0
-	for k := range serviceIds {
-		svcIds[pos] = k
-		pos++
-	}
-
-	revisionResults, err := handler.LoadValues(tblRateLimitRevision, svcIds, &model.RateLimitRevision{})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if len(revisionResults) == 0 {
-		return []*model.RateLimit{}, []*model.RateLimitRevision{}, nil
+		return []*model.RateLimit{}, nil
 	}
 
 	limits := make([]*model.RateLimit, 0, len(limitResults))
-	versions := make([]*model.RateLimitRevision, 0, len(revisionResults))
 
 	for i := range limitResults {
 		rule := limitResults[i].(*model.RateLimit)
-		ver, ok := revisionResults[rule.ServiceID]
-		if !ok {
-			continue
-		}
-
 		limits = append(limits, rule)
-		versions = append(versions, ver.(*model.RateLimitRevision))
 	}
 
-	return limits, versions, nil
+	return limits, nil
 }
 
 // createRateLimit save model.RateLimit and model.RateLimitRevision
@@ -313,28 +236,22 @@ func (r *rateLimitStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool
 //	@return error
 func (r *rateLimitStore) createRateLimit(limit *model.RateLimit) error {
 	handler := r.handler
+	tNow := time.Now()
+	limit.CreateTime = tNow
+	limit.ModifyTime = tNow
+	if !limit.Disable {
+		limit.EnableTime = tNow
+	} else {
+		limit.EnableTime = time.Unix(0, 0)
+	}
+	limit.Valid = true
 	return handler.Execute(true, func(tx *bolt.Tx) error {
-
 		// create ratelimit_config
 		if err := saveValue(tx, tblRateLimitConfig, limit.ID, limit); err != nil {
 			log.Errorf("[Store][RateLimit] create rate_limit(%s, %s), %+v, err: %s",
 				limit.ID, limit.ServiceID, limit, err.Error())
 			return err
 		}
-
-		// create ratelimit_version
-		lastVer := &model.RateLimitRevision{
-			ServiceID:    limit.ServiceID,
-			LastRevision: limit.Revision,
-			ModifyTime:   time.Now(),
-		}
-
-		if err := saveValue(tx, tblRateLimitRevision, lastVer.ServiceID, lastVer); err != nil {
-			log.Errorf("[Store][RateLimit] create ratelimit_revision(%s, %s) err: %s",
-				limit.ID, limit.ServiceID, err.Error())
-			return err
-		}
-
 		return nil
 	})
 }
@@ -347,8 +264,6 @@ func (r *rateLimitStore) createRateLimit(limit *model.RateLimit) error {
 func (r *rateLimitStore) enableRateLimit(limit *model.RateLimit) error {
 	handler := r.handler
 	return handler.Execute(true, func(tx *bolt.Tx) error {
-		tNow := time.Now()
-
 		properties := make(map[string]interface{})
 		properties[RateLimitFieldDisable] = limit.Disable
 		properties[RateLimitFieldRevision] = limit.Revision
@@ -364,20 +279,6 @@ func (r *rateLimitStore) enableRateLimit(limit *model.RateLimit) error {
 				limit.ID, limit.ServiceID, err.Error())
 			return err
 		}
-
-		// create ratelimit_version
-		lastVer := &model.RateLimitRevision{
-			ServiceID:    limit.ServiceID,
-			LastRevision: limit.Revision,
-			ModifyTime:   tNow,
-		}
-
-		if err := saveValue(tx, tblRateLimitRevision, lastVer.ServiceID, lastVer); err != nil {
-			log.Errorf("[Store][RateLimit] update ratelimit_revision(%s, %s) err: %s",
-				limit.ID, limit.ServiceID, err.Error())
-			return err
-		}
-
 		return nil
 	})
 }
@@ -390,8 +291,6 @@ func (r *rateLimitStore) enableRateLimit(limit *model.RateLimit) error {
 func (r *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 	handler := r.handler
 	return handler.Execute(true, func(tx *bolt.Tx) error {
-		tNow := time.Now()
-
 		properties := make(map[string]interface{})
 		properties[RateLimitFieldName] = limit.Name
 		properties[RateLimitFieldMethod] = limit.Method
@@ -412,20 +311,6 @@ func (r *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 				limit.ID, limit.ServiceID, err.Error())
 			return err
 		}
-
-		// create ratelimit_version
-		lastVer := &model.RateLimitRevision{
-			ServiceID:    limit.ServiceID,
-			LastRevision: limit.Revision,
-			ModifyTime:   tNow,
-		}
-
-		if err := saveValue(tx, tblRateLimitRevision, lastVer.ServiceID, lastVer); err != nil {
-			log.Errorf("[Store][RateLimit] update ratelimit_revision(%s, %s) err: %s",
-				limit.ID, limit.ServiceID, err.Error())
-			return err
-		}
-
 		return nil
 	})
 }
@@ -449,18 +334,6 @@ func (r *rateLimitStore) deleteRateLimit(limit *model.RateLimit) error {
 				limit.ID, limit.ServiceID, err.Error())
 			return err
 		}
-
-		revisionProperties := make(map[string]interface{})
-		revisionProperties[RateLimitReviFieldServiceID] = limit.ServiceID
-		revisionProperties[RateLimitReviFieldLastRevision] = limit.Revision
-		revisionProperties[RateLimitReviFieldModifyTime] = time.Now()
-
-		if err := updateValue(tx, tblRateLimitRevision, limit.ServiceID, revisionProperties); err != nil {
-			log.Errorf("[Store][RateLimit] delete ratelimit_version(%s, %s) err: %s",
-				limit.ID, limit.ServiceID, err.Error())
-			return err
-		}
-
 		return nil
 	})
 }

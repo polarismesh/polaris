@@ -15,41 +15,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package plugin
+package docs
 
-import (
-	"os"
-	"sync"
-	"time"
+const (
+	DataType_String  = "string"
+	DataType_Integer = "integer"
+	DataType_Bool    = "boolean"
 )
-
-var (
-	discoverStatisOnce sync.Once
-)
-
-// DiscoverStatis Service discovery statistical plug -in interface
-type DiscoverStatis interface {
-	Plugin
-
-	// AddDiscoverCall Add found call
-	AddDiscoverCall(service, namespace string, tt time.Time) error
-}
-
-// GetDiscoverStatis Get service discovery statistical plug -in
-func GetDiscoverStatis() DiscoverStatis {
-	c := &config.DiscoverStatis
-
-	plugin, exist := pluginSet[c.Name]
-	if !exist {
-		return nil
-	}
-
-	discoverStatisOnce.Do(func() {
-		if err := plugin.Initialize(c); err != nil {
-			log.Errorf("DiscoverStatis plugin init err: %s", err.Error())
-			os.Exit(-1)
-		}
-	})
-
-	return plugin.(DiscoverStatis)
-}

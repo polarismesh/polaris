@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInitEventHub(t *testing.T) {
+func TestEventHub_Init(t *testing.T) {
 	tests := []struct {
 		name string
 	}{
@@ -168,7 +168,7 @@ func TestEventHub_Shutdown(t *testing.T) {
 			wantTopicNum: 0,
 		},
 	}
-	InitEventHub()
+	TestInitEventHub()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			Shutdown()

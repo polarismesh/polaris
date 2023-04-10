@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package v1
+package docs
 
 import (
 	"github.com/emicklei/go-restful/v3"
@@ -27,7 +27,7 @@ var (
 	registerInstanceApiTags = []string{"Client"}
 )
 
-func enrichReportClientApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichReportClientApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("上报客户端信息").
 		Metadata(restfulspec.KeyOpenAPITags, registerInstanceApiTags).
 		Doc("上报客户端").
@@ -35,25 +35,25 @@ func enrichReportClientApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichReportClientApiNotes)
 }
 
-func enrichRegisterInstanceApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichRegisterInstanceApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("注册实例").
 		Metadata(restfulspec.KeyOpenAPITags, registerInstanceApiTags).
 		Notes(enrichRegisterInstanceApiNotes)
 }
 
-func enrichDeregisterInstanceApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichDeregisterInstanceApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("注销实例").
 		Metadata(restfulspec.KeyOpenAPITags, registerInstanceApiTags).
 		Notes(enrichDeregisterInstanceApiNotes)
 }
 
-func enrichHeartbeatApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichHeartbeatApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("上报心跳").
 		Metadata(restfulspec.KeyOpenAPITags, registerInstanceApiTags).
 		Notes(enrichHeartbeatApiNotes)
 }
 
-func enrichDiscoverApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichDiscoverApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("服务发现").
 		Metadata(restfulspec.KeyOpenAPITags, registerInstanceApiTags).
 		Notes(enrichDiscoverApiNotes)

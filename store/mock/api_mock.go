@@ -1499,13 +1499,12 @@ func (mr *MockStoreMockRecorder) GetRateLimitWithID(id interface{}) *gomock.Call
 }
 
 // GetRateLimitsForCache mocks base method.
-func (m *MockStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]*model.RateLimit, []*model.RateLimitRevision, error) {
+func (m *MockStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]*model.RateLimit, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRateLimitsForCache", mtime, firstUpdate)
 	ret0, _ := ret[0].([]*model.RateLimit)
-	ret1, _ := ret[1].([]*model.RateLimitRevision)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // GetRateLimitsForCache indicates an expected call of GetRateLimitsForCache.

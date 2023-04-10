@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package httpserver
+package docs
 
 import (
 	"github.com/emicklei/go-restful/v3"
@@ -27,17 +27,20 @@ var (
 	namespaceApiTags = []string{"Namespaces"}
 )
 
-func enrichGetNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("查询命名空间列表(New)").
 		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).
-		Param(restful.QueryParameter("name", "命名空间唯一名称").DataType("string").Required(true)).
-		Param(restful.QueryParameter("offset", "查询偏移量").DataType("integer").Required(false).DefaultValue("0")).
-		Param(restful.QueryParameter("limit", "查询条数，**最多查询100条**").DataType("integer").Required(false)).
+		Param(restful.QueryParameter("name", "命名空间唯一名称").
+			DataType(DataType_String).Required(true)).
+		Param(restful.QueryParameter("offset", "查询偏移量").
+			DataType(DataType_Integer).Required(false).DefaultValue("0")).
+		Param(restful.QueryParameter("limit", "查询条数，**最多查询100条**").
+			DataType(DataType_Integer).Required(false)).
 		Notes(enrichGetNamespacesApiNotes)
 }
 
-func enrichCreateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichCreateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("创建命名空间(New)").
 		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).
@@ -45,7 +48,7 @@ func enrichCreateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Notes(enrichCreateNamespacesApiNotes)
 }
 
-func enrichDeleteNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichDeleteNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("删除命名空间(New)").
 		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).
@@ -53,7 +56,7 @@ func enrichDeleteNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Notes(enrichDeleteNamespacesApiNotes)
 }
 
-func enrichUpdateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichUpdateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("更新命名空间(New)").
 		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).
@@ -61,13 +64,13 @@ func enrichUpdateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Notes(enrichUpdateNamespacesApiNotes)
 }
 
-func enrichGetNamespaceTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetNamespaceTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("查询命名空间Token(New)").
 		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).Deprecate()
 }
 
-func enrichUpdateNamespaceTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichUpdateNamespaceTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("更新命名空间Token(New)").
 		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).Deprecate()

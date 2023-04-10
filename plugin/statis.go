@@ -38,6 +38,8 @@ type Statis interface {
 	ReportDiscoveryMetrics(metric ...metrics.DiscoveryMetric)
 	// ReportConfigMetrics report config_center metrics
 	ReportConfigMetrics(metric ...metrics.ConfigMetrics)
+	// ReportDiscoverCall report discover service times
+	ReportDiscoverCall(service, namespace string, ttMill int64)
 }
 
 // compositeStatis is used to receive discover events from the agent
@@ -100,6 +102,13 @@ func (c *compositeStatis) ReportDiscoveryMetrics(metric ...metrics.DiscoveryMetr
 func (c *compositeStatis) ReportConfigMetrics(metric ...metrics.ConfigMetrics) {
 	for i := range c.chain {
 		c.chain[i].ReportConfigMetrics(metric...)
+	}
+}
+
+// ReportDiscoverCall report discover service times
+func (c *compositeStatis) ReportDiscoverCall(service, namespace string, ttMill int64) {
+	for i := range c.chain {
+		c.chain[i].ReportDiscoverCall(service, namespace, ttMill)
 	}
 }
 

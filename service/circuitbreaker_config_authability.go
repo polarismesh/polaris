@@ -21,105 +21,42 @@ import (
 	"context"
 
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-
-	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/model"
-	"github.com/polarismesh/polaris/common/utils"
 )
 
 // CreateCircuitBreakers creates circuit breakers
 func (svr *serverAuthAbility) CreateCircuitBreakers(ctx context.Context,
 	reqs []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectCircuitBreakerAuthContext(ctx, reqs, model.Create, "CreateCircuitBreakers")
-
-	_, err := svr.authMgn.CheckConsolePermission(authCtx)
-	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
-	}
-
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
 	return svr.targetServer.CreateCircuitBreakers(ctx, reqs)
 }
 
 // CreateCircuitBreakerVersions creates circuit breaker versions
 func (svr *serverAuthAbility) CreateCircuitBreakerVersions(ctx context.Context,
 	reqs []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectCircuitBreakerAuthContext(ctx, reqs, model.Create, "CreateCircuitBreakerVersions")
-
-	_, err := svr.authMgn.CheckConsolePermission(authCtx)
-	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
-	}
-
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
 	return svr.targetServer.CreateCircuitBreakerVersions(ctx, reqs)
 }
 
 // DeleteCircuitBreakers delete circuit breakers
 func (svr *serverAuthAbility) DeleteCircuitBreakers(ctx context.Context,
 	reqs []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectCircuitBreakerAuthContext(ctx, reqs, model.Delete, "DeleteCircuitBreakers")
-
-	_, err := svr.authMgn.CheckConsolePermission(authCtx)
-	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
-	}
-
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
 	return svr.targetServer.DeleteCircuitBreakers(ctx, reqs)
 }
 
 // UpdateCircuitBreakers update circuit breakers
 func (svr *serverAuthAbility) UpdateCircuitBreakers(ctx context.Context,
 	reqs []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectCircuitBreakerAuthContext(ctx, reqs, model.Modify, "UpdateCircuitBreakers")
-
-	_, err := svr.authMgn.CheckConsolePermission(authCtx)
-	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
-	}
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return svr.targetServer.UpdateCircuitBreakers(ctx, reqs)
 }
 
 // ReleaseCircuitBreakers release circuit breakers
 func (svr *serverAuthAbility) ReleaseCircuitBreakers(ctx context.Context,
 	reqs []*apiservice.ConfigRelease) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectCircuitBreakerReleaseAuthContext(ctx, reqs, model.Create, "ReleaseCircuitBreakers")
-
-	_, err := svr.authMgn.CheckConsolePermission(authCtx)
-	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
-	}
-
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
 	return svr.targetServer.ReleaseCircuitBreakers(ctx, reqs)
 }
 
 // UnBindCircuitBreakers unbind circuit breakers
 func (svr *serverAuthAbility) UnBindCircuitBreakers(ctx context.Context,
 	reqs []*apiservice.ConfigRelease) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectCircuitBreakerReleaseAuthContext(ctx, reqs, model.Modify, "UnBindCircuitBreakers")
-
-	_, err := svr.authMgn.CheckConsolePermission(authCtx)
-	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
-	}
-
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
 	return svr.targetServer.UnBindCircuitBreakers(ctx, reqs)
 }
 

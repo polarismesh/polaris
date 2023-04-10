@@ -15,14 +15,17 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package v1
+package eventhub
 
-import "github.com/polarismesh/polaris/apiserver/httpserver/v1/apinotes"
+import "context"
 
-const (
-	enrichRegisterInstanceApiNotes   = apinotes.EnrichRegisterInstanceApiNotes
-	enrichDeregisterInstanceApiNotes = apinotes.EnrichDeregisterInstanceApiNotes
-	enrichHeartbeatApiNotes          = apinotes.EnrichHeartbeatApiNotes
-	enrichReportClientApiNotes       = apinotes.EnrichReportClientApiNotes
-	enrichDiscoverApiNotes           = apinotes.EnrichDiscoverApiNotes
-)
+func TestInitEventHub() {
+	eh = &eventHub{
+		topics: make(map[string]*topic),
+	}
+	eh.ctx, eh.cancel = context.WithCancel(context.Background())
+}
+
+func TestShutdownEventHub() {
+	Shutdown()
+}

@@ -15,10 +15,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package apinotes
+package docs
 
 const (
-	EnrichCreateRateLimitsApiNotes = `
+	enrichCreateRateLimitsApiNotes = `
 为服务创建多个限流规则，以对服务进行流量限制，按优先级顺序进行匹配，匹配到一个则执行该规则。
 
 请求示例：
@@ -136,7 +136,7 @@ Header X-Polaris-Token: {访问凭据}
 | key    | string      | 参数键，对于HEADER、QUERY、CUSTOM，对应的是key值；对于CALLER_SERVICE，对应的是服务的命名空间值 | 是       |
 | value  | MatchString | 参数值，对于HEADER、QUERY、CUSTOM，对应的是key所关联的value；对于CALLER_SERVICE，对应的是服务名，其他类型则是具体的值 | 是  |
 `
-	EnrichDeleteRateLimitsApiNotes = `
+	enrichDeleteRateLimitsApiNotes = `
 请求示例：
 
 ~~~
@@ -171,7 +171,7 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-	EnrichUpdateRateLimitsApiNotes = `
+	enrichUpdateRateLimitsApiNotes = `
 更新服务下的限流规则的相关信息
 
 请求示例：
@@ -251,7 +251,7 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-	EnrichGetRateLimitsApiNotes = `
+	enrichGetRateLimitsApiNotes = `
 请求示例：
 
 ~~~
@@ -316,7 +316,7 @@ Header X-Polaris-Token: {访问凭据}
 }
 ~~~
 `
-	EnrichEnableRateLimitsApiNotes = `
+	enrichEnableRateLimitsApiNotes = `
 请求示例：
 
 ~~~

@@ -27,7 +27,8 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
-	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
+	"github.com/polarismesh/polaris/apiserver/httpserver/docs"
+	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/utils"
 	v1 "github.com/polarismesh/polaris/apiserver/httpserver/v1"
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
 )
@@ -75,17 +76,17 @@ func (h *HTTPServerV2) GetNamingConsoleAccessServer(include []string) (*restful.
 
 // addDefaultReadAccess 增加默认读接口
 func (h *HTTPServerV2) addDefaultReadAccess(ws *restful.WebService) {
-	ws.Route(enrichCreateRoutingsApiDocs(ws.POST("/routings").To(h.CreateRoutings)))
-	ws.Route(enrichGetRoutingsApiDocs(ws.GET("/routings").To(h.GetRoutings)))
+	ws.Route(docs.EnrichCreateRouterRuleApiDocs(ws.POST("/routings").To(h.CreateRoutings)))
+	ws.Route(docs.EnrichGetRouterRuleApiDocs(ws.GET("/routings").To(h.GetRoutings)))
 }
 
 // addDefaultAccess 增加默认接口
 func (h *HTTPServerV2) addDefaultAccess(ws *restful.WebService) {
-	ws.Route(enrichCreateRoutingsApiDocs(ws.POST("/routings").To(h.CreateRoutings)))
-	ws.Route(enrichDeleteRoutingsApiDocs(ws.POST("/routings/delete").To(h.DeleteRoutings)))
-	ws.Route(enrichUpdateRoutingsApiDocs(ws.PUT("/routings").To(h.UpdateRoutings)))
-	ws.Route(enrichGetRoutingsApiDocs(ws.GET("/routings").To(h.GetRoutings)))
-	ws.Route(enrichEnableRoutingsApiDocs(ws.PUT("/routings/enable").To(h.EnableRoutings)))
+	ws.Route(docs.EnrichCreateRouterRuleApiDocs(ws.POST("/routings").To(h.CreateRoutings)))
+	ws.Route(docs.EnrichDeleteRouterRuleApiDocs(ws.POST("/routings/delete").To(h.DeleteRoutings)))
+	ws.Route(docs.EnrichUpdateRouterRuleApiDocs(ws.PUT("/routings").To(h.UpdateRoutings)))
+	ws.Route(docs.EnrichGetRouterRuleApiDocs(ws.GET("/routings").To(h.GetRoutings)))
+	ws.Route(docs.EnrichEnableRouterRuleApiDocs(ws.PUT("/routings/enable").To(h.EnableRoutings)))
 }
 
 const (

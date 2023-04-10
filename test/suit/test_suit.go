@@ -42,7 +42,6 @@ import (
 	"github.com/polarismesh/polaris/plugin"
 	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
 	_ "github.com/polarismesh/polaris/plugin/discoverevent/local"
-	_ "github.com/polarismesh/polaris/plugin/discoverstat/discoverlocal"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/heartbeatmemory"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/heartbeatredis"
 	_ "github.com/polarismesh/polaris/plugin/history/logger"
@@ -165,6 +164,7 @@ func (d *DiscoverTestSuit) Initialize(opts ...options) error {
 
 // 内部初始化函数
 func (d *DiscoverTestSuit) initialize(opts ...options) error {
+	eventhub.TestInitEventHub()
 	// 初始化defaultCtx
 	d.DefaultCtx = context.WithValue(context.Background(), utils.StringContext("request-id"), "test-1")
 	d.DefaultCtx = context.WithValue(d.DefaultCtx, utils.ContextAuthTokenKey,
@@ -286,6 +286,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 }
 
 func (d *DiscoverTestSuit) Destroy() {
+	eventhub.Shutdown()
 	d.cancel()
 	time.Sleep(5 * time.Second)
 

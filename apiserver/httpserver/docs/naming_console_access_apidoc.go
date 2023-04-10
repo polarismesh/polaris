@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package v1
+package docs
 
 import (
 	"github.com/emicklei/go-restful/v3"
@@ -42,7 +42,7 @@ const (
 	typeNameInteger = "integer"
 )
 
-func enrichGetNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetNamespacesApiDocsOld(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("获取命名空间列表(Old)").
 		Metadata(restfulspec.KeyOpenAPITags, namespacesApiTags).
 		Param(restful.QueryParameter("name", "命名空间唯一名称").
@@ -54,7 +54,7 @@ func enrichGetNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichGetNamespacesApiNotes)
 }
 
-func enrichCreateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichCreateNamespacesApiDocsOld(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("创建命名空间(Old)").
 		Metadata(restfulspec.KeyOpenAPITags, namespacesApiTags).
@@ -62,7 +62,7 @@ func enrichCreateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Notes(enrichCreateNamespacesApiNotes)
 }
 
-func enrichDeleteNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichDeleteNamespacesApiDocsOld(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("删除命名空间(Old)").
 		Metadata(restfulspec.KeyOpenAPITags, namespacesApiTags).
@@ -70,7 +70,7 @@ func enrichDeleteNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Notes(enrichDeleteNamespacesApiNotes)
 }
 
-func enrichUpdateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichUpdateNamespacesApiDocsOld(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("更新命名空间(Old)").
 		Metadata(restfulspec.KeyOpenAPITags, namespacesApiTags).
@@ -78,32 +78,34 @@ func enrichUpdateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Notes(enrichUpdateNamespacesApiNotes)
 }
 
-func enrichGetNamespaceTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetNamespaceTokenApiDocsOld(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("查询命名空间Token(Old)").
 		Metadata(restfulspec.KeyOpenAPITags, namespacesApiTags).Deprecate()
 }
 
-func enrichUpdateNamespaceTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichUpdateNamespaceTokenApiDocsOld(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("更新命名空间Token(Old)").
 		Metadata(restfulspec.KeyOpenAPITags, namespacesApiTags).Deprecate()
 }
 
-func enrichGetAllServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetAllServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("获取全部服务列表").
 		Metadata(restfulspec.KeyOpenAPITags, servicesApiTags).
 		Param(restful.QueryParameter("namespace", "命名空间").DataType(typeNameString).
 			Required(false))
 }
 
-func enrichGetServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("获取服务列表").
 		Metadata(restfulspec.KeyOpenAPITags, servicesApiTags).
-		Param(restful.QueryParameter("name", "服务名").DataType(typeNameString).
+		Param(restful.QueryParameter("name", "服务名, 前缀查询: name*; 后缀查询: *name; 全模糊查询: *name*").
+			DataType(typeNameString).
 			Required(false).
 			DefaultValue("demo-service")).
-		Param(restful.QueryParameter("namespace", "命名空间").DataType(typeNameString).
+		Param(restful.QueryParameter("namespace", "命名空间, 前缀查询: name*; 后缀查询: *name; 全模糊查询: *name*").
+			DataType(typeNameString).
 			Required(false).
 			DefaultValue("default")).
 		Param(restful.QueryParameter("business", "业务，默认模糊查询").DataType(typeNameString).
@@ -118,6 +120,13 @@ func enrichGetServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 			"目前只支持查询一组元数据。").DataType(typeNameString).Required(false)).
 		Param(restful.QueryParameter("values", "服务元数据名，keys和values需要同时填写，"+
 			"目前只支持查询一组元数据。").DataType(typeNameString).Required(false)).
+		Param(restful.QueryParameter("instance_keys", "实例标签key, key-1,key-2, instance_keys 和 "+
+			" instance_values 需要同时填写且必须元素个数一致").DataType(DataType_String).
+			Required(false).DefaultValue("")).
+		Param(restful.QueryParameter("instance_values", "实例标签value, value-1,value-2, instance_keys "+
+			" 和 instance_values 需要同时填写且必须元素个数一致").
+			DataType(typeNameString).
+			Required(false)).
 		Param(restful.QueryParameter("offset", "查询偏移量").DataType(typeNameInteger).
 			Required(false).DefaultValue("0")).
 		Param(restful.QueryParameter("limit", "查询条数，**最多查询100条**").DataType(typeNameInteger).
@@ -125,7 +134,7 @@ func enrichGetServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichGetServicesApiNotes)
 }
 
-func enrichCreateServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichCreateServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("创建服务").
 		Metadata(restfulspec.KeyOpenAPITags, servicesApiTags).
@@ -133,7 +142,7 @@ func enrichCreateServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder 
 		Notes(enrichCreateServicesApiNotes)
 }
 
-func enrichDeleteServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichDeleteServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("删除服务").
 		Metadata(restfulspec.KeyOpenAPITags, servicesApiTags).
@@ -141,7 +150,7 @@ func enrichDeleteServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder 
 		Notes(enrichDeleteServicesApiNotes)
 }
 
-func enrichUpdateServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichUpdateServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("更新服务").
 		Metadata(restfulspec.KeyOpenAPITags, servicesApiTags).
@@ -149,53 +158,53 @@ func enrichUpdateServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder 
 		Notes(enrichUpdateServicesApiNotes)
 }
 
-func enrichGetServicesCountApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetServicesCountApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取服务数量").
 		Metadata(restfulspec.KeyOpenAPITags, servicesApiTags).
 		Notes(enrichGetServicesCountApiNotes)
 }
 
-func enrichGetServiceTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetServiceTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("查询服务Token").
 		Metadata(restfulspec.KeyOpenAPITags, servicesApiTags).Deprecate()
 }
 
-func enrichUpdateServiceTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichUpdateServiceTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("更新服务Token").
 		Metadata(restfulspec.KeyOpenAPITags, servicesApiTags).Deprecate()
 }
 
-func enrichCreateServiceAliasApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichCreateServiceAliasApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("创建服务别名").
 		Metadata(restfulspec.KeyOpenAPITags, servicesApiTags).
 		Reads(apiservice.ServiceAlias{}, "create service alias").
 		Notes(enrichCreateServiceAliasApiNotes)
 }
 
-func enrichUpdateServiceAliasApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichUpdateServiceAliasApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("更新服务别名").
 		Metadata(restfulspec.KeyOpenAPITags, servicesApiTags).
 		Reads(apiservice.ServiceAlias{}, "update service alias").
 		Notes(enrichUpdateServiceAliasApiNotes)
 }
 
-func enrichGetServiceAliasesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetServiceAliasesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("查询服务别名").
 		Metadata(restfulspec.KeyOpenAPITags, servicesApiTags).
 		Notes(enrichGetServiceAliasesApiNotes)
 }
 
-func enrichDeleteServiceAliasesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichDeleteServiceAliasesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("删除服务别名").
 		Metadata(restfulspec.KeyOpenAPITags, servicesApiTags).
 		Reads([]apiservice.ServiceAlias{}, "delete service aliases").
 		Notes(enrichDeleteServiceAliasesApiNotes)
 }
 
-func enrichGetCircuitBreakerByServiceApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("根据服务查询熔断规则").
+func EnrichGetCircuitBreakerByServiceApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("根据服务查询熔断规则").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, servicesApiTags).
 		Param(restful.PathParameter("service", "服务名").DataType(typeNameString).
 			Required(true)).
@@ -204,57 +213,59 @@ func enrichGetCircuitBreakerByServiceApiDocs(r *restful.RouteBuilder) *restful.R
 		Notes(enrichGetCircuitBreakerByServiceApiNotes)
 }
 
-func enrichGetServiceOwnerApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("根据服务获取服务负责人").
+func EnrichGetServiceOwnerApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("根据服务获取服务负责人").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, servicesApiTags).
 		Notes(enrichGetServiceOwnerApiNotes)
 }
 
-func enrichCreateInstancesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichCreateInstancesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("创建实例").
 		Metadata(restfulspec.KeyOpenAPITags, instancesApiTags).
 		Reads([]apiservice.Instance{}, "create instances").
 		Notes(enrichCreateInstancesApiNotes)
 }
 
-func enrichDeleteInstancesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichDeleteInstancesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("删除实例(根据实例ID)").
 		Metadata(restfulspec.KeyOpenAPITags, instancesApiTags).
 		Reads([]apiservice.Instance{}, "delete instances").
 		Notes(enrichDeleteInstancesApiNotes)
 }
 
-func enrichDeleteInstancesByHostApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichDeleteInstancesByHostApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("删除实例(根据主机)").
 		Metadata(restfulspec.KeyOpenAPITags, instancesApiTags).
 		Reads([]apiservice.Instance{}, "delete instances").
 		Notes(enrichDeleteInstancesByHostApiNotes)
 }
 
-func enrichUpdateInstancesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichUpdateInstancesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("更新实例").
 		Metadata(restfulspec.KeyOpenAPITags, instancesApiTags).
 		Reads([]apiservice.Instance{}, "update instances").
 		Notes(enrichUpdateInstancesApiNotes)
 }
 
-func enrichUpdateInstancesIsolateApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichUpdateInstancesIsolateApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("修改服务实例的隔离状态").
 		Metadata(restfulspec.KeyOpenAPITags, instancesApiTags).
 		Reads([]apiservice.Instance{}, "update instances").
 		Notes(enrichUpdateInstancesIsolateApiNotes)
 }
 
-func enrichGetInstancesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetInstancesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("查询服务实例").
 		Metadata(restfulspec.KeyOpenAPITags, instancesApiTags).
 		Param(restful.PathParameter("id", "实例ID").
 			DataType(typeNameString).Required(false)).
-		Param(restful.PathParameter("service", "服务名称").
+		Param(restful.QueryParameter("service", "service namespace host 三个必须最少传一个, "+
+			" 前缀查询: name*; 后缀查询: *name; 全模糊查询: *name*").
 			DataType(typeNameString).Required(false)).
-		Param(restful.PathParameter("namespace", "命名空间").
+		Param(restful.QueryParameter("namespace", "service namespace host 三个必须最少传一个, "+
+			" 前缀查询: name*; 后缀查询: *name; 全模糊查询: *name*").
 			DataType(typeNameString).Required(false)).
-		Param(restful.PathParameter("host", "实例IP").
+		Param(restful.QueryParameter("host", "service namespace host 三个必须最少传一个").
 			DataType(typeNameString).Required(false)).
 		Param(restful.PathParameter("keys", "标签key").
 			DataType(typeNameString).Required(false)).
@@ -281,13 +292,13 @@ func enrichGetInstancesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichGetInstancesApiNotes)
 }
 
-func enrichGetInstancesCountApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetInstancesCountApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("查询服务实例数量").
 		Metadata(restfulspec.KeyOpenAPITags, instancesApiTags).
 		Notes(enrichGetInstancesCountApiNotes)
 }
 
-func enrichGetInstanceLabelsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetInstanceLabelsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("查询某个服务下所有实例的标签信息").
 		Metadata(restfulspec.KeyOpenAPITags, instancesApiTags).
 		Param(restful.QueryParameter("service", "服务名称").
@@ -297,29 +308,29 @@ func enrichGetInstanceLabelsApiDocs(r *restful.RouteBuilder) *restful.RouteBuild
 		Notes(enrichGetInstanceLabelsApiNotes)
 }
 
-func enrichCreateRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("创建路由规则(V1)").
+func EnrichCreateRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("创建路由规则(V1)").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
 		Reads([]apitraffic.Routing{}, "create routing rules").
 		Notes(enrichCreateRoutingsApiNotes)
 }
 
-func enrichDeleteRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("删除路由规则(V1)").
+func EnrichDeleteRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("删除路由规则(V1)").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
 		Reads([]apitraffic.Routing{}, "delete routing rules").
 		Notes(enrichDeleteRoutingsApiNotes)
 }
 
-func enrichUpdateRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("更新路由规则(V1)").
+func EnrichUpdateRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("更新路由规则(V1)").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
 		Reads([]apitraffic.Routing{}, "update routing rules").
 		Notes(enrichUpdateRoutingsApiNotes)
 }
 
-func enrichGetRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("查询路由规则(V1)").
+func EnrichGetRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("查询路由规则(V1)").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
 		Param(restful.PathParameter("service", "服务名称").DataType(typeNameString).
 			Required(false)).
@@ -334,28 +345,28 @@ func enrichGetRoutingsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichGetRoutingsApiNotes)
 }
 
-func enrichCreateRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichCreateRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("创建限流规则").
 		Metadata(restfulspec.KeyOpenAPITags, rateLimitsApiTags).
 		Reads([]apitraffic.RateLimit{}, "create rate limits").
 		Notes(enrichCreateRateLimitsApiNotes)
 }
 
-func enrichDeleteRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichDeleteRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("删除限流规则").
 		Metadata(restfulspec.KeyOpenAPITags, rateLimitsApiTags).
 		Reads([]apitraffic.RateLimit{}, "delete rate limits").
 		Notes(enrichDeleteRateLimitsApiNotes)
 }
 
-func enrichUpdateRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichUpdateRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("更新限流规则").
 		Metadata(restfulspec.KeyOpenAPITags, rateLimitsApiTags).
 		Reads([]apitraffic.RateLimit{}, "update rate limits").
 		Notes(enrichUpdateRateLimitsApiNotes)
 }
 
-func enrichGetRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("查询限流规则").
 		Metadata(restfulspec.KeyOpenAPITags, rateLimitsApiTags).
 		Param(restful.PathParameter("id", "规则ID").
@@ -369,7 +380,7 @@ func enrichGetRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Param(restful.PathParameter("method", "限流接口名，默认为模糊匹配 ").
 			DataType(typeNameString).Required(false)).
 		Param(restful.PathParameter("disable", "规则是否启用，true为不启用，false为启用").
-			DataType("boolean").Required(false)).
+			DataType(DataType_Bool).Required(false)).
 		Param(restful.PathParameter("brief",
 			"是否只显示概要信息，brief=true时，只返回规则列表概要信息，默认为false").
 			DataType("boolean").Required(false).DefaultValue("false")).
@@ -380,57 +391,57 @@ func enrichGetRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Notes(enrichGetRateLimitsApiNotes)
 }
 
-func enrichEnableRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichEnableRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("启用限流规则").
 		Metadata(restfulspec.KeyOpenAPITags, rateLimitsApiTags).
 		Reads([]apitraffic.RateLimit{}, "enable rate limits").
 		Notes(enrichEnableRateLimitsApiNotes)
 }
 
-func enrichCreateCircuitBreakersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("创建熔断规则").
+func EnrichCreateCircuitBreakersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("创建熔断规则").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, circuitBreakersApiTags).
 		Reads([]apifault.CircuitBreaker{}, "create circuit breakers").
 		Notes(enrichCreateCircuitBreakersApiNotes)
 }
 
-func enrichCreateCircuitBreakerVersionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("创建熔断规则版本").
+func EnrichCreateCircuitBreakerVersionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("创建熔断规则版本").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, circuitBreakersApiTags).
 		Reads([]apifault.CircuitBreaker{}, "create circuit breaker versions").
 		Notes(enrichCreateCircuitBreakerVersionsApiNotes)
 }
 
-func enrichDeleteCircuitBreakersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("删除熔断规则").
+func EnrichDeleteCircuitBreakersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("删除熔断规则").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, circuitBreakersApiTags).
 		Reads([]apifault.CircuitBreaker{}, "delete circuit breakers").
 		Notes(enrichDeleteCircuitBreakersApiNotes)
 }
 
-func enrichUpdateCircuitBreakersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("更新熔断规则").
+func EnrichUpdateCircuitBreakersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("更新熔断规则").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, circuitBreakersApiTags).
 		Reads([]apifault.CircuitBreaker{}, "update circuit breakers").
 		Notes(enrichUpdateCircuitBreakersApiNotes)
 }
 
-func enrichReleaseCircuitBreakersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("发布熔断规则").
+func EnrichReleaseCircuitBreakersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("发布熔断规则").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, circuitBreakersApiTags).
 		Reads([]apiservice.ConfigRelease{}, "release circuit breakers").
 		Notes(enrichReleaseCircuitBreakersApiNotes)
 }
 
-func enrichUnBindCircuitBreakersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("解绑熔断规则").
+func EnrichUnBindCircuitBreakersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("解绑熔断规则").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, circuitBreakersApiTags).
 		Reads([]apiservice.ConfigRelease{}, "unbind circuit breakers").
 		Notes(enrichUnBindCircuitBreakersApiNotes)
 }
 
-func enrichGetCircuitBreakersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("查询熔断规则").
+func EnrichGetCircuitBreakersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("查询熔断规则").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, circuitBreakersApiTags).
 		Param(restful.PathParameter("id", "规则ID").
 			DataType(typeNameString).Required(true)).
@@ -439,61 +450,61 @@ func enrichGetCircuitBreakersApiDocs(r *restful.RouteBuilder) *restful.RouteBuil
 		Notes(enrichGetCircuitBreakersApiNotes)
 }
 
-func enrichGetCircuitBreakerVersionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("查询熔断规则版本").
+func EnrichGetCircuitBreakerVersionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("查询熔断规则版本").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, circuitBreakersApiTags).
 		Param(restful.PathParameter("id", "规则ID").
 			DataType(typeNameString).Required(true)).
 		Notes(enrichGetCircuitBreakerVersionsApiNotes)
 }
 
-func enrichGetMasterCircuitBreakersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("查询熔断规则Master版本").
+func EnrichGetMasterCircuitBreakersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("查询熔断规则Master版本").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, circuitBreakersApiTags).
 		Param(restful.PathParameter("id", "规则ID").
 			DataType(typeNameString).Required(true)).
 		Notes(enrichGetMasterCircuitBreakersApiNotes)
 }
 
-func enrichGetReleaseCircuitBreakersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("根据规则id查询已发布的熔断规则").
+func EnrichGetReleaseCircuitBreakersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("根据规则id查询已发布的熔断规则").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, circuitBreakersApiTags).
 		Param(restful.PathParameter("id", "规则ID").
 			DataType(typeNameString).Required(true)).
 		Notes(enrichGetReleaseCircuitBreakersApiNotes)
 }
 
-func enrichGetCircuitBreakerTokensApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.Doc("查询熔断规则Token").
+func EnrichGetCircuitBreakerTokensApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("查询熔断规则Token").Deprecate().
 		Metadata(restfulspec.KeyOpenAPITags, circuitBreakersApiTags).Deprecate()
 }
 
-func enrichCreateCircuitBreakerRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichCreateCircuitBreakerRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("创建熔断规则").
-		Metadata(restfulspec.KeyOpenAPITags, circuitBreakerRulesApiTags).
+		Metadata(restfulspec.KeyOpenAPITags, circuitBreakersApiTags).
 		Reads([]apifault.CircuitBreakerRule{}, "create circuitbreaker rules").
 		Notes(enrichCreateCircuitBreakerRulesApiNotes)
 }
 
-func enrichDeleteCircuitBreakerRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichDeleteCircuitBreakerRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("删除熔断规则").
-		Metadata(restfulspec.KeyOpenAPITags, circuitBreakerRulesApiTags).
+		Metadata(restfulspec.KeyOpenAPITags, circuitBreakersApiTags).
 		Reads([]apifault.CircuitBreakerRule{}, "delete circuitbreaker rules").
 		Notes(enrichDeleteCircuitBreakerRulesApiNotes)
 }
 
-func enrichUpdateCircuitBreakerRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichUpdateCircuitBreakerRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("更新熔断规则").
-		Metadata(restfulspec.KeyOpenAPITags, circuitBreakerRulesApiTags).
+		Metadata(restfulspec.KeyOpenAPITags, circuitBreakersApiTags).
 		Reads([]apifault.CircuitBreakerRule{}, "update circuitbreaker rules").
 		Notes(enrichUpdateCircuitBreakerRulesApiNotes)
 }
 
-func enrichGetCircuitBreakerRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetCircuitBreakerRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("查询熔断规则").
-		Metadata(restfulspec.KeyOpenAPITags, circuitBreakerRulesApiTags).
+		Metadata(restfulspec.KeyOpenAPITags, circuitBreakersApiTags).
 		Param(restful.PathParameter("brief", "是否只显示概要信息，brief=true时，则不返回规则详情，"+
-			"只返回规则列表概要信息，默认为false").DataType("boolean").
+			"只返回规则列表概要信息，默认为false").DataType(DataType_Bool).
 			Required(false).DefaultValue("false")).
 		Param(restful.PathParameter("offset", "分页的起始位置，默认为0").DataType(typeNameInteger).
 			Required(false).DefaultValue("0")).
@@ -528,39 +539,39 @@ func enrichGetCircuitBreakerRulesApiDocs(r *restful.RouteBuilder) *restful.Route
 		Notes(enrichGetCircuitBreakerRulesApiNotes)
 }
 
-func enrichEnableCircuitBreakerRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichEnableCircuitBreakerRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("启用熔断规则").
-		Metadata(restfulspec.KeyOpenAPITags, circuitBreakerRulesApiTags).
+		Metadata(restfulspec.KeyOpenAPITags, circuitBreakersApiTags).
 		Reads([]apitraffic.RateLimit{}, "enable rate limits").
 		Notes(enrichEnableCircuitBreakerRulesApiNotes)
 }
 
-func enrichCreateFaultDetectRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichCreateFaultDetectRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("创建主动探测规则").
 		Metadata(restfulspec.KeyOpenAPITags, faultDetectsApiTags).
 		Reads([]apifault.FaultDetectRule{}, "create fault detect rules").
 		Notes(enrichCreateFaultDetectRulesApiNotes)
 }
 
-func enrichDeleteFaultDetectRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichDeleteFaultDetectRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("删除主动探测规则").
 		Metadata(restfulspec.KeyOpenAPITags, faultDetectsApiTags).
 		Reads([]apifault.FaultDetectRule{}, "delete fault detect rules").
 		Notes(enrichDeleteFaultDetectRulesApiNotes)
 }
 
-func enrichUpdateFaultDetectRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichUpdateFaultDetectRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("更新主动探测规则").
 		Metadata(restfulspec.KeyOpenAPITags, faultDetectsApiTags).
 		Reads([]apifault.FaultDetectRule{}, "update fault detect rules").
 		Notes(enrichUpdateFaultDetectRulesApiNotes)
 }
 
-func enrichGetFaultDetectRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+func EnrichGetFaultDetectRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("查询主动探测规则").
 		Metadata(restfulspec.KeyOpenAPITags, faultDetectsApiTags).
 		Param(restful.PathParameter("brief", "是否只显示概要信息，brief=true时，"+
-			"则不返回规则详情，只返回规则列表概要信息，默认为false").DataType("boolean").
+			"则不返回规则详情，只返回规则列表概要信息，默认为false").DataType(DataType_Bool).
 			Required(false).DefaultValue("false")).
 		Param(restful.PathParameter("offset", "分页的起始位置，默认为0").DataType(typeNameInteger).
 			Required(false).DefaultValue("0")).
@@ -587,4 +598,41 @@ func enrichGetFaultDetectRulesApiDocs(r *restful.RouteBuilder) *restful.RouteBui
 		Param(restful.PathParameter("description", "规则描述，模糊匹配").
 			DataType(typeNameString).Required(true)).
 		Notes(enrichGetFaultDetectRulesApiNotes)
+}
+
+func EnrichCreateRouterRuleApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("创建路由规则(V2)").
+		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
+		Operation("v2CreateRoutings").
+		Reads([]apitraffic.RouteRule{}).
+		Notes(enrichCreateRouterRuleApiNotes)
+}
+
+func EnrichDeleteRouterRuleApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("删除路由规则(V2)").
+		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
+		Operation("v2DeleteRoutings").
+		Notes(enrichDeleteRouterRuleApiNotes)
+}
+
+func EnrichUpdateRouterRuleApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("更新路由规则(V2)").
+		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
+		Operation("v2UpdateRoutings").
+		Reads([]apitraffic.RouteRule{}).
+		Notes(enrichUpdateRouterRuleApiNotes)
+}
+
+func EnrichGetRouterRuleApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("获取路由规则(V2)").
+		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
+		Operation("v2GetRoutings").
+		Notes(enrichGetRouterRuleApiNotes)
+}
+
+func EnrichEnableRouterRuleApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("启用路由规则(V2)").
+		Metadata(restfulspec.KeyOpenAPITags, routingRulesApiTags).
+		Operation("v2EnableRoutings").
+		Notes(enrichEnableRouterRuleApiNotes)
 }

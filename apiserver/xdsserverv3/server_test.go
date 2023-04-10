@@ -141,6 +141,7 @@ func generateGlobalRateLimitRule() ([]*model.RateLimit, map[string]*anypb.Any) {
 		Rule:       ruleStr,
 		Revision:   "revision-1",
 		Valid:      false,
+		Disable:    false,
 		CreateTime: time.Now(),
 		ModifyTime: time.Now(),
 	})
@@ -157,6 +158,7 @@ func generateLocalRateLimitRule() ([]*model.RateLimit, map[string]*anypb.Any) {
 		Rule:       ruleStr,
 		Revision:   "revision-2",
 		Valid:      false,
+		Disable:    false,
 		CreateTime: time.Now(),
 		ModifyTime: time.Now(),
 	})
@@ -170,11 +172,11 @@ func Test_makeLocalRateLimit(t *testing.T) {
 		svc *ServiceInfo
 	}
 	mockXds := &XDSServer{
-		RatelimitConfigGetter: func(serviceID string) []*model.RateLimit {
-			if serviceID == "mock_local" {
-				return localRateLimitStr
+		RatelimitConfigGetter: func(key model.ServiceKey) ([]*model.RateLimit, string) {
+			if key.Name == "mock_local" {
+				return localRateLimitStr, ""
 			}
-			return globalRateLimitStr
+			return globalRateLimitStr, ""
 		},
 	}
 	tests := []struct {
@@ -186,7 +188,8 @@ func Test_makeLocalRateLimit(t *testing.T) {
 			"make local rate limit for local rate limit config",
 			args{
 				&ServiceInfo{
-					ID: "mock_local",
+					ID:   "mock_local",
+					Name: "mock_local",
 				},
 			},
 			want1,
@@ -195,7 +198,8 @@ func Test_makeLocalRateLimit(t *testing.T) {
 			"make local rate limit for global rate limit config",
 			args{
 				&ServiceInfo{
-					ID: "mock_global",
+					ID:   "mock_global",
+					Name: "mock_global",
 				},
 			},
 			want2,
@@ -416,7 +420,7 @@ func TestSnapshot(t *testing.T) {
 		},
 		xdsNodesMgr:           newXDSNodeManager(),
 		namingServer:          discoverSuit.DiscoverServer(),
-		RatelimitConfigGetter: func(serviceID string) []*model.RateLimit { return nil },
+		RatelimitConfigGetter: func(_ model.ServiceKey) ([]*model.RateLimit, string) { return nil, "" },
 		versionNum:            atomic.NewUint64(1),
 		cache:                 cache.NewSnapshotCache(true, cache.IDHash{}, nil),
 	}
