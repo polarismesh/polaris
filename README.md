@@ -12,8 +12,6 @@
 
 English | [简体中文](./README-zh.md)
 
----
-
 README：
 
 - [Introduction](#introduction)
@@ -44,58 +42,7 @@ Polaris is an open source system for service discovery and governance. It can be
 
 ## How to install 
 
-Here is how to install the standalone version. Visit [Installation Guide](https://polarismesh.cn/docs/使用指南/服务端安装) to learn more.
-
-The release packages of standalone and cluster have been provided for Linux, Mac and Windows.
-
-- [Github Releases](https://github.com/polarismesh/polaris/releases)
-- [Gitee Releases](https://gitee.com/polarismesh/polaris/releases)
-
-Download the release package of last standalone version from Github or Gitee Releases.
-
-**Linux**
-
-Download the package named `polaris-standalone-release-*.linux.*.zip`.
-
-```
-unzip polaris-standalone-release-*.linux.*.zip
-
-cd polaris-standalone-release-*.linux.*
-
-bash install.sh
-```
-
-**Mac**
-
-Download the package named `polaris-standalone-release-*.darwin.*.zip`.
-
-```
-unzip polaris-standalone-release-*.darwin.*.zip
-
-cd polaris-standalone-release-*.darwin.*
-
-bash install.sh
-```
-
-**Windows**
-
-Download the package named `polaris-standalone-release-*.windows.*.zip`.
-
-```
-unzip polaris-standalone-release-*.windows.*.zip
-
-cd polaris-standalone-release-*.windows.*
-
-install.bat
-```
-
-Run the command to verify the installation.
-
-```
-curl http://127.0.0.1:8090
-```
-
-If the response is "Polaris Server", the installation is successful.
+Visit [Installation Guide](https://github.com/polarismesh/polaris/tree/main/release) to learn more
 
 ## How to develop service
 
@@ -133,7 +80,7 @@ Use K8s service and sidecar:
 
 ## How to integrate service gateway
 
-You can integrate different service gateways with Polaris.
+You can integrate service gateways with Polaris service discovery and governance.
 
 - [spring cloud gateway](https://github.com/Tencent/spring-cloud-tencent)
 - [nginx gateway](https://github.com/polarismesh/nginx-gateway)
