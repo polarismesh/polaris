@@ -55,14 +55,13 @@ func TestDispatchHeartbeat(t *testing.T) {
 	for i, instance := range instances {
 		log.Infof("replicate test: register %d", i)
 		replicateInstances.ReplicationList = append(replicateInstances.ReplicationList, &ReplicationInstance{
-			Namespace:    namespace,
 			AppName:      appId,
 			Id:           instance.InstanceId,
 			InstanceInfo: instance,
 			Action:       actionRegister,
 		})
 	}
-	_, code := eurekaSrv.doBatchReplicate(replicateInstances, "")
+	_, code := eurekaSrv.doBatchReplicate(replicateInstances, "", namespace)
 	assert.Equal(t, api.ExecuteSuccess, code)
 
 	time.Sleep(10 * time.Second)
@@ -71,13 +70,12 @@ func TestDispatchHeartbeat(t *testing.T) {
 		replicateInstances = &ReplicationList{}
 		for _, instance := range instances {
 			replicateInstances.ReplicationList = append(replicateInstances.ReplicationList, &ReplicationInstance{
-				Namespace: namespace,
-				AppName:   appId,
-				Id:        instance.InstanceId,
-				Action:    actionHeartbeat,
+				AppName: appId,
+				Id:      instance.InstanceId,
+				Action:  actionHeartbeat,
 			})
 		}
-		_, code := eurekaSrv.doBatchReplicate(replicateInstances, "")
+		_, code := eurekaSrv.doBatchReplicate(replicateInstances, "", namespace)
 		assert.Equal(t, api.ExecuteSuccess, code)
 	}
 }
