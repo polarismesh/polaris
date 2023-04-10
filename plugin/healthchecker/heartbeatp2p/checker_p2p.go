@@ -230,7 +230,7 @@ func (c *PeerToPeerHealthChecker) Check(request *plugin.CheckRequest) (*plugin.C
 	}
 	curTimeSec := request.CurTimeSec()
 	log.Debugf("[HealthCheck][P2P] check hb record, cur is %d, last is %d", curTimeSec, lastHeartbeatTime)
-	if c.skipCheck(queryResp.Exists, request.InstanceId, int64(request.ExpireDurationSec)) {
+	if c.skipCheck(request.InstanceId, int64(request.ExpireDurationSec)) {
 		checkResp.StayUnchanged = true
 		return checkResp, nil
 	}
@@ -285,13 +285,13 @@ func (c *PeerToPeerHealthChecker) Query(request *plugin.QueryRequest) (*plugin.Q
 }
 
 // AddToCheck add the instances to check procedure
-// not support in PeerToPeerHealthChecker
+// NOTE: not support in PeerToPeerHealthChecker
 func (c *PeerToPeerHealthChecker) AddToCheck(request *plugin.AddCheckRequest) error {
 	return nil
 }
 
 // RemoveFromCheck removes the instances from check procedure
-// not support in PeerToPeerHealthChecker
+// NOTE: not support in PeerToPeerHealthChecker
 func (c *PeerToPeerHealthChecker) RemoveFromCheck(request *plugin.AddCheckRequest) error {
 	return nil
 }
@@ -326,7 +326,7 @@ func (c *PeerToPeerHealthChecker) findResponsiblePeer(key string) (*Peer, bool) 
 	return responsible, ok
 }
 
-func (c *PeerToPeerHealthChecker) skipCheck(exist bool, key string, expireDurationSec int64) bool {
+func (c *PeerToPeerHealthChecker) skipCheck(key string, expireDurationSec int64) bool {
 	suspendTimeSec := c.SuspendTimeSec()
 	localCurTimeSec := commontime.CurrentMillisecond() / 1000
 	if suspendTimeSec > 0 && localCurTimeSec >= suspendTimeSec &&

@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/polarismesh/polaris/common/utils"
+	"go.uber.org/zap"
 )
 
 // ReadBeatRecord Heartbeat records read results
@@ -110,6 +111,7 @@ type LocalBeatRecordCache struct {
 }
 
 func (lc *LocalBeatRecordCache) Get(keys ...string) map[string]*ReadBeatRecord {
+	log.Debug("receive get action", zap.Any("keys", keys))
 	ret := make(map[string]*ReadBeatRecord, len(keys))
 	for i := range keys {
 		key := keys[i]
@@ -123,6 +125,7 @@ func (lc *LocalBeatRecordCache) Get(keys ...string) map[string]*ReadBeatRecord {
 }
 
 func (lc *LocalBeatRecordCache) Put(records ...WriteBeatRecord) {
+	log.Debug("receive put action", zap.Any("records", records))
 	for i := range records {
 		record := records[i]
 		lc.beatCache.Put(record.Key, record.Record)
@@ -130,9 +133,13 @@ func (lc *LocalBeatRecordCache) Put(records ...WriteBeatRecord) {
 }
 
 func (lc *LocalBeatRecordCache) Del(keys ...string) {
+	log.Debug("receive del action", zap.Strings("keys", keys))
 	for i := range keys {
 		key := keys[i]
-		lc.beatCache.Del(key)
+		ok := lc.beatCache.Del(key)
+		if log.DebugEnabled() {
+			log.Debug("delete result", zap.String("key", key), zap.Bool("exist", ok))
+		}
 	}
 }
 
@@ -169,9 +176,10 @@ func (rc *RemoteBeatRecordCache) Get(keys ...string) map[string]*ReadBeatRecord 
 		record := records[i]
 		val, ok := ret[record.Key]
 		if !ok {
+			val.Exist = false
 			continue
 		}
-		val.Exist = true
+		val.Exist = record.Exist
 		if recordVal, ok := ParseRecordValue(record.Value); ok {
 			val.Record = *recordVal
 		}
