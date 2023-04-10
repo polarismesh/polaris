@@ -26,7 +26,7 @@ README：
 
 北极星是一个支持多语言和多框架的服务发现和治理平台，致力于解决分布式和微服务架构中的服务管理、流量管理、故障容错、配置管理和可观测性问题，针对不同的技术栈和环境提供服务治理的标准方案和最佳实践。
 
-<img src="https://raw.githubusercontent.com/polarismesh/website/main/content/zh-cn/docs/北极星是什么/图片/功能特性.png" width="800" />
+<img src="https://raw.githubusercontent.com/polarismesh/website/main/content/zh-cn/docs/北极星是什么/图片/功能特性.png" width="80%" />
 
 **功能**：
 
@@ -44,7 +44,7 @@ README：
 
 ## 如何安装
 
-请查看[安装指南](https://github.com/polarismesh/polaris/tree/main/release)
+更多文档请查看[安装指南](https://github.com/polarismesh/polaris/tree/main/release)
 
 ## 如何开发服务
 
