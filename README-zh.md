@@ -12,176 +12,81 @@
 
 [English](./README.md) | 简体中文
 
----
-
 README：
 
 - [介绍](#介绍)
-- [快速入门](#快速入门)
-  - [下载单机版](#下载单机版)
-  - [启动服务端](#启动服务端)
-  - [验证安装](#验证安装)
-- [使用样例](#使用样例)
-  - [服务注册发现和健康检查](#服务注册发现和健康检查)
-  - [服务限流](#服务限流)
-  - [流量调度](#流量调度)
-  - [配置管理](#配置管理)
-  - [更多指南](#更多指南)
+- [如何安装](#如何安装)
+- [如何开发服务](#如何开发服务)
+- [如何集成服务网关](#如何集成服务网关)
 - [交流群](#交流群)
 
-更多文档请查看[北极星官网](https://polarismesh.cn/)
+更多文档请查看[北极星官网](https://polarismesh.cn)
 
 ## 介绍
 
-北极星是一个支持多语言、多框架的云原生服务发现和治理中心，解决分布式和微服务架构中的服务可见、故障容错、流量控制和安全问题。
+北极星是一个支持多语言和多框架的服务发现和治理平台，致力于解决分布式和微服务架构中的服务管理、流量管理、故障容错、配置管理和可观测性问题，针对不同的技术栈和环境提供服务治理的标准方案和最佳实践。
 
-核心功能点：
+**功能**：
 
-- <b>服务注册发现和健康检查</b>
+- 服务管理：服务发现、服务发现、健康检查
+- 流量控制：可自定义的流量路由、负载均衡、限频限流、访问控制
+- 故障容错：服务和接口熔断和降级、实例熔断和切换
+- 配置管理：版本管理、灰度发布、动态更新
 
-  以服务为中心的分布式应用架构中，通过服务和注册发现的方式维护不断变化的请求地址，提高应用的扩展能力，降低应用的迁移成本。北极星提供对注册上来的服务实例进行健康检查，阻止主调方对不健康的服务实例发送请求。
-  
-- <b>流量调度：路由与负载均衡</b>
+**亮点**：
 
-  根据请求标签、实例标签和标签匹配规则，对线上流量进行动态调度，可以应用于按地域就近、按标签灰度和新金丝雀发布等多种场景。
+- 一站式服务治理平台，覆盖注册中心、服务网格和配置中心的能力
+- 提供 SDK、开发框架、Java agent 和 sidecar 等多种模式的数据面
+- 支持常用的开发框架，例如：Spring Cloud、Dubbo 和 gRPC 等
+- 支持 K8s 服务注册和 sidecar 自动注入，实现 Proxy 服务网格
 
-- <b>过载保护：服务限流与故障熔断</b>
+## 如何安装
 
-  对于入口服务，北极星提供服务限流功能，当负载已经超过了系统的最大处理能力时，可针对不同的请求来源和系统资源进行访问限流，避免服务被压垮。
-  同时北极星也提供故障熔断功能，根据实时采集的错误率等指标，及时熔断异常的下游服务、接口、实例或者实例分组，降低请求失败率。
+请查看[安装指南](https://github.com/polarismesh/polaris/tree/main/release)
 
-- <b>可观测性</b>
-  
-  提供服务治理可视化监控视图，支持请求量、请求延时和请求成功率的指标查询，支持服务调用关系和多维度的流量曲线查询，实现服务治理功能和流量观测一体化。
-  
-- <b>配置管理</b>
-  
-  支持应用配置、公共配置的订阅发布、版本管理、变更通知，实现应用配置动态生效。
+## 如何开发服务
 
-特色：
+北极星提供 SDK、开发框架、Java agent 和 sidecar 等多种模式的数据面。用户可以根据业务需求使用一种或者多种模式的数据面。
 
-- 北极星的功能采用插件化的形式实现，业务可以根据需求选择使用，也非常容易实现扩展
-- 提供SDK和Sidecar两种接入方式，SDK适用于高性能的业务场景，Sidecar适用于无侵入的开发模式
-- 对于SDK的接入方式，提供Java、Go、C++等多种语言的客户端，功能实现相同
-- 北极星SDK可以集成到常用的框架和网关中，例如Spring Cloud、gRPC和Nginx
-- 适用于Kubernetes，支持K8s service和Polaris sidecar的自动注入
-- 腾讯百万级服务治理中心的开源版本，沉淀了腾讯多年的分布式服务治理经验
+使用北极星多语言 SDK，直接调用北极星客户端 API：
 
-## 快速入门
+- [Polaris Java](https://github.com/polarismesh/polaris-java)
+- [Polaris Go](https://github.com/polarismesh/polaris-go)
+- [Polaris C/C++](https://github.com/polarismesh/polaris-cpp)
+- [Polaris PHP](https://github.com/polarismesh/polaris-php)
+- [Polaris Lua](https://github.com/polarismesh/polaris-lua)
 
-### 下载单机版
+使用集成北极星 Java SDK 的 HTTP 和 RPC 框架：
 
-可以从以下地址获取最新版本进行下载，下载时候请选择包名为```polaris-standalone-release-*.zip```的软件包，并且根据当前操作系统进行筛选（windows10选择windows，mac选择darwin，Linux/Unix选择linux）。
+- [spring cloud](https://github.com/Tencent/spring-cloud-tencent)
+- [spring boot](https://github.com/polarismesh/spring-boot-polaris)
+- dubbo-java
+  - [registry, discovery and routing](https://github.com/apache/dubbo-spi-extensions/tree/master/dubbo-registry-extensions)
+  - [circuit breaker and rate limiter](https://github.com/apache/dubbo-spi-extensions/tree/master/dubbo-filter-extensions)
+- [grpc-java](https://github.com/polarismesh/grpc-java-polaris)
 
-- [github下载](https://github.com/polarismesh/polaris/releases)
-- [gitee下载](https://gitee.com/polarismesh/polaris/releases)
+使用集成北极星 Go SDK 的 HTTP or RPC 框架：
 
-以```polaris-standalone-release_v1.11.0-beta.2.linux.amd64.zip```为例，下载后执行以下命令进行解压：
+- dubbo-go
+  - [registry, discovery and routing](https://github.com/apache/dubbo-go/tree/main/registry)
+  - [circuit breaker and rate limiter](https://github.com/apache/dubbo-go/tree/main/filter)
+  - [examples](https://github.com/apache/dubbo-go-samples/tree/master/polaris)
+- [grpc-go](https://github.com/polarismesh/grpc-go-polaris)
 
-```
-unzip polaris-standalone-release_v1.11.0-beta.2.linux.amd64.zip
-cd polaris-standalone-release_v1.11.0-beta.2.linux 
-```
+使用 K8s 服务注册和 sidecar 自动注入:
 
-### 启动服务端
+- [Polaris Controller](https://github.com/polarismesh/polaris-controller)
+- [Polaris Sidecar](https://github.com/polarismesh/polaris-sidecar)
 
-在Linux/Unix/Mac平台下，执行以下命令启动北极星单机版：
+## 如何集成服务网关
 
-```
-bash install.sh
-```
+用户也可以在服务网关里集成北极星的服务发现和治理能力。
 
-在Windows平台下，执行以下命令启动北极星单机版：
-
-```
-install.bat
-```
-
-### 验证安装
-
-```shell
-curl http://127.0.0.1:8090
-```
-
-返回Polaris Server，证明功能正常
-
-如需了解更多安装方式（如修改安装端口、容器化安装、集群版本安装等），可参考：[部署手册](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/%E6%9C%8D%E5%8A%A1%E7%AB%AF%E5%AE%89%E8%A3%85/%E5%8D%95%E6%9C%BA%E7%89%88%E5%AE%89%E8%A3%85/)
-
-## 使用样例
-
-北极星支持多语言、多框架、多形态（proxyless及proxy）的微服务进行接入。
-
-### 服务注册发现和健康检查
-
-(1) 基于主流框架开发的微服务接入可参考：
-
-- [Spring Cloud接入](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/java%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91/spring-cloud/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/)
-- [Spring Boot接入](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/java%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91/spring-boot/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/)
-- [gRPC-Go接入](https://github.com/polarismesh/grpc-go-polaris/tree/main/examples/quickstart)
-- [dubbogo接入](https://github.com/apache/dubbo-go-samples/tree/master/polaris)
-
-(2) 主流语言微服务接入可参考：
-
-- [Java语言接入](https://github.com/polarismesh/polaris-java/tree/main/polaris-examples/quickstart-example)
-- [Go语言接入](https://github.com/polarismesh/polaris-go/tree/main/examples/quickstart)
-- [C++语言接入](https://github.com/polarismesh/polaris-cpp/tree/main/examples/quickstart)
-
-(3) proxy模式的微服务接入可参考：
-
-- [Envoy接入](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/k8s%E5%92%8C%E7%BD%91%E6%A0%BC%E4%BB%A3%E7%90%86/envoy%E7%BD%91%E6%A0%BC%E6%8E%A5%E5%85%A5/#%E5%BF%AB%E9%80%9F%E6%8E%A5%E5%85%A5)
-
-### 服务限流
-
-(1) 基于主流框架开发的微服务接入可参考：
-
-- [Spring Cloud接入](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/java%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91/spring-cloud/%E6%9C%8D%E5%8A%A1%E9%99%90%E6%B5%81/)
-- [gRPC-Go接入](https://github.com/polarismesh/grpc-go-polaris/tree/main/examples/ratelimit/local)
-
-(2) 主流语言微服务接入可参考：
-
-- [Java语言接入](https://github.com/polarismesh/polaris-java/tree/main/polaris-examples/ratelimit-example)
-- [Go语言接入](https://github.com/polarismesh/polaris-go/tree/main/examples/ratelimit)
-- [C++语言接入](https://github.com/polarismesh/polaris-cpp/tree/main/examples/rate_limit)
-
-(3) proxy模式的微服务接入可参考：
-
-- [Nginx接入](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/%E7%BD%91%E5%85%B3/%E4%BD%BF%E7%94%A8nginx/#%E8%AE%BF%E9%97%AE%E9%99%90%E6%B5%81)
-
-### 流量调度
-
-(1) 基于主流框架开发的微服务接入可参考：
-
-- [Spring Cloud接入](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/java%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91/spring-cloud/%E5%8A%A8%E6%80%81%E8%B7%AF%E7%94%B1/)
-- [gRPC-Go接入](https://github.com/polarismesh/grpc-go-polaris/tree/main/examples/routing/version)
-
-(2) 主流语言微服务接入可参考：
-
-- [Java语言接入](https://github.com/polarismesh/polaris-java/tree/main/polaris-examples/router-example/router-multienv-example)
-- [Go语言接入](https://github.com/polarismesh/polaris-go/tree/main/examples/route/dynamic)
-
-(3) proxy模式的微服务接入可参考：
-
-- [Envoy接入](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/k8s%E5%92%8C%E7%BD%91%E6%A0%BC%E4%BB%A3%E7%90%86/envoy%E7%BD%91%E6%A0%BC%E6%8E%A5%E5%85%A5/#%E6%B5%81%E9%87%8F%E8%B0%83%E5%BA%A6)
-
-### 配置管理
-
-(1) 基于主流框架开发的微服务接入可参考：
-
-- [Spring Cloud/Spring Boot接入](https://github.com/Tencent/spring-cloud-tencent/tree/main/spring-cloud-tencent-examples/polaris-config-example)
-
-(2) 主流语言微服务接入可参考：
-
-- [Java语言接入](https://github.com/polarismesh/polaris-java/tree/main/polaris-examples/configuration-example)
-- [Go语言接入](https://github.com/polarismesh/polaris-go/tree/main/examples/configuration)
-
-### 更多指南
-
-更多功能使用指引可参考：[使用指南](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/)
+- [spring cloud gateway](https://github.com/Tencent/spring-cloud-tencent)
+- [nginx gateway](https://github.com/polarismesh/nginx-gateway)
 
 ## 交流群
 
-扫码下方二维码，加入北极星开源社区交流群，欢迎您在群里反馈北极星的使用问题和优化建议。
-
-我们也会在群里及时发布版本更新、项目规划和社区活动等相关信息。加入交流群可以保证您不会错过北极星的最新动态。
+扫码二维码，加入北极星开源交流群。欢迎用户反馈使用问题和优化建议。
 
 <img src="https://main.qcloudimg.com/raw/bff4285d70498058caa212805b83a620.jpg" width="20%" height="20%" />
