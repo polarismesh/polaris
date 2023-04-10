@@ -48,7 +48,15 @@ const (
 	DefaultSoltNum = 64
 )
 
-// PeerToPeerHealthChecker
+// PeerToPeerHealthChecker 对等节点心跳健康检查
+// 1. PeerToPeerHealthChecker 获取当前 polaris.checker 服务下的所有节点
+// 2. peer 之间建立 gRPC 长连接
+// 3. PeerToPeerHealthChecker 在处理 Report/Query/Check/Delete 先判断自己处理的心跳节点是否应该由自己负责
+//   - 责任节点
+//     a. 心跳数据的读写直接写本地 map 内存
+//   - 非责任节点
+//     a. 心跳写请求通过 gRPC 长连接直接发给对应责任节点
+//     b. 心跳读请求通过 gRPC 长连接直接发给对应责任节点，责任节点返回心跳时间戳信息
 type PeerToPeerHealthChecker struct {
 	// refreshPeerTimeSec last peer list start refresh occur timestamp
 	refreshPeerTimeSec int64
@@ -56,11 +64,16 @@ type PeerToPeerHealthChecker struct {
 	endRefreshPeerTimeSec int64
 	// suspendTimeSec healthcheck last suspend timestamp
 	suspendTimeSec int64
-	listenPort     int64
-	soltNum        int32
-	hash           *commonhash.Continuum
-	lock           sync.RWMutex
-	peers          map[string]*Peer
+	// listenPort peer agreement listen gRPC port info
+	listenPort int64
+	// soltNum BeatRecordCache of segmentMap soltNum
+	soltNum int32
+	// hash calculate key of responsible peer
+	hash *commonhash.Continuum
+	// lock
+	lock sync.RWMutex
+	// peers peer directory
+	peers map[string]*Peer
 }
 
 // Name
@@ -91,6 +104,8 @@ func (c *PeerToPeerHealthChecker) Destroy() error {
 	for _, peer := range c.peers {
 		_ = peer.Close()
 	}
+	c.hash = nil
+	c.peers = map[string]*Peer{}
 	return nil
 }
 
@@ -99,14 +114,13 @@ func (c *PeerToPeerHealthChecker) SetCheckerPeers(checkerPeers []plugin.CheckerP
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
+	log.Info("[HealthCheck][P2P] receive checker peers change", zap.Any("peers", checkerPeers))
 	atomic.StoreInt64(&c.refreshPeerTimeSec, commontime.CurrentMillisecond())
-	log.Info("receive checker peers change", zap.Any("peers", checkerPeers))
-
 	c.refreshPeers(checkerPeers)
 	c.servePeers()
-	c.caulContinuum()
-
-	log.Info("end checker peers change", zap.Any("peers", c.peers))
+	c.calculateContinuum()
+	atomic.StoreInt64(&c.endRefreshPeerTimeSec, commontime.CurrentMillisecond())
+	log.Info("[HealthCheck][P2P] end checker peers change", zap.Any("peers", c.peers))
 }
 
 func (c *PeerToPeerHealthChecker) refreshPeers(checkerPeers []plugin.CheckerPeer) {
@@ -140,28 +154,31 @@ func (c *PeerToPeerHealthChecker) refreshPeers(checkerPeers []plugin.CheckerPeer
 }
 
 func (c *PeerToPeerHealthChecker) servePeers() {
-	// 启动所有的 peer, 优先启动 local peer
-	for i := range c.peers {
-		peer := c.peers[i]
-		if peer.Local {
+	serveFunc := func(peers map[string]*Peer, filter func(*Peer) bool) {
+		for i := range c.peers {
+			peer := c.peers[i]
+			if !filter(peer) {
+				continue
+			}
 			if err := peer.Serve(c.soltNum); err != nil {
-				log.Error("peer serve fail", zap.String("host", peer.Host),
-					zap.Uint32("port", peer.Port), zap.Error(err))
+				log.Error("[HealthCheck][P2P] peer serve fail", zap.String("host", peer.Host),
+					zap.Uint32("port", peer.Port), zap.Bool("local", peer.Local), zap.Error(err))
 			}
 		}
 	}
-	for i := range c.peers {
-		peer := c.peers[i]
-		if !peer.Local {
-			if err := peer.Serve(c.soltNum); err != nil {
-				log.Error("peer serve fail", zap.String("host", peer.Host),
-					zap.Uint32("port", peer.Port), zap.Error(err))
-			}
-		}
-	}
+
+	// 启动 local peer
+	serveFunc(c.peers, func(p *Peer) bool {
+		return p.Local
+	})
+
+	// 启动 remote peer
+	serveFunc(c.peers, func(p *Peer) bool {
+		return !p.Local
+	})
 }
 
-func (c *PeerToPeerHealthChecker) caulContinuum() {
+func (c *PeerToPeerHealthChecker) calculateContinuum() {
 	// 重新计算 hash
 	bucket := map[commonhash.Bucket]bool{}
 	for i := range c.peers {
@@ -172,7 +189,6 @@ func (c *PeerToPeerHealthChecker) caulContinuum() {
 		}] = true
 	}
 	c.hash = commonhash.New(bucket)
-	atomic.StoreInt64(&c.endRefreshPeerTimeSec, commontime.CurrentMillisecond())
 }
 
 // Type for health check plugin, only one same type plugin is allowed
@@ -202,7 +218,7 @@ func (c *PeerToPeerHealthChecker) Report(request *plugin.ReportRequest) error {
 }
 
 // Check process the instance check
-// 大部分情况下，Check 的检查都是在本节点进行处理，只有出现 Refresh 节点时才会将 CheckRequest 请求转发相应的对等节点
+// 大部分情况下，Check 的检查都是在本节点进行处理，只有出现 Refresh 节点时才可能存在将 CheckRequest 请求转发相应的对等节点
 func (c *PeerToPeerHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckResponse, error) {
 	queryResp, err := c.Query(&request.QueryRequest)
 	if err != nil {
