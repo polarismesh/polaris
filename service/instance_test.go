@@ -505,6 +505,7 @@ func TestGetInstances1(t *testing.T) {
 
 	discover := func(t *testing.T, service *apiservice.Service, check func(cnt int) bool) *apiservice.DiscoverResponse {
 		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		time.Sleep(discoverSuit.UpdateCacheInterval())
 		resp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, service)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -552,7 +553,6 @@ func TestGetInstances1(t *testing.T) {
 		})
 
 		serviceResp.Revision = firstResp.Service.GetRevision()
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		if resp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, serviceResp); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		} else {
