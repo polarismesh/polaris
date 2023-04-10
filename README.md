@@ -20,11 +20,13 @@ README：
 - [How to integrate service gateway](#how-to-integrate-service-gateway)
 - [Chat group](#chat-group)
 
-visit [Website](https://polarismesh.cn/) to learn more
+Visit [Website](https://polarismesh.cn/) to learn more
 
 ## Introduction
 
 Polaris is an open source system for service discovery and governance. It can be used to solve the problem of service management, traffic control, fault tolerance and config management in distributed and microservice architecture.
+
+<img src="https://raw.githubusercontent.com/polarismesh/website/main/content/en/docs/What%20is%20Polaris/Picture/function.png" width="80%" />
 
 **Functions**:
 
