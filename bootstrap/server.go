@@ -272,7 +272,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 	}
 
 	// 初始化服务模块
-	if err = service.Initialize(ctx, &cfg.Naming, opts...); err != nil {
+	if err = service.Initialize(ctx, &cfg.Naming, authMgn, opts...); err != nil {
 		return err
 	}
 

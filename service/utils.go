@@ -18,21 +18,15 @@
 package service
 
 import (
-	"context"
-	"crypto/sha1"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	"regexp"
 	"strconv"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
@@ -124,23 +118,6 @@ func checkResourceName(name *wrappers.StringValue) error {
 	return nil
 }
 
-// checkResourceOwners 检查资源Owners
-func checkResourceOwners(owners *wrappers.StringValue) error {
-	if owners == nil {
-		return errors.New(utils.NilErrString)
-	}
-
-	if owners.GetValue() == "" {
-		return errors.New(utils.EmptyErrString)
-	}
-
-	if utf8.RuneCountInString(owners.GetValue()) > MaxOwnersLength {
-		return errors.New("owners too long")
-	}
-
-	return nil
-}
-
 // checkInstanceHost 检查服务实例Host
 func checkInstanceHost(host *wrappers.StringValue) error {
 	if host == nil {
@@ -148,19 +125,6 @@ func checkInstanceHost(host *wrappers.StringValue) error {
 	}
 
 	if host.GetValue() == "" {
-		return errors.New(utils.EmptyErrString)
-	}
-
-	return nil
-}
-
-// checkInstancePort 检查服务实例Port
-func checkInstancePort(port *wrappers.UInt32Value) error {
-	if port == nil {
-		return errors.New(utils.NilErrString)
-	}
-
-	if port.GetValue() <= 0 {
 		return errors.New(utils.EmptyErrString)
 	}
 
@@ -206,54 +170,6 @@ func checkMetadata(meta map[string]string) error {
 	return nil
 }
 
-// checkQueryOffset 检查查询参数Offset
-func checkQueryOffset(offset []string) (int, error) {
-	if len(offset) == 0 {
-		return 0, nil
-	}
-
-	if len(offset) > 1 {
-		return 0, errors.New("unique")
-	}
-
-	value, err := strconv.Atoi(offset[0])
-	if err != nil {
-		return 0, err
-	}
-
-	if value < 0 {
-		return 0, errors.New("invalid")
-	}
-
-	return value, nil
-}
-
-// checkQueryLimit 检查查询参数Limit
-func checkQueryLimit(limit []string) (int, error) {
-	if len(limit) == 0 {
-		return MaxQuerySize, nil
-	}
-
-	if len(limit) > 1 {
-		return 0, errors.New("unique")
-	}
-
-	value, err := strconv.Atoi(limit[0])
-	if err != nil {
-		return 0, err
-	}
-
-	if value < 0 {
-		return 0, errors.New("invalid")
-	}
-
-	if value > MaxQuerySize {
-		value = MaxQuerySize
-	}
-
-	return value, nil
-}
-
 // storeError2Response store code
 func storeError2Response(err error) *apiservice.Response {
 	if err == nil {
@@ -273,88 +189,6 @@ func storeError2AnyResponse(err error, msg proto.Message) *apiservice.Response {
 	resp := api.NewAnyDataResponse(batch.StoreCode2APICode(err), msg)
 	resp.Info = &wrappers.StringValue{Value: err.Error()}
 	return resp
-}
-
-// CalculateInstanceID 计算实例ID
-// Deprecated: use common/utils.CalculateInstanceID instead
-func CalculateInstanceID(namespace string, service string, vpcID string, host string, port uint32) (string, error) {
-	h := sha1.New()
-	var str string
-	// 兼容带有vpcID的instance
-	if vpcID == "" {
-		str = fmt.Sprintf("%s##%s##%s##%d", namespace, service, host, port)
-	} else {
-		str = fmt.Sprintf("%s##%s##%s##%s##%d", namespace, service, vpcID, host, port)
-	}
-
-	if _, err := io.WriteString(h, str); err != nil {
-		return "", err
-	}
-
-	out := hex.EncodeToString(h.Sum(nil))
-	return out, nil
-}
-
-// CalculateRuleID 计算规则ID
-// Deprecated: use common/utils.CalculateRuleID instead
-func CalculateRuleID(name, namespace string) string {
-	return name + "." + namespace
-}
-
-// ParseQueryOffset 格式化处理offset参数
-// Deprecated: use common/utils.ParseQueryOffset instead
-func ParseQueryOffset(offset string) (uint32, error) {
-	if offset == "" {
-		return QueryDefaultOffset, nil
-	}
-
-	tmp, err := strconv.ParseUint(offset, 10, 32)
-	if err != nil {
-		log.Warnf("[Server][Query] attribute(offset:%s) is invalid, parse err: %s",
-			offset, err.Error())
-		return 0, err
-	}
-
-	return uint32(tmp), nil
-}
-
-// ParseQueryLimit 格式化处理limit参数
-// Deprecated: use common/utils.ParseQueryLimit instead
-func ParseQueryLimit(limit string) (uint32, error) {
-	if limit == "" {
-		return QueryDefaultLimit, nil
-	}
-
-	tmp, err := strconv.ParseUint(limit, 10, 32)
-	if err != nil {
-		log.Errorf("[Server][Query] attribute(offset:%s) is invalid, parse err: %s",
-			limit, err.Error())
-		return 0, err
-	}
-	if tmp > QueryMaxLimit {
-		tmp = QueryMaxLimit
-	}
-
-	return uint32(tmp), nil
-}
-
-// ParseOffsetAndLimit 统一格式化处理Offset和limit参数
-// Deprecated: use common/utils.ParseOffsetAndLimit instead
-func ParseOffsetAndLimit(query map[string]string) (uint32, uint32, error) {
-	ofs, err := ParseQueryOffset(query["offset"])
-	if err != nil {
-		return 0, 0, err
-	}
-	delete(query, "offset")
-
-	var lmt uint32
-	lmt, err = ParseQueryLimit(query["limit"])
-	if err != nil {
-		return 0, 0, err
-	}
-	delete(query, "limit")
-
-	return ofs, lmt, nil
 }
 
 // ParseInstanceArgs 解析服务实例的 ip 和 port 查询参数
@@ -386,100 +220,4 @@ func ParseInstanceArgs(query map[string]string, meta map[string]string) (*store.
 		res.Ports = append(res.Ports, uint32(port))
 	}
 	return res, nil
-}
-
-// ParseRequestID 从ctx中获取Request-ID
-// Deprecated: use common/utils.ParseRequestID instead
-func ParseRequestID(ctx context.Context) string {
-	if ctx == nil {
-		return ""
-	}
-	rid, _ := ctx.Value(utils.StringContext("request-id")).(string)
-	return rid
-}
-
-// ParseToken 从ctx中获取token
-// Deprecated: use common/utils.ParseToken instead
-func ParseToken(ctx context.Context) string {
-	if ctx == nil {
-		return ""
-	}
-
-	token, _ := ctx.Value(utils.StringContext("polaris-token")).(string)
-	return token
-}
-
-// ParseOperator 从ctx中获取operator
-// Deprecated: use common/utils.ParseOperator instead
-func ParseOperator(ctx context.Context) string {
-	defaultOperator := "Polaris"
-	if ctx == nil {
-		return defaultOperator
-	}
-
-	if operator, _ := ctx.Value(utils.StringContext("operator")).(string); operator != "" {
-		return operator
-	}
-
-	return defaultOperator
-}
-
-// ParsePlatformID 从ctx中获取Platform-Id
-// Deprecated: use common/utils.ParsePlatformID instead
-func ParsePlatformID(ctx context.Context) string {
-	if ctx == nil {
-		return ""
-	}
-	pid, _ := ctx.Value(utils.StringContext("platform-id")).(string)
-	return pid
-}
-
-// ParsePlatformToken 从ctx中获取Platform-Token
-// Deprecated: use common/utils.ParsePlatformToken instead
-func ParsePlatformToken(ctx context.Context) string {
-	if ctx == nil {
-		return ""
-	}
-	pToken, _ := ctx.Value(utils.StringContext("platform-token")).(string)
-	return pToken
-}
-
-// ZapRequestID 生成Request-ID的日志描述
-// Deprecated: use common/utils.ZapRequestID instead
-func ZapRequestID(id string) zap.Field {
-	return zap.String("request-id", id)
-}
-
-// ZapPlatformID 生成Platform-ID的日志描述
-// Deprecated: use common/utils.ZapPlatformID instead
-func ZapPlatformID(id string) zap.Field {
-	return zap.String("platform-id", id)
-}
-
-// ZapInstanceID 生成instanceID的日志描述
-// Deprecated: use common/utils.ZapInstanceID instead
-func ZapInstanceID(id string) zap.Field {
-	return zap.String("instance", id)
-}
-
-// CheckDbStrFieldLen 检查name字段是否超过DB中对应字段的最大字符长度限制
-// Deprecated: use common/utils.CheckDbStrFieldLen instead
-func CheckDbStrFieldLen(param *wrappers.StringValue, dbLen int) error {
-	if param.GetValue() != "" && utf8.RuneCountInString(param.GetValue()) > dbLen {
-		errMsg := fmt.Sprintf("length of %s is over %d", param.GetValue(), dbLen)
-		return errors.New(errMsg)
-	}
-	return nil
-}
-
-// CheckDbMetaDataFieldLen 检查metadata的K,V是否超过DB中对应字段的最大字符长度限制
-// Deprecated: use common/utils.CheckDbMetaDataFieldLen instead
-func CheckDbMetaDataFieldLen(metaData map[string]string) error {
-	for k, v := range metaData {
-		if utf8.RuneCountInString(k) > 128 || utf8.RuneCountInString(v) > 4096 {
-			errMsg := fmt.Sprintf("metadata:length of key(%s) or value(%s) exceeds size(key:128,value:4096)", k, v)
-			return errors.New(errMsg)
-		}
-	}
-	return nil
 }
