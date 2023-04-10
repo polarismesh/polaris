@@ -134,7 +134,7 @@ func (s *Server) CreateService(ctx context.Context, req *apiservice.Service) *ap
 			// 检查是否存在
 			service, err := s.storage.GetService(serviceName, namespaceName)
 			if err != nil {
-				log.Error("[Service] get service fail", ZapRequestID(requestID), zap.Error(err))
+				log.Error("[Service] get service fail", utils.ZapRequestID(requestID), zap.Error(err))
 				return api.NewServiceResponse(apimodel.Code_StoreLayerException, req)
 			}
 			if service != nil {

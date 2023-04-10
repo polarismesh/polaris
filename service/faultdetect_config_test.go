@@ -196,3 +196,34 @@ func TestCreateFaultDetectRule(t *testing.T) {
 		assert.Equal(t, 1, len(faultDetector.GetRules()))
 	})
 }
+
+func TestModifyFaultDetectRule(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.Initialize(); err != nil {
+		t.Fatal(err)
+	}
+	defer discoverSuit.Destroy()
+
+	t.Run("正常修改探测规则，返回成功", func(t *testing.T) {
+		fdRules, resp := createFaultDetectRules(discoverSuit, testCount)
+		defer cleanFaultDetectRules(discoverSuit, resp)
+		checkFaultDetectRuleResponse(t, fdRules, resp)
+
+		for i := range fdRules {
+			fdRules[i].Description = "update faultdetect rule info"
+		}
+
+		resp = discoverSuit.DiscoverServer().UpdateFaultDetectRules(discoverSuit.DefaultCtx, fdRules)
+		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
+
+		qresp := discoverSuit.DiscoverServer().GetFaultDetectRules(discoverSuit.DefaultCtx, map[string]string{})
+		assertions := assert.New(t)
+		for _, resp := range qresp.Data {
+			msg := &apifault.FaultDetectRule{}
+			err := ptypes.UnmarshalAny(resp, msg)
+			assertions.Nil(err)
+			assertions.True(len(msg.GetId()) > 0)
+			assertions.Equal("update faultdetect rule info", msg.Description)
+		}
+	})
+}
