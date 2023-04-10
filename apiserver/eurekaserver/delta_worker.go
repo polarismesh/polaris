@@ -51,18 +51,19 @@ type ApplicationsWorkers struct {
 	enableSelfPreservation bool
 	namingServer           service.DiscoverServer
 	healthCheckServer      *healthcheck.Server
-	workers                *sync.Map
+	workers                map[string]*ApplicationsWorker
+	rwMutex                *sync.RWMutex
 }
 
 func NewApplicationsWorkers(interval time.Duration,
 	deltaExpireInterval time.Duration, enableSelfPreservation bool,
 	namingServer service.DiscoverServer, healthCheckServer *healthcheck.Server,
 	namespaces ...string) *ApplicationsWorkers {
-	workers := new(sync.Map)
+	workers := make(map[string]*ApplicationsWorker)
 	for _, namespace := range namespaces {
 		work := NewApplicationsWorker(interval, deltaExpireInterval, enableSelfPreservation,
 			namingServer, healthCheckServer, namespace)
-		workers.Store(namespace, work)
+		workers[namespace] = work
 	}
 	return &ApplicationsWorkers{
 		interval:               interval,
@@ -71,25 +72,31 @@ func NewApplicationsWorkers(interval time.Duration,
 		namingServer:           namingServer,
 		healthCheckServer:      healthCheckServer,
 		workers:                workers,
+		rwMutex:                &sync.RWMutex{},
 	}
 }
 
 func (a *ApplicationsWorkers) Get(namespace string) *ApplicationsWorker {
-	if work, exist := a.workers.Load(namespace); exist {
-		return work.(*ApplicationsWorker)
+	a.rwMutex.RLock()
+	work, exist := a.workers[namespace]
+	a.rwMutex.RUnlock()
+	if exist {
+		return work
+	} else {
+		a.rwMutex.Lock()
+		defer a.rwMutex.Unlock()
+		work := NewApplicationsWorker(a.interval, a.deltaExpireInterval, a.enableSelfPreservation,
+			a.namingServer, a.healthCheckServer, namespace)
+		a.workers[namespace] = work
+		return work
 	}
-	work, _ := a.workers.LoadOrStore(namespace,
-		NewApplicationsWorker(a.interval, a.deltaExpireInterval, a.enableSelfPreservation,
-			a.namingServer, a.healthCheckServer, namespace))
-	return work.(*ApplicationsWorker)
+
 }
 
 func (a *ApplicationsWorkers) Stop() {
-	a.workers.Range(func(key, value any) bool {
-		worker := value.(*ApplicationsWorker)
-		worker.Stop()
-		return true
-	})
+	for _, v := range a.workers {
+		v.Stop()
+	}
 }
 
 // ApplicationsWorker 应用缓存协程

@@ -36,7 +36,7 @@ const (
 	ParamValue      string = "value"
 	ParamVip        string = "vipAddress"
 	ParamSVip       string = "svipAddress"
-	HeaderNamespace string = "X-Polaris-Namespace"
+	HeaderNamespace string = "x-namespace"
 )
 
 // GetEurekaServer eureka web server
@@ -384,17 +384,22 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 	ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, token)
 
 	namespace := readNamespaceFromRequest(req, h.namespace)
-	log.Infof("[EUREKA-SERVER]received instance register request, client: %s, namespace: %s, instId: %s, appId: %s, ipAddr: %s",
+	log.Infof(
+		"[EUREKA-SERVER]received instance register request, "+
+			"client: %s, namespace: %s, instId: %s, appId: %s, ipAddr: %s",
 		remoteAddr, namespace, registrationRequest.Instance.InstanceId, appId, registrationRequest.Instance.IpAddr)
 	code := h.registerInstances(ctx, namespace, appId, registrationRequest.Instance, false)
 	if code == api.ExecuteSuccess || code == api.ExistedResource || code == api.SameInstanceRequest {
-		log.Infof("[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) has been registered successfully, code is %d",
+		log.Infof(
+			"[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) has been registered successfully,"+
+				" code is %d",
 			namespace, registrationRequest.Instance.InstanceId, appId, code)
 		writePolarisStatusCode(req, code)
 		writeHeader(http.StatusNoContent, rsp)
 		return
 	}
-	log.Errorf("[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) has been registered failed, code is %d",
+	log.Errorf("[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) has been registered failed, "+
+		"code is %d",
 		namespace, registrationRequest.Instance.InstanceId, appId, code)
 	writePolarisStatusCode(req, code)
 	writeHeader(int(code/1000), rsp)
@@ -421,7 +426,8 @@ func (h *EurekaServer) UpdateStatus(req *restful.Request, rsp *restful.Response)
 	}
 	status := req.QueryParameter(ParamValue)
 	namespace := readNamespaceFromRequest(req, h.namespace)
-	log.Infof("[EUREKA-SERVER]received instance updateStatus request, client: %s, namespace: %s, instId: %s, appId: %s, status: %s",
+	log.Infof("[EUREKA-SERVER]received instance updateStatus request, "+
+		"client: %s, namespace: %s, instId: %s, appId: %s, status: %s",
 		remoteAddr, namespace, instId, appId, status)
 	// check status
 	if status == StatusUnknown {
@@ -437,7 +443,8 @@ func (h *EurekaServer) UpdateStatus(req *restful.Request, rsp *restful.Response)
 		writeHeader(http.StatusOK, rsp)
 		return
 	}
-	log.Errorf("[EUREKA-SERVER]instance ((namespace=%s, instId=%s, appId=%s) has been updated failed, code is %d",
+	log.Errorf("[EUREKA-SERVER]instance ((namespace=%s, instId=%s, appId=%s) has been updated failed, "+
+		"code is %d",
 		namespace, instId, appId, code)
 	if code == api.NotFoundResource {
 		writeHeader(http.StatusNotFound, rsp)
@@ -468,18 +475,21 @@ func (h *EurekaServer) DeleteStatus(req *restful.Request, rsp *restful.Response)
 
 	namespace := readNamespaceFromRequest(req, h.namespace)
 
-	log.Infof("[EUREKA-SERVER]received instance status delete request, client: %s,namespace=%s, instId=%s, appId=%s",
+	log.Infof("[EUREKA-SERVER]received instance status delete request, "+
+		"client: %s,namespace=%s, instId=%s, appId=%s",
 		remoteAddr, namespace, instId, appId)
 
 	code := h.updateStatus(context.Background(), namespace, appId, instId, StatusUp, false)
 	writePolarisStatusCode(req, code)
 	if code == api.ExecuteSuccess {
-		log.Infof("[EUREKA-SERVER]instance status (namespace=%s, instId=%s, appId=%s) has been deleted successfully",
+		log.Infof("[EUREKA-SERVER]instance status (namespace=%s, instId=%s, appId=%s) "+
+			"has been deleted successfully",
 			namespace, instId, appId)
 		writeHeader(http.StatusOK, rsp)
 		return
 	}
-	log.Errorf("[EUREKA-SERVER]instance status (namespace=%s, instId=%s, appId=%s) has been deleted failed, code is %d",
+	log.Errorf("[EUREKA-SERVER]instance status (namespace=%s, instId=%s, appId=%s) "+
+		"has been deleted failed, code is %d",
 		namespace, instId, appId, code)
 	if code == api.NotFoundResource {
 		writeHeader(http.StatusNotFound, rsp)
@@ -543,17 +553,20 @@ func (h *EurekaServer) CancelInstance(req *restful.Request, rsp *restful.Respons
 		return
 	}
 	namespace := readNamespaceFromRequest(req, h.namespace)
-	log.Infof("[EUREKA-SERVER]received instance deregistered request, client: %s, namespace: %s, instId: %s, appId: %s",
+	log.Infof("[EUREKA-SERVER]received instance deregistered request, "+
+		"client: %s, namespace: %s, instId: %s, appId: %s",
 		remoteAddr, namespace, instId, appId)
 	code := h.deregisterInstance(context.Background(), namespace, appId, instId, false)
 	writePolarisStatusCode(req, code)
 	if code == api.ExecuteSuccess || code == api.NotFoundResource || code == api.SameInstanceRequest {
 		writeHeader(http.StatusOK, rsp)
-		log.Infof("[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) has been deregistered successfully, code is %d",
+		log.Infof("[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) "+
+			"has been deregistered successfully, code is %d",
 			namespace, instId, appId, code)
 		return
 	}
-	log.Errorf("[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) has been deregistered failed, code is %d",
+	log.Errorf("[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) has been deregistered failed,"+
+		" code is %d",
 		namespace, instId, appId, code)
 	writeHeader(int(code/1000), rsp)
 }
@@ -627,7 +640,8 @@ func (h *EurekaServer) UpdateMetadata(req *restful.Request, rsp *restful.Respons
 		writeHeader(http.StatusOK, rsp)
 		return
 	}
-	log.Errorf("[EUREKA-SERVER]instance metadata (namespace=%s, instId=%s, appId=%s) has been updated failed, code is %d",
+	log.Errorf("[EUREKA-SERVER]instance metadata (namespace=%s, instId=%s, appId=%s) has been updated failed, "+
+		"code is %d",
 		namespace, instId, appId, code)
 	if code == api.NotFoundResource {
 		writeHeader(http.StatusNotFound, rsp)

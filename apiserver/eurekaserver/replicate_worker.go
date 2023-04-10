@@ -32,6 +32,7 @@ import (
 )
 
 type ReplicateWorker struct {
+	namespace   string
 	peers       []string
 	taskChannel chan *ReplicationInstance
 	ctx         context.Context
@@ -42,8 +43,9 @@ const (
 	batchReplicateSize = 10
 )
 
-func NewReplicateWorker(ctx context.Context, peers []string) *ReplicateWorker {
+func NewReplicateWorker(ctx context.Context, namespace string, peers []string) *ReplicateWorker {
 	worker := &ReplicateWorker{
+		namespace:   namespace,
 		peers:       peers,
 		taskChannel: make(chan *ReplicationInstance, 1000),
 		ctx:         ctx,
@@ -114,7 +116,7 @@ func (r *ReplicateWorker) doBatchReplicate(tasks []*ReplicationInstance) {
 
 func (r *ReplicateWorker) doReplicateToPeer(
 	peer string, tasks []*ReplicationInstance, jsonData []byte, replicateInfo []string) {
-	response, err := sendHttpRequest(peer, jsonData, replicateInfo)
+	response, err := sendHttpRequest(r.namespace, peer, jsonData, replicateInfo)
 	if nil != err {
 		log.Errorf("[EUREKA-SERVER] fail to batch replicate to %s, err: %v", peer, err)
 		return
@@ -130,7 +132,6 @@ func (r *ReplicateWorker) doReplicateToPeer(
 					task.Id, task.AppName, peer, task.InstanceInfo)
 				// do the re-register
 				registerTask := &ReplicationInstance{
-					Namespace:          task.Namespace,
 					AppName:            task.AppName,
 					Id:                 task.Id,
 					LastDirtyTimestamp: task.LastDirtyTimestamp,
@@ -144,7 +145,27 @@ func (r *ReplicateWorker) doReplicateToPeer(
 	}
 }
 
-func sendHttpRequest(peer string, jsonData []byte, replicateInfo []string) (*ReplicationListResponse, error) {
+type ReplicateWorkers struct {
+	works map[string]*ReplicateWorker
+}
+
+func NewReplicateWorkers(ctx context.Context, namespacePeers map[string][]string) *ReplicateWorkers {
+	works := make(map[string]*ReplicateWorker)
+	for namespace, peers := range namespacePeers {
+		works[namespace] = NewReplicateWorker(ctx, namespace, peers)
+	}
+	return &ReplicateWorkers{
+		works: works,
+	}
+}
+
+func (r *ReplicateWorkers) Get(namespace string) (*ReplicateWorker, bool) {
+	work, exist := r.works[namespace]
+	return work, exist
+}
+
+func sendHttpRequest(namespace string, peer string,
+	jsonData []byte, replicateInfo []string) (*ReplicationListResponse, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodPost,
 		fmt.Sprintf("http://%s/eureka/peerreplication/batch/", peer), bytes.NewBuffer(jsonData))
@@ -156,6 +177,9 @@ func sendHttpRequest(peer string, jsonData []byte, replicateInfo []string) (*Rep
 	req.Header.Set(headerIdentityVersion, version.Version)
 	req.Header.Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	req.Header.Set(restful.HEADER_Accept, restful.MIME_JSON)
+	if len(namespace) != 0 {
+		req.Header.Set(HeaderNamespace, namespace)
+	}
 	response, err := client.Do(req)
 	if err != nil {
 		log.Errorf("[EUREKA-SERVER] fail to send replicate request: %v", err)
