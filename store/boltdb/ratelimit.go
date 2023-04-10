@@ -41,9 +41,7 @@ var (
 
 const (
 	// rule 相关信息以及映射
-	tblRateLimitConfig   string = "ratelimit_config"
-	tblRateLimitRevision string = "ratelimit_revision"
-
+	tblRateLimitConfig       string = "ratelimit_config"
 	RateLimitFieldID         string = "ID"
 	RateLimitFieldServiceID  string = "ServiceID"
 	RateLimitFieldClusterID  string = "ClusterID"
@@ -61,10 +59,6 @@ const (
 	RateConfFieldMtime       string = "ModifyTime"
 	RateConfFieldServiceID   string = "ServiceID"
 	RateConfFieldValid       string = "Valid"
-
-	RateLimitReviFieldServiceID    string = "ServiceID"
-	RateLimitReviFieldLastRevision string = "LastRevision"
-	RateLimitReviFieldModifyTime   string = "ModifyTime"
 )
 
 type rateLimitStore struct {

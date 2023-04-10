@@ -123,7 +123,7 @@ func (PolarisNodeHash) ID(node *core.Node) string {
 
 	runType, ns, _, _ := parseNodeID(node.Id)
 	if runType == string(RunTypeSidecar) {
-		ret := runType + sep + ns
+		ret := ns
 		if node.Metadata != nil && node.Metadata.Fields != nil {
 			tlsMode := node.Metadata.Fields[TLSModeTag].GetStringValue()
 			if tlsMode == TLSModePermissive || tlsMode == TLSModeStrict {

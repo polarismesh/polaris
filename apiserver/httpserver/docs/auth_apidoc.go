@@ -56,25 +56,25 @@ func EnrichGetStrategiesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("查询鉴权策略列表").
 		Metadata(restfulspec.KeyOpenAPITags, authApiTags).
-		Param(restful.QueryParameter("id", "策略ID").DataType(DataType_String).
+		Param(restful.QueryParameter("id", "策略ID").DataType(typeNameString).
 			Required(false)).
-		Param(restful.QueryParameter("name", "策略名称, 当前仅提供全模糊搜索").DataType(DataType_String).
+		Param(restful.QueryParameter("name", "策略名称, 当前仅提供全模糊搜索").DataType(typeNameString).
 			Required(false)).
 		Param(restful.QueryParameter("default", "“0” 查询自定义策略；“1” 查询默认策略；"+
-			"不填则为查询（默认+自定义）鉴权策略").DataType(DataType_String).Required(false)).
-		Param(restful.QueryParameter("res_id", "资源ID").DataType(DataType_String).
+			"不填则为查询（默认+自定义）鉴权策略").DataType(typeNameString).Required(false)).
+		Param(restful.QueryParameter("res_id", "资源ID").DataType(typeNameString).
 			Required(false)).
 		Param(restful.QueryParameter("res_type", "资源类型, namespace、service、config_group").
-			DataType(DataType_String).Required(false)).
-		Param(restful.QueryParameter("principal_id", "成员ID").DataType(DataType_String).
+			DataType(typeNameString).Required(false)).
+		Param(restful.QueryParameter("principal_id", "成员ID").DataType(typeNameString).
 			Required(false)).
 		Param(restful.QueryParameter("principal_type", "成员类型, user、group").
-			DataType(DataType_String).Required(false)).
+			DataType(typeNameString).Required(false)).
 		Param(restful.QueryParameter("show_detail", "是否显示策略详细").DataType("boolean").
 			Required(false)).
-		Param(restful.QueryParameter("offset", "查询偏移量, 默认为0").DataType(DataType_Integer).
+		Param(restful.QueryParameter("offset", "查询偏移量, 默认为0").DataType(typeNameInteger).
 			Required(false).DefaultValue("0")).
-		Param(restful.QueryParameter("limit", "本次查询条数, 最大为100").DataType(DataType_Integer).
+		Param(restful.QueryParameter("limit", "本次查询条数, 最大为100").DataType(typeNameInteger).
 			Required(false)).
 		Notes(enrichGetStrategiesApiNotes)
 }
@@ -84,10 +84,10 @@ func EnrichGetPrincipalResourcesApiDocs(r *restful.RouteBuilder) *restful.RouteB
 		Doc("获取鉴权策略详细").
 		Metadata(restfulspec.KeyOpenAPITags, authApiTags).
 		Param(restful.QueryParameter("principal_id", "策略ID").
-			DataType(DataType_String).
+			DataType(typeNameString).
 			Required(true)).
 		Param(restful.QueryParameter("principal_type", "Principal类别，user/group").
-			DataType(DataType_String).
+			DataType(typeNameString).
 			Required(true)).
 		Notes(enrichGetPrincipalResourcesApiNotes)
 }
@@ -96,7 +96,7 @@ func EnrichGetStrategyApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取鉴权策略详细").
 		Metadata(restfulspec.KeyOpenAPITags, authApiTags).
-		Param(restful.QueryParameter("id", "策略ID").DataType(DataType_String).Required(true)).
+		Param(restful.QueryParameter("id", "策略ID").DataType(typeNameString).Required(true)).
 		Notes(enrichGetStrategyApiNotes)
 }
 
@@ -121,17 +121,19 @@ func EnrichGetUsersApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Doc("获取用户").
 		Metadata(restfulspec.KeyOpenAPITags, usersApiTags).
 		Param(restful.QueryParameter("id", "用户ID").
-			DataType(DataType_String).
+			DataType(typeNameString).
 			Required(false)).
 		Param(restful.QueryParameter("name", "用户名称, 当前仅提供全模糊搜索").
-			DataType(DataType_String).
+			DataType(typeNameString).
 			Required(false)).
-		Param(restful.QueryParameter("source", "用户来源").DataType(DataType_String).Required(false)).
-		Param(restful.QueryParameter("group_id", "用户组ID, 用于查询某个用户组下用户列表").DataType(DataType_String).
+		Param(restful.QueryParameter("source", "用户来源").
+			DataType(typeNameString).Required(false)).
+		Param(restful.QueryParameter("group_id", "用户组ID, 用于查询某个用户组下用户列表").
+			DataType(typeNameString).
 			Required(false)).
-		Param(restful.QueryParameter("offset", "查询偏移量, 默认为0").DataType(DataType_Integer).Required(false).
+		Param(restful.QueryParameter("offset", "查询偏移量, 默认为0").DataType(typeNameInteger).Required(false).
 			DefaultValue("0")).
-		Param(restful.QueryParameter("limit", "本次查询条数, 最大为100").DataType(DataType_Integer).Required(false)).
+		Param(restful.QueryParameter("limit", "本次查询条数, 最大为100").DataType(typeNameInteger).Required(false)).
 		Notes(enrichGetUsersApiNotes)
 }
 
@@ -171,7 +173,7 @@ func EnrichGetUserTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取用户Token").
 		Metadata(restfulspec.KeyOpenAPITags, usersApiTags).
-		Param(restful.QueryParameter("id", "用户ID").DataType(DataType_String).Required(true)).
+		Param(restful.QueryParameter("id", "用户ID").DataType(typeNameString).Required(true)).
 		Notes(enrichGetUserTokenApiNotes)
 }
 
@@ -211,14 +213,14 @@ func EnrichGetGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("查询用户组列表").
 		Metadata(restfulspec.KeyOpenAPITags, userGroupApiTags).
-		Param(restful.QueryParameter("id", "用户组ID").DataType(DataType_String).Required(false)).
+		Param(restful.QueryParameter("id", "用户组ID").DataType(typeNameString).Required(false)).
 		Param(restful.QueryParameter("name", "用户组名称, 当前仅提供全模糊搜索").
-			DataType(DataType_String).Required(false)).
-		Param(restful.QueryParameter("user_id", "用户ID, 用于查询某个用户关联的用户组列表").DataType(DataType_String).
+			DataType(typeNameString).Required(false)).
+		Param(restful.QueryParameter("user_id", "用户ID, 用于查询某个用户关联的用户组列表").DataType(typeNameString).
 			Required(false)).
-		Param(restful.QueryParameter("offset", "查询偏移量, 默认为0").DataType(DataType_Integer).Required(false).
+		Param(restful.QueryParameter("offset", "查询偏移量, 默认为0").DataType(typeNameInteger).Required(false).
 			DefaultValue("0")).
-		Param(restful.QueryParameter("limit", "本次查询条数, 最大为100").DataType(DataType_Integer).Required(false)).
+		Param(restful.QueryParameter("limit", "本次查询条数, 最大为100").DataType(typeNameInteger).Required(false)).
 		Notes(enrichGetGroupsApiNotes)
 }
 
@@ -226,7 +228,7 @@ func EnrichGetGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取用户组详情").
 		Metadata(restfulspec.KeyOpenAPITags, userGroupApiTags).
-		Param(restful.QueryParameter("id", "用户组ID").DataType(DataType_Integer).Required(true)).
+		Param(restful.QueryParameter("id", "用户组ID").DataType(typeNameInteger).Required(true)).
 		Notes(enrichGetGroupApiNotes)
 }
 
@@ -234,7 +236,7 @@ func EnrichGetGroupTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取用户组 token").
 		Metadata(restfulspec.KeyOpenAPITags, userGroupApiTags).
-		Param(restful.QueryParameter("id", "用户组ID").DataType(DataType_Integer).Required(true)).
+		Param(restful.QueryParameter("id", "用户组ID").DataType(typeNameInteger).Required(true)).
 		Notes(enrichGetGroupTokenApiNotes)
 }
 

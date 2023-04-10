@@ -249,23 +249,24 @@ Header X-Polaris-Token: {访问凭据}
 
 | 参数名              | 类型                 | 描述                                                   | 是否必填  |
 | ------------------- | ------------------ | ----------------------------------------------------- | -------- |
-| service             | string             | 服务名                                                    | 是     |
-| namespace           | string             | 命名空间                                                   | 是     |
-| host                | string             | 实例的IP                                                   | 是     |
-| port                | string             | 实例的端口                                                  | 是     |
+| id             | string             | 实例ID        | 如果不填写，则必须填写 serivce、namespace、host、port     |
+| service             | string             | 服务名   | 如果不填写，则必须填 ID     |
+| namespace           | string             | 命名空间 | 如果不填写，则必须填 ID     |
+| host                | string             | 实例的IP          | 如果不填写，则必须填 ID     |
+| port                | string             | 实例的端口     | 如果不填写，则必须填 ID     |
 | vpc_id              | string             | VPC ID                                                    | 否     |
 | protocol            | string             | 对应端口的协议                                               | 否     |
 | version             | string             | 版本                                                       | 否     |
 | priority            | string             | 优先级                                                      | 否     |
-| weight              | string             | 权重(默认值100)                                              | 是     |
-| enable_health_check | bool               | 是否开启健康检查                                             | 是      |
+| weight              | string             | 权重(默认值100)                                              | 否     |
+| enable_health_check | bool               | 是否开启健康检查                                             | 否      |
 | health_check        | HealthCheck        | 健康检查类别具体描述信息(如果enable_health_check==true，必须填写) | 否     |
-| healthy             | bool               | 实例健康标志(默认为健康的)                                     | 是     |
-| isolate             | bool               | 实例隔离标志(默认为不隔离的)                                   | 是     |
-| location            | Location           | 实例位置信息                                                 | 是     |
+| healthy             | bool               | 实例健康标志(默认为健康的)                                     | 否     |
+| isolate             | bool               | 实例隔离标志(默认为不隔离的)                                   | 否     |
+| location            | Location           | 实例位置信息                                                 | 否     |
 | metadata            | map<string,string> | 实例标签信息，最多只能存储64对 *key-value*                      | 否     |
-| service_token       | string             | service的token信息                                          | 是     |
 `
+
 	enrichUpdateInstancesIsolateApiNotes = `
 请求示例：
 

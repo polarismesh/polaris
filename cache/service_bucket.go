@@ -28,6 +28,77 @@ import (
 	"github.com/polarismesh/polaris/common/model"
 )
 
+type serviceAliasBucket struct {
+	lock sync.RWMutex
+	// aliase namespace->service->alias_id
+	alias map[string]map[string]map[string]*model.Service
+}
+
+func newServiceAliasBucket() *serviceAliasBucket {
+	return &serviceAliasBucket{
+		alias: make(map[string]map[string]map[string]*model.Service),
+	}
+}
+
+func (s *serviceAliasBucket) cleanServiceAlias(aliasFor *model.Service) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	if _, ok := s.alias[aliasFor.Namespace]; !ok {
+		return
+	}
+	delete(s.alias[aliasFor.Namespace], aliasFor.Name)
+}
+
+func (s *serviceAliasBucket) addServiceAlias(alias, aliasFor *model.Service) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	if _, ok := s.alias[aliasFor.Namespace]; !ok {
+		s.alias[aliasFor.Namespace] = map[string]map[string]*model.Service{}
+	}
+	if _, ok := s.alias[aliasFor.Namespace][aliasFor.Name]; !ok {
+		s.alias[aliasFor.Namespace][aliasFor.Name] = map[string]*model.Service{}
+	}
+
+	bucket := s.alias[aliasFor.Namespace][aliasFor.Name]
+	bucket[alias.ID] = alias
+}
+
+func (s *serviceAliasBucket) delServiceAlias(alias, aliasFor *model.Service) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	if _, ok := s.alias[aliasFor.Namespace]; !ok {
+		return
+	}
+	if _, ok := s.alias[aliasFor.Namespace][aliasFor.Name]; !ok {
+		return
+	}
+
+	bucket := s.alias[aliasFor.Namespace][aliasFor.Name]
+	delete(bucket, alias.ID)
+}
+
+func (s *serviceAliasBucket) getServiceAliases(aliasFor *model.Service) []*model.Service {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	ret := make([]*model.Service, 0, 8)
+	if _, ok := s.alias[aliasFor.Namespace]; !ok {
+		return ret
+	}
+	if _, ok := s.alias[aliasFor.Namespace][aliasFor.Name]; !ok {
+		return ret
+	}
+
+	bucket := s.alias[aliasFor.Namespace][aliasFor.Name]
+	for i := range bucket {
+		ret = append(ret, bucket[i])
+	}
+	return ret
+}
+
 type serviceNamespaceBucket struct {
 	lock     sync.RWMutex
 	revision string
