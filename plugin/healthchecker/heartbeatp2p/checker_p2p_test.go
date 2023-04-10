@@ -81,7 +81,7 @@ func TestPeerToPeerHealthChecker(t *testing.T) {
 		go func(checker *PeerToPeerHealthChecker) {
 			defer wait.Done()
 			checker.servePeers()
-			checker.caulContinuum()
+			checker.calculateContinuum()
 		}(checker)
 	}
 
