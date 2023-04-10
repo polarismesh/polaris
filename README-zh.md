@@ -26,6 +26,8 @@ README：
 
 北极星是一个支持多语言和多框架的服务发现和治理平台，致力于解决分布式和微服务架构中的服务管理、流量管理、故障容错、配置管理和可观测性问题，针对不同的技术栈和环境提供服务治理的标准方案和最佳实践。
 
+<img src="https://raw.githubusercontent.com/polarismesh/website/main/content/zh-cn/docs/北极星是什么/图片/功能特性.png" width="800" />
+
 **功能**：
 
 - 服务管理：服务发现、服务发现、健康检查
@@ -80,7 +82,7 @@ README：
 
 ## 如何集成服务网关
 
-用户也可以在服务网关里集成北极星的服务发现和治理能力。
+用户可以在多种服务网关里集成北极星的服务发现和治理能力。
 
 - [spring cloud gateway](https://github.com/Tencent/spring-cloud-tencent)
 - [nginx gateway](https://github.com/polarismesh/nginx-gateway)
