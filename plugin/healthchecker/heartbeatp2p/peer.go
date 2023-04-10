@@ -64,19 +64,18 @@ func (p *Peer) Serve(soltNum int32) error {
 		if p.Local {
 			log.Info("local peer serve", zap.String("host", p.Host), zap.Uint32("port", p.Port))
 			p.Cache = newLocalBeatRecordCache(soltNum, commonhash.Fnv32)
-			err = p.initLocalServer(ctx)
+			err = p.initLocal(ctx)
 			return
 		}
 		log.Info("remote peer client init", zap.String("host", p.Host), zap.Uint32("port", p.Port))
-		if err = p.initRemoteClient(ctx); err != nil {
+		if err = p.initRemote(ctx); err != nil {
 			return
 		}
-		p.initRemoteCache()
 	})
 	return err
 }
 
-func (p *Peer) initLocalServer(ctx context.Context) error {
+func (p *Peer) initLocal(ctx context.Context) error {
 	ln, err := net.Listen("tcp", fmt.Sprintf("%v:%v", p.Host, p.Port))
 	if err != nil {
 		return err
@@ -92,7 +91,7 @@ func (p *Peer) initLocalServer(ctx context.Context) error {
 	return err
 }
 
-func (p *Peer) initRemoteClient(ctx context.Context) error {
+func (p *Peer) initRemote(ctx context.Context) error {
 	opts := []grpc.DialOption{
 		grpc.WithBlock(),
 		grpc.WithInsecure(),
@@ -132,10 +131,6 @@ func (p *Peer) initRemoteClient(ctx context.Context) error {
 			}
 		}
 	}()
-	return nil
-}
-
-func (p *Peer) initRemoteCache() {
 	p.Cache = newRemoteBeatRecordCache(
 		func(req *GetRecordsRequest) *GetRecordsResponse {
 			log.Debug("send get record request", zap.String("host", p.Host),
@@ -162,6 +157,7 @@ func (p *Peer) initRemoteCache() {
 					zap.Uint32("port", p.Port), zap.Any("req", req), zap.Error(err))
 			}
 		})
+	return nil
 }
 
 func (p *Peer) GetRecords(_ context.Context, req *GetRecordsRequest) (*GetRecordsResponse, error) {
@@ -172,13 +168,11 @@ func (p *Peer) GetRecords(_ context.Context, req *GetRecordsRequest) (*GetRecord
 	items := p.Cache.Get(keys...)
 	for i := range keys {
 		key := keys[i]
-		item, ok := items[key]
+		item := items[key]
 		record := &HeartbeatRecord{
 			Key:   key,
-			Exist: ok,
-		}
-		if ok {
-			record.Value = item.Record.String()
+			Value: item.Record.String(),
+			Exist: item.Exist,
 		}
 		records = append(records, record)
 	}
