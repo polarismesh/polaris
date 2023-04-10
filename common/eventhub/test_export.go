@@ -19,7 +19,6 @@ package eventhub
 
 import (
 	"context"
-	"sync"
 )
 
 func TestInitEventHub() {
@@ -32,5 +31,4 @@ func TestInitEventHub() {
 func TestShutdownEventHub() {
 	Shutdown()
 	eh = nil
-	closeOnce = sync.Once{}
 }
