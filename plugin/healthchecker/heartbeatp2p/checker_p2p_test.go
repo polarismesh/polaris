@@ -130,4 +130,20 @@ func TestPeerToPeerHealthChecker(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, resp.Exists)
 	assert.Equal(t, mockTimeSec, resp.LastHeartbeatSec)
+
+	err = checker2.Delete(mockKey)
+	assert.NoError(t, err)
+	time.Sleep(time.Second)
+
+	resp, err = checker1.Query(&request.QueryRequest)
+	assert.NoError(t, err)
+	assert.False(t, resp.Exists)
+
+	resp, err = checker2.Query(&request.QueryRequest)
+	assert.NoError(t, err)
+	assert.False(t, resp.Exists)
+
+	resp, err = checker3.Query(&request.QueryRequest)
+	assert.NoError(t, err)
+	assert.False(t, resp.Exists)
 }
