@@ -24,9 +24,10 @@ import (
 	"net"
 	"sync"
 
-	commonhash "github.com/polarismesh/polaris/common/hash"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+
+	commonhash "github.com/polarismesh/polaris/common/hash"
 )
 
 // Peer Heartbeat data storage node

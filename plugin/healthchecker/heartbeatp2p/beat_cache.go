@@ -21,8 +21,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/polarismesh/polaris/common/utils"
 	"go.uber.org/zap"
+
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // ReadBeatRecord Heartbeat records read results
