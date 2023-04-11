@@ -18,6 +18,7 @@
 package v1
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/emicklei/go-restful/v3"
@@ -109,6 +110,10 @@ func (h *HTTPServerV1) RegisterInstance(req *restful.Request, rsp *restful.Respo
 		handler.WriteHeaderAndProto(api.NewResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
+	// 客户端请求中带了 token 的，优先已请求中的为准
+	if instance.GetServiceToken().GetValue() != "" {
+		ctx = context.WithValue(ctx, utils.ContextAuthTokenKey, instance.GetServiceToken().GetValue())
+	}
 
 	handler.WriteHeaderAndProto(h.namingServer.RegisterInstance(ctx, instance))
 }
@@ -126,7 +131,10 @@ func (h *HTTPServerV1) DeregisterInstance(req *restful.Request, rsp *restful.Res
 		handler.WriteHeaderAndProto(api.NewResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
-
+	// 客户端请求中带了 token 的，优先已请求中的为准
+	if instance.GetServiceToken().GetValue() != "" {
+		ctx = context.WithValue(ctx, utils.ContextAuthTokenKey, instance.GetServiceToken().GetValue())
+	}
 	handler.WriteHeaderAndProto(h.namingServer.DeregisterInstance(ctx, instance))
 }
 
