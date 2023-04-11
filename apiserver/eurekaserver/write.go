@@ -242,7 +242,8 @@ func (h *EurekaServer) updateStatus(
 	return resp.GetCode().GetValue()
 }
 
-func (h *EurekaServer) renew(ctx context.Context, namespace string, appId string, instanceId string, replicated bool) uint32 {
+func (h *EurekaServer) renew(ctx context.Context, namespace string, appId string,
+	instanceId string, replicated bool) uint32 {
 	ctx = context.WithValue(
 		ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
 	instanceId = checkOrBuildNewInstanceId(namespace, appId, instanceId, h.generateUniqueInstId)

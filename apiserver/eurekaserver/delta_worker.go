@@ -82,14 +82,19 @@ func (a *ApplicationsWorkers) Get(namespace string) *ApplicationsWorker {
 	a.rwMutex.RUnlock()
 	if exist {
 		return work
-	} else {
-		a.rwMutex.Lock()
-		defer a.rwMutex.Unlock()
-		work := NewApplicationsWorker(a.interval, a.deltaExpireInterval, a.enableSelfPreservation,
-			a.namingServer, a.healthCheckServer, namespace)
-		a.workers[namespace] = work
+	}
+	a.rwMutex.Lock()
+	defer a.rwMutex.Unlock()
+
+	work, exist = a.workers[namespace]
+	if exist {
 		return work
 	}
+
+	work = NewApplicationsWorker(a.interval, a.deltaExpireInterval, a.enableSelfPreservation,
+		a.namingServer, a.healthCheckServer, namespace)
+	a.workers[namespace] = work
+	return work
 
 }
 
