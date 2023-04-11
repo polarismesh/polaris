@@ -22,7 +22,10 @@ fi
 
 docker_tag=$1
 
-docker_repository="polarismesh"
+docker_repository="${DOCKER_REPOSITORY}"
+if [[ "${docker_repository}" == "" ]]; then
+    docker_repository="polarismesh"
+fi
 
 echo "docker repository : ${docker_repository}/polaris-server, tag : ${docker_tag}"
 
