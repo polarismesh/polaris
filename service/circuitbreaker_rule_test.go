@@ -275,6 +275,7 @@ func TestEnableCircuitBreakerRule(t *testing.T) {
 		}
 	})
 }
+
 func TestUpdateCircuitBreakerRule(t *testing.T) {
 	discoverSuit := &DiscoverTestSuit{}
 	if err := discoverSuit.Initialize(); err != nil {

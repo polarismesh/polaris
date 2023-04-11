@@ -23,8 +23,8 @@ import (
 	"sync/atomic"
 	"testing"
 
+	commonhash "github.com/polarismesh/polaris/common/hash"
 	"github.com/polarismesh/polaris/common/model"
-	commonhash 	"github.com/polarismesh/polaris/common/hash"
 )
 
 const Parallelism = 1024 //  Used to represent the amount of  Concurrency

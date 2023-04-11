@@ -21,8 +21,9 @@ import (
 	"fmt"
 	"testing"
 
-	commonhash "github.com/polarismesh/polaris/common/hash"
 	"github.com/stretchr/testify/assert"
+
+	commonhash "github.com/polarismesh/polaris/common/hash"
 )
 
 func Test_SegmentMap(t *testing.T) {

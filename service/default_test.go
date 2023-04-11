@@ -23,10 +23,11 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/store/mock"
-	"github.com/stretchr/testify/assert"
 )
 
 func Test_Initialize(t *testing.T) {

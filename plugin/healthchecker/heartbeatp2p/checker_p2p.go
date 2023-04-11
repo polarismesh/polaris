@@ -22,11 +22,12 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"go.uber.org/zap"
+
 	commonhash "github.com/polarismesh/polaris/common/hash"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
-	"go.uber.org/zap"
 )
 
 func init() {
