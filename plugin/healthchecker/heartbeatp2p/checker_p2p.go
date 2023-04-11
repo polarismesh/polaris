@@ -44,7 +44,7 @@ const (
 	// CountSep separator to divide server and count
 	Split = "|"
 	// DefaultListenPort default p2p checker listen port
-	DefaultListenPort = 7000
+	DefaultListenPort = 8100
 	// DefaultSoltNum default soltNum of LocalBeatRecordCache
 	DefaultSoltNum = 64
 )
@@ -59,6 +59,7 @@ const (
 //     a. 心跳写请求通过 gRPC 长连接直接发给对应责任节点
 //     b. 心跳读请求通过 gRPC 长连接直接发给对应责任节点，责任节点返回心跳时间戳信息
 type PeerToPeerHealthChecker struct {
+	initialize int32
 	// refreshPeerTimeSec last peer list start refresh occur timestamp
 	refreshPeerTimeSec int64
 	// endRefreshPeerTimeSec last peer list end refresh occur timestamp
@@ -84,12 +85,12 @@ func (c *PeerToPeerHealthChecker) Name() string {
 
 // Initialize
 func (c *PeerToPeerHealthChecker) Initialize(configEntry *plugin.ConfigEntry) error {
-	listenPort, _ := configEntry.Option["listenPort"].(int64)
+	listenPort, _ := configEntry.Option["listenPort"].(int)
 	if listenPort == 0 {
 		listenPort = DefaultListenPort
 	}
-	c.listenPort = listenPort
-	soltNum, _ := configEntry.Option["soltNum"].(int64)
+	c.listenPort = int64(listenPort)
+	soltNum, _ := configEntry.Option["soltNum"].(int)
 	if soltNum == 0 {
 		soltNum = DefaultSoltNum
 	}
@@ -121,6 +122,7 @@ func (c *PeerToPeerHealthChecker) SetCheckerPeers(checkerPeers []plugin.CheckerP
 	c.servePeers()
 	c.calculateContinuum()
 	atomic.StoreInt64(&c.endRefreshPeerTimeSec, commontime.CurrentMillisecond())
+	atomic.StoreInt32(&c.initialize, 1)
 	log.Info("[HealthCheck][P2P] end checker peers change", zap.Any("peers", c.peers))
 }
 
@@ -172,7 +174,6 @@ func (c *PeerToPeerHealthChecker) servePeers() {
 	serveFunc(c.peers, func(p *Peer) bool {
 		return p.Local
 	})
-
 	// 启动 remote peer
 	serveFunc(c.peers, func(p *Peer) bool {
 		return !p.Local
@@ -199,6 +200,9 @@ func (c *PeerToPeerHealthChecker) Type() plugin.HealthCheckType {
 
 // Report process heartbeat info report
 func (c *PeerToPeerHealthChecker) Report(request *plugin.ReportRequest) error {
+	if !c.isInitialize() {
+		return nil
+	}
 	key := request.InstanceId
 	responsible, ok := c.findResponsiblePeer(key)
 	if !ok {
@@ -263,6 +267,11 @@ func (c *PeerToPeerHealthChecker) Check(request *plugin.CheckRequest) (*plugin.C
 
 // Query queries the heartbeat time
 func (c *PeerToPeerHealthChecker) Query(request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
+	if !c.isInitialize() {
+		return &plugin.QueryResponse{
+			LastHeartbeatSec: 0,
+		}, nil
+	}
 	key := request.InstanceId
 	responsible, ok := c.findResponsiblePeer(key)
 	if !ok {
@@ -328,6 +337,11 @@ func (c *PeerToPeerHealthChecker) findResponsiblePeer(key string) (*Peer, bool) 
 }
 
 func (c *PeerToPeerHealthChecker) skipCheck(key string, expireDurationSec int64) bool {
+	// 如果没有初始化，则忽略检查
+	if !c.isInitialize() {
+		return true
+	}
+
 	suspendTimeSec := c.SuspendTimeSec()
 	localCurTimeSec := commontime.CurrentMillisecond() / 1000
 	if suspendTimeSec > 0 && localCurTimeSec >= suspendTimeSec &&
@@ -367,4 +381,8 @@ func (c *PeerToPeerHealthChecker) getEndRefreshPeerTimeSec() int64 {
 
 func (c *PeerToPeerHealthChecker) getRefreshPeerTimeSec() int64 {
 	return atomic.LoadInt64(&c.refreshPeerTimeSec)
+}
+
+func (c *PeerToPeerHealthChecker) isInitialize() bool {
+	return atomic.LoadInt32(&c.initialize) == 1
 }

@@ -99,9 +99,9 @@ func (handler *InstanceEventHealthCheckHandler) OnEvent(ctx context.Context, i i
 	e := i.(model.InstanceEvent)
 	select {
 	case handler.instanceEventChannel <- &e:
-		log.Infof("[Health Check]get instance event, id is %s, type is %s", e.Id, e.EType)
+		log.Debugf("[Health Check]get instance event, id is %s, type is %s", e.Id, e.EType)
 	default:
-		log.Errorf("[Health Check]instance event handler channel is full, drop event, id is %s", e.Id)
+		log.Errorf("[Health Check]instance event chan full, drop event, id is %s, type is %s", e.Id, e.EType)
 	}
 	return nil
 }
