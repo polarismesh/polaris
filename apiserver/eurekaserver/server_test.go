@@ -81,7 +81,8 @@ func Test_parsePeersToReplicate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, parsePeersToReplicate(tt.args.defaultNamespace, tt.args.replicatePeerObjs), "parsePeersToReplicate(%v, %v)", tt.args.defaultNamespace, tt.args.replicatePeerObjs)
+			assert.Equalf(t, tt.want, parsePeersToReplicate(tt.args.defaultNamespace, tt.args.replicatePeerObjs),
+				"parsePeersToReplicate(%v, %v)", tt.args.defaultNamespace, tt.args.replicatePeerObjs)
 		})
 	}
 }
