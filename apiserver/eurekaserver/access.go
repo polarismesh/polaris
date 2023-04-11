@@ -276,13 +276,14 @@ func writeResponse(acceptValues map[string]bool, appsRespCache *ApplicationsResp
 // GetDeltaApplications 增量拉取服务实例信息
 func (h *EurekaServer) GetDeltaApplications(req *restful.Request, rsp *restful.Response) {
 	namespace := readNamespaceFromRequest(req, h.namespace)
-	appsRespCache := h.workers.Get(namespace).GetDeltaApps()
+	work := h.workers.Get(namespace)
+	appsRespCache := work.GetDeltaApps()
 	if nil == appsRespCache {
-		ctx := h.workers.Get(namespace).StartWorker()
+		ctx := work.StartWorker()
 		if nil != ctx {
 			<-ctx.Done()
 		}
-		appsRespCache = h.workers.Get(namespace).GetDeltaApps()
+		appsRespCache = work.GetDeltaApps()
 	}
 	remoteAddr := req.Request.RemoteAddr
 	acceptValue := getParamFromEurekaRequestHeader(req, restful.HEADER_Accept)
