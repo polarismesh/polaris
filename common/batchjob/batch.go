@@ -37,9 +37,11 @@ type BatchController struct {
 func NewBatchController(ctx context.Context, conf CtrlConfig) *BatchController {
 	ctx, cancel := context.WithCancel(ctx)
 	bc := &BatchController{
+		label:     conf.Label,
 		conf:      conf,
 		cancel:    cancel,
 		tasksChan: make(chan Future, conf.QueueSize),
+		handler:   conf.Handler,
 	}
 	bc.mainLoop(ctx)
 	return bc
@@ -55,8 +57,17 @@ func (bc *BatchController) Submit(task Task) Future {
 	ctx, cancel := context.WithCancel(context.Background())
 	f := &future{
 		task:   task,
-		err:    nil,
-		result: make(chan interface{}, 1),
+		ctx:    ctx,
+		cancel: cancel,
+	}
+	bc.tasksChan <- f
+	return f
+}
+
+func (bc *BatchController) SubmitWithTimeout(task Task, timeout time.Duration) Future {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	f := &future{
+		task:   task,
 		ctx:    ctx,
 		cancel: cancel,
 	}

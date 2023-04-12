@@ -61,7 +61,7 @@ type LeaderElectionStore interface {
 	// CompareAndSwapVersion cas version
 	CompareAndSwapVersion(key string, curVersion int64, newVersion int64, leader string) (bool, error)
 	// CheckMtimeExpired check mtime expired
-	CheckMtimeExpired(key string, leaseTime int32) (bool, error)
+	CheckMtimeExpired(key string, leaseTime int32) (string, bool, error)
 	// ListLeaderElections list all leaderelection
 	ListLeaderElections() ([]*model.LeaderElection, error)
 }
@@ -134,17 +134,19 @@ func (l *leaderElectionStore) CompareAndSwapVersion(key string, curVersion int64
 }
 
 // CheckMtimeExpired check last modify time expired
-func (l *leaderElectionStore) CheckMtimeExpired(key string, leaseTime int32) (bool, error) {
+func (l *leaderElectionStore) CheckMtimeExpired(key string, leaseTime int32) (string, bool, error) {
 	log.Debugf("[Store][database] check mtime expired (%s, %d)", key, leaseTime)
-	mainStr := "select count(1) from leader_election where elect_key = ? and mtime < " +
-		" FROM_UNIXTIME(UNIX_TIMESTAMP(SYSDATE()) - ?)"
+	mainStr := "select leader, FROM_UNIXTIME(UNIX_TIMESTAMP(SYSDATE())) - mtime from leader_election where elect_key = ?"
 
-	var count int32
-	err := l.master.DB.QueryRow(mainStr, key, leaseTime).Scan(&count)
+	var (
+		leader   string
+		diffTime int32
+	)
+	err := l.master.DB.QueryRow(mainStr, key).Scan(&leader, &diffTime)
 	if err != nil {
 		log.Errorf("[Store][database] check mtime expired (%s), err: %s", key, err.Error())
 	}
-	return (count > 0), store.Error(err)
+	return leader, (diffTime > leaseTime), store.Error(err)
 }
 
 // ListLeaderElections list the election records
@@ -209,6 +211,7 @@ type leaderElectionStateMachine struct {
 	cancel           context.CancelFunc
 	releaseSignal    int32
 	releaseTickLimit int32
+	leader           string
 }
 
 // isLeader
@@ -218,6 +221,8 @@ func isLeader(flag int32) bool {
 
 // mainLoop
 func (le *leaderElectionStateMachine) mainLoop() {
+	// 先全部以 follower 的角色
+	le.forceToFollower()
 	log.Infof("[Store][database] leader election started (%s)", le.electKey)
 	ticker := time.NewTicker(TickTime * time.Second)
 	defer ticker.Stop()
@@ -259,13 +264,17 @@ func (le *leaderElectionStateMachine) tick() {
 			le.changeToFollower()
 		}
 	} else {
-		dead, err := le.checkLeaderDead()
+		leader, dead, err := le.checkLeaderDead()
 		if err != nil {
 			log.Errorf("[Store][database] check leader dead err (%s), stay follower state (%s)",
 				err.Error(), le.electKey)
 			return
 		}
 		if !dead {
+			if leader != le.leader {
+				le.leader = leader
+				le.publishLeaderChangeEvent()
+			}
 			return
 		}
 		r, err := le.elect()
@@ -280,7 +289,11 @@ func (le *leaderElectionStateMachine) tick() {
 }
 
 func (le *leaderElectionStateMachine) publishLeaderChangeEvent() {
-	eventhub.Publish(eventhub.LeaderChangeEventTopic, store.LeaderChangeEvent{Key: le.electKey, Leader: le.isLeader()})
+	eventhub.Publish(eventhub.LeaderChangeEventTopic, store.LeaderChangeEvent{
+		Key:        le.electKey,
+		Leader:     le.isLeader(),
+		LeaderHost: le.leader,
+	})
 }
 
 // changeToLeader
@@ -297,8 +310,15 @@ func (le *leaderElectionStateMachine) changeToFollower() {
 	le.publishLeaderChangeEvent()
 }
 
+// forceToFollower
+func (le *leaderElectionStateMachine) forceToFollower() {
+	log.Infof("[Store][database] force to follower (%s)", le.electKey)
+	atomic.StoreInt32(&le.leaderFlag, 0)
+	le.publishLeaderChangeEvent()
+}
+
 // checkLeaderDead
-func (le *leaderElectionStateMachine) checkLeaderDead() (bool, error) {
+func (le *leaderElectionStateMachine) checkLeaderDead() (string, bool, error) {
 	return le.leStore.CheckMtimeExpired(le.electKey, LeaseTime)
 }
 

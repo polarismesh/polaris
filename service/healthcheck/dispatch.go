@@ -27,7 +27,6 @@ import (
 
 	commonhash "github.com/polarismesh/polaris/common/hash"
 	"github.com/polarismesh/polaris/common/model"
-	"github.com/polarismesh/polaris/plugin"
 )
 
 const (
@@ -118,8 +117,6 @@ func compareBuckets(src map[commonhash.Bucket]bool, dst map[commonhash.Bucket]bo
 
 func (d *Dispatcher) reloadSelfContinuum() bool {
 	nextBuckets := make(map[commonhash.Bucket]bool)
-	checkPeers := make([]plugin.CheckerPeer, 0, len(nextBuckets))
-
 	d.svr.cacheProvider.RangeSelfServiceInstances(func(instance *apiservice.Instance) {
 		if instance.GetIsolate().GetValue() || !instance.GetHealthy().GetValue() {
 			return
@@ -128,11 +125,6 @@ func (d *Dispatcher) reloadSelfContinuum() bool {
 			Host:   instance.GetHost().GetValue(),
 			Weight: weight,
 		}] = true
-		checkPeers = append(checkPeers, plugin.CheckerPeer{
-			Host: instance.GetHost().GetValue(),
-			// DON'T MODIFY !!!
-			ID: instance.GetHost().GetValue(),
-		})
 	})
 	if len(nextBuckets) == 0 {
 		d.noAvailableServers = true
@@ -151,11 +143,6 @@ func (d *Dispatcher) reloadSelfContinuum() bool {
 	}
 	d.selfServiceBuckets = nextBuckets
 	d.continuum = commonhash.New(d.selfServiceBuckets)
-
-	// notify healthchecker current peer list
-	for i := range d.svr.checkers {
-		d.svr.checkers[i].SetCheckerPeers(checkPeers)
-	}
 	return true
 }
 

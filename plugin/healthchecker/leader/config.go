@@ -15,12 +15,41 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package heartbeatp2p
+package leader
 
 import (
-	commonlog "github.com/polarismesh/polaris/common/log"
+	"encoding/json"
+	"time"
+
+	"github.com/polarismesh/polaris/common/batchjob"
 )
 
-var (
-	log = commonlog.GetScopeOrDefaultByName(commonlog.HealthcheckLoggerName)
-)
+type Config struct {
+	ListenPort int
+	ListenIP   string
+	SoltNum    int32
+	Batch      batchjob.CtrlConfig
+}
+
+func Unmarshal(options map[string]interface{}) (*Config, error) {
+	contentBytes, err := json.Marshal(options)
+	if err != nil {
+		return nil, err
+	}
+
+	config := &Config{
+		ListenPort: DefaultListenPort,
+		ListenIP:   DefaultListenIP,
+		SoltNum:    DefaultSoltNum,
+		Batch: batchjob.CtrlConfig{
+			QueueSize:     10240,
+			WaitTime:      128 * time.Millisecond,
+			MaxBatchCount: 128,
+			Concurrency:   64,
+		},
+	}
+	if err := json.Unmarshal(contentBytes, config); err != nil {
+		return nil, err
+	}
+	return config, nil
+}

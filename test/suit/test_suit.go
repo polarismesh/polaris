@@ -43,7 +43,6 @@ import (
 	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
 	_ "github.com/polarismesh/polaris/plugin/discoverevent/local"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/memory"
-	_ "github.com/polarismesh/polaris/plugin/healthchecker/p2p"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/redis"
 	_ "github.com/polarismesh/polaris/plugin/history/logger"
 	_ "github.com/polarismesh/polaris/plugin/password"

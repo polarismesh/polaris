@@ -23,7 +23,6 @@ import (
 	"io"
 	"net"
 	"sync"
-	"time"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -53,42 +52,41 @@ type Peer struct {
 	Putter CheckerPeerService_PutRecordsClient
 	// Delter delete beat records client
 	Delter CheckerPeerService_DelRecordsClient
-	// Cache data storage
-	Cache BeatRecordCache
-	// cancel .
-	cancel context.CancelFunc
 	// putBatchCtrl 批任务执行器
 	putBatchCtrl *batchjob.BatchController
 	// getBatchCtrl 批任务执行器
 	getBatchCtrl *batchjob.BatchController
+	// Cache data storage
+	Cache BeatRecordCache
+	// cancel .
+	cancel context.CancelFunc
 }
 
-func (p *Peer) Serve(soltNum int32) error {
+func (p *Peer) Serve(soltNum int32, listenIP string, batchConf batchjob.CtrlConfig) error {
 	var err error
 	p.once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		p.cancel = cancel
 		if p.Leader {
-			log.Info("local peer serve", zap.String("host", p.Host), zap.Uint32("port", p.Port))
-			p.Cache = newLocalBeatRecordCache(soltNum, commonhash.Fnv32)
-			err = p.initLocal(ctx)
+			err = p.initLocal(ctx, soltNum, listenIP)
 			return
 		}
-		log.Info("remote peer client init", zap.String("host", p.Host), zap.Uint32("port", p.Port))
-		if err = p.initRemote(ctx); err != nil {
+		if err = p.initRemote(ctx, batchConf); err != nil {
 			return
 		}
 	})
 	return err
 }
 
-func (p *Peer) initLocal(ctx context.Context) error {
-	ln, err := net.Listen("tcp", fmt.Sprintf("%v:%v", p.Host, p.Port))
+func (p *Peer) initLocal(ctx context.Context, soltNum int32, listenIP string) error {
+	log.Info("local peer serve", zap.String("host", p.Host), zap.Uint32("port", p.Port))
+	p.Cache = newLocalBeatRecordCache(soltNum, commonhash.Fnv32)
+	ln, err := net.Listen("tcp", fmt.Sprintf("%v:%v", listenIP, p.Port))
 	if err != nil {
 		return err
 	}
 	p.GrpcSvr = grpc.NewServer()
-	RegisterCheckerPeerServiceServer(p.GrpcSvr, p)
+	RegisterCheckerPeerServiceServer(p.GrpcSvr, &PeerServiceHandler{p: p})
 	go func() {
 		if err := p.GrpcSvr.Serve(ln); err != nil {
 			log.Error("local peer server serve", zap.String("host", p.Host),
@@ -98,36 +96,37 @@ func (p *Peer) initLocal(ctx context.Context) error {
 	return err
 }
 
-func (p *Peer) initRemote(ctx context.Context) error {
+func (p *Peer) initRemote(ctx context.Context, batchConf batchjob.CtrlConfig) error {
+	log.Info("remote peer client init", zap.String("host", p.Host), zap.Uint32("port", p.Port))
+	handler := &PeerBatchHandler{p: p}
 	p.getBatchCtrl = batchjob.NewBatchController(ctx, batchjob.CtrlConfig{
 		Label:         "RecordGetter",
-		QueueSize:     10240,
-		WaitTime:      32 * time.Millisecond,
-		MaxBatchCount: 64,
-		Concurrency:   128,
-		Handler:       p.handleSendGetRecords,
+		QueueSize:     batchConf.QueueSize,
+		WaitTime:      batchConf.WaitTime,
+		MaxBatchCount: batchConf.MaxBatchCount,
+		Concurrency:   batchConf.Concurrency,
+		Handler:       handler.handleSendGetRecords,
 	})
-	p.getBatchCtrl = batchjob.NewBatchController(ctx, batchjob.CtrlConfig{
+	p.putBatchCtrl = batchjob.NewBatchController(ctx, batchjob.CtrlConfig{
 		Label:         "RecordSaver",
-		QueueSize:     10240,
-		WaitTime:      32 * time.Millisecond,
-		MaxBatchCount: 64,
-		Concurrency:   128,
-		Handler:       p.handleSendPutRecords,
+		QueueSize:     batchConf.QueueSize,
+		WaitTime:      batchConf.WaitTime,
+		MaxBatchCount: batchConf.MaxBatchCount,
+		Concurrency:   batchConf.Concurrency,
+		Handler:       handler.handleSendPutRecords,
 	})
-	conn, err := grpc.DialContext(context.Background(), fmt.Sprintf("%s:%d", p.Host, p.Port), grpc.WithBlock(),
-		grpc.WithInsecure())
+	conn, err := grpc.DialContext(ctx, fmt.Sprintf("%s:%d", p.Host, p.Port), grpc.WithBlock(), grpc.WithInsecure())
 	if err != nil {
 		return err
 	}
 	p.Conn = conn
 	p.Client = NewCheckerPeerServiceClient(p.Conn)
-	putter, err := p.Client.PutRecords(context.Background())
+	putter, err := p.Client.PutRecords(ctx)
 	if err != nil {
 		return err
 	}
 	p.Putter = putter
-	delter, err := p.Client.DelRecords(context.Background())
+	delter, err := p.Client.DelRecords(ctx)
 	if err != nil {
 		return err
 	}
@@ -180,113 +179,35 @@ func (p *Peer) initRemote(ctx context.Context) error {
 	return nil
 }
 
-func (p *Peer) handleSendGetRecords(tasks []batchjob.Future) {
-	keys := make([]string, 0, len(tasks))
-	futures := make(map[string][]batchjob.Future)
-	for i := range tasks {
-		taskInfo := tasks[i].TaskInfo()
-		key := taskInfo.(string)
-		keys = append(keys, key)
-		if _, ok := futures[key]; !ok {
-			futures[key] = make([]batchjob.Future, 0, 4)
-		}
-		futures[key] = append(futures[key], tasks[i])
-		keys = append(keys, key)
+// Get get records
+func (p *Peer) Get(key string) (map[string]*ReadBeatRecord, error) {
+	if p.Leader {
+		return p.Cache.Get(key), nil
 	}
-
-	ret := p.Cache.Get(keys...)
-	for i := range ret {
-		fs := futures[i]
-		for _, f := range fs {
-			f.Reply(ret[i], nil)
-		}
+	future := p.getBatchCtrl.Submit(key)
+	resp, err := future.Done()
+	if err != nil {
+		return nil, err
 	}
+	ret := resp.(map[string]*ReadBeatRecord)
+	return ret, nil
 }
 
-func (p *Peer) handleSendPutRecords(tasks []batchjob.Future) {
-	records := make([]WriteBeatRecord, 0, len(tasks))
-	for i := range tasks {
-		taskInfo := tasks[i].TaskInfo()
-		req := taskInfo.(WriteBeatRecord)
-		records = append(records, req)
+// Put put records
+func (p *Peer) Put(record WriteBeatRecord) error {
+	if p.Leader {
+		p.Cache.Put(record)
+		return nil
 	}
-
-	p.Cache.Put(records...)
-	for i := range tasks {
-		tasks[i].Reply(struct{}{}, nil)
-	}
+	future := p.putBatchCtrl.Submit(record)
+	_, err := future.Done()
+	return err
 }
 
-func (p *Peer) GetRecords(_ context.Context, req *GetRecordsRequest) (*GetRecordsResponse, error) {
-	log.Debug("receive get record request", zap.String("host", p.Host),
-		zap.Uint32("port", p.Port), zap.Any("req", req))
-	keys := req.Keys
-	records := make([]*HeartbeatRecord, 0, len(keys))
-	items := p.Cache.Get(keys...)
-	for i := range keys {
-		key := keys[i]
-		item := items[key]
-		record := &HeartbeatRecord{
-			Key:   key,
-			Value: item.Record.String(),
-			Exist: item.Exist,
-		}
-		records = append(records, record)
-	}
-
-	return &GetRecordsResponse{
-		Records: records,
-	}, nil
-}
-
-func (p *Peer) PutRecords(svr CheckerPeerService_PutRecordsServer) error {
-	for {
-		req, err := svr.Recv()
-		if err != nil {
-			if io.EOF == err {
-				return nil
-			}
-			return err
-		}
-		log.Debug("receive put record request", zap.String("host", p.Host),
-			zap.Uint32("port", p.Port), zap.Any("req", req))
-
-		writeItems := make([]WriteBeatRecord, 0, len(req.Records))
-		for i := range req.Records {
-			record := req.Records[i]
-			val, ok := ParseRecordValue(record.Value)
-			if !ok {
-				continue
-			}
-			writeItems = append(writeItems, WriteBeatRecord{
-				Record: *val,
-				Key:    record.Key,
-			})
-		}
-		p.Cache.Put(writeItems...)
-		if err := svr.Send(&PutRecordsResponse{}); err != nil {
-			return err
-		}
-	}
-}
-
-func (p *Peer) DelRecords(svr CheckerPeerService_DelRecordsServer) error {
-	for {
-		req, err := svr.Recv()
-		if err != nil {
-			if io.EOF == err {
-				return nil
-			}
-			return err
-		}
-		log.Debug("receive del record request", zap.String("host", p.Host),
-			zap.Uint32("port", p.Port), zap.Any("req", req))
-
-		for i := range req.Keys {
-			key := req.Keys[i]
-			p.Cache.Del(key)
-		}
-	}
+// Del del records
+func (p *Peer) Del(key string) error {
+	p.Cache.Del(key)
+	return nil
 }
 
 // Close close peer life
@@ -305,4 +226,123 @@ func (p *Peer) Close() error {
 		p.cancel()
 	}
 	return nil
+}
+
+type PeerBatchHandler struct {
+	p *Peer
+}
+
+func (p *PeerBatchHandler) handleSendGetRecords(tasks []batchjob.Future) {
+	keys := make([]string, 0, len(tasks))
+	futures := make(map[string][]batchjob.Future)
+	for i := range tasks {
+		taskInfo := tasks[i].TaskInfo()
+		key := taskInfo.(string)
+		keys = append(keys, key)
+		if _, ok := futures[key]; !ok {
+			futures[key] = make([]batchjob.Future, 0, 4)
+		}
+		futures[key] = append(futures[key], tasks[i])
+		keys = append(keys, key)
+	}
+
+	ret := p.p.Cache.Get(keys...)
+	for i := range ret {
+		fs := futures[i]
+		for _, f := range fs {
+			f.Reply(map[string]*ReadBeatRecord{
+				i: ret[i],
+			}, nil)
+		}
+	}
+}
+
+func (p *PeerBatchHandler) handleSendPutRecords(tasks []batchjob.Future) {
+	records := make([]WriteBeatRecord, 0, len(tasks))
+	for i := range tasks {
+		taskInfo := tasks[i].TaskInfo()
+		req := taskInfo.(WriteBeatRecord)
+		records = append(records, req)
+	}
+
+	p.p.Cache.Put(records...)
+	for i := range tasks {
+		tasks[i].Reply(struct{}{}, nil)
+	}
+}
+
+type PeerServiceHandler struct {
+	p *Peer
+}
+
+func (p *PeerServiceHandler) GetRecords(_ context.Context, req *GetRecordsRequest) (*GetRecordsResponse, error) {
+	log.Debug("receive get record request", zap.String("host", p.p.Host),
+		zap.Uint32("port", p.p.Port), zap.Any("req", req))
+	keys := req.Keys
+	records := make([]*HeartbeatRecord, 0, len(keys))
+	items := p.p.Cache.Get(keys...)
+	for i := range keys {
+		key := keys[i]
+		item := items[key]
+		record := &HeartbeatRecord{
+			Key:   key,
+			Value: item.Record.String(),
+			Exist: item.Exist,
+		}
+		records = append(records, record)
+	}
+
+	return &GetRecordsResponse{
+		Records: records,
+	}, nil
+}
+
+func (p *PeerServiceHandler) PutRecords(svr CheckerPeerService_PutRecordsServer) error {
+	for {
+		req, err := svr.Recv()
+		if err != nil {
+			if io.EOF == err {
+				return nil
+			}
+			return err
+		}
+		log.Debug("receive put record request", zap.String("host", p.p.Host),
+			zap.Uint32("port", p.p.Port), zap.Any("req", req))
+
+		writeItems := make([]WriteBeatRecord, 0, len(req.Records))
+		for i := range req.Records {
+			record := req.Records[i]
+			val, ok := ParseRecordValue(record.Value)
+			if !ok {
+				continue
+			}
+			writeItems = append(writeItems, WriteBeatRecord{
+				Record: *val,
+				Key:    record.Key,
+			})
+		}
+		p.p.Cache.Put(writeItems...)
+		if err := svr.Send(&PutRecordsResponse{}); err != nil {
+			return err
+		}
+	}
+}
+
+func (p *PeerServiceHandler) DelRecords(svr CheckerPeerService_DelRecordsServer) error {
+	for {
+		req, err := svr.Recv()
+		if err != nil {
+			if io.EOF == err {
+				return nil
+			}
+			return err
+		}
+		log.Debug("receive del record request", zap.String("host", p.p.Host),
+			zap.Uint32("port", p.p.Port), zap.Any("req", req))
+
+		for i := range req.Keys {
+			key := req.Keys[i]
+			p.p.Cache.Del(key)
+		}
+	}
 }

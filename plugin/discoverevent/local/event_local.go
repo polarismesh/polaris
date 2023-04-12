@@ -119,7 +119,7 @@ func (el *discoverEventLocal) Initialize(conf *plugin.ConfigEntry) error {
 		return err
 	}
 
-	config := model.DefaultDiscoverEventConfig()
+	config := DefaultDiscoverEventConfig()
 	if err := json.Unmarshal(contentBytes, config); err != nil {
 		return err
 	}

@@ -19,6 +19,7 @@ package batchjob
 
 import (
 	"context"
+	"sync/atomic"
 )
 
 type Task interface{}
@@ -31,12 +32,12 @@ type Future interface {
 }
 
 type future struct {
-	task     Task
-	err      error
-	result   interface{}
-	isCancel int32
-	ctx      context.Context
-	cancel   context.CancelFunc
+	task          Task
+	err           error
+	result        interface{}
+	isInnerCancel int32
+	ctx           context.Context
+	cancel        context.CancelFunc
 }
 
 func (f *future) TaskInfo() Task {
@@ -45,7 +46,8 @@ func (f *future) TaskInfo() Task {
 
 func (f *future) Done() (interface{}, error) {
 	<-f.ctx.Done()
-	if err := f.ctx.Err(); err != nil {
+	err := f.ctx.Err()
+	if atomic.LoadInt32(&f.isInnerCancel) != 1 && err != nil {
 		return nil, err
 	}
 
@@ -53,10 +55,15 @@ func (f *future) Done() (interface{}, error) {
 }
 
 func (f *future) Cancel() {
-	f.cancel()
+	if atomic.CompareAndSwapInt32(&f.isInnerCancel, 0, 2) {
+		f.cancel()
+	}
 }
 
 func (f *future) Reply(result interface{}, err error) {
 	f.result = result
 	f.err = err
+	if atomic.CompareAndSwapInt32(&f.isInnerCancel, 0, 1) {
+		f.cancel()
+	}
 }
