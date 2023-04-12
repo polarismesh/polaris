@@ -1169,14 +1169,6 @@ func preGetInstances(query map[string]string) (map[string]string, map[string]str
 	if len(query) == 0 {
 		return nil, nil, api.NewBatchQueryResponse(apimodel.Code_EmptyQueryParameter)
 	}
-	_, serviceIsAvail := query["service"]
-	_, namespaceIsAvail := query["namespace"]
-	_, hostIsAvail := query["host"]
-	_, idIsAvail := query["id"]
-	// service namespace host 三个必须最少传一个
-	if !(serviceIsAvail || namespaceIsAvail || hostIsAvail || idIsAvail) {
-		return nil, nil, api.NewBatchQueryResponse(apimodel.Code_InvalidQueryInsParameter)
-	}
 
 	var metaFilter map[string]string
 	metaKey, metaKeyAvail := query["keys"]
