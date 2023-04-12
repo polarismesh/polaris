@@ -105,7 +105,7 @@ func (h *EurekaServer) addDiscoverAccess(ws *restful.WebService) {
 	ws.Route(ws.GET(fmt.Sprintf("/instances/{%s}", ParamInstId)).To(h.GetInstance)).
 		Param(ws.PathParameter(ParamInstId, "instanceId").DataType("string"))
 	// Update metadata
-	ws.Route(ws.GET(fmt.Sprintf("/apps/{%s}/{%s}/metadata", ParamAppId, ParamInstId)).To(h.UpdateMetadata)).
+	ws.Route(ws.PUT(fmt.Sprintf("/apps/{%s}/{%s}/metadata", ParamAppId, ParamInstId)).To(h.UpdateMetadata)).
 		Param(ws.PathParameter(ParamAppId, "applicationId").DataType("string")).
 		Param(ws.PathParameter(ParamInstId, "instanceId").DataType("string"))
 	// Query for all instances under a particular vip address
