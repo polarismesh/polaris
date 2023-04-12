@@ -63,12 +63,12 @@ func (p *Peer) Serve(soltNum int32) error {
 		ctx, cancel := context.WithCancel(context.Background())
 		p.cancel = cancel
 		if p.Local {
-			log.Info("local peer serve", zap.String("host", p.Host), zap.Uint32("port", p.Port))
+			log.Info("[HealthCheck][P2P] local peer serve", zap.String("host", p.Host), zap.Uint32("port", p.Port))
 			p.Cache = newLocalBeatRecordCache(soltNum, commonhash.Fnv32)
 			err = p.initLocal(ctx)
 			return
 		}
-		log.Info("remote peer client init", zap.String("host", p.Host), zap.Uint32("port", p.Port))
+		log.Info("[HealthCheck][P2P] remote peer client init", zap.String("host", p.Host), zap.Uint32("port", p.Port))
 		if err = p.initRemote(ctx); err != nil {
 			return
 		}
@@ -77,15 +77,16 @@ func (p *Peer) Serve(soltNum int32) error {
 }
 
 func (p *Peer) initLocal(ctx context.Context) error {
-	ln, err := net.Listen("tcp", fmt.Sprintf("%v:%v", p.Host, p.Port))
+	ln, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%v", p.Port))
 	if err != nil {
 		return err
 	}
 	p.GrpcSvr = grpc.NewServer()
 	RegisterCheckerPeerServiceServer(p.GrpcSvr, p)
 	go func() {
+		log.Info("[HealthCheck][P2P] local peer serve CheckerPeerService", zap.Any("address", ln.Addr()))
 		if err := p.GrpcSvr.Serve(ln); err != nil {
-			log.Error("local peer server serve", zap.String("host", p.Host),
+			log.Error("[HealthCheck][P2P] local peer server serve", zap.String("host", p.Host),
 				zap.Uint32("port", p.Port), zap.Error(err))
 		}
 	}()
@@ -134,27 +135,27 @@ func (p *Peer) initRemote(ctx context.Context) error {
 	}()
 	p.Cache = newRemoteBeatRecordCache(
 		func(req *GetRecordsRequest) *GetRecordsResponse {
-			log.Debug("send get record request", zap.String("host", p.Host),
+			log.Debug("[HealthCheck][P2P] send get record request", zap.String("host", p.Host),
 				zap.Uint32("port", p.Port), zap.Any("req", req))
 			resp, err := p.Client.GetRecords(context.Background(), req)
 			if err != nil {
-				log.Error("send get record request", zap.String("host", p.Host),
+				log.Error("[HealthCheck][P2P] send get record request", zap.String("host", p.Host),
 					zap.Uint32("port", p.Port), zap.Any("req", req), zap.Error(err))
 				return nil
 			}
 			return resp
 		}, func(req *PutRecordsRequest) {
-			log.Debug("send put record request", zap.String("host", p.Host),
+			log.Debug("[HealthCheck][P2P] send put record request", zap.String("host", p.Host),
 				zap.Uint32("port", p.Port), zap.Any("req", req))
 			if err := p.Putter.Send(req); err != nil {
-				log.Error("send put record request", zap.String("host", p.Host),
+				log.Error("[HealthCheck][P2P] send put record request", zap.String("host", p.Host),
 					zap.Uint32("port", p.Port), zap.Any("req", req), zap.Error(err))
 			}
 		}, func(req *DelRecordsRequest) {
-			log.Debug("send del record request", zap.String("host", p.Host),
+			log.Debug("[HealthCheck][P2P] send del record request", zap.String("host", p.Host),
 				zap.Uint32("port", p.Port), zap.Any("req", req))
 			if err := p.Delter.Send(req); err != nil {
-				log.Error("send del record request", zap.String("host", p.Host),
+				log.Error("[HealthCheck][P2P] send del record request", zap.String("host", p.Host),
 					zap.Uint32("port", p.Port), zap.Any("req", req), zap.Error(err))
 			}
 		})
@@ -162,7 +163,7 @@ func (p *Peer) initRemote(ctx context.Context) error {
 }
 
 func (p *Peer) GetRecords(_ context.Context, req *GetRecordsRequest) (*GetRecordsResponse, error) {
-	log.Debug("receive get record request", zap.String("host", p.Host),
+	log.Debug("[HealthCheck][P2P] receive get record request", zap.String("host", p.Host),
 		zap.Uint32("port", p.Port), zap.Any("req", req))
 	keys := req.Keys
 	records := make([]*HeartbeatRecord, 0, len(keys))
@@ -192,7 +193,7 @@ func (p *Peer) PutRecords(svr CheckerPeerService_PutRecordsServer) error {
 			}
 			return err
 		}
-		log.Debug("receive put record request", zap.String("host", p.Host),
+		log.Debug("[HealthCheck][P2P] receive put record request", zap.String("host", p.Host),
 			zap.Uint32("port", p.Port), zap.Any("req", req))
 
 		writeItems := make([]WriteBeatRecord, 0, len(req.Records))
@@ -223,7 +224,7 @@ func (p *Peer) DelRecords(svr CheckerPeerService_DelRecordsServer) error {
 			}
 			return err
 		}
-		log.Debug("receive del record request", zap.String("host", p.Host),
+		log.Debug("[HealthCheck][P2P] receive del record request", zap.String("host", p.Host),
 			zap.Uint32("port", p.Port), zap.Any("req", req))
 
 		for i := range req.Keys {
@@ -235,10 +236,10 @@ func (p *Peer) DelRecords(svr CheckerPeerService_DelRecordsServer) error {
 
 // Close close peer life
 func (p *Peer) Close() error {
-	log.Info("peer close", zap.String("host", p.Host), zap.Uint32("port", p.Port))
+	log.Info("[HealthCheck][P2P] peer close", zap.String("host", p.Host), zap.Uint32("port", p.Port))
 	if p.Conn != nil {
 		if err := p.Conn.Close(); err != nil {
-			log.Error("remote peer client close", zap.String("host", p.Host),
+			log.Error("[HealthCheck][P2P] remote peer client close", zap.String("host", p.Host),
 				zap.Uint32("port", p.Port), zap.Error(err))
 		}
 	}
