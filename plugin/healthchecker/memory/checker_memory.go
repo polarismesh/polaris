@@ -63,10 +63,6 @@ func (r *MemoryHealthChecker) Destroy() error {
 	return nil
 }
 
-func (r *MemoryHealthChecker) SetCheckerPeers(peers []plugin.CheckerPeer) {
-
-}
-
 // Type for health check plugin, only one same type plugin is allowed
 func (r *MemoryHealthChecker) Type() plugin.HealthCheckType {
 	return plugin.HealthCheckerHeartbeat
