@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package heartbeatp2p
+package leader
 
 import (
 	"strconv"
@@ -86,11 +86,11 @@ type (
 	// BeatRecordCache Heartbeat data cache
 	BeatRecordCache interface {
 		// Get get records
-		Get(key ...string) map[string]*ReadBeatRecord
+		Get(keys ...string) map[string]*ReadBeatRecord
 		// Put put records
 		Put(records ...WriteBeatRecord)
 		// Del del records
-		Del(key ...string)
+		Del(keys ...string)
 	}
 )
 

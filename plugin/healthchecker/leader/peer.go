@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package heartbeatp2p
+package leader
 
 import (
 	"context"
@@ -23,18 +23,20 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
+	"github.com/polarismesh/polaris/common/batchjob"
 	commonhash "github.com/polarismesh/polaris/common/hash"
 )
 
 // Peer Heartbeat data storage node
 type Peer struct {
 	once sync.Once
-	// Local current peer is local
-	Local bool
+	// Leader current peer is Leader
+	Leader bool
 	// ID peer id
 	ID string
 	// Host peer host
@@ -53,8 +55,12 @@ type Peer struct {
 	Delter CheckerPeerService_DelRecordsClient
 	// Cache data storage
 	Cache BeatRecordCache
-	// cancel
+	// cancel .
 	cancel context.CancelFunc
+	// putBatchCtrl 批任务执行器
+	putBatchCtrl *batchjob.BatchController
+	// getBatchCtrl 批任务执行器
+	getBatchCtrl *batchjob.BatchController
 }
 
 func (p *Peer) Serve(soltNum int32) error {
@@ -62,7 +68,7 @@ func (p *Peer) Serve(soltNum int32) error {
 	p.once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		p.cancel = cancel
-		if p.Local {
+		if p.Leader {
 			log.Info("local peer serve", zap.String("host", p.Host), zap.Uint32("port", p.Port))
 			p.Cache = newLocalBeatRecordCache(soltNum, commonhash.Fnv32)
 			err = p.initLocal(ctx)
@@ -93,11 +99,24 @@ func (p *Peer) initLocal(ctx context.Context) error {
 }
 
 func (p *Peer) initRemote(ctx context.Context) error {
-	opts := []grpc.DialOption{
-		grpc.WithBlock(),
-		grpc.WithInsecure(),
-	}
-	conn, err := grpc.DialContext(context.Background(), fmt.Sprintf("%s:%d", p.Host, p.Port), opts...)
+	p.getBatchCtrl = batchjob.NewBatchController(ctx, batchjob.CtrlConfig{
+		Label:         "RecordGetter",
+		QueueSize:     10240,
+		WaitTime:      32 * time.Millisecond,
+		MaxBatchCount: 64,
+		Concurrency:   128,
+		Handler:       p.handleSendGetRecords,
+	})
+	p.getBatchCtrl = batchjob.NewBatchController(ctx, batchjob.CtrlConfig{
+		Label:         "RecordSaver",
+		QueueSize:     10240,
+		WaitTime:      32 * time.Millisecond,
+		MaxBatchCount: 64,
+		Concurrency:   128,
+		Handler:       p.handleSendPutRecords,
+	})
+	conn, err := grpc.DialContext(context.Background(), fmt.Sprintf("%s:%d", p.Host, p.Port), grpc.WithBlock(),
+		grpc.WithInsecure())
 	if err != nil {
 		return err
 	}
@@ -159,6 +178,43 @@ func (p *Peer) initRemote(ctx context.Context) error {
 			}
 		})
 	return nil
+}
+
+func (p *Peer) handleSendGetRecords(tasks []batchjob.Future) {
+	keys := make([]string, 0, len(tasks))
+	futures := make(map[string][]batchjob.Future)
+	for i := range tasks {
+		taskInfo := tasks[i].TaskInfo()
+		key := taskInfo.(string)
+		keys = append(keys, key)
+		if _, ok := futures[key]; !ok {
+			futures[key] = make([]batchjob.Future, 0, 4)
+		}
+		futures[key] = append(futures[key], tasks[i])
+		keys = append(keys, key)
+	}
+
+	ret := p.Cache.Get(keys...)
+	for i := range ret {
+		fs := futures[i]
+		for _, f := range fs {
+			f.Reply(ret[i], nil)
+		}
+	}
+}
+
+func (p *Peer) handleSendPutRecords(tasks []batchjob.Future) {
+	records := make([]WriteBeatRecord, 0, len(tasks))
+	for i := range tasks {
+		taskInfo := tasks[i].TaskInfo()
+		req := taskInfo.(WriteBeatRecord)
+		records = append(records, req)
+	}
+
+	p.Cache.Put(records...)
+	for i := range tasks {
+		tasks[i].Reply(struct{}{}, nil)
+	}
 }
 
 func (p *Peer) GetRecords(_ context.Context, req *GetRecordsRequest) (*GetRecordsResponse, error) {
