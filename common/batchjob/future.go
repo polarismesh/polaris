@@ -32,12 +32,14 @@ type Future interface {
 }
 
 type future struct {
-	task          Task
-	err           error
-	result        interface{}
-	isInnerCancel int32
-	ctx           context.Context
-	cancel        context.CancelFunc
+	task      Task
+	err       error
+	setsignal chan struct{}
+	result    interface{}
+	isCancel  int32
+	replied   int32
+	ctx       context.Context
+	cancel    context.CancelFunc
 }
 
 func (f *future) TaskInfo() Task {
@@ -45,25 +47,24 @@ func (f *future) TaskInfo() Task {
 }
 
 func (f *future) Done() (interface{}, error) {
-	<-f.ctx.Done()
-	err := f.ctx.Err()
-	if atomic.LoadInt32(&f.isInnerCancel) != 1 && err != nil {
-		return nil, err
+	select {
+	case <-f.ctx.Done():
+		return nil, f.ctx.Err()
+	case <-f.setsignal:
+		return f.result, f.err
 	}
-
-	return f.result, f.err
 }
 
 func (f *future) Cancel() {
-	if atomic.CompareAndSwapInt32(&f.isInnerCancel, 0, 2) {
-		f.cancel()
-	}
+	f.cancel()
 }
 
 func (f *future) Reply(result interface{}, err error) {
+	if !atomic.CompareAndSwapInt32(&f.replied, 0, 1) {
+		return
+	}
 	f.result = result
 	f.err = err
-	if atomic.CompareAndSwapInt32(&f.isInnerCancel, 0, 1) {
-		f.cancel()
-	}
+	f.setsignal <- struct{}{}
+	close(f.setsignal)
 }

@@ -45,7 +45,6 @@ func (s *SegmentMap[K, V]) Put(k K, v V) {
 	lock, solt := s.caulIndex(k)
 	lock.Lock()
 	defer lock.Unlock()
-
 	solt[k] = v
 }
 
@@ -84,11 +83,9 @@ func (s *SegmentMap[K, V]) Range(f func(k K, v V)) {
 	for i := 0; i < s.soltNum; i++ {
 		lock := s.locks[i]
 		solt := s.solts[i]
-
 		func() {
 			lock.RLock()
 			defer lock.RUnlock()
-
 			for k, v := range solt {
 				f(k, v)
 			}

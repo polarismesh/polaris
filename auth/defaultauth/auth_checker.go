@@ -423,7 +423,6 @@ func (d *defaultAuthChecker) removeNoStrategyResources(authCtx *model.AcquireCon
 		if checkIsFree(apisecurity.ResourceType_Namespaces, nsRes[index]) {
 			continue
 		}
-
 		newNsRes = append(newNsRes, nsRes[index])
 	}
 
@@ -525,17 +524,14 @@ func checkAnyElementExist(userId string, waitSearch []model.ResourceEntry, searc
 	if len(waitSearch) == 0 || searchMaps.passAll {
 		return true
 	}
-
 	for _, entry := range waitSearch {
 		if entry.Owner == userId {
 			continue
 		}
-
 		if _, ok := searchMaps.items[entry.ID]; !ok {
 			return false
 		}
 	}
-
 	return true
 }
 

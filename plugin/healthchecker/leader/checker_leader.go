@@ -19,16 +19,16 @@ package leader
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"sync/atomic"
+
+	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/eventhub"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
-	"go.uber.org/zap"
 )
 
 func init() {
@@ -84,14 +84,16 @@ type LeaderHealthChecker struct {
 	suspendTimeSec int64
 	// conf leaderChecker config
 	conf *Config
-	// lock keep save to change leader info
+	// lock keeps safe to change leader info
 	lock sync.RWMutex
-	// peers peer directory
-	leader *Peer
+	// isLeader leader signal
+	isLeader int32
+	// remote remote peer info
+	remote Peer
+	// self self peer info
+	self Peer
 	// s store.Store
 	s store.Store
-	// cancel .
-	cancel context.CancelFunc
 }
 
 // Name
@@ -106,6 +108,13 @@ func (c *LeaderHealthChecker) Initialize(entry *plugin.ConfigEntry) error {
 		return err
 	}
 	c.conf = conf
+
+	c.self = newLocalPeer(utils.LocalHost, uint32(conf.ListenPort))
+	c.self.Initialize(*conf)
+	if err := c.self.Serve(context.Background(), c.conf.ListenIP, uint32(c.conf.ListenPort)); err != nil {
+		return err
+	}
+	eventhub.Subscribe(eventhub.LeaderChangeEventTopic, subscriberName, c)
 	storage, err := store.GetStore()
 	if err != nil {
 		return err
@@ -114,7 +123,6 @@ func (c *LeaderHealthChecker) Initialize(entry *plugin.ConfigEntry) error {
 	if err := c.s.StartLeaderElection(electionKey); err != nil {
 		return err
 	}
-	eventhub.Subscribe(eventhub.LeaderChangeEventTopic, subscriberName, c)
 	return nil
 }
 
@@ -142,38 +150,20 @@ func (c *LeaderHealthChecker) OnEvent(ctx context.Context, i interface{}) error 
 }
 
 func (c *LeaderHealthChecker) becomeLeader() {
-	if c.leader != nil {
-		log.Error("[HealthCheck][Leader] becomd leader, close old leader")
-		// 关闭原来的 leader 节点信息
-		oldLeader := c.leader
-		c.leader = nil
+	if c.remote != nil {
+		log.Debug("[HealthCheck][Leader] become leader and close old leader", zap.String("leader", c.remote.Host()))
+		// 关闭原来自己跟随的 leader 节点信息
+		oldLeader := c.remote
+		c.remote = nil
 		_ = oldLeader.Close()
 	}
-	localLeader := &Peer{
-		ID:     fmt.Sprintf("%s:%d", utils.LocalHost, c.conf.ListenPort),
-		Host:   utils.LocalHost,
-		Port:   uint32(c.conf.ListenPort),
-		Leader: true,
-	}
-	if err := localLeader.Serve(c.conf.SoltNum, c.conf.ListenIP, c.conf.Batch); err != nil {
-		log.Error("[HealthCheck][Leader] leader run serve", zap.Error(err))
-		if err = c.s.ReleaseLeaderElection(electionKey); err != nil {
-			log.Error("[HealthCheck][Leader] leader release self election", zap.Error(err))
-		}
-		return
-	}
-	c.leader = localLeader
+	// leader 指向自己
+	atomic.StoreInt32(&c.isLeader, 1)
 	atomic.StoreInt32(&c.initialize, initializedSignal)
+	log.Info("[HealthCheck][Leader] become leader")
 }
 
 func (c *LeaderHealthChecker) becomeFollower() {
-	if c.leader != nil {
-		log.Error("[HealthCheck][Leader] becomd follower, close old leader")
-		// 关闭原来的 leader 节点信息
-		oldLeader := c.leader
-		c.leader = nil
-		_ = oldLeader.Close()
-	}
 	elections, err := c.s.ListLeaderElections()
 	if err != nil {
 		log.Error("[HealthCheck][Leader] follower list elections", zap.Error(err))
@@ -181,24 +171,39 @@ func (c *LeaderHealthChecker) becomeFollower() {
 	}
 	for i := range elections {
 		election := elections[i]
-		if election.ElectKey == electionKey {
-			if election.Host == "" {
+		if election.ElectKey != electionKey {
+			continue
+		}
+		if election.Host == "" || election.Host == utils.LocalHost {
+			return
+		}
+		log.Info("[HealthCheck][Leader] become follower")
+		if c.remote != nil {
+			// leader 未发生变化
+			if election.Host == c.remote.Host() {
+				atomic.StoreInt32(&c.initialize, initializedSignal)
 				return
 			}
-			remoteLeader := &Peer{
-				ID:     fmt.Sprintf("%s:%d", election.Host, c.conf.ListenPort),
-				Host:   election.Host,
-				Port:   uint32(c.conf.ListenPort),
-				Leader: false,
+			// leader 出现变更切换
+			if election.Host != c.remote.Host() {
+				log.Info("[HealthCheck][Leader] become follower and leader change",
+					zap.String("leader", election.Host))
+				// 关闭原来的 leader 节点信息
+				oldLeader := c.remote
+				c.remote = nil
+				_ = oldLeader.Close()
 			}
-			if err := remoteLeader.Serve(c.conf.SoltNum, c.conf.ListenIP, c.conf.Batch); err != nil {
-				log.Error("[HealthCheck][Leader] follower run serve", zap.Error(err))
-				break
-			}
-			c.leader = remoteLeader
-			atomic.StoreInt32(&c.initialize, initializedSignal)
-			break
 		}
+		remoteLeader := newRemotePeer(election.Host, uint32(c.conf.ListenPort))
+		remoteLeader.Initialize(*c.conf)
+		if err := remoteLeader.Serve(context.Background(), c.conf.ListenIP, uint32(c.conf.ListenPort)); err != nil {
+			log.Error("[HealthCheck][Leader] follower run serve", zap.Error(err))
+			return
+		}
+		c.remote = remoteLeader
+		atomic.StoreInt32(&c.isLeader, 0)
+		atomic.StoreInt32(&c.initialize, initializedSignal)
+		return
 	}
 }
 
@@ -221,15 +226,14 @@ func (c *LeaderHealthChecker) Report(request *plugin.ReportRequest) error {
 		log.Warn("[Health Check][Leader] leader checker uninitialize, ignore report")
 		return nil
 	}
-	key := request.InstanceId
 	responsible := c.finLeaderPeer()
 	record := WriteBeatRecord{
 		Record: RecordValue{
-			Server:     responsible.Host,
+			Server:     responsible.Host(),
 			CurTimeSec: request.CurTimeSec,
 			Count:      request.Count,
 		},
-		Key: key,
+		Key: request.InstanceId,
 	}
 	if err := responsible.Put(record); err != nil {
 		return err
@@ -292,21 +296,13 @@ func (c *LeaderHealthChecker) Query(request *plugin.QueryRequest) (*plugin.Query
 		}, nil
 	}
 	responsible := c.finLeaderPeer()
-
-	key := request.InstanceId
-	ret, err := responsible.Get(key)
+	record, err := responsible.Get(request.InstanceId)
 	if err != nil {
 		return nil, err
 	}
-	record, ok := ret[key]
-	if !ok {
-		return &plugin.QueryResponse{
-			LastHeartbeatSec: 0,
-		}, nil
-	}
 	log.Debugf("[HealthCheck][Leader] query hb record, instanceId %s, record %+v", request.InstanceId, record)
 	return &plugin.QueryResponse{
-		Server:           responsible.Host,
+		Server:           responsible.Host(),
 		LastHeartbeatSec: record.Record.CurTimeSec,
 		Count:            record.Record.Count,
 		Exists:           record.Exist,
@@ -346,8 +342,11 @@ func (c *LeaderHealthChecker) SuspendTimeSec() int64 {
 	return atomic.LoadInt64(&c.suspendTimeSec)
 }
 
-func (c *LeaderHealthChecker) finLeaderPeer() *Peer {
-	return c.leader
+func (c *LeaderHealthChecker) finLeaderPeer() Peer {
+	if atomic.LoadInt32(&c.isLeader) == 1 {
+		return c.self
+	}
+	return c.remote
 }
 
 func (c *LeaderHealthChecker) skipCheck(key string, expireDurationSec int64) bool {

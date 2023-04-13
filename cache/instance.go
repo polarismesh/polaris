@@ -318,7 +318,6 @@ func fillInternalLabels(item *model.Instance) *model.Instance {
 		item.Proto.Metadata["zone"] = item.Location().GetZone().GetValue()
 		item.Proto.Metadata["campus"] = item.Location().GetCampus().GetValue()
 	}
-
 	return item
 }
 

@@ -49,7 +49,7 @@ func TestNewBatchController(t *testing.T) {
 		QueueSize:     32,
 		MaxBatchCount: 16,
 		WaitTime:      32 * time.Millisecond,
-		Concurrency:   1,
+		Concurrency:   8,
 		Handler:       testHandle,
 	})
 
@@ -82,10 +82,10 @@ func TestNewBatchControllerTimeout(t *testing.T) {
 	}
 
 	ctrl := NewBatchController(ctx, CtrlConfig{
-		QueueSize:     32,
-		MaxBatchCount: 16,
+		QueueSize:     total * 2,
+		MaxBatchCount: total * 2,
 		WaitTime:      32 * time.Second,
-		Concurrency:   1,
+		Concurrency:   8,
 		Handler:       testHandle,
 	})
 
@@ -97,7 +97,7 @@ func TestNewBatchControllerTimeout(t *testing.T) {
 			defer wg.Done()
 			future := ctrl.SubmitWithTimeout(fmt.Sprintf("%d", i), time.Second)
 			_, err := future.Done()
-			assert.True(t, errors.Is(err, context.DeadlineExceeded))
+			assert.True(t, errors.Is(err, context.DeadlineExceeded), err)
 		}(i)
 	}
 

@@ -25,7 +25,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
@@ -216,7 +215,7 @@ func (s *Server) RecordHistory(entry *model.RecordEntry) {
 func (s *Server) publishInstanceEvent(serviceID string, event model.InstanceEvent) {
 	event.SvcId = serviceID
 	if event.Instance != nil {
-		event.Instance = proto.Clone(event.Instance).(*apiservice.Instance)
+		// event.Instance = proto.Clone(event.Instance).(*apiservice.Instance)
 	}
 	eventhub.Publish(eventhub.InstanceEventTopic, event)
 }

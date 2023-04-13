@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -940,7 +939,7 @@ func isEmptyLocation(loc *apimodel.Location) bool {
 func (s *Server) sendDiscoverEvent(event model.InstanceEvent) {
 	if event.Instance != nil {
 		// In order not to cause `panic` in cause multi-corporate data op, do deep copy
-		event.Instance = proto.Clone(event.Instance).(*apiservice.Instance)
+		// event.Instance = proto.Clone(event.Instance).(*apiservice.Instance)
 	}
 	eventhub.Publish(eventhub.InstanceEventTopic, event)
 }
