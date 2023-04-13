@@ -129,7 +129,7 @@ type EurekaServer struct {
 	tlsInfo                *secure.TLSInfo
 	option                 map[string]interface{}
 	openAPI                map[string]apiserver.APIConfig
-	worker                 *ApplicationsWorker
+	workers                *ApplicationsWorkers
 	listenPort             uint32
 	listenIP               string
 	exitCh                 chan struct{}
@@ -141,10 +141,10 @@ type EurekaServer struct {
 	refreshInterval        time.Duration
 	deltaExpireInterval    time.Duration
 	enableSelfPreservation bool
-	replicateWorker        *ReplicateWorker
+	replicateWorkers       *ReplicateWorkers
 	eventHandlerHandler    *EurekaInstanceEventHandler
 
-	replicatePeers       []string
+	replicatePeers       map[string][]string
 	generateUniqueInstId bool
 }
 
@@ -185,20 +185,9 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 
 	if replicatePeersValue, ok := option[optionPeerNodesToReplicate]; ok {
 		replicatePeerObjs := replicatePeersValue.([]interface{})
-		replicatePeers := make([]string, 0, len(replicatePeerObjs))
-		if len(replicatePeerObjs) > 0 {
-			for _, replicatePeerObj := range replicatePeerObjs {
-				replicatePeerStr := replicatePeerObj.(string)
-				if replicatePeerStr == utils.LocalHost {
-					// If the url represents this host, do not replicate to yourself.
-					continue
-				}
-				replicatePeers = append(replicatePeers, replicatePeerObj.(string))
-			}
-		}
-		h.replicatePeers = replicatePeers
+		h.replicatePeers = parsePeersToReplicate(h.namespace, replicatePeerObjs)
 		if len(h.replicatePeers) > 0 {
-			h.replicateWorker = NewReplicateWorker(ctx, h.replicatePeers)
+			h.replicateWorkers = NewReplicateWorkers(ctx, h.replicatePeers)
 		}
 	}
 
@@ -265,6 +254,56 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 	return nil
 }
 
+func parsePeersToReplicate(defaultNamespace string, replicatePeerObjs []interface{}) map[string][]string {
+	ret := make(map[string][]string)
+	if len(replicatePeerObjs) == 0 {
+		return ret
+	}
+
+	for _, replicatePeerObj := range replicatePeerObjs {
+		replicatePeerStr, ok := replicatePeerObj.(string)
+		if ok {
+			if replicatePeerStr == utils.LocalHost {
+				// If the url represents this host, do not replicate to yourself.
+				continue
+			}
+			peers, exist := ret[defaultNamespace]
+			if !exist {
+				peers = []string{replicatePeerStr}
+			} else {
+				peers = append(peers, replicatePeerStr)
+			}
+			ret[defaultNamespace] = peers
+
+		} else if namespaceReplicatePeerMap, ok := replicatePeerObj.(map[interface{}]interface{}); ok {
+			for k, v := range namespaceReplicatePeerMap {
+				namespace := k.(string)
+				peerObjs := v.([]interface{})
+				for _, peer := range peerObjs {
+					peerStr, success := peer.(string)
+
+					if success {
+						if peerStr == utils.LocalHost {
+							// If the url represents this host, do not replicate to yourself.
+							continue
+						}
+						peers, exist := ret[namespace]
+						if !exist {
+							peers = []string{peerStr}
+						} else {
+							peers = append(peers, peerStr)
+						}
+						ret[namespace] = peers
+					}
+				}
+			}
+
+		}
+
+	}
+	return ret
+}
+
 // Run 启动HTTP API服务器
 func (h *EurekaServer) Run(errCh chan error) {
 	log.Infof("start EurekaServer")
@@ -297,7 +336,7 @@ func (h *EurekaServer) Run(errCh chan error) {
 			return
 		}
 	}
-	h.worker = NewApplicationsWorker(h.refreshInterval, h.deltaExpireInterval, h.enableSelfPreservation,
+	h.workers = NewApplicationsWorkers(h.refreshInterval, h.deltaExpireInterval, h.enableSelfPreservation,
 		h.namingServer, h.healthCheckServer, h.namespace)
 	h.statis = plugin.GetStatis()
 	// 初始化http server
@@ -543,7 +582,7 @@ func (h *EurekaServer) Stop() {
 	if h.server != nil {
 		_ = h.server.Close()
 	}
-	h.worker.Stop()
+	h.workers.Stop()
 }
 
 // Restart 重启eurekaServer

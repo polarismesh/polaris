@@ -37,9 +37,10 @@ func TestDispatchHeartbeat(t *testing.T) {
 	options := map[string]interface{}{optionRefreshInterval: 5, optionDeltaExpireInterval: 120}
 	eurekaSrv, err := createEurekaServerForTest(discoverSuit, options)
 	assert.Nil(t, err)
-	eurekaSrv.worker = NewApplicationsWorker(eurekaSrv.refreshInterval, eurekaSrv.deltaExpireInterval,
+	eurekaSrv.workers = NewApplicationsWorkers(eurekaSrv.refreshInterval, eurekaSrv.deltaExpireInterval,
 		eurekaSrv.enableSelfPreservation, eurekaSrv.namingServer, eurekaSrv.healthCheckServer, eurekaSrv.namespace)
 
+	namespace := "default"
 	appId := "TESTAPP"
 	startPort := 8900
 	host := "127.0.1.1"
@@ -60,7 +61,7 @@ func TestDispatchHeartbeat(t *testing.T) {
 			Action:       actionRegister,
 		})
 	}
-	_, code := eurekaSrv.doBatchReplicate(replicateInstances, "")
+	_, code := eurekaSrv.doBatchReplicate(replicateInstances, "", namespace)
 	assert.Equal(t, api.ExecuteSuccess, code)
 
 	time.Sleep(10 * time.Second)
@@ -74,7 +75,7 @@ func TestDispatchHeartbeat(t *testing.T) {
 				Action:  actionHeartbeat,
 			})
 		}
-		_, code := eurekaSrv.doBatchReplicate(replicateInstances, "")
+		_, code := eurekaSrv.doBatchReplicate(replicateInstances, "", namespace)
 		assert.Equal(t, api.ExecuteSuccess, code)
 	}
 }

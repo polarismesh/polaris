@@ -75,9 +75,9 @@ func batchBuildInstances(appId string, host string, port int, lease *LeaseInfo, 
 	return instances
 }
 
-func batchCreateInstance(t *testing.T, eurekaSvr *EurekaServer, instances []*InstanceInfo) {
+func batchCreateInstance(t *testing.T, eurekaSvr *EurekaServer, namespace string, instances []*InstanceInfo) {
 	for _, instance := range instances {
-		code := eurekaSvr.registerInstances(context.Background(), instance.AppName, instance, false)
+		code := eurekaSvr.registerInstances(context.Background(), namespace, instance.AppName, instance, false)
 		assert.Equal(t, api.ExecuteSuccess, code)
 	}
 }
@@ -151,9 +151,10 @@ func TestCreateInstance(t *testing.T) {
 	options := map[string]interface{}{optionRefreshInterval: 5, optionDeltaExpireInterval: 120}
 	eurekaSrv, err := createEurekaServerForTest(discoverSuit, options)
 	assert.Nil(t, err)
-	eurekaSrv.worker = NewApplicationsWorker(eurekaSrv.refreshInterval, eurekaSrv.deltaExpireInterval,
+	eurekaSrv.workers = NewApplicationsWorkers(eurekaSrv.refreshInterval, eurekaSrv.deltaExpireInterval,
 		eurekaSrv.enableSelfPreservation, eurekaSrv.namingServer, eurekaSrv.healthCheckServer, eurekaSrv.namespace)
 
+	namespace := "default"
 	appId := "TESTAPP"
 	startPort := 8900
 	host := "127.0.1.1"
@@ -162,10 +163,13 @@ func TestCreateInstance(t *testing.T) {
 		RenewalIntervalInSecs: 30,
 		DurationInSecs:        120,
 	}, total)
-	batchCreateInstance(t, eurekaSrv, instances)
+	batchCreateInstance(t, eurekaSrv, namespace, instances)
 
 	time.Sleep(10 * time.Second)
-	httpRequest := &http.Request{Header: map[string][]string{restful.HEADER_Accept: []string{restful.MIME_JSON}}}
+	httpRequest := &http.Request{Header: map[string][]string{
+		restful.HEADER_Accept: {restful.MIME_JSON},
+		HeaderNamespace:       {namespace},
+	}}
 	req := restful.NewRequest(httpRequest)
 	mockWriter := newMockResponseWriter()
 	resp := &restful.Response{ResponseWriter: mockWriter}
@@ -180,7 +184,7 @@ func TestCreateInstance(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 	instanceId := fmt.Sprintf("%s_%s_%d", appId, host, startPort)
-	code := eurekaSrv.deregisterInstance(context.Background(), appId, instanceId, false)
+	code := eurekaSrv.deregisterInstance(context.Background(), namespace, appId, instanceId, false)
 	assert.Equal(t, api.ExecuteSuccess, code)
 	time.Sleep(20 * time.Second)
 
