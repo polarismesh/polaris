@@ -25,6 +25,7 @@ import (
 
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
 	"google.golang.org/grpc"
 
 	"github.com/polarismesh/polaris/common/batchjob"
@@ -275,6 +276,12 @@ func (p *RemotePeer) handleSendGetRecords(tasks []batchjob.Future) {
 			f.Reply(map[string]*ReadBeatRecord{
 				key: ret[key],
 			}, nil)
+		}
+		delete(futures, key)
+	}
+	for i := range futures {
+		for _, f := range futures[i] {
+			f.Reply(nil, ErrorBadGetRecordRequest)
 		}
 	}
 	for i := range futures {
