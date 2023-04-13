@@ -664,20 +664,48 @@ func TestListInstances(t *testing.T) {
 
 		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		total := 50
+		var responses []*apiservice.Instance
 		for i := 0; i < total; i++ {
 			_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, i+1)
-			defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
+			responses = append(responses, instanceResp)
 		}
+		defer func() {
+			for _, resp := range responses {
+				discoverSuit.cleanInstance(resp.GetId().GetValue())
+			}
+		}()
 
 		query := map[string]string{"offset": "10", "limit": "20", "host": "127.0.0.1"}
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
+		assert.Equal(t, 20, len(resp.Instances))
+	})
 
-		if len(resp.Instances) == 20 {
-			t.Logf("pass")
+	t.Run("list全部实例列表", func(t *testing.T) {
+		_, serviceResp := discoverSuit.createCommonService(t, 116)
+		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+
+		time.Sleep(discoverSuit.UpdateCacheInterval())
+		total := 100
+		var responses []*apiservice.Instance
+		for i := 0; i < total; i++ {
+			_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, i+1)
+			responses = append(responses, instanceResp)
 		}
+		defer func() {
+			for _, resp := range responses {
+				discoverSuit.cleanInstance(resp.GetId().GetValue())
+			}
+		}()
+
+		query := map[string]string{"offset": "0", "limit": "200"}
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		assert.Equal(t, total, len(resp.Instances))
 	})
 
 	t.Run("list实例列表，可以进行正常字段过滤", func(t *testing.T) {
