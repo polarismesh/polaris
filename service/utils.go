@@ -96,6 +96,12 @@ const (
 
 	// MaxDbRoutingName routing_config_v2 表
 	MaxDbRoutingName = MaxRuleName
+
+	// ContextDiscoverParam key for discover parameters in context
+	ContextDiscoverParam = utils.StringContext("discover-param")
+
+	// ParamKeyInstanceId key for parameter key instanceId
+	ParamKeyInstanceId = "instanceId"
 )
 
 // checkResourceName 检查资源Name
@@ -352,15 +358,19 @@ func ParseOffsetAndLimit(query map[string]string) (uint32, uint32, error) {
 }
 
 // ParseInstanceArgs 解析服务实例的 ip 和 port 查询参数
-func ParseInstanceArgs(query map[string]string) (*store.InstanceArgs, error) {
-	if len(query) == 0 {
+func ParseInstanceArgs(query map[string]string, meta map[string]string) (*store.InstanceArgs, error) {
+	if len(query) == 0 && meta == nil {
 		return nil, nil
+	}
+	res := &store.InstanceArgs{}
+	res.Meta = meta
+	if len(query) == 0 {
+		return res, nil
 	}
 	hosts, ok := query["host"]
 	if !ok {
 		return nil, fmt.Errorf("port parameter can not be used alone without host")
 	}
-	res := &store.InstanceArgs{}
 	res.Hosts = strings.Split(hosts, ",")
 	ports, ok := query["port"]
 	if !ok {

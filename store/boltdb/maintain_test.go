@@ -38,7 +38,7 @@ func setup() {
 func teardown() {
 }
 
-func TestMaintainStore_BatchCleanDeletedInstances(t *testing.T) {
+func TestadminStore_BatchCleanDeletedInstances(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if err != nil {
 		t.Fatal(err)
@@ -48,7 +48,7 @@ func TestMaintainStore_BatchCleanDeletedInstances(t *testing.T) {
 		_ = os.RemoveAll("./table.bolt")
 	}()
 
-	store := &maintainStore{handler: handler}
+	store := &adminStore{handler: handler}
 	sStore := &serviceStore{handler: handler}
 	insStore := &instanceStore{handler: handler}
 
@@ -116,9 +116,9 @@ func TestMaintainStore_BatchCleanDeletedInstances(t *testing.T) {
 
 }
 
-func TestMaintainStore_StartLeaderElection(t *testing.T) {
+func TestadminStore_StartLeaderElection(t *testing.T) {
 	key := "TestElectKey"
-	mstore := &maintainStore{handler: nil, leMap: make(map[string]bool)}
+	mstore := &adminStore{handler: nil, leMap: make(map[string]bool)}
 	isLeader := mstore.IsLeader(key)
 	if isLeader {
 		t.Error("expect follower state")
@@ -131,9 +131,9 @@ func TestMaintainStore_StartLeaderElection(t *testing.T) {
 	}
 }
 
-func TestMaintainStore_ReleaseLeaderElection(t *testing.T) {
+func TestadminStore_ReleaseLeaderElection(t *testing.T) {
 	key := "TestElectKey"
-	mstore := &maintainStore{handler: nil, leMap: make(map[string]bool)}
+	mstore := &adminStore{handler: nil, leMap: make(map[string]bool)}
 	mstore.StartLeaderElection(key)
 	mstore.ReleaseLeaderElection(key)
 	isLeader := mstore.IsLeader(key)
@@ -142,9 +142,9 @@ func TestMaintainStore_ReleaseLeaderElection(t *testing.T) {
 	}
 }
 
-func TestMaintainStore_ListLeaderElections(t *testing.T) {
+func TestadminStore_ListLeaderElections(t *testing.T) {
 	key := "TestElectKey"
-	mstore := &maintainStore{handler: nil, leMap: make(map[string]bool)}
+	mstore := &adminStore{handler: nil, leMap: make(map[string]bool)}
 	mstore.StartLeaderElection(key)
 
 	out, err := mstore.ListLeaderElections()
@@ -160,6 +160,77 @@ func TestMaintainStore_ListLeaderElections(t *testing.T) {
 		t.Errorf("expect key: %s, actual key: %s", key, out[0].ElectKey)
 	}
 
+}
+
+func TestadminStore_getUnHealthyInstancesBefore(t *testing.T) {
+	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
+
+	store := &adminStore{handler: handler}
+	sStore := &serviceStore{handler: handler}
+	insStore := &instanceStore{handler: handler}
+
+	svcId := "svcid1"
+	sStore.AddService(&model.Service{
+		ID:        svcId,
+		Name:      svcId,
+		Namespace: svcId,
+		Token:     svcId,
+		Owner:     svcId,
+		Valid:     true,
+	})
+
+	mtime := time.Date(2023, 3, 4, 11, 0, 0, 0, time.Local)
+	for i := 0; i < insCount; i++ {
+		nowt := commontime.Time2String(mtime)
+		err := insStore.AddInstance(&model.Instance{
+			Proto: &apiservice.Instance{
+				Id:                &wrappers.StringValue{Value: "insid" + strconv.Itoa(i)},
+				Host:              &wrappers.StringValue{Value: "1.1.1." + strconv.Itoa(i)},
+				Port:              &wrappers.UInt32Value{Value: uint32(i + 1)},
+				Protocol:          &wrappers.StringValue{Value: "grpc"},
+				Weight:            &wrappers.UInt32Value{Value: uint32(i + 1)},
+				EnableHealthCheck: &wrappers.BoolValue{Value: true},
+				Healthy:           &wrappers.BoolValue{Value: true},
+				Isolate:           &wrappers.BoolValue{Value: true},
+				Metadata: map[string]string{
+					"insk1": "insv1",
+					"insk2": "insv2",
+				},
+				Ctime:    &wrappers.StringValue{Value: nowt},
+				Mtime:    &wrappers.StringValue{Value: nowt},
+				Revision: &wrappers.StringValue{Value: "revision" + strconv.Itoa(i)},
+			},
+			ServiceID:         svcId,
+			ServicePlatformID: "svcPlatId1",
+			Valid:             true,
+			ModifyTime:        time.Now(),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	toUnHealthyInstances := []interface{}{"insid1", "insid2", "insid3"}
+	err = insStore.BatchSetInstanceHealthStatus(toUnHealthyInstances, 0, "revision-11")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	beforeTime := time.Date(2023, 3, 4, 11, 1, 0, 0, time.Local)
+	ids, err := store.getUnHealthyInstancesBefore(beforeTime, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ids) != 2 {
+		t.Fatalf("count not match, expect cnt=%d, actual cnt=%d", 2, len(ids))
+	}
 }
 
 func TestMain(m *testing.M) {

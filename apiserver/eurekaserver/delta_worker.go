@@ -45,6 +45,65 @@ func (l *Lease) Expired(curTimeSec int64, deltaExpireInterval time.Duration) boo
 	return curTimeSec-l.lastUpdateTimeSec >= deltaExpireInterval.Milliseconds()/1000
 }
 
+type ApplicationsWorkers struct {
+	interval               time.Duration
+	deltaExpireInterval    time.Duration
+	enableSelfPreservation bool
+	namingServer           service.DiscoverServer
+	healthCheckServer      *healthcheck.Server
+	workers                map[string]*ApplicationsWorker
+	rwMutex                *sync.RWMutex
+}
+
+func NewApplicationsWorkers(interval time.Duration,
+	deltaExpireInterval time.Duration, enableSelfPreservation bool,
+	namingServer service.DiscoverServer, healthCheckServer *healthcheck.Server,
+	namespaces ...string) *ApplicationsWorkers {
+	workers := make(map[string]*ApplicationsWorker)
+	for _, namespace := range namespaces {
+		work := NewApplicationsWorker(interval, deltaExpireInterval, enableSelfPreservation,
+			namingServer, healthCheckServer, namespace)
+		workers[namespace] = work
+	}
+	return &ApplicationsWorkers{
+		interval:               interval,
+		deltaExpireInterval:    deltaExpireInterval,
+		enableSelfPreservation: enableSelfPreservation,
+		namingServer:           namingServer,
+		healthCheckServer:      healthCheckServer,
+		workers:                workers,
+		rwMutex:                &sync.RWMutex{},
+	}
+}
+
+func (a *ApplicationsWorkers) Get(namespace string) *ApplicationsWorker {
+	a.rwMutex.RLock()
+	work, exist := a.workers[namespace]
+	a.rwMutex.RUnlock()
+	if exist {
+		return work
+	}
+	a.rwMutex.Lock()
+	defer a.rwMutex.Unlock()
+
+	work, exist = a.workers[namespace]
+	if exist {
+		return work
+	}
+
+	work = NewApplicationsWorker(a.interval, a.deltaExpireInterval, a.enableSelfPreservation,
+		a.namingServer, a.healthCheckServer, namespace)
+	a.workers[namespace] = work
+	return work
+
+}
+
+func (a *ApplicationsWorkers) Stop() {
+	for _, v := range a.workers {
+		v.Stop()
+	}
+}
+
 // ApplicationsWorker 应用缓存协程
 type ApplicationsWorker struct {
 	mutex *sync.Mutex

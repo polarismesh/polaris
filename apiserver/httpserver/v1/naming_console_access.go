@@ -29,7 +29,8 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
-	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
+	"github.com/polarismesh/polaris/apiserver/httpserver/docs"
+	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/utils"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -78,123 +79,124 @@ func (h *HTTPServerV1) GetNamingConsoleAccessServer(include []string) (*restful.
 // addDefaultReadAccess 增加默认读接口
 func (h *HTTPServerV1) addDefaultReadAccess(ws *restful.WebService) {
 	// 管理端接口：只包含读接口
-	ws.Route(enrichGetNamespacesApiDocs(ws.GET("/namespaces").To(h.GetNamespaces)))
+	ws.Route(docs.EnrichGetNamespacesApiDocs(ws.GET("/namespaces").To(h.GetNamespaces)))
 
-	ws.Route(enrichGetNamespaceTokenApiDocs(ws.GET("/namespace/token").To(h.GetNamespaceToken)))
+	ws.Route(docs.EnrichGetNamespaceTokenApiDocs(ws.GET("/namespace/token").To(h.GetNamespaceToken)))
 
-	ws.Route(enrichGetServicesApiDocs(ws.GET("/services").To(h.GetServices)))
-	ws.Route(enrichGetServicesCountApiDocs(ws.GET("/services/count").To(h.GetServicesCount)))
-	ws.Route(enrichGetServiceTokenApiDocs(ws.GET("/service/token").To(h.GetServiceToken)))
-	ws.Route(enrichGetServiceAliasesApiDocs(ws.GET("/service/aliases").To(h.GetServiceAliases)))
-	ws.Route(enrichGetCircuitBreakerByServiceApiDocs(ws.GET("/service/circuitbreaker").
+	ws.Route(docs.EnrichGetServicesApiDocs(ws.GET("/services").To(h.GetServices)))
+	ws.Route(docs.EnrichGetServicesCountApiDocs(ws.GET("/services/count").To(h.GetServicesCount)))
+	ws.Route(docs.EnrichGetServiceTokenApiDocs(ws.GET("/service/token").To(h.GetServiceToken)))
+	ws.Route(docs.EnrichGetServiceAliasesApiDocs(ws.GET("/service/aliases").To(h.GetServiceAliases)))
+	ws.Route(docs.EnrichGetCircuitBreakerByServiceApiDocs(ws.GET("/service/circuitbreaker").
 		To(h.GetCircuitBreakerByService)))
-	ws.Route(enrichGetServiceOwnerApiDocs(ws.POST("/service/owner").To(h.GetServiceOwner)))
+	ws.Route(docs.EnrichGetServiceOwnerApiDocs(ws.POST("/service/owner").To(h.GetServiceOwner)))
 
-	ws.Route(enrichGetInstancesApiDocs(ws.GET("/instances").To(h.GetInstances)))
-	ws.Route(enrichGetInstancesCountApiDocs(ws.GET("/instances/count").To(h.GetInstancesCount)))
+	ws.Route(docs.EnrichGetInstancesApiDocs(ws.GET("/instances").To(h.GetInstances)))
+	ws.Route(docs.EnrichGetInstancesCountApiDocs(ws.GET("/instances/count").To(h.GetInstancesCount)))
 
-	ws.Route(enrichGetRoutingsApiDocs(ws.GET("/routings").To(h.GetRoutings)))
+	ws.Route(docs.EnrichGetRoutingsApiDocs(ws.GET("/routings").To(h.GetRoutings)))
 
-	ws.Route(enrichGetRateLimitsApiDocs(ws.GET("/ratelimits").To(h.GetRateLimits)))
+	ws.Route(docs.EnrichGetRateLimitsApiDocs(ws.GET("/ratelimits").To(h.GetRateLimits)))
 
-	ws.Route(enrichGetCircuitBreakersApiDocs(ws.GET("/circuitbreaker").To(h.GetCircuitBreaker)))
-	ws.Route(enrichGetCircuitBreakerVersionsApiDocs(ws.GET("/circuitbreaker/versions").
+	ws.Route(docs.EnrichGetCircuitBreakersApiDocs(ws.GET("/circuitbreaker").To(h.GetCircuitBreaker)))
+	ws.Route(docs.EnrichGetCircuitBreakerVersionsApiDocs(ws.GET("/circuitbreaker/versions").
 		To(h.GetCircuitBreakerVersions)))
-	ws.Route(enrichGetMasterCircuitBreakersApiDocs(ws.GET("/circuitbreakers/master").
+	ws.Route(docs.EnrichGetMasterCircuitBreakersApiDocs(ws.GET("/circuitbreakers/master").
 		To(h.GetMasterCircuitBreakers)))
-	ws.Route(enrichGetReleaseCircuitBreakersApiDocs(ws.GET("/circuitbreakers/release").
+	ws.Route(docs.EnrichGetReleaseCircuitBreakersApiDocs(ws.GET("/circuitbreakers/release").
 		To(h.GetReleaseCircuitBreakers)))
-	ws.Route(enrichGetCircuitBreakerTokensApiDocs(
+	ws.Route(docs.EnrichGetCircuitBreakerTokensApiDocs(
 		ws.GET("/circuitbreaker/token").To(h.GetCircuitBreakerToken)))
 
-	ws.Route(enrichGetCircuitBreakerRulesApiDocs(ws.GET("/circuitbreaker/rules").To(h.GetCircuitBreakerRules)))
+	ws.Route(docs.EnrichGetCircuitBreakerRulesApiDocs(ws.GET("/circuitbreaker/rules").To(h.GetCircuitBreakerRules)))
 
-	ws.Route(enrichGetFaultDetectRulesApiDocs(ws.GET("/faultdetectors").To(h.GetFaultDetectRules)))
+	ws.Route(docs.EnrichGetFaultDetectRulesApiDocs(ws.GET("/faultdetectors").To(h.GetFaultDetectRules)))
 }
 
 // addDefaultAccess 增加默认接口
 func (h *HTTPServerV1) addDefaultAccess(ws *restful.WebService) {
 	// 管理端接口：增删改查请求全部操作存储层
-	ws.Route(enrichCreateNamespacesApiDocs(ws.POST("/namespaces").To(h.CreateNamespaces)))
-	ws.Route(enrichDeleteNamespacesApiDocs(ws.POST("/namespaces/delete").To(h.DeleteNamespaces)))
-	ws.Route(enrichUpdateNamespacesApiDocs(ws.PUT("/namespaces").To(h.UpdateNamespaces)))
-	ws.Route(enrichGetNamespacesApiDocs(ws.GET("/namespaces").To(h.GetNamespaces)))
-	ws.Route(enrichGetNamespaceTokenApiDocs(ws.GET("/namespace/token").To(h.GetNamespaceToken)))
-	ws.Route(enrichUpdateNamespaceTokenApiDocs(ws.PUT("/namespace/token").To(h.UpdateNamespaceToken)))
+	ws.Route(docs.EnrichCreateNamespacesApiDocsOld(ws.POST("/namespaces").To(h.CreateNamespaces)))
+	ws.Route(docs.EnrichDeleteNamespacesApiDocsOld(ws.POST("/namespaces/delete").To(h.DeleteNamespaces)))
+	ws.Route(docs.EnrichUpdateNamespacesApiDocsOld(ws.PUT("/namespaces").To(h.UpdateNamespaces)))
+	ws.Route(docs.EnrichGetNamespacesApiDocsOld(ws.GET("/namespaces").To(h.GetNamespaces)))
+	ws.Route(docs.EnrichGetNamespaceTokenApiDocsOld(ws.GET("/namespace/token").To(h.GetNamespaceToken)))
+	ws.Route(docs.EnrichUpdateNamespaceTokenApiDocsOld(ws.PUT("/namespace/token").To(h.UpdateNamespaceToken)))
 
-	ws.Route(enrichCreateServicesApiDocs(ws.POST("/services").To(h.CreateServices)))
-	ws.Route(enrichDeleteServicesApiDocs(ws.POST("/services/delete").To(h.DeleteServices)))
-	ws.Route(enrichUpdateServicesApiDocs(ws.PUT("/services").To(h.UpdateServices)))
-	ws.Route(enrichGetServicesApiDocs(ws.GET("/services").To(h.GetServices)))
-	ws.Route(enrichGetServicesCountApiDocs(ws.GET("/services/count").To(h.GetServicesCount)))
-	ws.Route(enrichGetServiceTokenApiDocs(ws.GET("/service/token").To(h.GetServiceToken)))
-	ws.Route(enrichUpdateServiceTokenApiDocs(ws.PUT("/service/token").To(h.UpdateServiceToken)))
-	ws.Route(enrichCreateServiceAliasApiDocs(ws.POST("/service/alias").To(h.CreateServiceAlias)))
-	ws.Route(enrichUpdateServiceAliasApiDocs(ws.PUT("/service/alias").To(h.UpdateServiceAlias)))
-	ws.Route(enrichGetServiceAliasesApiDocs(ws.GET("/service/aliases").To(h.GetServiceAliases)))
-	ws.Route(enrichDeleteServiceAliasesApiDocs(ws.POST("/service/aliases/delete").To(h.DeleteServiceAliases)))
-	ws.Route(enrichGetCircuitBreakerByServiceApiDocs(ws.GET("/service/circuitbreaker").
+	ws.Route(docs.EnrichCreateServicesApiDocs(ws.POST("/services").To(h.CreateServices)))
+	ws.Route(docs.EnrichDeleteServicesApiDocs(ws.POST("/services/delete").To(h.DeleteServices)))
+	ws.Route(docs.EnrichUpdateServicesApiDocs(ws.PUT("/services").To(h.UpdateServices)))
+	ws.Route(docs.EnrichGetServicesApiDocs(ws.GET("/services").To(h.GetServices)))
+	ws.Route(docs.EnrichGetAllServicesApiDocs(ws.GET("/services/all").To(h.GetAllServices)))
+	ws.Route(docs.EnrichGetServicesCountApiDocs(ws.GET("/services/count").To(h.GetServicesCount)))
+	ws.Route(docs.EnrichGetServiceTokenApiDocs(ws.GET("/service/token").To(h.GetServiceToken)))
+	ws.Route(docs.EnrichUpdateServiceTokenApiDocs(ws.PUT("/service/token").To(h.UpdateServiceToken)))
+	ws.Route(docs.EnrichCreateServiceAliasApiDocs(ws.POST("/service/alias").To(h.CreateServiceAlias)))
+	ws.Route(docs.EnrichUpdateServiceAliasApiDocs(ws.PUT("/service/alias").To(h.UpdateServiceAlias)))
+	ws.Route(docs.EnrichGetServiceAliasesApiDocs(ws.GET("/service/aliases").To(h.GetServiceAliases)))
+	ws.Route(docs.EnrichDeleteServiceAliasesApiDocs(ws.POST("/service/aliases/delete").To(h.DeleteServiceAliases)))
+	ws.Route(docs.EnrichGetCircuitBreakerByServiceApiDocs(ws.GET("/service/circuitbreaker").
 		To(h.GetCircuitBreakerByService)))
-	ws.Route(enrichGetServiceOwnerApiDocs(ws.POST("/service/owner").To(h.GetServiceOwner)))
+	ws.Route(docs.EnrichGetServiceOwnerApiDocs(ws.POST("/service/owner").To(h.GetServiceOwner)))
 
-	ws.Route(enrichCreateInstancesApiDocs(ws.POST("/instances").To(h.CreateInstances)))
-	ws.Route(enrichDeleteInstancesApiDocs(ws.POST("/instances/delete").To(h.DeleteInstances)))
-	ws.Route(enrichDeleteInstancesByHostApiDocs(
+	ws.Route(docs.EnrichCreateInstancesApiDocs(ws.POST("/instances").To(h.CreateInstances)))
+	ws.Route(docs.EnrichDeleteInstancesApiDocs(ws.POST("/instances/delete").To(h.DeleteInstances)))
+	ws.Route(docs.EnrichDeleteInstancesByHostApiDocs(
 		ws.POST("/instances/delete/host").To(h.DeleteInstancesByHost)))
-	ws.Route(enrichUpdateInstancesApiDocs(ws.PUT("/instances").To(h.UpdateInstances)))
-	ws.Route(enrichUpdateInstancesIsolateApiDocs(
+	ws.Route(docs.EnrichUpdateInstancesApiDocs(ws.PUT("/instances").To(h.UpdateInstances)))
+	ws.Route(docs.EnrichUpdateInstancesIsolateApiDocs(
 		ws.PUT("/instances/isolate/host").To(h.UpdateInstancesIsolate)))
-	ws.Route(enrichGetInstancesApiDocs(ws.GET("/instances").To(h.GetInstances)))
-	ws.Route(enrichGetInstancesCountApiDocs(ws.GET("/instances/count").To(h.GetInstancesCount)))
-	ws.Route(enrichGetInstanceLabelsApiDocs(ws.GET("/instances/labels").To(h.GetInstanceLabels)))
+	ws.Route(docs.EnrichGetInstancesApiDocs(ws.GET("/instances").To(h.GetInstances)))
+	ws.Route(docs.EnrichGetInstancesCountApiDocs(ws.GET("/instances/count").To(h.GetInstancesCount)))
+	ws.Route(docs.EnrichGetInstanceLabelsApiDocs(ws.GET("/instances/labels").To(h.GetInstanceLabels)))
 
-	ws.Route(enrichCreateRoutingsApiDocs(ws.POST("/routings").To(h.CreateRoutings)))
-	ws.Route(enrichDeleteRoutingsApiDocs(ws.POST("/routings/delete").To(h.DeleteRoutings)))
-	ws.Route(enrichUpdateRoutingsApiDocs(ws.PUT("/routings").To(h.UpdateRoutings)))
-	ws.Route(enrichGetRoutingsApiDocs(ws.GET("/routings").To(h.GetRoutings)))
+	ws.Route(docs.EnrichCreateRoutingsApiDocs(ws.POST("/routings").To(h.CreateRoutings)))
+	ws.Route(docs.EnrichDeleteRoutingsApiDocs(ws.POST("/routings/delete").To(h.DeleteRoutings)))
+	ws.Route(docs.EnrichUpdateRoutingsApiDocs(ws.PUT("/routings").To(h.UpdateRoutings)))
+	ws.Route(docs.EnrichGetRoutingsApiDocs(ws.GET("/routings").To(h.GetRoutings)))
 
-	ws.Route(enrichCreateRateLimitsApiDocs(ws.POST("/ratelimits").To(h.CreateRateLimits)))
-	ws.Route(enrichDeleteRateLimitsApiDocs(ws.POST("/ratelimits/delete").To(h.DeleteRateLimits)))
-	ws.Route(enrichUpdateRateLimitsApiDocs(ws.PUT("/ratelimits").To(h.UpdateRateLimits)))
-	ws.Route(enrichGetRateLimitsApiDocs(ws.GET("/ratelimits").To(h.GetRateLimits)))
-	ws.Route(enrichEnableRateLimitsApiDocs(ws.PUT("/ratelimits/enable").To(h.EnableRateLimits)))
+	ws.Route(docs.EnrichCreateRateLimitsApiDocs(ws.POST("/ratelimits").To(h.CreateRateLimits)))
+	ws.Route(docs.EnrichDeleteRateLimitsApiDocs(ws.POST("/ratelimits/delete").To(h.DeleteRateLimits)))
+	ws.Route(docs.EnrichUpdateRateLimitsApiDocs(ws.PUT("/ratelimits").To(h.UpdateRateLimits)))
+	ws.Route(docs.EnrichGetRateLimitsApiDocs(ws.GET("/ratelimits").To(h.GetRateLimits)))
+	ws.Route(docs.EnrichEnableRateLimitsApiDocs(ws.PUT("/ratelimits/enable").To(h.EnableRateLimits)))
 
-	ws.Route(enrichCreateCircuitBreakersApiDocs(ws.POST("/circuitbreakers").To(h.CreateCircuitBreakers)))
-	ws.Route(enrichCreateCircuitBreakerVersionsApiDocs(ws.POST("/circuitbreakers/version").
+	ws.Route(docs.EnrichCreateCircuitBreakersApiDocs(ws.POST("/circuitbreakers").To(h.CreateCircuitBreakers)))
+	ws.Route(docs.EnrichCreateCircuitBreakerVersionsApiDocs(ws.POST("/circuitbreakers/version").
 		To(h.CreateCircuitBreakerVersions)))
-	ws.Route(enrichDeleteCircuitBreakersApiDocs(
+	ws.Route(docs.EnrichDeleteCircuitBreakersApiDocs(
 		ws.POST("/circuitbreakers/delete").To(h.DeleteCircuitBreakers)))
-	ws.Route(enrichUpdateCircuitBreakersApiDocs(
+	ws.Route(docs.EnrichUpdateCircuitBreakersApiDocs(
 		ws.PUT("/circuitbreakers").To(h.UpdateCircuitBreakers)))
-	ws.Route(enrichReleaseCircuitBreakersApiDocs(
+	ws.Route(docs.EnrichReleaseCircuitBreakersApiDocs(
 		ws.POST("/circuitbreakers/release").To(h.ReleaseCircuitBreakers)))
-	ws.Route(enrichUnBindCircuitBreakersApiDocs(
+	ws.Route(docs.EnrichUnBindCircuitBreakersApiDocs(
 		ws.POST("/circuitbreakers/unbind").To(h.UnBindCircuitBreakers)))
-	ws.Route(enrichGetCircuitBreakersApiDocs(ws.GET("/circuitbreaker").To(h.GetCircuitBreaker)))
-	ws.Route(enrichGetCircuitBreakerVersionsApiDocs(ws.GET("/circuitbreaker/versions").
+	ws.Route(docs.EnrichGetCircuitBreakersApiDocs(ws.GET("/circuitbreaker").To(h.GetCircuitBreaker)))
+	ws.Route(docs.EnrichGetCircuitBreakerVersionsApiDocs(ws.GET("/circuitbreaker/versions").
 		To(h.GetCircuitBreakerVersions)))
-	ws.Route(enrichGetMasterCircuitBreakersApiDocs(ws.GET("/circuitbreakers/master").
+	ws.Route(docs.EnrichGetMasterCircuitBreakersApiDocs(ws.GET("/circuitbreakers/master").
 		To(h.GetMasterCircuitBreakers)))
-	ws.Route(enrichGetReleaseCircuitBreakersApiDocs(ws.GET("/circuitbreakers/release").
+	ws.Route(docs.EnrichGetReleaseCircuitBreakersApiDocs(ws.GET("/circuitbreakers/release").
 		To(h.GetReleaseCircuitBreakers)))
-	ws.Route(enrichGetCircuitBreakerTokensApiDocs(
+	ws.Route(docs.EnrichGetCircuitBreakerTokensApiDocs(
 		ws.GET("/circuitbreaker/token").To(h.GetCircuitBreakerToken)))
 
-	ws.Route(enrichGetCircuitBreakerRulesApiDocs(
+	ws.Route(docs.EnrichGetCircuitBreakerRulesApiDocs(
 		ws.GET("/circuitbreaker/rules").To(h.GetCircuitBreakerRules)))
-	ws.Route(enrichCreateCircuitBreakerRulesApiDocs(
+	ws.Route(docs.EnrichCreateCircuitBreakerRulesApiDocs(
 		ws.POST("/circuitbreaker/rules").To(h.CreateCircuitBreakerRules)))
-	ws.Route(enrichUpdateCircuitBreakerRulesApiDocs(
+	ws.Route(docs.EnrichUpdateCircuitBreakerRulesApiDocs(
 		ws.PUT("/circuitbreaker/rules").To(h.UpdateCircuitBreakerRules)))
-	ws.Route(enrichDeleteCircuitBreakerRulesApiDocs(
+	ws.Route(docs.EnrichDeleteCircuitBreakerRulesApiDocs(
 		ws.POST("/circuitbreaker/rules/delete").To(h.DeleteCircuitBreakerRules)))
-	ws.Route(enrichEnableCircuitBreakerRulesApiDocs(
+	ws.Route(docs.EnrichEnableCircuitBreakerRulesApiDocs(
 		ws.PUT("/circuitbreaker/rules/enable").To(h.EnableCircuitBreakerRules)))
 
-	ws.Route(enrichGetFaultDetectRulesApiDocs(ws.GET("/faultdetectors").To(h.GetFaultDetectRules)))
-	ws.Route(enrichCreateFaultDetectRulesApiDocs(ws.POST("/faultdetectors").To(h.CreateFaultDetectRules)))
-	ws.Route(enrichUpdateFaultDetectRulesApiDocs(ws.PUT("/faultdetectors").To(h.UpdateFaultDetectRules)))
-	ws.Route(enrichDeleteFaultDetectRulesApiDocs(
+	ws.Route(docs.EnrichGetFaultDetectRulesApiDocs(ws.GET("/faultdetectors").To(h.GetFaultDetectRules)))
+	ws.Route(docs.EnrichCreateFaultDetectRulesApiDocs(ws.POST("/faultdetectors").To(h.CreateFaultDetectRules)))
+	ws.Route(docs.EnrichUpdateFaultDetectRulesApiDocs(ws.PUT("/faultdetectors").To(h.UpdateFaultDetectRules)))
+	ws.Route(docs.EnrichDeleteFaultDetectRulesApiDocs(
 		ws.POST("/faultdetectors/delete").To(h.DeleteFaultDetectRules)))
 }
 
@@ -393,6 +395,19 @@ func (h *HTTPServerV1) UpdateServices(req *restful.Request, rsp *restful.Respons
 		handler.WriteHeaderAndProto(ret)
 		return
 	}
+	handler.WriteHeaderAndProto(ret)
+}
+
+// GetAllServices 查询服务
+func (h *HTTPServerV1) GetAllServices(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	queryParams := httpcommon.ParseQueryParams(req)
+	ctx := handler.ParseHeaderContext()
+	ret := h.namingServer.GetAllServices(ctx, queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
 

@@ -26,7 +26,7 @@
 400102 = "invalid user token" #InvalidUserToken
 400103 = "invalid parameter" #InvalidParameter
 400104 = "query instance parameter is empty" #EmptyQueryParameter
-400105 = "query instance, (service,namespace) or host is required" #InvalidQueryInsParameter
+400105 = "query instance, service or namespace or host is required" #InvalidQueryInsParameter
 400110 = "invalid namespace name" #InvalidNamespaceName
 400111 = "invalid namespace owners" #InvalidNamespaceOwners
 400112 = "invalid namespace token" #InvalidNamespaceToken

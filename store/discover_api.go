@@ -224,7 +224,7 @@ type RateLimitStore interface {
 
 	// GetRateLimitsForCache 根据修改时间拉取增量限流规则及最新版本号
 	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
-	GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]*model.RateLimit, []*model.RateLimitRevision, error)
+	GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]*model.RateLimit, error)
 }
 
 // CircuitBreakerStore 熔断规则的存储接口

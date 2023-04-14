@@ -266,7 +266,7 @@ func TestMaintainStore_StartLeaderElection1(t *testing.T) {
 	mockStore := mock.NewMockLeaderElectionStore(ctrl)
 	mockStore.EXPECT().CreateLeaderElection(TestElectKey).Return(errors.New("err"))
 
-	m := &maintainStore{
+	m := &adminStore{
 		leStore: mockStore,
 		leMap:   make(map[string]*leaderElectionStateMachine),
 	}
@@ -288,7 +288,7 @@ func TestMaintainStore_StartLeaderElection2(t *testing.T) {
 	mockStore := mock.NewMockLeaderElectionStore(ctrl)
 	mockStore.EXPECT().CreateLeaderElection(TestElectKey).Return(nil)
 
-	m := &maintainStore{
+	m := &adminStore{
 		leStore: mockStore,
 		leMap:   make(map[string]*leaderElectionStateMachine),
 	}
@@ -312,7 +312,7 @@ func TestMaintainStore_StartLeaderElection3(t *testing.T) {
 	mockStore := mock.NewMockLeaderElectionStore(ctrl)
 	mockStore.EXPECT().CreateLeaderElection(TestElectKey).Return(nil)
 
-	m := &maintainStore{
+	m := &adminStore{
 		leStore: mockStore,
 		leMap:   make(map[string]*leaderElectionStateMachine),
 	}
@@ -389,7 +389,7 @@ func TestMaintainStore_ReleaseLeaderElection2(t *testing.T) {
 	mockStore := mock.NewMockLeaderElectionStore(ctrl)
 	mockStore.EXPECT().CreateLeaderElection(TestElectKey).Return(nil)
 
-	m := &maintainStore{
+	m := &adminStore{
 		leStore: mockStore,
 		leMap:   make(map[string]*leaderElectionStateMachine),
 	}

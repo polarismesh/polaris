@@ -21,7 +21,6 @@ import (
 	"context"
 	"sync"
 	"testing"
-	"time"
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -97,7 +96,7 @@ func TestServer_GetReportClient(t *testing.T) {
 		}
 
 		wait.Wait()
-		time.Sleep(discoverSuit.UpdateCacheInterval() * 5)
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		t.Log("finish sleep to wait cache refresh")
 
 		resp := discoverSuit.DiscoverServer().GetPrometheusTargets(context.Background(), map[string]string{})

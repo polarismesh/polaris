@@ -19,6 +19,7 @@ package utils
 
 import (
 	"encoding/hex"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -43,15 +44,40 @@ func CollectMapKeys(filters map[string]string) []string {
 	fields := make([]string, 0, len(filters))
 	for k := range filters {
 		fields = append(fields, k)
+		if k != "" {
+			fields = append(fields, strings.ToUpper(string(k[:1]))+k[1:])
+		}
 	}
 
 	return fields
 }
 
-// IsWildName 判断名字是否为通配名字，只支持前缀索引(名字最后为*)
-func IsWildName(name string) bool {
+// IsPrefixWildName 判断名字是否为通配名字，只支持前缀索引(名字最后为*)
+func IsPrefixWildName(name string) bool {
 	length := len(name)
 	return length >= 1 && name[length-1:length] == "*"
+}
+
+// IsWildName 判断名字是否为通配名字，前缀或者后缀
+func IsWildName(name string) bool {
+	return IsPrefixWildName(name) || IsSuffixWildName(name)
+}
+
+// ParseWildNameForSql 如果 name 是通配字符串，将通配字符*替换为sql中的%
+func ParseWildNameForSql(name string) string {
+	if IsPrefixWildName(name) {
+		name = name[:len(name)-1] + "%"
+	}
+	if IsSuffixWildName(name) {
+		name = "%" + name[1:]
+	}
+	return name
+}
+
+// IsSuffixWildName 判断名字是否为通配名字，只支持后缀索引(名字第一个字符为*)
+func IsSuffixWildName(name string) bool {
+	length := len(name)
+	return length >= 1 && name[0:1] == "*"
 }
 
 // ParseWildName 判断是否为格式化查询条件并且返回真正的查询信息
@@ -64,6 +90,33 @@ func ParseWildName(name string) (string, bool) {
 	}
 
 	return name, false
+}
+
+// IsWildMatchIgnoreCase 判断 name 是否匹配 pattern，pattern 可以是前缀或者后缀，忽略大小写
+func IsWildMatchIgnoreCase(name, pattern string) bool {
+	return IsWildMatch(strings.ToLower(name), strings.ToLower(pattern))
+}
+
+// IsWildMatch 判断 name 是否匹配 pattern，pattern 可以是前缀或者后缀
+func IsWildMatch(name, pattern string) bool {
+	if IsPrefixWildName(pattern) {
+		pattern = strings.TrimRight(pattern, "*")
+		if strings.HasPrefix(name, pattern) {
+			return true
+		}
+		if IsSuffixWildName(pattern) {
+			pattern = strings.TrimLeft(pattern, "*")
+			return strings.Contains(name, pattern)
+		}
+		return false
+	} else if IsSuffixWildName(pattern) {
+		pattern = strings.TrimLeft(pattern, "*")
+		if strings.HasSuffix(name, pattern) {
+			return true
+		}
+		return false
+	}
+	return pattern == name
 }
 
 // NewUUID 返回一个随机的UUID

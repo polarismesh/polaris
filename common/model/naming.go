@@ -39,17 +39,6 @@ type Namespace struct {
 	ModifyTime time.Time
 }
 
-// Business 业务结构体
-type Business struct {
-	ID         string
-	Name       string
-	Token      string
-	Owner      string
-	Valid      bool
-	CreateTime time.Time
-	ModifyTime time.Time
-}
-
 // Service 服务数据
 type Service struct {
 	ID          string

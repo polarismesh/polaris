@@ -23,13 +23,13 @@ import (
 )
 
 var (
-	once sync.Once
-	eh   *eventHub
+	initOnce sync.Once
+	eh       *eventHub
 )
 
 // InitEventHub initialize event hub
 func InitEventHub() {
-	once.Do(func() {
+	initOnce.Do(func() {
 		eh = &eventHub{
 			topics: make(map[string]*topic),
 		}

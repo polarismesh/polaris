@@ -21,6 +21,7 @@ import (
 	"context"
 	"math"
 	"strconv"
+	"strings"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
@@ -31,11 +32,39 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-func buildBaseInstance(instance *InstanceInfo, namespace string, appId string) *apiservice.Instance {
+func checkOrBuildNewInstanceId(appId string, instId string, generateUniqueInstId bool) string {
+	if !generateUniqueInstId {
+		return instId
+	}
+	lowerAppId := strings.ToLower(appId)
+	lowerInstIdId := strings.ToLower(instId)
+	if strings.Contains(lowerInstIdId, lowerAppId) {
+		return instId
+	}
+	return lowerAppId + ":" + lowerInstIdId
+}
+
+func checkOrBuildNewInstanceIdByNamespace(namespace string, defaultNamespace string, appId string,
+	instId string, generateUniqueInstId bool) string {
+	instId = checkOrBuildNewInstanceId(appId, instId, generateUniqueInstId)
+	if namespace != defaultNamespace {
+		return namespace + ":" + instId
+	}
+	return instId
+}
+
+func buildBaseInstance(
+	instance *InstanceInfo, namespace string, defaultNamespace string,
+	appId string, generateUniqueInstId bool) *apiservice.Instance {
 	targetInstance := &apiservice.Instance{}
 	eurekaMetadata := make(map[string]string)
 
 	eurekaMetadata[MetadataRegisterFrom] = ServerEureka
+	eurekaInstanceId := instance.InstanceId
+	if len(eurekaInstanceId) == 0 {
+		eurekaInstanceId = instance.HostName
+	}
+	eurekaMetadata[MetadataInstanceId] = eurekaInstanceId
 	if len(instance.AppGroupName) > 0 {
 		eurekaMetadata[MetadataAppGroupName] = instance.AppGroupName
 	}
@@ -69,7 +98,10 @@ func buildBaseInstance(instance *InstanceInfo, namespace string, appId string) *
 	if len(instance.SecureVipAddress) > 0 {
 		eurekaMetadata[MetadataSecureVipAddress] = instance.SecureVipAddress
 	}
-	targetInstance.Id = &wrappers.StringValue{Value: instance.InstanceId}
+	targetInstance.Id = &wrappers.StringValue{
+		Value: checkOrBuildNewInstanceIdByNamespace(namespace, defaultNamespace,
+			appId, eurekaInstanceId, generateUniqueInstId),
+	}
 	targetInstance.Metadata = eurekaMetadata
 	targetInstance.Service = &wrappers.StringValue{Value: appId}
 	targetInstance.Namespace = &wrappers.StringValue{Value: namespace}
@@ -131,7 +163,9 @@ func buildStatus(instance *InstanceInfo, targetInstance *apiservice.Instance) {
 	}
 }
 
-func convertEurekaInstance(instance *InstanceInfo, namespace string, appId string) *apiservice.Instance {
+func convertEurekaInstance(
+	instance *InstanceInfo, namespace string, defaultNamespace string,
+	appId string, generateUniqueInstId bool) *apiservice.Instance {
 	var secureEnable bool
 	var securePort int
 	var insecureEnable bool
@@ -154,7 +188,7 @@ func convertEurekaInstance(instance *InstanceInfo, namespace string, appId strin
 		insecurePort = DefaultInsecurePort
 	}
 
-	targetInstance := buildBaseInstance(instance, namespace, appId)
+	targetInstance := buildBaseInstance(instance, namespace, defaultNamespace, appId, generateUniqueInstId)
 
 	// 同时打开2个端口，通过medata保存http端口
 	targetInstance.Protocol = &wrappers.StringValue{Value: InsecureProtocol}
@@ -167,13 +201,13 @@ func convertEurekaInstance(instance *InstanceInfo, namespace string, appId strin
 }
 
 func (h *EurekaServer) registerInstances(
-	ctx context.Context, appId string, instance *InstanceInfo, replicated bool) uint32 {
+	ctx context.Context, namespace string, appId string, instance *InstanceInfo, replicated bool) uint32 {
 	ctx = context.WithValue(
 		ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
 	ctx = context.WithValue(ctx, utils.ContextOpenAsyncRegis, true)
 	appId = formatWriteName(appId)
 	// 1. 先转换数据结构
-	totalInstance := convertEurekaInstance(instance, h.namespace, appId)
+	totalInstance := convertEurekaInstance(instance, namespace, h.namespace, appId, h.generateUniqueInstId)
 	// 3. 注册实例
 	resp := h.namingServer.RegisterInstance(ctx, totalInstance)
 	// 4. 注册成功，则返回
@@ -183,7 +217,7 @@ func (h *EurekaServer) registerInstances(
 	// 5. 如果报服务不存在，对服务进行注册
 	if resp.Code.Value == api.NotFoundResource {
 		svc := &apiservice.Service{}
-		svc.Namespace = &wrappers.StringValue{Value: h.namespace}
+		svc.Namespace = &wrappers.StringValue{Value: namespace}
 		svc.Name = &wrappers.StringValue{Value: appId}
 		svcResp := h.namingServer.CreateServices(ctx, []*apiservice.Service{svc})
 		svcCreateCode := svcResp.GetCode().GetValue()
@@ -198,30 +232,34 @@ func (h *EurekaServer) registerInstances(
 }
 
 func (h *EurekaServer) deregisterInstance(
-	ctx context.Context, appId string, instanceId string, replicated bool) uint32 {
+	ctx context.Context, namespace string, appId string, instanceId string, replicated bool) uint32 {
 	ctx = context.WithValue(
 		ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
 	ctx = context.WithValue(ctx, utils.ContextOpenAsyncRegis, true)
+	instanceId = checkOrBuildNewInstanceIdByNamespace(namespace, h.namespace, appId, instanceId, h.generateUniqueInstId)
 	resp := h.namingServer.DeregisterInstance(ctx, &apiservice.Instance{Id: &wrappers.StringValue{Value: instanceId}})
 	return resp.GetCode().GetValue()
 }
 
 func (h *EurekaServer) updateStatus(
-	ctx context.Context, appId string, instanceId string, status string, replicated bool) uint32 {
+	ctx context.Context, namespace string, appId string, instanceId string, status string, replicated bool) uint32 {
 	var isolated = false
 	if status != StatusUp {
 		isolated = true
 	}
 	ctx = context.WithValue(
 		ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
+	instanceId = checkOrBuildNewInstanceIdByNamespace(namespace, h.namespace, appId, instanceId, h.generateUniqueInstId)
 	resp := h.namingServer.UpdateInstance(ctx, &apiservice.Instance{
 		Id: &wrappers.StringValue{Value: instanceId}, Isolate: &wrappers.BoolValue{Value: isolated}})
 	return resp.GetCode().GetValue()
 }
 
-func (h *EurekaServer) renew(ctx context.Context, appId string, instanceId string, replicated bool) uint32 {
+func (h *EurekaServer) renew(ctx context.Context, namespace string, appId string,
+	instanceId string, replicated bool) uint32 {
 	ctx = context.WithValue(
 		ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
+	instanceId = checkOrBuildNewInstanceIdByNamespace(namespace, h.namespace, appId, instanceId, h.generateUniqueInstId)
 	resp := h.healthCheckServer.Report(ctx, &apiservice.Instance{Id: &wrappers.StringValue{Value: instanceId}})
 	code := resp.GetCode().GetValue()
 
@@ -233,7 +271,9 @@ func (h *EurekaServer) renew(ctx context.Context, appId string, instanceId strin
 	return code
 }
 
-func (h *EurekaServer) updateMetadata(ctx context.Context, instanceId string, metadata map[string]string) uint32 {
+func (h *EurekaServer) updateMetadata(
+	ctx context.Context, namespace string, appId string, instanceId string, metadata map[string]string) uint32 {
+	instanceId = checkOrBuildNewInstanceIdByNamespace(namespace, h.namespace, appId, instanceId, h.generateUniqueInstId)
 	resp := h.namingServer.UpdateInstance(ctx,
 		&apiservice.Instance{Id: &wrappers.StringValue{Value: instanceId}, Metadata: metadata})
 	return resp.GetCode().GetValue()

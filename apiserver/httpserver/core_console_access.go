@@ -21,6 +21,8 @@ import (
 	"fmt"
 
 	"github.com/emicklei/go-restful/v3"
+
+	"github.com/polarismesh/polaris/apiserver/httpserver/docs"
 )
 
 const (
@@ -60,23 +62,23 @@ func (h *HTTPServer) GetCoreV1ConsoleAccessServer(ws *restful.WebService, includ
 }
 
 func (h *HTTPServer) addCoreDefaultReadAccess(ws *restful.WebService) {
-	ws.Route(enrichGetNamespacesApiDocs(ws.GET("/namespaces").To(h.v1Server.GetNamespaces).
+	ws.Route(docs.EnrichGetNamespacesApiDocs(ws.GET("/namespaces").To(h.v1Server.GetNamespaces).
 		Operation("CoreGetNamespaces")))
-	ws.Route(enrichGetNamespaceTokenApiDocs(ws.GET("/namespaces/token").To(h.v1Server.GetNamespaceToken).
+	ws.Route(docs.EnrichGetNamespaceTokenApiDocs(ws.GET("/namespaces/token").To(h.v1Server.GetNamespaceToken).
 		Operation("CoreGetNamespaceToken")))
 }
 
 func (h *HTTPServer) addCoreDefaultAccess(ws *restful.WebService) {
-	ws.Route(enrichCreateNamespacesApiDocs(ws.POST("/namespaces").To(h.v1Server.CreateNamespaces).
+	ws.Route(docs.EnrichCreateNamespacesApiDocs(ws.POST("/namespaces").To(h.v1Server.CreateNamespaces).
 		Operation("CoreCreateNamespaces")))
-	ws.Route(enrichDeleteNamespacesApiDocs(ws.POST("/namespaces/delete").To(h.v1Server.DeleteNamespaces).
+	ws.Route(docs.EnrichDeleteNamespacesApiDocs(ws.POST("/namespaces/delete").To(h.v1Server.DeleteNamespaces).
 		Operation("CoreDeleteNamespaces")))
-	ws.Route(enrichUpdateNamespacesApiDocs(ws.PUT("/namespaces").To(h.v1Server.UpdateNamespaces).
+	ws.Route(docs.EnrichUpdateNamespacesApiDocs(ws.PUT("/namespaces").To(h.v1Server.UpdateNamespaces).
 		Operation("CoreUpdateNamespaces")))
-	ws.Route(enrichGetNamespacesApiDocs(ws.GET("/namespaces").To(h.v1Server.GetNamespaces).
+	ws.Route(docs.EnrichGetNamespacesApiDocs(ws.GET("/namespaces").To(h.v1Server.GetNamespaces).
 		Operation("CoreGetNamespaces")))
-	ws.Route(enrichGetNamespaceTokenApiDocs(ws.GET("/namespaces/token").To(h.v1Server.GetNamespaceToken).
+	ws.Route(docs.EnrichGetNamespaceTokenApiDocs(ws.GET("/namespaces/token").To(h.v1Server.GetNamespaceToken).
 		Operation("CoreGetNamespaceToken")))
-	ws.Route(enrichUpdateNamespaceTokenApiDocs(ws.PUT("/namespaces/token").To(h.v1Server.UpdateNamespaceToken).
+	ws.Route(docs.EnrichUpdateNamespaceTokenApiDocs(ws.PUT("/namespaces/token").To(h.v1Server.UpdateNamespaceToken).
 		Operation("CoreUpdateNamespaceToken")))
 }

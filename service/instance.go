@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -40,6 +41,7 @@ import (
 var (
 	// InstanceFilterAttributes 查询实例支持的过滤字段
 	InstanceFilterAttributes = map[string]bool{
+		"id":            true, // 实例ID
 		"service":       true, // 服务name
 		"namespace":     true, // 服务namespace
 		"host":          true,
@@ -141,9 +143,14 @@ func (s *Server) CreateInstance(ctx context.Context, req *apiservice.Instance) *
 func (s *Server) createInstance(ctx context.Context, req *apiservice.Instance, ins *apiservice.Instance) (
 	*model.Instance, *apiservice.Response) {
 	// create service if absent
-	code, svcId, err := s.createWrapServiceIfAbsent(ctx, req)
-	if err != nil {
-		return nil, api.NewInstanceResponse(code, req)
+	svcId, errResp := s.createWrapServiceIfAbsent(ctx, req)
+	if errResp != nil {
+		log.Errorf("[Instance] create service if absent fail : %+v, req : %+v", errResp.String(), req)
+		return nil, errResp
+	}
+	if len(svcId) == 0 {
+		log.Errorf("[Instance] create service if absent return service id is empty : %+v", req)
+		return nil, api.NewResponseWithMsg(apimodel.Code_BadRequest, "service id is empty")
 	}
 
 	// fill instance location info
@@ -828,33 +835,6 @@ func (s *Server) GetInstancesCount(ctx context.Context) *apiservice.BatchQueryRe
 	return out
 }
 
-// CleanInstance 清理无效的实例(flag == 1)
-func (s *Server) CleanInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
-	// 无效数据，不需要鉴权，直接删除
-	getInstanceID := func() (string, *apiservice.Response) {
-		if req.GetId() != nil {
-			if req.GetId().GetValue() == "" {
-				return "", api.NewInstanceResponse(apimodel.Code_InvalidInstanceID, req)
-			}
-			return req.GetId().GetValue(), nil
-		}
-		return utils.CheckInstanceTetrad(req)
-	}
-
-	instanceID, resp := getInstanceID()
-	if resp != nil {
-		return resp
-	}
-	if err := s.storage.CleanInstance(instanceID); err != nil {
-		log.Error("Clean instance",
-			zap.String("err", err.Error()), utils.ZapRequestID(utils.ParseRequestID(ctx)))
-		return api.NewInstanceResponse(apimodel.Code_StoreLayerException, req)
-	}
-
-	log.Info("Clean instance", utils.ZapRequestID(utils.ParseRequestID(ctx)), utils.ZapInstanceID(instanceID))
-	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
-}
-
 // update/delete instance前置条件
 func (s *Server) execInstancePreStep(ctx context.Context, req *apiservice.Instance) (
 	*model.Service, *model.Instance, *apiservice.Response) {
@@ -959,8 +939,10 @@ func isEmptyLocation(loc *apimodel.Location) bool {
 }
 
 func (s *Server) sendDiscoverEvent(event model.InstanceEvent) {
-	// 发布隔离状态变化事件
-
+	if event.Instance != nil {
+		// In order not to cause `panic` in cause multi-corporate data op, do deep copy
+		event.Instance = proto.Clone(event.Instance).(*apiservice.Instance)
+	}
 	eventhub.Publish(eventhub.InstanceEventTopic, event)
 }
 
@@ -979,31 +961,19 @@ type rawSvcName interface {
 }
 
 // createWrapServiceIfAbsent 如果服务不存在，则进行创建，并返回服务的ID信息
-func (s *Server) createWrapServiceIfAbsent(ctx context.Context, instance wrapSvcName) (apimodel.Code, string, error) {
+func (s *Server) createWrapServiceIfAbsent(ctx context.Context, instance wrapSvcName) (string, *apiservice.Response) {
 	return s.createServiceIfAbsent(ctx, instance.GetNamespace().GetValue(), instance.GetService().GetValue())
 }
 
-// createWrapServiceIfAbsent 如果服务不存在，则进行创建，并返回服务的ID信息
-func (s *Server) createRawServiceIfAbsent(ctx context.Context, instance rawSvcName) (apimodel.Code, string, error) {
-	return s.createServiceIfAbsent(ctx, instance.GetNamespace(), instance.GetService())
-}
-
 func (s *Server) createServiceIfAbsent(
-	ctx context.Context, namespace string, svcName string) (apimodel.Code, string, error) {
-	if len(namespace) == 0 || namespace == utils.MatchAll {
-		return apimodel.Code_ExecuteSuccess, "", nil
-	}
-	if len(svcName) == 0 || svcName == utils.MatchAll {
-		return apimodel.Code_ExecuteSuccess, "", nil
-	}
-	svc, err := s.loadService(namespace, svcName)
-	if err != nil {
-		return apimodel.Code_ExecuteException, "", err
+	ctx context.Context, namespace string, svcName string) (string, *apiservice.Response) {
+	svc, errResp := s.loadService(namespace, svcName)
+	if errResp != nil {
+		return "", errResp
 	}
 	if svc != nil {
-		return apimodel.Code_ExecuteSuccess, svc.ID, nil
+		return svc.ID, nil
 	}
-
 	simpleService := &apiservice.Service{
 		Name:      utils.NewStringValue(svcName),
 		Namespace: utils.NewStringValue(namespace),
@@ -1018,42 +988,39 @@ func (s *Server) createServiceIfAbsent(
 			MetadataInternalAutoCreated: "true",
 		},
 	}
-
 	key := fmt.Sprintf("%s:%s", simpleService.Namespace, simpleService.Name)
-	ret, _, _ := s.createServiceSingle.Do(key, func() (interface{}, error) {
+	ret, err, _ := s.createServiceSingle.Do(key, func() (interface{}, error) {
 		resp := s.CreateService(ctx, simpleService)
 		return resp, nil
 	})
-
+	if err != nil {
+		return "", api.NewResponseWithMsg(apimodel.Code_ExecuteException, err.Error())
+	}
 	resp := ret.(*apiservice.Response)
 	retCode := apimodel.Code(resp.GetCode().GetValue())
 	if retCode != apimodel.Code_ExecuteSuccess && retCode != apimodel.Code_ExistedResource {
-		return retCode, "", errors.New(resp.GetInfo().GetValue())
+		return "", resp
 	}
-
-	svcId := resp.Service.Id.GetValue()
-	return retCode, svcId, nil
+	svcId := resp.GetService().GetId().GetValue()
+	return svcId, nil
 }
 
-func (s *Server) loadService(namespace string, svcName string) (*model.Service, error) {
+func (s *Server) loadService(namespace string, svcName string) (*model.Service, *apiservice.Response) {
 	svc := s.caches.Service().GetServiceByName(svcName, namespace)
 	if svc != nil {
 		if svc.IsAlias() {
-			return nil, errors.New("service is alias")
+			return nil, api.NewResponseWithMsg(apimodel.Code_BadRequest, "service is alias")
 		}
 		return svc, nil
 	}
-
 	// 再走数据库查询一遍
 	svc, err := s.storage.GetService(svcName, namespace)
 	if err != nil {
-		return nil, err
+		return nil, api.NewResponseWithMsg(apimodel.Code_StoreLayerException, err.Error())
 	}
-
 	if svc != nil && svc.IsAlias() {
-		return nil, errors.New("service is alias")
+		return nil, api.NewResponseWithMsg(apimodel.Code_BadRequest, "service is alias")
 	}
-
 	return svc, nil
 }
 
@@ -1201,13 +1168,6 @@ func preGetInstances(query map[string]string) (map[string]string, map[string]str
 	// 不允许全量查询服务实例
 	if len(query) == 0 {
 		return nil, nil, api.NewBatchQueryResponse(apimodel.Code_EmptyQueryParameter)
-	}
-	_, serviceIsAvail := query["service"]
-	_, namespaceIsAvail := query["namespace"]
-	_, hostIsAvail := query["host"]
-	// 要么（service，namespace）存在，要么host存在，不然视为参数不完整
-	if !((serviceIsAvail && namespaceIsAvail) || hostIsAvail) {
-		return nil, nil, api.NewBatchQueryResponse(apimodel.Code_InvalidQueryInsParameter)
 	}
 
 	var metaFilter map[string]string

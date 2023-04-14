@@ -21,8 +21,8 @@ import (
 	"github.com/emicklei/go-restful/v3"
 )
 
-// GetAdminServer get admin server
-func (h *HTTPServer) GetAdminServer() *restful.WebService {
+// GetIndexServer get index server
+func (h *HTTPServer) GetIndexServer() *restful.WebService {
 	ws := new(restful.WebService)
 
 	ws.Route(ws.GET("/").To(h.index))

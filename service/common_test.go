@@ -43,7 +43,6 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
 	_ "github.com/polarismesh/polaris/plugin/discoverevent/local"
-	_ "github.com/polarismesh/polaris/plugin/discoverstat/discoverlocal"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/heartbeatmemory"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/heartbeatredis"
 	_ "github.com/polarismesh/polaris/plugin/history/logger"
@@ -515,20 +514,20 @@ func (d *DiscoverTestSuit) removeCommonServiceAliases(t *testing.T, req []*apise
 	}
 }
 
-// 新增一个实例
-func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *apiservice.Service, id int) (
+// 新增一个实例ById
+func (d *DiscoverTestSuit) createCommonInstanceById(t *testing.T, svc *apiservice.Service, count int, instanceID string) (
 	*apiservice.Instance, *apiservice.Instance) {
 	instanceReq := &apiservice.Instance{
 		ServiceToken: utils.NewStringValue(svc.GetToken().GetValue()),
 		Service:      utils.NewStringValue(svc.GetName().GetValue()),
 		Namespace:    utils.NewStringValue(svc.GetNamespace().GetValue()),
-		VpcId:        utils.NewStringValue(fmt.Sprintf("vpcid-%d", id)),
-		Host:         utils.NewStringValue(fmt.Sprintf("9.9.9.%d", id)),
-		Port:         utils.NewUInt32Value(8000 + uint32(id)),
-		Protocol:     utils.NewStringValue(fmt.Sprintf("protocol-%d", id)),
-		Version:      utils.NewStringValue(fmt.Sprintf("version-%d", id)),
-		Priority:     utils.NewUInt32Value(1 + uint32(id)%10),
-		Weight:       utils.NewUInt32Value(1 + uint32(id)%1000),
+		VpcId:        utils.NewStringValue(fmt.Sprintf("vpcid-%d", count)),
+		Host:         utils.NewStringValue(fmt.Sprintf("9.9.9.%d", count)),
+		Port:         utils.NewUInt32Value(8000 + uint32(count)),
+		Protocol:     utils.NewStringValue(fmt.Sprintf("protocol-%d", count)),
+		Version:      utils.NewStringValue(fmt.Sprintf("version-%d", count)),
+		Priority:     utils.NewUInt32Value(1 + uint32(count)%10),
+		Weight:       utils.NewUInt32Value(1 + uint32(count)%1000),
 		HealthCheck: &apiservice.HealthCheck{
 			Type: apiservice.HealthCheck_HEARTBEAT,
 			Heartbeat: &apiservice.HeartbeatHealthCheck{
@@ -537,10 +536,10 @@ func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *apiservice.Se
 		},
 		Healthy:  utils.NewBoolValue(false), // 默认是非健康，因为打开了healthCheck
 		Isolate:  utils.NewBoolValue(false),
-		LogicSet: utils.NewStringValue(fmt.Sprintf("logic-set-%d", id)),
+		LogicSet: utils.NewStringValue(fmt.Sprintf("logic-set-%d", count)),
 		Metadata: map[string]string{
-			"internal-personal-xxx":        fmt.Sprintf("internal-personal-xxx_%d", id),
-			"2my-meta":                     fmt.Sprintf("my-meta-%d", id),
+			"internal-personal-xxx":        fmt.Sprintf("internal-personal-xxx_%d", count),
+			"2my-meta":                     fmt.Sprintf("my-meta-%d", count),
 			"my-meta-a1":                   "1111",
 			"smy-xmeta-h2":                 "2222",
 			"my-1meta-o3":                  "2222",
@@ -557,6 +556,9 @@ func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *apiservice.Se
 			"very-long-key-data-uuuuuuuuu": "P",
 		},
 	}
+	if len(instanceID) > 0 {
+		instanceReq.Id = utils.NewStringValue(instanceID)
+	}
 
 	resp := d.DiscoverServer().CreateInstances(d.DefaultCtx, []*apiservice.Instance{instanceReq})
 	if respSuccess(resp) {
@@ -567,18 +569,26 @@ func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *apiservice.Se
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
 
+	if len(instanceID) == 0 {
+		instanceID, _ = utils.CalculateInstanceID(
+			instanceReq.GetNamespace().GetValue(), instanceReq.GetService().GetValue(),
+			instanceReq.GetVpcId().GetValue(), instanceReq.GetHost().GetValue(), instanceReq.GetPort().GetValue())
+	}
 	// repeated
-	InstanceID, _ := utils.CalculateInstanceID(
-		instanceReq.GetNamespace().GetValue(), instanceReq.GetService().GetValue(),
-		instanceReq.GetVpcId().GetValue(), instanceReq.GetHost().GetValue(), instanceReq.GetPort().GetValue())
-	d.cleanInstance(InstanceID)
-	t.Logf("repeatd create instance(%s)", InstanceID)
+	d.cleanInstance(instanceID)
+	t.Logf("repeatd create instance(%s)", instanceID)
 	resp = d.DiscoverServer().CreateInstances(d.DefaultCtx, []*apiservice.Instance{instanceReq})
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
 	}
 
 	return instanceReq, resp.Responses[0].GetInstance()
+}
+
+// 新增一个实例
+func (d *DiscoverTestSuit) createCommonInstance(t *testing.T, svc *apiservice.Service, count int) (
+	*apiservice.Instance, *apiservice.Instance) {
+	return d.createCommonInstanceById(t, svc, count, "")
 }
 
 // 指定 IP 和端口为一个服务创建实例
@@ -798,63 +808,9 @@ func mockRoutingV1(serviceName, serviceNamespace string, inCount int) *apitraffi
 	return conf
 }
 
-func mockRoutingV2(t *testing.T, cnt int32) []*apitraffic.RouteRule {
-	rules := make([]*apitraffic.RouteRule, 0, cnt)
-	for i := int32(0); i < cnt; i++ {
-		matchString := &apimodel.MatchString{
-			Type:  apimodel.MatchString_EXACT,
-			Value: utils.NewStringValue(fmt.Sprintf("in-meta-value-%d", i)),
-		}
-		source := &apitraffic.SourceService{
-			Service:   fmt.Sprintf("in-source-service-%d", i),
-			Namespace: fmt.Sprintf("in-source-service-%d", i),
-			Arguments: []*apitraffic.SourceMatch{
-				{},
-			},
-		}
-		destination := &apitraffic.DestinationGroup{
-			Service:   fmt.Sprintf("in-destination-service-%d", i),
-			Namespace: fmt.Sprintf("in-destination-service-%d", i),
-			Labels: map[string]*apimodel.MatchString{
-				fmt.Sprintf("in-metadata-%d", i): matchString,
-			},
-			Priority: 120,
-			Weight:   100,
-			Transfer: "abcdefg",
-		}
-
-		entry := &apitraffic.RuleRoutingConfig{
-			Sources:      []*apitraffic.SourceService{source},
-			Destinations: []*apitraffic.DestinationGroup{destination},
-		}
-
-		any, err := ptypes.MarshalAny(entry)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		item := &apitraffic.RouteRule{
-			Id:            "",
-			Name:          fmt.Sprintf("test-routing-name-%d", i),
-			Namespace:     "",
-			Enable:        false,
-			RoutingPolicy: apitraffic.RoutingPolicy_RulePolicy,
-			RoutingConfig: any,
-			Revision:      "",
-			Etime:         "",
-			Priority:      0,
-			Description:   "",
-		}
-
-		rules = append(rules, item)
-	}
-
-	return rules
-}
-
 // 创建一个路由配置
 func (d *DiscoverTestSuit) createCommonRoutingConfigV2(t *testing.T, cnt int32) []*apitraffic.RouteRule {
-	rules := mockRoutingV2(t, cnt)
+	rules := testsuit.MockRoutingV2(t, cnt)
 
 	return d.createCommonRoutingConfigV2WithReq(t, rules)
 }
@@ -1275,7 +1231,6 @@ func (d *DiscoverTestSuit) createCommonRateLimit(
 			},
 			AmountPercent: utils.NewUInt32Value(uint32(index)),
 		},
-		ServiceToken: utils.NewStringValue(service.GetToken().GetValue()),
 	}
 
 	resp := d.DiscoverServer().CreateRateLimits(d.DefaultCtx, []*apitraffic.Rule{rateLimit})
@@ -1342,54 +1297,6 @@ func (d *DiscoverTestSuit) cleanRateLimit(id string) {
 
 // 彻底删除限流规则版本号
 func (d *DiscoverTestSuit) cleanRateLimitRevision(service, namespace string) {
-
-	if d.Storage.Name() == sqldb.STORENAME {
-		func() {
-			tx, err := d.Storage.StartTx()
-			if err != nil {
-				panic(err)
-			}
-
-			dbTx := tx.GetDelegateTx().(*sqldb.BaseTx)
-
-			defer rollbackDbTx(dbTx)
-
-			str := "delete from ratelimit_revision using ratelimit_revision, service " +
-				"where service_id = service.id and name = ? and namespace = ?"
-			if _, err := dbTx.Exec(str, service, namespace); err != nil {
-				panic(err)
-			}
-
-			commitDbTx(dbTx)
-		}()
-	} else if d.Storage.Name() == boltdb.STORENAME {
-		func() {
-
-			svc, err := d.Storage.GetService(service, namespace)
-			if err != nil {
-				panic(err)
-			}
-
-			if svc == nil {
-				panic("service not found " + service + ", namespace" + namespace)
-			}
-
-			tx, err := d.Storage.StartTx()
-			if err != nil {
-				panic(err)
-			}
-
-			dbTx := tx.GetDelegateTx().(*bolt.Tx)
-
-			if err := dbTx.Bucket([]byte(tblRateLimitRevision)).DeleteBucket([]byte(svc.ID)); err != nil {
-				if !errors.Is(err, bolt.ErrBucketNotFound) {
-					rollbackBoltTx(dbTx)
-					panic(err)
-				}
-			}
-			commitBoltTx(dbTx)
-		}()
-	}
 }
 
 // 更新限流规则内容

@@ -42,7 +42,8 @@ func Test_discoverEventLocal_Run(t *testing.T) {
 			wait.Done()
 			et := eb.Next()
 			t.Logf("%v", et)
-			assert.NotEqual(t, model.EventInstanceSendHeartbeat, et.EType)
+			_, ok := subscribeEvents[et.EType]
+			assert.True(t, ok)
 		}
 	}
 
@@ -88,6 +89,18 @@ func Test_discoverEventLocal_Run(t *testing.T) {
 				Port: &wrappers.UInt32Value{Value: 8080},
 			},
 			EType:      model.EventInstanceSendHeartbeat,
+			CreateTime: time.Time{},
+		})
+
+		l.PublishEvent(model.InstanceEvent{
+			Id:        "111111",
+			Namespace: "DemoNamespace",
+			Service:   "DemoService",
+			Instance: &apiservice.Instance{
+				Host: &wrappers.StringValue{Value: "127.0.0.1"},
+				Port: &wrappers.UInt32Value{Value: 8080},
+			},
+			EType:      model.EventInstanceUpdate,
 			CreateTime: time.Time{},
 		})
 	}

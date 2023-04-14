@@ -56,6 +56,31 @@ func CreateServices(namespace *apimodel.Namespace) []*apiservice.Service {
 	return services
 }
 
+func CreateServicesWithTotal(namespace *apimodel.Namespace, total int) []*apiservice.Service {
+
+	var services []*apiservice.Service
+	for index := 0; index < total; index++ {
+		name := fmt.Sprintf(serviceName, utils.NewUUID(), index)
+
+		service := &apiservice.Service{
+			Name:       utils.NewStringValue(name),
+			Namespace:  namespace.GetName(),
+			Metadata:   map[string]string{"test": "test"},
+			Ports:      utils.NewStringValue("8,8"),
+			Business:   utils.NewStringValue("test"),
+			Department: utils.NewStringValue("test"),
+			CmdbMod1:   utils.NewStringValue("test"),
+			CmdbMod2:   utils.NewStringValue("test"),
+			CmdbMod3:   utils.NewStringValue("test"),
+			Comment:    utils.NewStringValue("test"),
+			Owners:     utils.NewStringValue("test"),
+		}
+		services = append(services, service)
+	}
+
+	return services
+}
+
 // UpdateServices 更新测试服务
 func UpdateServices(services []*apiservice.Service) {
 	for _, service := range services {

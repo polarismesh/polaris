@@ -148,12 +148,6 @@ func pluginInitialize() {
 		log.Warnf("Not found Ratelimit Plugin")
 	}
 
-	// 获取DiscoverStatis插件
-	namingServer.discoverStatis = plugin.GetDiscoverStatis()
-	if namingServer.discoverStatis == nil {
-		log.Warnf("Not Found Discover Statis Plugin")
-	}
-
 	subscriber := plugin.GetDiscoverEvent()
 	if subscriber == nil {
 		log.Warnf("Not found DiscoverEvent Plugin")

@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -108,8 +109,6 @@ func TestCreateInstance(t *testing.T) {
 	t.Run("重复注册，会覆盖已存在的资源", func(t *testing.T) {
 		req, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1000)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
-
-		time.Sleep(time.Second)
 		resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{req})
 		if respSuccess(resp) {
 			t.Logf("pass: %+v", resp)
@@ -156,7 +155,6 @@ func TestCreateInstance(t *testing.T) {
 		}
 		defer discoverSuit.cleanInstance(resp.Responses[0].GetInstance().GetId().GetValue())
 
-		time.Sleep(time.Second)
 		discoverSuit.cleanInstance(resp.Responses[0].GetInstance().GetId().GetValue())
 		instanceReq.HealthCheck = &apiservice.HealthCheck{
 			Heartbeat: &apiservice.HeartbeatHealthCheck{},
@@ -165,6 +163,7 @@ func TestCreateInstance(t *testing.T) {
 		if !respSuccess(resp) {
 			t.Fatalf("error: %+v", resp)
 		}
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		getResp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{"host": instanceReq.GetHost().GetValue()})
 		assert.True(t, getResp.GetCode().GetValue() == api.ExecuteSuccess)
 		t.Logf("%+v", getResp)
@@ -240,7 +239,7 @@ func TestCreateInstanceWithNoService(t *testing.T) {
 		}()
 
 		// 等待一段时间的刷新
-		time.Sleep(discoverSuit.UpdateCacheInterval() * 5)
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 
 		resps := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, reqs)
 		if respSuccess(resps) {
@@ -269,7 +268,7 @@ func TestCreateInstance2(t *testing.T) {
 			serviceResps = append(serviceResps, serviceResp)
 		}
 
-		time.Sleep(discoverSuit.UpdateCacheInterval())
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		total := 20
 		var wg sync.WaitGroup
 		start := time.Now()
@@ -357,6 +356,75 @@ func TestUpdateInstanceManyTimes(t *testing.T) {
 	}
 }
 
+func TestGetInstancesById(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.Initialize(); err != nil {
+		t.Fatal(err)
+	}
+	defer discoverSuit.Destroy()
+
+	_, svc := discoverSuit.createCommonService(t, 1)
+	defer discoverSuit.cleanServiceName(svc.GetName().GetValue(), svc.GetNamespace().GetValue())
+	var instances []*apiservice.Instance
+	var reqInstances []*apiservice.Instance
+	defer func() {
+		for _, entry := range instances {
+			discoverSuit.cleanInstance(entry.GetId().GetValue())
+		}
+	}()
+
+	idPrefix := "prefix-"
+	prefixCount := 5
+	idSuffix := "-suffix"
+	suffixCount := 3
+	for i := 0; i < prefixCount; i++ {
+		req, instance := discoverSuit.createCommonInstanceById(
+			t, svc, i, fmt.Sprintf("%s%d", idPrefix, i))
+		instances = append(instances, instance)
+		reqInstances = append(reqInstances, req)
+	}
+	for i := 0; i < suffixCount; i++ {
+		req, instance := discoverSuit.createCommonInstanceById(
+			t, svc, i, fmt.Sprintf("%d%s", i, idSuffix))
+		instances = append(instances, instance)
+		reqInstances = append(reqInstances, req)
+	}
+	t.Run("根据精准匹配ID进行获取实例", func(t *testing.T) {
+		instId := fmt.Sprintf("%s%d", idPrefix, 0)
+		out := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{"id": instId})
+		assert.True(t, respSuccess(out))
+		assert.Equal(t, 1, len(out.GetInstances()))
+		//instance := out.GetInstances()[0]
+		for _, instance := range out.GetInstances() {
+			assert.Equal(t, instId, instance.GetId().GetValue())
+			assert.Equal(t, svc.GetNamespace().GetValue(), instance.GetNamespace().GetValue())
+			assert.Equal(t, svc.GetName().GetValue(), instance.GetService().GetValue())
+		}
+	})
+	t.Run("根据前缀匹配ID进行获取实例", func(t *testing.T) {
+		instId := fmt.Sprintf("%s%s", idPrefix, "*")
+		out := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{"id": instId})
+		assert.True(t, respSuccess(out))
+		assert.Equal(t, prefixCount, len(out.GetInstances()))
+		for _, instance := range out.GetInstances() {
+			assert.True(t, strings.HasPrefix(instance.GetId().GetValue(), idPrefix))
+			assert.Equal(t, svc.GetNamespace().GetValue(), instance.GetNamespace().GetValue())
+			assert.Equal(t, svc.GetName().GetValue(), instance.GetService().GetValue())
+		}
+	})
+	t.Run("根据后缀匹配ID进行获取实例", func(t *testing.T) {
+		instId := fmt.Sprintf("%s%s", "*", idSuffix)
+		out := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{"id": instId})
+		assert.True(t, respSuccess(out))
+		assert.Equal(t, suffixCount, len(out.GetInstances()))
+		for _, instance := range out.GetInstances() {
+			assert.True(t, strings.HasSuffix(instance.GetId().GetValue(), idSuffix))
+			assert.Equal(t, svc.GetNamespace().GetValue(), instance.GetNamespace().GetValue())
+			assert.Equal(t, svc.GetName().GetValue(), instance.GetService().GetValue())
+		}
+	})
+}
+
 // 测试获取实例
 func TestGetInstances(t *testing.T) {
 	discoverSuit := &DiscoverTestSuit{}
@@ -364,20 +432,17 @@ func TestGetInstances(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
-
 	t.Run("可以正常获取到实例信息", func(t *testing.T) {
-		_ = discoverSuit.DiscoverServer().Cache().Clear() // 为了防止影响，每个函数需要把缓存的内容清空
-		time.Sleep(5 * time.Second)
+		_ = discoverSuit.DiscoverServer().Cache().TestRefresh() // 为了防止影响，每个函数需要把缓存的内容清空
 		_, serviceResp := discoverSuit.createCommonService(t, 320)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-		time.Sleep(discoverSuit.UpdateCacheInterval())
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		instanceReq, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 30)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
 		// 需要等待一会，等本地缓存更新
-		time.Sleep(discoverSuit.UpdateCacheInterval())
-
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		req := &apiservice.Service{
 			Name:      utils.NewStringValue(instanceResp.GetService().GetValue()),
 			Namespace: utils.NewStringValue(instanceResp.GetNamespace().GetValue()),
@@ -397,15 +462,15 @@ func TestGetInstances(t *testing.T) {
 		t.Logf("pass: %+v", resp.GetInstances()[0])
 	})
 	t.Run("注册实例，查询实例列表，实例反注册，revision会改变", func(t *testing.T) {
-		_ = discoverSuit.DiscoverServer().Cache().Clear() // 为了防止影响，每个函数需要把缓存的内容清空
-		time.Sleep(5 * time.Second)
+		_ = discoverSuit.DiscoverServer().Cache().TestRefresh() // 为了防止影响，每个函数需要把缓存的内容清空
 		_, serviceResp := discoverSuit.createCommonService(t, 100)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
 		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 90)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
-		time.Sleep(discoverSuit.UpdateCacheInterval())
+		// 需要等待一会，等本地缓存更新
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		resp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, serviceResp)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -416,7 +481,7 @@ func TestGetInstances(t *testing.T) {
 		_, instanceResp = discoverSuit.createCommonInstance(t, serviceResp, 100)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
-		time.Sleep(discoverSuit.UpdateCacheInterval())
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		resp = discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, serviceResp)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -439,6 +504,7 @@ func TestGetInstances1(t *testing.T) {
 	defer discoverSuit.Destroy()
 
 	discover := func(t *testing.T, service *apiservice.Service, check func(cnt int) bool) *apiservice.DiscoverResponse {
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		time.Sleep(discoverSuit.UpdateCacheInterval())
 		resp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, service)
 		if !respSuccess(resp) {
@@ -451,8 +517,7 @@ func TestGetInstances1(t *testing.T) {
 		return resp
 	}
 	t.Run("注册并反注册多个实例，可以正常获取", func(t *testing.T) {
-		_ = discoverSuit.DiscoverServer().Cache().Clear() // 为了防止影响，每个函数需要把缓存的内容清空
-		time.Sleep(5 * time.Second)
+		_ = discoverSuit.DiscoverServer().Cache().TestRefresh() // 为了防止影响，每个函数需要把缓存的内容清空
 		_, serviceResp := discoverSuit.createCommonService(t, 320)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
@@ -462,7 +527,6 @@ func TestGetInstances1(t *testing.T) {
 			ids = append(ids, instanceResp.GetId().GetValue())
 			defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 		}
-		time.Sleep(10 * time.Second)
 		discover(t, serviceResp, func(cnt int) bool {
 			return cnt == 10
 		})
@@ -472,14 +536,12 @@ func TestGetInstances1(t *testing.T) {
 			discoverSuit.removeCommonInstance(t, serviceResp, ids[i])
 		}
 
-		time.Sleep(15 * time.Second)
 		discover(t, serviceResp, func(cnt int) bool {
 			return cnt >= 5
 		})
 	})
 	t.Run("传递revision， revision有变化则有数据，否则无数据返回", func(t *testing.T) {
-		_ = discoverSuit.DiscoverServer().Cache().Clear() // 为了防止影响，每个函数需要把缓存的内容清空
-		time.Sleep(5 * time.Second)
+		_ = discoverSuit.DiscoverServer().Cache().TestRefresh() // 为了防止影响，每个函数需要把缓存的内容清空
 		_, serviceResp := discoverSuit.createCommonService(t, 100)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		for i := 0; i < 5; i++ {
@@ -534,8 +596,6 @@ func TestRemoveInstance(t *testing.T) {
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
 		discoverSuit.removeCommonInstance(t, serviceResp, instanceResp.GetId().GetValue())
-
-		time.Sleep(time.Second)
 		_, instanceResp = discoverSuit.createCommonInstance(t, serviceResp, 888)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 		t.Logf("pass")
@@ -545,23 +605,22 @@ func TestRemoveInstance(t *testing.T) {
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
 		discoverSuit.removeCommonInstance(t, serviceResp, instanceResp.GetId().GetValue())
-		time.Sleep(time.Second)
 		discoverSuit.removeCommonInstance(t, serviceResp, instanceResp.GetId().GetValue())
 	})
 	t.Run("反注册，获取不到心跳信息", func(t *testing.T) {
 		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1111)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
-		time.Sleep(time.Second)
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		discoverSuit.HeartBeat(t, serviceResp, instanceResp.GetId().GetValue())
 		resp := discoverSuit.GetLastHeartBeat(t, serviceResp, instanceResp.GetId().GetValue())
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 
-		time.Sleep(time.Second)
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		discoverSuit.removeCommonInstance(t, serviceResp, instanceResp.GetId().GetValue())
-		time.Sleep(time.Second)
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		resp = discoverSuit.GetLastHeartBeat(t, serviceResp, instanceResp.GetId().GetValue())
 		if !respNotFound(resp) {
 			t.Fatalf("heart beat resp should be not found, but got %v", resp)
@@ -603,22 +662,50 @@ func TestListInstances(t *testing.T) {
 		_, serviceResp := discoverSuit.createCommonService(t, 115)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-		time.Sleep(discoverSuit.UpdateCacheInterval())
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		total := 50
+		var responses []*apiservice.Instance
 		for i := 0; i < total; i++ {
 			_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, i+1)
-			defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
+			responses = append(responses, instanceResp)
 		}
+		defer func() {
+			for _, resp := range responses {
+				discoverSuit.cleanInstance(resp.GetId().GetValue())
+			}
+		}()
 
 		query := map[string]string{"offset": "10", "limit": "20", "host": "127.0.0.1"}
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
+		assert.Equal(t, 20, len(resp.Instances))
+	})
 
-		if len(resp.Instances) == 20 {
-			t.Logf("pass")
+	t.Run("list全部实例列表", func(t *testing.T) {
+		_, serviceResp := discoverSuit.createCommonService(t, 116)
+		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+
+		time.Sleep(discoverSuit.UpdateCacheInterval())
+		total := 100
+		var responses []*apiservice.Instance
+		for i := 0; i < total; i++ {
+			_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, i+1)
+			responses = append(responses, instanceResp)
 		}
+		defer func() {
+			for _, resp := range responses {
+				discoverSuit.cleanInstance(resp.GetId().GetValue())
+			}
+		}()
+
+		query := map[string]string{"offset": "0", "limit": "200"}
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		assert.Equal(t, total, len(resp.Instances))
 	})
 
 	t.Run("list实例列表，可以进行正常字段过滤", func(t *testing.T) {
@@ -626,7 +713,7 @@ func TestListInstances(t *testing.T) {
 		_, serviceResp := discoverSuit.createCommonService(t, 200)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-		time.Sleep(discoverSuit.UpdateCacheInterval())
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		total := 10
 		instance := new(apiservice.Instance)
 		for i := 0; i < total; i++ {
@@ -793,6 +880,94 @@ func TestListInstances1(t *testing.T) {
 	})
 }
 
+// 测试list实例列表
+func TestListInstances2(t *testing.T) {
+
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.Initialize(); err != nil {
+		t.Fatal(err)
+	}
+	defer discoverSuit.Destroy()
+
+	// 先任意找几个实例字段过滤
+	_, serviceResp := discoverSuit.createCommonService(t, 800)
+	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+
+	checkAmountAndSize := func(t *testing.T, resp *apiservice.BatchQueryResponse, expect int, size int) {
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if resp.GetAmount().GetValue() != uint32(expect) {
+			t.Fatalf("error: %d", resp.GetAmount().GetValue())
+		}
+		if len(resp.Instances) != size {
+			t.Fatalf("error: %d", len(resp.Instances))
+		}
+	}
+
+	t.Run("list实例，使用namespace，可以进行模糊匹配过滤", func(t *testing.T) {
+		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1001)
+		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
+		query := map[string]string{
+			"offset":    "0",
+			"limit":     "100",
+			"namespace": "*fau*",
+			"keys":      "my-meta-a1",
+			"values":    "1111",
+		}
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
+		checkAmountAndSize(t, resp, 1, 1)
+	})
+
+	t.Run("list实例，使用namespace，可以进行前缀匹配过滤", func(t *testing.T) {
+		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1002)
+		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
+		query := map[string]string{
+			"offset":    "0",
+			"limit":     "100",
+			"namespace": "defau*",
+			"keys":      "my-meta-a1",
+			"values":    "1111",
+		}
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
+		checkAmountAndSize(t, resp, 1, 1)
+
+		query = map[string]string{
+			"offset":    "0",
+			"limit":     "100",
+			"namespace": "defauxxxx*",
+			"keys":      "my-meta-a1",
+			"values":    "1111",
+		}
+		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
+		checkAmountAndSize(t, resp, 0, 0)
+	})
+
+	t.Run("list实例，使用namespace，service可选", func(t *testing.T) {
+		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1003)
+		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
+		query := map[string]string{
+			"offset":  "0",
+			"limit":   "100",
+			"service": serviceResp.GetName().GetValue(),
+			"keys":    "my-meta-a1",
+			"values":  "1111",
+		}
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
+		checkAmountAndSize(t, resp, 1, 1)
+
+		query = map[string]string{
+			"offset":    "0",
+			"limit":     "100",
+			"namespace": serviceResp.GetNamespace().GetValue(),
+			"keys":      "my-meta-a1",
+			"values":    "1111",
+		}
+		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
+		checkAmountAndSize(t, resp, 1, 1)
+	})
+}
+
 // 测试地域获取
 func TestInstancesContainLocation(t *testing.T) {
 
@@ -848,7 +1023,7 @@ func TestInstancesContainLocation(t *testing.T) {
 	t.Logf("%v", getInstances[0])
 	locationCheck(instance.GetLocation(), getInstances[0].GetLocation())
 
-	time.Sleep(discoverSuit.UpdateCacheInterval())
+	_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 	discoverResp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, service)
 	if len(discoverResp.GetInstances()) != 1 {
 		t.Fatalf("error: %d", len(discoverResp.GetInstances()))
@@ -1542,7 +1717,7 @@ func TestInstanceResponse(t *testing.T) {
 	t.Run("删除实例，返回的信息包括req，不增加信息", func(t *testing.T) {
 		req, resp := create()
 		defer discoverSuit.cleanInstance(resp.GetId().GetValue())
-		time.Sleep(time.Second)
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		resps := discoverSuit.DiscoverServer().DeleteInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{req})
 		if !respSuccess(resps) {
 			t.Fatalf("error: %+v", resps)
@@ -1565,11 +1740,11 @@ func TestCreateInstancesBadCase2(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
+	_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 
 	_, service := discoverSuit.createCommonService(t, 123)
 	defer discoverSuit.cleanServiceName(service.GetName().GetValue(), service.GetNamespace().GetValue())
 	t.Run("重复多个一样的实例注册，其中一个成功，其他的失败", func(t *testing.T) {
-		time.Sleep(time.Second)
 		var instances []*apiservice.Instance
 		for j := 0; j < 3; j++ {
 			instances = append(instances, &apiservice.Instance{
@@ -1593,7 +1768,6 @@ func TestCreateInstancesBadCase2(t *testing.T) {
 		}
 	})
 	t.Run("重复发送同样实例的反注册请求，可以正常返回，一个成功，其他的失败", func(t *testing.T) {
-		time.Sleep(time.Second)
 		instance := &apiservice.Instance{
 			Service:      service.GetName(),
 			Namespace:    service.GetNamespace(),
@@ -1614,7 +1788,6 @@ func TestCreateInstancesBadCase2(t *testing.T) {
 				ServiceToken: service.GetToken(),
 			})
 		}
-		time.Sleep(time.Second)
 		resps = discoverSuit.DiscoverServer().DeleteInstances(discoverSuit.DefaultCtx, delReqs)
 		if respSuccess(resps) {
 			t.Fatalf("error: %s", resps)
@@ -1627,34 +1800,6 @@ func TestCreateInstancesBadCase2(t *testing.T) {
 		}
 	})
 }
-
-// 测试实例创建和删除的流量限制
-// func TestInstanceRatelimit(t *testing.T) {
-
-// 	t.Skip()
-
-// 	discoverSuit := &DiscoverTestSuit{}
-// 	if err := discoverSuit.Initialize(func(cfg *config.Config) {
-// 	}); err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	Convey("超过ratelimit，返回错误", t, func() {
-// 		_, serviceResp := discoverSuit.createCommonService(t, 100)
-// 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
-
-// 		instanceReq, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 110)
-// 		discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq})
-// 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
-// 		for i := 0; i < 10; i++ {
-// 			resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq})
-// 			So(resp.GetCode().GetValue(), ShouldEqual, apiservice.InstanceTooManyRequests)
-// 		}
-// 		time.Sleep(time.Second)
-// 		resp := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq})
-// 		So(resp.GetCode().GetValue(), ShouldEqual, api.ExistedResource)
-// 	})
-// }
 
 // 测试instance，no need update
 func TestInstanceNoNeedUpdate(t *testing.T) {
@@ -1971,11 +2116,17 @@ func TestCheckInstanceParam(t *testing.T) {
 	instanceReq, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 153)
 	defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
+	t.Run("都不传", func(t *testing.T) {
+		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, make(map[string]string))
+		if resp.Code.Value != api.EmptyQueryParameter {
+			t.Fatalf("%+v", resp)
+		}
+	})
 	t.Run("只传service", func(t *testing.T) {
 		query := map[string]string{}
 		query["service"] = "test"
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if resp.Code.Value != api.InvalidQueryInsParameter {
+		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
 	})
@@ -1983,7 +2134,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query := map[string]string{}
 		query["namespace"] = "test"
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if resp.Code.Value != api.InvalidQueryInsParameter {
+		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
 	})
@@ -2016,7 +2167,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query["service"] = "test"
 		query["port"] = "123"
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if resp.Code.Value != api.InvalidQueryInsParameter {
+		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
 	})
@@ -2025,7 +2176,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query["namespace"] = "test"
 		query["port"] = "123"
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if resp.Code.Value != api.InvalidQueryInsParameter {
+		if resp.Code.Value != api.ExecuteSuccess {
 			t.Fatalf("%+v", resp)
 		}
 	})

@@ -90,8 +90,8 @@ type boltStore struct {
 	// v2 存储
 	*routingStoreV2
 
-	// maintain store
-	*maintainStore
+	// adminStore store
+	*adminStore
 
 	handler BoltHandler
 	start   bool
@@ -362,7 +362,7 @@ func (m *boltStore) newConfigModuleStore() error {
 }
 
 func (m *boltStore) newMaintainModuleStore() error {
-	m.maintainStore = &maintainStore{handler: m.handler, leMap: make(map[string]bool)}
+	m.adminStore = &adminStore{handler: m.handler, leMap: make(map[string]bool)}
 
 	return nil
 }

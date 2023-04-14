@@ -215,7 +215,7 @@ var code2info = map[uint32]string{
 	InvalidUserToken:                   "invalid user token",
 	InvalidParameter:                   "invalid parameter",
 	EmptyQueryParameter:                "query instance parameter is empty",
-	InvalidQueryInsParameter:           "query instance, (service,namespace) or host is required",
+	InvalidQueryInsParameter:           "query instance, service or namespace or host is required",
 	InvalidNamespaceName:               "invalid namespace name",
 	InvalidNamespaceOwners:             "invalid namespace owners",
 	InvalidNamespaceToken:              "invalid namespace token",

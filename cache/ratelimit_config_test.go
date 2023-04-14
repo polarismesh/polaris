@@ -108,17 +108,11 @@ func buildRateLimitRuleProtoWithArguments(name string, method string) *apitraffi
 
 // genRateLimitsWithLabels 生成限流规则测试数据
 func genRateLimits(
-	beginNum, totalServices, totalRateLimits int, withLabels bool) ([]*model.RateLimit, []*model.RateLimitRevision) {
+	beginNum, totalServices, totalRateLimits int, withLabels bool) []*model.RateLimit {
 	rateLimits := make([]*model.RateLimit, 0, totalRateLimits)
-	revisions := make([]*model.RateLimitRevision, 0, totalServices)
 	rulePerService := totalRateLimits / totalServices
 
 	for i := beginNum; i < totalServices+beginNum; i++ {
-		revision := &model.RateLimitRevision{
-			ServiceID:    fmt.Sprintf("service-%d", i),
-			LastRevision: fmt.Sprintf("last-revision-%d", i),
-		}
-		revisions = append(revisions, revision)
 		for j := 0; j < rulePerService; j++ {
 			name := fmt.Sprintf("limit-rule-%d-%d", i, j)
 			method := fmt.Sprintf("/test-%d", j)
@@ -128,7 +122,10 @@ func genRateLimits(
 			} else {
 				rule = buildRateLimitRuleProtoWithArguments(name, method)
 			}
+			rule.Service = utils.NewStringValue(fmt.Sprintf("service-%d", i))
+			rule.Namespace = utils.NewStringValue("default")
 			str, _ := json.Marshal(rule)
+			labels, _ := json.Marshal(rule.GetLabels())
 			rateLimit := &model.RateLimit{
 				ID:        fmt.Sprintf("id-%d-%d", i, j),
 				ServiceID: fmt.Sprintf("service-%d", i),
@@ -136,25 +133,21 @@ func genRateLimits(
 				Method:    method,
 				Rule:      string(str),
 				Revision:  fmt.Sprintf("revision-%d-%d", i, j),
+				Labels:    string(labels),
 				Valid:     true,
 			}
 			rateLimits = append(rateLimits, rateLimit)
 		}
 	}
-	return rateLimits, revisions
+	return rateLimits
 }
 
 /**
  * @brief 统计缓存中的限流数据
  */
-func getRateLimitsCount(serviceID string, rlc *rateLimitCache) int {
-	rateLimitsCount := 0
-	rateLimitIterProc := func(key string, value *model.RateLimit) (bool, error) {
-		rateLimitsCount++
-		return true, nil
-	}
-	_ = rlc.GetRateLimit(serviceID, rateLimitIterProc)
-	return rateLimitsCount
+func getRateLimitsCount(serviceKey model.ServiceKey, rlc *rateLimitCache) int {
+	ret, _ := rlc.GetRateLimitRules(serviceKey)
+	return len(ret)
 }
 
 /**
@@ -166,18 +159,21 @@ func TestRateLimitUpdate(t *testing.T) {
 
 	totalServices := 5
 	totalRateLimits := 15
-	rateLimits, revisions := genRateLimits(0, totalServices, totalRateLimits, false)
+	rateLimits := genRateLimits(0, totalServices, totalRateLimits, false)
 
 	t.Run("正常更新缓存，可以获取到数据", func(t *testing.T) {
 		_ = rlc.clear()
-		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.isFirstUpdate()).Return(rateLimits, revisions, nil)
+		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.isFirstUpdate()).Return(rateLimits, nil)
 		if err := rlc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
 
 		// 检查数目是否一致
 		for i := 0; i < totalServices; i++ {
-			count := getRateLimitsCount(fmt.Sprintf("service-%d", i), rlc)
+			count := getRateLimitsCount(model.ServiceKey{
+				Namespace: "default",
+				Name:      fmt.Sprintf("service-%d", i),
+			}, rlc)
 			if count == totalRateLimits/totalServices {
 				t.Log("pass")
 			} else {
@@ -191,28 +187,21 @@ func TestRateLimitUpdate(t *testing.T) {
 		} else {
 			t.Fatalf("actual count is %d", count)
 		}
-
-		count = rlc.GetRevisionsCount()
-		if count == totalServices {
-			t.Log("pass")
-		} else {
-			t.Fatalf("actual count is %d", count)
-		}
 	})
 
 	t.Run("缓存数据为空", func(t *testing.T) {
 		_ = rlc.clear()
 		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.isFirstUpdate()).
-			Return(nil, nil, nil)
+			Return(nil, nil)
 		if err := rlc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
 
-		if rlc.GetRateLimitsCount() == 0 && rlc.GetRevisionsCount() == 0 {
+		if rlc.GetRateLimitsCount() == 0 {
 			t.Log("pass")
 		} else {
-			t.Fatalf("actual rate limits count is %d, revisions count is %d",
-				rlc.GetRateLimitsCount(), rlc.GetRevisionsCount())
+			t.Fatalf("actual rate limits count is %d",
+				rlc.GetRateLimitsCount())
 		}
 	})
 
@@ -222,7 +211,7 @@ func TestRateLimitUpdate(t *testing.T) {
 		currentTime := time.Now()
 		rateLimits[0].ModifyTime = currentTime
 		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.isFirstUpdate()).
-			Return(rateLimits, revisions, nil)
+			Return(rateLimits, nil)
 		if err := rlc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
@@ -236,7 +225,7 @@ func TestRateLimitUpdate(t *testing.T) {
 
 	t.Run("数据库返回错误，update错误", func(t *testing.T) {
 		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.isFirstUpdate()).
-			Return(nil, nil, fmt.Errorf("stoarge error"))
+			Return(nil, fmt.Errorf("stoarge error"))
 		if err := rlc.update(); err != nil {
 			t.Log("pass")
 		} else {
@@ -258,33 +247,33 @@ func TestRateLimitUpdate2(t *testing.T) {
 	t.Run("更新缓存后，增加部分数据，缓存正常更新", func(t *testing.T) {
 		_ = rlc.clear()
 
-		rateLimits, revisions := genRateLimits(0, totalServices, totalRateLimits, true)
+		rateLimits := genRateLimits(0, totalServices, totalRateLimits, true)
 		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.isFirstUpdate()).
-			Return(rateLimits, revisions, nil)
+			Return(rateLimits, nil)
 		if err := rlc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
 
-		rateLimits, revisions = genRateLimits(5, totalServices, totalRateLimits, true)
+		rateLimits = genRateLimits(5, totalServices, totalRateLimits, true)
 		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.isFirstUpdate()).
-			Return(rateLimits, revisions, nil)
+			Return(rateLimits, nil)
 		if err := rlc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
 
-		if rlc.GetRateLimitsCount() == totalRateLimits*2 && rlc.GetRevisionsCount() == totalServices*2 {
+		if rlc.GetRateLimitsCount() == totalRateLimits*2 {
 			t.Log("pass")
 		} else {
-			t.Fatalf("actual rate limits count is %d, revisions count is %d", rlc.GetRateLimitsCount(), rlc.GetRevisionsCount())
+			t.Fatalf("actual rate limits count is %d", rlc.GetRateLimitsCount())
 		}
 	})
 
 	t.Run("更新缓存后，删除部分数据，缓存正常更新", func(t *testing.T) {
 		_ = rlc.clear()
 
-		rateLimits, revisions := genRateLimits(0, totalServices, totalRateLimits, true)
+		rateLimits := genRateLimits(0, totalServices, totalRateLimits, true)
 		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.isFirstUpdate()).
-			Return(rateLimits, revisions, nil)
+			Return(rateLimits, nil)
 		if err := rlc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
@@ -294,16 +283,16 @@ func TestRateLimitUpdate2(t *testing.T) {
 		}
 
 		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.isFirstUpdate()).
-			Return(rateLimits, revisions, nil)
+			Return(rateLimits, nil)
 		if err := rlc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
 
-		if rlc.GetRateLimitsCount() == totalRateLimits/2 && rlc.GetRevisionsCount() == totalServices {
+		if rlc.GetRateLimitsCount() == totalRateLimits/2 {
 			t.Log("pass")
 		} else {
-			t.Fatalf("actual rate limits count is %d, revisions count is %d",
-				rlc.GetRateLimitsCount(), rlc.GetRevisionsCount())
+			t.Fatalf("actual rate limits count is %d",
+				rlc.GetRateLimitsCount())
 		}
 	})
 }
@@ -320,42 +309,25 @@ func TestGetRateLimitsByServiceID(t *testing.T) {
 
 		totalServices := 5
 		totalRateLimits := 15
-		rateLimits, revisions := genRateLimits(0, totalServices, totalRateLimits, true)
+		rateLimits := genRateLimits(0, totalServices, totalRateLimits, true)
 
 		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.isFirstUpdate()).
-			Return(rateLimits, revisions, nil)
+			Return(rateLimits, nil)
 		if err := rlc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
 
-		rateLimits = rlc.GetRateLimitByServiceID("service-1")
-		if len(rateLimits) == totalRateLimits/totalServices {
+		rules, _ := rlc.GetRateLimitRules(model.ServiceKey{
+			Namespace: "default",
+			Name:      "service-1",
+		})
+		if len(rules) == totalRateLimits/totalServices {
 			t.Log("pass")
 		} else {
 			t.Fatalf("expect num is %d, actual num is %d", totalRateLimits/totalServices, len(rateLimits))
 		}
-		lastRevision := rlc.GetLastRevision("service-1")
-		if lastRevision == "last-revision-1" {
-			t.Log("pass")
-		} else {
-			t.Fatalf("actual last revision is %s", lastRevision)
-		}
 
-		rateLimits = rlc.GetRateLimitByServiceID("service-11")
-		if len(rateLimits) == 0 {
-			t.Log("pass")
-		} else {
-			t.Fatalf("expect num is 0, actual num is %d", len(rateLimits))
-		}
-
-		lastRevision = rlc.GetLastRevision("service-11")
-		if lastRevision == "" {
-			t.Log("pass")
-		} else {
-			t.Fatalf("actual last revision is %s", lastRevision)
-		}
-
-		for _, rateLimit := range rateLimits {
+		for _, rateLimit := range rules {
 			assert.Equal(t, 1, len(rateLimit.Proto.Labels))
 			assert.Equal(t, 1, len(rateLimit.Proto.Arguments))
 			for _, argument := range rateLimit.Proto.Arguments {
@@ -371,15 +343,18 @@ func TestGetRateLimitsByServiceID(t *testing.T) {
 
 		totalServices := 5
 		totalRateLimits := 15
-		rateLimits, revisions := genRateLimits(0, totalServices, totalRateLimits, false)
+		rateLimits := genRateLimits(0, totalServices, totalRateLimits, false)
 
 		storage.EXPECT().GetRateLimitsForCache(gomock.Any(), rlc.isFirstUpdate()).
-			Return(rateLimits, revisions, nil)
+			Return(rateLimits, nil)
 		if err := rlc.update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
 
-		rateLimits = rlc.GetRateLimitByServiceID("service-1")
+		rateLimits, _ = rlc.GetRateLimitRules(model.ServiceKey{
+			Namespace: "default",
+			Name:      "service-1",
+		})
 		if len(rateLimits) == totalRateLimits/totalServices {
 			t.Log("pass")
 		} else {
@@ -393,4 +368,112 @@ func TestGetRateLimitsByServiceID(t *testing.T) {
 			assert.Equal(t, rateLimit.Proto.Arguments[0].Value.Value.GetValue(), labelValue.GetValue().GetValue())
 		}
 	})
+}
+
+func Test_QueryRateLimitRules(t *testing.T) {
+	ctl, storage, rlc := newTestRateLimitCache(t)
+	t.Cleanup(func() {
+		ctl.Finish()
+	})
+
+	totalServices := 5
+	totalRateLimits := 15
+	rateLimits := genRateLimits(0, totalServices, totalRateLimits, true)
+
+	storage.EXPECT().GetRateLimitsForCache(gomock.Any(), gomock.Any()).AnyTimes().
+		Return(rateLimits, nil)
+	if err := rlc.update(); err != nil {
+		t.Fatalf("error: %s", err.Error())
+	}
+
+	t.Run("根据ID进行查询", func(t *testing.T) {
+		total, ret, err := rlc.QueryRateLimitRules(RateLimitRuleArgs{
+			ID:     rateLimits[0].ID,
+			Offset: 0,
+			Limit:  100,
+		})
+
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), int64(total))
+		assert.Equal(t, int64(1), int64(len(ret)))
+		assert.Equal(t, rateLimits[0].ID, ret[0].ID)
+	})
+
+	t.Run("根据Name进行查询", func(t *testing.T) {
+		total, ret, err := rlc.QueryRateLimitRules(RateLimitRuleArgs{
+			Name:   rateLimits[0].Name,
+			Offset: 0,
+			Limit:  100,
+		})
+
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), int64(total))
+		assert.Equal(t, int64(1), int64(len(ret)))
+		assert.Equal(t, rateLimits[0].ID, ret[0].ID)
+	})
+
+	t.Run("根据Namespace&Service进行查询", func(t *testing.T) {
+		total, ret, err := rlc.QueryRateLimitRules(RateLimitRuleArgs{
+			Service:   "service-0",
+			Namespace: "default",
+			Offset:    0,
+			Limit:     100,
+		})
+
+		assert.NoError(t, err)
+		assert.Equal(t, int64(3), int64(total))
+		assert.Equal(t, int64(3), int64(len(ret)))
+		for i := range ret {
+			assert.Equal(t, "service-0", ret[i].Proto.Service.Value)
+			assert.Equal(t, "default", ret[i].Proto.Namespace.Value)
+		}
+	})
+
+	t.Run("根据分页进行查询", func(t *testing.T) {
+		total, ret, err := rlc.QueryRateLimitRules(RateLimitRuleArgs{
+			Offset: 10,
+			Limit:  5,
+		})
+
+		assert.NoError(t, err)
+		assert.Equal(t, int64(total), int64(len(rateLimits)))
+		assert.Equal(t, int64(5), int64(len(ret)))
+
+		total, ret, err = rlc.QueryRateLimitRules(RateLimitRuleArgs{
+			Offset: 100,
+			Limit:  5,
+		})
+
+		assert.NoError(t, err)
+		assert.Equal(t, int64(total), int64(len(rateLimits)))
+		assert.Equal(t, int64(0), int64(len(ret)))
+	})
+
+	t.Run("根据Disable进行查询", func(t *testing.T) {
+		disable := true
+		total, ret, err := rlc.QueryRateLimitRules(RateLimitRuleArgs{
+			Disable: &disable,
+			Offset:  0,
+			Limit:   100,
+		})
+
+		assert.NoError(t, err)
+		assert.Equal(t, int64(0), int64(total))
+		assert.Equal(t, int64(0), int64(len(ret)))
+
+		disable = false
+		total, ret, err = rlc.QueryRateLimitRules(RateLimitRuleArgs{
+			Disable: &disable,
+			Offset:  0,
+			Limit:   100,
+		})
+
+		assert.NoError(t, err)
+		assert.Equal(t, int64(total), int64(len(rateLimits)))
+		assert.Equal(t, int64(total), int64(len(ret)))
+		for i := range ret {
+			assert.Equal(t, disable, ret[i].Disable)
+		}
+	})
+
 }

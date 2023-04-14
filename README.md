@@ -12,173 +12,82 @@
 
 English | [简体中文](./README-zh.md)
 
----
-
 README：
 
 - [Introduction](#introduction)
-- [Getting started](#getting-started)
-  - [Download package](#download-package)
-  - [Start server](#start-server)
-  - [Verify installation](#verify-installation)
-- [Examples](#examples)
-  - [Service Discovery and HealthCheck](#service-discovery-and-healthcheck)
-  - [RateLimit](#ratelimit)
-  - [Flow Control](#flow-control)
-  - [Configuration management](#configuration-management)
-  - [More details](#more-details)
+- [How to install](#how-to-install)
+- [How to develop service](#how-to-develop-service)
+- [How to integrate service gateway](#how-to-integrate-service-gateway)
 - [Chat group](#chat-group)
 
-visit [website](https://polarismesh.cn/) to learn more
+Visit [Website](https://polarismesh.cn/) to learn more
 
 ## Introduction
 
-Polaris is a cloud-native service discovery and governance center. It can be used to solve the problem of service
-connection, fault tolerance, traffic control and secure in distributed and microservice architecture.
+Polaris is an open source system for service discovery and governance. It can be used to solve the problem of service management, traffic control, fault tolerance and config management in distributed and microservice architecture.
 
-Functions:
+<img src="https://raw.githubusercontent.com/polarismesh/website/main/content/en/docs/What%20is%20Polaris/Picture/function.png" width="80%" />
 
-- <b>service discover, service register and health check</b>
+**Functions**:
 
-  Register node addresses into service dynamically, and discover the addresses through the discovery mechnism. Also provide health-checking mechanism to remove the unhealthy instances from service in time. 
+- service management: service discovery, service registry and health check 
+- traffic control: customizable routing, load balance, rate limiting and access control
+- fault tolerance: circuit breaker for service, interface and instance
+- config management: config version control, grayscale release and dynamic update
 
-- <b>traffic control: request route and load balance</b>
+**Features**:
 
-  Provide the mechanism to filter instances by request labels, instances metadata. Users can define rules to direct the request flowing into the locality nearby instances, or gray releasing version instances, etc.
+- It is a one-stop solution instead of registry center, service mesh and config center.
+- It provides multi-mode data plane, including SDK, development framework, Java agent and sidecar.
+- It is integrated into the most frequently used frameworks, such as Spring Cloud, Dubbo and gRPC.
+- It supports K8s service registry and automatic injection of sidecar for proxy service mesh.
 
-- <b>overload protection: circuit break and rate limit</b>
+## How to install 
 
-  Provide the mechanism to reduce the request rate when burst request flowing into the entry services.
+Visit [Installation Guide](https://github.com/polarismesh/polaris/tree/main/release) to learn more
 
-  Provide the mechanism to collect the healthy statistic by the response, also kick of the services/interfaces/groups/instances when they are unhealthy.
+## How to develop service
 
-- <b>observability</b>
+Polaris provides multi-mode data plane including SDK, development framework, Java agent and sidecar. You can select one or more mode to develop service according to business requirements. 
 
-  User can see the metrics and tracing through the vison diagram, to be aware of the api call status on time.
+Use Polaris multi-language SDK and call Polaris Client API directly:
 
-- <b>config management</b>
+- [Polaris Java](https://github.com/polarismesh/polaris-java)
+- [Polaris Go](https://github.com/polarismesh/polaris-go)
+- [Polaris C/C++](https://github.com/polarismesh/polaris-cpp)
+- [Polaris PHP](https://github.com/polarismesh/polaris-php)
+- [Polaris Lua](https://github.com/polarismesh/polaris-lua)
 
-  Provide the mechanism to dynamic configuration subscribe, version management, notify change, to apply the configuration to application in time.
+Use HTTP or RPC frameworks already integrating Polaris Java SDK:
 
-Features:
+- [spring cloud](https://github.com/Tencent/spring-cloud-tencent)
+- [spring boot](https://github.com/polarismesh/spring-boot-polaris)
+- dubbo-java
+  - [registry and discovery](https://github.com/apache/dubbo-spi-extensions/tree/master/dubbo-registry-extensions)
+  - [routing and load balance](https://github.com/apache/dubbo-spi-extensions/tree/master/dubbo-cluster-extensions)
+  - [circuit breaker and rate limiter](https://github.com/apache/dubbo-spi-extensions/tree/master/dubbo-filter-extensions)
+- [grpc-java](https://github.com/polarismesh/grpc-java-polaris)
 
-- It provides SDK for high-performance business scenario and sidecar for non-invasive development mode.
-- It provides multiple clients for different development languages, such as Java, Go, C++ and Nodejs.
-- It can integrate with different service frameworks and gateways, such as Spring Cloud, gRPC and Nginx.
-- It is compatible with Kubernetes and supports automatic injection of K8s service and Polaris sidecar.
+Use HTTP or RPC frameworks already integrating Polaris Go SDK:
 
-## Getting started
+- dubbo-go
+  - [registry and discovery](https://github.com/apache/dubbo-go/tree/main/registry)
+  - [routing](https://github.com/apache/dubbo-go/tree/main/cluster/router)
+  - [circuit breaker and rate limiter](https://github.com/apache/dubbo-go/tree/main/filter)
+  - [examples](https://github.com/apache/dubbo-go-samples/tree/master/polaris)
+- [grpc-go](https://github.com/polarismesh/grpc-go-polaris)
 
-### Download package
+Use K8s service and sidecar:
 
-You can download the latest standalone package from the addresses below, be aware of to choose the package named ```polaris-standalone-release-*.zip```, and filter the packages by os (windows10: windows, mac: darwin, Linux/Unix: linux).
+- [Polaris Controller](https://github.com/polarismesh/polaris-controller)
+- [Polaris Sidecar](https://github.com/polarismesh/polaris-sidecar)
 
-- [github](https://github.com/polarismesh/polaris/releases)
-- [gitee](https://gitee.com/polarismesh/polaris/releases)
+## How to integrate service gateway
 
-Take ```polaris-standalone-release_v1.11.0-beta.2.linux.amd64.zip``` for example, you can use the following commands to unzip package:
+You can integrate service gateways with Polaris service discovery and governance.
 
-```
-unzip polaris-standalone-release_v1.11.0-beta.2.linux.amd64.zip
-cd polaris-standalone-release_v1.11.0-beta.2.linux 
-```
-
-### Start server
-
-Under Linux/Unix/Mac platform, use those commands to start polaris standalone server:
-
-```
-bash install.sh
-```
-
-Under Windows platform, use those commands to start polaris standalone server:
-
-```
-install.bat
-```
-
-### Verify installation
-
-```shell script
-curl http://127.0.0.1:8090
-```
-
-Return text is 'Polaris Server', proof features run smoothly
-
-If you want to learn more installation methods (changing ports, docker installation, cluster instanllation etc.), please refer: [Installation Guide](https://polarismesh.cn/docs/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/%E5%AE%89%E8%A3%85%E6%9C%8D%E5%8A%A1%E7%AB%AF/%E5%AE%89%E8%A3%85%E5%8D%95%E6%9C%BA%E7%89%88/#%E5%8D%95%E6%9C%BA%E7%89%88%E5%AE%89%E8%A3%85)
-
-## Examples
-
-Polaris supports microservices built with multi-language, multi-framework, multi-mode (proxyless / proxy)  to access。
-
-### Service Discovery and HealthCheck
-
-(1) rpc framework examples:
-
-- [Spring Cloud Example](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/java%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91/spring-cloud/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/)
-- [Spring Boot Example](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/java%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91/spring-boot/%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C/)
-- [gRPC-Go Example](https://github.com/polarismesh/grpc-go-polaris/tree/main/examples/quickstart)
-- [dubbogo Example](https://github.com/apache/dubbo-go-samples/tree/master/polaris)
-
-(2) multi-language examples:
-
-- [Java Example](https://github.com/polarismesh/polaris-java/tree/main/polaris-examples/quickstart-example)
-- [Go Example](https://github.com/polarismesh/polaris-go/tree/main/examples/quickstart)
-- [C++ Example](https://github.com/polarismesh/polaris-cpp/tree/main/examples/quickstart)
-
-(3) proxy mode examples:
-
-- [Envoy Example](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/k8s%E5%92%8C%E7%BD%91%E6%A0%BC%E4%BB%A3%E7%90%86/envoy%E7%BD%91%E6%A0%BC%E6%8E%A5%E5%85%A5/#%E5%BF%AB%E9%80%9F%E6%8E%A5%E5%85%A5)
-
-### RateLimit
-
-(1) rpc framework examples:
-
-- [Spring Cloud Example](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/java%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91/spring-cloud/%E6%9C%8D%E5%8A%A1%E9%99%90%E6%B5%81/)
-- [gRPC-Go Example](https://github.com/polarismesh/grpc-go-polaris/tree/main/examples/ratelimit/local)
-
-(2) multi-language examples:
-
-
-- [Java Example](https://github.com/polarismesh/polaris-java/tree/main/polaris-examples/ratelimit-example)
-- [Go Example](https://github.com/polarismesh/polaris-go/tree/main/examples/ratelimit)
-- [C++ Example](https://github.com/polarismesh/polaris-cpp/tree/main/examples/rate_limit)
-
-(3) proxy mode examples: 
-
-- [Nginx Example](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/%E7%BD%91%E5%85%B3/%E4%BD%BF%E7%94%A8nginx/#%E8%AE%BF%E9%97%AE%E9%99%90%E6%B5%81)
-
-### Flow Control
-
-(1) rpc framework examples:
-
-- [Java Example](https://github.com/polarismesh/polaris-java/tree/main/polaris-examples/router-example/router-multienv-example)
-- [Go Example](https://github.com/polarismesh/polaris-go/tree/main/examples/route/dynamic)
-
-(2) multi-language examples:
-
-- [Java Example](https://github.com/polarismesh/polaris-java/tree/main/polaris-examples/router-example/router-multienv-example)
-- [Go Example](https://github.com/polarismesh/polaris-go/tree/main/examples/route/dynamic)
-
-(3) proxy mode examples: 
-
-- [Envoy Example](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/k8s%E5%92%8C%E7%BD%91%E6%A0%BC%E4%BB%A3%E7%90%86/envoy%E7%BD%91%E6%A0%BC%E6%8E%A5%E5%85%A5/#%E6%B5%81%E9%87%8F%E8%B0%83%E5%BA%A6)
-
-
-### Configuration management
-
-(1) rpc framework examples:
-
-- [Spring Cloud/Spring Boot Example](https://github.com/Tencent/spring-cloud-tencent/tree/main/spring-cloud-tencent-examples/polaris-config-example)
-
-(2) multi-language examples:
-
-- [Java Example](https://github.com/polarismesh/polaris-java/tree/main/polaris-examples/configuration-example)
-- [Go Example](https://github.com/polarismesh/polaris-go/tree/main/examples/configuration)
-
-### More details
-
-More capabilities：[User Manual](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/)
+- [spring cloud gateway](https://github.com/Tencent/spring-cloud-tencent)
+- [nginx gateway](https://github.com/polarismesh/nginx-gateway)
 
 ## Chat group
 

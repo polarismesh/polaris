@@ -103,12 +103,6 @@ func (svr *serverAuthAbility) GetCircuitBreakerWithCache(
 	return svr.targetServer.GetCircuitBreakerWithCache(ctx, req)
 }
 
-// GetRouterConfigWithCache User Client Get Service Routing Configuration Information
-func (svr *serverAuthAbility) GetRouterConfigWithCache(
-	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
-	return svr.targetServer.GetRouterConfigWithCache(ctx, req)
-}
-
 func (svr *serverAuthAbility) GetFaultDetectWithCache(
 	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	return svr.targetServer.GetFaultDetectWithCache(ctx, req)

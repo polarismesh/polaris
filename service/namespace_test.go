@@ -20,7 +20,6 @@ package service_test
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -140,7 +139,7 @@ func TestRemoveNamespace(t *testing.T) {
 			reqs = append(reqs, resp)
 		}
 
-		time.Sleep(discoverSuit.UpdateCacheInterval())
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		discoverSuit.removeCommonNamespaces(t, reqs)
 		t.Logf("pass")
 	})
@@ -179,7 +178,7 @@ func TestUpdateNamespace(t *testing.T) {
 		req, resp := discoverSuit.createCommonNamespace(t, 200)
 		defer discoverSuit.cleanNamespace(resp.GetName().GetValue())
 
-		time.Sleep(discoverSuit.UpdateCacheInterval())
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 
 		req.Token = resp.Token
 		req.Comment = utils.NewStringValue("new-comment")
@@ -210,6 +209,48 @@ func TestGetNamespaces(t *testing.T) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 		if resp.GetSize().GetValue() == uint32(total) {
+			t.Fatalf("error: %d", resp.GetSize().GetValue())
+		}
+	})
+
+	t.Run("前缀匹配可以正常过滤", func(t *testing.T) {
+		total := 50
+		for i := 0; i < total; i++ {
+			req, _ := discoverSuit.createCommonNamespace(t, i+200)
+			defer discoverSuit.cleanNamespace(req.GetName().GetValue())
+		}
+
+		query := map[string][]string{
+			"offset": {"0"},
+			"limit":  {"100"},
+			"name":   {"namespace-20*"},
+		}
+		resp := discoverSuit.NamespaceServer().GetNamespaces(discoverSuit.DefaultCtx, query)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if resp.GetSize().GetValue() != 10 {
+			t.Fatalf("error: %d", resp.GetSize().GetValue())
+		}
+	})
+
+	t.Run("模糊匹配可以正常过滤", func(t *testing.T) {
+		total := 50
+		for i := 0; i < total; i++ {
+			req, _ := discoverSuit.createCommonNamespace(t, i+200)
+			defer discoverSuit.cleanNamespace(req.GetName().GetValue())
+		}
+
+		query := map[string][]string{
+			"offset": {"0"},
+			"limit":  {"100"},
+			"name":   {"*espace-21*"},
+		}
+		resp := discoverSuit.NamespaceServer().GetNamespaces(discoverSuit.DefaultCtx, query)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if resp.GetSize().GetValue() != 10 {
 			t.Fatalf("error: %d", resp.GetSize().GetValue())
 		}
 	})

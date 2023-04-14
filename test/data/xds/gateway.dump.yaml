@@ -1,0 +1,121 @@
+clusters:
+- circuitBreakers:
+    thresholds:
+    - maxConnections: 4.294967295e+09
+      maxPendingRequests: 4.294967295e+09
+      maxRequests: 4.294967295e+09
+      maxRetries: 4.294967295e+09
+  connectTimeout: 5s
+  lbPolicy: CLUSTER_PROVIDED
+  name: PassthroughCluster
+  type: ORIGINAL_DST
+- connectTimeout: 5s
+  edsClusterConfig:
+    edsConfig:
+      ads: {}
+      resourceApiVersion: V3
+    serviceName: service-a
+  name: service-a
+  type: EDS
+endpoints:
+- clusterName: service-a
+  endpoints:
+  - lbEndpoints:
+    - endpoint:
+        address:
+          socketAddress:
+            address: 172.17.1.2
+            portValue: 80
+      healthStatus: HEALTHY
+      loadBalancingWeight: 80
+      metadata:
+        filterMetadata:
+          envoy.lb:
+            polarismesh.cn/tls-mode: strict
+          envoy.transport_socket_match:
+            acceptMTLS: "true"
+    - endpoint:
+        address:
+          socketAddress:
+            address: 172.17.1.3
+            portValue: 80
+      healthStatus: UNHEALTHY
+      loadBalancingWeight: 80
+      metadata:
+        filterMetadata:
+          envoy.lb: {}
+    - endpoint:
+        address:
+          socketAddress:
+            address: 172.17.1.4
+            portValue: 80
+      healthStatus: UNHEALTHY
+      loadBalancingWeight: 80
+      metadata:
+        filterMetadata:
+          envoy.lb: {}
+listeners:
+- address:
+    socketAddress:
+      address: 0.0.0.0
+      portValue: 15001
+  defaultFilterChain:
+    filters:
+    - name: envoy.filters.network.tcp_proxy
+      typedConfig:
+        '@type': type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
+        cluster: PassthroughCluster
+        statPrefix: PassthroughCluster
+    name: PassthroughFilterChain
+  filterChains:
+  - filters:
+    - name: envoy.filters.network.http_connection_manager
+      typedConfig:
+        '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+        httpFilters:
+        - name: envoy.filters.http.router
+        rds:
+          configSource:
+            ads: {}
+            resourceApiVersion: V3
+          routeConfigName: polaris-router
+        statPrefix: http
+  listenerFilters:
+  - name: envoy.filters.listener.original_dst
+  name: listener_15001
+routers:
+- name: polaris-router
+  validateClusters: false
+  virtualHosts:
+  - domains:
+    - '*'
+    name: gateway-virtualhost
+    routes:
+    - match:
+        path: /service-b
+      route:
+        weightedClusters:
+          clusters:
+          - metadataMatch:
+              filterMetadata:
+                envoy.lb:
+                  aa: "222"
+            name: service-a
+            weight: 100
+          totalWeight: 100
+    - match:
+        path: /service-b
+      route:
+        weightedClusters:
+          clusters:
+          - metadataMatch:
+              filterMetadata:
+                envoy.lb:
+                  aa: "222"
+            name: service-b
+            weight: 100
+          totalWeight: 100
+    - match:
+        prefix: /
+      route:
+        cluster: PassthroughCluster

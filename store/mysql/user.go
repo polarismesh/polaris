@@ -389,7 +389,7 @@ func (u *userStore) listUsers(filters map[string]string, offset uint32, limit ui
 			getSql += " AND "
 			countSql += " AND "
 			if k == NameAttribute {
-				if utils.IsWildName(v) {
+				if utils.IsPrefixWildName(v) {
 					getSql += " " + k + " like ? "
 					countSql += " " + k + " like ? "
 					args = append(args, "%"+v[:len(v)-1]+"%")
@@ -464,7 +464,7 @@ func (u *userStore) listGroupUsers(filters map[string]string, offset uint32, lim
 			k = "u.owner"
 		}
 
-		if utils.IsWildName(v) {
+		if utils.IsPrefixWildName(v) {
 			querySql += " AND " + k + " like ?"
 			countSql += " AND " + k + " like ?"
 			args = append(args, v[:len(v)-1]+"%")

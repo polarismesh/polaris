@@ -35,7 +35,6 @@ import (
 	"github.com/polarismesh/polaris/plugin"
 	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
 	_ "github.com/polarismesh/polaris/plugin/discoverevent/local"
-	_ "github.com/polarismesh/polaris/plugin/discoverstat/discoverlocal"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/heartbeatmemory"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/heartbeatredis"
 	_ "github.com/polarismesh/polaris/plugin/history/logger"
@@ -195,5 +194,8 @@ func (d *EurekaTestSuit) Destroy() {
 	time.Sleep(5 * time.Second)
 
 	d.storage.Destroy()
+	time.Sleep(5 * time.Second)
+
+	healthcheck.TestDestroy()
 	time.Sleep(5 * time.Second)
 }

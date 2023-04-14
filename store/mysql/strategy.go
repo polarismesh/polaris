@@ -534,7 +534,7 @@ func (s *strategyStore) queryStrategies(
 			}
 
 			if needLike {
-				if utils.IsWildName(v) {
+				if utils.IsPrefixWildName(v) {
 					v = v[:len(v)-1]
 				}
 				querySql += (" " + k + " like ? ")

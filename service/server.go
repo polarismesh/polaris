@@ -19,13 +19,13 @@ package service
 
 import (
 	"context"
-	"time"
 
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"golang.org/x/sync/singleflight"
 
 	"github.com/polarismesh/polaris/cache"
 	"github.com/polarismesh/polaris/common/model"
+	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
@@ -45,10 +45,9 @@ type Server struct {
 
 	healthServer *healthcheck.Server
 
-	cmdb           plugin.CMDB
-	history        plugin.History
-	ratelimit      plugin.Ratelimit
-	discoverStatis plugin.DiscoverStatis
+	cmdb      plugin.CMDB
+	history   plugin.History
+	ratelimit plugin.Ratelimit
 
 	l5service *l5service
 
@@ -100,11 +99,7 @@ func (s *Server) RecordHistory(ctx context.Context, entry *model.RecordEntry) {
 
 // RecordDiscoverStatis 打印服务发现统计
 func (s *Server) RecordDiscoverStatis(service, discoverNamespace string) {
-	if s.discoverStatis == nil {
-		return
-	}
-
-	_ = s.discoverStatis.AddDiscoverCall(service, discoverNamespace, time.Now())
+	plugin.GetStatis().ReportDiscoverCall(service, discoverNamespace, commontime.CurrentMillisecond())
 }
 
 // GetServiceInstanceRevision 获取服务实例的revision

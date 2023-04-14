@@ -301,6 +301,62 @@ func Test_rateLimitStore_GetExtendRateLimits(t *testing.T) {
 
 }
 
+func Test_rateLimitStore_GetExtendRateLimitsDisable(t *testing.T) {
+	CreateTableDBHandlerAndRun(t, "test_ratelimit_disable", func(t *testing.T, handler BoltHandler) {
+		r := &rateLimitStore{
+			handler: handler,
+		}
+
+		svcS := &serviceStore{
+			handler: handler,
+		}
+
+		vals := make([]*model.RateLimit, 0)
+
+		for i := 0; i < 10; i++ {
+			testVal := createTestRateLimit(uuid.NewString(), false)
+			if i%2 == 0 {
+				testVal.Disable = true
+			} else {
+				testVal.Disable = false
+			}
+			//  create service
+			svcS.AddService(&model.Service{
+				ID:        testVal.ServiceID,
+				Name:      testVal.ServiceID,
+				Namespace: testVal.ServiceID,
+				Owner:     "Polaris",
+				Token:     testVal.Revision,
+			})
+
+			vals = append(vals, testVal)
+			if err := r.CreateRateLimit(testVal); err != nil {
+				t.Fatalf("rateLimitStore.CreateRateLimit() error = %v", err)
+			}
+		}
+
+		// Test 1
+		_, ret, err := r.GetExtendRateLimits(map[string]string{
+			"disable": "true",
+		}, 0, 100)
+		if err != nil {
+			t.Errorf("rateLimitStore.GetExtendRateLimits() error = %v", err)
+			return
+		}
+		assert.Equal(t, int32(5), int32(len(ret)))
+
+		// Test 1
+		_, ret, err = r.GetExtendRateLimits(map[string]string{
+			"disable": "false",
+		}, 0, 100)
+		if err != nil {
+			t.Errorf("rateLimitStore.GetExtendRateLimits() error = %v", err)
+			return
+		}
+		assert.Equal(t, int32(5), int32(len(ret)))
+	})
+}
+
 func Test_rateLimitStore_GetRateLimitWithID(t *testing.T) {
 	CreateTableDBHandlerAndRun(t, "test_ratelimit", func(t *testing.T, handler BoltHandler) {
 		r := &rateLimitStore{
@@ -352,7 +408,7 @@ func Test_rateLimitStore_GetRateLimitsForCache(t *testing.T) {
 
 		testT_1 := time.Now().Add(time.Duration(-5) * time.Minute)
 
-		limits, _, err := r.GetRateLimitsForCache(testT_1, false)
+		limits, err := r.GetRateLimitsForCache(testT_1, false)
 		if err != nil {
 			t.Fatal(err)
 		}

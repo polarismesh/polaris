@@ -209,6 +209,7 @@ apiservers:
       refreshInterval: 10
       deltaExpireInterval: 60
       unhealthyExpireInterval: 180
+      generateUniqueInstId: false
       connLimit:
         openConnLimit: false
         maxConnPerHost: 1024
@@ -388,6 +389,29 @@ cache:
         expireTimeAfterWrite: 3600
     - name: faultDetectRule
 #    - name: l5 # Load L5 data
+# Maintain configuration
+maintain:
+  jobs:
+    # Clean up long term unhealthy instance
+    - name: DeleteUnHealthyInstance
+      enable: false
+      # job exec interval. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+      interval: 24h
+      option:
+        instanceDeleteTimeout: 60m
+    # Delete auto-created service without an instance
+    - name: DeleteEmptyAutoCreatedService
+      enable: false
+      # job exec interval. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+      interval: 1h
+      option:
+        serviceDeleteTimeout: 30m
+    # Clean soft deleted instances
+    - name: CleanDeletedInstances
+      enable: true
+      # job exec interval. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+      interval: 24h
+  
 # Storage configuration
 store:
   # Standalone file storage plugin

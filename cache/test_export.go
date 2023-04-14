@@ -40,3 +40,8 @@ func (nc *CacheManager) TestRefresh() error {
 	_ = nc.clear()
 	return nc.update()
 }
+
+// TestUpdate only for test
+func (nc *CacheManager) TestUpdate() error {
+	return nc.update()
+}

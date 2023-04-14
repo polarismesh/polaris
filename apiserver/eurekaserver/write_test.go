@@ -115,6 +115,7 @@ func TestEurekaServer_renew(t *testing.T) {
 		s.EXPECT().GetInstancesCount().AnyTimes().Return(uint32(1), nil)
 		s.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 		s.EXPECT().GetServicesCount().Return(uint32(1), nil).AnyTimes()
+		s.EXPECT().StartLeaderElection(gomock.Any()).Times(1)
 		s.EXPECT().Destroy().Return(nil)
 		return nil
 	}); err != nil {
@@ -127,7 +128,7 @@ func TestEurekaServer_renew(t *testing.T) {
 		svr := &EurekaServer{
 			healthCheckServer: eurekaSuit.healthSvr,
 		}
-		code := svr.renew(context.Background(), "", insId, false)
+		code := svr.renew(context.Background(), ins.Namespace(), "", insId, false)
 		assert.Equalf(t, api.ExecuteSuccess, code, "code need success, actual : %d", code)
 	})
 
@@ -135,7 +136,7 @@ func TestEurekaServer_renew(t *testing.T) {
 		svr := &EurekaServer{
 			healthCheckServer: eurekaSuit.healthSvr,
 		}
-		code := svr.renew(context.Background(), "", disableBeatInsId, false)
+		code := svr.renew(context.Background(), ins.Namespace(), "", disableBeatInsId, false)
 		assert.Equalf(t, api.ExecuteSuccess, code, "code need success, actual : %d", code)
 	})
 
@@ -146,7 +147,7 @@ func TestEurekaServer_renew(t *testing.T) {
 		instId := utils.NewUUID()
 		var code uint32
 		for i := 0; i < 5; i++ {
-			code = svr.renew(context.Background(), "", instId, false)
+			code = svr.renew(context.Background(), ins.Namespace(), "", instId, false)
 			time.Sleep(time.Second)
 		}
 		assert.Equalf(t, api.NotFoundResource, code, "code need notfound, actual : %d", code)

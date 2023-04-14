@@ -161,6 +161,17 @@ func (el *discoverEventLocal) PublishEvent(event model.InstanceEvent) {
 	}
 }
 
+var (
+	subscribeEvents = map[model.InstanceEventType]struct{}{
+		model.EventInstanceCloseIsolate: {},
+		model.EventInstanceOpenIsolate:  {},
+		model.EventInstanceOffline:      {},
+		model.EventInstanceOnline:       {},
+		model.EventInstanceTurnHealth:   {},
+		model.EventInstanceTurnUnHealth: {},
+	}
+)
+
 // Run 执行主逻辑
 func (el *discoverEventLocal) Run(ctx context.Context) {
 	// 定时刷新事件到日志的定时器
@@ -170,7 +181,7 @@ func (el *discoverEventLocal) Run(ctx context.Context) {
 	for {
 		select {
 		case event := <-el.eventCh:
-			if event.EType == model.EventInstanceSendHeartbeat {
+			if _, ok := subscribeEvents[event.EType]; !ok {
 				break
 			}
 

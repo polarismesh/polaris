@@ -26,40 +26,41 @@ import (
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
-	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/http"
+	"github.com/polarismesh/polaris/apiserver/httpserver/docs"
+	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/utils"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
 // GetAuthServer 运维接口
 func (h *HTTPServer) GetAuthServer(ws *restful.WebService) error {
-	ws.Route(enrichAuthStatusApiDocs(ws.GET("/auth/status").To(h.AuthStatus)))
+	ws.Route(docs.EnrichAuthStatusApiDocs(ws.GET("/auth/status").To(h.AuthStatus)))
 	//
-	ws.Route(enrichLoginApiDocs(ws.POST("/user/login").To(h.Login)))
-	ws.Route(enrichGetUsersApiDocs(ws.GET("/users").To(h.GetUsers)))
-	ws.Route(enrichCreateUsersApiDocs(ws.POST("/users").To(h.CreateUsers)))
-	ws.Route(enrichDeleteUsersApiDocs(ws.POST("/users/delete").To(h.DeleteUsers)))
-	ws.Route(enrichUpdateUserApiDocs(ws.PUT("/user").To(h.UpdateUser)))
-	ws.Route(enrichUpdateUserPasswordApiDocs(ws.PUT("/user/password").To(h.UpdateUserPassword)))
-	ws.Route(enrichGetUserTokenApiDocs(ws.GET("/user/token").To(h.GetUserToken)))
-	ws.Route(enrichUpdateUserTokenApiDocs(ws.PUT("/user/token/status").To(h.UpdateUserToken)))
-	ws.Route(enrichResetUserTokenApiDocs(ws.PUT("/user/token/refresh").To(h.ResetUserToken)))
+	ws.Route(docs.EnrichLoginApiDocs(ws.POST("/user/login").To(h.Login)))
+	ws.Route(docs.EnrichGetUsersApiDocs(ws.GET("/users").To(h.GetUsers)))
+	ws.Route(docs.EnrichCreateUsersApiDocs(ws.POST("/users").To(h.CreateUsers)))
+	ws.Route(docs.EnrichDeleteUsersApiDocs(ws.POST("/users/delete").To(h.DeleteUsers)))
+	ws.Route(docs.EnrichUpdateUserApiDocs(ws.PUT("/user").To(h.UpdateUser)))
+	ws.Route(docs.EnrichUpdateUserPasswordApiDocs(ws.PUT("/user/password").To(h.UpdateUserPassword)))
+	ws.Route(docs.EnrichGetUserTokenApiDocs(ws.GET("/user/token").To(h.GetUserToken)))
+	ws.Route(docs.EnrichUpdateUserTokenApiDocs(ws.PUT("/user/token/status").To(h.UpdateUserToken)))
+	ws.Route(docs.EnrichResetUserTokenApiDocs(ws.PUT("/user/token/refresh").To(h.ResetUserToken)))
 	//
-	ws.Route(enrichCreateGroupApiDocs(ws.POST("/usergroup").To(h.CreateGroup)))
-	ws.Route(enrichUpdateGroupsApiDocs(ws.PUT("/usergroups").To(h.UpdateGroups)))
-	ws.Route(enrichGetGroupsApiDocs(ws.GET("/usergroups").To(h.GetGroups)))
-	ws.Route(enrichDeleteGroupsApiDocs(ws.POST("/usergroups/delete").To(h.DeleteGroups)))
-	ws.Route(enrichGetGroupApiDocs(ws.GET("/usergroup/detail").To(h.GetGroup)))
-	ws.Route(enrichGetGroupTokenApiDocs(ws.GET("/usergroup/token").To(h.GetGroupToken)))
-	ws.Route(enrichUpdateGroupTokenApiDocs(ws.PUT("/usergroup/token/status").To(h.UpdateGroupToken)))
-	ws.Route(enrichResetGroupTokenApiDocs(ws.PUT("/usergroup/token/refresh").To(h.ResetGroupToken)))
+	ws.Route(docs.EnrichCreateGroupApiDocs(ws.POST("/usergroup").To(h.CreateGroup)))
+	ws.Route(docs.EnrichUpdateGroupsApiDocs(ws.PUT("/usergroups").To(h.UpdateGroups)))
+	ws.Route(docs.EnrichGetGroupsApiDocs(ws.GET("/usergroups").To(h.GetGroups)))
+	ws.Route(docs.EnrichDeleteGroupsApiDocs(ws.POST("/usergroups/delete").To(h.DeleteGroups)))
+	ws.Route(docs.EnrichGetGroupApiDocs(ws.GET("/usergroup/detail").To(h.GetGroup)))
+	ws.Route(docs.EnrichGetGroupTokenApiDocs(ws.GET("/usergroup/token").To(h.GetGroupToken)))
+	ws.Route(docs.EnrichUpdateGroupTokenApiDocs(ws.PUT("/usergroup/token/status").To(h.UpdateGroupToken)))
+	ws.Route(docs.EnrichResetGroupTokenApiDocs(ws.PUT("/usergroup/token/refresh").To(h.ResetGroupToken)))
 
-	ws.Route(enrichCreateStrategyApiDocs(ws.POST("/auth/strategy").To(h.CreateStrategy)))
-	ws.Route(enrichGetStrategyApiDocs(ws.GET("/auth/strategy/detail").To(h.GetStrategy)))
-	ws.Route(enrichUpdateStrategiesApiDocs(ws.PUT("/auth/strategies").To(h.UpdateStrategies)))
-	ws.Route(enrichDeleteStrategiesApiDocs(ws.POST("/auth/strategies/delete").To(h.DeleteStrategies)))
-	ws.Route(enrichGetStrategiesApiDocs(ws.GET("/auth/strategies").To(h.GetStrategies)))
-	ws.Route(enrichGetPrincipalResourcesApiDocs(ws.GET("/auth/principal/resources").To(h.GetPrincipalResources)))
+	ws.Route(docs.EnrichCreateStrategyApiDocs(ws.POST("/auth/strategy").To(h.CreateStrategy)))
+	ws.Route(docs.EnrichGetStrategyApiDocs(ws.GET("/auth/strategy/detail").To(h.GetStrategy)))
+	ws.Route(docs.EnrichUpdateStrategiesApiDocs(ws.PUT("/auth/strategies").To(h.UpdateStrategies)))
+	ws.Route(docs.EnrichDeleteStrategiesApiDocs(ws.POST("/auth/strategies/delete").To(h.DeleteStrategies)))
+	ws.Route(docs.EnrichGetStrategiesApiDocs(ws.GET("/auth/strategies").To(h.GetStrategies)))
+	ws.Route(docs.EnrichGetPrincipalResourcesApiDocs(ws.GET("/auth/principal/resources").To(h.GetPrincipalResources)))
 
 	return nil
 }

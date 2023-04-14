@@ -32,39 +32,51 @@ import (
 type CircuitBreakerOperateServer interface {
 
 	// CreateCircuitBreakers Create a CircuitBreaker rule
+	// Deprecated: not support from 1.14.x
 	CreateCircuitBreakers(ctx context.Context, req []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse
 
 	// CreateCircuitBreakerVersions Create a melt rule version
+	// Deprecated: not support from 1.14.x
 	CreateCircuitBreakerVersions(ctx context.Context, req []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse
 
 	// DeleteCircuitBreakers Delete CircuitBreaker rules
+	// Deprecated: not support from 1.14.x
 	DeleteCircuitBreakers(ctx context.Context, req []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse
 
 	// UpdateCircuitBreakers Modify the CircuitBreaker rule
+	// Deprecated: not support from 1.14.x
 	UpdateCircuitBreakers(ctx context.Context, req []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse
 
 	// ReleaseCircuitBreakers Release CircuitBreaker rule
+	// Deprecated: not support from 1.14.x
 	ReleaseCircuitBreakers(ctx context.Context, req []*apiservice.ConfigRelease) *apiservice.BatchWriteResponse
 
 	// UnBindCircuitBreakers Solution CircuitBreaker rule
+	// Deprecated: not support from 1.14.x
 	UnBindCircuitBreakers(ctx context.Context, req []*apiservice.ConfigRelease) *apiservice.BatchWriteResponse
 
 	// GetCircuitBreaker Get CircuitBreaker regular according to ID and VERSION
+	// Deprecated: not support from 1.14.x
 	GetCircuitBreaker(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse
 
 	// GetCircuitBreakerVersions Query all versions of the CircuitBreaker rule
+	// Deprecated: not support from 1.14.x
 	GetCircuitBreakerVersions(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse
 
 	// GetMasterCircuitBreakers Query Master CircuitBreaker rules
+	// Deprecated: not support from 1.14.x
 	GetMasterCircuitBreakers(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse
 
 	// GetReleaseCircuitBreakers Query the released CircuitBreaker rule according to the rule ID
+	// Deprecated: not support from 1.14.x
 	GetReleaseCircuitBreakers(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse
 
 	// GetCircuitBreakerByService Binding CircuitBreaker rule based on service query
+	// Deprecated: not support from 1.14.x
 	GetCircuitBreakerByService(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse
 
 	// GetCircuitBreakerToken Get CircuitBreaker rules token
+	// Deprecated: not support from 1.14.x
 	GetCircuitBreakerToken(ctx context.Context, req *apifault.CircuitBreaker) *apiservice.Response
 
 	// CreateCircuitBreakerRules Create a CircuitBreaker rule
@@ -135,6 +147,9 @@ type ServiceOperateServer interface {
 	// GetServices Get a list of service
 	GetServices(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse
 
+	// GetAllServices Get all service list
+	GetAllServices(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse
+
 	// GetServicesCount Total number of services
 	GetServicesCount(ctx context.Context) *apiservice.BatchQueryResponse
 
@@ -187,9 +202,6 @@ type InstanceOperateServer interface {
 
 	// GetInstanceLabels Get an instance tag under a service
 	GetInstanceLabels(ctx context.Context, query map[string]string) *apiservice.Response
-
-	// CleanInstance Clean up instance
-	CleanInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response
 }
 
 // ClientServer Client related operation  Client operation interface definition
@@ -221,9 +233,6 @@ type ClientServer interface {
 
 	// GetCircuitBreakerWithCache Fuse configuration information for obtaining services for clients
 	GetCircuitBreakerWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse
-
-	// GetRouterConfigWithCache User Client Get Service Routing Configuration Information
-	GetRouterConfigWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse
 
 	// GetFaultDetectWithCache User Client Get FaultDetect Rule Information
 	GetFaultDetectWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse

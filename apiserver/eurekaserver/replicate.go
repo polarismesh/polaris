@@ -80,14 +80,15 @@ func (h *EurekaServer) BatchReplication(req *restful.Request, rsp *restful.Respo
 		writeHeader(http.StatusForbidden, rsp)
 		return
 	}
-	batchResponse, resultCode := h.doBatchReplicate(replicateRequest, token)
+	namespace := readNamespaceFromRequest(req, h.namespace)
+	batchResponse, resultCode := h.doBatchReplicate(replicateRequest, token, namespace)
 	if err := writeEurekaResponseWithCode(restful.MIME_JSON, batchResponse, req, rsp, resultCode); nil != err {
 		log.Errorf("[EurekaServer]fail to write replicate response, client: %s, err: %v", remoteAddr, err)
 	}
 }
 
 func (h *EurekaServer) doBatchReplicate(
-	replicateRequest *ReplicationList, token string) (*ReplicationListResponse, uint32) {
+	replicateRequest *ReplicationList, token string, namespace string) (*ReplicationListResponse, uint32) {
 	batchResponse := &ReplicationListResponse{}
 	var resultCode = api.ExecuteSuccess
 	itemCount := len(replicateRequest.ReplicationList)
@@ -101,7 +102,7 @@ func (h *EurekaServer) doBatchReplicate(
 	for i, inst := range replicateRequest.ReplicationList {
 		go func(idx int, instanceInfo *ReplicationInstance) {
 			defer wg.Done()
-			resp, code := h.dispatch(instanceInfo, token)
+			resp, code := h.dispatch(instanceInfo, token, namespace)
 			if code != api.ExecuteSuccess {
 				atomic.CompareAndSwapUint32(&resultCode, api.ExecuteSuccess, code)
 				log.Warnf("[EUREKA-SERVER] fail to process replicate instance request, code is %d, action %s, instance %s, app %s",
@@ -117,7 +118,7 @@ func (h *EurekaServer) doBatchReplicate(
 }
 
 func (h *EurekaServer) dispatch(
-	replicationInstance *ReplicationInstance, token string) (*ReplicationInstanceResponse, uint32) {
+	replicationInstance *ReplicationInstance, token string, namespace string) (*ReplicationInstanceResponse, uint32) {
 	appName := formatReadName(replicationInstance.AppName)
 	ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, token)
 	var retCode = api.ExecuteSuccess
@@ -130,29 +131,29 @@ func (h *EurekaServer) dispatch(
 	switch replicationInstance.Action {
 	case actionRegister:
 		instanceInfo := replicationInstance.InstanceInfo
-		retCode = h.registerInstances(ctx, appName, instanceInfo, true)
+		retCode = h.registerInstances(ctx, namespace, appName, instanceInfo, true)
 		if retCode == api.ExecuteSuccess || retCode == api.ExistedResource || retCode == api.SameInstanceRequest {
 			retCode = api.ExecuteSuccess
 		}
 	case actionHeartbeat:
 		instanceId := replicationInstance.Id
-		retCode = h.renew(ctx, appName, instanceId, true)
+		retCode = h.renew(ctx, namespace, appName, instanceId, true)
 		if retCode == api.ExecuteSuccess || retCode == api.HeartbeatExceedLimit {
 			retCode = api.ExecuteSuccess
 		}
 	case actionCancel:
 		instanceId := replicationInstance.Id
-		retCode = h.deregisterInstance(ctx, appName, instanceId, true)
+		retCode = h.deregisterInstance(ctx, namespace, appName, instanceId, true)
 		if retCode == api.ExecuteSuccess || retCode == api.NotFoundResource || retCode == api.SameInstanceRequest {
 			retCode = api.ExecuteSuccess
 		}
 	case actionStatusUpdate:
 		status := replicationInstance.Status
 		instanceId := replicationInstance.Id
-		retCode = h.updateStatus(ctx, appName, instanceId, status, true)
+		retCode = h.updateStatus(ctx, namespace, appName, instanceId, status, true)
 	case actionDeleteStatusOverride:
 		instanceId := replicationInstance.Id
-		retCode = h.updateStatus(ctx, appName, instanceId, StatusUp, true)
+		retCode = h.updateStatus(ctx, namespace, appName, instanceId, StatusUp, true)
 	}
 
 	statusCode := http.StatusOK
@@ -193,10 +194,14 @@ func eventToInstance(event *model.InstanceEvent, appName string, curTimeMilli in
 }
 
 func (h *EurekaServer) shouldReplicate(e model.InstanceEvent) bool {
-	if e.Namespace != h.namespace {
-		// only process the service in same namespace
+
+	if h.replicateWorkers == nil {
 		return false
 	}
+	if _, exist := h.replicateWorkers.Get(e.Namespace); !exist {
+		return false
+	}
+
 	if len(e.Service) == 0 {
 		log.Warnf("[EUREKA]fail to replicate, service name is empty for event %s", e)
 		return false
@@ -226,30 +231,38 @@ func (h *EurekaServer) handleInstanceEvent(ctx context.Context, i interface{}) e
 	if !h.shouldReplicate(e) {
 		return nil
 	}
+	namespace := e.Namespace
 	appName := formatReadName(e.Service)
 	curTimeMilli := time.Now().UnixMilli()
+	eurekaInstanceId := e.Id
+	if e.Instance.Metadata != nil {
+		if _, ok := e.Instance.Metadata[MetadataInstanceId]; ok {
+			eurekaInstanceId = e.Instance.Metadata[MetadataInstanceId]
+		}
+	}
+	replicateWorker, _ := h.replicateWorkers.Get(namespace)
 	switch e.EType {
 	case model.EventInstanceOnline, model.EventInstanceUpdate:
 		instanceInfo := eventToInstance(&e, appName, curTimeMilli)
-		h.replicateWorker.AddReplicateTask(&ReplicationInstance{
+		replicateWorker.AddReplicateTask(&ReplicationInstance{
 			AppName:            appName,
-			Id:                 e.Id,
+			Id:                 eurekaInstanceId,
 			LastDirtyTimestamp: curTimeMilli,
 			Status:             StatusUp,
 			InstanceInfo:       instanceInfo,
 			Action:             actionRegister,
 		})
 	case model.EventInstanceOffline:
-		h.replicateWorker.AddReplicateTask(&ReplicationInstance{
+		replicateWorker.AddReplicateTask(&ReplicationInstance{
 			AppName: appName,
-			Id:      e.Id,
+			Id:      eurekaInstanceId,
 			Action:  actionCancel,
 		})
 	case model.EventInstanceSendHeartbeat:
 		instanceInfo := eventToInstance(&e, appName, curTimeMilli)
 		rInstance := &ReplicationInstance{
 			AppName:      appName,
-			Id:           e.Id,
+			Id:           eurekaInstanceId,
 			Status:       StatusUp,
 			InstanceInfo: instanceInfo,
 			Action:       actionHeartbeat,
@@ -257,21 +270,22 @@ func (h *EurekaServer) handleInstanceEvent(ctx context.Context, i interface{}) e
 		if e.Instance.GetIsolate().GetValue() {
 			rInstance.OverriddenStatus = StatusOutOfService
 		}
-		h.replicateWorker.AddReplicateTask(rInstance)
+		replicateWorker.AddReplicateTask(rInstance)
 	case model.EventInstanceOpenIsolate:
-		h.replicateWorker.AddReplicateTask(&ReplicationInstance{
+		replicateWorker.AddReplicateTask(&ReplicationInstance{
 			AppName:            appName,
-			Id:                 e.Id,
+			Id:                 eurekaInstanceId,
 			LastDirtyTimestamp: curTimeMilli,
-			OverriddenStatus:   StatusOutOfService,
-			Action:             actionHeartbeat,
+			Status:             StatusOutOfService,
+			Action:             actionStatusUpdate,
 		})
 	case model.EventInstanceCloseIsolate:
-		h.replicateWorker.AddReplicateTask(&ReplicationInstance{
+		replicateWorker.AddReplicateTask(&ReplicationInstance{
 			AppName:            appName,
-			Id:                 e.Id,
+			Id:                 eurekaInstanceId,
 			LastDirtyTimestamp: curTimeMilli,
-			Action:             actionDeleteStatusOverride,
+			Status:             StatusUp,
+			Action:             actionStatusUpdate,
 		})
 
 	}

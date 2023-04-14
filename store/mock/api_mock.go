@@ -1499,13 +1499,12 @@ func (mr *MockStoreMockRecorder) GetRateLimitWithID(id interface{}) *gomock.Call
 }
 
 // GetRateLimitsForCache mocks base method.
-func (m *MockStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]*model.RateLimit, []*model.RateLimitRevision, error) {
+func (m *MockStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]*model.RateLimit, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRateLimitsForCache", mtime, firstUpdate)
 	ret0, _ := ret[0].([]*model.RateLimit)
-	ret1, _ := ret[1].([]*model.RateLimitRevision)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // GetRateLimitsForCache indicates an expected call of GetRateLimitsForCache.
@@ -1816,6 +1815,21 @@ func (m *MockStore) GetSystemServices() ([]*model.Service, error) {
 func (mr *MockStoreMockRecorder) GetSystemServices() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSystemServices", reflect.TypeOf((*MockStore)(nil).GetSystemServices))
+}
+
+// GetUnHealthyInstances mocks base method.
+func (m *MockStore) GetUnHealthyInstances(timeout time.Duration, limit uint32) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUnHealthyInstances", timeout, limit)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUnHealthyInstances indicates an expected call of GetUnHealthyInstances.
+func (mr *MockStoreMockRecorder) GetUnHealthyInstances(timeout, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnHealthyInstances", reflect.TypeOf((*MockStore)(nil).GetUnHealthyInstances), timeout, limit)
 }
 
 // GetUnixSecond mocks base method.

@@ -181,8 +181,8 @@ func (rc *routingConfigCache) QueryRoutingConfigsV2(args *RoutingArgs) (uint32, 
 		}
 
 		if args.Name != "" {
-			name, fuzzy := utils.ParseWildName(args.Name)
-			if fuzzy {
+			name, isWild := utils.ParseWildName(args.Name)
+			if isWild {
 				if !strings.Contains(routeRule.Name, name) {
 					return
 				}
@@ -198,7 +198,7 @@ func (rc *routingConfigCache) QueryRoutingConfigsV2(args *RoutingArgs) (uint32, 
 		res = append(res, routeRule)
 	}
 
-	rc.IteratorRoutings(func(key string, value *model.ExtendRouterConfig) {
+	rc.IteratorRouterRule(func(key string, value *model.ExtendRouterConfig) {
 		process(key, value)
 	})
 
@@ -226,28 +226,24 @@ func (rc *routingConfigCache) sortBeforeTrim(routings []*model.ExtendRouterConfi
 	return amount, routings[args.Offset:endIdx]
 }
 
-func orderByRoutingModifyTime(a, b *model.ExtendRouterConfig, asc bool) bool {
+func orderByRoutingPriority(a, b *model.ExtendRouterConfig, asc bool) bool {
 	if a.Priority < b.Priority {
 		return asc
 	}
-
 	if a.Priority > b.Priority {
 		// false && asc always false
 		return false
 	}
-
 	return strings.Compare(a.ID, b.ID) < 0 && asc
 }
 
-func orderByRoutingPriority(a, b *model.ExtendRouterConfig, asc bool) bool {
+func orderByRoutingModifyTime(a, b *model.ExtendRouterConfig, asc bool) bool {
 	if a.ModifyTime.After(b.ModifyTime) {
 		return asc
 	}
-
 	if a.ModifyTime.Before(b.ModifyTime) {
 		// false && asc always false
 		return false
 	}
-
 	return strings.Compare(a.ID, b.ID) < 0 && asc
 }
