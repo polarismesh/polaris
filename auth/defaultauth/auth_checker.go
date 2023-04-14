@@ -148,7 +148,7 @@ func (d *defaultAuthChecker) checkMaintainPermission(preCtx *model.AcquireContex
 //	step 3. 拉取token对应的操作者相关信息，注入到请求上下文中
 //	step 4. 进行权限检查
 func (d *defaultAuthChecker) CheckPermission(authCtx *model.AcquireContext) (bool, error) {
-	_ = utils.ParseRequestID(authCtx.GetRequestContext())
+	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
 	if err := d.VerifyCredential(authCtx); err != nil {
 		return false, err
 	}
@@ -171,7 +171,9 @@ func (d *defaultAuthChecker) CheckPermission(authCtx *model.AcquireContext) (boo
 	// 强制同步一次db中strategy数据到cache
 	err = d.cacheMgn.AuthStrategy().ForceSyncStrategy2Cache()
 	if err != nil {
-		log.Errorf("[Auth][Checker] force sync strategy to cache failed: %v", err)
+		log.Error("[Auth][Checker] check permission args", utils.ZapRequestID(reqId),
+			zap.String("method", authCtx.GetMethod()), zap.Any("resources", authCtx.GetAccessResources()))
+		log.Error("[Auth][Checker] force sync strategy to cache failed", utils.ZapRequestID(reqId), zap.Error(err))
 		return false, err
 	}
 
