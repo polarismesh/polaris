@@ -36,7 +36,6 @@ func init() {
 	plugin.RegisterPlugin(d.Name(), d)
 }
 
-// 把操作记录记录到日志文件中
 const (
 	// PluginName plugin name
 	PluginName = "heartbeatLeader"
@@ -66,11 +65,11 @@ const (
 	initializedSignal = int32(1)
 )
 
-// LeaderHealthChecker 对等节点心跳健康检查
-// 1. LeaderHealthChecker 启动时先根据 store 层的 LeaderElection 选举能力选出一个 Leader
-// 2. 监听 LeaderChangeEvent 事件，
-// 2. Leader 和 Follower 之间建立 gRPC 长连接
-// 3. LeaderHealthChecker 在处理 Report/Query/Check/Delete 先判断自己是否为 Leader
+// LeaderHealthChecker Leader~Follower 节点心跳健康检查
+// 1. 监听 LeaderChangeEvent 事件，
+// 2. LeaderHealthChecker 启动时先根据 store 层的 LeaderElection 选举能力选出一个 Leader
+// 3. Leader 和 Follower 之间建立 gRPC 长连接
+// 4. LeaderHealthChecker 在处理 Report/Query/Check/Delete 先判断自己是否为 Leader
 //   - Leader 节点
 //     a. 心跳数据的读写直接写本地 map 内存
 //   - 非 Leader 节点

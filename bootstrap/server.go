@@ -94,7 +94,6 @@ func Start(configFilePath string) {
 	}
 
 	metrics.InitMetrics()
-
 	eventhub.InitEventHub()
 
 	// 设置插件配置
