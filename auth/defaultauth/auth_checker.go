@@ -20,6 +20,7 @@ package defaultauth
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -501,7 +502,12 @@ func (d *defaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext) (b
 
 	checkAllResEntries := checkNamespace && checkSvc && checkCfgGroup
 
-	return checkAllResEntries, nil
+	var err error
+	if !checkAllResEntries {
+		err = fmt.Errorf("no permission")
+	}
+
+	return checkAllResEntries, err
 }
 
 // checkAction 检查操作是否和策略匹配
