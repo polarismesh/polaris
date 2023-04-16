@@ -25,10 +25,8 @@ import (
 )
 
 type Config struct {
-	ListenPort int
-	ListenIP   string
-	SoltNum    int32
-	Batch      batchjob.CtrlConfig
+	SoltNum int32
+	Batch   batchjob.CtrlConfig
 }
 
 func Unmarshal(options map[string]interface{}) (*Config, error) {
@@ -38,9 +36,7 @@ func Unmarshal(options map[string]interface{}) (*Config, error) {
 	}
 
 	config := &Config{
-		ListenPort: DefaultListenPort,
-		ListenIP:   DefaultListenIP,
-		SoltNum:    DefaultSoltNum,
+		SoltNum: DefaultSoltNum,
 		Batch: batchjob.CtrlConfig{
 			QueueSize:     10240,
 			WaitTime:      128 * time.Millisecond,

@@ -92,6 +92,8 @@ func Start(configFilePath string) {
 		fmt.Printf("[ERROR] acquire localhost fail: %v\n", err)
 		return
 	}
+	// 设置默认端口信息数据
+	acquireLocalPort(ctx, cfg.APIServers)
 
 	metrics.InitMetrics()
 	eventhub.InitEventHub()
@@ -452,8 +454,19 @@ func acquireLocalhost(ctx context.Context, polarisService *boot_config.PolarisSe
 	}
 	log.Infof("[Bootstrap] get local host: %s", localHost)
 	utils.LocalHost = localHost
-
 	return utils.WithLocalhost(ctx, localHost), nil
+}
+
+func acquireLocalPort(ctx context.Context, apientries []apiserver.Config) {
+	for i := range apientries {
+		entry := apientries[i]
+		if entry.Name != "service-grpc" {
+			continue
+		}
+		port, _ := entry.Option["listenPort"].(int)
+		utils.LocalPort = port
+		break
+	}
 }
 
 // polarisServiceRegister 自注册主函数

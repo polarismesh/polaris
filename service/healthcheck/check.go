@@ -230,13 +230,17 @@ func (c *CheckScheduler) removeAdopting(instanceId string, checker plugin.Health
 	}
 }
 
-func (c *CheckScheduler) putInstanceIfAbsent(instanceWithChecker *InstanceWithChecker) (bool, *itemValue) {
+func (c *CheckScheduler) upsertInstanceChecker(instanceWithChecker *InstanceWithChecker) (bool, *itemValue) {
 	c.rwMutex.Lock()
 	defer c.rwMutex.Unlock()
 	instance := instanceWithChecker.instance
-	var instValue *itemValue
-	var ok bool
-	if instValue, ok = c.scheduledInstances[instance.ID()]; ok {
+	ttl := instance.HealthCheck().GetHeartbeat().GetTtl().GetValue()
+	var (
+		instValue *itemValue
+		ok        bool
+	)
+	instValue, ok = c.scheduledInstances[instance.ID()]
+	if ok && ttl == instValue.ttlDurationSec {
 		return true, instValue
 	}
 	instValue = &itemValue{
@@ -246,7 +250,7 @@ func (c *CheckScheduler) putInstanceIfAbsent(instanceWithChecker *InstanceWithCh
 		id:                instance.ID(),
 		expireDurationSec: getExpireDurationSec(instance.Proto),
 		checker:           instanceWithChecker.checker,
-		ttlDurationSec:    instance.HealthCheck().GetHeartbeat().GetTtl().GetValue(),
+		ttlDurationSec:    ttl,
 	}
 	c.scheduledInstances[instance.ID()] = instValue
 	return false, instValue
@@ -294,8 +298,8 @@ func (c *CheckScheduler) getClientValue(clientId string) (*clientItemValue, bool
 
 // AddInstance add instance to check
 func (c *CheckScheduler) AddInstance(instanceWithChecker *InstanceWithChecker) {
-	exists, instValue := c.putInstanceIfAbsent(instanceWithChecker)
-	if exists {
+	firstadd, instValue := c.upsertInstanceChecker(instanceWithChecker)
+	if firstadd {
 		return
 	}
 	c.addAdopting(instValue.id, instValue.checker)

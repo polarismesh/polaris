@@ -18,8 +18,8 @@
 ACTUAL_ARCH="$(/usr/bin/uname -m)"
 EXPECT_ARCH=$(cat arch.txt)
 
-actual_is_arm=$(/usr/bin/uname -m | grep "arm" | wc -l)
-expect_is_arm=$(cat arch.txt | grep "arm" | wc -l)
+actual_is_arm=$(/usr/bin/uname -m | grep "arm|aarch64" | wc -l)
+expect_is_arm=$(cat arch.txt | grep -E "arm" | wc -l)
 
 if [ ${actual_is_arm} -ne ${expect_is_arm} ]; then
   echo "machine arch is ${ACTUAL_ARCH}, but Installation package arch is ${EXPECT_ARCH}"

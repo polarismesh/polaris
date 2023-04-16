@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"strings"
 
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/utils"
@@ -78,11 +79,11 @@ type (
 	// HashFunction hash function to caul record id need locate in SegmentMap
 	HashFunction func(string) int
 	// RecordSaver beat record saver
-	RecordSaver func(req *PutRecordsRequest)
+	RecordSaver func(req *apiservice.Heartbeats)
 	// RecordDelter beat record delter
-	RecordDelter func(req *DelRecordsRequest)
+	RecordDelter func(req *apiservice.DelHeartbeatsRequest)
 	// RecordGetter beat record getter
-	RecordGetter func(req *GetRecordsRequest) *GetRecordsResponse
+	RecordGetter func(req *apiservice.GetHeartbeatsRequest) *apiservice.GetHeartbeatsResponse
 	// BeatRecordCache Heartbeat data cache
 	BeatRecordCache interface {
 		// Get get records
@@ -174,42 +175,41 @@ func (rc *RemoteBeatRecordCache) Get(keys ...string) map[string]*ReadBeatRecord 
 			Exist: false,
 		}
 	}
-	resp := rc.getter(&GetRecordsRequest{
-		Keys: keys,
+	resp := rc.getter(&apiservice.GetHeartbeatsRequest{
+		InstanceIds: keys,
 	})
 	records := resp.GetRecords()
 	for i := range records {
 		record := records[i]
-		val, ok := ret[record.Key]
+		val, ok := ret[record.InstanceId]
 		if !ok {
 			val.Exist = false
 			continue
 		}
-		val.Exist = record.Exist
-		if recordVal, ok := ParseRecordValue(record.Value); ok {
-			val.Record = *recordVal
+		val.Exist = record.GetExist()
+		val.Record = RecordValue{
+			CurTimeSec: record.GetLastHeartbeatSec(),
 		}
 	}
 	return ret
 }
 
 func (rc *RemoteBeatRecordCache) Put(records ...WriteBeatRecord) {
-	req := &PutRecordsRequest{
-		Records: make([]*HeartbeatRecord, 0, len(records)),
+	req := &apiservice.Heartbeats{
+		Heartbeats: make([]*apiservice.Instance, 0, len(records)),
 	}
 	for i := range records {
 		record := records[i]
-		req.Records = append(req.Records, &HeartbeatRecord{
-			Key:   record.Key,
-			Value: record.Record.String(),
+		req.Heartbeats = append(req.Heartbeats, &apiservice.Instance{
+			Id: utils.NewStringValue(record.Key),
 		})
 	}
 	rc.saver(req)
 }
 
 func (rc *RemoteBeatRecordCache) Del(key ...string) {
-	req := &DelRecordsRequest{
-		Keys: key,
+	req := &apiservice.DelHeartbeatsRequest{
+		InstanceIds: key,
 	}
 	rc.delter(req)
 }

@@ -23,7 +23,7 @@ import (
 	"io"
 	"strings"
 
-	modeapi "github.com/polarismesh/specification/source/go/api/v1/model"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -110,7 +110,7 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 
 		// 是否允许访问
 		if ok := g.allowAccess(method); !ok {
-			resp := api.NewDiscoverResponse(modeapi.Code_ClientAPINotOpen)
+			resp := api.NewDiscoverResponse(apimodel.Code_ClientAPINotOpen)
 			if sendErr := server.Send(resp); sendErr != nil {
 				return sendErr
 			}
@@ -118,8 +118,8 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 		}
 
 		// stream模式，需要对每个包进行检测
-		if code := g.enterRateLimit(clientIP, method); code != uint32(modeapi.Code_ExecuteSuccess) {
-			resp := api.NewDiscoverResponse(modeapi.Code(code))
+		if code := g.enterRateLimit(clientIP, method); code != uint32(apimodel.Code_ExecuteSuccess) {
+			resp := api.NewDiscoverResponse(apimodel.Code(code))
 			if err = server.Send(resp); err != nil {
 				return err
 			}
@@ -141,7 +141,7 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 		case apiservice.DiscoverRequest_FAULT_DETECTOR:
 			out = g.namingServer.GetFaultDetectWithCache(ctx, in.Service)
 		default:
-			out = api.NewDiscoverRoutingResponse(modeapi.Code_InvalidDiscoverResource, in.Service)
+			out = api.NewDiscoverRoutingResponse(apimodel.Code_InvalidDiscoverResource, in.Service)
 		}
 
 		err = server.Send(out)
@@ -156,6 +156,20 @@ func (g *DiscoverServer) Heartbeat(ctx context.Context, in *apiservice.Instance)
 	return g.healthCheckServer.Report(grpcserver.ConvertContext(ctx), in), nil
 }
 
+// BatchHeartbeat 批量上报心跳
+func (g *DiscoverServer) BatchHeartbeat(ctx context.Context,
+	req *apiservice.Heartbeats) (*apiservice.Response, error) {
+	heartbeats := req.GetHeartbeats()
+	for i := range heartbeats {
+		beat := heartbeats[i]
+		resp := g.healthCheckServer.Report(grpcserver.ConvertContext(ctx), beat)
+		if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
+
+		}
+	}
+	return api.NewResponse(apimodel.Code_ExecuteSuccess), nil
+}
+
 // ParseGrpcOperator 构造请求源
 func ParseGrpcOperator(ctx context.Context) string {
 	// 获取请求源
@@ -166,6 +180,5 @@ func ParseGrpcOperator(ctx context.Context) string {
 			operator += ":" + addrSlice[0]
 		}
 	}
-
 	return operator
 }

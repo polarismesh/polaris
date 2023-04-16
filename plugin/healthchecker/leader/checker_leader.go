@@ -19,6 +19,7 @@ package leader
 
 import (
 	"context"
+	"runtime"
 	"sync"
 	"sync/atomic"
 
@@ -43,16 +44,6 @@ const (
 	Servers = "servers"
 	// CountSep separator to divide server and count
 	Split = "|"
-	// DefaultListenPort default leader checker listen port
-	DefaultListenPort = 8100
-	// DefaultListenIP default leader checker listen ip
-	DefaultListenIP = "0.0.0.0"
-	// DefaultSoltNum default soltNum of LocalBeatRecordCache
-	DefaultSoltNum = 64
-	// optionListenPort option key of listenPort
-	optionListenPort = "listenPort"
-	// optionListenIP option key of listenIP
-	optionListenIP = "listenIP"
 	// optionSoltNum option key of soltNum
 	optionSoltNum = "soltNum"
 	// electionKey use election key
@@ -64,6 +55,13 @@ const (
 	// initializedSignal .
 	initializedSignal = int32(1)
 )
+
+var (
+	// DefaultSoltNum default soltNum of LocalBeatRecordCache
+	DefaultSoltNum = int32(runtime.GOMAXPROCS(0) * 16)
+)
+
+type keyInnerQuery struct{}
 
 // LeaderHealthChecker Leader~Follower 节点心跳健康检查
 // 1. 监听 LeaderChangeEvent 事件，
@@ -85,8 +83,8 @@ type LeaderHealthChecker struct {
 	conf *Config
 	// lock keeps safe to change leader info
 	lock sync.RWMutex
-	// isLeader leader signal
-	isLeader int32
+	// leader leader signal
+	leader int32
 	// remote remote peer info
 	remote Peer
 	// self self peer info
@@ -107,10 +105,9 @@ func (c *LeaderHealthChecker) Initialize(entry *plugin.ConfigEntry) error {
 		return err
 	}
 	c.conf = conf
-
-	c.self = newLocalPeer(utils.LocalHost, uint32(conf.ListenPort))
+	c.self = newLocalPeer()
 	c.self.Initialize(*conf)
-	if err := c.self.Serve(context.Background(), c.conf.ListenIP, uint32(c.conf.ListenPort)); err != nil {
+	if err := c.self.Serve(context.Background(), "", 0); err != nil {
 		return err
 	}
 	eventhub.Subscribe(eventhub.LeaderChangeEventTopic, subscriberName, c)
@@ -157,7 +154,7 @@ func (c *LeaderHealthChecker) becomeLeader() {
 		_ = oldLeader.Close()
 	}
 	// leader 指向自己
-	atomic.StoreInt32(&c.isLeader, 1)
+	atomic.StoreInt32(&c.leader, 1)
 	atomic.StoreInt32(&c.initialize, initializedSignal)
 	log.Info("[HealthCheck][Leader] become leader")
 }
@@ -193,14 +190,14 @@ func (c *LeaderHealthChecker) becomeFollower() {
 				_ = oldLeader.Close()
 			}
 		}
-		remoteLeader := newRemotePeer(election.Host, uint32(c.conf.ListenPort))
+		remoteLeader := newRemotePeer()
 		remoteLeader.Initialize(*c.conf)
-		if err := remoteLeader.Serve(context.Background(), c.conf.ListenIP, uint32(c.conf.ListenPort)); err != nil {
+		if err := remoteLeader.Serve(context.Background(), election.Host, uint32(utils.LocalPort)); err != nil {
 			log.Error("[HealthCheck][Leader] follower run serve", zap.Error(err))
 			return
 		}
 		c.remote = remoteLeader
-		atomic.StoreInt32(&c.isLeader, 0)
+		atomic.StoreInt32(&c.leader, 0)
 		atomic.StoreInt32(&c.initialize, initializedSignal)
 		return
 	}
@@ -242,7 +239,6 @@ func (c *LeaderHealthChecker) Report(request *plugin.ReportRequest) error {
 }
 
 // Check process the instance check
-// 大部分情况下，Check 的检查都是在本节点进行处理，只有出现 Refresh 节点时才可能存在将 CheckRequest 请求转发相应的对等节点
 func (c *LeaderHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckResponse, error) {
 	queryResp, err := c.Query(&request.QueryRequest)
 	if err != nil {
@@ -282,6 +278,18 @@ func (c *LeaderHealthChecker) Check(request *plugin.CheckRequest) (*plugin.Check
 	}
 
 	return checkResp, nil
+}
+
+// CheckExist check the heartbeat time exist
+func (r *LeaderHealthChecker) CheckExist(request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
+	// 非 Leader 情况下，不做 CheckExist 存在性检查
+	if r.isLeader() {
+		return &plugin.QueryResponse{
+			Exists:           true,
+			LastHeartbeatSec: 0,
+		}, nil
+	}
+	return r.Query(request)
 }
 
 // Query queries the heartbeat time
@@ -342,7 +350,7 @@ func (c *LeaderHealthChecker) SuspendTimeSec() int64 {
 }
 
 func (c *LeaderHealthChecker) finLeaderPeer() Peer {
-	if atomic.LoadInt32(&c.isLeader) == 1 {
+	if c.isLeader() {
 		return c.self
 	}
 	return c.remote
@@ -385,4 +393,8 @@ func (c *LeaderHealthChecker) LeaderChangeTimeSec() int64 {
 
 func (c *LeaderHealthChecker) isInitialize() bool {
 	return atomic.LoadInt32(&c.initialize) == initializedSignal
+}
+
+func (c *LeaderHealthChecker) isLeader() bool {
+	return atomic.LoadInt32(&c.leader) == 1
 }
