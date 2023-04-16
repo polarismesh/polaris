@@ -290,6 +290,18 @@ func (c *LeaderHealthChecker) Check(request *plugin.CheckRequest) (*plugin.Check
 	return checkResp, nil
 }
 
+// CheckExist check the heartbeat time exist
+func (r *LeaderHealthChecker) CheckExist(request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
+	// 非 Leader 情况下，不做 CheckExist 存在性检查
+	if r.isLeader() {
+		return &plugin.QueryResponse{
+			Exists:           true,
+			LastHeartbeatSec: 0,
+		}, nil
+	}
+	return r.Query(request)
+}
+
 // Query queries the heartbeat time
 func (c *LeaderHealthChecker) Query(request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
 	c.lock.RLock()

@@ -89,6 +89,8 @@ type HealthChecker interface {
 	Check(request *CheckRequest) (*CheckResponse, error)
 	// Query queries the heartbeat time
 	Query(request *QueryRequest) (*QueryResponse, error)
+	// CheckExist check the heartbeat time exist
+	CheckExist(request *QueryRequest) (*QueryResponse, error)
 	// AddToCheck add the instances to check procedure
 	AddToCheck(request *AddCheckRequest) error
 	// RemoveFromCheck removes the instances from check procedure

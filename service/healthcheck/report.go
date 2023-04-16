@@ -53,7 +53,7 @@ func (s *Server) checkInstanceExists(id string) (int64, *model.Instance, apimode
 	if ins != nil {
 		return -1, ins, apimodel.Code_ExecuteSuccess
 	}
-	resp, err := s.defaultChecker.Query(&plugin.QueryRequest{
+	resp, err := s.defaultChecker.CheckExist(&plugin.QueryRequest{
 		InstanceId: id,
 	})
 	if nil != err {

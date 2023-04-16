@@ -191,6 +191,7 @@ bootstrap:
     key: sz # Global lock
   # Register as Arctic Star Service
   polaris_service:
+    # probe_address: ##DB_ADDR##
     probe_address: 9.135.223.132:3306
     enable_register: true
     isolated: false
@@ -426,6 +427,19 @@ store:
   # name: boltdbStore
   # option:
   #   path: ./polaris.bolt
+  ## Database storage plugin
+  # name: defaultStore
+  # option:
+  #   master:
+  #     dbType: mysql
+  #     dbName: polaris_server
+  #     dbUser: ##DB_USER##
+  #     dbPwd: ##DB_PWD##
+  #     dbAddr: ##DB_ADDR##
+  #     maxOpenConns: 300
+  #     maxIdleConns: 50
+  #     connMaxLifetime: 300 # Unit second
+  #     txIsolationLevel: 2 #LevelReadCommitted
   ## Database storage plugin
   name: defaultStore
   option:
