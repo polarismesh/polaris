@@ -280,7 +280,7 @@ func (p *RemotePeer) handleSendGetRecords(tasks []batchjob.Future) {
 	}
 	for i := range futures {
 		for _, f := range futures[i] {
-			f.Reply(nil, ErrorBadGetRecordRequest)
+			f.Reply(nil, ErrorRecordNotFound)
 		}
 	}
 	for i := range futures {
