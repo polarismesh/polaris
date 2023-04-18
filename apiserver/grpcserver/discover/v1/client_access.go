@@ -157,6 +157,7 @@ func (g *DiscoverServer) Heartbeat(ctx context.Context, in *apiservice.Instance)
 }
 
 // BatchHeartbeat 批量上报心跳
+<<<<<<< HEAD
 func (g *DiscoverServer) BatchHeartbeat(svr apiservice.PolarisGRPC_BatchHeartbeatServer) error {
 	ctx := grpcserver.ConvertContext(svr.Context())
 
@@ -174,6 +175,16 @@ func (g *DiscoverServer) BatchHeartbeat(svr apiservice.PolarisGRPC_BatchHeartbea
 
 		if err = svr.Send(&apiservice.HeartbeatsResponse{}); err != nil {
 			return err
+=======
+func (g *DiscoverServer) BatchHeartbeat(ctx context.Context,
+	req *apiservice.Heartbeats) (*apiservice.Response, error) {
+	heartbeats := req.GetHeartbeats()
+	for i := range heartbeats {
+		beat := heartbeats[i]
+		resp := g.healthCheckServer.Report(grpcserver.ConvertContext(ctx), beat)
+		if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
+			namingLog.Error("report heartbeat fail", zap.Any("instance", beat), zap.String("err_msg", resp.GetInfo().GetValue()))
+>>>>>>> 2d0c2e97... feat:support heartbeat without redis in cluster
 		}
 	}
 }

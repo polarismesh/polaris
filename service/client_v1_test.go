@@ -137,13 +137,21 @@ func TestServer_GetReportClients(t *testing.T) {
 			},
 		})
 
+<<<<<<< HEAD
 		assert.Equal(t, resp.GetCode().GetValue(), uint32(apimodel.Code_ExecuteSuccess))
+=======
+		assert.Equal(t, resp.GetCode().GetValue(), apimodel.Code_ExecuteSuccess)
+>>>>>>> 2d0c2e97... feat:support heartbeat without redis in cluster
 		// 强制刷新到 cache
 		svr.Cache().TestUpdate()
 
 		originSvr := discoverSuit.OriginDiscoverServer().(*service.Server)
 		qresp := originSvr.GetReportClients(discoverSuit.DefaultCtx, map[string]string{})
+<<<<<<< HEAD
 		assert.Equal(t, resp.GetCode().GetValue(), uint32(apimodel.Code_ExecuteSuccess))
+=======
+		assert.Equal(t, resp.GetCode().GetValue(), apimodel.Code_ExecuteSuccess)
+>>>>>>> 2d0c2e97... feat:support heartbeat without redis in cluster
 		assert.Equal(t, qresp.GetAmount().GetValue(), uint32(1))
 		assert.Equal(t, qresp.GetSize().GetValue(), uint32(1))
 	})
