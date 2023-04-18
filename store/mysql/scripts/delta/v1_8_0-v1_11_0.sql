@@ -24,6 +24,7 @@ ALTER TABLE `ratelimit_config` ADD COLUMN `name` varchar(64) NOT NULL;
 ALTER TABLE `ratelimit_config` ADD COLUMN `disable` tinyint(4)  NOT NULL DEFAULT '0';
 ALTER TABLE `ratelimit_config` ADD COLUMN `etime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE `ratelimit_config` ADD COLUMN `method` varchar(512)   NOT NULL;
+ALTER TABLE `ratelimit_config` MODIFY COLUMN `cluster_id` varchar(32) DEFAULT '' comment 'Cluster ID, no use';
 
 
 CREATE TABLE `config_file_template` (
