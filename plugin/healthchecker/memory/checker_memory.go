@@ -80,11 +80,6 @@ func (r *MemoryHealthChecker) Report(request *plugin.ReportRequest) error {
 	return nil
 }
 
-// CheckExist check the heartbeat time exist
-func (r *MemoryHealthChecker) CheckExist(request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
-	return r.Query(request)
-}
-
 // Query queries the heartbeat time
 func (r *MemoryHealthChecker) Query(request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
 	recordValue, ok := r.hbRecords.Load(request.InstanceId)

@@ -82,8 +82,8 @@ func TestNewBatchControllerTimeout(t *testing.T) {
 	}
 
 	ctrl := NewBatchController(ctx, CtrlConfig{
-		QueueSize:     total * 2,
-		MaxBatchCount: total * 2,
+		QueueSize:     uint32(total * 2),
+		MaxBatchCount: uint32(total * 2),
 		WaitTime:      32 * time.Second,
 		Concurrency:   8,
 		Handler:       testHandle,

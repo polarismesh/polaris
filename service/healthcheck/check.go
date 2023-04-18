@@ -237,23 +237,37 @@ func (c *CheckScheduler) upsertInstanceChecker(instanceWithChecker *InstanceWith
 	ttl := instance.HealthCheck().GetHeartbeat().GetTtl().GetValue()
 	var (
 		instValue *itemValue
-		ok        bool
+		exist     bool
 	)
-	instValue, ok = c.scheduledInstances[instance.ID()]
-	if ok && ttl == instValue.ttlDurationSec {
-		return true, instValue
-	}
-	instValue = &itemValue{
-		mutex:             &sync.Mutex{},
-		host:              instance.Host(),
-		port:              instance.Port(),
-		id:                instance.ID(),
-		expireDurationSec: getExpireDurationSec(instance.Proto),
-		checker:           instanceWithChecker.checker,
-		ttlDurationSec:    ttl,
+	instValue, exist = c.scheduledInstances[instance.ID()]
+	if exist {
+		if ttl == instValue.ttlDurationSec {
+			return true, instValue
+		}
+		// force update check info
+		instValue.mutex.Lock()
+		oldTtl := instValue.ttlDurationSec
+		instValue.checker = instanceWithChecker.checker
+		instValue.expireDurationSec = getExpireDurationSec(instance.Proto)
+		instValue.ttlDurationSec = ttl
+		instValue.mutex.Unlock()
+		if log.DebugEnabled() {
+			log.Debug("[Health Check][Check] upsert instance checker", zap.String("id", instValue.id),
+				zap.Uint32("old-ttl", oldTtl), zap.Uint32("ttl", instValue.ttlDurationSec))
+		}
+	} else {
+		instValue = &itemValue{
+			mutex:             &sync.Mutex{},
+			host:              instance.Host(),
+			port:              instance.Port(),
+			id:                instance.ID(),
+			expireDurationSec: getExpireDurationSec(instance.Proto),
+			checker:           instanceWithChecker.checker,
+			ttlDurationSec:    ttl,
+		}
 	}
 	c.scheduledInstances[instance.ID()] = instValue
-	return false, instValue
+	return exist, instValue
 }
 
 func (c *CheckScheduler) putClientIfAbsent(clientWithChecker *ClientWithChecker) (bool, *clientItemValue) {
@@ -296,8 +310,8 @@ func (c *CheckScheduler) getClientValue(clientId string) (*clientItemValue, bool
 	return value, ok
 }
 
-// AddInstance add instance to check
-func (c *CheckScheduler) AddInstance(instanceWithChecker *InstanceWithChecker) {
+// UpsertInstance insert or update instance to check
+func (c *CheckScheduler) UpsertInstance(instanceWithChecker *InstanceWithChecker) {
 	firstadd, instValue := c.upsertInstanceChecker(instanceWithChecker)
 	if firstadd {
 		return
@@ -427,8 +441,10 @@ func (c *CheckScheduler) checkCallbackInstance(value interface{}) {
 	instanceValue.mutex.Lock()
 	defer instanceValue.mutex.Unlock()
 
-	var checkResp *plugin.CheckResponse
-	var err error
+	var (
+		checkResp *plugin.CheckResponse
+		err       error
+	)
 	defer func() {
 		if checkResp != nil && checkResp.Regular && checkResp.Healthy {
 			c.addHealthyCallback(instanceValue, checkResp.LastHeartbeatTimeSec)

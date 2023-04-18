@@ -23,12 +23,14 @@ import (
 	"testing"
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
 
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/service"
 )
 
 func mockReportClients(cnt int) []*apiservice.Client {
@@ -102,5 +104,47 @@ func TestServer_GetReportClient(t *testing.T) {
 		resp := discoverSuit.DiscoverServer().GetPrometheusTargets(context.Background(), map[string]string{})
 		assert.Equal(t, apiv1.ExecuteSuccess, resp.Code)
 		assert.True(t, len(resp.Response) >= 0 && len(resp.Response) <= 5)
+	})
+}
+
+func TestServer_GetReportClients(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.Initialize(); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("create client", func(t *testing.T) {
+		svr := discoverSuit.OriginDiscoverServer()
+
+		mockClientId := utils.NewUUID()
+		resp := svr.ReportClient(context.Background(), &service_manage.Client{
+			Host:    utils.NewStringValue("127.0.0.1"),
+			Type:    service_manage.Client_SDK,
+			Version: utils.NewStringValue("1.0.0"),
+			Location: &apimodel.Location{
+				Region: utils.NewStringValue("region"),
+				Zone:   utils.NewStringValue("zone"),
+				Campus: utils.NewStringValue("campus"),
+			},
+			Id: utils.NewStringValue(mockClientId),
+			Stat: []*service_manage.StatInfo{
+				{
+					Target:   utils.NewStringValue("prometheus"),
+					Port:     utils.NewUInt32Value(8080),
+					Path:     utils.NewStringValue("/metrics"),
+					Protocol: utils.NewStringValue("http"),
+				},
+			},
+		})
+
+		assert.Equal(t, resp.GetCode().GetValue(), apimodel.Code_ExecuteSuccess)
+		// 强制刷新到 cache
+		svr.Cache().TestUpdate()
+
+		originSvr := discoverSuit.OriginDiscoverServer().(*service.Server)
+		qresp := originSvr.GetReportClients(discoverSuit.DefaultCtx, map[string]string{})
+		assert.Equal(t, resp.GetCode().GetValue(), apimodel.Code_ExecuteSuccess)
+		assert.Equal(t, qresp.GetAmount().GetValue(), uint32(1))
+		assert.Equal(t, qresp.GetSize().GetValue(), uint32(1))
 	})
 }

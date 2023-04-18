@@ -164,7 +164,7 @@ func (g *DiscoverServer) BatchHeartbeat(ctx context.Context,
 		beat := heartbeats[i]
 		resp := g.healthCheckServer.Report(grpcserver.ConvertContext(ctx), beat)
 		if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
-
+			namingLog.Error("report heartbeat fail", zap.Any("instance", beat), zap.String("err_msg", resp.GetInfo().GetValue()))
 		}
 	}
 	return api.NewResponse(apimodel.Code_ExecuteSuccess), nil

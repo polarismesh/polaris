@@ -16,3 +16,133 @@
  */
 
 package leader
+
+import (
+	"context"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/golang/mock/gomock"
+	"github.com/polarismesh/polaris/common/batchjob"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/store"
+	"github.com/polarismesh/polaris/store/mock"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestLeaderHealthChecker_OnEvent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	t.Cleanup(func() {
+		ctrl.Finish()
+	})
+	mockStore := mock.NewMockStore(ctrl)
+
+	checker := &LeaderHealthChecker{
+		s: mockStore,
+		conf: &Config{
+			SoltNum: 0,
+			Batch: batchjob.CtrlConfig{
+				QueueSize:     16,
+				WaitTime:      32 * time.Millisecond,
+				MaxBatchCount: 32,
+				Concurrency:   1,
+			},
+		},
+	}
+
+	mockPort := uint32(28888)
+	_, err := newMockPolarisGRPCSever(t, mockPort)
+	assert.NoError(t, err)
+
+	utils.LocalHost = "127.0.0.2"
+	utils.LocalPort = int(mockPort)
+	t.Cleanup(func() {
+		utils.LocalPort = 8091
+		utils.LocalHost = "127.0.0.1"
+	})
+
+	t.Run("initialize-self-is-follower", func(t *testing.T) {
+		callTimes := int64(0)
+		oldNewRemotePeerFunc := NewRemotePeerFunc
+		NewRemotePeerFunc = func() Peer {
+			p := oldNewRemotePeerFunc()
+			return &MockPeerImpl{
+				OnServe: func(ctx context.Context, _ *MockPeerImpl, ip string, port uint32) error {
+					atomic.AddInt64(&callTimes, 1)
+					return p.Serve(ctx, ip, port)
+				},
+				OnGet: func(key string) (*ReadBeatRecord, error) {
+					atomic.AddInt64(&callTimes, 1)
+					return p.Get(key)
+				},
+				OnPut: func(r WriteBeatRecord) error {
+					atomic.AddInt64(&callTimes, 1)
+					return p.Put(r)
+				},
+				OnDel: func(key string) error {
+					atomic.AddInt64(&callTimes, 1)
+					return p.Del(key)
+				},
+				OnClose: func(*MockPeerImpl) error {
+					atomic.AddInt64(&callTimes, 1)
+					return p.Close()
+				},
+				OnHost: func() string {
+					return p.Host()
+				},
+			}
+		}
+
+		mockStore.EXPECT().ListLeaderElections().Times(1).Return([]*model.LeaderElection{
+			{
+				ElectKey: electionKey,
+				Host:     "127.0.0.1",
+			},
+		}, nil)
+
+		checker.OnEvent(context.Background(), store.LeaderChangeEvent{
+			Key:        electionKey,
+			Leader:     false,
+			LeaderHost: "127.0.0.1",
+		})
+
+		assert.True(t, checker.isInitialize())
+		assert.False(t, checker.isLeader())
+
+		skipRet := checker.skipCheck(utils.NewUUID(), 15)
+		assert.True(t, skipRet)
+		time.Sleep(15 * time.Second)
+		skipRet = checker.skipCheck(utils.NewUUID(), 15)
+		assert.False(t, skipRet)
+
+		peer := checker.findLeaderPeer()
+		assert.NotNil(t, peer)
+		_, ok := peer.(*RemotePeer)
+		assert.True(t, ok)
+	})
+
+	t.Run("initialize-self-become-leader", func(t *testing.T) {
+		checker.OnEvent(context.Background(), store.LeaderChangeEvent{
+			Key:        electionKey,
+			Leader:     true,
+			LeaderHost: "127.0.0.2",
+		})
+
+		assert.True(t, checker.isInitialize())
+		assert.True(t, checker.isLeader())
+		assert.Nil(t, checker.remote)
+
+		skipRet := checker.skipCheck(utils.NewUUID(), 15)
+		assert.True(t, skipRet)
+		time.Sleep(15 * time.Second)
+		skipRet = checker.skipCheck(utils.NewUUID(), 15)
+		assert.False(t, skipRet)
+
+		peer := checker.findLeaderPeer()
+		assert.NotNil(t, peer)
+		_, ok := peer.(*LocalPeer)
+		assert.True(t, ok)
+	})
+}

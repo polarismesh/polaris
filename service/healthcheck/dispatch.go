@@ -202,14 +202,8 @@ func (d *Dispatcher) reloadManagedInstances() {
 	originInstances := d.managedInstances
 	d.managedInstances = nextInstances
 	if len(nextInstances) > 0 {
-		for id, instance := range nextInstances {
-			if len(originInstances) == 0 {
-				d.svr.checkScheduler.AddInstance(instance)
-				continue
-			}
-			if _, ok := originInstances[id]; !ok {
-				d.svr.checkScheduler.AddInstance(instance)
-			}
+		for _, instance := range nextInstances {
+			d.svr.checkScheduler.UpsertInstance(instance)
 		}
 	}
 	if len(originInstances) > 0 {

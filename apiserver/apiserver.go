@@ -80,7 +80,7 @@ func GetClientOpenMethod(include []string, protocol string) (map[string]bool, er
 	clientAccess := make(map[string][]string)
 	clientAccess[DiscoverAccess] = []string{"Discover", "ReportClient"}
 	clientAccess[RegisterAccess] = []string{"RegisterInstance", "DeregisterInstance"}
-	clientAccess[HealthcheckAccess] = []string{"Heartbeat"}
+	clientAccess[HealthcheckAccess] = []string{"Heartbeat", "BatchHeartbeat", "BatchGetHeartbeat", "BatchDelHeartbeat"}
 
 	openMethod := make(map[string]bool)
 	// 如果为空，开启全部接口

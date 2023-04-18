@@ -61,8 +61,6 @@ var (
 	DefaultSoltNum = int32(runtime.GOMAXPROCS(0) * 16)
 )
 
-type keyInnerQuery struct{}
-
 // LeaderHealthChecker Leader~Follower 节点心跳健康检查
 // 1. 监听 LeaderChangeEvent 事件，
 // 2. LeaderHealthChecker 启动时先根据 store 层的 LeaderElection 选举能力选出一个 Leader
@@ -93,24 +91,26 @@ type LeaderHealthChecker struct {
 	s store.Store
 }
 
-// Name
+// Name .
 func (c *LeaderHealthChecker) Name() string {
 	return PluginName
 }
 
-// Initialize
+// Initialize .
 func (c *LeaderHealthChecker) Initialize(entry *plugin.ConfigEntry) error {
 	conf, err := Unmarshal(entry.Option)
 	if err != nil {
 		return err
 	}
 	c.conf = conf
-	c.self = newLocalPeer()
+	c.self = NewLocalPeerFunc()
 	c.self.Initialize(*conf)
 	if err := c.self.Serve(context.Background(), "", 0); err != nil {
 		return err
 	}
-	eventhub.Subscribe(eventhub.LeaderChangeEventTopic, subscriberName, c)
+	if err := eventhub.Subscribe(eventhub.LeaderChangeEventTopic, subscriberName, c); err != nil {
+		return err
+	}
 	storage, err := store.GetStore()
 	if err != nil {
 		return err
@@ -142,12 +142,16 @@ func (c *LeaderHealthChecker) OnEvent(ctx context.Context, i interface{}) error 
 	} else {
 		c.becomeFollower()
 	}
+	c.refreshLeaderChangeTimeSec()
 	return nil
 }
 
 func (c *LeaderHealthChecker) becomeLeader() {
 	if c.remote != nil {
-		log.Debug("[HealthCheck][Leader] become leader and close old leader", zap.String("leader", c.remote.Host()))
+		if log.DebugEnabled() {
+			log.Debug("[HealthCheck][Leader] become leader and close old leader",
+				zap.String("leader", c.remote.Host()))
+		}
 		// 关闭原来自己跟随的 leader 节点信息
 		oldLeader := c.remote
 		c.remote = nil
@@ -190,7 +194,7 @@ func (c *LeaderHealthChecker) becomeFollower() {
 				_ = oldLeader.Close()
 			}
 		}
-		remoteLeader := newRemotePeer()
+		remoteLeader := NewRemotePeerFunc()
 		remoteLeader.Initialize(*c.conf)
 		if err := remoteLeader.Serve(context.Background(), election.Host, uint32(utils.LocalPort)); err != nil {
 			log.Error("[HealthCheck][Leader] follower run serve", zap.Error(err))
@@ -203,7 +207,7 @@ func (c *LeaderHealthChecker) becomeFollower() {
 	}
 }
 
-// Destroy
+// Destroy .
 func (c *LeaderHealthChecker) Destroy() error {
 	eventhub.Unsubscribe(eventhub.LeaderChangeEventTopic, subscriberName)
 	return nil
@@ -222,7 +226,7 @@ func (c *LeaderHealthChecker) Report(request *plugin.ReportRequest) error {
 		log.Warn("[Health Check][Leader] leader checker uninitialize, ignore report")
 		return nil
 	}
-	responsible := c.finLeaderPeer()
+	responsible := c.findLeaderPeer()
 	record := WriteBeatRecord{
 		Record: RecordValue{
 			Server:     responsible.Host(),
@@ -234,7 +238,9 @@ func (c *LeaderHealthChecker) Report(request *plugin.ReportRequest) error {
 	if err := responsible.Put(record); err != nil {
 		return err
 	}
-	log.Debugf("[HealthCheck][Leader] add hb record, instanceId %s, record %+v", request.InstanceId, record)
+	if log.DebugEnabled() {
+		log.Debugf("[HealthCheck][Leader] add hb record, instanceId %s, record %+v", request.InstanceId, record)
+	}
 	return nil
 }
 
@@ -249,7 +255,9 @@ func (c *LeaderHealthChecker) Check(request *plugin.CheckRequest) (*plugin.Check
 		LastHeartbeatTimeSec: lastHeartbeatTime,
 	}
 	curTimeSec := request.CurTimeSec()
-	log.Debugf("[HealthCheck][Leader] check hb record, cur is %d, last is %d", curTimeSec, lastHeartbeatTime)
+	if log.DebugEnabled() {
+		log.Debugf("[HealthCheck][Leader] check hb record, cur is %d, last is %d", curTimeSec, lastHeartbeatTime)
+	}
 	if c.skipCheck(request.InstanceId, int64(request.ExpireDurationSec)) {
 		checkResp.StayUnchanged = true
 		return checkResp, nil
@@ -280,18 +288,6 @@ func (c *LeaderHealthChecker) Check(request *plugin.CheckRequest) (*plugin.Check
 	return checkResp, nil
 }
 
-// CheckExist check the heartbeat time exist
-func (r *LeaderHealthChecker) CheckExist(request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
-	// 非 Leader 情况下，不做 CheckExist 存在性检查
-	if r.isLeader() {
-		return &plugin.QueryResponse{
-			Exists:           true,
-			LastHeartbeatSec: 0,
-		}, nil
-	}
-	return r.Query(request)
-}
-
 // Query queries the heartbeat time
 func (c *LeaderHealthChecker) Query(request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
 	c.lock.RLock()
@@ -302,7 +298,7 @@ func (c *LeaderHealthChecker) Query(request *plugin.QueryRequest) (*plugin.Query
 			LastHeartbeatSec: 0,
 		}, nil
 	}
-	responsible := c.finLeaderPeer()
+	responsible := c.findLeaderPeer()
 	record, err := responsible.Get(request.InstanceId)
 	if err != nil {
 		return nil, err
@@ -332,9 +328,8 @@ func (c *LeaderHealthChecker) RemoveFromCheck(request *plugin.AddCheckRequest) e
 func (c *LeaderHealthChecker) Delete(key string) error {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	responsible := c.finLeaderPeer()
-	responsible.Del(key)
-	return nil
+	responsible := c.findLeaderPeer()
+	return responsible.Del(key)
 }
 
 // Suspend checker for an entire expired interval
@@ -349,7 +344,7 @@ func (c *LeaderHealthChecker) SuspendTimeSec() int64 {
 	return atomic.LoadInt64(&c.suspendTimeSec)
 }
 
-func (c *LeaderHealthChecker) finLeaderPeer() Peer {
+func (c *LeaderHealthChecker) findLeaderPeer() Peer {
 	if c.isLeader() {
 		return c.self
 	}
@@ -359,7 +354,7 @@ func (c *LeaderHealthChecker) finLeaderPeer() Peer {
 func (c *LeaderHealthChecker) skipCheck(key string, expireDurationSec int64) bool {
 	// 如果没有初始化，则忽略检查
 	if !c.isInitialize() {
-		log.Infof("[Health Check][Leader] leader checker uninitialize, ignore check")
+		log.Infof("[Health Check][Leader] leader checker uninitialize, ensure skip check")
 		return true
 	}
 
@@ -374,7 +369,7 @@ func (c *LeaderHealthChecker) skipCheck(key string, expireDurationSec int64) boo
 	}
 
 	// 当 T1 时刻出现 Leader 节点切换，到 T2 时刻 Leader 节点切换成，在这期间，可能会出现以下情况
-	// case 1: T1~T2 时刻不存在 Leader，这种情况利用
+	// case 1: T1~T2 时刻不存在 Leader
 	// case 2: T1～T2 时刻存在多个 Leader
 	leaderChangeTimeSec := c.LeaderChangeTimeSec()
 	if leaderChangeTimeSec > 0 && localCurTimeSec >= leaderChangeTimeSec &&
@@ -385,6 +380,10 @@ func (c *LeaderHealthChecker) skipCheck(key string, expireDurationSec int64) boo
 		return true
 	}
 	return false
+}
+
+func (c *LeaderHealthChecker) refreshLeaderChangeTimeSec() {
+	atomic.StoreInt64(&c.leaderChangeTimeSec, commontime.CurrentMillisecond()/1000)
 }
 
 func (c *LeaderHealthChecker) LeaderChangeTimeSec() int64 {

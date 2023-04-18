@@ -83,17 +83,17 @@ func (bc *BatchController) SubmitWithTimeout(task Task, timeout time.Duration) F
 }
 
 func (bc *BatchController) runWorkers(ctx context.Context) {
-	for i := 0; i < bc.conf.Concurrency; i++ {
+	for i := uint32(0); i < bc.conf.Concurrency; i++ {
 		index := i
 		bc.workers = append(bc.workers, make(chan []Future))
 		log.Infof("[Batch] %s worker(%d) running in main loop", bc.label, index)
-		bc.idleSignal <- index
+		bc.idleSignal <- int(index)
 		go func() {
 			for {
 				select {
 				case futures := <-bc.workers[index]:
 					bc.handler(futures)
-					bc.idleSignal <- index
+					bc.idleSignal <- int(index)
 				case <-ctx.Done():
 					log.Infof("[Batch] %s worker(%d) exited", bc.label, index)
 					return
@@ -123,7 +123,7 @@ func (bc *BatchController) mainLoop(ctx context.Context) {
 			case future := <-bc.tasksChan:
 				futures = append(futures, future)
 				idx++
-				if idx == bc.conf.MaxBatchCount {
+				if idx == int(bc.conf.MaxBatchCount) {
 					triggerConsume(futures[0:idx])
 				}
 			case <-ticker.C:

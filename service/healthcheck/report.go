@@ -54,7 +54,7 @@ func (s *Server) checkInstanceExists(instance *apiservice.Instance) (int64, *mod
 	if ins != nil {
 		return -1, ins, apimodel.Code_ExecuteSuccess
 	}
-	resp, err := s.defaultChecker.CheckExist(&plugin.QueryRequest{
+	resp, err := s.defaultChecker.Query(&plugin.QueryRequest{
 		InstanceId: id,
 		Host:       instance.GetHost().GetValue(),
 		Port:       instance.GetPort().GetValue(),

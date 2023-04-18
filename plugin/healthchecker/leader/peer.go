@@ -33,22 +33,10 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-type Peer interface {
-	// Initialize
-	Initialize(conf Config) error
-	// Serve
-	Serve(ctx context.Context, listenIP string, listenPort uint32) error
-	// Get
-	Get(key string) (*ReadBeatRecord, error)
-	// Put
-	Put(record WriteBeatRecord) error
-	// Del
-	Del(key string) error
-	// Close
-	Close() error
-	// Host
-	Host() string
-}
+var (
+	NewLocalPeerFunc  = newLocalPeer
+	NewRemotePeerFunc = newRemotePeer
+)
 
 func newLocalPeer() Peer {
 	return &LocalPeer{}
@@ -56,6 +44,24 @@ func newLocalPeer() Peer {
 
 func newRemotePeer() Peer {
 	return &RemotePeer{}
+}
+
+// Peer peer
+type Peer interface {
+	// Initialize .
+	Initialize(conf Config)
+	// Serve .
+	Serve(ctx context.Context, listenIP string, listenPort uint32) error
+	// Get .
+	Get(key string) (*ReadBeatRecord, error)
+	// Put .
+	Put(record WriteBeatRecord) error
+	// Del .
+	Del(key string) error
+	// Close .
+	Close() error
+	// Host .
+	Host() string
 }
 
 // LocalPeer Heartbeat data storage node
@@ -67,9 +73,8 @@ type LocalPeer struct {
 	cancel context.CancelFunc
 }
 
-func (p *LocalPeer) Initialize(conf Config) error {
+func (p *LocalPeer) Initialize(conf Config) {
 	p.Cache = newLocalBeatRecordCache(conf.SoltNum, commonhash.Fnv32)
-	return nil
 }
 
 func (p *LocalPeer) Serve(ctx context.Context, listenIP string, listenPort uint32) error {
@@ -135,7 +140,7 @@ type RemotePeer struct {
 	cancel context.CancelFunc
 }
 
-func (p *RemotePeer) Initialize(conf Config) error {
+func (p *RemotePeer) Initialize(conf Config) {
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
 	batchConf := conf.Batch
@@ -174,8 +179,7 @@ func (p *RemotePeer) Initialize(conf Config) error {
 				log.Debug("[HealthCheck][Leader] send put record request", zap.String("host", p.Host()),
 					zap.Uint32("port", p.port), zap.Any("req", req))
 			}
-			_, err := p.Client.BatchHeartbeat(context.Background(), req)
-			if err != nil {
+			if _, err := p.Client.BatchHeartbeat(context.Background(), req); err != nil {
 				log.Error("[HealthCheck][Leader] send put record request", zap.String("host", p.Host()),
 					zap.Uint32("port", p.port), zap.Any("req", req), zap.Error(err))
 			}
@@ -184,13 +188,11 @@ func (p *RemotePeer) Initialize(conf Config) error {
 				log.Debug("[HealthCheck][Leader] send del record request", zap.String("host", p.Host()),
 					zap.Uint32("port", p.port), zap.Any("req", req))
 			}
-			_, err := p.Client.BatchDelHeartbeat(context.Background(), req)
-			if err != nil {
+			if _, err := p.Client.BatchDelHeartbeat(context.Background(), req); err != nil {
 				log.Error("send del record request", zap.String("host", p.Host()),
 					zap.Uint32("port", p.port), zap.Any("req", req), zap.Error(err))
 			}
 		})
-	return nil
 }
 
 func (p *RemotePeer) Serve(ctx context.Context, listenIP string, listenPort uint32) error {

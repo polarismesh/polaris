@@ -675,8 +675,17 @@ func TestListInstances(t *testing.T) {
 			}
 		}()
 
+		// host 不存在，查不出任何实例
 		query := map[string]string{"offset": "10", "limit": "20", "host": "127.0.0.1"}
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		assert.Equal(t, 0, len(resp.Instances))
+
+		// 不带条件查询
+		query = map[string]string{"offset": "10", "limit": "20"}
+		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -2142,7 +2151,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query := map[string]string{}
 		query["port"] = "123"
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if resp.Code.Value != api.InvalidQueryInsParameter {
+		if resp.Code.Value == api.InvalidQueryInsParameter {
 			t.Fatalf("%+v", resp)
 		}
 	})
@@ -2150,7 +2159,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query := map[string]string{}
 		query["version"] = "123"
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if resp.Code.Value != api.InvalidQueryInsParameter {
+		if resp.Code.Value == api.InvalidQueryInsParameter {
 			t.Fatalf("%+v", resp)
 		}
 	})
@@ -2158,7 +2167,7 @@ func TestCheckInstanceParam(t *testing.T) {
 		query := map[string]string{}
 		query["protocol"] = "http"
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
-		if resp.Code.Value != api.InvalidQueryInsParameter {
+		if resp.Code.Value == api.InvalidQueryInsParameter {
 			t.Fatalf("%+v", resp)
 		}
 	})

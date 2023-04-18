@@ -19,7 +19,6 @@ package leader
 
 import (
 	"strconv"
-	"strings"
 
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
@@ -44,29 +43,6 @@ type RecordValue struct {
 	Server     string
 	CurTimeSec int64
 	Count      int64
-}
-
-// ParseRecordValue parse string to RecordValue
-func ParseRecordValue(s string) (*RecordValue, bool) {
-	infos := strings.Split(s, Split)
-	if len(infos) < 3 {
-		return nil, false
-	}
-
-	sec, err := strconv.ParseInt(infos[1], 10, 64)
-	if err != nil {
-		return nil, false
-	}
-	count, err := strconv.ParseInt(infos[2], 10, 64)
-	if err != nil {
-		return nil, false
-	}
-
-	return &RecordValue{
-		Server:     infos[0],
-		CurTimeSec: sec,
-		Count:      count,
-	}, true
 }
 
 func (r RecordValue) String() string {

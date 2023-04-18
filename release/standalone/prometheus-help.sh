@@ -17,7 +17,7 @@ if [ ${command} == "start" ]; then
 fi
 
 if [ ${command} == "stop" ]; then
-    local pid=$(ps -ef | grep polaris-prometheus | grep -v grep | awk '{print $2}')
+    pid=$(ps -ef | grep polaris-prometheus | grep -v grep | awk '{print $2}')
     if [ "${pid}" != "" ]; then
         echo -e "start to kill polaris-prometheus process ${pid}"
         kill ${pid}
