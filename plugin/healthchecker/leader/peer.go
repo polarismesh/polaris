@@ -25,7 +25,6 @@ import (
 
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
-	"golang.org/x/sync/singleflight"
 	"google.golang.org/grpc"
 
 	"github.com/polarismesh/polaris/common/batchjob"
@@ -142,11 +141,7 @@ func (p *RemotePeer) Initialize(conf Config) {
 	p.conf = conf
 }
 
-<<<<<<< HEAD
 func (p *RemotePeer) Serve(_ context.Context, listenIP string, listenPort uint32) error {
-=======
-func (p *RemotePeer) Initialize(conf Config) {
->>>>>>> 2d0c2e97... feat:support heartbeat without redis in cluster
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
 	p.host = listenIP
@@ -179,53 +174,7 @@ func (p *RemotePeer) Initialize(conf Config) {
 		Concurrency:   batchConf.Concurrency,
 		Handler:       p.handleSendPutRecords,
 	})
-<<<<<<< HEAD
 	p.Cache = newRemoteBeatRecordCache(p.GetFunc, p.PutFunc, p.DelFunc)
-=======
-	p.Cache = newRemoteBeatRecordCache(
-		func(req *apiservice.GetHeartbeatsRequest) *apiservice.GetHeartbeatsResponse {
-			if log.DebugEnabled() {
-				log.Debug("[HealthCheck][Leader] send get record request", zap.String("host", p.Host()),
-					zap.Uint32("port", p.port), zap.Any("req", req))
-			}
-			resp, err := p.Client.BatchGetHeartbeat(context.Background(), req)
-			if err != nil {
-				log.Error("[HealthCheck][Leader] send get record request", zap.String("host", p.Host()),
-					zap.Uint32("port", p.port), zap.Any("req", req), zap.Error(err))
-				return &apiservice.GetHeartbeatsResponse{}
-			}
-			return resp
-		}, func(req *apiservice.Heartbeats) {
-			if log.DebugEnabled() {
-				log.Debug("[HealthCheck][Leader] send put record request", zap.String("host", p.Host()),
-					zap.Uint32("port", p.port), zap.Any("req", req))
-			}
-			if _, err := p.Client.BatchHeartbeat(context.Background(), req); err != nil {
-				log.Error("[HealthCheck][Leader] send put record request", zap.String("host", p.Host()),
-					zap.Uint32("port", p.port), zap.Any("req", req), zap.Error(err))
-			}
-		}, func(req *apiservice.DelHeartbeatsRequest) {
-			if log.DebugEnabled() {
-				log.Debug("[HealthCheck][Leader] send del record request", zap.String("host", p.Host()),
-					zap.Uint32("port", p.port), zap.Any("req", req))
-			}
-			if _, err := p.Client.BatchDelHeartbeat(context.Background(), req); err != nil {
-				log.Error("send del record request", zap.String("host", p.Host()),
-					zap.Uint32("port", p.port), zap.Any("req", req), zap.Error(err))
-			}
-		})
-}
-
-func (p *RemotePeer) Serve(ctx context.Context, listenIP string, listenPort uint32) error {
-	p.host = listenIP
-	p.port = listenPort
-	conn, err := grpc.DialContext(ctx, fmt.Sprintf("%s:%d", listenIP, listenPort), grpc.WithBlock(), grpc.WithInsecure())
-	if err != nil {
-		return err
-	}
-	p.Conn = conn
-	p.Client = apiservice.NewPolarisGRPCClient(p.Conn)
->>>>>>> 2d0c2e97... feat:support heartbeat without redis in cluster
 	return nil
 }
 

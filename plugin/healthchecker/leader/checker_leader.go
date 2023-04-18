@@ -256,12 +256,6 @@ func (c *LeaderHealthChecker) Check(request *plugin.CheckRequest) (*plugin.Check
 		LastHeartbeatTimeSec: lastHeartbeatTime,
 	}
 	curTimeSec := request.CurTimeSec()
-<<<<<<< HEAD
-=======
-	if log.DebugEnabled() {
-		log.Debugf("[HealthCheck][Leader] check hb record, cur is %d, last is %d", curTimeSec, lastHeartbeatTime)
-	}
->>>>>>> 2d0c2e97... feat:support heartbeat without redis in cluster
 	if c.skipCheck(request.InstanceId, int64(request.ExpireDurationSec)) {
 		checkResp.StayUnchanged = true
 		return checkResp, nil

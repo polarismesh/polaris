@@ -21,29 +21,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-<<<<<<< HEAD
 	"io"
-=======
->>>>>>> 2d0c2e97... feat:support heartbeat without redis in cluster
 	"net"
 	"testing"
 	"time"
 
-<<<<<<< HEAD
-=======
-	"github.com/polarismesh/polaris/common/batchjob"
-	"github.com/polarismesh/polaris/common/utils"
->>>>>>> 2d0c2e97... feat:support heartbeat without redis in cluster
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
-<<<<<<< HEAD
 
 	"github.com/polarismesh/polaris/common/batchjob"
 	"github.com/polarismesh/polaris/common/utils"
-=======
->>>>>>> 2d0c2e97... feat:support heartbeat without redis in cluster
 )
 
 type MockPeerImpl struct {
@@ -293,7 +282,6 @@ func (ms *MockPolarisGRPCServer) Heartbeat(context.Context,
 	return nil, errors.New("unsupport")
 }
 
-<<<<<<< HEAD
 // BatchHeartbeat 批量上报心跳
 func (ms *MockPolarisGRPCServer) BatchHeartbeat(svr service_manage.PolarisGRPC_BatchHeartbeatServer) error {
 	for {
@@ -319,24 +307,6 @@ func (ms *MockPolarisGRPCServer) BatchHeartbeat(svr service_manage.PolarisGRPC_B
 			return err
 		}
 	}
-=======
-// 被调方批量上报心跳
-func (ms *MockPolarisGRPCServer) BatchHeartbeat(_ context.Context,
-	req *service_manage.Heartbeats) (*service_manage.Response, error) {
-	heartbeats := req.GetHeartbeats()
-	for i := range heartbeats {
-		ms.peer.Put(WriteBeatRecord{
-			Record: RecordValue{
-				CurTimeSec: time.Now().Unix(),
-			},
-			Key: heartbeats[i].GetId().GetValue(),
-		})
-	}
-
-	return &service_manage.Response{
-		Code: utils.NewUInt32Value(uint32(apimodel.Code_ExecuteSuccess)),
-	}, nil
->>>>>>> 2d0c2e97... feat:support heartbeat without redis in cluster
 }
 
 // 批量获取心跳记录

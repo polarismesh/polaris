@@ -19,28 +19,17 @@ package leader
 
 import (
 	"context"
-<<<<<<< HEAD
-=======
-	"sync/atomic"
->>>>>>> 2d0c2e97... feat:support heartbeat without redis in cluster
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
-<<<<<<< HEAD
 	"github.com/stretchr/testify/assert"
 
-=======
->>>>>>> 2d0c2e97... feat:support heartbeat without redis in cluster
 	"github.com/polarismesh/polaris/common/batchjob"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 	"github.com/polarismesh/polaris/store/mock"
-<<<<<<< HEAD
-=======
-	"github.com/stretchr/testify/assert"
->>>>>>> 2d0c2e97... feat:support heartbeat without redis in cluster
 )
 
 func TestLeaderHealthChecker_OnEvent(t *testing.T) {
@@ -51,12 +40,8 @@ func TestLeaderHealthChecker_OnEvent(t *testing.T) {
 	mockStore := mock.NewMockStore(ctrl)
 
 	checker := &LeaderHealthChecker{
-<<<<<<< HEAD
 		self: NewLocalPeerFunc(),
 		s:    mockStore,
-=======
-		s: mockStore,
->>>>>>> 2d0c2e97... feat:support heartbeat without redis in cluster
 		conf: &Config{
 			SoltNum: 0,
 			Batch: batchjob.CtrlConfig{
@@ -80,40 +65,6 @@ func TestLeaderHealthChecker_OnEvent(t *testing.T) {
 	})
 
 	t.Run("initialize-self-is-follower", func(t *testing.T) {
-<<<<<<< HEAD
-=======
-		callTimes := int64(0)
-		oldNewRemotePeerFunc := NewRemotePeerFunc
-		NewRemotePeerFunc = func() Peer {
-			p := oldNewRemotePeerFunc()
-			return &MockPeerImpl{
-				OnServe: func(ctx context.Context, _ *MockPeerImpl, ip string, port uint32) error {
-					atomic.AddInt64(&callTimes, 1)
-					return p.Serve(ctx, ip, port)
-				},
-				OnGet: func(key string) (*ReadBeatRecord, error) {
-					atomic.AddInt64(&callTimes, 1)
-					return p.Get(key)
-				},
-				OnPut: func(r WriteBeatRecord) error {
-					atomic.AddInt64(&callTimes, 1)
-					return p.Put(r)
-				},
-				OnDel: func(key string) error {
-					atomic.AddInt64(&callTimes, 1)
-					return p.Del(key)
-				},
-				OnClose: func(*MockPeerImpl) error {
-					atomic.AddInt64(&callTimes, 1)
-					return p.Close()
-				},
-				OnHost: func() string {
-					return p.Host()
-				},
-			}
-		}
-
->>>>>>> 2d0c2e97... feat:support heartbeat without redis in cluster
 		mockStore.EXPECT().ListLeaderElections().Times(1).Return([]*model.LeaderElection{
 			{
 				ElectKey: electionKey,

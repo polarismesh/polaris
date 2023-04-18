@@ -134,12 +134,6 @@ func (bc *BatchController) runWorkers(ctx context.Context) {
 		go func() {
 			for {
 				select {
-<<<<<<< HEAD
-=======
-				case futures := <-bc.workers[index]:
-					bc.handler(futures)
-					bc.idleSignal <- int(index)
->>>>>>> 2d0c2e97... feat:support heartbeat without redis in cluster
 				case <-ctx.Done():
 					log.Infof("[Batch] %s worker(%d) exited", bc.label, index)
 					return
