@@ -132,6 +132,8 @@ type RemotePeer struct {
 	putBatchCtrl *batchjob.BatchController
 	// getBatchCtrl 批任务执行器
 	getBatchCtrl *batchjob.BatchController
+	// Puter 批量心跳发送
+	Puter apiservice.PolarisGRPC_BatchHeartbeatClient
 	// Cache data storage
 	Cache BeatRecordCache
 	// single
@@ -174,12 +176,12 @@ func (p *RemotePeer) Initialize(conf Config) {
 				return &apiservice.GetHeartbeatsResponse{}
 			}
 			return resp
-		}, func(req *apiservice.Heartbeats) {
+		}, func(req *apiservice.HeartbeatsRequest) {
 			if log.DebugEnabled() {
 				log.Debug("[HealthCheck][Leader] send put record request", zap.String("host", p.Host()),
 					zap.Uint32("port", p.port), zap.Any("req", req))
 			}
-			if _, err := p.Client.BatchHeartbeat(context.Background(), req); err != nil {
+			if err := p.Puter.Send(req); err != nil {
 				log.Error("[HealthCheck][Leader] send put record request", zap.String("host", p.Host()),
 					zap.Uint32("port", p.port), zap.Any("req", req), zap.Error(err))
 			}
@@ -204,6 +206,10 @@ func (p *RemotePeer) Serve(ctx context.Context, listenIP string, listenPort uint
 	}
 	p.Conn = conn
 	p.Client = apiservice.NewPolarisGRPCClient(p.Conn)
+	p.Puter, err = p.Client.BatchHeartbeat(ctx)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

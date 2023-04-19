@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"testing"
 	"time"
@@ -280,22 +281,31 @@ func (ms *MockPolarisGRPCServer) Heartbeat(context.Context,
 	return nil, errors.New("unsupport")
 }
 
-// 被调方批量上报心跳
-func (ms *MockPolarisGRPCServer) BatchHeartbeat(_ context.Context,
-	req *service_manage.Heartbeats) (*service_manage.Response, error) {
-	heartbeats := req.GetHeartbeats()
-	for i := range heartbeats {
-		ms.peer.Put(WriteBeatRecord{
-			Record: RecordValue{
-				CurTimeSec: time.Now().Unix(),
-			},
-			Key: heartbeats[i].GetId().GetValue(),
-		})
-	}
+// BatchHeartbeat 批量上报心跳
+func (ms *MockPolarisGRPCServer) BatchHeartbeat(svr service_manage.PolarisGRPC_BatchHeartbeatServer) error {
+	for {
+		req, err := svr.Recv()
+		if err != nil {
+			if io.EOF == err {
+				return nil
+			}
+			return err
+		}
 
-	return &service_manage.Response{
-		Code: utils.NewUInt32Value(uint32(apimodel.Code_ExecuteSuccess)),
-	}, nil
+		heartbeats := req.GetHeartbeats()
+		for i := range heartbeats {
+			ms.peer.Put(WriteBeatRecord{
+				Record: RecordValue{
+					CurTimeSec: time.Now().Unix(),
+				},
+				Key: heartbeats[i].GetInstanceId(),
+			})
+		}
+
+		if err = svr.Send(&service_manage.HeartbeatsResponse{}); err != nil {
+			return err
+		}
+	}
 }
 
 // 批量获取心跳记录

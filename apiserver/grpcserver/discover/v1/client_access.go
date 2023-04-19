@@ -157,17 +157,25 @@ func (g *DiscoverServer) Heartbeat(ctx context.Context, in *apiservice.Instance)
 }
 
 // BatchHeartbeat 批量上报心跳
-func (g *DiscoverServer) BatchHeartbeat(ctx context.Context,
-	req *apiservice.Heartbeats) (*apiservice.Response, error) {
-	heartbeats := req.GetHeartbeats()
-	for i := range heartbeats {
-		beat := heartbeats[i]
-		resp := g.healthCheckServer.Report(grpcserver.ConvertContext(ctx), beat)
-		if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
-			namingLog.Error("report heartbeat fail", zap.Any("instance", beat), zap.String("err_msg", resp.GetInfo().GetValue()))
+func (g *DiscoverServer) BatchHeartbeat(svr apiservice.PolarisGRPC_BatchHeartbeatServer) error {
+	ctx := grpcserver.ConvertContext(svr.Context())
+
+	for {
+		req, err := svr.Recv()
+		if err != nil {
+			if io.EOF == err {
+				return nil
+			}
+			return err
+		}
+
+		heartbeats := req.GetHeartbeats()
+		_ = g.healthCheckServer.Reports(ctx, heartbeats)
+
+		if err = svr.Send(&apiservice.HeartbeatsResponse{}); err != nil {
+			return err
 		}
 	}
-	return api.NewResponse(apimodel.Code_ExecuteSuccess), nil
 }
 
 // ParseGrpcOperator 构造请求源

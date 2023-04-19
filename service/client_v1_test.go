@@ -143,7 +143,7 @@ func TestServer_GetReportClients(t *testing.T) {
 
 		originSvr := discoverSuit.OriginDiscoverServer().(*service.Server)
 		qresp := originSvr.GetReportClients(discoverSuit.DefaultCtx, map[string]string{})
-		assert.Equal(t, resp.GetCode().GetValue(), apimodel.Code_ExecuteSuccess)
+		assert.Equal(t, resp.GetCode().GetValue(), uint32(apimodel.Code_ExecuteSuccess))
 		assert.Equal(t, qresp.GetAmount().GetValue(), uint32(1))
 		assert.Equal(t, qresp.GetSize().GetValue(), uint32(1))
 	})

@@ -55,7 +55,7 @@ type (
 	// HashFunction hash function to caul record id need locate in SegmentMap
 	HashFunction func(string) int
 	// RecordSaver beat record saver
-	RecordSaver func(req *apiservice.Heartbeats)
+	RecordSaver func(req *apiservice.HeartbeatsRequest)
 	// RecordDelter beat record delter
 	RecordDelter func(req *apiservice.DelHeartbeatsRequest)
 	// RecordGetter beat record getter
@@ -171,13 +171,13 @@ func (rc *RemoteBeatRecordCache) Get(keys ...string) map[string]*ReadBeatRecord 
 }
 
 func (rc *RemoteBeatRecordCache) Put(records ...WriteBeatRecord) {
-	req := &apiservice.Heartbeats{
-		Heartbeats: make([]*apiservice.Instance, 0, len(records)),
+	req := &apiservice.HeartbeatsRequest{
+		Heartbeats: make([]*apiservice.InstanceHeartbeat, 0, len(records)),
 	}
 	for i := range records {
 		record := records[i]
-		req.Heartbeats = append(req.Heartbeats, &apiservice.Instance{
-			Id: utils.NewStringValue(record.Key),
+		req.Heartbeats = append(req.Heartbeats, &apiservice.InstanceHeartbeat{
+			InstanceId: record.Key,
 		})
 	}
 	rc.saver(req)

@@ -149,6 +149,11 @@ func (s *Server) Report(ctx context.Context, req *apiservice.Instance) *apiservi
 	return s.doReport(ctx, req)
 }
 
+// Reports batch report heartbeat request
+func (s *Server) Reports(ctx context.Context, req []*apiservice.InstanceHeartbeat) *apiservice.Response {
+	return s.doReports(ctx, req)
+}
+
 // ReportByClient report heartbeat request by client
 func (s *Server) ReportByClient(ctx context.Context, req *apiservice.Client) *apiservice.Response {
 	return s.doReportByClient(ctx, req)
