@@ -20,6 +20,7 @@ package defaultauth
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -163,35 +164,21 @@ func (d *defaultAuthChecker) CheckPermission(authCtx *model.AcquireContext) (boo
 		return false, model.ErrorTokenDisabled
 	}
 
-	strategies, err := d.findStrategies(operatorInfo)
+	ok, err := d.doCheckPermission(authCtx)
+	if ok {
+		return ok, nil
+	}
+
+	// 强制同步一次db中strategy数据到cache
+	err = d.cacheMgn.AuthStrategy().ForceSyncStrategy2Cache()
 	if err != nil {
-		log.Error("[Auth][Checker] find strategies when check permission", utils.ZapRequestID(reqId),
-			zap.Error(err), zap.Any("token", operatorInfo.String()))
+		log.Error("[Auth][Checker] check permission args", utils.ZapRequestID(reqId),
+			zap.String("method", authCtx.GetMethod()), zap.Any("resources", authCtx.GetAccessResources()))
+		log.Error("[Auth][Checker] force sync strategy to cache failed", utils.ZapRequestID(reqId), zap.Error(err))
 		return false, err
 	}
 
-	authCtx.SetAttachment(model.OperatorLinkStrategy, strategies)
-
-	noResourceNeedCheck := d.removeNoStrategyResources(authCtx)
-	if !noResourceNeedCheck && len(strategies) == 0 {
-		log.Error("[Auth][Checker]", utils.ZapRequestID(reqId),
-			zap.String("msg", "need check resource is not empty, but strategies is empty"))
-		return false, errors.New("no permission")
-	}
-
-	log.Info("[Auth][Checker] check permission args", zap.Any("resources", authCtx.GetAccessResources()),
-		zap.Any("strategies", strategies))
-
-	ok, err := d.doCheckPermission(authCtx, strategies)
-	if err != nil {
-		log.Error("[Auth][Checker] check permission args", utils.ZapRequestID(reqId),
-			zap.String("method", authCtx.GetMethod()), zap.Any("resources", authCtx.GetAccessResources()),
-			zap.Any("strategies", strategies))
-		log.Error("[Auth][Checker] check permission when request arrive", utils.ZapRequestID(reqId),
-			zap.Error(err))
-	}
-
-	return ok, err
+	return d.doCheckPermission(authCtx)
 }
 
 func canDowngradeAnonymous(authCtx *model.AcquireContext, err error) bool {
@@ -481,45 +468,46 @@ func (d *defaultAuthChecker) removeNoStrategyResources(authCtx *model.AcquireCon
 	return noResourceNeedCheck
 }
 
-// doCheckPermission 执行权限检查
-func (d *defaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext,
-	strategies []*model.StrategyDetail) (bool, error) {
-
-	if len(strategies) == 0 {
-		return true, nil
+func (d *defaultAuthChecker) isResourceEditable(
+	userid string,
+	resourceType apisecurity.ResourceType,
+	resEntries []model.ResourceEntry) bool {
+	for _, entry := range resEntries {
+		principal := model.Principal{
+			PrincipalID:   userid,
+			PrincipalRole: model.PrincipalUser,
+		}
+		if !d.cacheMgn.AuthStrategy().IsResourceEditable(principal, resourceType, entry.ID) {
+			return false
+		}
 	}
+	return true
+}
+
+// doCheckPermission 执行权限检查
+func (d *defaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext) (bool, error) {
 
 	userId := utils.ParseUserID(authCtx.GetRequestContext())
 
+	var checkNamespace, checkSvc, checkCfgGroup bool
+
 	reqRes := authCtx.GetAccessResources()
-	var (
-		checkNamespace   = false
-		checkService     = true
-		checkConfigGroup = true
-	)
+	nsResEntries := reqRes[apisecurity.ResourceType_Namespaces]
+	svcResEntries := reqRes[apisecurity.ResourceType_Services]
+	cfgResEntries := reqRes[apisecurity.ResourceType_ConfigGroups]
 
-	for _, rule := range strategies {
-		if !d.checkAction(rule.Action, authCtx.GetOperation()) {
-			continue
-		}
-		searchMaps := buildSearchMap(rule.Resources)
+	checkNamespace = d.isResourceEditable(userId, apisecurity.ResourceType_Namespaces, nsResEntries)
+	checkSvc = d.isResourceEditable(userId, apisecurity.ResourceType_Services, svcResEntries)
+	checkCfgGroup = d.isResourceEditable(userId, apisecurity.ResourceType_ConfigGroups, cfgResEntries)
 
-		// 检查 namespace
-		checkNamespace = checkAnyElementExist(userId, reqRes[apisecurity.ResourceType_Namespaces], searchMaps[0])
-		// 检查 service
-		if authCtx.GetModule() == model.DiscoverModule {
-			checkService = checkAnyElementExist(userId, reqRes[apisecurity.ResourceType_Services], searchMaps[1])
-		}
-		// 检查 config_group
-		if authCtx.GetModule() == model.ConfigModule {
-			checkConfigGroup = checkAnyElementExist(userId, reqRes[apisecurity.ResourceType_ConfigGroups], searchMaps[2])
-		}
+	checkAllResEntries := checkNamespace && checkSvc && checkCfgGroup
 
-		if checkNamespace && (checkService && checkConfigGroup) {
-			return true, nil
-		}
+	var err error
+	if !checkAllResEntries {
+		err = fmt.Errorf("no permission")
 	}
-	return false, ErrorNotAllowedAccess
+
+	return checkAllResEntries, err
 }
 
 // checkAction 检查操作是否和策略匹配

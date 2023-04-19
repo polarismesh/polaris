@@ -60,6 +60,9 @@ type StrategyCache interface {
 
 	// IsResourceEditable 判断该资源是否可以操作
 	IsResourceEditable(principal model.Principal, resType apisecurity.ResourceType, resId string) bool
+
+	// ForceSyncStrategy2Cache 强制同步鉴权策略到cache (串行)
+	ForceSyncStrategy2Cache() error
 }
 
 // strategyCache
@@ -130,6 +133,10 @@ func (sc *strategyCache) update() error {
 		return nil, sc.doCacheUpdate(sc.name(), sc.realUpdate)
 	})
 	return err
+}
+
+func (sc *strategyCache) ForceSyncStrategy2Cache() error {
+	return sc.update()
 }
 
 func (sc *strategyCache) realUpdate() (map[string]time.Time, int64, error) {
