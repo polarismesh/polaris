@@ -283,7 +283,7 @@ func TestUpdateCircuitBreakerRule(t *testing.T) {
 	}
 	defer discoverSuit.Destroy()
 
-	t.Run("正常创建熔断规则，返回成功", func(t *testing.T) {
+	t.Run("正常更新熔断规则，返回成功", func(t *testing.T) {
 		cbRules, resp := createCircuitBreakerRules(discoverSuit, testCount)
 		defer cleanCircuitBreakerRules(discoverSuit, resp)
 		qResp := queryCircuitBreakerRules(discoverSuit, map[string]string{"level": strconv.Itoa(int(apifault.Level_GROUP))})
@@ -293,7 +293,7 @@ func TestUpdateCircuitBreakerRule(t *testing.T) {
 		mockDescr := "update circuitbreaker rule info"
 		testRule := cbRules[0]
 		testRule.Description = mockDescr
-		resp = discoverSuit.DiscoverServer().EnableCircuitBreakerRules(discoverSuit.DefaultCtx, []*apifault.CircuitBreakerRule{testRule})
+		resp = discoverSuit.DiscoverServer().UpdateCircuitBreakerRules(discoverSuit.DefaultCtx, []*apifault.CircuitBreakerRule{testRule})
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue())
 		qResp = queryCircuitBreakerRules(discoverSuit, map[string]string{"id": testRule.Id})
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), qResp.GetCode().GetValue())
