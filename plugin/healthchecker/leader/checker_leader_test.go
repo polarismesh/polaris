@@ -19,7 +19,6 @@ package leader
 
 import (
 	"context"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -40,6 +39,7 @@ func TestLeaderHealthChecker_OnEvent(t *testing.T) {
 	mockStore := mock.NewMockStore(ctrl)
 
 	checker := &LeaderHealthChecker{
+		self: NewLocalPeerFunc(),
 		s: mockStore,
 		conf: &Config{
 			SoltNum: 0,
@@ -64,37 +64,6 @@ func TestLeaderHealthChecker_OnEvent(t *testing.T) {
 	})
 
 	t.Run("initialize-self-is-follower", func(t *testing.T) {
-		callTimes := int64(0)
-		oldNewRemotePeerFunc := NewRemotePeerFunc
-		NewRemotePeerFunc = func() Peer {
-			p := oldNewRemotePeerFunc()
-			return &MockPeerImpl{
-				OnServe: func(ctx context.Context, _ *MockPeerImpl, ip string, port uint32) error {
-					atomic.AddInt64(&callTimes, 1)
-					return p.Serve(ctx, ip, port)
-				},
-				OnGet: func(key string) (*ReadBeatRecord, error) {
-					atomic.AddInt64(&callTimes, 1)
-					return p.Get(key)
-				},
-				OnPut: func(r WriteBeatRecord) error {
-					atomic.AddInt64(&callTimes, 1)
-					return p.Put(r)
-				},
-				OnDel: func(key string) error {
-					atomic.AddInt64(&callTimes, 1)
-					return p.Del(key)
-				},
-				OnClose: func(*MockPeerImpl) error {
-					atomic.AddInt64(&callTimes, 1)
-					return p.Close()
-				},
-				OnHost: func() string {
-					return p.Host()
-				},
-			}
-		}
-
 		mockStore.EXPECT().ListLeaderElections().Times(1).Return([]*model.LeaderElection{
 			{
 				ElectKey: electionKey,
