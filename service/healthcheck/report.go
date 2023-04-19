@@ -66,6 +66,25 @@ func (s *Server) checkInstanceExists(id string) (int64, *model.Instance, apimode
 	return resp.Count, nil, apimodel.Code_ExecuteSuccess
 }
 
+func (s *Server) checkInstanceExistsV2(instance *apiservice.InstanceHeartbeat) (int64, *model.Instance, apimodel.Code) {
+	id := instance.GetInstanceId()
+	ins := s.instanceCache.GetInstance(id)
+	if ins != nil {
+		return -1, ins, apimodel.Code_ExecuteSuccess
+	}
+	resp, err := s.defaultChecker.Query(&plugin.QueryRequest{
+		InstanceId: id,
+	})
+	if nil != err {
+		log.Errorf("[healthcheck]fail to query report count by id %s, err: %v", id, err)
+		return -1, nil, apimodel.Code_ExecuteSuccess
+	}
+	if resp.Count > max404Count {
+		return resp.Count, nil, apimodel.Code_NotFoundResource
+	}
+	return resp.Count, nil, apimodel.Code_ExecuteSuccess
+}
+
 func (s *Server) getHealthChecker(id string) plugin.HealthChecker {
 	insCache := s.cacheProvider.GetInstance(id)
 	if insCache == nil {
