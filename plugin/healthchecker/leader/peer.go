@@ -25,7 +25,6 @@ import (
 
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
-	"golang.org/x/sync/singleflight"
 	"google.golang.org/grpc"
 
 	"github.com/polarismesh/polaris/common/batchjob"
@@ -78,11 +77,8 @@ func (p *LocalPeer) Initialize(conf Config) {
 }
 
 func (p *LocalPeer) Serve(ctx context.Context, listenIP string, listenPort uint32) error {
-	var err error
-	ctx, cancel := context.WithCancel(context.Background())
-	p.cancel = cancel
 	log.Info("[HealthCheck][Leader] local peer serve")
-	return err
+	return nil
 }
 
 // Get get records
@@ -119,7 +115,6 @@ func (p *LocalPeer) Close() error {
 
 // LocalPeer Heartbeat data storage node
 type RemotePeer struct {
-	once sync.Once
 	// Host peer host
 	host string
 	// Port peer listen port to provider grpc service
@@ -136,71 +131,23 @@ type RemotePeer struct {
 	Puter apiservice.PolarisGRPC_BatchHeartbeatClient
 	// Cache data storage
 	Cache BeatRecordCache
-	// single
-	single singleflight.Group
 	// cancel .
 	cancel context.CancelFunc
+	// conf .
+	conf Config
 }
 
 func (p *RemotePeer) Initialize(conf Config) {
-	ctx, cancel := context.WithCancel(context.Background())
-	p.cancel = cancel
-	batchConf := conf.Batch
-	handler := &RemotePeerBatchHandler{p: p}
-	p.getBatchCtrl = batchjob.NewBatchController(ctx, batchjob.CtrlConfig{
-		Label:         "RecordGetter",
-		QueueSize:     batchConf.QueueSize,
-		WaitTime:      batchConf.WaitTime,
-		MaxBatchCount: batchConf.MaxBatchCount,
-		Concurrency:   batchConf.Concurrency,
-		Handler:       handler.handleSendGetRecords,
-	})
-	p.putBatchCtrl = batchjob.NewBatchController(ctx, batchjob.CtrlConfig{
-		Label:         "RecordSaver",
-		QueueSize:     batchConf.QueueSize,
-		WaitTime:      batchConf.WaitTime,
-		MaxBatchCount: batchConf.MaxBatchCount,
-		Concurrency:   batchConf.Concurrency,
-		Handler:       handler.handleSendPutRecords,
-	})
-	p.Cache = newRemoteBeatRecordCache(
-		func(req *apiservice.GetHeartbeatsRequest) *apiservice.GetHeartbeatsResponse {
-			if log.DebugEnabled() {
-				log.Debug("[HealthCheck][Leader] send get record request", zap.String("host", p.Host()),
-					zap.Uint32("port", p.port), zap.Any("req", req))
-			}
-			resp, err := p.Client.BatchGetHeartbeat(context.Background(), req)
-			if err != nil {
-				log.Error("[HealthCheck][Leader] send get record request", zap.String("host", p.Host()),
-					zap.Uint32("port", p.port), zap.Any("req", req), zap.Error(err))
-				return &apiservice.GetHeartbeatsResponse{}
-			}
-			return resp
-		}, func(req *apiservice.HeartbeatsRequest) {
-			if log.DebugEnabled() {
-				log.Debug("[HealthCheck][Leader] send put record request", zap.String("host", p.Host()),
-					zap.Uint32("port", p.port), zap.Any("req", req))
-			}
-			if err := p.Puter.Send(req); err != nil {
-				log.Error("[HealthCheck][Leader] send put record request", zap.String("host", p.Host()),
-					zap.Uint32("port", p.port), zap.Any("req", req), zap.Error(err))
-			}
-		}, func(req *apiservice.DelHeartbeatsRequest) {
-			if log.DebugEnabled() {
-				log.Debug("[HealthCheck][Leader] send del record request", zap.String("host", p.Host()),
-					zap.Uint32("port", p.port), zap.Any("req", req))
-			}
-			if _, err := p.Client.BatchDelHeartbeat(context.Background(), req); err != nil {
-				log.Error("send del record request", zap.String("host", p.Host()),
-					zap.Uint32("port", p.port), zap.Any("req", req), zap.Error(err))
-			}
-		})
+	p.conf = conf
 }
 
-func (p *RemotePeer) Serve(ctx context.Context, listenIP string, listenPort uint32) error {
+func (p *RemotePeer) Serve(_ context.Context, listenIP string, listenPort uint32) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	p.cancel = cancel
 	p.host = listenIP
 	p.port = listenPort
-	conn, err := grpc.DialContext(ctx, fmt.Sprintf("%s:%d", listenIP, listenPort), grpc.WithBlock(), grpc.WithInsecure())
+	conn, err := grpc.DialContext(ctx, fmt.Sprintf("%s:%d", listenIP, listenPort), grpc.WithBlock(),
+		grpc.WithInsecure())
 	if err != nil {
 		return err
 	}
@@ -210,6 +157,24 @@ func (p *RemotePeer) Serve(ctx context.Context, listenIP string, listenPort uint
 	if err != nil {
 		return err
 	}
+	batchConf := p.conf.Batch
+	p.getBatchCtrl = batchjob.NewBatchController(ctx, batchjob.CtrlConfig{
+		Label:         "RecordGetter",
+		QueueSize:     batchConf.QueueSize,
+		WaitTime:      batchConf.WaitTime,
+		MaxBatchCount: batchConf.MaxBatchCount,
+		Concurrency:   batchConf.Concurrency,
+		Handler:       p.handleSendGetRecords,
+	})
+	p.putBatchCtrl = batchjob.NewBatchController(ctx, batchjob.CtrlConfig{
+		Label:         "RecordPutter",
+		QueueSize:     batchConf.QueueSize,
+		WaitTime:      batchConf.WaitTime,
+		MaxBatchCount: batchConf.MaxBatchCount,
+		Concurrency:   batchConf.Concurrency,
+		Handler:       p.handleSendPutRecords,
+	})
+	p.Cache = newRemoteBeatRecordCache(p.GetFunc, p.PutFunc, p.DelFunc)
 	return nil
 }
 
@@ -241,6 +206,42 @@ func (p *RemotePeer) Del(key string) error {
 	return nil
 }
 
+func (p *RemotePeer) GetFunc(req *apiservice.GetHeartbeatsRequest) *apiservice.GetHeartbeatsResponse {
+	if log.DebugEnabled() {
+		log.Debug("[HealthCheck][Leader] send get record request", zap.String("host", p.Host()),
+			zap.Uint32("port", p.port), zap.Any("req", req))
+	}
+	resp, err := p.Client.BatchGetHeartbeat(context.Background(), req)
+	if err != nil {
+		log.Error("[HealthCheck][Leader] send get record request", zap.String("host", p.Host()),
+			zap.Uint32("port", p.port), zap.Any("req", req), zap.Error(err))
+		return &apiservice.GetHeartbeatsResponse{}
+	}
+	return resp
+}
+
+func (p *RemotePeer) PutFunc(req *apiservice.HeartbeatsRequest) {
+	if log.DebugEnabled() {
+		log.Debug("[HealthCheck][Leader] send put record request", zap.String("host", p.Host()),
+			zap.Uint32("port", p.port), zap.Any("req", req))
+	}
+	if err := p.Puter.Send(req); err != nil {
+		log.Error("[HealthCheck][Leader] send put record request", zap.String("host", p.Host()),
+			zap.Uint32("port", p.port), zap.Any("req", req), zap.Error(err))
+	}
+}
+
+func (p *RemotePeer) DelFunc(req *apiservice.DelHeartbeatsRequest) {
+	if log.DebugEnabled() {
+		log.Debug("[HealthCheck][Leader] send del record request", zap.String("host", p.Host()),
+			zap.Uint32("port", p.port), zap.Any("req", req))
+	}
+	if _, err := p.Client.BatchDelHeartbeat(context.Background(), req); err != nil {
+		log.Error("send del record request", zap.String("host", p.Host()),
+			zap.Uint32("port", p.port), zap.Any("req", req), zap.Error(err))
+	}
+}
+
 // Close close peer life
 func (p *RemotePeer) Close() error {
 	if p.cancel != nil {
@@ -261,15 +262,11 @@ func (p *RemotePeer) Close() error {
 	return nil
 }
 
-type RemotePeerBatchHandler struct {
-	p *RemotePeer
-}
-
 var (
-	ErrorBadGetRecordRequest = errors.New("bad get record request")
+	ErrorRecordNotFound = errors.New("beat record not found")
 )
 
-func (p *RemotePeerBatchHandler) handleSendGetRecords(tasks []batchjob.Future) {
+func (p *RemotePeer) handleSendGetRecords(tasks []batchjob.Future) {
 	keys := make([]string, 0, len(tasks))
 	futures := make(map[string][]batchjob.Future)
 	for i := range tasks {
@@ -283,7 +280,7 @@ func (p *RemotePeerBatchHandler) handleSendGetRecords(tasks []batchjob.Future) {
 		keys = append(keys, key)
 	}
 
-	ret := p.p.Cache.Get(keys...)
+	ret := p.Cache.Get(keys...)
 	for key := range ret {
 		fs := futures[key]
 		for _, f := range fs {
@@ -291,16 +288,15 @@ func (p *RemotePeerBatchHandler) handleSendGetRecords(tasks []batchjob.Future) {
 				key: ret[key],
 			}, nil)
 		}
-		delete(futures, key)
 	}
 	for i := range futures {
 		for _, f := range futures[i] {
-			f.Reply(nil, ErrorBadGetRecordRequest)
+			f.Reply(nil, ErrorRecordNotFound)
 		}
 	}
 }
 
-func (p *RemotePeerBatchHandler) handleSendPutRecords(tasks []batchjob.Future) {
+func (p *RemotePeer) handleSendPutRecords(tasks []batchjob.Future) {
 	records := make([]WriteBeatRecord, 0, len(tasks))
 	for i := range tasks {
 		taskInfo := tasks[i].TaskInfo()
@@ -308,7 +304,7 @@ func (p *RemotePeerBatchHandler) handleSendPutRecords(tasks []batchjob.Future) {
 		records = append(records, req)
 	}
 
-	p.p.Cache.Put(records...)
+	p.Cache.Put(records...)
 	for i := range tasks {
 		tasks[i].Reply(struct{}{}, nil)
 	}

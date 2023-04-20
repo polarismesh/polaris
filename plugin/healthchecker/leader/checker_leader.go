@@ -160,7 +160,7 @@ func (c *LeaderHealthChecker) becomeLeader() {
 	// leader 指向自己
 	atomic.StoreInt32(&c.leader, 1)
 	atomic.StoreInt32(&c.initialize, initializedSignal)
-	log.Info("[HealthCheck][Leader] become leader")
+	log.Info("[HealthCheck][Leader] self become leader")
 }
 
 func (c *LeaderHealthChecker) becomeFollower() {
@@ -177,7 +177,7 @@ func (c *LeaderHealthChecker) becomeFollower() {
 		if election.Host == "" || election.Host == utils.LocalHost {
 			return
 		}
-		log.Info("[HealthCheck][Leader] become follower")
+		log.Info("[HealthCheck][Leader] self become follower")
 		if c.remote != nil {
 			// leader 未发生变化
 			if election.Host == c.remote.Host() {
@@ -255,12 +255,13 @@ func (c *LeaderHealthChecker) Check(request *plugin.CheckRequest) (*plugin.Check
 		LastHeartbeatTimeSec: lastHeartbeatTime,
 	}
 	curTimeSec := request.CurTimeSec()
-	if log.DebugEnabled() {
-		log.Debugf("[HealthCheck][Leader] check hb record, cur is %d, last is %d", curTimeSec, lastHeartbeatTime)
-	}
 	if c.skipCheck(request.InstanceId, int64(request.ExpireDurationSec)) {
 		checkResp.StayUnchanged = true
 		return checkResp, nil
+	}
+	if log.DebugEnabled() {
+		log.Debug("[HealthCheck][Leader] check hb record", zap.String("id", request.InstanceId),
+			zap.Int64("curTimeSec", curTimeSec), zap.Int64("lastHeartbeatTime", lastHeartbeatTime))
 	}
 	if curTimeSec > lastHeartbeatTime {
 		if curTimeSec-lastHeartbeatTime >= int64(request.ExpireDurationSec) {
