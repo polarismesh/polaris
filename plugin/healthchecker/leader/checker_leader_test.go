@@ -23,12 +23,13 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/polarismesh/polaris/common/batchjob"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 	"github.com/polarismesh/polaris/store/mock"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestLeaderHealthChecker_OnEvent(t *testing.T) {
@@ -40,7 +41,7 @@ func TestLeaderHealthChecker_OnEvent(t *testing.T) {
 
 	checker := &LeaderHealthChecker{
 		self: NewLocalPeerFunc(),
-		s: mockStore,
+		s:    mockStore,
 		conf: &Config{
 			SoltNum: 0,
 			Batch: batchjob.CtrlConfig{
