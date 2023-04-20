@@ -137,7 +137,7 @@ func TestServer_GetReportClients(t *testing.T) {
 			},
 		})
 
-		assert.Equal(t, resp.GetCode().GetValue(), apimodel.Code_ExecuteSuccess)
+		assert.Equal(t, resp.GetCode().GetValue(), uint32(apimodel.Code_ExecuteSuccess))
 		// 强制刷新到 cache
 		svr.Cache().TestUpdate()
 
