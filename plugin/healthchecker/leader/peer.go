@@ -276,7 +276,6 @@ func (p *RemotePeer) handleSendGetRecords(tasks []batchjob.Future) {
 				key: ret[key],
 			}, nil)
 		}
-		delete(futures, key)
 	}
 	for i := range futures {
 		for _, f := range futures[i] {
