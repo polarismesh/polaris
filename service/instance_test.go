@@ -517,7 +517,7 @@ func TestGetInstances1(t *testing.T) {
 		return resp
 	}
 	t.Run("注册并反注册多个实例，可以正常获取", func(t *testing.T) {
-		_ = discoverSuit.DiscoverServer().Cache().TestRefresh() // 为了防止影响，每个函数需要把缓存的内容清空
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate() // 为了防止影响，每个函数需要把缓存的内容清空
 		_, serviceResp := discoverSuit.createCommonService(t, 320)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
@@ -541,7 +541,7 @@ func TestGetInstances1(t *testing.T) {
 		})
 	})
 	t.Run("传递revision， revision有变化则有数据，否则无数据返回", func(t *testing.T) {
-		_ = discoverSuit.DiscoverServer().Cache().TestRefresh() // 为了防止影响，每个函数需要把缓存的内容清空
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate() // 为了防止影响，每个函数需要把缓存的内容清空
 		_, serviceResp := discoverSuit.createCommonService(t, 100)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		for i := 0; i < 5; i++ {

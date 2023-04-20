@@ -434,7 +434,7 @@ func makeEndpoints(services []*ServiceInfo) []types.Resource {
 	return clusterLoads
 }
 
-// makeSidecarRoutes TODO 全部使用新的路由规则
+// makeSidecarRoutes .
 func makeSidecarRoutes(serviceInfo *ServiceInfo) []*route.Route {
 	var (
 		routes        []*route.Route
