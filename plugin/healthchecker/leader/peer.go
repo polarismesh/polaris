@@ -246,8 +246,11 @@ func (p *RemotePeer) Close() error {
 	if p.cancel != nil {
 		p.cancel()
 	}
+	if p.Puter != nil {
+		_ = p.Puter.CloseSend()
+	}
 	if p.Conn != nil {
-		p.Conn.Close()
+		_ = p.Conn.Close()
 	}
 	if p.getBatchCtrl != nil {
 		p.getBatchCtrl.Stop()

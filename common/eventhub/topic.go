@@ -47,7 +47,9 @@ func newTopic(name string) *topic {
 
 // publish publish msg to topic
 func (t *topic) publish(ctx context.Context, event Event) {
-	log.Debug(fmt.Sprintf("[EventHub] publish topic:%s, event:%v", t.name, event))
+	if log.DebugEnabled() {
+		log.Debugf("[EventHub] publish topic:%s, event:%v", t.name, event)
+	}
 	t.queue <- event
 }
 
@@ -99,10 +101,10 @@ func (t *topic) run(ctx context.Context) {
 				go sub.send(ctx, msg)
 			}
 		case <-t.closeCh:
-			log.Info(fmt.Sprintf("[EventHub] topic:%s run stop", t.name))
+			log.Infof("[EventHub] topic:%s run stop", t.name)
 			return
 		case <-ctx.Done():
-			log.Info(fmt.Sprintf("[EventHub] topic:%s run stop by context cancel", t.name))
+			log.Infof("[EventHub] topic:%s run stop by context cancel", t.name)
 			return
 		}
 	}
