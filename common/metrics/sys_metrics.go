@@ -22,8 +22,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/polarismesh/polaris/common/utils"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 var (
