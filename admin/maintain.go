@@ -164,7 +164,7 @@ func (s *Server) CleanInstance(ctx context.Context, req *apiservice.Instance) *a
 }
 
 func (s *Server) BatchCleanInstances(ctx context.Context, batchSize uint32) (uint32, error) {
-	return s.storage.BatchCleanDeletedInstances(batchSize)
+	return s.storage.BatchCleanDeletedInstances(time.Now(), batchSize)
 }
 
 func (s *Server) GetLastHeartbeat(_ context.Context, req *apiservice.Instance) *apiservice.Response {

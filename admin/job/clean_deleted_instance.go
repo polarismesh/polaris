@@ -18,6 +18,8 @@
 package job
 
 import (
+	"time"
+
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -31,8 +33,9 @@ func (job *cleanDeletedInstancesJob) init(raw map[string]interface{}) error {
 
 func (job *cleanDeletedInstancesJob) execute() {
 	batchSize := uint32(100)
+	mtime := time.Now().Add(-10 * time.Minute)
 	for {
-		count, err := job.storage.BatchCleanDeletedInstances(batchSize)
+		count, err := job.storage.BatchCleanDeletedInstances(mtime, batchSize)
 		if err != nil {
 			log.Errorf("[Maintain][Job][CleanDeletedInstances] batch clean deleted instance, err: %v", err)
 			break

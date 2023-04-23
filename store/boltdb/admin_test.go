@@ -67,7 +67,7 @@ func TestAdminStore_BatchCleanDeletedClients(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	count, err := store.BatchCleanDeletedClients(2)
+	count, err := store.BatchCleanDeletedClients(time.Now(), 2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +157,7 @@ func TestAdminStore_BatchCleanDeletedInstances(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	count, err := store.BatchCleanDeletedInstances(2)
+	count, err := store.BatchCleanDeletedInstances(time.Now(), 2)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -102,15 +102,27 @@ func (m *adminStore) ReleaseLeaderElection(key string) error {
 }
 
 // BatchCleanDeletedInstances
-func (m *adminStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, error) {
-	fields := []string{insFieldValid}
+func (m *adminStore) BatchCleanDeletedInstances(mtime time.Time, batchSize uint32) (uint32, error) {
+	fields := []string{insFieldValid, insFieldModifyTime}
 	values, err := m.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
 			valid, ok := m[insFieldValid]
-			if ok && !valid.(bool) {
-				return true
+			if !ok {
+				return false
 			}
-			return false
+			if valid.(bool) {
+				return false
+			}
+
+			modifyTime, ok := m[insFieldModifyTime]
+			if !ok {
+				return false
+			}
+			if modifyTime.(time.Time).After(mtime) {
+				return false
+			}
+
+			return true
 		})
 	if err != nil {
 		return 0, err
@@ -196,15 +208,27 @@ func (m *adminStore) getUnHealthyInstancesBefore(mtime time.Time, limit uint32) 
 }
 
 // BatchCleanDeletedClients
-func (m *adminStore) BatchCleanDeletedClients(batchSize uint32) (uint32, error) {
-	fields := []string{insFieldValid}
+func (m *adminStore) BatchCleanDeletedClients(mtime time.Time, batchSize uint32) (uint32, error) {
+	fields := []string{ClientFieldValid, ClientFieldMtime}
 	values, err := m.handler.LoadValuesByFilter(tblClient, fields, &model.Client{},
 		func(m map[string]interface{}) bool {
-			valid, ok := m[insFieldValid]
-			if ok && !valid.(bool) {
-				return true
+			valid, ok := m[ClientFieldValid]
+			if !ok {
+				return false
 			}
-			return false
+			if valid.(bool) {
+				return false
+			}
+
+			modifyTime, ok := m[ClientFieldMtime]
+			if !ok {
+				return false
+			}
+			if modifyTime.(time.Time).After(mtime) {
+				return false
+			}
+
+			return true
 		})
 	if err != nil {
 		return 0, err
