@@ -48,11 +48,9 @@ func registerConfigFileMetrics() {
 		},
 	}, []string{LabelNamespace, LabelGroup})
 
-	GetRegistry().MustRegister(
-		configGroupTotal,
-		configFileTotal,
-		releaseConfigFileTotal,
-	)
+	_ = GetRegistry().Register(configGroupTotal)
+	_ = GetRegistry().Register(configFileTotal)
+	_ = GetRegistry().Register(releaseConfigFileTotal)
 }
 
 func GetConfigGroupTotal() *prometheus.GaugeVec {

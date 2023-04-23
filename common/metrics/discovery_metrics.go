@@ -96,19 +96,15 @@ func registerDiscoveryMetrics() {
 		},
 	}, []string{LabelNamespace, LabelService})
 
-	GetRegistry().MustRegister([]prometheus.Collector{
-		serviceCount,
-		serviceOnlineCount,
-		serviceAbnormalCount,
-		serviceOfflineCount,
-
-		instanceCount,
-		instanceOnlineCount,
-		instanceAbnormalCount,
-		instanceIsolateCount,
-
-		clientInstanceTotal,
-	}...)
+	_ = GetRegistry().Register(serviceCount)
+	_ = GetRegistry().Register(serviceOnlineCount)
+	_ = GetRegistry().Register(serviceAbnormalCount)
+	_ = GetRegistry().Register(serviceOfflineCount)
+	_ = GetRegistry().Register(instanceCount)
+	_ = GetRegistry().Register(instanceOnlineCount)
+	_ = GetRegistry().Register(instanceAbnormalCount)
+	_ = GetRegistry().Register(instanceIsolateCount)
+	_ = GetRegistry().Register(clientInstanceTotal)
 }
 
 func GetClientInstanceTotal() prometheus.Gauge {

@@ -38,7 +38,7 @@ import (
 )
 
 func init() {
-	metrics.TestInitMetrics()
+	metrics.InitMetrics()
 }
 
 // TestNewBatchCtrlWithConfig 测试New

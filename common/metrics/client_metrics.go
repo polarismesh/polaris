@@ -50,11 +50,9 @@ func registerClientMetrics() {
 		},
 	})
 
-	registry.MustRegister([]prometheus.Collector{
-		discoveryConnTotal,
-		configurationConnTotal,
-		sdkClientTotal,
-	}...)
+	_ = GetRegistry().Register(discoveryConnTotal)
+	_ = GetRegistry().Register(configurationConnTotal)
+	_ = GetRegistry().Register(sdkClientTotal)
 }
 
 // AddDiscoveryClientConn add discovery client connection number

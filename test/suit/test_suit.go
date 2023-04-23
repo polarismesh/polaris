@@ -192,7 +192,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	commonlog.GetScopeOrDefaultByName(commonlog.StoreLoggerName).SetOutputLevel(commonlog.ErrorLevel)
 	commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.ErrorLevel)
 
-	metrics.TestInitMetrics()
+	metrics.InitMetrics()
 	eventhub.InitEventHub()
 
 	// 初始化存储层

@@ -82,14 +82,12 @@ func registerSysMetrics() {
 		},
 	}, []string{labelCacheType, labelCacheUpdateCount})
 
-	registry.MustRegister([]prometheus.Collector{
-		instanceAsyncRegisCost,
-		instanceRegisTaskExpire,
-		redisReadFailure,
-		redisWriteFailure,
-		redisAliveStatus,
-		cacheUpdateCost,
-	}...)
+	_ = registry.Register(instanceAsyncRegisCost)
+	_ = registry.Register(instanceRegisTaskExpire)
+	_ = registry.Register(redisReadFailure)
+	_ = registry.Register(redisWriteFailure)
+	_ = registry.Register(redisAliveStatus)
+	_ = registry.Register(cacheUpdateCost)
 
 	go func() {
 		lastRedisReadFailureReport.Store(time.Now())
