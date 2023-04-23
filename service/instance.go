@@ -982,9 +982,6 @@ func (s *Server) createServiceIfAbsent(
 			}
 			return utils.NewStringValue(owner)
 		}(),
-		Metadata: map[string]string{
-			MetadataInternalAutoCreated: "true",
-		},
 	}
 	key := fmt.Sprintf("%s:%s", simpleService.Namespace, simpleService.Name)
 	ret, err, _ := s.createServiceSingle.Do(key, func() (interface{}, error) {

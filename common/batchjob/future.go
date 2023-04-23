@@ -31,6 +31,25 @@ type Future interface {
 	Reply(result interface{}, err error)
 }
 
+type errorFuture struct {
+	task Task
+}
+
+func (f *errorFuture) TaskInfo() Task {
+	return f.task
+}
+
+func (f *errorFuture) Done() (interface{}, error) {
+	return nil, ErrorBatchControllerStopped
+}
+
+func (f *errorFuture) Cancel() {
+}
+
+func (f *errorFuture) Reply(result interface{}, err error) {
+
+}
+
 type future struct {
 	task      Task
 	err       error

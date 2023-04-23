@@ -24,14 +24,6 @@ import (
 )
 
 func registerConfigFileMetrics() {
-	GetRegistry().MustRegister(
-		configGroupTotal,
-		configFileTotal,
-		releaseConfigFileTotal,
-	)
-}
-
-var (
 	configGroupTotal = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "config_group_count",
 		Help: "polaris config group total number",
@@ -55,7 +47,13 @@ var (
 			LabelServerNode: utils.LocalHost,
 		},
 	}, []string{LabelNamespace, LabelGroup})
-)
+
+	GetRegistry().MustRegister(
+		configGroupTotal,
+		configFileTotal,
+		releaseConfigFileTotal,
+	)
+}
 
 func GetConfigGroupTotal() *prometheus.GaugeVec {
 	return configGroupTotal

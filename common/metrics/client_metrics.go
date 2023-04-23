@@ -17,9 +17,39 @@
 
 package metrics
 
-import "github.com/prometheus/client_golang/prometheus"
+import (
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/prometheus/client_golang/prometheus"
+)
 
 func registerClientMetrics() {
+	// discoveryConnTotal 服务发现客户端链接数量
+	discoveryConnTotal = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "discovery_conn_total",
+		Help: "polaris discovery client connection total",
+		ConstLabels: map[string]string{
+			LabelServerNode: utils.LocalHost,
+		},
+	})
+
+	// configurationConnTotal 配置中心客户端链接数量
+	configurationConnTotal = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "config_conn_total",
+		Help: "polaris configuration client connection total",
+		ConstLabels: map[string]string{
+			LabelServerNode: utils.LocalHost,
+		},
+	})
+
+	// sdkClientTotal 客户端链接数量
+	sdkClientTotal = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "sdk_client_total",
+		Help: "polaris client connection total",
+		ConstLabels: map[string]string{
+			LabelServerNode: utils.LocalHost,
+		},
+	})
+
 	registry.MustRegister([]prometheus.Collector{
 		discoveryConnTotal,
 		configurationConnTotal,

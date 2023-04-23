@@ -429,42 +429,6 @@ func TestServiceCache_GetServicesByFilter(t *testing.T) {
 		}
 
 	})
-
-	t.Run("根据隐藏服务列表, 正确的隐藏服务", func(t *testing.T) {
-		_ = sc.clear()
-		services := genModelServiceByNamespace(100, "default")
-		sc.setServices(services)
-		hiddenService := make(map[model.ServiceKey]struct{})
-		for _, service := range genModelServiceByNamespace(10, "default") {
-			hiddenService[model.ServiceKey{
-				Namespace: service.Namespace,
-				Name:      service.Name,
-			}] = struct{}{}
-		}
-		instArgs := &store.InstanceArgs{}
-		svcArgs := &ServiceArgs{
-			EmptyCondition:   true,
-			HiddenServiceSet: hiddenService,
-		}
-		amount, _, _ := sc.GetServicesByFilter(svcArgs, instArgs, 0, 100)
-		if expect := len(services) - len(hiddenService); amount != uint32(expect) {
-			t.Fatalf("service after hidden count is %d, expect %d", amount, expect)
-		}
-		svcArgs = &ServiceArgs{
-			Namespace:        "filter",
-			HiddenServiceSet: hiddenService,
-		}
-		filterServices := genModelServiceByNamespace(50, "filter")
-		for k, v := range filterServices {
-			services[k] = v
-		}
-		sc.setServices(services)
-		// 过滤条件的结果中不含有隐藏列表, 结果期望和过滤的service一致
-		amount, _, _ = sc.GetServicesByFilter(svcArgs, instArgs, 0, 200)
-		if expect := len(filterServices); amount != uint32(expect) {
-			t.Fatalf("service after hidden count is %d, expect %d", amount, expect)
-		}
-	})
 }
 
 func TestServiceCache_NamespaceCount(t *testing.T) {

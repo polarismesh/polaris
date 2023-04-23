@@ -19,19 +19,28 @@ package batchjob
 
 import (
 	"context"
+	"errors"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/polarismesh/polaris/common/log"
 )
 
+var (
+	ErrorBatchControllerStopped = errors.New("batch controller is stopped")
+)
+
 // BatchController 通用的批任务处理框架
 type BatchController struct {
+	lock       sync.RWMutex
+	stop       int32
 	label      string
 	conf       CtrlConfig
 	handler    func(tasks []Future)
 	tasksChan  chan Future
-	workers    []chan []Future
 	idleSignal chan int
+	workers    []chan []Future
 	cancel     context.CancelFunc
 }
 
@@ -54,11 +63,38 @@ func NewBatchController(ctx context.Context, conf CtrlConfig) *BatchController {
 
 // Stop 关闭批任务执行器
 func (bc *BatchController) Stop() {
+	bc.lock.Lock()
+	defer bc.lock.Unlock()
+
+	atomic.StoreInt32(&bc.stop, 1)
 	bc.cancel()
+	if bc.tasksChan != nil {
+		close(bc.tasksChan)
+	}
+	if bc.idleSignal != nil {
+		close(bc.idleSignal)
+	}
+	for i := range bc.workers {
+		item := bc.workers[i]
+		if item != nil {
+			close(item)
+		}
+	}
+}
+
+func (bc *BatchController) isStop() bool {
+	return atomic.LoadInt32(&bc.stop) == 1
 }
 
 // Submit 提交执行任务参数
 func (bc *BatchController) Submit(task Task) Future {
+	bc.lock.RLock()
+	defer bc.lock.RUnlock()
+
+	if bc.isStop() {
+		return &errorFuture{task: task}
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	f := &future{
 		task:      task,
@@ -71,6 +107,13 @@ func (bc *BatchController) Submit(task Task) Future {
 }
 
 func (bc *BatchController) SubmitWithTimeout(task Task, timeout time.Duration) Future {
+	bc.lock.RLock()
+	defer bc.lock.RUnlock()
+
+	if bc.isStop() {
+		return &errorFuture{task: task}
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	f := &future{
 		task:      task,
@@ -91,12 +134,18 @@ func (bc *BatchController) runWorkers(ctx context.Context) {
 		go func() {
 			for {
 				select {
-				case futures := <-bc.workers[index]:
-					bc.handler(futures)
-					bc.idleSignal <- int(index)
 				case <-ctx.Done():
 					log.Infof("[Batch] %s worker(%d) exited", bc.label, index)
 					return
+				case futures := <-bc.workers[index]:
+					bc.handler(futures)
+
+					bc.lock.RLock()
+					defer bc.lock.RUnlock()
+					if bc.isStop() {
+						return
+					}
+					bc.idleSignal <- int(index)
 				}
 			}
 		}()
@@ -107,6 +156,11 @@ func (bc *BatchController) mainLoop(ctx context.Context) {
 	futures := make([]Future, 0, bc.conf.MaxBatchCount)
 	idx := 0
 	triggerConsume := func(data []Future) {
+		bc.lock.RLock()
+		defer bc.lock.RUnlock()
+		if bc.isStop() {
+			return
+		}
 		if idx == 0 {
 			return
 		}
@@ -120,17 +174,17 @@ func (bc *BatchController) mainLoop(ctx context.Context) {
 		defer ticker.Stop()
 		for {
 			select {
+			case <-ctx.Done():
+				log.Infof("[Batch] %s main loop exited", bc.label)
+				return
+			case <-ticker.C:
+				triggerConsume(futures[0:idx])
 			case future := <-bc.tasksChan:
 				futures = append(futures, future)
 				idx++
 				if idx == int(bc.conf.MaxBatchCount) {
 					triggerConsume(futures[0:idx])
 				}
-			case <-ticker.C:
-				triggerConsume(futures[0:idx])
-			case <-ctx.Done():
-				log.Infof("[Batch] %s main loop exited", bc.label)
-				return
 			}
 		}
 	}()

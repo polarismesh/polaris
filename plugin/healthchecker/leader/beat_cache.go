@@ -68,6 +68,10 @@ type (
 		Put(records ...WriteBeatRecord)
 		// Del del records
 		Del(keys ...string)
+		// Clean .
+		Clean()
+		// Snapshot
+		Snapshot() map[string]*ReadBeatRecord
 	}
 )
 
@@ -77,6 +81,8 @@ func newLocalBeatRecordCache(soltNum int32, hashFunc HashFunction) BeatRecordCac
 		soltNum = DefaultSoltNum
 	}
 	return &LocalBeatRecordCache{
+		soltNum:  soltNum,
+		hashFunc: hashFunc,
 		beatCache: utils.NewSegmentMap[string, RecordValue](int(soltNum), func(k string) int {
 			return hashFunc(k)
 		}),
@@ -85,6 +91,8 @@ func newLocalBeatRecordCache(soltNum int32, hashFunc HashFunction) BeatRecordCac
 
 // LocalBeatRecordCache
 type LocalBeatRecordCache struct {
+	soltNum   int32
+	hashFunc  HashFunction
 	beatCache *utils.SegmentMap[string, RecordValue]
 }
 
@@ -125,6 +133,20 @@ func (lc *LocalBeatRecordCache) Del(keys ...string) {
 			log.Debug("delete result", zap.String("key", key), zap.Bool("exist", ok))
 		}
 	}
+}
+
+func (lc *LocalBeatRecordCache) Clean() {
+	// do nothing
+}
+
+func (lc *LocalBeatRecordCache) Snapshot() map[string]*ReadBeatRecord {
+	ret := map[string]*ReadBeatRecord{}
+	lc.beatCache.Range(func(k string, v RecordValue) {
+		ret[k] = &ReadBeatRecord{
+			Record: v,
+		}
+	})
+	return ret
 }
 
 // newRemoteBeatRecordCache
@@ -188,4 +210,12 @@ func (rc *RemoteBeatRecordCache) Del(key ...string) {
 		InstanceIds: key,
 	}
 	rc.delter(req)
+}
+
+func (lc *RemoteBeatRecordCache) Clean() {
+	// do nothing
+}
+
+func (lc *RemoteBeatRecordCache) Snapshot() map[string]*ReadBeatRecord {
+	return map[string]*ReadBeatRecord{}
 }

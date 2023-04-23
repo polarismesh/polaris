@@ -15,16 +15,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package metrics
+package leader
 
-// TestInitMetrics 初始化 metrics 的所有指标
-func TestInitMetrics() {
-	_ = registry.Register(instanceAsyncRegisCost)
-	_ = registry.Register(instanceRegisTaskExpire)
-	_ = registry.Register(redisReadFailure)
-	_ = registry.Register(redisWriteFailure)
-	_ = registry.Register(redisAliveStatus)
-	_ = registry.Register(discoveryConnTotal)
-	_ = registry.Register(configurationConnTotal)
-	_ = registry.Register(sdkClientTotal)
+import "github.com/polarismesh/polaris/common/metrics"
+
+func initMetrics() {
+	_ = metrics.GetRegistry()
 }

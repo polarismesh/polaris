@@ -119,6 +119,7 @@ func (c *LeaderHealthChecker) Initialize(entry *plugin.ConfigEntry) error {
 	if err := c.s.StartLeaderElection(electionKey); err != nil {
 		return err
 	}
+	runIfDebugEnable(c)
 	return nil
 }
 
@@ -304,7 +305,9 @@ func (c *LeaderHealthChecker) Query(request *plugin.QueryRequest) (*plugin.Query
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("[HealthCheck][Leader] query hb record, instanceId %s, record %+v", request.InstanceId, record)
+	if log.DebugEnabled() {
+		log.Debugf("[HealthCheck][Leader] query hb record, instanceId %s, record %+v", request.InstanceId, record)
+	}
 	return &plugin.QueryResponse{
 		Server:           responsible.Host(),
 		LastHeartbeatSec: record.Record.CurTimeSec,

@@ -22,6 +22,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -31,12 +32,63 @@ var (
 )
 
 func registerSysMetrics() {
+	// instanceAsyncRegisCost 实例异步注册任务耗费时间
+	instanceAsyncRegisCost = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name: "instance_regis_cost_time",
+		Help: "instance regis cost time",
+		ConstLabels: map[string]string{
+			LabelServerNode: utils.LocalHost,
+		},
+	})
+
+	// instanceRegisTaskExpire 实例异步注册任务超时无效事件
+	instanceRegisTaskExpire = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "instance_regis_task_expire",
+		Help: "instance regis task expire that server drop it",
+		ConstLabels: map[string]string{
+			LabelServerNode: utils.LocalHost,
+		},
+	})
+
+	redisReadFailure = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "redis_read_failure",
+		Help: "polaris exec redis read operation failure",
+		ConstLabels: map[string]string{
+			LabelServerNode: utils.LocalHost,
+		},
+	})
+
+	redisWriteFailure = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "redis_write_failure",
+		Help: "polaris exec redis write operation failure",
+		ConstLabels: map[string]string{
+			LabelServerNode: utils.LocalHost,
+		},
+	})
+
+	redisAliveStatus = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "redis_alive_status",
+		Help: "polaris redis alive status",
+		ConstLabels: map[string]string{
+			"polaris_server_instance": utils.LocalHost,
+		},
+	})
+
+	cacheUpdateCost = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "cache_update_cost",
+		Help: "cache update cost per resource cache",
+		ConstLabels: map[string]string{
+			"polaris_server_instance": utils.LocalHost,
+		},
+	}, []string{labelCacheType, labelCacheUpdateCount})
+
 	registry.MustRegister([]prometheus.Collector{
 		instanceAsyncRegisCost,
 		instanceRegisTaskExpire,
 		redisReadFailure,
 		redisWriteFailure,
 		redisAliveStatus,
+		cacheUpdateCost,
 	}...)
 
 	go func() {

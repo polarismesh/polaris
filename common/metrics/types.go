@@ -18,9 +18,10 @@
 package metrics
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
+	"strconv"
+	"time"
 
-	"github.com/polarismesh/polaris/common/utils"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
@@ -37,102 +38,108 @@ const (
 	labelCacheUpdateCount = "cache_update_count"
 )
 
-var (
-	metricsPort int32
+// CallMetricType .
+type CallMetricType string
+
+const (
+	// SystemCallMetric Time consuming statistics of some asynchronous tasks inside
+	SystemCallMetric CallMetricType = "innerCall"
+	// ServerCallMetric Apiserver-layer interface call consumption statistics
+	ServerCallMetric CallMetricType = "serverCall"
+	// RedisCallMetric Redis call time consumption statistics
+	RedisCallMetric CallMetricType = "redisCall"
+	// StoreCallMetric Store call time consumption statistics
+	StoreCallMetric CallMetricType = "storeCall"
+	// ProtobufCacheCallMetric PB encode cache call/hit statistics
+	ProtobufCacheCallMetric CallMetricType = "pbCacheCall"
 )
 
-func SetMetricsPort(port int32) {
-	metricsPort = port
+type CallMetric struct {
+	Type     CallMetricType
+	API      string
+	Protocol string
+	Code     int
+	Times    int
+	Success  bool
+	Duration time.Duration
+	Labels   map[string]string
 }
 
-func GetMetricsPort() int32 {
-	return metricsPort
+func (m CallMetric) GetLabels() map[string]string {
+	if len(m.Labels) == 0 {
+		m.Labels = map[string]string{}
+	}
+	m.Labels[LabelApi] = m.API
+	m.Labels[LabelProtocol] = m.Protocol
+	m.Labels[LabelErrCode] = strconv.FormatInt(int64(m.Code), 10)
+	return m.Labels
 }
+
+type DiscoveryMetricType string
+
+const (
+	ClientMetrics   DiscoveryMetricType = "client"
+	ServiceMetrics  DiscoveryMetricType = "service"
+	InstanceMetrics DiscoveryMetricType = "instance"
+)
+
+type DiscoveryMetric struct {
+	Type     DiscoveryMetricType
+	Total    int64
+	Abnormal int64
+	Offline  int64
+	Online   int64
+	Isolate  int64
+	Labels   map[string]string
+}
+
+type ConfigMetricType string
+
+const (
+	ConfigGroupMetric ConfigMetricType = "config_group"
+	FileMetric        ConfigMetricType = "file"
+	ReleaseFileMetric ConfigMetricType = "release_file"
+)
+
+type ConfigMetrics struct {
+	Type    ConfigMetricType
+	Total   int64
+	Release int64
+	Labels  map[string]string
+}
+
+var (
+	clientInstanceTotal   prometheus.Gauge
+	serviceCount          *prometheus.GaugeVec
+	serviceOnlineCount    *prometheus.GaugeVec
+	serviceAbnormalCount  *prometheus.GaugeVec
+	serviceOfflineCount   *prometheus.GaugeVec
+	instanceCount         *prometheus.GaugeVec
+	instanceOnlineCount   *prometheus.GaugeVec
+	instanceAbnormalCount *prometheus.GaugeVec
+	instanceIsolateCount  *prometheus.GaugeVec
+)
+
+var (
+	configGroupTotal       *prometheus.GaugeVec
+	configFileTotal        *prometheus.GaugeVec
+	releaseConfigFileTotal *prometheus.GaugeVec
+)
 
 // instance astbc registry metrics
 var (
 	// instanceAsyncRegisCost 实例异步注册任务耗费时间
-	instanceAsyncRegisCost = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name: "instance_regis_cost_time",
-		Help: "instance regis cost time",
-		ConstLabels: map[string]string{
-			LabelServerNode: utils.LocalHost,
-		},
-	})
-
+	instanceAsyncRegisCost prometheus.Histogram
 	// instanceRegisTaskExpire 实例异步注册任务超时无效事件
-	instanceRegisTaskExpire = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "instance_regis_task_expire",
-		Help: "instance regis task expire that server drop it",
-		ConstLabels: map[string]string{
-			LabelServerNode: utils.LocalHost,
-		},
-	})
-)
-
-// redis metrics
-var (
-	redisReadFailure = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "redis_read_failure",
-		Help: "polaris exec redis read operation failure",
-		ConstLabels: map[string]string{
-			LabelServerNode: utils.LocalHost,
-		},
-	})
-
-	redisWriteFailure = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "redis_write_failure",
-		Help: "polaris exec redis write operation failure",
-		ConstLabels: map[string]string{
-			LabelServerNode: utils.LocalHost,
-		},
-	})
-
-	redisAliveStatus = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "redis_alive_status",
-		Help: "polaris redis alive status",
-		ConstLabels: map[string]string{
-			"polaris_server_instance": utils.LocalHost,
-		},
-	})
-)
-
-// client tcp connection metrics
-var (
+	instanceRegisTaskExpire prometheus.Counter
+	redisReadFailure        prometheus.Gauge
+	redisWriteFailure       prometheus.Gauge
+	redisAliveStatus        prometheus.Gauge
 	// discoveryConnTotal 服务发现客户端链接数量
-	discoveryConnTotal = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "discovery_conn_total",
-		Help: "polaris discovery client connection total",
-		ConstLabels: map[string]string{
-			LabelServerNode: utils.LocalHost,
-		},
-	})
-
+	discoveryConnTotal prometheus.Gauge
 	// configurationConnTotal 配置中心客户端链接数量
-	configurationConnTotal = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "config_conn_total",
-		Help: "polaris configuration client connection total",
-		ConstLabels: map[string]string{
-			LabelServerNode: utils.LocalHost,
-		},
-	})
-
+	configurationConnTotal prometheus.Gauge
 	// sdkClientTotal 客户端链接数量
-	sdkClientTotal = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "sdk_client_total",
-		Help: "polaris client connection total",
-		ConstLabels: map[string]string{
-			LabelServerNode: utils.LocalHost,
-		},
-	})
-)
-
-var (
-	cacheUpdateCost = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Name: "cache_update_cost",
-		Help: "cache update cost per resource cache",
-		ConstLabels: map[string]string{
-			"polaris_server_instance": utils.LocalHost,
-		},
-	}, []string{labelCacheType, labelCacheUpdateCount})
+	sdkClientTotal  prometheus.Gauge
+	cacheUpdateCost *prometheus.HistogramVec
 )
