@@ -20,22 +20,45 @@ package job
 import (
 	"time"
 
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/polarismesh/polaris/store"
 )
 
+type CleanDeletedInstancesJobConfig struct {
+	InstanceCleanTimeout time.Duration `mapstructure:"instanceCleanTimeout"`
+}
+
 type cleanDeletedInstancesJob struct {
+	cfg     *CleanDeletedInstancesJobConfig
 	storage store.Store
 }
 
 func (job *cleanDeletedInstancesJob) init(raw map[string]interface{}) error {
+	cfg := &CleanDeletedInstancesJobConfig{}
+	decodeConfig := &mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
+		Result:     cfg,
+	}
+	decoder, err := mapstructure.NewDecoder(decodeConfig)
+	if err != nil {
+		log.Errorf("[Maintain][Job][CleanDeletedInstances] new config decoder err: %v", err)
+		return err
+	}
+	err = decoder.Decode(raw)
+	if err != nil {
+		log.Errorf("[Maintain][Job][CleanDeletedInstances] parse config err: %v", err)
+		return err
+	}
+	job.cfg = cfg
+
 	return nil
 }
 
 func (job *cleanDeletedInstancesJob) execute() {
 	batchSize := uint32(100)
-	mtime := time.Now().Add(-10 * time.Minute)
 	for {
-		count, err := job.storage.BatchCleanDeletedInstances(mtime, batchSize)
+		count, err := job.storage.BatchCleanDeletedInstances(job.cfg.InstanceCleanTimeout, batchSize)
 		if err != nil {
 			log.Errorf("[Maintain][Job][CleanDeletedInstances] batch clean deleted instance, err: %v", err)
 			break

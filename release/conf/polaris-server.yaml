@@ -411,11 +411,15 @@ maintain:
       enable: true
       # job exec interval. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
       interval: 24h
+      option:
+        instanceCleanTimeout: 10m
     # Clean soft deleted clients
     - name: CleanDeletedClients
       enable: true
       # job exec interval. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
       interval: 24h
+      option:
+        clientCleanTimeout: 10m
   
 # Storage configuration
 store:

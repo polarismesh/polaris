@@ -102,7 +102,8 @@ func (m *adminStore) ReleaseLeaderElection(key string) error {
 }
 
 // BatchCleanDeletedInstances
-func (m *adminStore) BatchCleanDeletedInstances(mtime time.Time, batchSize uint32) (uint32, error) {
+func (m *adminStore) BatchCleanDeletedInstances(timeout time.Duration, batchSize uint32) (uint32, error) {
+	mtime := time.Now().Add(-timeout)
 	fields := []string{insFieldValid, insFieldModifyTime}
 	values, err := m.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
@@ -208,7 +209,8 @@ func (m *adminStore) getUnHealthyInstancesBefore(mtime time.Time, limit uint32) 
 }
 
 // BatchCleanDeletedClients
-func (m *adminStore) BatchCleanDeletedClients(mtime time.Time, batchSize uint32) (uint32, error) {
+func (m *adminStore) BatchCleanDeletedClients(timeout time.Duration, batchSize uint32) (uint32, error) {
+	mtime := time.Now().Add(-timeout)
 	fields := []string{ClientFieldValid, ClientFieldMtime}
 	values, err := m.handler.LoadValuesByFilter(tblClient, fields, &model.Client{},
 		func(m map[string]interface{}) bool {
