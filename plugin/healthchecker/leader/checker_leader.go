@@ -401,3 +401,7 @@ func (c *LeaderHealthChecker) isInitialize() bool {
 func (c *LeaderHealthChecker) isLeader() bool {
 	return atomic.LoadInt32(&c.leader) == 1
 }
+
+func (c *LeaderHealthChecker) DebugHandlers() []plugin.DebugHandler {
+	return runIfDebugEnable(c)
+}

@@ -249,10 +249,10 @@ func (x *XDSServer) makeSidecarVirtualHosts(services []*ServiceInfo) []types.Res
 
 	for _, serviceInfo := range services {
 		vHost := &route.VirtualHost{
-			Name:                 serviceInfo.Name,
-			Domains:              generateServiceDomains(serviceInfo),
-			Routes:               makeSidecarRoutes(serviceInfo),
-			TypedPerFilterConfig: x.makeLocalRateLimit(serviceInfo),
+			Name:    serviceInfo.Name,
+			Domains: generateServiceDomains(serviceInfo),
+			Routes:  makeSidecarRoutes(serviceInfo),
+			// TypedPerFilterConfig: x.makeLocalRateLimit(serviceInfo),
 		}
 		hosts = append(hosts, vHost)
 	}

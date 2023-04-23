@@ -22,8 +22,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/polarismesh/polaris/common/utils"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 var (
@@ -139,6 +140,9 @@ func ReportRedisIsAlive() {
 
 // RecordCacheUpdateCost record per cache update cost time
 func RecordCacheUpdateCost(cost time.Duration, cacheTye string, total int64) {
+	if cacheUpdateCost == nil {
+		return
+	}
 	cacheUpdateCost.With(map[string]string{
 		labelCacheType:        cacheTye,
 		labelCacheUpdateCount: strconv.FormatInt(total, 10),

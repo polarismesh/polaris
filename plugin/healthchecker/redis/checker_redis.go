@@ -328,6 +328,10 @@ func (r *RedisHealthChecker) SuspendTimeSec() int64 {
 	return atomic.LoadInt64(&r.suspendTimeSec)
 }
 
+func (r *RedisHealthChecker) DebugHandlers() []plugin.DebugHandler {
+	return []plugin.DebugHandler{}
+}
+
 func init() {
 	d := &RedisHealthChecker{}
 	plugin.RegisterPlugin(d.Name(), d)

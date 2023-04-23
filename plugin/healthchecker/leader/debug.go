@@ -19,43 +19,24 @@ package leader
 
 import (
 	"encoding/json"
-	"net"
 	"net/http"
-	"strings"
 
-	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/utils"
-	"go.uber.org/zap"
-)
-
-var (
-	DebugFlag = "false"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 // runIfDebugEnable 用于测试环境下查看 LeaderHealthChecker 内部的一些状态数据
-func runIfDebugEnable(checker *LeaderHealthChecker) {
-	if strings.ToLower(DebugFlag) != "true" {
-		return
+func runIfDebugEnable(checker *LeaderHealthChecker) []plugin.DebugHandler {
+	return []plugin.DebugHandler{
+		{
+			Path:    "/dbeug/checker/leader/info",
+			Handler: handleDescribeLeaderInfo(checker),
+		},
+		{
+			Path:    "/dbeug/checker/leader/cache",
+			Handler: handleDescribeBeatCache(checker),
+		},
 	}
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/dbeug/checker/leader/info", handleDescribeLeaderInfo(checker))
-	mux.HandleFunc("/dbeug/checker/leader/cache", handleDescribeBeatCache(checker))
-
-	svr := &http.Server{
-		Handler: mux,
-	}
-
-	ln, err := net.Listen("tcp", "0.0.0.0:0")
-	if err != nil {
-		commonlog.Error("[HealthCheck][Leader] open debugger endpoint fail", zap.Error(err))
-		return
-	}
-	go func() {
-		tcpLn := ln.(*net.TCPListener)
-		commonlog.Info("[HealthCheck][Leader] open debugger endpoint success", zap.Any("address", tcpLn.Addr()))
-		svr.Serve(ln)
-	}()
 }
 
 func handleDescribeLeaderInfo(checker *LeaderHealthChecker) func(http.ResponseWriter, *http.Request) {
@@ -74,6 +55,7 @@ func handleDescribeLeaderInfo(checker *LeaderHealthChecker) func(http.ResponseWr
 				ret["leader"] = checker.remote.Host()
 			}
 		}
+		ret["self"] = utils.LocalHost
 		ret["lastLeaderRefreshTimeSec"] = checker.LeaderChangeTimeSec()
 
 		data, _ := json.Marshal(ret)
@@ -91,6 +73,7 @@ func handleDescribeBeatCache(checker *LeaderHealthChecker) func(http.ResponseWri
 		}
 
 		ret := map[string]interface{}{}
+		ret["self"] = utils.LocalHost
 		if checker.isLeader() {
 			ret["data"] = checker.self.(*LocalPeer).Cache.Snapshot()
 		} else {
