@@ -194,3 +194,37 @@ func (m *adminStore) getUnHealthyInstancesBefore(mtime time.Time, limit uint32) 
 
 	return instanceIds, nil
 }
+
+// BatchCleanDeletedClients
+func (m *adminStore) BatchCleanDeletedClients(batchSize uint32) (uint32, error) {
+	fields := []string{insFieldValid}
+	values, err := m.handler.LoadValuesByFilter(tblClient, fields, &model.Client{},
+		func(m map[string]interface{}) bool {
+			valid, ok := m[insFieldValid]
+			if ok && !valid.(bool) {
+				return true
+			}
+			return false
+		})
+	if err != nil {
+		return 0, err
+	}
+	if len(values) == 0 {
+		return 0, nil
+	}
+
+	var count uint32 = 0
+	keys := make([]string, 0, batchSize)
+	for k := range values {
+		keys = append(keys, k)
+		count++
+		if count >= batchSize {
+			break
+		}
+	}
+	err = m.handler.DeleteValues(tblClient, keys)
+	if err != nil {
+		return count, err
+	}
+	return count, nil
+}

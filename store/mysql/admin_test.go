@@ -40,7 +40,7 @@ func setup() {
 func teardown() {
 }
 
-func TestMaintainStore_LeaderElection_Follower1(t *testing.T) {
+func TestAdminStore_LeaderElection_Follower1(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -63,7 +63,7 @@ func TestMaintainStore_LeaderElection_Follower1(t *testing.T) {
 	}
 }
 
-func TestMaintainStore_LeaderElection_Follower2(t *testing.T) {
+func TestAdminStore_LeaderElection_Follower2(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -88,7 +88,7 @@ func TestMaintainStore_LeaderElection_Follower2(t *testing.T) {
 	}
 }
 
-func TestMaintainStore_LeaderElection_Follower3(t *testing.T) {
+func TestAdminStore_LeaderElection_Follower3(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -110,7 +110,7 @@ func TestMaintainStore_LeaderElection_Follower3(t *testing.T) {
 	}
 }
 
-func TestMaintainStore_LeaderElection_Follower4(t *testing.T) {
+func TestAdminStore_LeaderElection_Follower4(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -134,7 +134,7 @@ func TestMaintainStore_LeaderElection_Follower4(t *testing.T) {
 	}
 }
 
-func TestMaintainStore_LeaderElection_Follower5(t *testing.T) {
+func TestAdminStore_LeaderElection_Follower5(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -159,7 +159,7 @@ func TestMaintainStore_LeaderElection_Follower5(t *testing.T) {
 	}
 }
 
-func TestMaintainStore_LeaderElection_FollowerToLeader(t *testing.T) {
+func TestAdminStore_LeaderElection_FollowerToLeader(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -187,7 +187,7 @@ func TestMaintainStore_LeaderElection_FollowerToLeader(t *testing.T) {
 	}
 }
 
-func TestMaintainStore_LeaderElection_Leader1(t *testing.T) {
+func TestAdminStore_LeaderElection_Leader1(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -213,7 +213,7 @@ func TestMaintainStore_LeaderElection_Leader1(t *testing.T) {
 	}
 }
 
-func TestMaintainStore_LeaderElection_LeaderToFollower1(t *testing.T) {
+func TestAdminStore_LeaderElection_LeaderToFollower1(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -236,7 +236,7 @@ func TestMaintainStore_LeaderElection_LeaderToFollower1(t *testing.T) {
 	}
 }
 
-func TestMaintainStore_LeaderElection_LeaderToFollower2(t *testing.T) {
+func TestAdminStore_LeaderElection_LeaderToFollower2(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -259,7 +259,7 @@ func TestMaintainStore_LeaderElection_LeaderToFollower2(t *testing.T) {
 	}
 }
 
-func TestMaintainStore_StartLeaderElection1(t *testing.T) {
+func TestAdminStore_StartLeaderElection1(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -281,7 +281,7 @@ func TestMaintainStore_StartLeaderElection1(t *testing.T) {
 	}
 }
 
-func TestMaintainStore_StartLeaderElection2(t *testing.T) {
+func TestAdminStore_StartLeaderElection2(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -305,7 +305,7 @@ func TestMaintainStore_StartLeaderElection2(t *testing.T) {
 	m.StopLeaderElections()
 }
 
-func TestMaintainStore_StartLeaderElection3(t *testing.T) {
+func TestAdminStore_StartLeaderElection3(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -334,7 +334,7 @@ func TestMaintainStore_StartLeaderElection3(t *testing.T) {
 	m.StopLeaderElections()
 }
 
-func TestMaintainStore_ReleaseLeaderElection1(t *testing.T) {
+func TestAdminStore_ReleaseLeaderElection1(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -382,7 +382,7 @@ func TestMaintainStore_ReleaseLeaderElection1(t *testing.T) {
 	}
 }
 
-func TestMaintainStore_ReleaseLeaderElection2(t *testing.T) {
+func TestAdminStore_ReleaseLeaderElection2(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 

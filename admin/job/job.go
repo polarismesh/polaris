@@ -50,6 +50,8 @@ func NewMaintainJobs(namingServer service.DiscoverServer, cacheMgn *cache.CacheM
 				namingServer: namingServer, cacheMgn: cacheMgn, storage: storage},
 			"CleanDeletedInstances": &cleanDeletedInstancesJob{
 				storage: storage},
+			"CleanDeletedClients": &cleanDeletedClientsJob{
+				storage: storage},
 		},
 		startedJobs: map[string]maintainJob{},
 		storage:     storage,

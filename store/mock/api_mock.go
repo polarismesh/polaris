@@ -149,6 +149,21 @@ func (mr *MockStoreMockRecorder) BatchAddInstances(instances interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchAddInstances", reflect.TypeOf((*MockStore)(nil).BatchAddInstances), instances)
 }
 
+// BatchCleanDeletedClients mocks base method.
+func (m *MockStore) BatchCleanDeletedClients(batchSize uint32) (uint32, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchCleanDeletedClients", batchSize)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BatchCleanDeletedClients indicates an expected call of BatchCleanDeletedClients.
+func (mr *MockStoreMockRecorder) BatchCleanDeletedClients(batchSize interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchCleanDeletedClients", reflect.TypeOf((*MockStore)(nil).BatchCleanDeletedClients), batchSize)
+}
+
 // BatchCleanDeletedInstances mocks base method.
 func (m *MockStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, error) {
 	m.ctrl.T.Helper()

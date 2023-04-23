@@ -477,3 +477,34 @@ func (m *adminStore) GetUnHealthyInstances(timeout time.Duration, limit uint32) 
 
 	return instanceIds, nil
 }
+
+// BatchCleanDeletedClients batch clean soft deleted clients
+func (m *adminStore) BatchCleanDeletedClients(batchSize uint32) (uint32, error) {
+	log.Infof("[Store][database] batch clean soft deleted clients(%d)", batchSize)
+	var rows int64
+	err := m.master.processWithTransaction("batchCleanDeletedClients", func(tx *BaseTx) error {
+		mainStr := "delete from client where flag = 1 limit ?"
+		result, err := tx.Exec(mainStr, batchSize)
+		if err != nil {
+			log.Errorf("[Store][database] batch clean soft deleted clients(%d), err: %s", batchSize, err.Error())
+			return store.Error(err)
+		}
+
+		tRows, err := result.RowsAffected()
+		if err != nil {
+			log.Warnf("[Store][database] batch clean soft deleted clients(%d), get RowsAffected err: %s",
+				batchSize, err.Error())
+			return store.Error(err)
+		}
+
+		if err := tx.Commit(); err != nil {
+			log.Errorf("[Store][database] batch clean soft deleted clients(%d) commit tx err: %s",
+				batchSize, err.Error())
+			return err
+		}
+
+		rows = tRows
+		return nil
+	})
+	return uint32(rows), err
+}

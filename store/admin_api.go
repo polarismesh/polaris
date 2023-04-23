@@ -46,6 +46,9 @@ type AdminStore interface {
 
 	// GetUnHealthyInstances get unhealthy instances which mtime time out
 	GetUnHealthyInstances(timeout time.Duration, limit uint32) ([]string, error)
+
+	// BatchCleanDeletedClients batch clean soft deleted clients
+	BatchCleanDeletedClients(batchSize uint32) (uint32, error)
 }
 
 // LeaderChangeEvent
