@@ -300,29 +300,6 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 		ins := model.CreateInstanceModel(entry.serviceId, entry.request)
 		entry.SetInstance(ins)
 	}
-
-	tx, err := ctrl.storage.CreateTransaction()
-	if err != nil {
-		sendReply(remains, apimodel.Code_StoreLayerException, err)
-		return nil
-	}
-	defer func() {
-		_ = tx.Commit()
-	}()
-	lockedService := make(map[string]struct{})
-	for i := range remains {
-		future := remains[i]
-		svcId := future.serviceId
-		if _, ok := lockedService[svcId]; ok {
-			continue
-		}
-		if _, err := ctrl.lockServiceByID(tx, svcId); err != nil {
-			future.Reply(time.Now(), apimodel.Code_StoreLayerException, err)
-			continue
-		}
-		lockedService[svcId] = struct{}{}
-	}
-
 	// 调用batch接口，创建实例
 	instances := make([]*model.Instance, 0, len(remains))
 	for _, entry := range remains {
@@ -474,40 +451,4 @@ func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*Instan
 		}
 	}
 	return nil
-}
-
-func (ctrl *InstanceCtrl) lockServiceByID(tx store.Transaction, svcID string) (*model.Service, error) {
-	var (
-		err        error
-		tmpService *model.Service
-	)
-
-	// 判断缓存中是否可以找到该服务
-	if ctrl.cacheMgn != nil {
-		tmpService = ctrl.cacheMgn.Service().GetServiceByID(svcID)
-	}
-
-	// 缓存中不存在，在走store层在发起一次查询
-	if tmpService == nil {
-		tmpService, err = ctrl.storage.GetServiceByID(svcID)
-		if err != nil {
-			return nil, err
-		}
-		if tmpService == nil {
-			return nil, errors.New("not found service")
-		}
-	}
-
-	svc, err := tx.RLockService(tmpService.Name, tmpService.Namespace)
-	if err != nil {
-		return nil, err
-	}
-	if svc == nil {
-		return nil, errors.New("not found service in rlock")
-	}
-	if svc.IsAlias() {
-		return nil, errors.New("alias not allow to create instance")
-	}
-
-	return svc, nil
 }

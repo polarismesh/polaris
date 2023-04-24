@@ -201,16 +201,6 @@ func (s *Server) serialCreateInstance(
 	}
 	// 直接同步创建服务实例
 	data := model.CreateInstanceModel(svcId, ins)
-
-	// need lock service to protect not delete in create instance
-	_, releaseFunc, errCode := s.lockService(ctx, req.GetNamespace().GetValue(),
-		req.GetService().GetValue())
-	if errCode != apimodel.Code_ExecuteSuccess {
-		return nil, api.NewInstanceResponse(errCode, req)
-	}
-
-	defer releaseFunc()
-
 	if err := s.storage.AddInstance(data); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
 		return nil, wrapperInstanceStoreResponse(req, err)
@@ -1039,36 +1029,6 @@ func (s *Server) loadServiceByID(svcID string) (*model.Service, error) {
 	}
 
 	return svc, nil
-}
-
-type releaseFunc func()
-
-func (s *Server) lockService(ctx context.Context, namespace string,
-	svcName string) (*model.Service, releaseFunc, apimodel.Code) {
-
-	tx, err := s.storage.CreateTransaction()
-	if err != nil {
-		return nil, nil, apimodel.Code_StoreLayerException
-	}
-	release := func() {
-		_ = tx.Commit()
-	}
-
-	svc, err := tx.RLockService(svcName, namespace)
-	if err != nil {
-		release()
-		return nil, nil, apimodel.Code_StoreLayerException
-	}
-	if svc == nil {
-		release()
-		return nil, nil, apimodel.Code_NotFoundService
-	}
-	if svc.IsAlias() {
-		release()
-		return nil, nil, apimodel.Code_NotAllowAliasCreateInstance
-	}
-
-	return svc, release, apimodel.Code_ExecuteSuccess
 }
 
 /*
