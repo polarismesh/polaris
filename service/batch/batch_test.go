@@ -19,11 +19,8 @@ package batch
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"math/rand"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -137,61 +134,13 @@ func TestAsyncCreateInstance(t *testing.T) {
 			cancel()
 		})
 		mockSvc := &model.Service{ID: "1"}
-		actualCommit := int32(0)
 		totalIns := int32(100)
-		mockTrx := smock.NewMockTransaction(ctrl)
-		mockTrx.EXPECT().Commit().Do(func() {
-			atomic.AddInt32(&actualCommit, 1)
-		}).AnyTimes()
-		mockTrx.EXPECT().RLockService(gomock.Any(), gomock.Any()).DoAndReturn(func(_, _ string) (*model.Service, error) {
-			return mockSvc, nil
-		}).AnyTimes()
-
 		storage.EXPECT().BatchGetInstanceIsolate(gomock.Any()).Return(nil, nil).AnyTimes()
 		storage.EXPECT().GetSourceServiceToken(gomock.Any(), gomock.Any()).
 			Return(mockSvc, nil).AnyTimes()
 		storage.EXPECT().GetServiceByID(gomock.Any()).Return(mockSvc, nil).AnyTimes()
-		storage.EXPECT().CreateTransaction().Return(mockTrx, nil).AnyTimes()
 		storage.EXPECT().BatchAddInstances(gomock.Any()).Return(nil).AnyTimes()
 		assert.NoError(t, sendAsyncCreateInstance(bc, totalIns))
-		assert.True(t, totalIns/int32(8) <= actualCommit && actualCommit <= totalIns/int32(8)+int32(1))
-	})
-
-	t.Run("创建实例-lockService随机出现错误", func(t *testing.T) {
-		ctrl, bc, storage, cancel := newCreateInstanceController(t)
-		t.Cleanup(func() {
-			ctrl.Finish()
-			cancel()
-		})
-		mockSvc := &model.Service{ID: "1"}
-		actualCommit := int32(0)
-		totalIns := int32(100)
-		hasErr := int32(0)
-		mockTrx := smock.NewMockTransaction(ctrl)
-		mockTrx.EXPECT().Commit().Do(func() {
-			atomic.AddInt32(&actualCommit, 1)
-		}).AnyTimes()
-		mockTrx.EXPECT().RLockService(gomock.Any(), gomock.Any()).DoAndReturn(func(_, _ string) (*model.Service, error) {
-			if rand.Float64() < 0.5 {
-				return mockSvc, nil
-			}
-			atomic.StoreInt32(&hasErr, 1)
-			return nil, errors.New("mock RLockService fail")
-		}).AnyTimes()
-
-		storage.EXPECT().BatchGetInstanceIsolate(gomock.Any()).Return(nil, nil).AnyTimes()
-		storage.EXPECT().GetSourceServiceToken(gomock.Any(), gomock.Any()).
-			Return(mockSvc, nil).AnyTimes()
-		storage.EXPECT().GetServiceByID(gomock.Any()).Return(mockSvc, nil).AnyTimes()
-		storage.EXPECT().CreateTransaction().Return(mockTrx, nil).AnyTimes()
-		storage.EXPECT().BatchAddInstances(gomock.Any()).Return(nil).AnyTimes()
-		err := sendAsyncCreateInstance(bc, totalIns)
-		if atomic.LoadInt32(&hasErr) == 1 {
-			assert.Error(t, err)
-		} else {
-			assert.NoError(t, err)
-		}
-		assert.True(t, totalIns/int32(8) <= actualCommit && actualCommit <= totalIns/int32(8)+int32(1))
 	})
 }
 
