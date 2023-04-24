@@ -346,9 +346,6 @@ healthcheck:
   checkers:
     # - name: heartbeatMemory
     - name: heartbeatLeader
-      option:
-        listenPort: 8100
-        listenIP: 0.0.0.0
 #  - name: heartbeatRedis
 #    option:
 #      kvAddr: ##REDIS_ADDR##

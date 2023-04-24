@@ -464,16 +464,11 @@ func (sc *serviceCache) notifyServiceCountReload(svcIds map[string]bool) {
 //  1. T1, ServiceCache pulls all of the service information
 //  2. T2 time, instanecache pulls and updates the instance count information, and notify ServiceCache to
 //     count the namespace count Reload
-
 // - In this case, the instancecache notifies the servicecache, ServiceCache is a fixed count update.
-
 // Case TWO:
-
 //  1. T1, instanecache pulls and updates the instance count information, and notify ServiceCache to
 //     make a namespace count Reload
-
 //  2. T2 moments, ServiceCache pulls all of the service information
-
 // - This situation, ServiceCache does not update the count, because the corresponding service object
 // has not been cached, you need to put it in a PendingService waiting
 // - Because under this case, WatchCountChangech is the first RELOAD notification from Instanecache,
