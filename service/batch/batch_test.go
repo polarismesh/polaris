@@ -128,43 +128,6 @@ func sendAsyncCreateInstance(bc *Controller, cnt int32) error {
 	return nil
 }
 
-type mockTrx struct {
-	commit func()
-	svc    *model.Service
-	ns     *model.Namespace
-}
-
-// Commit Transaction
-func (t *mockTrx) Commit() error {
-	t.commit()
-	return nil
-}
-
-// LockBootstrap Start the lock, limit the concurrent number of Server boot
-func (t *mockTrx) LockBootstrap(key string, server string) error {
-	return nil
-}
-
-// LockNamespace Row it locks Namespace
-func (t *mockTrx) LockNamespace(name string) (*model.Namespace, error) {
-	return t.ns, nil
-}
-
-// DeleteNamespace Delete Namespace
-func (t *mockTrx) DeleteNamespace(name string) error {
-	return nil
-}
-
-// LockService Row it locks service
-func (t *mockTrx) LockService(name string, namespace string) (*model.Service, error) {
-	return t.svc, nil
-}
-
-// RLockService Shared lock service
-func (t *mockTrx) RLockService(name string, namespace string) (*model.Service, error) {
-	return t.svc, nil
-}
-
 // TestAsyncCreateInstance test AsyncCreateInstance
 func TestAsyncCreateInstance(t *testing.T) {
 	t.Run("正常创建实例", func(t *testing.T) {
