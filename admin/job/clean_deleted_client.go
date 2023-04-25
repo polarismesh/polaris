@@ -25,29 +25,29 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
-type CleanDeletedInstancesJobConfig struct {
-	InstanceCleanTimeout time.Duration `mapstructure:"instanceCleanTimeout"`
+type CleanDeletedClientsJobConfig struct {
+	ClientCleanTimeout time.Duration `mapstructure:"clientCleanTimeout"`
 }
 
-type cleanDeletedInstancesJob struct {
-	cfg     *CleanDeletedInstancesJobConfig
+type cleanDeletedClientsJob struct {
+	cfg     *CleanDeletedClientsJobConfig
 	storage store.Store
 }
 
-func (job *cleanDeletedInstancesJob) init(raw map[string]interface{}) error {
-	cfg := &CleanDeletedInstancesJobConfig{}
+func (job *cleanDeletedClientsJob) init(raw map[string]interface{}) error {
+	cfg := &CleanDeletedClientsJobConfig{}
 	decodeConfig := &mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
 		Result:     cfg,
 	}
 	decoder, err := mapstructure.NewDecoder(decodeConfig)
 	if err != nil {
-		log.Errorf("[Maintain][Job][CleanDeletedInstances] new config decoder err: %v", err)
+		log.Errorf("[Maintain][Job][CleanDeletedClients] new config decoder err: %v", err)
 		return err
 	}
 	err = decoder.Decode(raw)
 	if err != nil {
-		log.Errorf("[Maintain][Job][CleanDeletedInstances] parse config err: %v", err)
+		log.Errorf("[Maintain][Job][CleanDeletedClients] parse config err: %v", err)
 		return err
 	}
 	job.cfg = cfg
@@ -55,16 +55,16 @@ func (job *cleanDeletedInstancesJob) init(raw map[string]interface{}) error {
 	return nil
 }
 
-func (job *cleanDeletedInstancesJob) execute() {
+func (job *cleanDeletedClientsJob) execute() {
 	batchSize := uint32(100)
 	for {
-		count, err := job.storage.BatchCleanDeletedInstances(job.cfg.InstanceCleanTimeout, batchSize)
+		count, err := job.storage.BatchCleanDeletedClients(job.cfg.ClientCleanTimeout, batchSize)
 		if err != nil {
-			log.Errorf("[Maintain][Job][CleanDeletedInstances] batch clean deleted instance, err: %v", err)
+			log.Errorf("[Maintain][Job][CleanDeletedClients] batch clean deleted client, err: %v", err)
 			break
 		}
 
-		log.Infof("[Maintain][Job][CleanDeletedInstances] clean deleted instance count %d", count)
+		log.Infof("[Maintain][Job][CleanDeletedClients] clean deleted client count %d", count)
 
 		if count < batchSize {
 			break
@@ -72,5 +72,5 @@ func (job *cleanDeletedInstancesJob) execute() {
 	}
 }
 
-func (job *cleanDeletedInstancesJob) clear() {
+func (job *cleanDeletedClientsJob) clear() {
 }

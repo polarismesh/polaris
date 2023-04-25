@@ -66,7 +66,7 @@ func Test_ConvertToClientObject(t *testing.T) {
 func createMockClients(total int) []*model.Client {
 	ret := make([]*model.Client, 0, total)
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < total; i++ {
 		ret = append(ret, model.NewClient(&apiservice.Client{
 			Host:    &wrapperspb.StringValue{Value: fmt.Sprintf("client-%d", i)},
 			Type:    0,

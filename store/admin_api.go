@@ -42,10 +42,13 @@ type AdminStore interface {
 	ReleaseLeaderElection(key string) error
 
 	// BatchCleanDeletedInstances batch clean soft deleted instances
-	BatchCleanDeletedInstances(batchSize uint32) (uint32, error)
+	BatchCleanDeletedInstances(timeout time.Duration, batchSize uint32) (uint32, error)
 
 	// GetUnHealthyInstances get unhealthy instances which mtime time out
 	GetUnHealthyInstances(timeout time.Duration, limit uint32) ([]string, error)
+
+	// BatchCleanDeletedClients batch clean soft deleted clients
+	BatchCleanDeletedClients(timeout time.Duration, batchSize uint32) (uint32, error)
 }
 
 // LeaderChangeEvent

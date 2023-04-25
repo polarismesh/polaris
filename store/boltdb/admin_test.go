@@ -38,7 +38,66 @@ func setup() {
 func teardown() {
 }
 
-func TestadminStore_BatchCleanDeletedInstances(t *testing.T) {
+func TestAdminStore_BatchCleanDeletedClients(t *testing.T) {
+	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		handler.Close()
+		_ = os.RemoveAll("./table.bolt")
+	}()
+
+	store := &adminStore{handler: handler}
+	cStore := &clientStore{handler: handler}
+
+	mockClients := createMockClients(5)
+	err = cStore.BatchAddClients(mockClients)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	toDeleteClients := []string{
+		mockClients[0].Proto().Id.GetValue(),
+		mockClients[1].Proto().Id.GetValue(),
+		mockClients[2].Proto().Id.GetValue(),
+	}
+	err = cStore.BatchDeleteClients(toDeleteClients)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count, err := store.BatchCleanDeletedClients(0, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Fatalf("count not match, expect cnt=%d, actual cnt=%d", 2, count)
+	}
+
+	remainClients, err := cStore.GetMoreClients(time.Now(), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	validCount := 0
+	invalidCount := 0
+	for _, v := range remainClients {
+		if v.Valid() {
+			validCount++
+		} else {
+			invalidCount++
+		}
+	}
+	if validCount != 2 {
+		t.Fatalf("count not match, expect cnt=%d, actual cnt=%d", 2, validCount)
+	}
+	if invalidCount != 1 {
+		t.Fatalf("count not match, expect cnt=%d, actual cnt=%d", 1, invalidCount)
+	}
+
+}
+
+func TestAdminStore_BatchCleanDeletedInstances(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if err != nil {
 		t.Fatal(err)
@@ -98,7 +157,7 @@ func TestadminStore_BatchCleanDeletedInstances(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	count, err := store.BatchCleanDeletedInstances(2)
+	count, err := store.BatchCleanDeletedInstances(0, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +175,7 @@ func TestadminStore_BatchCleanDeletedInstances(t *testing.T) {
 
 }
 
-func TestadminStore_StartLeaderElection(t *testing.T) {
+func TestAdminStore_StartLeaderElection(t *testing.T) {
 	key := "TestElectKey"
 	mstore := &adminStore{handler: nil, leMap: make(map[string]bool)}
 	isLeader := mstore.IsLeader(key)
@@ -131,7 +190,7 @@ func TestadminStore_StartLeaderElection(t *testing.T) {
 	}
 }
 
-func TestadminStore_ReleaseLeaderElection(t *testing.T) {
+func TestAdminStore_ReleaseLeaderElection(t *testing.T) {
 	key := "TestElectKey"
 	mstore := &adminStore{handler: nil, leMap: make(map[string]bool)}
 	mstore.StartLeaderElection(key)
@@ -142,7 +201,7 @@ func TestadminStore_ReleaseLeaderElection(t *testing.T) {
 	}
 }
 
-func TestadminStore_ListLeaderElections(t *testing.T) {
+func TestAdminStore_ListLeaderElections(t *testing.T) {
 	key := "TestElectKey"
 	mstore := &adminStore{handler: nil, leMap: make(map[string]bool)}
 	mstore.StartLeaderElection(key)
@@ -162,7 +221,7 @@ func TestadminStore_ListLeaderElections(t *testing.T) {
 
 }
 
-func TestadminStore_getUnHealthyInstancesBefore(t *testing.T) {
+func TestAdminStore_getUnHealthyInstancesBefore(t *testing.T) {
 	handler, err := NewBoltHandler(&BoltConfig{FileName: "./table.bolt"})
 	if err != nil {
 		t.Fatal(err)

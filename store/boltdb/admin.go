@@ -102,15 +102,28 @@ func (m *adminStore) ReleaseLeaderElection(key string) error {
 }
 
 // BatchCleanDeletedInstances
-func (m *adminStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, error) {
-	fields := []string{insFieldValid}
+func (m *adminStore) BatchCleanDeletedInstances(timeout time.Duration, batchSize uint32) (uint32, error) {
+	mtime := time.Now().Add(-timeout)
+	fields := []string{insFieldValid, insFieldModifyTime}
 	values, err := m.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
 			valid, ok := m[insFieldValid]
-			if ok && !valid.(bool) {
-				return true
+			if !ok {
+				return false
 			}
-			return false
+			if valid.(bool) {
+				return false
+			}
+
+			modifyTime, ok := m[insFieldModifyTime]
+			if !ok {
+				return false
+			}
+			if modifyTime.(time.Time).After(mtime) {
+				return false
+			}
+
+			return true
 		})
 	if err != nil {
 		return 0, err
@@ -193,4 +206,51 @@ func (m *adminStore) getUnHealthyInstancesBefore(mtime time.Time, limit uint32) 
 	}
 
 	return instanceIds, nil
+}
+
+// BatchCleanDeletedClients
+func (m *adminStore) BatchCleanDeletedClients(timeout time.Duration, batchSize uint32) (uint32, error) {
+	mtime := time.Now().Add(-timeout)
+	fields := []string{ClientFieldValid, ClientFieldMtime}
+	values, err := m.handler.LoadValuesByFilter(tblClient, fields, &model.Client{},
+		func(m map[string]interface{}) bool {
+			valid, ok := m[ClientFieldValid]
+			if !ok {
+				return false
+			}
+			if valid.(bool) {
+				return false
+			}
+
+			modifyTime, ok := m[ClientFieldMtime]
+			if !ok {
+				return false
+			}
+			if modifyTime.(time.Time).After(mtime) {
+				return false
+			}
+
+			return true
+		})
+	if err != nil {
+		return 0, err
+	}
+	if len(values) == 0 {
+		return 0, nil
+	}
+
+	var count uint32 = 0
+	keys := make([]string, 0, batchSize)
+	for k := range values {
+		keys = append(keys, k)
+		count++
+		if count >= batchSize {
+			break
+		}
+	}
+	err = m.handler.DeleteValues(tblClient, keys)
+	if err != nil {
+		return count, err
+	}
+	return count, nil
 }
