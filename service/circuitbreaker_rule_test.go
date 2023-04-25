@@ -245,3 +245,64 @@ func TestCreateCircuitBreakerRule(t *testing.T) {
 		assert.Equal(t, 0, len(anyValues))
 	})
 }
+
+func TestEnableCircuitBreakerRule(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.Initialize(); err != nil {
+		t.Fatal(err)
+	}
+	defer discoverSuit.Destroy()
+
+	t.Run("正常创建熔断规则，返回成功", func(t *testing.T) {
+		cbRules, resp := createCircuitBreakerRules(discoverSuit, testCount)
+		defer cleanCircuitBreakerRules(discoverSuit, resp)
+		qResp := queryCircuitBreakerRules(discoverSuit, map[string]string{"level": strconv.Itoa(int(apifault.Level_GROUP))})
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), qResp.GetCode().GetValue())
+		checkCircuitBreakerRuleResponse(t, cbRules, resp)
+
+		testRule := cbRules[0]
+		testRule.Enable = false
+		resp = discoverSuit.DiscoverServer().EnableCircuitBreakerRules(discoverSuit.DefaultCtx, []*apifault.CircuitBreakerRule{testRule})
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue())
+		qResp = queryCircuitBreakerRules(discoverSuit, map[string]string{"id": testRule.Id})
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), qResp.GetCode().GetValue())
+
+		for _, resp := range qResp.GetData() {
+			msg := &apifault.CircuitBreakerRule{}
+			err := ptypes.UnmarshalAny(resp, msg)
+			assert.Nil(t, err)
+			assert.False(t, msg.Enable)
+		}
+	})
+}
+
+func TestUpdateCircuitBreakerRule(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.Initialize(); err != nil {
+		t.Fatal(err)
+	}
+	defer discoverSuit.Destroy()
+
+	t.Run("正常更新熔断规则，返回成功", func(t *testing.T) {
+		cbRules, resp := createCircuitBreakerRules(discoverSuit, testCount)
+		defer cleanCircuitBreakerRules(discoverSuit, resp)
+		qResp := queryCircuitBreakerRules(discoverSuit, map[string]string{"level": strconv.Itoa(int(apifault.Level_GROUP))})
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), qResp.GetCode().GetValue())
+		checkCircuitBreakerRuleResponse(t, cbRules, resp)
+
+		mockDescr := "update circuitbreaker rule info"
+		testRule := cbRules[0]
+		testRule.Description = mockDescr
+		resp = discoverSuit.DiscoverServer().UpdateCircuitBreakerRules(discoverSuit.DefaultCtx, []*apifault.CircuitBreakerRule{testRule})
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue())
+		qResp = queryCircuitBreakerRules(discoverSuit, map[string]string{"id": testRule.Id})
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), qResp.GetCode().GetValue())
+
+		for _, resp := range qResp.GetData() {
+			msg := &apifault.CircuitBreakerRule{}
+			err := ptypes.UnmarshalAny(resp, msg)
+			assert.Nil(t, err)
+			assert.Equal(t, mockDescr, msg.Description)
+		}
+	})
+}

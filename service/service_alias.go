@@ -19,7 +19,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -443,22 +442,6 @@ func (s *Server) createServiceAliasModel(req *apiservice.ServiceAlias, svcId str
 	}
 
 	return out, nil
-}
-
-// getSourceServiceToken 根据Reference获取源服务的token
-func (s *Server) getSourceServiceToken(refer string) (string, apimodel.Code, error) {
-	if refer == "" {
-		return "", 0, nil
-	}
-	service, err := s.storage.GetServiceByID(refer)
-	if err != nil {
-		return "", apimodel.Code_StoreLayerException, err
-	}
-	if service == nil {
-		return "", apimodel.Code_NotFoundSourceService, errors.New("not found source service")
-	}
-
-	return service.Token, 0, nil
 }
 
 // wrapperServiceAliasResponse wrapper service alias error

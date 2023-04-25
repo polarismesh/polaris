@@ -34,6 +34,16 @@ const (
 	tblCircuitBreakerRule string = "circuitbreaker_rule_v2"
 )
 
+const (
+	CbFieldLevel        = "Level"
+	CbFieldSrcService   = "SrcService"
+	CbFieldSrcNamespace = "SrcNamespace"
+	CbFieldDstService   = "DstService"
+	CbFieldDstNamespace = "DstNamespace"
+	CbFieldDstMethod    = "DstMethod"
+	CbFieldRule         = "Rule"
+)
+
 func initCircuitBreakerRule(cb *model.CircuitBreakerRule) {
 	cb.Valid = true
 	cb.CreateTime = time.Now()
@@ -73,14 +83,24 @@ func (c *circuitBreakerStore) CreateCircuitBreakerRule(cbRule *model.CircuitBrea
 // UpdateCircuitBreakerRule update general circuitbreaker rule
 func (c *circuitBreakerStore) UpdateCircuitBreakerRule(cbRule *model.CircuitBreakerRule) error {
 	dbOp := c.handler
-	cbRule.Valid = true
-	cbRule.ModifyTime = time.Now()
-
-	if err := dbOp.SaveValue(tblCircuitBreakerRule, cbRule.ID, cbRule); err != nil {
+	properties := map[string]interface{}{
+		CommonFieldName:        cbRule.Name,
+		CommonFieldNamespace:   cbRule.Namespace,
+		CommonFieldRevision:    cbRule.Revision,
+		CommonFieldDescription: cbRule.Description,
+		CommonFieldModifyTime:  time.Now(),
+		CbFieldLevel:           cbRule.Level,
+		CbFieldSrcService:      cbRule.SrcService,
+		CbFieldSrcNamespace:    cbRule.SrcNamespace,
+		CbFieldDstService:      cbRule.DstService,
+		CbFieldDstNamespace:    cbRule.DstNamespace,
+		CbFieldDstMethod:       cbRule.DstMethod,
+		CbFieldRule:            cbRule.Rule,
+	}
+	if err := dbOp.UpdateValue(tblCircuitBreakerRule, cbRule.ID, properties); err != nil {
 		log.Errorf("[Store][CircuitBreaker] update rule(%s) exec err: %s", cbRule.ID, err.Error())
 		return store.Error(err)
 	}
-
 	return nil
 }
 
@@ -168,15 +188,6 @@ func (c *circuitBreakerStore) HasCircuitBreakerRuleByNameExcludeId(
 	}
 	return total > 0, nil
 }
-
-const (
-	CbFieldLevel        = "Level"
-	CbFieldSrcService   = "SrcService"
-	CbFieldSrcNamespace = "SrcNamespace"
-	CbFieldDstService   = "DstService"
-	CbFieldDstNamespace = "DstNamespace"
-	CbFieldDstMethod    = "DstMethod"
-)
 
 var (
 	cbSearchFields = []string{CommonFieldID, CommonFieldName, CommonFieldNamespace, CommonFieldDescription,

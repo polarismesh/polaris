@@ -30,6 +30,7 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -324,6 +325,22 @@ func TestExceptCreateAlias(t *testing.T) {
 		resp = discoverSuit.createCommonAlias(
 			serviceResp, "x1.x2.x3", serviceResp.GetNamespace().GetValue(), apiservice.AliasType_DEFAULT)
 		So(respSuccess(resp), ShouldEqual, false)
+		t.Logf("same alias return code: %d", resp.Code.Value)
+	})
+
+	Convey("目标服务已经是一个别名", t, func() {
+		resp := discoverSuit.createCommonAlias(
+			serviceResp, "x1.x2.x3.x4", serviceResp.GetNamespace().GetValue(), apiservice.AliasType_DEFAULT)
+		So(respSuccess(resp), ShouldEqual, true)
+		defer discoverSuit.cleanServiceName(resp.Alias.Alias.Value, serviceResp.GetNamespace().GetValue())
+
+		resp = discoverSuit.createCommonAlias(
+			&apiservice.Service{
+				Name:      utils.NewStringValue("x1.x2.x3.x4"),
+				Namespace: serviceResp.GetNamespace(),
+			}, "x1.x2.x3.x5", serviceResp.GetNamespace().GetValue(), apiservice.AliasType_DEFAULT)
+		So(respSuccess(resp), ShouldEqual, false)
+		assert.Equal(t, apimodel.Code_NotAllowCreateAliasForAlias, apimodel.Code(resp.GetCode().GetValue()))
 		t.Logf("same alias return code: %d", resp.Code.Value)
 	})
 

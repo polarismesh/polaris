@@ -19,12 +19,14 @@ package cache
 
 import (
 	"encoding/json"
+	"sync"
 	"time"
 
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"golang.org/x/sync/singleflight"
 
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -57,6 +59,9 @@ type RateLimitCache interface {
 type rateLimitCache struct {
 	*baseCache
 
+	lock         sync.RWMutex
+	waitFixRules map[string]struct{}
+	svcCache     ServiceCache
 	storage      store.Store
 	rules        *rateLimitRuleBucket
 	singleFlight singleflight.Group
@@ -68,10 +73,12 @@ func init() {
 }
 
 // newRateLimitCache 返回一个操作RateLimitCache的对象
-func newRateLimitCache(s store.Store) *rateLimitCache {
+func newRateLimitCache(s store.Store, sc ServiceCache) *rateLimitCache {
 	return &rateLimitCache{
-		baseCache: newBaseCache(s),
-		storage:   s,
+		baseCache:    newBaseCache(s),
+		storage:      s,
+		svcCache:     sc,
+		waitFixRules: map[string]struct{}{},
 	}
 }
 
@@ -113,7 +120,7 @@ func (rlc *rateLimitCache) clear() error {
 	return nil
 }
 
-func rateLimitToProto(rateLimit *model.RateLimit) error {
+func (rlc *rateLimitCache) rateLimitToProto(rateLimit *model.RateLimit) error {
 	rateLimit.Proto = &apitraffic.Rule{}
 	if len(rateLimit.Rule) == 0 {
 		return nil
@@ -121,6 +128,11 @@ func rateLimitToProto(rateLimit *model.RateLimit) error {
 	// 反序列化rule
 	if err := json.Unmarshal([]byte(rateLimit.Rule), rateLimit.Proto); err != nil {
 		return err
+	}
+	namespace := rateLimit.Proto.GetNamespace().GetValue()
+	name := rateLimit.Proto.GetService().GetValue()
+	if namespace == "" || name == "" {
+		rlc.fixRuleServiceInfo(rateLimit)
 	}
 	return rateLimit.AdaptArgumentsAndLabels()
 }
@@ -130,11 +142,11 @@ func (rlc *rateLimitCache) setRateLimit(rateLimits []*model.RateLimit) map[strin
 	if len(rateLimits) == 0 {
 		return nil
 	}
-
+	rlc.fixRulesServiceInfo()
 	updateService := map[model.ServiceKey]struct{}{}
 	lastMtime := rlc.LastMtime(rlc.name()).Unix()
 	for _, item := range rateLimits {
-		if err := rateLimitToProto(item); nil != err {
+		if err := rlc.rateLimitToProto(item); nil != err {
 			log.Errorf("[Cache]fail to unmarshal rule to proto, err: %v", err)
 			continue
 		}
@@ -151,6 +163,7 @@ func (rlc *rateLimitCache) setRateLimit(rateLimits []*model.RateLimit) map[strin
 		// 待删除的rateLimit
 		if !item.Valid {
 			rlc.rules.delRule(item)
+			rlc.deleteWaitFixRule(item)
 			continue
 		}
 		rlc.rules.saveRule(item)
@@ -179,4 +192,54 @@ func (rlc *rateLimitCache) GetRateLimitRules(serviceKey model.ServiceKey) ([]*mo
 // GetRateLimitsCount 获取限流规则总数
 func (rlc *rateLimitCache) GetRateLimitsCount() int {
 	return rlc.rules.count()
+}
+
+func (rlc *rateLimitCache) deleteWaitFixRule(rule *model.RateLimit) {
+	rlc.lock.Lock()
+	defer rlc.lock.Unlock()
+	delete(rlc.waitFixRules, rule.ID)
+}
+
+func (rlc *rateLimitCache) fixRulesServiceInfo() {
+	rlc.lock.Lock()
+	defer rlc.lock.Unlock()
+	for id := range rlc.waitFixRules {
+		rule := rlc.rules.getRuleByID(id)
+		if rule == nil {
+			delete(rlc.waitFixRules, id)
+			continue
+		}
+		svcId := rule.ServiceID
+		svc := rlc.svcCache.GetServiceByID(svcId)
+		if svc == nil {
+			svc2, err := rlc.storage.GetServiceByID(svcId)
+			if err != nil {
+				continue
+			}
+			svc = svc2
+		}
+
+		rule.Proto.Namespace = utils.NewStringValue(svc.Namespace)
+		rule.Proto.Name = utils.NewStringValue(svc.Name)
+		delete(rlc.waitFixRules, rule.ID)
+	}
+}
+
+func (rlc *rateLimitCache) fixRuleServiceInfo(rateLimit *model.RateLimit) {
+	rlc.lock.Lock()
+	defer rlc.lock.Unlock()
+	svcId := rateLimit.ServiceID
+	svc := rlc.svcCache.GetServiceByID(svcId)
+	if svc == nil {
+		svc2, err := rlc.storage.GetServiceByID(svcId)
+		if err != nil {
+			rlc.waitFixRules[rateLimit.ID] = struct{}{}
+			return
+		}
+		svc = svc2
+	}
+
+	rateLimit.Proto.Namespace = utils.NewStringValue(svc.Namespace)
+	rateLimit.Proto.Name = utils.NewStringValue(svc.Name)
+	delete(rlc.waitFixRules, rateLimit.ID)
 }

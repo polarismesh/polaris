@@ -19,11 +19,8 @@ package batch
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"math/rand"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -38,7 +35,7 @@ import (
 )
 
 func init() {
-	metrics.TestInitMetrics()
+	metrics.InitMetrics()
 }
 
 // TestNewBatchCtrlWithConfig 测试New
@@ -128,43 +125,6 @@ func sendAsyncCreateInstance(bc *Controller, cnt int32) error {
 	return nil
 }
 
-type mockTrx struct {
-	commit func()
-	svc    *model.Service
-	ns     *model.Namespace
-}
-
-// Commit Transaction
-func (t *mockTrx) Commit() error {
-	t.commit()
-	return nil
-}
-
-// LockBootstrap Start the lock, limit the concurrent number of Server boot
-func (t *mockTrx) LockBootstrap(key string, server string) error {
-	return nil
-}
-
-// LockNamespace Row it locks Namespace
-func (t *mockTrx) LockNamespace(name string) (*model.Namespace, error) {
-	return t.ns, nil
-}
-
-// DeleteNamespace Delete Namespace
-func (t *mockTrx) DeleteNamespace(name string) error {
-	return nil
-}
-
-// LockService Row it locks service
-func (t *mockTrx) LockService(name string, namespace string) (*model.Service, error) {
-	return t.svc, nil
-}
-
-// RLockService Shared lock service
-func (t *mockTrx) RLockService(name string, namespace string) (*model.Service, error) {
-	return t.svc, nil
-}
-
 // TestAsyncCreateInstance test AsyncCreateInstance
 func TestAsyncCreateInstance(t *testing.T) {
 	t.Run("正常创建实例", func(t *testing.T) {
@@ -174,61 +134,13 @@ func TestAsyncCreateInstance(t *testing.T) {
 			cancel()
 		})
 		mockSvc := &model.Service{ID: "1"}
-		actualCommit := int32(0)
 		totalIns := int32(100)
-		mockTrx := smock.NewMockTransaction(ctrl)
-		mockTrx.EXPECT().Commit().Do(func() {
-			atomic.AddInt32(&actualCommit, 1)
-		}).AnyTimes()
-		mockTrx.EXPECT().RLockService(gomock.Any(), gomock.Any()).DoAndReturn(func(_, _ string) (*model.Service, error) {
-			return mockSvc, nil
-		}).AnyTimes()
-
 		storage.EXPECT().BatchGetInstanceIsolate(gomock.Any()).Return(nil, nil).AnyTimes()
 		storage.EXPECT().GetSourceServiceToken(gomock.Any(), gomock.Any()).
 			Return(mockSvc, nil).AnyTimes()
 		storage.EXPECT().GetServiceByID(gomock.Any()).Return(mockSvc, nil).AnyTimes()
-		storage.EXPECT().CreateTransaction().Return(mockTrx, nil).AnyTimes()
 		storage.EXPECT().BatchAddInstances(gomock.Any()).Return(nil).AnyTimes()
 		assert.NoError(t, sendAsyncCreateInstance(bc, totalIns))
-		assert.True(t, totalIns/int32(8) <= actualCommit && actualCommit <= totalIns/int32(8)+int32(1))
-	})
-
-	t.Run("创建实例-lockService随机出现错误", func(t *testing.T) {
-		ctrl, bc, storage, cancel := newCreateInstanceController(t)
-		t.Cleanup(func() {
-			ctrl.Finish()
-			cancel()
-		})
-		mockSvc := &model.Service{ID: "1"}
-		actualCommit := int32(0)
-		totalIns := int32(100)
-		hasErr := int32(0)
-		mockTrx := smock.NewMockTransaction(ctrl)
-		mockTrx.EXPECT().Commit().Do(func() {
-			atomic.AddInt32(&actualCommit, 1)
-		}).AnyTimes()
-		mockTrx.EXPECT().RLockService(gomock.Any(), gomock.Any()).DoAndReturn(func(_, _ string) (*model.Service, error) {
-			if rand.Float64() < 0.5 {
-				return mockSvc, nil
-			}
-			atomic.StoreInt32(&hasErr, 1)
-			return nil, errors.New("mock RLockService fail")
-		}).AnyTimes()
-
-		storage.EXPECT().BatchGetInstanceIsolate(gomock.Any()).Return(nil, nil).AnyTimes()
-		storage.EXPECT().GetSourceServiceToken(gomock.Any(), gomock.Any()).
-			Return(mockSvc, nil).AnyTimes()
-		storage.EXPECT().GetServiceByID(gomock.Any()).Return(mockSvc, nil).AnyTimes()
-		storage.EXPECT().CreateTransaction().Return(mockTrx, nil).AnyTimes()
-		storage.EXPECT().BatchAddInstances(gomock.Any()).Return(nil).AnyTimes()
-		err := sendAsyncCreateInstance(bc, totalIns)
-		if atomic.LoadInt32(&hasErr) == 1 {
-			assert.Error(t, err)
-		} else {
-			assert.NoError(t, err)
-		}
-		assert.True(t, totalIns/int32(8) <= actualCommit && actualCommit <= totalIns/int32(8)+int32(1))
 	})
 }
 

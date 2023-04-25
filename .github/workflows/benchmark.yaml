@@ -107,7 +107,7 @@ jobs:
 
           echo "[BENCHMARK TEST] begin"
           export BENCHMARK_SERVER_ADDRESS=127.0.0.1:8091
-          pushd ./test/benchmark/grpc
+          pushd ./test/benchmark/grpc/client
           go test -v -bench .
           popd
           echo "[BENCHMARK TEST] end"

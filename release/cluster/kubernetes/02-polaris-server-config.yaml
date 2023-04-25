@@ -262,8 +262,6 @@ data:
     namespace:
       autoCreate: true
     naming:
-      auth:
-        open: false
       # 批量控制器
       batch:
         register:
@@ -348,6 +346,29 @@ data:
             expireTimeAfterWrite: 3600
         - name: faultDetectRule
     #    - name: l5 # 加载l5数据
+    # Maintain configuration
+    maintain:
+      jobs:
+        # Clean up long term unhealthy instance
+        - name: DeleteUnHealthyInstance
+          enable: false
+          # job exec interval. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+          interval: 24h
+          option:
+            instanceDeleteTimeout: 60m
+        # Delete auto-created service without an instance
+        - name: DeleteEmptyAutoCreatedService
+          enable: false
+          # job exec interval. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+          interval: 1h
+          option:
+            serviceDeleteTimeout: 30m
+        # Clean soft deleted instances
+        - name: CleanDeletedInstances
+          enable: true
+          # job exec interval. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+          interval: 24h
+      
     # 存储配置
     store:
       # 单机文件存储插件

@@ -43,6 +43,18 @@ func GetHttpHandler() http.Handler {
 	return promhttp.HandlerFor(registry, promhttp.HandlerOpts{EnableOpenMetrics: true})
 }
 
+var (
+	metricsPort int32
+)
+
+func SetMetricsPort(port int32) {
+	metricsPort = port
+}
+
+func GetMetricsPort() int32 {
+	return metricsPort
+}
+
 // InitMetrics 初始化 metrics 的所有指标
 func InitMetrics() {
 	registerSysMetrics()

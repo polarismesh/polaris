@@ -82,6 +82,11 @@ func (r *routingConfigStoreV2) CreateRoutingConfigV2Tx(tx store.Tx, conf *model.
 }
 
 func (r *routingConfigStoreV2) createRoutingConfigV2Tx(tx *BaseTx, conf *model.RouterConfig) error {
+	// 删除无效的数据
+	if _, err := tx.Exec("DELETE FROM routing_config_v2 WHERE id = ? AND flag = 1", conf.ID); err != nil {
+		log.Errorf("[Store][database] create routing v2(%+v) err: %s", conf, err.Error())
+		return store.Error(err)
+	}
 
 	insertSQL := "INSERT INTO routing_config_v2(id, namespace, name, policy, config, enable, " +
 		" priority, revision, description, ctime, mtime, etime) VALUES (?,?,?,?,?,?,?,?,?,sysdate(),sysdate(),%s)"

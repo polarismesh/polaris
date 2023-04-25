@@ -92,9 +92,10 @@ func Start(configFilePath string) {
 		fmt.Printf("[ERROR] acquire localhost fail: %v\n", err)
 		return
 	}
+	// 设置默认端口信息数据
+	acquireLocalPort(ctx, cfg.APIServers)
 
 	metrics.InitMetrics()
-
 	eventhub.InitEventHub()
 
 	// 设置插件配置
@@ -272,7 +273,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 	}
 
 	// 初始化服务模块
-	if err = service.Initialize(ctx, &cfg.Naming, opts...); err != nil {
+	if err = service.Initialize(ctx, &cfg.Naming, authMgn, opts...); err != nil {
 		return err
 	}
 
@@ -453,8 +454,19 @@ func acquireLocalhost(ctx context.Context, polarisService *boot_config.PolarisSe
 	}
 	log.Infof("[Bootstrap] get local host: %s", localHost)
 	utils.LocalHost = localHost
-
 	return utils.WithLocalhost(ctx, localHost), nil
+}
+
+func acquireLocalPort(ctx context.Context, apientries []apiserver.Config) {
+	for i := range apientries {
+		entry := apientries[i]
+		if entry.Name != "service-grpc" {
+			continue
+		}
+		port, _ := entry.Option["listenPort"].(int)
+		utils.LocalPort = port
+		break
+	}
 }
 
 // polarisServiceRegister 自注册主函数

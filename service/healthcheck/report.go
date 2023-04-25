@@ -48,16 +48,13 @@ func checkHeartbeatInstance(req *apiservice.Instance) (string, *apiservice.Respo
 
 const max404Count = 3
 
-func (s *Server) checkInstanceExists(instance *apiservice.Instance) (int64, *model.Instance, apimodel.Code) {
-	id := instance.GetId().GetValue()
+func (s *Server) checkInstanceExists(id string) (int64, *model.Instance, apimodel.Code) {
 	ins := s.instanceCache.GetInstance(id)
 	if ins != nil {
 		return -1, ins, apimodel.Code_ExecuteSuccess
 	}
 	resp, err := s.defaultChecker.Query(&plugin.QueryRequest{
 		InstanceId: id,
-		Host:       instance.GetHost().GetValue(),
-		Port:       instance.GetPort().GetValue(),
 	})
 	if nil != err {
 		log.Errorf("[healthcheck]fail to query report count by id %s, err: %v", id, err)
@@ -92,9 +89,6 @@ func (s *Server) doReport(ctx context.Context, instance *apiservice.Instance) *a
 	if errRsp != nil {
 		return errRsp
 	}
-	instance.Id = utils.NewStringValue(id)
-	count, ins, code := s.checkInstanceExists(instance)
-	checker := s.getHealthChecker(id)
 	request := &plugin.ReportRequest{
 		QueryRequest: plugin.QueryRequest{
 			InstanceId: id,
@@ -103,24 +97,58 @@ func (s *Server) doReport(ctx context.Context, instance *apiservice.Instance) *a
 		},
 		LocalHost:  s.localHost,
 		CurTimeSec: time.Now().Unix() - s.timeAdjuster.GetDiff(),
-		Count:      count + 1,
 	}
-	err := checker.Report(request)
+	code, err := s.baseReport(ctx, id, request)
+	if err != nil {
+		log.Errorf("[Heartbeat][Server]fail to do report for %s:%d, id is %s, err is %v",
+			instance.GetHost().GetValue(), instance.GetPort().GetValue(), id, err)
+		return api.NewInstanceResponse(apimodel.Code_HeartbeatException, instance)
+	}
+	return api.NewInstanceResponse(code, instance)
+}
 
+func (s *Server) doReports(ctx context.Context, beats []*apiservice.InstanceHeartbeat) *apiservice.Response {
+	if len(s.checkers) == 0 {
+		return api.NewResponse(apimodel.Code_HealthCheckNotOpen)
+	}
+	for i := range beats {
+		beat := beats[i]
+		request := &plugin.ReportRequest{
+			QueryRequest: plugin.QueryRequest{
+				InstanceId: beat.InstanceId,
+				Host:       beat.Host,
+				Port:       beat.Port,
+			},
+			LocalHost:  s.localHost,
+			CurTimeSec: time.Now().Unix() - s.timeAdjuster.GetDiff(),
+		}
+		code, err := s.baseReport(ctx, beat.InstanceId, request)
+		if err != nil {
+			log.Errorf("[Heartbeat][Server]fail to do report for %s:%d, id is %s, err is %v",
+				beat.GetHost(), beat.GetPort(), beat.GetInstanceId(), err)
+			return api.NewInstanceResponse(apimodel.Code_HeartbeatException, nil)
+		}
+		if code != apimodel.Code_ExecuteSuccess {
+			log.Warnf("[Heartbeat][Server] do report for %s:%d, id is %s, code is %v",
+				beat.GetHost(), beat.GetPort(), beat.GetInstanceId(), code)
+		}
+	}
+	return api.NewResponse(apimodel.Code_ExecuteSuccess)
+}
+
+func (s *Server) baseReport(ctx context.Context, id string, reportReq *plugin.ReportRequest) (apimodel.Code, error) {
+	count, ins, code := s.checkInstanceExists(id)
+	checker := s.getHealthChecker(id)
+	reportReq.Count = count + 1
+	err := checker.Report(reportReq)
 	if nil != ins {
 		event := &model.InstanceEvent{
-			Id:       ins.ID(),
+			Id:       id,
 			Instance: ins.Proto,
 			EType:    model.EventInstanceSendHeartbeat,
 		}
 		event.InjectMetadata(ctx)
 		s.publishInstanceEvent(ins.ServiceID, *event)
 	}
-	if err != nil {
-		log.Errorf("[Heartbeat][Server]fail to do report for %s:%d, id is %s, err is %v",
-			instance.GetHost().GetValue(), instance.GetPort().GetValue(), id, err)
-		return api.NewInstanceResponse(apimodel.Code_HeartbeatException, instance)
-	}
-
-	return api.NewInstanceResponse(code, instance)
+	return code, err
 }

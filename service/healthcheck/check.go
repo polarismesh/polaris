@@ -99,9 +99,9 @@ func (handler *InstanceEventHealthCheckHandler) OnEvent(ctx context.Context, i i
 	e := i.(model.InstanceEvent)
 	select {
 	case handler.instanceEventChannel <- &e:
-		log.Infof("[Health Check]get instance event, id is %s, type is %s", e.Id, e.EType)
+		log.Debugf("[Health Check]get instance event, id is %s, type is %s", e.Id, e.EType)
 	default:
-		log.Errorf("[Health Check]instance event handler channel is full, drop event, id is %s", e.Id)
+		log.Errorf("[Health Check]instance event chan full, drop event, id is %s, type is %s", e.Id, e.EType)
 	}
 	return nil
 }
@@ -230,26 +230,44 @@ func (c *CheckScheduler) removeAdopting(instanceId string, checker plugin.Health
 	}
 }
 
-func (c *CheckScheduler) putInstanceIfAbsent(instanceWithChecker *InstanceWithChecker) (bool, *itemValue) {
+func (c *CheckScheduler) upsertInstanceChecker(instanceWithChecker *InstanceWithChecker) (bool, *itemValue) {
 	c.rwMutex.Lock()
 	defer c.rwMutex.Unlock()
 	instance := instanceWithChecker.instance
-	var instValue *itemValue
-	var ok bool
-	if instValue, ok = c.scheduledInstances[instance.ID()]; ok {
-		return true, instValue
-	}
-	instValue = &itemValue{
-		mutex:             &sync.Mutex{},
-		host:              instance.Host(),
-		port:              instance.Port(),
-		id:                instance.ID(),
-		expireDurationSec: getExpireDurationSec(instance.Proto),
-		checker:           instanceWithChecker.checker,
-		ttlDurationSec:    instance.HealthCheck().GetHeartbeat().GetTtl().GetValue(),
+	ttl := instance.HealthCheck().GetHeartbeat().GetTtl().GetValue()
+	var (
+		instValue *itemValue
+		exist     bool
+	)
+	instValue, exist = c.scheduledInstances[instance.ID()]
+	if exist {
+		if ttl == instValue.ttlDurationSec {
+			return true, instValue
+		}
+		// force update check info
+		instValue.mutex.Lock()
+		oldTtl := instValue.ttlDurationSec
+		instValue.checker = instanceWithChecker.checker
+		instValue.expireDurationSec = getExpireDurationSec(instance.Proto)
+		instValue.ttlDurationSec = ttl
+		instValue.mutex.Unlock()
+		if log.DebugEnabled() {
+			log.Debug("[Health Check][Check] upsert instance checker", zap.String("id", instValue.id),
+				zap.Uint32("old-ttl", oldTtl), zap.Uint32("ttl", instValue.ttlDurationSec))
+		}
+	} else {
+		instValue = &itemValue{
+			mutex:             &sync.Mutex{},
+			host:              instance.Host(),
+			port:              instance.Port(),
+			id:                instance.ID(),
+			expireDurationSec: getExpireDurationSec(instance.Proto),
+			checker:           instanceWithChecker.checker,
+			ttlDurationSec:    ttl,
+		}
 	}
 	c.scheduledInstances[instance.ID()] = instValue
-	return false, instValue
+	return exist, instValue
 }
 
 func (c *CheckScheduler) putClientIfAbsent(clientWithChecker *ClientWithChecker) (bool, *clientItemValue) {
@@ -292,10 +310,10 @@ func (c *CheckScheduler) getClientValue(clientId string) (*clientItemValue, bool
 	return value, ok
 }
 
-// AddInstance add instance to check
-func (c *CheckScheduler) AddInstance(instanceWithChecker *InstanceWithChecker) {
-	exists, instValue := c.putInstanceIfAbsent(instanceWithChecker)
-	if exists {
+// UpsertInstance insert or update instance to check
+func (c *CheckScheduler) UpsertInstance(instanceWithChecker *InstanceWithChecker) {
+	firstadd, instValue := c.upsertInstanceChecker(instanceWithChecker)
+	if firstadd {
 		return
 	}
 	c.addAdopting(instValue.id, instValue.checker)
@@ -423,8 +441,10 @@ func (c *CheckScheduler) checkCallbackInstance(value interface{}) {
 	instanceValue.mutex.Lock()
 	defer instanceValue.mutex.Unlock()
 
-	var checkResp *plugin.CheckResponse
-	var err error
+	var (
+		checkResp *plugin.CheckResponse
+		err       error
+	)
 	defer func() {
 		if checkResp != nil && checkResp.Regular && checkResp.Healthy {
 			c.addHealthyCallback(instanceValue, checkResp.LastHeartbeatTimeSec)

@@ -57,15 +57,16 @@ func (s *Server) CreateNamespaces(ctx context.Context, req []*apimodel.Namespace
 // CreateNamespaceIfAbsent 创建命名空间，如果不存在
 func (s *Server) CreateNamespaceIfAbsent(ctx context.Context,
 	req *apimodel.Namespace) (string, *apiservice.Response) {
-	if !s.allowAutoCreate() {
-		return "", api.NewResponseWithMsg(apimodel.Code_ExecuteException, "not allow auto create namespace")
-	}
 	if resp := checkCreateNamespace(req); resp != nil {
 		return "", resp
 	}
 	name := req.GetName().GetValue()
-	if val := s.caches.Namespace().GetNamespace(name); val != nil {
+	val, err := s.loadNamespace(name)
+	if err != nil {
 		return name, nil
+	}
+	if val == "" && !s.allowAutoCreate() {
+		return "", api.NewResponse(apimodel.Code_NotFoundNamespace)
 	}
 	ret, err, _ := s.createNamespaceSingle.Do(name, func() (interface{}, error) {
 		return s.CreateNamespace(ctx, req), nil
@@ -424,6 +425,21 @@ func (s *Server) getCircuitBreakerCountWithNamespace(namespace string) (uint32, 
 		return 0, err
 	}
 	return details.Total, nil
+}
+
+// loadNamespace
+func (s *Server) loadNamespace(name string) (string, error) {
+	if val := s.caches.Namespace().GetNamespace(name); val != nil {
+		return name, nil
+	}
+	val, err := s.storage.GetNamespace(name)
+	if err != nil {
+		return "", err
+	}
+	if val == nil {
+		return "", nil
+	}
+	return val.Name, nil
 }
 
 // 检查namespace的权限，并且返回namespace

@@ -50,6 +50,7 @@ type AdminStore interface {
 
 // LeaderChangeEvent
 type LeaderChangeEvent struct {
-	Key    string
-	Leader bool
+	Key        string
+	Leader     bool
+	LeaderHost string
 }

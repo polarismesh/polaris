@@ -188,29 +188,17 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Servic
 
 // ServiceInstancesCache 根据服务名查询服务实例列表
 func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+	resp := createCommonDiscoverResponse(req, apiservice.DiscoverResponse_INSTANCE)
 	serviceName := req.GetName().GetValue()
 	namespaceName := req.GetNamespace().GetValue()
-	emptyNamespace := false
 
 	// 消费服务为了兼容，可以不带namespace，server端使用默认的namespace
 	if namespaceName == "" {
-		emptyNamespace = true
 		namespaceName = DefaultNamespace
 		req.Namespace = utils.NewStringValue(namespaceName)
 	}
-	resp := &apiservice.DiscoverResponse{
-		Code: &wrappers.UInt32Value{Value: uint32(apimodel.Code_ExecuteSuccess)},
-		Info: &wrappers.StringValue{Value: api.Code2Info(uint32(apimodel.Code_ExecuteSuccess))},
-		Type: apiservice.DiscoverResponse_INSTANCE,
-	}
 	if !s.commonCheckDiscoverRequest(req, resp) {
-		if emptyNamespace {
-			req.Namespace = utils.NewStringValue("")
-		}
 		return resp
-	}
-	if emptyNamespace {
-		req.Namespace = utils.NewStringValue("")
 	}
 
 	// 数据源都来自Cache，这里拿到的service，已经是源服务
@@ -243,8 +231,6 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Serv
 	// 填充service数据
 	resp.Service = service2Api(aliasFor)
 	resp.Service.Revision.Value = revision
-	resp.Service.Namespace = req.GetNamespace()
-	resp.Service.Name = req.GetName() // 别名场景，response需要保持和request的服务名一致
 	// 塞入源服务信息数据
 	resp.AliasFor = &apiservice.Service{
 		Namespace: utils.NewStringValue(aliasFor.Namespace),
@@ -265,11 +251,7 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Serv
 
 // GetRoutingConfigWithCache 获取缓存中的路由配置信息
 func (s *Server) GetRoutingConfigWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
-	resp := &apiservice.DiscoverResponse{
-		Code: &wrappers.UInt32Value{Value: uint32(apimodel.Code_ExecuteSuccess)},
-		Info: &wrappers.StringValue{Value: api.Code2Info(uint32(apimodel.Code_ExecuteSuccess))},
-		Type: apiservice.DiscoverResponse_ROUTING,
-	}
+	resp := createCommonDiscoverResponse(req, apiservice.DiscoverResponse_ROUTING)
 	if !s.commonCheckDiscoverRequest(req, resp) {
 		return resp
 	}
@@ -315,11 +297,7 @@ func (s *Server) GetRoutingConfigWithCache(ctx context.Context, req *apiservice.
 
 // GetRateLimitWithCache 获取缓存中的限流规则信息
 func (s *Server) GetRateLimitWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
-	resp := &apiservice.DiscoverResponse{
-		Code: &wrappers.UInt32Value{Value: uint32(apimodel.Code_ExecuteSuccess)},
-		Info: &wrappers.StringValue{Value: api.Code2Info(uint32(apimodel.Code_ExecuteSuccess))},
-		Type: apiservice.DiscoverResponse_RATE_LIMIT,
-	}
+	resp := createCommonDiscoverResponse(req, apiservice.DiscoverResponse_RATE_LIMIT)
 	if !s.commonCheckDiscoverRequest(req, resp) {
 		return resp
 	}
@@ -370,11 +348,7 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *apiservice.Serv
 }
 
 func (s *Server) GetFaultDetectWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
-	resp := &apiservice.DiscoverResponse{
-		Code: &wrappers.UInt32Value{Value: uint32(apimodel.Code_ExecuteSuccess)},
-		Info: &wrappers.StringValue{Value: api.Code2Info(uint32(apimodel.Code_ExecuteSuccess))},
-		Type: apiservice.DiscoverResponse_FAULT_DETECTOR,
-	}
+	resp := createCommonDiscoverResponse(req, apiservice.DiscoverResponse_FAULT_DETECTOR)
 	if !s.commonCheckDiscoverRequest(req, resp) {
 		return resp
 	}
@@ -419,11 +393,7 @@ func (s *Server) GetFaultDetectWithCache(ctx context.Context, req *apiservice.Se
 
 // GetCircuitBreakerWithCache 获取缓存中的熔断规则信息
 func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
-	resp := &apiservice.DiscoverResponse{
-		Code: &wrappers.UInt32Value{Value: uint32(apimodel.Code_ExecuteSuccess)},
-		Info: &wrappers.StringValue{Value: api.Code2Info(uint32(apimodel.Code_ExecuteSuccess))},
-		Type: apiservice.DiscoverResponse_CIRCUIT_BREAKER,
-	}
+	resp := createCommonDiscoverResponse(req, apiservice.DiscoverResponse_CIRCUIT_BREAKER)
 	if !s.commonCheckDiscoverRequest(req, resp) {
 		return resp
 	}
@@ -465,6 +435,19 @@ func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *apiservice
 		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_ExecuteException, req)
 	}
 	return resp
+}
+
+func createCommonDiscoverResponse(req *apiservice.Service,
+	dT apiservice.DiscoverResponse_DiscoverResponseType) *apiservice.DiscoverResponse {
+	return &apiservice.DiscoverResponse{
+		Code: &wrappers.UInt32Value{Value: uint32(apimodel.Code_ExecuteSuccess)},
+		Info: &wrappers.StringValue{Value: api.Code2Info(uint32(apimodel.Code_ExecuteSuccess))},
+		Type: dT,
+		Service: &apiservice.Service{
+			Name:      req.GetName(),
+			Namespace: req.GetNamespace(),
+		},
+	}
 }
 
 // 根据ServiceID获取instances

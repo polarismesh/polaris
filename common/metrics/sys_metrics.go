@@ -23,6 +23,8 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 var (
@@ -31,13 +33,62 @@ var (
 )
 
 func registerSysMetrics() {
-	registry.MustRegister([]prometheus.Collector{
-		instanceAsyncRegisCost,
-		instanceRegisTaskExpire,
-		redisReadFailure,
-		redisWriteFailure,
-		redisAliveStatus,
-	}...)
+	// instanceAsyncRegisCost 实例异步注册任务耗费时间
+	instanceAsyncRegisCost = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name: "instance_regis_cost_time",
+		Help: "instance regis cost time",
+		ConstLabels: map[string]string{
+			LabelServerNode: utils.LocalHost,
+		},
+	})
+
+	// instanceRegisTaskExpire 实例异步注册任务超时无效事件
+	instanceRegisTaskExpire = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "instance_regis_task_expire",
+		Help: "instance regis task expire that server drop it",
+		ConstLabels: map[string]string{
+			LabelServerNode: utils.LocalHost,
+		},
+	})
+
+	redisReadFailure = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "redis_read_failure",
+		Help: "polaris exec redis read operation failure",
+		ConstLabels: map[string]string{
+			LabelServerNode: utils.LocalHost,
+		},
+	})
+
+	redisWriteFailure = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "redis_write_failure",
+		Help: "polaris exec redis write operation failure",
+		ConstLabels: map[string]string{
+			LabelServerNode: utils.LocalHost,
+		},
+	})
+
+	redisAliveStatus = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "redis_alive_status",
+		Help: "polaris redis alive status",
+		ConstLabels: map[string]string{
+			"polaris_server_instance": utils.LocalHost,
+		},
+	})
+
+	cacheUpdateCost = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "cache_update_cost",
+		Help: "cache update cost per resource cache",
+		ConstLabels: map[string]string{
+			"polaris_server_instance": utils.LocalHost,
+		},
+	}, []string{labelCacheType, labelCacheUpdateCount})
+
+	_ = registry.Register(instanceAsyncRegisCost)
+	_ = registry.Register(instanceRegisTaskExpire)
+	_ = registry.Register(redisReadFailure)
+	_ = registry.Register(redisWriteFailure)
+	_ = registry.Register(redisAliveStatus)
+	_ = registry.Register(cacheUpdateCost)
 
 	go func() {
 		lastRedisReadFailureReport.Store(time.Now())
@@ -89,6 +140,9 @@ func ReportRedisIsAlive() {
 
 // RecordCacheUpdateCost record per cache update cost time
 func RecordCacheUpdateCost(cost time.Duration, cacheTye string, total int64) {
+	if cacheUpdateCost == nil {
+		return
+	}
 	cacheUpdateCost.With(map[string]string{
 		labelCacheType:        cacheTye,
 		labelCacheUpdateCount: strconv.FormatInt(total, 10),

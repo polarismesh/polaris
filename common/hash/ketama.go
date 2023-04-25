@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package healthcheck
+package hash
 
 import (
 	"crypto/sha1"
@@ -56,7 +56,7 @@ func sha1Digest(in string) []byte {
 	return h.Sum(nil)
 }
 
-func hashString(in string) uint {
+func HashString(in string) uint {
 	digest := sha1Digest(in)
 	return uint(digest[3])<<24 | uint(digest[2])<<16 | uint(digest[1])<<8 | uint(digest[0])
 }

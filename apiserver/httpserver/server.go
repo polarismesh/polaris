@@ -393,7 +393,8 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 	if h.enableSwagger {
 		h.enableSwaggerAPI(wsContainer)
 	}
-
+	// 收集插件的 endpoint 数据
+	h.enablePluginDebugAccess(wsContainer)
 	h.enablePrometheusAccess(wsContainer)
 	return wsContainer, nil
 }
@@ -412,6 +413,17 @@ func (h *HTTPServer) enablePrometheusAccess(wsContainer *restful.Container) {
 	log.Infof("open http access for prometheus")
 
 	wsContainer.Handle("/metrics", metrics.GetHttpHandler())
+}
+
+// enablePluginDebugAccess .
+func (h *HTTPServer) enablePluginDebugAccess(wsContainer *restful.Container) {
+	log.Infof("open http access for plugin")
+	for _, checker := range h.healthCheckServer.Checkers() {
+		handlers := checker.DebugHandlers()
+		for i := range handlers {
+			wsContainer.Handle(handlers[i].Path, handlers[i].Handler)
+		}
+	}
 }
 
 // process 在接收和回复时统一处理请求

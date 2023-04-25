@@ -183,13 +183,15 @@ func discoverCacheConvert(m interface{}) *grpcserver.CacheObject {
 	if resp.Code.GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 		return nil
 	}
-
+	if resp.GetService().GetRevision().GetValue() == "" {
+		return nil
+	}
 	if _, ok := cacheTypes[resp.GetType().String()]; !ok {
 		return nil
 	}
 
-	keyProto := fmt.Sprintf("%s-%s-%s", resp.Service.Namespace.GetValue(),
-		resp.Service.Name.GetValue(), resp.Service.Revision.GetValue())
+	keyProto := fmt.Sprintf("%s-%s-%s", resp.GetService().GetNamespace().GetValue(),
+		resp.GetService().GetName().GetValue(), resp.GetService().GetRevision().GetValue())
 
 	return &grpcserver.CacheObject{
 		OriginVal: resp,

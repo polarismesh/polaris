@@ -300,8 +300,6 @@ namespace:
   # Whether to allow automatic creation of naming space
   autoCreate: true
 naming:
-  auth:
-    open: false
   # Batch controller
   batch:
     register:
@@ -346,7 +344,8 @@ healthcheck:
       maxBatchCount: 32
       concurrency: 64
   checkers:
-    - name: heartbeatMemory
+    # - name: heartbeatMemory
+    - name: heartbeatLeader
 #  - name: heartbeatRedis
 #    option:
 #      kvAddr: ##REDIS_ADDR##

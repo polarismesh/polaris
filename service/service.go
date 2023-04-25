@@ -134,7 +134,7 @@ func (s *Server) CreateService(ctx context.Context, req *apiservice.Service) *ap
 			// 检查是否存在
 			service, err := s.storage.GetService(serviceName, namespaceName)
 			if err != nil {
-				log.Error("[Service] get service fail", ZapRequestID(requestID), zap.Error(err))
+				log.Error("[Service] get service fail", utils.ZapRequestID(requestID), zap.Error(err))
 				return api.NewServiceResponse(apimodel.Code_StoreLayerException, req)
 			}
 			if service != nil {
@@ -335,6 +335,7 @@ func (s *Server) UpdateServiceToken(ctx context.Context, req *apiservice.Service
 	return api.NewServiceResponse(apimodel.Code_ExecuteSuccess, out)
 }
 
+// GetAllServices query all service list by namespace
 func (s *Server) GetAllServices(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	var (
 		svcs []*model.Service
@@ -439,7 +440,6 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *apis
 	}
 
 	serviceArgs := parseServiceArgs(serviceFilters, serviceMetas, ctx)
-	serviceArgs.HiddenServiceSet = s.polarisServiceSet
 	err = s.caches.Service().Update()
 	if err != nil {
 		log.Errorf("[Server][Service][Query] req(%+v) update store err: %s", query, err.Error())

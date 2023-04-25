@@ -26,6 +26,7 @@ import (
 	"github.com/golang/mock/gomock"
 
 	"github.com/polarismesh/polaris/common/eventhub"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store/mock"
 )
 
@@ -45,7 +46,7 @@ func TestMaintainStore_LeaderElection_Follower1(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockStore := mock.NewMockLeaderElectionStore(ctrl)
-	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(false, nil)
+	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(utils.LocalHost, false, nil)
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	le := leaderElectionStateMachine{
@@ -68,7 +69,7 @@ func TestMaintainStore_LeaderElection_Follower2(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockStore := mock.NewMockLeaderElectionStore(ctrl)
-	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(true, nil)
+	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(utils.LocalHost, true, nil)
 	mockStore.EXPECT().GetVersion(TestElectKey).Return(int64(0), nil)
 	mockStore.EXPECT().CompareAndSwapVersion(TestElectKey, int64(0), int64(1), "127.0.0.1").Return(false, nil)
 
@@ -93,7 +94,7 @@ func TestMaintainStore_LeaderElection_Follower3(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockStore := mock.NewMockLeaderElectionStore(ctrl)
-	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(false, errors.New("err"))
+	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(utils.LocalHost, false, errors.New("err"))
 	ctx, cancel := context.WithCancel(context.TODO())
 	le := leaderElectionStateMachine{
 		electKey:   TestElectKey,
@@ -115,7 +116,7 @@ func TestMaintainStore_LeaderElection_Follower4(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockStore := mock.NewMockLeaderElectionStore(ctrl)
-	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(true, nil)
+	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(utils.LocalHost, true, nil)
 	mockStore.EXPECT().GetVersion(TestElectKey).Return(int64(0), errors.New("err"))
 
 	ctx, cancel := context.WithCancel(context.TODO())
@@ -139,7 +140,7 @@ func TestMaintainStore_LeaderElection_Follower5(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockStore := mock.NewMockLeaderElectionStore(ctrl)
-	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(true, nil)
+	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(utils.LocalHost, true, nil)
 	mockStore.EXPECT().GetVersion(TestElectKey).Return(int64(0), nil)
 	mockStore.EXPECT().CompareAndSwapVersion(TestElectKey, int64(0), int64(1), "127.0.0.1").Return(false, errors.New("err"))
 
@@ -164,7 +165,7 @@ func TestMaintainStore_LeaderElection_FollowerToLeader(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockStore := mock.NewMockLeaderElectionStore(ctrl)
-	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(true, nil)
+	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(utils.LocalHost, true, nil)
 	mockStore.EXPECT().GetVersion(TestElectKey).Return(int64(42), nil)
 	mockStore.EXPECT().CompareAndSwapVersion(TestElectKey, int64(42), int64(43), "127.0.0.1").Return(true, nil)
 
@@ -372,7 +373,7 @@ func TestMaintainStore_ReleaseLeaderElection1(t *testing.T) {
 		}
 	}
 
-	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(true, nil)
+	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(utils.LocalHost, true, nil)
 	mockStore.EXPECT().GetVersion(TestElectKey).Return(int64(101), nil)
 	mockStore.EXPECT().CompareAndSwapVersion(TestElectKey, int64(101), int64(102), "127.0.0.1").Return(true, nil)
 

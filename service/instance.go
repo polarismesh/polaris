@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -34,7 +33,6 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
-	instancecommon "github.com/polarismesh/polaris/common/service"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -179,7 +177,7 @@ func (s *Server) asyncCreateInstance(
 		return nil, api.NewInstanceResponse(future.Code(), req)
 	}
 
-	return instancecommon.CreateInstanceModel(svcId, req), nil
+	return model.CreateInstanceModel(svcId, req), nil
 }
 
 // 同步串行创建实例
@@ -202,17 +200,7 @@ func (s *Server) serialCreateInstance(
 		ins.Isolate = instance.Proto.Isolate
 	}
 	// 直接同步创建服务实例
-	data := instancecommon.CreateInstanceModel(svcId, ins)
-
-	// need lock service to protect not delete in create instance
-	_, releaseFunc, errCode := s.lockService(ctx, req.GetNamespace().GetValue(),
-		req.GetService().GetValue())
-	if errCode != apimodel.Code_ExecuteSuccess {
-		return nil, api.NewInstanceResponse(errCode, req)
-	}
-
-	defer releaseFunc()
-
+	data := model.CreateInstanceModel(svcId, ins)
 	if err := s.storage.AddInstance(data); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
 		return nil, wrapperInstanceStoreResponse(req, err)
@@ -941,7 +929,7 @@ func isEmptyLocation(loc *apimodel.Location) bool {
 func (s *Server) sendDiscoverEvent(event model.InstanceEvent) {
 	if event.Instance != nil {
 		// In order not to cause `panic` in cause multi-corporate data op, do deep copy
-		event.Instance = proto.Clone(event.Instance).(*apiservice.Instance)
+		// event.Instance = proto.Clone(event.Instance).(*apiservice.Instance)
 	}
 	eventhub.Publish(eventhub.InstanceEventTopic, event)
 }
@@ -984,9 +972,6 @@ func (s *Server) createServiceIfAbsent(
 			}
 			return utils.NewStringValue(owner)
 		}(),
-		Metadata: map[string]string{
-			MetadataInternalAutoCreated: "true",
-		},
 	}
 	key := fmt.Sprintf("%s:%s", simpleService.Namespace, simpleService.Name)
 	ret, err, _ := s.createServiceSingle.Do(key, func() (interface{}, error) {
@@ -1044,36 +1029,6 @@ func (s *Server) loadServiceByID(svcID string) (*model.Service, error) {
 	}
 
 	return svc, nil
-}
-
-type releaseFunc func()
-
-func (s *Server) lockService(ctx context.Context, namespace string,
-	svcName string) (*model.Service, releaseFunc, apimodel.Code) {
-
-	tx, err := s.storage.CreateTransaction()
-	if err != nil {
-		return nil, nil, apimodel.Code_StoreLayerException
-	}
-	release := func() {
-		_ = tx.Commit()
-	}
-
-	svc, err := tx.RLockService(svcName, namespace)
-	if err != nil {
-		release()
-		return nil, nil, apimodel.Code_StoreLayerException
-	}
-	if svc == nil {
-		release()
-		return nil, nil, apimodel.Code_NotFoundService
-	}
-	if svc.IsAlias() {
-		release()
-		return nil, nil, apimodel.Code_NotAllowAliasCreateInstance
-	}
-
-	return svc, release, apimodel.Code_ExecuteSuccess
 }
 
 /*
