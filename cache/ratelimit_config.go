@@ -75,9 +75,10 @@ func init() {
 // newRateLimitCache 返回一个操作RateLimitCache的对象
 func newRateLimitCache(s store.Store, sc ServiceCache) *rateLimitCache {
 	return &rateLimitCache{
-		baseCache: newBaseCache(s),
-		storage:   s,
-		svcCache:  sc,
+		baseCache:    newBaseCache(s),
+		storage:      s,
+		svcCache:     sc,
+		waitFixRules: map[string]struct{}{},
 	}
 }
 
@@ -162,6 +163,7 @@ func (rlc *rateLimitCache) setRateLimit(rateLimits []*model.RateLimit) map[strin
 		// 待删除的rateLimit
 		if !item.Valid {
 			rlc.rules.delRule(item)
+			rlc.deleteWaitFixRule(item)
 			continue
 		}
 		rlc.rules.saveRule(item)
@@ -190,6 +192,12 @@ func (rlc *rateLimitCache) GetRateLimitRules(serviceKey model.ServiceKey) ([]*mo
 // GetRateLimitsCount 获取限流规则总数
 func (rlc *rateLimitCache) GetRateLimitsCount() int {
 	return rlc.rules.count()
+}
+
+func (rlc *rateLimitCache) deleteWaitFixRule(rule *model.RateLimit) {
+	rlc.lock.Lock()
+	defer rlc.lock.Unlock()
+	delete(rlc.waitFixRules, rule.ID)
 }
 
 func (rlc *rateLimitCache) fixRulesServiceInfo() {

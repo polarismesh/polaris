@@ -30,6 +30,7 @@ import (
 
 func newRateLimitRuleBucket() *rateLimitRuleBucket {
 	return &rateLimitRuleBucket{
+		ids:   map[string]*model.RateLimit{},
 		rules: map[string]*subRateLimitRuleBucket{},
 	}
 }
