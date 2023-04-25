@@ -211,14 +211,11 @@ func (v *VirtualStream) RecvMsg(m interface{}) error {
 // to call SendMsg on the same stream in different goroutines.
 func (v *VirtualStream) SendMsg(m interface{}) error {
 	v.postprocess(v, m)
-
 	m = v.handleResponse(v.stream, m)
-
 	err := v.stream.SendMsg(m)
 	if err != nil {
 		v.Code = -2
 	}
-
 	return err
 }
 

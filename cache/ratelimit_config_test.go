@@ -42,7 +42,9 @@ func newTestRateLimitCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *
 
 	storage := mock.NewMockStore(ctl)
 	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
-	rlc := newRateLimitCache(storage)
+	notifier := make(chan *revisionNotify, 1024)
+	ic := newInstanceCache(storage, notifier)
+	rlc := newRateLimitCache(storage, newServiceCache(storage, notifier, ic))
 	var opt map[string]interface{}
 	_ = rlc.initialize(opt)
 	return ctl, storage, rlc

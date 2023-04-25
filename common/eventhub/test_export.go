@@ -17,7 +17,9 @@
 
 package eventhub
 
-import "context"
+import (
+	"context"
+)
 
 func TestInitEventHub() {
 	eh = &eventHub{
@@ -28,4 +30,5 @@ func TestInitEventHub() {
 
 func TestShutdownEventHub() {
 	Shutdown()
+	eh = nil
 }

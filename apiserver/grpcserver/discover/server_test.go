@@ -99,7 +99,7 @@ func Test_discoverCacheConvert(t *testing.T) {
 							Value: "test",
 						},
 						Revision: &wrapperspb.StringValue{
-							Value: "",
+							Value: "123",
 						},
 					},
 				},
@@ -118,12 +118,12 @@ func Test_discoverCacheConvert(t *testing.T) {
 							Value: "test",
 						},
 						Revision: &wrapperspb.StringValue{
-							Value: "",
+							Value: "123",
 						},
 					},
 				},
 				CacheType: apiservice.DiscoverResponse_SERVICES.String(),
-				Key:       fmt.Sprintf("%s-%s-%s", "test", "", ""),
+				Key:       fmt.Sprintf("%s-%s-%s", "test", "", "123"),
 			},
 		},
 		{

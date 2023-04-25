@@ -24,6 +24,7 @@ ALTER TABLE `ratelimit_config` ADD COLUMN `name` varchar(64) NOT NULL;
 ALTER TABLE `ratelimit_config` ADD COLUMN `disable` tinyint(4)  NOT NULL DEFAULT '0';
 ALTER TABLE `ratelimit_config` ADD COLUMN `etime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE `ratelimit_config` ADD COLUMN `method` varchar(512)   NOT NULL;
+ALTER TABLE `ratelimit_config` MODIFY COLUMN `cluster_id` varchar(32) DEFAULT '' comment 'Cluster ID, no use';
 
 
 CREATE TABLE `config_file_template` (
@@ -32,7 +33,6 @@ CREATE TABLE `config_file_template` (
     `content` longtext COLLATE utf8_bin NOT NULL COMMENT '配置文件模板内容',
     `format` varchar(16) COLLATE utf8_bin DEFAULT 'text' COMMENT '模板文件格式',
     `comment` varchar(512) COLLATE utf8_bin DEFAULT NULL COMMENT '模板描述信息',
-    `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT '软删除标记位',
     `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `create_by` varchar(32) COLLATE utf8_bin DEFAULT NULL COMMENT '创建人',
     `modify_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',

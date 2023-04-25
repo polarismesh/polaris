@@ -179,6 +179,10 @@ func (r *MemoryHealthChecker) SuspendTimeSec() int64 {
 	return atomic.LoadInt64(&r.suspendTimeSec)
 }
 
+func (r *MemoryHealthChecker) DebugHandlers() []plugin.DebugHandler {
+	return []plugin.DebugHandler{}
+}
+
 func init() {
 	d := &MemoryHealthChecker{}
 	plugin.RegisterPlugin(d.Name(), d)

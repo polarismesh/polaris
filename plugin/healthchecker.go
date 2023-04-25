@@ -99,6 +99,8 @@ type HealthChecker interface {
 	SuspendTimeSec() int64
 	// Delete delete the id
 	Delete(id string) error
+	// DebugHandlers return debug handlers
+	DebugHandlers() []DebugHandler
 }
 
 // GetHealthChecker get the health checker by name

@@ -15,13 +15,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package metrics
+package hash
 
-// TestInitMetrics 初始化 metrics 的所有指标
-func TestInitMetrics() {
-	_ = registry.Register(instanceAsyncRegisCost)
-	_ = registry.Register(instanceRegisTaskExpire)
-	_ = registry.Register(redisReadFailure)
-	_ = registry.Register(redisWriteFailure)
-	_ = registry.Register(redisAliveStatus)
+func Fnv32(key string) int {
+	hash := uint32(2166136261)
+	const prime32 = uint32(16777619)
+	for i := 0; i < len(key); i++ {
+		hash *= prime32
+		hash ^= uint32(key[i])
+	}
+	return int(hash)
 }

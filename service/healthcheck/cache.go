@@ -22,6 +22,7 @@ import (
 
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
+	commonhash "github.com/polarismesh/polaris/common/hash"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/plugin"
 )
@@ -186,7 +187,7 @@ func newInstanceWithChecker(instance *model.Instance, checker plugin.HealthCheck
 	return &InstanceWithChecker{
 		instance:  instance,
 		checker:   checker,
-		hashValue: hashString(instance.ID()),
+		hashValue: commonhash.HashString(instance.ID()),
 	}
 }
 
@@ -221,7 +222,7 @@ func newClientWithChecker(client *model.Client, checker plugin.HealthChecker) *C
 	return &ClientWithChecker{
 		client:    client,
 		checker:   checker,
-		hashValue: hashString(client.Proto().GetId().GetValue()),
+		hashValue: commonhash.HashString(client.Proto().GetId().GetValue()),
 	}
 }
 

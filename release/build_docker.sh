@@ -22,7 +22,10 @@ fi
 
 docker_tag=$1
 
-docker_repository="polarismesh"
+docker_repository="${DOCKER_REPOSITORY}"
+if [[ "${docker_repository}" == "" ]]; then
+    docker_repository="polarismesh"
+fi
 
 echo "docker repository : ${docker_repository}/polaris-server, tag : ${docker_tag}"
 
@@ -50,4 +53,4 @@ if [ ${pre_release} == 0 ]; then
   extra_tags="-t ${docker_repository}/polaris-server:latest"
 fi
 
-docker buildx build -f ./release/Dockerfile --network=host -t ${docker_repository}/polaris-server:${docker_tag} ${extra_tags} --platform ${platforms} --push ./
+docker buildx build -f ./release/Dockerfile -t ${docker_repository}/polaris-server:${docker_tag} ${extra_tags} --platform ${platforms} --push ./

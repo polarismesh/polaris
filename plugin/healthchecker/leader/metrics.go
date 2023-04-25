@@ -15,16 +15,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package leader
 
-import (
-	"context"
+import "github.com/polarismesh/polaris/common/metrics"
 
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-)
-
-// GetReportClients query report client info
-func (svr *serverAuthAbility) GetReportClients(
-	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
-	return svr.targetServer.GetReportClients(ctx, query)
+func initMetrics() {
+	_ = metrics.GetRegistry()
 }

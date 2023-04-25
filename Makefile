@@ -58,3 +58,5 @@ build-docker: ## Build polaris-server docker images.
 .PHONY: clean
 clean: ## Clean polaris-server make data.
 	@rm -rf polaris-server-release_*
+	@rm -rf polaris-server-arm64
+	@rm -rf polaris-server-amd64

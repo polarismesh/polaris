@@ -78,7 +78,7 @@ func newCacheManager(ctx context.Context, cacheOpt *Config, storage store.Store)
 		ic:      ic,
 		sc:      sc,
 	}
-	mgr.caches[CacheRateLimit] = newRateLimitCache(storage)
+	mgr.caches[CacheRateLimit] = newRateLimitCache(storage, sc)
 	mgr.caches[CacheCircuitBreaker] = newCircuitBreakerCache(storage)
 	mgr.caches[CacheFaultDetector] = newFaultDetectCache(storage)
 	mgr.caches[CacheUser] = newUserCache(storage)

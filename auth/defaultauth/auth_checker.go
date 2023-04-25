@@ -54,19 +54,15 @@ func (d *defaultAuthChecker) Initialize(options *auth.Config, s store.Store, cac
 	if err != nil {
 		return err
 	}
-
 	cfg := DefaultAuthConfig()
 	if err := json.Unmarshal(contentBytes, cfg); err != nil {
 		return err
 	}
-
 	if err := cfg.Verify(); err != nil {
 		return err
 	}
-
 	AuthOption = cfg
 	d.cacheMgn = cacheMgn
-
 	return nil
 }
 
@@ -95,7 +91,6 @@ func (d *defaultAuthChecker) CheckClientPermission(preCtx *model.AcquireContext)
 	if !d.IsOpenClientAuth() {
 		return true, nil
 	}
-
 	return d.CheckPermission(preCtx)
 }
 
@@ -104,11 +99,9 @@ func (d *defaultAuthChecker) CheckConsolePermission(preCtx *model.AcquireContext
 	if !d.IsOpenConsoleAuth() {
 		return true, nil
 	}
-
 	if preCtx.GetModule() == model.MaintainModule {
 		return d.checkMaintainPermission(preCtx)
 	}
-
 	return d.CheckPermission(preCtx)
 }
 
@@ -117,7 +110,6 @@ func (d *defaultAuthChecker) checkMaintainPermission(preCtx *model.AcquireContex
 	if err := d.VerifyCredential(preCtx); err != nil {
 		return false, err
 	}
-
 	if preCtx.GetOperation() == model.Read {
 		return true, nil
 	}
@@ -127,15 +119,12 @@ func (d *defaultAuthChecker) checkMaintainPermission(preCtx *model.AcquireContex
 	if tokenInfo.Disable {
 		return false, model.ErrorTokenDisabled
 	}
-
 	if !tokenInfo.IsUserToken {
 		return false, errors.New("only user role can access maintain API")
 	}
-
 	if tokenInfo.Role != model.OwnerUserRole {
 		return false, errors.New("only owner account can access maintain API")
 	}
-
 	return true, nil
 }
 
@@ -185,18 +174,15 @@ func canDowngradeAnonymous(authCtx *model.AcquireContext, err error) bool {
 	if authCtx.GetModule() == model.AuthModule {
 		return false
 	}
-
 	if AuthOption.Strict {
 		return false
 	}
-
 	if errors.Is(err, model.ErrorTokenInvalid) {
 		return true
 	}
 	if errors.Is(err, model.ErrorTokenNotExist) {
 		return true
 	}
-
 	return false
 }
 
@@ -344,139 +330,138 @@ func (d *defaultAuthChecker) checkToken(tokenInfo *OperatorInfo) (string, bool, 
 	return group.Owner, false, nil
 }
 
-// findStrategiesByUserID 根据 user-id 查找相关联的鉴权策略（用户自己的 + 用户所在用户组的）
-func (d *defaultAuthChecker) findStrategiesByUserID(userId string) []*model.StrategyDetail {
-	// Step 1, first pull all the strategy information involved in this user.
-	rules := d.cacheMgn.AuthStrategy().GetStrategyDetailsByUID(userId)
+// // findStrategies Inquire about TOKEN information, the actual all-associated authentication strategy
+// func (d *defaultAuthChecker) findStrategies(tokenInfo OperatorInfo) ([]*model.StrategyDetail, error) {
+// 	if IsEmptyOperator(tokenInfo) {
+// 		return make([]*model.StrategyDetail, 0), nil
+// 	}
 
-	// Step 2, pull the Group information to which this user belongs
-	groupIds := d.cacheMgn.User().GetUserLinkGroupIds(userId)
-	for i := range groupIds {
-		ret := d.findStrategiesByGroupID(groupIds[i])
-		rules = append(rules, ret...)
-	}
+// 	var strategies []*model.StrategyDetail
+// 	if tokenInfo.IsUserToken {
+// 		user := d.cacheMgn.User().GetUserByID(tokenInfo.OperatorID)
+// 		if user == nil {
+// 			return nil, model.ErrorNoUser
+// 		}
 
-	// Take the strategy that pulls down
-	temp := make(map[string]*model.StrategyDetail, len(rules))
-	for i := range rules {
-		rule := rules[i]
-		temp[rule.ID] = rule
-	}
+// 		strategies = d.findStrategiesByUserID(tokenInfo.OperatorID)
+// 	} else {
+// 		group := d.cacheMgn.User().GetGroup(tokenInfo.OperatorID)
+// 		if group == nil {
+// 			return nil, model.ErrorNoUserGroup
+// 		}
 
-	ret := make([]*model.StrategyDetail, 0, len(temp))
-	for _, val := range temp {
-		ret = append(ret, val)
-	}
+// 		strategies = d.findStrategiesByGroupID(tokenInfo.OperatorID)
+// 	}
 
-	return ret
-}
+// 	return strategies, nil
+// }
 
-// findStrategies Inquire about TOKEN information, the actual all-associated authentication strategy
-func (d *defaultAuthChecker) findStrategies(tokenInfo OperatorInfo) ([]*model.StrategyDetail, error) {
-	if IsEmptyOperator(tokenInfo) {
-		return make([]*model.StrategyDetail, 0), nil
-	}
+// // findStrategiesByUserID 根据 user-id 查找相关联的鉴权策略（用户自己的 + 用户所在用户组的）
+// func (d *defaultAuthChecker) findStrategiesByUserID(userId string) []*model.StrategyDetail {
+// 	// Step 1, first pull all the strategy information involved in this user.
+// 	rules := d.cacheMgn.AuthStrategy().GetStrategyDetailsByUID(userId)
 
-	var strategies []*model.StrategyDetail
-	if tokenInfo.IsUserToken {
-		user := d.cacheMgn.User().GetUserByID(tokenInfo.OperatorID)
-		if user == nil {
-			return nil, model.ErrorNoUser
-		}
+// 	// Step 2, pull the Group information to which this user belongs
+// 	groupIds := d.cacheMgn.User().GetUserLinkGroupIds(userId)
+// 	for i := range groupIds {
+// 		ret := d.findStrategiesByGroupID(groupIds[i])
+// 		rules = append(rules, ret...)
+// 	}
 
-		strategies = d.findStrategiesByUserID(tokenInfo.OperatorID)
-	} else {
-		group := d.cacheMgn.User().GetGroup(tokenInfo.OperatorID)
-		if group == nil {
-			return nil, model.ErrorNoUserGroup
-		}
+// 	// Take the strategy that pulls down
+// 	temp := make(map[string]*model.StrategyDetail, len(rules))
+// 	for i := range rules {
+// 		rule := rules[i]
+// 		temp[rule.ID] = rule
+// 	}
 
-		strategies = d.findStrategiesByGroupID(tokenInfo.OperatorID)
-	}
+// 	ret := make([]*model.StrategyDetail, 0, len(temp))
+// 	for _, val := range temp {
+// 		ret = append(ret, val)
+// 	}
 
-	return strategies, nil
-}
+// 	return ret
+// }
 
-// findStrategiesByGroupID 根据 group-id 查找相关联的鉴权策略
-func (d *defaultAuthChecker) findStrategiesByGroupID(id string) []*model.StrategyDetail {
-	return d.cacheMgn.AuthStrategy().GetStrategyDetailsByGroupID(id)
-}
+// // findStrategiesByGroupID 根据 group-id 查找相关联的鉴权策略
+// func (d *defaultAuthChecker) findStrategiesByGroupID(id string) []*model.StrategyDetail {
+// 	return d.cacheMgn.AuthStrategy().GetStrategyDetailsByGroupID(id)
+// }
 
-// removeNoStrategyResources 移除没有关联任何鉴权策略的资源
-func (d *defaultAuthChecker) removeNoStrategyResources(authCtx *model.AcquireContext) bool {
-	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
-	resources := authCtx.GetAccessResources()
-	cacheMgn := d.Cache()
-	newAccessRes := make(map[apisecurity.ResourceType][]model.ResourceEntry, 0)
-	checkIsFree := func(resType apisecurity.ResourceType, entry model.ResourceEntry) bool {
-		// if entry.Owner == "" ||
-		// 	strings.Compare(strings.ToLower(entry.Owner), strings.ToLower("polaris")) == 0 {
-		// 	return true
-		// }
-		return !cacheMgn.AuthStrategy().IsResourceLinkStrategy(resType, entry.ID)
-	}
+// // removeNoStrategyResources 移除没有关联任何鉴权策略的资源
+// func (d *defaultAuthChecker) removeNoStrategyResources(authCtx *model.AcquireContext) bool {
+// 	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
+// 	resources := authCtx.GetAccessResources()
+// 	cacheMgn := d.Cache()
+// 	newAccessRes := make(map[apisecurity.ResourceType][]model.ResourceEntry, 0)
+// 	checkIsFree := func(resType apisecurity.ResourceType, entry model.ResourceEntry) bool {
+// 		// if entry.Owner == "" ||
+// 		// 	strings.Compare(strings.ToLower(entry.Owner), strings.ToLower("polaris")) == 0 {
+// 		// 	return true
+// 		// }
+// 		return !cacheMgn.AuthStrategy().IsResourceLinkStrategy(resType, entry.ID)
+// 	}
 
-	// 检查命名空间
-	nsRes := resources[apisecurity.ResourceType_Namespaces]
-	newNsRes := make([]model.ResourceEntry, 0)
-	for index := range nsRes {
-		if checkIsFree(apisecurity.ResourceType_Namespaces, nsRes[index]) {
-			continue
-		}
+// 	// 检查命名空间
+// 	nsRes := resources[apisecurity.ResourceType_Namespaces]
+// 	newNsRes := make([]model.ResourceEntry, 0)
+// 	for index := range nsRes {
+// 		if checkIsFree(apisecurity.ResourceType_Namespaces, nsRes[index]) {
+// 			continue
+// 		}
+// 		newNsRes = append(newNsRes, nsRes[index])
+// 	}
 
-		newNsRes = append(newNsRes, nsRes[index])
-	}
+// 	newAccessRes[apisecurity.ResourceType_Namespaces] = newNsRes
+// 	if authCtx.GetModule() == model.DiscoverModule {
+// 		// 检查服务
+// 		svcRes := resources[apisecurity.ResourceType_Services]
+// 		newSvcRes := make([]model.ResourceEntry, 0)
+// 		for index := range svcRes {
+// 			if checkIsFree(apisecurity.ResourceType_Services, svcRes[index]) {
+// 				continue
+// 			}
 
-	newAccessRes[apisecurity.ResourceType_Namespaces] = newNsRes
-	if authCtx.GetModule() == model.DiscoverModule {
-		// 检查服务
-		svcRes := resources[apisecurity.ResourceType_Services]
-		newSvcRes := make([]model.ResourceEntry, 0)
-		for index := range svcRes {
-			if checkIsFree(apisecurity.ResourceType_Services, svcRes[index]) {
-				continue
-			}
+// 			newSvcRes = append(newSvcRes, svcRes[index])
+// 		}
+// 		newAccessRes[apisecurity.ResourceType_Services] = newSvcRes
+// 	}
 
-			newSvcRes = append(newSvcRes, svcRes[index])
-		}
-		newAccessRes[apisecurity.ResourceType_Services] = newSvcRes
-	}
+// 	if authCtx.GetModule() == model.ConfigModule {
+// 		// 检查配置
+// 		cfgRes := resources[apisecurity.ResourceType_ConfigGroups]
+// 		newCfgRes := make([]model.ResourceEntry, 0)
+// 		for index := range cfgRes {
+// 			if checkIsFree(apisecurity.ResourceType_ConfigGroups, cfgRes[index]) {
+// 				continue
+// 			}
+// 			newCfgRes = append(newCfgRes, cfgRes[index])
+// 		}
+// 		newAccessRes[apisecurity.ResourceType_ConfigGroups] = newCfgRes
+// 	}
 
-	if authCtx.GetModule() == model.ConfigModule {
-		// 检查配置
-		cfgRes := resources[apisecurity.ResourceType_ConfigGroups]
-		newCfgRes := make([]model.ResourceEntry, 0)
-		for index := range cfgRes {
-			if checkIsFree(apisecurity.ResourceType_ConfigGroups, cfgRes[index]) {
-				continue
-			}
-			newCfgRes = append(newCfgRes, cfgRes[index])
-		}
-		newAccessRes[apisecurity.ResourceType_ConfigGroups] = newCfgRes
-	}
+// 	log.Info("[Auth][Checker] remove no link strategy final result", utils.ZapRequestID(reqId),
+// 		zap.Any("resource", newAccessRes))
 
-	log.Info("[Auth][Checker] remove no link strategy final result", utils.ZapRequestID(reqId),
-		zap.Any("resource", newAccessRes))
+// 	authCtx.SetAccessResources(newAccessRes)
+// 	noResourceNeedCheck := authCtx.IsAccessResourceEmpty()
+// 	if noResourceNeedCheck {
+// 		log.Debug("[Auth][Checker]", utils.ZapRequestID(reqId),
+// 			zap.String("msg", "need check permission resource is empty"))
+// 	}
 
-	authCtx.SetAccessResources(newAccessRes)
-	noResourceNeedCheck := authCtx.IsAccessResourceEmpty()
-	if noResourceNeedCheck {
-		log.Debug("[Auth][Checker]", utils.ZapRequestID(reqId),
-			zap.String("msg", "need check permission resource is empty"))
-	}
-
-	return noResourceNeedCheck
-}
+// 	return noResourceNeedCheck
+// }
 
 func (d *defaultAuthChecker) isResourceEditable(
 	userid string,
 	resourceType apisecurity.ResourceType,
 	resEntries []model.ResourceEntry) bool {
+	principal := model.Principal{
+		PrincipalID:   userid,
+		PrincipalRole: model.PrincipalUser,
+	}
 	for _, entry := range resEntries {
-		principal := model.Principal{
-			PrincipalID:   userid,
-			PrincipalRole: model.PrincipalUser,
-		}
 		if !d.cacheMgn.AuthStrategy().IsResourceEditable(principal, resourceType, entry.ID) {
 			return false
 		}
@@ -513,76 +498,4 @@ func (d *defaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext) (b
 // checkAction 检查操作是否和策略匹配
 func (d *defaultAuthChecker) checkAction(expect string, actual model.ResourceOperation) bool {
 	return true
-}
-
-// checkAnyElementExist 检查待操作的资源是否符合鉴权资源列表的配置
-//
-//	@param userId 当前的用户信息
-//	@param waitSearch 访问的资源
-//	@param searchMaps 鉴权策略中某一类型的资源列表信息
-//	@return bool 是否可以操作本次被访问的所有资源
-func checkAnyElementExist(userId string, waitSearch []model.ResourceEntry, searchMaps *searchMap) bool {
-	if len(waitSearch) == 0 || searchMaps.passAll {
-		return true
-	}
-
-	for _, entry := range waitSearch {
-		if entry.Owner == userId {
-			continue
-		}
-
-		if _, ok := searchMaps.items[entry.ID]; !ok {
-			return false
-		}
-	}
-
-	return true
-}
-
-// emptyVal 空对象，占位而已
-var emptyVal = struct{}{}
-
-// buildSearchMap 构建搜索 map
-func buildSearchMap(ss []model.StrategyResource) []*searchMap {
-
-	nsSearchMaps := &searchMap{
-		items:   make(map[string]struct{}),
-		passAll: false,
-	}
-	svcSearchMaps := &searchMap{
-		items:   make(map[string]struct{}),
-		passAll: false,
-	}
-	cfgSearchMaps := &searchMap{
-		items:   make(map[string]struct{}),
-		passAll: false,
-	}
-
-	for _, val := range ss {
-		if val.ResType == int32(apisecurity.ResourceType_Namespaces) {
-			nsSearchMaps.items[val.ResID] = emptyVal
-			nsSearchMaps.passAll = (val.ResID == "*") || nsSearchMaps.passAll
-			continue
-		}
-		if val.ResType == int32(apisecurity.ResourceType_Services) {
-			svcSearchMaps.items[val.ResID] = emptyVal
-			svcSearchMaps.passAll = (val.ResID == "*") || nsSearchMaps.passAll
-			continue
-		}
-		if val.ResType == int32(apisecurity.ResourceType_ConfigGroups) {
-			cfgSearchMaps.items[val.ResID] = emptyVal
-			cfgSearchMaps.passAll = (val.ResID == "*") || nsSearchMaps.passAll
-			continue
-		}
-	}
-
-	return []*searchMap{nsSearchMaps, svcSearchMaps, cfgSearchMaps}
-}
-
-// searchMap 权限搜索map
-type searchMap struct {
-	// 某个资源策略的去重map
-	items map[string]struct{}
-	// 该资源策略是否允许全部操作
-	passAll bool
 }

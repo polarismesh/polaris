@@ -19,7 +19,6 @@ package eventhub
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/polarismesh/polaris/common/log"
 )
@@ -69,13 +68,13 @@ func (s *subscription) send(ctx context.Context, event Event) {
 	select {
 	case s.queue <- event:
 		if log.DebugEnabled() {
-			log.Debug(fmt.Sprintf("[EventHub] subscription:%s send event:%v", s.name, event))
+			log.Debugf("[EventHub] subscription:%s send event:%v", s.name, event)
 		}
 	case <-s.closeCh:
-		log.Info(fmt.Sprintf("[EventHub] subscription:%s send close", s.name))
+		log.Infof("[EventHub] subscription:%s send close", s.name)
 		return
 	case <-ctx.Done():
-		log.Info(fmt.Sprintf("[EventHub] subscription:%s send close by context cancel", s.name))
+		log.Infof("[EventHub] subscription:%s send close by context cancel", s.name)
 		return
 	}
 	return
@@ -86,17 +85,17 @@ func (s *subscription) receive(ctx context.Context) {
 		select {
 		case event := <-s.queue:
 			if log.DebugEnabled() {
-				log.Debug(fmt.Sprintf("[EventHub] subscription:%s receive event:%v", s.name, event))
+				log.Debugf("[EventHub] subscription:%s receive event:%v", s.name, event)
 			}
 			event = s.handler.PreProcess(ctx, event)
 			if err := s.handler.OnEvent(ctx, event); err != nil {
-				log.Error(fmt.Sprintf("[EventHub] subscriptions:%s handler event error:%s", s.name, err.Error()))
+				log.Errorf("[EventHub] subscriptions:%s handler event error:%s", s.name, err.Error())
 			}
 		case <-s.closeCh:
-			log.Info(fmt.Sprintf("[EventHub] subscription:%s receive close", s.name))
+			log.Infof("[EventHub] subscription:%s receive close", s.name)
 			return
 		case <-ctx.Done():
-			log.Info(fmt.Sprintf("[EventHub] subscription:%s receive close by context cancel", s.name))
+			log.Infof("[EventHub] subscription:%s receive close by context cancel", s.name)
 			return
 		}
 	}

@@ -42,8 +42,8 @@ import (
 	"github.com/polarismesh/polaris/plugin"
 	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
 	_ "github.com/polarismesh/polaris/plugin/discoverevent/local"
-	_ "github.com/polarismesh/polaris/plugin/healthchecker/heartbeatmemory"
-	_ "github.com/polarismesh/polaris/plugin/healthchecker/heartbeatredis"
+	_ "github.com/polarismesh/polaris/plugin/healthchecker/memory"
+	_ "github.com/polarismesh/polaris/plugin/healthchecker/redis"
 	_ "github.com/polarismesh/polaris/plugin/history/logger"
 	_ "github.com/polarismesh/polaris/plugin/password"
 	_ "github.com/polarismesh/polaris/plugin/ratelimit/lrurate"
@@ -192,7 +192,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	commonlog.GetScopeOrDefaultByName(commonlog.StoreLoggerName).SetOutputLevel(commonlog.ErrorLevel)
 	commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.ErrorLevel)
 
-	metrics.TestInitMetrics()
+	metrics.InitMetrics()
 	eventhub.InitEventHub()
 
 	// 初始化存储层

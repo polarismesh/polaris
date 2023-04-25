@@ -68,10 +68,10 @@ func (rlc *rateLimitCache) QueryRateLimitRules(args RateLimitRuleArgs) (uint32, 
 
 	res := make([]*model.RateLimit, 0, 8)
 	process := func(rule *model.RateLimit) {
-		if hasService && args.Service != rule.Proto.Service.Value {
+		if hasService && args.Service != rule.Proto.GetService().GetValue() {
 			return
 		}
-		if hasNamespace && args.Namespace != rule.Proto.Namespace.Value {
+		if hasNamespace && args.Namespace != rule.Proto.GetNamespace().GetValue() {
 			return
 		}
 		if args.ID != "" && args.ID != rule.ID {

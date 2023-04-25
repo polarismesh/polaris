@@ -249,10 +249,10 @@ func (x *XDSServer) makeSidecarVirtualHosts(services []*ServiceInfo) []types.Res
 
 	for _, serviceInfo := range services {
 		vHost := &route.VirtualHost{
-			Name:                 serviceInfo.Name,
-			Domains:              generateServiceDomains(serviceInfo),
-			Routes:               makeSidecarRoutes(serviceInfo),
-			TypedPerFilterConfig: x.makeLocalRateLimit(serviceInfo),
+			Name:    serviceInfo.Name,
+			Domains: generateServiceDomains(serviceInfo),
+			Routes:  makeSidecarRoutes(serviceInfo),
+			// TypedPerFilterConfig: x.makeLocalRateLimit(serviceInfo),
 		}
 		hosts = append(hosts, vHost)
 	}
@@ -434,7 +434,7 @@ func makeEndpoints(services []*ServiceInfo) []types.Resource {
 	return clusterLoads
 }
 
-// makeSidecarRoutes TODO 全部使用新的路由规则
+// makeSidecarRoutes .
 func makeSidecarRoutes(serviceInfo *ServiceInfo) []*route.Route {
 	var (
 		routes        []*route.Route

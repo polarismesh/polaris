@@ -18,6 +18,7 @@
 package model
 
 import (
+	"strings"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -25,6 +26,7 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	commontime "github.com/polarismesh/polaris/common/time"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // Instance 组合了api的Instance对象
@@ -310,4 +312,138 @@ func ExpandStore2Instance(es *ExpandInstanceStore) *Instance {
 	}
 	out.ServicePlatformID = es.ServicePlatformID
 	return out
+}
+
+type NamespaceSet struct {
+	container map[string]*Namespace
+}
+
+func NewNamespaceSet() *NamespaceSet {
+	return &NamespaceSet{
+		container: make(map[string]*Namespace),
+	}
+}
+
+func (set *NamespaceSet) Add(val *Namespace) {
+	set.container[val.Name] = val
+}
+
+func (set *NamespaceSet) Remove(val *Namespace) {
+	delete(set.container, val.Name)
+}
+
+func (set *NamespaceSet) ToSlice() []*Namespace {
+	ret := make([]*Namespace, 0, len(set.container))
+
+	for _, v := range set.container {
+		ret = append(ret, v)
+	}
+
+	return ret
+}
+
+func (set *NamespaceSet) Range(fn func(val *Namespace) bool) {
+	for _, v := range set.container {
+		if !fn(v) {
+			break
+		}
+	}
+}
+
+type ServiceSet struct {
+	container map[string]*Service
+}
+
+func NewServiceSet() *ServiceSet {
+	return &ServiceSet{
+		container: make(map[string]*Service),
+	}
+}
+
+func (set *ServiceSet) Add(val *Service) {
+	set.container[val.ID] = val
+}
+
+func (set *ServiceSet) Remove(val *Service) {
+	delete(set.container, val.ID)
+}
+
+func (set *ServiceSet) ToSlice() []*Service {
+	ret := make([]*Service, 0, len(set.container))
+
+	for _, v := range set.container {
+		ret = append(ret, v)
+	}
+
+	return ret
+}
+
+func (set *ServiceSet) Range(fn func(val *Service) bool) {
+	for _, v := range set.container {
+		if !fn(v) {
+			break
+		}
+	}
+}
+
+// CreateInstanceModel 创建存储层服务实例模型
+func CreateInstanceModel(serviceID string, req *apiservice.Instance) *Instance {
+	// 默认为健康的
+	healthy := true
+	if req.GetHealthy() != nil {
+		healthy = req.GetHealthy().GetValue()
+	}
+
+	// 默认为不隔离的
+	isolate := false
+	if req.GetIsolate() != nil {
+		isolate = req.GetIsolate().GetValue()
+	}
+
+	// 权重默认是100
+	var weight uint32 = 100
+	if req.GetWeight() != nil {
+		weight = req.GetWeight().GetValue()
+	}
+
+	instance := &Instance{
+		ServiceID: serviceID,
+	}
+
+	protoIns := &apiservice.Instance{
+		Id:       req.GetId(),
+		Host:     utils.NewStringValue(strings.TrimSpace(req.GetHost().GetValue())),
+		VpcId:    req.GetVpcId(),
+		Port:     req.GetPort(),
+		Protocol: req.GetProtocol(),
+		Version:  req.GetVersion(),
+		Priority: req.GetPriority(),
+		Weight:   utils.NewUInt32Value(weight),
+		Healthy:  utils.NewBoolValue(healthy),
+		Isolate:  utils.NewBoolValue(isolate),
+		Location: req.Location,
+		Metadata: req.Metadata,
+		LogicSet: req.GetLogicSet(),
+		Revision: utils.NewStringValue(utils.NewUUID()), // 更新版本号
+	}
+
+	// health Check，healthCheck不能为空，且没有显示把enable_health_check置为false
+	// 如果create的时候，打开了healthCheck，那么实例模式是unhealthy，必须要一次心跳才会healthy
+	if req.GetHealthCheck().GetHeartbeat() != nil &&
+		(req.GetEnableHealthCheck() == nil || req.GetEnableHealthCheck().GetValue()) {
+		protoIns.EnableHealthCheck = utils.NewBoolValue(true)
+		protoIns.HealthCheck = req.HealthCheck
+		protoIns.HealthCheck.Type = apiservice.HealthCheck_HEARTBEAT
+		// ttl range: (0, 60]
+		ttl := protoIns.GetHealthCheck().GetHeartbeat().GetTtl().GetValue()
+		if ttl == 0 || ttl > 60 {
+			if protoIns.HealthCheck.Heartbeat.Ttl == nil {
+				protoIns.HealthCheck.Heartbeat.Ttl = utils.NewUInt32Value(5)
+			}
+			protoIns.HealthCheck.Heartbeat.Ttl.Value = 5
+		}
+	}
+
+	instance.Proto = protoIns
+	return instance
 }

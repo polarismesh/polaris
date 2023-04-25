@@ -30,12 +30,14 @@ import (
 
 func newRateLimitRuleBucket() *rateLimitRuleBucket {
 	return &rateLimitRuleBucket{
+		ids:   map[string]*model.RateLimit{},
 		rules: map[string]*subRateLimitRuleBucket{},
 	}
 }
 
 type rateLimitRuleBucket struct {
 	lock  sync.RWMutex
+	ids   map[string]*model.RateLimit
 	rules map[string]*subRateLimitRuleBucket
 }
 
@@ -63,6 +65,8 @@ func (r *rateLimitRuleBucket) saveRule(rule *model.RateLimit) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
+	r.ids[rule.ID] = rule
+
 	key := buildServiceKey(rule.Proto.GetNamespace().GetValue(), rule.Proto.GetService().GetValue())
 
 	if _, ok := r.rules[key]; !ok {
@@ -79,6 +83,8 @@ func (r *rateLimitRuleBucket) delRule(rule *model.RateLimit) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
+	delete(r.ids, rule.ID)
+
 	key := buildServiceKey(rule.Proto.GetNamespace().GetValue(), rule.Proto.GetService().GetValue())
 
 	if _, ok := r.rules[key]; !ok {
@@ -87,6 +93,13 @@ func (r *rateLimitRuleBucket) delRule(rule *model.RateLimit) {
 
 	b := r.rules[key]
 	b.delRule(rule)
+}
+
+func (r *rateLimitRuleBucket) getRuleByID(id string) *model.RateLimit {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	return r.ids[id]
 }
 
 func (r *rateLimitRuleBucket) getRules(serviceKey model.ServiceKey) ([]*model.RateLimit, string) {

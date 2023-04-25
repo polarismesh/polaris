@@ -25,7 +25,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
@@ -150,6 +149,11 @@ func (s *Server) Report(ctx context.Context, req *apiservice.Instance) *apiservi
 	return s.doReport(ctx, req)
 }
 
+// Reports batch report heartbeat request
+func (s *Server) Reports(ctx context.Context, req []*apiservice.InstanceHeartbeat) *apiservice.Response {
+	return s.doReports(ctx, req)
+}
+
 // ReportByClient report heartbeat request by client
 func (s *Server) ReportByClient(ctx context.Context, req *apiservice.Client) *apiservice.Response {
 	return s.doReportByClient(ctx, req)
@@ -216,7 +220,7 @@ func (s *Server) RecordHistory(entry *model.RecordEntry) {
 func (s *Server) publishInstanceEvent(serviceID string, event model.InstanceEvent) {
 	event.SvcId = serviceID
 	if event.Instance != nil {
-		event.Instance = proto.Clone(event.Instance).(*apiservice.Instance)
+		// event.Instance = proto.Clone(event.Instance).(*apiservice.Instance)
 	}
 	eventhub.Publish(eventhub.InstanceEventTopic, event)
 }

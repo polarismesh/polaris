@@ -24,22 +24,6 @@ import (
 )
 
 func registerDiscoveryMetrics() {
-	GetRegistry().MustRegister([]prometheus.Collector{
-		serviceCount,
-		serviceOnlineCount,
-		serviceAbnormalCount,
-		serviceOfflineCount,
-
-		instanceCount,
-		instanceOnlineCount,
-		instanceAbnormalCount,
-		instanceIsolateCount,
-
-		clientInstanceTotal,
-	}...)
-}
-
-var (
 	clientInstanceTotal = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "client_total",
 		Help: "polaris client instance total number",
@@ -47,10 +31,7 @@ var (
 			LabelServerNode: utils.LocalHost,
 		},
 	})
-)
 
-// service metrics
-var (
 	serviceCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "service_count",
 		Help: "service total number",
@@ -82,10 +63,7 @@ var (
 			LabelServerNode: utils.LocalHost,
 		},
 	}, []string{LabelNamespace})
-)
 
-// instance metrics
-var (
 	instanceCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "instance_count",
 		Help: "instance total number",
@@ -117,7 +95,17 @@ var (
 			LabelServerNode: utils.LocalHost,
 		},
 	}, []string{LabelNamespace, LabelService})
-)
+
+	_ = GetRegistry().Register(serviceCount)
+	_ = GetRegistry().Register(serviceOnlineCount)
+	_ = GetRegistry().Register(serviceAbnormalCount)
+	_ = GetRegistry().Register(serviceOfflineCount)
+	_ = GetRegistry().Register(instanceCount)
+	_ = GetRegistry().Register(instanceOnlineCount)
+	_ = GetRegistry().Register(instanceAbnormalCount)
+	_ = GetRegistry().Register(instanceIsolateCount)
+	_ = GetRegistry().Register(clientInstanceTotal)
+}
 
 func GetClientInstanceTotal() prometheus.Gauge {
 	return clientInstanceTotal

@@ -20,7 +20,7 @@ if [ ${INNER_GOOS} == "kubernetes" ]; then
     sed -i "s/##POLARIS_PROMETHEUS_VERSION##/${INNER_SERVER_VERSION}/g" kubernetes/05-prometheus.yaml
     sed -i "s/##POLARIS_LIMITER_VERSION##/${INNER_LIMITER_VERSION}/g" kubernetes/07-polaris-limiter.yaml
 
-    DIR_NAME=polaris-standalone-release_${INNER_SERVER_VERSION}.${INNER_GOOS}
+    DIR_NAME=polaris-cluster-release_${INNER_SERVER_VERSION}.${INNER_GOOS}
     mkdir ${DIR_NAME}
     pushd ${DIR_NAME}
     cp -rf ../kubernetes/* ./
@@ -62,7 +62,7 @@ if [ ${INNER_GOOS} == "kubernetes" ]; then
     sed -i "s/##POLARIS_PROMETHEUS_VERSION##/${INNER_SERVER_VERSION}/g" helm/values.yaml
     sed -i "s/##POLARIS_LIMITER_VERSION##/${INNER_LIMITER_VERSION}/g" helm/values.yaml
 
-    HELM_DIR_NAME=polaris-helm-release_${INNER_SERVER_VERSION}.${INNER_GOOS}
+    HELM_DIR_NAME=polaris-cluster-release_${INNER_SERVER_VERSION}.helm
     mkdir ${HELM_DIR_NAME}
     pushd ${HELM_DIR_NAME}
     cp -rf ../helm/* ./
