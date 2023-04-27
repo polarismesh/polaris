@@ -19,8 +19,7 @@ package job
 
 // JobcConfig maintain job configuration
 type JobConfig struct {
-	Name     string                 `yaml:"name"`
-	Enable   bool                   `yaml:"enable"`
-	Interval string                 `yaml:"interval"`
-	Option   map[string]interface{} `yaml:"option"`
+	Name   string                 `yaml:"name"`
+	Enable bool                   `yaml:"enable"`
+	Option map[string]interface{} `yaml:"option"`
 }

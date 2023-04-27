@@ -71,6 +71,10 @@ func (job *deleteEmptyAutoCreatedServiceJob) execute() {
 	}
 }
 
+func (job *deleteEmptyAutoCreatedServiceJob) interval() time.Duration {
+	return job.cfg.ServiceDeleteTimeout
+}
+
 func (job *deleteEmptyAutoCreatedServiceJob) clear() {
 	job.emptyServices = map[string]time.Time{}
 }

@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/mitchellh/mapstructure"
-
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -32,6 +31,7 @@ type CleanDeletedInstancesJobConfig struct {
 type cleanDeletedInstancesJob struct {
 	cfg     *CleanDeletedInstancesJobConfig
 	storage store.Store
+	cfg     *CleanDeletedInstancesJobConfig
 }
 
 func (job *cleanDeletedInstancesJob) init(raw map[string]interface{}) error {
@@ -70,6 +70,10 @@ func (job *cleanDeletedInstancesJob) execute() {
 			break
 		}
 	}
+}
+
+func (job *cleanDeletedInstancesJob) interval() time.Duration {
+	return job.cfg.DeleteTimeout
 }
 
 func (job *cleanDeletedInstancesJob) clear() {

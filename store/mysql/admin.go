@@ -221,8 +221,7 @@ func isLeader(flag int32) bool {
 
 // mainLoop
 func (le *leaderElectionStateMachine) mainLoop() {
-	// 先全部以 follower 的角色
-	le.forceToFollower()
+	le.changeToFollower()
 	log.Infof("[Store][database] leader election started (%s)", le.electKey)
 	ticker := time.NewTicker(TickTime * time.Second)
 	defer ticker.Stop()
@@ -245,7 +244,6 @@ func (le *leaderElectionStateMachine) tick() {
 		return
 	}
 	shouldRelease := le.checkAndClearReleaseSignal()
-
 	if le.isLeader() {
 		if shouldRelease {
 			log.Infof("[Store][database] release leader election (%s)", le.electKey)
@@ -253,14 +251,14 @@ func (le *leaderElectionStateMachine) tick() {
 			le.setReleaseTickLimit()
 			return
 		}
-		r, err := le.heartbeat()
+		success, err := le.heartbeat()
 		if err != nil {
 			log.Errorf("[Store][database] leader heartbeat err (%s), change to follower state (%s)",
 				err.Error(), le.electKey)
 			le.changeToFollower()
 			return
 		}
-		if !r {
+		if !success {
 			le.changeToFollower()
 		}
 	} else {
@@ -271,18 +269,23 @@ func (le *leaderElectionStateMachine) tick() {
 			return
 		}
 		if !dead {
-			if leader != le.leader {
+			// 自己之前是 leader，并且租期还没过，现在是 follower 状态，调整自己为 leader
+			if !le.isLeader() && leader == utils.LocalHost {
+				le.changeToLeader()
+			}
+			// leader 信息出现变化，发布leader信息变化通知
+			if le.leader != leader {
 				le.leader = leader
 				le.publishLeaderChangeEvent()
 			}
 			return
 		}
-		r, err := le.elect()
+		success, err := le.elect()
 		if err != nil {
 			log.Errorf("[Store][database] elect leader err (%s), stay follower state (%s)", err.Error(), le.electKey)
 			return
 		}
-		if r {
+		if success {
 			le.changeToLeader()
 		}
 	}
@@ -306,13 +309,6 @@ func (le *leaderElectionStateMachine) changeToLeader() {
 // changeToFollower
 func (le *leaderElectionStateMachine) changeToFollower() {
 	log.Infof("[Store][database] change from leader to follower (%s)", le.electKey)
-	atomic.StoreInt32(&le.leaderFlag, 0)
-	le.publishLeaderChangeEvent()
-}
-
-// forceToFollower
-func (le *leaderElectionStateMachine) forceToFollower() {
-	log.Infof("[Store][database] force to follower (%s)", le.electKey)
 	atomic.StoreInt32(&le.leaderFlag, 0)
 	le.publishLeaderChangeEvent()
 }
