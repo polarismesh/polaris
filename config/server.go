@@ -63,6 +63,7 @@ type Server struct {
 	initialized       bool
 
 	history plugin.History
+	crypto  plugin.Crypto
 	hooks   []ResourceHook
 }
 
@@ -109,6 +110,11 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	s.history = plugin.GetHistory()
 	if s.history == nil {
 		log.Warnf("Not Found History Log Plugin")
+	}
+	// 获取Crypto插件
+	s.crypto = plugin.GetCrypto()
+	if s.crypto == nil {
+		log.Warnf("Not Found Crypto Plugin")
 	}
 
 	// 初始化发布事件扫描器

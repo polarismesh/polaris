@@ -207,6 +207,21 @@ func (s *Server) GetConfigFileRelease(
 		return api.NewConfigFileResponse(apimodel.Code_StoreLayerException, nil)
 	}
 
+	if fileRelease == nil {
+		return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, nil)
+	}
+	// 获取数据密钥解密配置
+	dataKey, err := s.getConfigFileDataKey(ctx, namespace, group, fileName)
+	if err != nil {
+		return api.NewConfigFileResponse(apimodel.Code_StoreLayerException, nil)
+	}
+	if dataKey != "" && utils.ParseUserName(ctx) == fileRelease.CreateBy {
+		plainContent, err := s.crypto.Decrypt(fileRelease.Content, []byte(dataKey))
+		if err != nil {
+			return api.NewConfigFileResponse(apimodel.Code_EncryptConfigFileException, nil)
+		}
+		fileRelease.Content = plainContent
+	}
 	return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, configFileRelease2Api(fileRelease))
 }
 

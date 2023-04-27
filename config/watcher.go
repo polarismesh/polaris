@@ -147,7 +147,7 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.ConfigFileRelea
 	}
 
 	response := utils2.GenConfigFileResponse(publishConfigFile.Namespace, publishConfigFile.Group,
-		publishConfigFile.FileName, "", publishConfigFile.Md5, publishConfigFile.Version)
+		publishConfigFile.FileName, "", publishConfigFile.Md5, publishConfigFile.Version, false, "")
 
 	watcherMap := watchers.(*sync.Map)
 	watcherMap.Range(func(clientId, watchCtx interface{}) bool {

@@ -28,6 +28,7 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 	utils2 "github.com/polarismesh/polaris/config/utils"
+	"github.com/polarismesh/polaris/plugin/configcrypto"
 )
 
 type (
@@ -41,6 +42,7 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 	group := client.GetGroup().GetValue()
 	fileName := client.GetFileName().GetValue()
 	clientVersion := client.GetVersion().GetValue()
+	publicKey := client.GetPublicKey().GetValue()
 
 	if namespace == "" || group == "" || fileName == "" {
 		return api.NewConfigClientResponseWithMessage(
@@ -50,8 +52,11 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 	requestID := utils.ParseRequestID(ctx)
 
 	log.Info("[Config][Service] load config file from cache.",
-		zap.String("requestId", requestID), zap.String("namespace", namespace),
-		zap.String("group", group), zap.String("file", fileName))
+		zap.String("requestId", requestID),
+		zap.String("namespace", namespace),
+		zap.String("group", group),
+		zap.String("file", fileName),
+		zap.String("publicKey", publicKey))
 
 	// 从缓存中获取配置内容
 	entry, err := s.fileCache.GetOrLoadIfAbsent(namespace, group, fileName)
@@ -88,7 +93,33 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 		zap.String("file", fileName),
 		zap.Uint64("version", entry.Version))
 
-	resp := utils2.GenConfigFileResponse(namespace, group, fileName, entry.Content, entry.Md5, entry.Version)
+	// 加密配置返回用公钥加密的数据密钥
+	if entry.DataKey != "" && publicKey != "" {
+		cipherDataKey, err := configcrypto.EncryptToBase64([]byte(entry.DataKey), publicKey)
+		if err != nil {
+			log.Error("[Config][Service] rsa encrypt data key error.",
+				zap.String("requestId", requestID),
+				zap.String("dataKey", entry.DataKey),
+				zap.Error(err))
+		}
+		resp := utils2.GenConfigFileResponse(namespace, group, fileName,
+			entry.Content, entry.Md5, entry.Version, true, cipherDataKey)
+		log.Info("[Config][Client] client get config file resp.",
+			zap.String("requestId", requestID),
+			zap.String("file", resp.GetConfigFile().GetFileName().GetValue()),
+			zap.String("dataKey", resp.GetConfigFile().GetDataKey().GetValue()),
+			zap.Bool("isEncrypted", resp.GetConfigFile().GetIsEncrypted().GetValue()))
+		return resp
+	}
+	isEntrypted := entry.DataKey != ""
+	resp := utils2.GenConfigFileResponse(namespace, group, fileName,
+		entry.Content, entry.Md5, entry.Version, isEntrypted, "")
+
+	log.Info("[Config][Client] client get config file resp.",
+		zap.String("requestId", requestID),
+		zap.String("file", resp.GetConfigFile().GetFileName().GetValue()),
+		zap.String("dataKey", resp.GetConfigFile().GetDataKey().GetValue()),
+		zap.Bool("isEncrypted", resp.GetConfigFile().GetIsEncrypted().GetValue()))
 	return resp
 }
 
@@ -151,7 +182,7 @@ func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api
 		}
 
 		if compartor(configFile, entry) {
-			return utils2.GenConfigFileResponse(namespace, group, fileName, "", entry.Md5, entry.Version)
+			return utils2.GenConfigFileResponse(namespace, group, fileName, "", entry.Md5, entry.Version, false, "")
 		}
 	}
 

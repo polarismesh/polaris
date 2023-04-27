@@ -23,28 +23,29 @@ import (
 )
 
 var (
-	whitelistOnce sync.Once
+	cryptoOnce sync.Once
 )
 
-// Whitelist White list interface
-type Whitelist interface {
+// Crypto Crypto interface
+type Crypto interface {
 	Plugin
-
-	Contain(entry interface{}) bool
+	GenerateKey() ([]byte, error)
+	Encrypt(plaintext string, key []byte) (cryptotext string, err error)
+	Decrypt(cryptotext string, key []byte) (string, error)
 }
 
-// GetWhitelist Get the whitelist plugin
-func GetWhitelist() Whitelist {
-	c := &config.Whitelist
+// GetCrypto get the crypto plugin
+func GetCrypto() Crypto {
+	c := &config.Crypto
 	plugin, exist := pluginSet[c.Name]
 	if !exist {
 		return nil
 	}
-	whitelistOnce.Do(func() {
+	cryptoOnce.Do(func() {
 		if err := plugin.Initialize(c); err != nil {
-			log.Errorf("Whitelist plugin init err: %s", err.Error())
+			log.Errorf("Crypto plugin init err: %s", err.Error())
 			os.Exit(-1)
 		}
 	})
-	return plugin.(Whitelist)
+	return plugin.(Crypto)
 }

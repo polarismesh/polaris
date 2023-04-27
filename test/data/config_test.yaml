@@ -245,3 +245,8 @@ cache:
         expireTimeAfterWrite: 3600
     - name: faultDetectRule
 #    - name: l5 # 加载l5数据
+plugin:
+  crypto:
+    name: crypto
+    option:
+      algorithm: AES

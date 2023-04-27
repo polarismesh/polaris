@@ -47,7 +47,19 @@ func (s *serverAuthability) PublishConfigFile(ctx context.Context,
 // GetConfigFileRelease 获取配置文件发布内容
 func (s *serverAuthability) GetConfigFileRelease(ctx context.Context,
 	namespace, group, fileName string) *apiconfig.ConfigResponse {
+	configFileRelease := &apiconfig.ConfigFileRelease{
+		Namespace: utils.NewStringValue(namespace),
+		Group:     utils.NewStringValue(group),
+		FileName:  utils.NewStringValue(fileName),
+	}
+	authCtx := s.collectConfigFileReleaseAuthContext(ctx,
+		[]*apiconfig.ConfigFileRelease{configFileRelease}, model.Read, "GetConfigFileRelease")
 
+	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
+		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return s.targetServer.GetConfigFileRelease(ctx, namespace, group, fileName)
 }
 

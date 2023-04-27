@@ -38,6 +38,7 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
+	_ "github.com/polarismesh/polaris/plugin/configcrypto"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/memory"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/redis"
 	_ "github.com/polarismesh/polaris/plugin/history/logger"

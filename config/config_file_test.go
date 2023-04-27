@@ -19,15 +19,15 @@ package config
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"testing"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
-	"github.com/stretchr/testify/assert"
-
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -372,6 +372,36 @@ func TestConfigFileCRUD(t *testing.T) {
 		assert.Equal(t, 0, len(rsp.SkipConfigFiles))
 		assert.Equal(t, 2, len(rsp.OverwriteConfigFiles))
 	})
+
+	t.Run("step12-create-entrypted", func(t *testing.T) {
+		configFile := assembleConfigFile()
+		configFile.IsEncrypted = utils.NewBoolValue(true)
+		rsp := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
+		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
+		assert.Equal(t, testNamespace, rsp.ConfigFile.Namespace.GetValue())
+		assert.Equal(t, testGroup, rsp.ConfigFile.Group.GetValue())
+		assert.Equal(t, testFile, rsp.ConfigFile.Name.GetValue())
+		assert.NotEqual(t, configFile.Content.GetValue(), rsp.ConfigFile.Content.GetValue())
+		assert.Equal(t, configFile.Format.GetValue(), rsp.ConfigFile.Format.GetValue())
+		assert.Equal(t, operator, rsp.ConfigFile.CreateBy.GetValue())
+		assert.Equal(t, operator, rsp.ConfigFile.ModifyBy.GetValue())
+
+		// 重复创建
+		rsp2 := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
+		assert.Equal(t, uint32(api.ExistedResource), rsp2.Code.GetValue())
+
+		// 创建完之后再查询
+		rsp3 := testSuit.testService.GetConfigFileBaseInfo(testSuit.defaultCtx, testNamespace, testGroup, testFile)
+		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
+		assert.NotNil(t, rsp.ConfigFile)
+		assert.Equal(t, testNamespace, rsp.ConfigFile.Namespace.GetValue())
+		assert.Equal(t, testGroup, rsp.ConfigFile.Group.GetValue())
+		assert.Equal(t, testFile, rsp.ConfigFile.Name.GetValue())
+		assert.NotEqual(t, configFile.Content.GetValue(), rsp.ConfigFile.Content.GetValue())
+		assert.Equal(t, configFile.Format.GetValue(), rsp.ConfigFile.Format.GetValue())
+		assert.Equal(t, operator, rsp.ConfigFile.CreateBy.GetValue())
+		assert.Equal(t, operator, rsp.ConfigFile.ModifyBy.GetValue())
+	})
 }
 
 // TestPublishConfigFile 测试配置文件发布相关的用例
@@ -452,4 +482,141 @@ func TestPublishConfigFile(t *testing.T) {
 	assert.Equal(t, api.ExecuteSuccess, rsp9.Code.GetValue())
 	assert.Equal(t, 2, len(rsp9.ConfigFileReleaseHistories))
 
+}
+
+func TestServer_encryptConfigFile(t *testing.T) {
+	testSuit, err := newConfigCenterTest(t)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		if err := testSuit.clearTestData(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+	type args struct {
+		ctx        context.Context
+		configFile *apiconfig.ConfigFile
+		dataKey    string
+	}
+	dataKey, _ := hex.DecodeString("777b162a185673cb1b72b467a78221cd")
+
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr error
+	}{
+		{
+			name: "encrypt config file",
+			args: args{
+				ctx: context.Background(),
+				configFile: &apiconfig.ConfigFile{
+					Content: utils.NewStringValue("polaris"),
+				},
+				dataKey: "",
+			},
+			wantErr: nil,
+		},
+		{
+			name: "encrypt config file with dataKey",
+			args: args{
+				ctx: context.Background(),
+				configFile: &apiconfig.ConfigFile{
+					Content: utils.NewStringValue("polaris"),
+				},
+				dataKey: string(dataKey),
+			},
+			want:    "YnLZ0SYuujFBHjYHAZVN5A==",
+			wantErr: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := testSuit.testServer
+			err := s.encryptConfigFile(tt.args.ctx, tt.args.configFile, tt.args.dataKey)
+			assert.Equal(t, tt.wantErr, err)
+			assert.Equal(t, tt.args.configFile.Tags[len(tt.args.configFile.Tags)-1].Key, utils.NewStringValue(utils.ConfigFileTagKeyDataKey))
+			if tt.args.dataKey != "" {
+				assert.Equal(t, tt.want, tt.args.configFile.Content.GetValue())
+			}
+		})
+	}
+}
+
+func TestServer_decryptConfigFile(t *testing.T) {
+	testSuit, err := newConfigCenterTest(t)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		if err := testSuit.clearTestData(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+	type args struct {
+		ctx        context.Context
+		configFile *apiconfig.ConfigFile
+	}
+
+	dataKey, _ := hex.DecodeString("777b162a185673cb1b72b467a78221cd")
+
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr error
+	}{
+		{
+			name: "decrypt config file",
+			args: args{
+				ctx: context.WithValue(context.Background(), utils.ContextUserNameKey, "polaris"),
+				configFile: &apiconfig.ConfigFile{
+					Content: utils.NewStringValue("YnLZ0SYuujFBHjYHAZVN5A=="),
+					Tags: []*apiconfig.ConfigFileTag{
+						{
+							Key:   utils.NewStringValue(utils.ConfigFileTagKeyDataKey),
+							Value: utils.NewStringValue(string(dataKey)),
+						},
+					},
+					CreateBy: utils.NewStringValue("polaris"),
+				},
+			},
+			want:    "polaris",
+			wantErr: nil,
+		},
+		{
+			name: "non creator don't decrypt config file",
+			args: args{
+				ctx: context.WithValue(context.Background(), utils.ContextUserNameKey, "test"),
+				configFile: &apiconfig.ConfigFile{
+					Content: utils.NewStringValue("YnLZ0SYuujFBHjYHAZVN5A=="),
+					Tags: []*apiconfig.ConfigFileTag{
+						{
+							Key:   utils.NewStringValue(utils.ConfigFileTagKeyDataKey),
+							Value: utils.NewStringValue(string(dataKey)),
+						},
+					},
+					CreateBy: utils.NewStringValue("polaris"),
+				},
+			},
+			want:    "YnLZ0SYuujFBHjYHAZVN5A==",
+			wantErr: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := testSuit.testServer
+			err := s.decryptConfigFile(tt.args.ctx, tt.args.configFile)
+			assert.Equal(t, tt.wantErr, err)
+			assert.Equal(t, tt.want, tt.args.configFile.Content.GetValue())
+			for _, tag := range tt.args.configFile.Tags {
+				if tag.Key.GetValue() == utils.ConfigFileTagKeyDataKey {
+					t.Fatal("config tags has data key")
+				}
+			}
+		})
+	}
 }

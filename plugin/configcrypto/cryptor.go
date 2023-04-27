@@ -15,36 +15,26 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package plugin
+package configcrypto
 
-import (
-	"os"
-	"sync"
-)
+import "fmt"
 
-var (
-	whitelistOnce sync.Once
-)
+// CryptorSet cryptor set
+var CryptorSet = make(map[string]Cryptor)
 
-// Whitelist White list interface
-type Whitelist interface {
-	Plugin
-
-	Contain(entry interface{}) bool
+// RegisterCryptor register cryptor
+func RegisterCryptor(name string, cryptor Cryptor) {
+	if _, exist := CryptorSet[name]; exist {
+		panic(fmt.Sprintf("existed cryptor: name=%v", name))
+	}
+	CryptorSet[name] = cryptor
 }
 
-// GetWhitelist Get the whitelist plugin
-func GetWhitelist() Whitelist {
-	c := &config.Whitelist
-	plugin, exist := pluginSet[c.Name]
-	if !exist {
-		return nil
-	}
-	whitelistOnce.Do(func() {
-		if err := plugin.Initialize(c); err != nil {
-			log.Errorf("Whitelist plugin init err: %s", err.Error())
-			os.Exit(-1)
-		}
-	})
-	return plugin.(Whitelist)
+// Cryptor cryptor interface
+type Cryptor interface {
+	GenerateKey() ([]byte, error)
+	Encrypt(plaintext []byte, key []byte) ([]byte, error)
+	Decrypt(ciphertext []byte, key []byte) ([]byte, error)
+	EncryptToBase64(plaintext, key []byte) (string, error)
+	DecryptFromBase64(base64Ciphertext string, key []byte) ([]byte, error)
 }

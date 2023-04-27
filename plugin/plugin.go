@@ -67,6 +67,7 @@ type Config struct {
 	Whitelist            ConfigEntry      `yaml:"whitelist"`
 	MeshResourceValidate ConfigEntry      `yaml:"meshResourceValidate"`
 	DiscoverEvent        PluginChanConfig `yaml:"discoverEvent"`
+	Crypto               ConfigEntry      `yaml:"crypto"`
 }
 
 // PluginChanConfig 插件执行链配置
