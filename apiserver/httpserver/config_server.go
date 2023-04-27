@@ -77,6 +77,8 @@ func (h *HTTPServer) bindConfigConsoleEndpoint(ws *restful.WebService) {
 	ws.Route(docs.EnrichBatchDeleteConfigFileApiDocs(ws.POST("/configfiles/batchdelete").To(h.BatchDeleteConfigFile)))
 	ws.Route(docs.EnrichExportConfigFileApiDocs(ws.POST("/configfiles/export").To(h.ExportConfigFile)))
 	ws.Route(docs.EnrichImportConfigFileApiDocs(ws.POST("/configfiles/import").To(h.ImportConfigFile)))
+	ws.Route(docs.EnrichGetAllConfigEncryptAlgorithmsApiDocs(ws.GET("/configfiles/encryptalgorithm").
+		To(h.GetAllConfigEncryptAlgorithms)))
 
 	// 配置文件发布
 	ws.Route(docs.EnrichPublishConfigFileApiDocs(ws.POST("/configfiles/release").To(h.PublishConfigFile)))

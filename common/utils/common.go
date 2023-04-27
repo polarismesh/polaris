@@ -441,6 +441,21 @@ func ZapInstanceID(id string) zap.Field {
 	return zap.String("instance-id", id)
 }
 
+// ZapNamespace 生成namespace的日志描述
+func ZapNamespace(namespace string) zap.Field {
+	return zap.String("namesapce", namespace)
+}
+
+// ZapGroup 生成group的日志描述
+func ZapGroup(group string) zap.Field {
+	return zap.String("group", group)
+}
+
+// ZapFileName 生成fileName的日志描述
+func ZapFileName(fileName string) zap.Field {
+	return zap.String("file-name", fileName)
+}
+
 // CheckDbStrFieldLen 检查name字段是否超过DB中对应字段的最大字符长度限制
 func CheckDbStrFieldLen(param *wrappers.StringValue, dbLen int) error {
 	return CheckDbRawStrFieldLen(param.GetValue(), dbLen)

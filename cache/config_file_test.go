@@ -45,9 +45,11 @@ func TestGetAndRemoveAndReloadConfigFile(t *testing.T) {
 	// Mock 数据
 	configFile := assembleConfigFile()
 	configFileRelease := assembleConfigFileRelease(configFile)
+	configFileTags := assembelConfigFileTags(configFile)
 
 	// 前三次调用返回一个值，第四次调用返回另外一个值，默认更新
 	mockedStorage.EXPECT().GetConfigFileRelease(nil, testNamespace, testGroup, testFile).Return(configFileRelease, nil).Times(3)
+	mockedStorage.EXPECT().QueryTagByConfigFile(testNamespace, testGroup, testFile).Return(configFileTags, nil).Times(3)
 
 	for i := 0; i < 100; i++ {
 		go func() {
@@ -93,9 +95,11 @@ func TestConcurrentGetConfigFile(t *testing.T) {
 	// Mock 数据
 	configFile := assembleConfigFile()
 	configFileRelease := assembleConfigFileRelease(configFile)
+	configFileTags := assembelConfigFileTags(configFile)
 
 	// 一共调用三次，
 	mockedStorage.EXPECT().GetConfigFileRelease(nil, testNamespace, testGroup, testFile).Return(configFileRelease, nil).Times(1)
+	mockedStorage.EXPECT().QueryTagByConfigFile(testNamespace, testGroup, testFile).Return(configFileTags, nil).Times(1)
 
 	for i := 0; i < 1000; i++ {
 		go func() {
@@ -121,7 +125,9 @@ func TestUpdateCache(t *testing.T) {
 	configFileRelease := assembleConfigFileRelease(configFile)
 	configFileRelease.Content = firstValue
 	configFileRelease.Version = firstVersion
+	configFileTags := assembelConfigFileTags(configFile)
 	first := mockedStorage.EXPECT().GetConfigFileRelease(nil, testNamespace, testGroup, testFile).Return(configFileRelease, nil).Times(1)
+	mockedStorage.EXPECT().QueryTagByConfigFile(testNamespace, testGroup, testFile).Return(configFileTags, nil).Times(1)
 
 	// 第二次调用返会值
 	secondValue := "secondValue"
@@ -130,7 +136,9 @@ func TestUpdateCache(t *testing.T) {
 	configFileRelease2 := assembleConfigFileRelease(configFile2)
 	configFileRelease2.Content = secondValue
 	configFileRelease2.Version = secondVersion
+	configFileTags = assembelConfigFileTags(configFile)
 	second := mockedStorage.EXPECT().GetConfigFileRelease(nil, testNamespace, testGroup, testFile).Return(configFileRelease2, nil).Times(1)
+	mockedStorage.EXPECT().QueryTagByConfigFile(testNamespace, testGroup, testFile).Return(configFileTags, nil).Times(1)
 
 	gomock.InOrder(first, second)
 
@@ -188,6 +196,19 @@ func assembleConfigFileRelease(configFile *model.ConfigFile) *model.ConfigFileRe
 		Content:   configFile.Content,
 		Version:   uint64(10),
 	}
+}
+
+func assembelConfigFileTags(configFile *model.ConfigFile) []*model.ConfigFileTag {
+	tags := []*model.ConfigFileTag{
+		{
+			Key:       utils.ConfigFileTagKeyDataKey,
+			Value:     "data key",
+			Namespace: configFile.Namespace,
+			Group:     configFile.Group,
+			FileName:  configFile.Name,
+		},
+	}
+	return tags
 }
 
 func assembleConfigFileGroup() *model.ConfigFileGroup {

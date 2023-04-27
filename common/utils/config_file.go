@@ -52,6 +52,10 @@ const (
 	ConfigFileImportConflictSkip = "skip"
 	// ConfigFileImportConflictOverwrite 导入配置文件发生冲突覆盖原配置文件
 	ConfigFileImportConflictOverwrite = "overwrite"
+	// ConfigFileTagKeyDataKey 加密密钥 tag key
+	ConfigFileTagKeyDataKey = "data_key"
+	// ConfigFileTagKeyEncryptAlgo 加密算法 tag key
+	ConfigFileTagKeyEncryptAlgo = "encrypt_algo"
 )
 
 // GenFileId 生成文件 Id

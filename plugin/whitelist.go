@@ -33,7 +33,7 @@ type Whitelist interface {
 	Contain(entry interface{}) bool
 }
 
-// GetWhitelist Get the whitelist plug -in
+// GetWhitelist Get the whitelist plugin
 func GetWhitelist() Whitelist {
 	c := &config.Whitelist
 	plugin, exist := pluginSet[c.Name]

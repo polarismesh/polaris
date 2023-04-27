@@ -62,8 +62,9 @@ type Server struct {
 	namespaceOperator namespace.NamespaceOperateServer
 	initialized       bool
 
-	history plugin.History
-	hooks   []ResourceHook
+	history       plugin.History
+	cryptoManager *plugin.CryptoManager
+	hooks         []ResourceHook
 }
 
 // Initialize 初始化配置中心模块
@@ -108,6 +109,11 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	s.history = plugin.GetHistory()
 	if s.history == nil {
 		log.Warnf("Not Found History Log Plugin")
+	}
+	// 获取Crypto插件
+	s.cryptoManager = plugin.GetCryptoManager()
+	if s.cryptoManager == nil {
+		log.Warnf("Not Found Crypto Plugin")
 	}
 
 	// 初始化发布事件扫描器

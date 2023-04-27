@@ -175,6 +175,12 @@ func EnrichImportConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 			"       \"namespace\":\"someNamespace\",\n         \"group\":\"someGroup\"\n     }\n]\n```")
 }
 
+func EnrichGetAllConfigEncryptAlgorithmsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.
+		Doc("获取配置加密算法").
+		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags)
+}
+
 func EnrichPublishConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("发布配置文件").
