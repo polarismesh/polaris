@@ -29,11 +29,11 @@ import (
 func runIfDebugEnable(checker *LeaderHealthChecker) []plugin.DebugHandler {
 	return []plugin.DebugHandler{
 		{
-			Path:    "/dbeug/checker/leader/info",
+			Path:    "/debug/checker/leader/info",
 			Handler: handleDescribeLeaderInfo(checker),
 		},
 		{
-			Path:    "/dbeug/checker/leader/cache",
+			Path:    "/debug/checker/leader/cache",
 			Handler: handleDescribeBeatCache(checker),
 		},
 	}

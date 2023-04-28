@@ -98,7 +98,7 @@ func (c *LeaderHealthChecker) Name() string {
 
 // Initialize .
 func (c *LeaderHealthChecker) Initialize(entry *plugin.ConfigEntry) error {
-	conf, err := Unmarshal(entry.Option)
+	conf, err := unmarshal(entry.Option)
 	if err != nil {
 		return err
 	}
