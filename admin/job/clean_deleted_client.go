@@ -74,3 +74,7 @@ func (job *cleanDeletedClientsJob) execute() {
 
 func (job *cleanDeletedClientsJob) clear() {
 }
+
+func (job *cleanDeletedClientsJob) interval() time.Duration {
+	return job.cfg.ClientCleanTimeout
+}
