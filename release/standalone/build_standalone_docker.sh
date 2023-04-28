@@ -42,7 +42,6 @@ cp ../docker/Dockerfile ./Dockerfile
 echo "#!/bin/bash" >"run.sh"
 echo "" >>"run.sh"
 echo "bash install.sh" >>"run.sh"
-echo "bash install-pushgateway.sh" >>"run.sh"
 echo "while ((1))" >>"run.sh"
 echo "do" >>"run.sh"
 echo "   sleep 1" >>"run.sh"
