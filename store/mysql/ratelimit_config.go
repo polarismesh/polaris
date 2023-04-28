@@ -554,8 +554,8 @@ func genFilterRateLimitSQL(query map[string]string) (string, []interface{}) {
 
 // updateLastRevision 更新last_revision
 func updateLastRevision(tx *BaseTx, serviceID string, revision string) error {
-	str := `update ratelimit_revision set last_revision = ?, mtime = sysdate() where service_id = ?`
-	if _, err := tx.Exec(str, revision, serviceID); err != nil {
+	str := `replace into ratelimit_revision(service_id, last_revision, mtime) values(?, ?, sysdate())`
+	if _, err := tx.Exec(str, serviceID, revision); err != nil {
 		return err
 	}
 	return nil
