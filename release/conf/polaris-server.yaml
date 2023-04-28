@@ -474,15 +474,15 @@ plugin:
     option:
       remote-conf: false # Whether to use remote configuration
       ip-limit: # IP -level current, global
-        open: true # Whether the system opens IP -level current limit
+        open: false # Whether the system opens IP -level current limit
         global:
-          open: true
+          open: false
           bucket: 300 # Maximum peak
           rate: 200 # The average number of requests per second of IP
         resource-cache-amount: 1024 # Number of IP of the maximum cache
         white-list: [127.0.0.1]
       instance-limit:
-        open: true
+        open: false
         global:
           bucket: 200
           rate: 100
@@ -492,12 +492,12 @@ plugin:
         rules:
           - name: store-read
             limit:
-              open: true # The global configuration of the interface, if in the API sub -item, is not configured, the interface will be limited according to Global
+              open: false # The global configuration of the interface, if in the API sub -item, is not configured, the interface will be limited according to Global
               bucket: 2000 # The maximum value of token barrels
               rate: 1000 # The number of token generated per second
           - name: store-write
             limit:
-              open: true
+              open: false
               bucket: 1000
               rate: 500
         apis:

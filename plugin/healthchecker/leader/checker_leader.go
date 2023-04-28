@@ -176,6 +176,8 @@ func (c *LeaderHealthChecker) becomeFollower() {
 			continue
 		}
 		if election.Host == "" || election.Host == utils.LocalHost {
+			atomic.StoreInt32(&c.leader, 0)
+			atomic.StoreInt32(&c.initialize, initializedSignal)
 			return
 		}
 		log.Info("[HealthCheck][Leader] self become follower")
