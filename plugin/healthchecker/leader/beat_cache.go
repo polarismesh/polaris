@@ -113,7 +113,7 @@ func (lc *LocalBeatRecordCache) Put(records ...WriteBeatRecord) {
 	for i := range records {
 		record := records[i]
 		if log.DebugEnabled() {
-			log.Debug("receive put action", zap.Any("record", record))
+			plog.Debug("receive put action", zap.Any("record", record))
 		}
 		lc.beatCache.Put(record.Key, record.Record)
 	}
@@ -124,7 +124,7 @@ func (lc *LocalBeatRecordCache) Del(keys ...string) {
 		key := keys[i]
 		ok := lc.beatCache.Del(key)
 		if log.DebugEnabled() {
-			log.Debug("delete result", zap.String("key", key), zap.Bool("exist", ok))
+			plog.Debug("delete result", zap.String("key", key), zap.Bool("exist", ok))
 		}
 	}
 }

@@ -100,6 +100,19 @@ func GetScopeOrDefaultByName(name string) *Scope {
 	return s
 }
 
+func GetScopeByName(name, defaultName string) *Scope {
+	lock.RLock()
+	defer lock.RUnlock()
+	s := scopes[name]
+	if s == nil {
+		s = scopes[defaultName]
+		if s == nil {
+			s = scopes[DefaultLoggerName]
+		}
+	}
+	return s
+}
+
 // Scopes returns a snapshot of the currently defined set of scopes
 func Scopes() map[string]*Scope {
 	lock.RLock()
