@@ -72,5 +72,9 @@ func (job *cleanDeletedInstancesJob) execute() {
 	}
 }
 
+func (job *cleanDeletedInstancesJob) interval() time.Duration {
+	return job.cfg.InstanceCleanTimeout
+}
+
 func (job *cleanDeletedInstancesJob) clear() {
 }

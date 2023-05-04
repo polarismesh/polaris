@@ -209,7 +209,7 @@ func (p *RemotePeer) Del(key string) error {
 func (p *RemotePeer) GetFunc(req *apiservice.GetHeartbeatsRequest) *apiservice.GetHeartbeatsResponse {
 	resp, err := p.Client.BatchGetHeartbeat(context.Background(), req)
 	if err != nil {
-		log.Error("[HealthCheck][Leader] send get record request", zap.String("host", p.Host()),
+		plog.Error("[HealthCheck][Leader] send get record request", zap.String("host", p.Host()),
 			zap.Uint32("port", p.port), zap.Error(err))
 		return &apiservice.GetHeartbeatsResponse{}
 	}
@@ -218,14 +218,14 @@ func (p *RemotePeer) GetFunc(req *apiservice.GetHeartbeatsRequest) *apiservice.G
 
 func (p *RemotePeer) PutFunc(req *apiservice.HeartbeatsRequest) {
 	if err := p.Puter.Send(req); err != nil {
-		log.Error("[HealthCheck][Leader] send put record request", zap.String("host", p.Host()),
+		plog.Error("[HealthCheck][Leader] send put record request", zap.String("host", p.Host()),
 			zap.Uint32("port", p.port), zap.Error(err))
 	}
 }
 
 func (p *RemotePeer) DelFunc(req *apiservice.DelHeartbeatsRequest) {
 	if _, err := p.Client.BatchDelHeartbeat(context.Background(), req); err != nil {
-		log.Error("send del record request", zap.String("host", p.Host()),
+		plog.Error("send del record request", zap.String("host", p.Host()),
 			zap.Uint32("port", p.port), zap.Error(err))
 	}
 }
@@ -275,6 +275,11 @@ func (p *RemotePeer) handleSendGetRecords(tasks []batchjob.Future) {
 			f.Reply(map[string]*ReadBeatRecord{
 				key: ret[key],
 			}, nil)
+		}
+	}
+	for i := range futures {
+		for _, f := range futures[i] {
+			f.Reply(nil, ErrorRecordNotFound)
 		}
 	}
 	for i := range futures {

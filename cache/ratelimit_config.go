@@ -236,6 +236,11 @@ func (rlc *rateLimitCache) fixRuleServiceInfo(rateLimit *model.RateLimit) {
 			rlc.waitFixRules[rateLimit.ID] = struct{}{}
 			return
 		}
+		if svc2 == nil {
+			// 存储层确实不存在，直接跳过
+			delete(rlc.waitFixRules, rateLimit.ID)
+			return
+		}
 		svc = svc2
 	}
 

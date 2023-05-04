@@ -56,8 +56,11 @@ func (job *deleteUnHealthyInstanceJob) init(raw map[string]interface{}) error {
 		return err
 	}
 	job.cfg = cfg
-
 	return nil
+}
+
+func (job *deleteUnHealthyInstanceJob) interval() time.Duration {
+	return job.cfg.InstanceDeleteTimeout
 }
 
 func (job *deleteUnHealthyInstanceJob) execute() {

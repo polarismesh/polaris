@@ -65,8 +65,9 @@ func (r *rateLimitRuleBucket) saveRule(rule *model.RateLimit) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	r.ids[rule.ID] = rule
+	r.cleanOldSvcRule(rule)
 
+	r.ids[rule.ID] = rule
 	key := buildServiceKey(rule.Proto.GetNamespace().GetValue(), rule.Proto.GetService().GetValue())
 
 	if _, ok := r.rules[key]; !ok {
@@ -79,20 +80,42 @@ func (r *rateLimitRuleBucket) saveRule(rule *model.RateLimit) {
 	b.saveRule(rule)
 }
 
+// cleanOldSvcRule 清理规则之前绑定的服务数据信息
+func (r *rateLimitRuleBucket) cleanOldSvcRule(rule *model.RateLimit) {
+	oldRule, ok := r.ids[rule.ID]
+	if !ok {
+		return
+	}
+	// 清理原来老记录的绑定数据信息
+	key := buildServiceKey(oldRule.Proto.GetNamespace().GetValue(), oldRule.Proto.GetService().GetValue())
+	bucket, ok := r.rules[key]
+	if !ok {
+		return
+	}
+	// 删除服务绑定的限流规则信息
+	bucket.delRule(rule)
+	if bucket.count() == 0 {
+		delete(r.rules, key)
+	}
+}
+
 func (r *rateLimitRuleBucket) delRule(rule *model.RateLimit) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
+	r.cleanOldSvcRule(rule)
 	delete(r.ids, rule.ID)
 
 	key := buildServiceKey(rule.Proto.GetNamespace().GetValue(), rule.Proto.GetService().GetValue())
-
 	if _, ok := r.rules[key]; !ok {
 		return
 	}
 
 	b := r.rules[key]
 	b.delRule(rule)
+	if b.count() == 0 {
+		delete(r.rules, key)
+	}
 }
 
 func (r *rateLimitRuleBucket) getRuleByID(id string) *model.RateLimit {

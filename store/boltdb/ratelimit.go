@@ -287,6 +287,7 @@ func (r *rateLimitStore) updateRateLimit(limit *model.RateLimit) error {
 	return handler.Execute(true, func(tx *bolt.Tx) error {
 		properties := make(map[string]interface{})
 		properties[RateLimitFieldName] = limit.Name
+		properties[RateLimitFieldServiceID] = limit.ServiceID
 		properties[RateLimitFieldMethod] = limit.Method
 		properties[RateLimitFieldDisable] = limit.Disable
 		properties[RateLimitFieldLabels] = limit.Labels

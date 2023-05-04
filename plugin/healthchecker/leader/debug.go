@@ -22,22 +22,7 @@ import (
 	"net/http"
 
 	"github.com/polarismesh/polaris/common/utils"
-	"github.com/polarismesh/polaris/plugin"
 )
-
-// runIfDebugEnable 用于测试环境下查看 LeaderHealthChecker 内部的一些状态数据
-func runIfDebugEnable(checker *LeaderHealthChecker) []plugin.DebugHandler {
-	return []plugin.DebugHandler{
-		{
-			Path:    "/dbeug/checker/leader/info",
-			Handler: handleDescribeLeaderInfo(checker),
-		},
-		{
-			Path:    "/dbeug/checker/leader/cache",
-			Handler: handleDescribeBeatCache(checker),
-		},
-	}
-}
 
 func handleDescribeLeaderInfo(checker *LeaderHealthChecker) func(http.ResponseWriter, *http.Request) {
 	return func(resp http.ResponseWriter, req *http.Request) {

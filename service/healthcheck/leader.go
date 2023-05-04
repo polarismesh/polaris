@@ -97,7 +97,6 @@ func (handler *LeaderChangeEventHandler) startCheckSelfServiceInstances() {
 // startCheckSelfServiceInstances
 func (handler *LeaderChangeEventHandler) stopCheckSelfServiceInstances() {
 	if handler.ctx == nil {
-		log.Warn("[healthcheck] receive unexpected follower state event")
 		return
 	}
 	handler.cancel()

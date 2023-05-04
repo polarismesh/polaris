@@ -29,7 +29,7 @@ type Config struct {
 	Batch   batchjob.CtrlConfig
 }
 
-func Unmarshal(options map[string]interface{}) (*Config, error) {
+func unmarshal(options map[string]interface{}) (*Config, error) {
 	contentBytes, err := json.Marshal(options)
 	if err != nil {
 		return nil, err

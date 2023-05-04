@@ -22,5 +22,6 @@ import (
 )
 
 var (
-	log = commonlog.GetScopeOrDefaultByName(commonlog.HealthcheckLoggerName)
+	log  = commonlog.GetScopeOrDefaultByName(commonlog.HealthcheckLoggerName)
+	plog = commonlog.GetScopeByName(PluginName, commonlog.HealthcheckLoggerName)
 )

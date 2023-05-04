@@ -68,18 +68,11 @@ func (s *Server) CreateRoutingConfig(ctx context.Context, req *apitraffic.Routin
 		return resp
 	}
 
-	tx, err := s.storage.CreateTransaction()
-	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-		return api.NewRoutingResponse(apimodel.Code_StoreLayerException, req)
-	}
-	defer func() { _ = tx.Commit() }()
-
 	serviceName := req.GetService().GetValue()
 	namespaceName := req.GetNamespace().GetValue()
-	service, err := tx.RLockService(serviceName, namespaceName)
-	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
+	service, errResp := s.loadService(namespaceName, serviceName)
+	if errResp != nil {
+		log.Error(errResp.GetInfo().GetValue(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
 		return api.NewRoutingResponse(apimodel.Code_StoreLayerException, req)
 	}
 	if service == nil {

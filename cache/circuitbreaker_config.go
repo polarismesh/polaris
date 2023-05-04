@@ -243,6 +243,9 @@ func (c *circuitBreakerCache) storeCircuitBreakerToServiceCache(
 	entry *model.CircuitBreakerRule, svcKeys map[model.ServiceKey]bool) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
+
+	c.cleanOldCircuitBreakerToServiceCache(entry, svcKeys)
+
 	if len(svcKeys) == 0 {
 		// all wildcard
 		c.storeAndReloadCircuitBreakerRules(c.allWildcardRules, entry)
@@ -308,6 +311,11 @@ func (c *circuitBreakerCache) storeCircuitBreakerToServiceCache(
 			c.storeAndReloadCircuitBreakerRules(rules, entry)
 		}
 	}
+}
+
+func (c *circuitBreakerCache) cleanOldCircuitBreakerToServiceCache(
+	entry *model.CircuitBreakerRule, svcKeys map[model.ServiceKey]bool) {
+
 }
 
 const allMatched = "*"

@@ -221,8 +221,7 @@ func isLeader(flag int32) bool {
 
 // mainLoop
 func (le *leaderElectionStateMachine) mainLoop() {
-	// 先全部以 follower 的角色
-	le.forceToFollower()
+	le.changeToFollower("")
 	log.Infof("[Store][database] leader election started (%s)", le.electKey)
 	ticker := time.NewTicker(TickTime * time.Second)
 	defer ticker.Stop()
@@ -232,7 +231,7 @@ func (le *leaderElectionStateMachine) mainLoop() {
 			le.tick()
 		case <-le.ctx.Done():
 			log.Infof("[Store][database] leader election stopped (%s)", le.electKey)
-			le.changeToFollower()
+			le.changeToFollower("")
 			return
 		}
 	}
@@ -245,46 +244,46 @@ func (le *leaderElectionStateMachine) tick() {
 		return
 	}
 	shouldRelease := le.checkAndClearReleaseSignal()
-
 	if le.isLeader() {
 		if shouldRelease {
 			log.Infof("[Store][database] release leader election (%s)", le.electKey)
-			le.changeToFollower()
+			le.changeToFollower("")
 			le.setReleaseTickLimit()
 			return
 		}
-		r, err := le.heartbeat()
-		if err != nil {
-			log.Errorf("[Store][database] leader heartbeat err (%s), change to follower state (%s)",
-				err.Error(), le.electKey)
-			le.changeToFollower()
+		success, err := le.heartbeat()
+		if err == nil && success {
 			return
 		}
-		if !r {
-			le.changeToFollower()
+		if !success || err != nil {
+			log.Errorf("[Store][database] leader heartbeat err (%v), change to follower state (%s)",
+				err, le.electKey)
 		}
-	} else {
-		leader, dead, err := le.checkLeaderDead()
-		if err != nil {
-			log.Errorf("[Store][database] check leader dead err (%s), stay follower state (%s)",
-				err.Error(), le.electKey)
-			return
-		}
-		if !dead {
-			if leader != le.leader {
-				le.leader = leader
-				le.publishLeaderChangeEvent()
-			}
-			return
-		}
-		r, err := le.elect()
-		if err != nil {
-			log.Errorf("[Store][database] elect leader err (%s), stay follower state (%s)", err.Error(), le.electKey)
-			return
-		}
-		if r {
+	}
+	leader, dead, err := le.checkLeaderDead()
+	if err != nil {
+		log.Errorf("[Store][database] check leader dead err (%s), stay follower state (%s)",
+			err.Error(), le.electKey)
+		return
+	}
+	if !dead {
+		// 自己之前是 leader，并且租期还没过，调整自己为 leader
+		if leader == utils.LocalHost {
 			le.changeToLeader()
 		}
+		// leader 信息出现变化，发布leader信息变化通知
+		if le.leader != leader {
+			le.changeToFollower(leader)
+		}
+		return
+	}
+	success, err := le.elect()
+	if err != nil {
+		log.Errorf("[Store][database] elect leader err (%s), stay follower state (%s)", err.Error(), le.electKey)
+		return
+	}
+	if success {
+		le.changeToLeader()
 	}
 }
 
@@ -300,20 +299,15 @@ func (le *leaderElectionStateMachine) publishLeaderChangeEvent() {
 func (le *leaderElectionStateMachine) changeToLeader() {
 	log.Infof("[Store][database] change from follower to leader (%s)", le.electKey)
 	atomic.StoreInt32(&le.leaderFlag, 1)
+	le.leader = utils.LocalHost
 	le.publishLeaderChangeEvent()
 }
 
 // changeToFollower
-func (le *leaderElectionStateMachine) changeToFollower() {
+func (le *leaderElectionStateMachine) changeToFollower(leader string) {
 	log.Infof("[Store][database] change from leader to follower (%s)", le.electKey)
 	atomic.StoreInt32(&le.leaderFlag, 0)
-	le.publishLeaderChangeEvent()
-}
-
-// forceToFollower
-func (le *leaderElectionStateMachine) forceToFollower() {
-	log.Infof("[Store][database] force to follower (%s)", le.electKey)
-	atomic.StoreInt32(&le.leaderFlag, 0)
+	le.leader = leader
 	le.publishLeaderChangeEvent()
 }
 

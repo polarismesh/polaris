@@ -97,9 +97,6 @@ type LocalBeatRecordCache struct {
 }
 
 func (lc *LocalBeatRecordCache) Get(keys ...string) map[string]*ReadBeatRecord {
-	if log.DebugEnabled() {
-		log.Debug("receive get action", zap.Any("keys", keys))
-	}
 	ret := make(map[string]*ReadBeatRecord, len(keys))
 	for i := range keys {
 		key := keys[i]
@@ -113,24 +110,21 @@ func (lc *LocalBeatRecordCache) Get(keys ...string) map[string]*ReadBeatRecord {
 }
 
 func (lc *LocalBeatRecordCache) Put(records ...WriteBeatRecord) {
-	if log.DebugEnabled() {
-		log.Debug("receive put action", zap.Any("records", records))
-	}
 	for i := range records {
 		record := records[i]
+		if log.DebugEnabled() {
+			plog.Debug("receive put action", zap.Any("record", record))
+		}
 		lc.beatCache.Put(record.Key, record.Record)
 	}
 }
 
 func (lc *LocalBeatRecordCache) Del(keys ...string) {
-	if log.DebugEnabled() {
-		log.Debug("receive del action", zap.Strings("keys", keys))
-	}
 	for i := range keys {
 		key := keys[i]
 		ok := lc.beatCache.Del(key)
 		if log.DebugEnabled() {
-			log.Debug("delete result", zap.String("key", key), zap.Bool("exist", ok))
+			plog.Debug("delete result", zap.String("key", key), zap.Bool("exist", ok))
 		}
 	}
 }

@@ -22,6 +22,7 @@ import (
 	"runtime"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -98,7 +99,7 @@ func (c *LeaderHealthChecker) Name() string {
 
 // Initialize .
 func (c *LeaderHealthChecker) Initialize(entry *plugin.ConfigEntry) error {
-	conf, err := Unmarshal(entry.Option)
+	conf, err := unmarshal(entry.Option)
 	if err != nil {
 		return err
 	}
@@ -119,7 +120,6 @@ func (c *LeaderHealthChecker) Initialize(entry *plugin.ConfigEntry) error {
 	if err := c.s.StartLeaderElection(electionKey); err != nil {
 		return err
 	}
-	runIfDebugEnable(c)
 	return nil
 }
 
@@ -149,36 +149,48 @@ func (c *LeaderHealthChecker) OnEvent(ctx context.Context, i interface{}) error 
 
 func (c *LeaderHealthChecker) becomeLeader() {
 	if c.remote != nil {
-		if log.DebugEnabled() {
-			log.Debug("[HealthCheck][Leader] become leader and close old leader",
-				zap.String("leader", c.remote.Host()))
-		}
+		plog.Info("[HealthCheck][Leader] become leader and close old leader",
+			zap.String("leader", c.remote.Host()))
 		// 关闭原来自己跟随的 leader 节点信息
-		oldLeader := c.remote
+		_ = c.remote.Close()
 		c.remote = nil
-		_ = oldLeader.Close()
 	}
 	// leader 指向自己
 	atomic.StoreInt32(&c.leader, 1)
 	atomic.StoreInt32(&c.initialize, initializedSignal)
-	log.Info("[HealthCheck][Leader] self become leader")
+	plog.Info("[HealthCheck][Leader] self become leader")
 }
 
 func (c *LeaderHealthChecker) becomeFollower() {
+	retryFunc := func(waitDur time.Duration) {
+		time.Sleep(waitDur)
+		c.becomeFollower()
+	}
 	elections, err := c.s.ListLeaderElections()
 	if err != nil {
-		log.Error("[HealthCheck][Leader] follower list elections", zap.Error(err))
+		plog.Error("[HealthCheck][Leader] follower list elections", zap.Error(err))
+		go retryFunc(time.Second)
 		return
 	}
+	findTargetElection := false
+	defer func() {
+		if !findTargetElection {
+			go retryFunc(time.Second)
+		}
+	}()
 	for i := range elections {
 		election := elections[i]
 		if election.ElectKey != electionKey {
 			continue
 		}
+		findTargetElection = true
+		// election.Host == "": 集群首次启动，没有选举出任何 Leader
+		// election.Host == utils.LocalHost: 手动触发 leader release，leader
 		if election.Host == "" || election.Host == utils.LocalHost {
+			go retryFunc(time.Second)
 			return
 		}
-		log.Info("[HealthCheck][Leader] self become follower")
+		plog.Info("[HealthCheck][Leader] self become follower")
 		if c.remote != nil {
 			// leader 未发生变化
 			if election.Host == c.remote.Host() {
@@ -187,7 +199,7 @@ func (c *LeaderHealthChecker) becomeFollower() {
 			}
 			// leader 出现变更切换
 			if election.Host != c.remote.Host() {
-				log.Info("[HealthCheck][Leader] become follower and leader change",
+				plog.Info("[HealthCheck][Leader] become follower and leader change",
 					zap.String("leader", election.Host))
 				// 关闭原来的 leader 节点信息
 				oldLeader := c.remote
@@ -198,7 +210,8 @@ func (c *LeaderHealthChecker) becomeFollower() {
 		remoteLeader := NewRemotePeerFunc()
 		remoteLeader.Initialize(*c.conf)
 		if err := remoteLeader.Serve(context.Background(), election.Host, uint32(utils.LocalPort)); err != nil {
-			log.Error("[HealthCheck][Leader] follower run serve", zap.Error(err))
+			plog.Error("[HealthCheck][Leader] follower run serve, do retry", zap.Error(err))
+			go retryFunc(time.Second)
 			return
 		}
 		c.remote = remoteLeader
@@ -224,7 +237,7 @@ func (c *LeaderHealthChecker) Report(request *plugin.ReportRequest) error {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	if !c.isInitialize() {
-		log.Warn("[Health Check][Leader] leader checker uninitialize, ignore report")
+		plog.Warn("[Health Check][Leader] leader checker uninitialize, ignore report")
 		return nil
 	}
 	responsible := c.findLeaderPeer()
@@ -295,7 +308,7 @@ func (c *LeaderHealthChecker) Query(request *plugin.QueryRequest) (*plugin.Query
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	if !c.isInitialize() {
-		log.Infof("[Health Check][Leader] leader checker uninitialize, ignore query")
+		plog.Infof("[Health Check][Leader] leader checker uninitialize, ignore query")
 		return &plugin.QueryResponse{
 			LastHeartbeatSec: 0,
 		}, nil
@@ -403,5 +416,14 @@ func (c *LeaderHealthChecker) isLeader() bool {
 }
 
 func (c *LeaderHealthChecker) DebugHandlers() []plugin.DebugHandler {
-	return runIfDebugEnable(c)
+	return []plugin.DebugHandler{
+		{
+			Path:    "/debug/checker/leader/info",
+			Handler: handleDescribeLeaderInfo(c),
+		},
+		{
+			Path:    "/debug/checker/leader/cache",
+			Handler: handleDescribeBeatCache(c),
+		},
+	}
 }
