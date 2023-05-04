@@ -394,30 +394,26 @@ maintain:
     # Clean up long term unhealthy instance
     - name: DeleteUnHealthyInstance
       enable: false
-      # job exec interval. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
-      interval: 24h
       option:
+        # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
         instanceDeleteTimeout: 60m
     # Delete auto-created service without an instance
     - name: DeleteEmptyAutoCreatedService
       enable: false
-      # job exec interval. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
-      interval: 1h
       option:
+        # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
         serviceDeleteTimeout: 30m
     # Clean soft deleted instances
     - name: CleanDeletedInstances
       enable: true
-      # job exec interval. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
-      interval: 24h
       option:
+        # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
         instanceCleanTimeout: 10m
     # Clean soft deleted clients
     - name: CleanDeletedClients
       enable: true
-      # job exec interval. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
-      interval: 24h
       option:
+        # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
         clientCleanTimeout: 10m
   
 # Storage configuration

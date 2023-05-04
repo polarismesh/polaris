@@ -252,13 +252,12 @@ func (le *leaderElectionStateMachine) tick() {
 			return
 		}
 		success, err := le.heartbeat()
-		if err != nil {
-			log.Errorf("[Store][database] leader heartbeat err (%s), change to follower state (%s)",
-				err.Error(), le.electKey)
+		if err == nil && success {
 			return
 		}
-		if success {
-			return
+		if !success || err != nil {
+			log.Errorf("[Store][database] leader heartbeat err (%v), change to follower state (%s)",
+				err, le.electKey)
 		}
 	}
 	leader, dead, err := le.checkLeaderDead()

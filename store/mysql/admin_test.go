@@ -46,7 +46,7 @@ func TestAdminStore_LeaderElection_Follower1(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockStore := mock.NewMockLeaderElectionStore(ctrl)
-	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return(utils.LocalHost, false, nil)
+	mockStore.EXPECT().CheckMtimeExpired(TestElectKey, int32(LeaseTime)).Return("127.0.0.2", false, nil)
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	le := leaderElectionStateMachine{
@@ -219,7 +219,8 @@ func TestAdminStore_LeaderElection_LeaderToFollower1(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockStore := mock.NewMockLeaderElectionStore(ctrl)
-	mockStore.EXPECT().CompareAndSwapVersion(TestElectKey, int64(42), int64(43), "127.0.0.1").Return(true, errors.New("err"))
+	mockStore.EXPECT().CheckMtimeExpired(gomock.Any(), gomock.Any()).Return("127.0.0.2", false, nil)
+	mockStore.EXPECT().CompareAndSwapVersion(TestElectKey, int64(42), int64(43), "127.0.0.1").Return(false, errors.New("err"))
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	le := leaderElectionStateMachine{
@@ -242,6 +243,7 @@ func TestAdminStore_LeaderElection_LeaderToFollower2(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockStore := mock.NewMockLeaderElectionStore(ctrl)
+	mockStore.EXPECT().CheckMtimeExpired(gomock.Any(), gomock.Any()).Return("127.0.0.2", false, nil)
 	mockStore.EXPECT().CompareAndSwapVersion(TestElectKey, int64(42), int64(43), "127.0.0.1").Return(false, nil)
 
 	ctx, cancel := context.WithCancel(context.TODO())

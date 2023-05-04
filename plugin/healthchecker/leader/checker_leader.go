@@ -162,19 +162,32 @@ func (c *LeaderHealthChecker) becomeLeader() {
 }
 
 func (c *LeaderHealthChecker) becomeFollower() {
+	retryFunc := func(waitDur time.Duration) {
+		time.Sleep(waitDur)
+		c.becomeFollower()
+	}
 	elections, err := c.s.ListLeaderElections()
 	if err != nil {
 		plog.Error("[HealthCheck][Leader] follower list elections", zap.Error(err))
+		go retryFunc(time.Second)
 		return
 	}
+	findTargetElection := false
+	defer func() {
+		if !findTargetElection {
+			go retryFunc(time.Second)
+		}
+	}()
 	for i := range elections {
 		election := elections[i]
 		if election.ElectKey != electionKey {
 			continue
 		}
+		findTargetElection = true
+		// election.Host == "": 集群首次启动，没有选举出任何 Leader
+		// election.Host == utils.LocalHost: 手动触发 leader release，leader
 		if election.Host == "" || election.Host == utils.LocalHost {
-			atomic.StoreInt32(&c.leader, 0)
-			atomic.StoreInt32(&c.initialize, initializedSignal)
+			go retryFunc(time.Second)
 			return
 		}
 		plog.Info("[HealthCheck][Leader] self become follower")
@@ -198,10 +211,7 @@ func (c *LeaderHealthChecker) becomeFollower() {
 		remoteLeader.Initialize(*c.conf)
 		if err := remoteLeader.Serve(context.Background(), election.Host, uint32(utils.LocalPort)); err != nil {
 			plog.Error("[HealthCheck][Leader] follower run serve, do retry", zap.Error(err))
-			go func() {
-				time.Sleep(200 * time.Millisecond)
-				c.becomeFollower()
-			}()
+			go retryFunc(time.Second)
 			return
 		}
 		c.remote = remoteLeader

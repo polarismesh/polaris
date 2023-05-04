@@ -37,22 +37,12 @@ func (s *Server) createRoutingConfigV1toV2(ctx context.Context, req *apitraffic.
 		return resp
 	}
 
-	serviceTx, err := s.storage.CreateTransaction()
-	if err != nil {
-		log.Error("[Service][Routing] create routing v1 open tx fail",
-			zap.Error(err), utils.ZapRequestIDByCtx(ctx))
-		return apiv1.NewRoutingResponse(apimodel.Code_StoreLayerException, req)
-	}
-	defer func() {
-		_ = serviceTx.Commit()
-	}()
-
 	serviceName := req.GetService().GetValue()
 	namespaceName := req.GetNamespace().GetValue()
-	svc, err := serviceTx.RLockService(serviceName, namespaceName)
-	if err != nil {
+	svc, errResp := s.loadService(namespaceName, serviceName)
+	if errResp != nil {
 		log.Error("[Service][Routing] get read lock for service", zap.String("service", serviceName),
-			zap.String("namespace", namespaceName), utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+			zap.String("namespace", namespaceName), utils.ZapRequestIDByCtx(ctx), zap.Any("err", errResp))
 		return apiv1.NewRoutingResponse(apimodel.Code_StoreLayerException, req)
 	}
 	if svc == nil {

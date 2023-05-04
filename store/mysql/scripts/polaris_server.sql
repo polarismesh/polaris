@@ -98,7 +98,7 @@ CREATE TABLE `health_check`
     `type` tinyint(4)   NOT NULL DEFAULT '0' comment 'Instance health check type',
     `ttl`  int(11)      NOT NULL comment 'TTL time jumping',
     PRIMARY KEY (`id`),
-    CONSTRAINT `health_check_ibfk_1` FOREIGN KEY (`id`) REFERENCES `instance` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+    /* CONSTRAINT `health_check_ibfk_1` FOREIGN KEY (`id`) REFERENCES `instance` (`id`) ON DELETE CASCADE ON UPDATE CASCADE */
 ) ENGINE = InnoDB;
 
 -- --------------------------------------------------------
@@ -114,7 +114,7 @@ CREATE TABLE `instance_metadata`
     `mtime`  timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`id`, `mkey`),
     KEY `mkey` (`mkey`),
-    CONSTRAINT `instance_metadata_ibfk_1` FOREIGN KEY (`id`) REFERENCES `instance` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+    /* CONSTRAINT `instance_metadata_ibfk_1` FOREIGN KEY (`id`) REFERENCES `instance` (`id`) ON DELETE CASCADE ON UPDATE CASCADE */
 ) ENGINE = InnoDB;
 
 -- --------------------------------------------------------
@@ -286,7 +286,7 @@ CREATE TABLE `service_metadata`
     `mtime`  timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
     PRIMARY KEY (`id`, `mkey`),
     KEY `mkey` (`mkey`),
-    CONSTRAINT `service_metadata_ibfk_1` FOREIGN KEY (`id`) REFERENCES `service` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+    /* CONSTRAINT `service_metadata_ibfk_1` FOREIGN KEY (`id`) REFERENCES `service` (`id`) ON DELETE CASCADE ON UPDATE CASCADE */
 ) ENGINE = InnoDB;
 
 -- --------------------------------------------------------
@@ -345,7 +345,7 @@ CREATE TABLE `circuitbreaker_rule_relation`
     PRIMARY KEY (`service_id`),
     KEY `mtime` (`mtime`),
     KEY `rule_id` (`rule_id`),
-    CONSTRAINT `circuitbreaker_rule_relation_ibfk_1` FOREIGN KEY (`service_id`) REFERENCES `service` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+    /* CONSTRAINT `circuitbreaker_rule_relation_ibfk_1` FOREIGN KEY (`service_id`) REFERENCES `service` (`id`) ON DELETE CASCADE ON UPDATE CASCADE */
 ) ENGINE = InnoDB;
 
 -- --------------------------------------------------------

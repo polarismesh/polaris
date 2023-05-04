@@ -31,6 +31,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/apiserver"
+	"github.com/polarismesh/polaris/common/conn/keepalive"
 	connlimit "github.com/polarismesh/polaris/common/conn/limit"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/metrics"
@@ -356,7 +357,7 @@ func (h *EurekaServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
-	ln = &tcpKeepAliveListener{ln.(*net.TCPListener)}
+	ln = keepalive.NewTcpKeepAliveListener(3*time.Minute, ln.(*net.TCPListener))
 	// 开启最大连接数限制
 	if h.connLimitConfig != nil && h.connLimitConfig.OpenConnLimit {
 		log.Infof("http server use max connection limit per ip: %d, http max limit: %d",
@@ -621,24 +622,4 @@ func (h *EurekaServer) Restart(
 	h.restart = false
 	go h.Run(errCh)
 	return nil
-}
-
-// tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
-// connections. It's used by ListenAndServe and ListenAndServeTLS so
-// dead TCP connections (e.g. closing laptop mid-download) eventually
-// go away.
-// 来自net/http
-type tcpKeepAliveListener struct {
-	*net.TCPListener
-}
-
-// Accept 来自于net/http
-func (ln tcpKeepAliveListener) Accept() (net.Conn, error) {
-	tc, err := ln.AcceptTCP()
-	if err != nil {
-		return nil, err
-	}
-	_ = tc.SetKeepAlive(true)
-	_ = tc.SetKeepAlivePeriod(3 * time.Minute)
-	return tc, nil
 }

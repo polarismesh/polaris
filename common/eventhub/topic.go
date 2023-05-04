@@ -32,7 +32,7 @@ type topic struct {
 	queue   chan Event
 	closeCh chan struct{}
 	subs    map[string]*subscription
-	mu      sync.Mutex
+	mu      sync.RWMutex
 }
 
 func newTopic(name string) *topic {
@@ -97,9 +97,13 @@ func (t *topic) run(ctx context.Context) {
 	for {
 		select {
 		case msg := <-t.queue:
-			for _, sub := range t.subs {
-				go sub.send(ctx, msg)
-			}
+			func() {
+				subs := t.listSubscribers()
+				for i := range subs {
+					sub := subs[i]
+					go sub.send(ctx, msg)
+				}
+			}()
 		case <-t.closeCh:
 			log.Infof("[EventHub] topic:%s run stop", t.name)
 			return
@@ -108,4 +112,14 @@ func (t *topic) run(ctx context.Context) {
 			return
 		}
 	}
+}
+
+func (t *topic) listSubscribers() []*subscription {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	ret := make([]*subscription, 0, len(t.subs))
+	for _, sub := range t.subs {
+		ret = append(ret, sub)
+	}
+	return ret
 }
