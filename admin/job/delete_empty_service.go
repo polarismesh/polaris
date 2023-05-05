@@ -44,7 +44,9 @@ type deleteEmptyAutoCreatedServiceJob struct {
 }
 
 func (job *deleteEmptyAutoCreatedServiceJob) init(raw map[string]interface{}) error {
-	cfg := &DeleteEmptyAutoCreatedServiceJobConfig{}
+	cfg := &DeleteEmptyAutoCreatedServiceJobConfig{
+		ServiceDeleteTimeout: 30 * time.Minute,
+	}
 	decodeConfig := &mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
 		Result:     cfg,
@@ -88,10 +90,6 @@ func (job *deleteEmptyAutoCreatedServiceJob) getAllEmptyAutoCreatedServices() []
 	var res []*model.Service
 	_ = job.cacheMgn.Service().IteratorServices(func(key string, svc *model.Service) (bool, error) {
 		if svc.IsAlias() {
-			return true, nil
-		}
-		v, ok := svc.Meta[service.MetadataInternalAutoCreated]
-		if !ok || v != "true" {
 			return true, nil
 		}
 		count := job.cacheMgn.Instance().GetInstancesCountByServiceID(svc.ID)

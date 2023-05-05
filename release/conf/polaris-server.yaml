@@ -408,13 +408,13 @@ maintain:
       enable: true
       option:
         # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
-        instanceCleanTimeout: 10m
+        # instanceCleanTimeout: 10m
     # Clean soft deleted clients
     - name: CleanDeletedClients
       enable: true
       option:
         # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
-        clientCleanTimeout: 10m
+        # clientCleanTimeout: 10m
   
 # Storage configuration
 store:
