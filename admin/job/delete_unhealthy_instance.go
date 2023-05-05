@@ -40,7 +40,9 @@ type deleteUnHealthyInstanceJob struct {
 }
 
 func (job *deleteUnHealthyInstanceJob) init(raw map[string]interface{}) error {
-	cfg := &DeleteUnHealthyInstanceJobConfig{}
+	cfg := &DeleteUnHealthyInstanceJobConfig{
+		InstanceDeleteTimeout: 60 * time.Minute,
+	}
 	decodeConfig := &mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
 		Result:     cfg,

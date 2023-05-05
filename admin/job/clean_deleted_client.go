@@ -35,7 +35,9 @@ type cleanDeletedClientsJob struct {
 }
 
 func (job *cleanDeletedClientsJob) init(raw map[string]interface{}) error {
-	cfg := &CleanDeletedClientsJobConfig{}
+	cfg := &CleanDeletedClientsJobConfig{
+		ClientCleanTimeout: 10 * time.Minute,
+	}
 	decodeConfig := &mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
 		Result:     cfg,
