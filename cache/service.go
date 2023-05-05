@@ -77,22 +77,25 @@ type ServiceCache interface {
 type serviceCache struct {
 	*baseCache
 
-	storage             store.Store
-	ids                 *sync.Map // service_id -> service
-	names               *sync.Map // namespace -> [serviceName -> service]
-	cl5Sid2Name         *sync.Map // 兼容Cl5，sid -> name
-	cl5Names            *sync.Map // 兼容Cl5，name -> service
-	alias               *serviceAliasBucket
-	serviceList         *serviceNamespaceBucket
-	revisionCh          chan *revisionNotify
-	disableBusiness     bool
-	needMeta            bool
-	singleFlight        *singleflight.Group
-	instCache           InstanceCache
+	storage         store.Store
+	ids             *sync.Map // service_id -> service
+	names           *sync.Map // namespace -> [serviceName -> service]
+	cl5Sid2Name     *sync.Map // 兼容Cl5，sid -> name
+	cl5Names        *sync.Map // 兼容Cl5，name -> service
+	alias           *serviceAliasBucket
+	serviceList     *serviceNamespaceBucket
+	revisionCh      chan *revisionNotify
+	disableBusiness bool
+	needMeta        bool
+	singleFlight    *singleflight.Group
+	instCache       InstanceCache
+
+	countLock           sync.Mutex
 	countChangeCh       chan map[string]bool // Counting information requires a change event channel
 	pendingServices     map[string]int8
 	namespaceServiceCnt *sync.Map // namespace -> model.NamespaceServiceCount
-	cancel              context.CancelFunc
+
+	cancel context.CancelFunc
 
 	lastMtimeLogged int64
 
@@ -449,6 +452,7 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 
 	sc.postProcessServiceAlias(aliases)
 	sc.postProcessUpdatedServices(changeNs)
+	sc.serviceList.reloadRevision()
 	return map[string]time.Time{
 		sc.name(): time.Unix(lastMtime, 0),
 	}, update, del
@@ -532,6 +536,9 @@ func (sc *serviceCache) postProcessServiceAlias(aliases []*model.Service) {
 }
 
 func (sc *serviceCache) postProcessUpdatedServices(affect map[string]bool) {
+	sc.countLock.Lock()
+	defer sc.countLock.Unlock()
+
 	progress := 0
 	for namespace := range affect {
 		progress++
@@ -561,8 +568,6 @@ func (sc *serviceCache) postProcessUpdatedServices(affect map[string]bool) {
 			return true
 		})
 	}
-
-	sc.serviceList.reloadRevision()
 }
 
 // updateCl5SidAndNames 更新cl5的服务数据
