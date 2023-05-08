@@ -134,6 +134,8 @@ func TestNewBatchControllerDoneTimeout(t *testing.T) {
 		}(i)
 	}
 
+	ctrl.GracefulStop()
+	t.Log("BatchController already stop")
 	wg.Wait()
 	ctrl.Stop()
 }
