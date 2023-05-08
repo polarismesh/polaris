@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"runtime"
 	"sync"
 	"time"
 
@@ -158,7 +157,7 @@ func (p *RemotePeer) Serve(_ context.Context, listenIP string, listenPort uint32
 	p.port = listenPort
 	p.Conns = make([]*grpc.ClientConn, 0, streamNum)
 	p.Puters = make([]apiservice.PolarisGRPC_BatchHeartbeatClient, 0, streamNum)
-	for i := 0; i < runtime.NumCPU(); i++ {
+	for i := 0; i < streamNum; i++ {
 		conn, err := grpc.DialContext(ctx, fmt.Sprintf("%s:%d", listenIP, listenPort),
 			grpc.WithBlock(),
 			grpc.WithInsecure(),
@@ -169,6 +168,9 @@ func (p *RemotePeer) Serve(_ context.Context, listenIP string, listenPort uint32
 			return err
 		}
 		p.Conns = append(p.Conns, conn)
+	}
+	p.Client = apiservice.NewPolarisGRPCClient(p.Conns[0])
+	for i := 0; i < streamNum; i++ {
 		puter, err := p.Client.BatchHeartbeat(ctx)
 		if err != nil {
 			_ = p.Close()
@@ -176,7 +178,6 @@ func (p *RemotePeer) Serve(_ context.Context, listenIP string, listenPort uint32
 		}
 		p.Puters = append(p.Puters, puter)
 	}
-	p.Client = apiservice.NewPolarisGRPCClient(p.Conns[0])
 	batchConf := p.conf.Batch
 	p.getBatchCtrl = batchjob.NewBatchController(ctx, batchjob.CtrlConfig{
 		Label:         "RecordGetter",
