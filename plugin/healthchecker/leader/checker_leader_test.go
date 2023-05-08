@@ -26,15 +26,18 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris/common/batchjob"
-	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
 	"github.com/polarismesh/polaris/store/mock"
 )
 
 func TestLeaderHealthChecker_OnEvent(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	eventhub.TestInitEventHub()
 	t.Cleanup(func() {
+		eventhub.TestShutdownEventHub()
 		ctrl.Finish()
 	})
 	mockStore := mock.NewMockStore(ctrl)
@@ -52,6 +55,9 @@ func TestLeaderHealthChecker_OnEvent(t *testing.T) {
 			},
 		},
 	}
+	checker.Initialize(&plugin.ConfigEntry{
+		Option: map[string]interface{}{},
+	})
 
 	mockPort := uint32(28888)
 	_, err := newMockPolarisGRPCSever(t, mockPort)
@@ -65,13 +71,6 @@ func TestLeaderHealthChecker_OnEvent(t *testing.T) {
 	})
 
 	t.Run("initialize-self-is-follower", func(t *testing.T) {
-		mockStore.EXPECT().ListLeaderElections().Times(1).Return([]*model.LeaderElection{
-			{
-				ElectKey: electionKey,
-				Host:     "127.0.0.1",
-			},
-		}, nil)
-
 		checker.OnEvent(context.Background(), store.LeaderChangeEvent{
 			Key:        electionKey,
 			Leader:     false,
