@@ -169,9 +169,7 @@ func (g *DiscoverServer) BatchHeartbeat(svr apiservice.PolarisGRPC_BatchHeartbea
 			return err
 		}
 
-		heartbeats := req.GetHeartbeats()
-		_ = g.healthCheckServer.Reports(ctx, heartbeats)
-
+		_ = g.healthCheckServer.Reports(ctx, req.GetHeartbeats())
 		if err = svr.Send(&apiservice.HeartbeatsResponse{}); err != nil {
 			return err
 		}

@@ -191,7 +191,7 @@ bootstrap:
     key: sz # Global lock
   # Register as Arctic Star Service
   polaris_service:
-    # probe_address: ##DB_ADDR##
+    probe_address: 9.135.223.132:3306
     enable_register: true
     isolated: false
     services:
@@ -344,21 +344,21 @@ healthcheck:
       maxBatchCount: 32
       concurrency: 64
   checkers:
-    - name: heartbeatMemory
-#  - name: heartbeatLeader
-#  - name: heartbeatRedis
-#    option:
-#      kvAddr: ##REDIS_ADDR##
-#       # ACL user from redis v6.0, remove it if ACL is not available
-#      kvUser: ##REDIS_USER#
-#      kvPasswd: ##REDIS_PWD##
-#      poolSize: 200
-#      minIdleConns: 30
-#      idleTimeout: 120s
-#      connectTimeout: 200ms
-#      msgTimeout: 200ms
-#      concurrency: 200
-#      withTLS: false
+    # - name: heartbeatMemory
+    - name: heartbeatLeader
+    # - name: heartbeatRedis
+    #   option:
+    #     kvAddr: ##REDIS_ADDR##
+    #      # ACL user from redis v6.0, remove it if ACL is not available
+    #     kvUser: ##REDIS_USER#
+    #     kvPasswd: ##REDIS_PWD##
+    #     poolSize: 200
+    #     minIdleConns: 30
+    #     idleTimeout: 120s
+    #     connectTimeout: 200ms
+    #     msgTimeout: 200ms
+    #     concurrency: 200
+    #     withTLS: false
 # Configuration center module start configuration
 config:
   # Whether to start the configuration module
@@ -419,22 +419,22 @@ maintain:
 # Storage configuration
 store:
   # Standalone file storage plugin
-  name: boltdbStore
-  option:
-    path: ./polaris.bolt
-  ## Database storage plugin
-  # name: defaultStore
+  # name: boltdbStore
   # option:
-  #   master:
-  #     dbType: mysql
-  #     dbName: polaris_server
-  #     dbUser: ##DB_USER##
-  #     dbPwd: ##DB_PWD##
-  #     dbAddr: ##DB_ADDR##
-  #     maxOpenConns: 300
-  #     maxIdleConns: 50
-  #     connMaxLifetime: 300 # Unit second
-  #     txIsolationLevel: 2 #LevelReadCommitted
+  #   path: ./polaris.bolt
+  ## Database storage plugin
+  name: defaultStore
+  option:
+    master:
+      dbType: mysql
+      dbName: polaris_server
+      dbUser: root
+      dbPwd: 528LcT528
+      dbAddr: 9.135.223.132:3306
+      maxOpenConns: 300
+      maxIdleConns: 50
+      connMaxLifetime: 300 # Unit second
+      txIsolationLevel: 2 #LevelReadCommitted
 # 插件配置
 plugin:
   # whitelist:

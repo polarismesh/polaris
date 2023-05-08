@@ -47,6 +47,8 @@ const (
 	Split = "|"
 	// optionSoltNum option key of soltNum
 	optionSoltNum = "soltNum"
+	// optionStreamNum option key of batch heartbeat stream num
+	optionStreamNum = "streamNum"
 	// electionKey use election key
 	electionKey = store.ElectionKeySelfServiceChecker
 	// subscriberName eventhub subscriber name
@@ -60,6 +62,8 @@ const (
 var (
 	// DefaultSoltNum default soltNum of LocalBeatRecordCache
 	DefaultSoltNum = int32(runtime.GOMAXPROCS(0) * 16)
+	// streamNum
+	streamNum = runtime.GOMAXPROCS(0)
 )
 
 // LeaderHealthChecker Leader~Follower 节点心跳健康检查
@@ -84,6 +88,8 @@ type LeaderHealthChecker struct {
 	lock sync.RWMutex
 	// leader leader signal
 	leader int32
+	// leaderVersion 自己本地记录的
+	leaderVersion int64
 	// remote remote peer info
 	remote Peer
 	// self self peer info
@@ -103,6 +109,7 @@ func (c *LeaderHealthChecker) Initialize(entry *plugin.ConfigEntry) error {
 	if err != nil {
 		return err
 	}
+	streamNum = int(conf.StreamNum)
 	c.conf = conf
 	c.self = NewLocalPeerFunc()
 	c.self.Initialize(*conf)
@@ -130,18 +137,22 @@ func (c *LeaderHealthChecker) PreProcess(ctx context.Context, value any) any {
 
 // OnEvent event trigger
 func (c *LeaderHealthChecker) OnEvent(ctx context.Context, i interface{}) error {
-	e := i.(store.LeaderChangeEvent)
-	if e.Key != electionKey {
+	e, ok := i.(store.LeaderChangeEvent)
+	if !ok || e.Key != electionKey {
 		return nil
 	}
 
 	c.lock.Lock()
 	defer c.lock.Unlock()
+
+	atomic.AddInt64(&c.leaderVersion, 1)
 	atomic.StoreInt32(&c.initialize, uninitializeSignal)
+	curLeaderVersion := atomic.LoadInt64(&c.leaderVersion)
 	if e.Leader {
 		c.becomeLeader()
 	} else {
-		c.becomeFollower()
+		c.becomeFollower(e, curLeaderVersion)
+		c.self.Storage().Clean()
 	}
 	c.refreshLeaderChangeTimeSec()
 	return nil
@@ -161,64 +172,48 @@ func (c *LeaderHealthChecker) becomeLeader() {
 	plog.Info("[HealthCheck][Leader] self become leader")
 }
 
-func (c *LeaderHealthChecker) becomeFollower() {
-	retryFunc := func(waitDur time.Duration) {
-		time.Sleep(waitDur)
-		c.becomeFollower()
-	}
-	elections, err := c.s.ListLeaderElections()
-	if err != nil {
-		plog.Error("[HealthCheck][Leader] follower list elections", zap.Error(err))
-		go retryFunc(time.Second)
+func (c *LeaderHealthChecker) becomeFollower(e store.LeaderChangeEvent, leaderVersion int64) {
+	// election.Host == "", 等待下一次通知
+	if e.LeaderHost == "" {
 		return
 	}
-	findTargetElection := false
-	defer func() {
-		if !findTargetElection {
-			go retryFunc(time.Second)
-		}
-	}()
-	for i := range elections {
-		election := elections[i]
-		if election.ElectKey != electionKey {
-			continue
-		}
-		findTargetElection = true
-		// election.Host == "": 集群首次启动，没有选举出任何 Leader
-		// election.Host == utils.LocalHost: 手动触发 leader release，leader
-		if election.Host == "" || election.Host == utils.LocalHost {
-			go retryFunc(time.Second)
+	plog.Info("[HealthCheck][Leader] self become follower")
+	if c.remote != nil {
+		// leader 未发生变化
+		if e.LeaderHost == c.remote.Host() {
+			atomic.StoreInt32(&c.initialize, initializedSignal)
 			return
 		}
-		plog.Info("[HealthCheck][Leader] self become follower")
-		if c.remote != nil {
-			// leader 未发生变化
-			if election.Host == c.remote.Host() {
-				atomic.StoreInt32(&c.initialize, initializedSignal)
+		// leader 出现变更切换
+		if e.LeaderHost != c.remote.Host() {
+			plog.Info("[HealthCheck][Leader] become follower and leader change",
+				zap.String("leader", e.LeaderHost))
+			// 关闭原来的 leader 节点信息
+			oldLeader := c.remote
+			c.remote = nil
+			_ = oldLeader.Close()
+		}
+	}
+	remoteLeader := NewRemotePeerFunc()
+	remoteLeader.Initialize(*c.conf)
+	if err := remoteLeader.Serve(context.Background(), e.LeaderHost, uint32(utils.LocalPort)); err != nil {
+		plog.Error("[HealthCheck][Leader] follower run serve, do retry", zap.Error(err))
+		go func(e store.LeaderChangeEvent, leaderVersion int64) {
+			time.Sleep(time.Second)
+			curVersion := atomic.LoadInt64(&c.leaderVersion)
+			if leaderVersion != curVersion {
 				return
 			}
-			// leader 出现变更切换
-			if election.Host != c.remote.Host() {
-				plog.Info("[HealthCheck][Leader] become follower and leader change",
-					zap.String("leader", election.Host))
-				// 关闭原来的 leader 节点信息
-				oldLeader := c.remote
-				c.remote = nil
-				_ = oldLeader.Close()
-			}
-		}
-		remoteLeader := NewRemotePeerFunc()
-		remoteLeader.Initialize(*c.conf)
-		if err := remoteLeader.Serve(context.Background(), election.Host, uint32(utils.LocalPort)); err != nil {
-			plog.Error("[HealthCheck][Leader] follower run serve, do retry", zap.Error(err))
-			go retryFunc(time.Second)
-			return
-		}
-		c.remote = remoteLeader
-		atomic.StoreInt32(&c.leader, 0)
-		atomic.StoreInt32(&c.initialize, initializedSignal)
+			c.lock.Lock()
+			defer c.lock.Unlock()
+			c.becomeFollower(e, leaderVersion)
+		}(e, leaderVersion)
 		return
 	}
+	c.remote = remoteLeader
+	atomic.StoreInt32(&c.leader, 0)
+	atomic.StoreInt32(&c.initialize, initializedSignal)
+	return
 }
 
 // Destroy .

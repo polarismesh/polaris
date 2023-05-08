@@ -25,8 +25,9 @@ import (
 )
 
 type Config struct {
-	SoltNum int32
-	Batch   batchjob.CtrlConfig
+	SoltNum   int32
+	StreamNum int32
+	Batch     batchjob.CtrlConfig
 }
 
 func unmarshal(options map[string]interface{}) (*Config, error) {
@@ -36,7 +37,8 @@ func unmarshal(options map[string]interface{}) (*Config, error) {
 	}
 
 	config := &Config{
-		SoltNum: DefaultSoltNum,
+		SoltNum:   DefaultSoltNum,
+		StreamNum: int32(streamNum),
 		Batch: batchjob.CtrlConfig{
 			QueueSize:     10240,
 			WaitTime:      128 * time.Millisecond,
