@@ -194,7 +194,6 @@ func eventToInstance(event *model.InstanceEvent, appName string, curTimeMilli in
 }
 
 func (h *EurekaServer) shouldReplicate(e model.InstanceEvent) bool {
-
 	if h.replicateWorkers == nil {
 		return false
 	}

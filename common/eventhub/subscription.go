@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	defaultQueueSize = 1024
+	defaultQueueSize = 16384
 )
 
 // Handler event handler

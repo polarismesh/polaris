@@ -139,6 +139,7 @@ func TestNewBatchControllerDoneTimeout(t *testing.T) {
 	wg.Wait()
 	ctrl.Stop()
 }
+
 func TestNewBatchControllerStop(t *testing.T) {
 	total := 1000
 
