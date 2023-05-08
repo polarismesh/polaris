@@ -20,27 +20,34 @@ package batchjob
 import (
 	"context"
 	"sync/atomic"
+	"time"
 )
 
-type Task interface{}
+type Param interface{}
 
 type Future interface {
-	TaskInfo() Task
+	Param() Param
 	Done() (interface{}, error)
+	DoneTimeout(timeout time.Duration) (interface{}, error)
 	Cancel()
 	Reply(result interface{}, err error)
 }
 
 type errorFuture struct {
-	task Task
+	task Param
+	err  error
 }
 
-func (f *errorFuture) TaskInfo() Task {
+func (f *errorFuture) Param() Param {
 	return f.task
 }
 
 func (f *errorFuture) Done() (interface{}, error) {
-	return nil, ErrorBatchControllerStopped
+	return nil, f.err
+}
+
+func (f *errorFuture) DoneTimeout(timeout time.Duration) (interface{}, error) {
+	return nil, f.err
 }
 
 func (f *errorFuture) Cancel() {
@@ -51,17 +58,16 @@ func (f *errorFuture) Reply(result interface{}, err error) {
 }
 
 type future struct {
-	task      Task
-	err       error
+	task      Param
 	setsignal chan struct{}
+	err       error
 	result    interface{}
-	isCancel  int32
 	replied   int32
 	ctx       context.Context
 	cancel    context.CancelFunc
 }
 
-func (f *future) TaskInfo() Task {
+func (f *future) Param() Param {
 	return f.task
 }
 
@@ -70,11 +76,29 @@ func (f *future) Done() (interface{}, error) {
 	case <-f.ctx.Done():
 		return nil, f.ctx.Err()
 	case <-f.setsignal:
+		f.cancel()
+		return f.result, f.err
+	}
+}
+
+func (f *future) DoneTimeout(timeout time.Duration) (interface{}, error) {
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+		return nil, context.DeadlineExceeded
+	case <-f.ctx.Done():
+		return nil, f.ctx.Err()
+	case <-f.setsignal:
+		f.cancel()
 		return f.result, f.err
 	}
 }
 
 func (f *future) Cancel() {
+	if atomic.CompareAndSwapInt32(&f.replied, 0, 1) {
+		close(f.setsignal)
+	}
 	f.cancel()
 }
 
