@@ -344,8 +344,8 @@ healthcheck:
       maxBatchCount: 32
       concurrency: 64
   checkers:
-    # - name: heartbeatMemory
-    - name: heartbeatLeader
+    - name: heartbeatMemory
+    # - name: heartbeatLeader
     # - name: heartbeatRedis
     #   option:
     #     kvAddr: ##REDIS_ADDR##
