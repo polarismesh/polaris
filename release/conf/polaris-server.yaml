@@ -191,7 +191,7 @@ bootstrap:
     key: sz # Global lock
   # Register as Arctic Star Service
   polaris_service:
-    probe_address: 9.135.223.132:3306
+    # probe_address: ##DB_ADDR##
     enable_register: true
     isolated: false
     services:
