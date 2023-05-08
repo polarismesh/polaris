@@ -21,7 +21,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"sync"
+	"time"
 
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
@@ -61,6 +63,8 @@ type Peer interface {
 	Close() error
 	// Host .
 	Host() string
+	// Storage
+	Storage() BeatRecordCache
 }
 
 // LocalPeer Heartbeat data storage node
@@ -113,6 +117,10 @@ func (p *LocalPeer) Close() error {
 	return nil
 }
 
+func (p *LocalPeer) Storage() BeatRecordCache {
+	return p.Cache
+}
+
 // LocalPeer Heartbeat data storage node
 type RemotePeer struct {
 	// Host peer host
@@ -120,15 +128,16 @@ type RemotePeer struct {
 	// Port peer listen port to provider grpc service
 	port uint32
 	// Conn grpc connection
-	Conn *grpc.ClientConn
+	Conns []*grpc.ClientConn
 	// Client checker_peer_service client instance
 	Client apiservice.PolarisGRPCClient
 	// putBatchCtrl 批任务执行器
 	putBatchCtrl *batchjob.BatchController
 	// getBatchCtrl 批任务执行器
 	getBatchCtrl *batchjob.BatchController
-	// Puter 批量心跳发送
-	Puter apiservice.PolarisGRPC_BatchHeartbeatClient
+	// Puters 批量心跳发送, 由于一个 stream 对于 server 是一个 goroutine，为了加快 follower 发往 leader 的效率
+	// 这里采用多个 Putter Client 创建多个 Stream
+	Puters []apiservice.PolarisGRPC_BatchHeartbeatClient
 	// Cache data storage
 	Cache BeatRecordCache
 	// cancel .
@@ -146,16 +155,28 @@ func (p *RemotePeer) Serve(_ context.Context, listenIP string, listenPort uint32
 	p.cancel = cancel
 	p.host = listenIP
 	p.port = listenPort
-	conn, err := grpc.DialContext(ctx, fmt.Sprintf("%s:%d", listenIP, listenPort), grpc.WithBlock(),
-		grpc.WithInsecure())
-	if err != nil {
-		return err
+	p.Conns = make([]*grpc.ClientConn, 0, streamNum)
+	p.Puters = make([]apiservice.PolarisGRPC_BatchHeartbeatClient, 0, streamNum)
+	for i := 0; i < streamNum; i++ {
+		conn, err := grpc.DialContext(ctx, fmt.Sprintf("%s:%d", listenIP, listenPort),
+			grpc.WithBlock(),
+			grpc.WithInsecure(),
+			grpc.WithTimeout(5*time.Second),
+		)
+		if err != nil {
+			_ = p.Close()
+			return err
+		}
+		p.Conns = append(p.Conns, conn)
 	}
-	p.Conn = conn
-	p.Client = apiservice.NewPolarisGRPCClient(p.Conn)
-	p.Puter, err = p.Client.BatchHeartbeat(ctx)
-	if err != nil {
-		return err
+	p.Client = apiservice.NewPolarisGRPCClient(p.Conns[0])
+	for i := 0; i < streamNum; i++ {
+		puter, err := p.Client.BatchHeartbeat(ctx)
+		if err != nil {
+			_ = p.Close()
+			return err
+		}
+		p.Puters = append(p.Puters, puter)
 	}
 	batchConf := p.conf.Batch
 	p.getBatchCtrl = batchjob.NewBatchController(ctx, batchjob.CtrlConfig{
@@ -217,7 +238,8 @@ func (p *RemotePeer) GetFunc(req *apiservice.GetHeartbeatsRequest) *apiservice.G
 }
 
 func (p *RemotePeer) PutFunc(req *apiservice.HeartbeatsRequest) {
-	if err := p.Puter.Send(req); err != nil {
+	index := rand.Intn(len(p.Puters))
+	if err := p.Puters[index].Send(req); err != nil {
 		plog.Error("[HealthCheck][Leader] send put record request", zap.String("host", p.Host()),
 			zap.Uint32("port", p.port), zap.Error(err))
 	}
@@ -230,16 +252,24 @@ func (p *RemotePeer) DelFunc(req *apiservice.DelHeartbeatsRequest) {
 	}
 }
 
+func (p *RemotePeer) Storage() BeatRecordCache {
+	return p.Cache
+}
+
 // Close close peer life
 func (p *RemotePeer) Close() error {
 	if p.cancel != nil {
 		p.cancel()
 	}
-	if p.Puter != nil {
-		_ = p.Puter.CloseSend()
+	if len(p.Puters) != 0 {
+		for i := range p.Puters {
+			_ = p.Puters[i].CloseSend()
+		}
 	}
-	if p.Conn != nil {
-		_ = p.Conn.Close()
+	if len(p.Conns) != 0 {
+		for i := range p.Conns {
+			_ = p.Conns[i].Close()
+		}
 	}
 	if p.getBatchCtrl != nil {
 		p.getBatchCtrl.Stop()
@@ -258,7 +288,7 @@ func (p *RemotePeer) handleSendGetRecords(tasks []batchjob.Future) {
 	keys := make([]string, 0, len(tasks))
 	futures := make(map[string][]batchjob.Future)
 	for i := range tasks {
-		taskInfo := tasks[i].TaskInfo()
+		taskInfo := tasks[i].Param()
 		key := taskInfo.(string)
 		keys = append(keys, key)
 		if _, ok := futures[key]; !ok {
@@ -292,7 +322,7 @@ func (p *RemotePeer) handleSendGetRecords(tasks []batchjob.Future) {
 func (p *RemotePeer) handleSendPutRecords(tasks []batchjob.Future) {
 	records := make([]WriteBeatRecord, 0, len(tasks))
 	for i := range tasks {
-		taskInfo := tasks[i].TaskInfo()
+		taskInfo := tasks[i].Param()
 		req := taskInfo.(WriteBeatRecord)
 		records = append(records, req)
 	}

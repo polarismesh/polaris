@@ -345,20 +345,20 @@ healthcheck:
       concurrency: 64
   checkers:
     - name: heartbeatMemory
-#  - name: heartbeatLeader
-#  - name: heartbeatRedis
-#    option:
-#      kvAddr: ##REDIS_ADDR##
-#       # ACL user from redis v6.0, remove it if ACL is not available
-#      kvUser: ##REDIS_USER#
-#      kvPasswd: ##REDIS_PWD##
-#      poolSize: 200
-#      minIdleConns: 30
-#      idleTimeout: 120s
-#      connectTimeout: 200ms
-#      msgTimeout: 200ms
-#      concurrency: 200
-#      withTLS: false
+    # - name: heartbeatLeader
+    # - name: heartbeatRedis
+    #   option:
+    #     kvAddr: ##REDIS_ADDR##
+    #      # ACL user from redis v6.0, remove it if ACL is not available
+    #     kvUser: ##REDIS_USER#
+    #     kvPasswd: ##REDIS_PWD##
+    #     poolSize: 200
+    #     minIdleConns: 30
+    #     idleTimeout: 120s
+    #     connectTimeout: 200ms
+    #     msgTimeout: 200ms
+    #     concurrency: 200
+    #     withTLS: false
 # Configuration center module start configuration
 config:
   # Whether to start the configuration module

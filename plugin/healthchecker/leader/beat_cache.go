@@ -19,6 +19,7 @@ package leader
 
 import (
 	"strconv"
+	"sync"
 
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
@@ -91,12 +92,15 @@ func newLocalBeatRecordCache(soltNum int32, hashFunc HashFunction) BeatRecordCac
 
 // LocalBeatRecordCache
 type LocalBeatRecordCache struct {
+	lock      sync.RWMutex
 	soltNum   int32
 	hashFunc  HashFunction
 	beatCache *utils.SegmentMap[string, RecordValue]
 }
 
 func (lc *LocalBeatRecordCache) Get(keys ...string) map[string]*ReadBeatRecord {
+	lc.lock.RLock()
+	defer lc.lock.RUnlock()
 	ret := make(map[string]*ReadBeatRecord, len(keys))
 	for i := range keys {
 		key := keys[i]
@@ -110,6 +114,8 @@ func (lc *LocalBeatRecordCache) Get(keys ...string) map[string]*ReadBeatRecord {
 }
 
 func (lc *LocalBeatRecordCache) Put(records ...WriteBeatRecord) {
+	lc.lock.RLock()
+	defer lc.lock.RUnlock()
 	for i := range records {
 		record := records[i]
 		if log.DebugEnabled() {
@@ -120,6 +126,8 @@ func (lc *LocalBeatRecordCache) Put(records ...WriteBeatRecord) {
 }
 
 func (lc *LocalBeatRecordCache) Del(keys ...string) {
+	lc.lock.RLock()
+	defer lc.lock.RUnlock()
 	for i := range keys {
 		key := keys[i]
 		ok := lc.beatCache.Del(key)
@@ -130,10 +138,16 @@ func (lc *LocalBeatRecordCache) Del(keys ...string) {
 }
 
 func (lc *LocalBeatRecordCache) Clean() {
-	// do nothing
+	lc.lock.Lock()
+	defer lc.lock.Unlock()
+	lc.beatCache = utils.NewSegmentMap[string, RecordValue](int(lc.soltNum), func(k string) int {
+		return lc.hashFunc(k)
+	})
 }
 
 func (lc *LocalBeatRecordCache) Snapshot() map[string]*ReadBeatRecord {
+	lc.lock.RLock()
+	defer lc.lock.RUnlock()
 	ret := map[string]*ReadBeatRecord{}
 	lc.beatCache.Range(func(k string, v RecordValue) {
 		ret[k] = &ReadBeatRecord{

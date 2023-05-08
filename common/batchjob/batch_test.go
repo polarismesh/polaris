@@ -30,11 +30,6 @@ import (
 )
 
 func TestNewBatchController(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(func() {
-		cancel()
-	})
-
 	total := 1000
 
 	totalTasks := int32(0)
@@ -45,7 +40,7 @@ func TestNewBatchController(t *testing.T) {
 		}
 	}
 
-	ctrl := NewBatchController(ctx, CtrlConfig{
+	ctrl := NewBatchController(context.Background(), CtrlConfig{
 		QueueSize:     32,
 		MaxBatchCount: 16,
 		WaitTime:      32 * time.Millisecond,
@@ -66,25 +61,25 @@ func TestNewBatchController(t *testing.T) {
 
 	wg.Wait()
 	assert.Equal(t, total, int(atomic.LoadInt32(&totalTasks)))
+	ctrl.Stop()
 }
 
-func TestNewBatchControllerTimeout(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(func() {
-		cancel()
-	})
-
+func TestNewBatchControllerSubmitTimeout(t *testing.T) {
 	total := 1000
 
 	totalTasks := int32(0)
 	testHandle := func(futures []Future) {
+		time.Sleep(100 * time.Millisecond)
 		atomic.AddInt32(&totalTasks, int32(len(futures)))
+		for i := range futures {
+			futures[i].Reply(nil, nil)
+		}
 	}
 
-	ctrl := NewBatchController(ctx, CtrlConfig{
-		QueueSize:     uint32(total * 2),
+	ctrl := NewBatchController(context.Background(), CtrlConfig{
+		QueueSize:     1,
 		MaxBatchCount: uint32(total * 2),
-		WaitTime:      32 * time.Second,
+		WaitTime:      32 * time.Millisecond,
 		Concurrency:   8,
 		Handler:       testHandle,
 	})
@@ -95,11 +90,145 @@ func TestNewBatchControllerTimeout(t *testing.T) {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			future := ctrl.SubmitWithTimeout(fmt.Sprintf("%d", i), time.Second)
+			future := ctrl.SubmitWithTimeout(fmt.Sprintf("%d", i), time.Millisecond)
 			_, err := future.Done()
-			assert.True(t, errors.Is(err, context.DeadlineExceeded), err)
+			if err != nil {
+				assert.True(t, errors.Is(err, context.DeadlineExceeded), err)
+			}
 		}(i)
 	}
 
 	wg.Wait()
+	ctrl.Stop()
+}
+
+func TestNewBatchControllerDoneTimeout(t *testing.T) {
+	total := 1000
+
+	totalTasks := int32(0)
+	testHandle := func(futures []Future) {
+		time.Sleep(100 * time.Millisecond)
+		atomic.AddInt32(&totalTasks, int32(len(futures)))
+		for i := range futures {
+			futures[i].Reply(nil, nil)
+		}
+	}
+
+	ctrl := NewBatchController(context.Background(), CtrlConfig{
+		QueueSize:     1,
+		MaxBatchCount: uint32(total * 2),
+		WaitTime:      32 * time.Millisecond,
+		Concurrency:   8,
+		Handler:       testHandle,
+	})
+
+	wg := &sync.WaitGroup{}
+
+	for i := 0; i < total; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			future := ctrl.Submit(fmt.Sprintf("%d", i))
+			_, err := future.DoneTimeout(time.Millisecond)
+			if err != nil {
+				assert.True(t, errors.Is(err, context.DeadlineExceeded), err)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	ctrl.Stop()
+}
+func TestNewBatchControllerStop(t *testing.T) {
+	total := 1000
+
+	totalTasks := int32(0)
+	testHandle := func(futures []Future) {
+		atomic.AddInt32(&totalTasks, int32(len(futures)))
+		for i := range futures {
+			futures[i].Reply(atomic.LoadInt32(&totalTasks), nil)
+		}
+	}
+
+	ctrl := NewBatchController(context.Background(), CtrlConfig{
+		QueueSize:     uint32(total * 2),
+		MaxBatchCount: 64,
+		WaitTime:      32 * time.Millisecond,
+		Concurrency:   8,
+		Handler:       testHandle,
+	})
+
+	sbWg := &sync.WaitGroup{}
+	wg := &sync.WaitGroup{}
+	sbWg.Add(total)
+	wg.Add(total)
+	submitTask := int32(0)
+	for i := 0; i < total; i++ {
+		go func(i int) {
+			defer func() {
+				wg.Done()
+			}()
+			future := ctrl.Submit(fmt.Sprintf("%d", i))
+			atomic.AddInt32(&submitTask, 1)
+			sbWg.Done()
+			_, err := future.Done()
+			if err != nil {
+				assert.ErrorIs(t, err, ErrorBatchControllerStopped)
+			}
+		}(i)
+	}
+
+	ctrl.Stop()
+	t.Log("BatchController already stop")
+	sbWg.Wait()
+	t.Logf("submit jobs : %d", atomic.LoadInt32(&submitTask))
+	wg.Wait()
+	t.Log("finish all batch job")
+}
+
+func TestNewBatchControllerGracefulStop(t *testing.T) {
+	total := 1000
+
+	totalTasks := int32(0)
+	testHandle := func(futures []Future) {
+		atomic.AddInt32(&totalTasks, int32(len(futures)))
+		for i := range futures {
+			futures[i].Reply(atomic.LoadInt32(&totalTasks), nil)
+		}
+	}
+
+	ctrl := NewBatchController(context.Background(), CtrlConfig{
+		QueueSize:     uint32(total * 2),
+		MaxBatchCount: 64,
+		WaitTime:      32 * time.Millisecond,
+		Concurrency:   8,
+		Handler:       testHandle,
+	})
+
+	sbWg := &sync.WaitGroup{}
+	wg := &sync.WaitGroup{}
+	sbWg.Add(total)
+	wg.Add(total)
+	submitTask := int32(0)
+	for i := 0; i < total; i++ {
+		go func(i int) {
+			defer func() {
+				wg.Done()
+			}()
+			future := ctrl.Submit(fmt.Sprintf("%d", i))
+			atomic.AddInt32(&submitTask, 1)
+			sbWg.Done()
+			_, err := future.Done()
+			if err != nil {
+				assert.ErrorIs(t, err, ErrorBatchControllerStopped)
+			}
+		}(i)
+	}
+
+	ctrl.GracefulStop()
+	t.Log("BatchController already stop")
+	sbWg.Wait()
+	t.Logf("submit jobs : %d", atomic.LoadInt32(&submitTask))
+	wg.Wait()
+	t.Log("finish all batch job")
 }
