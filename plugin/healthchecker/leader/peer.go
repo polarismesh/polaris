@@ -295,11 +295,3 @@ type PeerReadTask struct {
 	Keys    []string
 	Futures map[string][]batchjob.Future
 }
-
-func (r *PeerReadTask) doCancel() {
-	for _, futures := range r.Futures {
-		for _, f := range futures {
-			_ = f.Reply(nil, ErrorPeerClosed)
-		}
-	}
-}

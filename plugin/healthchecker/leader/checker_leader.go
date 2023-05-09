@@ -452,14 +452,18 @@ func (c *LeaderHealthChecker) handleSendGetRecords(futures []batchjob.Future) {
 		taskInfo := futures[i].Param()
 		task := taskInfo.(*PeerTask)
 		peer := task.Peer
-		key := task.Key
-		if _, ok := peers[key]; !ok {
+		if peer.isClose() {
+			_ = futures[i].Reply(nil, ErrorPeerClosed)
+			continue
+		}
+		if _, ok := peers[peer.Host()]; !ok {
 			peers[peer.Host()] = &PeerReadTask{
 				Peer:    peer,
 				Keys:    make([]string, 0, 16),
 				Futures: make(map[string][]batchjob.Future),
 			}
 		}
+		key := task.Key
 		peers[peer.Host()].Keys = append(peers[peer.Host()].Keys, key)
 		if _, ok := peers[peer.Host()].Futures[key]; !ok {
 			peers[peer.Host()].Futures[key] = make([]batchjob.Future, 0, 4)
@@ -468,14 +472,9 @@ func (c *LeaderHealthChecker) handleSendGetRecords(futures []batchjob.Future) {
 	}
 
 	for i := range peers {
-		task := peers[i]
-		peer := task.Peer
-		if peer.isClose() {
-			task.doCancel()
-			continue
-		}
-		keys := task.Keys
-		peerfutures := task.Futures
+		peer := peers[i].Peer
+		keys := peers[i].Keys
+		peerfutures := peers[i].Futures
 		resp := peer.Cache.Get(keys...)
 		for key := range resp {
 			fs := peerfutures[key]
@@ -497,7 +496,10 @@ func (c *LeaderHealthChecker) handleSendPutRecords(futures []batchjob.Future) {
 		taskInfo := futures[i].Param()
 		task := taskInfo.(*PeerTask)
 		peer := task.Peer
-		record := task.Record
+		if peer.isClose() {
+			_ = futures[i].Reply(nil, ErrorPeerClosed)
+			continue
+		}
 		if _, ok := peers[peer.Host()]; !ok {
 			peers[peer.Host()] = &PeerWriteTask{
 				Peer:    peer,
@@ -505,15 +507,12 @@ func (c *LeaderHealthChecker) handleSendPutRecords(futures []batchjob.Future) {
 				Futures: make([]batchjob.Future, 0, 16),
 			}
 		}
-		peers[peer.Host()].Records = append(peers[peer.Host()].Records, *record)
+		peers[peer.Host()].Records = append(peers[peer.Host()].Records, *task.Record)
 		peers[peer.Host()].Futures = append(peers[peer.Host()].Futures, futures[i])
 	}
 
 	for i := range peers {
 		peer := peers[i].Peer
-		if peer.isClose() {
-			continue
-		}
 		peer.Cache.Put(peers[i].Records...)
 	}
 	for i := range futures {
