@@ -64,7 +64,7 @@ func TestNewBatchController(t *testing.T) {
 	ctrl.Stop()
 }
 
-func TestNewBatchControllerTimeout(t *testing.T) {
+func TestNewBatchControllerTSubmitTimeout(t *testing.T) {
 	total := 1000
 
 	totalTasks := int32(0)
@@ -102,6 +102,41 @@ func TestNewBatchControllerTimeout(t *testing.T) {
 	ctrl.Stop()
 }
 
+func TestNewBatchControllerDoneTimeout(t *testing.T) {
+	total := 1000
+
+	totalTasks := int32(0)
+	testHandle := func(futures []Future) {
+		time.Sleep(100 * time.Millisecond)
+		atomic.AddInt32(&totalTasks, int32(len(futures)))
+	}
+
+	ctrl := NewBatchController(context.Background(), CtrlConfig{
+		QueueSize:     1,
+		MaxBatchCount: uint32(total * 2),
+		WaitTime:      32 * time.Millisecond,
+		Concurrency:   8,
+		Handler:       testHandle,
+	})
+
+	wg := &sync.WaitGroup{}
+
+	for i := 0; i < total; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			future := ctrl.Submit(fmt.Sprintf("%d", i))
+			_, err := future.DoneTimeout(time.Millisecond)
+			if err != nil {
+				assert.True(t, errors.Is(err, context.DeadlineExceeded), err)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	ctrl.Stop()
+}
+
 func TestNewBatchControllerStop(t *testing.T) {
 	total := 1000
 
@@ -125,18 +160,19 @@ func TestNewBatchControllerStop(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	sbWg.Add(total)
 	wg.Add(total)
-	submitTask := int32(0)
+	cancelTask := int32(0)
 	for i := 0; i < total; i++ {
 		go func(i int) {
 			defer func() {
 				wg.Done()
 			}()
 			future := ctrl.Submit(fmt.Sprintf("%d", i))
-			atomic.AddInt32(&submitTask, 1)
 			sbWg.Done()
 			_, err := future.Done()
 			if err != nil {
-				assert.ErrorIs(t, err, ErrorBatchControllerStopped)
+				if assert.ErrorIs(t, err, ErrorBatchControllerStopped) {
+					atomic.AddInt32(&cancelTask, 1)
+				}
 			}
 		}(i)
 	}
@@ -144,7 +180,7 @@ func TestNewBatchControllerStop(t *testing.T) {
 	ctrl.Stop()
 	t.Log("BatchController already stop")
 	sbWg.Wait()
-	t.Logf("submit jobs : %d", atomic.LoadInt32(&submitTask))
+	t.Logf("cancel jobs : %d", atomic.LoadInt32(&cancelTask))
 	wg.Wait()
 	t.Log("finish all batch job")
 }
@@ -152,20 +188,16 @@ func TestNewBatchControllerStop(t *testing.T) {
 func TestNewBatchControllerGracefulStop(t *testing.T) {
 	total := 1000
 
-	totalTasks := int32(0)
-	testHandle := func(futures []Future) {
-		atomic.AddInt32(&totalTasks, int32(len(futures)))
-		for i := range futures {
-			futures[i].Reply(atomic.LoadInt32(&totalTasks), nil)
-		}
-	}
-
 	ctrl := NewBatchController(context.Background(), CtrlConfig{
 		QueueSize:     uint32(total * 2),
 		MaxBatchCount: 64,
 		WaitTime:      32 * time.Millisecond,
 		Concurrency:   8,
-		Handler:       testHandle,
+		Handler: func(futures []Future) {
+			for i := range futures {
+				futures[i].Reply(nil, nil)
+			}
+		},
 	})
 
 	sbWg := &sync.WaitGroup{}
@@ -173,6 +205,7 @@ func TestNewBatchControllerGracefulStop(t *testing.T) {
 	sbWg.Add(total)
 	wg.Add(total)
 	submitTask := int32(0)
+	cancelTask := int32(0)
 	for i := 0; i < total; i++ {
 		go func(i int) {
 			defer func() {
@@ -183,7 +216,9 @@ func TestNewBatchControllerGracefulStop(t *testing.T) {
 			sbWg.Done()
 			_, err := future.Done()
 			if err != nil {
-				assert.ErrorIs(t, err, ErrorBatchControllerStopped)
+				if assert.ErrorIs(t, err, ErrorBatchControllerStopped) {
+					atomic.AddInt32(&cancelTask, 1)
+				}
 			}
 		}(i)
 	}
@@ -191,7 +226,7 @@ func TestNewBatchControllerGracefulStop(t *testing.T) {
 	ctrl.GracefulStop()
 	t.Log("BatchController already stop")
 	sbWg.Wait()
-	t.Logf("submit jobs : %d", atomic.LoadInt32(&submitTask))
+	t.Logf("submit jobs : %d, cancel jobs : %d", atomic.LoadInt32(&submitTask), atomic.LoadInt32(&cancelTask))
 	wg.Wait()
 	t.Log("finish all batch job")
 }
