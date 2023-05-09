@@ -52,6 +52,9 @@ type eventHub struct {
 // @param topic Topic name
 // @param event Event object
 func Publish(topic string, event Event) {
+	if eh == nil {
+		return
+	}
 	t := eh.getTopic(topic)
 	t.publish(eh.ctx, event)
 }
@@ -63,6 +66,9 @@ func Publish(topic string, event Event) {
 // @param opts Subscription options
 // @return error Subscribe failed, return error
 func Subscribe(topic string, name string, handler Handler, opts ...SubOption) error {
+	if eh == nil {
+		return nil
+	}
 	t := eh.getTopic(topic)
 	return t.subscribe(eh.ctx, name, handler, opts...)
 }
@@ -71,12 +77,18 @@ func Subscribe(topic string, name string, handler Handler, opts ...SubOption) er
 // @param topic Topic name
 // @param name Subscribe name
 func Unsubscribe(topic string, name string) {
+	if eh == nil {
+		return
+	}
 	t := eh.getTopic(topic)
 	t.unsubscribe(eh.ctx, name)
 }
 
 // Shutdown shutdown event hub
 func Shutdown() {
+	if eh == nil {
+		return
+	}
 	eh.mu.Lock()
 	defer eh.mu.Unlock()
 
