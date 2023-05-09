@@ -223,12 +223,12 @@ func (c *LeaderHealthChecker) becomeFollower(e store.LeaderChangeEvent, leaderVe
 		plog.Error("[HealthCheck][Leader] follower run serve, do retry", zap.Error(err))
 		go func(e store.LeaderChangeEvent, leaderVersion int64) {
 			time.Sleep(time.Second)
+			c.lock.Lock()
+			defer c.lock.Unlock()
 			curVersion := atomic.LoadInt64(&c.leaderVersion)
 			if leaderVersion != curVersion {
 				return
 			}
-			c.lock.Lock()
-			defer c.lock.Unlock()
 			c.becomeFollower(e, leaderVersion)
 		}(e, leaderVersion)
 		return
