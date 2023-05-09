@@ -38,35 +38,40 @@ const (
 
 // BatchController 通用的批任务处理框架
 type BatchController struct {
-	lock       sync.RWMutex
-	stop       int32
-	label      string
-	conf       CtrlConfig
-	handler    func(tasks []Future)
-	tasksChan  chan Future
-	idleSignal chan int
-	workers    []chan []Future
-	cancel     context.CancelFunc
+	lock           sync.RWMutex
+	stop           int32
+	label          string
+	conf           CtrlConfig
+	handler        func(tasks []Future)
+	tasksChan      chan Future
+	idleSignal     chan int
+	workers        []chan []Future
+	cancel         context.CancelFunc
+	allWorkersStop chan struct{}
+	submitCount    uint64
+	finishedCount  uint64
 }
 
 // NewBatchController 创建一个批任务处理
 func NewBatchController(ctx context.Context, conf CtrlConfig) *BatchController {
 	ctx, cancel := context.WithCancel(ctx)
 	bc := &BatchController{
-		label:      conf.Label,
-		conf:       conf,
-		cancel:     cancel,
-		tasksChan:  make(chan Future, conf.QueueSize),
-		workers:    make([]chan []Future, 0, conf.Concurrency),
-		idleSignal: make(chan int, conf.Concurrency),
-		handler: func(tasks []Future) {
-			defer func() {
-				if err := recover(); err != nil {
-					log.Errorf("[Batch] %s trigger consumer panic : %+v", conf.Label, err)
-				}
-			}()
-			conf.Handler(tasks)
-		},
+		label:          conf.Label,
+		conf:           conf,
+		cancel:         cancel,
+		tasksChan:      make(chan Future, conf.QueueSize),
+		workers:        make([]chan []Future, 0, conf.Concurrency),
+		idleSignal:     make(chan int, conf.Concurrency),
+		allWorkersStop: make(chan struct{}),
+	}
+	bc.handler = func(tasks []Future) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Errorf("[Batch] %s trigger consumer panic : %+v", conf.Label, err)
+			}
+		}()
+		conf.Handler(tasks)
+		atomic.AddUint64(&bc.finishedCount, uint64(len(tasks)))
 	}
 	bc.runWorkers(ctx)
 	bc.mainLoop(ctx)
@@ -120,42 +125,8 @@ func (bc *BatchController) SubmitWithTimeout(task Param, timeout time.Duration) 
 }
 
 func (bc *BatchController) runWorkers(ctx context.Context) {
-	wait := sync.WaitGroup{}
+	wait := &sync.WaitGroup{}
 	wait.Add(int(bc.conf.Concurrency))
-
-	workerLoop := func(index int) {
-		stopFunc := func() {
-			defer wait.Done()
-			switch atomic.LoadInt32(&bc.stop) {
-			case shutdownGraceful:
-				replied := 0
-				for futures := range bc.workers[index] {
-					replied += len(futures)
-					bc.handler(futures)
-					bc.idleSignal <- int(index)
-				}
-				log.Infof("[Batch] %s worker(%d) exit, handle future count: %d", bc.label, index, replied)
-			case shutdownNow:
-				stopped := 0
-				for futures := range bc.workers[index] {
-					replyStoppedFutures(futures...)
-					stopped += len(futures)
-				}
-				log.Infof("[Batch] %s worker(%d) exit, reply stop msg to future count: %d", bc.label, index, stopped)
-			}
-		}
-
-		for {
-			select {
-			case <-ctx.Done():
-				stopFunc()
-				return
-			case futures := <-bc.workers[index]:
-				bc.handler(futures)
-				bc.idleSignal <- int(index)
-			}
-		}
-	}
 
 	for i := uint32(0); i < bc.conf.Concurrency; i++ {
 		index := i
@@ -163,7 +134,7 @@ func (bc *BatchController) runWorkers(ctx context.Context) {
 		log.Infof("[Batch] %s worker(%d) running in main loop", bc.label, index)
 		bc.idleSignal <- int(index)
 		go func(index uint32) {
-			workerLoop(int(index))
+			bc.workerLoop(ctx, int(index), wait)
 		}(index)
 	}
 
@@ -171,8 +142,42 @@ func (bc *BatchController) runWorkers(ctx context.Context) {
 		wait.Wait()
 		log.Infof("[Batch] %s close idle worker signal", bc.label)
 		close(bc.idleSignal)
+		close(bc.allWorkersStop)
 	}()
+}
 
+func (bc *BatchController) workerLoop(ctx context.Context, index int, wait *sync.WaitGroup) {
+	stopFunc := func() {
+		defer wait.Done()
+		switch atomic.LoadInt32(&bc.stop) {
+		case shutdownGraceful:
+			replied := 0
+			for futures := range bc.workers[index] {
+				replied += len(futures)
+				bc.handler(futures)
+				bc.idleSignal <- int(index)
+			}
+			log.Infof("[Batch] %s worker(%d) exit, handle future count: %d", bc.label, index, replied)
+		case shutdownNow:
+			stopped := 0
+			for futures := range bc.workers[index] {
+				replyStoppedFutures(futures...)
+				stopped += len(futures)
+			}
+			log.Infof("[Batch] %s worker(%d) exit, reply stop msg to future count: %d", bc.label, index, stopped)
+		}
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			stopFunc()
+			return
+		case futures := <-bc.workers[index]:
+			bc.handler(futures)
+			bc.idleSignal <- int(index)
+		}
+	}
 }
 
 func (bc *BatchController) mainLoop(ctx context.Context) {
@@ -190,10 +195,12 @@ func (bc *BatchController) mainLoop(ctx context.Context) {
 
 	stopFunc := func() {
 		close(bc.tasksChan)
+		log.Infof("[Batch] %s begin close task chan", bc.label)
 		switch atomic.LoadInt32(&bc.stop) {
 		case shutdownGraceful:
-			triggerConsume(futures[0:idx])
+			triggerConsume(futures)
 			for future := range bc.tasksChan {
+				atomic.AddUint64(&bc.submitCount, 1)
 				futures = append(futures, future)
 				idx++
 				if idx == int(bc.conf.MaxBatchCount) {
@@ -216,7 +223,9 @@ func (bc *BatchController) mainLoop(ctx context.Context) {
 			}
 			log.Infof("[Batch] %s do reply stop msg to future count: %d", bc.label, stopped)
 		}
-		log.Infof("[Batch] %s main loop exited", bc.label)
+		<-bc.allWorkersStop
+		log.Infof("[Batch] %s main loop exited, submit task: %d, finish task: %d",
+			bc.label, atomic.LoadUint64(&bc.submitCount), atomic.LoadUint64(&bc.finishedCount))
 	}
 
 	go func() {
@@ -226,11 +235,14 @@ func (bc *BatchController) mainLoop(ctx context.Context) {
 		for {
 			select {
 			case <-ctx.Done():
+				bc.lock.Lock()
+				defer bc.lock.Unlock()
 				stopFunc()
 				return
 			case <-ticker.C:
 				triggerConsume(futures[0:idx])
 			case future := <-bc.tasksChan:
+				atomic.AddUint64(&bc.submitCount, 1)
 				futures = append(futures, future)
 				idx++
 				if idx == int(bc.conf.MaxBatchCount) {

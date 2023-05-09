@@ -29,6 +29,9 @@ func TestInitEventHub() {
 }
 
 func TestShutdownEventHub() {
+	if eh == nil {
+		return
+	}
 	Shutdown()
 	eh = nil
 }

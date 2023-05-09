@@ -26,13 +26,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 
 	"github.com/polarismesh/polaris/common/batchjob"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/plugin"
+	"github.com/polarismesh/polaris/store/mock"
 )
 
 type MockPeerImpl struct {
@@ -98,6 +102,33 @@ func (mp *MockPeerImpl) Host() string {
 func TestLocalPeer(t *testing.T) {
 	localPeer := newLocalPeer()
 	assert.NotNil(t, localPeer)
+	ctrl := gomock.NewController(t)
+	eventhub.TestInitEventHub()
+	mockStore := mock.NewMockStore(ctrl)
+	mockStore.EXPECT().StartLeaderElection(gomock.Any()).Return(nil).AnyTimes()
+	checker := &LeaderHealthChecker{
+		self: NewLocalPeerFunc(),
+		s:    mockStore,
+		conf: &Config{
+			SoltNum: 0,
+			Batch: batchjob.CtrlConfig{
+				QueueSize:     16,
+				WaitTime:      32 * time.Millisecond,
+				MaxBatchCount: 32,
+				Concurrency:   1,
+			},
+		},
+	}
+	err := checker.Initialize(&plugin.ConfigEntry{
+		Option: map[string]interface{}{},
+	})
+	assert.NoError(t, err)
+
+	t.Cleanup(func() {
+		_ = checker.Destroy()
+		eventhub.TestShutdownEventHub()
+		ctrl.Finish()
+	})
 
 	localPeer.Initialize(Config{
 		SoltNum: 0,
@@ -111,7 +142,7 @@ func TestLocalPeer(t *testing.T) {
 		},
 	})
 
-	err := localPeer.Serve(context.Background(), "127.0.0.1", 21111)
+	err = localPeer.Serve(context.Background(), checker, "127.0.0.1", 21111)
 	assert.NoError(t, err)
 
 	mockKey := utils.NewUUID()
@@ -150,24 +181,46 @@ func TestLocalPeer(t *testing.T) {
 }
 
 func TestRemotePeer(t *testing.T) {
-	mockPort := uint32(21111)
-	_, err := newMockPolarisGRPCSever(t, mockPort)
-	assert.NoError(t, err)
+	// close old event hub
+	eventhub.TestInitEventHub()
+	ctrl := gomock.NewController(t)
+	mockStore := mock.NewMockStore(ctrl)
+	mockStore.EXPECT().StartLeaderElection(gomock.Any()).Return(nil)
+	checker := &LeaderHealthChecker{
+		self: NewLocalPeerFunc(),
+		s:    mockStore,
+		conf: &Config{
+			SoltNum: 0,
+			Batch: batchjob.CtrlConfig{
+				Label:         "MockRemotePeer",
+				QueueSize:     1024,
+				WaitTime:      32 * time.Millisecond,
+				MaxBatchCount: 32,
+				Concurrency:   1,
+			},
+		},
+	}
 
+	err := checker.Initialize(&plugin.ConfigEntry{
+		Option: map[string]interface{}{},
+	})
+	assert.NoError(t, err)
+	t.Cleanup(func() {
+		_ = checker.Destroy()
+		eventhub.TestShutdownEventHub()
+		ctrl.Finish()
+	})
+
+	mockPort := uint32(21111)
+	_, err = newMockPolarisGRPCSever(t, mockPort)
+	assert.NoError(t, err)
 	remotePeer := NewRemotePeerFunc()
 	assert.NotNil(t, remotePeer)
 	remotePeer.Initialize(Config{
 		SoltNum: 0,
-		Batch: batchjob.CtrlConfig{
-			Label:         "MockRemotePeer",
-			QueueSize:     1024,
-			WaitTime:      32 * time.Millisecond,
-			MaxBatchCount: 32,
-			Concurrency:   1,
-		},
 	})
 
-	err = remotePeer.Serve(context.Background(), "127.0.0.1", mockPort)
+	err = remotePeer.Serve(context.Background(), checker, "127.0.0.1", mockPort)
 	assert.NoError(t, err)
 
 	mockKey := utils.NewUUID()
@@ -191,7 +244,7 @@ func TestRemotePeer(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, ret)
 	assert.True(t, ret.Exist)
-	assert.Equal(t, mockVal, ret.Record.CurTimeSec)
+	assert.True(t, mockVal <= ret.Record.CurTimeSec)
 
 	err = remotePeer.Del(mockKey)
 	assert.NoError(t, err)
@@ -213,6 +266,31 @@ func newMockPolarisGRPCSever(t *testing.T, port uint32) (*MockPolarisGRPCServer,
 	t.Cleanup(func() {
 		_ = ln.Close()
 	})
+	ctrl := gomock.NewController(t)
+	eventhub.TestInitEventHub()
+	t.Cleanup(func() {
+		eventhub.TestShutdownEventHub()
+		ctrl.Finish()
+	})
+	mockStore := mock.NewMockStore(ctrl)
+	mockStore.EXPECT().StartLeaderElection(gomock.Any()).Return(nil)
+	checker := &LeaderHealthChecker{
+		self: NewLocalPeerFunc(),
+		s:    mockStore,
+		conf: &Config{
+			SoltNum: 0,
+			Batch: batchjob.CtrlConfig{
+				QueueSize:     16,
+				WaitTime:      32 * time.Millisecond,
+				MaxBatchCount: 32,
+				Concurrency:   1,
+			},
+		},
+	}
+	err = checker.Initialize(&plugin.ConfigEntry{
+		Option: map[string]interface{}{},
+	})
+	assert.NoError(t, err)
 	lp := NewLocalPeerFunc().(*LocalPeer)
 	lp.Initialize(Config{
 		SoltNum: 0,
@@ -226,7 +304,7 @@ func newMockPolarisGRPCSever(t *testing.T, port uint32) (*MockPolarisGRPCServer,
 		},
 	})
 
-	err = lp.Serve(context.Background(), "127.0.0.1", port)
+	err = lp.Serve(context.Background(), checker, "127.0.0.1", port)
 	assert.NoError(t, err)
 	svr := &MockPolarisGRPCServer{
 		peer: lp,

@@ -41,6 +41,7 @@ func TestLeaderHealthChecker_OnEvent(t *testing.T) {
 		ctrl.Finish()
 	})
 	mockStore := mock.NewMockStore(ctrl)
+	mockStore.EXPECT().StartLeaderElection(gomock.Any()).Return(nil).AnyTimes()
 
 	checker := &LeaderHealthChecker{
 		self: NewLocalPeerFunc(),
@@ -55,12 +56,13 @@ func TestLeaderHealthChecker_OnEvent(t *testing.T) {
 			},
 		},
 	}
-	checker.Initialize(&plugin.ConfigEntry{
+	err := checker.Initialize(&plugin.ConfigEntry{
 		Option: map[string]interface{}{},
 	})
+	assert.NoError(t, err)
 
 	mockPort := uint32(28888)
-	_, err := newMockPolarisGRPCSever(t, mockPort)
+	_, err = newMockPolarisGRPCSever(t, mockPort)
 	assert.NoError(t, err)
 
 	utils.LocalHost = "127.0.0.2"
