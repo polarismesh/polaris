@@ -276,6 +276,6 @@ func (bc *BatchController) isStop() bool {
 
 func replyStoppedFutures(futures ...Future) {
 	for i := range futures {
-		futures[i].Reply(nil, ErrorBatchControllerStopped)
+		_ = futures[i].Reply(nil, ErrorBatchControllerStopped)
 	}
 }
