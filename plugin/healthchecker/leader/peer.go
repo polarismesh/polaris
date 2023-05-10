@@ -172,9 +172,6 @@ func (p *RemotePeer) Serve(_ context.Context, checker *LeaderHealthChecker,
 			grpc.WithBlock(),
 			grpc.WithInsecure(),
 			grpc.WithTimeout(5*time.Second),
-			grpc.Header(&metadata.MD{
-				sendResource: []string{utils.LocalHost},
-			}),
 		)
 		if err != nil {
 			_ = p.Close()
@@ -234,7 +231,9 @@ func (p *RemotePeer) Del(key string) error {
 }
 
 func (p *RemotePeer) GetFunc(req *apiservice.GetHeartbeatsRequest) *apiservice.GetHeartbeatsResponse {
-	resp, err := p.Client.BatchGetHeartbeat(context.Background(), req)
+	resp, err := p.Client.BatchGetHeartbeat(context.Background(), req, grpc.Header(&metadata.MD{
+		sendResource: []string{utils.LocalHost},
+	}))
 	if err != nil {
 		plog.Error("[HealthCheck][Leader] send get record request", zap.String("host", p.Host()),
 			zap.Uint32("port", p.port), zap.Error(err))
@@ -252,7 +251,9 @@ func (p *RemotePeer) PutFunc(req *apiservice.HeartbeatsRequest) {
 }
 
 func (p *RemotePeer) DelFunc(req *apiservice.DelHeartbeatsRequest) {
-	if _, err := p.Client.BatchDelHeartbeat(context.Background(), req); err != nil {
+	if _, err := p.Client.BatchDelHeartbeat(context.Background(), req, grpc.Header(&metadata.MD{
+		sendResource: []string{utils.LocalHost},
+	})); err != nil {
 		plog.Error("send del record request", zap.String("host", p.Host()),
 			zap.Uint32("port", p.port), zap.Error(err))
 	}

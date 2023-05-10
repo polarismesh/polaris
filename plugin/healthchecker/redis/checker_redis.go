@@ -311,7 +311,7 @@ func (r *RedisHealthChecker) RemoveFromCheck(request *plugin.AddCheckRequest) er
 }
 
 // Delete delete the target id
-func (r *RedisHealthChecker) Delete(id string) error {
+func (r *RedisHealthChecker) Delete(ctx context.Context, id string) error {
 	resp := r.checkPool.Del(id)
 	return resp.Err
 }

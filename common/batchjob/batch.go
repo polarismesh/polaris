@@ -205,6 +205,8 @@ func (bc *BatchController) mainLoop(ctx context.Context) {
 						triggerConsume(futures)
 					}
 				}
+				// 最后触发兜底
+				triggerConsume(futures)
 				for i := range bc.workers {
 					close(bc.workers[i])
 				}

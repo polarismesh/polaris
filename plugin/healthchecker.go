@@ -99,7 +99,7 @@ type HealthChecker interface {
 	// SuspendTimeSec get the suspend time in seconds
 	SuspendTimeSec() int64
 	// Delete delete the id
-	Delete(id string) error
+	Delete(ctx context.Context, id string) error
 	// DebugHandlers return debug handlers
 	DebugHandlers() []DebugHandler
 }
