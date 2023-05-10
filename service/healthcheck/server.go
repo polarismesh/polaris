@@ -243,7 +243,7 @@ func (s *Server) GetLastHeartbeat(req *apiservice.Instance) *apiservice.Response
 	if !ok {
 		return api.NewInstanceResponse(apimodel.Code_HeartbeatTypeNotFound, req)
 	}
-	queryResp, err := checker.Query(&plugin.QueryRequest{
+	queryResp, err := checker.Query(context.Background(), &plugin.QueryRequest{
 		InstanceId: insCache.ID(),
 		Host:       insCache.Host(),
 		Port:       insCache.Port(),

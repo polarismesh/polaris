@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -30,11 +31,12 @@ import (
 )
 
 func TestNewBatchController(t *testing.T) {
-	total := 1000
+	total := 100000
 
 	totalTasks := int32(0)
 	testHandle := func(futures []Future) {
 		atomic.AddInt32(&totalTasks, int32(len(futures)))
+		time.Sleep(time.Duration(rand.Int63n(100)) * time.Millisecond)
 		for i := range futures {
 			futures[i].Reply(nil, nil)
 		}

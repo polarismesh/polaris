@@ -29,6 +29,7 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/polarismesh/polaris/common/batchjob"
 	commonhash "github.com/polarismesh/polaris/common/hash"
@@ -171,6 +172,9 @@ func (p *RemotePeer) Serve(_ context.Context, checker *LeaderHealthChecker,
 			grpc.WithBlock(),
 			grpc.WithInsecure(),
 			grpc.WithTimeout(5*time.Second),
+			grpc.Header(&metadata.MD{
+				sendResource: []string{utils.LocalHost},
+			}),
 		)
 		if err != nil {
 			_ = p.Close()
@@ -180,7 +184,9 @@ func (p *RemotePeer) Serve(_ context.Context, checker *LeaderHealthChecker,
 	}
 	p.Client = apiservice.NewPolarisGRPCClient(p.Conns[0])
 	for i := 0; i < streamNum; i++ {
-		puter, err := p.Client.BatchHeartbeat(ctx)
+		puter, err := p.Client.BatchHeartbeat(ctx, grpc.Header(&metadata.MD{
+			sendResource: []string{utils.LocalHost},
+		}))
 		if err != nil {
 			_ = p.Close()
 			return err
@@ -203,7 +209,7 @@ func (p *RemotePeer) Get(key string) (*ReadBeatRecord, error) {
 		Key:  key,
 		Peer: p,
 	}, time.Second)
-	resp, err := future.Done()
+	resp, err := future.DoneTimeout(time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +223,7 @@ func (p *RemotePeer) Put(record WriteBeatRecord) error {
 		Record: &record,
 		Peer:   p,
 	}, time.Second)
-	_, err := future.Done()
+	_, err := future.DoneTimeout(time.Second)
 	return err
 }
 

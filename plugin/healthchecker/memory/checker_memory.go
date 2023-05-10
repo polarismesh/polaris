@@ -18,6 +18,7 @@
 package heartbeatmemory
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 
@@ -69,7 +70,7 @@ func (r *MemoryHealthChecker) Type() plugin.HealthCheckType {
 }
 
 // Report process heartbeat info report
-func (r *MemoryHealthChecker) Report(request *plugin.ReportRequest) error {
+func (r *MemoryHealthChecker) Report(ctx context.Context, request *plugin.ReportRequest) error {
 	record := HeartbeatRecord{
 		Server:     request.LocalHost,
 		CurTimeSec: request.CurTimeSec,
@@ -81,7 +82,7 @@ func (r *MemoryHealthChecker) Report(request *plugin.ReportRequest) error {
 }
 
 // Query queries the heartbeat time
-func (r *MemoryHealthChecker) Query(request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
+func (r *MemoryHealthChecker) Query(ctx context.Context, request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
 	recordValue, ok := r.hbRecords.Load(request.InstanceId)
 	if !ok {
 		return &plugin.QueryResponse{
@@ -111,7 +112,7 @@ func (r *MemoryHealthChecker) skipCheck(instanceId string, expireDurationSec int
 
 // Check Report process the instance check
 func (r *MemoryHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckResponse, error) {
-	queryResp, err := r.Query(&request.QueryRequest)
+	queryResp, err := r.Query(context.Background(), &request.QueryRequest)
 	if err != nil {
 		return nil, err
 	}

@@ -169,7 +169,7 @@ func (h HeathCheckRecord) String() string {
 }
 
 // Report process heartbeat info report
-func (r *RedisHealthChecker) Report(request *plugin.ReportRequest) error {
+func (r *RedisHealthChecker) Report(ctx context.Context, request *plugin.ReportRequest) error {
 	value := &HeathCheckRecord{
 		LocalHost:  request.LocalHost,
 		CurTimeSec: request.CurTimeSec,
@@ -186,7 +186,7 @@ func (r *RedisHealthChecker) Report(request *plugin.ReportRequest) error {
 }
 
 // Query queries the heartbeat time
-func (r *RedisHealthChecker) Query(request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
+func (r *RedisHealthChecker) Query(ctx context.Context, request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
 	resp := r.checkPool.Get(request.InstanceId)
 	if resp.Err != nil {
 		log.Errorf("[Health Check][RedisCheck]addr:%s:%d, id:%s, get redis err:%s",
@@ -245,7 +245,7 @@ func (r *RedisHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckR
 				request.InstanceId, timePass, maxCheckDuration)
 		}
 	}()
-	queryResp, err := r.Query(&request.QueryRequest)
+	queryResp, err := r.Query(context.Background(), &request.QueryRequest)
 	if err != nil {
 		return nil, err
 	}

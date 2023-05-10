@@ -35,7 +35,7 @@ func (g *DiscoverServer) BatchGetHeartbeat(ctx context.Context,
 	keys := req.GetInstanceIds()
 	records := make([]*apiservice.HeartbeatRecord, 0, len(keys))
 	for i := range keys {
-		resp, err := checker.Query(&plugin.QueryRequest{
+		resp, err := checker.Query(ctx, &plugin.QueryRequest{
 			InstanceId: keys[i],
 		})
 		if err != nil {

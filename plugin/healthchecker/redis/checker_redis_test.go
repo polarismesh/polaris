@@ -18,6 +18,7 @@
 package heartbeatredis
 
 import (
+	"context"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -125,10 +126,10 @@ func TestReportAndCheck(t *testing.T) {
 		CurTimeSec: startTime,
 		Count:      atomic.AddInt64(&count, 1),
 	}
-	err := checker.Report(reportReq)
+	err := checker.Report(context.Background(), reportReq)
 	assert.Nil(t, err)
 
-	queryResp, err := checker.Query(&reportReq.QueryRequest)
+	queryResp, err := checker.Query(context.Background(), &reportReq.QueryRequest)
 	assert.Nil(t, err)
 	assert.Equal(t, reportReq.CurTimeSec, queryResp.LastHeartbeatSec)
 
@@ -153,7 +154,7 @@ func TestReportAndCheck(t *testing.T) {
 
 	reportReq.CurTimeSec = curTimeSec
 	reportReq.Count = atomic.AddInt64(&count, 1)
-	err = checker.Report(reportReq)
+	err = checker.Report(context.Background(), reportReq)
 	assert.Nil(t, err)
 
 	time.Sleep(3 * time.Second)
@@ -161,7 +162,7 @@ func TestReportAndCheck(t *testing.T) {
 	startTime = commontime.CurrentMillisecond() / 1000
 	reportReq.CurTimeSec = startTime
 	reportReq.Count = atomic.AddInt64(&count, 1)
-	err = checker.Report(reportReq)
+	err = checker.Report(context.Background(), reportReq)
 	assert.Nil(t, err)
 
 	checkReq = &plugin.CheckRequest{

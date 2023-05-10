@@ -131,9 +131,8 @@ func (bc *BatchController) runWorkers(ctx context.Context) {
 	for i := uint32(0); i < bc.conf.Concurrency; i++ {
 		index := i
 		bc.workers = append(bc.workers, make(chan []Future))
-		log.Infof("[Batch] %s worker(%d) running in main loop", bc.label, index)
-		bc.idleSignal <- int(index)
 		go func(index uint32) {
+			log.Infof("[Batch] %s worker(%d) running in main loop", bc.label, index)
 			bc.workerLoop(ctx, int(index), wait)
 		}(index)
 	}
@@ -168,6 +167,7 @@ func (bc *BatchController) workerLoop(ctx context.Context, index int, wait *sync
 		}
 	}
 
+	bc.idleSignal <- index
 	for {
 		select {
 		case <-ctx.Done():
@@ -175,60 +175,57 @@ func (bc *BatchController) workerLoop(ctx context.Context, index int, wait *sync
 			return
 		case futures := <-bc.workers[index]:
 			bc.handler(futures)
-			bc.idleSignal <- int(index)
+			bc.idleSignal <- index
 		}
 	}
 }
 
 func (bc *BatchController) mainLoop(ctx context.Context) {
-	futures := make([]Future, 0, bc.conf.MaxBatchCount)
-	idx := 0
-	triggerConsume := func(data []Future) {
-		if idx == 0 {
-			return
-		}
-		idleIndex := <-bc.idleSignal
-		bc.workers[idleIndex] <- data
-		futures = make([]Future, 0, bc.conf.MaxBatchCount)
-		idx = 0
-	}
-
-	stopFunc := func() {
-		close(bc.tasksChan)
-		log.Infof("[Batch] %s begin close task chan", bc.label)
-		switch atomic.LoadInt32(&bc.stop) {
-		case shutdownGraceful:
-			triggerConsume(futures)
-			for future := range bc.tasksChan {
-				atomic.AddUint64(&bc.submitCount, 1)
-				futures = append(futures, future)
-				idx++
-				if idx == int(bc.conf.MaxBatchCount) {
-					triggerConsume(futures[0:idx])
-				}
-			}
-			for i := range bc.workers {
-				close(bc.workers[i])
-			}
-		case shutdownNow:
-			log.Infof("[Batch] %s begin close worker loop", bc.label)
-			for i := range bc.workers {
-				close(bc.workers[i])
-			}
-			stopped := len(futures)
-			replyStoppedFutures(futures...)
-			for future := range bc.tasksChan {
-				replyStoppedFutures(future)
-				stopped++
-			}
-			log.Infof("[Batch] %s do reply stop msg to future count: %d", bc.label, stopped)
-		}
-		<-bc.allWorkersStop
-		log.Infof("[Batch] %s main loop exited, submit task: %d, finish task: %d",
-			bc.label, atomic.LoadUint64(&bc.submitCount), atomic.LoadUint64(&bc.finishedCount))
-	}
-
 	go func() {
+		futures := make([]Future, 0, bc.conf.MaxBatchCount)
+		triggerConsume := func(data []Future) {
+			if len(data) == 0 {
+				return
+			}
+			idleIndex := <-bc.idleSignal
+			bc.workers[idleIndex] <- data
+			futures = make([]Future, 0, bc.conf.MaxBatchCount)
+		}
+
+		stopFunc := func() {
+			close(bc.tasksChan)
+			log.Debugf("[Batch] %s begin close task chan", bc.label)
+			switch atomic.LoadInt32(&bc.stop) {
+			case shutdownGraceful:
+				triggerConsume(futures)
+				for future := range bc.tasksChan {
+					atomic.AddUint64(&bc.submitCount, 1)
+					futures = append(futures, future)
+					if len(futures) == int(bc.conf.MaxBatchCount) {
+						triggerConsume(futures)
+					}
+				}
+				for i := range bc.workers {
+					close(bc.workers[i])
+				}
+			case shutdownNow:
+				log.Debugf("[Batch] %s begin close worker loop", bc.label)
+				for i := range bc.workers {
+					close(bc.workers[i])
+				}
+				stopped := len(futures)
+				replyStoppedFutures(futures...)
+				for future := range bc.tasksChan {
+					replyStoppedFutures(future)
+					stopped++
+				}
+				log.Debugf("[Batch] %s do reply stop msg to future count: %d", bc.label, stopped)
+			}
+			<-bc.allWorkersStop
+			log.Infof("[Batch] %s main loop exited, submit task: %d, finish task: %d",
+				bc.label, atomic.LoadUint64(&bc.submitCount), atomic.LoadUint64(&bc.finishedCount))
+		}
+
 		log.Infof("[Batch] %s running main loop", bc.label)
 		ticker := time.NewTicker(bc.conf.WaitTime)
 		defer ticker.Stop()
@@ -240,13 +237,12 @@ func (bc *BatchController) mainLoop(ctx context.Context) {
 				stopFunc()
 				return
 			case <-ticker.C:
-				triggerConsume(futures[0:idx])
+				triggerConsume(futures)
 			case future := <-bc.tasksChan:
 				atomic.AddUint64(&bc.submitCount, 1)
 				futures = append(futures, future)
-				idx++
-				if idx == int(bc.conf.MaxBatchCount) {
-					triggerConsume(futures[0:idx])
+				if len(futures) == int(bc.conf.MaxBatchCount) {
+					triggerConsume(futures)
 				}
 			}
 		}
