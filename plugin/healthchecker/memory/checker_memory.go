@@ -164,7 +164,7 @@ func (r *MemoryHealthChecker) RemoveFromCheck(request *plugin.AddCheckRequest) e
 }
 
 // Delete delete the id
-func (r *MemoryHealthChecker) Delete(id string) error {
+func (r *MemoryHealthChecker) Delete(ctx context.Context, id string) error {
 	r.hbRecords.Delete(id)
 	return nil
 }

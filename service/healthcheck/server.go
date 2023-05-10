@@ -282,7 +282,7 @@ func (s *Server) handleInstanceEventWorker(ctx context.Context) {
 					break
 				}
 				log.Infof("[Health Check]delete instance heart beat information, id is %s", event.Id)
-				err := checker.Delete(event.Id)
+				err := checker.Delete(context.Background(), event.Id)
 				if err != nil {
 					log.Errorf("[Health Check]addr is %s:%d, id is %s, delete err is %s",
 						insCache.Host(), insCache.Port(), insCache.ID(), err)
