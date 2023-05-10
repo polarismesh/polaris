@@ -19,12 +19,14 @@ package leader
 
 import (
 	"context"
+	"errors"
 	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"go.uber.org/zap"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/polarismesh/polaris/common/batchjob"
 	"github.com/polarismesh/polaris/common/eventhub"
@@ -58,6 +60,8 @@ const (
 	uninitializeSignal = int32(0)
 	// initializedSignal .
 	initializedSignal = int32(1)
+	// sendResource .
+	sendResource = "leaderchecker"
 )
 
 var (
@@ -65,6 +69,10 @@ var (
 	DefaultSoltNum = int32(runtime.GOMAXPROCS(0) * 16)
 	// streamNum
 	streamNum = runtime.GOMAXPROCS(0)
+)
+
+var (
+	ErrorRedirectOnlyOnce = errors.New("redirect request only once")
 )
 
 // LeaderHealthChecker Leader~Follower 节点心跳健康检查
@@ -251,7 +259,11 @@ func (c *LeaderHealthChecker) Type() plugin.HealthCheckType {
 }
 
 // Report process heartbeat info report
-func (c *LeaderHealthChecker) Report(request *plugin.ReportRequest) error {
+func (c *LeaderHealthChecker) Report(ctx context.Context, request *plugin.ReportRequest) error {
+	if isSendFromPeer(ctx) {
+		return ErrorRedirectOnlyOnce
+	}
+
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	if !c.isInitialize() {
@@ -278,7 +290,7 @@ func (c *LeaderHealthChecker) Report(request *plugin.ReportRequest) error {
 
 // Check process the instance check
 func (c *LeaderHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckResponse, error) {
-	queryResp, err := c.Query(&request.QueryRequest)
+	queryResp, err := c.Query(context.Background(), &request.QueryRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -322,7 +334,11 @@ func (c *LeaderHealthChecker) Check(request *plugin.CheckRequest) (*plugin.Check
 }
 
 // Query queries the heartbeat time
-func (c *LeaderHealthChecker) Query(request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
+func (c *LeaderHealthChecker) Query(ctx context.Context, request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
+	if isSendFromPeer(ctx) {
+		return nil, ErrorRedirectOnlyOnce
+	}
+
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	if !c.isInitialize() {
@@ -518,6 +534,15 @@ func (c *LeaderHealthChecker) handleSendPutRecords(futures []batchjob.Future) {
 	for i := range futures {
 		_ = futures[i].Reply(struct{}{}, nil)
 	}
+}
+
+func isSendFromPeer(ctx context.Context) bool {
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		if _, exist := md[sendResource]; exist {
+			return true
+		}
+	}
+	return false
 }
 
 type PeerTask struct {

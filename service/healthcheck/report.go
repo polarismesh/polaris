@@ -48,31 +48,12 @@ func checkHeartbeatInstance(req *apiservice.Instance) (string, *apiservice.Respo
 
 const max404Count = 3
 
-func (s *Server) checkInstanceExists(id string) (int64, *model.Instance, apimodel.Code) {
+func (s *Server) checkInstanceExists(ctx context.Context, id string) (int64, *model.Instance, apimodel.Code) {
 	ins := s.instanceCache.GetInstance(id)
 	if ins != nil {
 		return -1, ins, apimodel.Code_ExecuteSuccess
 	}
-	resp, err := s.defaultChecker.Query(&plugin.QueryRequest{
-		InstanceId: id,
-	})
-	if nil != err {
-		log.Errorf("[healthcheck]fail to query report count by id %s, err: %v", id, err)
-		return -1, nil, apimodel.Code_ExecuteSuccess
-	}
-	if resp.Count > max404Count {
-		return resp.Count, nil, apimodel.Code_NotFoundResource
-	}
-	return resp.Count, nil, apimodel.Code_ExecuteSuccess
-}
-
-func (s *Server) checkInstanceExistsV2(instance *apiservice.InstanceHeartbeat) (int64, *model.Instance, apimodel.Code) {
-	id := instance.GetInstanceId()
-	ins := s.instanceCache.GetInstance(id)
-	if ins != nil {
-		return -1, ins, apimodel.Code_ExecuteSuccess
-	}
-	resp, err := s.defaultChecker.Query(&plugin.QueryRequest{
+	resp, err := s.defaultChecker.Query(ctx, &plugin.QueryRequest{
 		InstanceId: id,
 	})
 	if nil != err {
@@ -156,10 +137,10 @@ func (s *Server) doReports(ctx context.Context, beats []*apiservice.InstanceHear
 }
 
 func (s *Server) baseReport(ctx context.Context, id string, reportReq *plugin.ReportRequest) (apimodel.Code, error) {
-	count, ins, code := s.checkInstanceExists(id)
+	count, ins, code := s.checkInstanceExists(ctx, id)
 	checker := s.getHealthChecker(id)
 	reportReq.Count = count + 1
-	err := checker.Report(reportReq)
+	err := checker.Report(ctx, reportReq)
 	if nil != ins {
 		event := &model.InstanceEvent{
 			Id:       id,
