@@ -376,7 +376,10 @@ func (c *LeaderHealthChecker) RemoveFromCheck(request *plugin.AddCheckRequest) e
 }
 
 // Delete delete record by key
-func (c *LeaderHealthChecker) Delete(key string) error {
+func (c *LeaderHealthChecker) Delete(ctx context.Context, key string) error {
+	if isSendFromPeer(ctx) {
+		return ErrorRedirectOnlyOnce
+	}
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	responsible := c.findLeaderPeer()

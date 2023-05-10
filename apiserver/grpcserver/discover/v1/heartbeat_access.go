@@ -62,7 +62,7 @@ func (g *DiscoverServer) BatchDelHeartbeat(ctx context.Context,
 	}
 	keys := req.GetInstanceIds()
 	for i := range keys {
-		if err := checker.Delete(keys[i]); err != nil {
+		if err := checker.Delete(ctx, keys[i]); err != nil {
 			return nil, err
 		}
 	}
