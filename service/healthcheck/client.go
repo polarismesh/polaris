@@ -50,7 +50,7 @@ func (s *Server) doReportByClient(ctx context.Context, client *apiservice.Client
 		LocalHost:  s.localHost,
 		CurTimeSec: time.Now().Unix() - s.timeAdjuster.GetDiff(),
 	}
-	err := checker.Report(request)
+	err := checker.Report(ctx, request)
 	if err != nil {
 		log.Errorf("[Heartbeat][Server]fail to do report client for %s, id is %s, err is %v",
 			client.GetHost().GetValue(), client.GetId().GetValue(), err)

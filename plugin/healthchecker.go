@@ -18,6 +18,7 @@
 package plugin
 
 import (
+	"context"
 	"os"
 	"sync"
 )
@@ -84,11 +85,11 @@ type HealthChecker interface {
 	// Type for health check plugin, only one same type plugin is allowed
 	Type() HealthCheckType
 	// Report process heartbeat info report
-	Report(request *ReportRequest) error
+	Report(ctx context.Context, request *ReportRequest) error
 	// Check process the instance check
 	Check(request *CheckRequest) (*CheckResponse, error)
 	// Query queries the heartbeat time
-	Query(request *QueryRequest) (*QueryResponse, error)
+	Query(ctx context.Context, request *QueryRequest) (*QueryResponse, error)
 	// AddToCheck add the instances to check procedure
 	AddToCheck(request *AddCheckRequest) error
 	// RemoveFromCheck removes the instances from check procedure

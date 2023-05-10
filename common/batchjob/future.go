@@ -73,25 +73,29 @@ func (f *future) Param() Param {
 }
 
 func (f *future) Done() (interface{}, error) {
+	defer func() {
+		f.cancel()
+	}()
 	select {
 	case <-f.ctx.Done():
 		return nil, f.ctx.Err()
 	case <-f.setsignal:
-		f.cancel()
 		return f.result, f.err
 	}
 }
 
 func (f *future) DoneTimeout(timeout time.Duration) (interface{}, error) {
 	timer := time.NewTimer(timeout)
-	defer timer.Stop()
+	defer func() {
+		timer.Stop()
+		f.cancel()
+	}()
 	select {
 	case <-timer.C:
 		return nil, context.DeadlineExceeded
 	case <-f.ctx.Done():
 		return nil, f.ctx.Err()
 	case <-f.setsignal:
-		f.cancel()
 		return f.result, f.err
 	}
 }
