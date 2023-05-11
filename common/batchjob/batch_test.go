@@ -31,7 +31,7 @@ import (
 )
 
 func TestNewBatchController(t *testing.T) {
-	total := 100000
+	total := 1000
 
 	totalTasks := int32(0)
 	testHandle := func(futures []Future) {

@@ -101,14 +101,15 @@ func (f *future) DoneTimeout(timeout time.Duration) (interface{}, error) {
 }
 
 func (f *future) Cancel() {
-	if atomic.CompareAndSwapInt32(&f.replied, 0, 1) {
-		close(f.setsignal)
+	if !atomic.CompareAndSwapInt32(&f.replied, 0, 1) {
+		return
 	}
 	f.cancel()
 }
 
 var (
 	ErrorReplyOnlyOnce = errors.New("reply only call once")
+	ErrorReplyCanceled = errors.New("reply canceled")
 )
 
 func (f *future) Reply(result interface{}, err error) error {
