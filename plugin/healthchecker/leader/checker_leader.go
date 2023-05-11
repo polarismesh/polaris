@@ -158,6 +158,7 @@ func (c *LeaderHealthChecker) Initialize(entry *plugin.ConfigEntry) error {
 		Concurrency:   conf.Batch.Concurrency,
 		Handler:       c.handleSendPutRecords,
 	})
+	registerMetrics()
 	return nil
 }
 
