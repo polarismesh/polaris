@@ -25,10 +25,13 @@ import (
 	"time"
 
 	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/metrics"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
 	ErrorBatchControllerStopped = errors.New("batch controller is stopped")
+	ErrorSubmitTaskTimeout      = errors.New("submit task into batch controller timeout")
 )
 
 const (
@@ -48,8 +51,7 @@ type BatchController struct {
 	workers        []chan []Future
 	cancel         context.CancelFunc
 	allWorkersStop chan struct{}
-	submitCount    uint64
-	finishedCount  uint64
+	unfinishJobs   *prometheus.GaugeVec
 }
 
 // NewBatchController 创建一个批任务处理
@@ -71,7 +73,7 @@ func NewBatchController(ctx context.Context, conf CtrlConfig) *BatchController {
 			}
 		}()
 		conf.Handler(tasks)
-		atomic.AddUint64(&bc.finishedCount, uint64(len(tasks)))
+		metrics.ReportFinishBatchJob(bc.label, int64(len(tasks)))
 	}
 	bc.runWorkers(ctx)
 	bc.mainLoop(ctx)
@@ -95,6 +97,7 @@ func (bc *BatchController) Submit(task Param) Future {
 		setsignal: make(chan struct{}),
 	}
 	bc.tasksChan <- f
+	metrics.ReportAddBatchJob(bc.label, 1)
 	return f
 }
 
@@ -118,8 +121,9 @@ func (bc *BatchController) SubmitWithTimeout(task Param, timeout time.Duration) 
 	select {
 	case <-timer.C:
 		f.Cancel()
-		return &errorFuture{task: task, err: context.DeadlineExceeded}
+		return &errorFuture{task: task, err: ErrorSubmitTaskTimeout}
 	case bc.tasksChan <- f:
+		metrics.ReportAddBatchJob(bc.label, 1)
 		return f
 	}
 }
@@ -199,7 +203,6 @@ func (bc *BatchController) mainLoop(ctx context.Context) {
 			case shutdownGraceful:
 				triggerConsume(futures)
 				for future := range bc.tasksChan {
-					atomic.AddUint64(&bc.submitCount, 1)
 					futures = append(futures, future)
 					if len(futures) == int(bc.conf.MaxBatchCount) {
 						triggerConsume(futures)
@@ -224,8 +227,7 @@ func (bc *BatchController) mainLoop(ctx context.Context) {
 				log.Debugf("[Batch] %s do reply stop msg to future count: %d", bc.label, stopped)
 			}
 			<-bc.allWorkersStop
-			log.Infof("[Batch] %s main loop exited, submit task: %d, finish task: %d",
-				bc.label, atomic.LoadUint64(&bc.submitCount), atomic.LoadUint64(&bc.finishedCount))
+			log.Infof("[Batch] %s main loop exited", bc.label)
 		}
 
 		log.Infof("[Batch] %s running main loop", bc.label)
@@ -241,7 +243,6 @@ func (bc *BatchController) mainLoop(ctx context.Context) {
 			case <-ticker.C:
 				triggerConsume(futures)
 			case future := <-bc.tasksChan:
-				atomic.AddUint64(&bc.submitCount, 1)
 				futures = append(futures, future)
 				if len(futures) == int(bc.conf.MaxBatchCount) {
 					triggerConsume(futures)

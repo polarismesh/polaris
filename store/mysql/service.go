@@ -57,15 +57,6 @@ func (ss *serviceStore) addService(s *model.Service) error {
 		_ = tx.Rollback()
 	}()
 
-	// 锁namespace
-	namespace, err := rlockNamespace(tx.QueryRow, s.Namespace)
-	if err != nil {
-		return err
-	}
-	if namespace == "" {
-		return store.NewStatusError(store.NotFoundNamespace, "not found namespace")
-	}
-
 	// 先清理无效数据
 	if err := cleanService(tx, s.Name, s.Namespace); err != nil {
 		return err
@@ -114,17 +105,6 @@ func (ss *serviceStore) deleteService(id, serviceName, namespaceName string) err
 	defer func() {
 		_ = tx.Rollback()
 	}()
-
-	// 锁住服务
-	revision, err := lockServiceWithID(tx.QueryRow, id)
-	if err != nil {
-		log.Errorf("[Store][database] lock service(%s) err: %s", id, err.Error())
-		return err
-	}
-	if revision == "" {
-		log.Infof("[Store][database] not found service(%s)", id)
-		return nil
-	}
 
 	// 删除服务
 	if err := deleteServiceByID(tx, id); err != nil {
@@ -946,38 +926,6 @@ func callFetchServiceMetaRows(rows *sql.Rows, handler func(id, key, value string
 		return err
 	}
 	return nil
-}
-
-// rlockServiceWithID rlock service
-func rlockServiceWithID(queryRow func(query string, args ...interface{}) *sql.Row,
-	id string) (string, error) {
-	str := "select revision from service where id = ? and flag != 1 lock in share mode"
-	var revision string
-	err := queryRow(str, id).Scan(&revision)
-	switch {
-	case err == sql.ErrNoRows:
-		return "", nil
-	case err != nil:
-		return "", err
-	default:
-		return revision, nil
-	}
-}
-
-// lockServiceWithID lock service
-func lockServiceWithID(queryRow func(query string, args ...interface{}) *sql.Row,
-	id string) (string, error) {
-	str := "select revision from service where id = ? and flag != 1 for update"
-	var revision string
-	err := queryRow(str, id).Scan(&revision)
-	switch {
-	case err == sql.ErrNoRows:
-		return "", nil
-	case err != nil:
-		return "", err
-	default:
-		return revision, nil
-	}
 }
 
 // addServiceMain 增加service主表数据

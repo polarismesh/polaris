@@ -36,6 +36,7 @@ const (
 	LabelErrCode          = "err_code"
 	labelCacheType        = "cache_type"
 	labelCacheUpdateCount = "cache_update_count"
+	labelBatchJobLabel    = "batch_label"
 )
 
 // CallMetricType .
@@ -142,4 +143,6 @@ var (
 	// sdkClientTotal 客户端链接数量
 	sdkClientTotal  prometheus.Gauge
 	cacheUpdateCost *prometheus.HistogramVec
+	// batchJobUnFinishJobs .
+	batchJobUnFinishJobs *prometheus.GaugeVec
 )
