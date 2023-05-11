@@ -231,10 +231,20 @@ func (p *RemotePeer) Del(key string) error {
 }
 
 func (p *RemotePeer) GetFunc(req *apiservice.GetHeartbeatsRequest) *apiservice.GetHeartbeatsResponse {
+	start := time.Now()
+	code := "0"
+	defer func() {
+		observer := beatRecordCost.With(map[string]string{
+			labelAction: "GET",
+			labelCode:   code,
+		})
+		observer.Observe(float64(time.Since(start).Milliseconds()))
+	}()
 	resp, err := p.Client.BatchGetHeartbeat(context.Background(), req, grpc.Header(&metadata.MD{
 		sendResource: []string{utils.LocalHost},
 	}))
 	if err != nil {
+		code = "-1"
 		plog.Error("[HealthCheck][Leader] send get record request", zap.String("host", p.Host()),
 			zap.Uint32("port", p.port), zap.Error(err))
 		return &apiservice.GetHeartbeatsResponse{}
@@ -243,17 +253,37 @@ func (p *RemotePeer) GetFunc(req *apiservice.GetHeartbeatsRequest) *apiservice.G
 }
 
 func (p *RemotePeer) PutFunc(req *apiservice.HeartbeatsRequest) {
+	start := time.Now()
+	code := "0"
+	defer func() {
+		observer := beatRecordCost.With(map[string]string{
+			labelAction: "PUT",
+			labelCode:   code,
+		})
+		observer.Observe(float64(time.Since(start).Milliseconds()))
+	}()
 	index := rand.Intn(len(p.Puters))
 	if err := p.Puters[index].Send(req); err != nil {
+		code = "-1"
 		plog.Error("[HealthCheck][Leader] send put record request", zap.String("host", p.Host()),
 			zap.Uint32("port", p.port), zap.Error(err))
 	}
 }
 
 func (p *RemotePeer) DelFunc(req *apiservice.DelHeartbeatsRequest) {
+	start := time.Now()
+	code := "0"
+	defer func() {
+		observer := beatRecordCost.With(map[string]string{
+			labelAction: "DEL",
+			labelCode:   code,
+		})
+		observer.Observe(float64(time.Since(start).Milliseconds()))
+	}()
 	if _, err := p.Client.BatchDelHeartbeat(context.Background(), req, grpc.Header(&metadata.MD{
 		sendResource: []string{utils.LocalHost},
 	})); err != nil {
+		code = "-1"
 		plog.Error("send del record request", zap.String("host", p.Host()),
 			zap.Uint32("port", p.port), zap.Error(err))
 	}
