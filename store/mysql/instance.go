@@ -52,21 +52,9 @@ func (ins *instanceStore) addInstance(instance *model.Instance) error {
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	// 先对服务加锁
-	revision, err := rlockServiceWithID(tx.QueryRow, instance.ServiceID)
-	if err != nil {
-		log.Errorf("[Store][database] rlock service(%s) err: %s", instance.ServiceID, err.Error())
-		return err
-	}
-
 	// 新增数据之前，必须先清理老数据
 	if err := cleanInstance(tx, instance.ID()); err != nil {
 		return err
-	}
-
-	if revision == "" {
-		log.Errorf("[Store][database] not found service(%s)", instance.ServiceID)
-		return store.NewStatusError(store.NotFoundService, "not found service")
 	}
 
 	if err := addMainInstance(tx, instance); err != nil {

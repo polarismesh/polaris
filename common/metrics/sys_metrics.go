@@ -83,12 +83,23 @@ func registerSysMetrics() {
 		},
 	}, []string{labelCacheType, labelCacheUpdateCount})
 
+	batchJobUnFinishJobs = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "batch_job_unfinish",
+		Help: "count unfinish batch job",
+		ConstLabels: map[string]string{
+			"polaris_server_instance": utils.LocalHost,
+		},
+	}, []string{
+		labelBatchJobLabel,
+	})
+
 	_ = registry.Register(instanceAsyncRegisCost)
 	_ = registry.Register(instanceRegisTaskExpire)
 	_ = registry.Register(redisReadFailure)
 	_ = registry.Register(redisWriteFailure)
 	_ = registry.Register(redisAliveStatus)
 	_ = registry.Register(cacheUpdateCost)
+	_ = registry.Register(batchJobUnFinishJobs)
 
 	go func() {
 		lastRedisReadFailureReport.Store(time.Now())
@@ -147,4 +158,24 @@ func RecordCacheUpdateCost(cost time.Duration, cacheTye string, total int64) {
 		labelCacheType:        cacheTye,
 		labelCacheUpdateCount: strconv.FormatInt(total, 10),
 	})
+}
+
+// ReportAddBatchJob .
+func ReportAddBatchJob(label string, count int64) {
+	if batchJobUnFinishJobs == nil {
+		return
+	}
+	batchJobUnFinishJobs.With(map[string]string{
+		labelBatchJobLabel: label,
+	}).Add(float64(count))
+}
+
+// ReportFinishBatchJob .
+func ReportFinishBatchJob(label string, count int64) {
+	if batchJobUnFinishJobs == nil {
+		return
+	}
+	batchJobUnFinishJobs.With(map[string]string{
+		labelBatchJobLabel: label,
+	}).Sub(float64(count))
 }

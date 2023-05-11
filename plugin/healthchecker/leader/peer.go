@@ -131,16 +131,14 @@ type RemotePeer struct {
 	// Port peer listen port to provider grpc service
 	port uint32
 	// Conn grpc connection
-	Conns []*grpc.ClientConn
-	// Client checker_peer_service client instance
-	Client apiservice.PolarisGRPCClient
+	conns []*grpc.ClientConn
 	// putBatchCtrl 批任务执行器
 	putBatchCtrl *batchjob.BatchController
 	// getBatchCtrl 批任务执行器
 	getBatchCtrl *batchjob.BatchController
 	// Puters 批量心跳发送, 由于一个 stream 对于 server 是一个 goroutine，为了加快 follower 发往 leader 的效率
 	// 这里采用多个 Putter Client 创建多个 Stream
-	Puters []apiservice.PolarisGRPC_BatchHeartbeatClient
+	puters []apiservice.PolarisGRPC_BatchHeartbeatClient
 	// Cache data storage
 	Cache BeatRecordCache
 	// cancel .
@@ -165,8 +163,8 @@ func (p *RemotePeer) Serve(_ context.Context, checker *LeaderHealthChecker,
 	p.cancel = cancel
 	p.host = listenIP
 	p.port = listenPort
-	p.Conns = make([]*grpc.ClientConn, 0, streamNum)
-	p.Puters = make([]apiservice.PolarisGRPC_BatchHeartbeatClient, 0, streamNum)
+	p.conns = make([]*grpc.ClientConn, 0, streamNum)
+	p.puters = make([]apiservice.PolarisGRPC_BatchHeartbeatClient, 0, streamNum)
 	for i := 0; i < streamNum; i++ {
 		conn, err := grpc.DialContext(ctx, fmt.Sprintf("%s:%d", listenIP, listenPort),
 			grpc.WithBlock(),
@@ -177,18 +175,18 @@ func (p *RemotePeer) Serve(_ context.Context, checker *LeaderHealthChecker,
 			_ = p.Close()
 			return err
 		}
-		p.Conns = append(p.Conns, conn)
+		p.conns = append(p.conns, conn)
 	}
-	p.Client = apiservice.NewPolarisGRPCClient(p.Conns[0])
 	for i := 0; i < streamNum; i++ {
-		puter, err := p.Client.BatchHeartbeat(ctx, grpc.Header(&metadata.MD{
+		client := apiservice.NewPolarisGRPCClient(p.conns[i])
+		puter, err := client.BatchHeartbeat(ctx, grpc.Header(&metadata.MD{
 			sendResource: []string{utils.LocalHost},
 		}))
 		if err != nil {
 			_ = p.Close()
 			return err
 		}
-		p.Puters = append(p.Puters, puter)
+		p.puters = append(p.puters, puter)
 	}
 	p.getBatchCtrl = checker.getBatchCtrl
 	p.putBatchCtrl = checker.putBatchCtrl
@@ -231,10 +229,21 @@ func (p *RemotePeer) Del(key string) error {
 }
 
 func (p *RemotePeer) GetFunc(req *apiservice.GetHeartbeatsRequest) *apiservice.GetHeartbeatsResponse {
-	resp, err := p.Client.BatchGetHeartbeat(context.Background(), req, grpc.Header(&metadata.MD{
+	start := time.Now()
+	code := "0"
+	defer func() {
+		observer := beatRecordCost.With(map[string]string{
+			labelAction: "GET",
+			labelCode:   code,
+		})
+		observer.Observe(float64(time.Since(start).Milliseconds()))
+	}()
+	client := p.choseOneClient()
+	resp, err := client.BatchGetHeartbeat(context.Background(), req, grpc.Header(&metadata.MD{
 		sendResource: []string{utils.LocalHost},
 	}))
 	if err != nil {
+		code = "-1"
 		plog.Error("[HealthCheck][Leader] send get record request", zap.String("host", p.Host()),
 			zap.Uint32("port", p.port), zap.Error(err))
 		return &apiservice.GetHeartbeatsResponse{}
@@ -243,20 +252,46 @@ func (p *RemotePeer) GetFunc(req *apiservice.GetHeartbeatsRequest) *apiservice.G
 }
 
 func (p *RemotePeer) PutFunc(req *apiservice.HeartbeatsRequest) {
-	index := rand.Intn(len(p.Puters))
-	if err := p.Puters[index].Send(req); err != nil {
+	start := time.Now()
+	code := "0"
+	defer func() {
+		observer := beatRecordCost.With(map[string]string{
+			labelAction: "PUT",
+			labelCode:   code,
+		})
+		observer.Observe(float64(time.Since(start).Milliseconds()))
+	}()
+	index := rand.Intn(len(p.puters))
+	if err := p.puters[index].Send(req); err != nil {
+		code = "-1"
 		plog.Error("[HealthCheck][Leader] send put record request", zap.String("host", p.Host()),
 			zap.Uint32("port", p.port), zap.Error(err))
 	}
 }
 
 func (p *RemotePeer) DelFunc(req *apiservice.DelHeartbeatsRequest) {
-	if _, err := p.Client.BatchDelHeartbeat(context.Background(), req, grpc.Header(&metadata.MD{
+	start := time.Now()
+	code := "0"
+	defer func() {
+		observer := beatRecordCost.With(map[string]string{
+			labelAction: "DEL",
+			labelCode:   code,
+		})
+		observer.Observe(float64(time.Since(start).Milliseconds()))
+	}()
+	client := p.choseOneClient()
+	if _, err := client.BatchDelHeartbeat(context.Background(), req, grpc.Header(&metadata.MD{
 		sendResource: []string{utils.LocalHost},
 	})); err != nil {
+		code = "-1"
 		plog.Error("send del record request", zap.String("host", p.Host()),
 			zap.Uint32("port", p.port), zap.Error(err))
 	}
+}
+
+func (p *RemotePeer) choseOneClient() apiservice.PolarisGRPCClient {
+	index := rand.Intn(len(p.conns))
+	return apiservice.NewPolarisGRPCClient(p.conns[index])
 }
 
 func (p *RemotePeer) Storage() BeatRecordCache {
@@ -271,14 +306,14 @@ func (p *RemotePeer) Close() error {
 	if p.cancel != nil {
 		p.cancel()
 	}
-	if len(p.Puters) != 0 {
-		for i := range p.Puters {
-			_ = p.Puters[i].CloseSend()
+	if len(p.puters) != 0 {
+		for i := range p.puters {
+			_ = p.puters[i].CloseSend()
 		}
 	}
-	if len(p.Conns) != 0 {
-		for i := range p.Conns {
-			_ = p.Conns[i].Close()
+	if len(p.conns) != 0 {
+		for i := range p.conns {
+			_ = p.conns[i].Close()
 		}
 	}
 	return nil
