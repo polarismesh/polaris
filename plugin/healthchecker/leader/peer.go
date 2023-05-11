@@ -265,7 +265,7 @@ func (p *RemotePeer) Storage() BeatRecordCache {
 
 // Close close peer life
 func (p *RemotePeer) Close() error {
-	if atomic.CompareAndSwapInt32(&p.closed, 0, 1) {
+	if !atomic.CompareAndSwapInt32(&p.closed, 0, 1) {
 		return nil
 	}
 	if p.cancel != nil {

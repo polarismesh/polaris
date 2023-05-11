@@ -64,6 +64,7 @@ type future struct {
 	err       error
 	result    interface{}
 	replied   int32
+	closed    int32
 	ctx       context.Context
 	cancel    context.CancelFunc
 }
@@ -74,6 +75,9 @@ func (f *future) Param() Param {
 
 func (f *future) Done() (interface{}, error) {
 	defer func() {
+		if atomic.CompareAndSwapInt32(&f.closed, 0, 1) {
+			close(f.setsignal)
+		}
 		f.cancel()
 	}()
 	select {
@@ -87,6 +91,9 @@ func (f *future) Done() (interface{}, error) {
 func (f *future) DoneTimeout(timeout time.Duration) (interface{}, error) {
 	timer := time.NewTimer(timeout)
 	defer func() {
+		if atomic.CompareAndSwapInt32(&f.closed, 0, 1) {
+			close(f.setsignal)
+		}
 		timer.Stop()
 		f.cancel()
 	}()
@@ -101,7 +108,10 @@ func (f *future) DoneTimeout(timeout time.Duration) (interface{}, error) {
 }
 
 func (f *future) Cancel() {
-	if atomic.CompareAndSwapInt32(&f.replied, 0, 1) {
+	if !atomic.CompareAndSwapInt32(&f.replied, 0, 1) {
+		return
+	}
+	if atomic.CompareAndSwapInt32(&f.closed, 0, 1) {
 		close(f.setsignal)
 	}
 	f.cancel()
@@ -118,6 +128,5 @@ func (f *future) Reply(result interface{}, err error) error {
 	f.result = result
 	f.err = err
 	f.setsignal <- struct{}{}
-	close(f.setsignal)
 	return nil
 }
