@@ -138,7 +138,7 @@ type RemotePeer struct {
 	getBatchCtrl *batchjob.BatchController
 	// Puters 批量心跳发送, 由于一个 stream 对于 server 是一个 goroutine，为了加快 follower 发往 leader 的效率
 	// 这里采用多个 Putter Client 创建多个 Stream
-	puters []apiservice.PolarisGRPC_BatchHeartbeatClient
+	puters []*beatSender
 	// Cache data storage
 	Cache BeatRecordCache
 	// cancel .
@@ -164,7 +164,7 @@ func (p *RemotePeer) Serve(_ context.Context, checker *LeaderHealthChecker,
 	p.host = listenIP
 	p.port = listenPort
 	p.conns = make([]*grpc.ClientConn, 0, streamNum)
-	p.puters = make([]apiservice.PolarisGRPC_BatchHeartbeatClient, 0, streamNum)
+	p.puters = make([]*beatSender, 0, streamNum)
 	for i := 0; i < streamNum; i++ {
 		conn, err := grpc.DialContext(ctx, fmt.Sprintf("%s:%d", listenIP, listenPort),
 			grpc.WithBlock(),
@@ -186,33 +186,14 @@ func (p *RemotePeer) Serve(_ context.Context, checker *LeaderHealthChecker,
 			_ = p.Close()
 			return err
 		}
-		p.puters = append(p.puters, puter)
+		p.puters = append(p.puters, &beatSender{
+			sender: puter,
+		})
 	}
 	p.getBatchCtrl = checker.getBatchCtrl
 	p.putBatchCtrl = checker.putBatchCtrl
 	p.Cache = newRemoteBeatRecordCache(p.GetFunc, p.PutFunc, p.DelFunc)
-	p.consumePutterReceive(ctx)
 	return nil
-}
-
-func (p *RemotePeer) consumePutterReceive(ctx context.Context) {
-	for i := range p.puters {
-		puter := p.puters[i]
-		go func(puter apiservice.PolarisGRPC_BatchHeartbeatClient, index int) {
-			for {
-				select {
-				case <-ctx.Done():
-					log.Debugf("[HealthCheck][Leader] remote peer exit consume putter[%d]", index)
-					return
-				default:
-					_, err := puter.Recv()
-					if err != nil {
-						return
-					}
-				}
-			}
-		}(puter, i)
-	}
 }
 
 func (p *RemotePeer) Host() string {
@@ -329,7 +310,7 @@ func (p *RemotePeer) Close() error {
 	}
 	if len(p.puters) != 0 {
 		for i := range p.puters {
-			_ = p.puters[i].CloseSend()
+			_ = p.puters[i].close()
 		}
 	}
 	if len(p.conns) != 0 {
@@ -356,4 +337,19 @@ type PeerReadTask struct {
 	Peer    *RemotePeer
 	Keys    []string
 	Futures map[string][]batchjob.Future
+}
+
+type beatSender struct {
+	lock   sync.RWMutex
+	sender apiservice.PolarisGRPC_BatchHeartbeatClient
+}
+
+func (s *beatSender) Send(req *apiservice.HeartbeatsRequest) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	return s.sender.Send(req)
+}
+
+func (s *beatSender) close() error {
+	return s.sender.CloseSend()
 }
