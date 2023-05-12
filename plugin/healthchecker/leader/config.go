@@ -40,10 +40,10 @@ func unmarshal(options map[string]interface{}) (*Config, error) {
 		SoltNum:   DefaultSoltNum,
 		StreamNum: int32(streamNum),
 		Batch: batchjob.CtrlConfig{
-			QueueSize:     10240,
-			WaitTime:      128 * time.Millisecond,
-			MaxBatchCount: 128,
-			Concurrency:   64,
+			QueueSize:     16384,
+			WaitTime:      32 * time.Millisecond,
+			MaxBatchCount: 64,
+			Concurrency:   512,
 		},
 	}
 	if err := json.Unmarshal(contentBytes, config); err != nil {
