@@ -498,8 +498,8 @@ func (c *LeaderHealthChecker) handleSendGetRecords(futures []batchjob.Future) {
 		resp := peer.Cache.Get(keys...)
 		for key := range resp {
 			fs := peerfutures[key]
-			for _, f := range fs {
-				_ = f.Reply(map[string]*ReadBeatRecord{
+			for index := range fs {
+				_ = fs[index].Reply(map[string]*ReadBeatRecord{
 					key: resp[key],
 				}, nil)
 			}
@@ -524,11 +524,9 @@ func (c *LeaderHealthChecker) handleSendPutRecords(futures []batchjob.Future) {
 			peers[peer.Host()] = &PeerWriteTask{
 				Peer:    peer,
 				Records: make([]WriteBeatRecord, 0, 16),
-				Futures: make([]batchjob.Future, 0, 16),
 			}
 		}
 		peers[peer.Host()].Records = append(peers[peer.Host()].Records, *task.Record)
-		peers[peer.Host()].Futures = append(peers[peer.Host()].Futures, futures[i])
 	}
 
 	for i := range peers {

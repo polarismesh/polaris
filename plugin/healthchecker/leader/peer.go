@@ -328,7 +328,6 @@ var (
 type PeerWriteTask struct {
 	Peer    *RemotePeer
 	Records []WriteBeatRecord
-	Futures []batchjob.Future
 }
 
 // PeerReadTask peer read task
