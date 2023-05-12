@@ -95,7 +95,7 @@ func (bc *BatchController) Submit(task Param) Future {
 		task:      task,
 		ctx:       ctx,
 		cancel:    cancel,
-		setsignal: make(chan struct{}),
+		setsignal: make(chan struct{}, 1),
 	}
 	bc.tasksChan <- f
 	metrics.ReportAddBatchJob(bc.label, 1)
@@ -115,7 +115,7 @@ func (bc *BatchController) SubmitWithTimeout(task Param, timeout time.Duration) 
 		task:      task,
 		ctx:       ctx,
 		cancel:    cancel,
-		setsignal: make(chan struct{}),
+		setsignal: make(chan struct{}, 1),
 	}
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
