@@ -193,7 +193,28 @@ func (p *RemotePeer) Serve(_ context.Context, checker *LeaderHealthChecker,
 	p.getBatchCtrl = checker.getBatchCtrl
 	p.putBatchCtrl = checker.putBatchCtrl
 	p.Cache = newRemoteBeatRecordCache(p.GetFunc, p.PutFunc, p.DelFunc)
+	p.consumePutterReceive(ctx)
 	return nil
+}
+
+func (p *RemotePeer) consumePutterReceive(ctx context.Context) {
+	for i := range p.puters {
+		puter := p.puters[i]
+		go func(puter apiservice.PolarisGRPC_BatchHeartbeatClient, index int) {
+			for {
+				select {
+				case <-ctx.Done():
+					log.Debugf("[HealthCheck][Leader] remote peer exit consume putter[%d]", index)
+					return
+				default:
+					_, err := puter.Recv()
+					if err != nil {
+						return
+					}
+				}
+			}
+		}(puter, i)
+	}
 }
 
 func (p *RemotePeer) Host() string {
