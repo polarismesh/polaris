@@ -44,6 +44,17 @@ func (ic *instanceCache) reportMetricsInfo() {
 	serviceCache := cacheMgr.Service()
 	metricValues := make([]metrics.DiscoveryMetric, 0, 32)
 
+	_ = cacheMgr.Service().IteratorServices(func(key string, svc *model.Service) (bool, error) {
+		if _, ok := offlineService[svc.Namespace]; !ok {
+			offlineService[svc.Namespace] = map[string]struct{}{}
+		}
+		countInfo := ic.GetInstancesCountByServiceID(svc.ID)
+		if countInfo.TotalInstanceCount == 0 {
+			offlineService[svc.Namespace][svc.Name] = struct{}{}
+		}
+		return true, nil
+	})
+
 	// instance count metrics
 	ic.instanceCounts.Range(func(key, value any) bool {
 		serviceID := key.(string)
@@ -67,16 +78,10 @@ func (ic *instanceCache) reportMetricsInfo() {
 		if _, ok := onlineService[svc.Namespace]; !ok {
 			onlineService[svc.Namespace] = map[string]struct{}{}
 		}
-		if _, ok := offlineService[svc.Namespace]; !ok {
-			offlineService[svc.Namespace] = map[string]struct{}{}
-		}
 		if _, ok := abnormalService[svc.Namespace]; !ok {
 			abnormalService[svc.Namespace] = map[string]struct{}{}
 		}
 
-		if countInfo.TotalInstanceCount == 0 {
-			offlineService[svc.Namespace][svc.Name] = struct{}{}
-		}
 		if countInfo.TotalInstanceCount != 0 && countInfo.HealthyInstanceCount == 0 {
 			abnormalService[svc.Namespace][svc.Name] = struct{}{}
 		}

@@ -95,7 +95,7 @@ func TestNewBatchControllerTSubmitTimeout(t *testing.T) {
 			future := ctrl.SubmitWithTimeout(fmt.Sprintf("%d", i), time.Millisecond)
 			_, err := future.Done()
 			if err != nil {
-				assert.True(t, errors.Is(err, context.DeadlineExceeded), err)
+				assert.True(t, errors.Is(err, ErrorSubmitTaskTimeout), err)
 			}
 		}(i)
 	}
@@ -105,7 +105,7 @@ func TestNewBatchControllerTSubmitTimeout(t *testing.T) {
 }
 
 func TestNewBatchControllerDoneTimeout(t *testing.T) {
-	total := 1000
+	total := 100
 
 	totalTasks := int32(0)
 	testHandle := func(futures []Future) {
@@ -128,10 +128,9 @@ func TestNewBatchControllerDoneTimeout(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			future := ctrl.Submit(fmt.Sprintf("%d", i))
-			_, err := future.DoneTimeout(time.Millisecond)
-			if err != nil {
-				assert.True(t, errors.Is(err, context.DeadlineExceeded), err)
-			}
+			_, err := future.DoneTimeout(time.Second)
+			assert.Error(t, err)
+			assert.True(t, errors.Is(err, context.DeadlineExceeded), err)
 		}(i)
 	}
 

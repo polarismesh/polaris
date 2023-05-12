@@ -101,8 +101,8 @@ func (f *future) DoneTimeout(timeout time.Duration) (interface{}, error) {
 }
 
 func (f *future) Cancel() {
-	if !atomic.CompareAndSwapInt32(&f.replied, 0, 1) {
-		return
+	if atomic.CompareAndSwapInt32(&f.replied, 0, 1) {
+		close(f.setsignal)
 	}
 	f.cancel()
 }

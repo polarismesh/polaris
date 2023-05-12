@@ -40,7 +40,7 @@ func registerMetrics() {
 		ConstLabels: map[string]string{
 			metrics.LabelServerNode: utils.LocalHost,
 		},
-		Buckets: []float64{},
+		Buckets: []float64{5, 10, 15, 20, 30, 50, 100, 500, 1000, 5000},
 	}, []string{labelAction, labelCode})
 
 	_ = metrics.GetRegistry().Register(beatRecordCost)
