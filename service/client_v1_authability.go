@@ -76,35 +76,107 @@ func (svr *serverAuthAbility) GetPrometheusTargets(ctx context.Context,
 // GetServiceWithCache is the interface for getting service with cache
 func (svr *serverAuthAbility) GetServiceWithCache(
 	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+
+	authCtx := svr.collectServiceAuthContext(
+		ctx, []*apiservice.Service{req}, model.Read, "DiscoverServices")
+	_, err := svr.authMgn.CheckClientPermission(authCtx)
+	if err != nil {
+		resp := api.NewDiscoverResponse(convertToErrCode(err))
+		resp.Info = utils.NewStringValue(err.Error())
+		return resp
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.GetServiceWithCache(ctx, req)
 }
 
 // ServiceInstancesCache is the interface for getting service instances cache
 func (svr *serverAuthAbility) ServiceInstancesCache(
 	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+
+	authCtx := svr.collectServiceAuthContext(
+		ctx, []*apiservice.Service{req}, model.Read, "DiscoverInstances")
+	_, err := svr.authMgn.CheckClientPermission(authCtx)
+	if err != nil {
+		resp := api.NewDiscoverResponse(convertToErrCode(err))
+		resp.Info = utils.NewStringValue(err.Error())
+		return resp
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.ServiceInstancesCache(ctx, req)
 }
 
 // GetRoutingConfigWithCache is the interface for getting routing config with cache
 func (svr *serverAuthAbility) GetRoutingConfigWithCache(
 	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+
+	authCtx := svr.collectServiceAuthContext(
+		ctx, []*apiservice.Service{req}, model.Read, "DiscoverRouterRule")
+	_, err := svr.authMgn.CheckClientPermission(authCtx)
+	if err != nil {
+		resp := api.NewDiscoverResponse(convertToErrCode(err))
+		resp.Info = utils.NewStringValue(err.Error())
+		return resp
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.GetRoutingConfigWithCache(ctx, req)
 }
 
 // GetRateLimitWithCache is the interface for getting rate limit with cache
 func (svr *serverAuthAbility) GetRateLimitWithCache(
 	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+
+	authCtx := svr.collectServiceAuthContext(
+		ctx, []*apiservice.Service{req}, model.Read, "DiscoverRateLimit")
+	_, err := svr.authMgn.CheckClientPermission(authCtx)
+	if err != nil {
+		resp := api.NewDiscoverResponse(convertToErrCode(err))
+		resp.Info = utils.NewStringValue(err.Error())
+		return resp
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.GetRateLimitWithCache(ctx, req)
 }
 
 // GetCircuitBreakerWithCache is the interface for getting a circuit breaker with cache
 func (svr *serverAuthAbility) GetCircuitBreakerWithCache(
 	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+
+	authCtx := svr.collectServiceAuthContext(
+		ctx, []*apiservice.Service{req}, model.Read, "DiscoverCircuitBreaker")
+	_, err := svr.authMgn.CheckClientPermission(authCtx)
+	if err != nil {
+		resp := api.NewDiscoverResponse(convertToErrCode(err))
+		resp.Info = utils.NewStringValue(err.Error())
+		return resp
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.GetCircuitBreakerWithCache(ctx, req)
 }
 
 func (svr *serverAuthAbility) GetFaultDetectWithCache(
 	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+
+	authCtx := svr.collectServiceAuthContext(
+		ctx, []*apiservice.Service{req}, model.Read, "DiscoverFaultDetect")
+	_, err := svr.authMgn.CheckClientPermission(authCtx)
+	if err != nil {
+		resp := api.NewDiscoverResponse(convertToErrCode(err))
+		resp.Info = utils.NewStringValue(err.Error())
+		return resp
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return svr.targetServer.GetFaultDetectWithCache(ctx, req)
 }
 

@@ -151,7 +151,7 @@ func (bc *baseCache) initialize() {
 	bc.lock.Lock()
 	defer bc.lock.Unlock()
 
-	bc.lastFetchTime = 0
+	bc.lastFetchTime = 1
 	bc.firtstUpdate = true
 	bc.manager = &listenerManager{
 		listeners: make([]Listener, 0, 4),
@@ -172,7 +172,7 @@ func (bc *baseCache) resetLastMtime(label string) {
 func (bc *baseCache) resetLastFetchTime() {
 	bc.lock.Lock()
 	defer bc.lock.Unlock()
-	bc.lastFetchTime = 0
+	bc.lastFetchTime = 1
 }
 
 func (bc *baseCache) LastMtime(label string) time.Time {
@@ -241,7 +241,7 @@ func (bc *baseCache) clear() {
 	bc.lock.Lock()
 	defer bc.lock.Unlock()
 	bc.lastMtimes = make(map[string]time.Time)
-	bc.lastFetchTime = 0
+	bc.lastFetchTime = 1
 	bc.firtstUpdate = true
 }
 
