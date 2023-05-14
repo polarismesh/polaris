@@ -96,6 +96,7 @@ func (f *future) DoneTimeout(timeout time.Duration) (interface{}, error) {
 	case <-f.ctx.Done():
 		return nil, f.ctx.Err()
 	case <-f.setsignal:
+		f.cancel()
 		return f.result, f.err
 	}
 }
