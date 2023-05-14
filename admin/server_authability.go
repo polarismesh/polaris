@@ -30,15 +30,15 @@ import (
 // serverAuthAbility 带有鉴权能力的 maintainServer
 type serverAuthAbility struct {
 	targetServer *Server
-	authSvr      auth.AuthServer
-	authMgn      auth.AuthChecker
+	userMgn      auth.UserOperator
+	strategyMgn  auth.StrategyOperator
 }
 
-func newServerAuthAbility(targetServer *Server, authSvr auth.AuthServer) AdminOperateServer {
+func newServerAuthAbility(targetServer *Server, userMgn auth.UserOperator, strategyMgn auth.StrategyOperator) AdminOperateServer {
 	proxy := &serverAuthAbility{
 		targetServer: targetServer,
-		authSvr:      authSvr,
-		authMgn:      authSvr.GetAuthChecker(),
+		userMgn:      userMgn,
+		strategyMgn:  strategyMgn,
 	}
 
 	return proxy

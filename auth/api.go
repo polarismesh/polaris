@@ -28,33 +28,6 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
-// AuthServer 鉴权 Server
-type AuthServer interface {
-	// Initialize 初始化
-	Initialize(authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error
-
-	// Name 获取服务名称
-	Name() string
-
-	// GetAuthChecker 获取鉴权检查器
-	GetAuthChecker() AuthChecker
-
-	// AfterResourceOperation 操作完资源的后置处理逻辑
-	AfterResourceOperation(afterCtx *model.AcquireContext) error
-
-	// Login 登录动作
-	Login(req *apisecurity.LoginRequest) *apiservice.Response
-
-	// UserOperator 用户操作
-	UserOperator
-
-	// GroupOperator 组操作
-	GroupOperator
-
-	// StrategyOperator 策略操作
-	StrategyOperator
-}
-
 // AuthChecker 权限管理通用接口定义
 type AuthChecker interface {
 	// Initialize 执行初始化动作
@@ -73,6 +46,11 @@ type AuthChecker interface {
 
 // UserOperator 用户数据管理 server
 type UserOperator interface {
+	// Initialize 初始化
+	Initialize(authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error
+
+	// Name 用户数据管理server名称
+	Name() string
 
 	// CreateUsers 批量创建用户
 	CreateUsers(ctx context.Context, users []*apisecurity.User) *apiservice.BatchWriteResponse
@@ -97,6 +75,11 @@ type UserOperator interface {
 
 	// ResetUserToken 重置用户的token
 	ResetUserToken(ctx context.Context, user *apisecurity.User) *apiservice.Response
+
+	// Login 登录动作
+	Login(req *apisecurity.LoginRequest) *apiservice.Response
+
+	GroupOperator
 }
 
 // GroupOperator 用户组相关操作
@@ -128,6 +111,11 @@ type GroupOperator interface {
 
 // StrategyOperator 策略相关操作
 type StrategyOperator interface {
+	// Initialize 初始化
+	Initialize(authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error
+
+	// Name 策略管理server名称
+	Name() string
 
 	// CreateStrategy 创建策略
 	CreateStrategy(ctx context.Context, strategy *apisecurity.AuthStrategy) *apiservice.Response
@@ -148,4 +136,10 @@ type StrategyOperator interface {
 
 	// GetPrincipalResources 获取某个 principal 的所有可操作资源列表
 	GetPrincipalResources(ctx context.Context, query map[string]string) *apiservice.Response
+
+	// GetAuthChecker 获取鉴权检查器
+	GetAuthChecker() AuthChecker
+
+	// AfterResourceOperation 操作完资源的后置处理逻辑
+	AfterResourceOperation(afterCtx *model.AcquireContext) error
 }

@@ -34,7 +34,7 @@ func (s *serverAuthability) PublishConfigFile(ctx context.Context,
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx,
 		[]*apiconfig.ConfigFileRelease{configFileRelease}, model.Create, "PublishConfigFile")
 
-	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 
@@ -63,7 +63,7 @@ func (s *serverAuthability) DeleteConfigFileRelease(ctx context.Context, namespa
 		},
 	}
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx, req, model.Delete, "DeleteConfigFileRelease")
-	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 

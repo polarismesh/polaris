@@ -29,7 +29,7 @@ import (
 )
 
 func TestInitialize(_ context.Context, nsOpt *Config, storage store.Store, cacheMgn *cache.CacheManager,
-	authSvr auth.AuthServer) (NamespaceOperateServer, error) {
+	userMgn auth.UserOperator, strategyMgn auth.StrategyOperator) (NamespaceOperateServer, error) {
 	namespaceServer := &Server{}
 	namespaceServer.caches = cacheMgn
 	namespaceServer.storage = storage
@@ -42,5 +42,5 @@ func TestInitialize(_ context.Context, nsOpt *Config, storage store.Store, cache
 		log.Warn("Not Found History Log Plugin")
 	}
 
-	return newServerAuthAbility(namespaceServer, authSvr), nil
+	return newServerAuthAbility(namespaceServer, userMgn, strategyMgn), nil
 }

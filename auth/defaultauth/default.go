@@ -22,10 +22,13 @@ import (
 )
 
 const (
-	// PluginName default auth name
-	PluginName = "defaultAuth"
+	// UserMgnPluginName default user server name
+	UserMgnPluginName = "defaultUserManager"
+	// StrategyMgnPluginName default strategy server name
+	StrategyMgnPluginName = "defaultStrategyManager"
 )
 
 func init() {
-	_ = auth.RegisterAuthServer(&serverAuthAbility{})
+	_ = auth.RegisterUserOperator(&userAuthAbility{})
+	_ = auth.RegisterStrategyOperator(&startegyAuthAbility{})
 }

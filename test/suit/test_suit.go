@@ -213,13 +213,13 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	}
 
 	// 初始化鉴权层
-	authSvr, err := auth.TestInitialize(ctx, &d.cfg.Auth, s, cacheMgn)
+	userMgn, strategyMgn, err := auth.TestInitialize(ctx, &d.cfg.Auth, s, cacheMgn)
 	if err != nil {
 		panic(err)
 	}
 
 	// 初始化命名空间模块
-	namespaceSvr, err := ns.TestInitialize(ctx, &d.cfg.Namespace, s, cacheMgn, authSvr)
+	namespaceSvr, err := ns.TestInitialize(ctx, &d.cfg.Namespace, s, cacheMgn, userMgn, strategyMgn)
 	if err != nil {
 		panic(err)
 	}
@@ -271,7 +271,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	cacheMgn.AddListener(cache.CacheNameClient, []cache.Listener{cacheProvider})
 
 	val, originVal, err := service.TestInitialize(ctx, &d.cfg.Naming, &d.cfg.Cache, bc, cacheMgn, d.Storage, namespaceSvr,
-		healthCheckServer, authSvr)
+		healthCheckServer, userMgn, strategyMgn)
 	if err != nil {
 		panic(err)
 	}

@@ -62,10 +62,10 @@ type Config struct {
 }
 
 // Initialize 初始化
-func Initialize(ctx context.Context, namingOpt *Config, authSvr auth.AuthServer, opts ...InitOption) error {
+func Initialize(ctx context.Context, namingOpt *Config, opts ...InitOption) error {
 	var err error
 	once.Do(func() {
-		err = initialize(ctx, namingOpt, authSvr, opts...)
+		err = initialize(ctx, namingOpt, opts...)
 	})
 
 	if err != nil {
@@ -95,7 +95,7 @@ func GetOriginServer() (*Server, error) {
 }
 
 // 内部初始化函数
-func initialize(ctx context.Context, namingOpt *Config, authSvr auth.AuthServer, opts ...InitOption) error {
+func initialize(ctx context.Context, namingOpt *Config, opts ...InitOption) error {
 	// l5service
 	namingServer.l5service = &l5service{}
 	namingServer.createServiceSingle = &singleflight.Group{}
@@ -107,12 +107,17 @@ func initialize(ctx context.Context, namingOpt *Config, authSvr auth.AuthServer,
 	// 插件初始化
 	pluginInitialize()
 
-	authServer, err := auth.GetAuthServer()
+	userMgn, err := auth.GetUserOperator()
+	if err != nil {
+		return err
+	}
+	strategyMgn, err := auth.GetStrategyOperator()
 	if err != nil {
 		return err
 	}
 
-	server = newServerAuthAbility(namingServer, authServer)
+	server = newServerAuthAbility(namingServer, userMgn, strategyMgn)
+
 	return nil
 }
 

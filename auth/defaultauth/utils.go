@@ -166,8 +166,8 @@ func checkEmail(email *wrappers.StringValue) error {
 }
 
 // verifyAuth 用于 user、group 以及 strategy 模块的鉴权工作检查
-func (svr *serverAuthAbility) verifyAuth(ctx context.Context, isWrite bool,
-	needOwner bool) (context.Context, *apiservice.Response) {
+func verifyAuth(ctx context.Context, isWrite bool,
+	needOwner bool, authMgn *defaultAuthChecker) (context.Context, *apiservice.Response) {
 	reqId := utils.ParseRequestID(ctx)
 	authToken := utils.ParseAuthToken(ctx)
 
@@ -185,7 +185,7 @@ func (svr *serverAuthAbility) verifyAuth(ctx context.Context, isWrite bool,
 	// case 2. 如果 error 是 token 被禁止，按下面情况判断
 	// 		i. 如果当前只是一个数据的读取操作，则放通
 	// 		ii. 如果当前是一个数据的写操作，则只能允许处于正常的 token 进行操作
-	if err := svr.authMgn.VerifyCredential(authCtx); err != nil {
+	if err := authMgn.VerifyCredential(authCtx); err != nil {
 		log.Error("[Auth][Server] verify auth token", utils.ZapRequestID(reqId),
 			zap.Error(err))
 		return nil, api.NewAuthResponse(apimodel.Code_AuthTokenForbidden)

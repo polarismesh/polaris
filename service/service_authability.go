@@ -33,7 +33,7 @@ func (svr *serverAuthAbility) CreateServices(
 	ctx context.Context, reqs []*apiservice.Service) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, reqs, model.Create, "CreateServices")
 
-	_, err := svr.authMgn.CheckConsolePermission(authCtx)
+	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
@@ -63,7 +63,7 @@ func (svr *serverAuthAbility) DeleteServices(
 	delete(accessRes, apisecurity.ResourceType_Namespaces)
 	authCtx.SetAccessResources(accessRes)
 
-	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponseWithMsg(convertToErrCode(err), err.Error())
 	}
 
@@ -82,7 +82,7 @@ func (svr *serverAuthAbility) UpdateServices(
 	delete(accessRes, apisecurity.ResourceType_Namespaces)
 	authCtx.SetAccessResources(accessRes)
 
-	_, err := svr.authMgn.CheckConsolePermission(authCtx)
+	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
@@ -102,7 +102,7 @@ func (svr *serverAuthAbility) UpdateServiceToken(
 	delete(accessRes, apisecurity.ResourceType_Namespaces)
 	authCtx.SetAccessResources(accessRes)
 
-	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 	}
 
@@ -115,7 +115,7 @@ func (svr *serverAuthAbility) GetAllServices(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetAllServices")
 
-	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchQueryResponseWithMsg(convertToErrCode(err), err.Error())
 	}
 
@@ -130,7 +130,7 @@ func (svr *serverAuthAbility) GetServices(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServices")
 
-	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchQueryResponseWithMsg(convertToErrCode(err), err.Error())
 	}
 
@@ -147,7 +147,7 @@ func (svr *serverAuthAbility) GetServices(
 			svc := resp.Services[index]
 			editable := true
 			// 如果鉴权能力没有开启，那就默认都可以进行编辑
-			if svr.authMgn.IsOpenConsoleAuth() {
+			if svr.strategyMgn.GetAuthChecker().IsOpenConsoleAuth() {
 				editable = svr.Cache().AuthStrategy().IsResourceEditable(principal,
 					apisecurity.ResourceType_Services, svc.Id.GetValue())
 			}
@@ -161,7 +161,7 @@ func (svr *serverAuthAbility) GetServices(
 func (svr *serverAuthAbility) GetServicesCount(ctx context.Context) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServicesCount")
 
-	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchQueryResponseWithMsg(convertToErrCode(err), err.Error())
 	}
 
@@ -174,7 +174,7 @@ func (svr *serverAuthAbility) GetServicesCount(ctx context.Context) *apiservice.
 func (svr *serverAuthAbility) GetServiceToken(ctx context.Context, req *apiservice.Service) *apiservice.Response {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServiceToken")
 
-	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 	}
 
@@ -188,7 +188,7 @@ func (svr *serverAuthAbility) GetServiceOwner(
 	ctx context.Context, req []*apiservice.Service) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServiceOwner")
 
-	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchQueryResponseWithMsg(convertToErrCode(err), err.Error())
 	}
 

@@ -57,7 +57,7 @@ func TestNewServer(mockStore store.Store, nsSvr namespace.NamespaceOperateServer
 // TestInitialize 初始化
 func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, bc *batch.Controller,
 	cacheMgr *cache.CacheManager, storage store.Store, namespaceSvr namespace.NamespaceOperateServer,
-	healthSvr *healthcheck.Server, authSvr auth.AuthServer) (DiscoverServer, DiscoverServer, error) {
+	healthSvr *healthcheck.Server, userMgn auth.UserOperator, strategyMgn auth.StrategyOperator) (DiscoverServer, DiscoverServer, error) {
 	namingServer.healthServer = healthSvr
 	namingServer.storage = storage
 	// 注入命名空间管理模块
@@ -76,7 +76,7 @@ func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Conf
 	namingServer.createServiceSingle = &singleflight.Group{}
 	// 插件初始化
 	pluginInitialize()
-	return newServerAuthAbility(namingServer, authSvr), namingServer, nil
+	return newServerAuthAbility(namingServer, userMgn, strategyMgn), namingServer, nil
 }
 
 // TestSerialCreateInstance .

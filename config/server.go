@@ -68,7 +68,7 @@ type Server struct {
 
 // Initialize 初始化配置中心模块
 func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cache.CacheManager,
-	namespaceOperator namespace.NamespaceOperateServer, authSvr auth.AuthServer) error {
+	namespaceOperator namespace.NamespaceOperateServer, userMgn auth.UserOperator, strategyMgn auth.StrategyOperator) error {
 	if !config.Open {
 		originServer.initialized = true
 		return nil
@@ -78,20 +78,19 @@ func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cac
 		return nil
 	}
 
-	err := originServer.initialize(ctx, config, s, namespaceOperator, cacheMgn, authSvr)
+	err := originServer.initialize(ctx, config, s, namespaceOperator, cacheMgn)
 	if err != nil {
 		return err
 	}
 
-	server = newServerAuthAbility(originServer, authSvr)
+	server = newServerAuthAbility(originServer, userMgn, strategyMgn)
 
 	originServer.initialized = true
 	return nil
 }
 
 func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
-	namespaceOperator namespace.NamespaceOperateServer, cacheMgn *cache.CacheManager,
-	authSvr auth.AuthServer) error {
+	namespaceOperator namespace.NamespaceOperateServer, cacheMgn *cache.CacheManager) error {
 
 	s.storage = ss
 	s.namespaceOperator = namespaceOperator

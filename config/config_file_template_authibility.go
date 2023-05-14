@@ -43,7 +43,7 @@ func (s *serverAuthability) CreateConfigFileTemplate(ctx context.Context,
 
 	authCtx := s.collectConfigFileTemplateAuthContext(ctx,
 		[]*apiconfig.ConfigFileTemplate{template}, model.Create, "CreateConfigFileTemplate")
-	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 

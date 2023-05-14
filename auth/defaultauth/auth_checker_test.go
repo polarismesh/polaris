@@ -85,9 +85,15 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 
 	checker := &defaultAuthChecker{}
 	checker.Initialize(&auth.Config{
-		Name: "",
-		Option: map[string]interface{}{
-			"": nil,
+		User: auth.UserConfig{
+			Name:   "",
+			Option: map[string]interface{}{},
+		},
+		Strategy: auth.StrategyConfig{
+			Name: "",
+			Option: map[string]interface{}{
+				"": nil,
+			},
 		},
 	}, storage, cacheMgn)
 	checker.cacheMgn = cacheMgn

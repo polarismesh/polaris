@@ -68,12 +68,17 @@ func initialize(_ context.Context, nsOpt *Config, storage store.Store, cacheMgn 
 		log.Warn("Not Found History Log Plugin")
 	}
 
-	authServer, err := auth.GetAuthServer()
+	userMgn, err := auth.GetUserOperator()
 	if err != nil {
 		return err
 	}
 
-	server = newServerAuthAbility(namespaceServer, authServer)
+	strategyMgn, err := auth.GetStrategyOperator()
+	if err != nil {
+		return err
+	}
+
+	server = newServerAuthAbility(namespaceServer, userMgn, strategyMgn)
 	return nil
 }
 

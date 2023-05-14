@@ -29,35 +29,80 @@ import (
 
 // Config 鉴权能力的相关配置参数
 type Config struct {
-	Name   string
+	// Name 原AuthServer名称，已废弃
+	Name string
+	// Option 原AuthServer的option，已废弃
 	Option map[string]interface{}
+
+	// User UserOperator的相关配置
+	User UserConfig `yaml:"user"`
+	// Strategy StrategyOperator的相关配置
+	Strategy StrategyConfig `yaml:"strategy"`
+}
+
+// UserConfig UserOperator的相关配置
+type UserConfig struct {
+	// Name UserOperator的名称
+	Name string `yaml:"name"`
+	// Option UserOperator的option
+	Option map[string]interface{} `yaml:"option"`
+}
+
+// StrategyConfig StrategyOperator的相关配置
+type StrategyConfig struct {
+	// Name StrategyOperator的名称
+	Name string `yaml:"name"`
+	// Option StrategyOperator的option
+	Option map[string]interface{} `yaml:"option"`
 }
 
 var (
-	// Slots store slots
-	Slots      = map[string]AuthServer{}
-	once       sync.Once
-	authSvr    AuthServer
-	finishInit bool
+	// UserMgnSlots 保存用户管理manager slot
+	UserMgnSlots = map[string]UserOperator{}
+	// StrategyMgnSlots 保存策略管理manager slot
+	StrategyMgnSlots = map[string]StrategyOperator{}
+	once             sync.Once
+	userMgn          UserOperator
+	strategyMgn      StrategyOperator
+	finishInit       bool
 )
 
-// RegisterAuthServer 注册一个新的 AuthManager
-func RegisterAuthServer(s AuthServer) error {
+// RegisterUserOperator 注册一个新的 UserManager
+func RegisterUserOperator(s UserOperator) error {
 	name := s.Name()
-	if _, ok := Slots[name]; ok {
-		return errors.New("auth manager name is exist")
+	if _, ok := UserMgnSlots[name]; ok {
+		return errors.New("user manager name is exist")
 	}
 
-	Slots[name] = s
+	UserMgnSlots[name] = s
 	return nil
 }
 
-// GetAuthServer 获取一个 AuthManager
-func GetAuthServer() (AuthServer, error) {
+// GetUserOperator 获取一个 UserManager
+func GetUserOperator() (UserOperator, error) {
 	if !finishInit {
 		return nil, errors.New("AuthServer has not done Initialize")
 	}
-	return authSvr, nil
+	return userMgn, nil
+}
+
+// RegisterStrategyOperator 注册一个新的 StrategyManager
+func RegisterStrategyOperator(s StrategyOperator) error {
+	name := s.Name()
+	if _, ok := StrategyMgnSlots[name]; ok {
+		return errors.New("user manager name is exist")
+	}
+
+	StrategyMgnSlots[name] = s
+	return nil
+}
+
+// GetStrategyOperator 获取一个 StrategyManager
+func GetStrategyOperator() (StrategyOperator, error) {
+	if !finishInit {
+		return nil, errors.New("AuthServer has not done Initialize")
+	}
+	return strategyMgn, nil
 }
 
 // Initialize 初始化
@@ -77,19 +122,36 @@ func Initialize(ctx context.Context, authOpt *Config, storage store.Store, cache
 
 // initialize 包裹了初始化函数，在 Initialize 的时候会在自动调用，全局初始化一次
 func initialize(_ context.Context, authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error {
-	name := authOpt.Name
+	name := authOpt.User.Name
 	if name == "" {
-		return errors.New("auth manager Name is empty")
+		return errors.New("user manager Name is empty")
 	}
 
-	mgn, ok := Slots[name]
+	namedUserMgn, ok := UserMgnSlots[name]
 	if !ok {
-		return errors.New("no such name AuthManager")
+		return errors.New("no such name UserManager")
 	}
 
-	authSvr = mgn
+	userMgn = namedUserMgn
 
-	if err := authSvr.Initialize(authOpt, storage, cacheMgn); err != nil {
+	if err := userMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
+		log.Printf("auth manager do initialize err: %s", err.Error())
+		return err
+	}
+
+	name = authOpt.Strategy.Name
+	if name == "" {
+		return errors.New("strategy manager Name is empty")
+	}
+
+	namedStrategyMgn, ok := StrategyMgnSlots[name]
+	if !ok {
+		return errors.New("no such name StrategyManager")
+	}
+
+	strategyMgn = namedStrategyMgn
+
+	if err := strategyMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
 		log.Printf("auth manager do initialize err: %s", err.Error())
 		return err
 	}

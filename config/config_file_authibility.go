@@ -32,7 +32,7 @@ func (s *serverAuthability) CreateConfigFile(ctx context.Context,
 	configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigFileAuthContext(
 		ctx, []*apiconfig.ConfigFile{configFile}, model.Create, "CreateConfigFile")
-	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 
@@ -70,7 +70,7 @@ func (s *serverAuthability) UpdateConfigFile(
 	ctx context.Context, configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigFileAuthContext(
 		ctx, []*apiconfig.ConfigFile{configFile}, model.Modify, "UpdateConfigFile")
-	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 
@@ -89,7 +89,7 @@ func (s *serverAuthability) DeleteConfigFile(ctx context.Context, namespace, gro
 			Name:      utils.NewStringValue(name),
 			Group:     utils.NewStringValue(group)},
 		}, model.Delete, "DeleteConfigFile")
-	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 
@@ -103,7 +103,7 @@ func (s *serverAuthability) DeleteConfigFile(ctx context.Context, namespace, gro
 func (s *serverAuthability) BatchDeleteConfigFile(ctx context.Context, configFiles []*apiconfig.ConfigFile,
 	operator string) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigFileAuthContext(ctx, configFiles, model.Delete, "BatchDeleteConfigFile")
-	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 
@@ -121,7 +121,7 @@ func (s *serverAuthability) ExportConfigFile(ctx context.Context,
 func (s *serverAuthability) ImportConfigFile(ctx context.Context,
 	configFiles []*apiconfig.ConfigFile, conflictHandling string) *apiconfig.ConfigImportResponse {
 	authCtx := s.collectConfigFileAuthContext(ctx, configFiles, model.Create, "ImportConfigFile")
-	if _, err := s.checker.CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileImportResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 

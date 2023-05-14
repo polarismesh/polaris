@@ -50,7 +50,19 @@ type defaultAuthChecker struct {
 
 // Initialize 执行初始化动作
 func (d *defaultAuthChecker) Initialize(options *auth.Config, s store.Store, cacheMgn *cache.CacheManager) error {
-	contentBytes, err := json.Marshal(options.Option)
+	// 新版本鉴权策略配置均从auth.Option中迁移至auth.Strategy.Option中
+	// auth.Strategy.Option优先级高于auth.Option
+
+	var contentBytes []byte
+	var err error
+
+	if len(options.Strategy.Option) > 0 {
+		contentBytes, err = json.Marshal(options.Strategy.Option)
+	} else {
+		log.Warn("[Auth][Checker] auth.option has deprecated, use auth.strategy.option instead.")
+		contentBytes, err = json.Marshal(options.Option)
+	}
+
 	if err != nil {
 		return err
 	}
