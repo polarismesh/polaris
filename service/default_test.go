@@ -22,9 +22,12 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/common/eventhub"
+	"github.com/polarismesh/polaris/store/mock"
 )
 
 func Test_Initialize(t *testing.T) {
@@ -36,7 +39,22 @@ func Test_Initialize(t *testing.T) {
 
 	eventhub.TestInitEventHub()
 
-	err := Initialize(context.Background(), &Config{})
+	ctrl := gomock.NewController(t)
+	s := mock.NewMockStore(ctrl)
+
+	_, _, err := auth.TestInitialize(context.Background(), &auth.Config{
+		User: auth.UserConfig{
+			Name:   "defaultUserManager",
+			Option: map[string]interface{}{},
+		},
+		Strategy: auth.StrategyConfig{
+			Name:   "defaultStrategyManager",
+			Option: map[string]interface{}{},
+		},
+	}, s, nil)
+	assert.NoError(t, err)
+
+	err = Initialize(context.Background(), &Config{})
 	assert.NoError(t, err)
 
 	svr, err := GetOriginServer()

@@ -81,7 +81,7 @@ func RegisterUserOperator(s UserOperator) error {
 // GetUserOperator 获取一个 UserManager
 func GetUserOperator() (UserOperator, error) {
 	if !finishInit {
-		return nil, errors.New("AuthServer has not done Initialize")
+		return nil, errors.New("UserOperator has not done Initialize")
 	}
 	return userMgn, nil
 }
@@ -100,7 +100,7 @@ func RegisterStrategyOperator(s StrategyOperator) error {
 // GetStrategyOperator 获取一个 StrategyManager
 func GetStrategyOperator() (StrategyOperator, error) {
 	if !finishInit {
-		return nil, errors.New("AuthServer has not done Initialize")
+		return nil, errors.New("StrategyOperator has not done Initialize")
 	}
 	return strategyMgn, nil
 }
