@@ -49,10 +49,6 @@ func (rls *rateLimitStore) CreateRateLimit(limit *model.RateLimit) error {
 	return store.Error(err)
 }
 
-const (
-	emptyEnableTime = "STR_TO_DATE('1980-01-01 00:00:01', '%Y-%m-%d %H:%i:%s')"
-)
-
 func limitToEtimeStr(limit *model.RateLimit) string {
 	etimeStr := "sysdate()"
 	if limit.Disable {
