@@ -154,11 +154,11 @@ func checkDataBaseAffectedRows(result sql.Result, counts ...int64) error {
 }
 
 // timeToTimestamp 转时间戳（秒）
-// 由于 FROM_UNIXTIME 不支持负数，所以小于0的情况赋值为0
+// 由于 FROM_UNIXTIME 不支持负数，所以小于0的情况赋值为 1
 func timeToTimestamp(t time.Time) int64 {
 	ts := t.Unix()
 	if ts < 0 {
-		ts = 0
+		ts = 1
 	}
 	return ts
 }
