@@ -30,5 +30,5 @@ const (
 
 func init() {
 	_ = auth.RegisterUserServer(&userAuthAbility{})
-	_ = auth.RegisterStrategyServer(&startegyAuthAbility{})
+	_ = auth.RegisterStrategyServer(&strategyAuthAbility{})
 }

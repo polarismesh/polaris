@@ -55,7 +55,7 @@ type StrategyTest struct {
 	cacheMgn *cache.CacheManager
 	checker  auth.AuthChecker
 
-	svr *startegyAuthAbility
+	svr *strategyAuthAbility
 
 	cancel context.CancelFunc
 
@@ -119,7 +119,7 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 	}, storage, cacheMgn)
 	checker.cacheMgn = cacheMgn
 
-	svr := &startegyAuthAbility{
+	svr := &strategyAuthAbility{
 		authMgn: checker,
 		target: &server{
 			storage:  storage,
