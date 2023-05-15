@@ -58,10 +58,10 @@ type StrategyConfig struct {
 }
 
 var (
-	// UserMgnSlots 保存用户管理manager slot
-	UserMgnSlots = map[string]UserServer{}
-	// StrategyMgnSlots 保存策略管理manager slot
-	StrategyMgnSlots = map[string]StrategyServer{}
+	// userMgnSlots 保存用户管理manager slot
+	userMgnSlots = map[string]UserServer{}
+	// strategyMgnSlots 保存策略管理manager slot
+	strategyMgnSlots = map[string]StrategyServer{}
 	once             sync.Once
 	userMgn          UserServer
 	strategyMgn      StrategyServer
@@ -71,11 +71,11 @@ var (
 // RegisterUserServer 注册一个新的 UserServer
 func RegisterUserServer(s UserServer) error {
 	name := s.Name()
-	if _, ok := UserMgnSlots[name]; ok {
+	if _, ok := userMgnSlots[name]; ok {
 		return fmt.Errorf("UserServer=[%s] exist", name)
 	}
 
-	UserMgnSlots[name] = s
+	userMgnSlots[name] = s
 	return nil
 }
 
@@ -90,11 +90,11 @@ func GetUserServer() (UserServer, error) {
 // RegisterStrategyServer 注册一个新的 StrategyServer
 func RegisterStrategyServer(s StrategyServer) error {
 	name := s.Name()
-	if _, ok := StrategyMgnSlots[name]; ok {
+	if _, ok := strategyMgnSlots[name]; ok {
 		return fmt.Errorf("StrategyServer=[%s] exist", name)
 	}
 
-	StrategyMgnSlots[name] = s
+	strategyMgnSlots[name] = s
 	return nil
 }
 
@@ -128,7 +128,7 @@ func initialize(_ context.Context, authOpt *Config, storage store.Store, cacheMg
 		return errors.New("UserServer Name is empty")
 	}
 
-	namedUserMgn, ok := UserMgnSlots[name]
+	namedUserMgn, ok := userMgnSlots[name]
 	if !ok {
 		return errors.New("no such name UserServer")
 	}
@@ -145,7 +145,7 @@ func initialize(_ context.Context, authOpt *Config, storage store.Store, cacheMg
 		return errors.New("StrategyServer Name is empty")
 	}
 
-	namedStrategyMgn, ok := StrategyMgnSlots[name]
+	namedStrategyMgn, ok := strategyMgnSlots[name]
 	if !ok {
 		return errors.New("no such name StrategyServer")
 	}

@@ -34,7 +34,7 @@ func TestInitialize(_ context.Context, authOpt *Config, storage store.Store,
 	if name == "" {
 		return nil, nil, errors.New("user manager Name is empty")
 	}
-	namedUserMgn, ok := UserMgnSlots[name]
+	namedUserMgn, ok := userMgnSlots[name]
 	if !ok {
 		return nil, nil, errors.New("no such name UserServer")
 	}
@@ -44,7 +44,7 @@ func TestInitialize(_ context.Context, authOpt *Config, storage store.Store,
 	if name == "" {
 		return nil, nil, errors.New("strategy manager Name is empty")
 	}
-	namedStrategyMgn, ok := StrategyMgnSlots[name]
+	namedStrategyMgn, ok := strategyMgnSlots[name]
 	if !ok {
 		return nil, nil, errors.New("no such name StrategyServer")
 	}
