@@ -20,6 +20,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"sync"
 
@@ -71,7 +72,7 @@ var (
 func RegisterUserServer(s UserServer) error {
 	name := s.Name()
 	if _, ok := UserMgnSlots[name]; ok {
-		return errors.New("user manager name is exist")
+		return fmt.Errorf("UserServer=[%s] exist", name)
 	}
 
 	UserMgnSlots[name] = s
@@ -90,7 +91,7 @@ func GetUserServer() (UserServer, error) {
 func RegisterStrategyServer(s StrategyServer) error {
 	name := s.Name()
 	if _, ok := StrategyMgnSlots[name]; ok {
-		return errors.New("user manager name is exist")
+		return fmt.Errorf("StrategyServer=[%s] exist", name)
 	}
 
 	StrategyMgnSlots[name] = s
@@ -124,7 +125,7 @@ func Initialize(ctx context.Context, authOpt *Config, storage store.Store, cache
 func initialize(_ context.Context, authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error {
 	name := authOpt.User.Name
 	if name == "" {
-		return errors.New("user manager Name is empty")
+		return errors.New("UserServer Name is empty")
 	}
 
 	namedUserMgn, ok := UserMgnSlots[name]
@@ -135,13 +136,13 @@ func initialize(_ context.Context, authOpt *Config, storage store.Store, cacheMg
 	userMgn = namedUserMgn
 
 	if err := userMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
-		log.Printf("auth manager do initialize err: %s", err.Error())
+		log.Printf("UserServer do initialize err: %s", err.Error())
 		return err
 	}
 
 	name = authOpt.Strategy.Name
 	if name == "" {
-		return errors.New("strategy manager Name is empty")
+		return errors.New("StrategyServer Name is empty")
 	}
 
 	namedStrategyMgn, ok := StrategyMgnSlots[name]
@@ -152,7 +153,7 @@ func initialize(_ context.Context, authOpt *Config, storage store.Store, cacheMg
 	strategyMgn = namedStrategyMgn
 
 	if err := strategyMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
-		log.Printf("auth manager do initialize err: %s", err.Error())
+		log.Printf("StrategyServer do initialize err: %s", err.Error())
 		return err
 	}
 	return nil
