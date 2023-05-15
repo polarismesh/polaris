@@ -68,7 +68,7 @@ type Server struct {
 
 // Initialize 初始化配置中心模块
 func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cache.CacheManager,
-	namespaceOperator namespace.NamespaceOperateServer, userMgn auth.UserOperator, strategyMgn auth.StrategyOperator) error {
+	namespaceOperator namespace.NamespaceOperateServer, userMgn auth.UserServer, strategyMgn auth.StrategyServer) error {
 	if !config.Open {
 		originServer.initialized = true
 		return nil

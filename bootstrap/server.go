@@ -168,12 +168,12 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 		return err
 	}
 
-	userMgn, err := auth.GetUserOperator()
+	userMgn, err := auth.GetUserServer()
 	if err != nil {
 		return err
 	}
 
-	strategyMgn, err := auth.GetStrategyOperator()
+	strategyMgn, err := auth.GetStrategyServer()
 	if err != nil {
 		return err
 	}
@@ -299,7 +299,7 @@ func parseConfDir(path string) string {
 
 // StartConfigCenterComponents 启动配置中心模块
 func StartConfigCenterComponents(ctx context.Context, cfg *boot_config.Config, s store.Store,
-	cacheMgn *cache.CacheManager, userMgn auth.UserOperator, strategyMgn auth.StrategyOperator) error {
+	cacheMgn *cache.CacheManager, userMgn auth.UserServer, strategyMgn auth.StrategyServer) error {
 	namespaceOperator, err := namespace.GetServer()
 	if err != nil {
 		return err

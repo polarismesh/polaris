@@ -39,11 +39,11 @@ import (
 //	该层会对请求参数做一些调整，根据具体的请求发起人，设置为数据对应的 owner，不可为为别人进行创建资源
 type serverAuthAbility struct {
 	targetServer *Server
-	userMgn      auth.UserOperator
-	strategyMgn  auth.StrategyOperator
+	userMgn      auth.UserServer
+	strategyMgn  auth.StrategyServer
 }
 
-func newServerAuthAbility(targetServer *Server, userMgn auth.UserOperator, strategyMgn auth.StrategyOperator) DiscoverServer {
+func newServerAuthAbility(targetServer *Server, userMgn auth.UserServer, strategyMgn auth.StrategyServer) DiscoverServer {
 	proxy := &serverAuthAbility{
 		targetServer: targetServer,
 		userMgn:      userMgn,

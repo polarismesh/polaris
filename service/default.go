@@ -107,11 +107,11 @@ func initialize(ctx context.Context, namingOpt *Config, opts ...InitOption) erro
 	// 插件初始化
 	pluginInitialize()
 
-	userMgn, err := auth.GetUserOperator()
+	userMgn, err := auth.GetUserServer()
 	if err != nil {
 		return err
 	}
-	strategyMgn, err := auth.GetStrategyOperator()
+	strategyMgn, err := auth.GetStrategyServer()
 	if err != nil {
 		return err
 	}

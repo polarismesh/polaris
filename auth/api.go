@@ -44,8 +44,8 @@ type AuthChecker interface {
 	IsOpenClientAuth() bool
 }
 
-// UserOperator 用户数据管理 server
-type UserOperator interface {
+// UserServer 用户数据管理 server
+type UserServer interface {
 	// Initialize 初始化
 	Initialize(authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error
 
@@ -109,8 +109,8 @@ type GroupOperator interface {
 	ResetGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response
 }
 
-// StrategyOperator 策略相关操作
-type StrategyOperator interface {
+// StrategyServer 策略相关操作
+type StrategyServer interface {
 	// Initialize 初始化
 	Initialize(authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error
 

@@ -58,17 +58,17 @@ type StrategyConfig struct {
 
 var (
 	// UserMgnSlots 保存用户管理manager slot
-	UserMgnSlots = map[string]UserOperator{}
+	UserMgnSlots = map[string]UserServer{}
 	// StrategyMgnSlots 保存策略管理manager slot
-	StrategyMgnSlots = map[string]StrategyOperator{}
+	StrategyMgnSlots = map[string]StrategyServer{}
 	once             sync.Once
-	userMgn          UserOperator
-	strategyMgn      StrategyOperator
+	userMgn          UserServer
+	strategyMgn      StrategyServer
 	finishInit       bool
 )
 
-// RegisterUserOperator 注册一个新的 UserManager
-func RegisterUserOperator(s UserOperator) error {
+// RegisterUserServer 注册一个新的 UserServer
+func RegisterUserServer(s UserServer) error {
 	name := s.Name()
 	if _, ok := UserMgnSlots[name]; ok {
 		return errors.New("user manager name is exist")
@@ -78,16 +78,16 @@ func RegisterUserOperator(s UserOperator) error {
 	return nil
 }
 
-// GetUserOperator 获取一个 UserManager
-func GetUserOperator() (UserOperator, error) {
+// GetUserServer 获取一个 UserServer
+func GetUserServer() (UserServer, error) {
 	if !finishInit {
-		return nil, errors.New("UserOperator has not done Initialize")
+		return nil, errors.New("UserServer has not done Initialize")
 	}
 	return userMgn, nil
 }
 
-// RegisterStrategyOperator 注册一个新的 StrategyManager
-func RegisterStrategyOperator(s StrategyOperator) error {
+// RegisterStrategyServer 注册一个新的 StrategyServer
+func RegisterStrategyServer(s StrategyServer) error {
 	name := s.Name()
 	if _, ok := StrategyMgnSlots[name]; ok {
 		return errors.New("user manager name is exist")
@@ -97,10 +97,10 @@ func RegisterStrategyOperator(s StrategyOperator) error {
 	return nil
 }
 
-// GetStrategyOperator 获取一个 StrategyManager
-func GetStrategyOperator() (StrategyOperator, error) {
+// GetStrategyServer 获取一个 StrategyServer
+func GetStrategyServer() (StrategyServer, error) {
 	if !finishInit {
-		return nil, errors.New("StrategyOperator has not done Initialize")
+		return nil, errors.New("StrategyServer has not done Initialize")
 	}
 	return strategyMgn, nil
 }
@@ -129,7 +129,7 @@ func initialize(_ context.Context, authOpt *Config, storage store.Store, cacheMg
 
 	namedUserMgn, ok := UserMgnSlots[name]
 	if !ok {
-		return errors.New("no such name UserManager")
+		return errors.New("no such name UserServer")
 	}
 
 	userMgn = namedUserMgn
@@ -146,7 +146,7 @@ func initialize(_ context.Context, authOpt *Config, storage store.Store, cacheMg
 
 	namedStrategyMgn, ok := StrategyMgnSlots[name]
 	if !ok {
-		return errors.New("no such name StrategyManager")
+		return errors.New("no such name StrategyServer")
 	}
 
 	strategyMgn = namedStrategyMgn

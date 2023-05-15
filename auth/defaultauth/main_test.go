@@ -83,8 +83,8 @@ type AuthTestSuit struct {
 	defaultCtx          context.Context
 	cancel              context.CancelFunc
 	storage             store.Store
-	userMgn             auth.UserOperator
-	strategyMgn         auth.StrategyOperator
+	userMgn             auth.UserServer
+	strategyMgn         auth.StrategyServer
 }
 
 // 加载配置

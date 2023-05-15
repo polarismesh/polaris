@@ -29,6 +29,6 @@ const (
 )
 
 func init() {
-	_ = auth.RegisterUserOperator(&userAuthAbility{})
-	_ = auth.RegisterStrategyOperator(&startegyAuthAbility{})
+	_ = auth.RegisterUserServer(&userAuthAbility{})
+	_ = auth.RegisterStrategyServer(&startegyAuthAbility{})
 }

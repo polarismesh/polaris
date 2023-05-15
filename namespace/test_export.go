@@ -29,7 +29,7 @@ import (
 )
 
 func TestInitialize(_ context.Context, nsOpt *Config, storage store.Store, cacheMgn *cache.CacheManager,
-	userMgn auth.UserOperator, strategyMgn auth.StrategyOperator) (NamespaceOperateServer, error) {
+	userMgn auth.UserServer, strategyMgn auth.StrategyServer) (NamespaceOperateServer, error) {
 	namespaceServer := &Server{}
 	namespaceServer.caches = cacheMgn
 	namespaceServer.storage = storage

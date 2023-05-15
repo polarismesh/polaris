@@ -35,11 +35,11 @@ var _ ConfigCenterServer = (*serverAuthability)(nil)
 // Server 配置中心核心服务
 type serverAuthability struct {
 	targetServer *Server
-	userMgn      auth.UserOperator
-	strategyMgn  auth.StrategyOperator
+	userMgn      auth.UserServer
+	strategyMgn  auth.StrategyServer
 }
 
-func newServerAuthAbility(targetServer *Server, userMgn auth.UserOperator, strategyMgn auth.StrategyOperator) ConfigCenterServer {
+func newServerAuthAbility(targetServer *Server, userMgn auth.UserServer, strategyMgn auth.StrategyServer) ConfigCenterServer {
 	proxy := &serverAuthability{
 		targetServer: targetServer,
 		userMgn:      userMgn,

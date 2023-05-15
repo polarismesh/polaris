@@ -28,7 +28,7 @@ import (
 
 // TestInitialize 包裹了初始化函数，在 Initialize 的时候会在自动调用，全局初始化一次
 func TestInitialize(_ context.Context, authOpt *Config, storage store.Store,
-	cacheMgn *cache.CacheManager) (UserOperator, StrategyOperator, error) {
+	cacheMgn *cache.CacheManager) (UserServer, StrategyServer, error) {
 
 	name := authOpt.User.Name
 	if name == "" {
@@ -36,7 +36,7 @@ func TestInitialize(_ context.Context, authOpt *Config, storage store.Store,
 	}
 	namedUserMgn, ok := UserMgnSlots[name]
 	if !ok {
-		return nil, nil, errors.New("no such name UserManager")
+		return nil, nil, errors.New("no such name UserServer")
 	}
 	userMgn = namedUserMgn
 
@@ -46,7 +46,7 @@ func TestInitialize(_ context.Context, authOpt *Config, storage store.Store,
 	}
 	namedStrategyMgn, ok := StrategyMgnSlots[name]
 	if !ok {
-		return nil, nil, errors.New("no such name StrategyManager")
+		return nil, nil, errors.New("no such name StrategyServer")
 	}
 	strategyMgn = namedStrategyMgn
 

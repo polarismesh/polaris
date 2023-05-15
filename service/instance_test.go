@@ -2410,8 +2410,8 @@ func TestCreateInstanceLockService(t *testing.T) {
 			err         error
 			cacheMgr    *cache.CacheManager
 			nsSvr       namespace.NamespaceOperateServer
-			userMgn     auth.UserOperator
-			strategyMgn auth.StrategyOperator
+			userMgn     auth.UserServer
+			strategyMgn auth.StrategyServer
 		)
 
 		ctx, cancel := context.WithCancel(context.Background())
