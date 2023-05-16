@@ -24,14 +24,13 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	storemock "github.com/polarismesh/polaris/store/mock"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_defaultAuthManager_ParseToken(t *testing.T) {
@@ -1076,4 +1075,109 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
+}
+
+func Test_defaultAuthChecker_Initialize(t *testing.T) {
+	reset(true)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	users := createMockUser(10)
+
+	storage := storemock.NewMockStore(ctrl)
+	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
+	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)
+	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return([]*model.UserGroupDetail{}, nil)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cacheMgn, err := cache.TestCacheInitialize(ctx, &cache.Config{
+		Open: true,
+		Resources: []cache.ConfigEntry{
+			{
+				Name: "users",
+			},
+		},
+	}, storage)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		cancel()
+		cacheMgn.Clear()
+		time.Sleep(2 * time.Second)
+	}()
+
+	t.Run("使用未迁移至auth.user.option及auth.strategy.option的配置", func(t *testing.T) {
+		reset(true)
+		authChecker := &defaultAuthChecker{}
+		err := authChecker.Initialize(&auth.Config{
+			Name: "",
+			Option: map[string]interface{}{
+				"consoleOpen": true,
+				"clientOpen":  true,
+				"salt":        "polarismesh@2021",
+				"strict":      false,
+			},
+		}, storage, cacheMgn)
+		assert.NoError(t, err)
+		assert.Equal(t, &AuthConfig{
+			ConsoleOpen: true,
+			ClientOpen:  true,
+			Salt:        "polarismesh@2021",
+			Strict:      false,
+		}, AuthOption)
+	})
+
+	t.Run("使用完全迁移至auth.user.option及auth.strategy.option的配置", func(t *testing.T) {
+		reset(true)
+		authChecker := &defaultAuthChecker{}
+		err := authChecker.Initialize(&auth.Config{
+			User: auth.UserConfig{
+				Name:   "",
+				Option: map[string]interface{}{"salt": "polarismesh@2021"},
+			},
+			Strategy: auth.StrategyConfig{
+				Name: "",
+				Option: map[string]interface{}{
+					"consoleOpen": true,
+					"clientOpen":  true,
+					"strict":      false,
+				},
+			},
+		}, storage, cacheMgn)
+		assert.NoError(t, err)
+		assert.Equal(t, &AuthConfig{
+			ConsoleOpen: true,
+			ClientOpen:  true,
+			Salt:        "polarismesh@2021",
+			Strict:      false,
+		}, AuthOption)
+	})
+
+	t.Run("使用部分迁移至auth.user.option及auth.strategy.option的配置（应当报错）", func(t *testing.T) {
+		reset(true)
+		authChecker := &defaultAuthChecker{}
+		err := authChecker.Initialize(&auth.Config{
+			User: auth.UserConfig{
+				Name:   "",
+				Option: map[string]interface{}{"salt": "polarismesh@2021"},
+			},
+			Strategy: auth.StrategyConfig{
+				Name: "",
+				Option: map[string]interface{}{
+					"consoleOpen": true,
+				},
+			},
+			Name: "",
+			Option: map[string]interface{}{
+				"clientOpen": true,
+				"strict":     false,
+			},
+		}, storage, cacheMgn)
+		assert.Error(t, err)
+	})
+
 }
