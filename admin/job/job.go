@@ -141,6 +141,9 @@ func getMasterAccountToken(storage store.Store) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if user == nil {
+		return "", fmt.Errorf("polaris main user: %s not found", mainUser)
+	}
 	return user.Token, nil
 }
 

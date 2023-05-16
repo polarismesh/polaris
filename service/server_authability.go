@@ -254,15 +254,19 @@ func (svr *serverAuthAbility) queryServiceResource(
 	svcSet := model.NewServiceSet()
 
 	for index := range req {
-		names.Add(req[index].Namespace.GetValue())
-		svc := svr.Cache().Service().GetServiceByName(req[index].Name.GetValue(), req[index].Namespace.GetValue())
+		svcName := req[index].GetName().GetValue()
+		svcNamespace := req[index].GetNamespace().GetValue()
+		names.Add(svcNamespace)
+		svc := svr.Cache().Service().GetServiceByName(svcName, svcNamespace)
 		if svc != nil {
 			svcSet.Add(svc)
 		}
 	}
 
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	authLog.Debug("[Auth][Server] collect service access res", zap.Any("res", ret))
+	if authLog.DebugEnabled() {
+		authLog.Debug("[Auth][Server] collect service access res", zap.Any("res", ret))
+	}
 	return ret
 }
 
@@ -277,9 +281,11 @@ func (svr *serverAuthAbility) queryServiceAliasResource(
 	svcSet := model.NewServiceSet()
 
 	for index := range req {
-		names.Add(req[index].Namespace.GetValue())
-		alias := svr.Cache().Service().GetServiceByName(req[index].Alias.GetValue(),
-			req[index].AliasNamespace.GetValue())
+		aliasSvcName := req[index].GetAlias().GetValue()
+		aliasSvcNamespace := req[index].GetAliasNamespace().GetValue()
+		svcNamespace := req[index].GetNamespace().GetValue()
+		names.Add(svcNamespace)
+		alias := svr.Cache().Service().GetServiceByName(aliasSvcName, aliasSvcNamespace)
 		if alias != nil {
 			svc := svr.Cache().Service().GetServiceByID(alias.Reference)
 			if svc != nil {
@@ -289,7 +295,9 @@ func (svr *serverAuthAbility) queryServiceAliasResource(
 	}
 
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	authLog.Debug("[Auth][Server] collect service alias access res", zap.Any("res", ret))
+	if authLog.DebugEnabled() {
+		authLog.Debug("[Auth][Server] collect service alias access res", zap.Any("res", ret))
+	}
 	return ret
 }
 
@@ -305,14 +313,15 @@ func (svr *serverAuthAbility) queryInstanceResource(
 	svcSet := model.NewServiceSet()
 
 	for index := range req {
+		svcName := req[index].GetService().GetValue()
+		svcNamespace := req[index].GetNamespace().GetValue()
 		item := req[index]
-		if item.Namespace.GetValue() != "" && item.Service.GetValue() != "" {
-			svc := svr.Cache().Service().GetServiceByName(req[index].Service.GetValue(),
-				req[index].Namespace.GetValue())
+		if svcNamespace != "" && svcName != "" {
+			svc := svr.Cache().Service().GetServiceByName(svcName, svcNamespace)
 			if svc != nil {
 				svcSet.Add(svc)
 			} else {
-				names.Add(req[index].Namespace.GetValue())
+				names.Add(svcNamespace)
 			}
 		} else {
 			ins := svr.Cache().Instance().GetInstance(item.GetId().GetValue())
@@ -321,14 +330,16 @@ func (svr *serverAuthAbility) queryInstanceResource(
 				if svc != nil {
 					svcSet.Add(svc)
 				} else {
-					names.Add(req[index].Namespace.GetValue())
+					names.Add(svcNamespace)
 				}
 			}
 		}
 	}
 
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	authLog.Debug("[Auth][Server] collect instance access res", zap.Any("res", ret))
+	if authLog.DebugEnabled() {
+		authLog.Debug("[Auth][Server] collect instance access res", zap.Any("res", ret))
+	}
 	return ret
 }
 
@@ -343,14 +354,17 @@ func (svr *serverAuthAbility) queryCircuitBreakerResource(
 	svcSet := model.NewServiceSet()
 
 	for index := range req {
-		svc := svr.Cache().Service().GetServiceByName(req[index].Service.GetValue(),
-			req[index].Namespace.GetValue())
+		svcName := req[index].GetService().GetValue()
+		svcNamespace := req[index].GetNamespace().GetValue()
+		svc := svr.Cache().Service().GetServiceByName(svcName, svcNamespace)
 		if svc != nil {
 			svcSet.Add(svc)
 		}
 	}
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	authLog.Debug("[Auth][Server] collect circuit-breaker access res", zap.Any("res", ret))
+	if authLog.DebugEnabled() {
+		authLog.Debug("[Auth][Server] collect circuit-breaker access res", zap.Any("res", ret))
+	}
 	return ret
 }
 
@@ -365,15 +379,18 @@ func (svr *serverAuthAbility) queryCircuitBreakerReleaseResource(
 	svcSet := model.NewServiceSet()
 
 	for index := range req {
-		svc := svr.Cache().Service().GetServiceByName(req[index].Service.Name.GetValue(),
-			req[index].Service.Namespace.GetValue())
+		svcName := req[index].GetService().GetName().GetValue()
+		svcNamespace := req[index].GetService().GetNamespace().GetValue()
+		svc := svr.Cache().Service().GetServiceByName(svcName, svcNamespace)
 		if svc != nil {
 			svcSet.Add(svc)
 		}
 	}
 
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	authLog.Debug("[Auth][Server] collect circuit-breaker-release access res", zap.Any("res", ret))
+	if authLog.DebugEnabled() {
+		authLog.Debug("[Auth][Server] collect circuit-breaker-release access res", zap.Any("res", ret))
+	}
 	return ret
 }
 
@@ -388,15 +405,18 @@ func (svr *serverAuthAbility) queryRouteRuleResource(
 	svcSet := model.NewServiceSet()
 
 	for index := range req {
-		svc := svr.Cache().Service().GetServiceByName(req[index].Service.GetValue(),
-			req[index].Namespace.GetValue())
+		svcName := req[index].GetService().GetValue()
+		svcNamespace := req[index].GetNamespace().GetValue()
+		svc := svr.Cache().Service().GetServiceByName(svcName, svcNamespace)
 		if svc != nil {
 			svcSet.Add(svc)
 		}
 	}
 
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	authLog.Debug("[Auth][Server] collect route-rule access res", zap.Any("res", ret))
+	if authLog.DebugEnabled() {
+		authLog.Debug("[Auth][Server] collect route-rule access res", zap.Any("res", ret))
+	}
 	return ret
 }
 
@@ -411,15 +431,18 @@ func (svr *serverAuthAbility) queryRateLimitConfigResource(
 	svcSet := model.NewServiceSet()
 
 	for index := range req {
-		svc := svr.Cache().Service().GetServiceByName(req[index].Service.GetValue(),
-			req[index].Namespace.GetValue())
+		svcName := req[index].GetService().GetValue()
+		svcNamespace := req[index].GetNamespace().GetValue()
+		svc := svr.Cache().Service().GetServiceByName(svcName, svcNamespace)
 		if svc != nil {
 			svcSet.Add(svc)
 		}
 	}
 
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
-	authLog.Debug("[Auth][Server] collect rate-limit access res", zap.Any("res", ret))
+	if authLog.DebugEnabled() {
+		authLog.Debug("[Auth][Server] collect rate-limit access res", zap.Any("res", ret))
+	}
 	return ret
 }
 

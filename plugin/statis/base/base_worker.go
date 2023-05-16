@@ -102,7 +102,7 @@ func (s *BaseWorker) Run(ctx context.Context, interval time.Duration) {
 	dest = dest - (dest % 60)
 	diff := dest - nowSeconds
 
-	log.Infof("[APICall] prometheus stats need sleep %ds", diff)
+	log.Infof("[APICall] base stats need sleep %ds", diff)
 	time.Sleep(time.Duration(diff) * time.Second)
 
 	ticker := time.NewTicker(interval)

@@ -45,6 +45,16 @@ func (ic *instanceCache) reportMetricsInfo() {
 	metricValues := make([]metrics.DiscoveryMetric, 0, 32)
 
 	_ = cacheMgr.Service().IteratorServices(func(key string, svc *model.Service) (bool, error) {
+		if _, ok := tmpServiceInfos[svc.Namespace]; !ok {
+			tmpServiceInfos[svc.Namespace] = map[string]struct{}{}
+		}
+		tmpServiceInfos[svc.Namespace][svc.Name] = struct{}{}
+
+		if _, ok := allServices[svc.Namespace]; !ok {
+			allServices[svc.Namespace] = map[string]struct{}{}
+		}
+		allServices[svc.Namespace][svc.Name] = struct{}{}
+
 		if _, ok := offlineService[svc.Namespace]; !ok {
 			offlineService[svc.Namespace] = map[string]struct{}{}
 		}
@@ -66,15 +76,6 @@ func (ic *instanceCache) reportMetricsInfo() {
 			return true
 		}
 
-		if _, ok := tmpServiceInfos[svc.Namespace]; !ok {
-			tmpServiceInfos[svc.Namespace] = map[string]struct{}{}
-		}
-		tmpServiceInfos[svc.Namespace][svc.Name] = struct{}{}
-
-		if _, ok := allServices[svc.Namespace]; !ok {
-			allServices[svc.Namespace] = map[string]struct{}{}
-		}
-		allServices[svc.Namespace][svc.Name] = struct{}{}
 		if _, ok := onlineService[svc.Namespace]; !ok {
 			onlineService[svc.Namespace] = map[string]struct{}{}
 		}

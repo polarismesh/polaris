@@ -141,7 +141,7 @@ func TestCreateRoutingConfig(t *testing.T) {
 		t.Logf("%s", resp.GetInfo().GetValue())
 	})
 
-	t.Run("服务不存在，创建路由配置，报错", func(t *testing.T) {
+	t.Run("服务不存在，创建路由配置不报错", func(t *testing.T) {
 		discoverSuit := &DiscoverTestSuit{}
 		if err := discoverSuit.Initialize(); err != nil {
 			t.Fatal(err)
@@ -151,6 +151,7 @@ func TestCreateRoutingConfig(t *testing.T) {
 		_, serviceResp := discoverSuit.createCommonService(t, 120)
 		discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
+		_ = discoverSuit.DiscoverServer().Cache().TestRefresh()
 		req := &apitraffic.Routing{}
 		req.Service = serviceResp.Name
 		req.Namespace = serviceResp.Namespace
