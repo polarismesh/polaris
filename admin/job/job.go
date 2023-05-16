@@ -19,7 +19,6 @@ package job
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"time"
