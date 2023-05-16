@@ -19,6 +19,7 @@ package job
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -140,6 +141,9 @@ func getMasterAccountToken(storage store.Store) (string, error) {
 	user, err := storage.GetUserByName(mainUser, "")
 	if err != nil {
 		return "", err
+	}
+	if user == nil {
+		return "", fmt.Errorf("polaris main user: %s not found", mainUser)
 	}
 	return user.Token, nil
 }
