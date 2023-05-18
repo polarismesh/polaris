@@ -285,17 +285,33 @@ apiservers:
   #     listenPort: 7779
   #     clusterName: cl5.discover
 # Core logic configuration
+# auth:
+#   # Inspection plug -in
+#   name: defaultAuth
+#   option:
+#     # Token encrypted SALT, you need to rely on this SALT to decrypt the information of the Token when analyzing the Token
+#     # The length of SALT needs to satisfy the following one：len(salt) in [16, 24, 32]
+#     salt: polarismesh@2021
+#     # Console power switch, open default
+#     consoleOpen: true
+#     # Customer inspection ability switch, default shutdown
+#     clientOpen: false
 auth:
-  # Inspection plug -in
-  name: defaultAuth
-  option:
-    # Token encrypted SALT, you need to rely on this SALT to decrypt the information of the Token when analyzing the Token
-    # The length of SALT needs to satisfy the following one：len(salt) in [16, 24, 32]
-    salt: polarismesh@2021
-    # Console power switch, open default
-    consoleOpen: true
-    # Customer inspection ability switch, default shutdown
-    clientOpen: false
+  # auth's option has migrated to auth.user and auth.strategy
+  # it's still avaliable when filling auth.option, but you will receive warning log that auth.option has deprecated.
+  user:
+    name: defaultUserManager
+    option:
+      # token 加密的 salt，鉴权解析 token 时需要依靠这个 salt 去解密 token 的信息
+      # salt 的长度需要满足以下任意一个：len(salt) in [16, 24, 32]
+      salt: polarismesh@2021
+  strategy:
+    name: defaultStrategyManager
+    option:
+      # 控制台鉴权能力开关，默认开启
+      consoleOpen: true
+      # 客户端鉴权能力开关, 默认关闭
+      clientOpen: false
 namespace:
   # Whether to allow automatic creation of naming space
   autoCreate: true
