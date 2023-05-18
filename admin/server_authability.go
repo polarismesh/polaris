@@ -34,7 +34,8 @@ type serverAuthAbility struct {
 	strategyMgn  auth.StrategyServer
 }
 
-func newServerAuthAbility(targetServer *Server, userMgn auth.UserServer, strategyMgn auth.StrategyServer) AdminOperateServer {
+func newServerAuthAbility(targetServer *Server,
+	userMgn auth.UserServer, strategyMgn auth.StrategyServer) AdminOperateServer {
 	proxy := &serverAuthAbility{
 		targetServer: targetServer,
 		userMgn:      userMgn,

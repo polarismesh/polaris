@@ -43,7 +43,8 @@ type serverAuthAbility struct {
 	strategyMgn  auth.StrategyServer
 }
 
-func newServerAuthAbility(targetServer *Server, userMgn auth.UserServer, strategyMgn auth.StrategyServer) DiscoverServer {
+func newServerAuthAbility(targetServer *Server,
+	userMgn auth.UserServer, strategyMgn auth.StrategyServer) DiscoverServer {
 	proxy := &serverAuthAbility{
 		targetServer: targetServer,
 		userMgn:      userMgn,

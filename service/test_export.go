@@ -57,7 +57,8 @@ func TestNewServer(mockStore store.Store, nsSvr namespace.NamespaceOperateServer
 // TestInitialize 初始化
 func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, bc *batch.Controller,
 	cacheMgr *cache.CacheManager, storage store.Store, namespaceSvr namespace.NamespaceOperateServer,
-	healthSvr *healthcheck.Server, userMgn auth.UserServer, strategyMgn auth.StrategyServer) (DiscoverServer, DiscoverServer, error) {
+	healthSvr *healthcheck.Server,
+	userMgn auth.UserServer, strategyMgn auth.StrategyServer) (DiscoverServer, DiscoverServer, error) {
 	namingServer.healthServer = healthSvr
 	namingServer.storage = storage
 	// 注入命名空间管理模块

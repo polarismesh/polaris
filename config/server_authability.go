@@ -39,7 +39,8 @@ type serverAuthability struct {
 	strategyMgn  auth.StrategyServer
 }
 
-func newServerAuthAbility(targetServer *Server, userMgn auth.UserServer, strategyMgn auth.StrategyServer) ConfigCenterServer {
+func newServerAuthAbility(targetServer *Server,
+	userMgn auth.UserServer, strategyMgn auth.StrategyServer) ConfigCenterServer {
 	proxy := &serverAuthability{
 		targetServer: targetServer,
 		userMgn:      userMgn,
