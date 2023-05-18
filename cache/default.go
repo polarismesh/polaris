@@ -93,7 +93,7 @@ func newCacheManager(ctx context.Context, cacheOpt *Config, storage store.Store)
 
 	// call cache.addlistener here, need ensure that all of cache impl has been instantiated and loaded
 	mgr.AddListener(CacheNameInstance, []Listener{
-		&WatchInstanceReload{
+		&watchInstanceReload{
 			Handler: func(val interface{}) {
 				if svcIds, ok := val.(map[string]bool); ok {
 					mgr.caches[CacheService].(*serviceCache).notifyServiceCountReload(svcIds)
