@@ -2414,6 +2414,18 @@ func Test_OperateInstanceMetadata(t *testing.T) {
 		assert.Equal(t, "ins2_mock_value", val)
 	})
 
+	t.Run("notinstance-append-instance-metadata", func(t *testing.T) {
+		err := discoverSuit.Storage.BatchAppendInstanceMetadata([]*store.InstanceMetadataRequest{
+			{
+				InstanceID: utils.NewUUID(),
+				Metadata: map[string]string{
+					"ins1_mock_key": "ins1_mock_value",
+				},
+			},
+		})
+		assert.NoError(t, err)
+	})
+
 	t.Run("remove-instance-metadata", func(t *testing.T) {
 		err := discoverSuit.Storage.BatchRemoveInstanceMetadata([]*store.InstanceMetadataRequest{
 			{
@@ -2437,4 +2449,15 @@ func Test_OperateInstanceMetadata(t *testing.T) {
 		_, ok = ins2Cache.Metadata()["ins2_mock_key"]
 		assert.False(t, ok, "ins2_mock_key exist")
 	})
+
+	t.Run("notinstance-remove-instance-metadata", func(t *testing.T) {
+		err := discoverSuit.Storage.BatchRemoveInstanceMetadata([]*store.InstanceMetadataRequest{
+			{
+				InstanceID: utils.NewUUID(),
+				Keys:       []string{"ins1_mock_key"},
+			},
+		})
+		assert.NoError(t, err)
+	})
+
 }
