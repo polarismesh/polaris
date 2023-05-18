@@ -720,6 +720,9 @@ func (i *instanceStore) BatchAppendInstanceMetadata(requests []*store.InstanceMe
 				return nil
 			}
 			ins := val.(*model.Instance)
+			if len(ins.Proto.GetMetadata()) == 0 {
+				ins.Proto.Metadata = map[string]string{}
+			}
 			for k, v := range requests[i].Metadata {
 				ins.Proto.Metadata[k] = v
 			}
@@ -776,6 +779,9 @@ func (i *instanceStore) BatchRemoveInstanceMetadata(requests []*store.InstanceMe
 				continue
 			}
 			ins := val.(*model.Instance)
+			if len(ins.Proto.GetMetadata()) == 0 {
+				ins.Proto.Metadata = map[string]string{}
+			}
 			for p := range requests[i].Keys {
 				delete(ins.Proto.Metadata, requests[i].Keys[p])
 			}
