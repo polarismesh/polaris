@@ -27,7 +27,6 @@ import (
 
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
-	routingcommon "github.com/polarismesh/polaris/common/routing"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -188,7 +187,7 @@ func batchBuildV2Routings(
 	inRoutings := make([]*apitraffic.RouteRule, 0, len(inBounds))
 	outRoutings := make([]*apitraffic.RouteRule, 0, len(outBounds))
 	for i := range inBounds {
-		routing, err := routingcommon.BuildV2RoutingFromV1Route(req, inBounds[i])
+		routing, err := model.BuildV2RoutingFromV1Route(req, inBounds[i])
 		if err != nil {
 			return nil, nil, apiv1.NewResponse(apimodel.Code_ExecuteException)
 		}
@@ -197,7 +196,7 @@ func batchBuildV2Routings(
 	}
 
 	for i := range outBounds {
-		routing, err := routingcommon.BuildV2RoutingFromV1Route(req, outBounds[i])
+		routing, err := model.BuildV2RoutingFromV1Route(req, outBounds[i])
 		if err != nil {
 			return nil, nil, apiv1.NewResponse(apimodel.Code_ExecuteException)
 		}

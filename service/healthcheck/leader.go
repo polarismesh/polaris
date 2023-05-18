@@ -130,7 +130,7 @@ func (handler *LeaderChangeEventHandler) doCheckSelfServiceInstance(cachedInstan
 		return
 	}
 	if !checkResp.StayUnchanged {
-		code := setInsDbStatus(cachedInstance, checkResp.Healthy)
+		code := setInsDbStatus(cachedInstance, checkResp.Healthy, checkResp.LastHeartbeatTimeSec)
 		if checkResp.Healthy {
 			// from unhealthy to healthy
 			log.Infof(

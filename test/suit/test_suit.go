@@ -99,6 +99,7 @@ type DiscoverTestSuit struct {
 	DefaultCtx          context.Context
 	cancel              context.CancelFunc
 	Storage             store.Store
+	bc                  *batch.Controller
 }
 
 func (d *DiscoverTestSuit) DiscoverServer() service.DiscoverServer {
@@ -119,6 +120,10 @@ func (d *DiscoverTestSuit) NamespaceServer() ns.NamespaceOperateServer {
 
 func (d *DiscoverTestSuit) UpdateCacheInterval() time.Duration {
 	return d.updateCacheInterval
+}
+
+func (d *DiscoverTestSuit) BatchController() *batch.Controller {
+	return d.bc
 }
 
 // 加载配置
@@ -249,6 +254,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 		panic(err)
 	}
 	bc.Start(ctx)
+	d.bc = bc
 
 	if len(d.cfg.HealthChecks.LocalHost) == 0 {
 		d.cfg.HealthChecks.LocalHost = utils.LocalHost // 补充healthCheck的配置

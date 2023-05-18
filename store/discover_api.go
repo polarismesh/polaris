@@ -152,6 +152,12 @@ type InstanceStore interface {
 
 	// BatchSetInstanceIsolate 批量修改实例的隔离状态
 	BatchSetInstanceIsolate(ids []interface{}, isolate int, revision string) error
+
+	// AppendInstanceMetadata 追加实例 metadata
+	BatchAppendInstanceMetadata(requests []*InstanceMetadataRequest) error
+
+	// RemoveInstanceMetadata 删除实例指定的 metadata
+	BatchRemoveInstanceMetadata(requests []*InstanceMetadataRequest) error
 }
 
 // L5Store L5扩展存储接口

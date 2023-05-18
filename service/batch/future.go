@@ -47,6 +47,8 @@ type InstanceFuture struct {
 	result chan error
 	// 健康与否
 	healthy bool
+	// lastHeartbeatTimeSec 实例最后一次心跳上报时间
+	lastHeartbeatTimeSec int64
 }
 
 // Reply future的应答

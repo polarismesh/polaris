@@ -9,7 +9,6 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
-
 	model "github.com/polarismesh/polaris/common/model"
 	store "github.com/polarismesh/polaris/store"
 )
@@ -149,6 +148,20 @@ func (mr *MockStoreMockRecorder) BatchAddInstances(instances interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchAddInstances", reflect.TypeOf((*MockStore)(nil).BatchAddInstances), instances)
 }
 
+// BatchAppendInstanceMetadata mocks base method.
+func (m *MockStore) BatchAppendInstanceMetadata(requests []*store.InstanceMetadataRequest) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchAppendInstanceMetadata", requests)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BatchAppendInstanceMetadata indicates an expected call of BatchAppendInstanceMetadata.
+func (mr *MockStoreMockRecorder) BatchAppendInstanceMetadata(requests interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchAppendInstanceMetadata", reflect.TypeOf((*MockStore)(nil).BatchAppendInstanceMetadata), requests)
+}
+
 // BatchCleanDeletedClients mocks base method.
 func (m *MockStore) BatchCleanDeletedClients(timeout time.Duration, batchSize uint32) (uint32, error) {
 	m.ctrl.T.Helper()
@@ -220,6 +233,20 @@ func (m *MockStore) BatchGetInstanceIsolate(ids map[string]bool) (map[string]boo
 func (mr *MockStoreMockRecorder) BatchGetInstanceIsolate(ids interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchGetInstanceIsolate", reflect.TypeOf((*MockStore)(nil).BatchGetInstanceIsolate), ids)
+}
+
+// BatchRemoveInstanceMetadata mocks base method.
+func (m *MockStore) BatchRemoveInstanceMetadata(requests []*store.InstanceMetadataRequest) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchRemoveInstanceMetadata", requests)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BatchRemoveInstanceMetadata indicates an expected call of BatchRemoveInstanceMetadata.
+func (mr *MockStoreMockRecorder) BatchRemoveInstanceMetadata(requests interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchRemoveInstanceMetadata", reflect.TypeOf((*MockStore)(nil).BatchRemoveInstanceMetadata), requests)
 }
 
 // BatchSetInstanceHealthStatus mocks base method.

@@ -23,3 +23,10 @@ type InstanceArgs struct {
 	Ports []uint32
 	Meta  map[string]string
 }
+
+type InstanceMetadataRequest struct {
+	InstanceID string
+	Revision   string
+	Keys       []string
+	Metadata   map[string]string
+}

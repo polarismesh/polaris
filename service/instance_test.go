@@ -19,7 +19,6 @@ package service_test
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -29,7 +28,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/proto"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -37,15 +35,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/polarismesh/polaris/auth"
-	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
-	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/store"
-	"github.com/polarismesh/polaris/store/mock"
 )
 
 // 测试新建实例
@@ -2325,235 +2319,122 @@ func Test_isEmptyLocation(t *testing.T) {
 	}
 }
 
-type mockTrx struct {
-	lock        sync.RWMutex
-	releaseFunc func()
-}
-
-// Commit Transaction
-func (t *mockTrx) Commit() error {
-	if t.releaseFunc != nil {
-		t.releaseFunc()
+func Test_HealthCheckInstanceMetadata(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.Initialize(); err != nil {
+		t.Fatal(err)
 	}
-	return nil
-}
+	defer discoverSuit.Destroy()
 
-// LockBootstrap Start the lock, limit the concurrent number of Server boot
-func (t *mockTrx) LockBootstrap(key string, server string) error {
-	return nil
-}
+	_, ins1 := discoverSuit.createCommonInstance(t, &apiservice.Service{
+		Namespace: wrapperspb.String("default"),
+		Name:      wrapperspb.String("mock_service"),
+	}, 1)
+	defer func() {
+		discoverSuit.cleanInstance(ins1.GetId().GetValue())
+	}()
 
-// LockNamespace Row it locks Namespace
-func (t *mockTrx) LockNamespace(name string) (*model.Namespace, error) {
-	return nil, nil
-}
-
-// DeleteNamespace Delete Namespace
-func (t *mockTrx) DeleteNamespace(name string) error {
-	return nil
-}
-
-// LockService Row it locks service
-func (t *mockTrx) LockService(name string, namespace string) (*model.Service, error) {
-	id := fmt.Sprintf("%s@@%s", namespace, name)
-	if !t.lock.TryLock() {
-		return nil, errors.New("transaction is busy")
-	}
-	t.releaseFunc = func() {
-		t.lock.Unlock()
-	}
-	return &model.Service{
-		ID:        id,
-		Name:      name,
-		Namespace: namespace,
-	}, nil
-}
-
-// RLockService Shared lock service
-func (t *mockTrx) RLockService(name string, namespace string) (*model.Service, error) {
-	id := fmt.Sprintf("%s@@%s", namespace, name)
-	if !t.lock.TryRLock() {
-		return nil, errors.New("transaction is busy")
-	}
-	t.releaseFunc = func() {
-		t.lock.RUnlock()
-	}
-	return &model.Service{
-		ID:        id,
-		Name:      name,
-		Namespace: namespace,
-	}, nil
-}
-
-type mockTrxManager struct {
-	lock sync.RWMutex
-	trxs map[string]*mockTrx
-}
-
-func (mgr *mockTrxManager) Create(svc, namespace string) *mockTrx {
-	mgr.lock.Lock()
-	defer mgr.lock.Unlock()
-
-	id := svc + "@@" + namespace
-	val, ok := mgr.trxs[id]
-	if ok {
-		return val
-	}
-
-	mgr.trxs[id] = &mockTrx{}
-	return mgr.trxs[id]
-}
-
-func TestCreateInstanceLockService(t *testing.T) {
-	createMockResource := func(t *testing.T, ctrl *gomock.Controller) (*service.Server, *mock.MockStore) {
-		var (
-			err         error
-			cacheMgr    *cache.CacheManager
-			nsSvr       namespace.NamespaceOperateServer
-			userMgn     auth.UserServer
-			strategyMgn auth.StrategyServer
-		)
-
-		ctx, cancel := context.WithCancel(context.Background())
-		t.Cleanup(func() {
-			cancel()
-			time.Sleep(5 * time.Second)
-		})
-
-		mockStore := mock.NewMockStore(ctrl)
-		cacheMgr, err = cache.TestCacheInitialize(ctx, &cache.Config{
-			Open: true,
-		}, mockStore)
+	t.Run("toUnhealth", func(t *testing.T) {
+		lastBeatTime := time.Now().Unix()
+		future := discoverSuit.BatchController().AsyncHeartbeat(ins1, false, lastBeatTime)
+		err := future.Wait()
 		assert.NoError(t, err)
 
-		userMgn, strategyMgn, err = auth.TestInitialize(ctx, &auth.Config{
-			User: auth.UserConfig{
-				Name:   "defaultUserManager",
-				Option: map[string]interface{}{},
-			},
-			Strategy: auth.StrategyConfig{
-				Name: "defaultStrategyManager",
-				Option: map[string]interface{}{
-					"clientOpen":  false,
-					"consoleOpen": false,
-				},
-			},
-		}, mockStore, cacheMgr)
-		assert.NoError(t, err)
-
-		nsSvr, err = namespace.TestInitialize(ctx, &namespace.Config{
-			AutoCreate: true,
-		}, mockStore, cacheMgr, userMgn, strategyMgn)
-		assert.NoError(t, err)
-
-		svr := service.TestNewServer(mockStore, nsSvr, cacheMgr)
-		return svr, mockStore
-	}
-
-	var (
-		req = &apiservice.Instance{
-			Namespace: &wrapperspb.StringValue{
-				Value: "test_ns",
-			},
-			Service: &wrapperspb.StringValue{
-				Value: "test_svc",
-			},
-			Host: &wrapperspb.StringValue{
-				Value: "127.0.0.1",
-			},
-			Port: &wrapperspb.UInt32Value{
-				Value: 8080,
-			},
-		}
-		trxMgr = &mockTrxManager{
-			trxs: map[string]*mockTrx{},
-		}
-	)
-
-	instanceID, checkError := service.TestCheckCreateInstance(req)
-	assert.Nil(t, checkError)
-
-	ins := *req
-	ins.Id = utils.NewStringValue(instanceID)
-
-	t.Run("正常创建实例", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(func() {
-			ctrl.Finish()
-		})
-		svr, mockStore := createMockResource(t, ctrl)
-		mockStore.EXPECT().GetInstance(gomock.Any()).Return(nil, nil).AnyTimes()
-		mockStore.EXPECT().CreateTransaction().DoAndReturn(func() (store.Transaction, error) {
-			return trxMgr.Create(req.GetService().GetValue(), req.GetNamespace().GetValue()), nil
-		}).AnyTimes()
-		mockStore.EXPECT().AddInstance(gomock.Any()).Return(nil).AnyTimes()
-
-		_, errResp := svr.TestSerialCreateInstance(context.TODO(), "mock_svc_id", req, &ins)
-		assert.Nil(t, errResp)
+		discoverSuit.DiscoverServer().Cache().TestRefresh()
+		ins1Cache := discoverSuit.DiscoverServer().Cache().Instance().GetInstance(ins1.GetId().GetValue())
+		assert.NotNil(t, ins1Cache, "ins1Cache is nil")
+		val, ok := ins1Cache.Metadata()[model.MetadataInstanceLastHeartbeatTime]
+		assert.Truef(t, ok, "%s not exist", model.MetadataInstanceLastHeartbeatTime)
+		assert.Equal(t, fmt.Sprintf("%d", lastBeatTime), val)
 	})
 
-	t.Run("创建实例的同时删除服务", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(func() {
-			ctrl.Finish()
+	t.Run("toHealth", func(t *testing.T) {
+		lastBeatTime := time.Now().Unix()
+		future := discoverSuit.BatchController().AsyncHeartbeat(ins1, true, lastBeatTime)
+		err := future.Wait()
+		assert.NoError(t, err)
+
+		discoverSuit.DiscoverServer().Cache().TestRefresh()
+		ins1Cache := discoverSuit.DiscoverServer().Cache().Instance().GetInstance(ins1.GetId().GetValue())
+		assert.NotNil(t, ins1Cache, "ins1Cache is nil")
+		_, ok := ins1Cache.Metadata()[model.MetadataInstanceLastHeartbeatTime]
+		assert.Falsef(t, ok, "%s exist", model.MetadataInstanceLastHeartbeatTime)
+	})
+}
+
+func Test_OperateInstanceMetadata(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.Initialize(); err != nil {
+		t.Fatal(err)
+	}
+	defer discoverSuit.Destroy()
+
+	_, ins1 := discoverSuit.createCommonInstance(t, &apiservice.Service{
+		Namespace: wrapperspb.String("default"),
+		Name:      wrapperspb.String("mock_service"),
+	}, 1)
+	defer func() {
+		discoverSuit.cleanInstance(ins1.GetId().GetValue())
+	}()
+	_, ins2 := discoverSuit.createCommonInstance(t, &apiservice.Service{
+		Namespace: wrapperspb.String("default"),
+		Name:      wrapperspb.String("mock_service"),
+	}, 2)
+	defer func() {
+		discoverSuit.cleanInstance(ins2.GetId().GetValue())
+	}()
+
+	t.Run("append-instance-metadata", func(t *testing.T) {
+		err := discoverSuit.Storage.BatchAppendInstanceMetadata([]*store.InstanceMetadataRequest{
+			{
+				InstanceID: ins1.GetId().GetValue(),
+				Metadata: map[string]string{
+					"ins1_mock_key": "ins1_mock_value",
+				},
+			},
+			{
+				InstanceID: ins2.GetId().GetValue(),
+				Metadata: map[string]string{
+					"ins2_mock_key": "ins2_mock_value",
+				},
+			},
 		})
-		svr, mockStore := createMockResource(t, ctrl)
-		mockStore.EXPECT().GetInstance(gomock.Any()).Return(nil, nil).AnyTimes()
-		mockStore.EXPECT().CreateTransaction().DoAndReturn(func() (store.Transaction, error) {
-			return trxMgr.Create(req.GetService().GetValue(), req.GetNamespace().GetValue()), nil
-		}).AnyTimes()
-		mockStore.EXPECT().AddInstance(gomock.Any()).Return(nil).AnyTimes()
-		mockStore.EXPECT().GetService(gomock.Any(), gomock.Any()).Return(&model.Service{Name: "mock"}, nil).AnyTimes()
-		mockStore.EXPECT().DeleteService(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_, _, _ string) error {
-				trx := trxMgr.Create(req.GetService().GetValue(), req.GetNamespace().GetValue())
-				_, err := trx.LockService(req.Service.Value, req.Namespace.Value)
-				return err
-			}).AnyTimes()
-		mockStore.EXPECT().GetExpandInstances(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			Return(uint32(0), nil, nil).AnyTimes()
-		mockStore.EXPECT().GetServiceAliases(gomock.Any(), gomock.Any(), gomock.Any()).
-			Return(uint32(0), nil, nil).AnyTimes()
-		mockStore.EXPECT().GetExtendRateLimits(gomock.Any(), gomock.Any(), gomock.Any()).
-			Return(uint32(0), nil, nil).AnyTimes()
-		mockStore.EXPECT().GetRoutingConfigWithID(gomock.Any()).
-			Return(nil, nil).AnyTimes()
-		mockStore.EXPECT().GetCircuitBreakersByService(gomock.Any(), gomock.Any()).
-			Return(nil, nil).AnyTimes()
+		assert.NoError(t, err)
 
-		wait := sync.WaitGroup{}
-		wait.Add(2)
+		discoverSuit.DiscoverServer().Cache().TestRefresh()
+		ins1Cache := discoverSuit.DiscoverServer().Cache().Instance().GetInstance(ins1.GetId().GetValue())
+		assert.NotNil(t, ins1Cache, "ins1Cache is nil")
+		val, ok := ins1Cache.Metadata()["ins1_mock_key"]
+		assert.True(t, ok, "ins1_mock_key not exist")
+		assert.Equal(t, "ins1_mock_value", val)
+		ins2Cache := discoverSuit.DiscoverServer().Cache().Instance().GetInstance(ins2.GetId().GetValue())
+		assert.NotNil(t, ins2Cache, "ins2Cache is nil")
+		val, ok = ins2Cache.Metadata()["ins2_mock_key"]
+		assert.True(t, ok, "ins2_mock_key not exist")
+		assert.Equal(t, "ins2_mock_value", val)
+	})
 
-		var (
-			createInsCode uint32
-			deleteSvcCode uint32
-		)
+	t.Run("remove-instance-metadata", func(t *testing.T) {
+		err := discoverSuit.Storage.BatchRemoveInstanceMetadata([]*store.InstanceMetadataRequest{
+			{
+				InstanceID: ins1.GetId().GetValue(),
+				Keys:       []string{"ins1_mock_key"},
+			},
+			{
+				InstanceID: ins2.GetId().GetValue(),
+				Keys:       []string{"ins2_mock_key"},
+			},
+		})
+		assert.NoError(t, err)
 
-		go func() {
-			defer wait.Done()
-			_, resp := svr.TestSerialCreateInstance(context.TODO(), "", req, &ins)
-			atomic.StoreUint32(&createInsCode, resp.GetCode().GetValue())
-		}()
-
-		go func() {
-			defer wait.Done()
-			resp := svr.DeleteService(context.TODO(), &apiservice.Service{
-				Namespace: &wrapperspb.StringValue{
-					Value: "test_ns",
-				},
-				Name: &wrapperspb.StringValue{
-					Value: "test_svc",
-				},
-			})
-			atomic.StoreUint32(&deleteSvcCode, resp.GetCode().GetValue())
-		}()
-
-		wait.Wait()
-		createInsApiCode := apimodel.Code(atomic.LoadUint32(&createInsCode))
-		deleteSvcApiCode := apimodel.Code(atomic.LoadUint32(&deleteSvcCode))
-
-		if deleteSvcApiCode == apimodel.Code_ExecuteSuccess {
-			assert.NotEqual(t, apimodel.Code_ExecuteSuccess, createInsApiCode)
-		}
+		discoverSuit.DiscoverServer().Cache().TestRefresh()
+		ins1Cache := discoverSuit.DiscoverServer().Cache().Instance().GetInstance(ins1.GetId().GetValue())
+		assert.NotNil(t, ins1Cache, "ins1Cache is nil")
+		_, ok := ins1Cache.Metadata()["ins1_mock_key"]
+		assert.False(t, ok, "ins1_mock_key exist")
+		ins2Cache := discoverSuit.DiscoverServer().Cache().Instance().GetInstance(ins2.GetId().GetValue())
+		assert.NotNil(t, ins2Cache, "ins2Cache is nil")
+		_, ok = ins2Cache.Metadata()["ins2_mock_key"]
+		assert.False(t, ok, "ins2_mock_key exist")
 	})
 }
