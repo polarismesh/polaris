@@ -124,6 +124,7 @@ func (sc *serviceCache) initialize(opt map[string]interface{}) error {
 	sc.names = new(sync.Map)
 	sc.cl5Sid2Name = new(sync.Map)
 	sc.cl5Names = new(sync.Map)
+	sc.pendingServices = new(sync.Map)
 	sc.namespaceServiceCnt = new(sync.Map)
 	if opt == nil {
 		return nil
