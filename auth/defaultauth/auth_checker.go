@@ -51,11 +51,12 @@ type defaultAuthChecker struct {
 // Initialize 执行初始化动作
 func (d *defaultAuthChecker) Initialize(options *auth.Config, s store.Store, cacheMgn *cache.CacheManager) error {
 	// 新版本鉴权策略配置均从auth.Option中迁移至auth.user.option及auth.strategy.option中
-	var strategyContentBytes []byte
-	var userContentBytes []byte
-
-	var authContentBytes []byte
-	var err error
+	var (
+		strategyContentBytes []byte
+		userContentBytes     []byte
+		authContentBytes     []byte
+		err                  error
+	)
 
 	cfg := DefaultAuthConfig()
 
