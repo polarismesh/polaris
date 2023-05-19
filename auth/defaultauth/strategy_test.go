@@ -55,7 +55,7 @@ type StrategyTest struct {
 	cacheMgn *cache.CacheManager
 	checker  auth.AuthChecker
 
-	svr *serverAuthAbility
+	svr *strategyAuthAbility
 
 	cancel context.CancelFunc
 
@@ -103,17 +103,24 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 
 	checker := &defaultAuthChecker{}
 	checker.Initialize(&auth.Config{
-		Name: "",
-		Option: map[string]interface{}{
-			"consoleOpen": true,
-			"clientOpen":  true,
-			"salt":        "polarismesh@2021",
-			"strict":      false,
+		User: auth.UserConfig{
+			Name: "",
+			Option: map[string]interface{}{
+				"salt": "polarismesh@2021",
+			},
+		},
+		Strategy: auth.StrategyConfig{
+			Name: "",
+			Option: map[string]interface{}{
+				"consoleOpen": true,
+				"clientOpen":  true,
+				"strict":      false,
+			},
 		},
 	}, storage, cacheMgn)
 	checker.cacheMgn = cacheMgn
 
-	svr := &serverAuthAbility{
+	svr := &strategyAuthAbility{
 		authMgn: checker,
 		target: &server{
 			storage:  storage,
@@ -849,7 +856,7 @@ func Test_AuthServer_NormalOperateStrategy(t *testing.T) {
 	users := createApiMockUser(10, "test")
 
 	t.Run("正常创建用户", func(t *testing.T) {
-		resp := suit.server.CreateUsers(suit.defaultCtx, users)
+		resp := suit.userMgn.CreateUsers(suit.defaultCtx, users)
 
 		if !respSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())
@@ -858,13 +865,13 @@ func Test_AuthServer_NormalOperateStrategy(t *testing.T) {
 
 	t.Run("正常更新用户", func(t *testing.T) {
 		users[0].Comment = utils.NewStringValue("update user comment")
-		resp := suit.server.UpdateUser(suit.defaultCtx, users[0])
+		resp := suit.userMgn.UpdateUser(suit.defaultCtx, users[0])
 
 		if !respSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())
 		}
 
-		qresp := suit.server.GetUsers(suit.defaultCtx, map[string]string{
+		qresp := suit.userMgn.GetUsers(suit.defaultCtx, map[string]string{
 			"id": users[0].GetId().GetValue(),
 		})
 
@@ -880,13 +887,13 @@ func Test_AuthServer_NormalOperateStrategy(t *testing.T) {
 	})
 
 	t.Run("正常删除用户", func(t *testing.T) {
-		resp := suit.server.DeleteUsers(suit.defaultCtx, []*apisecurity.User{users[3]})
+		resp := suit.userMgn.DeleteUsers(suit.defaultCtx, []*apisecurity.User{users[3]})
 
 		if !respSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())
 		}
 
-		qresp := suit.server.GetUsers(suit.defaultCtx, map[string]string{
+		qresp := suit.userMgn.GetUsers(suit.defaultCtx, map[string]string{
 			"id": users[3].GetId().GetValue(),
 		})
 
@@ -899,7 +906,7 @@ func Test_AuthServer_NormalOperateStrategy(t *testing.T) {
 	})
 
 	t.Run("正常更新用户Token", func(t *testing.T) {
-		resp := suit.server.ResetUserToken(suit.defaultCtx, users[0])
+		resp := suit.userMgn.ResetUserToken(suit.defaultCtx, users[0])
 
 		if !respSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())
@@ -907,7 +914,7 @@ func Test_AuthServer_NormalOperateStrategy(t *testing.T) {
 
 		time.Sleep(suit.updateCacheInterval)
 
-		qresp := suit.server.GetUserToken(suit.defaultCtx, users[0])
+		qresp := suit.userMgn.GetUserToken(suit.defaultCtx, users[0])
 		if !respSuccess(qresp) {
 			t.Fatal(resp.GetInfo().GetValue())
 		}

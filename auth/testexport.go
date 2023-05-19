@@ -28,24 +28,37 @@ import (
 
 // TestInitialize 包裹了初始化函数，在 Initialize 的时候会在自动调用，全局初始化一次
 func TestInitialize(_ context.Context, authOpt *Config, storage store.Store,
-	cacheMgn *cache.CacheManager) (AuthServer, error) {
+	cacheMgn *cache.CacheManager) (UserServer, StrategyServer, error) {
 
-	name := authOpt.Name
+	name := authOpt.User.Name
 	if name == "" {
-		return nil, errors.New("auth manager Name is empty")
+		return nil, nil, errors.New("user manager Name is empty")
 	}
-
-	mgn, ok := Slots[name]
+	namedUserMgn, ok := userMgnSlots[name]
 	if !ok {
-		return nil, errors.New("no such name AuthManager")
+		return nil, nil, errors.New("no such name UserServer")
 	}
+	userMgn = namedUserMgn
 
-	authSvr = mgn
+	name = authOpt.Strategy.Name
+	if name == "" {
+		return nil, nil, errors.New("strategy manager Name is empty")
+	}
+	namedStrategyMgn, ok := strategyMgnSlots[name]
+	if !ok {
+		return nil, nil, errors.New("no such name StrategyServer")
+	}
+	strategyMgn = namedStrategyMgn
+
 	finishInit = true
 
-	if err := authSvr.Initialize(authOpt, storage, cacheMgn); err != nil {
-		log.Printf("auth manager do initialize err: %s", err.Error())
-		return nil, err
+	if err := userMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
+		log.Printf("user manager do initialize err: %s", err.Error())
+		return nil, nil, err
 	}
-	return authSvr, nil
+	if err := strategyMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
+		log.Printf("user manager do initialize err: %s", err.Error())
+		return nil, nil, err
+	}
+	return userMgn, strategyMgn, nil
 }

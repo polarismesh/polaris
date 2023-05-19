@@ -34,7 +34,7 @@ func (svr *serverAuthAbility) CreateServiceAlias(
 	authCtx := svr.collectServiceAliasAuthContext(
 		ctx, []*apiservice.ServiceAlias{req}, model.Create, "CreateServiceAlias")
 
-	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewServiceAliasResponse(convertToErrCode(err), req)
 	}
 
@@ -55,7 +55,7 @@ func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context,
 	reqs []*apiservice.ServiceAlias) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, reqs, model.Delete, "DeleteServiceAliases")
 
-	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 
@@ -71,7 +71,7 @@ func (svr *serverAuthAbility) UpdateServiceAlias(
 	authCtx := svr.collectServiceAliasAuthContext(
 		ctx, []*apiservice.ServiceAlias{req}, model.Modify, "UpdateServiceAlias")
 
-	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewServiceAliasResponse(convertToErrCode(err), req)
 	}
 
@@ -86,7 +86,7 @@ func (svr *serverAuthAbility) GetServiceAliases(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, nil, model.Read, "GetServiceAliases")
 
-	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchQueryResponse(convertToErrCode(err))
 	}
 
@@ -108,7 +108,7 @@ func (svr *serverAuthAbility) GetServiceAliases(ctx context.Context,
 			}
 			editable := true
 			// 如果鉴权能力没有开启，那就默认都可以进行编辑
-			if svr.authMgn.IsOpenConsoleAuth() {
+			if svr.strategyMgn.GetAuthChecker().IsOpenConsoleAuth() {
 				editable = svr.Cache().AuthStrategy().IsResourceEditable(principal,
 					apisecurity.ResourceType_Services, svc.ID)
 			}

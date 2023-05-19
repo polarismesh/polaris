@@ -78,7 +78,8 @@ type HTTPServer struct {
 	v1Server v1.HTTPServerV1
 	v2Server v2.HTTPServerV2
 
-	authServer auth.AuthServer
+	userMgn     auth.UserServer
+	strategyMgn auth.StrategyServer
 }
 
 const (
@@ -176,14 +177,22 @@ func (h *HTTPServer) Run(errCh chan error) {
 		return
 	}
 
-	authSvr, err := auth.GetAuthServer()
+	userMgn, err := auth.GetUserServer()
 	if err != nil {
 		log.Errorf("%v", err)
 		errCh <- err
 		return
 	}
 
-	h.authServer = authSvr
+	strategyMgn, err := auth.GetStrategyServer()
+	if err != nil {
+		log.Errorf("%v", err)
+		errCh <- err
+		return
+	}
+
+	h.userMgn = userMgn
+	h.strategyMgn = strategyMgn
 
 	h.healthCheckServer, err = healthcheck.GetServer()
 	if err != nil {

@@ -35,15 +35,16 @@ import (
 // 该层会对请求参数做一些调整，根据具体的请求发起人，设置为数据对应的 owner，不可为为别人进行创建资源
 type serverAuthAbility struct {
 	targetServer *Server
-	authSvr      auth.AuthServer
-	authMgn      auth.AuthChecker
+	userMgn      auth.UserServer
+	strategyMgn  auth.StrategyServer
 }
 
-func newServerAuthAbility(targetServer *Server, authSvr auth.AuthServer) NamespaceOperateServer {
+func newServerAuthAbility(targetServer *Server,
+	userMgn auth.UserServer, strategyMgn auth.StrategyServer) NamespaceOperateServer {
 	proxy := &serverAuthAbility{
 		targetServer: targetServer,
-		authSvr:      authSvr,
-		authMgn:      authSvr.GetAuthChecker(),
+		userMgn:      userMgn,
+		strategyMgn:  strategyMgn,
 	}
 
 	targetServer.SetResourceHooks(proxy)

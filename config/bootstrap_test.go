@@ -117,24 +117,24 @@ func (c *ConfigCenterTest) doInitialize() error {
 		return err
 	}
 
-	authSvr, err := auth.TestInitialize(ctx, &c.cfg.Auth, s, cacheMgr)
+	userMgn, strategyMgn, err := auth.TestInitialize(ctx, &c.cfg.Auth, s, cacheMgr)
 	if err != nil {
 		fmt.Printf("[ERROR] configure init auth fail: %v\n", err)
 		return err
 	}
 
-	nsOp, err := namespace.TestInitialize(ctx, &c.cfg.Namespace, s, cacheMgr, authSvr)
+	nsOp, err := namespace.TestInitialize(ctx, &c.cfg.Namespace, s, cacheMgr, userMgn, strategyMgn)
 	if err != nil {
 		fmt.Printf("[ERROR] configure init namespace fail: %v\n", err)
 		return err
 	}
 
 	// 初始化配置中心模块
-	if err := c.testServer.initialize(ctx, c.cfg.Config, s, nsOp, cacheMgr, authSvr); err != nil {
+	if err := c.testServer.initialize(ctx, c.cfg.Config, s, nsOp, cacheMgr); err != nil {
 		return err
 	}
 	c.testServer.initialized = true
-	c.testService = newServerAuthAbility(c.testServer, authSvr)
+	c.testService = newServerAuthAbility(c.testServer, userMgn, strategyMgn)
 
 	time.Sleep(5 * time.Second)
 

@@ -83,7 +83,8 @@ type AuthTestSuit struct {
 	defaultCtx          context.Context
 	cancel              context.CancelFunc
 	storage             store.Store
-	server              auth.AuthServer
+	userMgn             auth.UserServer
+	strategyMgn         auth.StrategyServer
 }
 
 // 加载配置
@@ -171,13 +172,14 @@ func (d *AuthTestSuit) initialize(opts ...options) error {
 		panic(err)
 	}
 
-	// 初始化鉴权层
-	authSvr, err := auth.TestInitialize(ctx, &d.cfg.Auth, s, cacheMgn)
+	// 初始化鉴权层（包括用户管理器和策略管理器）
+	userMgn, strategyMgn, err := auth.TestInitialize(ctx, &d.cfg.Auth, s, cacheMgn)
 	if err != nil {
 		panic(err)
 	}
 
-	d.server = authSvr
+	d.userMgn = userMgn
+	d.strategyMgn = strategyMgn
 
 	// 多等待一会
 	d.updateCacheInterval = cacheMgn.GetUpdateCacheInterval() + time.Millisecond*500

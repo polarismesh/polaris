@@ -34,7 +34,7 @@ func (svr *serverAuthAbility) CreateInstances(ctx context.Context,
 	reqs []*apiservice.Instance) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Create, "CreateInstances")
 
-	_, err := svr.authMgn.CheckConsolePermission(authCtx)
+	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		resp := api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 		batchResp := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
@@ -53,7 +53,7 @@ func (svr *serverAuthAbility) DeleteInstances(ctx context.Context,
 	reqs []*apiservice.Instance) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Delete, "DeleteInstances")
 
-	_, err := svr.authMgn.CheckConsolePermission(authCtx)
+	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		resp := api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 		batchResp := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
@@ -72,7 +72,7 @@ func (svr *serverAuthAbility) DeleteInstancesByHost(ctx context.Context,
 	reqs []*apiservice.Instance) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Delete, "DeleteInstancesByHost")
 
-	if _, err := svr.authMgn.CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
@@ -91,7 +91,7 @@ func (svr *serverAuthAbility) UpdateInstances(ctx context.Context,
 	reqs []*apiservice.Instance) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Modify, "UpdateInstances")
 
-	_, err := svr.authMgn.CheckConsolePermission(authCtx)
+	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(convertToErrCode(err), err.Error())
 	}
@@ -107,7 +107,7 @@ func (svr *serverAuthAbility) UpdateInstancesIsolate(ctx context.Context,
 	reqs []*apiservice.Instance) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Modify, "UpdateInstancesIsolate")
 
-	_, err := svr.authMgn.CheckConsolePermission(authCtx)
+	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(convertToErrCode(err), err.Error())
 	}
@@ -122,7 +122,7 @@ func (svr *serverAuthAbility) UpdateInstancesIsolate(ctx context.Context,
 func (svr *serverAuthAbility) GetInstances(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Read, "GetInstances")
-	_, err := svr.authMgn.CheckConsolePermission(authCtx)
+	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchQueryResponseWithMsg(convertToErrCode(err), err.Error())
 	}
@@ -136,7 +136,7 @@ func (svr *serverAuthAbility) GetInstances(ctx context.Context,
 // GetInstancesCount get instances to count
 func (svr *serverAuthAbility) GetInstancesCount(ctx context.Context) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Read, "GetInstancesCount")
-	_, err := svr.authMgn.CheckConsolePermission(authCtx)
+	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchQueryResponseWithMsg(convertToErrCode(err), err.Error())
 	}
@@ -148,7 +148,7 @@ func (svr *serverAuthAbility) GetInstancesCount(ctx context.Context) *apiservice
 
 func (svr *serverAuthAbility) GetInstanceLabels(ctx context.Context, query map[string]string) *apiservice.Response {
 	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Read, "GetInstanceLabels")
-	_, err := svr.authMgn.CheckConsolePermission(authCtx)
+	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 	}

@@ -38,16 +38,23 @@ func Test_Initialize(t *testing.T) {
 	})
 
 	eventhub.TestInitEventHub()
+
 	ctrl := gomock.NewController(t)
 	s := mock.NewMockStore(ctrl)
 
-	authSvr, err := auth.TestInitialize(context.Background(), &auth.Config{
-		Name:   "defaultAuth",
-		Option: map[string]interface{}{},
+	_, _, err := auth.TestInitialize(context.Background(), &auth.Config{
+		User: auth.UserConfig{
+			Name:   "defaultUserManager",
+			Option: map[string]interface{}{},
+		},
+		Strategy: auth.StrategyConfig{
+			Name:   "defaultStrategyManager",
+			Option: map[string]interface{}{},
+		},
 	}, s, nil)
-
 	assert.NoError(t, err)
-	err = Initialize(context.Background(), &Config{}, authSvr)
+
+	err = Initialize(context.Background(), &Config{})
 	assert.NoError(t, err)
 
 	svr, err := GetOriginServer()

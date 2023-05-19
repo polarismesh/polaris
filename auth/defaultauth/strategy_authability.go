@@ -24,13 +24,49 @@ import (
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
+	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/plugin"
+	"github.com/polarismesh/polaris/store"
 )
 
+type strategyAuthAbility struct {
+	authMgn *defaultAuthChecker
+	target  *server
+}
+
+// Initialize 执行初始化动作
+func (svr *strategyAuthAbility) Initialize(authOpt *auth.Config, storage store.Store,
+	cacheMgn *cache.CacheManager) error {
+	var (
+		history = plugin.GetHistory()
+		authMgn = &defaultAuthChecker{}
+	)
+	if err := authMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
+		return err
+	}
+
+	svr.authMgn = authMgn
+	svr.target = &server{
+		storage:  storage,
+		history:  history,
+		cacheMgn: cacheMgn,
+		authMgn:  authMgn,
+	}
+	return nil
+}
+
+// Name of the user operator plugin
+func (svr *strategyAuthAbility) Name() string {
+	return "defaultStrategyManager"
+}
+
 // CreateStrategy creates a new strategy.
-func (svr *serverAuthAbility) CreateStrategy(
+func (svr *strategyAuthAbility) CreateStrategy(
 	ctx context.Context, strategy *apisecurity.AuthStrategy) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
+	ctx, rsp := verifyAuth(ctx, WriteOp, MustOwner, svr.authMgn)
 	if rsp != nil {
 		rsp.AuthStrategy = strategy
 		return rsp
@@ -40,9 +76,9 @@ func (svr *serverAuthAbility) CreateStrategy(
 }
 
 // UpdateStrategies update a strategy.
-func (svr *serverAuthAbility) UpdateStrategies(ctx context.Context,
+func (svr *strategyAuthAbility) UpdateStrategies(ctx context.Context,
 	reqs []*apisecurity.ModifyAuthStrategy) *apiservice.BatchWriteResponse {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
+	ctx, rsp := verifyAuth(ctx, WriteOp, MustOwner, svr.authMgn)
 	if rsp != nil {
 		resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 		api.Collect(resp, rsp)
@@ -53,9 +89,9 @@ func (svr *serverAuthAbility) UpdateStrategies(ctx context.Context,
 }
 
 // DeleteStrategies delete strategy.
-func (svr *serverAuthAbility) DeleteStrategies(ctx context.Context,
+func (svr *strategyAuthAbility) DeleteStrategies(ctx context.Context,
 	reqs []*apisecurity.AuthStrategy) *apiservice.BatchWriteResponse {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
+	ctx, rsp := verifyAuth(ctx, WriteOp, MustOwner, svr.authMgn)
 	if rsp != nil {
 		resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 		api.Collect(resp, rsp)
@@ -66,9 +102,9 @@ func (svr *serverAuthAbility) DeleteStrategies(ctx context.Context,
 }
 
 // GetStrategies get strategy list .
-func (svr *serverAuthAbility) GetStrategies(ctx context.Context,
+func (svr *strategyAuthAbility) GetStrategies(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
-	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
+	ctx, rsp := verifyAuth(ctx, ReadOp, NotOwner, svr.authMgn)
 	if rsp != nil {
 		return api.NewAuthBatchQueryResponseWithMsg(apimodel.Code(rsp.GetCode().Value), rsp.Info.Value)
 	}
@@ -77,9 +113,9 @@ func (svr *serverAuthAbility) GetStrategies(ctx context.Context,
 }
 
 // GetStrategy get strategy.
-func (svr *serverAuthAbility) GetStrategy(
+func (svr *strategyAuthAbility) GetStrategy(
 	ctx context.Context, strategy *apisecurity.AuthStrategy) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
+	ctx, rsp := verifyAuth(ctx, ReadOp, NotOwner, svr.authMgn)
 	if rsp != nil {
 		return rsp
 	}
@@ -88,11 +124,21 @@ func (svr *serverAuthAbility) GetStrategy(
 }
 
 // GetPrincipalResources get principal resources.
-func (svr *serverAuthAbility) GetPrincipalResources(ctx context.Context, query map[string]string) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
+func (svr *strategyAuthAbility) GetPrincipalResources(ctx context.Context, query map[string]string) *apiservice.Response { //nolint
+	ctx, rsp := verifyAuth(ctx, ReadOp, NotOwner, svr.authMgn)
 	if rsp != nil {
 		return rsp
 	}
 
 	return svr.target.GetPrincipalResources(ctx, query)
+}
+
+// GetAuthChecker 获取鉴权管理器
+func (svr *strategyAuthAbility) GetAuthChecker() auth.AuthChecker {
+	return svr.authMgn
+}
+
+// AfterResourceOperation is called after resource operation
+func (svr *strategyAuthAbility) AfterResourceOperation(afterCtx *model.AcquireContext) error {
+	return svr.target.AfterResourceOperation(afterCtx)
 }

@@ -55,7 +55,12 @@ func Initialize(ctx context.Context, cfg *Config, namingService service.Discover
 func initialize(_ context.Context, cfg *Config, namingService service.DiscoverServer,
 	healthCheckServer *healthcheck.Server, cacheMgn *cache.CacheManager, storage store.Store) error {
 
-	authServer, err := auth.GetAuthServer()
+	userMgn, err := auth.GetUserServer()
+	if err != nil {
+		return err
+	}
+
+	strategyMgn, err := auth.GetStrategyServer()
 	if err != nil {
 		return err
 	}
@@ -70,7 +75,7 @@ func initialize(_ context.Context, cfg *Config, namingService service.DiscoverSe
 		return err
 	}
 
-	server = newServerAuthAbility(maintainServer, authServer)
+	server = newServerAuthAbility(maintainServer, userMgn, strategyMgn)
 	return nil
 }
 

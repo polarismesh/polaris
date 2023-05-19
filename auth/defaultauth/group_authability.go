@@ -27,9 +27,14 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
+type groupAuthAbility struct {
+	authMgn *defaultAuthChecker
+	target  *server
+}
+
 // CreateGroup creates a group.
-func (svr *serverAuthAbility) CreateGroup(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
+func (svr *groupAuthAbility) CreateGroup(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
+	ctx, rsp := verifyAuth(ctx, WriteOp, MustOwner, svr.authMgn)
 	if rsp != nil {
 		rsp.UserGroup = group
 		return rsp
@@ -39,9 +44,9 @@ func (svr *serverAuthAbility) CreateGroup(ctx context.Context, group *apisecurit
 }
 
 // UpdateGroups updates groups.
-func (svr *serverAuthAbility) UpdateGroups(ctx context.Context,
+func (svr *groupAuthAbility) UpdateGroups(ctx context.Context,
 	reqs []*apisecurity.ModifyUserGroup) *apiservice.BatchWriteResponse {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
+	ctx, rsp := verifyAuth(ctx, WriteOp, MustOwner, svr.authMgn)
 	if rsp != nil {
 		resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 		api.Collect(resp, rsp)
@@ -52,9 +57,9 @@ func (svr *serverAuthAbility) UpdateGroups(ctx context.Context,
 }
 
 // DeleteGroups deletes groups.
-func (svr *serverAuthAbility) DeleteGroups(ctx context.Context,
+func (svr *groupAuthAbility) DeleteGroups(ctx context.Context,
 	reqs []*apisecurity.UserGroup) *apiservice.BatchWriteResponse {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
+	ctx, rsp := verifyAuth(ctx, WriteOp, MustOwner, svr.authMgn)
 	if rsp != nil {
 		resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 		api.Collect(resp, rsp)
@@ -65,9 +70,9 @@ func (svr *serverAuthAbility) DeleteGroups(ctx context.Context,
 }
 
 // GetGroups 查看用户组列表
-func (svr *serverAuthAbility) GetGroups(ctx context.Context,
+func (svr *groupAuthAbility) GetGroups(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
-	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
+	ctx, rsp := verifyAuth(ctx, ReadOp, NotOwner, svr.authMgn)
 	if rsp != nil {
 		return api.NewAuthBatchQueryResponseWithMsg(apimodel.Code(rsp.GetCode().Value), rsp.Info.Value)
 	}
@@ -76,8 +81,8 @@ func (svr *serverAuthAbility) GetGroups(ctx context.Context,
 }
 
 // GetGroup 查看用户组
-func (svr *serverAuthAbility) GetGroup(ctx context.Context, req *apisecurity.UserGroup) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, NotOwner)
+func (svr *groupAuthAbility) GetGroup(ctx context.Context, req *apisecurity.UserGroup) *apiservice.Response {
+	ctx, rsp := verifyAuth(ctx, WriteOp, NotOwner, svr.authMgn)
 	if rsp != nil {
 		return rsp
 	}
@@ -86,8 +91,8 @@ func (svr *serverAuthAbility) GetGroup(ctx context.Context, req *apisecurity.Use
 }
 
 // GetGroupToken 获取用户组token
-func (svr *serverAuthAbility) GetGroupToken(ctx context.Context, req *apisecurity.UserGroup) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
+func (svr *groupAuthAbility) GetGroupToken(ctx context.Context, req *apisecurity.UserGroup) *apiservice.Response {
+	ctx, rsp := verifyAuth(ctx, ReadOp, NotOwner, svr.authMgn)
 	if rsp != nil {
 		return rsp
 	}
@@ -96,8 +101,8 @@ func (svr *serverAuthAbility) GetGroupToken(ctx context.Context, req *apisecurit
 }
 
 // UpdateGroupToken 更新用户组token
-func (svr *serverAuthAbility) UpdateGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
+func (svr *groupAuthAbility) UpdateGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
+	ctx, rsp := verifyAuth(ctx, WriteOp, MustOwner, svr.authMgn)
 	if rsp != nil {
 		rsp.UserGroup = group
 		return rsp
@@ -107,8 +112,8 @@ func (svr *serverAuthAbility) UpdateGroupToken(ctx context.Context, group *apise
 }
 
 // ResetGroupToken 重置用户组token
-func (svr *serverAuthAbility) ResetGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
+func (svr *groupAuthAbility) ResetGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
+	ctx, rsp := verifyAuth(ctx, WriteOp, MustOwner, svr.authMgn)
 	if rsp != nil {
 		rsp.UserGroup = group
 		return rsp

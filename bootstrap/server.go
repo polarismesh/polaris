@@ -168,7 +168,12 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 		return err
 	}
 
-	authMgn, err := auth.GetAuthServer()
+	userMgn, err := auth.GetUserServer()
+	if err != nil {
+		return err
+	}
+
+	strategyMgn, err := auth.GetStrategyServer()
 	if err != nil {
 		return err
 	}
@@ -179,12 +184,12 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 	}
 
 	// 初始化服务发现模块相关功能
-	if err := StartDiscoverComponents(ctx, cfg, s, cacheMgn, authMgn); err != nil {
+	if err := StartDiscoverComponents(ctx, cfg, s, cacheMgn); err != nil {
 		return err
 	}
 
 	// 初始化配置中心模块相关功能
-	if err := StartConfigCenterComponents(ctx, cfg, s, cacheMgn, authMgn); err != nil {
+	if err := StartConfigCenterComponents(ctx, cfg, s, cacheMgn, userMgn, strategyMgn); err != nil {
 		return err
 	}
 
@@ -211,7 +216,7 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 }
 
 func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s store.Store,
-	cacheMgn *cache.CacheManager, authMgn auth.AuthServer) error {
+	cacheMgn *cache.CacheManager) error {
 	// 批量控制器
 	namingBatchConfig, err := batch.ParseBatchConfig(cfg.Naming.Batch)
 	if err != nil {
@@ -273,7 +278,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 	}
 
 	// 初始化服务模块
-	if err = service.Initialize(ctx, &cfg.Naming, authMgn, opts...); err != nil {
+	if err = service.Initialize(ctx, &cfg.Naming, opts...); err != nil {
 		return err
 	}
 
@@ -294,13 +299,13 @@ func parseConfDir(path string) string {
 
 // StartConfigCenterComponents 启动配置中心模块
 func StartConfigCenterComponents(ctx context.Context, cfg *boot_config.Config, s store.Store,
-	cacheMgn *cache.CacheManager, authMgn auth.AuthServer) error {
+	cacheMgn *cache.CacheManager, userMgn auth.UserServer, strategyMgn auth.StrategyServer) error {
 	namespaceOperator, err := namespace.GetServer()
 	if err != nil {
 		return err
 	}
 
-	return config_center.Initialize(ctx, cfg.Config, s, cacheMgn, namespaceOperator, authMgn)
+	return config_center.Initialize(ctx, cfg.Config, s, cacheMgn, namespaceOperator, userMgn, strategyMgn)
 }
 
 // StartServers 启动server

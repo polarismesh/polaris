@@ -2407,10 +2407,11 @@ func (mgr *mockTrxManager) Create(svc, namespace string) *mockTrx {
 func TestCreateInstanceLockService(t *testing.T) {
 	createMockResource := func(t *testing.T, ctrl *gomock.Controller) (*service.Server, *mock.MockStore) {
 		var (
-			err      error
-			cacheMgr *cache.CacheManager
-			nsSvr    namespace.NamespaceOperateServer
-			authSvr  auth.AuthServer
+			err         error
+			cacheMgr    *cache.CacheManager
+			nsSvr       namespace.NamespaceOperateServer
+			userMgn     auth.UserServer
+			strategyMgn auth.StrategyServer
 		)
 
 		ctx, cancel := context.WithCancel(context.Background())
@@ -2425,18 +2426,24 @@ func TestCreateInstanceLockService(t *testing.T) {
 		}, mockStore)
 		assert.NoError(t, err)
 
-		authSvr, err = auth.TestInitialize(ctx, &auth.Config{
-			Name: "defaultAuth",
-			Option: map[string]interface{}{
-				"clientOpen":  false,
-				"consoleOpen": false,
+		userMgn, strategyMgn, err = auth.TestInitialize(ctx, &auth.Config{
+			User: auth.UserConfig{
+				Name:   "defaultUserManager",
+				Option: map[string]interface{}{},
+			},
+			Strategy: auth.StrategyConfig{
+				Name: "defaultStrategyManager",
+				Option: map[string]interface{}{
+					"clientOpen":  false,
+					"consoleOpen": false,
+				},
 			},
 		}, mockStore, cacheMgr)
 		assert.NoError(t, err)
 
 		nsSvr, err = namespace.TestInitialize(ctx, &namespace.Config{
 			AutoCreate: true,
-		}, mockStore, cacheMgr, authSvr)
+		}, mockStore, cacheMgr, userMgn, strategyMgn)
 		assert.NoError(t, err)
 
 		svr := service.TestNewServer(mockStore, nsSvr, cacheMgr)

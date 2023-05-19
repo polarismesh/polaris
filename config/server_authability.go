@@ -35,15 +35,16 @@ var _ ConfigCenterServer = (*serverAuthability)(nil)
 // Server 配置中心核心服务
 type serverAuthability struct {
 	targetServer *Server
-	authSvr      auth.AuthServer
-	checker      auth.AuthChecker
+	userMgn      auth.UserServer
+	strategyMgn  auth.StrategyServer
 }
 
-func newServerAuthAbility(targetServer *Server, authSvr auth.AuthServer) ConfigCenterServer {
+func newServerAuthAbility(targetServer *Server,
+	userMgn auth.UserServer, strategyMgn auth.StrategyServer) ConfigCenterServer {
 	proxy := &serverAuthability{
 		targetServer: targetServer,
-		authSvr:      authSvr,
-		checker:      authSvr.GetAuthChecker(),
+		userMgn:      userMgn,
+		strategyMgn:  strategyMgn,
 	}
 	targetServer.SetResourceHooks(proxy)
 	return proxy

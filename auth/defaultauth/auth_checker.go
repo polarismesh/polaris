@@ -50,17 +50,51 @@ type defaultAuthChecker struct {
 
 // Initialize 执行初始化动作
 func (d *defaultAuthChecker) Initialize(options *auth.Config, s store.Store, cacheMgn *cache.CacheManager) error {
-	contentBytes, err := json.Marshal(options.Option)
-	if err != nil {
-		return err
-	}
+	// 新版本鉴权策略配置均从auth.Option中迁移至auth.user.option及auth.strategy.option中
+	var (
+		strategyContentBytes []byte
+		userContentBytes     []byte
+		authContentBytes     []byte
+		err                  error
+	)
+
 	cfg := DefaultAuthConfig()
-	if err := json.Unmarshal(contentBytes, cfg); err != nil {
-		return err
+
+	// 一旦设置了auth.user.option或auth.strategy.option，将不会继续读取auth.option
+	if len(options.Strategy.Option) > 0 || len(options.User.Option) > 0 {
+		// 判断auth.option是否还有值，有则不兼容
+		if len(options.Option) > 0 {
+			return errors.New("not allow set auth.option when auth.user.option or auth.strategy.option has set")
+		}
+		strategyContentBytes, err = json.Marshal(options.Strategy.Option)
+		if err != nil {
+			return err
+		}
+		if err := json.Unmarshal(strategyContentBytes, cfg); err != nil {
+			return err
+		}
+		userContentBytes, err = json.Marshal(options.User.Option)
+		if err != nil {
+			return err
+		}
+		if err := json.Unmarshal(userContentBytes, cfg); err != nil {
+			return err
+		}
+	} else {
+		log.Warn("[Auth][Checker] auth.option has deprecated, use auth.user.option and auth.strategy.option instead.")
+		authContentBytes, err = json.Marshal(options.Option)
+		if err != nil {
+			return err
+		}
+		if err := json.Unmarshal(authContentBytes, cfg); err != nil {
+			return err
+		}
 	}
+
 	if err := cfg.Verify(); err != nil {
 		return err
 	}
+
 	AuthOption = cfg
 	d.cacheMgn = cacheMgn
 	return nil
