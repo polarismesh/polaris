@@ -207,7 +207,10 @@ func Test_makeLocalRateLimit(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := mockXds.makeLocalRateLimit(tt.args.svc); !reflect.DeepEqual(got, tt.want) {
+			if got := mockXds.makeLocalRateLimit(model.ServiceKey{
+				Namespace: tt.args.svc.Namespace,
+				Name:      tt.args.svc.Name,
+			}); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeLocalRateLimit() = %v, want %v", got, tt.want)
 			}
 		})

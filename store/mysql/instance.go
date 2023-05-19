@@ -25,6 +25,7 @@ import (
 	"time"
 
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
@@ -599,7 +600,9 @@ func (ins *instanceStore) BatchAppendInstanceMetadata(requests []*store.Instance
 				args = append(args, id, k, v)
 			}
 			str += strings.Join(values, ",")
-
+			if log.DebugEnabled() {
+				log.Debug("[Store][database] append instance metadata", zap.String("sql", str), zap.Any("args", args))
+			}
 			if _, err := tx.Exec(str, args...); err != nil {
 				log.Errorf("[Store][database] append instance metadata err: %s", err.Error())
 				return err
@@ -611,7 +614,7 @@ func (ins *instanceStore) BatchAppendInstanceMetadata(requests []*store.Instance
 				return err
 			}
 		}
-		return nil
+		return tx.Commit()
 	})
 }
 
@@ -647,7 +650,7 @@ func (ins *instanceStore) BatchRemoveInstanceMetadata(requests []*store.Instance
 				return err
 			}
 		}
-		return nil
+		return tx.Commit()
 	})
 }
 

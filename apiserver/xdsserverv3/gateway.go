@@ -140,11 +140,10 @@ func (x *XDSServer) makeGatewayRoutes(namespace string, xdsNode *XDSClient) []*r
 			return
 		}
 
-		routeMatch := &route.RouteMatch{
-			PathSpecifier: &route.RouteMatch_Prefix{Prefix: "/"},
-		}
-
 		for i := range rule.RuleRouting.Rules {
+			routeMatch := &route.RouteMatch{
+				PathSpecifier: &route.RouteMatch_Prefix{Prefix: "/"},
+			}
 			subRule := rule.RuleRouting.Rules[i]
 			// 先判断 dest 的服务是否满足目标 namespace
 			var (

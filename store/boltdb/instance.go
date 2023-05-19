@@ -355,9 +355,6 @@ func (i *instanceStore) GetInstancesMainByService(serviceID, host string) ([]*mo
 // GetExpandInstances View instance details and corresponding number according to filter conditions
 func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 	offset uint32, limit uint32) (uint32, []*model.Instance, error) {
-
-	log.Infof("get GetExpandInstances request %+v", filter)
-
 	if limit == 0 {
 		return 0, make([]*model.Instance, 0), nil
 	}
