@@ -202,21 +202,14 @@ func (x *XDSServer) makeLocalRateLimit(svcKey model.ServiceKey) map[string]*anyp
 						FillInterval: amount.ValidDuration,
 					},
 				}
-				entries := make([]*envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry, 0, len(rule.Labels))
-
-				pathVal := rule.GetMethod().GetValue().GetValue()
-				if len(pathVal) != 0 {
-					entries = append(entries, &envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry{
-						Key:   "path",
-						Value: pathVal,
-					})
-				}
-				for index := range rule.Arguments {
-					arg := rule.Arguments[index]
-					entries = append(entries, &envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry{
-						Key:   arg.GetKey(),
-						Value: arg.GetValue().GetValue().GetValue(),
-					})
+				entries := make([]*envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry, len(rule.Labels))
+				pos := 0
+				for k, v := range rule.Labels {
+					entries[pos] = &envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry{
+						Key:   k,
+						Value: v.Value.Value,
+					}
+					pos++
 				}
 				descriptor.Entries = entries
 				rateLimitConf.Descriptors = append(rateLimitConf.Descriptors, descriptor)
