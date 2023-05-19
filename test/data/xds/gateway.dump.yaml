@@ -92,7 +92,7 @@ routers:
     name: gateway-virtualhost
     routes:
     - match:
-        path: /service-b
+        path: /service-a
       route:
         weightedClusters:
           clusters:
