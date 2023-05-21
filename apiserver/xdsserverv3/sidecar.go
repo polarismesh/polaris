@@ -144,15 +144,12 @@ func buildSidecarRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage
 	buildCommonRouteMatch(routeMatch, source)
 }
 
-func (x *XDSServer) makeLocalRateLimit(si *ServiceInfo) map[string]*anypb.Any {
+func (x *XDSServer) makeLocalRateLimit(svcKey model.ServiceKey) map[string]*anypb.Any {
 	ratelimitGetter := x.RatelimitConfigGetter
 	if ratelimitGetter == nil {
 		ratelimitGetter = x.namingServer.Cache().RateLimit().GetRateLimitRules
 	}
-	conf, _ := ratelimitGetter(model.ServiceKey{
-		Namespace: si.Namespace,
-		Name:      si.Name,
-	})
+	conf, _ := ratelimitGetter(svcKey)
 	filters := make(map[string]*anypb.Any)
 	if conf != nil {
 		rateLimitConf := &lrl.LocalRateLimit{
@@ -252,7 +249,10 @@ func (x *XDSServer) makeSidecarVirtualHosts(services []*ServiceInfo) []types.Res
 			Name:    serviceInfo.Name,
 			Domains: generateServiceDomains(serviceInfo),
 			Routes:  makeSidecarRoutes(serviceInfo),
-			// TypedPerFilterConfig: x.makeLocalRateLimit(serviceInfo),
+			// TypedPerFilterConfig: x.makeLocalRateLimit(model.ServiceKey{
+			// 	Namespace: serviceInfo.Namespace,
+			// 	Name:      serviceInfo.Name,
+			// }),
 		}
 		hosts = append(hosts, vHost)
 	}

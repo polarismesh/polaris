@@ -1,4 +1,4 @@
-/**
+/*
  * Tencent is pleased to support the open source community by making Polaris available.
  *
  * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
@@ -14,19 +14,12 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
+--
+-- Database: `polaris_server`
+--
+USE `polaris_server`;
 
-package store
-
-// InstanceArgs 用于通过服务实例查询服务的参数
-type InstanceArgs struct {
-	Hosts []string
-	Ports []uint32
-	Meta  map[string]string
-}
-
-type InstanceMetadataRequest struct {
-	InstanceID string
-	Revision   string
-	Keys       []string
-	Metadata   map[string]string
-}
+ALTER TABLE instance_metadata DROP FOREIGN KEY `instance_metadata_ibfk_1`;
+ALTER TABLE service_metadata DROP FOREIGN KEY `service_metadata_ibfk_1`;
+ALTER TABLE health_check DROP FOREIGN KEY `health_check_ibfk_1`;
+ALTER TABLE circuitbreaker_rule_relation DROP FOREIGN KEY `circuitbreaker_rule_relation_ibfk_1`;

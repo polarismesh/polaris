@@ -20,10 +20,12 @@ package sqldb
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
@@ -577,6 +579,78 @@ func (ins *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int
 
 			return nil
 		})
+	})
+}
+
+// BatchAppendInstanceMetadata 追加实例 metadata
+func (ins *instanceStore) BatchAppendInstanceMetadata(requests []*store.InstanceMetadataRequest) error {
+	if len(requests) == 0 {
+		return nil
+	}
+	return ins.master.processWithTransaction("AppendInstanceMetadata", func(tx *BaseTx) error {
+		for i := range requests {
+			id := requests[i].InstanceID
+			revision := requests[i].Revision
+			metadata := requests[i].Metadata
+			str := "replace into instance_metadata(`id`, `mkey`, `mvalue`, `ctime`, `mtime`) values"
+			values := make([]string, 0, len(metadata))
+			args := make([]interface{}, 0, len(metadata)*3)
+			for k, v := range metadata {
+				values = append(values, "(?, ?, ?, sysdate(), sysdate())")
+				args = append(args, id, k, v)
+			}
+			str += strings.Join(values, ",")
+			if log.DebugEnabled() {
+				log.Debug("[Store][database] append instance metadata", zap.String("sql", str), zap.Any("args", args))
+			}
+			if _, err := tx.Exec(str, args...); err != nil {
+				log.Errorf("[Store][database] append instance metadata err: %s", err.Error())
+				return err
+			}
+
+			str = "update instance set revision = ?, mtime = sysdate() where id = ?"
+			if _, err := tx.Exec(str, revision, id); err != nil {
+				log.Errorf("[Store][database] append instance metadata update revision err: %s", err.Error())
+				return err
+			}
+		}
+		return tx.Commit()
+	})
+}
+
+// BatchRemoveInstanceMetadata 删除实例指定的 metadata
+func (ins *instanceStore) BatchRemoveInstanceMetadata(requests []*store.InstanceMetadataRequest) error {
+	if len(requests) == 0 {
+		return nil
+	}
+	return ins.master.processWithTransaction("RemoveInstanceMetadata", func(tx *BaseTx) error {
+		for i := range requests {
+			id := requests[i].InstanceID
+			revision := requests[i].Revision
+			keys := requests[i].Keys
+			str := "delete from instance_metadata where id = ? and mkey in (%s)"
+			values := make([]string, 0, len(keys))
+			args := make([]interface{}, 0, 1+len(keys))
+			args = append(args, id)
+			for i := range keys {
+				key := keys[i]
+				values = append(values, "?")
+				args = append(args, key)
+			}
+			str = fmt.Sprintf(str, strings.Join(values, ","))
+
+			if _, err := tx.Exec(str, args...); err != nil {
+				log.Errorf("[Store][database] remove instance metadata by keys err: %s", err.Error())
+				return err
+			}
+
+			str = "update instance set revision = ?, mtime = sysdate() where id = ?"
+			if _, err := tx.Exec(str, revision, id); err != nil {
+				log.Errorf("[Store][database] remove instance metadata by keys update revision err: %s", err.Error())
+				return err
+			}
+		}
+		return tx.Commit()
 	})
 }
 

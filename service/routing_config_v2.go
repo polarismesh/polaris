@@ -32,7 +32,6 @@ import (
 	"github.com/polarismesh/polaris/cache"
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
-	routingcommon "github.com/polarismesh/polaris/common/routing"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -291,7 +290,7 @@ func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apitraffic.Rou
 			return apiv1.NewResponse(apimodel.Code_NotFoundService)
 		}
 
-		inV2, outV2, err := routingcommon.ConvertRoutingV1ToExtendV2(svc.Name, svc.Namespace, v1conf)
+		inV2, outV2, err := model.ConvertRoutingV1ToExtendV2(svc.Name, svc.Namespace, v1conf)
 		if err != nil {
 			log.Error("[Routing][V2] convert routing config v1 to v2",
 				utils.ZapRequestIDByCtx(ctx), zap.Error(err))

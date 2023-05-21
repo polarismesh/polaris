@@ -18,7 +18,6 @@
 package cache
 
 import (
-	"context"
 	"strings"
 	"sync"
 	"time"
@@ -90,12 +89,10 @@ type serviceCache struct {
 	singleFlight    *singleflight.Group
 	instCache       InstanceCache
 
+	plock               sync.RWMutex
+	pendingServices     *sync.Map // service-id -> struct{}{}
 	countLock           sync.Mutex
-	countChangeCh       chan map[string]bool // Counting information requires a change event channel
-	pendingServices     map[string]int8
 	namespaceServiceCnt *sync.Map // namespace -> model.NamespaceServiceCount
-
-	cancel context.CancelFunc
 
 	lastMtimeLogged int64
 
@@ -127,14 +124,8 @@ func (sc *serviceCache) initialize(opt map[string]interface{}) error {
 	sc.names = new(sync.Map)
 	sc.cl5Sid2Name = new(sync.Map)
 	sc.cl5Names = new(sync.Map)
-
-	sc.countChangeCh = make(chan map[string]bool, 1024)
+	sc.pendingServices = new(sync.Map)
 	sc.namespaceServiceCnt = new(sync.Map)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	sc.cancel = cancel
-	go sc.watchCountChangeCh(ctx)
-
 	if opt == nil {
 		return nil
 	}
@@ -196,11 +187,8 @@ func (sc *serviceCache) realUpdate() (map[string]time.Time, int64, error) {
 
 	lastMtimes, update, del := sc.setServices(services)
 	costTime := time.Since(start)
-	if costTime > time.Second {
-		log.Info(
-			"[Cache][Service] get more services", zap.Int("update", update), zap.Int("delete", del),
-			zap.Time("last", sc.LastMtime()), zap.Duration("used", costTime))
-	}
+	log.Info("[Cache][Service] get more services", zap.Int("update", update), zap.Int("delete", del),
+		zap.Time("last", sc.LastMtime()), zap.Duration("used", costTime))
 	return lastMtimes, int64(len(services)), err
 }
 
@@ -212,7 +200,7 @@ func (sc *serviceCache) clear() error {
 	sc.cl5Sid2Name = new(sync.Map)
 	sc.cl5Names = new(sync.Map)
 	sc.namespaceServiceCnt = new(sync.Map)
-	sc.pendingServices = make(map[string]int8)
+	sc.pendingServices = new(sync.Map)
 	sc.alias = newServiceAliasBucket()
 	sc.serviceList = newServiceNamespaceBucket()
 	return nil
@@ -362,6 +350,8 @@ func (sc *serviceCache) removeServices(service *model.Service) {
 	sc.serviceList.removeService(service)
 	// delete service all link alias info
 	sc.alias.cleanServiceAlias(service)
+	// delete pending count service task
+	sc.pendingServices.Delete(service.ID)
 
 	// Delete the index of servicename
 	spaceName := service.Namespace
@@ -391,7 +381,7 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 	del := 0
 
 	// 这里要记录 ns 的变动情况，避免由于 svc delete 之后，命名空间的服务计数无法更新
-	changeNs := make(map[string]bool)
+	changeNs := make(map[string]struct{})
 	svcCount := sc.serviceCount
 
 	aliases := make([]*model.Service, 0, 32)
@@ -412,7 +402,7 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 		}
 
 		spaceName := service.Namespace
-		changeNs[spaceName] = true
+		changeNs[spaceName] = struct{}{}
 		// 发现有删除操作
 		if !service.Valid {
 			sc.removeServices(service)
@@ -459,10 +449,14 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 }
 
 func (sc *serviceCache) notifyServiceCountReload(svcIds map[string]bool) {
-	sc.countChangeCh <- svcIds
+	sc.plock.RLock()
+	defer sc.plock.RUnlock()
+	for k := range svcIds {
+		sc.pendingServices.Store(k, struct{}{})
+	}
 }
 
-// watchCountChangeCh
+// appendServiceCountChangeNamespace
 // Two Case
 // Case ONE:
 //  1. T1, ServiceCache pulls all of the service information
@@ -482,39 +476,24 @@ func (sc *serviceCache) notifyServiceCountReload(svcIds map[string]bool) {
 // - Therefore, for the reload notification of instancecache, you need to record the non-existing SVCID
 // record in the Pending list; wait for the servicecache's Reload notification. after arriving,
 // need to handle the last legacy PENDING calculation task.
-func (sc *serviceCache) watchCountChangeCh(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case event := <-sc.countChangeCh:
-			affect := make(map[string]bool)
-
-			if len(sc.pendingServices) != 0 {
-				for svcId := range sc.pendingServices {
-					svc, ok := sc.ids.Load(svcId)
-					if !ok {
-						log.Debugf("[Cache][Service] id : %s no found when reload namespace count", svcId)
-						continue
-					}
-					affect[svc.(*model.Service).Namespace] = true
-				}
-			}
-
-			newPendingServices := make(map[string]int8)
-			for svcId := range event {
-				svc, ok := sc.ids.Load(svcId)
-				if !ok {
-					newPendingServices[svcId] = 0
-					continue
-				}
-				affect[svc.(*model.Service).Namespace] = true
-			}
-
-			sc.postProcessUpdatedServices(affect)
-			sc.pendingServices = newPendingServices
+func (sc *serviceCache) appendServiceCountChangeNamespace(changeNs map[string]struct{}) map[string]struct{} {
+	sc.plock.Lock()
+	defer sc.plock.Unlock()
+	waitDel := map[string]struct{}{}
+	sc.pendingServices.Range(func(key, _ any) bool {
+		svcId := key.(string)
+		svc, ok := sc.ids.Load(svcId)
+		if !ok {
+			return true
 		}
+		changeNs[svc.(*model.Service).Namespace] = struct{}{}
+		waitDel[svcId] = struct{}{}
+		return true
+	})
+	for svcId := range waitDel {
+		sc.pendingServices.Delete(svcId)
 	}
+	return changeNs
 }
 
 func (sc *serviceCache) postProcessServiceAlias(aliases []*model.Service) {
@@ -535,10 +514,10 @@ func (sc *serviceCache) postProcessServiceAlias(aliases []*model.Service) {
 	}
 }
 
-func (sc *serviceCache) postProcessUpdatedServices(affect map[string]bool) {
+func (sc *serviceCache) postProcessUpdatedServices(affect map[string]struct{}) {
+	affect = sc.appendServiceCountChangeNamespace(affect)
 	sc.countLock.Lock()
 	defer sc.countLock.Unlock()
-
 	progress := 0
 	for namespace := range affect {
 		progress++
@@ -603,37 +582,37 @@ func genCl5Name(name string) string {
 }
 
 // WatchInstanceReload Listener 的一个简单实现
-type WatchInstanceReload struct {
+type watchInstanceReload struct {
 	// 实际的处理方法
 	Handler func(val interface{})
 }
 
 // OnCreated callback when cache value created
-func (fc *WatchInstanceReload) OnCreated(value interface{}) {
+func (fc *watchInstanceReload) OnCreated(value interface{}) {
 
 }
 
 // OnUpdated callback when cache value updated
-func (fc *WatchInstanceReload) OnUpdated(value interface{}) {
+func (fc *watchInstanceReload) OnUpdated(value interface{}) {
 
 }
 
 // OnDeleted callback when cache value deleted
-func (fc *WatchInstanceReload) OnDeleted(value interface{}) {
+func (fc *watchInstanceReload) OnDeleted(value interface{}) {
 
 }
 
 // OnBatchCreated callback when cache value created
-func (fc *WatchInstanceReload) OnBatchCreated(value interface{}) {
+func (fc *watchInstanceReload) OnBatchCreated(value interface{}) {
 
 }
 
 // OnBatchUpdated callback when cache value updated
-func (fc *WatchInstanceReload) OnBatchUpdated(value interface{}) {
+func (fc *watchInstanceReload) OnBatchUpdated(value interface{}) {
 	fc.Handler(value)
 }
 
 // OnBatchDeleted callback when cache value deleted
-func (fc *WatchInstanceReload) OnBatchDeleted(value interface{}) {
+func (fc *watchInstanceReload) OnBatchDeleted(value interface{}) {
 
 }

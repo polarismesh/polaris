@@ -24,7 +24,6 @@ import (
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
 	"github.com/polarismesh/polaris/common/model"
-	routingcommon "github.com/polarismesh/polaris/common/routing"
 )
 
 type (
@@ -154,7 +153,7 @@ func (b *routeRuleBucket) saveV2(conf *model.ExtendRouterConfig) {
 	b.rules[conf.ID] = conf
 	handler := func(bt boundType, item serviceInfo) {
 		// level1 级别 cache 处理
-		if item.GetService() != routingcommon.MatchAll && item.GetNamespace() != routingcommon.MatchAll {
+		if item.GetService() != model.MatchAll && item.GetNamespace() != model.MatchAll {
 			key := buildServiceKey(item.GetNamespace(), item.GetService())
 			if _, ok := b.level1Rules[key]; !ok {
 				b.level1Rules[key] = map[string]struct{}{}
@@ -164,7 +163,7 @@ func (b *routeRuleBucket) saveV2(conf *model.ExtendRouterConfig) {
 			return
 		}
 		// level2 级别 cache 处理
-		if item.GetService() == routingcommon.MatchAll && item.GetNamespace() != routingcommon.MatchAll {
+		if item.GetService() == model.MatchAll && item.GetNamespace() != model.MatchAll {
 			if _, ok := b.level2Rules[bt][item.GetNamespace()]; !ok {
 				b.level2Rules[bt][item.GetNamespace()] = map[string]struct{}{}
 			}
@@ -172,7 +171,7 @@ func (b *routeRuleBucket) saveV2(conf *model.ExtendRouterConfig) {
 			return
 		}
 		// level3 级别 cache 处理
-		if item.GetService() == routingcommon.MatchAll && item.GetNamespace() == routingcommon.MatchAll {
+		if item.GetService() == model.MatchAll && item.GetNamespace() == model.MatchAll {
 			b.level3Rules[bt][conf.ID] = struct{}{}
 			return
 		}
@@ -238,17 +237,17 @@ func (b *routeRuleBucket) deleteV2(id string) {
 			service := source.GetService()
 			namespace := source.GetNamespace()
 
-			if service == routingcommon.MatchAll && namespace == routingcommon.MatchAll {
+			if service == model.MatchAll && namespace == model.MatchAll {
 				delete(b.level3Rules[outBound], id)
 				delete(b.level3Rules[inBound], id)
 			}
 
-			if service == routingcommon.MatchAll && namespace != routingcommon.MatchAll {
+			if service == model.MatchAll && namespace != model.MatchAll {
 				delete(b.level2Rules[outBound][namespace], id)
 				delete(b.level2Rules[inBound][namespace], id)
 			}
 
-			if service != routingcommon.MatchAll && namespace != routingcommon.MatchAll {
+			if service != model.MatchAll && namespace != model.MatchAll {
 				key := buildServiceKey(namespace, service)
 				delete(b.level1Rules[key], id)
 			}

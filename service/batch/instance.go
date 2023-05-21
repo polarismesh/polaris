@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -321,9 +322,9 @@ func (ctrl *InstanceCtrl) heartbeatHandler(futures []*InstanceFuture) error {
 	}
 	log.Infof("[Batch] start batch heartbeat instances count: %d", len(futures))
 	ids := make(map[string]bool, len(futures))
-	statusToIds := map[bool]map[string]bool{
-		true:  make(map[string]bool, len(futures)),
-		false: make(map[string]bool, len(futures)),
+	statusToIds := map[bool]map[string]int64{
+		true:  make(map[string]int64, len(futures)),
+		false: make(map[string]int64, len(futures)),
 	}
 	for _, entry := range futures {
 		// 多个记录，只有后面的一个生效
@@ -333,19 +334,50 @@ func (ctrl *InstanceCtrl) heartbeatHandler(futures []*InstanceFuture) error {
 			delete(values, id)
 		}
 		ids[id] = false
-		statusToIds[entry.healthy][id] = true
+		statusToIds[entry.healthy][id] = entry.lastHeartbeatTimeSec
 	}
+
+	// 转为不健康的实例，需要添加 metadata
+	appendMetaReqs := make([]*store.InstanceMetadataRequest, 0, len(statusToIds[false]))
+	// 转为健康的实例，需要删除 metadata
+	removeMetaReqs := make([]*store.InstanceMetadataRequest, 0, len(statusToIds[true]))
+	revision := utils.NewUUID()
 	for healthy, values := range statusToIds {
 		if len(values) == 0 {
 			continue
 		}
 		idValues := make([]interface{}, 0, len(values))
 		for id := range values {
+			if healthy {
+				removeMetaReqs = append(removeMetaReqs, &store.InstanceMetadataRequest{
+					InstanceID: id,
+					Revision:   revision,
+					Keys:       []string{model.MetadataInstanceLastHeartbeatTime},
+				})
+			} else {
+				appendMetaReqs = append(appendMetaReqs, &store.InstanceMetadataRequest{
+					InstanceID: id,
+					Revision:   revision,
+					Metadata: map[string]string{
+						model.MetadataInstanceLastHeartbeatTime: strconv.FormatInt(values[id], 10),
+					},
+				})
+			}
 			idValues = append(idValues, id)
 		}
 		err := ctrl.storage.BatchSetInstanceHealthStatus(idValues, model.StatusBoolToInt(healthy), utils.NewUUID())
 		if err != nil {
 			log.Errorf("[Batch] batch healthy check instances err: %s", err.Error())
+			sendReply(futures, apimodel.Code_StoreLayerException, err)
+			return err
+		}
+		if err := ctrl.storage.BatchAppendInstanceMetadata(appendMetaReqs); err != nil {
+			log.Errorf("[Batch] batch healthy check instances append metadata err: %s", err.Error())
+			sendReply(futures, apimodel.Code_StoreLayerException, err)
+			return err
+		}
+		if err := ctrl.storage.BatchRemoveInstanceMetadata(removeMetaReqs); err != nil {
+			log.Errorf("[Batch] batch healthy check instances remove metadata err: %s", err.Error())
 			sendReply(futures, apimodel.Code_StoreLayerException, err)
 			return err
 		}

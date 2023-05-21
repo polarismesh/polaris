@@ -28,7 +28,6 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	"github.com/polarismesh/polaris/common/model"
-	routingcommon "github.com/polarismesh/polaris/common/routing"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
@@ -310,7 +309,7 @@ func (rc *routingConfigCache) convertV1toV2(rule *model.RoutingConfig) (bool, []
 		return false, nil, fmt.Errorf("svc: %+v is alias", svc)
 	}
 
-	in, out, err := routingcommon.ConvertRoutingV1ToExtendV2(svc.Name, svc.Namespace, rule)
+	in, out, err := model.ConvertRoutingV1ToExtendV2(svc.Name, svc.Namespace, rule)
 	if err != nil {
 		return false, nil, err
 	}
@@ -328,22 +327,22 @@ func (rc *routingConfigCache) convertV2toV1(entries map[routingLevel][]*model.Ex
 	service, namespace string) ([]*apitraffic.Route, []*apitraffic.Route, []string) {
 	level1 := entries[level1RoutingV2]
 	sort.Slice(level1, func(i, j int) bool {
-		return routingcommon.CompareRoutingV2(level1[i], level1[j])
+		return model.CompareRoutingV2(level1[i], level1[j])
 	})
 
 	level2 := entries[level2RoutingV2]
 	sort.Slice(level2, func(i, j int) bool {
-		return routingcommon.CompareRoutingV2(level2[i], level2[j])
+		return model.CompareRoutingV2(level2[i], level2[j])
 	})
 
 	level3 := entries[level3RoutingV2]
 	sort.Slice(level3, func(i, j int) bool {
-		return routingcommon.CompareRoutingV2(level3[i], level3[j])
+		return model.CompareRoutingV2(level3[i], level3[j])
 	})
 
-	level1inRoutes, level1outRoutes, level1Revisions := routingcommon.BuildV1RoutesFromV2(service, namespace, level1)
-	level2inRoutes, level2outRoutes, level2Revisions := routingcommon.BuildV1RoutesFromV2(service, namespace, level2)
-	level3inRoutes, level3outRoutes, level3Revisions := routingcommon.BuildV1RoutesFromV2(service, namespace, level3)
+	level1inRoutes, level1outRoutes, level1Revisions := model.BuildV1RoutesFromV2(service, namespace, level1)
+	level2inRoutes, level2outRoutes, level2Revisions := model.BuildV1RoutesFromV2(service, namespace, level2)
+	level3inRoutes, level3outRoutes, level3Revisions := model.BuildV1RoutesFromV2(service, namespace, level3)
 
 	revisions := make([]string, 0, len(level1Revisions)+len(level2Revisions)+len(level3Revisions))
 	revisions = append(revisions, level1Revisions...)

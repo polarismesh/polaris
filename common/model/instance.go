@@ -29,6 +29,10 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
+const (
+	MetadataInstanceLastHeartbeatTime = "internal-lastheartbeat"
+)
+
 // Instance 组合了api的Instance对象
 type Instance struct {
 	Proto             *apiservice.Instance

@@ -164,12 +164,14 @@ func (bc *Controller) AsyncDeleteInstance(instance *apiservice.Instance, needWai
 }
 
 // AsyncHeartbeat 异步心跳
-func (bc *Controller) AsyncHeartbeat(instance *apiservice.Instance, healthy bool) *InstanceFuture {
+func (bc *Controller) AsyncHeartbeat(instance *apiservice.Instance, healthy bool,
+	lastBeatTime int64) *InstanceFuture {
 	future := &InstanceFuture{
-		request:  instance,
-		result:   make(chan error, 1),
-		healthy:  healthy,
-		needWait: true,
+		request:              instance,
+		result:               make(chan error, 1),
+		healthy:              healthy,
+		needWait:             true,
+		lastHeartbeatTimeSec: lastBeatTime,
 	}
 
 	bc.heartbeat.queue <- future

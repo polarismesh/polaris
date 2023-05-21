@@ -21,7 +21,6 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
-	"fmt"
 	"os"
 	"reflect"
 	"testing"
@@ -207,7 +206,10 @@ func Test_makeLocalRateLimit(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := mockXds.makeLocalRateLimit(tt.args.svc); !reflect.DeepEqual(got, tt.want) {
+			if got := mockXds.makeLocalRateLimit(model.ServiceKey{
+				Namespace: tt.args.svc.Namespace,
+				Name:      tt.args.svc.Name,
+			}); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeLocalRateLimit() = %v, want %v", got, tt.want)
 			}
 		})
@@ -454,28 +456,19 @@ func TestSnapshot(t *testing.T) {
 
 	snapshot, _ := x.cache.GetSnapshot("default")
 	dumpYaml := dumpSnapShot(snapshot)
-	if !bytes.Equal(noInboundDump, dumpYaml) {
-		t.Fatal("\n" + string(dumpYaml))
-	}
+	assert.Equal(t, noInboundDump, dumpYaml)
 
 	snapshot, _ = x.cache.GetSnapshot("default/permissive")
 	dumpYaml = dumpSnapShot(snapshot)
-	if !bytes.Equal(permissiveDump, dumpYaml) {
-		t.Fatal("\n" + string(dumpYaml))
-	}
+	assert.Equal(t, permissiveDump, dumpYaml)
 
 	snapshot, _ = x.cache.GetSnapshot("default/strict")
 	dumpYaml = dumpSnapShot(snapshot)
-	if !bytes.Equal(strictDump, dumpYaml) {
-		t.Fatal("\n" + string(dumpYaml))
-	}
+	assert.Equal(t, strictDump, dumpYaml)
 
 	snapshot, _ = x.cache.GetSnapshot("gateway~default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1")
 	dumpYaml = dumpSnapShot(snapshot)
-	if !bytes.Equal(gatewayDump, dumpYaml) {
-		fmt.Printf("\n%s\n", string(dumpYaml))
-		t.Fatal("\n" + string(dumpYaml))
-	}
+	assert.Equalf(t, string(gatewayDump), string(dumpYaml), "expect : %s, actual : %s", string(gatewayDump), string(dumpYaml))
 }
 
 // ParseArrayByText 通过字符串解析PB数组对象

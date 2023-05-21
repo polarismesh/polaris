@@ -54,7 +54,7 @@ func newTestServiceCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *se
 	_ = sc.initialize(opt)
 
 	ic.addListener([]Listener{
-		&WatchInstanceReload{
+		&watchInstanceReload{
 			Handler: func(val interface{}) {
 				if svcIds, ok := val.(map[string]bool); ok {
 					testSvcCacheMap["serviceCache"].(*serviceCache).notifyServiceCountReload(svcIds)
@@ -434,92 +434,6 @@ func TestServiceCache_GetServicesByFilter(t *testing.T) {
 func TestServiceCache_NamespaceCount(t *testing.T) {
 	ctl, _, sc, ic := newTestServiceCache(t)
 	defer ctl.Finish()
-
-	t.Run("先刷新serviceCache，在刷新InstancesCache，计数等待一段时间之后正常", func(t *testing.T) {
-		_ = sc.clear()
-		_ = ic.clear()
-
-		nsList := []string{"default", "test-1", "test-2", "test-3"}
-		services := genModelServiceByNamespaces(100, nsList)
-		sc.setServices(services)
-		expectNsInsCount := make(map[string]int)
-		acutalNsInsCount := make(map[string]int)
-
-		// 这个时候拉取，数据不正常
-		for i := range nsList {
-			ns := nsList[i]
-			acutalNsInsCount[ns] = int(sc.GetNamespaceCntInfo(ns).InstanceCnt.TotalInstanceCount)
-		}
-
-		fmt.Printf("expect ns-ins count : %#v\n", expectNsInsCount)
-		fmt.Printf("acutal ns-ins count : %#v\n", acutalNsInsCount)
-		if reflect.DeepEqual(expectNsInsCount, acutalNsInsCount) {
-			t.Fatal("namespace count should be incurrect")
-		}
-
-		culTask := func(prefix string, isAdd bool, judge func()) {
-			// 生存测试的实例数据列表
-			svcInstances, instances := genModelInstancesByServicesWithInsId(services, 2, prefix)
-
-			if !isAdd {
-				for i := range instances {
-					ins := instances[i]
-					ins.Valid = rand.Int31n(int32(10)) < 5
-				}
-			}
-
-			for svcId, instances := range svcInstances {
-				svc := services[svcId]
-				if _, ok := expectNsInsCount[svc.Namespace]; !ok {
-					expectNsInsCount[svc.Namespace] = 0
-				}
-				count := 0
-				for i := range instances {
-					ins := instances[i]
-					if ins.Valid {
-						count++
-					}
-				}
-				expectNsInsCount[svc.Namespace] += count
-			}
-
-			// 更新 instanceCache 缓存
-			ic := sc.instCache.(*instanceCache)
-			ic.setInstances(instances)
-
-			time.Sleep(time.Duration(2 * time.Second))
-
-			// 这个时候计算，数据应该正确
-			acutalNsInsCount = make(map[string]int)
-			for i := range nsList {
-				ns := nsList[i]
-				acutalNsInsCount[ns] = int(sc.GetNamespaceCntInfo(ns).InstanceCnt.TotalInstanceCount)
-			}
-			fmt.Printf("expect ns-ins count : %#v\n", expectNsInsCount)
-			fmt.Printf("acutal ns-ins count : %#v\n", acutalNsInsCount)
-			judge()
-		}
-
-		culTask("test-1", true, func() {
-			if !reflect.DeepEqual(expectNsInsCount, acutalNsInsCount) {
-				t.Fatal("namespace count is no currect")
-			}
-		})
-
-		// 只更新 instance 数据，实例计算应该要正确
-		culTask("test-2", true, func() {
-			if !reflect.DeepEqual(expectNsInsCount, acutalNsInsCount) {
-				t.Fatal("namespace count is no currect")
-			}
-		})
-
-		// 只更新 instance 数据，实例计算应该要正确
-		culTask("test-3", false, func() {
-			if !reflect.DeepEqual(expectNsInsCount, acutalNsInsCount) {
-				t.Fatal("namespace count is no currect")
-			}
-		})
-	})
 
 	t.Run("先刷新instancesCache，在刷新serviceCache，计数等待一段时间之后正常", func(t *testing.T) {
 		_ = sc.clear()

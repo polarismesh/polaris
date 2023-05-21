@@ -475,7 +475,7 @@ func (c *CheckScheduler) checkCallbackInstance(value interface{}) {
 		return
 	}
 	if !checkResp.StayUnchanged {
-		code := setInsDbStatus(cachedInstance, checkResp.Healthy)
+		code := setInsDbStatus(cachedInstance, checkResp.Healthy, checkResp.LastHeartbeatTimeSec)
 		if checkResp.Healthy {
 			// from unhealthy to healthy
 			log.Infof(
@@ -579,7 +579,7 @@ func (c *CheckScheduler) doCheckClient(ctx context.Context) {
 }
 
 // setInsDbStatus 修改实例状态, 需要打印操作记录
-func setInsDbStatus(instance *model.Instance, healthStatus bool) apimodel.Code {
+func setInsDbStatus(instance *model.Instance, healthStatus bool, lastBeatTime int64) apimodel.Code {
 	id := instance.ID()
 	host := instance.Host()
 	port := instance.Port()
@@ -587,9 +587,9 @@ func setInsDbStatus(instance *model.Instance, healthStatus bool) apimodel.Code {
 
 	var code apimodel.Code
 	if server.bc.HeartbeatOpen() {
-		code = asyncSetInsDbStatus(instance.Proto, healthStatus)
+		code = asyncSetInsDbStatus(instance.Proto, healthStatus, lastBeatTime)
 	} else {
-		code = serialSetInsDbStatus(instance.Proto, healthStatus)
+		code = serialSetInsDbStatus(instance.Proto, healthStatus, lastBeatTime)
 	}
 	if code != apimodel.Code_ExecuteSuccess {
 		return code
@@ -622,8 +622,8 @@ func setInsDbStatus(instance *model.Instance, healthStatus bool) apimodel.Code {
 // 底层函数会合并delete请求，增加并发创建的吞吐
 // req 原始请求
 // ins 包含了req数据与instanceID，serviceToken
-func asyncSetInsDbStatus(ins *apiservice.Instance, healthStatus bool) apimodel.Code {
-	future := server.bc.AsyncHeartbeat(ins, healthStatus)
+func asyncSetInsDbStatus(ins *apiservice.Instance, healthStatus bool, lastBeatTime int64) apimodel.Code {
+	future := server.bc.AsyncHeartbeat(ins, healthStatus, lastBeatTime)
 	if err := future.Wait(); err != nil {
 		log.Error(err.Error())
 	}
@@ -646,7 +646,7 @@ func asyncDeleteClient(client *apiservice.Client) apimodel.Code {
 // serialSetInsDbStatus 同步串行创建实例
 // req为原始的请求体
 // ins包括了req的内容，并且填充了instanceID与serviceToken
-func serialSetInsDbStatus(ins *apiservice.Instance, healthStatus bool) apimodel.Code {
+func serialSetInsDbStatus(ins *apiservice.Instance, healthStatus bool, lastBeatTime int64) apimodel.Code {
 	id := ins.GetId().GetValue()
 	err := server.storage.SetInstanceHealthStatus(id, model.StatusBoolToInt(healthStatus), utils.NewUUID())
 	if err != nil {

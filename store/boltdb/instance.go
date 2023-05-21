@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/boltdb/bolt"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -32,6 +33,7 @@ import (
 	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/store"
 )
 
 type instanceStore struct {
@@ -353,9 +355,6 @@ func (i *instanceStore) GetInstancesMainByService(serviceID, host string) ([]*mo
 // GetExpandInstances View instance details and corresponding number according to filter conditions
 func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 	offset uint32, limit uint32) (uint32, []*model.Instance, error) {
-
-	log.Infof("get GetExpandInstances request %+v", filter)
-
 	if limit == 0 {
 		return 0, make([]*model.Instance, 0), nil
 	}
@@ -677,6 +676,124 @@ func (i *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, 
 	}
 
 	return nil
+}
+
+// BatchAppendInstanceMetadata 追加实例 metadata
+func (i *instanceStore) BatchAppendInstanceMetadata(requests []*store.InstanceMetadataRequest) error {
+	if len(requests) == 0 {
+		return nil
+	}
+	return i.handler.Execute(true, func(tx *bolt.Tx) error {
+		values := map[string]interface{}{}
+		fields := []string{insFieldProto, insFieldValid}
+		if err := loadValuesByFilter(tx, tblNameInstance, fields, &model.Instance{},
+			func(m map[string]interface{}) bool {
+				valid, ok := m[insFieldValid]
+				if ok && !valid.(bool) {
+					return false
+				}
+				proto, ok := m[insFieldProto]
+				if !ok {
+					return false
+				}
+				insId := proto.(*apiservice.Instance).GetId().GetValue()
+				for i := range requests {
+					if requests[i].InstanceID == insId {
+						return true
+					}
+				}
+				return false
+			}, values); err != nil {
+			log.Errorf("[Store][boltdb] do batch append InstanceMetadata get instances error, %v", err)
+			return err
+		}
+		if len(values) == 0 {
+			return nil
+		}
+		for i := range requests {
+			instanceID := requests[i].InstanceID
+			val, ok := values[instanceID]
+			if !ok {
+				return nil
+			}
+			ins := val.(*model.Instance)
+			if len(ins.Proto.GetMetadata()) == 0 {
+				ins.Proto.Metadata = map[string]string{}
+			}
+			for k, v := range requests[i].Metadata {
+				ins.Proto.Metadata[k] = v
+			}
+			properties := make(map[string]interface{})
+			properties[insFieldProto] = ins.Proto
+			properties[CommonFieldRevision] = requests[i].Revision
+			properties[insFieldModifyTime] = time.Now()
+			if err := updateValue(tx, tblNameInstance, instanceID, properties); err != nil {
+				log.Errorf("[Store][boltdb] do batch append InstanceMetadata update instance by %s error, %v",
+					instanceID, err)
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// BatchRemoveInstanceMetadata 删除实例指定的 metadata
+func (i *instanceStore) BatchRemoveInstanceMetadata(requests []*store.InstanceMetadataRequest) error {
+	if len(requests) == 0 {
+		return nil
+	}
+	return i.handler.Execute(true, func(tx *bolt.Tx) error {
+		values := map[string]interface{}{}
+		fields := []string{insFieldProto, insFieldValid}
+		if err := loadValuesByFilter(tx, tblNameInstance, fields, &model.Instance{},
+			func(m map[string]interface{}) bool {
+				valid, ok := m[insFieldValid]
+				if ok && !valid.(bool) {
+					return false
+				}
+				proto, ok := m[insFieldProto]
+				if !ok {
+					return false
+				}
+				insId := proto.(*apiservice.Instance).GetId().GetValue()
+				for i := range requests {
+					if requests[i].InstanceID == insId {
+						return true
+					}
+				}
+				return false
+			}, values); err != nil {
+			log.Errorf("[Store][boltdb] do batch remove InstanceMetadata get instances error, %v", err)
+			return err
+		}
+		if len(values) == 0 {
+			return nil
+		}
+		for i := range requests {
+			instanceID := requests[i].InstanceID
+			val, ok := values[instanceID]
+			if !ok {
+				continue
+			}
+			ins := val.(*model.Instance)
+			if len(ins.Proto.GetMetadata()) == 0 {
+				ins.Proto.Metadata = map[string]string{}
+			}
+			for p := range requests[i].Keys {
+				delete(ins.Proto.Metadata, requests[i].Keys[p])
+			}
+			properties := make(map[string]interface{})
+			properties[insFieldProto] = ins.Proto
+			properties[CommonFieldRevision] = requests[i].Revision
+			properties[insFieldModifyTime] = time.Now()
+			if err := updateValue(tx, tblNameInstance, instanceID, properties); err != nil {
+				log.Errorf("[Store][boltdb] do batch remove InstanceMetadata update instance by %s error, %v",
+					instanceID, err)
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func toInstance(m map[string]interface{}) map[string]*model.Instance {
