@@ -114,6 +114,12 @@ type ConfigFileClientOperate interface {
 	// GetConfigFileForClient 获取配置文件
 	GetConfigFileForClient(ctx context.Context, configFile *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse
 
+	// UpsertConfigFileFromClient 创建或更新配置
+	UpsertConfigFileFromClient(ctx context.Context, info *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigSimpleResponse
+
+	// PublishConfigFileFromClient 发布配置
+	PublishConfigFileFromClient(ctx context.Context, info *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigSimpleResponse
+
 	// WatchConfigFiles 客户端监听配置文件
 	WatchConfigFiles(ctx context.Context, request *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error)
 }

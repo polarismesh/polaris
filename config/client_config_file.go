@@ -19,7 +19,7 @@ package config
 
 import (
 	"context"
-
+	"github.com/polarismesh/polaris/common/model"
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
@@ -92,6 +92,113 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 	return resp
 }
 
+func (s *Server) UpsertConfigFileFromClient(ctx context.Context,
+	client *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigSimpleResponse {
+	namespace := client.GetNamespace().GetValue()
+	group := client.GetGroup().GetValue()
+	fileName := client.GetFileName().GetValue()
+
+	if namespace == "" || group == "" || fileName == "" {
+		return api.NewConfigClientSimpleResponseWithMessage(
+			apimodel.Code_BadRequest, "namespace & group & fileName can not be empty")
+	}
+
+	requestID := utils.ParseRequestID(ctx)
+	configFile := transferClientConfigFileInfo2ConfigFile(client)
+
+	managedFile, err := s.storage.GetConfigFile(s.getTx(ctx), namespace, group, fileName)
+	if err != nil {
+		log.Error("[Config][Service] get config file error.",
+			utils.ZapRequestID(requestID),
+			zap.String("namespace", namespace),
+			zap.String("group", group),
+			zap.String("name", fileName),
+			zap.Error(err))
+
+		return api.NewConfigClientSimpleResponse(apimodel.Code_StoreLayerException)
+	}
+	if managedFile != nil {
+		log.Info("[Config][Service] update config file from client.",
+			zap.String("requestId", requestID), zap.String("namespace", namespace),
+			zap.String("group", group), zap.String("file", fileName))
+
+		userName := utils.ParseUserName(ctx)
+		configFile.ModifyBy = utils.NewStringValue(userName)
+
+		toUpdateFile := transferConfigFileAPIModel2StoreModel(configFile)
+		toUpdateFile.ModifyBy = configFile.ModifyBy.GetValue()
+
+		if configFile.Format.GetValue() == "" {
+			toUpdateFile.Format = managedFile.Format
+		}
+
+		updatedFile, err := s.storage.UpdateConfigFile(s.getTx(ctx), toUpdateFile)
+		if err != nil {
+			log.Error("[Config][Service] update config file error.",
+				utils.ZapRequestID(requestID),
+				zap.String("namespace", namespace),
+				zap.String("group", group),
+				zap.String("name", fileName),
+				zap.Error(err))
+
+			return api.NewConfigClientSimpleResponse(apimodel.Code_StoreLayerException)
+		}
+
+		_, success := s.createOrUpdateConfigFileTags(ctx, configFile, toUpdateFile.ModifyBy)
+		if !success {
+			return api.NewConfigClientSimpleResponse(apimodel.Code_StoreLayerException)
+		}
+
+		baseFile := transferConfigFileStoreModel2APIModel(updatedFile)
+		baseFile, err = s.fillReleaseAndTags(ctx, baseFile)
+
+		s.RecordHistory(ctx, configFileRecordEntry(ctx, configFile, model.OUpdate))
+
+		return api.NewConfigClientSimpleResponse(apimodel.Code_ExecuteSuccess)
+	}
+
+	fileStoreModel := transferConfigFileAPIModel2StoreModel(configFile)
+	fileStoreModel.ModifyBy = fileStoreModel.CreateBy
+
+	log.Info("[Config][Service] create config file from client.",
+		zap.String("requestId", requestID), zap.String("namespace", namespace),
+		zap.String("group", group), zap.String("file", fileName))
+
+	// 创建配置文件
+	_, err = s.storage.CreateConfigFile(s.getTx(ctx), fileStoreModel)
+	if err != nil {
+		log.Error("[Config][Service] create config file error.",
+			utils.ZapRequestID(requestID),
+			zap.String("namespace", namespace),
+			zap.String("group", group),
+			zap.String("name", fileName),
+			zap.Error(err))
+		return api.NewConfigClientSimpleResponse(apimodel.Code_StoreLayerException)
+	}
+
+	// 创建配置文件标签
+	_, success := s.createOrUpdateConfigFileTags(ctx, configFile, fileStoreModel.ModifyBy)
+	if !success {
+		return api.NewConfigClientSimpleResponse(apimodel.Code_StoreLayerException)
+	}
+
+	// 创建成功
+	log.Info("[Config][Service] create config file success.",
+		utils.ZapRequestID(requestID),
+		zap.String("namespace", namespace),
+		zap.String("group", group),
+		zap.String("name", fileName))
+
+	s.RecordHistory(ctx, configFileRecordEntry(ctx, configFile, model.OCreate))
+
+	return api.NewConfigClientSimpleResponse(apimodel.Code_ExecuteSuccess)
+}
+
+func (s *Server) PublishConfigFileFromClient(ctx context.Context,
+	client *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigSimpleResponse {
+	return nil
+}
+
 func (s *Server) WatchConfigFiles(ctx context.Context,
 	request *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error) {
 	clientAddr := utils.ParseClientAddress(ctx)
@@ -156,4 +263,23 @@ func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api
 	}
 
 	return api.NewConfigClientResponse(apimodel.Code_DataNoChange, nil)
+}
+
+func transferClientConfigFileInfo2ConfigFile(client *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigFile {
+	if client == nil {
+		return nil
+	}
+	return &apiconfig.ConfigFile{
+		Id:         nil,
+		Name:       client.FileName,
+		Namespace:  client.Namespace,
+		Group:      client.Group,
+		Content:    client.Content,
+		Comment:    nil,
+		Format:     nil,
+		CreateBy:   nil,
+		CreateTime: nil,
+		ModifyBy:   nil,
+		ModifyTime: nil,
+	}
 }

@@ -29,6 +29,16 @@ func (s *serverAuthability) GetConfigFileForClient(ctx context.Context,
 	return s.targetServer.GetConfigFileForClient(ctx, fileInfo)
 }
 
+func (s *serverAuthability) UpsertConfigFileFromClient(ctx context.Context,
+	fileInfo *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigSimpleResponse {
+	return s.targetServer.UpsertConfigFileFromClient(ctx, fileInfo)
+}
+
+func (s *serverAuthability) PublishConfigFileFromClient(ctx context.Context,
+	fileInfo *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigSimpleResponse {
+	return s.targetServer.PublishConfigFileFromClient(ctx, fileInfo)
+}
+
 // WatchConfigFiles 监听配置文件变化
 func (s *serverAuthability) WatchConfigFiles(ctx context.Context,
 	request *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error) {

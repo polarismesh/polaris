@@ -32,6 +32,20 @@ func NewConfigClientResponse(
 	}
 }
 
+func NewConfigClientSimpleResponse(code apimodel.Code) *apiconfig.ConfigSimpleResponse {
+	return &apiconfig.ConfigSimpleResponse{
+		Code: &wrappers.UInt32Value{Value: uint32(code)},
+		Info: &wrappers.StringValue{Value: code2info[uint32(code)]},
+	}
+}
+
+func NewConfigClientSimpleResponseWithMessage(code apimodel.Code, message string) *apiconfig.ConfigSimpleResponse {
+	return &apiconfig.ConfigSimpleResponse{
+		Code: &wrappers.UInt32Value{Value: uint32(code)},
+		Info: &wrappers.StringValue{Value: message},
+	}
+}
+
 func NewConfigClientResponseWithMessage(code apimodel.Code, message string) *apiconfig.ConfigClientResponse {
 	return &apiconfig.ConfigClientResponse{
 		Code: &wrappers.UInt32Value{Value: uint32(code)},

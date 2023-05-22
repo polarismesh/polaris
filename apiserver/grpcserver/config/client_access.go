@@ -19,7 +19,6 @@ package config
 
 import (
 	"context"
-
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
 	"github.com/polarismesh/polaris/apiserver/grpcserver"
@@ -30,6 +29,22 @@ func (g *ConfigGRPCServer) GetConfigFile(ctx context.Context,
 	configFile *apiconfig.ClientConfigFileInfo) (*apiconfig.ConfigClientResponse, error) {
 	ctx = grpcserver.ConvertContext(ctx)
 	response := g.configServer.GetConfigFileForClient(ctx, configFile)
+	return response, nil
+}
+
+// UpsertConfigFile 创建或更新配置
+func (g *ConfigGRPCServer) UpsertConfigFile(ctx context.Context,
+	configFile *apiconfig.ClientConfigFileInfo) (*apiconfig.ConfigSimpleResponse, error) {
+	ctx = grpcserver.ConvertContext(ctx)
+	response := g.configServer.UpsertConfigFileFromClient(ctx, configFile)
+	return response, nil
+}
+
+// PublishConfigFile 发布配置
+func (g *ConfigGRPCServer) PublishConfigFile(ctx context.Context,
+	configFile *apiconfig.ClientConfigFileInfo) (*apiconfig.ConfigSimpleResponse, error) {
+	ctx = grpcserver.ConvertContext(ctx)
+	response := g.configServer.PublishConfigFileFromClient(ctx, configFile)
 	return response, nil
 }
 
