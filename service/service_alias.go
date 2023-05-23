@@ -28,6 +28,7 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -56,7 +57,7 @@ func (s *Server) CreateServiceAlias(ctx context.Context, req *apiservice.Service
 	tx, err := s.storage.CreateTransaction()
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid))
-		return api.NewServiceAliasResponse(apimodel.Code_StoreLayerException, req)
+		return api.NewServiceAliasResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	defer func() { _ = tx.Commit() }()
 
@@ -71,7 +72,7 @@ func (s *Server) CreateServiceAlias(ctx context.Context, req *apiservice.Service
 			req.GetAliasNamespace().GetValue())
 		if getErr != nil {
 			log.Error(getErr.Error(), utils.ZapRequestID(rid))
-			return api.NewServiceAliasResponse(apimodel.Code_StoreLayerException, req)
+			return api.NewServiceAliasResponse(commonstore.StoreCode2APICode(err), req)
 		}
 		if oldAlias != nil {
 			return api.NewServiceAliasResponse(apimodel.Code_ExistedResource, req)
@@ -85,7 +86,7 @@ func (s *Server) CreateServiceAlias(ctx context.Context, req *apiservice.Service
 	}
 	if err := s.storage.AddService(input); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid))
-		return api.NewServiceAliasResponse(apimodel.Code_StoreLayerException, req)
+		return api.NewServiceAliasResponse(commonstore.StoreCode2APICode(err), req)
 	}
 
 	log.Info(fmt.Sprintf("create service alias, service(%s, %s), alias(%s, %s)",
@@ -111,7 +112,7 @@ func (s *Server) checkPointServiceAlias(
 	service, err := tx.LockService(req.GetService().GetValue(), req.GetNamespace().GetValue())
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid))
-		return nil, api.NewServiceAliasResponse(apimodel.Code_StoreLayerException, req), true
+		return nil, api.NewServiceAliasResponse(commonstore.StoreCode2APICode(err), req), true
 	}
 	if service == nil {
 		return nil, api.NewServiceAliasResponse(apimodel.Code_NotFoundService, req), true
@@ -136,7 +137,7 @@ func (s *Server) DeleteServiceAlias(ctx context.Context, req *apiservice.Service
 		req.GetAliasNamespace().GetValue())
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid))
-		return api.NewServiceAliasResponse(apimodel.Code_StoreLayerException, req)
+		return api.NewServiceAliasResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if alias == nil {
 		return api.NewServiceAliasResponse(apimodel.Code_NotFoundServiceAlias, req)
@@ -146,7 +147,7 @@ func (s *Server) DeleteServiceAlias(ctx context.Context, req *apiservice.Service
 	if err := s.storage.DeleteServiceAlias(req.GetAlias().GetValue(),
 		req.GetAliasNamespace().GetValue()); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid))
-		return api.NewServiceAliasResponse(apimodel.Code_StoreLayerException, req)
+		return api.NewServiceAliasResponse(commonstore.StoreCode2APICode(err), req)
 	}
 
 	return api.NewServiceAliasResponse(apimodel.Code_ExecuteSuccess, req)
@@ -198,7 +199,7 @@ func (s *Server) UpdateServiceAlias(ctx context.Context, req *apiservice.Service
 	alias, err := s.storage.GetService(req.GetAlias().GetValue(), req.GetAliasNamespace().GetValue())
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid))
-		return api.NewServiceAliasResponse(apimodel.Code_StoreLayerException, req)
+		return api.NewServiceAliasResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if alias == nil {
 		return api.NewServiceAliasResponse(apimodel.Code_NotFoundServiceAlias, req)
@@ -208,7 +209,7 @@ func (s *Server) UpdateServiceAlias(ctx context.Context, req *apiservice.Service
 	service, err := s.storage.GetService(req.GetService().GetValue(), req.GetNamespace().GetValue())
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid))
-		return api.NewServiceAliasResponse(apimodel.Code_StoreLayerException, req)
+		return api.NewServiceAliasResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if service == nil {
 		return api.NewServiceAliasResponse(apimodel.Code_NotFoundService, req)
@@ -266,7 +267,7 @@ func (s *Server) GetServiceAliases(ctx context.Context, query map[string]string)
 	total, aliases, err := s.storage.GetServiceAliases(filter, offset, limit)
 	if err != nil {
 		log.Errorf("[Server][Alias] get aliases err: %s", err.Error())
-		return api.NewBatchQueryResponse(apimodel.Code_StoreLayerException)
+		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}
 
 	resp := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
@@ -385,7 +386,7 @@ func (s *Server) updateServiceAliasAttribute(req *apiservice.ServiceAlias, alias
 	// 获取当前指向服务
 	service, err := s.storage.GetServiceByID(alias.Reference)
 	if err != nil {
-		return api.NewServiceAliasResponse(apimodel.Code_StoreLayerException, req), needUpdate, needUpdateOwner
+		return api.NewServiceAliasResponse(commonstore.StoreCode2APICode(err), req), needUpdate, needUpdateOwner
 	}
 
 	if service.ID != serviceID {
@@ -436,7 +437,7 @@ func (s *Server) createServiceAliasModel(req *apiservice.ServiceAlias, svcId str
 		sid, err := s.storage.GenNextL5Sid(layoutID)
 		if err != nil {
 			log.Errorf("[Server] gen next l5 sid err: %s", err.Error())
-			return nil, api.NewServiceAliasResponse(apimodel.Code_StoreLayerException, req)
+			return nil, api.NewServiceAliasResponse(commonstore.StoreCode2APICode(err), req)
 		}
 		out.Name = sid
 	}

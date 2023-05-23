@@ -26,6 +26,7 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	"github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	utils2 "github.com/polarismesh/polaris/config/utils"
@@ -60,7 +61,7 @@ func (s *Server) CreateConfigFileTemplate(
 		log.Error("[Config][Service] create config file template error.",
 			utils.ZapRequestID(requestID),
 			zap.Error(err))
-		return api.NewConfigFileTemplateResponse(apimodel.Code_StoreLayerException, template)
+		return api.NewConfigFileTemplateResponse(commonstore.StoreCode2APICode(err), template)
 	}
 
 	return api.NewConfigFileTemplateResponse(apimodel.Code_ExecuteSuccess,
@@ -80,7 +81,7 @@ func (s *Server) GetConfigFileTemplate(ctx context.Context, name string) *apicon
 			utils.ZapRequestID(requestID),
 			zap.String("name", name),
 			zap.Error(err))
-		return api.NewConfigFileTemplateResponse(apimodel.Code_StoreLayerException, nil)
+		return api.NewConfigFileTemplateResponse(commonstore.StoreCode2APICode(err), nil)
 	}
 
 	if template == nil {
@@ -101,7 +102,7 @@ func (s *Server) GetAllConfigFileTemplates(ctx context.Context) *apiconfig.Confi
 			utils.ZapRequestID(requestID),
 			zap.Error(err))
 
-		return api.NewConfigFileTemplateBatchQueryResponse(apimodel.Code_StoreLayerException, 0, nil)
+		return api.NewConfigFileTemplateBatchQueryResponse(commonstore.StoreCode2APICode(err), 0, nil)
 	}
 
 	if len(templates) == 0 {

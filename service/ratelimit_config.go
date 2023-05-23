@@ -33,6 +33,7 @@ import (
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -266,7 +267,7 @@ func (s *Server) GetRateLimits(ctx context.Context, query map[string]string) *ap
 	total, extendRateLimits, err := s.Cache().RateLimit().QueryRateLimitRules(*args)
 	if err != nil {
 		log.Errorf("get rate limits store err: %s", err.Error())
-		return api.NewBatchQueryResponse(apimodel.Code_StoreLayerException)
+		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}
 
 	out := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
@@ -338,7 +339,7 @@ func (s *Server) checkRateLimitValid(ctx context.Context, serviceID string, req 
 	service, err := s.storage.GetServiceByID(serviceID)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return nil, api.NewRateLimitResponse(apimodel.Code_StoreLayerException, req)
+		return nil, api.NewRateLimitResponse(commonstore.StoreCode2APICode(err), req)
 	}
 
 	return service, nil
@@ -412,7 +413,7 @@ func (s *Server) checkRateLimitExisted(
 	rateLimit, err := s.storage.GetRateLimitWithID(id)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return nil, api.NewRateLimitResponse(apimodel.Code_StoreLayerException, req)
+		return nil, api.NewRateLimitResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if rateLimit == nil {
 		return nil, api.NewRateLimitResponse(apimodel.Code_NotFoundRateLimit, req)

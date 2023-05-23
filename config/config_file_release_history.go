@@ -27,6 +27,7 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	"github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	utils2 "github.com/polarismesh/polaris/config/utils"
@@ -101,7 +102,7 @@ func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, gro
 			zap.String("group", group),
 			zap.String("fileName", fileName),
 			zap.Error(err))
-		return api.NewConfigFileReleaseHistoryBatchQueryResponse(apimodel.Code_StoreLayerException, 0, nil)
+		return api.NewConfigFileReleaseHistoryBatchQueryResponse(commonstore.StoreCode2APICode(err), 0, nil)
 	}
 
 	if len(releaseHistories) == 0 {
@@ -153,7 +154,7 @@ func (s *Server) GetConfigFileLatestReleaseHistory(ctx context.Context, namespac
 			zap.String("fileName", fileName),
 			zap.Error(err),
 		)
-		return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_StoreLayerException, nil)
+		return api.NewConfigFileReleaseHistoryResponse(commonstore.StoreCode2APICode(err), nil)
 	}
 	apiHistory := transferReleaseHistoryStoreModel2APIModel(history)
 	return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_ExecuteSuccess, apiHistory)

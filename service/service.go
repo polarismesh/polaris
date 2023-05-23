@@ -32,9 +32,9 @@ import (
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
-	"github.com/polarismesh/polaris/service/batch"
 )
 
 const (
@@ -106,7 +106,7 @@ func (s *Server) CreateService(ctx context.Context, req *apiservice.Service) *ap
 	if err != nil {
 		log.Error("[Service] get namespace fail",
 			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
-		return api.NewServiceResponse(apimodel.Code_StoreLayerException, req)
+		return api.NewServiceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if namespace == nil {
 		return api.NewServiceResponse(apimodel.Code_NotFoundNamespace, req)
@@ -117,7 +117,7 @@ func (s *Server) CreateService(ctx context.Context, req *apiservice.Service) *ap
 	if err != nil {
 		log.Error("[Service] get service fail",
 			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
-		return api.NewServiceResponse(apimodel.Code_StoreLayerException, req)
+		return api.NewServiceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if service != nil {
 		req.Id = utils.NewStringValue(service.ID)
@@ -130,12 +130,12 @@ func (s *Server) CreateService(ctx context.Context, req *apiservice.Service) *ap
 		log.Error("[Service] save service fail",
 			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.Error(err))
 		// 如果在存储层发现资源存在错误，则需要再一次从存储层获取响应的信息，填充响应的 svc_id 信息
-		if batch.StoreCode2APICode(err) == apimodel.Code_ExistedResource {
+		if commonstore.StoreCode2APICode(err) == apimodel.Code_ExistedResource {
 			// 检查是否存在
 			service, err := s.storage.GetService(serviceName, namespaceName)
 			if err != nil {
 				log.Error("[Service] get service fail", utils.ZapRequestID(requestID), zap.Error(err))
-				return api.NewServiceResponse(apimodel.Code_StoreLayerException, req)
+				return api.NewServiceResponse(commonstore.StoreCode2APICode(err), req)
 			}
 			if service != nil {
 				req.Id = utils.NewStringValue(service.ID)
@@ -199,7 +199,7 @@ func (s *Server) DeleteService(ctx context.Context, req *apiservice.Service) *ap
 	service, err := s.storage.GetService(serviceName, namespaceName)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-		return api.NewServiceResponse(apimodel.Code_StoreLayerException, req)
+		return api.NewServiceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if service == nil {
 		return api.NewServiceResponse(apimodel.Code_ExecuteSuccess, req)
@@ -443,12 +443,12 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *apis
 	err = s.caches.Service().Update()
 	if err != nil {
 		log.Errorf("[Server][Service][Query] req(%+v) update store err: %s", query, err.Error())
-		return api.NewBatchQueryResponse(apimodel.Code_StoreLayerException)
+		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}
 	total, services, err := s.caches.Service().GetServicesByFilter(serviceArgs, instanceArgs, offset, limit)
 	if err != nil {
 		log.Errorf("[Server][Service][Query] req(%+v) store err: %s", query, err.Error())
-		return api.NewBatchQueryResponse(apimodel.Code_StoreLayerException)
+		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}
 
 	resp := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
@@ -499,7 +499,7 @@ func (s *Server) GetServicesCount(ctx context.Context) *apiservice.BatchQueryRes
 	count, err := s.storage.GetServicesCount()
 	if err != nil {
 		log.Errorf("[Server][Service][Count] get service count storage err: %s", err.Error())
-		return api.NewBatchQueryResponse(apimodel.Code_StoreLayerException)
+		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}
 
 	out := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
@@ -543,7 +543,7 @@ func (s *Server) GetServiceOwner(ctx context.Context, req []*apiservice.Service)
 	services, err := s.storage.GetServicesBatch(apis2ServicesName(req))
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-		return api.NewBatchQueryResponseWithMsg(apimodel.Code_StoreLayerException, err.Error())
+		return api.NewBatchQueryResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 
 	resp := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
@@ -738,7 +738,7 @@ func (s *Server) isServiceExistedResource(rid, pid string, service *model.Servic
 	total, err := s.getInstancesCountWithService(service.Name, service.Namespace)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-		return api.NewServiceResponse(apimodel.Code_StoreLayerException, out)
+		return api.NewServiceResponse(commonstore.StoreCode2APICode(err), out)
 	}
 	if total != 0 {
 		return api.NewServiceResponse(apimodel.Code_ServiceExistedInstances, out)
@@ -747,7 +747,7 @@ func (s *Server) isServiceExistedResource(rid, pid string, service *model.Servic
 	total, err = s.getServiceAliasCountWithService(service.Name, service.Namespace)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-		return api.NewServiceResponse(apimodel.Code_StoreLayerException, out)
+		return api.NewServiceResponse(commonstore.StoreCode2APICode(err), out)
 	}
 	if total != 0 {
 		return api.NewServiceResponse(apimodel.Code_ServiceExistedAlias, out)
@@ -757,7 +757,7 @@ func (s *Server) isServiceExistedResource(rid, pid string, service *model.Servic
 	total, err = s.getRoutingCountWithService(service.ID)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-		return api.NewServiceResponse(apimodel.Code_StoreLayerException, out)
+		return api.NewServiceResponse(commonstore.StoreCode2APICode(err), out)
 	}
 
 	if total != 0 {
@@ -779,7 +779,7 @@ func (s *Server) checkServiceAuthority(ctx context.Context, req *apiservice.Serv
 	svc, err := s.storage.GetService(serviceName, namespaceName)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-		return nil, "", api.NewServiceResponse(apimodel.Code_StoreLayerException, req)
+		return nil, "", api.NewServiceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if svc == nil {
 		return nil, "", api.NewServiceResponse(apimodel.Code_NotFoundResource, req)
@@ -788,7 +788,7 @@ func (s *Server) checkServiceAuthority(ctx context.Context, req *apiservice.Serv
 		svc, err = s.storage.GetServiceByID(svc.Reference)
 		if err != nil {
 			log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-			return nil, "", api.NewServiceResponse(apimodel.Code_StoreLayerException, req)
+			return nil, "", api.NewServiceResponse(commonstore.StoreCode2APICode(err), req)
 		}
 		if svc == nil {
 			return nil, "", api.NewServiceResponse(apimodel.Code_NotFoundResource, req)

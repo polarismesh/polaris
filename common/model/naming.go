@@ -166,7 +166,6 @@ func Store2Location(s *LocationStore) *Location {
 	}
 }
 
-
 // CircuitBreaker 熔断规则
 type CircuitBreaker struct {
 	ID         string

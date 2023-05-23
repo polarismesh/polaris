@@ -28,6 +28,7 @@ import (
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/srand"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	"github.com/polarismesh/polaris/common/timewheel"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
@@ -651,7 +652,7 @@ func serialSetInsDbStatus(ins *apiservice.Instance, healthStatus bool, lastBeatT
 	err := server.storage.SetInstanceHealthStatus(id, model.StatusBoolToInt(healthStatus), utils.NewUUID())
 	if err != nil {
 		log.Errorf("[Health Check][Check]id: %s set db status err:%s", id, err)
-		return apimodel.Code_StoreLayerException
+		return commonstore.StoreCode2APICode(err)
 	}
 	return apimodel.Code_ExecuteSuccess
 }

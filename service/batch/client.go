@@ -25,6 +25,7 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	"github.com/polarismesh/polaris/common/model"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -194,7 +195,7 @@ func (ctrl *ClientCtrl) registerHandler(futures []*ClientFuture) error {
 		clients = append(clients, model.NewClient(entry.request))
 	}
 	if err := ctrl.storage.BatchAddClients(clients); err != nil {
-		SendClientReply(futures, StoreCode2APICode(err), err)
+		SendClientReply(futures, commonstore.StoreCode2APICode(err), err)
 		return err
 	}
 
@@ -220,7 +221,7 @@ func (ctrl *ClientCtrl) deregisterHandler(futures []*ClientFuture) error {
 		clients = append(clients, id)
 	}
 	if err := ctrl.storage.BatchDeleteClients(clients); err != nil {
-		SendClientReply(futures, StoreCode2APICode(err), err)
+		SendClientReply(futures, commonstore.StoreCode2APICode(err), err)
 		return err
 	}
 

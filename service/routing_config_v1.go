@@ -30,6 +30,7 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -73,7 +74,7 @@ func (s *Server) CreateRoutingConfig(ctx context.Context, req *apitraffic.Routin
 	service, errResp := s.loadService(namespaceName, serviceName)
 	if errResp != nil {
 		log.Error(errResp.GetInfo().GetValue(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-		return api.NewRoutingResponse(apimodel.Code_StoreLayerException, req)
+		return api.NewRoutingResponse(apimodel.Code(errResp.GetCode().GetValue()), req)
 	}
 	if service == nil {
 		return api.NewRoutingResponse(apimodel.Code_NotFoundService, req)
@@ -85,7 +86,7 @@ func (s *Server) CreateRoutingConfig(ctx context.Context, req *apitraffic.Routin
 	routingConfig, err := s.storage.GetRoutingConfigWithService(service.Name, service.Namespace)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-		return api.NewRoutingResponse(apimodel.Code_StoreLayerException, req)
+		return api.NewRoutingResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if routingConfig != nil {
 		return api.NewRoutingResponse(apimodel.Code_ExistedResource, req)
@@ -167,7 +168,7 @@ func (s *Server) UpdateRoutingConfig(ctx context.Context, req *apitraffic.Routin
 	conf, err := s.storage.GetRoutingConfigWithService(service.Name, service.Namespace)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-		return api.NewRoutingResponse(apimodel.Code_StoreLayerException, req)
+		return api.NewRoutingResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if conf == nil {
 		return api.NewRoutingResponse(apimodel.Code_NotFoundRouting, req)
@@ -218,7 +219,7 @@ func (s *Server) GetRoutingConfigs(ctx context.Context, query map[string]string)
 	total, routings, err := s.storage.GetRoutingConfigs(filter, offset, limit)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-		return api.NewBatchQueryResponse(apimodel.Code_StoreLayerException)
+		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}
 
 	resp := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
@@ -252,7 +253,7 @@ func (s *Server) routingConfigCommonCheck(
 	service, err := s.storage.GetService(serviceName, namespaceName)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid), utils.ZapPlatformID(pid))
-		return nil, api.NewRoutingResponse(apimodel.Code_StoreLayerException, req)
+		return nil, api.NewRoutingResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if service == nil {
 		return nil, api.NewRoutingResponse(apimodel.Code_NotFoundService, req)

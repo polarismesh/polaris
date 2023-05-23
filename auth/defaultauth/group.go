@@ -31,6 +31,7 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 	authcommon "github.com/polarismesh/polaris/common/auth"
 	"github.com/polarismesh/polaris/common/model"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -71,7 +72,7 @@ func (svr *server) CreateGroup(ctx context.Context, req *apisecurity.UserGroup) 
 	if err != nil {
 		log.Error("get group when create", utils.ZapRequestID(requestID),
 			utils.ZapPlatformID(platformID), zap.Error(err))
-		return api.NewGroupResponse(StoreCode2APICode(err), req)
+		return api.NewGroupResponse(commonstore.StoreCode2APICode(err), req)
 	}
 
 	if group != nil {
@@ -87,7 +88,7 @@ func (svr *server) CreateGroup(ctx context.Context, req *apisecurity.UserGroup) 
 
 	if err := svr.storage.AddGroup(data); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-		return api.NewAuthResponseWithMsg(StoreCode2APICode(err), err.Error())
+		return api.NewAuthResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 
 	log.Info("create group", zap.String("name", req.Name.GetValue()), utils.ZapRequestID(requestID),
@@ -137,7 +138,7 @@ func (svr *server) UpdateGroup(ctx context.Context, req *apisecurity.ModifyUserG
 
 	if err := svr.storage.UpdateGroup(modifyReq); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-		return api.NewAuthResponseWithMsg(StoreCode2APICode(err), err.Error())
+		return api.NewAuthResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 
 	log.Info("update group", zap.String("name", data.Name), utils.ZapRequestID(requestID),
@@ -168,7 +169,7 @@ func (svr *server) DeleteGroup(ctx context.Context, req *apisecurity.UserGroup) 
 	group, err := svr.storage.GetGroup(req.GetId().GetValue())
 	if err != nil {
 		log.Error("get group from store", utils.ZapRequestID(requestID), zap.Error(err))
-		return api.NewGroupResponse(StoreCode2APICode(err), req)
+		return api.NewGroupResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if group == nil {
 		return api.NewGroupResponse(apimodel.Code_ExecuteSuccess, req)
@@ -182,7 +183,7 @@ func (svr *server) DeleteGroup(ctx context.Context, req *apisecurity.UserGroup) 
 
 	if err := svr.storage.DeleteGroup(group); err != nil {
 		log.Error("delete group from store", utils.ZapRequestID(requestID), zap.Error(err))
-		return api.NewAuthResponseWithMsg(StoreCode2APICode(err), err.Error())
+		return api.NewAuthResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 
 	log.Info("delete group", utils.ZapRequestID(requestID), zap.String("name", req.Name.GetValue()))
@@ -216,7 +217,7 @@ func (svr *server) GetGroups(ctx context.Context, query map[string]string) *apis
 	total, groups, err := svr.storage.GetGroups(searchFilters, offset, limit)
 	if err != nil {
 		log.Errorf("[Auth][Group] get groups req(%+v) store err: %s", query, err.Error())
-		return api.NewAuthBatchQueryResponse(StoreCode2APICode(err))
+		return api.NewAuthBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}
 
 	resp := api.NewAuthBatchQueryResponse(apimodel.Code_ExecuteSuccess)
@@ -338,7 +339,7 @@ func (svr *server) UpdateGroupToken(ctx context.Context, req *apisecurity.UserGr
 
 	if err := svr.storage.UpdateGroup(modifyReq); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-		return api.NewAuthResponseWithMsg(StoreCode2APICode(err), err.Error())
+		return api.NewAuthResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 
 	log.Info("update group token", zap.String("id", req.Id.GetValue()),
@@ -382,7 +383,7 @@ func (svr *server) ResetGroupToken(ctx context.Context, req *apisecurity.UserGro
 
 	if err := svr.storage.UpdateGroup(modifyReq); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-		return api.NewAuthResponseWithMsg(StoreCode2APICode(err), err.Error())
+		return api.NewAuthResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 
 	log.Info("reset group token", zap.String("group-id", req.Id.GetValue()),
@@ -399,7 +400,7 @@ func (svr *server) getGroupFromDB(id string) (*model.UserGroupDetail, *apiservic
 	group, err := svr.storage.GetGroup(id)
 	if err != nil {
 		log.Error("get group from store", zap.Error(err))
-		return nil, api.NewAuthResponseWithMsg(apimodel.Code_StoreLayerException, err.Error())
+		return nil, api.NewAuthResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 	if group == nil {
 		return nil, api.NewAuthResponse(apimodel.Code_NotFoundUserGroup)

@@ -26,6 +26,7 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -118,7 +119,7 @@ func (s *Server) GetReportClients(ctx context.Context, query map[string]string) 
 	total, services, err := s.caches.Client().GetClientsByFilter(searchFilters, offset, limit)
 	if err != nil {
 		log.Errorf("[Server][Client][Query] req(%+v) store err: %s", query, err.Error())
-		return api.NewBatchQueryResponse(apimodel.Code_StoreLayerException)
+		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}
 
 	resp := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)

@@ -27,6 +27,7 @@ import (
 
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -42,7 +43,7 @@ func (s *Server) createRoutingConfigV1toV2(ctx context.Context, req *apitraffic.
 	if errResp != nil {
 		log.Error("[Service][Routing] get read lock for service", zap.String("service", serviceName),
 			zap.String("namespace", namespaceName), utils.ZapRequestIDByCtx(ctx), zap.Any("err", errResp))
-		return apiv1.NewRoutingResponse(apimodel.Code_StoreLayerException, req)
+		return apiv1.NewRoutingResponse(apimodel.Code(errResp.GetCode().GetValue()), req)
 	}
 	if svc == nil {
 		return apiv1.NewRoutingResponse(apimodel.Code_NotFoundService, req)
@@ -75,7 +76,7 @@ func (s *Server) updateRoutingConfigV1toV2(ctx context.Context, req *apitraffic.
 	serviceTx, err := s.storage.CreateTransaction()
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
-		return apiv1.NewRoutingResponse(apimodel.Code_StoreLayerException, req)
+		return apiv1.NewRoutingResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	// Release the lock for the service
 	defer func() {
@@ -86,13 +87,13 @@ func (s *Server) updateRoutingConfigV1toV2(ctx context.Context, req *apitraffic.
 	if _, err = serviceTx.LockService(svc.Name, svc.Namespace); err != nil {
 		log.Error("[Service][Routing] get service x-lock", zap.String("service", svc.Name),
 			zap.String("namespace", svc.Namespace), utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv1.NewRoutingResponse(apimodel.Code_StoreLayerException, req)
+		return apiv1.NewRoutingResponse(commonstore.StoreCode2APICode(err), req)
 	}
 
 	conf, err := s.storage.GetRoutingConfigWithService(svc.Name, svc.Namespace)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
-		return apiv1.NewRoutingResponse(apimodel.Code_StoreLayerException, req)
+		return apiv1.NewRoutingResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if conf == nil {
 		return apiv1.NewRoutingResponse(apimodel.Code_NotFoundRouting, req)
@@ -118,7 +119,7 @@ func (s *Server) saveRoutingV1toV2(ctx context.Context, svcId string,
 	if err != nil {
 		log.Error("[Service][Routing] create routing v2 from v1 open tx",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv1.NewResponse(apimodel.Code_StoreLayerException)
+		return apiv1.NewResponse(commonstore.StoreCode2APICode(err))
 	}
 	defer func() {
 		_ = tx.Rollback()
@@ -128,7 +129,7 @@ func (s *Server) saveRoutingV1toV2(ctx context.Context, svcId string,
 	if err := s.storage.DeleteRoutingConfigTx(tx, svcId); err != nil {
 		log.Error("[Service][Routing] clean routing v1 from store",
 			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return apiv1.NewResponse(apimodel.Code_StoreLayerException)
+		return apiv1.NewResponse(commonstore.StoreCode2APICode(err))
 	}
 
 	saveOperation := func(routings []*apitraffic.RouteRule) *apiservice.Response {
@@ -156,7 +157,7 @@ func (s *Server) saveRoutingV1toV2(ctx context.Context, svcId string,
 			if err := s.storage.CreateRoutingConfigV2Tx(tx, data); err != nil {
 				log.Error("[Routing][V2] create routing v2 from v1 into store",
 					utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-				return apiv1.NewResponse(apimodel.Code_StoreLayerException)
+				return apiv1.NewResponse(commonstore.StoreCode2APICode(err))
 			}
 			s.RecordHistory(ctx, routingV2RecordEntry(ctx, item, data, model.OCreate))
 		}

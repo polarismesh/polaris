@@ -33,6 +33,7 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -193,7 +194,7 @@ func (s *Server) serialCreateInstance(
 	if err != nil {
 		log.Error("[Instance] get instance from store",
 			utils.ZapRequestID(rid), utils.ZapPlatformID(pid), zap.Error(err))
-		return nil, api.NewInstanceResponse(apimodel.Code_StoreLayerException, req)
+		return nil, api.NewInstanceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	// 如果存在，则替换实例的属性数据，但是需要保留用户设置的隔离状态，以免出现关键状态丢失
 	if instance != nil && ins.Isolate == nil {
@@ -263,7 +264,7 @@ func (s *Server) serialDeleteInstance(
 	instance, err := s.storage.GetInstance(ins.GetId().GetValue())
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(rid))
-		return api.NewInstanceResponse(apimodel.Code_StoreLayerException, req)
+		return api.NewInstanceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if instance == nil {
 		// 实例不存在，则返回成功
@@ -575,7 +576,7 @@ func (s *Server) getInstancesMainByService(ctx context.Context, req *apiservice.
 	service, err := s.storage.GetSourceServiceToken(req.GetService().GetValue(), req.GetNamespace().GetValue())
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-		return nil, nil, api.NewInstanceResponse(apimodel.Code_StoreLayerException, req)
+		return nil, nil, api.NewInstanceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if service == nil {
 		return nil, nil, api.NewInstanceResponse(apimodel.Code_NotFoundService, req)
@@ -585,7 +586,7 @@ func (s *Server) getInstancesMainByService(ctx context.Context, req *apiservice.
 	instances, err := s.storage.GetInstancesMainByService(service.ID, req.GetHost().GetValue())
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
-		return nil, nil, api.NewInstanceResponse(apimodel.Code_StoreLayerException, req)
+		return nil, nil, api.NewInstanceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	return instances, service, nil
 }
@@ -754,10 +755,10 @@ func (s *Server) GetInstances(ctx context.Context, query map[string]string) *api
 		return api.NewBatchQueryResponse(apimodel.Code_InvalidParameter)
 	}
 
-	total, instances, err := s.storage.GetExpandInstances(filters, metaFilter, offset, limit)
+	total, instances, err := s.Cache().Instance().QueryInstances(filters, metaFilter, offset, limit)
 	if err != nil {
 		log.Errorf("[Server][Instances][Query] instances store err: %s", err.Error())
-		return api.NewBatchQueryResponse(apimodel.Code_StoreLayerException)
+		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}
 
 	out := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
@@ -814,7 +815,7 @@ func (s *Server) GetInstancesCount(ctx context.Context) *apiservice.BatchQueryRe
 	count, err := s.storage.GetInstancesCount()
 	if err != nil {
 		log.Errorf("[Server][Instance][Count] storage get err: %s", err.Error())
-		return api.NewBatchQueryResponse(apimodel.Code_StoreLayerException)
+		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}
 
 	out := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
@@ -839,7 +840,7 @@ func (s *Server) execInstancePreStep(ctx context.Context, req *apiservice.Instan
 	if err != nil {
 		log.Error("[Instance] get instance from store", utils.ZapRequestID(rid), utils.ZapInstanceID(instanceID),
 			zap.Error(err))
-		return nil, nil, api.NewInstanceResponse(apimodel.Code_StoreLayerException, req)
+		return nil, nil, api.NewInstanceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if instance == nil {
 		return nil, nil, api.NewInstanceResponse(apimodel.Code_NotFoundInstance, req)
@@ -859,7 +860,7 @@ func (s *Server) instanceAuth(ctx context.Context, req *apiservice.Instance, ser
 	service, err := s.storage.GetServiceByID(serviceID)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(utils.ParseRequestID(ctx)))
-		return nil, api.NewInstanceResponse(apimodel.Code_StoreLayerException, req)
+		return nil, api.NewInstanceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if service == nil {
 		return nil, api.NewInstanceResponse(apimodel.Code_NotFoundResource, req)
@@ -1001,7 +1002,7 @@ func (s *Server) loadService(namespace string, svcName string) (*model.Service, 
 	// 再走数据库查询一遍
 	svc, err := s.storage.GetService(svcName, namespace)
 	if err != nil {
-		return nil, api.NewResponseWithMsg(apimodel.Code_StoreLayerException, err.Error())
+		return nil, api.NewResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 	if svc != nil && svc.IsAlias() {
 		return nil, api.NewResponseWithMsg(apimodel.Code_BadRequest, "service is alias")
@@ -1143,22 +1144,22 @@ func preGetInstances(query map[string]string) (map[string]string, map[string]str
 		delete(query, "health_status")
 	}
 
-	bool2Str := func(key string) {
-		val, ok := query[key]
-		if !ok {
-			return
-		}
-		if val == "true" {
-			query[key] = "1"
-		} else if val == "false" {
-			query[key] = "0"
-		}
-	}
+	// bool2Str := func(key string) {
+	// 	val, ok := query[key]
+	// 	if !ok {
+	// 		return
+	// 	}
+	// 	if val == "true" {
+	// 		query[key] = "1"
+	// 	} else if val == "false" {
+	// 		query[key] = "0"
+	// 	}
+	// }
 
-	// 处理一下两个bool值的字段
-	bool2Str("health_status")
-	bool2Str("healthy")
-	bool2Str("isolate")
+	// // 处理一下两个bool值的字段
+	// bool2Str("health_status")
+	// bool2Str("healthy")
+	// bool2Str("isolate")
 
 	filters := make(map[string]string)
 	for key, value := range query {

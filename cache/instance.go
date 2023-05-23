@@ -60,6 +60,8 @@ type InstanceCache interface {
 	GetServicePorts(serviceID string) []string
 	// GetInstanceLabels Get the label of all instances under a service
 	GetInstanceLabels(serviceID string) *apiservice.InstanceLabels
+	// QueryInstances query instance for OSS
+	QueryInstances(filter, metaFilter map[string]string, offset, limit uint32) (uint32, []*model.Instance, error)
 }
 
 // instanceCache 实例缓存的类
