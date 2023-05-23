@@ -29,13 +29,21 @@ func (s *serverAuthability) GetConfigFileForClient(ctx context.Context,
 	return s.targetServer.GetConfigFileForClient(ctx, fileInfo)
 }
 
-func (s *serverAuthability) UpsertConfigFileFromClient(ctx context.Context,
-	fileInfo *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigSimpleResponse {
-	return s.targetServer.UpsertConfigFileFromClient(ctx, fileInfo)
+// CreateConfigFileFromClient 调用config_file的方法创建配置文件
+func (s *serverAuthability) CreateConfigFileFromClient(ctx context.Context,
+	fileInfo *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
+	return s.targetServer.CreateConfigFileFromClient(ctx, fileInfo)
 }
 
+// UpdateConfigFileFromClient 调用config_file的方法更新配置文件
+func (s *serverAuthability) UpdateConfigFileFromClient(ctx context.Context,
+	fileInfo *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
+	return s.targetServer.UpdateConfigFileFromClient(ctx, fileInfo)
+}
+
+// PublishConfigFileFromClient 调用config_file_release的方法发布配置文件
 func (s *serverAuthability) PublishConfigFileFromClient(ctx context.Context,
-	fileInfo *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigSimpleResponse {
+	fileInfo *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
 	return s.targetServer.PublishConfigFileFromClient(ctx, fileInfo)
 }
 

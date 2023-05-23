@@ -32,17 +32,25 @@ func (g *ConfigGRPCServer) GetConfigFile(ctx context.Context,
 	return response, nil
 }
 
-// UpsertConfigFile 创建或更新配置
-func (g *ConfigGRPCServer) UpsertConfigFile(ctx context.Context,
-	configFile *apiconfig.ClientConfigFileInfo) (*apiconfig.ConfigSimpleResponse, error) {
+// CreateConfigFile 创建或更新配置
+func (g *ConfigGRPCServer) CreateConfigFile(ctx context.Context,
+	configFile *apiconfig.ClientConfigFileInfo) (*apiconfig.ConfigClientResponse, error) {
 	ctx = grpcserver.ConvertContext(ctx)
-	response := g.configServer.UpsertConfigFileFromClient(ctx, configFile)
+	response := g.configServer.CreateConfigFileFromClient(ctx, configFile)
+	return response, nil
+}
+
+// UpdateConfigFile 创建或更新配置
+func (g *ConfigGRPCServer) UpdateConfigFile(ctx context.Context,
+	configFile *apiconfig.ClientConfigFileInfo) (*apiconfig.ConfigClientResponse, error) {
+	ctx = grpcserver.ConvertContext(ctx)
+	response := g.configServer.UpdateConfigFileFromClient(ctx, configFile)
 	return response, nil
 }
 
 // PublishConfigFile 发布配置
 func (g *ConfigGRPCServer) PublishConfigFile(ctx context.Context,
-	configFile *apiconfig.ClientConfigFileInfo) (*apiconfig.ConfigSimpleResponse, error) {
+	configFile *apiconfig.ClientConfigFileInfo) (*apiconfig.ConfigClientResponse, error) {
 	ctx = grpcserver.ConvertContext(ctx)
 	response := g.configServer.PublishConfigFileFromClient(ctx, configFile)
 	return response, nil
