@@ -221,7 +221,6 @@ func (svr *server) GetStrategies(ctx context.Context, query map[string]string) *
 	}
 
 	searchFilters = parseStrategySearchArgs(ctx, searchFilters)
-
 	offset, limit, err := utils.ParseOffsetAndLimit(searchFilters)
 
 	if err != nil {
@@ -232,7 +231,7 @@ func (svr *server) GetStrategies(ctx context.Context, query map[string]string) *
 	if err != nil {
 		log.Error("[Auth][Strategy] get strategies from store", zap.Any("query", searchFilters),
 			zap.Error(err))
-		return api.NewAuthBatchQueryResponse(apimodel.Code_StoreLayerException)
+		return api.NewAuthBatchQueryResponse(StoreCode2APICode(err))
 	}
 
 	resp := api.NewAuthBatchQueryResponse(apimodel.Code_ExecuteSuccess)
@@ -393,7 +392,7 @@ func (svr *server) GetPrincipalResources(ctx context.Context, query map[string]s
 			if err != nil {
 				log.Error("[Auth][Strategy] get principal link resource", utils.ZapRequestID(requestID),
 					zap.String("principal-id", principalId), zap.Any("principal-role", principalRole), zap.Error(err))
-				return api.NewAuthResponse(apimodel.Code_StoreLayerException)
+				return api.NewAuthResponse(StoreCode2APICode(err))
 			}
 			resources = append(resources, res...)
 		}
@@ -403,7 +402,7 @@ func (svr *server) GetPrincipalResources(ctx context.Context, query map[string]s
 	if err != nil {
 		log.Error("[Auth][Strategy] get principal link resource", utils.ZapRequestID(requestID),
 			zap.String("principal-id", principalId), zap.Any("principal-role", principalRole), zap.Error(err))
-		return api.NewAuthResponse(apimodel.Code_StoreLayerException)
+		return api.NewAuthResponse(StoreCode2APICode(err))
 	}
 
 	resources = append(resources, pResources...)

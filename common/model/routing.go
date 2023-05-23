@@ -65,6 +65,26 @@ func init() {
 	MetaRoutingTypeUrl = metaAny.GetTypeUrl()
 }
 
+/*
+ * RoutingConfig 路由配置
+ */
+type RoutingConfig struct {
+	ID         string
+	InBounds   string
+	OutBounds  string
+	Revision   string
+	Valid      bool
+	CreateTime time.Time
+	ModifyTime time.Time
+}
+
+// ExtendRoutingConfig 路由配置的扩展结构体
+type ExtendRoutingConfig struct {
+	ServiceName   string
+	NamespaceName string
+	Config        *RoutingConfig
+}
+
 // ExtendRouterConfig 路由信息的扩展
 type ExtendRouterConfig struct {
 	*RouterConfig

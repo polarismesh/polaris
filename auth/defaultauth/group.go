@@ -71,7 +71,7 @@ func (svr *server) CreateGroup(ctx context.Context, req *apisecurity.UserGroup) 
 	if err != nil {
 		log.Error("get group when create", utils.ZapRequestID(requestID),
 			utils.ZapPlatformID(platformID), zap.Error(err))
-		return api.NewGroupResponse(apimodel.Code_StoreLayerException, req)
+		return api.NewGroupResponse(StoreCode2APICode(err), req)
 	}
 
 	if group != nil {
@@ -168,7 +168,7 @@ func (svr *server) DeleteGroup(ctx context.Context, req *apisecurity.UserGroup) 
 	group, err := svr.storage.GetGroup(req.GetId().GetValue())
 	if err != nil {
 		log.Error("get group from store", utils.ZapRequestID(requestID), zap.Error(err))
-		return api.NewGroupResponse(apimodel.Code_StoreLayerException, req)
+		return api.NewGroupResponse(StoreCode2APICode(err), req)
 	}
 	if group == nil {
 		return api.NewGroupResponse(apimodel.Code_ExecuteSuccess, req)
@@ -216,7 +216,7 @@ func (svr *server) GetGroups(ctx context.Context, query map[string]string) *apis
 	total, groups, err := svr.storage.GetGroups(searchFilters, offset, limit)
 	if err != nil {
 		log.Errorf("[Auth][Group] get groups req(%+v) store err: %s", query, err.Error())
-		return api.NewAuthBatchQueryResponse(apimodel.Code_StoreLayerException)
+		return api.NewAuthBatchQueryResponse(StoreCode2APICode(err))
 	}
 
 	resp := api.NewAuthBatchQueryResponse(apimodel.Code_ExecuteSuccess)

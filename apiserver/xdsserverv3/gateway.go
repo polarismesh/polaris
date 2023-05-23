@@ -31,6 +31,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -131,6 +132,15 @@ func (x *XDSServer) makeGatewayRoutes(namespace string, xdsNode *XDSClient) []*r
 	callerService := xdsNode.Metadata[GatewayServiceName]
 	callerNamespace := xdsNode.Metadata[GatewayNamespaceName]
 
+	ratelimitGetter := x.RatelimitConfigGetter
+	if ratelimitGetter == nil {
+		ratelimitGetter = x.namingServer.Cache().RateLimit().GetRateLimitRules
+	}
+	ratelimitRules, _ := ratelimitGetter(model.ServiceKey{
+		Namespace: callerNamespace,
+		Name:      callerService,
+	})
+
 	routerCache := x.namingServer.Cache().RoutingConfig()
 	routerCache.IteratorRouterRule(func(_ string, rule *model.ExtendRouterConfig) {
 		if !rule.Enable {
@@ -170,6 +180,9 @@ func (x *XDSServer) makeGatewayRoutes(namespace string, xdsNode *XDSClient) []*r
 			if !findGatewaySource {
 				continue
 			}
+
+			ratelimitActions, localRateLimit := x.makeGatewayRouteLimit(namespace, xdsNode, routeMatch, ratelimitRules)
+
 			route := &route.Route{
 				Match: routeMatch,
 				Action: &route.Route_Route{
@@ -177,7 +190,11 @@ func (x *XDSServer) makeGatewayRoutes(namespace string, xdsNode *XDSClient) []*r
 						ClusterSpecifier: &route.RouteAction_WeightedClusters{
 							WeightedClusters: buildWeightClustersV2(subRule.GetDestinations()),
 						},
+						RateLimits: ratelimitActions,
 					},
+				},
+				TypedPerFilterConfig: map[string]*anypb.Any{
+					"envoy.filters.http.local_ratelimit": localRateLimit,
 				},
 			}
 			routes = append(routes, route)
@@ -200,6 +217,67 @@ func (x *XDSServer) makeGatewayRoutes(namespace string, xdsNode *XDSClient) []*r
 	})
 
 	return routes
+}
+
+func (x *XDSServer) makeGatewayRouteLimit(namespace string, xdsNode *XDSClient,
+	routeMatch *route.RouteMatch, ratelimitRules []*model.RateLimit) ([]*route.RateLimit, *anypb.Any) {
+
+	var (
+		prefix *route.RouteMatch_Prefix
+		regx   *route.RouteMatch_SafeRegex
+	)
+
+	actions := make([]*route.RateLimit_Action, 0, 4)
+
+	pathSpecifier := routeMatch.PathSpecifier
+	switch pathSpecifier.(type) {
+	case *route.RouteMatch_Prefix:
+		prefix = pathSpecifier.(*route.RouteMatch_Prefix)
+	case *route.RouteMatch_SafeRegex:
+		regx = pathSpecifier.(*route.RouteMatch_SafeRegex)
+	}
+
+	for i := range ratelimitRules {
+		rule := ratelimitRules[i]
+		if rule.Disable {
+			continue
+		}
+
+		pathMatch := false
+		switch rule.Proto.GetMethod().GetType() {
+		case apimodel.MatchString_EXACT:
+			if prefix != nil && prefix.Prefix == rule.Proto.GetMethod().GetValue().GetValue() {
+				pathMatch = true
+			}
+		case apimodel.MatchString_REGEX:
+			if regx != nil && regx.SafeRegex.GetRegex() == rule.Proto.GetMethod().GetValue().GetValue() {
+				pathMatch = true
+			}
+		}
+
+		if !pathMatch {
+			continue
+		}
+
+		for ai := range rule.Proto.GetArguments() {
+			argument := rule.Proto.GetArguments()[ai]
+			argumentKey := model.BuildArgumentKey(argument.Type, argument.Key)
+			switch argument.Type {
+			case traffic_manage.MatchArgument_HEADER:
+				actions = append(actions, &route.RateLimit_Action{
+					ActionSpecifier: &route.RateLimit_Action_RequestHeaders_{
+						RequestHeaders: &route.RateLimit_Action_RequestHeaders{
+							HeaderName:    argumentKey,
+							DescriptorKey: argumentKey,
+							SkipIfAbsent:  false,
+						},
+					},
+				})
+			}
+		}
+	}
+
+	return nil, nil
 }
 
 func buildGatewayRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.SourceService) {

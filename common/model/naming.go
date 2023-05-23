@@ -18,14 +18,12 @@
 package model
 
 import (
-	"encoding/json"
 	"sync"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 )
 
 // Namespace 命名空间结构体
@@ -168,142 +166,6 @@ func Store2Location(s *LocationStore) *Location {
 	}
 }
 
-/*
- * RoutingConfig 路由配置
- */
-type RoutingConfig struct {
-	ID         string
-	InBounds   string
-	OutBounds  string
-	Revision   string
-	Valid      bool
-	CreateTime time.Time
-	ModifyTime time.Time
-}
-
-// ExtendRoutingConfig 路由配置的扩展结构体
-type ExtendRoutingConfig struct {
-	ServiceName   string
-	NamespaceName string
-	Config        *RoutingConfig
-}
-
-// RateLimit 限流规则
-type RateLimit struct {
-	Proto     *apitraffic.Rule
-	ID        string
-	ServiceID string
-	Name      string
-	Method    string
-	// Labels for old compatible, will be removed later
-	Labels     string
-	Priority   uint32
-	Rule       string
-	Revision   string
-	Disable    bool
-	Valid      bool
-	CreateTime time.Time
-	ModifyTime time.Time
-	EnableTime time.Time
-}
-
-// Labels2Arguments 适配老的标签到新的参数列表
-func (r *RateLimit) Labels2Arguments() (map[string]*apimodel.MatchString, error) {
-	if len(r.Proto.Arguments) == 0 && len(r.Labels) > 0 {
-		var labels = make(map[string]*apimodel.MatchString)
-		if err := json.Unmarshal([]byte(r.Labels), &labels); err != nil {
-			return nil, err
-		}
-		for key, value := range labels {
-			r.Proto.Arguments = append(r.Proto.Arguments, &apitraffic.MatchArgument{
-				Type:  apitraffic.MatchArgument_CUSTOM,
-				Key:   key,
-				Value: value,
-			})
-		}
-		return labels, nil
-	}
-	return nil, nil
-}
-
-const (
-	LabelKeyPath          = "$path"
-	LabelKeyMethod        = "$method"
-	LabelKeyHeader        = "$header"
-	LabelKeyQuery         = "$query"
-	LabelKeyCallerService = "$caller_service"
-	LabelKeyCallerIP      = "$caller_ip"
-)
-
-// Arguments2Labels 将参数列表适配成旧的标签模型
-func Arguments2Labels(arguments []*apitraffic.MatchArgument) map[string]*apimodel.MatchString {
-	if len(arguments) > 0 {
-		var labels = make(map[string]*apimodel.MatchString)
-		for _, argument := range arguments {
-			switch argument.Type {
-			case apitraffic.MatchArgument_CUSTOM:
-				labels[argument.Key] = argument.Value
-			case apitraffic.MatchArgument_METHOD:
-				labels[LabelKeyMethod] = argument.Value
-			case apitraffic.MatchArgument_HEADER:
-				labels[LabelKeyHeader+"."+argument.Key] = argument.Value
-			case apitraffic.MatchArgument_QUERY:
-				labels[LabelKeyQuery+"."+argument.Key] = argument.Value
-			case apitraffic.MatchArgument_CALLER_SERVICE:
-				labels[LabelKeyCallerService+"."+argument.Key] = argument.Value
-			case apitraffic.MatchArgument_CALLER_IP:
-				labels[LabelKeyCallerIP] = argument.Value
-			default:
-				continue
-			}
-		}
-		return labels
-	}
-	return nil
-}
-
-// AdaptArgumentsAndLabels 对存量标签进行兼容，同时将argument适配成标签
-func (r *RateLimit) AdaptArgumentsAndLabels() error {
-	// 新的限流规则，需要适配老的SDK使用场景
-	labels := Arguments2Labels(r.Proto.GetArguments())
-	if len(labels) > 0 {
-		r.Proto.Labels = labels
-	} else {
-		var err error
-		// 存量限流规则，需要适配成新的规则
-		labels, err = r.Labels2Arguments()
-		if nil != err {
-			return err
-		}
-		r.Proto.Labels = labels
-	}
-	return nil
-}
-
-// AdaptLabels 对存量标签进行兼容，对存量labels进行清空
-func (r *RateLimit) AdaptLabels() error {
-	// 存量限流规则，需要适配成新的规则
-	_, err := r.Labels2Arguments()
-	if nil != err {
-		return err
-	}
-	r.Proto.Labels = nil
-	return nil
-}
-
-// ExtendRateLimit 包含服务信息的限流规则
-type ExtendRateLimit struct {
-	ServiceName   string
-	NamespaceName string
-	RateLimit     *RateLimit
-}
-
-// RateLimitRevision 包含最新版本号的限流规则
-type RateLimitRevision struct {
-	ServiceID    string
-	LastRevision string
-	ModifyTime   time.Time
-}
 
 // CircuitBreaker 熔断规则
 type CircuitBreaker struct {

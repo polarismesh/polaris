@@ -88,9 +88,9 @@ func (svr *server) CreateUser(ctx context.Context, req *apisecurity.User) *apise
 	if ownerID != "" {
 		owner, err := svr.storage.GetUser(ownerID)
 		if err != nil {
-			log.Error("[Auth][User] get user by name and owner", utils.ZapRequestID(requestID),
-				zap.Error(err), zap.String("name", req.GetName().GetValue()))
-			return api.NewUserResponse(apimodel.Code_StoreLayerException, req)
+			log.Error("[Auth][User] get owner user", utils.ZapRequestID(requestID), zap.Error(err),
+				zap.String("owner", ownerID))
+			return api.NewUserResponse(StoreCode2APICode(err), req)
 		}
 
 		if owner.Name == req.Name.GetValue() {
@@ -104,8 +104,8 @@ func (svr *server) CreateUser(ctx context.Context, req *apisecurity.User) *apise
 	user, err := svr.storage.GetUserByName(req.Name.GetValue(), ownerID)
 	if err != nil {
 		log.Error("[Auth][User] get user by name and owner", utils.ZapRequestID(requestID),
-			zap.Error(err), zap.String("name", req.GetName().GetValue()))
-		return api.NewUserResponse(apimodel.Code_StoreLayerException, req)
+			zap.Error(err), zap.String("owner", ownerID), zap.String("name", req.GetName().GetValue()))
+		return api.NewUserResponse(StoreCode2APICode(err), req)
 	}
 	if user != nil {
 		return api.NewUserResponse(apimodel.Code_UserExisted, req)
@@ -271,7 +271,9 @@ func (svr *server) DeleteUser(ctx context.Context, req *apisecurity.User) *apise
 	if user.Type == model.OwnerUserRole {
 		count, err := svr.storage.GetSubCount(user)
 		if err != nil {
-			return api.NewUserResponse(apimodel.Code_StoreLayerException, req)
+			log.Error("[Auth][User] get user sub-account", zap.String("owner", user.ID),
+				utils.ZapRequestID(requestID), zap.Error(err))
+			return api.NewUserResponse(StoreCode2APICode(err), req)
 		}
 		if count != 0 {
 			log.Error("[Auth][User] delete user but some sub-account existed", zap.String("owner", user.ID))
@@ -333,7 +335,7 @@ func (svr *server) GetUsers(ctx context.Context, query map[string]string) *apise
 	if err != nil {
 		log.Error("[Auth][User] get user from store", zap.Any("req", searchFilters),
 			zap.Error(err))
-		return api.NewAuthBatchQueryResponse(apimodel.Code_StoreLayerException)
+		return api.NewAuthBatchQueryResponse(StoreCode2APICode(err))
 	}
 
 	resp := api.NewAuthBatchQueryResponse(apimodel.Code_ExecuteSuccess)
@@ -393,7 +395,7 @@ func (svr *server) UpdateUserToken(ctx context.Context, req *apisecurity.User) *
 	user, err := svr.storage.GetUser(req.Id.GetValue())
 	if err != nil {
 		log.Error("[Auth][User] get user from store", utils.ZapRequestID(requestID), zap.Error(err))
-		return api.NewUserResponse(apimodel.Code_StoreLayerException, req)
+		return api.NewUserResponse(StoreCode2APICode(err), req)
 	}
 	if user == nil {
 		return api.NewUserResponse(apimodel.Code_NotFoundUser, req)
@@ -434,7 +436,7 @@ func (svr *server) ResetUserToken(ctx context.Context, req *apisecurity.User) *a
 	user, err := svr.storage.GetUser(req.Id.GetValue())
 	if err != nil {
 		log.Error("[Auth][User] get user from store", utils.ZapRequestID(requestID), zap.Error(err))
-		return api.NewUserResponse(apimodel.Code_StoreLayerException, req)
+		return api.NewUserResponse(StoreCode2APICode(err), req)
 	}
 	if user == nil {
 		return api.NewUserResponse(apimodel.Code_NotFoundUser, req)

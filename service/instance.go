@@ -888,9 +888,9 @@ func (s *Server) getInstance(service *apiservice.Service, instance *apiservice.I
 		Location:          instance.GetLocation(),
 		Metadata:          instance.GetMetadata(),
 		LogicSet:          instance.GetLogicSet(),
-		// Ctime:             instance.GetCtime(),
-		Mtime:    instance.GetMtime(),
-		Revision: instance.GetRevision(),
+		Ctime:             instance.GetCtime(),
+		Mtime:             instance.GetMtime(),
+		Revision:          instance.GetRevision(),
 	}
 
 	s.packCmdb(out)
