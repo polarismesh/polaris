@@ -61,6 +61,18 @@ func (s *serverAuthability) collectConfigFileAuthContext(ctx context.Context, re
 	)
 }
 
+func (s *serverAuthability) collectClientConfigFileAuthContext(ctx context.Context, req []*apiconfig.ConfigFile,
+	op model.ResourceOperation, methodName string) *model.AcquireContext {
+	return model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithModule(model.ConfigModule),
+		model.WithOperation(op),
+		model.WithMethod(methodName),
+		model.WithFromClient(),
+		model.WithAccessResources(s.queryConfigFileResource(ctx, req)),
+	)
+}
+
 func (s *serverAuthability) collectConfigFileReleaseAuthContext(ctx context.Context, req []*apiconfig.ConfigFileRelease,
 	op model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
@@ -68,6 +80,18 @@ func (s *serverAuthability) collectConfigFileReleaseAuthContext(ctx context.Cont
 		model.WithModule(model.ConfigModule),
 		model.WithOperation(op),
 		model.WithMethod(methodName),
+		model.WithAccessResources(s.queryConfigFileReleaseResource(ctx, req)),
+	)
+}
+
+func (s *serverAuthability) collectClientConfigFileReleaseAuthContext(ctx context.Context, req []*apiconfig.ConfigFileRelease,
+	op model.ResourceOperation, methodName string) *model.AcquireContext {
+	return model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithModule(model.ConfigModule),
+		model.WithOperation(op),
+		model.WithMethod(methodName),
+		model.WithFromClient(),
 		model.WithAccessResources(s.queryConfigFileReleaseResource(ctx, req)),
 	)
 }

@@ -19,6 +19,9 @@ package config
 
 import (
 	"context"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 )
@@ -32,18 +35,57 @@ func (s *serverAuthability) GetConfigFileForClient(ctx context.Context,
 // CreateConfigFileFromClient 调用config_file的方法创建配置文件
 func (s *serverAuthability) CreateConfigFileFromClient(ctx context.Context,
 	fileInfo *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
+	authCtx := s.collectClientConfigFileAuthContext(ctx,
+		[]*apiconfig.ConfigFile{{
+			Namespace: fileInfo.Namespace,
+			Name:      fileInfo.FileName,
+			Group:     fileInfo.Group},
+		}, model.Create, "CreateConfigFileFromClient")
+	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+		return api.NewConfigClientResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return s.targetServer.CreateConfigFileFromClient(ctx, fileInfo)
 }
 
 // UpdateConfigFileFromClient 调用config_file的方法更新配置文件
 func (s *serverAuthability) UpdateConfigFileFromClient(ctx context.Context,
 	fileInfo *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
+	authCtx := s.collectClientConfigFileAuthContext(ctx,
+		[]*apiconfig.ConfigFile{{
+			Namespace: fileInfo.Namespace,
+			Name:      fileInfo.FileName,
+			Group:     fileInfo.Group},
+		}, model.Create, "UpdateConfigFileFromClient")
+	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+		return api.NewConfigClientResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return s.targetServer.UpdateConfigFileFromClient(ctx, fileInfo)
 }
 
 // PublishConfigFileFromClient 调用config_file_release的方法发布配置文件
 func (s *serverAuthability) PublishConfigFileFromClient(ctx context.Context,
 	fileInfo *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
+	authCtx := s.collectClientConfigFileReleaseAuthContext(ctx,
+		[]*apiconfig.ConfigFileRelease{{
+			Namespace: fileInfo.Namespace,
+			Name:      fileInfo.FileName,
+			Group:     fileInfo.Group},
+		}, model.Create, "PublishConfigFileFromClient")
+	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+		return api.NewConfigClientResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return s.targetServer.PublishConfigFileFromClient(ctx, fileInfo)
 }
 
