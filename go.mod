@@ -84,7 +84,7 @@ require (
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
-	github.com/polarismesh/specification v1.3.0
+	github.com/polarismesh/specification v1.3.2-alpha.0
 )
 
 replace gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.2

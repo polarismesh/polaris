@@ -19,6 +19,7 @@ package config
 
 import (
 	"context"
+
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
@@ -197,7 +198,8 @@ func transferClientConfigFileInfo2ConfigFile(client *apiconfig.ClientConfigFileI
 	}
 }
 
-func transferClientConfigFileInfo2ConfigFileRelease(client *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigFileRelease {
+func transferClientConfigFileInfo2ConfigFileRelease(
+	client *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigFileRelease {
 	if client == nil {
 		return nil
 	}
