@@ -451,6 +451,30 @@ func acquireLocalhost(ctx context.Context, polarisService *boot_config.PolarisSe
 		log.Infof("[Bootstrap] polaris service config not found")
 		return ctx, nil
 	}
+	if len(polarisService.SelfAddress) != 0 {
+		utils.LocalHost = polarisService.SelfAddress
+		return utils.WithLocalhost(ctx, polarisService.SelfAddress), nil
+	}
+	if len(polarisService.NetworkInter) != 0 {
+		netInter, err := net.InterfaceByName(polarisService.NetworkInter)
+		if err != nil {
+			log.Errorf("get local host by network_interface: %s err: %s", polarisService.NetworkInter, err.Error())
+			return nil, err
+		}
+		addrs, err := netInter.Addrs()
+		if err != nil {
+			log.Errorf("get local host by network_interface: %s err: %s", polarisService.NetworkInter, err.Error())
+			return nil, err
+		}
+		for _, addr := range addrs {
+			if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+				if ipnet.IP.To4() != nil {
+					utils.LocalHost = ipnet.IP.String()
+					return utils.WithLocalhost(ctx, polarisService.SelfAddress), nil
+				}
+			}
+		}
+	}
 
 	localHost, err := getLocalHost(polarisService.ProbeAddress)
 	if err != nil {

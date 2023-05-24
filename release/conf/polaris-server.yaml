@@ -191,7 +191,7 @@ bootstrap:
     key: sz # Global lock
   # Register as Arctic Star Service
   polaris_service:
-    # probe_address: ##DB_ADDR##
+    probe_address: 127.0.0.1:3306
     enable_register: true
     isolated: false
     services:
@@ -302,15 +302,15 @@ auth:
   user:
     name: defaultUserManager
     option:
-      # token 加密的 salt，鉴权解析 token 时需要依靠这个 salt 去解密 token 的信息
-      # salt 的长度需要满足以下任意一个：len(salt) in [16, 24, 32]
+      # Token encrypted SALT, you need to rely on this SALT to decrypt the information of the Token when analyzing the Token
+      # The length of SALT needs to satisfy the following one：len(salt) in [16, 24, 32]
       salt: polarismesh@2021
   strategy:
     name: defaultStrategyManager
     option:
-      # 控制台鉴权能力开关，默认开启
+      # Console power switch, open default
       consoleOpen: true
-      # 客户端鉴权能力开关, 默认关闭
+      # Customer inspection ability switch, default close
       clientOpen: false
 namespace:
   # Whether to allow automatic creation of naming space
@@ -362,6 +362,14 @@ healthcheck:
   checkers:
     - name: heartbeatMemory
     # - name: heartbeatLeader
+    #   option:
+    #     soltNum: 128
+    #     streamNum: 128 # default value is runtime.GOMAXPROCS(0)
+    #     batch:
+    #       queueSize: 16384
+    #       waitTime: 32ms
+    #       maxBatchCount: 64
+    #       concurrency: 512
     # - name: heartbeatRedis
     #   option:
     #     kvAddr: ##REDIS_ADDR##
@@ -451,7 +459,7 @@ store:
   #     maxIdleConns: 50
   #     connMaxLifetime: 300 # Unit second
   #     txIsolationLevel: 2 #LevelReadCommitted
-# 插件配置
+# polaris-server plugin settings
 plugin:
   crypto:
     entries:

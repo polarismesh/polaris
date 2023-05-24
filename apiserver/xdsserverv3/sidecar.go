@@ -249,10 +249,6 @@ func (x *XDSServer) makeSidecarVirtualHosts(services []*ServiceInfo) []types.Res
 			Name:    serviceInfo.Name,
 			Domains: generateServiceDomains(serviceInfo),
 			Routes:  makeSidecarRoutes(serviceInfo),
-			// TypedPerFilterConfig: x.makeLocalRateLimit(model.ServiceKey{
-			// 	Namespace: serviceInfo.Namespace,
-			// 	Name:      serviceInfo.Name,
-			// }),
 		}
 		hosts = append(hosts, vHost)
 	}
