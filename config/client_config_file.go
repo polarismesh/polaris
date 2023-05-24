@@ -94,22 +94,22 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 
 // CreateConfigFileFromClient 调用config_file接口获取配置文件
 func (s *Server) CreateConfigFileFromClient(ctx context.Context,
-	client *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
-	configResponse := s.CreateConfigFile(ctx, transferClientConfigFileInfo2ConfigFile(client))
+	client *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse {
+	configResponse := s.CreateConfigFile(ctx, client)
 	return api.NewConfigClientResponseFromConfigResponse(configResponse)
 }
 
 // UpdateConfigFileFromClient 调用config_file接口更新配置文件
 func (s *Server) UpdateConfigFileFromClient(ctx context.Context,
-	client *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
-	configResponse := s.UpdateConfigFile(ctx, transferClientConfigFileInfo2ConfigFile(client))
+	client *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse {
+	configResponse := s.UpdateConfigFile(ctx, client)
 	return api.NewConfigClientResponseFromConfigResponse(configResponse)
 }
 
 // PublishConfigFileFromClient 调用config_file_release接口删除配置文件
 func (s *Server) PublishConfigFileFromClient(ctx context.Context,
-	client *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
-	configResponse := s.PublishConfigFile(ctx, transferClientConfigFileInfo2ConfigFileRelease(client))
+	client *apiconfig.ConfigFileRelease) *apiconfig.ConfigClientResponse {
+	configResponse := s.PublishConfigFile(ctx, client)
 	return api.NewConfigClientResponseFromConfigResponse(configResponse)
 }
 
@@ -177,45 +177,4 @@ func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api
 	}
 
 	return api.NewConfigClientResponse(apimodel.Code_DataNoChange, nil)
-}
-
-func transferClientConfigFileInfo2ConfigFile(client *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigFile {
-	if client == nil {
-		return nil
-	}
-	return &apiconfig.ConfigFile{
-		Id:         nil,
-		Name:       client.FileName,
-		Namespace:  client.Namespace,
-		Group:      client.Group,
-		Content:    client.Content,
-		Comment:    nil,
-		Format:     nil,
-		CreateBy:   nil,
-		CreateTime: nil,
-		ModifyBy:   nil,
-		ModifyTime: nil,
-	}
-}
-
-func transferClientConfigFileInfo2ConfigFileRelease(
-	client *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigFileRelease {
-	if client == nil {
-		return nil
-	}
-	return &apiconfig.ConfigFileRelease{
-		Id:         nil,
-		Name:       client.FileName,
-		Namespace:  client.Namespace,
-		Group:      client.Group,
-		FileName:   client.FileName,
-		Content:    client.Content,
-		Comment:    nil,
-		Md5:        nil,
-		Version:    nil,
-		CreateBy:   nil,
-		CreateTime: nil,
-		ModifyBy:   nil,
-		ModifyTime: nil,
-	}
 }

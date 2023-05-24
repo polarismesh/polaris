@@ -35,11 +35,11 @@ func (s *serverAuthability) GetConfigFileForClient(ctx context.Context,
 
 // CreateConfigFileFromClient 调用config_file的方法创建配置文件
 func (s *serverAuthability) CreateConfigFileFromClient(ctx context.Context,
-	fileInfo *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
+	fileInfo *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse {
 	authCtx := s.collectClientConfigFileAuthContext(ctx,
 		[]*apiconfig.ConfigFile{{
 			Namespace: fileInfo.Namespace,
-			Name:      fileInfo.FileName,
+			Name:      fileInfo.Name,
 			Group:     fileInfo.Group},
 		}, model.Create, "CreateConfigFileFromClient")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
@@ -54,11 +54,11 @@ func (s *serverAuthability) CreateConfigFileFromClient(ctx context.Context,
 
 // UpdateConfigFileFromClient 调用config_file的方法更新配置文件
 func (s *serverAuthability) UpdateConfigFileFromClient(ctx context.Context,
-	fileInfo *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
+	fileInfo *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse {
 	authCtx := s.collectClientConfigFileAuthContext(ctx,
 		[]*apiconfig.ConfigFile{{
 			Namespace: fileInfo.Namespace,
-			Name:      fileInfo.FileName,
+			Name:      fileInfo.Name,
 			Group:     fileInfo.Group},
 		}, model.Create, "UpdateConfigFileFromClient")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
@@ -73,7 +73,7 @@ func (s *serverAuthability) UpdateConfigFileFromClient(ctx context.Context,
 
 // PublishConfigFileFromClient 调用config_file_release的方法发布配置文件
 func (s *serverAuthability) PublishConfigFileFromClient(ctx context.Context,
-	fileInfo *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
+	fileInfo *apiconfig.ConfigFileRelease) *apiconfig.ConfigClientResponse {
 	authCtx := s.collectClientConfigFileReleaseAuthContext(ctx,
 		[]*apiconfig.ConfigFileRelease{{
 			Namespace: fileInfo.Namespace,

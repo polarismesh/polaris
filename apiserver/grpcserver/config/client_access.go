@@ -35,7 +35,7 @@ func (g *ConfigGRPCServer) GetConfigFile(ctx context.Context,
 
 // CreateConfigFile 创建或更新配置
 func (g *ConfigGRPCServer) CreateConfigFile(ctx context.Context,
-	configFile *apiconfig.ClientConfigFileInfo) (*apiconfig.ConfigClientResponse, error) {
+	configFile *apiconfig.ConfigFile) (*apiconfig.ConfigClientResponse, error) {
 	ctx = grpcserver.ConvertContext(ctx)
 	response := g.configServer.CreateConfigFileFromClient(ctx, configFile)
 	return response, nil
@@ -43,7 +43,7 @@ func (g *ConfigGRPCServer) CreateConfigFile(ctx context.Context,
 
 // UpdateConfigFile 创建或更新配置
 func (g *ConfigGRPCServer) UpdateConfigFile(ctx context.Context,
-	configFile *apiconfig.ClientConfigFileInfo) (*apiconfig.ConfigClientResponse, error) {
+	configFile *apiconfig.ConfigFile) (*apiconfig.ConfigClientResponse, error) {
 	ctx = grpcserver.ConvertContext(ctx)
 	response := g.configServer.UpdateConfigFileFromClient(ctx, configFile)
 	return response, nil
@@ -51,7 +51,7 @@ func (g *ConfigGRPCServer) UpdateConfigFile(ctx context.Context,
 
 // PublishConfigFile 发布配置
 func (g *ConfigGRPCServer) PublishConfigFile(ctx context.Context,
-	configFile *apiconfig.ClientConfigFileInfo) (*apiconfig.ConfigClientResponse, error) {
+	configFile *apiconfig.ConfigFileRelease) (*apiconfig.ConfigClientResponse, error) {
 	ctx = grpcserver.ConvertContext(ctx)
 	response := g.configServer.PublishConfigFileFromClient(ctx, configFile)
 	return response, nil

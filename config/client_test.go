@@ -125,12 +125,11 @@ func TestClientSetupAndCreateNewFile(t *testing.T) {
 		}
 	}()
 
-	fileInfo := &apiconfig.ClientConfigFileInfo{
+	fileInfo := &apiconfig.ConfigFile{
 		Namespace: &wrapperspb.StringValue{Value: testNamespace},
 		Group:     &wrapperspb.StringValue{Value: testGroup},
-		FileName:  &wrapperspb.StringValue{Value: testFile},
+		Name:      &wrapperspb.StringValue{Value: testFile},
 		Content:   &wrapperspb.StringValue{Value: testContent},
-		Version:   &wrapperspb.UInt64Value{Value: 0},
 	}
 
 	rsp := testSuit.testService.CreateConfigFileFromClient(testSuit.defaultCtx, fileInfo)
@@ -158,12 +157,11 @@ func TestClientSetupAndCreateExistFile(t *testing.T) {
 		}
 	}()
 
-	fileInfo := &apiconfig.ClientConfigFileInfo{
+	fileInfo := &apiconfig.ConfigFile{
 		Namespace: &wrapperspb.StringValue{Value: testNamespace},
 		Group:     &wrapperspb.StringValue{Value: testGroup},
-		FileName:  &wrapperspb.StringValue{Value: testFile},
+		Name:      &wrapperspb.StringValue{Value: testFile},
 		Content:   &wrapperspb.StringValue{Value: testContent},
-		Version:   &wrapperspb.UInt64Value{Value: 0},
 	}
 
 	// 第一次创建
@@ -196,12 +194,11 @@ func TestClientSetupAndUpdateNewFile(t *testing.T) {
 		}
 	}()
 
-	fileInfo := &apiconfig.ClientConfigFileInfo{
+	fileInfo := &apiconfig.ConfigFile{
 		Namespace: &wrapperspb.StringValue{Value: testNamespace},
 		Group:     &wrapperspb.StringValue{Value: testGroup},
-		FileName:  &wrapperspb.StringValue{Value: testFile},
+		Name:      &wrapperspb.StringValue{Value: testFile},
 		Content:   &wrapperspb.StringValue{Value: testContent},
-		Version:   &wrapperspb.UInt64Value{Value: 0},
 	}
 
 	// 直接更新
@@ -222,12 +219,11 @@ func TestClientSetupAndUpdateExistFile(t *testing.T) {
 		}
 	}()
 
-	fileInfo := &apiconfig.ClientConfigFileInfo{
+	fileInfo := &apiconfig.ConfigFile{
 		Namespace: &wrapperspb.StringValue{Value: testNamespace},
 		Group:     &wrapperspb.StringValue{Value: testGroup},
-		FileName:  &wrapperspb.StringValue{Value: testFile},
+		Name:      &wrapperspb.StringValue{Value: testFile},
 		Content:   &wrapperspb.StringValue{Value: testContent},
-		Version:   &wrapperspb.UInt64Value{Value: 0},
 	}
 
 	// 先创建
@@ -254,16 +250,15 @@ func TestClientSetupAndPublishNewFile(t *testing.T) {
 		}
 	}()
 
-	fileInfo := &apiconfig.ClientConfigFileInfo{
+	fileReleaseInfo := &apiconfig.ConfigFileRelease{
 		Namespace: &wrapperspb.StringValue{Value: testNamespace},
 		Group:     &wrapperspb.StringValue{Value: testGroup},
 		FileName:  &wrapperspb.StringValue{Value: testFile},
 		Content:   &wrapperspb.StringValue{Value: testContent},
-		Version:   &wrapperspb.UInt64Value{Value: 0},
 	}
 
-	// 直接更新
-	rsp := testSuit.testService.PublishConfigFileFromClient(testSuit.defaultCtx, fileInfo)
+	// 直接发布
+	rsp := testSuit.testService.PublishConfigFileFromClient(testSuit.defaultCtx, fileReleaseInfo)
 	assert.Equal(t, api.NotFoundNamespace, rsp.Code.GetValue(), "PublishConfigFileFromClient with no exist file must error")
 }
 
@@ -280,12 +275,11 @@ func TestClientSetupAndPublishExistFile(t *testing.T) {
 		}
 	}()
 
-	fileInfo := &apiconfig.ClientConfigFileInfo{
+	fileInfo := &apiconfig.ConfigFile{
 		Namespace: &wrapperspb.StringValue{Value: testNamespace},
 		Group:     &wrapperspb.StringValue{Value: testGroup},
-		FileName:  &wrapperspb.StringValue{Value: testFile},
+		Name:      &wrapperspb.StringValue{Value: testFile},
 		Content:   &wrapperspb.StringValue{Value: testContent},
-		Version:   &wrapperspb.UInt64Value{Value: 0},
 	}
 
 	// 先创建
@@ -293,8 +287,13 @@ func TestClientSetupAndPublishExistFile(t *testing.T) {
 	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue(), "CreateConfigFileFromClient must success")
 
 	// 再发布
-	fileInfo.Content = &wrapperspb.StringValue{Value: testContent + "1"}
-	rsp1 := testSuit.testService.PublishConfigFileFromClient(testSuit.defaultCtx, fileInfo)
+	fileReleaseInfo := &apiconfig.ConfigFileRelease{
+		Namespace: &wrapperspb.StringValue{Value: testNamespace},
+		Group:     &wrapperspb.StringValue{Value: testGroup},
+		FileName:  &wrapperspb.StringValue{Value: testFile},
+		Content:   &wrapperspb.StringValue{Value: testContent},
+	}
+	rsp1 := testSuit.testService.PublishConfigFileFromClient(testSuit.defaultCtx, fileReleaseInfo)
 	assert.Equal(t, api.ExecuteSuccess, rsp1.Code.GetValue(), "PublishConfigFileFromClient must success")
 
 }
