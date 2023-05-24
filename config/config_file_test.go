@@ -34,6 +34,7 @@ var (
 	testNamespace = "testNamespace123qwe"
 	testGroup     = "testGroup"
 	testFile      = "testFile"
+	testContent   = "testContent"
 	operator      = "polaris"
 	size          = 7
 )

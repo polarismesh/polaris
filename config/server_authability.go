@@ -84,8 +84,8 @@ func (s *serverAuthability) collectConfigFileReleaseAuthContext(ctx context.Cont
 	)
 }
 
-func (s *serverAuthability) collectClientConfigFileReleaseAuthContext(ctx context.Context, req []*apiconfig.ConfigFileRelease,
-	op model.ResourceOperation, methodName string) *model.AcquireContext {
+func (s *serverAuthability) collectClientConfigFileReleaseAuthContext(ctx context.Context,
+	req []*apiconfig.ConfigFileRelease, op model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithModule(model.ConfigModule),
