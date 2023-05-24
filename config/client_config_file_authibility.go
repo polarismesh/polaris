@@ -20,11 +20,11 @@ package config
 import (
 	"context"
 
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
-
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 )
 
 // GetConfigFileForClient 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存

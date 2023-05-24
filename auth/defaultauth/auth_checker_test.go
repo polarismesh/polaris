@@ -24,13 +24,14 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	storemock "github.com/polarismesh/polaris/store/mock"
-	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
-	"github.com/stretchr/testify/assert"
 )
 
 func Test_defaultAuthManager_ParseToken(t *testing.T) {
