@@ -767,13 +767,66 @@ func (s *Server) GetInstances(ctx context.Context, query map[string]string) *api
 
 	apiInstances := make([]*apiservice.Instance, 0, len(instances))
 	for _, instance := range instances {
-		// 数据来源于数据库，不需要拷贝一份，直接填充后返回
-		s.packCmdb(instance.Proto)
-		apiInstances = append(apiInstances, instance.Proto)
+		svc, _ := s.loadServiceByID(instance.ServiceID)
+		if svc == nil {
+			continue
+		}
+		protoIns := copyOSSInstance(instance.Proto)
+		protoIns.Service = wrapperspb.String(svc.Name)
+		protoIns.Namespace = wrapperspb.String(svc.Namespace)
+		protoIns.ServiceToken = wrapperspb.String(svc.Token)
+		s.packCmdb(protoIns)
+		apiInstances = append(apiInstances, protoIns)
 	}
 	out.Instances = apiInstances
 
 	return out
+}
+
+var (
+	ignoreReturnOSSInstanceMetadata = map[string]struct{}{
+		"version":  {},
+		"protocol": {},
+		"region":   {},
+		"zone":     {},
+		"campus":   {},
+	}
+)
+
+func copyOSSInstance(instance *apiservice.Instance) *apiservice.Instance {
+	copyIns := &apiservice.Instance{
+		Id:                instance.Id,
+		Service:           instance.Service,
+		Namespace:         instance.Namespace,
+		VpcId:             instance.VpcId,
+		Host:              instance.Host,
+		Port:              instance.Port,
+		Protocol:          instance.Protocol,
+		Version:           instance.Version,
+		Priority:          instance.Priority,
+		Weight:            instance.Weight,
+		EnableHealthCheck: instance.EnableHealthCheck,
+		HealthCheck:       instance.HealthCheck,
+		Healthy:           instance.Healthy,
+		Isolate:           instance.Isolate,
+		Location:          instance.Location,
+		LogicSet:          instance.LogicSet,
+		Ctime:             instance.Ctime,
+		Mtime:             instance.Mtime,
+		Revision:          instance.Revision,
+		ServiceToken:      instance.ServiceToken,
+	}
+
+	copym := map[string]string{}
+	for k, v := range instance.Metadata {
+		if _, ok := ignoreReturnOSSInstanceMetadata[k]; ok {
+			continue
+		}
+		copym[k] = v
+	}
+
+	copyIns.Metadata = copym
+	return copyIns
 }
 
 // GetInstanceLabels 获取实例标签列表

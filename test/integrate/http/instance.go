@@ -199,7 +199,7 @@ func (c *Client) GetInstances(instances []*apiservice.Instance) error {
 	for _, item := range items {
 		if correctItem, ok := collection[item.GetId().GetValue()]; ok {
 			if result := compareInstance(correctItem, item); !result {
-				return fmt.Errorf("invalid instance %v", item.GetId().GetValue())
+				return fmt.Errorf("invalid instance %v %v", correctItem, item)
 			}
 		} else {
 			return fmt.Errorf("instance %v not found", item.GetId().GetValue())

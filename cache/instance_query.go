@@ -125,8 +125,9 @@ func (ic *instanceCache) QueryInstances(filter, metaFilter map[string]string,
 		}
 	}
 
+	svcCache := ic.cacheMgr.Service().(*serviceCache)
 	_ = ic.IteratorInstances(func(key string, value *model.Instance) (bool, error) {
-		svc := ic.cacheMgr.Service().GetServiceByID(value.ServiceID)
+		svc := svcCache.GetOrLoadServiceByID(value.ServiceID)
 		if svc == nil {
 			return true, nil
 		}
