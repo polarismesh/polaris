@@ -20,47 +20,11 @@ package cache
 import (
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 )
-
-/**
-var (
-	// InstanceFilterAttributes 查询实例支持的过滤字段
-	InstanceFilterAttributes = map[string]bool{
-		"id":            true, // 实例ID
-		"service":       true, // 服务name
-		"namespace":     true, // 服务namespace
-		"host":          true,
-		"port":          true,
-		"keys":          true,
-		"values":        true,
-		"protocol":      true,
-		"version":       true,
-		"health_status": true,
-		"healthy":       true, // health_status, healthy都有，以healthy为准
-		"isolate":       true,
-		"weight":        true,
-		"logic_set":     true,
-		"cmdb_region":   true,
-		"cmdb_zone":     true,
-		"cmdb_idc":      true,
-		"priority":      true,
-		"offset":        true,
-		"limit":         true,
-	}
-	// InsFilter2toreAttr 查询字段转为存储层的属性值，映射表
-	InsFilter2toreAttr = map[string]string{
-		"service": "name",
-		"healthy": "health_status",
-	}
-	// NotInsFilterAttr 不属于 instance 表属性的字段
-	NotInsFilterAttr = map[string]bool{
-		"keys":   true,
-		"values": true,
-	}
-)
-*/
 
 // forceUpdate 更新配置
 func (ic *instanceCache) forceUpdate() error {
@@ -83,7 +47,7 @@ func (ic *instanceCache) QueryInstances(filter, metaFilter map[string]string,
 		svcName, hasSvc                                 = filter["service"]
 		namespace, hasNamespace                         = filter["namespace"]
 		id, hasId                                       = filter["id"]
-		host, hasHost                                   = filter["host"]
+		hosts, hasHost                                  = filter["host"]
 		protocol, hasProtocol                           = filter["protocol"]
 		version, hasVersion                             = filter["version"]
 		region, hasRegion                               = filter["cmdb_region"]
@@ -93,6 +57,12 @@ func (ic *instanceCache) QueryInstances(filter, metaFilter map[string]string,
 		healthStatus, isolate                           bool
 		hasPort, hasWeight, hasHealthStatus, hasIsolate bool
 	)
+
+	hostMap := map[string]struct{}{}
+	hostItems := strings.Split(hosts, ",")
+	for i := range hostItems {
+		hostMap[strings.TrimSpace(hostItems[i])] = struct{}{}
+	}
 
 	if portStr, ok := filter["port"]; ok {
 		if v, err := strconv.ParseUint(portStr, 10, 64); err == nil {
@@ -131,17 +101,19 @@ func (ic *instanceCache) QueryInstances(filter, metaFilter map[string]string,
 		if svc == nil {
 			return true, nil
 		}
-		if hasSvc && svc.Name != svcName {
+		if hasSvc && !utils.IsWildMatch(svc.Name, svcName) {
 			return true, nil
 		}
-		if hasNamespace && svc.Namespace != namespace {
+		if hasNamespace && !utils.IsWildMatch(svc.Namespace, namespace) {
 			return true, nil
 		}
-		if hasId && value.Proto.GetId().GetValue() != id {
+		if hasId && !utils.IsWildMatch(value.Proto.GetId().GetValue(), id) {
 			return true, nil
 		}
-		if hasHost && value.Proto.GetHost().GetValue() != host {
-			return true, nil
+		if hasHost {
+			if _, ok := hostMap[value.Proto.GetHost().GetValue()]; !ok {
+				return true, nil
+			}
 		}
 		if hasPort && value.Proto.GetPort().GetValue() != port {
 			return true, nil

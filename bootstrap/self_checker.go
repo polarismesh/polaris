@@ -83,7 +83,7 @@ func (s *SelfHeathChecker) Start() {
 				case api.NotFoundResource:
 					// 这里可能实例被错误摘除了，这里重新触发一次重注册流程，确保核心流程不受影响
 					log.Infof("[Bootstrap] heartbeat not founf instance for %s:%d, code is %d, try re-register",
-						instance.GetHost().GetValue(), instance.GetPort().GetValue())
+						instance.GetHost().GetValue(), instance.GetPort().GetValue(), rsp.GetCode().GetValue())
 					resp := s.discoverSvr.CreateInstances(genContext(), []*apiservice.Instance{instance})
 					if resp.GetCode().GetValue() != api.ExecuteSuccess {
 						log.Errorf("[Bootstrap] re-register fail for %s:%d, code is %d, info %s",
