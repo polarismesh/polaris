@@ -75,7 +75,6 @@ func (ic *instanceCache) QueryInstances(filter, metaFilter map[string]string,
 	if err := ic.forceUpdate(); err != nil {
 		return 0, nil, err
 	}
-	cacheMgr, _ := GetCacheManager()
 	var (
 		tempInstances = make([]*model.Instance, 0, 32)
 	)
@@ -126,8 +125,8 @@ func (ic *instanceCache) QueryInstances(filter, metaFilter map[string]string,
 		}
 	}
 
-	ic.IteratorInstances(func(key string, value *model.Instance) (bool, error) {
-		svc := cacheMgr.Service().GetServiceByID(value.ServiceID)
+	_ = ic.IteratorInstances(func(key string, value *model.Instance) (bool, error) {
+		svc := ic.cacheMgr.Service().GetServiceByID(value.ServiceID)
 		if svc == nil {
 			return true, nil
 		}

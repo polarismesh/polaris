@@ -68,7 +68,7 @@ func newCacheManager(ctx context.Context, cacheOpt *Config, storage store.Store)
 		revisions:     map[string]string{},
 	}
 
-	ic := newInstanceCache(storage, mgr.comRevisionCh)
+	ic := newInstanceCache(mgr, storage, mgr.comRevisionCh)
 	sc := newServiceCache(storage, mgr.comRevisionCh, ic)
 	mgr.caches[CacheService] = sc
 	mgr.caches[CacheInstance] = ic

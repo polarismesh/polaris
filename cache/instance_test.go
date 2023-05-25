@@ -38,7 +38,7 @@ func newTestInstanceCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *i
 	ctl := gomock.NewController(t)
 
 	storage := mock.NewMockStore(ctl)
-	ic := newInstanceCache(storage, make(chan *revisionNotify, 1024))
+	ic := newInstanceCache(&CacheManager{}, storage, make(chan *revisionNotify, 1024))
 	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 	opt := map[string]interface{}{
 		"disableBusiness": false,

@@ -44,7 +44,7 @@ func newTestServiceCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *se
 	storage := mock.NewMockStore(ctl)
 	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 	notifier := make(chan *revisionNotify, 1024)
-	ic := newInstanceCache(storage, notifier)
+	ic := newInstanceCache(&CacheManager{}, storage, notifier)
 	sc := newServiceCache(storage, notifier, ic)
 	opt := map[string]interface{}{
 		"disableBusiness": false,

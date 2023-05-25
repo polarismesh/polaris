@@ -68,6 +68,7 @@ type InstanceCache interface {
 type instanceCache struct {
 	*baseCache
 
+	cacheMgr           *CacheManager
 	storage            store.Store
 	lastMtimeLogged    int64
 	ids                *sync.Map // instanceid -> instance
@@ -88,8 +89,9 @@ func init() {
 }
 
 // newInstanceCache 新建一个instanceCache
-func newInstanceCache(storage store.Store, ch chan *revisionNotify) *instanceCache {
+func newInstanceCache(cacheMgr *CacheManager, storage store.Store, ch chan *revisionNotify) *instanceCache {
 	return &instanceCache{
+		cacheMgr:   cacheMgr,
 		baseCache:  newBaseCache(storage),
 		storage:    storage,
 		revisionCh: ch,
