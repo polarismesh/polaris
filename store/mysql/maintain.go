@@ -419,12 +419,13 @@ func (m *maintainStore) ReleaseLeaderElection(key string) error {
 }
 
 // BatchCleanDeletedInstances batch clean soft deleted instances
-func (m *maintainStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, error) {
+func (m *maintainStore) BatchCleanDeletedInstances(timeout time.Duration, batchSize uint32) (uint32, error) {
 	log.Infof("[Store][database] batch clean soft deleted instances(%d)", batchSize)
 	var rows int64
 	err := m.master.processWithTransaction("batchCleanDeletedInstances", func(tx *BaseTx) error {
-		mainStr := "delete from instance where flag = 1 limit ?"
-		result, err := tx.Exec(mainStr, batchSize)
+		mainStr := "delete from instance where flag = 1 and " +
+			"mtime <= FROM_UNIXTIME(UNIX_TIMESTAMP(SYSDATE()) - ?) limit ?"
+		result, err := tx.Exec(mainStr, int32(timeout.Seconds()), batchSize)
 		if err != nil {
 			log.Errorf("[Store][database] batch clean soft deleted instances(%d), err: %s", batchSize, err.Error())
 			return store.Error(err)

@@ -98,7 +98,7 @@ func TestMaintainStore_BatchCleanDeletedInstances(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	count, err := store.BatchCleanDeletedInstances(2)
+	count, err := store.BatchCleanDeletedInstances(0, 2)
 	if err != nil {
 		t.Fatal(err)
 	}

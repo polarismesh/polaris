@@ -102,15 +102,28 @@ func (m *maintainStore) ReleaseLeaderElection(key string) error {
 }
 
 // BatchCleanDeletedInstances
-func (m *maintainStore) BatchCleanDeletedInstances(batchSize uint32) (uint32, error) {
-	fields := []string{insFieldValid}
+func (m *maintainStore) BatchCleanDeletedInstances(timeout time.Duration, batchSize uint32) (uint32, error) {
+	mtime := time.Now().Add(-timeout)
+	fields := []string{insFieldValid, insFieldModifyTime}
 	values, err := m.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
 			valid, ok := m[insFieldValid]
-			if ok && !valid.(bool) {
-				return true
+			if !ok {
+				return false
 			}
-			return false
+			if valid.(bool) {
+				return false
+			}
+
+			modifyTime, ok := m[insFieldModifyTime]
+			if !ok {
+				return false
+			}
+			if modifyTime.(time.Time).After(mtime) {
+				return false
+			}
+
+			return true
 		})
 	if err != nil {
 		return 0, err
