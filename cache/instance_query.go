@@ -44,8 +44,8 @@ func (ic *instanceCache) QueryInstances(filter, metaFilter map[string]string,
 	)
 
 	var (
-		svcName, hasSvc                                 = filter["service"]
-		namespace, hasNamespace                         = filter["namespace"]
+		searchSvcName, hasSvc                           = filter["service"]
+		searchNamespace, hasNamespace                   = filter["namespace"]
 		id, hasId                                       = filter["id"]
 		hosts, hasHost                                  = filter["host"]
 		protocol, hasProtocol                           = filter["protocol"]
@@ -101,10 +101,10 @@ func (ic *instanceCache) QueryInstances(filter, metaFilter map[string]string,
 		if svc == nil {
 			return true, nil
 		}
-		if hasSvc && !utils.IsWildMatch(svc.Name, svcName) {
+		if hasSvc && !utils.IsWildMatch(svc.Name, searchSvcName) {
 			return true, nil
 		}
-		if hasNamespace && !utils.IsWildMatch(svc.Namespace, namespace) {
+		if hasNamespace && !utils.IsWildMatch(svc.Namespace, searchNamespace) {
 			return true, nil
 		}
 		if hasId && !utils.IsWildMatch(value.Proto.GetId().GetValue(), id) {
