@@ -27,5 +27,11 @@ import (
 // TestInitialize 包裹了初始化函数，在 Initialize 的时候会在自动调用，全局初始化一次
 func TestInitialize(ctx context.Context, authOpt *Config, storage store.Store,
 	cacheMgn *cache.CacheManager) (UserServer, StrategyServer, error) {
-	return initialize(ctx, authOpt, storage, cacheMgn)
+	userSvr, strategySvr, err := initialize(ctx, authOpt, storage, cacheMgn)
+	if err != nil {
+		return nil, nil, err
+	}
+	userMgn = userSvr
+	strategyMgn = strategySvr
+	return userSvr, strategySvr, nil
 }

@@ -138,8 +138,6 @@ func Initialize(ctx context.Context, authOpt *Config, storage store.Store, cache
 	if err != nil {
 		return err
 	}
-
-	finishInit = true
 	return nil
 }
 
@@ -174,5 +172,6 @@ func initialize(_ context.Context, authOpt *Config, storage store.Store,
 		log.Printf("StrategyServer do initialize err: %s", err.Error())
 		return nil, nil, err
 	}
+	finishInit = true
 	return namedUserMgn, namedStrategyMgn, nil
 }
