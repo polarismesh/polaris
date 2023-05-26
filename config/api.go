@@ -85,6 +85,9 @@ type ConfigFileOperate interface {
 	// ImportConfigFile 导入配置文件
 	ImportConfigFile(ctx context.Context,
 		configFiles []*apiconfig.ConfigFile, conflictHandling string) *apiconfig.ConfigImportResponse
+
+	// GetAllConfigEncryptAlgorithms 获取配置加密算法
+	GetAllConfigEncryptAlgorithms(ctx context.Context) *apiconfig.ConfigEncryptAlgorithmResponse
 }
 
 // ConfigFileReleaseOperate 配置文件发布接口

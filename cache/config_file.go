@@ -90,6 +90,7 @@ type Entry struct {
 	Content string
 	Md5     string
 	Version uint64
+	DataKey string
 	// 创建的时候，设置过期时间
 	ExpireTime time.Time
 	// 标识是否是空缓存
@@ -239,7 +240,7 @@ func (fc *fileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 	// 从数据库中加载数据
 	atomic.AddInt32(&fc.loadCnt, 1)
 
-	file, err := fc.storage.GetConfigFileRelease(nil, namespace, group, fileName)
+	file, dataKey, err := fc.getConfigFileReleaseAndDataKey(namespace, group, fileName)
 	if err != nil {
 		configLog.Error("[Config][Cache] load config file release error.",
 			zap.String("namespace", namespace),
@@ -269,6 +270,7 @@ func (fc *fileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 		Content:    file.Content,
 		Md5:        file.Md5,
 		Version:    file.Version,
+		DataKey:    dataKey,
 		ExpireTime: fc.getExpireTime(),
 	}
 
@@ -285,6 +287,35 @@ func (fc *fileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 	}
 
 	return newEntry, nil
+}
+
+func (fc *fileCache) getConfigFileReleaseAndDataKey(
+	namespace, group, fileName string) (*model.ConfigFileRelease, string, error) {
+	file, err := fc.storage.GetConfigFileRelease(nil, namespace, group, fileName)
+	if err != nil {
+		configLog.Error("[Config][Cache] load config file release error.",
+			zap.String("namespace", namespace),
+			zap.String("group", group),
+			zap.String("fileName", fileName),
+			zap.Error(err))
+		return nil, "", err
+	}
+	tags, err := fc.storage.QueryTagByConfigFile(namespace, group, fileName)
+	if err != nil {
+		configLog.Error("[Config][Cache] load config file tag error.",
+			zap.String("namespace", namespace),
+			zap.String("group", group),
+			zap.String("fileName", fileName),
+			zap.Error(err))
+		return nil, "", err
+	}
+	var dataKey string
+	for _, tag := range tags {
+		if tag.Key == utils.ConfigFileTagKeyDataKey {
+			dataKey = tag.Value
+		}
+	}
+	return file, dataKey, nil
 }
 
 // Remove 删除缓存对象

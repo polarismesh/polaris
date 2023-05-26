@@ -21,6 +21,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func NewConfigClientResponse(
@@ -108,6 +109,14 @@ func NewConfigFileBatchQueryResponse(
 	}
 }
 
+func NewConfigFileBatchQueryResponseWithMessage(
+	code apimodel.Code, message string) *apiconfig.ConfigBatchQueryResponse {
+	return &apiconfig.ConfigBatchQueryResponse{
+		Code: &wrappers.UInt32Value{Value: uint32(code)},
+		Info: &wrappers.StringValue{Value: code2info[uint32(code)]},
+	}
+}
+
 func NewConfigFileTemplateResponse(
 	code apimodel.Code, template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
 	return &apiconfig.ConfigResponse{
@@ -183,4 +192,21 @@ func NewConfigFileExportResponse(code apimodel.Code, data []byte) *apiconfig.Con
 		Info: &wrappers.StringValue{Value: code2info[uint32(code)]},
 		Data: &wrappers.BytesValue{Value: data},
 	}
+}
+
+func NewConfigFileExportResponseWithMessage(code apimodel.Code, message string) *apiconfig.ConfigExportResponse {
+	return &apiconfig.ConfigExportResponse{
+		Code: &wrappers.UInt32Value{Value: uint32(code)},
+		Info: &wrappers.StringValue{Value: code2info[uint32(code)] + ":" + message},
+	}
+}
+
+func NewConfigEncryptAlgorithmResponse(code apimodel.Code,
+	algorithms []*wrapperspb.StringValue) *apiconfig.ConfigEncryptAlgorithmResponse {
+	resp := &apiconfig.ConfigEncryptAlgorithmResponse{
+		Code:       &wrappers.UInt32Value{Value: uint32(code)},
+		Info:       &wrappers.StringValue{Value: code2info[uint32(code)]},
+		Algorithms: algorithms,
+	}
+	return resp
 }

@@ -109,4 +109,11 @@ func TestConfigCenter_ConfigFile(t *testing.T) {
 		}
 	})
 
+	t.Run("配置中心-获取全部加密算法", func(t *testing.T) {
+		resp, err := client.GetAllConfigEncryptAlgorithms()
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(t, resp.GetCode().GetValue(), api.ExecuteSuccess, resp.GetInfo().GetValue())
+	})
 }

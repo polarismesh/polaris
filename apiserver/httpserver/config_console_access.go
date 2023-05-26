@@ -408,3 +408,16 @@ func (h *HTTPServer) CreateConfigFileTemplate(req *restful.Request, rsp *restful
 
 	handler.WriteHeaderAndProto(h.configServer.CreateConfigFileTemplate(ctx, configFileTemplate))
 }
+
+// GetAllConfigEncryptAlgorithm get all config encrypt algorithm
+func (h *HTTPServer) GetAllConfigEncryptAlgorithms(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+	response := h.configServer.GetAllConfigEncryptAlgorithms(handler.ParseHeaderContext())
+	configLog.Info("response",
+		zap.Uint32("code", response.GetCode().GetValue()),
+	)
+	handler.WriteHeaderAndProto(response)
+}

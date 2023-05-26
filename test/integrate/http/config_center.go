@@ -384,6 +384,25 @@ func (c *Client) CreateConfigFileRelease(file *apiconfig.ConfigFileRelease) (*ap
 	return checkCreateConfigResponse(ret)
 }
 
+func (c *Client) GetAllConfigEncryptAlgorithms() (*apiconfig.ConfigEncryptAlgorithmResponse, error) {
+	fmt.Printf("\nquery config encrypt algorithm\n")
+	url := fmt.Sprintf("http://%v/config/%v/configfiles/encryptalgorithm", c.Address, c.Version)
+	response, err := c.SendRequest("GET", url, nil)
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return nil, err
+	}
+	ret, err := GetConfigEncryptAlgorithmResponse(response)
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return nil, err
+	}
+	if ret.GetCode().GetValue() != api.ExecuteSuccess {
+		return nil, errors.New(ret.GetInfo().GetValue())
+	}
+	return ret, nil
+}
+
 func checkCreateConfigResponse(ret *apiconfig.ConfigResponse) (
 	*apiconfig.ConfigResponse, error) {
 

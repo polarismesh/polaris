@@ -248,3 +248,7 @@ cache:
     - name: faultDetectRule
 #    - name: l5 # 加载l5数据
 
+plugin:
+  crypto:
+    entries:
+      - name: AES

@@ -19,6 +19,7 @@ package config
 
 import (
 	"context"
+	"encoding/base64"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
@@ -47,6 +48,13 @@ func (s *Server) recordReleaseHistory(ctx context.Context, fileRelease *model.Co
 	// 获取配置文件标签信息
 	tags, _ := s.queryTagsByConfigFileWithAPIModels(ctx, namespace, group, fileName)
 
+	// 过滤数据密钥 tag，不保存到发布历史中
+	filterTags := make([]*apiconfig.ConfigFileTag, 0, len(tags))
+	for _, tag := range tags {
+		if tag.Key.GetValue() != utils.ConfigFileTagKeyDataKey {
+			filterTags = append(filterTags, tag)
+		}
+	}
 	releaseHistory := &model.ConfigFileReleaseHistory{
 		Name:      fileRelease.Name,
 		Namespace: namespace,
@@ -54,7 +62,7 @@ func (s *Server) recordReleaseHistory(ctx context.Context, fileRelease *model.Co
 		FileName:  fileName,
 		Content:   fileRelease.Content,
 		Format:    format,
-		Tags:      utils2.ToTagJsonStr(tags),
+		Tags:      utils2.ToTagJsonStr(filterTags),
 		Comment:   fileRelease.Comment,
 		Md5:       fileRelease.Md5,
 		Type:      releaseType,
@@ -106,6 +114,16 @@ func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, gro
 		apiReleaseHistory = append(apiReleaseHistory, historyAPIModel)
 	}
 
+	if err := s.decryptMultiConfigFileReleaseHistory(ctx, apiReleaseHistory); err != nil {
+		log.Error("[Config][Service] decrypt config file release history error.",
+			utils.ZapRequestIDByCtx(ctx),
+			zap.String("namespace", namespace),
+			zap.String("group", group),
+			zap.String("name", fileName),
+			zap.Error(err))
+		return api.NewConfigFileReleaseHistoryBatchQueryResponse(apimodel.Code_EncryptConfigFileException, 0, nil)
+	}
+
 	return api.NewConfigFileReleaseHistoryBatchQueryResponse(apimodel.Code_ExecuteSuccess, count, apiReleaseHistory)
 }
 
@@ -137,9 +155,8 @@ func (s *Server) GetConfigFileLatestReleaseHistory(ctx context.Context, namespac
 		)
 		return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_StoreLayerException, nil)
 	}
-
-	return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_ExecuteSuccess,
-		transferReleaseHistoryStoreModel2APIModel(history))
+	apiHistory := transferReleaseHistoryStoreModel2APIModel(history)
+	return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_ExecuteSuccess, apiHistory)
 }
 
 func transferReleaseHistoryStoreModel2APIModel(
@@ -166,4 +183,51 @@ func transferReleaseHistoryStoreModel2APIModel(
 		ModifyBy:   utils.NewStringValue(releaseHistory.ModifyBy),
 		ModifyTime: utils.NewStringValue(time.Time2String(releaseHistory.ModifyTime)),
 	}
+}
+
+// decryptMultiConfigFileReleaseHistory 解密多个配置文件发布历史
+func (s *Server) decryptMultiConfigFileReleaseHistory(ctx context.Context,
+	releaseHistories []*apiconfig.ConfigFileReleaseHistory) error {
+	for _, releaseHistory := range releaseHistories {
+		if err := s.decryptConfigFileReleaseHistory(ctx, releaseHistory); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// decryptConfigFileReleaseHistory 解密配置文件发布历史
+func (s *Server) decryptConfigFileReleaseHistory(ctx context.Context,
+	releaseHistory *apiconfig.ConfigFileReleaseHistory) error {
+	if s.cryptoManager == nil || releaseHistory == nil {
+		return nil
+	}
+	// 非创建人请求不解密
+	if utils.ParseUserName(ctx) != releaseHistory.CreateBy.GetValue() {
+		return nil
+	}
+	algorithm, dataKey, err := s.getEncryptAlgorithmAndDataKey(ctx, releaseHistory.GetNamespace().GetValue(),
+		releaseHistory.GetGroup().GetValue(), releaseHistory.GetName().GetValue())
+	if err != nil {
+		return err
+	}
+	// 非加密文件不解密
+	if dataKey == "" {
+		return nil
+	}
+	dateKeyBytes, err := base64.StdEncoding.DecodeString(dataKey)
+	if err != nil {
+		return err
+	}
+	crypto, err := s.cryptoManager.GetCrypto(algorithm)
+	if err != nil {
+		return err
+	}
+	// 解密
+	plainContent, err := crypto.Decrypt(releaseHistory.Content.GetValue(), dateKeyBytes)
+	if err != nil {
+		return err
+	}
+	releaseHistory.Content = utils.NewStringValue(plainContent)
+	return nil
 }
