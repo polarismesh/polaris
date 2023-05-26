@@ -131,6 +131,27 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 	return resp
 }
 
+// CreateConfigFileFromClient 调用config_file接口获取配置文件
+func (s *Server) CreateConfigFileFromClient(ctx context.Context,
+	client *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse {
+	configResponse := s.CreateConfigFile(ctx, client)
+	return api.NewConfigClientResponseFromConfigResponse(configResponse)
+}
+
+// UpdateConfigFileFromClient 调用config_file接口更新配置文件
+func (s *Server) UpdateConfigFileFromClient(ctx context.Context,
+	client *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse {
+	configResponse := s.UpdateConfigFile(ctx, client)
+	return api.NewConfigClientResponseFromConfigResponse(configResponse)
+}
+
+// PublishConfigFileFromClient 调用config_file_release接口删除配置文件
+func (s *Server) PublishConfigFileFromClient(ctx context.Context,
+	client *apiconfig.ConfigFileRelease) *apiconfig.ConfigClientResponse {
+	configResponse := s.PublishConfigFile(ctx, client)
+	return api.NewConfigClientResponseFromConfigResponse(configResponse)
+}
+
 func (s *Server) WatchConfigFiles(ctx context.Context,
 	request *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error) {
 	clientAddr := utils.ParseClientAddress(ctx)
