@@ -391,15 +391,15 @@ data:
         option:
           remote-conf: false # 是否使用远程配置
           ip-limit: # ip级限流，全局
-            open: true # 系统是否开启ip级限流
+            open: false # 系统是否开启ip级限流
             global:
-              open: true
+              open: false
               bucket: 300 # 最高峰值
               rate: 200 # 平均一个IP每秒的请求数
             resource-cache-amount: 1024 # 最大缓存的IP个数
             white-list: [127.0.0.1]
           instance-limit:
-            open: true
+            open: false
             global:
               bucket: 200
               rate: 100
@@ -409,12 +409,12 @@ data:
             rules:
               - name: store-read
                 limit:
-                  open: true # 接口的全局配置，如果在api子项中，不配置，则该接口依据global来做限制
+                  open: false # 接口的全局配置，如果在api子项中，不配置，则该接口依据global来做限制
                   bucket: 2000 # 令牌桶最大值
                   rate: 1000 # 每秒产生的令牌数
               - name: store-write
                 limit:
-                  open: true
+                  open: false
                   bucket: 1000
                   rate: 500
             apis:

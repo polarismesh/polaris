@@ -20,6 +20,7 @@ package job
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/polarismesh/polaris/cache"
@@ -83,12 +84,7 @@ func (mj *MaintainJobs) StartMaintianJobs(configs []JobConfig) error {
 			log.Errorf("[Maintain][Job][%s] start leader election err: %v", cfg.Name, err)
 			return err
 		}
-		dur, err := time.ParseDuration(cfg.Interval)
-		if err != nil {
-			log.Errorf("[Maintain][Job][%s] parse job exec interval err: %v", cfg.Name, err)
-			return err
-		}
-		runAdminJob(ctx, cfg.Name, dur, job, mj.storage)
+		runAdminJob(ctx, cfg.Name, job.interval(), job, mj.storage)
 		mj.startedJobs[cfg.Name] = job
 	}
 	return nil
@@ -131,10 +127,15 @@ type maintainJob interface {
 	init(cfg map[string]interface{}) error
 	execute()
 	clear()
+	interval() time.Duration
 }
 
 func getMasterAccountToken(storage store.Store) (string, error) {
-	user, err := storage.GetUserByName("polaris", "")
+	mainUser := os.Getenv("POLARIS_MAIN_USER")
+	if mainUser == "" {
+		mainUser = "polaris"
+	}
+	user, err := storage.GetUserByName(mainUser, "")
 	if err != nil {
 		return "", err
 	}

@@ -274,7 +274,7 @@ func TestNodeHashID(t *testing.T) {
 					},
 				},
 			},
-			TargetID: "sidecar~default/" + TLSModeStrict,
+			TargetID: "default/" + TLSModeStrict,
 		},
 		{
 			Node: &core.Node{
@@ -289,7 +289,7 @@ func TestNodeHashID(t *testing.T) {
 					},
 				},
 			},
-			TargetID: "sidecar~polaris/" + TLSModePermissive,
+			TargetID: "polaris/" + TLSModePermissive,
 		},
 		{
 			Node: &core.Node{
@@ -304,7 +304,7 @@ func TestNodeHashID(t *testing.T) {
 					},
 				},
 			},
-			TargetID: "sidecar~default",
+			TargetID: "default",
 		},
 		// bad case: wrong tls mode
 		{
@@ -320,14 +320,14 @@ func TestNodeHashID(t *testing.T) {
 					},
 				},
 			},
-			TargetID: "sidecar~default",
+			TargetID: "default",
 		},
 		// no node metadata
 		{
 			Node: &core.Node{
 				Id: "default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
 			},
-			TargetID: "sidecar~default",
+			TargetID: "default",
 		},
 		// metadata does not contain tls mode kv
 		{
@@ -343,7 +343,7 @@ func TestNodeHashID(t *testing.T) {
 					},
 				},
 			},
-			TargetID: "sidecar~default",
+			TargetID: "default",
 		},
 		{
 			Node: &core.Node{

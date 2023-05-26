@@ -44,19 +44,21 @@ type deleteEmptyAutoCreatedServiceJob struct {
 }
 
 func (job *deleteEmptyAutoCreatedServiceJob) init(raw map[string]interface{}) error {
-	cfg := &DeleteEmptyAutoCreatedServiceJobConfig{}
+	cfg := &DeleteEmptyAutoCreatedServiceJobConfig{
+		ServiceDeleteTimeout: 30 * time.Minute,
+	}
 	decodeConfig := &mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
 		Result:     cfg,
 	}
 	decoder, err := mapstructure.NewDecoder(decodeConfig)
 	if err != nil {
-		log.Errorf("[Maintain][Job][DeleteEmptyAutoCreatedService] new config decoder err: %v", err)
+		log.Errorf("[Maintain][Job][DeleteEmptyService] new config decoder err: %v", err)
 		return err
 	}
 	err = decoder.Decode(raw)
 	if err != nil {
-		log.Errorf("[Maintain][Job][DeleteEmptyAutoCreatedService] parse config err: %v", err)
+		log.Errorf("[Maintain][Job][DeleteEmptyService] parse config err: %v", err)
 		return err
 	}
 	job.cfg = cfg
@@ -67,8 +69,12 @@ func (job *deleteEmptyAutoCreatedServiceJob) init(raw map[string]interface{}) er
 func (job *deleteEmptyAutoCreatedServiceJob) execute() {
 	err := job.deleteEmptyAutoCreatedServices()
 	if err != nil {
-		log.Errorf("[Maintain][Job][DeleteEmptyAutoCreatedService] delete empty autocreated services, err: %v", err)
+		log.Errorf("[Maintain][Job][DeleteEmptyService] delete empty autocreated services, err: %v", err)
 	}
+}
+
+func (job *deleteEmptyAutoCreatedServiceJob) interval() time.Duration {
+	return job.cfg.ServiceDeleteTimeout
 }
 
 func (job *deleteEmptyAutoCreatedServiceJob) clear() {
@@ -84,10 +90,6 @@ func (job *deleteEmptyAutoCreatedServiceJob) getAllEmptyAutoCreatedServices() []
 	var res []*model.Service
 	_ = job.cacheMgn.Service().IteratorServices(func(key string, svc *model.Service) (bool, error) {
 		if svc.IsAlias() {
-			return true, nil
-		}
-		v, ok := svc.Meta[service.MetadataInternalAutoCreated]
-		if !ok || v != "true" {
 			return true, nil
 		}
 		count := job.cacheMgn.Instance().GetInstancesCountByServiceID(svc.ID)
@@ -132,17 +134,17 @@ func (job *deleteEmptyAutoCreatedServiceJob) deleteEmptyAutoCreatedServices() er
 
 		ctx, err := buildContext(job.storage)
 		if err != nil {
-			log.Errorf("[Maintain][Job][DeleteUnHealthyInstance] build conetxt, err: %v", err)
+			log.Errorf("[Maintain][Job][DeleteEmptyService] build conetxt, err: %v", err)
 			return err
 		}
 		resp := job.namingServer.DeleteServices(ctx, convertDeleteServiceRequest(emptyServices[i:j]))
 		if api.CalcCode(resp) != 200 {
-			log.Errorf("[Maintain][Job][DeleteEmptyAutoCreatedService] delete services err, code: %d, info: %s",
+			log.Errorf("[Maintain][Job][DeleteEmptyService] delete services err, code: %d, info: %s",
 				resp.Code.GetValue(), resp.Info.GetValue())
 		}
 	}
 
-	log.Infof("[Maintain][Job][DeleteEmptyAutoCreatedService] delete empty auto-created services count %d",
+	log.Infof("[Maintain][Job][DeleteEmptyService] delete empty auto-created services count %d",
 		len(emptyServices))
 	return nil
 }
