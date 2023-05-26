@@ -136,8 +136,7 @@ func GetStrategyServer() (StrategyServer, error) {
 func Initialize(ctx context.Context, authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error {
 	var err error
 	once.Do(func() {
-		authOpt.setDefault()
-		err = initialize(ctx, authOpt, storage, cacheMgn)
+		userMgn, strategyMgn, err = initialize(ctx, authOpt, storage, cacheMgn)
 	})
 
 	if err != nil {
@@ -149,39 +148,35 @@ func Initialize(ctx context.Context, authOpt *Config, storage store.Store, cache
 }
 
 // initialize 包裹了初始化函数，在 Initialize 的时候会在自动调用，全局初始化一次
-func initialize(_ context.Context, authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error {
+func initialize(_ context.Context, authOpt *Config, storage store.Store,
+	cacheMgn *cache.CacheManager) (UserServer, StrategyServer, error) {
+	authOpt.setDefault()
 	name := authOpt.User.Name
 	if name == "" {
-		return errors.New("UserServer Name is empty")
+		return nil, nil, errors.New("UserServer Name is empty")
 	}
 
 	namedUserMgn, ok := userMgnSlots[name]
 	if !ok {
-		return errors.New("no such name UserServer")
+		return nil, nil, fmt.Errorf("no such UserServer plugin. name(%s)", name)
 	}
-
-	userMgn = namedUserMgn
-
-	if err := userMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
+	if err := namedUserMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
 		log.Printf("UserServer do initialize err: %s", err.Error())
-		return err
+		return nil, nil, err
 	}
 
 	name = authOpt.Strategy.Name
 	if name == "" {
-		return errors.New("StrategyServer Name is empty")
+		return nil, nil, errors.New("StrategyServer Name is empty")
 	}
 
 	namedStrategyMgn, ok := strategyMgnSlots[name]
 	if !ok {
-		return errors.New("no such name StrategyServer")
+		return nil, nil, fmt.Errorf("no such StrategyServer plugin. name(%s)", name)
 	}
-
-	strategyMgn = namedStrategyMgn
-
-	if err := strategyMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
+	if err := namedStrategyMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
 		log.Printf("StrategyServer do initialize err: %s", err.Error())
-		return err
+		return nil, nil, err
 	}
-	return nil
+	return namedUserMgn, namedStrategyMgn, nil
 }

@@ -361,32 +361,46 @@ healthcheck:
       concurrency: 64
   checkers:
     - name: heartbeatMemory
-    # - name: heartbeatLeader
+    # - name: heartbeatLeader  # Heartbeat examination plugin based on the Leader-Follower mechanism
     #   option:
+    #     # Heartbeat Record MAP number of shards
     #     soltNum: 128
-    #     streamNum: 128 # default value is runtime.GOMAXPROCS(0)
+    #     # The number of GRPC connections used to process heartbeat forward request processing between leader and follower, default value is runtime.GOMAXPROCS(0)
+    #     streamNum: 128
     #     batch:
+    #       # Heartbeat forwarding processing task cache queue
     #       queueSize: 16384
+    #       # The maximum waiting time for task batch
     #       waitTime: 32ms
-    #       maxBatchCount: 64
-    #       concurrency: 512
-    # - name: heartbeatRedis
+    #       # The maximum number of heartbeat forwarding tasks of single -batch tasks
+    #       maxBatchCount: 64 
+    #       # Number of workers
+    #       concurrency: 512  
+    # - name: heartbeatRedis  # Heartbeat examination plugin based on redis implementation
     #   option:
+    #     # Redis connection address, EG: 127.0.0.1:6379
     #     kvAddr: ##REDIS_ADDR##
-    #      # ACL user from redis v6.0, remove it if ACL is not available
+    #     # ACL user from redis v6.0, remove it if ACL is not available
     #     kvUser: ##REDIS_USER#
-    #     kvPasswd: ##REDIS_PWD##
-    #     poolSize: 200
+    #     # Redis connection password
+    #     kvPasswd: ##REDIS_PWD## 
+    #     # Redis connecting pool
+    #     poolSize: 200   
+    #     # Redis free connection to minimum quantity  
     #     minIdleConns: 30
+    #     # Redis connect to the maximum free time
     #     idleTimeout: 120s
+    #     # Redis connection timeout time
     #     connectTimeout: 200ms
-    #     msgTimeout: 200ms
-    #     concurrency: 200
-    #     withTLS: false
+    #     msgTimeout: 200ms # redis Single request timeout time
+    #     concurrency: 200  # redis Working Council Pool size
+    #     withTLS: false # Whether to turn on TLS, close the default
 # Configuration center module start configuration
 config:
   # Whether to start the configuration module
   open: true
+  # Maximum number of number of file characters
+  contentMaxLength: 20000
 # Cache configuration
 cache:
   open: true

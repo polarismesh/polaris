@@ -134,7 +134,7 @@ func (s *Server) prepareCreateConfigFile(ctx context.Context,
 		configFile.Format = utils.NewStringValue(utils.FileFormatText)
 	}
 
-	if checkRsp := checkConfigFileParams(configFile, true); checkRsp != nil {
+	if checkRsp := s.checkConfigFileParams(configFile, true); checkRsp != nil {
 		return checkRsp
 	}
 
@@ -388,7 +388,7 @@ func (s *Server) queryConfigFileWithoutTags(ctx context.Context, namespace, grou
 
 // UpdateConfigFile 更新配置文件
 func (s *Server) UpdateConfigFile(ctx context.Context, configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-	if checkRsp := checkConfigFileParams(configFile, false); checkRsp != nil {
+	if checkRsp := s.checkConfigFileParams(configFile, false); checkRsp != nil {
 		return checkRsp
 	}
 
@@ -840,7 +840,7 @@ func compressToZIP(files []*model.ConfigFile,
 	return &buf, nil
 }
 
-func checkConfigFileParams(configFile *apiconfig.ConfigFile, checkFormat bool) *apiconfig.ConfigResponse {
+func (s *Server) checkConfigFileParams(configFile *apiconfig.ConfigFile, checkFormat bool) *apiconfig.ConfigResponse {
 	if configFile == nil {
 		return api.NewConfigFileResponse(apimodel.Code_InvalidParameter, configFile)
 	}
@@ -853,7 +853,7 @@ func checkConfigFileParams(configFile *apiconfig.ConfigFile, checkFormat bool) *
 		return api.NewConfigFileResponse(apimodel.Code_InvalidNamespaceName, configFile)
 	}
 
-	if err := utils2.CheckContentLength(configFile.Content.GetValue()); err != nil {
+	if err := utils2.CheckContentLength(configFile.Content.GetValue(), int(s.cfg.ContentMaxLength)); err != nil {
 		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileContentLength, configFile)
 	}
 

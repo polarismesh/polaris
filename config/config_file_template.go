@@ -35,7 +35,7 @@ import (
 // CreateConfigFileTemplate create config file template
 func (s *Server) CreateConfigFileTemplate(
 	ctx context.Context, template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
-	if checkRsp := checkConfigFileTemplateParam(template); checkRsp != nil {
+	if checkRsp := s.checkConfigFileTemplateParam(template); checkRsp != nil {
 		return checkRsp
 	}
 
@@ -142,11 +142,11 @@ func transferConfigFileTemplateAPIModel2StoreModel(template *apiconfig.ConfigFil
 	}
 }
 
-func checkConfigFileTemplateParam(template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
+func (s *Server) checkConfigFileTemplateParam(template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
 	if err := utils2.CheckFileName(template.GetName()); err != nil {
 		return api.NewConfigFileTemplateResponse(apimodel.Code_InvalidConfigFileTemplateName, template)
 	}
-	if err := utils2.CheckContentLength(template.Content.GetValue()); err != nil {
+	if err := utils2.CheckContentLength(template.Content.GetValue(), int(s.cfg.ContentMaxLength)); err != nil {
 		return api.NewConfigFileTemplateResponse(apimodel.Code_InvalidConfigFileContentLength, template)
 	}
 	if len(template.Content.GetValue()) == 0 {

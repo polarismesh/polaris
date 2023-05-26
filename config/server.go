@@ -48,12 +48,15 @@ var (
 
 // Config 配置中心模块启动参数
 type Config struct {
-	Open  bool                   `yaml:"open"`
-	Cache map[string]interface{} `yaml:"cache"`
+	Open             bool                   `yaml:"open"`
+	ContentMaxLength int64                  `yaml:""json:"contentMaxLength"`
+	Cache            map[string]interface{} `yaml:"cache"`
 }
 
 // Server 配置中心核心服务
 type Server struct {
+	cfg *Config
+
 	storage           store.Store
 	fileCache         cache.FileCache
 	caches            *cache.CacheManager
@@ -90,9 +93,17 @@ func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cac
 	return nil
 }
 
+const (
+	fileContentMaxLength = 20000 // 文件内容限制为 2w 个字符
+)
+
 func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	namespaceOperator namespace.NamespaceOperateServer, cacheMgn *cache.CacheManager) error {
 
+	s.cfg = &config
+	if s.cfg.ContentMaxLength <= 0 {
+		s.cfg.ContentMaxLength = fileContentMaxLength
+	}
 	s.storage = ss
 	s.namespaceOperator = namespaceOperator
 	s.fileCache = cacheMgn.ConfigFile()
