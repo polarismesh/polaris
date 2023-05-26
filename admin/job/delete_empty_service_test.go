@@ -30,14 +30,14 @@ func Test_DeleteEmptyAutoCreatedServiceJobConfigInit(t *testing.T) {
 		"serviceDeleteTimeout": "1m",
 	}
 
-	job := deleteEmptyAutoCreatedServiceJob{}
+	job := deleteEmptyServiceJob{}
 	err := job.init(raw)
 	if err != nil {
-		t.Errorf("init deleteEmptyAutoCreatedServiceJob config, err: %v", err)
+		t.Errorf("init deleteEmptyServiceJob config, err: %v", err)
 	}
 
 	if job.cfg.ServiceDeleteTimeout != expectValue {
-		t.Errorf("init deleteEmptyAutoCreatedServiceJob config. expect: %s, actual: %s",
+		t.Errorf("init deleteEmptyServiceJob config. expect: %s, actual: %s",
 			expectValue, job.cfg.ServiceDeleteTimeout)
 	}
 }
@@ -47,15 +47,15 @@ func Test_DeleteEmptyAutoCreatedServiceJobConfigInitErr(t *testing.T) {
 		"serviceDeleteTimeout": "xx",
 	}
 
-	job := deleteEmptyAutoCreatedServiceJob{}
+	job := deleteEmptyServiceJob{}
 	err := job.init(raw)
 	if err == nil {
-		t.Errorf("init deleteEmptyAutoCreatedServiceJob config should err")
+		t.Errorf("init deleteEmptyServiceJob config should err")
 	}
 }
 
 func Test_FilterToDeletedServices(t *testing.T) {
-	job := deleteEmptyAutoCreatedServiceJob{}
+	job := deleteEmptyServiceJob{}
 	t1, _ := time.Parse("2006-01-02 15:04:05", "2023-03-20 12:01:00")
 	t2, _ := time.Parse("2006-01-02 15:04:05", "2023-03-20 12:02:00")
 	job.emptyServices = map[string]time.Time{

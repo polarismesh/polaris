@@ -31,20 +31,20 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
-type DeleteEmptyAutoCreatedServiceJobConfig struct {
+type DeleteEmptyServiceJobConfig struct {
 	ServiceDeleteTimeout time.Duration `mapstructure:"serviceDeleteTimeout"`
 }
 
-type deleteEmptyAutoCreatedServiceJob struct {
-	cfg           *DeleteEmptyAutoCreatedServiceJobConfig
+type deleteEmptyServiceJob struct {
+	cfg           *DeleteEmptyServiceJobConfig
 	namingServer  service.DiscoverServer
 	cacheMgn      *cache.CacheManager
 	storage       store.Store
 	emptyServices map[string]time.Time
 }
 
-func (job *deleteEmptyAutoCreatedServiceJob) init(raw map[string]interface{}) error {
-	cfg := &DeleteEmptyAutoCreatedServiceJobConfig{
+func (job *deleteEmptyServiceJob) init(raw map[string]interface{}) error {
+	cfg := &DeleteEmptyServiceJobConfig{
 		ServiceDeleteTimeout: 30 * time.Minute,
 	}
 	decodeConfig := &mapstructure.DecoderConfig{
@@ -53,12 +53,12 @@ func (job *deleteEmptyAutoCreatedServiceJob) init(raw map[string]interface{}) er
 	}
 	decoder, err := mapstructure.NewDecoder(decodeConfig)
 	if err != nil {
-		log.Errorf("[Maintain][Job][DeleteEmptyAutoCreatedService] new config decoder err: %v", err)
+		log.Errorf("[Maintain][Job][DeleteEmptyServiceJob] new config decoder err: %v", err)
 		return err
 	}
 	err = decoder.Decode(raw)
 	if err != nil {
-		log.Errorf("[Maintain][Job][DeleteEmptyAutoCreatedService] parse config err: %v", err)
+		log.Errorf("[Maintain][Job][DeleteEmptyServiceJob] parse config err: %v", err)
 		return err
 	}
 	job.cfg = cfg
@@ -66,27 +66,27 @@ func (job *deleteEmptyAutoCreatedServiceJob) init(raw map[string]interface{}) er
 	return nil
 }
 
-func (job *deleteEmptyAutoCreatedServiceJob) execute() {
-	err := job.deleteEmptyAutoCreatedServices()
+func (job *deleteEmptyServiceJob) execute() {
+	err := job.deleteEmptyServices()
 	if err != nil {
-		log.Errorf("[Maintain][Job][DeleteEmptyAutoCreatedService] delete empty autocreated services, err: %v", err)
+		log.Errorf("[Maintain][Job][DeleteEmptyServiceJob] delete empty autocreated services, err: %v", err)
 	}
 }
 
-func (job *deleteEmptyAutoCreatedServiceJob) interval() time.Duration {
+func (job *deleteEmptyServiceJob) interval() time.Duration {
 	return job.cfg.ServiceDeleteTimeout
 }
 
-func (job *deleteEmptyAutoCreatedServiceJob) clear() {
+func (job *deleteEmptyServiceJob) clear() {
 	job.emptyServices = map[string]time.Time{}
 }
 
-func (job *deleteEmptyAutoCreatedServiceJob) getEmptyAutoCreatedServices() []*model.Service {
-	services := job.getAllEmptyAutoCreatedServices()
+func (job *deleteEmptyServiceJob) getEmptyServices() []*model.Service {
+	services := job.getAllEmptyServices()
 	return job.filterToDeletedServices(services, time.Now(), job.cfg.ServiceDeleteTimeout)
 }
 
-func (job *deleteEmptyAutoCreatedServiceJob) getAllEmptyAutoCreatedServices() []*model.Service {
+func (job *deleteEmptyServiceJob) getAllEmptyServices() []*model.Service {
 	var res []*model.Service
 	_ = job.cacheMgn.Service().IteratorServices(func(key string, svc *model.Service) (bool, error) {
 		if svc.IsAlias() {
@@ -101,7 +101,7 @@ func (job *deleteEmptyAutoCreatedServiceJob) getAllEmptyAutoCreatedServices() []
 	return res
 }
 
-func (job *deleteEmptyAutoCreatedServiceJob) filterToDeletedServices(services []*model.Service,
+func (job *deleteEmptyServiceJob) filterToDeletedServices(services []*model.Service,
 	now time.Time, timeout time.Duration) []*model.Service {
 	var toDeleteServices []*model.Service
 	m := map[string]time.Time{}
@@ -122,8 +122,8 @@ func (job *deleteEmptyAutoCreatedServiceJob) filterToDeletedServices(services []
 	return toDeleteServices
 }
 
-func (job *deleteEmptyAutoCreatedServiceJob) deleteEmptyAutoCreatedServices() error {
-	emptyServices := job.getEmptyAutoCreatedServices()
+func (job *deleteEmptyServiceJob) deleteEmptyServices() error {
+	emptyServices := job.getEmptyServices()
 
 	deleteBatchSize := 100
 	for i := 0; i < len(emptyServices); i += deleteBatchSize {

@@ -191,6 +191,7 @@ bootstrap:
     key: sz # Global lock
   # Register as Arctic Star Service
   polaris_service:
+    # Obtain the IP of the VM or POD where Polaris is located by making a TCP connection with the probe_adreess address
     # probe_address: ##DB_ADDR##
     enable_register: true
     isolated: false
@@ -217,11 +218,13 @@ apiservers:
         whiteList: 127.0.0.1
         purgeCounterInterval: 10s
         purgeCounterExpired: 5s
-  - name: api-http # Agreement name, the only global situation
+  - name: api-http
     option:
       listenIP: "0.0.0.0"
       listenPort: 8090
-      enablePprof: true # debug pprof
+      # debug pprof switch
+      enablePprof: true
+      # swagger docs switch
       enableSwagger: true
       connLimit:
         openConnLimit: false
@@ -286,32 +289,21 @@ apiservers:
   #     clusterName: cl5.discover
 # Core logic configuration
 auth:
-  # Inspection plug -in
-  name: defaultAuth
-  option:
-    # Token encrypted SALT, you need to rely on this SALT to decrypt the information of the Token when analyzing the Token
-    # The length of SALT needs to satisfy the following one：len(salt) in [16, 24, 32]
-    salt: polarismesh@2021
-    # Console power switch, open default
-    consoleOpen: true
-    # Customer inspection ability switch, default shutdown
-    clientOpen: false
-# auth:
-#   # auth's option has migrated to auth.user and auth.strategy
-#   # it's still available when filling auth.option, but you will receive warning log that auth.option has deprecated.
-#   user:
-#     name: defaultUser
-#     option:
-#       # Token encrypted SALT, you need to rely on this SALT to decrypt the information of the Token when analyzing the Token
-#       # The length of SALT needs to satisfy the following one：len(salt) in [16, 24, 32]
-#       salt: polarismesh@2021
-#   strategy:
-#     name: defaultStrategy
-#     option:
-#       # Console power switch, open default
-#       consoleOpen: true
-#       # Customer inspection ability switch, default close
-#       clientOpen: false
+  # auth's option has migrated to auth.user and auth.strategy
+  # it's still available when filling auth.option, but you will receive warning log that auth.option has deprecated.
+  user:
+    name: defaultUser
+    option:
+      # Token encrypted SALT, you need to rely on this SALT to decrypt the information of the Token when analyzing the Token
+      # The length of SALT needs to satisfy the following one：len(salt) in [16, 24, 32]
+      salt: polarismesh@2021
+  strategy:
+    name: defaultStrategy
+    option:
+      # Console power switch, open default
+      consoleOpen: true
+      # Customer inspection ability switch, default close
+      clientOpen: false
 namespace:
   # Whether to allow automatic creation of naming space
   autoCreate: true
@@ -419,7 +411,8 @@ cache:
     - name: users # Load user and user group data
     - name: strategyRule # Loading the rules of appraisal
     - name: namespace # Load the naming space data
-    - name: client # Load Client-SDK instance data
+    # Load Client-SDK instance data
+    - name: client
     - name: configFile
       option:
         # Configuration file cache expires time, unit S
@@ -496,7 +489,8 @@ plugin:
   discoverStatis:
     name: discoverLocal
     option:
-      interval: 60 # Statistical interval, the unit is second
+      # Statistical interval, the unit is second
+      interval: 60
   statis:
     entries:
       - name: local
@@ -506,14 +500,20 @@ plugin:
   ratelimit:
     name: token-bucket
     option:
-      remote-conf: false # Whether to use remote configuration
-      ip-limit: # IP -level current, global
-        open: false # Whether the system opens IP -level current limit
+      # Whether to use remote configuration
+      remote-conf: false
+      # IP -level current, global
+      ip-limit:
+        # Whether the system opens IP -level current limit
+        open: false 
         global:
           open: false
-          bucket: 300 # Maximum peak
-          rate: 200 # The average number of requests per second of IP
-        resource-cache-amount: 1024 # Number of IP of the maximum cache
+          # Maximum peak
+          bucket: 300
+          # The average number of requests per second of IP
+          rate: 200
+        # Number of IP of the maximum cache
+        resource-cache-amount: 1024 
         white-list: [127.0.0.1]
       instance-limit:
         open: false
@@ -521,14 +521,19 @@ plugin:
           bucket: 200
           rate: 100
         resource-cache-amount: 1024
-      api-limit: # Interface-level current limit
-        open: false # Whether to turn on the interface restriction and global switch, only for TRUE can it represent the flow restriction on the system.By default
+      # Interface-level ratelimit limit
+      api-limit:
+        # Whether to turn on the interface restriction and global switch, only for TRUE can it represent the flow restriction on the system.By default
+        open: false
         rules:
           - name: store-read
             limit:
-              open: false # The global configuration of the interface, if in the API sub -item, is not configured, the interface will be limited according to Global
-              bucket: 2000 # The maximum value of token barrels
-              rate: 1000 # The number of token generated per second
+              # The global configuration of the interface, if in the API sub -item, is not configured, the interface will be limited according to Global
+              open: false
+              # The maximum value of token barrels
+              bucket: 2000
+              # The number of token generated per second
+              rate: 1000
           - name: store-write
             limit:
               open: false
