@@ -285,33 +285,33 @@ apiservers:
   #     listenPort: 7779
   #     clusterName: cl5.discover
 # Core logic configuration
-# auth:
-#   # Inspection plug -in
-#   name: defaultAuth
-#   option:
-#     # Token encrypted SALT, you need to rely on this SALT to decrypt the information of the Token when analyzing the Token
-#     # The length of SALT needs to satisfy the following one：len(salt) in [16, 24, 32]
-#     salt: polarismesh@2021
-#     # Console power switch, open default
-#     consoleOpen: true
-#     # Customer inspection ability switch, default shutdown
-#     clientOpen: false
 auth:
-  # auth's option has migrated to auth.user and auth.strategy
-  # it's still available when filling auth.option, but you will receive warning log that auth.option has deprecated.
-  user:
-    name: defaultUser
-    option:
-      # Token encrypted SALT, you need to rely on this SALT to decrypt the information of the Token when analyzing the Token
-      # The length of SALT needs to satisfy the following one：len(salt) in [16, 24, 32]
-      salt: polarismesh@2021
-  strategy:
-    name: defaultStrategy
-    option:
-      # Console power switch, open default
-      consoleOpen: true
-      # Customer inspection ability switch, default close
-      clientOpen: false
+  # Inspection plug -in
+  name: defaultAuth
+  option:
+    # Token encrypted SALT, you need to rely on this SALT to decrypt the information of the Token when analyzing the Token
+    # The length of SALT needs to satisfy the following one：len(salt) in [16, 24, 32]
+    salt: polarismesh@2021
+    # Console power switch, open default
+    consoleOpen: true
+    # Customer inspection ability switch, default shutdown
+    clientOpen: false
+# auth:
+#   # auth's option has migrated to auth.user and auth.strategy
+#   # it's still available when filling auth.option, but you will receive warning log that auth.option has deprecated.
+#   user:
+#     name: defaultUser
+#     option:
+#       # Token encrypted SALT, you need to rely on this SALT to decrypt the information of the Token when analyzing the Token
+#       # The length of SALT needs to satisfy the following one：len(salt) in [16, 24, 32]
+#       salt: polarismesh@2021
+#   strategy:
+#     name: defaultStrategy
+#     option:
+#       # Console power switch, open default
+#       consoleOpen: true
+#       # Customer inspection ability switch, default close
+#       clientOpen: false
 namespace:
   # Whether to allow automatic creation of naming space
   autoCreate: true

@@ -48,21 +48,17 @@ type Config struct {
 	Strategy *StrategyConfig `yaml:"strategy"`
 }
 
-func (c *Config) setDefault() {
+func (c *Config) SetDefault() {
 	if c.User == nil {
 		c.User = &UserConfig{
-			Name: DefaultUserMgnPluginName,
-			Option: map[string]interface{}{
-				"": nil,
-			},
+			Name:   DefaultUserMgnPluginName,
+			Option: map[string]interface{}{},
 		}
 	}
 	if c.Strategy == nil {
 		c.Strategy = &StrategyConfig{
-			Name: DefaultStrategyMgnPluginName,
-			Option: map[string]interface{}{
-				"": nil,
-			},
+			Name:   DefaultStrategyMgnPluginName,
+			Option: map[string]interface{}{},
 		}
 	}
 }
@@ -150,7 +146,7 @@ func Initialize(ctx context.Context, authOpt *Config, storage store.Store, cache
 // initialize 包裹了初始化函数，在 Initialize 的时候会在自动调用，全局初始化一次
 func initialize(_ context.Context, authOpt *Config, storage store.Store,
 	cacheMgn *cache.CacheManager) (UserServer, StrategyServer, error) {
-	authOpt.setDefault()
+	authOpt.SetDefault()
 	name := authOpt.User.Name
 	if name == "" {
 		return nil, nil, errors.New("UserServer Name is empty")
