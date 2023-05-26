@@ -739,17 +739,6 @@ func TestListInstances(t *testing.T) {
 
 // 测试list实例列表
 func TestListInstances1(t *testing.T) {
-
-	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.Initialize(); err != nil {
-		t.Fatal(err)
-	}
-	defer discoverSuit.Destroy()
-
-	// 先任意找几个实例字段过滤
-	_, serviceResp := discoverSuit.createCommonService(t, 800)
-	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
-
 	checkAmountAndSize := func(t *testing.T, resp *apiservice.BatchQueryResponse, expect int, size int) {
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -763,6 +752,15 @@ func TestListInstances1(t *testing.T) {
 	}
 
 	t.Run("list实例，使用service和namespace过滤", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.Initialize(); err != nil {
+			t.Fatal(err)
+		}
+		defer discoverSuit.Destroy()
+
+		// 先任意找几个实例字段过滤
+		_, serviceResp := discoverSuit.createCommonService(t, 800)
+		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		total := 102
 		for i := 0; i < total; i++ {
 			_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, i+2)
@@ -780,6 +778,15 @@ func TestListInstances1(t *testing.T) {
 	})
 
 	t.Run("list实例，先删除实例，再查询会过滤删除的", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.Initialize(); err != nil {
+			t.Fatal(err)
+		}
+		defer discoverSuit.Destroy()
+
+		// 先任意找几个实例字段过滤
+		_, serviceResp := discoverSuit.createCommonService(t, 800)
+		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		total := 50
 		for i := 0; i < total; i++ {
 			_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, i+2)
@@ -798,6 +805,15 @@ func TestListInstances1(t *testing.T) {
 
 	})
 	t.Run("true和false测试", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.Initialize(); err != nil {
+			t.Fatal(err)
+		}
+		defer discoverSuit.Destroy()
+
+		// 先任意找几个实例字段过滤
+		_, serviceResp := discoverSuit.createCommonService(t, 800)
+		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 10)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
@@ -831,6 +847,15 @@ func TestListInstances1(t *testing.T) {
 		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 0, 0)
 	})
 	t.Run("metadata条件测试", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.Initialize(); err != nil {
+			t.Fatal(err)
+		}
+		defer discoverSuit.Destroy()
+
+		// 先任意找几个实例字段过滤
+		_, serviceResp := discoverSuit.createCommonService(t, 800)
+		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		_, instanceResp1 := discoverSuit.createCommonInstance(t, serviceResp, 10)
 		defer discoverSuit.cleanInstance(instanceResp1.GetId().GetValue())
 		_, instanceResp2 := discoverSuit.createCommonInstance(t, serviceResp, 20)
@@ -861,6 +886,15 @@ func TestListInstances1(t *testing.T) {
 		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 0, 0)
 	})
 	t.Run("metadata只有key或者value，返回错误", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.Initialize(); err != nil {
+			t.Fatal(err)
+		}
+		defer discoverSuit.Destroy()
+
+		// 先任意找几个实例字段过滤
+		_, serviceResp := discoverSuit.createCommonService(t, 800)
+		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		query := map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),
@@ -884,17 +918,6 @@ func TestListInstances1(t *testing.T) {
 
 // 测试list实例列表
 func TestListInstances2(t *testing.T) {
-
-	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.Initialize(); err != nil {
-		t.Fatal(err)
-	}
-	defer discoverSuit.Destroy()
-
-	// 先任意找几个实例字段过滤
-	_, serviceResp := discoverSuit.createCommonService(t, 800)
-	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
-
 	checkAmountAndSize := func(t *testing.T, resp *apiservice.BatchQueryResponse, expect int, size int) {
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -908,6 +931,15 @@ func TestListInstances2(t *testing.T) {
 	}
 
 	t.Run("list实例，使用namespace，可以进行模糊匹配过滤", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.Initialize(); err != nil {
+			t.Fatal(err)
+		}
+		defer discoverSuit.Destroy()
+
+		// 先任意找几个实例字段过滤
+		_, serviceResp := discoverSuit.createCommonService(t, 800)
+		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1001)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 		query := map[string]string{
@@ -922,6 +954,15 @@ func TestListInstances2(t *testing.T) {
 	})
 
 	t.Run("list实例，使用namespace，可以进行前缀匹配过滤", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.Initialize(); err != nil {
+			t.Fatal(err)
+		}
+		defer discoverSuit.Destroy()
+
+		// 先任意找几个实例字段过滤
+		_, serviceResp := discoverSuit.createCommonService(t, 800)
+		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1002)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 		query := map[string]string{
@@ -946,6 +987,15 @@ func TestListInstances2(t *testing.T) {
 	})
 
 	t.Run("list实例，使用namespace，service可选", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.Initialize(); err != nil {
+			t.Fatal(err)
+		}
+		defer discoverSuit.Destroy()
+
+		// 先任意找几个实例字段过滤
+		_, serviceResp := discoverSuit.createCommonService(t, 800)
+		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1003)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 		query := map[string]string{

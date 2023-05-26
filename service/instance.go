@@ -1197,23 +1197,6 @@ func preGetInstances(query map[string]string) (map[string]string, map[string]str
 		delete(query, "health_status")
 	}
 
-	// bool2Str := func(key string) {
-	// 	val, ok := query[key]
-	// 	if !ok {
-	// 		return
-	// 	}
-	// 	if val == "true" {
-	// 		query[key] = "1"
-	// 	} else if val == "false" {
-	// 		query[key] = "0"
-	// 	}
-	// }
-
-	// // 处理一下两个bool值的字段
-	// bool2Str("health_status")
-	// bool2Str("healthy")
-	// bool2Str("isolate")
-
 	filters := make(map[string]string)
 	for key, value := range query {
 		if _, ok := InstanceFilterAttributes[key]; !ok {
