@@ -28,17 +28,43 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+const (
+	// DefaultUserMgnPluginName default user server name
+	DefaultUserMgnPluginName = "defaultUser"
+	// DefaultStrategyMgnPluginName default strategy server name
+	DefaultStrategyMgnPluginName = "defaultStrategy"
+)
+
 // Config 鉴权能力的相关配置参数
 type Config struct {
 	// Name 原AuthServer名称，已废弃
 	Name string
 	// Option 原AuthServer的option，已废弃
+	// Deprecated
 	Option map[string]interface{}
-
 	// User UserOperator的相关配置
-	User UserConfig `yaml:"user"`
+	User *UserConfig `yaml:"user"`
 	// Strategy StrategyOperator的相关配置
-	Strategy StrategyConfig `yaml:"strategy"`
+	Strategy *StrategyConfig `yaml:"strategy"`
+}
+
+func (c *Config) setDefault() {
+	if c.User == nil {
+		c.User = &UserConfig{
+			Name: DefaultUserMgnPluginName,
+			Option: map[string]interface{}{
+				"": nil,
+			},
+		}
+	}
+	if c.Strategy == nil {
+		c.Strategy = &StrategyConfig{
+			Name: DefaultStrategyMgnPluginName,
+			Option: map[string]interface{}{
+				"": nil,
+			},
+		}
+	}
 }
 
 // UserConfig UserOperator的相关配置
@@ -110,6 +136,7 @@ func GetStrategyServer() (StrategyServer, error) {
 func Initialize(ctx context.Context, authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error {
 	var err error
 	once.Do(func() {
+		authOpt.setDefault()
 		err = initialize(ctx, authOpt, storage, cacheMgn)
 	})
 

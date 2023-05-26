@@ -21,13 +21,6 @@ import (
 	"github.com/polarismesh/polaris/auth"
 )
 
-const (
-	// UserMgnPluginName default user server name
-	UserMgnPluginName = "defaultUserManager"
-	// StrategyMgnPluginName default strategy server name
-	StrategyMgnPluginName = "defaultStrategyManager"
-)
-
 func init() {
 	_ = auth.RegisterUserServer(&userAuthAbility{})
 	_ = auth.RegisterStrategyServer(&strategyAuthAbility{})

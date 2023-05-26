@@ -87,6 +87,4 @@ require (
 	github.com/polarismesh/specification v1.3.2-alpha.2
 )
 
-require gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
-
 replace gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.2

@@ -85,11 +85,11 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 
 	checker := &defaultAuthChecker{}
 	checker.Initialize(&auth.Config{
-		User: auth.UserConfig{
+		User: &auth.UserConfig{
 			Name:   "",
 			Option: map[string]interface{}{},
 		},
-		Strategy: auth.StrategyConfig{
+		Strategy: &auth.StrategyConfig{
 			Name: "",
 			Option: map[string]interface{}{
 				"": nil,
@@ -1136,11 +1136,11 @@ func Test_defaultAuthChecker_Initialize(t *testing.T) {
 		reset(true)
 		authChecker := &defaultAuthChecker{}
 		err := authChecker.Initialize(&auth.Config{
-			User: auth.UserConfig{
+			User: &auth.UserConfig{
 				Name:   "",
 				Option: map[string]interface{}{"salt": "polarismesh@2021"},
 			},
-			Strategy: auth.StrategyConfig{
+			Strategy: &auth.StrategyConfig{
 				Name: "",
 				Option: map[string]interface{}{
 					"consoleOpen": true,
@@ -1162,11 +1162,11 @@ func Test_defaultAuthChecker_Initialize(t *testing.T) {
 		reset(true)
 		authChecker := &defaultAuthChecker{}
 		err := authChecker.Initialize(&auth.Config{
-			User: auth.UserConfig{
+			User: &auth.UserConfig{
 				Name:   "",
 				Option: map[string]interface{}{"salt": "polarismesh@2021"},
 			},
-			Strategy: auth.StrategyConfig{
+			Strategy: &auth.StrategyConfig{
 				Name: "",
 				Option: map[string]interface{}{
 					"consoleOpen": true,

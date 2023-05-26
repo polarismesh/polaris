@@ -1378,19 +1378,7 @@ func TestConcurrencyCreateSameService(t *testing.T) {
 		}, mockStore)
 		assert.NoError(t, err)
 
-		userMgn, strategyMgn, err := auth.TestInitialize(ctx, &auth.Config{
-			User: auth.UserConfig{
-				Name:   "defaultUserManager",
-				Option: map[string]interface{}{},
-			},
-			Strategy: auth.StrategyConfig{
-				Name: "defaultStrategyManager",
-				Option: map[string]interface{}{
-					"clientOpen":  false,
-					"consoleOpen": false,
-				},
-			},
-		}, mockStore, cacheMgr)
+		userMgn, strategyMgn, err := auth.TestInitialize(ctx, &auth.Config{}, mockStore, cacheMgr)
 		assert.NoError(t, err)
 
 		nsSvr, err = namespace.TestInitialize(ctx, &namespace.Config{
