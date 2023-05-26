@@ -19,6 +19,7 @@ package config
 
 import (
 	"context"
+	"encoding/base64"
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
@@ -207,7 +208,21 @@ func (s *Server) GetConfigFileRelease(
 		return api.NewConfigFileResponse(apimodel.Code_StoreLayerException, nil)
 	}
 
-	return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, configFileRelease2Api(fileRelease))
+	if fileRelease == nil {
+		return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, nil)
+	}
+	// 解密发布纪录中配置
+	release := configFileRelease2Api(fileRelease)
+	if err := s.decryptConfigFileRelease(ctx, release); err != nil {
+		log.Error("[Config][Service]get config file release error.",
+			utils.ZapRequestIDByCtx(ctx),
+			zap.String("namespace", namespace),
+			zap.String("group", group),
+			zap.String("fileName", fileName),
+			zap.Error(err))
+		return api.NewConfigFileResponse(apimodel.Code_DecryptConfigFileException, nil)
+	}
+	return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, release)
 }
 
 // DeleteConfigFileRelease 删除配置文件发布，删除配置文件的时候，同步删除配置文件发布数据
@@ -387,4 +402,38 @@ func configFileReleaseRecordEntry(ctx context.Context, req *apiconfig.ConfigFile
 	}
 
 	return entry
+}
+
+// decryptConfigFileRelease 解密配置文件发布纪录
+func (s *Server) decryptConfigFileRelease(ctx context.Context, release *apiconfig.ConfigFileRelease) error {
+	if s.cryptoManager == nil || release == nil {
+		return nil
+	}
+	// 非创建人请求不解密
+	if utils.ParseUserName(ctx) != release.CreateBy.GetValue() {
+		return nil
+	}
+	algorithm, dataKey, err := s.getEncryptAlgorithmAndDataKey(ctx, release.GetNamespace().GetValue(),
+		release.GetGroup().GetValue(), release.GetName().GetValue())
+	if err != nil {
+		return err
+	}
+	if dataKey == "" {
+		return nil
+	}
+	dateKeyBytes, err := base64.StdEncoding.DecodeString(dataKey)
+	if err != nil {
+		return err
+	}
+	crypto, err := s.cryptoManager.GetCrypto(algorithm)
+	if err != nil {
+		return err
+	}
+
+	plainContent, err := crypto.Decrypt(release.Content.GetValue(), dateKeyBytes)
+	if err != nil {
+		return err
+	}
+	release.Content = utils.NewStringValue(plainContent)
+	return nil
 }

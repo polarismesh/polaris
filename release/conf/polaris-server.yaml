@@ -453,6 +453,9 @@ store:
   #     txIsolationLevel: 2 #LevelReadCommitted
 # 插件配置
 plugin:
+  crypto:
+    entries:
+      - name: AES
   # whitelist:
   #   name: whitelist
   #   option:

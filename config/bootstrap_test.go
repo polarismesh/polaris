@@ -38,6 +38,7 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
+	_ "github.com/polarismesh/polaris/plugin/crypto/aes"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/memory"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/redis"
 	_ "github.com/polarismesh/polaris/plugin/history/logger"
@@ -302,17 +303,14 @@ func assembleConfigFile() *apiconfig.ConfigFile {
 		Key:   utils.NewStringValue("k1"),
 		Value: utils.NewStringValue("v1"),
 	}
-
 	tag2 := &apiconfig.ConfigFileTag{
 		Key:   utils.NewStringValue("k1"),
 		Value: utils.NewStringValue("v2"),
 	}
-
 	tag3 := &apiconfig.ConfigFileTag{
 		Key:   utils.NewStringValue("k2"),
 		Value: utils.NewStringValue("v1"),
 	}
-
 	return &apiconfig.ConfigFile{
 		Namespace: utils.NewStringValue(testNamespace),
 		Group:     utils.NewStringValue(testGroup),
@@ -324,85 +322,33 @@ func assembleConfigFile() *apiconfig.ConfigFile {
 	}
 }
 
+func assembleEncryptConfigFile() *apiconfig.ConfigFile {
+	configFile := assembleConfigFile()
+	configFile.IsEncrypted = utils.NewBoolValue(true)
+	configFile.EncryptAlgo = utils.NewStringValue("AES")
+	return configFile
+}
+
 func assembleConfigFileWithNamespaceAndGroupAndName(namespace, group, name string) *apiconfig.ConfigFile {
-	tag1 := &apiconfig.ConfigFileTag{
-		Key:   utils.NewStringValue("k1"),
-		Value: utils.NewStringValue("v1"),
-	}
-
-	tag2 := &apiconfig.ConfigFileTag{
-		Key:   utils.NewStringValue("k1"),
-		Value: utils.NewStringValue("v2"),
-	}
-
-	tag3 := &apiconfig.ConfigFileTag{
-		Key:   utils.NewStringValue("k2"),
-		Value: utils.NewStringValue("v1"),
-	}
-
-	return &apiconfig.ConfigFile{
-		Namespace: utils.NewStringValue(namespace),
-		Group:     utils.NewStringValue(group),
-		Name:      utils.NewStringValue(name),
-		Format:    utils.NewStringValue(utils.FileFormatText),
-		Content:   utils.NewStringValue("k1=v1,k2=v2"),
-		Tags:      []*apiconfig.ConfigFileTag{tag1, tag2, tag3},
-		CreateBy:  utils.NewStringValue(operator),
-	}
+	configFile := assembleConfigFile()
+	configFile.Namespace = utils.NewStringValue(namespace)
+	configFile.Group = utils.NewStringValue(group)
+	configFile.Name = utils.NewStringValue(name)
+	return configFile
 }
 
 func assembleConfigFileWithFixedGroupAndRandomFileName(group string) *apiconfig.ConfigFile {
-	tag1 := &apiconfig.ConfigFileTag{
-		Key:   utils.NewStringValue("k1"),
-		Value: utils.NewStringValue("v1"),
-	}
-
-	tag2 := &apiconfig.ConfigFileTag{
-		Key:   utils.NewStringValue("k1"),
-		Value: utils.NewStringValue("v2"),
-	}
-
-	tag3 := &apiconfig.ConfigFileTag{
-		Key:   utils.NewStringValue("k2"),
-		Value: utils.NewStringValue("v1"),
-	}
-
-	return &apiconfig.ConfigFile{
-		Namespace: utils.NewStringValue(testNamespace),
-		Group:     utils.NewStringValue(group),
-		Name:      utils.NewStringValue(randomStr()),
-		Format:    utils.NewStringValue(utils.FileFormatText),
-		Content:   utils.NewStringValue("k1=v1,k2=v2"),
-		Tags:      []*apiconfig.ConfigFileTag{tag1, tag2, tag3},
-		CreateBy:  utils.NewStringValue(operator),
-	}
+	configFile := assembleConfigFile()
+	configFile.Group = utils.NewStringValue(group)
+	configFile.Name = utils.NewStringValue(randomStr())
+	return configFile
 }
 
-func assembleConfigFileWithRandomGroupAndFixedFileName(fileName string) *apiconfig.ConfigFile {
-	tag1 := &apiconfig.ConfigFileTag{
-		Key:   utils.NewStringValue("k1"),
-		Value: utils.NewStringValue("v1"),
-	}
-
-	tag2 := &apiconfig.ConfigFileTag{
-		Key:   utils.NewStringValue("k1"),
-		Value: utils.NewStringValue("v2"),
-	}
-
-	tag3 := &apiconfig.ConfigFileTag{
-		Key:   utils.NewStringValue("k2"),
-		Value: utils.NewStringValue("v1"),
-	}
-
-	return &apiconfig.ConfigFile{
-		Namespace: utils.NewStringValue(testNamespace),
-		Group:     utils.NewStringValue(randomStr()),
-		Name:      utils.NewStringValue(fileName),
-		Format:    utils.NewStringValue(utils.FileFormatText),
-		Content:   utils.NewStringValue("k1=v1,k2=v2"),
-		Tags:      []*apiconfig.ConfigFileTag{tag1, tag2, tag3},
-		CreateBy:  utils.NewStringValue(operator),
-	}
+func assembleConfigFileWithRandomGroupAndFixedFileName(name string) *apiconfig.ConfigFile {
+	configFile := assembleConfigFile()
+	configFile.Group = utils.NewStringValue(randomStr())
+	configFile.Name = utils.NewStringValue(name)
+	return configFile
 }
 
 func assembleConfigFileRelease(configFile *apiconfig.ConfigFile) *apiconfig.ConfigFileRelease {

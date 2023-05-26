@@ -19,15 +19,26 @@ package config
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/hex"
+	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 
+	. "github.com/agiledragon/gomonkey/v2"
+	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
-	"github.com/stretchr/testify/assert"
-
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/plugin/crypto/aes"
+	storemock "github.com/polarismesh/polaris/store/mock"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var (
@@ -44,7 +55,6 @@ func TestConfigFileCRUD(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
@@ -372,6 +382,37 @@ func TestConfigFileCRUD(t *testing.T) {
 		assert.Equal(t, 0, len(rsp.SkipConfigFiles))
 		assert.Equal(t, 2, len(rsp.OverwriteConfigFiles))
 	})
+
+	t.Run("step12-create-entrypted", func(t *testing.T) {
+		configFile := assembleConfigFile()
+		configFile.IsEncrypted = utils.NewBoolValue(true)
+		configFile.EncryptAlgo = utils.NewStringValue("AES")
+		rsp := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
+		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
+		assert.Equal(t, testNamespace, rsp.ConfigFile.Namespace.GetValue())
+		assert.Equal(t, testGroup, rsp.ConfigFile.Group.GetValue())
+		assert.Equal(t, testFile, rsp.ConfigFile.Name.GetValue())
+		assert.NotEqual(t, configFile.Content.GetValue(), rsp.ConfigFile.Content.GetValue())
+		assert.Equal(t, configFile.Format.GetValue(), rsp.ConfigFile.Format.GetValue())
+		assert.Equal(t, operator, rsp.ConfigFile.CreateBy.GetValue())
+		assert.Equal(t, operator, rsp.ConfigFile.ModifyBy.GetValue())
+
+		// 重复创建
+		rsp2 := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
+		assert.Equal(t, uint32(api.ExistedResource), rsp2.Code.GetValue())
+
+		// 创建完之后再查询
+		rsp3 := testSuit.testService.GetConfigFileBaseInfo(testSuit.defaultCtx, testNamespace, testGroup, testFile)
+		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
+		assert.NotNil(t, rsp.ConfigFile)
+		assert.Equal(t, testNamespace, rsp.ConfigFile.Namespace.GetValue())
+		assert.Equal(t, testGroup, rsp.ConfigFile.Group.GetValue())
+		assert.Equal(t, testFile, rsp.ConfigFile.Name.GetValue())
+		assert.NotEqual(t, configFile.Content.GetValue(), rsp.ConfigFile.Content.GetValue())
+		assert.Equal(t, configFile.Format.GetValue(), rsp.ConfigFile.Format.GetValue())
+		assert.Equal(t, operator, rsp.ConfigFile.CreateBy.GetValue())
+		assert.Equal(t, operator, rsp.ConfigFile.ModifyBy.GetValue())
+	})
 }
 
 // TestPublishConfigFile 测试配置文件发布相关的用例
@@ -452,4 +493,304 @@ func TestPublishConfigFile(t *testing.T) {
 	assert.Equal(t, api.ExecuteSuccess, rsp9.Code.GetValue())
 	assert.Equal(t, 2, len(rsp9.ConfigFileReleaseHistories))
 
+}
+
+func TestServer_encryptConfigFile(t *testing.T) {
+	testSuit, err := newConfigCenterTest(t)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		if err := testSuit.clearTestData(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+	type args struct {
+		ctx        context.Context
+		algorithm  string
+		configFile *apiconfig.ConfigFile
+		dataKey    string
+	}
+	dataKey, _ := hex.DecodeString("777b162a185673cb1b72b467a78221cd")
+	fmt.Println(base64.StdEncoding.EncodeToString(dataKey))
+
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr error
+	}{
+		{
+			name: "encrypt config file",
+			args: args{
+				ctx:       context.Background(),
+				algorithm: "AES",
+				configFile: &apiconfig.ConfigFile{
+					Content: utils.NewStringValue("polaris"),
+				},
+				dataKey: "",
+			},
+			wantErr: nil,
+		},
+		{
+			name: "encrypt config file with dataKey",
+			args: args{
+				ctx:       context.Background(),
+				algorithm: "AES",
+				configFile: &apiconfig.ConfigFile{
+					Content: utils.NewStringValue("polaris"),
+				},
+				dataKey: base64.StdEncoding.EncodeToString(dataKey),
+			},
+			want:    "YnLZ0SYuujFBHjYHAZVN5A==",
+			wantErr: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := testSuit.testServer
+			err := s.encryptConfigFile(tt.args.ctx, tt.args.configFile, tt.args.algorithm, tt.args.dataKey)
+			assert.Equal(t, tt.wantErr, err)
+			if tt.want != "" {
+				assert.Equal(t, tt.want, tt.args.configFile.Content.GetValue())
+			}
+			hasDataKeyTag := false
+			hasAlgoTag := false
+			for _, tag := range tt.args.configFile.Tags {
+				if tag.Key.GetValue() == utils.ConfigFileTagKeyDataKey {
+					hasDataKeyTag = true
+					if tt.args.dataKey != "" {
+						assert.Equal(t, tt.args.dataKey, tag.Value.GetValue())
+					}
+				}
+				if tag.Key.GetValue() == utils.ConfigFileTagKeyEncryptAlgo {
+					hasAlgoTag = true
+					assert.Equal(t, tt.args.algorithm, tag.Value.GetValue())
+				}
+			}
+			assert.True(t, hasDataKeyTag)
+			assert.True(t, hasAlgoTag)
+		})
+	}
+}
+
+func TestServer_decryptConfigFile(t *testing.T) {
+	testSuit, err := newConfigCenterTest(t)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		if err := testSuit.clearTestData(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+	type args struct {
+		ctx        context.Context
+		configFile *apiconfig.ConfigFile
+	}
+
+	dataKey, _ := hex.DecodeString("777b162a185673cb1b72b467a78221cd")
+
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr error
+	}{
+		{
+			name: "decrypt config file",
+			args: args{
+				ctx: context.WithValue(context.Background(), utils.ContextUserNameKey, "polaris"),
+				configFile: &apiconfig.ConfigFile{
+					Content: utils.NewStringValue("YnLZ0SYuujFBHjYHAZVN5A=="),
+					Tags: []*apiconfig.ConfigFileTag{
+						{
+							Key:   utils.NewStringValue(utils.ConfigFileTagKeyDataKey),
+							Value: utils.NewStringValue(base64.StdEncoding.EncodeToString(dataKey)),
+						},
+						{
+							Key:   utils.NewStringValue(utils.ConfigFileTagKeyEncryptAlgo),
+							Value: utils.NewStringValue("AES"),
+						},
+					},
+					CreateBy: utils.NewStringValue("polaris"),
+				},
+			},
+			want:    "polaris",
+			wantErr: nil,
+		},
+		{
+			name: "non creator don't decrypt config file",
+			args: args{
+				ctx: context.WithValue(context.Background(), utils.ContextUserNameKey, "test"),
+				configFile: &apiconfig.ConfigFile{
+					Content: utils.NewStringValue("YnLZ0SYuujFBHjYHAZVN5A=="),
+					Tags: []*apiconfig.ConfigFileTag{
+						{
+							Key:   utils.NewStringValue(utils.ConfigFileTagKeyDataKey),
+							Value: utils.NewStringValue(base64.StdEncoding.EncodeToString(dataKey)),
+						},
+						{
+							Key:   utils.NewStringValue(utils.ConfigFileTagKeyEncryptAlgo),
+							Value: utils.NewStringValue("AES"),
+						},
+					},
+					CreateBy: utils.NewStringValue("polaris"),
+				},
+			},
+			want:    "YnLZ0SYuujFBHjYHAZVN5A==",
+			wantErr: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := testSuit.testServer
+			err := s.decryptConfigFile(tt.args.ctx, tt.args.configFile)
+			assert.Equal(t, tt.wantErr, err)
+			assert.Equal(t, tt.want, tt.args.configFile.Content.GetValue())
+			for _, tag := range tt.args.configFile.Tags {
+				if tag.Key.GetValue() == utils.ConfigFileTagKeyDataKey {
+					t.Fatal("config tags has data key")
+				}
+			}
+		})
+	}
+}
+
+func TestServer_GetConfigEncryptAlgorithm(t *testing.T) {
+	testSuit, err := newConfigCenterTest(t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := testSuit.clearTestData(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+	tests := []struct {
+		name string
+		want []*wrapperspb.StringValue
+	}{
+		{
+			name: "get config encrypt algorithm",
+			want: []*wrapperspb.StringValue{
+				utils.NewStringValue("AES"),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rsp := testSuit.testService.GetAllConfigEncryptAlgorithms(testSuit.defaultCtx)
+			assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
+			assert.Equal(t, tt.want, rsp.GetAlgorithms())
+		})
+	}
+}
+
+func TestServer_CreateConfigFile(t *testing.T) {
+	testSuit, err := newConfigCenterTest(t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := testSuit.clearTestData(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	Convey("创建配置文件", t, func() {
+		Convey("加密配置文件-返回error\n", func() {
+			crypto := &aes.AESCrypto{}
+			encryptFunc := ApplyMethod(reflect.TypeOf(crypto), "Encrypt", func(_ *aes.AESCrypto, plaintext string, key []byte) (string, error) {
+				return "", errors.New("mock encrypt error")
+			})
+			defer encryptFunc.Reset()
+
+			configFile := assembleEncryptConfigFile()
+			got := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
+			So(apimodel.Code_EncryptConfigFileException, ShouldEqual, apimodel.Code(got.GetCode().GetValue()))
+		})
+		Convey("解密配置文件-返回error", func() {
+			crypto := &aes.AESCrypto{}
+			encryptFunc := ApplyMethod(reflect.TypeOf(crypto), "Decrypt", func(_ *aes.AESCrypto, plaintext string, key []byte) (string, error) {
+				return "", errors.New("mock encrypt error")
+			})
+			defer encryptFunc.Reset()
+
+			configFile := assembleEncryptConfigFile()
+			testSuit.defaultCtx = context.WithValue(testSuit.defaultCtx, utils.ContextUserNameKey, configFile.CreateBy.GetValue())
+			got := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
+			So(apimodel.Code_DecryptConfigFileException, ShouldEqual, apimodel.Code(got.GetCode().GetValue()))
+		})
+
+		Convey("存储层-查询配置文件-返回error", func() {
+			storage := storemock.NewMockStore(ctrl)
+			storage.EXPECT().GetConfigFileGroup(gomock.Any(), gomock.Any()).AnyTimes().Return(&model.ConfigFileGroup{}, nil)
+			storage.EXPECT().GetConfigFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil, errors.New("mock storage error"))
+			testSuit.testServer.storage = storage
+
+			configFile := assembleConfigFile()
+
+			got := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
+			So(apimodel.Code_StoreLayerException, ShouldEqual, apimodel.Code(got.GetCode().GetValue()))
+		})
+
+		Convey("存储层-创建配置文件-返回error", func() {
+			storage := storemock.NewMockStore(ctrl)
+			storage.EXPECT().GetConfigFileGroup(gomock.Any(), gomock.Any()).AnyTimes().Return(&model.ConfigFileGroup{}, nil)
+			storage.EXPECT().GetConfigFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil)
+			storage.EXPECT().CreateConfigFile(gomock.Any(), gomock.Any()).AnyTimes().Return(nil, errors.New("mock storage error"))
+			testSuit.testServer.storage = storage
+
+			configFile := assembleConfigFile()
+
+			got := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
+			So(apimodel.Code_StoreLayerException, ShouldEqual, apimodel.Code(got.GetCode().GetValue()))
+		})
+	})
+}
+
+func TestServer_GetConfigFileBaseInfo(t *testing.T) {
+	testSuit, err := newConfigCenterTest(t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := testSuit.clearTestData(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	Convey("获取配置文件", t, func() {
+		Convey("解密配置文件-返回error", func() {
+			crypto := &aes.AESCrypto{}
+			encryptFunc := ApplyMethod(reflect.TypeOf(crypto), "Decrypt", func(_ *aes.AESCrypto, plaintext string, key []byte) (string, error) {
+				return "", errors.New("mock encrypt error")
+			})
+			defer encryptFunc.Reset()
+
+			configFile := assembleEncryptConfigFile()
+			testSuit.defaultCtx = context.WithValue(testSuit.defaultCtx, utils.ContextUserNameKey, configFile.CreateBy.GetValue())
+			got := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
+			So(apimodel.Code_DecryptConfigFileException, ShouldEqual, apimodel.Code(got.GetCode().GetValue()))
+		})
+
+		Convey("存储层-查询配置文件-返回error", func() {
+			storage := storemock.NewMockStore(ctrl)
+			storage.EXPECT().GetConfigFileGroup(gomock.Any(), gomock.Any()).AnyTimes().Return(&model.ConfigFileGroup{}, nil)
+			storage.EXPECT().GetConfigFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil, errors.New("mock storage error"))
+			testSuit.testServer.storage = storage
+
+			configFile := assembleConfigFile()
+
+			got := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
+			So(apimodel.Code_StoreLayerException, ShouldEqual, apimodel.Code(got.GetCode().GetValue()))
+		})
+	})
 }

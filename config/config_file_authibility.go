@@ -45,23 +45,73 @@ func (s *serverAuthability) CreateConfigFile(ctx context.Context,
 // GetConfigFileBaseInfo 获取配置文件，只返回基础元信息
 func (s *serverAuthability) GetConfigFileBaseInfo(ctx context.Context, namespace,
 	group, name string) *apiconfig.ConfigResponse {
+	configFile := &apiconfig.ConfigFile{
+		Namespace: utils.NewStringValue(namespace),
+		Group:     utils.NewStringValue(group),
+		Name:      utils.NewStringValue(name),
+	}
+	authCtx := s.collectConfigFileAuthContext(
+		ctx, []*apiconfig.ConfigFile{configFile}, model.Read, "GetConfigFileBaseInfo")
+	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return s.targetServer.GetConfigFileBaseInfo(ctx, namespace, group, name)
 }
 
 // GetConfigFileRichInfo 获取单个配置文件基础信息，包含发布状态等信息
 func (s *serverAuthability) GetConfigFileRichInfo(ctx context.Context, namespace,
 	group, name string) *apiconfig.ConfigResponse {
+	configFile := &apiconfig.ConfigFile{
+		Namespace: utils.NewStringValue(namespace),
+		Group:     utils.NewStringValue(group),
+		Name:      utils.NewStringValue(name),
+	}
+	authCtx := s.collectConfigFileAuthContext(
+		ctx, []*apiconfig.ConfigFile{configFile}, model.Read, "GetConfigFileRichInfo")
+	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return s.targetServer.GetConfigFileRichInfo(ctx, namespace, group, name)
 }
 
 func (s *serverAuthability) QueryConfigFilesByGroup(ctx context.Context, namespace, group string,
 	offset, limit uint32) *apiconfig.ConfigBatchQueryResponse {
+	configFile := &apiconfig.ConfigFile{
+		Namespace: utils.NewStringValue(namespace),
+		Group:     utils.NewStringValue(group),
+	}
+	authCtx := s.collectConfigFileAuthContext(
+		ctx, []*apiconfig.ConfigFile{configFile}, model.Read, "QueryConfigFilesByGroup")
+	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewConfigFileBatchQueryResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return s.targetServer.QueryConfigFilesByGroup(ctx, namespace, group, offset, limit)
 }
 
 // SearchConfigFile 查询配置文件
 func (s *serverAuthability) SearchConfigFile(ctx context.Context, namespace, group, name,
 	tags string, offset, limit uint32) *apiconfig.ConfigBatchQueryResponse {
+	configFile := &apiconfig.ConfigFile{
+		Namespace: utils.NewStringValue(namespace),
+		Group:     utils.NewStringValue(group),
+	}
+	authCtx := s.collectConfigFileAuthContext(
+		ctx, []*apiconfig.ConfigFile{configFile}, model.Read, "SearchConfigFile")
+	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewConfigFileBatchQueryResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return s.targetServer.SearchConfigFile(ctx, namespace, group, name, tags, offset, limit)
 }
 
@@ -115,6 +165,21 @@ func (s *serverAuthability) BatchDeleteConfigFile(ctx context.Context, configFil
 
 func (s *serverAuthability) ExportConfigFile(ctx context.Context,
 	configFileExport *apiconfig.ConfigFileExportRequest) *apiconfig.ConfigExportResponse {
+	var configFiles []*apiconfig.ConfigFile
+	for _, group := range configFileExport.Groups {
+		configFile := &apiconfig.ConfigFile{
+			Namespace: configFileExport.Namespace,
+			Group:     group,
+		}
+		configFiles = append(configFiles, configFile)
+	}
+	authCtx := s.collectConfigFileAuthContext(ctx, configFiles, model.Read, "ExportConfigFile")
+	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewConfigFileExportResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
 	return s.targetServer.ExportConfigFile(ctx, configFileExport)
 }
 
@@ -128,4 +193,9 @@ func (s *serverAuthability) ImportConfigFile(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return s.targetServer.ImportConfigFile(ctx, configFiles, conflictHandling)
+}
+
+func (s *serverAuthability) GetAllConfigEncryptAlgorithms(
+	ctx context.Context) *apiconfig.ConfigEncryptAlgorithmResponse {
+	return s.targetServer.GetAllConfigEncryptAlgorithms(ctx)
 }
