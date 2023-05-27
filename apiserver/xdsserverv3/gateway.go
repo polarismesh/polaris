@@ -31,6 +31,8 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -181,6 +183,21 @@ func (x *XDSServer) makeGatewayRoutes(namespace string, xdsNode *XDSClient) []*r
 					},
 				},
 			}
+
+			pathInfo := route.GetMatch().GetPathSeparatedPrefix()
+			if pathInfo == "" {
+				pathInfo = route.GetMatch().GetSafeRegex().GetRegex()
+			}
+
+			limits, typedPerFilterConfig, err := x.makeGatewayLocalRateLimit(pathInfo, model.ServiceKey{
+				Namespace: callerNamespace,
+				Name:      callerService,
+			})
+			if err == nil {
+				route.TypedPerFilterConfig = typedPerFilterConfig
+				route.GetRoute().RateLimits = limits
+			}
+
 			routes = append(routes, route)
 		}
 	})
@@ -208,8 +225,8 @@ func buildGatewayRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage
 		argument := source.GetArguments()[i]
 		if argument.Type == traffic_manage.SourceMatch_PATH {
 			if argument.Value.Type == apimodel.MatchString_EXACT {
-				routeMatch.PathSpecifier = &route.RouteMatch_Path{
-					Path: argument.GetValue().GetValue().GetValue()}
+				routeMatch.PathSpecifier = &route.RouteMatch_PathSeparatedPrefix{
+					PathSeparatedPrefix: argument.GetValue().GetValue().GetValue()}
 			} else if argument.Value.Type == apimodel.MatchString_REGEX {
 				routeMatch.PathSpecifier = &route.RouteMatch_SafeRegex{SafeRegex: &v32.RegexMatcher{
 					Regex: argument.GetValue().GetValue().GetValue()}}
@@ -235,4 +252,49 @@ func isMatchGatewaySource(source *traffic_manage.SourceService, service, namespa
 
 	matchService = source.Service == service && source.Namespace == namespace
 	return existPathLabel && matchService
+}
+
+func (x *XDSServer) makeGatewayLocalRateLimit(pathSpecifier string, svcKey model.ServiceKey) ([]*route.RateLimit,
+	map[string]*anypb.Any, error) {
+	ratelimitGetter := x.RatelimitConfigGetter
+	if ratelimitGetter == nil {
+		ratelimitGetter = x.namingServer.Cache().RateLimit().GetRateLimitRules
+	}
+	conf, _ := ratelimitGetter(svcKey)
+	if conf == nil {
+		return nil, nil, nil
+	}
+	rateLimitConf := buildRateLimitConf()
+	filters := make(map[string]*anypb.Any)
+	ratelimits := make([]*route.RateLimit, 0, len(conf))
+	for _, c := range conf {
+		rule := c.Proto
+		if rule == nil {
+			continue
+		}
+		// 跳过全局限流配置
+		if rule.GetType() == apitraffic.Rule_GLOBAL || rule.GetDisable().GetValue() {
+			continue
+		}
+		if rule.GetMethod().GetValue().GetValue() != pathSpecifier {
+			continue
+		}
+		actions, descriptors := buildLocalRateLimitDescriptors(rule)
+		headerValueMatch := buildRateLimitActionHeaderValueMatch(":path", rule.GetMethod())
+		actions = append(actions, &route.RateLimit_Action{
+			ActionSpecifier: &route.RateLimit_Action_HeaderValueMatch_{
+				HeaderValueMatch: headerValueMatch,
+			},
+		})
+		rateLimitConf.Descriptors = descriptors
+		if rule.AmountMode == apitraffic.Rule_GLOBAL_TOTAL {
+			rateLimitConf.LocalRateLimitPerDownstreamConnection = true
+		}
+		ratelimits = append(ratelimits, &route.RateLimit{
+			Actions: actions,
+		})
+		break
+	}
+
+	return ratelimits, filters, nil
 }

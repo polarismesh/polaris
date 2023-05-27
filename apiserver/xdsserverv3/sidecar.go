@@ -28,10 +28,7 @@ import (
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	envoy_extensions_common_ratelimit_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
-	lrl "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
 	v32 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
-	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	resource "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
@@ -44,6 +41,7 @@ import (
 	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -144,91 +142,136 @@ func buildSidecarRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage
 	buildCommonRouteMatch(routeMatch, source)
 }
 
-func (x *XDSServer) makeLocalRateLimit(svcKey model.ServiceKey) map[string]*anypb.Any {
+func (x *XDSServer) makeSidecarLocalRateLimit(svcKey model.ServiceKey) ([]*route.RateLimit,
+	map[string]*anypb.Any, error) {
 	ratelimitGetter := x.RatelimitConfigGetter
 	if ratelimitGetter == nil {
 		ratelimitGetter = x.namingServer.Cache().RateLimit().GetRateLimitRules
 	}
 	conf, _ := ratelimitGetter(svcKey)
-	filters := make(map[string]*anypb.Any)
-	if conf != nil {
-		rateLimitConf := &lrl.LocalRateLimit{
-			StatPrefix: "http_local_rate_limiter",
-			// TokenBucket: &envoy_type_v3.TokenBucket{
-			// 	MaxTokens:    rule.Amounts[0].MaxAmount.Value,
-			// 	FillInterval: rule.Amounts[0].ValidDuration,
-			// },
-		}
-		rateLimitConf.FilterEnabled = &core.RuntimeFractionalPercent{
-			RuntimeKey: "local_rate_limit_enabled",
-			DefaultValue: &envoy_type_v3.FractionalPercent{
-				Numerator:   uint32(100),
-				Denominator: envoy_type_v3.FractionalPercent_HUNDRED,
-			},
-		}
-		rateLimitConf.FilterEnforced = &core.RuntimeFractionalPercent{
-			RuntimeKey: "local_rate_limit_enforced",
-			DefaultValue: &envoy_type_v3.FractionalPercent{
-				Numerator:   uint32(100),
-				Denominator: envoy_type_v3.FractionalPercent_HUNDRED,
-			},
-		}
-		for _, c := range conf {
-			rlRule := c.Rule
-			rlLabels := c.Labels
-			if rlRule == "" {
-				continue
-			}
-			rule := new(apitraffic.Rule)
-			if err := json.Unmarshal([]byte(rlRule), rule); err != nil {
-				log.Errorf("unmarshal local rate limit rule error,%v", err)
-				continue
-			}
-			if len(rlRule) > 0 {
-				if err := json.Unmarshal([]byte(rlLabels), &rule.Labels); err != nil {
-					log.Errorf("unmarshal local rate limit labels error,%v", err)
-				}
-			}
-
-			// 跳过全局限流配置
-			if rule.Type == apitraffic.Rule_GLOBAL || rule.Disable.Value {
-				continue
-			}
-
-			for _, amount := range rule.Amounts {
-				descriptor := &envoy_extensions_common_ratelimit_v3.LocalRateLimitDescriptor{
-					TokenBucket: &envoy_type_v3.TokenBucket{
-						MaxTokens:    amount.MaxAmount.Value,
-						FillInterval: amount.ValidDuration,
-					},
-				}
-				entries := make([]*envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry, len(rule.Labels))
-				pos := 0
-				for k, v := range rule.Labels {
-					entries[pos] = &envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry{
-						Key:   k,
-						Value: v.Value.Value,
-					}
-					pos++
-				}
-				descriptor.Entries = entries
-				rateLimitConf.Descriptors = append(rateLimitConf.Descriptors, descriptor)
-			}
-			if rule.AmountMode == apitraffic.Rule_GLOBAL_TOTAL {
-				rateLimitConf.LocalRateLimitPerDownstreamConnection = true
-			}
-		}
-		if len(rateLimitConf.Descriptors) == 0 {
-			return nil
-		}
-		pbst, err := ptypes.MarshalAny(rateLimitConf)
-		if err != nil {
-			panic(err)
-		}
-		filters["envoy.filters.http.local_ratelimit"] = pbst
-		return filters
+	if conf == nil {
+		return nil, nil, nil
 	}
-	return nil
+	rateLimitConf := buildRateLimitConf()
+	filters := make(map[string]*anypb.Any)
+	ratelimits := make([]*route.RateLimit, 0, len(conf))
+	for _, c := range conf {
+		rule := c.Proto
+		if rule == nil {
+			continue
+		}
+		// 跳过全局限流配置
+		if rule.GetType() == apitraffic.Rule_GLOBAL || rule.GetDisable().GetValue() {
+			continue
+		}
+
+		actions, descriptors := buildLocalRateLimitDescriptors(rule)
+		if rule.GetMethod().GetValue().GetValue() != "" {
+			headerValueMatch := buildRateLimitActionHeaderValueMatch(":path", rule.GetMethod())
+			actions = append(actions, &route.RateLimit_Action{
+				ActionSpecifier: &route.RateLimit_Action_HeaderValueMatch_{
+					HeaderValueMatch: headerValueMatch,
+				},
+			})
+		}
+		rateLimitConf.Descriptors = descriptors
+		if rule.AmountMode == apitraffic.Rule_GLOBAL_TOTAL {
+			rateLimitConf.LocalRateLimitPerDownstreamConnection = true
+		}
+		ratelimits = append(ratelimits, &route.RateLimit{
+			Actions: actions,
+		})
+	}
+	if len(rateLimitConf.Descriptors) == 0 {
+		return nil, nil, nil
+	}
+	pbst, err := ptypes.MarshalAny(rateLimitConf)
+	if err != nil {
+		return nil, nil, err
+	}
+	filters["envoy.filters.http.local_ratelimit"] = pbst
+	return ratelimits, filters, err
+}
+
+func buildRateLimitActionQueryParameterValueMatch(key string,
+	value *apimodel.MatchString) *route.RateLimit_Action_QueryParameterValueMatch {
+	queryParameterValueMatch := &route.RateLimit_Action_QueryParameterValueMatch{
+		DescriptorKey:   key,
+		DescriptorValue: "true",
+		ExpectMatch:     wrapperspb.Bool(true),
+		QueryParameters: []*route.QueryParameterMatcher{},
+	}
+	switch value.GetType() {
+	case apimodel.MatchString_EXACT:
+		queryParameterValueMatch.QueryParameters = []*route.QueryParameterMatcher{
+			{
+				Name: key,
+				QueryParameterMatchSpecifier: &route.QueryParameterMatcher_StringMatch{
+					StringMatch: &v32.StringMatcher{
+						MatchPattern: &v32.StringMatcher_Exact{
+							Exact: value.GetValue().GetValue(),
+						},
+					},
+				},
+			},
+		}
+	case apimodel.MatchString_REGEX:
+		queryParameterValueMatch.QueryParameters = []*route.QueryParameterMatcher{
+			{
+				Name: key,
+				QueryParameterMatchSpecifier: &route.QueryParameterMatcher_StringMatch{
+					StringMatch: &v32.StringMatcher{
+						MatchPattern: &v32.StringMatcher_SafeRegex{
+							SafeRegex: &v32.RegexMatcher{
+								EngineType: &v32.RegexMatcher_GoogleRe2{},
+								Regex:      value.GetValue().GetValue(),
+							},
+						},
+					},
+				},
+			},
+		}
+	}
+
+	return queryParameterValueMatch
+}
+
+func buildRateLimitActionHeaderValueMatch(key string,
+	value *apimodel.MatchString) *route.RateLimit_Action_HeaderValueMatch {
+	headerValueMatch := &route.RateLimit_Action_HeaderValueMatch{
+		DescriptorValue: "true",
+		ExpectMatch:     wrapperspb.Bool(true),
+		Headers:         []*route.HeaderMatcher{},
+	}
+	switch value.GetType() {
+	case apimodel.MatchString_EXACT, apimodel.MatchString_NOT_EQUALS:
+		headerValueMatch.Headers = []*route.HeaderMatcher{
+			{
+				Name:        key,
+				InvertMatch: value.GetType() == apimodel.MatchString_NOT_EQUALS,
+				HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+					StringMatch: &v32.StringMatcher{
+						MatchPattern: &v32.StringMatcher_Exact{
+							Exact: value.GetValue().GetValue(),
+						},
+					},
+				},
+			},
+		}
+	case apimodel.MatchString_REGEX:
+		headerValueMatch.Headers = []*route.HeaderMatcher{
+			{
+				Name: key,
+				HeaderMatchSpecifier: &route.HeaderMatcher_SafeRegexMatch{
+					SafeRegexMatch: &v32.RegexMatcher{
+						EngineType: &v32.RegexMatcher_GoogleRe2{},
+						Regex:      value.GetValue().GetValue(),
+					},
+				},
+			},
+		}
+	}
+	return headerValueMatch
 }
 
 type (
@@ -248,7 +291,7 @@ func (x *XDSServer) makeSidecarVirtualHosts(services []*ServiceInfo) []types.Res
 		vHost := &route.VirtualHost{
 			Name:    serviceInfo.Name,
 			Domains: generateServiceDomains(serviceInfo),
-			Routes:  makeSidecarRoutes(serviceInfo),
+			Routes:  x.makeSidecarRoutes(serviceInfo),
 		}
 		hosts = append(hosts, vHost)
 	}
@@ -431,7 +474,7 @@ func makeEndpoints(services []*ServiceInfo) []types.Resource {
 }
 
 // makeSidecarRoutes .
-func makeSidecarRoutes(serviceInfo *ServiceInfo) []*route.Route {
+func (x *XDSServer) makeSidecarRoutes(serviceInfo *ServiceInfo) []*route.Route {
 	var (
 		routes        []*route.Route
 		matchAllRoute *route.Route
@@ -471,6 +514,7 @@ func makeSidecarRoutes(serviceInfo *ServiceInfo) []*route.Route {
 				buildSidecarRouteMatch(routeMatch, source)
 			}
 		}
+
 		currentRoute := &route.Route{
 			Match: routeMatch,
 			Action: &route.Route_Route{
@@ -481,6 +525,15 @@ func makeSidecarRoutes(serviceInfo *ServiceInfo) []*route.Route {
 				},
 			},
 		}
+		limits, typedPerFilterConfig, err := x.makeSidecarLocalRateLimit(model.ServiceKey{
+			Namespace: serviceInfo.Namespace,
+			Name:      serviceInfo.Name,
+		})
+		if err == nil {
+			currentRoute.TypedPerFilterConfig = typedPerFilterConfig
+			currentRoute.GetRoute().RateLimits = limits
+		}
+
 		if matchAll {
 			matchAllRoute = currentRoute
 		} else {

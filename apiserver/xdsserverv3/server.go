@@ -26,6 +26,9 @@ import (
 
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_extensions_common_ratelimit_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
+	ratelimitv32 "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
+	lrl "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
 	clusterservice "github.com/envoyproxy/go-control-plane/envoy/service/cluster/v3"
 	discoverygrpc "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	endpointservice "github.com/envoyproxy/go-control-plane/envoy/service/endpoint/v3"
@@ -34,6 +37,7 @@ import (
 	runtimeservice "github.com/envoyproxy/go-control-plane/envoy/service/runtime/v3"
 	secretservice "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
 	v32 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	serverv3 "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	_struct "github.com/golang/protobuf/ptypes/struct"
@@ -41,8 +45,10 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"go.uber.org/atomic"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/cache"
@@ -522,4 +528,85 @@ func buildWeightClustersV2(destinations []*traffic_manage.DestinationGroup) *rou
 		TotalWeight: &wrappers.UInt32Value{Value: totalWeight},
 		Clusters:    weightedClusters,
 	}
+}
+
+func buildRateLimitConf() *lrl.LocalRateLimit {
+	rateLimitConf := &lrl.LocalRateLimit{
+		StatPrefix: "http_local_rate_limiter",
+		FilterEnabled: &core.RuntimeFractionalPercent{
+			RuntimeKey: "local_rate_limit_enabled",
+			DefaultValue: &envoy_type_v3.FractionalPercent{
+				Numerator:   uint32(100),
+				Denominator: envoy_type_v3.FractionalPercent_HUNDRED,
+			},
+		},
+		FilterEnforced: &core.RuntimeFractionalPercent{
+			RuntimeKey: "local_rate_limit_enforced",
+			DefaultValue: &envoy_type_v3.FractionalPercent{
+				Numerator:   uint32(100),
+				Denominator: envoy_type_v3.FractionalPercent_HUNDRED,
+			},
+		},
+		ResponseHeadersToAdd: []*core.HeaderValueOption{
+			{
+				Header: &core.HeaderValue{
+					Key:   "x-local-rate-limit",
+					Value: "true",
+				},
+				Append: wrapperspb.Bool(true),
+			},
+		},
+	}
+	return rateLimitConf
+}
+
+func buildLocalRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLimit_Action, []*ratelimitv32.LocalRateLimitDescriptor) {
+	actions := make([]*route.RateLimit_Action, 0, 8)
+	descriptors := make([]*ratelimitv32.LocalRateLimitDescriptor, 0, 8)
+	for _, amount := range rule.Amounts {
+		descriptor := &envoy_extensions_common_ratelimit_v3.LocalRateLimitDescriptor{
+			TokenBucket: &envoy_type_v3.TokenBucket{
+				MaxTokens:    amount.MaxAmount.Value,
+				FillInterval: amount.ValidDuration,
+			},
+		}
+		entries := make([]*envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry, 0, len(rule.Labels))
+		arguments := rule.GetArguments()
+
+		for i := range arguments {
+			arg := arguments[i]
+			switch arg.Type {
+			case apitraffic.MatchArgument_HEADER:
+				headerValueMatch := buildRateLimitActionHeaderValueMatch(arg.Key, arg.Value)
+				actions = append(actions, &route.RateLimit_Action{
+					ActionSpecifier: &route.RateLimit_Action_HeaderValueMatch_{
+						HeaderValueMatch: headerValueMatch,
+					},
+				})
+			case apitraffic.MatchArgument_QUERY:
+				queryParameterValueMatch := buildRateLimitActionQueryParameterValueMatch(arg.Key, arg.Value)
+				actions = append(actions, &route.RateLimit_Action{
+					ActionSpecifier: &route.RateLimit_Action_QueryParameterValueMatch_{
+						QueryParameterValueMatch: queryParameterValueMatch,
+					},
+				})
+			case apitraffic.MatchArgument_METHOD:
+				actions = append(actions, &route.RateLimit_Action{
+					ActionSpecifier: &route.RateLimit_Action_RequestHeaders_{
+						RequestHeaders: &route.RateLimit_Action_RequestHeaders{
+							HeaderName:    ":method",
+							DescriptorKey: arg.Key,
+						},
+					},
+				})
+				entries = append(entries, &envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry{
+					Key:   arg.Key,
+					Value: arg.GetValue().GetValue().GetValue(),
+				})
+			}
+		}
+		descriptor.Entries = entries
+		descriptors = append(descriptors, descriptor)
+	}
+	return actions, descriptors
 }

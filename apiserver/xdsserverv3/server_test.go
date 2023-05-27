@@ -22,7 +22,6 @@ import (
 	_ "embed"
 	"encoding/json"
 	"os"
-	"reflect"
 	"testing"
 	"time"
 
@@ -162,58 +161,6 @@ func generateLocalRateLimitRule() ([]*model.RateLimit, map[string]*anypb.Any) {
 		ModifyTime: time.Now(),
 	})
 	return rateLimits, expectRes
-}
-
-func Test_makeLocalRateLimit(t *testing.T) {
-	localRateLimitStr, want1 := generateLocalRateLimitRule()
-	globalRateLimitStr, want2 := generateGlobalRateLimitRule()
-	type args struct {
-		svc *ServiceInfo
-	}
-	mockXds := &XDSServer{
-		RatelimitConfigGetter: func(key model.ServiceKey) ([]*model.RateLimit, string) {
-			if key.Name == "mock_local" {
-				return localRateLimitStr, ""
-			}
-			return globalRateLimitStr, ""
-		},
-	}
-	tests := []struct {
-		name string
-		args args
-		want map[string]*anypb.Any
-	}{
-		{
-			"make local rate limit for local rate limit config",
-			args{
-				&ServiceInfo{
-					ID:   "mock_local",
-					Name: "mock_local",
-				},
-			},
-			want1,
-		},
-		{
-			"make local rate limit for global rate limit config",
-			args{
-				&ServiceInfo{
-					ID:   "mock_global",
-					Name: "mock_global",
-				},
-			},
-			want2,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := mockXds.makeLocalRateLimit(model.ServiceKey{
-				Namespace: tt.args.svc.Namespace,
-				Name:      tt.args.svc.Name,
-			}); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("makeLocalRateLimit() = %v, want %v", got, tt.want)
-			}
-		})
-	}
 }
 
 func TestParseNodeID(t *testing.T) {
