@@ -23,7 +23,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/polaris-contrib/polaris-server-remote-plugin-common/api"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
