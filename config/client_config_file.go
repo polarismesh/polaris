@@ -61,12 +61,10 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 
 	// 从缓存中获取配置内容
 	entry, err := s.fileCache.GetOrLoadIfAbsent(namespace, group, fileName)
-
 	if err != nil {
 		log.Error("[Config][Service] get or load config file from cache error.",
 			zap.String("requestId", requestID),
 			zap.Error(err))
-
 		return api.NewConfigClientResponseWithMessage(
 			apimodel.Code_ExecuteException, "load config file error")
 	}
@@ -94,41 +92,15 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 		zap.String("file", fileName),
 		zap.Uint64("version", entry.Version))
 
-	// 加密配置返回用公钥加密的数据密钥
-	if entry.DataKey != "" && publicKey != "" {
-		dataKeyBytes, err := base64.StdEncoding.DecodeString(entry.DataKey)
-		if err != nil {
-			log.Error("[Config][Service] base64 decode data key error.",
-				zap.String("requestId", requestID),
-				zap.String("dataKey", entry.DataKey),
-				zap.Error(err))
-		}
-		cipherDataKey, err := rsa.EncryptToBase64(dataKeyBytes, publicKey)
-		if err != nil {
-			log.Error("[Config][Service] rsa encrypt data key error.",
-				zap.String("requestId", requestID),
-				zap.String("dataKey", entry.DataKey),
-				zap.Error(err))
-		}
-		resp := utils2.GenConfigFileResponse(namespace, group, fileName,
-			entry.Content, entry.Md5, entry.Version, true, cipherDataKey)
-		log.Info("[Config][Client] client get config file resp.",
+	configFile, err := transferEntry2APIModel(client, entry)
+	if err != nil {
+		log.Error("[Config][Service] transfer entry to api model error.",
 			zap.String("requestId", requestID),
-			zap.String("file", resp.GetConfigFile().GetFileName().GetValue()),
-			zap.String("dataKey", resp.GetConfigFile().GetDataKey().GetValue()),
-			zap.Bool("isEncrypted", resp.GetConfigFile().GetIsEncrypted().GetValue()))
-		return resp
+			zap.Error(err))
+		return api.NewConfigClientResponseWithMessage(
+			apimodel.Code_ExecuteException, "transfer entry to api model error")
 	}
-	isEntrypted := entry.DataKey != ""
-	resp := utils2.GenConfigFileResponse(namespace, group, fileName,
-		entry.Content, entry.Md5, entry.Version, isEntrypted, "")
-
-	log.Info("[Config][Client] client get config file resp.",
-		zap.String("requestId", requestID),
-		zap.String("file", resp.GetConfigFile().GetFileName().GetValue()),
-		zap.String("dataKey", resp.GetConfigFile().GetDataKey().GetValue()),
-		zap.Bool("isEncrypted", resp.GetConfigFile().GetIsEncrypted().GetValue()))
-	return resp
+	return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, configFile)
 }
 
 // CreateConfigFileFromClient 调用config_file接口获取配置文件
@@ -211,9 +183,65 @@ func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api
 		}
 
 		if compartor(configFile, entry) {
-			return utils2.GenConfigFileResponse(namespace, group, fileName, "", entry.Md5, entry.Version, false, "")
+			return utils2.GenConfigFileResponse(namespace, group, fileName, "", entry.Md5, entry.Version)
 		}
 	}
 
 	return api.NewConfigClientResponse(apimodel.Code_DataNoChange, nil)
+}
+
+func transferEntry2APIModel(client *apiconfig.ClientConfigFileInfo,
+	entry *cache.Entry) (*apiconfig.ClientConfigFileInfo, error) {
+	namespace := client.GetNamespace().GetValue()
+	group := client.GetGroup().GetValue()
+	fileName := client.GetFileName().GetValue()
+	publicKey := client.GetPublicKey().GetValue()
+
+	configFile := &apiconfig.ClientConfigFileInfo{
+		Namespace: utils.NewStringValue(namespace),
+		Group:     utils.NewStringValue(group),
+		FileName:  utils.NewStringValue(fileName),
+		Content:   utils.NewStringValue(entry.Content),
+		Version:   utils.NewUInt64Value(entry.Version),
+		Md5:       utils.NewStringValue(entry.Md5),
+		Encrypted: utils.NewBoolValue(entry.Encrypted()),
+	}
+	for _, tag := range entry.Tags {
+		if tag.Key != utils.ConfigFileTagKeyDataKey && tag.Key != utils.ConfigFileTagKeyEncryptAlgo {
+			configFile.Tags = append(configFile.Tags, &apiconfig.ConfigFileTag{
+				Key:   utils.NewStringValue(tag.Key),
+				Value: utils.NewStringValue(tag.Value),
+			})
+		}
+	}
+
+	dataKey := entry.GetDataKey()
+	encryptAlgo := entry.GetEncryptAlgo()
+	if dataKey != "" && publicKey != "" {
+		dataKeyBytes, err := base64.StdEncoding.DecodeString(dataKey)
+		if err != nil {
+			log.Error("[Config][Service] base64 decode data key error.",
+				zap.String("dataKey", dataKey),
+				zap.Error(err))
+			return nil, err
+		}
+		cipherDataKey, err := rsa.EncryptToBase64(dataKeyBytes, publicKey)
+		if err != nil {
+			log.Error("[Config][Service] rsa encrypt data key error.",
+				zap.String("dataKey", dataKey),
+				zap.Error(err))
+		}
+		configFile.Tags = append(configFile.Tags,
+			&apiconfig.ConfigFileTag{
+				Key:   utils.NewStringValue(utils.ConfigFileTagKeyDataKey),
+				Value: utils.NewStringValue(cipherDataKey),
+			},
+			&apiconfig.ConfigFileTag{
+				Key:   utils.NewStringValue(utils.ConfigFileTagKeyEncryptAlgo),
+				Value: utils.NewStringValue(encryptAlgo),
+			},
+		)
+		return configFile, nil
+	}
+	return configFile, nil
 }

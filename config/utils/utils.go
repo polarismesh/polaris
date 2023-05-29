@@ -97,16 +97,14 @@ func CheckContentLength(content string) error {
 
 // GenConfigFileResponse 为客户端生成响应对象
 func GenConfigFileResponse(namespace, group, fileName, content, md5str string,
-	version uint64, isEncrypted bool, dataKey string) *apiconfig.ConfigClientResponse {
+	version uint64) *apiconfig.ConfigClientResponse {
 	configFile := &apiconfig.ClientConfigFileInfo{
-		Namespace:   utils.NewStringValue(namespace),
-		Group:       utils.NewStringValue(group),
-		FileName:    utils.NewStringValue(fileName),
-		Content:     utils.NewStringValue(content),
-		Version:     utils.NewUInt64Value(version),
-		Md5:         utils.NewStringValue(md5str),
-		IsEncrypted: utils.NewBoolValue(isEncrypted),
-		DataKey:     utils.NewStringValue(dataKey),
+		Namespace: utils.NewStringValue(namespace),
+		Group:     utils.NewStringValue(group),
+		FileName:  utils.NewStringValue(fileName),
+		Content:   utils.NewStringValue(content),
+		Version:   utils.NewUInt64Value(version),
+		Md5:       utils.NewStringValue(md5str),
 	}
 	return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, configFile)
 }

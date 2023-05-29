@@ -68,7 +68,7 @@ func (c *AESCrypto) GenerateKey() ([]byte, error) {
 
 // Encrypt AES encrypt plaintext and base64 encode ciphertext
 func (c *AESCrypto) Encrypt(plaintext string, key []byte) (string, error) {
-	ciphertext, err := c.encrypt([]byte(plaintext), key)
+	ciphertext, err := c.doEncrypt([]byte(plaintext), key)
 	if err != nil {
 		return "", err
 	}
@@ -81,7 +81,7 @@ func (c *AESCrypto) Decrypt(ciphertext string, key []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	plaintext, err := c.decrypt(ciphertextBytes, key)
+	plaintext, err := c.doDecrypt(ciphertextBytes, key)
 	if err != nil {
 		return "", err
 	}
@@ -89,7 +89,7 @@ func (c *AESCrypto) Decrypt(ciphertext string, key []byte) (string, error) {
 }
 
 // Encrypt AES encryption
-func (c *AESCrypto) encrypt(plaintext []byte, key []byte) ([]byte, error) {
+func (c *AESCrypto) doEncrypt(plaintext []byte, key []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func (c *AESCrypto) encrypt(plaintext []byte, key []byte) ([]byte, error) {
 }
 
 // Decrypt AES decryption
-func (c *AESCrypto) decrypt(ciphertext []byte, key []byte) ([]byte, error) {
+func (c *AESCrypto) doDecrypt(ciphertext []byte, key []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err

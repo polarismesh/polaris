@@ -324,7 +324,7 @@ func assembleConfigFile() *apiconfig.ConfigFile {
 
 func assembleEncryptConfigFile() *apiconfig.ConfigFile {
 	configFile := assembleConfigFile()
-	configFile.IsEncrypted = utils.NewBoolValue(true)
+	configFile.Encrypted = utils.NewBoolValue(true)
 	configFile.EncryptAlgo = utils.NewStringValue("AES")
 	return configFile
 }
