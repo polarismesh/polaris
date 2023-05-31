@@ -48,6 +48,7 @@ type InstanceSearchArgs struct {
 }
 
 func (args *InstanceSearchArgs) String() string {
+	//nolint: errchkjson
 	data, _ := json.Marshal(args)
 	return string(data)
 }
