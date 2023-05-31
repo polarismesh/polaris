@@ -53,19 +53,17 @@ Header X-Polaris-Token: {访问凭据}
 请求示例：
 
 ~~~
-POST /maintain/v1/apiserver/conn?protocol=xxx&host=xxx
+POST /maintain/v1/apiserver/conn/close
 Header X-Polaris-Token: {访问凭据}
 Header Content-Type: application/json
-
-[
-    {
-        "protocol": "someProtocol",
-        "host": "someHost",
-        "amount": "someAmount",
-        "port": "port",
-    } 
-]
 ~~~
+
+| 参数名   	| 类型   	| 描述                	 | 是否必填 	|
+|----------	|--------	|--------------------- | ----------	|
+| protocol 	| string 	| 查看指定协议 server 	| 是       	|
+| host     	| string 	| 查看指定host        	| 否       	|
+| amount   	| integer 	| 总量                  | 否       	|
+| port   	| string 	| 实例的端口             | 否       	|
 `
 	enrichFreeOSMemoryApiNotes = `
 请求示例：
@@ -107,6 +105,33 @@ Header Content-Type: application/json
 }
 ~~~
 
+请求参数：
+
+| 参数名              | 类型                | 描述                                                           | 是否必填 |
+| ------------------- | ------------------ | -------------------------------------------------------------- | -------- |
+| service             | string             | 服务名                                                          | 是       |
+| namespace           | string             | 命名空间                                                        | 是       |
+| host                | string             | 实例的IP                                                        | 是       |
+| port                | string             | 实例的端口                                                      | 是       |
+| location            | Location             | 实例位置信息                                                  | 是       |
+| enable_health_check | boolean            | 是否开启健康检查                                                 | 是       |
+| health_check        | HealthCheck        | 健康检查类别具体描述信息(如果enable_health_check==true，必须填写)  | 是       |
+| metadata            | map<string,string> | 实例标签信息，最多只能存储64对 *key-value*                        | 是       |
+
+> Location 参数
+
+| 参数名 | 类型   | 描述 | 是否必填 |
+| ------ | ------ | ---- | -------- |
+| region | string | 地区 | 否       |
+| zone   | string | 地域 | 否       |
+| campus | string | 园区 | 否       |
+
+> HealthCheck 参数
+
+| 参数名    | 类型         | 描述                        | 是否必填 |
+| --------- | ------------ | --------------------------- | -------- |
+| type      | int          | 0(Unknow)/1(Heartbeat)      | 是       |
+| heartbeat | {"ttl": int} | 心跳间隔(范围为区间(0, 60]) | 是       |
 `
 	enrichBatchCleanInstancesApiNotes = `
 请求示例：
@@ -115,18 +140,19 @@ Header Content-Type: application/json
 POST /maintain/v1/instance/batchclean
 Header X-Polaris-Token: {访问凭据}
 Header Content-Type: application/json
-
-{
-    "batch_size": 100
-}
 ~~~
 
+请求参数：
+
+| 参数名              | 类型                | 描述                                       | 是否必填  |
+| ------------------- | ------------------ | ------------------------------------------ | -------- |
+| batch_size          | int                | 清理的数量                                  |    是    |
 `
 	enrichGetLastHeartbeatApiNotes = `
 请求示例：
 
 ~~~
-GET /maintain/v1//instance/heartbeat?id=xxx
+GET /maintain/v1/instance/heartbeat?id=xxx&service=xxx&namespace=xxx&host=xxx&port=xxx&host=xxx&vpc_id=xxx
 Header X-Polaris-Token: {访问凭据}
 ~~~
 
@@ -134,7 +160,7 @@ Header X-Polaris-Token: {访问凭据}
 
 | 参数名              | 类型               | 描述                                       | 是否必填 |
 | ------------------- | ------------------ | ------------------------------------------ | -------- |
-| id                  | string             | 实例id 如果存在id，后面参数可以不填名            | 否       |
+| id                  | string             | 实例id 如果存在id，后面参数可以不填名         | 否       |
 | service             | string             | 服务名                                     | 否       |
 | namespace           | string             | 命名空间                                   | 否       |
 | host                | string             | 实例的IP                                   | 否       |
@@ -170,11 +196,6 @@ Header X-Polaris-Token: {访问凭据}
 ~~~
 POST /maintain/v1/log/outputlevel
 Header X-Polaris-Token: {访问凭据}
-
-{
-    "scope": "apiserver",
-    "level": "info"
-}
 `
 	enrichListLeaderElectionsApiNotes = `
 请求示例：
@@ -204,9 +225,5 @@ Header X-Polaris-Token: {访问凭据}
 ~~~
 POST /maintain/v1/leaders/release
 Header X-Polaris-Token: {访问凭据}
-
-{
-    "ElectKey": "polaris.checker"
-}
 `
 )

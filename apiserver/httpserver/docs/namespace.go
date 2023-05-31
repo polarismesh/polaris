@@ -29,7 +29,7 @@ const (
  请求示例：
  
  ~~~
- GET /{core|naming}/v1/namespaces?name=&offset=&limit=
+ GET /{core|naming}/v1/namespaces?name=xxx&offset=xxx&limit=xxx
  
  # 开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header
  Header X-Polaris-Token: {访问凭据}
@@ -81,7 +81,11 @@ const (
  [
      {
          "name": "...",
-         "comment": "..."
+         "comment": "...",
+         "user_ids": [...],
+         "group_ids": [...],
+         "remove_user_ids": [...],
+         "remove_group_ids": [...],
      }
  ]
  ~~~
@@ -127,7 +131,12 @@ const (
  [
      {
          "name": "...",
-         "comment": "..."
+         "comment": "...",
+         "token": "...",
+         "user_ids": [...],
+         "group_ids": [...],
+         "remove_user_ids": [...],
+         "remove_group_ids": [...],
      }
  ]
  ~~~
@@ -145,7 +154,7 @@ const (
  | 参数名 | 类型   | 描述                          | 是否必填 |
  | ------ | ------ | ----------------------------- | -------- |
  | name   | string | 命名空间唯一名称              | 是       |
- | token  | string | 命名空间的token，用于权限鉴定 | 是       |
+ | token  | string | 命名空间的token，用于权限鉴定  | 是       |
  
  请求示例：
  
@@ -158,6 +167,7 @@ const (
  [
      {
          "name": "...",
+         "token": "..."
      }
  ]
  ~~~

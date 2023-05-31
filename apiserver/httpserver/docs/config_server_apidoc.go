@@ -157,8 +157,8 @@ func EnrichExportConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 	return r.
 		Doc("导出配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Reads(apiconfig.ConfigFileExportRequest{}, "```[\n     {\n         \"namespace\":\"someNamespace\",\n "+
-			"        \"groups\":[\"someGroups\"]\n     \"names\":[\"application.properties\"],\n         }\n]\n```")
+		Reads(apiconfig.ConfigFileExportRequest{}, "```\n[\n     {\n         \"namespace\":\"someNamespace\",\n "+
+			"        \"groups\":[\"someGroups\"]\n         \"names\":[\"application.properties\"]\n      }\n]\n```")
 }
 
 func EnrichImportConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -173,12 +173,6 @@ func EnrichImportConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Reads(apiconfig.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader"+
 			" X-Polaris-Token: {访问凭据}\n```[\n     {\n         \"name\":\"application.properties\",\n "+
 			"       \"namespace\":\"someNamespace\",\n         \"group\":\"someGroup\"\n     }\n]\n```")
-}
-
-func EnrichGetAllConfigEncryptAlgorithmsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.
-		Doc("获取配置加密算法").
-		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags)
 }
 
 func EnrichPublishConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -240,5 +234,6 @@ func EnrichWatchConfigFileForClientApiDocs(r *restful.RouteBuilder) *restful.Rou
 	return r.
 		Doc("监听配置").
 		Metadata(restfulspec.KeyOpenAPITags, configClientApiTags).
-		Reads(apiconfig.ClientWatchConfigFileRequest{}, "通过 Http LongPolling 机制订阅配置变更。")
+		Reads(apiconfig.ClientWatchConfigFileRequest{}, "通过 Http LongPolling 机制订阅配置变更。").
+		Notes(enrichWatchConfigFileNotes)
 }

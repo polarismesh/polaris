@@ -52,7 +52,7 @@ Header X-Polaris-Token: {访问凭据}
 
 ~~~json
 {
-  "name": "xxx",
+  "name": "xxx", // 策略名称
   "comment": "xxx",
   "principals": {
     "users": [
@@ -107,7 +107,7 @@ Header X-Polaris-Token: {访问凭据}
 ~~~json
 [
     {
-        "id": "xxx",
+        "id": "xxx", // 策略ID
         "comment": "xxx",
         "add_principals": {
             "users": [{
@@ -363,7 +363,7 @@ Header X-Polaris-Token: {访问凭据}
 ~~~json
 [
     {
-        "id": "xxx"
+        "id": "xxx" // 策略ID
     }
 ]
 ~~~
@@ -943,7 +943,7 @@ Header X-Polaris-Token: {访问凭据}
 ~~~json
 [
 	{
-		"id": "xxx"
+		"id": "xxx" // 用户组ID
 	}
 ]
 ~~~
@@ -974,8 +974,8 @@ Header X-Polaris-Token: {访问凭据}
 
 ~~~json
 {
-	"id": "xxx",
-	"token_enable": false
+	"id": "xxx", // 用户ID
+	"token_enable": false // 当前Token可用状态, true为启用, false为禁用
 }
 ~~~
 
@@ -999,7 +999,7 @@ Header X-Polaris-Token: {访问凭据}
 
 ~~~json
 {
-	"id": "xxx"
+	"id": "xxx" // 用户ID
 }
 ~~~
 

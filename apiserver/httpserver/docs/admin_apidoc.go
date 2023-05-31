@@ -75,6 +75,7 @@ func EnrichBatchCleanInstancesApiDocs(r *restful.RouteBuilder) *restful.RouteBui
 	return r.
 		Doc("彻底清理flag=1的实例").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
+		Reads(apiservice.Instance{}).
 		Notes(enrichBatchCleanInstancesApiNotes)
 }
 
