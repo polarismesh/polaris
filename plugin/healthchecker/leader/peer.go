@@ -178,7 +178,7 @@ func (p *RemotePeer) Serve(_ context.Context, checker *LeaderHealthChecker,
 		p.conns = append(p.conns, conn)
 	}
 	for i := 0; i < streamNum; i++ {
-		client := apiservice.NewPolarisGRPCClient(p.conns[i])
+		client := apiservice.NewPolarisHeartbeatGRPCClient(p.conns[i])
 		puter, err := client.BatchHeartbeat(ctx, grpc.Header(&metadata.MD{
 			sendResource: []string{utils.LocalHost},
 		}))
@@ -291,9 +291,9 @@ func (p *RemotePeer) DelFunc(req *apiservice.DelHeartbeatsRequest) {
 	}
 }
 
-func (p *RemotePeer) choseOneClient() apiservice.PolarisGRPCClient {
+func (p *RemotePeer) choseOneClient() apiservice.PolarisHeartbeatGRPCClient {
 	index := rand.Intn(len(p.conns))
-	return apiservice.NewPolarisGRPCClient(p.conns[index])
+	return apiservice.NewPolarisHeartbeatGRPCClient(p.conns[index])
 }
 
 func (p *RemotePeer) Storage() BeatRecordCache {
@@ -341,7 +341,7 @@ type PeerReadTask struct {
 
 type beatSender struct {
 	lock   sync.RWMutex
-	sender apiservice.PolarisGRPC_BatchHeartbeatClient
+	sender apiservice.PolarisHeartbeatGRPC_BatchHeartbeatClient
 }
 
 func (s *beatSender) Send(req *apiservice.HeartbeatsRequest) error {

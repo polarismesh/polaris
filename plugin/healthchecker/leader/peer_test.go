@@ -361,7 +361,7 @@ func (ms *MockPolarisGRPCServer) Heartbeat(context.Context,
 }
 
 // BatchHeartbeat 批量上报心跳
-func (ms *MockPolarisGRPCServer) BatchHeartbeat(svr service_manage.PolarisGRPC_BatchHeartbeatServer) error {
+func (ms *MockPolarisGRPCServer) BatchHeartbeat(svr service_manage.PolarisHeartbeatGRPC_BatchHeartbeatServer) error {
 	for {
 		req, err := svr.Recv()
 		if err != nil {

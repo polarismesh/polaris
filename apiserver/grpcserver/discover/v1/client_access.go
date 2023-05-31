@@ -157,7 +157,7 @@ func (g *DiscoverServer) Heartbeat(ctx context.Context, in *apiservice.Instance)
 }
 
 // BatchHeartbeat 批量上报心跳
-func (g *DiscoverServer) BatchHeartbeat(svr apiservice.PolarisGRPC_BatchHeartbeatServer) error {
+func (g *DiscoverServer) BatchHeartbeat(svr apiservice.PolarisHeartbeatGRPC_BatchHeartbeatServer) error {
 	ctx := grpcserver.ConvertContext(svr.Context())
 
 	for {
