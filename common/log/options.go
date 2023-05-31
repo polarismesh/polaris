@@ -128,6 +128,7 @@ type Options struct {
 	// RotationMaxDurationForHour
 	RotationMaxDurationForHour int `yaml:"rotationMaxDurationForHour"`
 
+	Compress         bool   `yaml:"compress"`
 	OutputLevel      string `yaml:"outputLevel"`
 	StackTraceLevel  string `yaml:"stackTraceLevel"`
 	DisableLogCaller bool   `yaml:"disableLogCaller"`

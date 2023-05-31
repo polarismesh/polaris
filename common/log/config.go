@@ -100,6 +100,7 @@ func prepZap(options *Options) ([]zapcore.Core, zapcore.Core, zapcore.WriteSynce
 			MaxSize:    options.RotationMaxSize,
 			MaxBackups: options.RotationMaxBackups,
 			MaxAge:     options.RotationMaxAge,
+			Compress:   options.Compress,
 		}
 		rotateSink = zapcore.AddSync(l)
 	}
