@@ -156,8 +156,8 @@
 401002 = "鉴权token为空" #EmptyAutToken
 401003 = "token已被禁用" #TokenDisabled
 401004 = "token不存在" #TokenNotExisted
-403001 = "ip达到服务端限制" #IPRateLimit
-403002 = "api达到服务端限制" #APIRateLimit
+403001 = "token验证异常" #AuthTokenVerifyException
+403002 = "角色操作异常" #OperationRoleException
 404001 = "无法找到主机的cmdb" #CMDBNotFindHost
 409000 = "数据有冲突, 请再次重试" #DataConflict
 429001 = "你的实例请求过多" #InstanceTooManyRequests
@@ -169,5 +169,3 @@
 500006 = "解析熔断规则失败" #ParseCircuitBreakerException
 500007 = "心跳异常" #HeartbeatException
 500008 = "实例异步注册超时" #InstanceRegisTimeout
-500100 = "token验证异常" #AuthTokenVerifyException
-500101 = "角色操作异常" #OperationRoleException
