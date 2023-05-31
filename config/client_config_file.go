@@ -52,11 +52,8 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 
 	requestID := utils.ParseRequestID(ctx)
 
-	log.Info("[Config][Service] load config file from cache.",
-		utils.ZapRequestID(requestID),
-		utils.ZapNamespace(namespace),
-		utils.ZapGroup(group),
-		utils.ZapFileName(fileName),
+	log.Info("[Config][Service] load config file from cache.", utils.ZapRequestID(requestID),
+		utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName),
 		zap.String("publicKey", publicKey))
 
 	// 从缓存中获取配置内容

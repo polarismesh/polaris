@@ -69,8 +69,8 @@ func (s *Server) CreateConfigFile(ctx context.Context, configFile *apiconfig.Con
 	}
 
 	// 配置加密
-	if configFile.Encrypted.GetValue() && configFile.EncryptAlgo.GetValue() != "" {
-		if err := s.encryptConfigFile(ctx, configFile, configFile.EncryptAlgo.GetValue(), ""); err != nil {
+	if configFile.GetEncrypted().GetValue() && configFile.GetEncryptAlgo().GetValue() != "" {
+		if err := s.encryptConfigFile(ctx, configFile, configFile.GetEncryptAlgo().GetValue(), ""); err != nil {
 			log.Error("[Config][Service] encrypt config file error.",
 				utils.ZapRequestID(requestID),
 				utils.ZapNamespace(namespace),
@@ -79,6 +79,9 @@ func (s *Server) CreateConfigFile(ctx context.Context, configFile *apiconfig.Con
 				zap.Error(err))
 			return api.NewConfigFileResponse(apimodel.Code_EncryptConfigFileException, configFile)
 		}
+	} else {
+		// 删除原来的配置加密元数据信息
+		s.cleanEncryptConfigFileInfo(ctx, configFile)
 	}
 
 	fileStoreModel := transferConfigFileAPIModel2StoreModel(configFile)
@@ -112,19 +115,6 @@ func (s *Server) CreateConfigFile(ctx context.Context, configFile *apiconfig.Con
 	s.RecordHistory(ctx, configFileRecordEntry(ctx, configFile, model.OCreate))
 
 	retConfigFile := transferConfigFileStoreModel2APIModel(createdFile)
-
-	if configFile.Encrypted.GetValue() && configFile.EncryptAlgo.GetValue() != "" {
-		if err := s.decryptConfigFile(ctx, retConfigFile); err != nil {
-			log.Error("[Config][Service] decrypt config file error.",
-				utils.ZapRequestID(requestID),
-				utils.ZapNamespace(namespace),
-				utils.ZapGroup(group),
-				utils.ZapFileName(name),
-				zap.Error(err))
-			return api.NewConfigFileResponse(apimodel.Code_DecryptConfigFileException, retConfigFile)
-		}
-	}
-
 	return api.NewConfigFileResponse(apimodel.Code_ExecuteSuccess, retConfigFile)
 }
 
@@ -188,7 +178,7 @@ func (s *Server) GetConfigFileBaseInfo(ctx context.Context, namespace, group, na
 
 	retConfigFile := transferConfigFileStoreModel2APIModel(file)
 	if err := s.decryptConfigFile(ctx, retConfigFile); err != nil {
-		log.Error("[Config][Service] decrypt config file error.",
+		log.Error("[Config][Service] decrypt config file error in get_file_baseinfo.",
 			utils.ZapRequestIDByCtx(ctx),
 			utils.ZapNamespace(namespace),
 			utils.ZapGroup(group),
@@ -223,7 +213,7 @@ func (s *Server) GetConfigFileRichInfo(ctx context.Context, namespace, group, na
 	}
 
 	if err := s.decryptConfigFile(ctx, configFileBaseInfo); err != nil {
-		log.Error("[Config][Service] decrypt config file error.",
+		log.Error("[Config][Service] decrypt config file error in get_file_richinfo.",
 			utils.ZapRequestIDByCtx(ctx),
 			utils.ZapNamespace(namespace),
 			utils.ZapGroup(group),
@@ -271,12 +261,11 @@ func (s *Server) QueryConfigFilesByGroup(ctx context.Context, namespace, group s
 		if err != nil {
 			return api.NewConfigFileBatchQueryResponse(commonstore.StoreCode2APICode(err), 0, nil)
 		}
-		log.Error("[Config][Service] decrypt config file error.", zap.String("file", file.Name))
 		fileAPIModels = append(fileAPIModels, baseFile)
 	}
 
 	if err := s.decryptMultiConfigFile(ctx, fileAPIModels); err != nil {
-		log.Error("[Config][Service] decrypt config file error.",
+		log.Error("[Config][Service] decrypt config file error in query by group.",
 			utils.ZapRequestIDByCtx(ctx),
 			utils.ZapNamespace(namespace),
 			utils.ZapGroup(group),
@@ -332,7 +321,7 @@ func (s *Server) SearchConfigFile(ctx context.Context, namespace, group, name, t
 	}
 
 	if err := s.decryptMultiConfigFile(ctx, enrichedFiles); err != nil {
-		log.Error("[Config][Service] decrypt config file error.",
+		log.Error("[Config][Service] decrypt config file error in search file.",
 			utils.ZapRequestIDByCtx(ctx),
 			utils.ZapNamespace(namespace),
 			utils.ZapGroup(group),
@@ -374,7 +363,7 @@ func (s *Server) queryConfigFileWithoutTags(ctx context.Context, namespace, grou
 	}
 
 	if err := s.decryptMultiConfigFile(ctx, fileAPIModels); err != nil {
-		log.Error("[Config][Service] decrypt config file error.",
+		log.Error("[Config][Service] decrypt config file error in queryConfigFileWithoutTags.",
 			utils.ZapRequestIDByCtx(ctx),
 			utils.ZapNamespace(namespace),
 			utils.ZapGroup(group),
@@ -468,15 +457,6 @@ func (s *Server) UpdateConfigFile(ctx context.Context, configFile *apiconfig.Con
 			utils.ZapFileName(name),
 			zap.Error(err))
 		return api.NewConfigFileResponse(apimodel.Code_StoreLayerException, configFile)
-	}
-
-	if err := s.decryptConfigFile(ctx, baseFile); err != nil {
-		log.Error("[Config][Service] decrypt config file error.",
-			utils.ZapRequestIDByCtx(ctx),
-			utils.ZapNamespace(namespace),
-			utils.ZapGroup(group),
-			zap.Error(err))
-		return api.NewConfigFileResponse(apimodel.Code_DecryptConfigFileException, configFile)
 	}
 
 	s.RecordHistory(ctx, configFileRecordEntry(ctx, configFile, model.OUpdate))
@@ -988,6 +968,17 @@ func (s *Server) fillReleaseAndTags(ctx context.Context, file *apiconfig.ConfigF
 	}
 
 	file.Tags = tags
+	file.Encrypted = utils.NewBoolValue(false)
+	for i := range tags {
+		tag := tags[i]
+		if tag.GetKey().GetValue() == utils.ConfigFileTagKeyUseEncrypted && tag.GetValue().GetValue() == "true" {
+			file.Encrypted = utils.NewBoolValue(true)
+		}
+		if tag.GetKey().GetValue() == utils.ConfigFileTagKeyEncryptAlgo {
+			file.EncryptAlgo = utils.NewStringValue(tag.GetValue().GetValue())
+		}
+	}
+
 	return file, nil
 }
 
@@ -1009,6 +1000,22 @@ func configFileRecordEntry(ctx context.Context, req *apiconfig.ConfigFile,
 	}
 
 	return entry
+}
+
+// cleanEncryptConfigFileInfo 清理配置加密文件的内容信息
+func (s *Server) cleanEncryptConfigFileInfo(ctx context.Context, configFile *apiconfig.ConfigFile) {
+
+	newTags := make([]*apiconfig.ConfigFileTag, 0, 4)
+	for i := range configFile.Tags {
+		tag := configFile.Tags[i]
+		keyName := tag.GetKey().GetValue()
+		if keyName == utils.ConfigFileTagKeyDataKey || keyName == utils.ConfigFileTagKeyEncryptAlgo ||
+			keyName == utils.ConfigFileTagKeyUseEncrypted {
+			continue
+		}
+		newTags = append(newTags, tag)
+	}
+	configFile.Tags = newTags
 }
 
 // encryptConfigFile 加密配置文件
@@ -1048,6 +1055,10 @@ func (s *Server) encryptConfigFile(ctx context.Context,
 		{
 			Key:   utils.NewStringValue(utils.ConfigFileTagKeyEncryptAlgo),
 			Value: utils.NewStringValue(algorithm),
+		},
+		{
+			Key:   utils.NewStringValue(utils.ConfigFileTagKeyUseEncrypted),
+			Value: utils.NewStringValue("true"),
 		},
 	}
 	configFile.Tags = append(configFile.Tags, tags...)
