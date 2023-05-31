@@ -18,6 +18,7 @@
 package docs
 
 const (
+	//nolint: lll
 	enrichWatchConfigFileNotes = `
 请求示例
 
@@ -30,11 +31,11 @@ Header X-Polaris-Token: {访问凭据}
 
 请求参数：
 
-| 参数名              | 类型                | 描述                                                                | 是否必填 |
-| ------------------- | ------------------ | ------------------------------------------------------------------- | -------- |
-| client_ip           | string             | 客户端IP                                                             | 是       |
-| service_name        | string             | 服务名                                                               | 是       |
-| watch_files         | WatchFiles         | 监听的配置文件名                                                      | 是       |
+| 参数名              | 类型                | 描述                                                           | 是否必填 |
+| ------------------- | ------------------ | -------------------------------------------------------------- | -------- |
+| client_ip           | string             | 客户端IP                                                        | 是       |
+| service_name        | string             | 服务名                                                          | 是       |
+| watch_files         | WatchFiles         | 监听的配置文件                                                   | 是       |
 
 > WatchFiles 参数
 
