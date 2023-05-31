@@ -26,7 +26,7 @@ for GOARCH in ${arch_list[@]}; do
     wget -T10 -t3 ${POLARIS_GIT_PATH}/polaris-limiter/releases/download/${LIMITER_VERSION}/${LIMITER_PKG_NAME} --no-check-certificate
 
     wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${GOOS}-${GOARCH}.tar.gz --no-check-certificate
-    wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.4.1/pushgateway-1.4.1.${GOOS}-${GOARCH}.tar.gz --no-check-certificate
+    wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.6.0/pushgateway-1.6.0.${GOOS}-${GOARCH}.tar.gz --no-check-certificate
 
     platforms+="${GOOS}/${GOARCH},"
 done

@@ -230,7 +230,9 @@ function installPrometheus() {
     echo "    - targets: ['localhost:9091']" >>prometheus.yml
     echo "    honor_labels: true" >>prometheus.yml
   fi
-  mv prometheus polaris-prometheus
+  if [ ! -e polaris-prometheus ]; then
+    mv prometheus polaris-prometheus
+  fi
   chmod +x polaris-prometheus
   # nohup ./polaris-prometheus --web.enable-lifecycle --web.enable-admin-api --web.listen-address=:${prometheus_port} >>prometheus.out 2>&1 &
   bash prometheus-help.sh start ${prometheus_port}
@@ -254,14 +256,17 @@ function installPushGateway() {
 
   local target_pgw_pkg=$(find . -name "pushgateway-*.tar.gz")
   local pgw_dirname=$(basename ${target_pgw_pkg} .tar.gz)
-  if [ -e ${pgw_dirname} ]; then
-    echo -e "${pgw_dirname} has exists, now remove it"
-    rm -rf ${pgw_dirname}
+  if [ ! -e ${pgw_dirname} ]; then
+    tar -xf ${target_pgw_pkg} >/dev/null
+  else
+    echo -e "pushgateway has been decompressed, skip."
   fi
-  tar -xf ${target_pgw_pkg} >/dev/null
 
   pushd ${pgw_dirname}
-  mv pushgateway polaris-pushgateway
+  if [ ! -e polaris-pushgateway ]; then
+    mv pushgateway polaris-pushgateway
+  fi
+
   chmod +x polaris-pushgateway
   nohup ./polaris-pushgateway --web.enable-lifecycle --web.enable-admin-api --web.listen-address=:${pushgateway_port} >>pgw.out 2>&1 &
   echo "install polaris-pushgateway success"
@@ -299,7 +304,7 @@ function installPolarisLimiter() {
   # 备份 polaris-limiter.yaml
   cp polaris-limiter.yaml polaris-limiter.yaml.bak
 
- # 修改 polaris-server grpc 端口信息
+  # 修改 polaris-server grpc 端口信息
   sed -i "" "s/polaris-server-address: 127.0.0.1:8091/polaris-server-address: 127.0.0.1:${service_grpc_port}/g" polaris-limiter.yaml
   # 修改监听的 polaris-limiter http 端口信息
   sed -i "" "s/port: 8100/port: ${limiter_http_port}/g" polaris-limiter.yaml

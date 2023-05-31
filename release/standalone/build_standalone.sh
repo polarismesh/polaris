@@ -93,7 +93,7 @@ else
     
     if [ ${INNER_GOOS} == "windows" ]; then
         wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${INNER_GOOS}-${INNER_GOARCH}.zip --no-check-certificate
-        wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.4.1/pushgateway-1.4.1.${INNER_GOOS}-${INNER_GOARCH}.zip --no-check-certificate
+        wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.6.0/pushgateway-1.6.0.${INNER_GOOS}-${INNER_GOARCH}.zip --no-check-certificate
         mv ../${INNER_GOOS}/install.bat ./install.bat
         mv ../${INNER_GOOS}/install-windows.ps1 ./install-windows.ps1
         mv ../${INNER_GOOS}/uninstall.bat ./uninstall.bat
@@ -101,7 +101,7 @@ else
         mv ../port.properties ./port.properties
     else
         wget -T10 -t3 https://github.com/prometheus/prometheus/releases/download/v2.28.0/prometheus-2.28.0.${INNER_GOOS}-${INNER_GOARCH}.tar.gz --no-check-certificate
-        wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.4.1/pushgateway-1.4.1.${INNER_GOOS}-${INNER_GOARCH}.tar.gz --no-check-certificate
+        wget -T10 -t3 https://github.com/prometheus/pushgateway/releases/download/v1.6.0/pushgateway-1.6.0.${INNER_GOOS}-${INNER_GOARCH}.tar.gz --no-check-certificate
         mv ../${INNER_GOOS}/install.sh ./install.sh
         mv ../${INNER_GOOS}/uninstall.sh ./uninstall.sh
         mv ../port.properties ./port.properties
