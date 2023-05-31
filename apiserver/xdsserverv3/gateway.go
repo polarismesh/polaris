@@ -28,6 +28,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	resource "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
@@ -149,6 +150,7 @@ func (x *XDSServer) makeGatewayRoutes(namespace string, xdsNode *XDSClient) []*r
 				matchNamespace    bool
 				findGatewaySource bool
 			)
+
 			for _, dest := range subRule.GetDestinations() {
 				if dest.Namespace == namespace && dest.Service != utils.MatchAll {
 					matchNamespace = true
@@ -184,7 +186,7 @@ func (x *XDSServer) makeGatewayRoutes(namespace string, xdsNode *XDSClient) []*r
 				},
 			}
 
-			pathInfo := route.GetMatch().GetPathSeparatedPrefix()
+			pathInfo := route.GetMatch().GetPath()
 			if pathInfo == "" {
 				pathInfo = route.GetMatch().GetSafeRegex().GetRegex()
 			}
@@ -225,11 +227,15 @@ func buildGatewayRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage
 		argument := source.GetArguments()[i]
 		if argument.Type == traffic_manage.SourceMatch_PATH {
 			if argument.Value.Type == apimodel.MatchString_EXACT {
-				routeMatch.PathSpecifier = &route.RouteMatch_PathSeparatedPrefix{
-					PathSeparatedPrefix: argument.GetValue().GetValue().GetValue()}
+				routeMatch.PathSpecifier = &route.RouteMatch_Path{
+					Path: argument.GetValue().GetValue().GetValue(),
+				}
 			} else if argument.Value.Type == apimodel.MatchString_REGEX {
-				routeMatch.PathSpecifier = &route.RouteMatch_SafeRegex{SafeRegex: &v32.RegexMatcher{
-					Regex: argument.GetValue().GetValue().GetValue()}}
+				routeMatch.PathSpecifier = &route.RouteMatch_SafeRegex{
+					SafeRegex: &v32.RegexMatcher{
+						Regex: argument.GetValue().GetValue().GetValue(),
+					},
+				}
 			}
 		}
 	}
@@ -264,7 +270,7 @@ func (x *XDSServer) makeGatewayLocalRateLimit(pathSpecifier string, svcKey model
 	if conf == nil {
 		return nil, nil, nil
 	}
-	rateLimitConf := buildRateLimitConf()
+	rateLimitConf := buildRateLimitConf(fmt.Sprintf("gateway_%s_%s_%s", svcKey.Namespace, svcKey.Name, pathSpecifier))
 	filters := make(map[string]*anypb.Any)
 	ratelimits := make([]*route.RateLimit, 0, len(conf))
 	for _, c := range conf {
@@ -280,21 +286,19 @@ func (x *XDSServer) makeGatewayLocalRateLimit(pathSpecifier string, svcKey model
 			continue
 		}
 		actions, descriptors := buildLocalRateLimitDescriptors(rule)
-		headerValueMatch := buildRateLimitActionHeaderValueMatch(":path", rule.GetMethod())
-		actions = append(actions, &route.RateLimit_Action{
-			ActionSpecifier: &route.RateLimit_Action_HeaderValueMatch_{
-				HeaderValueMatch: headerValueMatch,
-			},
-		})
 		rateLimitConf.Descriptors = descriptors
-		if rule.AmountMode == apitraffic.Rule_GLOBAL_TOTAL {
-			rateLimitConf.LocalRateLimitPerDownstreamConnection = true
-		}
 		ratelimits = append(ratelimits, &route.RateLimit{
 			Actions: actions,
 		})
 		break
 	}
-
+	if len(ratelimits) == 0 {
+		return nil, nil, nil
+	}
+	pbst, err := ptypes.MarshalAny(rateLimitConf)
+	if err != nil {
+		return nil, nil, err
+	}
+	filters["envoy.filters.http.local_ratelimit"] = pbst
 	return ratelimits, filters, nil
 }

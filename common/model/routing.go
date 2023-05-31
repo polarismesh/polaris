@@ -314,6 +314,15 @@ func parseSubRouteRule(ruleRouting *apitraffic.RuleRoutingConfig) {
 			subRule,
 		}
 	} else {
+		for i := range ruleRouting.Rules {
+			subRule := ruleRouting.Rules[i]
+			if len(subRule.Sources) == 0 {
+				subRule.Sources = ruleRouting.GetSources()
+			}
+			if len(subRule.Destinations) == 0 {
+				subRule.Destinations = ruleRouting.GetDestinations()
+			}
+		}
 		// Abandon the value of the old field
 		ruleRouting.Destinations = nil
 		ruleRouting.Sources = nil

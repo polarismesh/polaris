@@ -20,6 +20,7 @@ package xdsserverv3
 import (
 	"context"
 	"fmt"
+	"math"
 	"net"
 	"strings"
 	"time"
@@ -38,6 +39,7 @@ import (
 	secretservice "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
 	v32 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
+	typev3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	serverv3 "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	_struct "github.com/golang/protobuf/ptypes/struct"
@@ -48,6 +50,7 @@ import (
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"go.uber.org/atomic"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/apiserver"
@@ -502,16 +505,23 @@ func buildWeightClustersV2(destinations []*traffic_manage.DestinationGroup) *rou
 
 	// 使用 destinations 生成 weightedClusters。makeClusters() 也使用这个字段生成对应的 subset
 	for _, destination := range destinations {
+		if destination.GetWeight() == 0 {
+			continue
+		}
 		fields := make(map[string]*_struct.Value)
 		for k, v := range destination.GetLabels() {
+			if k == utils.MatchAll && v.GetValue().GetValue() == utils.MatchAll {
+				// 重置 cluster 的匹配规则
+				fields = make(map[string]*_struct.Value)
+				break
+			}
 			fields[k] = &_struct.Value{
 				Kind: &_struct.Value_StringValue{
 					StringValue: v.Value.Value,
 				},
 			}
 		}
-
-		weightedClusters = append(weightedClusters, &route.WeightedCluster_ClusterWeight{
+		cluster := &route.WeightedCluster_ClusterWeight{
 			Name:   destination.Service,
 			Weight: utils.NewUInt32Value(destination.GetWeight()),
 			MetadataMatch: &core.Metadata{
@@ -521,7 +531,11 @@ func buildWeightClustersV2(destinations []*traffic_manage.DestinationGroup) *rou
 					},
 				},
 			},
-		})
+		}
+		if len(fields) == 0 {
+			cluster.MetadataMatch = nil
+		}
+		weightedClusters = append(weightedClusters, cluster)
 		totalWeight += destination.Weight
 	}
 	return &route.WeightedCluster{
@@ -530,18 +544,25 @@ func buildWeightClustersV2(destinations []*traffic_manage.DestinationGroup) *rou
 	}
 }
 
-func buildRateLimitConf() *lrl.LocalRateLimit {
+func buildRateLimitConf(prefix string) *lrl.LocalRateLimit {
 	rateLimitConf := &lrl.LocalRateLimit{
-		StatPrefix: "http_local_rate_limiter",
+		StatPrefix: prefix,
+		// 默认全局限流没限制，由于 envoy 这里必须设置一个 TokenBucket，因此这里只能设置一个认为不可能达到的一个 TPS 进行实现不限流
+		// TPS = 4294967295/s
+		TokenBucket: &typev3.TokenBucket{
+			MaxTokens:     math.MaxUint32,
+			TokensPerFill: wrapperspb.UInt32(math.MaxUint32),
+			FillInterval:  durationpb.New(time.Second),
+		},
 		FilterEnabled: &core.RuntimeFractionalPercent{
-			RuntimeKey: "local_rate_limit_enabled",
+			RuntimeKey: prefix + "_local_rate_limit_enabled",
 			DefaultValue: &envoy_type_v3.FractionalPercent{
 				Numerator:   uint32(100),
 				Denominator: envoy_type_v3.FractionalPercent_HUNDRED,
 			},
 		},
 		FilterEnforced: &core.RuntimeFractionalPercent{
-			RuntimeKey: "local_rate_limit_enforced",
+			RuntimeKey: prefix + "_local_rate_limit_enforced",
 			DefaultValue: &envoy_type_v3.FractionalPercent{
 				Numerator:   uint32(100),
 				Denominator: envoy_type_v3.FractionalPercent_HUNDRED,
@@ -553,24 +574,38 @@ func buildRateLimitConf() *lrl.LocalRateLimit {
 					Key:   "x-local-rate-limit",
 					Value: "true",
 				},
-				Append: wrapperspb.Bool(true),
+				Append: wrapperspb.Bool(false),
 			},
 		},
+		LocalRateLimitPerDownstreamConnection: true,
 	}
 	return rateLimitConf
 }
 
-func buildLocalRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLimit_Action, []*ratelimitv32.LocalRateLimitDescriptor) {
+func buildLocalRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLimit_Action,
+	[]*ratelimitv32.LocalRateLimitDescriptor) {
 	actions := make([]*route.RateLimit_Action, 0, 8)
 	descriptors := make([]*ratelimitv32.LocalRateLimitDescriptor, 0, 8)
 	for _, amount := range rule.Amounts {
 		descriptor := &envoy_extensions_common_ratelimit_v3.LocalRateLimitDescriptor{
 			TokenBucket: &envoy_type_v3.TokenBucket{
-				MaxTokens:    amount.MaxAmount.Value,
-				FillInterval: amount.ValidDuration,
+				MaxTokens:     amount.GetMaxAmount().GetValue(),
+				TokensPerFill: wrapperspb.UInt32(amount.GetMaxAmount().GetValue()),
+				FillInterval:  amount.GetValidDuration(),
 			},
 		}
 		entries := make([]*envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry, 0, len(rule.Labels))
+		if len(rule.GetMethod().GetValue().GetValue()) != 0 {
+			actions = append(actions, &route.RateLimit_Action{
+				ActionSpecifier: &route.RateLimit_Action_HeaderValueMatch_{
+					HeaderValueMatch: buildRateLimitActionHeaderValueMatch(":path", rule.GetMethod()),
+				},
+			})
+			entries = append(entries, &ratelimitv32.RateLimitDescriptor_Entry{
+				Key:   "header_match",
+				Value: rule.GetMethod().GetValue().GetValue(),
+			})
+		}
 		arguments := rule.GetArguments()
 
 		for i := range arguments {
@@ -583,12 +618,20 @@ func buildLocalRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLim
 						HeaderValueMatch: headerValueMatch,
 					},
 				})
+				entries = append(entries, &ratelimitv32.RateLimitDescriptor_Entry{
+					Key:   "header_match",
+					Value: arg.GetValue().GetValue().GetValue(),
+				})
 			case apitraffic.MatchArgument_QUERY:
 				queryParameterValueMatch := buildRateLimitActionQueryParameterValueMatch(arg.Key, arg.Value)
 				actions = append(actions, &route.RateLimit_Action{
 					ActionSpecifier: &route.RateLimit_Action_QueryParameterValueMatch_{
 						QueryParameterValueMatch: queryParameterValueMatch,
 					},
+				})
+				entries = append(entries, &ratelimitv32.RateLimitDescriptor_Entry{
+					Key:   "query_match",
+					Value: arg.GetValue().GetValue().GetValue(),
 				})
 			case apitraffic.MatchArgument_METHOD:
 				actions = append(actions, &route.RateLimit_Action{
@@ -602,6 +645,12 @@ func buildLocalRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLim
 				entries = append(entries, &envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry{
 					Key:   arg.Key,
 					Value: arg.GetValue().GetValue().GetValue(),
+				})
+			case apitraffic.MatchArgument_CALLER_IP:
+				actions = append(actions, &route.RateLimit_Action{
+					ActionSpecifier: &route.RateLimit_Action_RemoteAddress_{
+						RemoteAddress: &route.RateLimit_Action_RemoteAddress{},
+					},
 				})
 			}
 		}

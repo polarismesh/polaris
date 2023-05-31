@@ -132,8 +132,13 @@ func (ic *instanceCache) initialize(opt map[string]interface{}) error {
 
 // update 更新缓存函数
 func (ic *instanceCache) update() error {
+	err, _ := ic.singleUpdate()
+	return err
+}
+
+func (ic *instanceCache) singleUpdate() (error, bool) {
 	// 多个线程竞争，只有一个线程进行更新
-	_, err, _ := ic.singleFlight.Do(ic.name(), func() (interface{}, error) {
+	_, err, shared := ic.singleFlight.Do(ic.name(), func() (interface{}, error) {
 		defer func() {
 			ic.lastMtimeLogged = logLastMtime(ic.lastMtimeLogged, ic.LastMtime().Unix(), "Instance")
 			ic.checkAll()
@@ -141,7 +146,7 @@ func (ic *instanceCache) update() error {
 		}()
 		return nil, ic.doCacheUpdate(ic.name(), ic.realUpdate)
 	})
-	return err
+	return err, shared
 }
 
 func (ic *instanceCache) LastMtime() time.Time {

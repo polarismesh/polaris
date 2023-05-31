@@ -20,6 +20,7 @@ package xdsserverv3
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -152,7 +153,7 @@ func (x *XDSServer) makeSidecarLocalRateLimit(svcKey model.ServiceKey) ([]*route
 	if conf == nil {
 		return nil, nil, nil
 	}
-	rateLimitConf := buildRateLimitConf()
+	rateLimitConf := buildRateLimitConf(fmt.Sprintf("sidecar_%s_%s", svcKey.Namespace, svcKey.Name))
 	filters := make(map[string]*anypb.Any)
 	ratelimits := make([]*route.RateLimit, 0, len(conf))
 	for _, c := range conf {
@@ -239,8 +240,7 @@ func buildRateLimitActionQueryParameterValueMatch(key string,
 func buildRateLimitActionHeaderValueMatch(key string,
 	value *apimodel.MatchString) *route.RateLimit_Action_HeaderValueMatch {
 	headerValueMatch := &route.RateLimit_Action_HeaderValueMatch{
-		DescriptorValue: "true",
-		ExpectMatch:     wrapperspb.Bool(true),
+		DescriptorValue: value.GetValue().GetValue(),
 		Headers:         []*route.HeaderMatcher{},
 	}
 	switch value.GetType() {
