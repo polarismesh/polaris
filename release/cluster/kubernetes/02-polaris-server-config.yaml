@@ -446,7 +446,7 @@ data:
             open: false
             global:
               bucket: 200
-              rate: false
+              rate: 100
             resource-cache-amount: 1024
           api-limit: # 接口级限流
             open: false # 是否开启接口限流，全局开关，只有为true，才代表系统的限流开启。默认关闭
