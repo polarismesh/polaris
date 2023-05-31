@@ -68,7 +68,7 @@ func (s *Server) CreateConfigFile(ctx context.Context, configFile *apiconfig.Con
 	}
 
 	// 配置加密
-	if configFile.IsEncrypted.GetValue() && configFile.EncryptAlgo.GetValue() != "" {
+	if configFile.Encrypted.GetValue() && configFile.EncryptAlgo.GetValue() != "" {
 		if err := s.encryptConfigFile(ctx, configFile, configFile.EncryptAlgo.GetValue(), ""); err != nil {
 			log.Error("[Config][Service] encrypt config file error.",
 				utils.ZapRequestID(requestID),
@@ -112,7 +112,7 @@ func (s *Server) CreateConfigFile(ctx context.Context, configFile *apiconfig.Con
 
 	retConfigFile := transferConfigFileStoreModel2APIModel(createdFile)
 
-	if configFile.IsEncrypted.GetValue() && configFile.EncryptAlgo.GetValue() != "" {
+	if configFile.Encrypted.GetValue() && configFile.EncryptAlgo.GetValue() != "" {
 		if err := s.decryptConfigFile(ctx, retConfigFile); err != nil {
 			log.Error("[Config][Service] decrypt config file error.",
 				utils.ZapRequestID(requestID),

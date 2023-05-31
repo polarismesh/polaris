@@ -386,7 +386,7 @@ func TestConfigFileCRUD(t *testing.T) {
 
 	t.Run("step12-create-entrypted", func(t *testing.T) {
 		configFile := assembleConfigFile()
-		configFile.IsEncrypted = utils.NewBoolValue(true)
+		configFile.Encrypted = utils.NewBoolValue(true)
 		configFile.EncryptAlgo = utils.NewStringValue("AES")
 		rsp := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
@@ -768,30 +768,35 @@ func TestServer_GetConfigFileBaseInfo(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	Convey("获取配置文件", t, func() {
+	Convey("获取配置文件基本信息", t, func() {
+		Convey("存储层-查询配置文件-返回error", func() {
+			storage := storemock.NewMockStore(ctrl)
+			storage.EXPECT().GetConfigFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil, errors.New("mock storage error"))
+			testSuit.testServer.storage = storage
+
+			configFile := assembleConfigFile()
+			got := testSuit.testService.GetConfigFileBaseInfo(testSuit.defaultCtx, configFile.Namespace.Value, configFile.Group.Value, configFile.Name.Value)
+			So(apimodel.Code_StoreLayerException, ShouldEqual, apimodel.Code(got.GetCode().GetValue()))
+		})
+
 		Convey("解密配置文件-返回error", func() {
+			storage := storemock.NewMockStore(ctrl)
+			storage.EXPECT().GetConfigFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&model.ConfigFile{
+				CreateBy: operator,
+			}, nil)
+			storage.EXPECT().QueryTagByConfigFile(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]*model.ConfigFileTag{{Key: utils.ConfigFileTagKeyDataKey, Value: "abc"}}, nil)
+			testSuit.testServer.storage = storage
+
 			crypto := &aes.AESCrypto{}
 			encryptFunc := ApplyMethod(reflect.TypeOf(crypto), "Decrypt", func(_ *aes.AESCrypto, plaintext string, key []byte) (string, error) {
 				return "", errors.New("mock encrypt error")
 			})
 			defer encryptFunc.Reset()
 
-			configFile := assembleEncryptConfigFile()
-			testSuit.defaultCtx = context.WithValue(testSuit.defaultCtx, utils.ContextUserNameKey, configFile.CreateBy.GetValue())
-			got := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
+			configFile := assembleConfigFile()
+			got := testSuit.testService.GetConfigFileBaseInfo(testSuit.defaultCtx, configFile.Namespace.Value, configFile.Group.Value, configFile.Name.Value)
 			So(apimodel.Code_DecryptConfigFileException, ShouldEqual, apimodel.Code(got.GetCode().GetValue()))
 		})
 
-		Convey("存储层-查询配置文件-返回error", func() {
-			storage := storemock.NewMockStore(ctrl)
-			storage.EXPECT().GetConfigFileGroup(gomock.Any(), gomock.Any()).AnyTimes().Return(&model.ConfigFileGroup{}, nil)
-			storage.EXPECT().GetConfigFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil, errors.New("mock storage error"))
-			testSuit.testServer.storage = storage
-
-			configFile := assembleConfigFile()
-
-			got := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
-			So(apimodel.Code_StoreLayerException, ShouldEqual, apimodel.Code(got.GetCode().GetValue()))
-		})
 	})
 }

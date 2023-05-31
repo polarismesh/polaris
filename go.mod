@@ -84,7 +84,7 @@ require (
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/agiledragon/gomonkey/v2 v2.10.1
-	github.com/polarismesh/specification v1.3.2-alpha.1
+	github.com/polarismesh/specification v1.3.2-alpha.2
 )
 
 require gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
