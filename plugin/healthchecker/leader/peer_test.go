@@ -312,6 +312,7 @@ func newMockPolarisGRPCSever(t *testing.T, port uint32) (*MockPolarisGRPCServer,
 
 	server := grpc.NewServer()
 	service_manage.RegisterPolarisGRPCServer(server, svr)
+	service_manage.RegisterPolarisHeartbeatGRPCServer(server, svr)
 
 	t.Cleanup(func() {
 		server.Stop()
