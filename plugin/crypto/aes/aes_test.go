@@ -47,7 +47,7 @@ func Test_AESCrypto_GenerateKey(t *testing.T) {
 	}
 }
 
-func Test_AESCrypto_EncryptToBase64(t *testing.T) {
+func Test_AESCrypto_Encrypt(t *testing.T) {
 	type args struct {
 		plaintext string
 		key       []byte
@@ -78,7 +78,7 @@ func Test_AESCrypto_EncryptToBase64(t *testing.T) {
 	}
 }
 
-func Test_AESCrypto_DecryptFromBase64(t *testing.T) {
+func Test_AESCrypto_Decrypt(t *testing.T) {
 	type args struct {
 		base64Ciphertext string
 		key              []byte
