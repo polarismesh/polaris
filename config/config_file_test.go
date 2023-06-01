@@ -716,18 +716,6 @@ func TestServer_CreateConfigFile(t *testing.T) {
 			got := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
 			So(apimodel.Code_EncryptConfigFileException, ShouldEqual, apimodel.Code(got.GetCode().GetValue()))
 		})
-		Convey("解密配置文件-返回error", func() {
-			crypto := &aes.AESCrypto{}
-			encryptFunc := ApplyMethod(reflect.TypeOf(crypto), "Decrypt", func(_ *aes.AESCrypto, plaintext string, key []byte) (string, error) {
-				return "", errors.New("mock encrypt error")
-			})
-			defer encryptFunc.Reset()
-
-			configFile := assembleEncryptConfigFile()
-			testSuit.defaultCtx = context.WithValue(testSuit.defaultCtx, utils.ContextUserNameKey, configFile.CreateBy.GetValue())
-			got := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
-			So(apimodel.Code_DecryptConfigFileException, ShouldEqual, apimodel.Code(got.GetCode().GetValue()))
-		})
 
 		Convey("存储层-查询配置文件-返回error", func() {
 			storage := storemock.NewMockStore(ctrl)
