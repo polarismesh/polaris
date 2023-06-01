@@ -558,8 +558,6 @@ func converToUserStore(user *model.User) *userForStore {
 		Comment:     user.Comment,
 		CreateTime:  user.CreateTime,
 		ModifyTime:  user.ModifyTime,
-		Email:       user.Email,
-		Mobile:      user.Mobile,
 	}
 }
 
@@ -577,8 +575,6 @@ func converToUserModel(user *userForStore) *model.User {
 		Comment:     user.Comment,
 		CreateTime:  user.CreateTime,
 		ModifyTime:  user.ModifyTime,
-		Email:       user.Email,
-		Mobile:      user.Mobile,
 	}
 }
 
