@@ -216,10 +216,10 @@ func inboundHCM() *hcm.HttpConnectionManager {
 	limitPb, err := ptypes.MarshalAny(&ratelimit)
 	if err == nil {
 		filters = append(filters, &hcm.HttpFilter{
-				Name: "envoy.filters.http.local_ratelimit",
-				ConfigType: &hcm.HttpFilter_TypedConfig{
-					TypedConfig: limitPb,
-				},
+			Name: "envoy.filters.http.local_ratelimit",
+			ConfigType: &hcm.HttpFilter_TypedConfig{
+				TypedConfig: limitPb,
+			},
 		})
 	}
 	filters = append(filters, &hcm.HttpFilter{
