@@ -312,6 +312,7 @@ func newMockPolarisGRPCSever(t *testing.T, port uint32) (*MockPolarisGRPCServer,
 
 	server := grpc.NewServer()
 	service_manage.RegisterPolarisGRPCServer(server, svr)
+	service_manage.RegisterPolarisHeartbeatGRPCServer(server, svr)
 
 	t.Cleanup(func() {
 		server.Stop()
@@ -361,7 +362,7 @@ func (ms *MockPolarisGRPCServer) Heartbeat(context.Context,
 }
 
 // BatchHeartbeat 批量上报心跳
-func (ms *MockPolarisGRPCServer) BatchHeartbeat(svr service_manage.PolarisGRPC_BatchHeartbeatServer) error {
+func (ms *MockPolarisGRPCServer) BatchHeartbeat(svr service_manage.PolarisHeartbeatGRPC_BatchHeartbeatServer) error {
 	for {
 		req, err := svr.Recv()
 		if err != nil {

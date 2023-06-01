@@ -29,16 +29,17 @@ import (
 	. "github.com/agiledragon/gomonkey/v2"
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/model"
-	"github.com/polarismesh/polaris/common/utils"
-	"github.com/polarismesh/polaris/plugin/crypto/aes"
-	storemock "github.com/polarismesh/polaris/store/mock"
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/plugin/crypto/aes"
+	storemock "github.com/polarismesh/polaris/store/mock"
 )
 
 var (
@@ -393,7 +394,7 @@ func TestConfigFileCRUD(t *testing.T) {
 		assert.Equal(t, testNamespace, rsp.ConfigFile.Namespace.GetValue())
 		assert.Equal(t, testGroup, rsp.ConfigFile.Group.GetValue())
 		assert.Equal(t, testFile, rsp.ConfigFile.Name.GetValue())
-		assert.NotEqual(t, configFile.Content.GetValue(), rsp.ConfigFile.Content.GetValue())
+		assert.Equal(t, configFile.Content.GetValue(), rsp.ConfigFile.Content.GetValue())
 		assert.Equal(t, configFile.Format.GetValue(), rsp.ConfigFile.Format.GetValue())
 		assert.Equal(t, operator, rsp.ConfigFile.CreateBy.GetValue())
 		assert.Equal(t, operator, rsp.ConfigFile.ModifyBy.GetValue())
@@ -409,7 +410,7 @@ func TestConfigFileCRUD(t *testing.T) {
 		assert.Equal(t, testNamespace, rsp.ConfigFile.Namespace.GetValue())
 		assert.Equal(t, testGroup, rsp.ConfigFile.Group.GetValue())
 		assert.Equal(t, testFile, rsp.ConfigFile.Name.GetValue())
-		assert.NotEqual(t, configFile.Content.GetValue(), rsp.ConfigFile.Content.GetValue())
+		assert.Equal(t, configFile.Content.GetValue(), rsp.ConfigFile.Content.GetValue())
 		assert.Equal(t, configFile.Format.GetValue(), rsp.ConfigFile.Format.GetValue())
 		assert.Equal(t, operator, rsp.ConfigFile.CreateBy.GetValue())
 		assert.Equal(t, operator, rsp.ConfigFile.ModifyBy.GetValue())
@@ -714,18 +715,6 @@ func TestServer_CreateConfigFile(t *testing.T) {
 			configFile := assembleEncryptConfigFile()
 			got := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
 			So(apimodel.Code_EncryptConfigFileException, ShouldEqual, apimodel.Code(got.GetCode().GetValue()))
-		})
-		Convey("解密配置文件-返回error", func() {
-			crypto := &aes.AESCrypto{}
-			encryptFunc := ApplyMethod(reflect.TypeOf(crypto), "Decrypt", func(_ *aes.AESCrypto, plaintext string, key []byte) (string, error) {
-				return "", errors.New("mock encrypt error")
-			})
-			defer encryptFunc.Reset()
-
-			configFile := assembleEncryptConfigFile()
-			testSuit.defaultCtx = context.WithValue(testSuit.defaultCtx, utils.ContextUserNameKey, configFile.CreateBy.GetValue())
-			got := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
-			So(apimodel.Code_DecryptConfigFileException, ShouldEqual, apimodel.Code(got.GetCode().GetValue()))
 		})
 
 		Convey("存储层-查询配置文件-返回error", func() {

@@ -31,7 +31,6 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
-	"github.com/polarismesh/polaris/store"
 )
 
 var (
@@ -45,32 +44,10 @@ var (
 	ReadOp = false
 )
 
-// storeCodeAPICodeMap 存储层报错与协议层码的映射
-var storeCodeAPICodeMap = map[store.StatusCode]apimodel.Code{
-	store.EmptyParamsErr:             apimodel.Code_InvalidParameter,
-	store.OutOfRangeErr:              apimodel.Code_InvalidParameter,
-	store.DataConflictErr:            apimodel.Code_DataConflict,
-	store.NotFoundNamespace:          apimodel.Code_NotFoundNamespace,
-	store.NotFoundService:            apimodel.Code_NotFoundService,
-	store.NotFoundMasterConfig:       apimodel.Code_NotFoundMasterConfig,
-	store.NotFoundTagConfigOrService: apimodel.Code_NotFoundTagConfigOrService,
-	store.ExistReleasedConfig:        apimodel.Code_ExistReleasedConfig,
-	store.DuplicateEntryErr:          apimodel.Code_ExistedResource,
-}
-
 var (
 	regNameStr = regexp.MustCompile("^[\u4E00-\u9FA5A-Za-z0-9_\\-]+$")
 	regEmail   = regexp.MustCompile(`^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$`)
 )
-
-// StoreCode2APICode store code to api code
-func StoreCode2APICode(err error) apimodel.Code {
-	if apiCode, ok := storeCodeAPICodeMap[store.Code(err)]; ok {
-		return apiCode
-	}
-
-	return apimodel.Code_StoreLayerException
-}
 
 // checkName 名称检查
 func checkName(name *wrappers.StringValue) error {

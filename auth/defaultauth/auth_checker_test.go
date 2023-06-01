@@ -85,11 +85,11 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 
 	checker := &defaultAuthChecker{}
 	checker.Initialize(&auth.Config{
-		User: auth.UserConfig{
+		User: &auth.UserConfig{
 			Name:   "",
 			Option: map[string]interface{}{},
 		},
-		Strategy: auth.StrategyConfig{
+		Strategy: &auth.StrategyConfig{
 			Name: "",
 			Option: map[string]interface{}{
 				"": nil,
@@ -1114,15 +1114,16 @@ func Test_defaultAuthChecker_Initialize(t *testing.T) {
 	t.Run("使用未迁移至auth.user.option及auth.strategy.option的配置", func(t *testing.T) {
 		reset(true)
 		authChecker := &defaultAuthChecker{}
-		err := authChecker.Initialize(&auth.Config{
-			Name: "",
-			Option: map[string]interface{}{
-				"consoleOpen": true,
-				"clientOpen":  true,
-				"salt":        "polarismesh@2021",
-				"strict":      false,
-			},
-		}, storage, cacheMgn)
+		cfg := &auth.Config{}
+		cfg.SetDefault()
+		cfg.Name = ""
+		cfg.Option = map[string]interface{}{
+			"consoleOpen": true,
+			"clientOpen":  true,
+			"salt":        "polarismesh@2021",
+			"strict":      false,
+		}
+		err := authChecker.Initialize(cfg, storage, cacheMgn)
 		assert.NoError(t, err)
 		assert.Equal(t, &AuthConfig{
 			ConsoleOpen: true,
@@ -1135,20 +1136,23 @@ func Test_defaultAuthChecker_Initialize(t *testing.T) {
 	t.Run("使用完全迁移至auth.user.option及auth.strategy.option的配置", func(t *testing.T) {
 		reset(true)
 		authChecker := &defaultAuthChecker{}
-		err := authChecker.Initialize(&auth.Config{
-			User: auth.UserConfig{
-				Name:   "",
-				Option: map[string]interface{}{"salt": "polarismesh@2021"},
+
+		cfg := &auth.Config{}
+		cfg.SetDefault()
+		cfg.User = &auth.UserConfig{
+			Name:   "",
+			Option: map[string]interface{}{"salt": "polarismesh@2021"},
+		}
+		cfg.Strategy = &auth.StrategyConfig{
+			Name: "",
+			Option: map[string]interface{}{
+				"consoleOpen": true,
+				"clientOpen":  true,
+				"strict":      false,
 			},
-			Strategy: auth.StrategyConfig{
-				Name: "",
-				Option: map[string]interface{}{
-					"consoleOpen": true,
-					"clientOpen":  true,
-					"strict":      false,
-				},
-			},
-		}, storage, cacheMgn)
+		}
+
+		err := authChecker.Initialize(cfg, storage, cacheMgn)
 		assert.NoError(t, err)
 		assert.Equal(t, &AuthConfig{
 			ConsoleOpen: true,
@@ -1161,24 +1165,26 @@ func Test_defaultAuthChecker_Initialize(t *testing.T) {
 	t.Run("使用部分迁移至auth.user.option及auth.strategy.option的配置（应当报错）", func(t *testing.T) {
 		reset(true)
 		authChecker := &defaultAuthChecker{}
-		err := authChecker.Initialize(&auth.Config{
-			User: auth.UserConfig{
-				Name:   "",
-				Option: map[string]interface{}{"salt": "polarismesh@2021"},
-			},
-			Strategy: auth.StrategyConfig{
-				Name: "",
-				Option: map[string]interface{}{
-					"consoleOpen": true,
-				},
-			},
+		cfg := &auth.Config{}
+		cfg.SetDefault()
+		cfg.Name = ""
+		cfg.Option = map[string]interface{}{
+			"clientOpen": true,
+			"strict":     false,
+		}
+		cfg.User = &auth.UserConfig{
+			Name:   "",
+			Option: map[string]interface{}{"salt": "polarismesh@2021"},
+		}
+		cfg.Strategy = &auth.StrategyConfig{
 			Name: "",
 			Option: map[string]interface{}{
-				"clientOpen": true,
-				"strict":     false,
+				"consoleOpen": true,
 			},
-		}, storage, cacheMgn)
-		assert.Error(t, err)
+		}
+
+		err := authChecker.Initialize(cfg, storage, cacheMgn)
+		assert.NoError(t, err)
 	})
 
 }

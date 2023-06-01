@@ -106,6 +106,7 @@ func (g *GRPCServer) Run(errCh chan error) {
 				if config.Enable {
 					// 注册 v1 版本的 spec discover server
 					apiservice.RegisterPolarisGRPCServer(server, g.v1server)
+					apiservice.RegisterPolarisHeartbeatGRPCServer(server, g.v1server)
 					openMethod, getErr := apiserver.GetClientOpenMethod(config.Include, g.GetProtocol())
 					if getErr != nil {
 						return getErr

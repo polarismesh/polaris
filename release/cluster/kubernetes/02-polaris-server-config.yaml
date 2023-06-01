@@ -252,13 +252,23 @@ data:
     #      listenIP: 0.0.0.0
     #      listenPort: 7779
     #      clusterName: cl5.discover
-    # 核心逻辑的配置
+    # Core logic configuration
     auth:
-      name: defaultAuth
-      option:
-        salt: polarismesh@2021
-        consoleOpen: true
-        clientOpen: false
+      # auth's option has migrated to auth.user and auth.strategy
+      # it's still available when filling auth.option, but you will receive warning log that auth.option has deprecated.
+      user:
+        name: defaultUser
+        option:
+          # Token encrypted SALT, you need to rely on this SALT to decrypt the information of the Token when analyzing the Token
+          # The length of SALT needs to satisfy the following one：len(salt) in [16, 24, 32]
+          salt: polarismesh@2021
+      strategy:
+        name: defaultStrategy
+        option:
+          # Console power switch, open default
+          consoleOpen: true
+          # Customer inspection ability switch, default close
+          clientOpen: false
     namespace:
       autoCreate: true
     naming:
@@ -308,19 +318,28 @@ data:
           concurrency: 64
       checkers:
         - name: heartbeatMemory
-    #  - name: heartbeatRedis
-    #    option:
-    #      kvAddr: ##REDIS_ADDR##
-    #      # ACL user from redis v6.0, remove it if ACL is not available
-    #      kvUser: ##REDIS_USER#
-    #      kvPasswd: ##REDIS_PWD##
-    #      poolSize: 200
-    #      minIdleConns: 30
-    #      idleTimeout: 120s
-    #      connectTimeout: 200ms
-    #      msgTimeout: 200ms
-    #      concurrency: 200
-    #      withTLS: false
+        # - name: heartbeatLeader
+        #   option:
+        #     soltNum: 128
+        #     streamNum: 128 # default value is runtime.GOMAXPROCS(0)
+        #     batch:
+        #       queueSize: 16384
+        #       waitTime: 32ms
+        #       maxBatchCount: 64
+        #       concurrency: 512
+        # - name: heartbeatRedis
+        #   option:
+        #     kvAddr: ##REDIS_ADDR##
+        #      # ACL user from redis v6.0, remove it if ACL is not available
+        #     kvUser: ##REDIS_USER#
+        #     kvPasswd: ##REDIS_PWD##
+        #     poolSize: 200
+        #     minIdleConns: 30
+        #     idleTimeout: 120s
+        #     connectTimeout: 200ms
+        #     msgTimeout: 200ms
+        #     concurrency: 200
+        #     withTLS: false
     # 缓存配置
     cache:
       open: true
@@ -352,23 +371,27 @@ data:
         # Clean up long term unhealthy instance
         - name: DeleteUnHealthyInstance
           enable: false
-          # job exec interval. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
-          interval: 24h
           option:
+            # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
             instanceDeleteTimeout: 60m
         # Delete auto-created service without an instance
         - name: DeleteEmptyAutoCreatedService
           enable: false
-          # job exec interval. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
-          interval: 1h
           option:
+            # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
             serviceDeleteTimeout: 30m
         # Clean soft deleted instances
         - name: CleanDeletedInstances
           enable: true
-          # job exec interval. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
-          interval: 24h
-      
+          option:
+            # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+            # instanceCleanTimeout: 10m
+        # Clean soft deleted clients
+        - name: CleanDeletedClients
+          enable: true
+          option:
+            # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+            # clientCleanTimeout: 10m
     # 存储配置
     store:
       # 单机文件存储插件
@@ -414,13 +437,13 @@ data:
           ip-limit: # ip级限流，全局
             open: true # 系统是否开启ip级限流
             global:
-              open: true
+              open: false
               bucket: 300 # 最高峰值
               rate: 200 # 平均一个IP每秒的请求数
             resource-cache-amount: 1024 # 最大缓存的IP个数
             white-list: [127.0.0.1]
           instance-limit:
-            open: true
+            open: false
             global:
               bucket: 200
               rate: 100
@@ -430,12 +453,12 @@ data:
             rules:
               - name: store-read
                 limit:
-                  open: true # 接口的全局配置，如果在api子项中，不配置，则该接口依据global来做限制
+                  open: false # 接口的全局配置，如果在api子项中，不配置，则该接口依据global来做限制
                   bucket: 2000 # 令牌桶最大值
                   rate: 1000 # 每秒产生的令牌数
               - name: store-write
                 limit:
-                  open: true
+                  open: false
                   bucket: 1000
                   rate: 500
             apis:

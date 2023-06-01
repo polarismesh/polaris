@@ -31,6 +31,7 @@ import (
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
@@ -307,7 +308,7 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 		instances = append(instances, entry.instance)
 	}
 	if err := ctrl.storage.BatchAddInstances(instances); err != nil {
-		sendReply(remains, apimodel.Code(StoreCode2APICode(err)), err)
+		sendReply(remains, commonstore.StoreCode2APICode(err), err)
 		return err
 	}
 
@@ -368,17 +369,17 @@ func (ctrl *InstanceCtrl) heartbeatHandler(futures []*InstanceFuture) error {
 		err := ctrl.storage.BatchSetInstanceHealthStatus(idValues, model.StatusBoolToInt(healthy), utils.NewUUID())
 		if err != nil {
 			log.Errorf("[Batch] batch healthy check instances err: %s", err.Error())
-			sendReply(futures, apimodel.Code_StoreLayerException, err)
+			sendReply(futures, commonstore.StoreCode2APICode(err), err)
 			return err
 		}
 		if err := ctrl.storage.BatchAppendInstanceMetadata(appendMetaReqs); err != nil {
 			log.Errorf("[Batch] batch healthy check instances append metadata err: %s", err.Error())
-			sendReply(futures, apimodel.Code_StoreLayerException, err)
+			sendReply(futures, commonstore.StoreCode2APICode(err), err)
 			return err
 		}
 		if err := ctrl.storage.BatchRemoveInstanceMetadata(removeMetaReqs); err != nil {
 			log.Errorf("[Batch] batch healthy check instances remove metadata err: %s", err.Error())
-			sendReply(futures, apimodel.Code_StoreLayerException, err)
+			sendReply(futures, commonstore.StoreCode2APICode(err), err)
 			return err
 		}
 	}
@@ -417,7 +418,7 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 	instances, err := ctrl.storage.GetInstancesBrief(ids)
 	if err != nil {
 		log.Errorf("[Batch] get instances service token err: %s", err.Error())
-		sendReply(remains, apimodel.Code_StoreLayerException, err)
+		sendReply(remains, commonstore.StoreCode2APICode(err), err)
 		return err
 	}
 	for _, future := range futures {
@@ -444,7 +445,7 @@ func (ctrl *InstanceCtrl) deregisterHandler(futures []*InstanceFuture) error {
 	}
 	if err := ctrl.storage.BatchDeleteInstances(args); err != nil {
 		log.Errorf("[Batch] batch delete instances err: %s", err.Error())
-		sendReply(remains, apimodel.Code_StoreLayerException, err)
+		sendReply(remains, commonstore.StoreCode2APICode(err), err)
 		return err
 	}
 
@@ -467,7 +468,7 @@ func (ctrl *InstanceCtrl) batchRestoreInstanceIsolate(futures map[string]*Instan
 	var err error
 	if id2Isolate, err = ctrl.storage.BatchGetInstanceIsolate(ids); err != nil {
 		log.Errorf("[Batch] check instances existed storage err: %s", err.Error())
-		sendReply(futures, apimodel.Code_StoreLayerException, err)
+		sendReply(futures, commonstore.StoreCode2APICode(err), err)
 		return err
 	}
 

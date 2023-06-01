@@ -9,12 +9,13 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	security "github.com/polarismesh/specification/source/go/api/v1/security"
+	service_manage "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+
 	auth "github.com/polarismesh/polaris/auth"
 	cache "github.com/polarismesh/polaris/cache"
 	model "github.com/polarismesh/polaris/common/model"
 	store "github.com/polarismesh/polaris/store"
-	security "github.com/polarismesh/specification/source/go/api/v1/security"
-	service_manage "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
 // MockAuthServer is a mock of AuthServer interface.

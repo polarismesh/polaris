@@ -26,6 +26,7 @@ import (
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	filev3 "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
+	lrl "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
 	httpinspector "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/http_inspector/v3"
 	tlsinspector "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/tls_inspector/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
@@ -34,6 +35,7 @@ import (
 	upstreams_http "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	matcherv3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"google.golang.org/protobuf/proto"
@@ -207,13 +209,25 @@ func makeTLSTransportSocket(ctx proto.Message) *core.TransportSocket {
 }
 
 func inboundHCM() *hcm.HttpConnectionManager {
-	return &hcm.HttpConnectionManager{
-		StatPrefix: "Inbound",
-		HttpFilters: []*hcm.HttpFilter{
-			{
-				Name: wellknown.Router,
+	filters := []*hcm.HttpFilter{}
+	ratelimit := lrl.LocalRateLimit{
+		StatPrefix: "http_local_rate_limiter",
+	}
+	limitPb, err := ptypes.MarshalAny(&ratelimit)
+	if err == nil {
+		filters = append(filters, &hcm.HttpFilter{
+			Name: "envoy.filters.http.local_ratelimit",
+			ConfigType: &hcm.HttpFilter_TypedConfig{
+				TypedConfig: limitPb,
 			},
-		},
+		})
+	}
+	filters = append(filters, &hcm.HttpFilter{
+		Name: wellknown.Router,
+	})
+	return &hcm.HttpConnectionManager{
+		StatPrefix:  "Inbound",
+		HttpFilters: filters,
 		AccessLog: []*accesslog.AccessLog{
 			{
 				Name: wellknown.FileAccessLog,

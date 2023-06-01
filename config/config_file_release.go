@@ -29,6 +29,7 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	utils2 "github.com/polarismesh/polaris/config/utils"
@@ -76,7 +77,7 @@ func (s *Server) PublishConfigFile(
 
 		s.recordReleaseFail(ctx, transferConfigFileReleaseAPIModel2StoreModel(configFileRelease))
 
-		return api.NewConfigFileResponse(apimodel.Code_StoreLayerException, nil)
+		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
 	}
 
 	if toPublishFile == nil {
@@ -97,7 +98,7 @@ func (s *Server) PublishConfigFile(
 
 		s.recordReleaseFail(ctx, transferConfigFileReleaseAPIModel2StoreModel(configFileRelease))
 
-		return api.NewConfigFileResponse(apimodel.Code_StoreLayerException, nil)
+		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
 	}
 
 	releaseName := configFileRelease.Name.GetValue()
@@ -136,7 +137,7 @@ func (s *Server) PublishConfigFile(
 
 			s.recordReleaseFail(ctx, transferConfigFileReleaseAPIModel2StoreModel(configFileRelease))
 
-			return api.NewConfigFileResponse(apimodel.Code_StoreLayerException, nil)
+			return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
 		}
 
 		s.RecordHistory(ctx, configFileReleaseRecordEntry(ctx, configFileRelease, createdFileRelease, model.OCreate))
@@ -170,7 +171,7 @@ func (s *Server) PublishConfigFile(
 
 		s.recordReleaseFail(ctx, transferConfigFileReleaseAPIModel2StoreModel(configFileRelease))
 
-		return api.NewConfigFileResponse(apimodel.Code_StoreLayerException, nil)
+		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
 	}
 
 	s.recordReleaseHistory(ctx, updatedFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess)
@@ -205,7 +206,7 @@ func (s *Server) GetConfigFileRelease(
 			zap.String("fileName", fileName),
 			zap.Error(err))
 
-		return api.NewConfigFileResponse(apimodel.Code_StoreLayerException, nil)
+		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
 	}
 
 	if fileRelease == nil {
@@ -268,7 +269,7 @@ func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace,
 				zap.String("group", group),
 				zap.String("fileName", fileName),
 				zap.Error(err))
-			return api.NewConfigFileResponse(apimodel.Code_StoreLayerException, nil)
+			return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
 		}
 	}
 
@@ -290,7 +291,7 @@ func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace,
 			ModifyBy:  deleteBy,
 		}, utils.ReleaseTypeDelete, utils.ReleaseStatusFail)
 
-		return api.NewConfigFileResponse(apimodel.Code_StoreLayerException, nil)
+		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
 	}
 
 	data := &model.ConfigFileRelease{

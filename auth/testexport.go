@@ -19,46 +19,19 @@ package auth
 
 import (
 	"context"
-	"errors"
-	"log"
 
 	"github.com/polarismesh/polaris/cache"
 	"github.com/polarismesh/polaris/store"
 )
 
 // TestInitialize 包裹了初始化函数，在 Initialize 的时候会在自动调用，全局初始化一次
-func TestInitialize(_ context.Context, authOpt *Config, storage store.Store,
+func TestInitialize(ctx context.Context, authOpt *Config, storage store.Store,
 	cacheMgn *cache.CacheManager) (UserServer, StrategyServer, error) {
-
-	name := authOpt.User.Name
-	if name == "" {
-		return nil, nil, errors.New("user manager Name is empty")
-	}
-	namedUserMgn, ok := userMgnSlots[name]
-	if !ok {
-		return nil, nil, errors.New("no such name UserServer")
-	}
-	userMgn = namedUserMgn
-
-	name = authOpt.Strategy.Name
-	if name == "" {
-		return nil, nil, errors.New("strategy manager Name is empty")
-	}
-	namedStrategyMgn, ok := strategyMgnSlots[name]
-	if !ok {
-		return nil, nil, errors.New("no such name StrategyServer")
-	}
-	strategyMgn = namedStrategyMgn
-
-	finishInit = true
-
-	if err := userMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
-		log.Printf("user manager do initialize err: %s", err.Error())
+	userSvr, strategySvr, err := initialize(ctx, authOpt, storage, cacheMgn)
+	if err != nil {
 		return nil, nil, err
 	}
-	if err := strategyMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
-		log.Printf("user manager do initialize err: %s", err.Error())
-		return nil, nil, err
-	}
-	return userMgn, strategyMgn, nil
+	userMgn = userSvr
+	strategyMgn = strategySvr
+	return userSvr, strategySvr, nil
 }

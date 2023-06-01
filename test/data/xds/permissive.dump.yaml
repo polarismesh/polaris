@@ -136,6 +136,10 @@ listeners:
       typedConfig:
         '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
         httpFilters:
+        - name: envoy.filters.http.local_ratelimit
+          typedConfig:
+            '@type': type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+            statPrefix: http_local_rate_limiter
         - name: envoy.filters.http.router
         rds:
           configSource:
@@ -161,6 +165,10 @@ listeners:
             '@type': type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog
             path: /dev/stdout
         httpFilters:
+        - name: envoy.filters.http.local_ratelimit
+          typedConfig:
+            '@type': type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+            statPrefix: http_local_rate_limiter
         - name: envoy.filters.http.router
         httpProtocolOptions:
           acceptHttp10: true
@@ -192,6 +200,10 @@ listeners:
             '@type': type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog
             path: /dev/stdout
         httpFilters:
+        - name: envoy.filters.http.local_ratelimit
+          typedConfig:
+            '@type': type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+            statPrefix: http_local_rate_limiter
         - name: envoy.filters.http.router
         httpProtocolOptions:
           acceptHttp10: true

@@ -111,7 +111,8 @@ func TestCreateInstance(t *testing.T) {
 		if resp.Responses[0].Instance.GetId().GetValue() == "" {
 			t.Fatalf("error: %+v", resp)
 		}
-
+		// 强制先update一次，规避上一次的数据查询结果
+		discoverSuit.DiscoverServer().Cache().TestUpdate()
 		discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{})
 	})
 
@@ -156,7 +157,8 @@ func TestCreateInstance(t *testing.T) {
 		if !respSuccess(resp) {
 			t.Fatalf("error: %+v", resp)
 		}
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		// 强制先update一次，规避上一次的数据查询结果
+		discoverSuit.DiscoverServer().Cache().TestUpdate()
 		getResp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{"host": instanceReq.GetHost().GetValue()})
 		assert.True(t, getResp.GetCode().GetValue() == api.ExecuteSuccess)
 		t.Logf("%+v", getResp)
@@ -384,6 +386,8 @@ func TestGetInstancesById(t *testing.T) {
 	}
 	t.Run("根据精准匹配ID进行获取实例", func(t *testing.T) {
 		instId := fmt.Sprintf("%s%d", idPrefix, 0)
+		// 强制先update一次，规避上一次的数据查询结果
+		discoverSuit.DiscoverServer().Cache().TestUpdate()
 		out := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{"id": instId})
 		assert.True(t, respSuccess(out))
 		assert.Equal(t, 1, len(out.GetInstances()))
@@ -396,6 +400,8 @@ func TestGetInstancesById(t *testing.T) {
 	})
 	t.Run("根据前缀匹配ID进行获取实例", func(t *testing.T) {
 		instId := fmt.Sprintf("%s%s", idPrefix, "*")
+		// 强制先update一次，规避上一次的数据查询结果
+		discoverSuit.DiscoverServer().Cache().TestUpdate()
 		out := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{"id": instId})
 		assert.True(t, respSuccess(out))
 		assert.Equal(t, prefixCount, len(out.GetInstances()))
@@ -407,6 +413,8 @@ func TestGetInstancesById(t *testing.T) {
 	})
 	t.Run("根据后缀匹配ID进行获取实例", func(t *testing.T) {
 		instId := fmt.Sprintf("%s%s", "*", idSuffix)
+		// 强制先update一次，规避上一次的数据查询结果
+		discoverSuit.DiscoverServer().Cache().TestUpdate()
 		out := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{"id": instId})
 		assert.True(t, respSuccess(out))
 		assert.Equal(t, suffixCount, len(out.GetInstances()))
@@ -641,6 +649,9 @@ func TestListInstances(t *testing.T) {
 		query := map[string]string{"offset": "0", "limit": "100"}
 		query["host"] = instanceReq.GetHost().GetValue()
 		query["port"] = strconv.FormatUint(uint64(instanceReq.GetPort().GetValue()), 10)
+
+		// 强制先update一次，规避上一次的数据查询结果
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -670,6 +681,9 @@ func TestListInstances(t *testing.T) {
 
 		// host 不存在，查不出任何实例
 		query := map[string]string{"offset": "10", "limit": "20", "host": "127.0.0.1"}
+
+		// 强制先update一次，规避上一次的数据查询结果
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -678,6 +692,9 @@ func TestListInstances(t *testing.T) {
 
 		// 不带条件查询
 		query = map[string]string{"offset": "10", "limit": "20"}
+
+		// 强制先update一次，规避上一次的数据查询结果
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -703,6 +720,9 @@ func TestListInstances(t *testing.T) {
 		}()
 
 		query := map[string]string{"offset": "0", "limit": "200"}
+
+		// 强制先update一次，规避上一次的数据查询结果
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -727,6 +747,9 @@ func TestListInstances(t *testing.T) {
 		host := instance.GetHost().GetValue()
 		port := strconv.FormatUint(uint64(instance.GetPort().GetValue()), 10)
 		query := map[string]string{"limit": "20", "host": host, "port": port}
+
+		// 强制先update一次，规避上一次的数据查询结果
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -739,17 +762,6 @@ func TestListInstances(t *testing.T) {
 
 // 测试list实例列表
 func TestListInstances1(t *testing.T) {
-
-	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.Initialize(); err != nil {
-		t.Fatal(err)
-	}
-	defer discoverSuit.Destroy()
-
-	// 先任意找几个实例字段过滤
-	_, serviceResp := discoverSuit.createCommonService(t, 800)
-	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
-
 	checkAmountAndSize := func(t *testing.T, resp *apiservice.BatchQueryResponse, expect int, size int) {
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -763,6 +775,15 @@ func TestListInstances1(t *testing.T) {
 	}
 
 	t.Run("list实例，使用service和namespace过滤", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.Initialize(); err != nil {
+			t.Fatal(err)
+		}
+		defer discoverSuit.Destroy()
+
+		// 先任意找几个实例字段过滤
+		_, serviceResp := discoverSuit.createCommonService(t, 800)
+		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		total := 102
 		for i := 0; i < total; i++ {
 			_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, i+2)
@@ -775,11 +796,22 @@ func TestListInstances1(t *testing.T) {
 			"namespace": serviceResp.GetNamespace().GetValue(),
 		}
 
+		// 强制先update一次，规避上一次的数据查询结果
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, total, 100)
 	})
 
 	t.Run("list实例，先删除实例，再查询会过滤删除的", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.Initialize(); err != nil {
+			t.Fatal(err)
+		}
+		defer discoverSuit.Destroy()
+
+		// 先任意找几个实例字段过滤
+		_, serviceResp := discoverSuit.createCommonService(t, 800)
+		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		total := 50
 		for i := 0; i < total; i++ {
 			_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, i+2)
@@ -793,11 +825,23 @@ func TestListInstances1(t *testing.T) {
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),
 		}
+
+		// 强制先update一次，规避上一次的数据查询结果
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, total/2, total/2)
 
 	})
 	t.Run("true和false测试", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.Initialize(); err != nil {
+			t.Fatal(err)
+		}
+		defer discoverSuit.Destroy()
+
+		// 先任意找几个实例字段过滤
+		_, serviceResp := discoverSuit.createCommonService(t, 800)
+		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 10)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
@@ -807,6 +851,9 @@ func TestListInstances1(t *testing.T) {
 			"isolate":   "false",
 			"healthy":   "false",
 		}
+		// 强制先update一次，规避上一次的数据查询结果
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+
 		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 1, 1)
 
 		query["isolate"] = "true"
@@ -831,6 +878,15 @@ func TestListInstances1(t *testing.T) {
 		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 0, 0)
 	})
 	t.Run("metadata条件测试", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.Initialize(); err != nil {
+			t.Fatal(err)
+		}
+		defer discoverSuit.Destroy()
+
+		// 先任意找几个实例字段过滤
+		_, serviceResp := discoverSuit.createCommonService(t, 800)
+		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		_, instanceResp1 := discoverSuit.createCommonInstance(t, serviceResp, 10)
 		defer discoverSuit.cleanInstance(instanceResp1.GetId().GetValue())
 		_, instanceResp2 := discoverSuit.createCommonInstance(t, serviceResp, 20)
@@ -842,6 +898,9 @@ func TestListInstances1(t *testing.T) {
 			"keys":      "internal-personal-xxx",
 			"values":    "internal-personal-xxx_10",
 		}
+		// 强制先update一次，规避上一次的数据查询结果
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+
 		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 1, 1)
 		// 使用共同的元数据查询，返回两个实例
 		query = map[string]string{
@@ -861,11 +920,23 @@ func TestListInstances1(t *testing.T) {
 		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 0, 0)
 	})
 	t.Run("metadata只有key或者value，返回错误", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.Initialize(); err != nil {
+			t.Fatal(err)
+		}
+		defer discoverSuit.Destroy()
+
+		// 先任意找几个实例字段过滤
+		_, serviceResp := discoverSuit.createCommonService(t, 800)
+		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		query := map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),
 			"keys":      "internal-personal-xxx",
 		}
+		// 强制先update一次，规避上一次的数据查询结果
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if resp.GetCode().GetValue() != api.InvalidQueryInsParameter {
 			t.Fatalf("resp is %v, not InvalidQueryInsParameter", resp)
@@ -884,17 +955,6 @@ func TestListInstances1(t *testing.T) {
 
 // 测试list实例列表
 func TestListInstances2(t *testing.T) {
-
-	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.Initialize(); err != nil {
-		t.Fatal(err)
-	}
-	defer discoverSuit.Destroy()
-
-	// 先任意找几个实例字段过滤
-	_, serviceResp := discoverSuit.createCommonService(t, 800)
-	defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
-
 	checkAmountAndSize := func(t *testing.T, resp *apiservice.BatchQueryResponse, expect int, size int) {
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -908,6 +968,15 @@ func TestListInstances2(t *testing.T) {
 	}
 
 	t.Run("list实例，使用namespace，可以进行模糊匹配过滤", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.Initialize(); err != nil {
+			t.Fatal(err)
+		}
+		defer discoverSuit.Destroy()
+
+		// 先任意找几个实例字段过滤
+		_, serviceResp := discoverSuit.createCommonService(t, 800)
+		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1001)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 		query := map[string]string{
@@ -917,11 +986,24 @@ func TestListInstances2(t *testing.T) {
 			"keys":      "my-meta-a1",
 			"values":    "1111",
 		}
+
+		// 强制先update一次，规避上一次的数据查询结果
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, 1, 1)
 	})
 
 	t.Run("list实例，使用namespace，可以进行前缀匹配过滤", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.Initialize(); err != nil {
+			t.Fatal(err)
+		}
+		defer discoverSuit.Destroy()
+
+		// 先任意找几个实例字段过滤
+		_, serviceResp := discoverSuit.createCommonService(t, 800)
+		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1002)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 		query := map[string]string{
@@ -931,6 +1013,9 @@ func TestListInstances2(t *testing.T) {
 			"keys":      "my-meta-a1",
 			"values":    "1111",
 		}
+
+		// 强制先update一次，规避上一次的数据查询结果
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, 1, 1)
 
@@ -946,6 +1031,15 @@ func TestListInstances2(t *testing.T) {
 	})
 
 	t.Run("list实例，使用namespace，service可选", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.Initialize(); err != nil {
+			t.Fatal(err)
+		}
+		defer discoverSuit.Destroy()
+
+		// 先任意找几个实例字段过滤
+		_, serviceResp := discoverSuit.createCommonService(t, 800)
+		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1003)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 		query := map[string]string{
@@ -955,6 +1049,8 @@ func TestListInstances2(t *testing.T) {
 			"keys":    "my-meta-a1",
 			"values":  "1111",
 		}
+		// 强制先update一次，规避上一次的数据查询结果
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, 1, 1)
 
@@ -1012,6 +1108,8 @@ func TestInstancesContainLocation(t *testing.T) {
 	}
 	defer discoverSuit.cleanInstance(resp.Responses[0].GetInstance().GetId().GetValue())
 
+	// 强制先update一次，规避上一次的数据查询结果
+	_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 	getResp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{
 		"service": instance.GetService().GetValue(), "namespace": instance.GetNamespace().GetValue(),
 	})
@@ -1079,6 +1177,8 @@ func TestUpdateInstance(t *testing.T) {
 			"host": instanceReq.GetHost().GetValue(),
 			"port": strconv.FormatUint(uint64(instanceReq.GetPort().GetValue()), 10),
 		}
+		// 强制先update一次，规避上一次的数据查询结果
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -1204,6 +1304,8 @@ func TestUpdateIsolate(t *testing.T) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 
+		// 强制先update一次，规避上一次的数据查询结果
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		// 检查隔离状态和revision是否改变
 		for i := 0; i < instanceNum/portNum; i++ {
 			filter := map[string]string{
@@ -1368,6 +1470,8 @@ func TestUpdateHealthCheck(t *testing.T) {
 			"host": req.GetHost().GetValue(),
 			"port": strconv.FormatUint(uint64(req.GetPort().GetValue()), 10),
 		}
+		// 强制先update一次，规避上一次的数据查询结果
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -1454,6 +1558,8 @@ func TestDeleteInstance(t *testing.T) {
 
 	getInstance := func(t *testing.T, s *apiservice.Service, expect int) []*apiservice.Instance {
 		filters := map[string]string{"service": s.GetName().GetValue(), "namespace": s.GetNamespace().GetValue()}
+		// 强制先update一次，规避上一次的数据查询结果
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		getResp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, filters)
 		if !respSuccess(getResp) {
 			t.Fatalf("error")
@@ -1663,6 +1769,8 @@ func TestBatchDeleteInstances(t *testing.T) {
 		} else {
 			t.Logf("%+v", out)
 		}
+		// 强制先update一次，规避上一次的数据查询结果
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		resps := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{
 			"service":   service.GetName().GetValue(),
 			"namespace": service.GetNamespace().GetValue(),
@@ -1917,6 +2025,8 @@ func TestUpdateInstancesFiled(t *testing.T) {
 
 		instanceReq.EnableHealthCheck = utils.NewBoolValue(false)
 		So(discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
+		// 强制先update一次，规避上一次的数据查询结果
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		newInstanceResp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),
@@ -1955,6 +2065,8 @@ func TestUpdateInstancesFiled(t *testing.T) {
 		instanceReq.LogicSet.Value = "new-logic-set-1"
 		So(discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 
+		// 强制先update一次，规避上一次的数据查询结果
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		newInstanceResp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),
@@ -1970,6 +2082,8 @@ func (d *DiscoverTestSuit) getInstancesWithService(t *testing.T, name string, na
 		"service":   name,
 		"namespace": namespace,
 	}
+	// 强制先update一次，规避上一次的数据查询结果
+	_ = d.DiscoverServer().Cache().TestUpdate()
 	resp := d.DiscoverServer().GetInstances(d.DefaultCtx, query)
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -2117,6 +2231,9 @@ func TestCheckInstanceParam(t *testing.T) {
 
 	instanceReq, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 153)
 	defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
+
+	// 强制先update一次，规避上一次的数据查询结果
+	_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 
 	t.Run("都不传", func(t *testing.T) {
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, make(map[string]string))

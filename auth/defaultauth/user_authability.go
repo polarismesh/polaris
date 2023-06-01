@@ -65,7 +65,7 @@ func (svr *userAuthAbility) Initialize(authOpt *auth.Config, storage store.Store
 
 // Name of the user operator plugin
 func (svr *userAuthAbility) Name() string {
-	return "defaultUserManager"
+	return auth.DefaultUserMgnPluginName
 }
 
 // CreateUsers 创建用户，只能由超级账户 or 主账户调用

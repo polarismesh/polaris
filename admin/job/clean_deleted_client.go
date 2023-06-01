@@ -47,13 +47,14 @@ func (job *cleanDeletedClientsJob) init(raw map[string]interface{}) error {
 		log.Errorf("[Maintain][Job][CleanDeletedClients] new config decoder err: %v", err)
 		return err
 	}
-	err = decoder.Decode(raw)
-	if err != nil {
+	if err := decoder.Decode(raw); err != nil {
 		log.Errorf("[Maintain][Job][CleanDeletedClients] parse config err: %v", err)
 		return err
 	}
+	if cfg.ClientCleanTimeout < 2*time.Minute {
+		cfg.ClientCleanTimeout = 2 * time.Minute
+	}
 	job.cfg = cfg
-
 	return nil
 }
 

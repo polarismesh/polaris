@@ -31,6 +31,7 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -252,7 +253,7 @@ func (s *Server) checkFaultDetectRuleExists(id, requestID string) *apiservice.Re
 	exists, err := s.storage.HasFaultDetectRule(id)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return api.NewResponse(apimodel.Code_StoreLayerException)
+		return api.NewResponse(commonstore.StoreCode2APICode(err))
 	}
 	if !exists {
 		return api.NewResponse(apimodel.Code_NotFoundResource)
@@ -292,7 +293,7 @@ func (s *Server) GetFaultDetectRules(ctx context.Context, query map[string]strin
 	total, cbRules, err := s.storage.GetFaultDetectRules(query, offset, limit)
 	if err != nil {
 		log.Errorf("get fault detect rules store err: %s", err.Error())
-		return api.NewBatchQueryResponse(apimodel.Code_StoreLayerException)
+		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}
 	out := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
 	out.Amount = utils.NewUInt32Value(total)

@@ -26,6 +26,7 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	"github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	utils2 "github.com/polarismesh/polaris/config/utils"
@@ -34,7 +35,7 @@ import (
 // CreateConfigFileTemplate create config file template
 func (s *Server) CreateConfigFileTemplate(
 	ctx context.Context, template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
-	if checkRsp := checkConfigFileTemplateParam(template); checkRsp != nil {
+	if checkRsp := s.checkConfigFileTemplateParam(template); checkRsp != nil {
 		return checkRsp
 	}
 
@@ -60,7 +61,7 @@ func (s *Server) CreateConfigFileTemplate(
 		log.Error("[Config][Service] create config file template error.",
 			utils.ZapRequestID(requestID),
 			zap.Error(err))
-		return api.NewConfigFileTemplateResponse(apimodel.Code_StoreLayerException, template)
+		return api.NewConfigFileTemplateResponse(commonstore.StoreCode2APICode(err), template)
 	}
 
 	return api.NewConfigFileTemplateResponse(apimodel.Code_ExecuteSuccess,
@@ -80,7 +81,7 @@ func (s *Server) GetConfigFileTemplate(ctx context.Context, name string) *apicon
 			utils.ZapRequestID(requestID),
 			zap.String("name", name),
 			zap.Error(err))
-		return api.NewConfigFileTemplateResponse(apimodel.Code_StoreLayerException, nil)
+		return api.NewConfigFileTemplateResponse(commonstore.StoreCode2APICode(err), nil)
 	}
 
 	if template == nil {
@@ -101,7 +102,7 @@ func (s *Server) GetAllConfigFileTemplates(ctx context.Context) *apiconfig.Confi
 			utils.ZapRequestID(requestID),
 			zap.Error(err))
 
-		return api.NewConfigFileTemplateBatchQueryResponse(apimodel.Code_StoreLayerException, 0, nil)
+		return api.NewConfigFileTemplateBatchQueryResponse(commonstore.StoreCode2APICode(err), 0, nil)
 	}
 
 	if len(templates) == 0 {
@@ -141,11 +142,11 @@ func transferConfigFileTemplateAPIModel2StoreModel(template *apiconfig.ConfigFil
 	}
 }
 
-func checkConfigFileTemplateParam(template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
+func (s *Server) checkConfigFileTemplateParam(template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
 	if err := utils2.CheckFileName(template.GetName()); err != nil {
 		return api.NewConfigFileTemplateResponse(apimodel.Code_InvalidConfigFileTemplateName, template)
 	}
-	if err := utils2.CheckContentLength(template.Content.GetValue()); err != nil {
+	if err := utils2.CheckContentLength(template.Content.GetValue(), int(s.cfg.ContentMaxLength)); err != nil {
 		return api.NewConfigFileTemplateResponse(apimodel.Code_InvalidConfigFileContentLength, template)
 	}
 	if len(template.Content.GetValue()) == 0 {

@@ -103,13 +103,13 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 
 	checker := &defaultAuthChecker{}
 	checker.Initialize(&auth.Config{
-		User: auth.UserConfig{
+		User: &auth.UserConfig{
 			Name: "",
 			Option: map[string]interface{}{
 				"salt": "polarismesh@2021",
 			},
 		},
-		Strategy: auth.StrategyConfig{
+		Strategy: &auth.StrategyConfig{
 			Name: "",
 			Option: map[string]interface{}{
 				"consoleOpen": true,

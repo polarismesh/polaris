@@ -236,6 +236,31 @@ func (sc *serviceCache) GetServiceByID(id string) *model.Service {
 	return svc
 }
 
+// GetOrLoadServiceByID 先从缓存获取服务，如果没有的话，再从存储层获取，并设置到 Cache 中
+func (sc *serviceCache) GetOrLoadServiceByID(id string) *model.Service {
+	if id == "" {
+		return nil
+	}
+	value, ok := sc.ids.Load(id)
+	if !ok {
+		_, _, _ = sc.singleFlight.Do(id, func() (interface{}, error) {
+			svc, err := sc.storage.GetServiceByID(id)
+			if err == nil && svc != nil {
+				sc.ids.Store(svc.ID, svc)
+			}
+			return svc, err
+		})
+
+		value, ok = sc.ids.Load(id)
+		if !ok {
+			return nil
+		}
+	}
+	svc := value.(*model.Service)
+	sc.fillServicePorts(svc)
+	return svc
+}
+
 // GetServiceByName 根据服务名获取服务数据
 func (sc *serviceCache) GetServiceByName(name string, namespace string) *model.Service {
 	if name == "" || namespace == "" {

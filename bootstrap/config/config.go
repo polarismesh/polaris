@@ -64,6 +64,8 @@ type Bootstrap struct {
 type PolarisService struct {
 	EnableRegister    bool       `yaml:"enable_register"`
 	ProbeAddress      string     `yaml:"probe_address"`
+	SelfAddress       string     `yaml:"self_address"`
+	NetworkInter      string     `yaml:"network_inter"`
 	Isolated          bool       `yaml:"isolated"`
 	HeartbeatInterval int        `yaml:"heartbeat_interval"`
 	Services          []*Service `yaml:"services"`

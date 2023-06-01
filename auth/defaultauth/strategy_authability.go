@@ -60,7 +60,7 @@ func (svr *strategyAuthAbility) Initialize(authOpt *auth.Config, storage store.S
 
 // Name of the user operator plugin
 func (svr *strategyAuthAbility) Name() string {
-	return "defaultStrategyManager"
+	return auth.DefaultStrategyMgnPluginName
 }
 
 // CreateStrategy creates a new strategy.

@@ -261,13 +261,13 @@ auth:
   # auth的option现已迁移至user及strategy
   # 在auth.option配置依然有效，但是会收到警告，提醒您尽快迁移配置至user及strategy级别下
   user:
-    name: defaultUserManager
+    name: defaultUser
     option:
       # token 加密的 salt，鉴权解析 token 时需要依靠这个 salt 去解密 token 的信息
       # salt 的长度需要满足以下任意一个：len(salt) in [16, 24, 32]
       salt: polarismesh@2021
   strategy:
-    name: defaultStrategyManager
+    name: defaultStrategy
     option:
       # 控制台鉴权能力开关，默认开启
       consoleOpen: true

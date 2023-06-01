@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package batch
+package store
 
 import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"

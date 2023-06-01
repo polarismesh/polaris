@@ -31,6 +31,7 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -326,7 +327,7 @@ func (s *Server) checkCircuitBreakerRuleExists(id, requestID string) *apiservice
 	exists, err := s.storage.HasCircuitBreakerRule(id)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return api.NewResponse(apimodel.Code_StoreLayerException)
+		return api.NewResponse(commonstore.StoreCode2APICode(err))
 	}
 	if !exists {
 		return api.NewResponse(apimodel.Code_NotFoundCircuitBreaker)
@@ -349,7 +350,7 @@ func (s *Server) GetCircuitBreakerRules(ctx context.Context, query map[string]st
 	total, cbRules, err := s.storage.GetCircuitBreakerRules(query, offset, limit)
 	if err != nil {
 		log.Errorf("get circuitbreaker rules store err: %s", err.Error())
-		return api.NewBatchQueryResponse(apimodel.Code_StoreLayerException)
+		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}
 	out := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
 	out.Amount = utils.NewUInt32Value(total)

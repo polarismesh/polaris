@@ -60,12 +60,15 @@ type InstanceCache interface {
 	GetServicePorts(serviceID string) []string
 	// GetInstanceLabels Get the label of all instances under a service
 	GetInstanceLabels(serviceID string) *apiservice.InstanceLabels
+	// QueryInstances query instance for OSS
+	QueryInstances(filter, metaFilter map[string]string, offset, limit uint32) (uint32, []*model.Instance, error)
 }
 
 // instanceCache 实例缓存的类
 type instanceCache struct {
 	*baseCache
 
+	cacheMgr           *CacheManager
 	storage            store.Store
 	lastMtimeLogged    int64
 	ids                *sync.Map // instanceid -> instance
@@ -86,8 +89,9 @@ func init() {
 }
 
 // newInstanceCache 新建一个instanceCache
-func newInstanceCache(storage store.Store, ch chan *revisionNotify) *instanceCache {
+func newInstanceCache(cacheMgr *CacheManager, storage store.Store, ch chan *revisionNotify) *instanceCache {
 	return &instanceCache{
+		cacheMgr:   cacheMgr,
 		baseCache:  newBaseCache(storage),
 		storage:    storage,
 		revisionCh: ch,
@@ -128,8 +132,13 @@ func (ic *instanceCache) initialize(opt map[string]interface{}) error {
 
 // update 更新缓存函数
 func (ic *instanceCache) update() error {
+	err, _ := ic.singleUpdate()
+	return err
+}
+
+func (ic *instanceCache) singleUpdate() (error, bool) {
 	// 多个线程竞争，只有一个线程进行更新
-	_, err, _ := ic.singleFlight.Do(ic.name(), func() (interface{}, error) {
+	_, err, shared := ic.singleFlight.Do(ic.name(), func() (interface{}, error) {
 		defer func() {
 			ic.lastMtimeLogged = logLastMtime(ic.lastMtimeLogged, ic.LastMtime().Unix(), "Instance")
 			ic.checkAll()
@@ -137,7 +146,7 @@ func (ic *instanceCache) update() error {
 		}()
 		return nil, ic.doCacheUpdate(ic.name(), ic.realUpdate)
 	})
-	return err
+	return err, shared
 }
 
 func (ic *instanceCache) LastMtime() time.Time {

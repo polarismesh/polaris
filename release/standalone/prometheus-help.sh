@@ -20,7 +20,7 @@ if [ ${command} == "stop" ]; then
     pid=$(ps -ef | grep polaris-prometheus | grep -v grep | awk '{print $2}')
     if [ "${pid}" != "" ]; then
         echo -e "start to kill polaris-prometheus process ${pid}"
-        kill ${pid}
+        kill -9 ${pid}
     else
         echo "not found running polaris-prometheus"
     fi

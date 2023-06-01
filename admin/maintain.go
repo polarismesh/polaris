@@ -31,6 +31,7 @@ import (
 	connlimit "github.com/polarismesh/polaris/common/conn/limit"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 )
@@ -156,7 +157,7 @@ func (s *Server) CleanInstance(ctx context.Context, req *apiservice.Instance) *a
 	if err := s.storage.CleanInstance(instanceID); err != nil {
 		log.Error("Clean instance",
 			zap.String("err", err.Error()), utils.ZapRequestID(utils.ParseRequestID(ctx)))
-		return api.NewInstanceResponse(apimodel.Code_StoreLayerException, req)
+		return api.NewInstanceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 
 	log.Info("Clean instance", utils.ZapRequestID(utils.ParseRequestID(ctx)), utils.ZapInstanceID(instanceID))

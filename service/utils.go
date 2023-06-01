@@ -29,8 +29,8 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	"github.com/polarismesh/polaris/common/utils"
-	"github.com/polarismesh/polaris/service/batch"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -175,7 +175,7 @@ func storeError2Response(err error) *apiservice.Response {
 	if err == nil {
 		return nil
 	}
-	return api.NewResponseWithMsg(batch.StoreCode2APICode(err), err.Error())
+	return api.NewResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 }
 
 // storeError2AnyResponse store code
@@ -184,9 +184,9 @@ func storeError2AnyResponse(err error, msg proto.Message) *apiservice.Response {
 		return nil
 	}
 	if nil == msg {
-		return api.NewResponseWithMsg(batch.StoreCode2APICode(err), err.Error())
+		return api.NewResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
-	resp := api.NewAnyDataResponse(batch.StoreCode2APICode(err), msg)
+	resp := api.NewAnyDataResponse(commonstore.StoreCode2APICode(err), msg)
 	resp.Info = &wrappers.StringValue{Value: err.Error()}
 	return resp
 }

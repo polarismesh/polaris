@@ -24,6 +24,7 @@ import (
 
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"golang.org/x/sync/singleflight"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -129,6 +130,7 @@ func (rlc *rateLimitCache) rateLimitToProto(rateLimit *model.RateLimit) error {
 	if err := json.Unmarshal([]byte(rateLimit.Rule), rateLimit.Proto); err != nil {
 		return err
 	}
+	rateLimit.Proto.Disable = wrapperspb.Bool(rateLimit.Disable)
 	namespace := rateLimit.Proto.GetNamespace().GetValue()
 	name := rateLimit.Proto.GetService().GetValue()
 	if namespace == "" || name == "" {

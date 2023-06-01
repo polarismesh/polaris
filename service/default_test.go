@@ -43,14 +43,7 @@ func Test_Initialize(t *testing.T) {
 	s := mock.NewMockStore(ctrl)
 
 	_, _, err := auth.TestInitialize(context.Background(), &auth.Config{
-		User: auth.UserConfig{
-			Name:   "defaultUserManager",
-			Option: map[string]interface{}{},
-		},
-		Strategy: auth.StrategyConfig{
-			Name:   "defaultStrategyManager",
-			Option: map[string]interface{}{},
-		},
+		Option: map[string]interface{}{},
 	}, s, nil)
 	assert.NoError(t, err)
 

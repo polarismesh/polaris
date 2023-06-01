@@ -30,6 +30,7 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	utils2 "github.com/polarismesh/polaris/config/utils"
@@ -68,7 +69,7 @@ func (s *Server) CreateConfigFileGroup(
 		log.Error("[Config][Service] get config file group error.",
 			utils.ZapRequestID(requestID),
 			zap.Error(err))
-		return api.NewConfigFileGroupResponse(apimodel.Code_StoreLayerException, configFileGroup)
+		return api.NewConfigFileGroupResponse(commonstore.StoreCode2APICode(err), configFileGroup)
 	}
 
 	if fileGroup != nil {
@@ -85,7 +86,7 @@ func (s *Server) CreateConfigFileGroup(
 			zap.String("namespace", namespace),
 			zap.String("groupName", groupName),
 			zap.Error(err))
-		return api.NewConfigFileGroupResponse(apimodel.Code_StoreLayerException, configFileGroup)
+		return api.NewConfigFileGroupResponse(commonstore.StoreCode2APICode(err), configFileGroup)
 	}
 
 	log.Info("[Config][Service] create config file group successful.",
@@ -123,7 +124,7 @@ func (s *Server) createConfigFileGroupIfAbsent(ctx context.Context,
 			zap.String("groupName", name),
 			zap.Error(err))
 
-		return api.NewConfigFileGroupResponse(apimodel.Code_StoreLayerException, nil)
+		return api.NewConfigFileGroupResponse(commonstore.StoreCode2APICode(err), nil)
 	}
 
 	if group != nil {
@@ -160,7 +161,7 @@ func (s *Server) queryByGroupName(ctx context.Context, namespace, groupName stri
 			zap.String("groupName", groupName),
 			zap.Error(err))
 
-		return api.NewConfigFileGroupBatchQueryResponse(apimodel.Code_StoreLayerException, 0, nil)
+		return api.NewConfigFileGroupBatchQueryResponse(commonstore.StoreCode2APICode(err), 0, nil)
 	}
 
 	if len(groups) == 0 {
@@ -169,7 +170,7 @@ func (s *Server) queryByGroupName(ctx context.Context, namespace, groupName stri
 
 	groupAPIModels, err := s.batchTransfer(ctx, groups)
 	if err != nil {
-		return api.NewConfigFileGroupBatchQueryResponse(apimodel.Code_StoreLayerException, 0, nil)
+		return api.NewConfigFileGroupBatchQueryResponse(commonstore.StoreCode2APICode(err), 0, nil)
 	}
 
 	return api.NewConfigFileGroupBatchQueryResponse(apimodel.Code_ExecuteSuccess, count, groupAPIModels)
@@ -227,14 +228,14 @@ func (s *Server) queryByFileName(ctx context.Context, namespace, groupName,
 				zap.String("namespace", namespaceAndGroup[0]),
 				zap.String("name", namespaceAndGroup[1]),
 				zap.Error(err))
-			return api.NewConfigFileGroupBatchQueryResponse(apimodel.Code_StoreLayerException, 0, nil)
+			return api.NewConfigFileGroupBatchQueryResponse(commonstore.StoreCode2APICode(err), 0, nil)
 		}
 		configFileGroups = append(configFileGroups, configFileGroup)
 	}
 
 	groupAPIModels, err := s.batchTransfer(ctx, configFileGroups)
 	if err != nil {
-		return api.NewConfigFileGroupBatchQueryResponse(apimodel.Code_StoreLayerException, 0, nil)
+		return api.NewConfigFileGroupBatchQueryResponse(commonstore.StoreCode2APICode(err), 0, nil)
 	}
 
 	return api.NewConfigFileGroupBatchQueryResponse(apimodel.Code_ExecuteSuccess, uint32(total), groupAPIModels)
@@ -316,7 +317,7 @@ func (s *Server) DeleteConfigFileGroup(ctx context.Context, namespace, name stri
 			zap.String("name", name),
 			zap.Error(err))
 
-		return api.NewConfigFileGroupResponse(apimodel.Code_StoreLayerException, nil)
+		return api.NewConfigFileGroupResponse(commonstore.StoreCode2APICode(err), nil)
 	}
 	if configGroup == nil {
 		return api.NewConfigFileGroupResponse(apimodel.Code_NotFoundResource, nil)
@@ -329,7 +330,7 @@ func (s *Server) DeleteConfigFileGroup(ctx context.Context, namespace, name stri
 			zap.String("name", name),
 			zap.Error(err))
 
-		return api.NewConfigFileGroupResponse(apimodel.Code_StoreLayerException, nil)
+		return api.NewConfigFileGroupResponse(commonstore.StoreCode2APICode(err), nil)
 	}
 
 	if err := s.afterConfigGroupResource(ctx, &apiconfig.ConfigFileGroup{
@@ -368,7 +369,7 @@ func (s *Server) UpdateConfigFileGroup(ctx context.Context,
 			zap.String("name", groupName),
 			zap.Error(err))
 
-		return api.NewConfigFileGroupResponse(apimodel.Code_StoreLayerException, configFileGroup)
+		return api.NewConfigFileGroupResponse(commonstore.StoreCode2APICode(err), configFileGroup)
 	}
 
 	if fileGroup == nil {
@@ -389,7 +390,7 @@ func (s *Server) UpdateConfigFileGroup(ctx context.Context,
 			zap.String("name", groupName),
 			zap.Error(err))
 
-		return api.NewConfigFileGroupResponse(apimodel.Code_StoreLayerException, configFileGroup)
+		return api.NewConfigFileGroupResponse(commonstore.StoreCode2APICode(err), configFileGroup)
 	}
 
 	configFileGroup.Id = utils.NewUInt64Value(fileGroup.Id)

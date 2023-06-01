@@ -47,7 +47,7 @@ func NewMaintainJobs(namingServer service.DiscoverServer, cacheMgn *cache.CacheM
 		jobs: map[string]maintainJob{
 			"DeleteUnHealthyInstance": &deleteUnHealthyInstanceJob{
 				namingServer: namingServer, storage: storage},
-			"DeleteEmptyAutoCreatedService": &deleteEmptyAutoCreatedServiceJob{
+			"DeleteEmptyService": &deleteEmptyServiceJob{
 				namingServer: namingServer, cacheMgn: cacheMgn, storage: storage},
 			"CleanDeletedInstances": &cleanDeletedInstancesJob{
 				storage: storage},
@@ -68,28 +68,43 @@ func (mj *MaintainJobs) StartMaintianJobs(configs []JobConfig) error {
 			log.Infof("[Maintain][Job] job (%s) not enable", cfg.Name)
 			continue
 		}
-		job, ok := mj.jobs[cfg.Name]
+		jobName := parseJobName(cfg.Name)
+		job, ok := mj.findAdminJob(jobName)
 		if !ok {
-			return fmt.Errorf("[Maintain][Job] job (%s) not exist", cfg.Name)
+			return fmt.Errorf("[Maintain][Job] job (%s) not exist", jobName)
 		}
-		_, ok = mj.startedJobs[cfg.Name]
-		if ok {
-			return fmt.Errorf("[Maintain][Job] job (%s) duplicated", cfg.Name)
+		if _, ok := mj.startedJobs[jobName]; ok {
+			return fmt.Errorf("[Maintain][Job] job (%s) duplicated", jobName)
 		}
-		err := job.init(cfg.Option)
-		if err != nil {
-			log.Errorf("[Maintain][Job] job (%s) fail to init, err: %v", cfg.Name, err)
-			return fmt.Errorf("[Maintain][Job] job (%s) fail to init", cfg.Name)
+		if err := job.init(cfg.Option); err != nil {
+			log.Errorf("[Maintain][Job] job (%s) fail to init, err: %v", jobName, err)
+			return fmt.Errorf("[Maintain][Job] job (%s) fail to init", jobName)
 		}
-		err = mj.storage.StartLeaderElection(store.ElectionKeyMaintainJobPrefix + cfg.Name)
-		if err != nil {
-			log.Errorf("[Maintain][Job][%s] start leader election err: %v", cfg.Name, err)
+		if err := mj.storage.StartLeaderElection(store.ElectionKeyMaintainJobPrefix + jobName); err != nil {
+			log.Errorf("[Maintain][Job][%s] start leader election err: %v", jobName, err)
 			return err
 		}
-		runAdminJob(ctx, cfg.Name, job.interval(), job, mj.storage)
-		mj.startedJobs[cfg.Name] = job
+		runAdminJob(ctx, jobName, job.interval(), job, mj.storage)
+		mj.startedJobs[jobName] = job
 	}
 	return nil
+}
+
+func parseJobName(name string) string {
+	// 兼容老配置
+	if name == "DeleteEmptyAutoCreatedService" {
+		name = "DeleteEmptyService"
+	}
+	return name
+}
+
+func (mj *MaintainJobs) findAdminJob(name string) (maintainJob, bool) {
+	job, ok := mj.jobs[name]
+	if !ok {
+		return nil, false
+	}
+
+	return job, true
 }
 
 // StopMaintainJobs

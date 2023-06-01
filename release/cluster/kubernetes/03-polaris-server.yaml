@@ -27,9 +27,6 @@ spec:
     - port: 15010
       name: xds-v3
       targetPort: 15010
-    - port: 9000
-      name: prometheus-sd
-      targetPort: 9000
   selector:
     app: polaris
 ---

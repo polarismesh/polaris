@@ -18,24 +18,20 @@
 package leader
 
 import (
-	"encoding/json"
 	"time"
+
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/polarismesh/polaris/common/batchjob"
 )
 
 type Config struct {
-	SoltNum   int32
-	StreamNum int32
-	Batch     batchjob.CtrlConfig
+	SoltNum   int32               `json:"soltNum"`
+	StreamNum int32               `json:"streamNum"`
+	Batch     batchjob.CtrlConfig `json:"batch,omitempty"`
 }
 
 func unmarshal(options map[string]interface{}) (*Config, error) {
-	contentBytes, err := json.Marshal(options)
-	if err != nil {
-		return nil, err
-	}
-
 	config := &Config{
 		SoltNum:   DefaultSoltNum,
 		StreamNum: int32(streamNum),
@@ -46,7 +42,15 @@ func unmarshal(options map[string]interface{}) (*Config, error) {
 			Concurrency:   512,
 		},
 	}
-	if err := json.Unmarshal(contentBytes, config); err != nil {
+	decodeConfig := &mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
+		Result:     config,
+	}
+	decoder, err := mapstructure.NewDecoder(decodeConfig)
+	if err != nil {
+		return nil, err
+	}
+	if err = decoder.Decode(options); err != nil {
 		return nil, err
 	}
 	return config, nil

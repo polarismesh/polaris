@@ -64,7 +64,7 @@ func (d *defaultAuthChecker) Initialize(options *auth.Config, s store.Store, cac
 	if len(options.Strategy.Option) > 0 || len(options.User.Option) > 0 {
 		// 判断auth.option是否还有值，有则不兼容
 		if len(options.Option) > 0 {
-			return errors.New("not allow set auth.option when auth.user.option or auth.strategy.option has set")
+			log.Warn("auth.user.option or auth.strategy.option has set, auth.option will ignore")
 		}
 		strategyContentBytes, err = json.Marshal(options.Strategy.Option)
 		if err != nil {

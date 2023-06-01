@@ -28,17 +28,39 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
+const (
+	// DefaultUserMgnPluginName default user server name
+	DefaultUserMgnPluginName = "defaultUser"
+	// DefaultStrategyMgnPluginName default strategy server name
+	DefaultStrategyMgnPluginName = "defaultStrategy"
+)
+
 // Config 鉴权能力的相关配置参数
 type Config struct {
 	// Name 原AuthServer名称，已废弃
 	Name string
 	// Option 原AuthServer的option，已废弃
+	// Deprecated
 	Option map[string]interface{}
-
 	// User UserOperator的相关配置
-	User UserConfig `yaml:"user"`
+	User *UserConfig `yaml:"user"`
 	// Strategy StrategyOperator的相关配置
-	Strategy StrategyConfig `yaml:"strategy"`
+	Strategy *StrategyConfig `yaml:"strategy"`
+}
+
+func (c *Config) SetDefault() {
+	if c.User == nil {
+		c.User = &UserConfig{
+			Name:   DefaultUserMgnPluginName,
+			Option: map[string]interface{}{},
+		}
+	}
+	if c.Strategy == nil {
+		c.Strategy = &StrategyConfig{
+			Name:   DefaultStrategyMgnPluginName,
+			Option: map[string]interface{}{},
+		}
+	}
 }
 
 // UserConfig UserOperator的相关配置
@@ -110,51 +132,46 @@ func GetStrategyServer() (StrategyServer, error) {
 func Initialize(ctx context.Context, authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error {
 	var err error
 	once.Do(func() {
-		err = initialize(ctx, authOpt, storage, cacheMgn)
+		userMgn, strategyMgn, err = initialize(ctx, authOpt, storage, cacheMgn)
 	})
 
 	if err != nil {
 		return err
 	}
-
-	finishInit = true
 	return nil
 }
 
 // initialize 包裹了初始化函数，在 Initialize 的时候会在自动调用，全局初始化一次
-func initialize(_ context.Context, authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error {
+func initialize(_ context.Context, authOpt *Config, storage store.Store,
+	cacheMgn *cache.CacheManager) (UserServer, StrategyServer, error) {
+	authOpt.SetDefault()
 	name := authOpt.User.Name
 	if name == "" {
-		return errors.New("UserServer Name is empty")
+		return nil, nil, errors.New("UserServer Name is empty")
 	}
 
 	namedUserMgn, ok := userMgnSlots[name]
 	if !ok {
-		return errors.New("no such name UserServer")
+		return nil, nil, fmt.Errorf("no such UserServer plugin. name(%s)", name)
 	}
-
-	userMgn = namedUserMgn
-
-	if err := userMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
+	if err := namedUserMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
 		log.Printf("UserServer do initialize err: %s", err.Error())
-		return err
+		return nil, nil, err
 	}
 
 	name = authOpt.Strategy.Name
 	if name == "" {
-		return errors.New("StrategyServer Name is empty")
+		return nil, nil, errors.New("StrategyServer Name is empty")
 	}
 
 	namedStrategyMgn, ok := strategyMgnSlots[name]
 	if !ok {
-		return errors.New("no such name StrategyServer")
+		return nil, nil, fmt.Errorf("no such StrategyServer plugin. name(%s)", name)
 	}
-
-	strategyMgn = namedStrategyMgn
-
-	if err := strategyMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
+	if err := namedStrategyMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
 		log.Printf("StrategyServer do initialize err: %s", err.Error())
-		return err
+		return nil, nil, err
 	}
-	return nil
+	finishInit = true
+	return namedUserMgn, namedStrategyMgn, nil
 }

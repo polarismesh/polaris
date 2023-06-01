@@ -27,6 +27,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
@@ -34,10 +35,6 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
-)
-
-const (
-	fileContentMaxLength = 20000 // 文件内容限制为 2w 个字符
 )
 
 var (
@@ -87,9 +84,9 @@ func CalMd5(content string) string {
 }
 
 // CheckContentLength 校验文件内容长度
-func CheckContentLength(content string) error {
-	if len(content) > fileContentMaxLength {
-		return fmt.Errorf("content length too long. max length =%d", fileContentMaxLength)
+func CheckContentLength(content string, max int) error {
+	if utf8.RuneCountInString(content) > max {
+		return fmt.Errorf("content length too long. max length =%d", max)
 	}
 
 	return nil

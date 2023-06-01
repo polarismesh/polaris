@@ -223,7 +223,7 @@ func (us *userStore) GetUser(id string) (*model.User, error) {
 // GetUser 获取用户
 func (us *userStore) getUser(tx *bolt.Tx, id string) (*model.User, error) {
 	if id == "" {
-		return nil, store.NewStatusError(store.EmptyParamsErr, "get user missing some params")
+		return nil, store.NewStatusError(store.EmptyParamsErr, "get user missing id params")
 	}
 
 	ret := make(map[string]interface{})
@@ -234,10 +234,6 @@ func (us *userStore) getUser(tx *bolt.Tx, id string) (*model.User, error) {
 	if len(ret) == 0 {
 		return nil, nil
 	}
-	if len(ret) > 1 {
-		return nil, ErrMultipleUserFound
-	}
-
 	user := ret[id].(*userForStore)
 	if !user.Valid {
 		return nil, nil
@@ -249,15 +245,17 @@ func (us *userStore) getUser(tx *bolt.Tx, id string) (*model.User, error) {
 // GetUserByName 获取用户
 func (us *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
 	if name == "" {
-		return nil, store.NewStatusError(store.EmptyParamsErr, "get user missing some params")
+		return nil, store.NewStatusError(store.EmptyParamsErr, "get user missing name params")
 	}
-
-	ret, err := us.handler.LoadValuesByFilter(tblUser, []string{UserFieldName, UserFieldOwner}, &userForStore{},
+	fields := []string{UserFieldName, UserFieldOwner, UserFieldValid}
+	ret, err := us.handler.LoadValuesByFilter(tblUser, fields, &userForStore{},
 		func(m map[string]interface{}) bool {
-
+			valid, ok := m[UserFieldValid].(bool)
+			if ok && !valid {
+				return false
+			}
 			saveName, _ := m[UserFieldName].(string)
 			saveOwner, _ := m[UserFieldOwner].(string)
-
 			return saveName == name && saveOwner == ownerId
 		})
 	if err != nil {
