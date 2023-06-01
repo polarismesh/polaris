@@ -403,15 +403,15 @@ func TestSnapshot(t *testing.T) {
 
 	snapshot, _ := x.cache.GetSnapshot("default")
 	dumpYaml := dumpSnapShot(snapshot)
-	assert.Equal(t, noInboundDump, dumpYaml)
+	assert.Equal(t, string(noInboundDump), string(dumpYaml))
 
 	snapshot, _ = x.cache.GetSnapshot("default/permissive")
 	dumpYaml = dumpSnapShot(snapshot)
-	assert.Equal(t, permissiveDump, dumpYaml)
+	assert.Equal(t, string(permissiveDump), string(dumpYaml))
 
 	snapshot, _ = x.cache.GetSnapshot("default/strict")
 	dumpYaml = dumpSnapShot(snapshot)
-	assert.Equal(t, strictDump, dumpYaml)
+	assert.Equal(t, string(strictDump), string(dumpYaml))
 
 	snapshot, _ = x.cache.GetSnapshot("gateway~default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1")
 	dumpYaml = dumpSnapShot(snapshot)
