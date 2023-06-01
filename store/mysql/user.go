@@ -269,6 +269,9 @@ func (u *userStore) GetUser(id string) (*model.User, error) {
 
 	user.TokenEnable = tokenEnable == 1
 	user.Type = model.UserRoleType(userType)
+	// 北极星后续不在保存用户的 mobile 以及 email 信息，这里针对原来保存的数据也不进行对外展示，强制屏蔽数据
+	user.Mobile = ""
+	user.Email = ""
 	return user, nil
 }
 
@@ -301,6 +304,9 @@ func (u *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
 
 	user.TokenEnable = tokenEnable == 1
 	user.Type = model.UserRoleType(userType)
+	// 北极星后续不在保存用户的 mobile 以及 email 信息，这里针对原来保存的数据也不进行对外展示，强制屏蔽数据
+	user.Mobile = ""
+	user.Email = ""
 	return user, nil
 }
 
@@ -596,6 +602,10 @@ func fetchRown2User(rows *sql.Rows) (*model.User, error) {
 	user.CreateTime = time.Unix(ctime, 0)
 	user.ModifyTime = time.Unix(mtime, 0)
 	user.Type = model.UserRoleType(userType)
+
+	// 北极星后续不在保存用户的 mobile 以及 email 信息，这里针对原来保存的数据也不进行对外展示，强制屏蔽数据
+	user.Mobile = ""
+	user.Email = ""
 
 	return user, nil
 }

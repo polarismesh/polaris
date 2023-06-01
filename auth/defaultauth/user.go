@@ -521,8 +521,6 @@ func user2Api(user *model.User) *apisecurity.User {
 		Comment:     utils.NewStringValue(user.Comment),
 		Ctime:       utils.NewStringValue(commontime.Time2String(user.CreateTime)),
 		Mtime:       utils.NewStringValue(commontime.Time2String(user.ModifyTime)),
-		Mobile:      utils.NewStringValue(user.Mobile),
-		Email:       utils.NewStringValue(user.Email),
 		UserType:    utils.NewStringValue(model.UserRoleNames[user.Type]),
 	}
 
@@ -565,15 +563,6 @@ func checkCreateUser(req *apisecurity.User) *apiservice.Response {
 	if err := checkOwner(req.Owner); err != nil {
 		return api.NewUserResponse(apimodel.Code_InvalidUserOwners, req)
 	}
-
-	if err := checkMobile(req.Mobile); err != nil {
-		return api.NewUserResponse(apimodel.Code_InvalidUserMobile, req)
-	}
-
-	if err := checkEmail(req.Email); err != nil {
-		return api.NewUserResponse(apimodel.Code_InvalidUserEmail, req)
-	}
-
 	return nil
 }
 
@@ -593,15 +582,6 @@ func checkUpdateUser(req *apisecurity.User) *apiservice.Response {
 	if req.GetId() == nil || req.GetId().GetValue() == "" {
 		return api.NewUserResponse(apimodel.Code_BadRequest, req)
 	}
-
-	if err := checkMobile(req.Mobile); err != nil {
-		return api.NewUserResponse(apimodel.Code_InvalidUserMobile, req)
-	}
-
-	if err := checkEmail(req.Email); err != nil {
-		return api.NewUserResponse(apimodel.Code_InvalidUserEmail, req)
-	}
-
 	return nil
 }
 
@@ -613,17 +593,6 @@ func updateUserAttribute(old *model.User, newUser *apisecurity.User) (*model.Use
 		old.Comment = newUser.Comment.GetValue()
 		needUpdate = true
 	}
-
-	if newUser.Mobile != nil && old.Mobile != newUser.Mobile.GetValue() {
-		old.Mobile = newUser.Mobile.GetValue()
-		needUpdate = true
-	}
-
-	if newUser.Email != nil && old.Email != newUser.Email.GetValue() {
-		old.Email = newUser.Email.GetValue()
-		needUpdate = true
-	}
-
 	return old, needUpdate, nil
 }
 
@@ -682,8 +651,6 @@ func createUserModel(req *apisecurity.User, role model.UserRoleType) (*model.Use
 		Password:    string(pwd),
 		Owner:       req.GetOwner().GetValue(),
 		Source:      req.GetSource().GetValue(),
-		Mobile:      req.GetMobile().GetValue(),
-		Email:       req.GetEmail().GetValue(),
 		Valid:       true,
 		Type:        convertCreateUserRole(role),
 		Comment:     req.GetComment().GetValue(),
