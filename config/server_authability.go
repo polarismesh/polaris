@@ -73,8 +73,8 @@ func (s *serverAuthability) collectClientConfigFileAuthContext(ctx context.Conte
 	)
 }
 
-func (s *serverAuthability) collectClientWatchConfigFiles(ctx context.Context, req *apiconfig.ClientWatchConfigFileRequest,
-	op model.ResourceOperation, methodName string) *model.AcquireContext {
+func (s *serverAuthability) collectClientWatchConfigFiles(ctx context.Context,
+	req *apiconfig.ClientWatchConfigFileRequest, op model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
 		model.WithRequestContext(ctx),
 		model.WithModule(model.ConfigModule),
