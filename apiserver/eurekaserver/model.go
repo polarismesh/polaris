@@ -286,7 +286,7 @@ type InstanceInfo struct {
 
 	LeaseInfo *LeaseInfo `json:"leaseInfo" xml:"leaseInfo,omitempty"`
 
-	//nolint: lll
+	//nolint:lll
 	IsCoordinatingDiscoveryServer interface{} `json:"isCoordinatingDiscoveryServer" xml:"isCoordinatingDiscoveryServer,omitempty"`
 
 	Metadata *Metadata `json:"metadata" xml:"metadata"`

@@ -18,7 +18,6 @@
 package docs
 
 const (
-	//nolint: lll
 	enrichWatchConfigFileNotes = `
 请求示例
 
