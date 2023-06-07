@@ -35,7 +35,7 @@ type NamingModuleStore interface {
 	L5Store
 	// RateLimitStore 限流规则接口
 	RateLimitStore
-	// RateLimitStore 熔断规则接口
+	// CircuitBreakerStore 熔断规则接口
 	CircuitBreakerStore
 	// ToolStore 函数及工具接口
 	ToolStore
