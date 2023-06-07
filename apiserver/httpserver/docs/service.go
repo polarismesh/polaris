@@ -313,14 +313,6 @@ PUT /naming/v1/service/alias
 
 # 开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header
 Header X-Polaris-Token: {访问凭据}
-
-{
-    "service":"...",
-    "namespace":"...",
-    "alias":"...",
-    "alias_namespace":"...",
-    "comment":"..."
-}
 ~~~
 
 应答示例：

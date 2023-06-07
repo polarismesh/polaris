@@ -38,6 +38,7 @@ func EnrichReportClientApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 func EnrichRegisterInstanceApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("注册实例").
 		Metadata(restfulspec.KeyOpenAPITags, registerInstanceApiTags).
+		Reads(apiservice.Client{}).
 		Notes(enrichRegisterInstanceApiNotes)
 }
 
