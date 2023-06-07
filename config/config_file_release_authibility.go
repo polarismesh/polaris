@@ -32,7 +32,7 @@ func (s *serverAuthability) PublishConfigFile(ctx context.Context,
 	configFileRelease *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
 
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx,
-		[]*apiconfig.ConfigFileRelease{configFileRelease}, model.Create, "PublishConfigFile")
+		[]*apiconfig.ConfigFileRelease{configFileRelease}, model.Modify, "PublishConfigFile")
 
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
@@ -66,7 +66,6 @@ func (s *serverAuthability) GetConfigFileRelease(ctx context.Context,
 // DeleteConfigFileRelease 删除配置文件发布，删除配置文件的时候，同步删除配置文件发布数据
 func (s *serverAuthability) DeleteConfigFileRelease(ctx context.Context, namespace,
 	group, fileName, deleteBy string) *apiconfig.ConfigResponse {
-
 	req := []*apiconfig.ConfigFileRelease{
 		{
 			Namespace: utils.NewStringValue(namespace),
@@ -81,6 +80,5 @@ func (s *serverAuthability) DeleteConfigFileRelease(ctx context.Context, namespa
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
 	return s.targetServer.DeleteConfigFileRelease(ctx, namespace, group, fileName, deleteBy)
 }

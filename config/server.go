@@ -48,9 +48,11 @@ var (
 
 // Config 配置中心模块启动参数
 type Config struct {
-	Open             bool                   `yaml:"open"`
-	ContentMaxLength int64                  `yaml:""json:"contentMaxLength"`
-	Cache            map[string]interface{} `yaml:"cache"`
+	Open               bool          `yaml:"open"`
+	ContentMaxLength   int64         `yaml:""json:"contentMaxLength"`
+	LongPollingTimeout time.Duration `yaml:"longPollingTimeout"`
+	// Deprecated: not used
+	Cache map[string]interface{} `yaml:"cache"`
 }
 
 // Server 配置中心核心服务

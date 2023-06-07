@@ -30,6 +30,18 @@ import (
 // GetConfigFileForClient 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
 func (s *serverAuthability) GetConfigFileForClient(ctx context.Context,
 	fileInfo *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
+	authCtx := s.collectClientConfigFileAuthContext(ctx,
+		[]*apiconfig.ConfigFile{{
+			Namespace: fileInfo.Namespace,
+			Name:      fileInfo.FileName,
+			Group:     fileInfo.Group},
+		}, model.Read, "GetConfigFileForClient")
+	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+		return api.NewConfigClientResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return s.targetServer.GetConfigFileForClient(ctx, fileInfo)
 }
 
@@ -60,7 +72,7 @@ func (s *serverAuthability) UpdateConfigFileFromClient(ctx context.Context,
 			Namespace: fileInfo.Namespace,
 			Name:      fileInfo.Name,
 			Group:     fileInfo.Group},
-		}, model.Create, "UpdateConfigFileFromClient")
+		}, model.Modify, "UpdateConfigFileFromClient")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
 		return api.NewConfigClientResponseWithMessage(convertToErrCode(err), err.Error())
 	}
@@ -79,7 +91,7 @@ func (s *serverAuthability) PublishConfigFileFromClient(ctx context.Context,
 			Namespace: fileInfo.Namespace,
 			Name:      fileInfo.FileName,
 			Group:     fileInfo.Group},
-		}, model.Create, "PublishConfigFileFromClient")
+		}, model.Modify, "PublishConfigFileFromClient")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
 		return api.NewConfigClientResponseWithMessage(convertToErrCode(err), err.Error())
 	}
@@ -93,5 +105,14 @@ func (s *serverAuthability) PublishConfigFileFromClient(ctx context.Context,
 // WatchConfigFiles 监听配置文件变化
 func (s *serverAuthability) WatchConfigFiles(ctx context.Context,
 	request *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error) {
+	authCtx := s.collectClientWatchConfigFiles(ctx, request, model.Read, "WatchConfigFiles")
+	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+		return func() *apiconfig.ConfigClientResponse {
+			return api.NewConfigClientResponseWithMessage(convertToErrCode(err), err.Error())
+		}, nil
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return s.targetServer.WatchConfigFiles(ctx, request)
 }

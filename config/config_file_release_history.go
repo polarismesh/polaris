@@ -28,9 +28,7 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	commonstore "github.com/polarismesh/polaris/common/store"
-	"github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
-	utils2 "github.com/polarismesh/polaris/config/utils"
 )
 
 // recordReleaseHistory 新增配置文件发布历史记录
@@ -63,7 +61,7 @@ func (s *Server) recordReleaseHistory(ctx context.Context, fileRelease *model.Co
 		FileName:  fileName,
 		Content:   fileRelease.Content,
 		Format:    format,
-		Tags:      utils2.ToTagJsonStr(filterTags),
+		Tags:      ToTagJsonStr(filterTags),
 		Comment:   fileRelease.Comment,
 		Md5:       fileRelease.Md5,
 		Type:      releaseType,
@@ -72,15 +70,10 @@ func (s *Server) recordReleaseHistory(ctx context.Context, fileRelease *model.Co
 		ModifyBy:  fileRelease.ModifyBy,
 	}
 
-	err := s.storage.CreateConfigFileReleaseHistory(s.getTx(ctx), releaseHistory)
-
-	if err != nil {
-		log.Error("[Config][Service] create config file release history error.",
-			utils.ZapRequestIDByCtx(ctx),
-			zap.String("namespace", fileRelease.Namespace),
-			zap.String("group", fileRelease.Group),
-			zap.String("fileName", fileRelease.FileName),
-			zap.Error(err))
+	if err := s.storage.CreateConfigFileReleaseHistory(s.getTx(ctx), releaseHistory); err != nil {
+		log.Error("[Config][Service] create config file release history error.", utils.ZapRequestIDByCtx(ctx),
+			utils.ZapNamespace(fileRelease.Namespace), utils.ZapGroup(fileRelease.Group),
+			utils.ZapFileName(fileRelease.FileName), zap.Error(err))
 	}
 }
 
@@ -94,14 +87,9 @@ func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, gro
 
 	count, releaseHistories, err := s.storage.QueryConfigFileReleaseHistories(namespace,
 		group, fileName, offset, limit, endId)
-
 	if err != nil {
-		log.Error("[Config][Service] get config file release history error.",
-			utils.ZapRequestIDByCtx(ctx),
-			zap.String("namespace", namespace),
-			zap.String("group", group),
-			zap.String("fileName", fileName),
-			zap.Error(err))
+		log.Error("[Config][Service] get config file release history error.", utils.ZapRequestIDByCtx(ctx),
+			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
 		return api.NewConfigFileReleaseHistoryBatchQueryResponse(commonstore.StoreCode2APICode(err), 0, nil)
 	}
 
@@ -111,17 +99,13 @@ func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, gro
 
 	var apiReleaseHistory []*apiconfig.ConfigFileReleaseHistory
 	for _, history := range releaseHistories {
-		historyAPIModel := transferReleaseHistoryStoreModel2APIModel(history)
+		historyAPIModel := model.ToReleaseHistoryAPI(history)
 		apiReleaseHistory = append(apiReleaseHistory, historyAPIModel)
 	}
 
 	if err := s.decryptMultiConfigFileReleaseHistory(ctx, apiReleaseHistory); err != nil {
-		log.Error("[Config][Service] decrypt config file release history error.",
-			utils.ZapRequestIDByCtx(ctx),
-			zap.String("namespace", namespace),
-			zap.String("group", group),
-			zap.String("name", fileName),
-			zap.Error(err))
+		log.Error("[Config][Service] decrypt config file release history error.", utils.ZapRequestIDByCtx(ctx),
+			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
 		return api.NewConfigFileReleaseHistoryBatchQueryResponse(apimodel.Code_EncryptConfigFileException, 0, nil)
 	}
 
@@ -132,58 +116,27 @@ func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, gro
 func (s *Server) GetConfigFileLatestReleaseHistory(ctx context.Context, namespace, group,
 	fileName string) *apiconfig.ConfigResponse {
 
-	if err := utils2.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
+	if err := CheckResourceName(utils.NewStringValue(namespace)); err != nil {
 		return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_InvalidNamespaceName, nil)
 	}
 
-	if err := utils2.CheckResourceName(utils.NewStringValue(group)); err != nil {
+	if err := CheckResourceName(utils.NewStringValue(group)); err != nil {
 		return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_InvalidNamespaceName, nil)
 	}
 
-	if err := utils2.CheckFileName(utils.NewStringValue(fileName)); err != nil {
+	if err := CheckFileName(utils.NewStringValue(fileName)); err != nil {
 		return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_InvalidNamespaceName, nil)
 	}
 
 	history, err := s.storage.GetLatestConfigFileReleaseHistory(namespace, group, fileName)
-
 	if err != nil {
-		log.Error("[Config][Service] get latest config file release error",
-			utils.ZapRequestIDByCtx(ctx),
-			zap.String("namespace", namespace),
-			zap.String("group", group),
-			zap.String("fileName", fileName),
-			zap.Error(err),
+		log.Error("[Config][Service] get latest config file release error", utils.ZapRequestIDByCtx(ctx),
+			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err),
 		)
 		return api.NewConfigFileReleaseHistoryResponse(commonstore.StoreCode2APICode(err), nil)
 	}
-	apiHistory := transferReleaseHistoryStoreModel2APIModel(history)
+	apiHistory := model.ToReleaseHistoryAPI(history)
 	return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_ExecuteSuccess, apiHistory)
-}
-
-func transferReleaseHistoryStoreModel2APIModel(
-	releaseHistory *model.ConfigFileReleaseHistory) *apiconfig.ConfigFileReleaseHistory {
-
-	if releaseHistory == nil {
-		return nil
-	}
-	return &apiconfig.ConfigFileReleaseHistory{
-		Id:         utils.NewUInt64Value(releaseHistory.Id),
-		Name:       utils.NewStringValue(releaseHistory.Name),
-		Namespace:  utils.NewStringValue(releaseHistory.Namespace),
-		Group:      utils.NewStringValue(releaseHistory.Group),
-		FileName:   utils.NewStringValue(releaseHistory.FileName),
-		Content:    utils.NewStringValue(releaseHistory.Content),
-		Comment:    utils.NewStringValue(releaseHistory.Comment),
-		Format:     utils.NewStringValue(releaseHistory.Format),
-		Tags:       utils2.FromTagJson(releaseHistory.Tags),
-		Md5:        utils.NewStringValue(releaseHistory.Md5),
-		Type:       utils.NewStringValue(releaseHistory.Type),
-		Status:     utils.NewStringValue(releaseHistory.Status),
-		CreateBy:   utils.NewStringValue(releaseHistory.CreateBy),
-		CreateTime: utils.NewStringValue(time.Time2String(releaseHistory.CreateTime)),
-		ModifyBy:   utils.NewStringValue(releaseHistory.ModifyBy),
-		ModifyTime: utils.NewStringValue(time.Time2String(releaseHistory.ModifyTime)),
-	}
 }
 
 // decryptMultiConfigFileReleaseHistory 解密多个配置文件发布历史

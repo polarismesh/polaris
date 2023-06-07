@@ -78,7 +78,9 @@ func (h *HTTPServer) AuthStatus(req *restful.Request, rsp *restful.Response) {
 	resp := api.NewAuthResponse(apimodel.Code_ExecuteSuccess)
 	resp.OptionSwitch = &apiservice.OptionSwitch{
 		Options: map[string]string{
-			"auth": strconv.FormatBool(isOpen),
+			"auth":        strconv.FormatBool(isOpen),
+			"clientOpen":  strconv.FormatBool(checker.IsOpenClientAuth()),
+			"consoleOpen": strconv.FormatBool(checker.IsOpenConsoleAuth()),
 		},
 	}
 

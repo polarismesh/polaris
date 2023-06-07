@@ -15,15 +15,17 @@
  * specific language governing permissions and limitations under the License.
  */
 
-// Package utils contains some common functions
-package utils
+package config
 
 import (
+	"archive/zip"
+	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -34,6 +36,7 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -116,7 +119,6 @@ func ToTagJsonStr(tags []*apiconfig.ConfigFileTag) string {
 	if len(tags) == 0 {
 		return "[]"
 	}
-
 	kvs := make([]kv, 0, len(tags))
 	for _, tag := range tags {
 		kvs = append(kvs, kv{
@@ -125,11 +127,11 @@ func ToTagJsonStr(tags []*apiconfig.ConfigFileTag) string {
 		})
 	}
 
-	bytes, err := json.Marshal(kvs)
+	ret, err := json.Marshal(kvs)
 	if err != nil {
 		return "[]"
 	}
-	return string(bytes)
+	return string(ret)
 }
 
 // FromTagJson 从 Tags Json 字符串里反序列化出 Tags
@@ -176,4 +178,47 @@ func GenReleaseName(oldReleaseName, fileName string) string {
 	}
 
 	return fileName + "-" + strings.ReplaceAll(fmt.Sprintf("%3d", num+1), " ", "0")
+}
+
+func CompressConfigFiles(files []*model.ConfigFile,
+	fileID2Tags map[uint64][]*model.ConfigFileTag, isExportGroup bool) (*bytes.Buffer, error) {
+	var buf bytes.Buffer
+	w := zip.NewWriter(&buf)
+	defer w.Close()
+
+	var configFileMetas = make(map[string]*utils.ConfigFileMeta)
+	for _, file := range files {
+		fileName := file.Name
+		if isExportGroup {
+			fileName = path.Join(file.Group, file.Name)
+		}
+
+		configFileMetas[fileName] = &utils.ConfigFileMeta{
+			Tags:    make(map[string]string),
+			Comment: file.Comment,
+		}
+		for _, tag := range fileID2Tags[file.Id] {
+			configFileMetas[fileName].Tags[tag.Key] = tag.Value
+		}
+		f, err := w.Create(fileName)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := f.Write([]byte(file.Content)); err != nil {
+			return nil, err
+		}
+	}
+	// 生成配置元文件
+	f, err := w.Create(utils.ConfigFileMetaFileName)
+	if err != nil {
+		return nil, err
+	}
+	data, err := json.MarshalIndent(configFileMetas, "", "\t")
+	if err != nil {
+		return nil, err
+	}
+	if _, err := f.Write(data); err != nil {
+		return nil, err
+	}
+	return &buf, nil
 }
