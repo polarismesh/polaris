@@ -432,7 +432,7 @@ func (s *Server) DeleteConfigFile(
 	}
 
 	// 3. 删除配置文件关联的 tag
-	if err = s.storage.DeleteTagByConfigFile(s.getTx(ctx), namespace, group, name); err != nil {
+	if err = s.storage.DeleteTagByConfigFile(tx, namespace, group, name); err != nil {
 		log.Error("[Config][Service] delete config file tags error.", utils.ZapRequestIDByCtx(ctx),
 			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(name), zap.Error(err))
 		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)

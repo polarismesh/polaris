@@ -215,7 +215,6 @@ func (t *configFileTagStore) DeleteTagByConfigFile(proxyTx store.Tx, namespace, 
 		if err := deleteValues(tx, tbleConfigFileTag, keys); err != nil {
 			return nil, err
 		}
-
 		return nil, nil
 	})
 	return err
