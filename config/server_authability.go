@@ -73,6 +73,18 @@ func (s *serverAuthability) collectClientConfigFileAuthContext(ctx context.Conte
 	)
 }
 
+func (s *serverAuthability) collectClientWatchConfigFiles(ctx context.Context,
+	req *apiconfig.ClientWatchConfigFileRequest, op model.ResourceOperation, methodName string) *model.AcquireContext {
+	return model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithModule(model.ConfigModule),
+		model.WithOperation(op),
+		model.WithMethod(methodName),
+		model.WithFromClient(),
+		model.WithAccessResources(s.queryWatchConfigFilesResource(ctx, req)),
+	)
+}
+
 func (s *serverAuthability) collectConfigFileReleaseAuthContext(ctx context.Context, req []*apiconfig.ConfigFileRelease,
 	op model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
@@ -256,4 +268,41 @@ func (s *serverAuthability) queryConfigGroupRsEntryByNames(ctx context.Context, 
 		})
 	}
 	return entries, nil
+}
+
+func (s *serverAuthability) queryWatchConfigFilesResource(ctx context.Context,
+	req *apiconfig.ClientWatchConfigFileRequest) map[apisecurity.ResourceType][]model.ResourceEntry {
+	files := req.GetWatchFiles()
+	if len(files) == 0 {
+		return nil
+	}
+	temp := map[string]struct{}{}
+	entries := make([]model.ResourceEntry, 0, len(files))
+	for _, apiConfigFile := range files {
+		namespace := apiConfigFile.GetNamespace().GetValue()
+		groupName := apiConfigFile.GetGroup().GetValue()
+		key := namespace + "@@" + groupName
+		if _, ok := temp[key]; ok {
+			continue
+		}
+		temp[key] = struct{}{}
+		data, err := s.targetServer.fileCache.GetOrLoadGroupByName(namespace, groupName)
+		if err != nil {
+			continue
+		}
+		if data == nil {
+			continue
+		}
+		entries = append(entries, model.ResourceEntry{
+			ID:    strconv.FormatUint(data.Id, 10),
+			Owner: data.Owner,
+		})
+	}
+
+	ret := map[apisecurity.ResourceType][]model.ResourceEntry{
+		apisecurity.ResourceType_ConfigGroups: entries,
+	}
+	authLog.Debug("[Config][Server] collect config_file watch access res",
+		utils.ZapRequestIDByCtx(ctx), zap.Any("res", ret))
+	return ret
 }

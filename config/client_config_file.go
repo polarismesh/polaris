@@ -29,7 +29,6 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/rsa"
 	"github.com/polarismesh/polaris/common/utils"
-	utils2 "github.com/polarismesh/polaris/config/utils"
 )
 
 type (
@@ -50,9 +49,7 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 			apimodel.Code_BadRequest, "namespace & group & fileName can not be empty")
 	}
 
-	requestID := utils.ParseRequestID(ctx)
-
-	log.Info("[Config][Service] load config file from cache.", utils.ZapRequestID(requestID),
+	log.Info("[Config][Service] load config file from cache.", utils.ZapRequestIDByCtx(ctx),
 		utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName),
 		zap.String("publicKey", publicKey))
 
@@ -60,8 +57,7 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 	entry, err := s.fileCache.GetOrLoadIfAbsent(namespace, group, fileName)
 	if err != nil {
 		log.Error("[Config][Service] get or load config file from cache error.",
-			zap.String("requestId", requestID),
-			zap.Error(err))
+			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return api.NewConfigClientResponseWithMessage(
 			apimodel.Code_ExecuteException, "load config file error")
 	}
@@ -74,26 +70,20 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 	if clientVersion > entry.Version {
 		entry, err = s.fileCache.ReLoad(namespace, group, fileName)
 		if err != nil {
-			log.Error("[Config][Service] reload config file error.",
-				zap.String("requestId", requestID),
-				zap.Error(err))
+			log.Error("[Config][Service] reload config file error.", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 
 			return api.NewConfigClientResponseWithMessage(
 				apimodel.Code_ExecuteException, "load config file error")
 		}
 	}
 
-	log.Info("[Config][Client] client get config file success.",
-		zap.String("requestId", requestID),
-		zap.String("client", utils.ParseClientAddress(ctx)),
-		zap.String("file", fileName),
+	log.Info("[Config][Client] client get config file success.", utils.ZapRequestIDByCtx(ctx),
+		zap.String("client", utils.ParseClientAddress(ctx)), zap.String("file", fileName),
 		zap.Uint64("version", entry.Version))
 
 	configFile, err := transferEntry2APIModel(client, entry)
 	if err != nil {
-		log.Error("[Config][Service] transfer entry to api model error.",
-			zap.String("requestId", requestID),
-			zap.Error(err))
+		log.Error("[Config][Service] transfer entry to api model error.", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return api.NewConfigClientResponseWithMessage(
 			apimodel.Code_ExecuteException, "transfer entry to api model error")
 	}
@@ -156,7 +146,6 @@ func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api
 		return api.NewConfigClientResponse(apimodel.Code_InvalidWatchConfigFileFormat, nil)
 	}
 
-	requestID := utils.ParseRequestID(ctx)
 	for _, configFile := range configFiles {
 		namespace := configFile.Namespace.GetValue()
 		group := configFile.Group.GetValue()
@@ -172,15 +161,13 @@ func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*api
 
 		if err != nil {
 			log.Error("[Config][Service] get or load config file from cache error.",
-				zap.String("requestId", requestID),
-				zap.String("fileName", fileName),
-				zap.Error(err))
+				utils.ZapRequestIDByCtx(ctx), utils.ZapFileName(fileName), zap.Error(err))
 
 			return api.NewConfigClientResponse(apimodel.Code_ExecuteException, nil)
 		}
 
 		if compartor(configFile, entry) {
-			return utils2.GenConfigFileResponse(namespace, group, fileName, "", entry.Md5, entry.Version)
+			return GenConfigFileResponse(namespace, group, fileName, "", entry.Md5, entry.Version)
 		}
 	}
 
@@ -217,16 +204,12 @@ func transferEntry2APIModel(client *apiconfig.ClientConfigFileInfo,
 	if dataKey != "" && publicKey != "" {
 		dataKeyBytes, err := base64.StdEncoding.DecodeString(dataKey)
 		if err != nil {
-			log.Error("[Config][Service] base64 decode data key error.",
-				zap.String("dataKey", dataKey),
-				zap.Error(err))
+			log.Error("[Config][Service] base64 decode data key error.", zap.String("dataKey", dataKey), zap.Error(err))
 			return nil, err
 		}
 		cipherDataKey, err := rsa.EncryptToBase64(dataKeyBytes, publicKey)
 		if err != nil {
-			log.Error("[Config][Service] rsa encrypt data key error.",
-				zap.String("dataKey", dataKey),
-				zap.Error(err))
+			log.Error("[Config][Service] rsa encrypt data key error.", zap.String("dataKey", dataKey), zap.Error(err))
 		}
 		configFile.Tags = append(configFile.Tags,
 			&apiconfig.ConfigFileTag{

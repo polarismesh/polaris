@@ -29,7 +29,6 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
-	utils2 "github.com/polarismesh/polaris/config/utils"
 )
 
 // TestClientSetupAndFileNotExisted 测试客户端启动时（version=0），并且配置不存在的情况下拉取配置
@@ -97,19 +96,19 @@ func TestClientSetupAndFileExisted(t *testing.T) {
 	assert.NotNil(t, rsp3.ConfigFile)
 	assert.Equal(t, uint64(1), rsp3.ConfigFile.Version.GetValue())
 	assert.Equal(t, configFile.Content.GetValue(), rsp3.ConfigFile.Content.GetValue())
-	assert.Equal(t, utils2.CalMd5(configFile.Content.GetValue()), rsp3.ConfigFile.Md5.GetValue())
+	assert.Equal(t, CalMd5(configFile.Content.GetValue()), rsp3.ConfigFile.Md5.GetValue())
 
 	// 比较客户端配置是否落后
 	rsp4 := testSuit.testServer.doCheckClientConfigFile(testSuit.defaultCtx, assembleDefaultClientConfigFile(0), compareByVersion)
 	assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue())
 	assert.NotNil(t, rsp4.ConfigFile)
-	assert.Equal(t, utils2.CalMd5(configFile.Content.GetValue()), rsp4.ConfigFile.Md5.GetValue())
+	assert.Equal(t, CalMd5(configFile.Content.GetValue()), rsp4.ConfigFile.Md5.GetValue())
 
 	rsp5 := testSuit.testServer.doCheckClientConfigFile(testSuit.defaultCtx, assembleDefaultClientConfigFile(0), compareByMD5)
 	assert.Equal(t, api.ExecuteSuccess, rsp5.Code.GetValue())
 	assert.NotNil(t, rsp5.ConfigFile)
 	assert.Equal(t, uint64(1), rsp5.ConfigFile.Version.GetValue())
-	assert.Equal(t, utils2.CalMd5(configFile.Content.GetValue()), rsp5.ConfigFile.Md5.GetValue())
+	assert.Equal(t, CalMd5(configFile.Content.GetValue()), rsp5.ConfigFile.Md5.GetValue())
 }
 
 // TestClientSetupAndCreateNewFile 测试客户端启动时（version=0），并且配置不存在的情况下创建新的配置
@@ -343,19 +342,19 @@ func TestClientVersionBehindServer(t *testing.T) {
 	assert.NotNil(t, rsp4.ConfigFile)
 	assert.Equal(t, uint64(5), rsp4.ConfigFile.Version.GetValue())
 	assert.Equal(t, latestContent, rsp4.ConfigFile.Content.GetValue())
-	assert.Equal(t, utils2.CalMd5(latestContent), rsp4.ConfigFile.Md5.GetValue())
+	assert.Equal(t, CalMd5(latestContent), rsp4.ConfigFile.Md5.GetValue())
 
 	// 比较客户端配置是否落后
 	rsp5 := testSuit.testServer.doCheckClientConfigFile(testSuit.defaultCtx, assembleDefaultClientConfigFile(clientVersion), compareByVersion)
 	assert.Equal(t, api.ExecuteSuccess, rsp5.Code.GetValue())
 	assert.NotNil(t, rsp5.ConfigFile)
-	assert.Equal(t, utils2.CalMd5(latestContent), rsp5.ConfigFile.Md5.GetValue())
+	assert.Equal(t, CalMd5(latestContent), rsp5.ConfigFile.Md5.GetValue())
 
 	rsp6 := testSuit.testServer.doCheckClientConfigFile(testSuit.defaultCtx, assembleDefaultClientConfigFile(clientVersion), compareByMD5)
 	assert.Equal(t, api.ExecuteSuccess, rsp6.Code.GetValue())
 	assert.NotNil(t, rsp6.ConfigFile)
 	assert.Equal(t, uint64(5), rsp6.ConfigFile.Version.GetValue())
-	assert.Equal(t, utils2.CalMd5(latestContent), rsp6.ConfigFile.Md5.GetValue())
+	assert.Equal(t, CalMd5(latestContent), rsp6.ConfigFile.Md5.GetValue())
 }
 
 // TestWatchConfigFileAtFirstPublish 测试监听配置，并且第一次发布配置

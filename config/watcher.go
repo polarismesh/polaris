@@ -25,7 +25,6 @@ import (
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
-	utils2 "github.com/polarismesh/polaris/config/utils"
 )
 
 const (
@@ -125,8 +124,7 @@ func (wc *watchCenter) handleMessage() {
 	go func() {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Error("[Config][Watcher] handler config release message error.",
-					zap.Any("error", err))
+				log.Error("[Config][Watcher] handler config release message error.", zap.Any("err", err))
 			}
 		}()
 
@@ -146,7 +144,7 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.ConfigFileRelea
 		return
 	}
 
-	response := utils2.GenConfigFileResponse(publishConfigFile.Namespace, publishConfigFile.Group,
+	response := GenConfigFileResponse(publishConfigFile.Namespace, publishConfigFile.Group,
 		publishConfigFile.FileName, "", publishConfigFile.Md5, publishConfigFile.Version)
 
 	watcherMap := watchers.(*sync.Map)
@@ -155,14 +153,12 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.ConfigFileRelea
 		c := watchCtx.(*watchContext)
 		if c.ClientVersion < publishConfigFile.Version {
 			log.Info("[Config][Watcher] notify to client.",
-				zap.String("file", watchFileId),
-				zap.String("clientId", clientId.(string)),
+				zap.String("file", watchFileId), zap.String("clientId", clientId.(string)),
 				zap.Uint64("version", publishConfigFile.Version))
 			c.fileReleaseCb(clientId.(string), response)
 		} else {
 			log.Info("[Config][Watcher] notify to client ignore.",
-				zap.String("file", watchFileId),
-				zap.String("clientId", clientId.(string)),
+				zap.String("file", watchFileId), zap.String("clientId", clientId.(string)),
 				zap.Uint64("client-version", c.ClientVersion),
 				zap.Uint64("version", publishConfigFile.Version))
 		}

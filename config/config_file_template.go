@@ -27,9 +27,7 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	commonstore "github.com/polarismesh/polaris/common/store"
-	"github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
-	utils2 "github.com/polarismesh/polaris/config/utils"
 )
 
 // CreateConfigFileTemplate create config file template
@@ -39,11 +37,7 @@ func (s *Server) CreateConfigFileTemplate(
 		return checkRsp
 	}
 
-	userName := utils.ParseUserName(ctx)
-	template.CreateBy = utils.NewStringValue(userName)
-	template.ModifyBy = utils.NewStringValue(userName)
-
-	rsp := s.GetConfigFileTemplate(ctx, template.Name.GetValue())
+	rsp := s.GetConfigFileTemplate(ctx, template.GetName().GetValue())
 	if rsp.Code.Value == api.ExecuteSuccess {
 		return api.NewConfigFileTemplateResponseWithMessage(
 			apimodel.Code_BadRequest, "config file template existed")
@@ -52,20 +46,17 @@ func (s *Server) CreateConfigFileTemplate(
 		return rsp
 	}
 
-	templateStoreModel := transferConfigFileTemplateAPIModel2StoreModel(template)
-
-	createdTemplate, err := s.storage.CreateConfigFileTemplate(templateStoreModel)
-
+	saveData := model.ToConfigFileTemplateStore(template)
+	userName := utils.ParseUserName(ctx)
+	template.CreateBy = utils.NewStringValue(userName)
+	template.ModifyBy = utils.NewStringValue(userName)
+	retData, err := s.storage.CreateConfigFileTemplate(saveData)
 	if err != nil {
-		requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
-		log.Error("[Config][Service] create config file template error.",
-			utils.ZapRequestID(requestID),
-			zap.Error(err))
+		log.Error("[Config][Service] create config file template error.", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return api.NewConfigFileTemplateResponse(commonstore.StoreCode2APICode(err), template)
 	}
 
-	return api.NewConfigFileTemplateResponse(apimodel.Code_ExecuteSuccess,
-		transferConfigFileTemplateStoreModel2APIModel(createdTemplate))
+	return api.NewConfigFileTemplateResponse(apimodel.Code_ExecuteSuccess, model.ToConfigFileTemplateAPI(retData))
 }
 
 // GetConfigFileTemplate get config file template by name
@@ -74,34 +65,24 @@ func (s *Server) GetConfigFileTemplate(ctx context.Context, name string) *apicon
 		return api.NewConfigFileTemplateResponse(apimodel.Code_InvalidConfigFileTemplateName, nil)
 	}
 
-	template, err := s.storage.GetConfigFileTemplate(name)
+	saveData, err := s.storage.GetConfigFileTemplate(name)
 	if err != nil {
-		requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
 		log.Error("[Config][Service] get config file template error.",
-			utils.ZapRequestID(requestID),
-			zap.String("name", name),
-			zap.Error(err))
+			utils.ZapRequestIDByCtx(ctx), zap.String("name", name), zap.Error(err))
 		return api.NewConfigFileTemplateResponse(commonstore.StoreCode2APICode(err), nil)
 	}
-
-	if template == nil {
+	if saveData == nil {
 		return api.NewConfigFileTemplateResponse(apimodel.Code_NotFoundResource, nil)
 	}
 
-	return api.NewConfigFileTemplateResponse(apimodel.Code_ExecuteSuccess,
-		transferConfigFileTemplateStoreModel2APIModel(template))
+	return api.NewConfigFileTemplateResponse(apimodel.Code_ExecuteSuccess, model.ToConfigFileTemplateAPI(saveData))
 }
 
 // GetAllConfigFileTemplates get all config file templates
 func (s *Server) GetAllConfigFileTemplates(ctx context.Context) *apiconfig.ConfigBatchQueryResponse {
 	templates, err := s.storage.QueryAllConfigFileTemplates()
-
 	if err != nil {
-		requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
-		log.Error("[Config][Service]query all config file templates error.",
-			utils.ZapRequestID(requestID),
-			zap.Error(err))
-
+		log.Error("[Config][Service]query all config file templates error.", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return api.NewConfigFileTemplateBatchQueryResponse(commonstore.StoreCode2APICode(err), 0, nil)
 	}
 
@@ -111,42 +92,17 @@ func (s *Server) GetAllConfigFileTemplates(ctx context.Context) *apiconfig.Confi
 
 	var apiTemplates []*apiconfig.ConfigFileTemplate
 	for _, template := range templates {
-		apiTemplates = append(apiTemplates, transferConfigFileTemplateStoreModel2APIModel(template))
+		apiTemplates = append(apiTemplates, model.ToConfigFileTemplateAPI(template))
 	}
-	return api.NewConfigFileTemplateBatchQueryResponse(apimodel.Code_ExecuteSuccess, uint32(len(templates)), apiTemplates)
-}
-
-func transferConfigFileTemplateStoreModel2APIModel(template *model.ConfigFileTemplate) *apiconfig.ConfigFileTemplate {
-	return &apiconfig.ConfigFileTemplate{
-		Id:         utils.NewUInt64Value(template.Id),
-		Name:       utils.NewStringValue(template.Name),
-		Content:    utils.NewStringValue(template.Content),
-		Comment:    utils.NewStringValue(template.Comment),
-		Format:     utils.NewStringValue(template.Format),
-		CreateBy:   utils.NewStringValue(template.CreateBy),
-		CreateTime: utils.NewStringValue(time.Time2String(template.CreateTime)),
-		ModifyBy:   utils.NewStringValue(template.ModifyBy),
-		ModifyTime: utils.NewStringValue(time.Time2String(template.ModifyTime)),
-	}
-}
-
-func transferConfigFileTemplateAPIModel2StoreModel(template *apiconfig.ConfigFileTemplate) *model.ConfigFileTemplate {
-	return &model.ConfigFileTemplate{
-		Id:       template.Id.GetValue(),
-		Name:     template.Name.GetValue(),
-		Content:  template.Content.GetValue(),
-		Comment:  template.Comment.GetValue(),
-		Format:   template.Format.GetValue(),
-		CreateBy: template.CreateBy.GetValue(),
-		ModifyBy: template.ModifyBy.GetValue(),
-	}
+	return api.NewConfigFileTemplateBatchQueryResponse(apimodel.Code_ExecuteSuccess,
+		uint32(len(templates)), apiTemplates)
 }
 
 func (s *Server) checkConfigFileTemplateParam(template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
-	if err := utils2.CheckFileName(template.GetName()); err != nil {
+	if err := CheckFileName(template.GetName()); err != nil {
 		return api.NewConfigFileTemplateResponse(apimodel.Code_InvalidConfigFileTemplateName, template)
 	}
-	if err := utils2.CheckContentLength(template.Content.GetValue(), int(s.cfg.ContentMaxLength)); err != nil {
+	if err := CheckContentLength(template.Content.GetValue(), int(s.cfg.ContentMaxLength)); err != nil {
 		return api.NewConfigFileTemplateResponse(apimodel.Code_InvalidConfigFileContentLength, template)
 	}
 	if len(template.Content.GetValue()) == 0 {

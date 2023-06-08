@@ -33,8 +33,6 @@ import (
 func (s *Server) createConfigFileTags(ctx context.Context, namespace, group,
 	fileName, operator string, tags ...string) error {
 
-	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
-
 	if len(tags)%2 != 0 {
 		return errors.New("tags param must be key,value pair, like key1,value1,key2,value2")
 	}
@@ -42,12 +40,8 @@ func (s *Server) createConfigFileTags(ctx context.Context, namespace, group,
 	// 1. 获取已存储的 tags
 	storedTags, err := s.storage.QueryTagByConfigFile(namespace, group, fileName)
 	if err != nil {
-		log.Error("[Config][Service] query config file tags error.",
-			utils.ZapRequestID(requestID),
-			zap.String("namespace", namespace),
-			zap.String("group", group),
-			zap.String("fileName", fileName),
-			zap.Error(err))
+		log.Error("[Config][Service] query config file tags error.", utils.ZapRequestIDByCtx(ctx),
+			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
 		return err
 	}
 
@@ -138,12 +132,8 @@ func (s *Server) queryConfigFileByTags(ctx context.Context, namespace, group, fi
 
 	files, err := s.storage.QueryConfigFileByTag(namespace, group, fileName, tags...)
 	if err != nil {
-		log.Error("[Config][Service] query config file by tags error.",
-			utils.ZapRequestIDByCtx(ctx),
-			zap.String("namespace", namespace),
-			zap.String("group", group),
-			zap.String("fileName", fileName),
-			zap.Error(err))
+		log.Error("[Config][Service] query config file by tags error.", utils.ZapRequestIDByCtx(ctx),
+			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
 		return 0, nil, err
 	}
 
@@ -201,20 +191,6 @@ func (s *Server) queryTagsByConfigFileWithAPIModels(ctx context.Context, namespa
 	return tagAPIModels, nil
 }
 
-// deleteTagByConfigFile 删除配置文件的所有标签
-func (s *Server) deleteTagByConfigFile(ctx context.Context, namespace, group, fileName string) error {
-	if err := s.storage.DeleteTagByConfigFile(s.getTx(ctx), namespace, group, fileName); err != nil {
-		log.Error("[Config][Service] query config file tags error.",
-			utils.ZapRequestIDByCtx(ctx),
-			zap.String("namespace", namespace),
-			zap.String("group", group),
-			zap.String("fileName", fileName),
-			zap.Error(err))
-		return err
-	}
-	return nil
-}
-
 func (s *Server) doCreateConfigFileTags(ctx context.Context, namespace, group, fileName,
 	operator string, tags ...string) error {
 	if len(tags) == 0 {
@@ -236,12 +212,8 @@ func (s *Server) doCreateConfigFileTags(ctx context.Context, namespace, group, f
 				ModifyBy:  operator,
 			})
 			if err != nil {
-				log.Error("[Config][Service] create config file tag error.",
-					utils.ZapRequestIDByCtx(ctx),
-					zap.String("namespace", namespace),
-					zap.String("group", group),
-					zap.String("fileName", fileName),
-					zap.Error(err))
+				log.Error("[Config][Service] create config file tag error.", utils.ZapRequestIDByCtx(ctx),
+					utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
 				return err
 			}
 		}
@@ -261,12 +233,8 @@ func (s *Server) doDeleteConfigFileTags(ctx context.Context, namespace, group, f
 		} else {
 			err := s.storage.DeleteConfigFileTag(s.getTx(ctx), namespace, group, fileName, key, t)
 			if err != nil {
-				log.Error("[Config][Service] delete config file tag error.",
-					utils.ZapRequestIDByCtx(ctx),
-					zap.String("namespace", namespace),
-					zap.String("group", group),
-					zap.String("fileName", fileName),
-					zap.Error(err))
+				log.Error("[Config][Service] delete config file tag error.", utils.ZapRequestIDByCtx(ctx),
+					utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
 				return err
 			}
 		}

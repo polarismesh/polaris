@@ -29,11 +29,27 @@ import (
 
 // GetAllConfigFileTemplates get all config file templates
 func (s *serverAuthability) GetAllConfigFileTemplates(ctx context.Context) *apiconfig.ConfigBatchQueryResponse {
+	authCtx := s.collectConfigFileTemplateAuthContext(ctx,
+		[]*apiconfig.ConfigFileTemplate{}, model.Read, "GetAllConfigFileTemplates")
+	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewConfigFileBatchQueryResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return s.targetServer.GetAllConfigFileTemplates(ctx)
 }
 
 // GetConfigFileTemplate get config file template
 func (s *serverAuthability) GetConfigFileTemplate(ctx context.Context, name string) *apiconfig.ConfigResponse {
+	authCtx := s.collectConfigFileTemplateAuthContext(ctx,
+		[]*apiconfig.ConfigFileTemplate{}, model.Read, "GetAllConfigFileTemplates")
+	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return s.targetServer.GetConfigFileTemplate(ctx, name)
 }
 
@@ -49,6 +65,5 @@ func (s *serverAuthability) CreateConfigFileTemplate(ctx context.Context,
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
 	return s.targetServer.CreateConfigFileTemplate(ctx, template)
 }

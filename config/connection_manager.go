@@ -77,8 +77,7 @@ func (c *connManager) AddConn(
 	})
 
 	c.watchCenter.AddWatcher(clientId, files, func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
-		connObj, ok := cm.conns.Load(clientId)
-		if ok {
+		if connObj, ok := cm.conns.Load(clientId); ok {
 			conn := connObj.(*connection)
 			conn.finishChan <- rsp
 			close(conn.finishChan)
