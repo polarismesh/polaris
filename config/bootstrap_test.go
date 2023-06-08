@@ -15,20 +15,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package config
+package config_test
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"os"
-	"testing"
 	"time"
 
-	"github.com/boltdb/bolt"
 	"github.com/google/uuid"
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
-	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris/auth"
 	_ "github.com/polarismesh/polaris/auth/defaultauth"
@@ -36,6 +30,7 @@ import (
 	_ "github.com/polarismesh/polaris/cache"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/config"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
 	_ "github.com/polarismesh/polaris/plugin/crypto/aes"
@@ -44,11 +39,9 @@ import (
 	_ "github.com/polarismesh/polaris/plugin/history/logger"
 	_ "github.com/polarismesh/polaris/plugin/password"
 	"github.com/polarismesh/polaris/store"
-	"github.com/polarismesh/polaris/store/boltdb"
 	_ "github.com/polarismesh/polaris/store/boltdb"
 	_ "github.com/polarismesh/polaris/store/mysql"
-	sqldb "github.com/polarismesh/polaris/store/mysql"
-	testdata "github.com/polarismesh/polaris/test/data"
+	testsuit "github.com/polarismesh/polaris/test/suit"
 )
 
 type Bootstrap struct {
@@ -59,117 +52,17 @@ type TestConfig struct {
 	Bootstrap Bootstrap        `yaml:"bootstrap"`
 	Cache     cache.Config     `yaml:"cache"`
 	Namespace namespace.Config `yaml:"namespace"`
-	Config    Config           `yaml:"config"`
+	Config    config.Config    `yaml:"config"`
 	Store     store.Config     `yaml:"store"`
 	Auth      auth.Config      `yaml:"auth"`
 	Plugin    plugin.Config    `yaml:"plugin"`
 }
 
 type ConfigCenterTest struct {
-	cfg         *TestConfig
-	testService ConfigCenterServer
-	testServer  *Server
-	defaultCtx  context.Context
-	cancel      context.CancelFunc
-	storage     store.Store
-}
-
-func newConfigCenterTest(t *testing.T) (*ConfigCenterTest, error) {
-	if err := os.RemoveAll("./config_center_test.bolt"); err != nil {
-		return nil, err
-	}
-
-	c := &ConfigCenterTest{
-		defaultCtx: context.Background(),
-		testServer: new(Server),
-		cfg:        new(TestConfig),
-	}
-
-	if err := c.doInitialize(); err != nil {
-		fmt.Printf("bootstrap config test module error. %s", err.Error())
-		return nil, err
-	}
-
-	return c, nil
-}
-
-func (c *ConfigCenterTest) doInitialize() error {
-	// 加载启动配置文件
-	if err := c.loadBootstrapConfig(); err != nil {
-		return err
-	}
-	_ = commonlog.Configure(c.cfg.Bootstrap.Logger)
-	ctx, cancel := context.WithCancel(context.Background())
-	c.cancel = cancel
-	plugin.SetPluginConfig(&c.cfg.Plugin)
-
-	// 初始化存储层
-	store.SetStoreConfig(&c.cfg.Store)
-	s, err := store.TestGetStore()
-	if err != nil {
-		fmt.Printf("[ERROR] configure get store fail: %v\n", err)
-		return err
-	}
-	c.storage = s
-
-	cacheMgr, err := cache.TestCacheInitialize(ctx, &c.cfg.Cache, s)
-	if err != nil {
-		fmt.Printf("[ERROR] configure init cache fail: %v\n", err)
-		return err
-	}
-
-	userMgn, strategyMgn, err := auth.TestInitialize(ctx, &c.cfg.Auth, s, cacheMgr)
-	if err != nil {
-		fmt.Printf("[ERROR] configure init auth fail: %v\n", err)
-		return err
-	}
-
-	nsOp, err := namespace.TestInitialize(ctx, &c.cfg.Namespace, s, cacheMgr, userMgn, strategyMgn)
-	if err != nil {
-		fmt.Printf("[ERROR] configure init namespace fail: %v\n", err)
-		return err
-	}
-
-	// 初始化配置中心模块
-	if err := c.testServer.initialize(ctx, c.cfg.Config, s, nsOp, cacheMgr); err != nil {
-		return err
-	}
-	c.testServer.initialized = true
-	c.testService = newServerAuthAbility(c.testServer, userMgn, strategyMgn)
-
-	time.Sleep(5 * time.Second)
-
-	return nil
-}
-
-func (c *ConfigCenterTest) loadBootstrapConfig() error {
-	confFileName := testdata.Path("config_test.yaml")
-
-	// 初始化defaultCtx
-	c.defaultCtx = context.WithValue(c.defaultCtx, utils.StringContext("request-id"), "config-test-request-id")
-	c.defaultCtx = context.WithValue(c.defaultCtx, utils.ContextUserNameKey, "polaris")
-
-	if os.Getenv("STORE_MODE") == "sqldb" {
-		fmt.Printf("run store mode : sqldb\n")
-		confFileName = testdata.Path("config_test_sqldb.yaml")
-		c.defaultCtx = context.WithValue(c.defaultCtx, utils.ContextAuthTokenKey, "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
-	} else {
-		c.defaultCtx = context.WithValue(c.defaultCtx, utils.ContextAuthTokenKey, "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
-	}
-
-	file, err := os.Open(confFileName)
-	if err != nil {
-		fmt.Printf("[ERROR] %v\n", err)
-		return err
-	}
-
-	err = yaml.NewDecoder(file).Decode(c.cfg)
-	if err != nil {
-		fmt.Printf("[ERROR] %v\n", err)
-		return err
-	}
-
-	return err
+	testsuit.DiscoverTestSuit
+	cfg     *TestConfig
+	cancel  context.CancelFunc
+	storage store.Store
 }
 
 func (c *ConfigCenterTest) clearTestData() error {
@@ -181,100 +74,7 @@ func (c *ConfigCenterTest) clearTestData() error {
 		time.Sleep(5 * time.Second)
 	}()
 
-	if c.storage.Name() == sqldb.STORENAME {
-		if err := c.clearTestDataWhenUseRDS(); err != nil {
-			return err
-		}
-	} else if c.storage.Name() == boltdb.STORENAME {
-		if err := c.clearTestDataWhenUseBoltdb(); err != nil {
-			return err
-		}
-	} else {
-		return errors.New("store impl unexpect")
-	}
-
-	return nil
-}
-
-func (c *ConfigCenterTest) clearTestDataWhenUseBoltdb() error {
-
-	proxyTx, err := c.storage.StartTx()
-	if err != nil {
-		return err
-	}
-
-	tx := proxyTx.GetDelegateTx().(*bolt.Tx)
-
-	bucketName := []string{
-		"ConfigFileGroup",
-		"ConfigFileGroupID",
-		"ConfigFile",
-		"ConfigFileID",
-		"ConfigFileReleaseHistory",
-		"ConfigFileReleaseHistoryID",
-		"ConfigFileRelease",
-		"ConfigFileReleaseID",
-		"ConfigFileTag",
-		"ConfigFileTagID",
-		"namespace",
-	}
-
-	defer tx.Rollback()
-
-	for i := range bucketName {
-		if err := tx.DeleteBucket([]byte(bucketName[i])); err != nil {
-			if !errors.Is(err, bolt.ErrBucketNotFound) {
-				return err
-			}
-		}
-	}
-
-	return tx.Commit()
-}
-
-func (c *ConfigCenterTest) clearTestDataWhenUseRDS() error {
-
-	proxyTx, err := c.storage.StartTx()
-	if err != nil {
-		return err
-	}
-
-	tx := proxyTx.GetDelegateTx().(*sqldb.BaseTx)
-
-	defer tx.Rollback()
-
-	_, err = tx.Exec("delete from config_file_group where namespace = ? ", testNamespace)
-	if err != nil {
-		return err
-	}
-	_, err = tx.Exec("delete from config_file where namespace = ? ", testNamespace)
-	if err != nil {
-		return err
-	}
-	_, err = tx.Exec("delete from config_file_release where namespace = ? ", testNamespace)
-	if err != nil {
-		return err
-	}
-	_, err = tx.Exec("delete from config_file_release_history where namespace = ? ", testNamespace)
-	if err != nil {
-		return err
-	}
-	_, err = tx.Exec("delete from config_file_tag where namespace = ? ", testNamespace)
-	if err != nil {
-		return err
-	}
-	_, err = tx.Exec("delete from namespace where name = ? ", testNamespace)
-	if err != nil {
-		return err
-	}
-	_, err = tx.Exec("delete from config_file_template where name in (?,?) ", templateName1, templateName2)
-	if err != nil {
-		return err
-	}
-	// 清理缓存
-	c.testServer.Cache().CleanAll()
-
-	return tx.Commit()
+	return c.GetTestDataClean().ClearTestDataWhenUseRDS()
 }
 
 func randomStr() string {

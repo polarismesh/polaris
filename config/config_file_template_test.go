@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package config
+package config_test
 
 import (
 	"testing"
@@ -34,10 +34,13 @@ const (
 
 // TestConfigFileTemplateCRUD the base test for config file template
 func TestConfigFileTemplateCRUD(t *testing.T) {
-	testSuit, err := newConfigCenterTest(t)
-	if err != nil {
+	testSuit := &ConfigCenterTest{}
+	if err := testSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() {
+		testSuit.Destroy()
+	})
 
 	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
@@ -46,21 +49,21 @@ func TestConfigFileTemplateCRUD(t *testing.T) {
 	}()
 
 	t.Run("first-query", func(t *testing.T) {
-		queryRsp := testSuit.testService.GetConfigFileTemplate(testSuit.defaultCtx, templateName1)
+		queryRsp := testSuit.ConfigServer().GetConfigFileTemplate(testSuit.DefaultCtx, templateName1)
 		assert.Equal(t, api.NotFoundResource, queryRsp.Code.Value)
 	})
 
 	template1 := assembleConfigFileTemplate(templateName1)
 	t.Run("first-create", func(t *testing.T) {
-		createRsp := testSuit.testService.CreateConfigFileTemplate(testSuit.defaultCtx, template1)
+		createRsp := testSuit.ConfigServer().CreateConfigFileTemplate(testSuit.DefaultCtx, template1)
 		assert.Equal(t, api.ExecuteSuccess, createRsp.Code.GetValue())
 		//repeat create
-		createRsp = testSuit.testService.CreateConfigFileTemplate(testSuit.defaultCtx, template1)
+		createRsp = testSuit.ConfigServer().CreateConfigFileTemplate(testSuit.DefaultCtx, template1)
 		assert.Equal(t, api.BadRequest, createRsp.Code.GetValue())
 	})
 
 	t.Run("second-query", func(t *testing.T) {
-		queryRsp := testSuit.testService.GetConfigFileTemplate(testSuit.defaultCtx, templateName1)
+		queryRsp := testSuit.ConfigServer().GetConfigFileTemplate(testSuit.DefaultCtx, templateName1)
 		assert.Equal(t, api.ExecuteSuccess, queryRsp.Code.Value)
 		assert.Equal(t, template1.Name.GetValue(), queryRsp.ConfigFileTemplate.Name.GetValue())
 		assert.Equal(t, template1.Content.GetValue(), queryRsp.ConfigFileTemplate.Content.GetValue())
@@ -70,12 +73,12 @@ func TestConfigFileTemplateCRUD(t *testing.T) {
 
 	template2 := assembleConfigFileTemplate(templateName2)
 	t.Run("second-create", func(t *testing.T) {
-		createRsp := testSuit.testService.CreateConfigFileTemplate(testSuit.defaultCtx, template2)
+		createRsp := testSuit.ConfigServer().CreateConfigFileTemplate(testSuit.DefaultCtx, template2)
 		assert.Equal(t, api.ExecuteSuccess, createRsp.Code.GetValue())
 	})
 
 	t.Run("query-all", func(t *testing.T) {
-		rsp := testSuit.testService.GetAllConfigFileTemplates(testSuit.defaultCtx)
+		rsp := testSuit.ConfigServer().GetAllConfigFileTemplates(testSuit.DefaultCtx)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 		assert.True(t, 2 <= len(rsp.ConfigFileTemplates))
 	})
