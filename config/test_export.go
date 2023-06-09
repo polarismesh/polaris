@@ -20,11 +20,12 @@ package config
 import (
 	"context"
 
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/store"
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 )
 
 // Initialize 初始化配置中心模块
