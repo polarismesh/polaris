@@ -116,7 +116,7 @@ func (s *Server) WatchConfigFiles(ctx context.Context,
 	clientAddr := utils.ParseClientAddress(ctx)
 	watchFiles := request.GetWatchFiles()
 	// 2. 检查客户端是否有版本落后
-	if resp := s.doCheckClientConfigFile(ctx, watchFiles, compareByVersion); resp.Code.GetValue() != api.DataNoChange {
+	if resp := s.DoCheckClientConfigFile(ctx, watchFiles, compareByVersion); resp.Code.GetValue() != api.DataNoChange {
 		return func() *apiconfig.ConfigClientResponse {
 			return resp
 		}, nil
@@ -140,7 +140,7 @@ func compareByMD5(clientConfigFile *apiconfig.ClientConfigFileInfo, cacheEntry *
 	return clientConfigFile.Md5.GetValue() != cacheEntry.Md5
 }
 
-func (s *Server) doCheckClientConfigFile(ctx context.Context, configFiles []*apiconfig.ClientConfigFileInfo,
+func (s *Server) DoCheckClientConfigFile(ctx context.Context, configFiles []*apiconfig.ClientConfigFileInfo,
 	compartor compareFunction) *apiconfig.ConfigClientResponse {
 	if len(configFiles) == 0 {
 		return api.NewConfigClientResponse(apimodel.Code_InvalidWatchConfigFileFormat, nil)

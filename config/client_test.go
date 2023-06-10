@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package config
+package config_test
 
 import (
 	"fmt"
@@ -29,15 +29,18 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/config"
 )
 
 // TestClientSetupAndFileNotExisted 测试客户端启动时（version=0），并且配置不存在的情况下拉取配置
 func TestClientSetupAndFileNotExisted(t *testing.T) {
-	testSuit, err := newConfigCenterTest(t)
-	if err != nil {
+	testSuit := &ConfigCenterTest{}
+	if err := testSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
-
+	t.Cleanup(func() {
+		testSuit.Destroy()
+	})
 	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
@@ -51,25 +54,28 @@ func TestClientSetupAndFileNotExisted(t *testing.T) {
 		Version:   &wrapperspb.UInt64Value{Value: 0},
 	}
 
-	rsp := testSuit.testService.GetConfigFileForClient(testSuit.defaultCtx, fileInfo)
+	rsp := testSuit.ConfigServer().GetConfigFileForClient(testSuit.DefaultCtx, fileInfo)
 	assert.Equal(t, uint32(api.NotFoundResource), rsp.Code.GetValue(), "GetConfigFileForClient must notfound")
 
-	rsp2 := testSuit.testServer.doCheckClientConfigFile(testSuit.defaultCtx, assembleDefaultClientConfigFile(0), compareByVersion)
+	originSvr := testSuit.OriginConfigServer()
+	rsp2 := originSvr.DoCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByVersion)
 	assert.Equal(t, uint32(api.DataNoChange), rsp2.Code.GetValue(), "checkClientConfigFileByVersion must nochange")
 	assert.Nil(t, rsp2.ConfigFile)
 
-	rsp3 := testSuit.testServer.doCheckClientConfigFile(testSuit.defaultCtx, assembleDefaultClientConfigFile(0), compareByMD5)
+	rsp3 := originSvr.DoCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByMD5)
 	assert.Equal(t, uint32(api.DataNoChange), rsp3.Code.GetValue())
 	assert.Nil(t, rsp3.ConfigFile)
 }
 
 // TestClientSetupAndFileExisted 测试客户端启动时（version=0），并且配置存在的情况下拉取配置
 func TestClientSetupAndFileExisted(t *testing.T) {
-	testSuit, err := newConfigCenterTest(t)
-	if err != nil {
+	testSuit := &ConfigCenterTest{}
+	if err := testSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
-
+	t.Cleanup(func() {
+		testSuit.Destroy()
+	})
 	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
@@ -77,10 +83,10 @@ func TestClientSetupAndFileExisted(t *testing.T) {
 	}()
 	// 创建并发布一个配置文件
 	configFile := assembleConfigFile()
-	rsp := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
+	rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
 	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 
-	rsp2 := testSuit.testService.PublishConfigFile(testSuit.defaultCtx, assembleConfigFileRelease(configFile))
+	rsp2 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, assembleConfigFileRelease(configFile))
 	assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 
 	fileInfo := &apiconfig.ClientConfigFileInfo{
@@ -91,33 +97,36 @@ func TestClientSetupAndFileExisted(t *testing.T) {
 	}
 
 	// 拉取配置接口
-	rsp3 := testSuit.testService.GetConfigFileForClient(testSuit.defaultCtx, fileInfo)
+	rsp3 := testSuit.ConfigServer().GetConfigFileForClient(testSuit.DefaultCtx, fileInfo)
 	assert.Equalf(t, api.ExecuteSuccess, rsp3.Code.GetValue(), "GetConfigFileForClient must success, acutal code : %d", rsp3.Code.GetValue())
 	assert.NotNil(t, rsp3.ConfigFile)
 	assert.Equal(t, uint64(1), rsp3.ConfigFile.Version.GetValue())
 	assert.Equal(t, configFile.Content.GetValue(), rsp3.ConfigFile.Content.GetValue())
-	assert.Equal(t, CalMd5(configFile.Content.GetValue()), rsp3.ConfigFile.Md5.GetValue())
+	assert.Equal(t, config.CalMd5(configFile.Content.GetValue()), rsp3.ConfigFile.Md5.GetValue())
 
 	// 比较客户端配置是否落后
-	rsp4 := testSuit.testServer.doCheckClientConfigFile(testSuit.defaultCtx, assembleDefaultClientConfigFile(0), compareByVersion)
+	originSvr := testSuit.OriginConfigServer()
+	rsp4 := originSvr.DoCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByVersion)
 	assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue())
 	assert.NotNil(t, rsp4.ConfigFile)
-	assert.Equal(t, CalMd5(configFile.Content.GetValue()), rsp4.ConfigFile.Md5.GetValue())
+	assert.Equal(t, config.CalMd5(configFile.Content.GetValue()), rsp4.ConfigFile.Md5.GetValue())
 
-	rsp5 := testSuit.testServer.doCheckClientConfigFile(testSuit.defaultCtx, assembleDefaultClientConfigFile(0), compareByMD5)
+	rsp5 := originSvr.DoCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByMD5)
 	assert.Equal(t, api.ExecuteSuccess, rsp5.Code.GetValue())
 	assert.NotNil(t, rsp5.ConfigFile)
 	assert.Equal(t, uint64(1), rsp5.ConfigFile.Version.GetValue())
-	assert.Equal(t, CalMd5(configFile.Content.GetValue()), rsp5.ConfigFile.Md5.GetValue())
+	assert.Equal(t, config.CalMd5(configFile.Content.GetValue()), rsp5.ConfigFile.Md5.GetValue())
 }
 
 // TestClientSetupAndCreateNewFile 测试客户端启动时（version=0），并且配置不存在的情况下创建新的配置
 func TestClientSetupAndCreateNewFile(t *testing.T) {
-	testSuit, err := newConfigCenterTest(t)
-	if err != nil {
+	testSuit := &ConfigCenterTest{}
+	if err := testSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
-
+	t.Cleanup(func() {
+		testSuit.Destroy()
+	})
 	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
@@ -131,25 +140,28 @@ func TestClientSetupAndCreateNewFile(t *testing.T) {
 		Content:   &wrapperspb.StringValue{Value: testContent},
 	}
 
-	rsp := testSuit.testService.CreateConfigFileFromClient(testSuit.defaultCtx, fileInfo)
+	rsp := testSuit.ConfigServer().CreateConfigFileFromClient(testSuit.DefaultCtx, fileInfo)
 	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue(), "CreateConfigFileFromClient must success")
 
-	rsp2 := testSuit.testServer.doCheckClientConfigFile(testSuit.defaultCtx, assembleDefaultClientConfigFile(0), compareByVersion)
+	originSvr := testSuit.OriginConfigServer()
+	rsp2 := originSvr.DoCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByVersion)
 	assert.Equal(t, api.DataNoChange, rsp2.Code.GetValue(), "checkClientConfigFileByVersion must nochange")
 	assert.Nil(t, rsp2.ConfigFile)
 
-	rsp3 := testSuit.testServer.doCheckClientConfigFile(testSuit.defaultCtx, assembleDefaultClientConfigFile(0), compareByMD5)
+	rsp3 := originSvr.DoCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByMD5)
 	assert.Equal(t, api.DataNoChange, rsp3.Code.GetValue())
 	assert.Nil(t, rsp3.ConfigFile)
 }
 
 // TestClientSetupAndCreateExistFile 测试客户端启动时（version=0），并且配置存在的情况下重复创建配置
 func TestClientSetupAndCreateExistFile(t *testing.T) {
-	testSuit, err := newConfigCenterTest(t)
-	if err != nil {
+	testSuit := &ConfigCenterTest{}
+	if err := testSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
-
+	t.Cleanup(func() {
+		testSuit.Destroy()
+	})
 	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
@@ -164,29 +176,32 @@ func TestClientSetupAndCreateExistFile(t *testing.T) {
 	}
 
 	// 第一次创建
-	rsp := testSuit.testService.CreateConfigFileFromClient(testSuit.defaultCtx, fileInfo)
+	rsp := testSuit.ConfigServer().CreateConfigFileFromClient(testSuit.DefaultCtx, fileInfo)
 	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue(), "First CreateConfigFileFromClient must success")
 
 	// 第二次创建
-	rsp1 := testSuit.testService.CreateConfigFileFromClient(testSuit.defaultCtx, fileInfo)
+	rsp1 := testSuit.ConfigServer().CreateConfigFileFromClient(testSuit.DefaultCtx, fileInfo)
 	assert.Equal(t, api.ExistedResource, rsp1.Code.GetValue(), "CreateConfigFileFromClient again must error")
 
-	rsp2 := testSuit.testServer.doCheckClientConfigFile(testSuit.defaultCtx, assembleDefaultClientConfigFile(0), compareByVersion)
+	originSvr := testSuit.OriginConfigServer()
+	rsp2 := originSvr.DoCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByVersion)
 	assert.Equal(t, api.DataNoChange, rsp2.Code.GetValue(), "checkClientConfigFileByVersion must nochange")
 	assert.Nil(t, rsp2.ConfigFile)
 
-	rsp3 := testSuit.testServer.doCheckClientConfigFile(testSuit.defaultCtx, assembleDefaultClientConfigFile(0), compareByMD5)
+	rsp3 := originSvr.DoCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByMD5)
 	assert.Equal(t, api.DataNoChange, rsp3.Code.GetValue())
 	assert.Nil(t, rsp3.ConfigFile)
 }
 
 // TestClientSetupAndUpdateNewFile 测试客户端启动时（version=0），更新不存在的配置
 func TestClientSetupAndUpdateNewFile(t *testing.T) {
-	testSuit, err := newConfigCenterTest(t)
-	if err != nil {
+	testSuit := &ConfigCenterTest{}
+	if err := testSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
-
+	t.Cleanup(func() {
+		testSuit.Destroy()
+	})
 	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
@@ -201,17 +216,19 @@ func TestClientSetupAndUpdateNewFile(t *testing.T) {
 	}
 
 	// 直接更新
-	rsp := testSuit.testService.UpdateConfigFileFromClient(testSuit.defaultCtx, fileInfo)
+	rsp := testSuit.ConfigServer().UpdateConfigFileFromClient(testSuit.DefaultCtx, fileInfo)
 	assert.Equal(t, api.NotFoundResource, rsp.Code.GetValue(), "UpdateConfigFileFromClient with no exist file must error")
 }
 
 // TestClientSetupAndUpdateExistFile 测试客户端启动时（version=0），更新存在的配置
 func TestClientSetupAndUpdateExistFile(t *testing.T) {
-	testSuit, err := newConfigCenterTest(t)
-	if err != nil {
+	testSuit := &ConfigCenterTest{}
+	if err := testSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
-
+	t.Cleanup(func() {
+		testSuit.Destroy()
+	})
 	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
@@ -226,23 +243,25 @@ func TestClientSetupAndUpdateExistFile(t *testing.T) {
 	}
 
 	// 先创建
-	rsp := testSuit.testService.CreateConfigFileFromClient(testSuit.defaultCtx, fileInfo)
+	rsp := testSuit.ConfigServer().CreateConfigFileFromClient(testSuit.DefaultCtx, fileInfo)
 	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue(), "CreateConfigFileFromClient must success")
 
 	// 再更新
 	fileInfo.Content = &wrapperspb.StringValue{Value: testContent + "1"}
-	rsp1 := testSuit.testService.UpdateConfigFileFromClient(testSuit.defaultCtx, fileInfo)
+	rsp1 := testSuit.ConfigServer().UpdateConfigFileFromClient(testSuit.DefaultCtx, fileInfo)
 	assert.Equal(t, api.ExecuteSuccess, rsp1.Code.GetValue(), "UpdateConfigFileFromClient must success")
 
 }
 
 // TestClientSetupAndPublishNewFile 测试客户端启动时（version=0），发布不存在的配置
 func TestClientSetupAndPublishNewFile(t *testing.T) {
-	testSuit, err := newConfigCenterTest(t)
-	if err != nil {
+	testSuit := &ConfigCenterTest{}
+	if err := testSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
-
+	t.Cleanup(func() {
+		testSuit.Destroy()
+	})
 	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
@@ -257,17 +276,19 @@ func TestClientSetupAndPublishNewFile(t *testing.T) {
 	}
 
 	// 直接发布
-	rsp := testSuit.testService.PublishConfigFileFromClient(testSuit.defaultCtx, fileReleaseInfo)
+	rsp := testSuit.ConfigServer().PublishConfigFileFromClient(testSuit.DefaultCtx, fileReleaseInfo)
 	assert.Equal(t, api.NotFoundNamespace, rsp.Code.GetValue(), "PublishConfigFileFromClient with no exist file must error")
 }
 
 // TestClientSetupAndPublishExistFile 测试客户端启动时（version=0），发布存在的配置
 func TestClientSetupAndPublishExistFile(t *testing.T) {
-	testSuit, err := newConfigCenterTest(t)
-	if err != nil {
+	testSuit := &ConfigCenterTest{}
+	if err := testSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
-
+	t.Cleanup(func() {
+		testSuit.Destroy()
+	})
 	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
@@ -282,7 +303,7 @@ func TestClientSetupAndPublishExistFile(t *testing.T) {
 	}
 
 	// 先创建
-	rsp := testSuit.testService.CreateConfigFileFromClient(testSuit.defaultCtx, fileInfo)
+	rsp := testSuit.ConfigServer().CreateConfigFileFromClient(testSuit.DefaultCtx, fileInfo)
 	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue(), "CreateConfigFileFromClient must success")
 
 	// 再发布
@@ -292,17 +313,20 @@ func TestClientSetupAndPublishExistFile(t *testing.T) {
 		FileName:  &wrapperspb.StringValue{Value: testFile},
 		Content:   &wrapperspb.StringValue{Value: testContent},
 	}
-	rsp1 := testSuit.testService.PublishConfigFileFromClient(testSuit.defaultCtx, fileReleaseInfo)
+	rsp1 := testSuit.ConfigServer().PublishConfigFileFromClient(testSuit.DefaultCtx, fileReleaseInfo)
 	assert.Equal(t, api.ExecuteSuccess, rsp1.Code.GetValue(), "PublishConfigFileFromClient must success")
 
 }
 
 // TestClientVersionBehindServer 测试客户端版本落后服务端
 func TestClientVersionBehindServer(t *testing.T) {
-	testSuit, err := newConfigCenterTest(t)
-	if err != nil {
+	testSuit := &ConfigCenterTest{}
+	if err := testSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() {
+		testSuit.Destroy()
+	})
 
 	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
@@ -312,16 +336,16 @@ func TestClientVersionBehindServer(t *testing.T) {
 
 	// 创建并连续发布5次
 	configFile := assembleConfigFile()
-	rsp := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
+	rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
 	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 
 	for i := 0; i < 5; i++ {
 		configFile.Content = utils.NewStringValue("content" + strconv.Itoa(i))
 		// 更新
-		rsp2 := testSuit.testService.UpdateConfigFile(testSuit.defaultCtx, configFile)
+		rsp2 := testSuit.ConfigServer().UpdateConfigFile(testSuit.DefaultCtx, configFile)
 		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 		// 发布
-		rsp3 := testSuit.testService.PublishConfigFile(testSuit.defaultCtx, assembleConfigFileRelease(configFile))
+		rsp3 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, assembleConfigFileRelease(configFile))
 		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 	}
 
@@ -337,32 +361,35 @@ func TestClientVersionBehindServer(t *testing.T) {
 	}
 
 	// 拉取配置接口
-	rsp4 := testSuit.testService.GetConfigFileForClient(testSuit.defaultCtx, fileInfo)
+	rsp4 := testSuit.ConfigServer().GetConfigFileForClient(testSuit.DefaultCtx, fileInfo)
 	assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue())
 	assert.NotNil(t, rsp4.ConfigFile)
 	assert.Equal(t, uint64(5), rsp4.ConfigFile.Version.GetValue())
 	assert.Equal(t, latestContent, rsp4.ConfigFile.Content.GetValue())
-	assert.Equal(t, CalMd5(latestContent), rsp4.ConfigFile.Md5.GetValue())
+	assert.Equal(t, config.CalMd5(latestContent), rsp4.ConfigFile.Md5.GetValue())
 
 	// 比较客户端配置是否落后
-	rsp5 := testSuit.testServer.doCheckClientConfigFile(testSuit.defaultCtx, assembleDefaultClientConfigFile(clientVersion), compareByVersion)
+	rsp5 := testSuit.OriginConfigServer().DoCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(clientVersion), config.TestCompareByVersion)
 	assert.Equal(t, api.ExecuteSuccess, rsp5.Code.GetValue())
 	assert.NotNil(t, rsp5.ConfigFile)
-	assert.Equal(t, CalMd5(latestContent), rsp5.ConfigFile.Md5.GetValue())
+	assert.Equal(t, config.CalMd5(latestContent), rsp5.ConfigFile.Md5.GetValue())
 
-	rsp6 := testSuit.testServer.doCheckClientConfigFile(testSuit.defaultCtx, assembleDefaultClientConfigFile(clientVersion), compareByMD5)
+	rsp6 := testSuit.OriginConfigServer().DoCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(clientVersion), config.TestCompareByMD5)
 	assert.Equal(t, api.ExecuteSuccess, rsp6.Code.GetValue())
 	assert.NotNil(t, rsp6.ConfigFile)
 	assert.Equal(t, uint64(5), rsp6.ConfigFile.Version.GetValue())
-	assert.Equal(t, CalMd5(latestContent), rsp6.ConfigFile.Md5.GetValue())
+	assert.Equal(t, config.CalMd5(latestContent), rsp6.ConfigFile.Md5.GetValue())
 }
 
 // TestWatchConfigFileAtFirstPublish 测试监听配置，并且第一次发布配置
 func TestWatchConfigFileAtFirstPublish(t *testing.T) {
-	testSuit, err := newConfigCenterTest(t)
-	if err != nil {
+	testSuit := &ConfigCenterTest{}
+	if err := testSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() {
+		testSuit.Destroy()
+	})
 
 	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
@@ -381,19 +408,19 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 		clientId := "TestWatchConfigFileAtFirstPublish-first"
 
 		defer func() {
-			testSuit.testServer.WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
+			testSuit.OriginConfigServer().WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
 		}()
 
-		testSuit.testServer.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
+		testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
 			t.Logf("clientId=[%s] receive config publish msg", clientId)
 			received <- rsp.ConfigFile.Version.GetValue()
 			return true
 		})
 
-		rsp := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
+		rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 
-		rsp2 := testSuit.testService.PublishConfigFile(testSuit.defaultCtx, assembleConfigFileRelease(configFile))
+		rsp2 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, assembleConfigFileRelease(configFile))
 		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 
 		receivedVersion := <-received
@@ -409,13 +436,13 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 
 		clientId := "TestWatchConfigFileAtFirstPublish-second"
 
-		testSuit.testServer.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
+		testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
 			t.Logf("clientId=[%s] receive config publish msg", clientId)
 			received <- rsp.ConfigFile.Version.GetValue()
 			return true
 		})
 
-		rsp3 := testSuit.testService.PublishConfigFile(testSuit.defaultCtx, assembleConfigFileRelease(configFile))
+		rsp3 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, assembleConfigFileRelease(configFile))
 		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 
 		// 等待回调
@@ -423,17 +450,19 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 		assert.Equal(t, uint64(2), receivedVersion)
 
 		// 为了避免影响其它 case，删除订阅
-		testSuit.testServer.WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
+		testSuit.OriginConfigServer().WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
 	})
 }
 
 // Test10000ClientWatchConfigFile 测试 10000 个客户端同时监听配置变更，配置发布所有客户端都收到通知
 func Test10000ClientWatchConfigFile(t *testing.T) {
-	testSuit, err := newConfigCenterTest(t)
-	if err != nil {
+	testSuit := &ConfigCenterTest{}
+	if err := testSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
-
+	t.Cleanup(func() {
+		testSuit.Destroy()
+	})
 	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
@@ -448,7 +477,7 @@ func Test10000ClientWatchConfigFile(t *testing.T) {
 		clientId := fmt.Sprintf("Test10000ClientWatchConfigFile-client-id=%d", i)
 		received[clientId] = false
 		receivedVersion[clientId] = uint64(0)
-		testSuit.testServer.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
+		testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
 			received[clientId] = true
 			receivedVersion[clientId] = rsp.ConfigFile.Version.GetValue()
 			return true
@@ -457,10 +486,10 @@ func Test10000ClientWatchConfigFile(t *testing.T) {
 
 	// 创建并发布配置文件
 	configFile := assembleConfigFile()
-	rsp := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
+	rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
 	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 
-	rsp2 := testSuit.testService.PublishConfigFile(testSuit.defaultCtx, assembleConfigFileRelease(configFile))
+	rsp2 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, assembleConfigFileRelease(configFile))
 	assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 
 	// 等待回调
@@ -483,16 +512,19 @@ func Test10000ClientWatchConfigFile(t *testing.T) {
 
 	// 为了避免影响其它case，删除订阅
 	for clientId := range received {
-		testSuit.testServer.WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
+		testSuit.OriginConfigServer().WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
 	}
 }
 
 // TestDeleteConfigFile 测试删除配置，删除配置会通知客户端，并且重新拉取配置会返回 NotFoundResourceConfigFile 状态码
 func TestDeleteConfigFile(t *testing.T) {
-	testSuit, err := newConfigCenterTest(t)
-	if err != nil {
+	testSuit := &ConfigCenterTest{}
+	if err := testSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() {
+		testSuit.Destroy()
+	})
 
 	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
@@ -502,10 +534,10 @@ func TestDeleteConfigFile(t *testing.T) {
 
 	// 创建并发布一个配置文件
 	configFile := assembleConfigFile()
-	rsp := testSuit.testService.CreateConfigFile(testSuit.defaultCtx, configFile)
+	rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
 	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 
-	rsp2 := testSuit.testService.PublishConfigFile(testSuit.defaultCtx, assembleConfigFileRelease(configFile))
+	rsp2 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, assembleConfigFileRelease(configFile))
 	assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 
 	time.Sleep(1200 * time.Millisecond)
@@ -517,14 +549,14 @@ func TestDeleteConfigFile(t *testing.T) {
 
 	t.Log("add config watcher")
 
-	testSuit.testServer.WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
+	testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
 		received <- rsp.ConfigFile.Version.GetValue()
 		return true
 	})
 
 	// 删除配置文件
 	t.Log("remove config file")
-	rsp3 := testSuit.testService.DeleteConfigFile(testSuit.defaultCtx, testNamespace, testGroup, testFile, operator)
+	rsp3 := testSuit.ConfigServer().DeleteConfigFile(testSuit.DefaultCtx, testNamespace, testGroup, testFile, operator)
 	assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 
 	// 客户端收到推送通知
@@ -540,6 +572,6 @@ func TestDeleteConfigFile(t *testing.T) {
 	}
 
 	// 重新拉取配置，获取不到配置文件
-	rsp4 := testSuit.testService.GetConfigFileForClient(testSuit.defaultCtx, fileInfo)
+	rsp4 := testSuit.ConfigServer().GetConfigFileForClient(testSuit.DefaultCtx, fileInfo)
 	assert.Equal(t, uint32(api.NotFoundResource), rsp4.Code.GetValue())
 }

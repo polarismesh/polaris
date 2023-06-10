@@ -96,7 +96,7 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 	x.versionNum = atomic.NewUint64(0)
 	var err error
 
-	x.namingServer, err = service.GetServer()
+	x.namingServer, err = service.GetOriginServer()
 	if err != nil {
 		log.Errorf("%v", err)
 		return err

@@ -68,7 +68,7 @@ type Server struct {
 	initialized       bool
 
 	history       plugin.History
-	cryptoManager *plugin.CryptoManager
+	cryptoManager plugin.CryptoManager
 	hooks         []ResourceHook
 }
 
@@ -171,6 +171,11 @@ func (s *Server) Cache() cache.FileCache {
 // ConnManager 获取配置中心连接管理器
 func (s *Server) ConnManager() *connManager {
 	return s.connManager
+}
+
+// CryptoManager 获取加密管理
+func (s *Server) CryptoManager() plugin.CryptoManager {
+	return s.cryptoManager
 }
 
 // SetResourceHooks 设置资源钩子

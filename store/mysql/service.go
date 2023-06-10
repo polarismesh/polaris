@@ -1102,7 +1102,7 @@ func filterInstance(filters *store.InstanceArgs) (string, []interface{}) {
 	str := "(select service_id from instance where instance.flag != 1 and host in (" +
 		PlaceholdersN(len(filters.Hosts)) + ")"
 	if len(filters.Ports) > 0 {
-		str += "and port in (" + PlaceholdersN(len(filters.Ports)) + ")"
+		str += " and port in (" + PlaceholdersN(len(filters.Ports)) + ")"
 	}
 	str += " group by service_id)"
 	for _, host := range filters.Hosts {

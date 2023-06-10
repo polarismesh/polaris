@@ -458,13 +458,9 @@ func Test_UpdateStrategy(t *testing.T) {
 		}()
 
 		strategyTest.strategies[2].Owner = strategyTest.users[2].ID
-
 		strategyTest.storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategyTest.strategies[2], nil)
-
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
-
 		strategyId := strategyTest.strategies[2].ID
-
 		resp := strategyTest.svr.UpdateStrategies(valCtx, []*apisecurity.ModifyAuthStrategy{
 			{
 				Id: &wrapperspb.StringValue{Value: strategyId},
@@ -484,11 +480,8 @@ func Test_UpdateStrategy(t *testing.T) {
 	t.Run("更新鉴权策略-关联用户不存在", func(t *testing.T) {
 
 		strategyTest.storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategyTest.strategies[0], nil)
-
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
-
 		strategyId := strategyTest.strategies[0].ID
-
 		resp := strategyTest.svr.UpdateStrategies(valCtx, []*apisecurity.ModifyAuthStrategy{
 			{
 				Id: &wrapperspb.StringValue{Value: strategyId},
@@ -508,11 +501,8 @@ func Test_UpdateStrategy(t *testing.T) {
 	t.Run("更新鉴权策略-关联用户组不存在", func(t *testing.T) {
 
 		strategyTest.storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategyTest.strategies[0], nil)
-
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
-
 		strategyId := strategyTest.strategies[0].ID
-
 		resp := strategyTest.svr.UpdateStrategies(valCtx, []*apisecurity.ModifyAuthStrategy{
 			{
 				Id: &wrapperspb.StringValue{Value: strategyId},
@@ -532,11 +522,8 @@ func Test_UpdateStrategy(t *testing.T) {
 	t.Run("更新默认鉴权策略-不能更改principals成员", func(t *testing.T) {
 
 		strategyTest.storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategyTest.defaultStrategies[0], nil)
-
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
-
 		strategyId := strategyTest.defaultStrategies[0].ID
-
 		resp := strategyTest.svr.UpdateStrategies(valCtx, []*apisecurity.ModifyAuthStrategy{
 			{
 				Id: &wrapperspb.StringValue{Value: strategyId},
@@ -588,11 +575,8 @@ func Test_DeleteStrategy(t *testing.T) {
 	t.Run("删除鉴权策略-目标策略不存在", func(t *testing.T) {
 
 		index := rand.Intn(len(strategyTest.strategies))
-
 		strategyTest.storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(nil, nil)
-
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
-
 		resp := strategyTest.svr.DeleteStrategies(valCtx, []*apisecurity.AuthStrategy{
 			{Id: &wrapperspb.StringValue{Value: strategyTest.strategies[index].ID}},
 		})
@@ -604,9 +588,7 @@ func Test_DeleteStrategy(t *testing.T) {
 		index := rand.Intn(len(strategyTest.defaultStrategies))
 
 		strategyTest.storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategyTest.defaultStrategies[index], nil)
-
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
-
 		resp := strategyTest.svr.DeleteStrategies(valCtx, []*apisecurity.AuthStrategy{
 			{Id: &wrapperspb.StringValue{Value: strategyTest.defaultStrategies[index].ID}},
 		})
@@ -623,11 +605,8 @@ func Test_DeleteStrategy(t *testing.T) {
 		}()
 
 		strategyTest.strategies[index].Owner = strategyTest.users[2].ID
-
 		strategyTest.storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategyTest.strategies[index], nil)
-
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
-
 		resp := strategyTest.svr.DeleteStrategies(valCtx, []*apisecurity.AuthStrategy{
 			{Id: &wrapperspb.StringValue{Value: strategyTest.strategies[index].ID}},
 		})

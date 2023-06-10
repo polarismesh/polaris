@@ -25,7 +25,7 @@ import (
 
 var (
 	cryptoManagerOnce sync.Once
-	cryptoManager     *CryptoManager
+	cryptoManager     *defaultCryptoManager
 )
 
 // Crypto Crypto interface
@@ -37,7 +37,7 @@ type Crypto interface {
 }
 
 // GetCrypto get the crypto plugin
-func GetCryptoManager() *CryptoManager {
+func GetCryptoManager() CryptoManager {
 	if cryptoManager != nil {
 		return cryptoManager
 	}
@@ -54,7 +54,7 @@ func GetCryptoManager() *CryptoManager {
 				Option: config.Crypto.Option,
 			})
 		}
-		cryptoManager = &CryptoManager{
+		cryptoManager = &defaultCryptoManager{
 			cryptos: make(map[string]Crypto),
 			options: entries,
 		}
@@ -68,16 +68,25 @@ func GetCryptoManager() *CryptoManager {
 }
 
 // CryptoManager crypto algorithm manager
-type CryptoManager struct {
+type CryptoManager interface {
+	Name() string
+	Initialize() error
+	Destroy() error
+	GetCryptoAlgoNames() []string
+	GetCrypto(algo string) (Crypto, error)
+}
+
+// defaultCryptoManager crypto algorithm manager
+type defaultCryptoManager struct {
 	cryptos map[string]Crypto
 	options []ConfigEntry
 }
 
-func (c *CryptoManager) Name() string {
+func (c *defaultCryptoManager) Name() string {
 	return "CryptoManager"
 }
 
-func (c *CryptoManager) Initialize() error {
+func (c *defaultCryptoManager) Initialize() error {
 	for i := range c.options {
 		entry := c.options[i]
 		item, exist := pluginSet[entry.Name]
@@ -98,7 +107,7 @@ func (c *CryptoManager) Initialize() error {
 	return nil
 }
 
-func (c *CryptoManager) Destroy() error {
+func (c *defaultCryptoManager) Destroy() error {
 	for i := range c.cryptos {
 		if err := c.cryptos[i].Destroy(); err != nil {
 			return err
@@ -107,7 +116,7 @@ func (c *CryptoManager) Destroy() error {
 	return nil
 }
 
-func (c *CryptoManager) GetCryptoAlgoNames() []string {
+func (c *defaultCryptoManager) GetCryptoAlgoNames() []string {
 	var names []string
 	for name := range c.cryptos {
 		names = append(names, name)
@@ -115,7 +124,7 @@ func (c *CryptoManager) GetCryptoAlgoNames() []string {
 	return names
 }
 
-func (c *CryptoManager) GetCrypto(algo string) (Crypto, error) {
+func (c *defaultCryptoManager) GetCrypto(algo string) (Crypto, error) {
 	crypto, ok := c.cryptos[algo]
 	if !ok {
 		log.Errorf("plugin Crypto not found target: %s", algo)

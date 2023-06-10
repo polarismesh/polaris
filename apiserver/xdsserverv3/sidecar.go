@@ -525,14 +525,6 @@ func (x *XDSServer) makeSidecarRoutes(serviceInfo *ServiceInfo) []*route.Route {
 				},
 			},
 		}
-		limits, typedPerFilterConfig, err := x.makeSidecarLocalRateLimit(model.ServiceKey{
-			Namespace: serviceInfo.Namespace,
-			Name:      serviceInfo.Name,
-		})
-		if err == nil {
-			currentRoute.TypedPerFilterConfig = typedPerFilterConfig
-			currentRoute.GetRoute().RateLimits = limits
-		}
 
 		if matchAll {
 			matchAllRoute = currentRoute
