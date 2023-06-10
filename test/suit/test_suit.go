@@ -46,6 +46,7 @@ import (
 	ns "github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
 	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
+	_ "github.com/polarismesh/polaris/plugin/crypto/aes"
 	_ "github.com/polarismesh/polaris/plugin/discoverevent/local"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/memory"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/redis"

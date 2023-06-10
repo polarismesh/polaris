@@ -18,7 +18,6 @@
 package config_test
 
 import (
-	"context"
 	"time"
 
 	"github.com/google/uuid"
@@ -60,20 +59,13 @@ type TestConfig struct {
 
 type ConfigCenterTest struct {
 	testsuit.DiscoverTestSuit
-	cfg     *TestConfig
-	cancel  context.CancelFunc
-	storage store.Store
+	cfg *TestConfig
 }
 
 func (c *ConfigCenterTest) clearTestData() error {
 	defer func() {
-		c.cancel()
-		time.Sleep(5 * time.Second)
-
-		c.storage.Destroy()
 		time.Sleep(5 * time.Second)
 	}()
-
 	return c.GetTestDataClean().ClearTestDataWhenUseRDS()
 }
 

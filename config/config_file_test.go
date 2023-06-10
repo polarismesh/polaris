@@ -38,6 +38,7 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/plugin/crypto/aes"
 	storemock "github.com/polarismesh/polaris/store/mock"
 )
@@ -630,7 +631,7 @@ func Test_decryptConfigFile(t *testing.T) {
 					},
 					CreateBy: utils.NewStringValue("polaris"),
 				},
-			},
+			},        
 			want:    "polaris",
 			wantErr: nil,
 		},
@@ -661,8 +662,8 @@ func Test_decryptConfigFile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := testSuit.OriginConfigServer()
 			err := s.TestDecryptConfigFile(tt.args.ctx, tt.args.configFile)
-			assert.Equal(t, tt.wantErr, err)
-			assert.Equal(t, tt.want, tt.args.configFile.Content.GetValue())
+			assert.Equal(t, tt.wantErr, err, tt.name)
+			assert.Equal(t, tt.want, tt.args.configFile.Content.GetValue(), tt.name)
 			for _, tag := range tt.args.configFile.Tags {
 				if tag.Key.GetValue() == utils.ConfigFileTagKeyDataKey {
 					t.Fatal("config tags has data key")
@@ -698,7 +699,7 @@ func Test_GetConfigEncryptAlgorithm(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rsp := testSuit.ConfigServer().GetAllConfigEncryptAlgorithms(testSuit.DefaultCtx)
+			rsp := testSuit.OriginConfigServer().GetAllConfigEncryptAlgorithms(testSuit.DefaultCtx)
 			assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 			assert.Equal(t, tt.want, rsp.GetAlgorithms())
 		})
@@ -777,38 +778,64 @@ func Test_GetConfigFileBaseInfo(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	Convey("获取配置文件基本信息", t, func() {
-		Convey("存储层-查询配置文件-返回error", func() {
-			storage := storemock.NewMockStore(ctrl)
-			storage.EXPECT().GetConfigFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil, errors.New("mock storage error"))
-			configFile := assembleConfigFile()
+	t.Run("获取配置文件基本信息-存储层-查询配置文件-返回error", func(t *testing.T) {
+		storage := storemock.NewMockStore(ctrl)
+		storage.EXPECT().GetConfigFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil, errors.New("mock storage error"))
+		configFile := assembleConfigFile()
 
-			svr := testSuit.OriginConfigServer()
-			svr.TestMockStore(storage)
-			got := svr.GetConfigFileBaseInfo(testSuit.DefaultCtx, configFile.Namespace.Value, configFile.Group.Value, configFile.Name.Value)
-			So(apimodel.Code_StoreLayerException, ShouldEqual, apimodel.Code(got.GetCode().GetValue()))
-		})
-
-		Convey("解密配置文件-返回error", func() {
-			storage := storemock.NewMockStore(ctrl)
-			storage.EXPECT().GetConfigFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&model.ConfigFile{
-				CreateBy: operator,
-			}, nil)
-			storage.EXPECT().QueryTagByConfigFile(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]*model.ConfigFileTag{{Key: utils.ConfigFileTagKeyDataKey, Value: "abc"}}, nil)
-
-			crypto := &aes.AESCrypto{}
-			encryptFunc := ApplyMethod(reflect.TypeOf(crypto), "Decrypt", func(_ *aes.AESCrypto, plaintext string, key []byte) (string, error) {
-				return "", errors.New("mock encrypt error")
-			})
-			defer encryptFunc.Reset()
-
-			configFile := assembleConfigFile()
-
-			svr := testSuit.OriginConfigServer()
-			svr.TestMockStore(storage)
-			got := svr.GetConfigFileBaseInfo(testSuit.DefaultCtx, configFile.Namespace.Value, configFile.Group.Value, configFile.Name.Value)
-			So(apimodel.Code_DecryptConfigFileException, ShouldEqual, apimodel.Code(got.GetCode().GetValue()))
-		})
-
+		svr := testSuit.OriginConfigServer()
+		svr.TestMockStore(storage)
+		got := svr.GetConfigFileBaseInfo(testSuit.DefaultCtx, configFile.Namespace.Value, configFile.Group.Value, configFile.Name.Value)
+		assert.Equal(t, apimodel.Code_StoreLayerException, apimodel.Code(got.GetCode().GetValue()))
 	})
+
+	t.Run("获取配置文件基本信息-解密配置文件-返回error", func(t *testing.T) {
+		storage := storemock.NewMockStore(ctrl)
+		storage.EXPECT().GetConfigFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&model.ConfigFile{
+			CreateBy: operator,
+		}, nil)
+		storage.EXPECT().QueryTagByConfigFile(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]*model.ConfigFileTag{{Key: utils.ConfigFileTagKeyDataKey, Value: "abc"}}, nil)
+
+		crypto := &aes.AESCrypto{}
+		encryptFunc := ApplyMethod(reflect.TypeOf(crypto), "Decrypt", func(_ *aes.AESCrypto, plaintext string, key []byte) (string, error) {
+			return "", errors.New("mock encrypt error")
+		})
+		defer encryptFunc.Reset()
+
+		configFile := assembleConfigFile()
+
+		svr := testSuit.OriginConfigServer()
+		svr.TestMockStore(storage)
+		svr.TestMockCryptoManager(&MockCryptoManager{
+			repos: map[string]plugin.Crypto{
+				crypto.Name(): crypto,
+			},
+		})
+		got := testSuit.ConfigServer().GetConfigFileBaseInfo(testSuit.DefaultCtx, configFile.Namespace.Value, configFile.Group.Value, configFile.Name.Value)
+		assert.Equal(t, apimodel.Code_DecryptConfigFileException, apimodel.Code(got.GetCode().GetValue()))
+	})
+}
+
+type MockCryptoManager struct {
+	repos map[string]plugin.Crypto
+}
+
+func (m *MockCryptoManager) Name() string {
+	return ""
+}
+func (m *MockCryptoManager) Initialize() error {
+	return nil
+}
+func (m *MockCryptoManager) Destroy() error {
+	return nil
+}
+func (m *MockCryptoManager) GetCryptoAlgoNames() []string {
+	return []string{}
+}
+func (m *MockCryptoManager) GetCrypto(algo string) (plugin.Crypto, error) {
+	val, ok := m.repos[algo]
+	if !ok {
+		return nil, errors.New("Not Exist")
+	}
+	return val, nil
 }

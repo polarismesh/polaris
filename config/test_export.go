@@ -25,6 +25,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
 	"github.com/polarismesh/polaris/namespace"
+	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -32,13 +33,11 @@ import (
 func TestInitialize(ctx context.Context, config Config, s store.Store, cacheMgn *cache.CacheManager,
 	namespaceOperator namespace.NamespaceOperateServer, userMgn auth.UserServer,
 	strategyMgn auth.StrategyServer) (ConfigCenterServer, ConfigCenterServer, error) {
-
+	originServer := &Server{}
 	err := originServer.initialize(ctx, config, s, namespaceOperator, cacheMgn)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	server = newServerAuthAbility(originServer, userMgn, strategyMgn)
 	return newServerAuthAbility(originServer, userMgn, strategyMgn), originServer, err
 }
 
@@ -64,4 +63,9 @@ func (s *Server) TestEncryptConfigFile(ctx context.Context,
 // TestMockStore
 func (s *Server) TestMockStore(ms store.Store) {
 	s.storage = ms
+}
+
+// TestMockCryptoManager 获取加密管理
+func (s *Server) TestMockCryptoManager(mgr plugin.CryptoManager) {
+	s.cryptoManager = mgr
 }
