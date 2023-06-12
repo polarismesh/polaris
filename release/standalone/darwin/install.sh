@@ -212,11 +212,10 @@ function installPrometheus() {
   local target_prometheus_pkg=$(find . -name "prometheus-*.tar.gz")
   local prometheus_dirname=$(basename ${target_prometheus_pkg} .tar.gz)
   if [ -e ${prometheus_dirname} ]; then
-    echo -e "${prometheus_dirname} has exists, now remove it"
+    echo -e "${prometheus_dirname} has been decompressed, skip."
   else
-    tar -xf ${target_prometheus_pkg}
+    tar -xf ${target_prometheus_pkg} >/dev/null
   fi
-  tar -xf ${target_prometheus_pkg} >/dev/null
 
   cp prometheus-help.sh ${prometheus_dirname}/
   pushd ${prometheus_dirname}

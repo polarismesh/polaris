@@ -15,7 +15,7 @@ COPY polaris-server-release_${SERVER_VERSION}.${GOOS}.${TARGETARCH}.zip /root/po
 COPY polaris-console-release_${CONSOLE_VERSION}.${GOOS}.${TARGETARCH}.zip /root/polaris-console-release_${CONSOLE_VERSION}.${GOOS}.${TARGETARCH}.zip
 COPY polaris-limiter-release_${LIMITER_VERSION}.${GOOS}.${TARGETARCH}.zip /root/polaris-limiter-release_${LIMITER_VERSION}.${GOOS}.${TARGETARCH}.zip
 COPY prometheus-2.28.0.${GOOS}-${TARGETARCH}.tar.gz /root/prometheus-2.28.0.${GOOS}-${TARGETARCH}.tar.gz
-COPY pushgateway-1.4.1.${GOOS}-${TARGETARCH}.tar.gz /root/pushgateway-1.4.1.${GOOS}-${TARGETARCH}.tar.gz
+COPY pushgateway-1.6.0.${GOOS}-${TARGETARCH}.tar.gz /root/pushgateway-1.6.0.${GOOS}-${TARGETARCH}.tar.gz
 COPY install.sh /root/install.sh
 COPY prometheus-help.sh /root/prometheus-help.sh
 COPY port.properties /root/port.properties
