@@ -172,11 +172,14 @@ func (s *Server) GetLastHeartbeat(_ context.Context, req *apiservice.Instance) *
 	return s.healthCheckServer.GetLastHeartbeat(req)
 }
 
-func (s *Server) GetLogOutputLevel(_ context.Context) (map[string]string, error) {
+func (s *Server) GetLogOutputLevel(_ context.Context) ([]ScopeLevel, error) {
 	scopes := commonlog.Scopes()
-	out := make(map[string]string, len(scopes))
+	out := make([]ScopeLevel, 0, len(scopes))
 	for k := range scopes {
-		out[k] = scopes[k].GetOutputLevel().Name()
+		out = append(out, ScopeLevel{
+			Name:  k,
+			Level: scopes[k].GetOutputLevel().Name(),
+		})
 	}
 
 	return out, nil

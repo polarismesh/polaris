@@ -47,6 +47,11 @@ type ConnStatsResp struct {
 	Stats           []*connlimit.HostConnStat
 }
 
+type ScopeLevel struct {
+	Name  string
+	Level string
+}
+
 // AdminOperateServer Maintain related operation
 type AdminOperateServer interface {
 	// GetServerConnections Get connection count
@@ -66,7 +71,7 @@ type AdminOperateServer interface {
 	GetLastHeartbeat(ctx context.Context, req *apiservice.Instance) *apiservice.Response
 
 	// GetLogOutputLevel Get log output level
-	GetLogOutputLevel(ctx context.Context) (map[string]string, error)
+	GetLogOutputLevel(ctx context.Context) ([]ScopeLevel, error)
 	// SetLogOutputLevel Set log output level by scope
 	SetLogOutputLevel(ctx context.Context, scope string, level string) error
 	// ListLeaderElections

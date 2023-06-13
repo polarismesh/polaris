@@ -62,10 +62,8 @@ func (h *HTTPServer) GetCoreV1ConsoleAccessServer(ws *restful.WebService, includ
 }
 
 func (h *HTTPServer) addCoreDefaultReadAccess(ws *restful.WebService) {
-	ws.Route(docs.EnrichGetNamespacesApiDocs(ws.GET("/namespaces").To(h.v1Server.GetNamespaces).
-		Operation("CoreGetNamespaces")))
-	ws.Route(docs.EnrichGetNamespaceTokenApiDocs(ws.GET("/namespaces/token").To(h.v1Server.GetNamespaceToken).
-		Operation("CoreGetNamespaceToken")))
+	ws.Route(ws.GET("/namespaces").To(h.v1Server.GetNamespaces).Operation("CoreGetNamespaces"))
+	ws.Route(ws.GET("/namespaces/token").To(h.v1Server.GetNamespaceToken).Operation("CoreGetNamespaceToken"))
 }
 
 func (h *HTTPServer) addCoreDefaultAccess(ws *restful.WebService) {
@@ -77,8 +75,6 @@ func (h *HTTPServer) addCoreDefaultAccess(ws *restful.WebService) {
 		Operation("CoreUpdateNamespaces")))
 	ws.Route(docs.EnrichGetNamespacesApiDocs(ws.GET("/namespaces").To(h.v1Server.GetNamespaces).
 		Operation("CoreGetNamespaces")))
-	ws.Route(docs.EnrichGetNamespaceTokenApiDocs(ws.GET("/namespaces/token").To(h.v1Server.GetNamespaceToken).
-		Operation("CoreGetNamespaceToken")))
-	ws.Route(docs.EnrichUpdateNamespaceTokenApiDocs(ws.PUT("/namespaces/token").To(h.v1Server.UpdateNamespaceToken).
-		Operation("CoreUpdateNamespaceToken")))
+	ws.Route(ws.GET("/namespaces/token").To(h.v1Server.GetNamespaceToken).Operation("CoreGetNamespaceToken"))
+	ws.Route(ws.PUT("/namespaces/token").To(h.v1Server.UpdateNamespaceToken).Operation("CoreUpdateNamespaceToken"))
 }

@@ -256,7 +256,7 @@ func (h *HTTPServer) ListLeaderElections(req *restful.Request, rsp *restful.Resp
 func (h *HTTPServer) ReleaseLeaderElection(req *restful.Request, rsp *restful.Response) {
 	ctx := initContext(req)
 	var releasedElection struct {
-		ElectKey string `json:"ElectKey"`
+		ElectKey string `json:"electKey"`
 	}
 	if err := httpcommon.ParseJsonBody(req, &releasedElection); err != nil {
 		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())

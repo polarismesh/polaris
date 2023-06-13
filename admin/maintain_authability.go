@@ -117,7 +117,7 @@ func (svr *serverAuthAbility) GetLastHeartbeat(ctx context.Context, req *apiserv
 	return svr.targetServer.GetLastHeartbeat(ctx, req)
 }
 
-func (svr *serverAuthAbility) GetLogOutputLevel(ctx context.Context) (map[string]string, error) {
+func (svr *serverAuthAbility) GetLogOutputLevel(ctx context.Context) ([]ScopeLevel, error) {
 	authCtx := svr.collectMaintainAuthContext(ctx, model.Read, "GetLogOutputLevel")
 	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {

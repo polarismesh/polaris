@@ -77,7 +77,8 @@ func (h *HTTPServer) bindConfigConsoleEndpoint(ws *restful.WebService) {
 	ws.Route(docs.EnrichBatchDeleteConfigFileApiDocs(ws.POST("/configfiles/batchdelete").To(h.BatchDeleteConfigFile)))
 	ws.Route(docs.EnrichExportConfigFileApiDocs(ws.POST("/configfiles/export").To(h.ExportConfigFile)))
 	ws.Route(docs.EnrichImportConfigFileApiDocs(ws.POST("/configfiles/import").To(h.ImportConfigFile)))
-	ws.Route((ws.GET("/configfiles/encryptalgorithm").To(h.GetAllConfigEncryptAlgorithms)))
+	ws.Route(docs.EnrichGetAllConfigEncryptAlgorithms(ws.GET("/configfiles/encryptalgorithm").
+		To(h.GetAllConfigEncryptAlgorithms)))
 
 	// 配置文件发布
 	ws.Route(docs.EnrichPublishConfigFileApiDocs(ws.POST("/configfiles/release").To(h.PublishConfigFile)))
@@ -93,8 +94,8 @@ func (h *HTTPServer) bindConfigConsoleEndpoint(ws *restful.WebService) {
 }
 
 func (h *HTTPServer) bindConfigClientEndpoint(ws *restful.WebService) {
-	ws.Route(docs.EnrichGetConfigFileForClientApiDocs(ws.GET("/GetConfigFile").To(h.getConfigFile)))
-	ws.Route(docs.EnrichWatchConfigFileForClientApiDocs(ws.POST("/WatchConfigFile").To(h.watchConfigFile)))
+	ws.Route(docs.EnrichGetConfigFileForClientApiDocs(ws.GET("/GetConfigFile").To(h.ClientGetConfigFile)))
+	ws.Route(docs.EnrichWatchConfigFileForClientApiDocs(ws.POST("/WatchConfigFile").To(h.ClientWatchConfigFile)))
 }
 
 // StopConfigServer 停止配置中心模块

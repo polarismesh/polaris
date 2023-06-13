@@ -21,8 +21,6 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	"github.com/go-openapi/spec"
 	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
-
-	"github.com/polarismesh/polaris/common/version"
 )
 
 func (h *HTTPServer) enableSwaggerAPI(wsContainer *restful.Container) {
@@ -37,25 +35,6 @@ func (h *HTTPServer) enableSwaggerAPI(wsContainer *restful.Container) {
 }
 
 func enrichSwaggerObject(swo *spec.Swagger) {
-	swo.Info = &spec.Info{
-		InfoProps: spec.InfoProps{
-			Title:       "Polaris Server",
-			Description: "一个支持多语言、多框架的云原生服务发现和治理中心\n\n提供高性能SDK和无侵入Sidecar两种接入方式\n\n",
-			Contact: &spec.ContactInfo{
-				ContactInfoProps: spec.ContactInfoProps{
-					Name: "Polaris Mesh",
-					URL:  "https://polarismesh.cn/",
-				},
-			},
-			License: &spec.License{
-				LicenseProps: spec.LicenseProps{
-					Name: "BSD 3-Clause",
-					URL:  "https://github.com/polarismesh/polaris/blob/main/LICENSE",
-				},
-			},
-			Version: version.GetRevision(),
-		},
-	}
 	swo.Tags = []spec.Tag{
 		{TagProps: spec.TagProps{
 			Name:        "Client",

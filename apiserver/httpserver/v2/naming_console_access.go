@@ -194,7 +194,7 @@ func (h *HTTPServerV2) GetRoutings(req *restful.Request, rsp *restful.Response) 
 	handler.WriteHeaderAndProtoV2(ret)
 }
 
-// EnableRoutings 查询规则路由
+// EnableRoutings 启用规则路由
 func (h *HTTPServerV2) EnableRoutings(req *restful.Request, rsp *restful.Response) {
 	handler := &httpcommon.Handler{
 		Request:  req,

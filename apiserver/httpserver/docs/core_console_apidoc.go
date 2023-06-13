@@ -37,7 +37,10 @@ func EnrichGetNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 			DataType(typeNameInteger).Required(false).DefaultValue("0")).
 		Param(restful.QueryParameter("limit", "查询条数，**最多查询100条**").
 			DataType(typeNameInteger).Required(false)).
-		Notes(enrichGetNamespacesApiNotes)
+		Returns(0, "", struct {
+			BatchQueryResponse
+			Namespaces []apimodel.Namespace `json:"namespaces"`
+		}{})
 }
 
 func EnrichCreateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -45,7 +48,13 @@ func EnrichCreateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Doc("创建命名空间(New)").
 		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).
 		Reads([]apimodel.Namespace{}, "create namespaces").
-		Notes(enrichCreateNamespacesApiNotes)
+		Returns(0, "", struct {
+			BatchWriteResponse
+			Responses []struct {
+				BaseResponse
+				Namespace apimodel.Namespace `json:"namespace"`
+			} `json:"responses"`
+		}{})
 }
 
 func EnrichDeleteNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -53,7 +62,13 @@ func EnrichDeleteNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Doc("删除命名空间(New)").
 		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).
 		Reads([]apimodel.Namespace{}, "delete namespaces").
-		Notes(enrichDeleteNamespacesApiNotes)
+		Returns(0, "", struct {
+			BatchWriteResponse
+			Responses []struct {
+				BaseResponse
+				Namespace apimodel.Namespace `json:"namespace"`
+			} `json:"responses"`
+		}{})
 }
 
 func EnrichUpdateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -61,17 +76,11 @@ func EnrichUpdateNamespacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Doc("更新命名空间(New)").
 		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).
 		Reads([]apimodel.Namespace{}, "update namespaces").
-		Notes(enrichUpdateNamespacesApiNotes)
-}
-
-func EnrichGetNamespaceTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.
-		Doc("查询命名空间Token(New)").
-		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).Deprecate()
-}
-
-func EnrichUpdateNamespaceTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
-	return r.
-		Doc("更新命名空间Token(New)").
-		Metadata(restfulspec.KeyOpenAPITags, namespaceApiTags).Deprecate()
+		Returns(0, "", struct {
+			BatchWriteResponse
+			Responses []struct {
+				BaseResponse
+				Namespace apimodel.Namespace `json:"namespace"`
+			} `json:"responses"`
+		}{})
 }
