@@ -25,31 +25,6 @@ import (
 type BaseResponse struct {
 	Code *wrapperspb.UInt32Value `json:"code"`
 	Info *wrapperspb.StringValue `json:"info"`
-	// Client               *Client                         `protobuf:"bytes,3,opt,name=client,proto3" json:"client,omitempty"`
-	// Namespace            *model.Namespace                `protobuf:"bytes,4,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	// Service              *Service                        `protobuf:"bytes,5,opt,name=service,proto3" json:"service,omitempty"`
-	// Instance             *Instance                       `protobuf:"bytes,6,opt,name=instance,proto3" json:"instance,omitempty"`
-	// Routing              *traffic_manage.Routing         `protobuf:"bytes,7,opt,name=routing,proto3" json:"routing,omitempty"`
-	// Alias                *ServiceAlias                   `protobuf:"bytes,8,opt,name=alias,proto3" json:"alias,omitempty"`
-	// RateLimit            *traffic_manage.Rule            `protobuf:"bytes,9,opt,name=rateLimit,proto3" json:"rateLimit,omitempty"`
-	// CircuitBreaker       *fault_tolerance.CircuitBreaker `protobuf:"bytes,10,opt,name=circuitBreaker,proto3" json:"circuitBreaker,omitempty"`
-	// ConfigRelease        *ConfigRelease                  `protobuf:"bytes,11,opt,name=configRelease,proto3" json:"configRelease,omitempty"`
-	// User                 *security.User                  `protobuf:"bytes,19,opt,name=user,proto3" json:"user,omitempty"`
-	// UserGroup            *security.UserGroup             `protobuf:"bytes,20,opt,name=userGroup,proto3" json:"userGroup,omitempty"`
-	// AuthStrategy         *security.AuthStrategy          `protobuf:"bytes,21,opt,name=authStrategy,proto3" json:"authStrategy,omitempty"`
-	// Relation             *security.UserGroupRelation     `protobuf:"bytes,22,opt,name=relation,proto3" json:"relation,omitempty"`
-	// LoginResponse        *security.LoginResponse         `protobuf:"bytes,23,opt,name=loginResponse,proto3" json:"loginResponse,omitempty"`
-	// ModifyAuthStrategy   *security.ModifyAuthStrategy    `protobuf:"bytes,24,opt,name=modifyAuthStrategy,proto3" json:"modifyAuthStrategy,omitempty"`
-	// ModifyUserGroup      *security.ModifyUserGroup       `protobuf:"bytes,25,opt,name=modifyUserGroup,proto3" json:"modifyUserGroup,omitempty"`
-	// Resources            *security.StrategyResources     `protobuf:"bytes,26,opt,name=resources,proto3" json:"resources,omitempty"`
-	// OptionSwitch         *OptionSwitch                   `protobuf:"bytes,27,opt,name=optionSwitch,proto3" json:"optionSwitch,omitempty"`
-	// InstanceLabels       *InstanceLabels                 `protobuf:"bytes,28,opt,name=instanceLabels,proto3" json:"instanceLabels,omitempty"`
-	// Data                 *anypb.Any                      `protobuf:"bytes,29,opt,name=data,proto3" json:"data,omitempty"`
-	// ConfigFileGroup          *ConfigFileGroup          `protobuf:"bytes,3,opt,name=configFileGroup,proto3" json:"configFileGroup,omitempty"`
-	// ConfigFile               *ConfigFile               `protobuf:"bytes,4,opt,name=configFile,proto3" json:"configFile,omitempty"`
-	// ConfigFileRelease        *ConfigFileRelease        `protobuf:"bytes,5,opt,name=configFileRelease,proto3" json:"configFileRelease,omitempty"`
-	// ConfigFileReleaseHistory *ConfigFileReleaseHistory `protobuf:"bytes,6,opt,name=configFileReleaseHistory,proto3" json:"configFileReleaseHistory,omitempty"`
-	// ConfigFileTemplate       *ConfigFileTemplate       `protobuf:"bytes,7,opt,name=configFileTemplate,proto3" json:"configFileTemplate,omitempty"`
 }
 
 type BatchQueryResponse struct {
@@ -58,24 +33,6 @@ type BatchQueryResponse struct {
 	Amount *wrapperspb.UInt32Value `protobuf:"bytes,3,opt,name=amount,proto3" json:"amount,omitempty"`
 	Size   *wrapperspb.UInt32Value `protobuf:"bytes,4,opt,name=size,proto3" json:"size,omitempty"`
 	Total  *wrapperspb.UInt32Value `protobuf:"bytes,3,opt,name=total,proto3" json:"total,omitempty"`
-	// Namespaces           []*model.Namespace        `protobuf:"bytes,5,rep,name=namespaces,proto3" json:"namespaces,omitempty"`
-	// Services             []*Service                `protobuf:"bytes,6,rep,name=services,proto3" json:"services,omitempty"`
-	// Instances            []*Instance               `protobuf:"bytes,7,rep,name=instances,proto3" json:"instances,omitempty"`
-	// Routings             []*traffic_manage.Routing `protobuf:"bytes,8,rep,name=routings,proto3" json:"routings,omitempty"`
-	// Aliases              []*ServiceAlias           `protobuf:"bytes,9,rep,name=aliases,proto3" json:"aliases,omitempty"`
-	// RateLimits           []*traffic_manage.Rule    `protobuf:"bytes,10,rep,name=rateLimits,proto3" json:"rateLimits,omitempty"`
-	// ConfigWithServices   []*ConfigWithService      `protobuf:"bytes,11,rep,name=configWithServices,proto3" json:"configWithServices,omitempty"`
-	// Users                []*security.User          `protobuf:"bytes,18,rep,name=users,proto3" json:"users,omitempty"`
-	// UserGroups           []*security.UserGroup     `protobuf:"bytes,19,rep,name=userGroups,proto3" json:"userGroups,omitempty"`
-	// AuthStrategies       []*security.AuthStrategy  `protobuf:"bytes,20,rep,name=authStrategies,proto3" json:"authStrategies,omitempty"`
-	// Clients              []*Client                 `protobuf:"bytes,21,rep,name=clients,proto3" json:"clients,omitempty"`
-	// Data                 []*anypb.Any              `protobuf:"bytes,22,rep,name=data,proto3" json:"data,omitempty"`
-	// Summary              *model.Summary            `protobuf:"bytes,23,opt,name=summary,proto3" json:"summary,omitempty"`
-	// ConfigFileGroups           []*ConfigFileGroup          `protobuf:"bytes,4,rep,name=configFileGroups,proto3" json:"configFileGroups,omitempty"`
-	// ConfigFiles                []*ConfigFile               `protobuf:"bytes,5,rep,name=configFiles,proto3" json:"configFiles,omitempty"`
-	// ConfigFileReleases         []*ConfigFileRelease        `protobuf:"bytes,6,rep,name=configFileReleases,proto3" json:"configFileReleases,omitempty"`
-	// ConfigFileReleaseHistories []*ConfigFileReleaseHistory `protobuf:"bytes,7,rep,name=configFileReleaseHistories,proto3" json:"configFileReleaseHistories,omitempty"`
-	// ConfigFileTemplates        []*ConfigFileTemplate       `protobuf:"bytes,8,rep,name=configFileTemplates,proto3" json:"configFileTemplates,omitempty"`
 }
 
 type BatchWriteResponse struct {
@@ -93,7 +50,7 @@ type RouteRule struct {
 	// Enable this router
 	Enable bool `protobuf:"varint,4,opt,name=enable,proto3" json:"enable,omitempty"`
 	// Router type
-	RoutingPolicy traffic_manage.RoutingPolicy `protobuf:"varint,5,opt,name=routing_policy,proto3,enum=v1.RoutingPolicy" json:"routing_policy,omitempty"`
+	RoutingPolicy traffic_manage.RoutingPolicy `json:"routing_policy,omitempty"`
 	// Routing configuration for router
 	RoutingConfig RuleRoutingConfig `protobuf:"bytes,6,opt,name=routing_config,proto3" json:"routing_config,omitempty"`
 	// revision routing version
@@ -110,7 +67,7 @@ type RouteRule struct {
 	Description string `protobuf:"bytes,12,opt,name=description,proto3" json:"description,omitempty"`
 	// extendInfo 用于承载一些额外信息
 	// case 1: 升级到 v2 版本时，记录对应到 v1 版本的 id 信息
-	ExtendInfo map[string]string `protobuf:"bytes,20,rep,name=extendInfo,proto3" json:"extendInfo,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	ExtendInfo map[string]string `json:"extendInfo,omitempty"`
 }
 
 // RuleRoutingConfig routing configuration
