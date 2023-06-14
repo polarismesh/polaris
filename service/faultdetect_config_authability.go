@@ -66,5 +66,11 @@ func (svr *serverAuthAbility) UpdateFaultDetectRules(
 
 func (svr *serverAuthAbility) GetFaultDetectRules(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
+	authCtx := svr.collectFaultDetectAuthContext(ctx, nil, model.Read, "GetFaultDetectRules")
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewBatchQueryResponse(convertToErrCode(err))
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return svr.targetServer.GetFaultDetectRules(ctx, query)
 }

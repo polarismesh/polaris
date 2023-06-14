@@ -631,7 +631,7 @@ func Test_decryptConfigFile(t *testing.T) {
 					},
 					CreateBy: utils.NewStringValue("polaris"),
 				},
-			},        
+			},
 			want:    "polaris",
 			wantErr: nil,
 		},
@@ -823,15 +823,19 @@ type MockCryptoManager struct {
 func (m *MockCryptoManager) Name() string {
 	return ""
 }
+
 func (m *MockCryptoManager) Initialize() error {
 	return nil
 }
+
 func (m *MockCryptoManager) Destroy() error {
 	return nil
 }
+
 func (m *MockCryptoManager) GetCryptoAlgoNames() []string {
 	return []string{}
 }
+
 func (m *MockCryptoManager) GetCrypto(algo string) (plugin.Crypto, error) {
 	val, ok := m.repos[algo]
 	if !ok {

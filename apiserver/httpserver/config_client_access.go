@@ -29,7 +29,7 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
-func (h *HTTPServer) getConfigFile(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) ClientGetConfigFile(req *restful.Request, rsp *restful.Response) {
 	handler := &httpcommon.Handler{
 		Request:  req,
 		Response: rsp,
@@ -53,7 +53,7 @@ func (h *HTTPServer) getConfigFile(req *restful.Request, rsp *restful.Response) 
 	handler.WriteHeaderAndProto(response)
 }
 
-func (h *HTTPServer) watchConfigFile(req *restful.Request, rsp *restful.Response) {
+func (h *HTTPServer) ClientWatchConfigFile(req *restful.Request, rsp *restful.Response) {
 	handler := &httpcommon.Handler{
 		Request:  req,
 		Response: rsp,

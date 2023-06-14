@@ -20,6 +20,7 @@ package docs
 import (
 	"github.com/emicklei/go-restful/v3"
 	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
+	"github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 )
 
@@ -32,10 +33,8 @@ func EnrichCreateConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteB
 	return r.
 		Doc("创建配置文件组").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Reads(apiconfig.ConfigFileGroup{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
-			" X-Polaris-Token: {访问凭据}\n ```\n{\n    \"name\":\"someGroup\",\n  "+
-			"  \"namespace\":\"someNamespace\",\n    \"comment\":\"some comment\",\n  "+
-			"  \"createBy\":\"ledou\"\n}\n```")
+		Reads(apiconfig.ConfigFileGroup{}).
+		Returns(0, "", BaseResponse{})
 }
 
 func EnrichQueryConfigFileGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -53,7 +52,11 @@ func EnrichQueryConfigFileGroupsApiDocs(r *restful.RouteBuilder) *restful.RouteB
 			Required(false).DefaultValue("0")).
 		Param(restful.QueryParameter("limit", "一页大小，最大为 100").
 			DataType(typeNameInteger).
-			Required(true).DefaultValue("100"))
+			Required(true).DefaultValue("100")).
+		Returns(0, "", struct {
+			BatchQueryResponse
+			ConfigFileGroups []config_manage.ConfigFileGroup `json:"configFileGroups,omitempty"`
+		}{})
 }
 
 func EnrichDeleteConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -61,29 +64,24 @@ func EnrichDeleteConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteB
 		Doc("删除配置文件组").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
 		Param(restful.QueryParameter("namespace", "命名空间").DataType(typeNameString).Required(true)).
-		Param(restful.QueryParameter("group", "配置文件分组").DataType(typeNameString).Required(true))
+		Param(restful.QueryParameter("group", "配置文件分组").DataType(typeNameString).Required(true)).
+		Returns(0, "", BaseResponse{})
 }
 
 func EnrichUpdateConfigFileGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("更新配置文件组").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Reads(apiconfig.ConfigFileGroup{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
-			" X-Polaris-Token: {访问凭据}\n ```\n{\n    \"name\":\"someGroup\",\n  "+
-			"  \"namespace\":\"someNamespace\",\n    \"comment\":\"some comment\",\n  "+
-			"   \"createBy\":\"ledou\"\n}\n```")
+		Reads(apiconfig.ConfigFileGroup{}).
+		Returns(0, "", BaseResponse{})
 }
 
 func EnrichCreateConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("创建配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Reads(apiconfig.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
-			" X-Polaris-Token: {访问凭据}\n ```{\n    \"name\":\"application.properties\",\n   "+
-			" \"namespace\":\"someNamespace\",\n    \"group\":\"someGroup\",\n   "+
-			" \"content\":\"redis.cache.age=10\",\n    \"comment\":\"第一个配置文件\",\n  "+
-			"  \"tags\":[{\"key\":\"service\", \"value\":\"helloService\"}],\n  "+
-			"  \"createBy\":\"ledou\",\n    \"format\":\"properties\"\n}\n```\n")
+		Reads(apiconfig.ConfigFile{}).
+		Returns(0, "", BaseResponse{})
 }
 
 func EnrichGetConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -92,7 +90,11 @@ func EnrichGetConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
 		Param(restful.QueryParameter("namespace", "命名空间").DataType(typeNameString).Required(true)).
 		Param(restful.QueryParameter("group", "配置文件分组").DataType(typeNameString).Required(true)).
-		Param(restful.QueryParameter("name", "配置文件名").DataType(typeNameString).Required(true))
+		Param(restful.QueryParameter("name", "配置文件名").DataType(typeNameString).Required(true)).
+		Returns(0, "", struct {
+			BaseResponse
+			ConfigFile config_manage.ConfigFile `json:"configFile,omitempty"`
+		}{})
 }
 
 func EnrichQueryConfigFilesByGroupApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -104,7 +106,11 @@ func EnrichQueryConfigFilesByGroupApiDocs(r *restful.RouteBuilder) *restful.Rout
 		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType(typeNameInteger).
 			Required(false).DefaultValue("0")).
 		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType(typeNameInteger).
-			Required(true).DefaultValue("100"))
+			Required(true).DefaultValue("100")).
+		Returns(0, "", struct {
+			BatchQueryResponse
+			ConfigFiles []config_manage.ConfigFile `json:"configFiles,omitempty"`
+		}{})
 }
 
 func EnrichSearchConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -118,19 +124,19 @@ func EnrichSearchConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType(typeNameInteger).
 			Required(false).DefaultValue("0")).
 		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType(typeNameInteger).
-			Required(true).DefaultValue("100"))
+			Required(true).DefaultValue("100")).
+		Returns(0, "", struct {
+			BatchQueryResponse
+			ConfigFiles []config_manage.ConfigFile `json:"configFiles,omitempty"`
+		}{})
 }
 
 func EnrichUpdateConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("更新配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Reads(apiconfig.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
-			" X-Polaris-Token: {访问凭据}\n ```{\n    \"name\":\"application.properties\",\n   "+
-			" \"namespace\":\"someNamespace\",\n    \"group\":\"someGroup\",\n   "+
-			" \"content\":\"redis.cache.age=10\",\n    \"comment\":\"第一个配置文件\",\n   "+
-			" \"tags\":[{\"key\":\"service\", \"value\":\"helloService\"}],\n   "+
-			" \"createBy\":\"ledou\",\n    \"format\":\"properties\"\n}\n```\n")
+		Reads(apiconfig.ConfigFile{}).
+		Returns(0, "", BaseResponse{})
 }
 
 func EnrichDeleteConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -140,7 +146,8 @@ func EnrichDeleteConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Param(restful.QueryParameter("namespace", "命名空间").DataType(typeNameString).Required(true)).
 		Param(restful.QueryParameter("group", "配置文件分组").DataType(typeNameString).Required(true)).
 		Param(restful.QueryParameter("name", "配置文件").DataType(typeNameString).Required(true)).
-		Param(restful.QueryParameter("deleteBy", "操作人").DataType(typeNameString).Required(false))
+		Param(restful.QueryParameter("deleteBy", "操作人").DataType(typeNameString).Required(false)).
+		Returns(0, "", BaseResponse{})
 }
 
 func EnrichBatchDeleteConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -148,17 +155,29 @@ func EnrichBatchDeleteConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteB
 		Doc("批量删除配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
 		Param(restful.QueryParameter("deleteBy", "操作人").DataType(typeNameString).Required(false)).
-		Reads(apiconfig.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
-			" X-Polaris-Token: {访问凭据}\n```[\n     {\n         \"name\":\"application.properties\",\n "+
-			"        \"namespace\":\"someNamespace\",\n         \"group\":\"someGroup\"\n     }\n]\n```")
+		Reads([]apiconfig.ConfigFile{}).
+		Returns(0, "", BaseResponse{})
 }
 
 func EnrichExportConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("导出配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Reads(apiconfig.ConfigFileExportRequest{}, "```\n[\n     {\n         \"namespace\":\"someNamespace\",\n "+
-			"        \"groups\":[\"someGroups\"]\n         \"names\":[\"application.properties\"]\n      }\n]\n```")
+		Reads(apiconfig.ConfigFileExportRequest{}).
+		ReturnsWithHeaders(0, "", nil, map[string]restful.Header{
+			"Content-Type": {
+				Items: &restful.Items{
+					Type:    "string",
+					Default: "application/zip",
+				},
+			},
+			"Content-Disposition": {
+				Items: &restful.Items{
+					Type:    "string",
+					Default: "attachment; filename=config.zip",
+				},
+			},
+		})
 }
 
 func EnrichImportConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -170,19 +189,15 @@ func EnrichImportConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Param(restful.MultiPartFormParameter("conflict_handling",
 			"配置文件冲突处理，跳过skip，覆盖overwrite").DataType(typeNameString).Required(true)).
 		Param(restful.MultiPartFormParameter("config", "配置文件").DataType("file").Required(true)).
-		Reads(apiconfig.ConfigFile{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader"+
-			" X-Polaris-Token: {访问凭据}\n```[\n     {\n         \"name\":\"application.properties\",\n "+
-			"       \"namespace\":\"someNamespace\",\n         \"group\":\"someGroup\"\n     }\n]\n```")
+		Returns(0, "", config_manage.ConfigImportResponse{})
 }
 
 func EnrichPublishConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("发布配置文件").
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
-		Reads(apiconfig.ConfigFileRelease{}, "开启北极星服务端针对控制台接口鉴权开关后，需要添加下面的 header\nHeader "+
-			" X-Polaris-Token: {访问凭据}\n```{\n    \"name\":\"release-002\",\n   "+
-			" \"fileName\":\"application.properties\",\n    \"namespace\":\"someNamespace\",\n   "+
-			" \"group\":\"someGroup\",\n    \"comment\":\"发布第一个配置文件\",\n    \"createBy\":\"ledou\"\n}\n```")
+		Reads(apiconfig.ConfigFileRelease{}).
+		Returns(0, "", BaseResponse{})
 }
 
 func EnrichGetConfigFileReleaseApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -191,7 +206,11 @@ func EnrichGetConfigFileReleaseApiDocs(r *restful.RouteBuilder) *restful.RouteBu
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
 		Param(restful.QueryParameter("namespace", "命名空间").DataType(typeNameString).Required(true)).
 		Param(restful.QueryParameter("group", "配置文件分组").DataType(typeNameString).Required(true)).
-		Param(restful.QueryParameter("name", "配置文件").DataType(typeNameString).Required(true))
+		Param(restful.QueryParameter("name", "配置文件").DataType(typeNameString).Required(true)).
+		Returns(0, "", struct {
+			BaseResponse
+			ConfigFileRelease config_manage.ConfigFileRelease `json:"configFileRelease,omitempty"`
+		}{})
 }
 
 func EnrichGetConfigFileReleaseHistoryApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -204,19 +223,29 @@ func EnrichGetConfigFileReleaseHistoryApiDocs(r *restful.RouteBuilder) *restful.
 		Param(restful.QueryParameter("offset", "翻页偏移量 默认为 0").DataType(typeNameInteger).
 			Required(false).DefaultValue("0")).
 		Param(restful.QueryParameter("limit", "一页大小，最大为 100").DataType(typeNameInteger).
-			Required(true).DefaultValue("100"))
+			Required(true).DefaultValue("100")).
+		Returns(0, "", struct {
+			BatchQueryResponse
+			ConfigFileReleaseHistories []config_manage.ConfigFileReleaseHistory `json:"configFileReleaseHistories,omitempty"`
+		}{})
 }
 
 func EnrichGetAllConfigFileTemplatesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("获取配置模板").
-		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags)
+		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
+		Returns(0, "", struct {
+			BatchQueryResponse
+			ConfigFileTemplates []config_manage.ConfigFileTemplate `json:"configFileTemplates,omitempty"`
+		}{})
 }
 
 func EnrichCreateConfigFileTemplateApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("创建配置模板").
-		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags)
+		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
+		Reads(config_manage.ConfigFileTemplate{}).
+		Returns(0, "", BaseResponse{})
 }
 
 func EnrichGetConfigFileForClientApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -227,7 +256,8 @@ func EnrichGetConfigFileForClientApiDocs(r *restful.RouteBuilder) *restful.Route
 		Param(restful.QueryParameter("group", "配置文件分组").DataType(typeNameString).Required(true)).
 		Param(restful.QueryParameter("fileName", "配置文件名").DataType(typeNameString).Required(true)).
 		Param(restful.QueryParameter("version", "配置文件客户端版本号，刚启动时设置为 0").
-			DataType(typeNameInteger).Required(true))
+			DataType(typeNameInteger).Required(true)).
+		Returns(0, "", config_manage.ConfigClientResponse{})
 }
 
 func EnrichWatchConfigFileForClientApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -235,5 +265,12 @@ func EnrichWatchConfigFileForClientApiDocs(r *restful.RouteBuilder) *restful.Rou
 		Doc("监听配置").
 		Metadata(restfulspec.KeyOpenAPITags, configClientApiTags).
 		Reads(apiconfig.ClientWatchConfigFileRequest{}, "通过 Http LongPolling 机制订阅配置变更。").
-		Notes(enrichWatchConfigFileNotes)
+		Returns(0, "", config_manage.ConfigClientResponse{})
+}
+
+func EnrichGetAllConfigEncryptAlgorithms(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.
+		Doc("返回当前配置加解密的算法").
+		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
+		Returns(0, "", config_manage.ConfigEncryptAlgorithmResponse{})
 }

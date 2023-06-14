@@ -25,7 +25,6 @@ import (
 
 func (h *HTTPServer) GetClientServer(ws *restful.WebService) error {
 	ws.Route(ws.GET("/clients").To(h.GetReportClients))
-
 	return nil
 }
 

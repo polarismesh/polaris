@@ -20,6 +20,7 @@ package docs
 import (
 	"github.com/emicklei/go-restful/v3"
 	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
+	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
@@ -32,30 +33,37 @@ func EnrichReportClientApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 		Metadata(restfulspec.KeyOpenAPITags, registerInstanceApiTags).
 		Doc("上报客户端").
 		Reads(apiservice.Client{}).
-		Notes(enrichReportClientApiNotes)
+		Returns(0, "", struct {
+			BaseResponse
+			Client service_manage.Client `json:"client,omitempty"`
+		}{})
 }
 
 func EnrichRegisterInstanceApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("注册实例").
 		Metadata(restfulspec.KeyOpenAPITags, registerInstanceApiTags).
-		Reads(apiservice.Client{}).
-		Notes(enrichRegisterInstanceApiNotes)
+		Reads(apiservice.Instance{}).
+		Returns(0, "", service_manage.Instance{})
 }
 
 func EnrichDeregisterInstanceApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("注销实例").
 		Metadata(restfulspec.KeyOpenAPITags, registerInstanceApiTags).
-		Notes(enrichDeregisterInstanceApiNotes)
+		Reads(apiservice.Instance{}).
+		Returns(0, "", service_manage.Instance{})
 }
 
 func EnrichHeartbeatApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("上报心跳").
 		Metadata(restfulspec.KeyOpenAPITags, registerInstanceApiTags).
-		Notes(enrichHeartbeatApiNotes)
+		Reads(apiservice.Instance{}).
+		Returns(0, "", service_manage.Instance{})
 }
 
 func EnrichDiscoverApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("服务发现").
 		Metadata(restfulspec.KeyOpenAPITags, registerInstanceApiTags).
-		Notes(enrichDiscoverApiNotes)
+		Reads(DiscoverRequest{},
+			"Type 支持 [UNKNOWN/INSTANCE/ROUTING/RATE_LIMIT/CIRCUIT_BREAKER/SERVICES/NAMESPACES/FAULT_DETECTOR]").
+		Returns(0, "", service_manage.DiscoverResponse{})
 }
