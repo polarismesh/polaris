@@ -438,7 +438,7 @@ func (h *EurekaServer) UpdateStatus(req *restful.Request, rsp *restful.Response)
 	}
 	code := h.updateStatus(context.Background(), namespace, appId, instId, status, false)
 	writePolarisStatusCode(req, code)
-	if code == api.ExecuteSuccess {
+	if code == api.ExecuteSuccess || code == api.NoNeedUpdate {
 		log.Infof("[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) has been updated successfully",
 			namespace, instId, appId)
 		writeHeader(http.StatusOK, rsp)

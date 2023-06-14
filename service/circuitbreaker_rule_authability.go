@@ -21,7 +21,6 @@ import (
 	"context"
 
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -31,13 +30,12 @@ import (
 
 func (svr *serverAuthAbility) CreateCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
-
 	// TODO not support CircuitBreaker resource auth, so we set op is read
 	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, model.Read, "CreateCircuitBreakerRules")
 
 	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
+		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -47,12 +45,10 @@ func (svr *serverAuthAbility) CreateCircuitBreakerRules(
 
 func (svr *serverAuthAbility) DeleteCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
-
 	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, model.Read, "DeleteCircuitBreakerRules")
-
 	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
+		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -62,12 +58,10 @@ func (svr *serverAuthAbility) DeleteCircuitBreakerRules(
 
 func (svr *serverAuthAbility) EnableCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
-
 	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, model.Read, "EnableCircuitBreakerRules")
-
 	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
+		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -77,12 +71,10 @@ func (svr *serverAuthAbility) EnableCircuitBreakerRules(
 
 func (svr *serverAuthAbility) UpdateCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
-
 	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, model.Read, "UpdateCircuitBreakerRules")
-
 	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
+		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -92,5 +84,13 @@ func (svr *serverAuthAbility) UpdateCircuitBreakerRules(
 
 func (svr *serverAuthAbility) GetCircuitBreakerRules(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
+	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, nil, model.Read, "GetCircuitBreakerRules")
+	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
+	if err != nil {
+		return api.NewBatchQueryResponse(convertToErrCode(err))
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return svr.targetServer.GetCircuitBreakerRules(ctx, query)
 }

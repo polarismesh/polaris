@@ -69,163 +69,6 @@ func (c *CacheProvider) isSelfServiceInstance(instance *apiservice.Instance) boo
 	return false
 }
 
-func (c *CacheProvider) sendEvent(event CacheEvent) {
-	c.svr.dispatcher.UpdateStatusByEvent(event)
-}
-
-func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, values *shardMap) bool {
-	instanceId := instanceWithChecker.instance.ID()
-	value, isNew := values.PutIfAbsent(instanceId, instanceWithChecker)
-	if isNew {
-		log.Infof("[Health Check][Cache]create service instance is %s:%d, id is %s",
-			instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(),
-			instanceId)
-		return true
-	}
-	instanceValue := value.(*InstanceWithChecker)
-	lastInstance := instanceValue.instance
-	if lastInstance.Revision() == instanceWithChecker.instance.Revision() {
-		return false
-	}
-	log.Infof("[Health Check][Cache]update service instance is %s:%d, id is %s",
-		instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(), instanceId)
-	// In the concurrent scenario, when the key and version are the same,
-	// if they arrive here at the same time, they will be saved multiple times.
-	values.Store(instanceId, instanceWithChecker)
-	return true
-}
-
-func storeServiceInstance(instanceWithChecker *InstanceWithChecker, values *shardMap) bool {
-	log.Infof("[Health Check][Cache]create service instance is %s:%d, id is %s",
-		instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(),
-		instanceWithChecker.instance.ID())
-	instanceId := instanceWithChecker.instance.ID()
-	values.Store(instanceId, instanceWithChecker)
-	return true
-}
-
-func deleteServiceInstance(instance *apiservice.Instance, values *shardMap) bool {
-	instanceId := instance.GetId().GetValue()
-	ok := values.DeleteIfExist(instanceId)
-	if ok {
-		log.Infof("[Health Check][Cache]delete service instance is %s:%d, id is %s",
-			instance.GetHost().GetValue(), instance.GetPort().GetValue(), instanceId)
-	}
-	return true
-}
-
-func compareAndStoreClient(clientWithChecker *ClientWithChecker, values *shardMap) bool {
-	clientId := clientWithChecker.client.Proto().GetId().GetValue()
-	_, isNew := values.PutIfAbsent(clientId, clientWithChecker)
-	if isNew {
-		log.Infof("[Health Check][Cache]create client is %s, id is %s",
-			clientWithChecker.client.Proto().GetHost().GetValue(), clientId)
-		return true
-	}
-	return false
-}
-
-func storeClient(clientWithChecker *ClientWithChecker, values *shardMap) bool {
-	log.Infof("[Health Check][Cache]create client is %s, id is %s",
-		clientWithChecker.client.Proto().GetHost().GetValue(), clientWithChecker.client.Proto().GetId().GetValue())
-	clientId := clientWithChecker.client.Proto().GetId().GetValue()
-	values.Store(clientId, clientWithChecker)
-	return true
-}
-
-func deleteClient(client *apiservice.Client, values *shardMap) bool {
-	clientId := client.GetId().GetValue()
-	ok := values.DeleteIfExist(clientId)
-	if ok {
-		log.Infof("[Health Check][Cache]delete client is %s, id is %s",
-			client.GetHost().GetValue(), clientId)
-	}
-	return true
-}
-
-// ItemWithChecker item and checker combine
-// GetInstance 与 GetClient 互斥
-type ItemWithChecker interface {
-	// GetInstance 获取服务实例
-	GetInstance() *model.Instance
-	// GetClient 获取上报客户端信息
-	GetClient() *model.Client
-	// GetChecker 获取对应的 checker 对象
-	GetChecker() plugin.HealthChecker
-	// GetHashValue 获取 hashvalue 信息
-	GetHashValue() uint
-}
-
-// InstanceWithChecker instance and checker combine
-type InstanceWithChecker struct {
-	instance  *model.Instance
-	checker   plugin.HealthChecker
-	hashValue uint
-}
-
-// GetInstance 获取服务实例
-func (ic *InstanceWithChecker) GetInstance() *model.Instance {
-	return ic.instance
-}
-
-// GetClient 获取上报客户端信息
-func (ic *InstanceWithChecker) GetClient() *model.Client {
-	return nil
-}
-
-// GetChecker 获取对应的 checker 对象
-func (ic *InstanceWithChecker) GetChecker() plugin.HealthChecker {
-	return ic.checker
-}
-
-// GetHashValue 获取 hashvalue 信息
-func (ic *InstanceWithChecker) GetHashValue() uint {
-	return ic.hashValue
-}
-
-func newInstanceWithChecker(instance *model.Instance, checker plugin.HealthChecker) *InstanceWithChecker {
-	return &InstanceWithChecker{
-		instance:  instance,
-		checker:   checker,
-		hashValue: commonhash.HashString(instance.ID()),
-	}
-}
-
-// ClientWithChecker instance and checker combine
-type ClientWithChecker struct {
-	client    *model.Client
-	checker   plugin.HealthChecker
-	hashValue uint
-}
-
-// GetInstance 获取服务实例
-func (ic *ClientWithChecker) GetInstance() *model.Instance {
-	return nil
-}
-
-// GetClient 获取上报客户端信息
-func (ic *ClientWithChecker) GetClient() *model.Client {
-	return ic.client
-}
-
-// GetChecker 获取对应的 checker 对象
-func (ic *ClientWithChecker) GetChecker() plugin.HealthChecker {
-	return ic.checker
-}
-
-// GetHashValue 获取 hashvalue 信息
-func (ic *ClientWithChecker) GetHashValue() uint {
-	return ic.hashValue
-}
-
-func newClientWithChecker(client *model.Client, checker plugin.HealthChecker) *ClientWithChecker {
-	return &ClientWithChecker{
-		client:    client,
-		checker:   checker,
-		hashValue: commonhash.HashString(client.Proto().GetId().GetValue()),
-	}
-}
-
 // OnCreated callback when cache value created
 func (c *CacheProvider) OnCreated(value interface{}) {
 	switch actual := value.(type) {
@@ -419,4 +262,161 @@ func (c *CacheProvider) GetClient(clientId string) *model.Client {
 		return nil
 	}
 	return client
+}
+
+func (c *CacheProvider) sendEvent(event CacheEvent) {
+	c.svr.dispatcher.UpdateStatusByEvent(event)
+}
+
+func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, values *shardMap) bool {
+	instanceId := instanceWithChecker.instance.ID()
+	value, isNew := values.PutIfAbsent(instanceId, instanceWithChecker)
+	if isNew {
+		log.Infof("[Health Check][Cache]create service instance is %s:%d, id is %s",
+			instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(),
+			instanceId)
+		return true
+	}
+	instanceValue := value.(*InstanceWithChecker)
+	lastInstance := instanceValue.instance
+	if lastInstance.Revision() == instanceWithChecker.instance.Revision() {
+		return false
+	}
+	log.Infof("[Health Check][Cache]update service instance is %s:%d, id is %s",
+		instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(), instanceId)
+	// In the concurrent scenario, when the key and version are the same,
+	// if they arrive here at the same time, they will be saved multiple times.
+	values.Store(instanceId, instanceWithChecker)
+	return true
+}
+
+func storeServiceInstance(instanceWithChecker *InstanceWithChecker, values *shardMap) bool {
+	log.Infof("[Health Check][Cache]create service instance is %s:%d, id is %s",
+		instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(),
+		instanceWithChecker.instance.ID())
+	instanceId := instanceWithChecker.instance.ID()
+	values.Store(instanceId, instanceWithChecker)
+	return true
+}
+
+func deleteServiceInstance(instance *apiservice.Instance, values *shardMap) bool {
+	instanceId := instance.GetId().GetValue()
+	ok := values.DeleteIfExist(instanceId)
+	if ok {
+		log.Infof("[Health Check][Cache]delete service instance is %s:%d, id is %s",
+			instance.GetHost().GetValue(), instance.GetPort().GetValue(), instanceId)
+	}
+	return true
+}
+
+func compareAndStoreClient(clientWithChecker *ClientWithChecker, values *shardMap) bool {
+	clientId := clientWithChecker.client.Proto().GetId().GetValue()
+	_, isNew := values.PutIfAbsent(clientId, clientWithChecker)
+	if isNew {
+		log.Infof("[Health Check][Cache]create client is %s, id is %s",
+			clientWithChecker.client.Proto().GetHost().GetValue(), clientId)
+		return true
+	}
+	return false
+}
+
+func storeClient(clientWithChecker *ClientWithChecker, values *shardMap) bool {
+	log.Infof("[Health Check][Cache]create client is %s, id is %s",
+		clientWithChecker.client.Proto().GetHost().GetValue(), clientWithChecker.client.Proto().GetId().GetValue())
+	clientId := clientWithChecker.client.Proto().GetId().GetValue()
+	values.Store(clientId, clientWithChecker)
+	return true
+}
+
+func deleteClient(client *apiservice.Client, values *shardMap) bool {
+	clientId := client.GetId().GetValue()
+	ok := values.DeleteIfExist(clientId)
+	if ok {
+		log.Infof("[Health Check][Cache]delete client is %s, id is %s",
+			client.GetHost().GetValue(), clientId)
+	}
+	return true
+}
+
+// ItemWithChecker item and checker combine
+// GetInstance 与 GetClient 互斥
+type ItemWithChecker interface {
+	// GetInstance 获取服务实例
+	GetInstance() *model.Instance
+	// GetClient 获取上报客户端信息
+	GetClient() *model.Client
+	// GetChecker 获取对应的 checker 对象
+	GetChecker() plugin.HealthChecker
+	// GetHashValue 获取 hashvalue 信息
+	GetHashValue() uint
+}
+
+// InstanceWithChecker instance and checker combine
+type InstanceWithChecker struct {
+	instance  *model.Instance
+	checker   plugin.HealthChecker
+	hashValue uint
+}
+
+// GetInstance 获取服务实例
+func (ic *InstanceWithChecker) GetInstance() *model.Instance {
+	return ic.instance
+}
+
+// GetClient 获取上报客户端信息
+func (ic *InstanceWithChecker) GetClient() *model.Client {
+	return nil
+}
+
+// GetChecker 获取对应的 checker 对象
+func (ic *InstanceWithChecker) GetChecker() plugin.HealthChecker {
+	return ic.checker
+}
+
+// GetHashValue 获取 hashvalue 信息
+func (ic *InstanceWithChecker) GetHashValue() uint {
+	return ic.hashValue
+}
+
+func newInstanceWithChecker(instance *model.Instance, checker plugin.HealthChecker) *InstanceWithChecker {
+	return &InstanceWithChecker{
+		instance:  instance,
+		checker:   checker,
+		hashValue: commonhash.HashString(instance.ID()),
+	}
+}
+
+// ClientWithChecker instance and checker combine
+type ClientWithChecker struct {
+	client    *model.Client
+	checker   plugin.HealthChecker
+	hashValue uint
+}
+
+// GetInstance 获取服务实例
+func (ic *ClientWithChecker) GetInstance() *model.Instance {
+	return nil
+}
+
+// GetClient 获取上报客户端信息
+func (ic *ClientWithChecker) GetClient() *model.Client {
+	return ic.client
+}
+
+// GetChecker 获取对应的 checker 对象
+func (ic *ClientWithChecker) GetChecker() plugin.HealthChecker {
+	return ic.checker
+}
+
+// GetHashValue 获取 hashvalue 信息
+func (ic *ClientWithChecker) GetHashValue() uint {
+	return ic.hashValue
+}
+
+func newClientWithChecker(client *model.Client, checker plugin.HealthChecker) *ClientWithChecker {
+	return &ClientWithChecker{
+		client:    client,
+		checker:   checker,
+		hashValue: commonhash.HashString(client.Proto().GetId().GetValue()),
+	}
 }

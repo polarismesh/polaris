@@ -47,6 +47,7 @@ var (
 
 // Server health checks the main server
 type Server struct {
+	hcOpt                *Config
 	storage              store.Store
 	defaultChecker       plugin.HealthChecker
 	checkers             map[int32]plugin.HealthChecker
@@ -79,6 +80,7 @@ func Initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 }
 
 func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Controller) error {
+	server.hcOpt = hcOpt
 	if !hcOpt.Open {
 		return nil
 	}
