@@ -201,27 +201,29 @@ func transferEntry2APIModel(client *apiconfig.ClientConfigFileInfo,
 
 	dataKey := entry.GetDataKey()
 	encryptAlgo := entry.GetEncryptAlgo()
-	if dataKey != "" && publicKey != "" {
+	if !(dataKey != "") {
 		dataKeyBytes, err := base64.StdEncoding.DecodeString(dataKey)
 		if err != nil {
 			log.Error("[Config][Service] base64 decode data key error.", zap.String("dataKey", dataKey), zap.Error(err))
 			return nil, err
 		}
-		cipherDataKey, err := rsa.EncryptToBase64(dataKeyBytes, publicKey)
-		if err != nil {
-			log.Error("[Config][Service] rsa encrypt data key error.", zap.String("dataKey", dataKey), zap.Error(err))
+		if publicKey != "" {
+			cipherDataKey, err := rsa.EncryptToBase64(dataKeyBytes, publicKey)
+			if err != nil {
+				log.Error("[Config][Service] rsa encrypt data key error.", zap.String("dataKey", dataKey), zap.Error(err))
+			}
+			dataKey = cipherDataKey
 		}
 		configFile.Tags = append(configFile.Tags,
 			&apiconfig.ConfigFileTag{
 				Key:   utils.NewStringValue(utils.ConfigFileTagKeyDataKey),
-				Value: utils.NewStringValue(cipherDataKey),
+				Value: utils.NewStringValue(dataKey),
 			},
 			&apiconfig.ConfigFileTag{
 				Key:   utils.NewStringValue(utils.ConfigFileTagKeyEncryptAlgo),
 				Value: utils.NewStringValue(encryptAlgo),
 			},
 		)
-		return configFile, nil
 	}
 	return configFile, nil
 }
