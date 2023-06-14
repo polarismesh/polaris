@@ -210,7 +210,8 @@ func transferEntry2APIModel(client *apiconfig.ClientConfigFileInfo,
 		if publicKey != "" {
 			cipherDataKey, err := rsa.EncryptToBase64(dataKeyBytes, publicKey)
 			if err != nil {
-				log.Error("[Config][Service] rsa encrypt data key error.", zap.String("dataKey", dataKey), zap.Error(err))
+				log.Error("[Config][Service] rsa encrypt data key error.",
+					zap.String("dataKey", dataKey), zap.Error(err))
 			}
 			dataKey = cipherDataKey
 		}
