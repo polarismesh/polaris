@@ -142,8 +142,13 @@ bootstrap:
     key: sz
   # Register as Arctic Star Service
   polaris_service:
-    # Obtain the IP of the VM or POD where Polaris is located by making a TCP connection with the probe_adreess address
+    ## level: self_address > network_inter > probe_address
+    ## Obtain the IP of the VM or POD where Polaris is located by making a TCP connection with the probe_adreess address
     # probe_address: ##DB_ADDR##
+    ## Set the name of the gateway to get your own IP
+    # network_inter: eth0
+    ## Show the setting node itself IP information
+    # self_address: 127.0.0.1
     # Whether to open the server to register
     enable_register: true
     # Registered North Star Server Examples isolation status
