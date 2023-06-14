@@ -845,10 +845,6 @@ func (s *Server) decryptConfigFile(ctx context.Context, configFile *apiconfig.Co
 		}
 		configFile.Tags = filterTags
 	}
-	// 非创建人请求不解密
-	if utils.ParseUserName(ctx) != configFile.CreateBy.GetValue() {
-		return nil
-	}
 	// 非加密文件不解密
 	if dataKey == "" {
 		return nil

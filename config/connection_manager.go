@@ -95,9 +95,7 @@ func (c *connManager) removeConn(clientId string) {
 		return
 	}
 	connObj := conn.(*connection)
-
 	c.watchCenter.RemoveWatcher(clientId, connObj.watchConfigFiles)
-
 	cm.conns.Delete(clientId)
 }
 
@@ -112,11 +110,11 @@ func (c *connManager) startHandleTimeoutRequestWorker(ctx context.Context) {
 			if cm.conns == nil {
 				continue
 			}
+			tNow := time.Now()
 			cm.conns.Range(func(client, conn interface{}) bool {
 				connCtx := conn.(*connection)
-				if time.Now().After(connCtx.finishTime) {
+				if tNow.After(connCtx.finishTime) {
 					connCtx.finishChan <- notModifiedResponse
-
 					c.removeConn(client.(string))
 				}
 				return true
