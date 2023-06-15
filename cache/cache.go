@@ -208,7 +208,11 @@ func (bc *baseCache) doCacheUpdate(name string, executor func() (map[string]time
 		log.Warnf("[Cache][%s] get store timestamp fail, skip update lastMtime, err : %v", name, err)
 	}
 	defer func() {
-		bc.lastFetchTime = curStoreTime
+		if err := recover(); err != nil {
+			log.Errorf("[Cache][%s] run cache update panic: %+v", name, err)
+		} else {
+			bc.lastFetchTime = curStoreTime
+		}
 	}()
 
 	start := time.Now()

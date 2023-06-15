@@ -33,6 +33,7 @@ func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batc
 	storage store.Store) (*Server, error) {
 
 	testServer := new(Server)
+	testServer.hcOpt = hcOpt
 
 	if !hcOpt.Open {
 		return nil, errors.New("healthcheck not open")

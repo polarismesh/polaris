@@ -252,16 +252,17 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 	if err != nil {
 		return err
 	}
-	cacheProvider, err := healthCheckServer.CacheProvider()
-	if err != nil {
-		return err
+	if cfg.HealthChecks.Open {
+		cacheProvider, err := healthCheckServer.CacheProvider()
+		if err != nil {
+			return err
+		}
+		healthCheckServer.SetServiceCache(cacheMgn.Service())
+		healthCheckServer.SetInstanceCache(cacheMgn.Instance())
+		// 为 instance 的 cache 添加 健康检查的 Listener
+		cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
+		cacheMgn.AddListener(cache.CacheNameClient, []cache.Listener{cacheProvider})
 	}
-	healthCheckServer.SetServiceCache(cacheMgn.Service())
-	healthCheckServer.SetInstanceCache(cacheMgn.Instance())
-
-	// 为 instance 的 cache 添加 健康检查的 Listener
-	cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
-	cacheMgn.AddListener(cache.CacheNameClient, []cache.Listener{cacheProvider})
 
 	namespaceSvr, err := namespace.GetServer()
 	if err != nil {

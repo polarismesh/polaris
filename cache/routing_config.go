@@ -50,6 +50,8 @@ type (
 		Cache
 		// GetRouterConfig Obtain routing configuration based on serviceid
 		GetRouterConfig(id, service, namespace string) (*apitraffic.Routing, error)
+		// GetRouterConfig Obtain routing configuration based on serviceid
+		GetRouterConfigV2(id, service, namespace string) (*apitraffic.Routing, error)
 		// GetRoutingConfigCount Get the total number of routing configuration cache
 		GetRoutingConfigCount() int
 		// QueryRoutingConfigsV2 Query Route Configuration List
@@ -147,8 +149,8 @@ func (rc *routingConfigCache) name() string {
 	return RoutingConfigName
 }
 
-// GetRouterConfig Obtain routing configuration based on serviceid
-func (rc *routingConfigCache) GetRouterConfig(id, service, namespace string) (*apitraffic.Routing, error) {
+// GetRouterConfigV2 Obtain routing configuration based on serviceid
+func (rc *routingConfigCache) GetRouterConfigV2(id, service, namespace string) (*apitraffic.Routing, error) {
 	if id == "" && service == "" && namespace == "" {
 		return nil, nil
 	}
@@ -184,6 +186,16 @@ func (rc *routingConfigCache) GetRouterConfig(id, service, namespace string) (*a
 	}
 
 	return formatRoutingResponseV1(resp), nil
+}
+
+// GetRouterConfig Obtain routing configuration based on serviceid
+func (rc *routingConfigCache) GetRouterConfig(id, service, namespace string) (*apitraffic.Routing, error) {
+	ret, err := rc.GetRouterConfigV2(id, service, namespace)
+	if err != nil {
+		return nil, err
+	}
+	ret.Rules = nil
+	return ret, nil
 }
 
 // formatRoutingResponseV1 Give the client's cache, no need to expose EXTENDINFO information data

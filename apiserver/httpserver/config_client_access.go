@@ -35,12 +35,7 @@ func (h *HTTPServer) ClientGetConfigFile(req *restful.Request, rsp *restful.Resp
 		Response: rsp,
 	}
 
-	version, err := strconv.ParseUint(handler.Request.QueryParameter("version"), 10, 64)
-	if err != nil {
-		handler.WriteHeaderAndProto(api.NewConfigClientResponseWithMessage(
-			apimodel.Code_BadRequest, "version must be number"))
-	}
-
+	version, _ := strconv.ParseUint(handler.Request.QueryParameter("version"), 10, 64)
 	configFile := &apiconfig.ClientConfigFileInfo{
 		Namespace: &wrapperspb.StringValue{Value: handler.Request.QueryParameter("namespace")},
 		Group:     &wrapperspb.StringValue{Value: handler.Request.QueryParameter("group")},
@@ -49,7 +44,6 @@ func (h *HTTPServer) ClientGetConfigFile(req *restful.Request, rsp *restful.Resp
 	}
 
 	response := h.configServer.GetConfigFileForClient(handler.ParseHeaderContext(), configFile)
-
 	handler.WriteHeaderAndProto(response)
 }
 
@@ -61,9 +55,7 @@ func (h *HTTPServer) ClientWatchConfigFile(req *restful.Request, rsp *restful.Re
 
 	// 1. 解析出客户端监听的配置文件列表
 	watchConfigFileRequest := &apiconfig.ClientWatchConfigFileRequest{}
-
-	_, err := handler.Parse(watchConfigFileRequest)
-	if err != nil {
+	if _, err := handler.Parse(watchConfigFileRequest); err != nil {
 		handler.WriteHeaderAndProto(api.NewResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
@@ -74,6 +66,5 @@ func (h *HTTPServer) ClientWatchConfigFile(req *restful.Request, rsp *restful.Re
 		handler.WriteHeaderAndProto(api.NewResponseWithMsg(apimodel.Code_ExecuteException, err.Error()))
 		return
 	}
-
 	handler.WriteHeaderAndProto(callback())
 }

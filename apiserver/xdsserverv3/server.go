@@ -282,16 +282,14 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context, registryInfo m
 			}
 
 			// 获取routing配置
-			routeResp := x.namingServer.GetRoutingConfigWithCache(ctx, s)
-			if routeResp.GetCode().Value != api.ExecuteSuccess {
-				log.Errorf("error sync routing for %s, info : %s", svc.Name, routeResp.Info.GetValue())
+			routerRule, err := x.namingServer.Cache().RoutingConfig().GetRouterConfigV2("", svc.Name, svc.Namespace)
+			if err != nil {
+				log.Errorf("error sync routing for %s, info : %s", svc.Name, err.Error())
 				return fmt.Errorf("[XDSV3] error sync routing for %s", svc.Name)
 			}
 
-			if routeResp.Routing != nil {
-				svc.SvcRoutingRevision = routeResp.Routing.Revision.Value
-				svc.Routing = routeResp.Routing
-			}
+			svc.SvcRoutingRevision = routerRule.GetRevision().GetValue()
+			svc.Routing = routerRule
 
 			// 获取instance配置
 			resp := x.namingServer.ServiceInstancesCache(ctx, s)

@@ -94,7 +94,10 @@ func (d *defaultAuthChecker) Initialize(options *auth.Config, s store.Store, cac
 	if err := cfg.Verify(); err != nil {
 		return err
 	}
-
+	// 兼容原本老的配置逻辑
+	if cfg.Strict {
+		cfg.ConsoleOpen = cfg.Strict
+	}
 	AuthOption = cfg
 	d.cacheMgn = cacheMgn
 	return nil
@@ -208,7 +211,10 @@ func canDowngradeAnonymous(authCtx *model.AcquireContext, err error) bool {
 	if authCtx.GetModule() == model.AuthModule {
 		return false
 	}
-	if AuthOption.Strict {
+	if authCtx.IsFromClient() && AuthOption.ClientStrict {
+		return false
+	}
+	if authCtx.IsFromConsole() && AuthOption.ConsoleStrict {
 		return false
 	}
 	if errors.Is(err, model.ErrorTokenInvalid) {

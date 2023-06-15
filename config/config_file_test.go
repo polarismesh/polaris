@@ -636,7 +636,7 @@ func Test_decryptConfigFile(t *testing.T) {
 			wantErr: nil,
 		},
 		{
-			name: "non creator don't decrypt config file",
+			name: "non creator can decrypt config file",
 			args: args{
 				ctx: context.WithValue(context.Background(), utils.ContextUserNameKey, "test"),
 				configFile: &apiconfig.ConfigFile{
@@ -654,7 +654,7 @@ func Test_decryptConfigFile(t *testing.T) {
 					CreateBy: utils.NewStringValue("polaris"),
 				},
 			},
-			want:    "YnLZ0SYuujFBHjYHAZVN5A==",
+			want:    "polaris",
 			wantErr: nil,
 		},
 	}

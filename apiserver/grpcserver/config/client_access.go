@@ -67,6 +67,5 @@ func (g *ConfigGRPCServer) WatchConfigFiles(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
-
 	return callback(), nil
 }

@@ -31,7 +31,12 @@ type AuthConfig struct {
 	// Salt 相关密码、token加密的salt
 	Salt string `json:"salt" xml:"salt"`
 	// Strict 是否启用鉴权的严格模式，即对于没有任何鉴权策略的资源，也必须带上正确的token才能操作, 默认关闭
+	// Deprecated
 	Strict bool `json:"strict"`
+	// ConsoleStrict 是否启用鉴权的严格模式，即对于没有任何鉴权策略的资源，也必须带上正确的token才能操作, 默认关闭
+	ConsoleStrict bool `json:"consoleStrict"`
+	// ClientStrict 是否启用鉴权的严格模式，即对于没有任何鉴权策略的资源，也必须带上正确的token才能操作, 默认关闭
+	ClientStrict bool `json:"clientStrict"`
 }
 
 // Verify 检查配置是否合法
@@ -54,8 +59,11 @@ func DefaultAuthConfig() *AuthConfig {
 		ConsoleOpen: true,
 		// 针对客户端接口，默认不开启鉴权操作
 		ClientOpen: false,
-		Salt:       "polarismesh@2021",
-		// 这里默认开启强 Token 检查模式
-		Strict: true,
+		// Salt token 加密 key
+		Salt: "polarismesh@2021",
+		// 这里默认开启 OpenAPI 的强 Token 检查模式
+		ConsoleStrict: true,
+		// 客户端接口默认不开启 token 强检查模式
+		ClientStrict: false,
 	}
 }

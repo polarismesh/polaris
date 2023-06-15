@@ -76,17 +76,15 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 				apimodel.Code_ExecuteException, "load config file error")
 		}
 	}
-
-	log.Info("[Config][Client] client get config file success.", utils.ZapRequestIDByCtx(ctx),
-		zap.String("client", utils.ParseClientAddress(ctx)), zap.String("file", fileName),
-		zap.Uint64("version", entry.Version))
-
 	configFile, err := transferEntry2APIModel(client, entry)
 	if err != nil {
 		log.Error("[Config][Service] transfer entry to api model error.", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
 		return api.NewConfigClientResponseWithMessage(
 			apimodel.Code_ExecuteException, "transfer entry to api model error")
 	}
+	log.Info("[Config][Client] client get config file success.", utils.ZapRequestIDByCtx(ctx),
+		zap.String("client", utils.ParseClientAddress(ctx)), zap.String("file", fileName),
+		zap.Uint64("version", entry.Version))
 	return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, configFile)
 }
 
@@ -116,7 +114,8 @@ func (s *Server) WatchConfigFiles(ctx context.Context,
 	clientAddr := utils.ParseClientAddress(ctx)
 	watchFiles := request.GetWatchFiles()
 	// 2. 检查客户端是否有版本落后
-	if resp := s.DoCheckClientConfigFile(ctx, watchFiles, compareByVersion); resp.Code.GetValue() != api.DataNoChange {
+	resp := s.DoCheckClientConfigFile(ctx, watchFiles, compareByVersion)
+	if resp.Code.GetValue() != api.DataNoChange {
 		return func() *apiconfig.ConfigClientResponse {
 			return resp
 		}, nil
@@ -124,9 +123,7 @@ func (s *Server) WatchConfigFiles(ctx context.Context,
 
 	// 3. 监听配置变更，hold 请求 30s，30s 内如果有配置发布，则响应请求
 	clientId := clientAddr + "@" + utils.NewUUID()[0:8]
-
 	finishChan := s.ConnManager().AddConn(clientId, watchFiles)
-
 	return func() *apiconfig.ConfigClientResponse {
 		return <-finishChan
 	}, nil
@@ -201,27 +198,31 @@ func transferEntry2APIModel(client *apiconfig.ClientConfigFileInfo,
 
 	dataKey := entry.GetDataKey()
 	encryptAlgo := entry.GetEncryptAlgo()
-	if dataKey != "" && publicKey != "" {
+	if !(dataKey != "") {
 		dataKeyBytes, err := base64.StdEncoding.DecodeString(dataKey)
 		if err != nil {
 			log.Error("[Config][Service] base64 decode data key error.", zap.String("dataKey", dataKey), zap.Error(err))
 			return nil, err
 		}
-		cipherDataKey, err := rsa.EncryptToBase64(dataKeyBytes, publicKey)
-		if err != nil {
-			log.Error("[Config][Service] rsa encrypt data key error.", zap.String("dataKey", dataKey), zap.Error(err))
+		if publicKey != "" {
+			cipherDataKey, err := rsa.EncryptToBase64(dataKeyBytes, publicKey)
+			if err != nil {
+				log.Error("[Config][Service] rsa encrypt data key error.",
+					zap.String("dataKey", dataKey), zap.Error(err))
+			} else {
+				dataKey = cipherDataKey
+			}
 		}
 		configFile.Tags = append(configFile.Tags,
 			&apiconfig.ConfigFileTag{
 				Key:   utils.NewStringValue(utils.ConfigFileTagKeyDataKey),
-				Value: utils.NewStringValue(cipherDataKey),
+				Value: utils.NewStringValue(dataKey),
 			},
 			&apiconfig.ConfigFileTag{
 				Key:   utils.NewStringValue(utils.ConfigFileTagKeyEncryptAlgo),
 				Value: utils.NewStringValue(encryptAlgo),
 			},
 		)
-		return configFile, nil
 	}
 	return configFile, nil
 }
