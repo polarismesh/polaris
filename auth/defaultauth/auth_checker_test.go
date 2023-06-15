@@ -1126,10 +1126,12 @@ func Test_defaultAuthChecker_Initialize(t *testing.T) {
 		err := authChecker.Initialize(cfg, storage, cacheMgn)
 		assert.NoError(t, err)
 		assert.Equal(t, &AuthConfig{
-			ConsoleOpen: true,
-			ClientOpen:  true,
-			Salt:        "polarismesh@2021",
-			Strict:      false,
+			ConsoleOpen:   true,
+			ClientOpen:    true,
+			Salt:          "polarismesh@2021",
+			Strict:        false,
+			ConsoleStrict: true,
+			ClientStrict:  false,
 		}, AuthOption)
 	})
 
@@ -1155,10 +1157,11 @@ func Test_defaultAuthChecker_Initialize(t *testing.T) {
 		err := authChecker.Initialize(cfg, storage, cacheMgn)
 		assert.NoError(t, err)
 		assert.Equal(t, &AuthConfig{
-			ConsoleOpen: true,
-			ClientOpen:  true,
-			Salt:        "polarismesh@2021",
-			Strict:      false,
+			ConsoleOpen:   true,
+			ClientOpen:    true,
+			Salt:          "polarismesh@2021",
+			Strict:        false,
+			ConsoleStrict: true,
 		}, AuthOption)
 	})
 

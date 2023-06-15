@@ -36,6 +36,8 @@ func reset(strict bool) {
 	AuthOption.ClientOpen = true
 	AuthOption.ConsoleOpen = true
 	AuthOption.Strict = strict
+	AuthOption.ConsoleStrict = strict
+	AuthOption.ClientStrict = strict
 }
 
 func initCache(ctrl *gomock.Controller) (*cache.Config, *storemock.MockStore) {
