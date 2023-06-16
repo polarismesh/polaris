@@ -98,6 +98,7 @@ jobs:
         run: |
           sudo systemctl start mysql.service
           mysql -e 'CREATE DATABASE ${{ env.MYSQL_DATABASE }};' -u${{ env.MYSQL_DB_USER }} -p${{ env.MYSQL_DB_PWD }}
+          mysql -e "ALTER USER '${{ env.MYSQL_DB_USER }}'@'localhost' IDENTIFIED WITH mysql_native_password BY 'root';"  -u${{ env.MYSQL_DB_USER }} -p${{ env.MYSQL_DB_PWD }}
 
       # Run interface tests
       - name: run discover interface tests
