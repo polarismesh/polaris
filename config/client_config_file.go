@@ -198,7 +198,7 @@ func transferEntry2APIModel(client *apiconfig.ClientConfigFileInfo,
 
 	dataKey := entry.GetDataKey()
 	encryptAlgo := entry.GetEncryptAlgo()
-	if dataKey != "" {
+	if dataKey != "" && encryptAlgo != "" {
 		dataKeyBytes, err := base64.StdEncoding.DecodeString(dataKey)
 		if err != nil {
 			log.Error("[Config][Service] base64 decode data key error.", zap.String("dataKey", dataKey), zap.Error(err))
