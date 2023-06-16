@@ -83,20 +83,6 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v2
 
-      # close default MySQL-Server
-      - name: Shutdown default mysql
-        run: sudo service mysql stop
-
-      # run mysql server
-      - name: Create mysql database auth
-        uses: icomponent/mysql-action@master
-        with:
-          VERSION: 5.7
-          CONTAINER_NAME: mysql
-          PORT_MAPPING: 3306:3306
-          ROOT_PASSWORD: polaris
-          DATABASE: polaris_server
-
       # Compile
       - name: Build server
         env:
@@ -104,20 +90,32 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: make build
 
+      - name: Initialize database
+        env:
+          MYSQL_DB_USER: root
+          MYSQL_DB_PWD: root
+          MYSQL_DATABASE: polaris_server
+        run: |
+          mysql -e 'CREATE DATABASE ${{ env.MYSQL_DATABASE }};' -u${{ env.MYSQL_DB_USER }} -p${{ env.MYSQL_DB_PWD }}
+
       # Run interface tests
       - name: run discover interface tests
+        env:
+          MYSQL_DB_USER: root
+          MYSQL_DB_PWD: root
         run: |
           export STORE_MODE=sqldb
-          echo "cur STORE MODE=${STORE_MODE}"
-
+          export MYSQL_DB_USER=${{ env.MYSQL_DB_USER }}
+          export MYSQL_DB_PWD=${{ env.MYSQL_DB_PWD }}
+          echo "cur STORE MODE=${STORE_MODE}, MYSQL_DB_USER=${MYSQL_DB_USER}, MYSQL_DB_PWD=${MYSQL_DB_PWD}"
           # 设置严格模式
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set sql_mode='STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'";
+          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "set sql_mode='STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'";
           # 清空数据
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "DROP DATABASE IF EXISTS polaris_server";
+          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "DROP DATABASE IF EXISTS polaris_server";
           # 初始化 polaris 数据库
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" < store/mysql/scripts/polaris_server.sql
+          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" < store/mysql/scripts/polaris_server.sql
           # 临时放开 DB 的最大连接数
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
+          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "set GLOBAL max_connections = 3000;"
 
           work_dir=$(ls | grep polaris-server-release | sed -n '1p')
           echo "work_dir is $work_dir"
