@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -195,19 +196,28 @@ func (d *DiscoverTestSuit) loadConfig() error {
 	if val := os.Getenv("POLARIS_TEST_BOOTSTRAP_FILE"); val != "" {
 		confFileName = val
 	}
-	file, err := os.Open(confFileName)
-	if err != nil {
+	buf, err := ioutil.ReadFile(confFileName)
+	if nil != err {
+		return fmt.Errorf("read file %s error", confFileName)
+	}
+
+	if err = parseYamlContent(string(buf), d.cfg); err != nil {
 		fmt.Printf("[ERROR] %v\n", err)
 		return err
 	}
-
-	err = yaml.NewDecoder(file).Decode(d.cfg)
-	if err != nil {
-		fmt.Printf("[ERROR] %v\n", err)
-		return err
-	}
-
 	return err
+}
+
+func parseYamlContent(content string, conf *TestConfig) error {
+	if err := yaml.Unmarshal([]byte(replaceEnv(content)), conf); nil != err {
+		return fmt.Errorf("parse yaml %s error:%w", content, err)
+	}
+	return nil
+}
+
+// replaceEnv replace holder by env list
+func replaceEnv(configContent string) string {
+	return os.ExpandEnv(configContent)
 }
 
 // 判断一个resp是否执行成功
