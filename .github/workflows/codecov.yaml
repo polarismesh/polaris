@@ -92,7 +92,7 @@ jobs:
 
           echo "cur STORE MODE=${STORE_MODE}, MYSQL_DB_USER=${MYSQL_DB_USER}, MYSQL_DB_PWD=${MYSQL_DB_PWD}"
           # 设置严格模式
-          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "set sql_mode='STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'";
+          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "set sql_mode='STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'";
           # 清空数据
           mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "DROP DATABASE IF EXISTS polaris_server";
           # 初始化 polaris 数据库
@@ -115,7 +115,7 @@ jobs:
           echo "cur STORE MODE=${STORE_MODE}, MYSQL_DB_USER=${MYSQL_DB_USER}, MYSQL_DB_PWD=${MYSQL_DB_PWD}"
 
           # 设置严格模式
-          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "set sql_mode='STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'";
+          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "set sql_mode='STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'";
           # 清空数据
           mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "DROP DATABASE IF EXISTS polaris_server";
           # 初始化 polaris 数据库
@@ -138,7 +138,7 @@ jobs:
           echo "cur STORE MODE=${STORE_MODE}, MYSQL_DB_USER=${MYSQL_DB_USER}, MYSQL_DB_PWD=${MYSQL_DB_PWD}"
 
           # 设置严格模式
-          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "set sql_mode='STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'";
+          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "set sql_mode='STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'";
           # 清空数据
           mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "DROP DATABASE IF EXISTS polaris_server";
           # 初始化 polaris 数据库
