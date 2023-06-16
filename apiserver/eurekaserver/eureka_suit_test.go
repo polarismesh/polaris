@@ -20,6 +20,7 @@ package eurekaserver
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -174,19 +175,28 @@ func (d *EurekaTestSuit) loadConfig() error {
 		fmt.Printf("run store mode : sqldb\n")
 		confFileName = testdata.Path("eureka_apiserver_test_sqldb.yaml")
 	}
-	file, err := os.Open(confFileName)
-	if err != nil {
+	buf, err := ioutil.ReadFile(confFileName)
+	if nil != err {
+		return fmt.Errorf("read file %s error", confFileName)
+	}
+
+	if err = parseYamlContent(string(buf), d.cfg); err != nil {
 		fmt.Printf("[ERROR] %v\n", err)
 		return err
 	}
-
-	err = yaml.NewDecoder(file).Decode(d.cfg)
-	if err != nil {
-		fmt.Printf("[ERROR] %v\n", err)
-		return err
-	}
-
 	return err
+}
+
+func parseYamlContent(content string, conf *TestConfig) error {
+	if err := yaml.Unmarshal([]byte(replaceEnv(content)), conf); nil != err {
+		return fmt.Errorf("parse yaml %s error:%w", content, err)
+	}
+	return nil
+}
+
+// replaceEnv replace holder by env list
+func replaceEnv(configContent string) string {
+	return os.ExpandEnv(configContent)
 }
 
 func (d *EurekaTestSuit) Destroy() {

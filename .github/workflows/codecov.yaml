@@ -61,19 +61,15 @@ jobs:
         with:
           fetch-depth: 2
 
-      # close default MySQL-Server
-      - name: Shutdown default mysql
-        run: sudo service mysql stop
-
-      # run mysql server
-      - name: Create mysql database auth
-        uses: icomponent/mysql-action@master
-        with:
-          VERSION: 5.7
-          CONTAINER_NAME: mysql
-          PORT_MAPPING: 3306:3306
-          ROOT_PASSWORD: polaris
-          DATABASE: polaris_server
+      - name: Initialize database
+        env:
+          MYSQL_DB_USER: root
+          MYSQL_DB_PWD: root
+          MYSQL_DATABASE: polaris_server
+        run: |
+          sudo systemctl start mysql.service
+          mysql -e 'CREATE DATABASE ${{ env.MYSQL_DATABASE }};' -u${{ env.MYSQL_DB_USER }} -p${{ env.MYSQL_DB_PWD }}
+          mysql -e "ALTER USER '${{ env.MYSQL_DB_USER }}'@'localhost' IDENTIFIED WITH mysql_native_password BY 'root';"  -u${{ env.MYSQL_DB_USER }} -p${{ env.MYSQL_DB_PWD }}
 
       # Execute vert check
       - name: Vert check
@@ -87,19 +83,23 @@ jobs:
 
       # Run unit tests
       - name: Go Test With DB
+        env:
+          MYSQL_DB_USER: root
+          MYSQL_DB_PWD: root
         run: |
-          # 测试配置模块
           export STORE_MODE=sqldb
-          echo "cur STORE MODE=${STORE_MODE}"
+          export MYSQL_DB_USER=${{ env.MYSQL_DB_USER }}
+          export MYSQL_DB_PWD=${{ env.MYSQL_DB_PWD }}
 
+          echo "cur STORE MODE=${STORE_MODE}, MYSQL_DB_USER=${MYSQL_DB_USER}, MYSQL_DB_PWD=${MYSQL_DB_PWD}"
           # 设置严格模式
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set sql_mode='STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'";
+          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "set sql_mode='STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'";
           # 清空数据
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "DROP DATABASE IF EXISTS polaris_server";
+          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "DROP DATABASE IF EXISTS polaris_server";
           # 初始化 polaris 数据库
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" < store/mysql/scripts/polaris_server.sql
+          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" < store/mysql/scripts/polaris_server.sql
           # 临时放开 DB 的最大连接数
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
+          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "set GLOBAL max_connections = 3000;"
 
           pushd ./config
           go mod vendor && go test -v -timeout 120m -v -covermode=count -coverprofile=coverage_sqldb_2.cover  -coverpkg=github.com/polarismesh/polaris/apiserver,github.com/polarismesh/polaris/apiserver/eurekaserver,github.com/polarismesh/polaris/auth/defaultauth,github.com/polarismesh/polaris/service,github.com/polarismesh/polaris/service/batch,github.com/polarismesh/polaris/service/healthcheck,github.com/polarismesh/polaris/cache,github.com/polarismesh/polaris/store/boltdb,github.com/polarismesh/polaris/store/mysql,github.com/polarismesh/polaris/plugin,github.com/polarismesh/polaris/config,github.com/polarismesh/polaris/plugin/healthchecker/leader,github.com/polarismesh/polaris/plugin/healthchecker/memory,github.com/polarismesh/polaris/plugin/healthchecker/redis,github.com/polarismesh/polaris/common/batchjob,github.com/polarismesh/polaris/common/eventhub,github.com/polarismesh/polaris/common/redispool,github.com/polarismesh/polaris/common/timewheel
@@ -110,16 +110,19 @@ jobs:
 
           # 测试服务、治理
           export STORE_MODE=sqldb
-          echo "cur STORE MODE=${STORE_MODE}"
+          export MYSQL_DB_USER=${{ env.MYSQL_DB_USER }}
+          export MYSQL_DB_PWD=${{ env.MYSQL_DB_PWD }}
+
+          echo "cur STORE MODE=${STORE_MODE}, MYSQL_DB_USER=${MYSQL_DB_USER}, MYSQL_DB_PWD=${MYSQL_DB_PWD}"
 
           # 设置严格模式
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set sql_mode='STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'";
+          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "set sql_mode='STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'";
           # 清空数据
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "DROP DATABASE IF EXISTS polaris_server";
+          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "DROP DATABASE IF EXISTS polaris_server";
           # 初始化 polaris 数据库
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" < store/mysql/scripts/polaris_server.sql
+          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" < store/mysql/scripts/polaris_server.sql
           # 临时放开 DB 的最大连接数
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
+          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "set GLOBAL max_connections = 3000;"
 
           pushd ./service
           go mod vendor && go test -v -timeout 120m -v -covermode=count -coverprofile=coverage_sqldb_3.cover  -coverpkg=github.com/polarismesh/polaris/apiserver,github.com/polarismesh/polaris/apiserver/eurekaserver,github.com/polarismesh/polaris/auth/defaultauth,github.com/polarismesh/polaris/service,github.com/polarismesh/polaris/service/batch,github.com/polarismesh/polaris/service/healthcheck,github.com/polarismesh/polaris/cache,github.com/polarismesh/polaris/store/boltdb,github.com/polarismesh/polaris/store/mysql,github.com/polarismesh/polaris/plugin,github.com/polarismesh/polaris/config,github.com/polarismesh/polaris/plugin/healthchecker/leader,github.com/polarismesh/polaris/plugin/healthchecker/memory,github.com/polarismesh/polaris/plugin/healthchecker/redis,github.com/polarismesh/polaris/common/batchjob,github.com/polarismesh/polaris/common/eventhub,github.com/polarismesh/polaris/common/redispool,github.com/polarismesh/polaris/common/timewheel
@@ -130,16 +133,19 @@ jobs:
 
           # 测试鉴权
           export STORE_MODE=sqldb
-          echo "cur STORE MODE=${STORE_MODE}"
+          export MYSQL_DB_USER=${{ env.MYSQL_DB_USER }}
+          export MYSQL_DB_PWD=${{ env.MYSQL_DB_PWD }}
+
+          echo "cur STORE MODE=${STORE_MODE}, MYSQL_DB_USER=${MYSQL_DB_USER}, MYSQL_DB_PWD=${MYSQL_DB_PWD}"
 
           # 设置严格模式
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set sql_mode='STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'";
+          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "set sql_mode='STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'";
           # 清空数据
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "DROP DATABASE IF EXISTS polaris_server";
+          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "DROP DATABASE IF EXISTS polaris_server";
           # 初始化 polaris 数据库
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" < store/mysql/scripts/polaris_server.sql
+          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" < store/mysql/scripts/polaris_server.sql
           # 临时放开 DB 的最大连接数
-          mysql -h127.0.0.1 -P3306 -uroot -p"polaris" -e "set GLOBAL max_connections = 3000;"
+          mysql -h127.0.0.1 -P3306 -u${{ env.MYSQL_DB_USER }} -p"${{ env.MYSQL_DB_PWD }}" -e "set GLOBAL max_connections = 3000;"
 
           pushd ./auth/defaultauth
           go mod vendor && go test -v -timeout 120m -v -covermode=count -coverprofile=coverage_sqldb_1.cover  -coverpkg=github.com/polarismesh/polaris/apiserver,github.com/polarismesh/polaris/apiserver/eurekaserver,github.com/polarismesh/polaris/auth/defaultauth,github.com/polarismesh/polaris/service,github.com/polarismesh/polaris/service/batch,github.com/polarismesh/polaris/service/healthcheck,github.com/polarismesh/polaris/cache,github.com/polarismesh/polaris/store/boltdb,github.com/polarismesh/polaris/store/mysql,github.com/polarismesh/polaris/plugin,github.com/polarismesh/polaris/config,github.com/polarismesh/polaris/plugin/healthchecker/leader,github.com/polarismesh/polaris/plugin/healthchecker/memory,github.com/polarismesh/polaris/plugin/healthchecker/redis,github.com/polarismesh/polaris/common/batchjob,github.com/polarismesh/polaris/common/eventhub,github.com/polarismesh/polaris/common/redispool,github.com/polarismesh/polaris/common/timewheel

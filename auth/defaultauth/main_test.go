@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"time"
 
@@ -99,19 +100,32 @@ func (d *AuthTestSuit) loadConfig() error {
 		d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey,
 			"nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
 	}
-	file, err := os.Open(confFileName)
-	if err != nil {
+	// 如果有额外定制的配置文件，优先采用
+	if val := os.Getenv("POLARIS_TEST_BOOTSTRAP_FILE"); val != "" {
+		confFileName = val
+	}
+	buf, err := ioutil.ReadFile(confFileName)
+	if nil != err {
+		return fmt.Errorf("read file %s error", confFileName)
+	}
+
+	if err = parseYamlContent(string(buf), d.cfg); err != nil {
 		fmt.Printf("[ERROR] %v\n", err)
 		return err
 	}
-
-	err = yaml.NewDecoder(file).Decode(d.cfg)
-	if err != nil {
-		fmt.Printf("[ERROR] %v\n", err)
-		return err
-	}
-
 	return err
+}
+
+func parseYamlContent(content string, conf *TestConfig) error {
+	if err := yaml.Unmarshal([]byte(replaceEnv(content)), conf); nil != err {
+		return fmt.Errorf("parse yaml %s error:%w", content, err)
+	}
+	return nil
+}
+
+// replaceEnv replace holder by env list
+func replaceEnv(configContent string) string {
+	return os.ExpandEnv(configContent)
 }
 
 // 判断一个resp是否执行成功
