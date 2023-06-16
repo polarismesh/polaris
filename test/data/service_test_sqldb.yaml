@@ -308,8 +308,8 @@ store:
     master:
       dbType: mysql
       dbName: polaris_server
-      dbUser: root ##DB_USER##
-      dbPwd: polaris ##DB_PWD##
+      dbUser: ${MYSQL_DB_USER} ##DB_USER##
+      dbPwd: ${MYSQL_DB_PWD} ##DB_PWD##
       dbAddr: "127.0.0.1:3306" ##DB_ADDR##
       maxOpenConns: -1
       maxIdleConns: -1
