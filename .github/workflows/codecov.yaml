@@ -67,6 +67,7 @@ jobs:
           MYSQL_DB_PWD: root
           MYSQL_DATABASE: polaris_server
         run: |
+          sudo systemctl start mysql.service
           mysql -e 'CREATE DATABASE ${{ env.MYSQL_DATABASE }};' -u${{ env.MYSQL_DB_USER }} -p${{ env.MYSQL_DB_PWD }}
 
       # Execute vert check
