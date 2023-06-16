@@ -241,17 +241,17 @@ func (h *EurekaServer) handleInstanceEvent(ctx context.Context, i interface{}) e
 	}
 	replicateWorker, _ := h.replicateWorkers.Get(namespace)
 	switch e.EType {
-	case model.EventInstanceOnline, model.EventInstanceUpdate:
+	case model.EventInstanceOnline, model.EventInstanceUpdate, model.EventInstanceTurnHealth:
 		instanceInfo := eventToInstance(&e, appName, curTimeMilli)
 		replicateWorker.AddReplicateTask(&ReplicationInstance{
 			AppName:            appName,
 			Id:                 eurekaInstanceId,
 			LastDirtyTimestamp: curTimeMilli,
-			Status:             StatusUp,
+			Status:             instanceInfo.Status,
 			InstanceInfo:       instanceInfo,
 			Action:             actionRegister,
 		})
-	case model.EventInstanceOffline:
+	case model.EventInstanceOffline, model.EventInstanceTurnUnHealth:
 		replicateWorker.AddReplicateTask(&ReplicationInstance{
 			AppName: appName,
 			Id:      eurekaInstanceId,
@@ -262,28 +262,17 @@ func (h *EurekaServer) handleInstanceEvent(ctx context.Context, i interface{}) e
 		rInstance := &ReplicationInstance{
 			AppName:      appName,
 			Id:           eurekaInstanceId,
-			Status:       StatusUp,
+			Status:       instanceInfo.Status,
 			InstanceInfo: instanceInfo,
 			Action:       actionHeartbeat,
 		}
-		if e.Instance.GetIsolate().GetValue() {
-			rInstance.OverriddenStatus = StatusOutOfService
-		}
 		replicateWorker.AddReplicateTask(rInstance)
-	case model.EventInstanceOpenIsolate:
+	case model.EventInstanceOpenIsolate, model.EventInstanceCloseIsolate:
 		replicateWorker.AddReplicateTask(&ReplicationInstance{
 			AppName:            appName,
 			Id:                 eurekaInstanceId,
 			LastDirtyTimestamp: curTimeMilli,
-			Status:             StatusOutOfService,
-			Action:             actionStatusUpdate,
-		})
-	case model.EventInstanceCloseIsolate:
-		replicateWorker.AddReplicateTask(&ReplicationInstance{
-			AppName:            appName,
-			Id:                 eurekaInstanceId,
-			LastDirtyTimestamp: curTimeMilli,
-			Status:             StatusUp,
+			Status:             parseStatus(e.Instance),
 			Action:             actionStatusUpdate,
 		})
 

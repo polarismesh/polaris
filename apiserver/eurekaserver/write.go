@@ -152,14 +152,12 @@ func buildHealthCheck(instance *InstanceInfo, targetInstance *apiservice.Instanc
 }
 
 func buildStatus(instance *InstanceInfo, targetInstance *apiservice.Instance) {
-	// 由于eureka的实例都会自动报心跳，心跳由北极星接管，因此客户端报上来的人工状态OUT_OF_SERVICE，通过isolate来进行代替
-	status := instance.Status
-	if status == "OUT_OF_SERVICE" {
+	// eureka注册的实例默认healthy为true，即使设置为false也会被心跳触发变更为true
+	// eureka实例非UP状态设置isolate为true，进行流量隔离
+	targetInstance.Healthy = &wrappers.BoolValue{Value: true}
+	targetInstance.Isolate = &wrappers.BoolValue{Value: false}
+	if instance.Status != "UP" {
 		targetInstance.Isolate = &wrappers.BoolValue{Value: true}
-	} else if status == "UP" {
-		targetInstance.Healthy = &wrappers.BoolValue{Value: true}
-	} else {
-		targetInstance.Healthy = &wrappers.BoolValue{Value: false}
 	}
 }
 
