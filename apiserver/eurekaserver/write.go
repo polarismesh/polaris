@@ -234,7 +234,10 @@ func (h *EurekaServer) registerInstances(
 func (h *EurekaServer) deregisterInstance(
 	ctx context.Context, namespace string, appId string, instanceId string, replicated bool) uint32 {
 	ctx = context.WithValue(
-		ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
+		ctx, model.CtxEventKeyMetadata, map[string]string{
+			MetadataReplicate: strconv.FormatBool(replicated),
+			MetadataInstanceId: instanceId,
+		})
 	ctx = context.WithValue(ctx, utils.ContextOpenAsyncRegis, true)
 	instanceId = checkOrBuildNewInstanceIdByNamespace(namespace, h.namespace, appId, instanceId, h.generateUniqueInstId)
 	resp := h.namingServer.DeregisterInstance(ctx, &apiservice.Instance{Id: &wrappers.StringValue{Value: instanceId}})
@@ -248,7 +251,10 @@ func (h *EurekaServer) updateStatus(
 		isolated = true
 	}
 	ctx = context.WithValue(
-		ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
+		ctx, model.CtxEventKeyMetadata, map[string]string{
+			MetadataReplicate: strconv.FormatBool(replicated),
+			MetadataInstanceId: instanceId,
+		})
 	instanceId = checkOrBuildNewInstanceIdByNamespace(namespace, h.namespace, appId, instanceId, h.generateUniqueInstId)
 	resp := h.namingServer.UpdateInstance(ctx, &apiservice.Instance{
 		Id: &wrappers.StringValue{Value: instanceId}, Isolate: &wrappers.BoolValue{Value: isolated}})
@@ -258,7 +264,10 @@ func (h *EurekaServer) updateStatus(
 func (h *EurekaServer) renew(ctx context.Context, namespace string, appId string,
 	instanceId string, replicated bool) uint32 {
 	ctx = context.WithValue(
-		ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
+		ctx, model.CtxEventKeyMetadata, map[string]string{
+			MetadataReplicate: strconv.FormatBool(replicated),
+			MetadataInstanceId: instanceId,
+		})
 	instanceId = checkOrBuildNewInstanceIdByNamespace(namespace, h.namespace, appId, instanceId, h.generateUniqueInstId)
 	resp := h.healthCheckServer.Report(ctx, &apiservice.Instance{Id: &wrappers.StringValue{Value: instanceId}})
 	code := resp.GetCode().GetValue()
@@ -273,6 +282,7 @@ func (h *EurekaServer) renew(ctx context.Context, namespace string, appId string
 
 func (h *EurekaServer) updateMetadata(
 	ctx context.Context, namespace string, appId string, instanceId string, metadata map[string]string) uint32 {
+	metadata[MetadataInstanceId] = instanceId
 	instanceId = checkOrBuildNewInstanceIdByNamespace(namespace, h.namespace, appId, instanceId, h.generateUniqueInstId)
 	resp := h.namingServer.UpdateInstance(ctx,
 		&apiservice.Instance{Id: &wrappers.StringValue{Value: instanceId}, Metadata: metadata})
