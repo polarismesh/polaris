@@ -68,6 +68,9 @@ func (c *AESCrypto) GenerateKey() ([]byte, error) {
 
 // Encrypt AES encrypt plaintext and base64 encode ciphertext
 func (c *AESCrypto) Encrypt(plaintext string, key []byte) (string, error) {
+	if plaintext == "" {
+		return "", nil
+	}
 	ciphertext, err := c.doEncrypt([]byte(plaintext), key)
 	if err != nil {
 		return "", err
@@ -77,6 +80,9 @@ func (c *AESCrypto) Encrypt(plaintext string, key []byte) (string, error) {
 
 // Decrypt base64 decode ciphertext and AES decrypt
 func (c *AESCrypto) Decrypt(ciphertext string, key []byte) (string, error) {
+	if ciphertext == "" {
+		return "", nil
+	}
 	ciphertextBytes, err := base64.StdEncoding.DecodeString(ciphertext)
 	if err != nil {
 		return "", err

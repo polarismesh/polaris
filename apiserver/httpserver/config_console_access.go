@@ -345,7 +345,6 @@ func (h *HTTPServer) GetConfigFileRelease(req *restful.Request, rsp *restful.Res
 	name := handler.Request.QueryParameter("name")
 
 	response := h.configServer.GetConfigFileRelease(handler.ParseHeaderContext(), namespace, group, name)
-
 	handler.WriteHeaderAndProto(response)
 }
 
