@@ -743,7 +743,7 @@ func (s *Server) fillReleaseAndTags(ctx context.Context, file *apiconfig.ConfigF
 	if latestRelease != nil && latestRelease.Type.GetValue() == utils.ReleaseTypeNormal {
 		file.ReleaseBy = latestRelease.CreateBy
 		file.ReleaseTime = latestRelease.CreateTime
-		s.decryptConfigFileReleaseHistory(latestRelease)
+		_ = s.decryptConfigFileReleaseHistory(latestRelease)
 		// 如果最后一次发布的内容和当前文件内容一致，则展示最后一次发布状态。否则说明文件有修改，待发布
 		if latestRelease.Content.GetValue() == file.Content.GetValue() {
 			file.Status = latestRelease.Status

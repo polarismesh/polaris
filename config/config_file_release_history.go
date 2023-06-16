@@ -127,7 +127,7 @@ func (s *Server) GetConfigFileLatestReleaseHistory(ctx context.Context, namespac
 		return api.NewConfigFileReleaseHistoryResponse(commonstore.StoreCode2APICode(err), nil)
 	}
 	apiHistory := model.ToReleaseHistoryAPI(history)
-	s.decryptConfigFileReleaseHistory(apiHistory)
+	_ = s.decryptConfigFileReleaseHistory(apiHistory)
 	return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_ExecuteSuccess, apiHistory)
 }
 
