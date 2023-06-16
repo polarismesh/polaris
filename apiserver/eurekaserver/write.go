@@ -235,7 +235,7 @@ func (h *EurekaServer) deregisterInstance(
 	ctx context.Context, namespace string, appId string, instanceId string, replicated bool) uint32 {
 	ctx = context.WithValue(
 		ctx, model.CtxEventKeyMetadata, map[string]string{
-			MetadataReplicate: strconv.FormatBool(replicated),
+			MetadataReplicate:  strconv.FormatBool(replicated),
 			MetadataInstanceId: instanceId,
 		})
 	ctx = context.WithValue(ctx, utils.ContextOpenAsyncRegis, true)
@@ -252,7 +252,7 @@ func (h *EurekaServer) updateStatus(
 	}
 	ctx = context.WithValue(
 		ctx, model.CtxEventKeyMetadata, map[string]string{
-			MetadataReplicate: strconv.FormatBool(replicated),
+			MetadataReplicate:  strconv.FormatBool(replicated),
 			MetadataInstanceId: instanceId,
 		})
 	instanceId = checkOrBuildNewInstanceIdByNamespace(namespace, h.namespace, appId, instanceId, h.generateUniqueInstId)
@@ -265,7 +265,7 @@ func (h *EurekaServer) renew(ctx context.Context, namespace string, appId string
 	instanceId string, replicated bool) uint32 {
 	ctx = context.WithValue(
 		ctx, model.CtxEventKeyMetadata, map[string]string{
-			MetadataReplicate: strconv.FormatBool(replicated),
+			MetadataReplicate:  strconv.FormatBool(replicated),
 			MetadataInstanceId: instanceId,
 		})
 	instanceId = checkOrBuildNewInstanceIdByNamespace(namespace, h.namespace, appId, instanceId, h.generateUniqueInstId)
