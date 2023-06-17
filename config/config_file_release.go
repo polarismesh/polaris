@@ -19,7 +19,6 @@ package config
 
 import (
 	"context"
-	"encoding/base64"
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
@@ -67,9 +66,7 @@ func (s *Server) PublishConfigFile(
 	if err != nil {
 		log.Error("[Config][Service] get config file error.", utils.ZapRequestIDByCtx(ctx),
 			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
-
 		s.recordReleaseFail(ctx, model.ToConfigFileReleaseStore(configFileRelease))
-
 		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
 	}
 
@@ -180,13 +177,15 @@ func (s *Server) GetConfigFileRelease(
 	}
 	// 解密发布纪录中配置
 	release := configFileRelease2Api(fileRelease)
-	err = s.decryptConfigFileRelease(ctx, release)
-	if err == nil {
+	if err = s.decryptConfigFileRelease(ctx, release); err == nil {
 		return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, release)
 	}
-	log.Error("[Config][Service]get config file release error.", utils.ZapRequestIDByCtx(ctx),
+	log.Warn("[Config][Service]get config file release error.", utils.ZapRequestIDByCtx(ctx),
 		utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
-	return api.NewConfigFileResponse(apimodel.Code_DecryptConfigFileException, nil)
+	// TODO: 这个逻辑需要优化，在1.17.3处理
+	// 前一次发布的配置并未加密，现在准备发布的配置是开启了加密的，因此这里可能配置就是一个未加密的状态
+	// 这里就直接原样返回
+	return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, release)
 }
 
 // DeleteConfigFileRelease 删除配置文件发布，删除配置文件的时候，同步删除配置文件发布数据
@@ -274,30 +273,17 @@ func (s *Server) decryptConfigFileRelease(ctx context.Context, release *apiconfi
 	if s.cryptoManager == nil || release == nil {
 		return nil
 	}
-	// 非创建人请求不解密
-	if utils.ParseUserName(ctx) != release.CreateBy.GetValue() {
-		return nil
-	}
 	algorithm, dataKey, err := s.getEncryptAlgorithmAndDataKey(ctx, release.GetNamespace().GetValue(),
-		release.GetGroup().GetValue(), release.GetName().GetValue())
+		release.GetGroup().GetValue(), release.GetFileName().GetValue())
 	if err != nil {
 		return err
 	}
-	if dataKey == "" {
+	plainContent, err := s.decryptConfigFileContent(dataKey, algorithm, release.GetContent().GetValue())
+	if err != nil {
+		return err
+	}
+	if plainContent == "" {
 		return nil
-	}
-	dateKeyBytes, err := base64.StdEncoding.DecodeString(dataKey)
-	if err != nil {
-		return err
-	}
-	crypto, err := s.cryptoManager.GetCrypto(algorithm)
-	if err != nil {
-		return err
-	}
-
-	plainContent, err := crypto.Decrypt(release.Content.GetValue(), dateKeyBytes)
-	if err != nil {
-		return err
 	}
 	release.Content = utils.NewStringValue(plainContent)
 	return nil

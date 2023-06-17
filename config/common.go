@@ -19,6 +19,7 @@ package config
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
@@ -60,4 +61,32 @@ func convertToErrCode(err error) apimodel.Code {
 		return apimodel.Code_TokenDisabled
 	}
 	return apimodel.Code_NotAllowedAccess
+}
+
+// decryptConfigFileContent 解密配置文件发布历史
+func (s *Server) decryptConfigFileContent(dataKey, algorithm, content string) (string, error) {
+	if s.cryptoManager == nil {
+		return "", nil
+	}
+	// 没有加密算法不加密
+	if algorithm == "" {
+		return "", nil
+	}
+	crypto, err := s.cryptoManager.GetCrypto(algorithm)
+	if err != nil {
+		return "", err
+	}
+	if crypto == nil {
+		return "", nil
+	}
+	dateKeyBytes, err := base64.StdEncoding.DecodeString(dataKey)
+	if err != nil {
+		return "", err
+	}
+	// 解密
+	plainContent, err := crypto.Decrypt(content, dateKeyBytes)
+	if err != nil {
+		return "", err
+	}
+	return plainContent, nil
 }

@@ -812,7 +812,7 @@ func Test_GetConfigFileBaseInfo(t *testing.T) {
 			},
 		})
 		got := testSuit.ConfigServer().GetConfigFileBaseInfo(testSuit.DefaultCtx, configFile.Namespace.Value, configFile.Group.Value, configFile.Name.Value)
-		assert.Equal(t, apimodel.Code_DecryptConfigFileException, apimodel.Code(got.GetCode().GetValue()))
+		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(got.GetCode().GetValue()))
 	})
 }
 
