@@ -50,71 +50,49 @@ type releaseMessageScanner struct {
 func initReleaseMessageScanner(ctx context.Context, storage store.Store, fileCache cache.FileCache,
 	eventCenter *Center, scanInterval time.Duration) error {
 	scanner := &releaseMessageScanner{
-		storage:      storage,
-		fileCache:    fileCache,
-		eventCenter:  eventCenter,
-		scanInterval: scanInterval,
+		storage:         storage,
+		fileCache:       fileCache,
+		eventCenter:     eventCenter,
+		scanInterval:    scanInterval,
+		lastScannerTime: time.Now().Add(DefaultScanTimeOffset),
 	}
 
-	err := scanner.scanAtFirstTime()
-	if err != nil {
-		return err
-	}
-
-	go scanner.startScanTask(ctx)
-
-	return nil
-}
-
-func (s *releaseMessageScanner) scanAtFirstTime() error {
-	t := time.Now().Add(FirstScanTimeOffset)
-	s.lastScannerTime = t
-
-	releases, err := s.storage.FindConfigFileReleaseByModifyTimeAfter(t)
-	if err != nil {
-		log.Error("[Config][Scanner] scan config file release error.", zap.Error(err))
-		return err
-	}
-
-	if len(releases) == 0 {
-		return nil
-	}
-
-	log.Info("[Config][Scanner] scan config file release count at first time. ",
-		zap.Int("count", len(releases)))
-
-	err = s.handlerReleases(true, releases)
-	if err != nil {
-		log.Error("[Config][Scanner] handler release message error.", zap.Error(err))
-		return err
-	}
-
+	scanner.startScanTask(ctx)
 	return nil
 }
 
 func (s *releaseMessageScanner) startScanTask(ctx context.Context) {
-	t := time.NewTicker(s.scanInterval)
-	defer t.Stop()
-	for {
-		select {
-		case <-ctx.Done():
+	handler := func(offset time.Duration) {
+		lastScannerTime := s.lastScannerTime.Add(offset)
+		releases, err := s.storage.FindConfigFileReleaseByModifyTimeAfter(lastScannerTime)
+		if err != nil {
+			log.Error("[Config][Scanner] scan config file release error.", zap.Error(err))
 			return
-		case <-t.C:
-			// 为了避免丢失消息，扫描发布消息的时间点往前拨10s。因为处理消息是幂等的，所以即使捞出重复消息也能够正常处理
-			scanIdx := s.lastScannerTime.Add(DefaultScanTimeOffset)
-			releases, err := s.storage.FindConfigFileReleaseByModifyTimeAfter(scanIdx)
-
-			if err != nil {
-				log.Error("[Config][Scanner] scan config file release error.", zap.Error(err))
-				continue
-			}
-
-			err = s.handlerReleases(false, releases)
-			if err != nil {
-				log.Error("[Config][Scanner] handler release message error.", zap.Error(err))
-			}
+		}
+		if len(releases) == 0 {
+			return
+		}
+		if err = s.handlerReleases(offset == 0, releases); err != nil {
+			log.Error("[Config][Scanner] handler release message error.", zap.Error(err))
+			return
 		}
 	}
+
+	handler(0)
+
+	go func() {
+		t := time.NewTicker(s.scanInterval)
+		defer t.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+				// 为了避免丢失消息，扫描发布消息的时间点往前拨10s。因为处理消息是幂等的，所以即使捞出重复消息也能够正常处理
+				handler(DefaultScanTimeOffset)
+			}
+		}
+	}()
 }
 
 func (s *releaseMessageScanner) handlerReleases(firstTime bool, releases []*model.ConfigFileRelease) error {
@@ -159,11 +137,7 @@ func (s *releaseMessageScanner) handlerReleases(firstTime bool, releases []*mode
 	}
 
 	s.lastScannerTime = maxModifyTime
-
-	if newReleaseCnt > 0 {
-		log.Info("[Config][Scanner] scan config file release count. ", zap.Int("count", len(releases)))
-	}
-
+	log.Info("[Config][Scanner] scan config file release count. ", zap.Any("releases", releases))
 	return nil
 }
 

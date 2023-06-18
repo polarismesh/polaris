@@ -550,7 +550,7 @@ func TestDeleteConfigFile(t *testing.T) {
 	t.Log("add config watcher")
 
 	testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
-		received <- rsp.ConfigFile.Version.GetValue()
+		received <- rsp.GetConfigFile().GetVersion().GetValue()
 		return true
 	})
 

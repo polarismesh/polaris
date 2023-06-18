@@ -61,7 +61,6 @@ func NewWatchCenter(eventCenter *Center) *watchCenter {
 	})
 
 	wc.handleMessage()
-
 	return wc
 }
 
@@ -149,7 +148,6 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.ConfigFileRelea
 
 	watcherMap := watchers.(*sync.Map)
 	watcherMap.Range(func(clientId, watchCtx interface{}) bool {
-
 		c := watchCtx.(*watchContext)
 		if c.ClientVersion < publishConfigFile.Version {
 			log.Info("[Config][Watcher] notify to client.",

@@ -43,15 +43,12 @@ func (s *Server) PublishConfigFile(
 	if err := CheckFileName(utils.NewStringValue(fileName)); err != nil {
 		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileName, nil)
 	}
-
 	if err := CheckResourceName(utils.NewStringValue(namespace)); err != nil {
 		return api.NewConfigFileResponse(apimodel.Code_InvalidNamespaceName, nil)
 	}
-
 	if err := CheckResourceName(utils.NewStringValue(group)); err != nil {
 		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileGroupName, nil)
 	}
-
 	if !s.checkNamespaceExisted(namespace) {
 		return api.NewConfigFileReleaseResponse(apimodel.Code_NotFoundNamespace, configFileRelease)
 	}
@@ -156,11 +153,9 @@ func (s *Server) GetConfigFileRelease(
 	if err := CheckFileName(utils.NewStringValue(fileName)); err != nil {
 		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileName, nil)
 	}
-
 	if err := CheckResourceName(utils.NewStringValue(namespace)); err != nil {
 		return api.NewConfigFileResponse(apimodel.Code_InvalidNamespaceName, nil)
 	}
-
 	if err := CheckResourceName(utils.NewStringValue(group)); err != nil {
 		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileGroupName, nil)
 	}
@@ -171,20 +166,17 @@ func (s *Server) GetConfigFileRelease(
 			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
 		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
 	}
-
 	if fileRelease == nil {
 		return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, nil)
 	}
-	// 解密发布纪录中配置
 	release := configFileRelease2Api(fileRelease)
-	if err = s.decryptConfigFileRelease(ctx, release); err == nil {
-		return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, release)
+	for i := range s.chains {
+		_release, err := s.chains[i].AfterGetFileRelease(ctx, release)
+		if err != nil {
+			return api.NewConfigFileReleaseResponseWithMessage(apimodel.Code_ExecuteException, err.Error())
+		}
+		release = _release
 	}
-	log.Warn("[Config][Service]get config file release error.", utils.ZapRequestIDByCtx(ctx),
-		utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
-	// TODO: 这个逻辑需要优化，在1.17.3处理
-	// 前一次发布的配置并未加密，现在准备发布的配置是开启了加密的，因此这里可能配置就是一个未加密的状态
-	// 这里就直接原样返回
 	return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, release)
 }
 
@@ -229,12 +221,9 @@ func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace,
 		}
 	}
 
-	err := s.storage.DeleteConfigFileRelease(s.getTx(ctx), namespace, group, fileName, deleteBy)
-
-	if err != nil {
+	if err := s.storage.DeleteConfigFileRelease(s.getTx(ctx), namespace, group, fileName, deleteBy); err != nil {
 		log.Error("[Config][Service] delete config file release error.", utils.ZapRequestIDByCtx(ctx),
 			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
-
 		s.recordReleaseHistory(ctx, &model.ConfigFileRelease{
 			Name:      releaseName,
 			Namespace: namespace,
@@ -242,7 +231,6 @@ func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace,
 			FileName:  fileName,
 			ModifyBy:  deleteBy,
 		}, utils.ReleaseTypeDelete, utils.ReleaseStatusFail)
-
 		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
 	}
 
@@ -260,33 +248,11 @@ func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace,
 		Group:     utils.NewStringValue(group),
 		FileName:  utils.NewStringValue(fileName),
 	}, data, model.ODelete))
-
 	return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, nil)
 }
 
 func (s *Server) recordReleaseFail(ctx context.Context, configFileRelease *model.ConfigFileRelease) {
 	s.recordReleaseHistory(ctx, configFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusFail)
-}
-
-// decryptConfigFileRelease 解密配置文件发布纪录
-func (s *Server) decryptConfigFileRelease(ctx context.Context, release *apiconfig.ConfigFileRelease) error {
-	if s.cryptoManager == nil || release == nil {
-		return nil
-	}
-	algorithm, dataKey, err := s.getEncryptAlgorithmAndDataKey(ctx, release.GetNamespace().GetValue(),
-		release.GetGroup().GetValue(), release.GetFileName().GetValue())
-	if err != nil {
-		return err
-	}
-	plainContent, err := s.decryptConfigFileContent(dataKey, algorithm, release.GetContent().GetValue())
-	if err != nil {
-		return err
-	}
-	if plainContent == "" {
-		return nil
-	}
-	release.Content = utils.NewStringValue(plainContent)
-	return nil
 }
 
 func configFileRelease2Api(release *model.ConfigFileRelease) *apiconfig.ConfigFileRelease {

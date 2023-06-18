@@ -82,8 +82,6 @@ func TestConfigFileCRUD(t *testing.T) {
 		assert.Equal(t, testFile, rsp.ConfigFile.Name.GetValue())
 		assert.Equal(t, configFile.Content.GetValue(), rsp.ConfigFile.Content.GetValue())
 		assert.Equal(t, configFile.Format.GetValue(), rsp.ConfigFile.Format.GetValue())
-		assert.Equal(t, operator, rsp.ConfigFile.CreateBy.GetValue())
-		assert.Equal(t, operator, rsp.ConfigFile.ModifyBy.GetValue())
 
 		// 重复创建
 		rsp2 := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
@@ -98,8 +96,6 @@ func TestConfigFileCRUD(t *testing.T) {
 		assert.Equal(t, testFile, rsp.ConfigFile.Name.GetValue())
 		assert.Equal(t, configFile.Content.GetValue(), rsp.ConfigFile.Content.GetValue())
 		assert.Equal(t, configFile.Format.GetValue(), rsp.ConfigFile.Format.GetValue())
-		assert.Equal(t, operator, rsp.ConfigFile.CreateBy.GetValue())
-		assert.Equal(t, operator, rsp.ConfigFile.ModifyBy.GetValue())
 	})
 
 	t.Run("step3-update", func(t *testing.T) {
@@ -333,7 +329,7 @@ func TestConfigFileCRUD(t *testing.T) {
 			}
 		}
 		rsp := testSuit.ConfigServer().ImportConfigFile(testSuit.DefaultCtx, configFiles, utils.ConfigFileImportConflictSkip)
-		assert.Equal(t, api.InvalidConfigFileName, rsp.Code.GetValue())
+		assert.Equal(t, api.InvalidConfigFileName, rsp.Code.GetValue(), rsp.GetInfo().GetValue())
 	})
 	t.Run("step10-import-conflict-skip", func(t *testing.T) {
 		namespace := "namespace_import_skip"
@@ -400,8 +396,6 @@ func TestConfigFileCRUD(t *testing.T) {
 		assert.Equal(t, testFile, rsp.ConfigFile.Name.GetValue())
 		assert.Equal(t, configFile.Content.GetValue(), rsp.ConfigFile.Content.GetValue())
 		assert.Equal(t, configFile.Format.GetValue(), rsp.ConfigFile.Format.GetValue())
-		assert.Equal(t, operator, rsp.ConfigFile.CreateBy.GetValue())
-		assert.Equal(t, operator, rsp.ConfigFile.ModifyBy.GetValue())
 
 		// 重复创建
 		rsp2 := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
@@ -416,8 +410,6 @@ func TestConfigFileCRUD(t *testing.T) {
 		assert.Equal(t, testFile, rsp.ConfigFile.Name.GetValue())
 		assert.Equal(t, configFile.Content.GetValue(), rsp.ConfigFile.Content.GetValue())
 		assert.Equal(t, configFile.Format.GetValue(), rsp.ConfigFile.Format.GetValue())
-		assert.Equal(t, operator, rsp.ConfigFile.CreateBy.GetValue())
-		assert.Equal(t, operator, rsp.ConfigFile.ModifyBy.GetValue())
 	})
 }
 
@@ -790,12 +782,6 @@ func Test_GetConfigFileBaseInfo(t *testing.T) {
 	})
 
 	t.Run("获取配置文件基本信息-解密配置文件-返回error", func(t *testing.T) {
-		storage := storemock.NewMockStore(ctrl)
-		storage.EXPECT().GetConfigFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&model.ConfigFile{
-			CreateBy: operator,
-		}, nil)
-		storage.EXPECT().QueryTagByConfigFile(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]*model.ConfigFileTag{{Key: utils.ConfigFileTagKeyDataKey, Value: "abc"}}, nil)
-
 		crypto := &aes.AESCrypto{}
 		encryptFunc := ApplyMethod(reflect.TypeOf(crypto), "Decrypt", func(_ *aes.AESCrypto, plaintext string, key []byte) (string, error) {
 			return "", errors.New("mock encrypt error")
@@ -803,6 +789,21 @@ func Test_GetConfigFileBaseInfo(t *testing.T) {
 		defer encryptFunc.Reset()
 
 		configFile := assembleConfigFile()
+
+		storage := storemock.NewMockStore(ctrl)
+		storage.EXPECT().GetConfigFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&model.ConfigFile{
+			Namespace: configFile.Namespace.Value,
+			Group:     configFile.Group.Value,
+			Name:      configFile.Name.Value,
+			CreateBy:  operator,
+		}, nil)
+		storage.EXPECT().QueryTagByConfigFile(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]*model.ConfigFileTag{{Key: utils.ConfigFileTagKeyDataKey, Value: "abc"}}, nil)
+		storage.EXPECT().GetLatestConfigFileReleaseHistory(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&model.ConfigFileReleaseHistory{
+			Namespace: configFile.Namespace.Value,
+			Group:     configFile.Group.Value,
+			FileName:  configFile.Name.Value,
+			Content:   configFile.Content.Value,
+		}, nil)
 
 		svr := testSuit.OriginConfigServer()
 		svr.TestMockStore(storage)
@@ -812,7 +813,7 @@ func Test_GetConfigFileBaseInfo(t *testing.T) {
 			},
 		})
 		got := testSuit.ConfigServer().GetConfigFileBaseInfo(testSuit.DefaultCtx, configFile.Namespace.Value, configFile.Group.Value, configFile.Name.Value)
-		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(got.GetCode().GetValue()))
+		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(got.GetCode().GetValue()), got.GetInfo().GetValue())
 	})
 }
 

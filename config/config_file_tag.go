@@ -71,7 +71,6 @@ func (s *Server) createConfigFileTags(ctx context.Context, namespace, group,
 
 		val := newTagMap[key]
 		val[tags[i+1]] = struct{}{}
-
 		newTagMap[key] = val
 	}
 
@@ -85,7 +84,6 @@ func (s *Server) createConfigFileTags(ctx context.Context, namespace, group,
 	if err = s.doDeleteConfigFileTags(ctx, namespace, group, fileName, toDeleteTags...); err != nil {
 		return err
 	}
-
 	return nil
 }
 
