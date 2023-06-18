@@ -76,7 +76,7 @@ func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, gro
 		return api.NewConfigFileReleaseHistoryBatchQueryResponse(apimodel.Code_InvalidParameter, 0, nil)
 	}
 
-	count, releaseHistories, err := s.storage.QueryConfigFileReleaseHistories(namespace,
+	count, saveDatas, err := s.storage.QueryConfigFileReleaseHistories(namespace,
 		group, fileName, offset, limit, endId)
 	if err != nil {
 		log.Error("[Config][Service] get config file release history error.", utils.ZapRequestIDByCtx(ctx),
@@ -84,22 +84,22 @@ func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, gro
 		return api.NewConfigFileReleaseHistoryBatchQueryResponse(commonstore.StoreCode2APICode(err), 0, nil)
 	}
 
-	if len(releaseHistories) == 0 {
+	if len(saveDatas) == 0 {
 		return api.NewConfigFileReleaseHistoryBatchQueryResponse(apimodel.Code_ExecuteSuccess, count, nil)
 	}
 
 	var apiReleaseHistory []*apiconfig.ConfigFileReleaseHistory
-	for _, history := range releaseHistories {
-		historyAPIModel := model.ToReleaseHistoryAPI(history)
-		apiReleaseHistory = append(apiReleaseHistory, historyAPIModel)
+	for _, data := range saveDatas {
+		history := model.ToReleaseHistoryAPI(data)
+		for i := range s.chains {
+			_history, err := s.chains[i].AfterGetFileHistory(ctx, history)
+			if err != nil {
+				return api.NewConfigFileBatchQueryResponseWithMessage(commonstore.StoreCode2APICode(err), err.Error())
+			}
+			history = _history
+		}
+		apiReleaseHistory = append(apiReleaseHistory, history)
 	}
-
-	if err := s.decryptMultiConfigFileReleaseHistory(apiReleaseHistory); err != nil {
-		log.Error("[Config][Service] decrypt config file release history error.", utils.ZapRequestIDByCtx(ctx),
-			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
-		return api.NewConfigFileReleaseHistoryBatchQueryResponse(apimodel.Code_EncryptConfigFileException, 0, nil)
-	}
-
 	return api.NewConfigFileReleaseHistoryBatchQueryResponse(apimodel.Code_ExecuteSuccess, count, apiReleaseHistory)
 }
 
@@ -119,50 +119,20 @@ func (s *Server) GetConfigFileLatestReleaseHistory(ctx context.Context, namespac
 		return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_InvalidNamespaceName, nil)
 	}
 
-	history, err := s.storage.GetLatestConfigFileReleaseHistory(namespace, group, fileName)
+	saveData, err := s.storage.GetLatestConfigFileReleaseHistory(namespace, group, fileName)
 	if err != nil {
 		log.Error("[Config][Service] get latest config file release error", utils.ZapRequestIDByCtx(ctx),
 			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err),
 		)
 		return api.NewConfigFileReleaseHistoryResponse(commonstore.StoreCode2APICode(err), nil)
 	}
-	apiHistory := model.ToReleaseHistoryAPI(history)
-	_ = s.decryptConfigFileReleaseHistory(apiHistory)
-	return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_ExecuteSuccess, apiHistory)
-}
-
-// decryptMultiConfigFileReleaseHistory 解密多个配置文件发布历史
-func (s *Server) decryptMultiConfigFileReleaseHistory(releaseHistories []*apiconfig.ConfigFileReleaseHistory) error {
-	for _, releaseHistory := range releaseHistories {
-		_ = s.decryptConfigFileReleaseHistory(releaseHistory)
-	}
-	return nil
-}
-
-// decryptConfigFileReleaseHistory 解密配置文件发布历史
-func (s *Server) decryptConfigFileReleaseHistory(releaseHistory *apiconfig.ConfigFileReleaseHistory) error {
-	if releaseHistory == nil {
-		return nil
-	}
-	var (
-		dataKey   = ""
-		algorithm = ""
-	)
-	for _, tag := range releaseHistory.GetTags() {
-		if tag.Key.GetValue() == utils.ConfigFileTagKeyDataKey {
-			dataKey = tag.Value.GetValue()
+	history := model.ToReleaseHistoryAPI(saveData)
+	for i := range s.chains {
+		_history, err := s.chains[i].AfterGetFileHistory(ctx, history)
+		if err != nil {
+			return api.NewConfigFileResponseWithMessage(commonstore.StoreCode2APICode(err), err.Error())
 		}
-		if tag.Key.GetValue() == utils.ConfigFileTagKeyEncryptAlgo {
-			algorithm = tag.Value.GetValue()
-		}
+		history = _history
 	}
-	plainContent, err := s.decryptConfigFileContent(dataKey, algorithm, releaseHistory.GetContent().GetValue())
-	if err != nil {
-		return err
-	}
-	if plainContent == "" {
-		return nil
-	}
-	releaseHistory.Content = utils.NewStringValue(plainContent)
-	return nil
+	return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_ExecuteSuccess, history)
 }

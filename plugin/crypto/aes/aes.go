@@ -137,5 +137,8 @@ func pkcs7UnPadding(data []byte) ([]byte, error) {
 		return nil, errors.New("invalid encryption data")
 	}
 	unPadding := int(data[length-1])
+	if unPadding > length {
+		return nil, errors.New("invalid encryption data")
+	}
 	return data[:(length - unPadding)], nil
 }

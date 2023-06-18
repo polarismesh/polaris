@@ -169,8 +169,8 @@ func ToConfigFileAPI(file *ConfigFile) *config_manage.ConfigFile {
 		Comment:    utils.NewStringValue(file.Comment),
 		Format:     utils.NewStringValue(file.Format),
 		CreateBy:   utils.NewStringValue(file.CreateBy),
-		CreateTime: utils.NewStringValue(commontime.Time2String(file.CreateTime)),
 		ModifyBy:   utils.NewStringValue(file.ModifyBy),
+		CreateTime: utils.NewStringValue(commontime.Time2String(file.CreateTime)),
 		ModifyTime: utils.NewStringValue(commontime.Time2String(file.ModifyTime)),
 	}
 }

@@ -51,8 +51,6 @@ type Config struct {
 	Open               bool          `yaml:"open"`
 	ContentMaxLength   int64         `yaml:""json:"contentMaxLength"`
 	LongPollingTimeout time.Duration `yaml:"longPollingTimeout"`
-	// Deprecated: not used
-	Cache map[string]interface{} `yaml:"cache"`
 }
 
 // Server 配置中心核心服务
@@ -70,6 +68,9 @@ type Server struct {
 	history       plugin.History
 	cryptoManager plugin.CryptoManager
 	hooks         []ResourceHook
+
+	// chains
+	chains []ConfigFileChain
 }
 
 // Initialize 初始化配置中心模块
@@ -90,7 +91,6 @@ func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cac
 	}
 
 	server = newServerAuthAbility(originServer, userMgn, strategyMgn)
-
 	originServer.initialized = true
 	return nil
 }
@@ -136,6 +136,13 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	}
 
 	s.caches = cacheMgn
+	s.chains = []ConfigFileChain{
+		&CryptoConfigFileChain{},
+		&ReleaseConfigFileChain{},
+	}
+	for i := range s.chains {
+		s.chains[i].Init(s)
+	}
 
 	log.Infof("[Config][Server] startup config module success.")
 	return nil

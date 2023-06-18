@@ -33,12 +33,11 @@ import (
 func TestInitialize(ctx context.Context, config Config, s store.Store, cacheMgn *cache.CacheManager,
 	namespaceOperator namespace.NamespaceOperateServer, userMgn auth.UserServer,
 	strategyMgn auth.StrategyServer) (ConfigCenterServer, ConfigCenterServer, error) {
-	originServer := &Server{}
-	err := originServer.initialize(ctx, config, s, namespaceOperator, cacheMgn)
-	if err != nil {
+	mockServer := &Server{}
+	if err := mockServer.initialize(ctx, config, s, namespaceOperator, cacheMgn); err != nil {
 		return nil, nil, err
 	}
-	return newServerAuthAbility(originServer, userMgn, strategyMgn), originServer, err
+	return newServerAuthAbility(mockServer, userMgn, strategyMgn), mockServer, nil
 }
 
 func TestCompareByVersion(clientConfigFile *apiconfig.ClientConfigFileInfo, cacheEntry *cache.Entry) bool {
@@ -51,13 +50,27 @@ func TestCompareByMD5(clientConfigFile *apiconfig.ClientConfigFileInfo, cacheEnt
 
 // TestDecryptConfigFile 解密配置文件
 func (s *Server) TestDecryptConfigFile(ctx context.Context, configFile *apiconfig.ConfigFile) (err error) {
-	return s.decryptConfigFile(ctx, configFile)
+	for i := range s.chains {
+		chain := s.chains[i]
+		if val, ok := chain.(*CryptoConfigFileChain); ok {
+			if _, err := val.AfterGetFile(ctx, configFile); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // TestEncryptConfigFile 解密配置文件
 func (s *Server) TestEncryptConfigFile(ctx context.Context,
 	configFile *apiconfig.ConfigFile, algorithm string, dataKey string) error {
-	return s.encryptConfigFile(ctx, configFile, algorithm, dataKey)
+	for i := range s.chains {
+		chain := s.chains[i]
+		if val, ok := chain.(*CryptoConfigFileChain); ok {
+			return val.encryptConfigFile(ctx, configFile, algorithm, dataKey)
+		}
+	}
+	return nil
 }
 
 // TestMockStore

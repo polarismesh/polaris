@@ -23,6 +23,8 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"strings"
 	"time"
@@ -66,6 +68,12 @@ import (
 	sqldb "github.com/polarismesh/polaris/store/mysql"
 	testdata "github.com/polarismesh/polaris/test/data"
 )
+
+func init() {
+	go func() {
+		http.ListenAndServe("0.0.0.0:16060", nil)
+	}()
+}
 
 const (
 	tblNameNamespace          = "namespace"
