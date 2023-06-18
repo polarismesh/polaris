@@ -22,12 +22,13 @@ import (
 	"encoding/base64"
 	"errors"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/utils"
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 type ConfigFileChain interface {

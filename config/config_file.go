@@ -35,7 +35,9 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
-func (s *Server) prepareCreateConfigFile(ctx context.Context, configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+func (s *Server) prepareCreateConfigFile(ctx context.Context,
+	configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+
 	userName := utils.ParseUserName(ctx)
 	configFile.CreateBy = utils.NewStringValue(userName)
 	configFile.ModifyBy = utils.NewStringValue(userName)
@@ -82,7 +84,9 @@ func (s *Server) CreateConfigFile(ctx context.Context, req *apiconfig.ConfigFile
 	return s.createConfigFile(s.getTx(ctx), ctx, req)
 }
 
-func (s *Server) createConfigFile(tx store.Tx, ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+func (s *Server) createConfigFile(tx store.Tx, ctx context.Context,
+	req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+
 	if rsp := s.prepareCreateConfigFile(ctx, req); rsp.Code.Value != api.ExecuteSuccess {
 		return rsp
 	}
