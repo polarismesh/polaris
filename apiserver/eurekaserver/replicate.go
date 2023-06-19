@@ -239,6 +239,9 @@ func (h *EurekaServer) handleInstanceEvent(ctx context.Context, i interface{}) e
 			eurekaInstanceId = e.Instance.Metadata[MetadataInstanceId]
 		}
 	}
+	if _, ok := e.MetaData[MetadataInstanceId]; ok {
+		eurekaInstanceId = e.MetaData[MetadataInstanceId]
+	}
 	replicateWorker, _ := h.replicateWorkers.Get(namespace)
 	switch e.EType {
 	case model.EventInstanceOnline, model.EventInstanceUpdate:
