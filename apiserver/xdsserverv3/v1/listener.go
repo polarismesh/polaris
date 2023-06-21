@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package xdsserverv3
+package v1
 
 import (
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"

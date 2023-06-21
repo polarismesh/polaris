@@ -76,6 +76,10 @@ type ServiceKey struct {
 	Name      string
 }
 
+func (s *ServiceKey) IsExact() bool {
+	return s.Namespace != "" && s.Namespace != MatchAll && s.Name != "" && s.Name != MatchAll
+}
+
 // IsAlias 便捷函数封装
 func (s *Service) IsAlias() bool {
 	return s.Reference != ""

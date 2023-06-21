@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package xdsserverv3
+package resource
 
 import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -24,17 +24,31 @@ import (
 	"github.com/polarismesh/polaris/common/model"
 )
 
+type XDSType int16
+
+const (
+	_ XDSType = iota
+	LDS
+	RDS
+	EDS
+	CDS
+	RLS
+	SDS
+)
+
 const (
 	K8sDnsResolveSuffixSvc             = ".svc"
 	K8sDnsResolveSuffixSvcCluster      = ".svc.cluster"
 	K8sDnsResolveSuffixSvcClusterLocal = ".svc.cluster.local"
 )
 
+type TLSMode string
+
 const (
-	TLSModeTag        = "polarismesh.cn/tls-mode"
-	TLSModeNone       = "none"
-	TLSModeStrict     = "strict"
-	TLSModePermissive = "permissive"
+	TLSModeTag                = "polarismesh.cn/tls-mode"
+	TLSModeNone       TLSMode = "none"
+	TLSModeStrict     TLSMode = "strict"
+	TLSModePermissive TLSMode = "permissive"
 )
 
 // ServiceInfo 北极星服务结构体
@@ -42,6 +56,7 @@ type ServiceInfo struct {
 	ID                   string
 	Name                 string
 	Namespace            string
+	ServiceKey           model.ServiceKey
 	AliasFor             *model.Service
 	Instances            []*apiservice.Instance
 	SvcInsRevision       string
@@ -52,7 +67,7 @@ type ServiceInfo struct {
 	SvcRateLimitRevision string
 }
 
-func (s *ServiceInfo) matchService(ns, name string) bool {
+func (s *ServiceInfo) MatchService(ns, name string) bool {
 	if s.Namespace == ns && s.Name == name {
 		return true
 	}

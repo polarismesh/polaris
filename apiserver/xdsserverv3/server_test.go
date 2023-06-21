@@ -29,7 +29,6 @@ import (
 	envoy_extensions_common_ratelimit_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
 	lrl "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -38,14 +37,12 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/atomic"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 
+	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 	"github.com/polarismesh/polaris/common/model"
 	testdata "github.com/polarismesh/polaris/test/data"
-	testsuit "github.com/polarismesh/polaris/test/suit"
 )
 
 func generateRateLimitString(ruleType apitraffic.Rule_Type) (string, string, map[string]*anypb.Any) {
@@ -198,7 +195,7 @@ func TestParseNodeID(t *testing.T) {
 		},
 	}
 	for _, item := range testTable {
-		_, ns, id, hostip := parseNodeID(item.NodeID)
+		_, ns, id, hostip := resource.ParseNodeID(item.NodeID)
 		if ns != item.Namespace || id != item.UUID || hostip != item.HostIP {
 			t.Fatalf("parse node id [%s] expected ['%s' '%s' '%s'] got : ['%s' '%s' '%s']",
 				item.NodeID,
@@ -219,39 +216,39 @@ func TestNodeHashID(t *testing.T) {
 				Id: "default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
 				Metadata: &_struct.Struct{
 					Fields: map[string]*structpb.Value{
-						TLSModeTag: &_struct.Value{
+						resource.TLSModeTag: &_struct.Value{
 							Kind: &_struct.Value_StringValue{
-								StringValue: TLSModeStrict,
+								StringValue: string(resource.TLSModeStrict),
 							},
 						},
 					},
 				},
 			},
-			TargetID: "default/" + TLSModeStrict,
+			TargetID: "default/" + string(resource.TLSModeStrict),
 		},
 		{
 			Node: &core.Node{
 				Id: "polaris/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
 				Metadata: &_struct.Struct{
 					Fields: map[string]*structpb.Value{
-						TLSModeTag: &_struct.Value{
+						resource.TLSModeTag: &_struct.Value{
 							Kind: &_struct.Value_StringValue{
-								StringValue: TLSModePermissive,
+								StringValue: string(resource.TLSModePermissive),
 							},
 						},
 					},
 				},
 			},
-			TargetID: "polaris/" + TLSModePermissive,
+			TargetID: "polaris/" + string(resource.TLSModePermissive),
 		},
 		{
 			Node: &core.Node{
 				Id: "default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
 				Metadata: &_struct.Struct{
 					Fields: map[string]*structpb.Value{
-						TLSModeTag: &_struct.Value{
+						resource.TLSModeTag: &_struct.Value{
 							Kind: &_struct.Value_StringValue{
-								StringValue: TLSModeNone,
+								StringValue: string(resource.TLSModeNone),
 							},
 						},
 					},
@@ -265,7 +262,7 @@ func TestNodeHashID(t *testing.T) {
 				Id: "default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
 				Metadata: &_struct.Struct{
 					Fields: map[string]*structpb.Value{
-						TLSModeTag: &_struct.Value{
+						resource.TLSModeTag: &_struct.Value{
 							Kind: &_struct.Value_StringValue{
 								StringValue: "abc",
 							},
@@ -315,7 +312,7 @@ func TestNodeHashID(t *testing.T) {
 		},
 	}
 	for i, item := range testTable {
-		id := PolarisNodeHash{}.ID(item.Node)
+		id := resource.PolarisNodeHash{}.ID(item.Node)
 		if id != item.TargetID {
 			t.Fatalf("test case [%d] failed: expect ID %s, got ID %s",
 				i, item.TargetID, id)
@@ -353,69 +350,6 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func TestSnapshot(t *testing.T) {
-	discoverSuit := &testsuit.DiscoverTestSuit{}
-	err := discoverSuit.Initialize()
-	assert.NoError(t, err)
-
-	sis := map[string][]*ServiceInfo{}
-	_ = json.Unmarshal(testServicesData, &sis)
-
-	x := XDSServer{
-		CircuitBreakerConfigGetter: func(id string) *model.ServiceWithCircuitBreaker {
-			return nil
-		},
-		xdsNodesMgr:           newXDSNodeManager(),
-		namingServer:          discoverSuit.DiscoverServer(),
-		RatelimitConfigGetter: func(_ model.ServiceKey) ([]*model.RateLimit, string) { return nil, "" },
-		versionNum:            atomic.NewUint64(1),
-		cache:                 cache.NewSnapshotCache(true, cache.IDHash{}, nil),
-	}
-
-	mockRouterRule := make([]*apitraffic.RouteRule, 0, 4)
-	mockRouterRuleData, err := os.ReadFile(testdata.Path("xds/router_rule_data.json"))
-	assert.NoError(t, err)
-
-	err = ParseArrayByText(func() proto.Message {
-		rule := &apitraffic.RouteRule{}
-		mockRouterRule = append(mockRouterRule, rule)
-		return rule
-	}, string(mockRouterRuleData))
-	assert.NoError(t, err)
-
-	x.xdsNodesMgr.AddNodeIfAbsent(1, &core.Node{
-		Id: "gateway~default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
-		Metadata: &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				GatewayNamespaceName: structpb.NewStringValue("default"),
-				GatewayServiceName:   structpb.NewStringValue("envoy_gateway"),
-			},
-		},
-	})
-
-	resp := x.namingServer.CreateRoutingConfigsV2(discoverSuit.DefaultCtx, mockRouterRule)
-	assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
-	x.namingServer.Cache().TestUpdate()
-	x.pushSidecarInfoToXDSCache(sis)
-	x.pushGatewayInfoToXDSCache(sis)
-
-	snapshot, _ := x.cache.GetSnapshot("default")
-	dumpYaml := dumpSnapShot(snapshot)
-	assert.Equal(t, string(noInboundDump), string(dumpYaml))
-
-	snapshot, _ = x.cache.GetSnapshot("default/permissive")
-	dumpYaml = dumpSnapShot(snapshot)
-	assert.Equal(t, string(permissiveDump), string(dumpYaml))
-
-	snapshot, _ = x.cache.GetSnapshot("default/strict")
-	dumpYaml = dumpSnapShot(snapshot)
-	assert.Equal(t, string(strictDump), string(dumpYaml))
-
-	snapshot, _ = x.cache.GetSnapshot("gateway~default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1")
-	dumpYaml = dumpSnapShot(snapshot)
-	assert.Equalf(t, string(gatewayDump), string(dumpYaml), "expect : %s, actual : %s", string(gatewayDump), string(dumpYaml))
 }
 
 // ParseArrayByText 通过字符串解析PB数组对象

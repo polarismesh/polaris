@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package xdsserverv3
+package resource
 
 import "testing"
 
@@ -94,7 +94,7 @@ func Test_parseNodeID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotRunType, gotPolarisNamespace, gotUuid, gotHostIP := parseNodeID(tt.args.nodeID)
+			gotRunType, gotPolarisNamespace, gotUuid, gotHostIP := ParseNodeID(tt.args.nodeID)
 			if gotRunType != tt.wantRunType {
 				t.Errorf("parseNodeID() gotRunType = %v, want %v", gotRunType, tt.wantRunType)
 			}
