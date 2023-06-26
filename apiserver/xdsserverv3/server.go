@@ -71,7 +71,6 @@ type XDSServer struct {
 	server          *grpc.Server
 	connLimitConfig *connlimit.Config
 
-	// nolint: lll
 	// compatible 兼容性开关，预计将在 1.20.0 版本默认值为 false, 该开关主要控制是否需要兼容存量 polaris 注入的 envoy
 	// 当 compatible == true 时:
 	// - 旧版本的 polaris envoy 注入: apiserver-xds 插件将会按照命名空间的粒度下发该命名空间下的所有服务实例以及治理规则到 envoy sidecar 中,

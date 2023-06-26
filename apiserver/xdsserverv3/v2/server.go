@@ -51,8 +51,8 @@ type XDSServer struct {
 func (x *XDSServer) Generate(versionLocal string,
 	registryInfo map[string]map[model.ServiceKey]*resource.ServiceInfo) {
 
-	x.buildSidecarXDSCache(versionLocal, registryInfo)
-	x.buildGatewayXDSCache(versionLocal, registryInfo)
+	_ = x.buildSidecarXDSCache(versionLocal, registryInfo)
+	_ = x.buildGatewayXDSCache(versionLocal, registryInfo)
 }
 
 func (x *XDSServer) buildSidecarXDSCache(versionLocal string,
