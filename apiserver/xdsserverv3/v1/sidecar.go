@@ -26,6 +26,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	resourcev3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"go.uber.org/zap"
@@ -249,4 +250,51 @@ func buildWeightClustersForSidecar(svcInfo *resource.ServiceInfo,
 		weightClusters.Clusters[i].Name = svcInfo.Name
 	}
 	return weightClusters
+}
+
+func buildWeightClustersV2(destinations []*traffic_manage.DestinationGroup) *route.WeightedCluster {
+	var (
+		weightedClusters []*route.WeightedCluster_ClusterWeight
+		totalWeight      uint32
+	)
+
+	// 使用 destinations 生成 weightedClusters。makeClusters() 也使用这个字段生成对应的 subset
+	for _, destination := range destinations {
+		if destination.GetWeight() == 0 {
+			continue
+		}
+		fields := make(map[string]*_struct.Value)
+		for k, v := range destination.GetLabels() {
+			if k == utils.MatchAll && v.GetValue().GetValue() == utils.MatchAll {
+				// 重置 cluster 的匹配规则
+				fields = make(map[string]*_struct.Value)
+				break
+			}
+			fields[k] = &_struct.Value{
+				Kind: &_struct.Value_StringValue{
+					StringValue: v.Value.Value,
+				},
+			}
+		}
+		cluster := &route.WeightedCluster_ClusterWeight{
+			Name:   destination.Service,
+			Weight: utils.NewUInt32Value(destination.GetWeight()),
+			MetadataMatch: &core.Metadata{
+				FilterMetadata: map[string]*_struct.Struct{
+					"envoy.lb": {
+						Fields: fields,
+					},
+				},
+			},
+		}
+		if len(fields) == 0 {
+			cluster.MetadataMatch = nil
+		}
+		weightedClusters = append(weightedClusters, cluster)
+		totalWeight += destination.Weight
+	}
+	return &route.WeightedCluster{
+		TotalWeight: &wrappers.UInt32Value{Value: totalWeight},
+		Clusters:    weightedClusters,
+	}
 }
