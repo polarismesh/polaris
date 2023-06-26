@@ -18,9 +18,8 @@
 package v1
 
 import (
-	"go.uber.org/atomic"
-
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	"go.uber.org/atomic"
 
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 	"github.com/polarismesh/polaris/common/model"

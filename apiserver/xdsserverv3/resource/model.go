@@ -68,7 +68,7 @@ type ServiceInfo struct {
 	SvcInsRevision       string
 	Routing              *traffic_manage.Routing
 	SvcRoutingRevision   string
-	Ports                string
+	Ports                []*model.ServicePort
 	RateLimit            *traffic_manage.RateLimit
 	SvcRateLimitRevision string
 }

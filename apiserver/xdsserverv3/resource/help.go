@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"math"
 	"strconv"
-	"strings"
 	"time"
 
 	accesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
@@ -45,9 +44,6 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/polarismesh/polaris/cache"
-	"github.com/polarismesh/polaris/common/model"
-	"github.com/polarismesh/polaris/common/utils"
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -57,6 +53,10 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	"github.com/polarismesh/polaris/cache"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 const (
@@ -497,14 +497,11 @@ func GenerateServiceDomains(serviceInfo *ServiceInfo) []string {
 
 	resDomains := domains
 	// 上面各种服务名加服务端口
-	portsStr := serviceInfo.Ports
-	ports := strings.Split(portsStr, ",")
+	ports := serviceInfo.Ports
 	for _, port := range ports {
-		if _, err := strconv.Atoi(port); err == nil {
-			// 如果是数字，则为每个域名产生一个带端口的域名
-			for _, s := range domains {
-				resDomains = append(resDomains, s+":"+port)
-			}
+		// 如果是数字，则为每个域名产生一个带端口的域名
+		for _, s := range domains {
+			resDomains = append(resDomains, s+":"+strconv.FormatUint(uint64(port.Port), 10))
 		}
 	}
 	return resDomains

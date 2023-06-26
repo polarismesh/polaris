@@ -12,11 +12,12 @@ import (
 	typev3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/polarismesh/polaris/common/utils"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 func buildCommonRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.SourceService) {

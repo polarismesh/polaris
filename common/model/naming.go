@@ -37,30 +37,36 @@ type Namespace struct {
 	ModifyTime time.Time
 }
 
+type ServicePort struct {
+	Port     uint32
+	Protocol string
+}
+
 // Service 服务数据
 type Service struct {
-	ID          string
-	Name        string
-	Namespace   string
-	Business    string
-	Ports       string
-	Meta        map[string]string
-	Comment     string
-	Department  string
-	CmdbMod1    string
-	CmdbMod2    string
-	CmdbMod3    string
-	Token       string
-	Owner       string
-	Revision    string
-	Reference   string
-	ReferFilter string
-	PlatformID  string
-	Valid       bool
-	CreateTime  time.Time
-	ModifyTime  time.Time
-	Mtime       int64
-	Ctime       int64
+	ID           string
+	Name         string
+	Namespace    string
+	Business     string
+	Ports        string
+	Meta         map[string]string
+	Comment      string
+	Department   string
+	CmdbMod1     string
+	CmdbMod2     string
+	CmdbMod3     string
+	Token        string
+	Owner        string
+	Revision     string
+	Reference    string
+	ReferFilter  string
+	PlatformID   string
+	Valid        bool
+	CreateTime   time.Time
+	ModifyTime   time.Time
+	Mtime        int64
+	Ctime        int64
+	ServicePorts []*ServicePort
 }
 
 // EnhancedService 服务增强数据

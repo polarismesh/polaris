@@ -25,6 +25,7 @@ import (
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
+
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -124,18 +125,30 @@ func (eds *EDSBuilder) makeSelfEndpoint(option *resource.BuildOption) []types.Re
 		Name:      eds.client.GetSelfService(),
 	}
 
-	var portsStr = ""
+	var servicePorts []*model.ServicePort
 	selfServiceInfo, ok := option.Services[selfServiceKey]
 	if ok {
-		portsStr = selfServiceInfo.Ports
+		servicePorts = selfServiceInfo.Ports
 	} else {
 		// sidecar 的服务没有注册，那就看下 envoy metadata 上有没有设置 sidecar_bindports 标签
-		portsStr = eds.client.Metadata[resource.SidecarBindPort]
+		portsSlice := strings.Split(eds.client.Metadata[resource.SidecarBindPort], ",")
+		if len(portsSlice) > 0 {
+			for i := range portsSlice {
+				ret, err := strconv.ParseUint(portsSlice[i], 10, 64)
+				if err != nil {
+					continue
+				}
+				if ret <= 65535 {
+					servicePorts = append(servicePorts, &model.ServicePort{
+						Port:     uint32(ret),
+						Protocol: "TCP",
+					})
+				}
+			}
+		}
 	}
 
-	ports := strings.Split(portsStr, ",")
-	for _, port := range ports {
-		portVal, _ := strconv.ParseUint(port, 10, 64)
+	for _, port := range servicePorts {
 		ep := &endpoint.LbEndpoint{
 			HostIdentifier: &endpoint.LbEndpoint_Endpoint{
 				Endpoint: &endpoint.Endpoint{
@@ -145,7 +158,7 @@ func (eds *EDSBuilder) makeSelfEndpoint(option *resource.BuildOption) []types.Re
 								Protocol: core.SocketAddress_TCP,
 								Address:  "127.0.0.1",
 								PortSpecifier: &core.SocketAddress_PortValue{
-									PortValue: uint32(portVal),
+									PortValue: port.Port,
 								},
 							},
 						},

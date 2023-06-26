@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"strings"
 	"time"
 
 	clusterservice "github.com/envoyproxy/go-control-plane/envoy/service/cluster/v3"
@@ -352,7 +351,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 			Namespace:  value.Namespace,
 			ServiceKey: svcKey,
 			Instances:  []*apiservice.Instance{},
-			Ports:      value.Ports,
+			Ports:      value.ServicePorts,
 		}
 		registryInfo[value.Namespace][svcKey] = info
 		return true, nil
@@ -398,9 +397,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 			if svc.AliasFor != nil {
 				ports = x.namingServer.Cache().Instance().GetServicePorts(svc.AliasFor.ID)
 			}
-			if len(ports) > 0 {
-				svc.Ports = strings.Join(ports, ",")
-			}
+			svc.Ports = ports
 
 			// 获取ratelimit配置
 			ratelimitResp := x.namingServer.GetRateLimitWithCache(ctx, s)
