@@ -58,10 +58,10 @@ var (
 	}
 
 	boundBindPort = map[corev3.TrafficDirection]uint32{
-		// sidecar -> envoy 方向 envoy 的监听端口
-		core.TrafficDirection_INBOUND: 15001,
 		// envoy -> sidecar 方向 envoy 的监听端口，主要是 EnvoyGateway 以及 Sidecar InBound 场景
-		core.TrafficDirection_OUTBOUND: 15006,
+		core.TrafficDirection_INBOUND: 15006,
+		// sidecar -> envoy 方向 envoy 的监听端口
+		core.TrafficDirection_OUTBOUND: 15001,
 	}
 )
 
@@ -77,20 +77,39 @@ func (lds *LDSBuilder) Init(clien *resource.XDSClient, svr service.DiscoverServe
 }
 
 func (lds *LDSBuilder) Generate(option *resource.BuildOption) (interface{}, error) {
+	var resources []types.Resource
+
 	switch lds.client.RunType {
 	case resource.RunTypeGateway:
-		if option.TrafficDirection == core.TrafficDirection_OUTBOUND {
-			return []types.Resource{}, nil
+		ret, err := lds.makeListener(option, core.TrafficDirection_OUTBOUND)
+		if err != nil {
+			return nil, err
 		}
+		resources = ret
 	case resource.RunTypeSidecar:
+		inBoundListener, err := lds.makeListener(option, corev3.TrafficDirection_INBOUND)
+		if err != nil {
+			return nil, err
+		}
+		outBoundListener, err := lds.makeListener(option, corev3.TrafficDirection_OUTBOUND)
+		if err != nil {
+			return nil, err
+		}
+		resources = append(resources, inBoundListener...)
+		resources = append(resources, outBoundListener...)
 	}
-	return lds.makeListener(option)
+	return resources, nil
 }
 
-func (lds *LDSBuilder) makeListener(option *resource.BuildOption) ([]types.Resource, error) {
-	boundHCM := resource.MakeBoundHCM(option.TrafficDirection)
+func (lds *LDSBuilder) makeListener(option *resource.BuildOption,
+	direction corev3.TrafficDirection) ([]types.Resource, error) {
 
-	listener := makeDefaultListener(option.TrafficDirection, boundHCM)
+	boundHCM := resource.MakeBoundHCM(direction)
+	if lds.client.IsGateway() {
+		boundHCM = resource.MakeGatewayBoundHCM()
+	}
+
+	listener := makeDefaultListener(direction, boundHCM)
 	listener.ListenerFilters = append(listener.ListenerFilters, defaultListenerFilters...)
 
 	if option.TLSMode != resource.TLSModeNone {

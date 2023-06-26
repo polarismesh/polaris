@@ -18,6 +18,7 @@
 package resource
 
 import (
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
@@ -49,6 +50,11 @@ const (
 	TLSModeNone       TLSMode = "none"
 	TLSModeStrict     TLSMode = "strict"
 	TLSModePermissive TLSMode = "permissive"
+)
+
+var (
+	// 这个是特殊指定的 prefix
+	MatchString_Prefix = apimodel.MatchString_MatchStringType(-1)
 )
 
 // ServiceInfo 北极星服务结构体

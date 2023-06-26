@@ -36,6 +36,7 @@ import (
 	serverv3 "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/atomic"
+	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 	"google.golang.org/grpc"
 
@@ -237,6 +238,7 @@ func (x *XDSServer) activeUpdateTask() {
 	if !x.active.CompareAndSwap(false, true) {
 		return
 	}
+	log.Info("active update xds resource snapshot task")
 
 	if err := x.initRegistryInfo(); err != nil {
 		log.Errorf("initRegistryInfo %v", err)
@@ -258,7 +260,7 @@ func (x *XDSServer) startSynTask(ctx context.Context) {
 
 		err := x.getRegistryInfoWithCache(ctx, registryInfo)
 		if err != nil {
-			log.Errorf("get registry info from cache error %v", err)
+			log.Error("get registry info from cache", zap.Error(err))
 			return
 		}
 
@@ -293,17 +295,19 @@ func (x *XDSServer) startSynTask(ctx context.Context) {
 		}
 
 		if len(needPush) > 0 {
+			log.Info("start update xds resource snapshot ticker task", zap.Int("need-push", len(needPush)))
 			x.Generate(needPush)
 		}
 	}
 
 	ticker := time.NewTicker(5 * cache.UpdateCacheInterval)
-	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
 			synXdsConfFunc()
 		case <-ctx.Done():
+			ticker.Stop()
+			log.Info("stop update xds resource snapshot ticker task")
 			return
 		}
 	}
@@ -401,7 +405,8 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 			// 获取ratelimit配置
 			ratelimitResp := x.namingServer.GetRateLimitWithCache(ctx, s)
 			if ratelimitResp.GetCode().Value != api.ExecuteSuccess {
-				log.Errorf("[XDSV3] error sync ratelimit for %s, info : %s", svc.Name, ratelimitResp.Info.GetValue())
+				log.Errorf("[XDSV3] error sync ratelimit for %s, info : %s", svc.Name,
+					ratelimitResp.Info.GetValue())
 				return fmt.Errorf("error sync ratelimit for %s", svc.Name)
 			}
 			if ratelimitResp.RateLimit != nil {

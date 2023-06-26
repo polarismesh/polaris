@@ -48,10 +48,6 @@ func (rds *RDSBuilder) Generate(option *resource.BuildOption) (interface{}, erro
 
 	switch rds.client.RunType {
 	case resource.RunTypeGateway:
-		// OutBound 类型不做处理
-		if option.TrafficDirection == corev3.TrafficDirection_OUTBOUND {
-			return []types.Resource{}, nil
-		}
 		// Envoy Gateway 场景只需要支持入流量场景处理即可
 		ret, err := rds.makeGatewayVirtualHosts(option)
 		if err != nil {
@@ -71,44 +67,53 @@ func (rds *RDSBuilder) makeSidecarVirtualHosts(option *resource.BuildOption) []t
 		hosts      []*route.VirtualHost
 	)
 
-	if option.TrafficDirection == corev3.TrafficDirection_OUTBOUND {
-		services := option.Services
-		for _, serviceInfo := range services {
-			vHost := &route.VirtualHost{
-				Name:    resource.MakeServiceName(serviceInfo.ServiceKey, option.TrafficDirection),
-				Domains: resource.GenerateServiceDomains(serviceInfo),
-				Routes:  rds.makeSidecarOutBoundRoutes(option.TrafficDirection, serviceInfo),
-			}
-			hosts = append(hosts, vHost)
+	selfService := model.ServiceKey{
+		Namespace: rds.client.GetSelfNamespace(),
+		Name:      rds.client.GetSelfService(),
+	}
+
+	// step 1: 生成服务的 OUTBOUND 规则
+	services := option.Services
+	for svcKey, serviceInfo := range services {
+		vHost := &route.VirtualHost{
+			Name:    resource.MakeServiceName(svcKey, corev3.TrafficDirection_OUTBOUND),
+			Domains: resource.GenerateServiceDomains(serviceInfo),
+			Routes:  rds.makeSidecarOutBoundRoutes(corev3.TrafficDirection_OUTBOUND, serviceInfo),
 		}
-	} else {
-		selfService := model.ServiceKey{
-			Namespace: rds.client.GetSelfNamespace(),
-			Name:      rds.client.GetSelfService(),
-		}
-		// 服务信息不存在或者不精确，不下发 InBound RDS 规则信息
-		if selfService.IsExact() {
-			vHost := &route.VirtualHost{
-				Name:    resource.MakeServiceName(selfService, option.TrafficDirection),
-				Domains: []string{"*"},
-				Routes:  rds.makeSidecarInBoundRoutes(selfService, option.TrafficDirection),
-			}
-			hosts = append(hosts, vHost)
-		}
+		hosts = append(hosts, vHost)
 	}
 
 	// 最后是 allow_any
 	hosts = append(hosts, resource.BuildAllowAnyVHost())
 
 	routeConfiguration := &route.RouteConfiguration{
-		Name: resource.RouteConfigName,
+		Name: resource.OutBoundRouteConfigName,
 		ValidateClusters: &wrappers.BoolValue{
 			Value: false,
 		},
 		VirtualHosts: hosts,
 	}
+	routeConfs = append(routeConfs, routeConfiguration)
 
-	return append(routeConfs, routeConfiguration)
+	// step 2: 生成 sidecar 所属服务的 INBOUND 规则
+	// 服务信息不存在或者不精确，不下发 InBound RDS 规则信息
+	if selfService.IsExact() {
+		routeConfs = append(routeConfs, &route.RouteConfiguration{
+			Name: resource.InBoundRouteConfigName,
+			ValidateClusters: &wrappers.BoolValue{
+				Value: false,
+			},
+			VirtualHosts: []*route.VirtualHost{
+				{
+					Name:    resource.MakeServiceName(selfService, corev3.TrafficDirection_INBOUND),
+					Domains: []string{"*"},
+					Routes:  rds.makeSidecarInBoundRoutes(selfService, corev3.TrafficDirection_INBOUND),
+				},
+			},
+		})
+	}
+
+	return routeConfs
 }
 
 func (rds *RDSBuilder) makeSidecarInBoundRoutes(selfService model.ServiceKey,
@@ -226,7 +231,7 @@ func (rds *RDSBuilder) makeGatewayVirtualHosts(option *resource.BuildOption) ([]
 	}
 	hosts = append(hosts, vHost)
 	routeConfiguration := &route.RouteConfiguration{
-		Name:         resource.RouteConfigName,
+		Name:         resource.OutBoundRouteConfigName,
 		VirtualHosts: hosts,
 	}
 	return append(routeConfs, routeConfiguration), nil
@@ -291,7 +296,8 @@ func (rds *RDSBuilder) makeGatewayRoutes(option *resource.BuildOption,
 				continue
 			}
 
-			route := resource.MakeGatewayRoute(corev3.TrafficDirection_OUTBOUND, routeMatch, subRule.GetDestinations())
+			route := resource.MakeGatewayRoute(corev3.TrafficDirection_OUTBOUND, routeMatch,
+				subRule.GetDestinations())
 			pathInfo := route.GetMatch().GetPath()
 			if pathInfo == "" {
 				pathInfo = route.GetMatch().GetSafeRegex().GetRegex()
@@ -321,7 +327,6 @@ func (rds *RDSBuilder) makeGatewayRoutes(option *resource.BuildOption,
 			},
 		},
 	})
-
 	return routes, nil
 }
 

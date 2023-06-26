@@ -20,7 +20,6 @@ package v2
 import (
 	"context"
 
-	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	resourcev3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
@@ -33,6 +32,7 @@ import (
 )
 
 func New(opt ...options) *XDSServer {
+	registerXDSBuilder()
 	svr := &XDSServer{}
 	for i := range opt {
 		opt[i](svr)
@@ -61,6 +61,8 @@ func (x *XDSServer) buildSidecarXDSCache(versionLocal string,
 	nodes := x.xdsNodesMgr.ListSidecarNodes()
 	if len(nodes) == 0 || len(registryInfo) == 0 {
 		// 如果没有任何一个 XDS Sidecar Node 客户端，不做任何操作
+		log.Info("[XDS][Sidecar][V2] xds nodes or registryInfo is empty", zap.Int("nodes", len(nodes)),
+			zap.Int("registr", len(registryInfo)))
 		return nil
 	}
 
@@ -68,7 +70,8 @@ func (x *XDSServer) buildSidecarXDSCache(versionLocal string,
 	for i := range nodes {
 		node := nodes[i]
 		if node.IsGateway() {
-			log.Errorf("[XDS][Sidecar][V2] xds node=%s run type not sidecar or info is invalid", node.Node.Id)
+			log.Error("[XDS][Sidecar][V2] run type not sidecar or info is invalid",
+				zap.String("node", node.Node.Id))
 			continue
 		}
 
@@ -81,9 +84,14 @@ func (x *XDSServer) buildSidecarXDSCache(versionLocal string,
 		selfNamespace := node.GetSelfNamespace()
 		services := registryInfo[selfNamespace]
 		if len(services) == 0 {
+			log.Info("[XDS][Sidecar][V2] service is empty, maybe not update",
+				zap.String("namespace", selfNamespace), zap.String("cacheKey", cacheKey))
 			continue
 		}
-		x.makeSidecarSnapshot(node, node.TLSMode, versionLocal, services)
+		if err := x.makeSidecarSnapshot(node, node.TLSMode, versionLocal, services); err != nil {
+			log.Error("[XDS][Sidecar][V2] make snapshot fail", zap.String("cacheKey", cacheKey),
+				zap.Error(err))
+		}
 	}
 	return nil
 }
@@ -92,9 +100,11 @@ func (x *XDSServer) buildSidecarXDSCache(versionLocal string,
 func (x *XDSServer) buildGatewayXDSCache(versionLocal string,
 	registryInfo map[string]map[model.ServiceKey]*resource.ServiceInfo) error {
 
-	nodes := x.xdsNodesMgr.ListSidecarNodes()
+	nodes := x.xdsNodesMgr.ListGatewayNodes()
 	if len(nodes) == 0 || len(registryInfo) == 0 {
 		// 如果没有任何一个 XDS Gateway Node 客户端，不做任何操作
+		log.Info("[XDS][Gateway][V2] xds nodes or registryInfo is empty", zap.Int("nodes", len(nodes)),
+			zap.Int("registr", len(registryInfo)))
 		return nil
 	}
 
@@ -102,7 +112,8 @@ func (x *XDSServer) buildGatewayXDSCache(versionLocal string,
 	for i := range nodes {
 		node := nodes[i]
 		if !node.IsGateway() {
-			log.Errorf("[XDS][Gateway][V2] xds node=%s run type not gateway or info is invalid", node.Node.Id)
+			log.Error("[XDS][Gateway][V2] run type not gateway or info is invalid",
+				zap.String("node", node.Node.Id))
 			continue
 		}
 
@@ -111,7 +122,10 @@ func (x *XDSServer) buildGatewayXDSCache(versionLocal string,
 			continue
 		}
 		alreadyMakeCache[cacheKey] = struct{}{}
-		x.makeGatewaySnapshot(node, node.TLSMode, versionLocal, registryInfo)
+		if err := x.makeGatewaySnapshot(node, node.TLSMode, versionLocal, registryInfo); err != nil {
+			log.Error("[XDS][Gateway][V2] make snapshot fail", zap.String("cacheKey", cacheKey),
+				zap.Error(err))
+		}
 	}
 	return nil
 }
@@ -122,79 +136,55 @@ func (x *XDSServer) makeSidecarSnapshot(xdsNode *resource.XDSClient, tlsMode res
 
 	// 构建所有 XDS 的 INBOUND Snapshot Resource
 	opt := &resource.BuildOption{
-		Services:         services,
-		TLSMode:          tlsMode,
-		TrafficDirection: corev3.TrafficDirection_INBOUND,
-		VersionLocal:     version,
-		Namespace:        xdsNode.GetSelfNamespace(),
+		Services:     services,
+		TLSMode:      tlsMode,
+		VersionLocal: version,
+		Namespace:    xdsNode.GetSelfNamespace(),
 	}
 	// 构建 endpoints XDS 资源缓存数据
-	inBoundEndpoints, err := x.generateXDSResource(resource.EDS, xdsNode, opt)
+	boundEndpoints, err := x.generateXDSResource(resource.EDS, xdsNode, opt)
 	if err != nil {
 		return err
 	}
 	// 构建 cluster XDS 资源缓存数据
-	inBoundClusters, err := x.generateXDSResource(resource.CDS, xdsNode, opt)
+	boundClusters, err := x.generateXDSResource(resource.CDS, xdsNode, opt)
 	if err != nil {
 		return err
 	}
 	// 构建 route XDS 资源缓存
-	inBoundRouters, err := x.generateXDSResource(resource.RDS, xdsNode, opt)
+	boundRouters, err := x.generateXDSResource(resource.RDS, xdsNode, opt)
 	if err != nil {
 		return err
 	}
 	// 构建 listener XDS 资源缓存
-	inBoundListeners, err := x.generateXDSResource(resource.LDS, xdsNode, opt)
-	if err != nil {
-		return err
-	}
-
-	// 构建所有 XDS 的 INBOUND Snapshot Resource
-	opt = &resource.BuildOption{
-		Services:         services,
-		TLSMode:          tlsMode,
-		TrafficDirection: corev3.TrafficDirection_OUTBOUND,
-	}
-	// 构建 endpoints XDS 资源缓存数据
-	outBoundEndpoints, err := x.generateXDSResource(resource.EDS, xdsNode, opt)
-	if err != nil {
-		return err
-	}
-	// 构建 cluster XDS 资源缓存数据
-	outBoundClusters, err := x.generateXDSResource(resource.CDS, xdsNode, opt)
-	if err != nil {
-		return err
-	}
-	// 构建 route XDS 资源缓存
-	outBoundRouters, err := x.generateXDSResource(resource.RDS, xdsNode, opt)
-	if err != nil {
-		return err
-	}
-	// 构建 listener XDS 资源缓存
-	outBoundListeners, err := x.generateXDSResource(resource.LDS, xdsNode, opt)
+	boundListeners, err := x.generateXDSResource(resource.LDS, xdsNode, opt)
 	if err != nil {
 		return err
 	}
 
 	resources := make(map[resourcev3.Type][]types.Resource)
-	resources[resourcev3.EndpointType] = append(outBoundEndpoints, inBoundEndpoints...)
-	resources[resourcev3.ClusterType] = append(outBoundClusters, inBoundClusters...)
-	resources[resourcev3.RouteType] = append(outBoundRouters, inBoundRouters...)
-	resources[resourcev3.ListenerType] = append(outBoundListeners, inBoundListeners...)
+	resources[resourcev3.EndpointType] = boundEndpoints
+	resources[resourcev3.ClusterType] = boundClusters
+	resources[resourcev3.RouteType] = boundRouters
+	resources[resourcev3.ListenerType] = boundListeners
 
 	cacheKey := (resource.PolarisNodeHash{}).ID(xdsNode.Node)
 	snapshot, err := cachev3.NewSnapshot(version, resources)
 	if err != nil {
-		log.Errorf("[XDS][Sidecar][V2] fail to create snapshot", zap.String("cacheKey", cacheKey), zap.Error(err))
+		log.Error("[XDS][Sidecar][V2] fail to create snapshot", zap.String("cacheKey", cacheKey),
+			zap.Error(err))
 		return err
 	}
 	if err := snapshot.Consistent(); err != nil {
+		log.Error("[XDS][Sidecar][V2] verify snapshot consistent", zap.String("cacheKey", cacheKey),
+			zap.Error(err))
 		return err
 	}
 
 	// 为每个 nodeId 刷写 cache ，推送 xds 更新
 	if err := x.cache.SetSnapshot(context.Background(), cacheKey, snapshot); err != nil {
-		log.Error("[XDS][Sidecar][V2] upsert snapshot error", zap.String("cacheKey", cacheKey), zap.Error(err))
+		log.Error("[XDS][Sidecar][V2] upsert snapshot error",
+			zap.String("cacheKey", cacheKey), zap.Error(err))
 		return err
 	}
 	log.Info("[XDS][Sidecar][V2] upsert snapshot success", zap.String("cacheKey", cacheKey),
@@ -209,9 +199,8 @@ func (x *XDSServer) makeGatewaySnapshot(xdsNode *resource.XDSClient, tlsMode res
 	nodeId := xdsNode.Node.Id
 
 	opt := &resource.BuildOption{
-		TLSMode:          tlsMode,
-		TrafficDirection: corev3.TrafficDirection_OUTBOUND,
-		VersionLocal:     version,
+		TLSMode:      tlsMode,
+		VersionLocal: version,
 	}
 	var (
 		allEndpoints []types.Resource
@@ -221,7 +210,7 @@ func (x *XDSServer) makeGatewaySnapshot(xdsNode *resource.XDSClient, tlsMode res
 	for namespace, services := range registryInfo {
 		opt.Services = services
 		opt.Namespace = namespace
-		// 构建 endpoints XDS 资源缓存数据
+		// 构建 endpoints XDS 资源缓存数据，这里不需要下发网关的自己的
 		endpoints, err := x.generateXDSResource(resource.EDS, xdsNode, opt)
 		if err != nil {
 			return err
@@ -241,8 +230,6 @@ func (x *XDSServer) makeGatewaySnapshot(xdsNode *resource.XDSClient, tlsMode res
 		allRouters = append(allRouters, routers...)
 	}
 
-	// 注意: 网关这里 LDS 需要设置的 INBOUND 类型参数
-	opt.TrafficDirection = corev3.TrafficDirection_INBOUND
 	// 构建 listener XDS 资源缓存
 	listeners, err := x.generateXDSResource(resource.LDS, xdsNode, opt)
 	if err != nil {
@@ -266,7 +253,8 @@ func (x *XDSServer) makeGatewaySnapshot(xdsNode *resource.XDSClient, tlsMode res
 	cacheKey := (resource.PolarisNodeHash{}).ID(xdsNode.Node)
 	// 为每个 nodeId 刷写 cache ，推送 xds 更新
 	if err := x.cache.SetSnapshot(context.Background(), cacheKey, snapshot); err != nil {
-		log.Error("[XDS][Gateway][V2] upsert snapshot error", zap.String("cacheKey", cacheKey), zap.Error(err))
+		log.Error("[XDS][Gateway][V2] upsert snapshot error",
+			zap.String("cacheKey", cacheKey), zap.Error(err))
 		return err
 	}
 	log.Info("[XDS][Gateway][V2] upsert snapshot success", zap.String("cacheKey", cacheKey),
@@ -285,4 +273,19 @@ func (x *XDSServer) generateXDSResource(xdsType resource.XDSType, xdsNode *resou
 		return nil, err
 	}
 	return resources.([]types.Resource), nil
+}
+
+func registerXDSBuilder() {
+	resource.RegisterFactory(resource.EDS, func() resource.XDSBuilder {
+		return &EDSBuilder{}
+	})
+	resource.RegisterFactory(resource.CDS, func() resource.XDSBuilder {
+		return &CDSBuilder{}
+	})
+	resource.RegisterFactory(resource.LDS, func() resource.XDSBuilder {
+		return &LDSBuilder{}
+	})
+	resource.RegisterFactory(resource.RDS, func() resource.XDSBuilder {
+		return &RDSBuilder{}
+	})
 }

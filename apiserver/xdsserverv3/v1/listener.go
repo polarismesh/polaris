@@ -20,7 +20,6 @@ package v1
 import (
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	lrl "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	tcp "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
@@ -45,19 +44,6 @@ func makeListeners() []types.Resource {
 			},
 		},
 		HttpFilters: []*hcm.HttpFilter{},
-	}
-
-	ratelimit := lrl.LocalRateLimit{
-		StatPrefix: "http_local_rate_limiter",
-	}
-	limitPb, err := ptypes.MarshalAny(&ratelimit)
-	if err == nil {
-		manager.HttpFilters = append(manager.HttpFilters, &hcm.HttpFilter{
-			Name: "envoy.filters.http.local_ratelimit",
-			ConfigType: &hcm.HttpFilter_TypedConfig{
-				TypedConfig: limitPb,
-			},
-		})
 	}
 	manager.HttpFilters = append(manager.HttpFilters, &hcm.HttpFilter{
 		Name: wellknown.Router,

@@ -60,8 +60,17 @@ import (
 )
 
 const (
-	PassthroughClusterName = "PassthroughCluster"
-	RouteConfigName        = "polaris-router"
+	PassthroughClusterName  = "PassthroughCluster"
+	RouteConfigName         = "polaris-router"
+	OutBoundRouteConfigName = "polaris-outbound-router"
+	InBoundRouteConfigName  = "polaris-inbound-cluster"
+)
+
+var (
+	TrafficBoundRoute = map[corev3.TrafficDirection]string{
+		corev3.TrafficDirection_INBOUND:  InBoundRouteConfigName,
+		corev3.TrafficDirection_OUTBOUND: OutBoundRouteConfigName,
+	}
 )
 
 func MakeServiceGatewayDomains() []string {
@@ -281,6 +290,77 @@ func BuildLocalRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLim
 	[]*ratelimitv32.LocalRateLimitDescriptor) {
 	actions := make([]*route.RateLimit_Action, 0, 8)
 	descriptors := make([]*ratelimitv32.LocalRateLimitDescriptor, 0, 8)
+
+	entries := make([]*envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry, 0, len(rule.Labels))
+
+	methodMatchType := rule.GetMethod().GetType()
+	methodName := rule.GetMethod().GetValue().GetValue()
+	if methodName == "" {
+		methodName = "/"
+		methodMatchType = MatchString_Prefix
+	}
+	actions = append(actions, &route.RateLimit_Action{
+		ActionSpecifier: &route.RateLimit_Action_HeaderValueMatch_{
+			HeaderValueMatch: BuildRateLimitActionHeaderValueMatch(":path", &apimodel.MatchString{
+				Type:      methodMatchType,
+				Value:     wrapperspb.String(methodName),
+				ValueType: apimodel.MatchString_TEXT,
+			}),
+		},
+	})
+	entries = append(entries, &ratelimitv32.RateLimitDescriptor_Entry{
+		Key:   "header_match",
+		Value: methodName,
+	})
+	arguments := rule.GetArguments()
+
+	for i := range arguments {
+		arg := arguments[i]
+		switch arg.Type {
+		case apitraffic.MatchArgument_HEADER:
+			headerValueMatch := BuildRateLimitActionHeaderValueMatch(arg.Key, arg.Value)
+			actions = append(actions, &route.RateLimit_Action{
+				ActionSpecifier: &route.RateLimit_Action_HeaderValueMatch_{
+					HeaderValueMatch: headerValueMatch,
+				},
+			})
+			entries = append(entries, &ratelimitv32.RateLimitDescriptor_Entry{
+				Key:   "header_match",
+				Value: arg.GetValue().GetValue().GetValue(),
+			})
+		case apitraffic.MatchArgument_QUERY:
+			queryParameterValueMatch := BuildRateLimitActionQueryParameterValueMatch(arg.Key, arg.Value)
+			actions = append(actions, &route.RateLimit_Action{
+				ActionSpecifier: &route.RateLimit_Action_QueryParameterValueMatch_{
+					QueryParameterValueMatch: queryParameterValueMatch,
+				},
+			})
+			entries = append(entries, &ratelimitv32.RateLimitDescriptor_Entry{
+				Key:   "query_match",
+				Value: arg.GetValue().GetValue().GetValue(),
+			})
+		case apitraffic.MatchArgument_METHOD:
+			actions = append(actions, &route.RateLimit_Action{
+				ActionSpecifier: &route.RateLimit_Action_RequestHeaders_{
+					RequestHeaders: &route.RateLimit_Action_RequestHeaders{
+						HeaderName:    ":method",
+						DescriptorKey: arg.Key,
+					},
+				},
+			})
+			entries = append(entries, &envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry{
+				Key:   arg.Key,
+				Value: arg.GetValue().GetValue().GetValue(),
+			})
+		case apitraffic.MatchArgument_CALLER_IP:
+			actions = append(actions, &route.RateLimit_Action{
+				ActionSpecifier: &route.RateLimit_Action_RemoteAddress_{
+					RemoteAddress: &route.RateLimit_Action_RemoteAddress{},
+				},
+			})
+		}
+	}
+
 	for _, amount := range rule.Amounts {
 		descriptor := &envoy_extensions_common_ratelimit_v3.LocalRateLimitDescriptor{
 			TokenBucket: &envoy_type_v3.TokenBucket{
@@ -288,66 +368,6 @@ func BuildLocalRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLim
 				TokensPerFill: wrapperspb.UInt32(amount.GetMaxAmount().GetValue()),
 				FillInterval:  amount.GetValidDuration(),
 			},
-		}
-		entries := make([]*envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry, 0, len(rule.Labels))
-		if len(rule.GetMethod().GetValue().GetValue()) != 0 {
-			actions = append(actions, &route.RateLimit_Action{
-				ActionSpecifier: &route.RateLimit_Action_HeaderValueMatch_{
-					HeaderValueMatch: BuildRateLimitActionHeaderValueMatch(":path", rule.GetMethod()),
-				},
-			})
-			entries = append(entries, &ratelimitv32.RateLimitDescriptor_Entry{
-				Key:   "header_match",
-				Value: rule.GetMethod().GetValue().GetValue(),
-			})
-		}
-		arguments := rule.GetArguments()
-
-		for i := range arguments {
-			arg := arguments[i]
-			switch arg.Type {
-			case apitraffic.MatchArgument_HEADER:
-				headerValueMatch := BuildRateLimitActionHeaderValueMatch(arg.Key, arg.Value)
-				actions = append(actions, &route.RateLimit_Action{
-					ActionSpecifier: &route.RateLimit_Action_HeaderValueMatch_{
-						HeaderValueMatch: headerValueMatch,
-					},
-				})
-				entries = append(entries, &ratelimitv32.RateLimitDescriptor_Entry{
-					Key:   "header_match",
-					Value: arg.GetValue().GetValue().GetValue(),
-				})
-			case apitraffic.MatchArgument_QUERY:
-				queryParameterValueMatch := BuildRateLimitActionQueryParameterValueMatch(arg.Key, arg.Value)
-				actions = append(actions, &route.RateLimit_Action{
-					ActionSpecifier: &route.RateLimit_Action_QueryParameterValueMatch_{
-						QueryParameterValueMatch: queryParameterValueMatch,
-					},
-				})
-				entries = append(entries, &ratelimitv32.RateLimitDescriptor_Entry{
-					Key:   "query_match",
-					Value: arg.GetValue().GetValue().GetValue(),
-				})
-			case apitraffic.MatchArgument_METHOD:
-				actions = append(actions, &route.RateLimit_Action{
-					ActionSpecifier: &route.RateLimit_Action_RequestHeaders_{
-						RequestHeaders: &route.RateLimit_Action_RequestHeaders{
-							HeaderName:    ":method",
-							DescriptorKey: arg.Key,
-						},
-					},
-				})
-				entries = append(entries, &envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry{
-					Key:   arg.Key,
-					Value: arg.GetValue().GetValue().GetValue(),
-				})
-			case apitraffic.MatchArgument_CALLER_IP:
-				actions = append(actions, &route.RateLimit_Action{
-					ActionSpecifier: &route.RateLimit_Action_RemoteAddress_{
-						RemoteAddress: &route.RateLimit_Action_RemoteAddress{},
-					},
-				})
-			}
 		}
 		descriptor.Entries = entries
 		descriptors = append(descriptors, descriptor)
@@ -359,7 +379,7 @@ func BuildRateLimitActionQueryParameterValueMatch(key string,
 	value *apimodel.MatchString) *route.RateLimit_Action_QueryParameterValueMatch {
 	queryParameterValueMatch := &route.RateLimit_Action_QueryParameterValueMatch{
 		DescriptorKey:   key,
-		DescriptorValue: "true",
+		DescriptorValue: value.GetValue().GetValue(),
 		ExpectMatch:     wrapperspb.Bool(true),
 		QueryParameters: []*route.QueryParameterMatcher{},
 	}
@@ -431,6 +451,20 @@ func BuildRateLimitActionHeaderValueMatch(key string,
 				},
 			},
 		}
+	case MatchString_Prefix:
+		// 专门用于 prefix
+		headerValueMatch.Headers = []*route.HeaderMatcher{
+			{
+				Name: key,
+				HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
+					StringMatch: &v32.StringMatcher{
+						MatchPattern: &v32.StringMatcher_Prefix{
+							Prefix: value.GetValue().GetValue(),
+						},
+					},
+				},
+			},
+		}
 	}
 	return headerValueMatch
 }
@@ -454,17 +488,12 @@ func MakeDefaultRoute(trafficDirection corev3.TrafficDirection, svcKey model.Ser
 }
 
 func GenerateServiceDomains(serviceInfo *ServiceInfo) []string {
-	var domains []string
-
-	// 只有服务名
-	domains = append(domains, serviceInfo.Name)
-
 	// k8s dns 可解析的服务名
 	domain := serviceInfo.Name + "." + serviceInfo.Namespace
-	domains = append(append(append(append(domains, domain),
-		domain+K8sDnsResolveSuffixSvc),
-		domain+K8sDnsResolveSuffixSvcCluster),
-		domain+K8sDnsResolveSuffixSvcClusterLocal)
+	domains := []string{serviceInfo.Name, domain,
+		domain + K8sDnsResolveSuffixSvc,
+		domain + K8sDnsResolveSuffixSvcCluster,
+		domain + K8sDnsResolveSuffixSvcClusterLocal}
 
 	resDomains := domains
 	// 上面各种服务名加服务端口
@@ -546,10 +575,10 @@ var PassthroughCluster = &cluster.Cluster{
 	CircuitBreakers: &cluster.CircuitBreakers{
 		Thresholds: []*cluster.CircuitBreakers_Thresholds{
 			{
-				MaxConnections:     &wrappers.UInt32Value{Value: 4294967295},
-				MaxPendingRequests: &wrappers.UInt32Value{Value: 4294967295},
-				MaxRequests:        &wrappers.UInt32Value{Value: 4294967295},
-				MaxRetries:         &wrappers.UInt32Value{Value: 4294967295},
+				MaxConnections:     &wrappers.UInt32Value{Value: math.MaxUint32},
+				MaxPendingRequests: &wrappers.UInt32Value{Value: math.MaxUint32},
+				MaxRequests:        &wrappers.UInt32Value{Value: math.MaxUint32},
+				MaxRetries:         &wrappers.UInt32Value{Value: math.MaxUint32},
 			},
 		},
 	},
@@ -602,7 +631,7 @@ func MakeBoundHCM(trafficDirection corev3.TrafficDirection) *hcm.HttpConnectionM
 	manager := &hcm.HttpConnectionManager{
 		CodecType:           hcm.HttpConnectionManager_AUTO,
 		StatPrefix:          trafficDirectionName + "_HTTP",
-		RouteSpecifier:      routeSpecifier(),
+		RouteSpecifier:      routeSpecifier(trafficDirection),
 		AccessLog:           accessLog(),
 		HttpFilters:         hcmFilters,
 		HttpProtocolOptions: &core.Http1ProtocolOptions{AcceptHttp_10: true},
@@ -610,7 +639,33 @@ func MakeBoundHCM(trafficDirection corev3.TrafficDirection) *hcm.HttpConnectionM
 	return manager
 }
 
-func routeSpecifier() *hcm.HttpConnectionManager_Rds {
+func MakeGatewayBoundHCM() *hcm.HttpConnectionManager {
+	hcmFilters := []*hcm.HttpFilter{
+		{
+			Name: "envoy.filters.http.local_ratelimit",
+			ConfigType: &hcm.HttpFilter_TypedConfig{
+				TypedConfig: MustNewAny(&lrl.LocalRateLimit{
+					StatPrefix: "http_local_rate_limiter",
+				}),
+			},
+		},
+		{
+			Name: wellknown.Router,
+		},
+	}
+	trafficDirectionName := corev3.TrafficDirection_name[int32(corev3.TrafficDirection_INBOUND)]
+	manager := &hcm.HttpConnectionManager{
+		CodecType:           hcm.HttpConnectionManager_AUTO,
+		StatPrefix:          trafficDirectionName + "_HTTP",
+		RouteSpecifier:      routeSpecifier(corev3.TrafficDirection_OUTBOUND),
+		AccessLog:           accessLog(),
+		HttpFilters:         hcmFilters,
+		HttpProtocolOptions: &core.Http1ProtocolOptions{AcceptHttp_10: true},
+	}
+	return manager
+}
+
+func routeSpecifier(trafficDirection corev3.TrafficDirection) *hcm.HttpConnectionManager_Rds {
 	return &hcm.HttpConnectionManager_Rds{
 		Rds: &hcm.Rds{
 			ConfigSource: &core.ConfigSource{
@@ -619,7 +674,7 @@ func routeSpecifier() *hcm.HttpConnectionManager_Rds {
 					Ads: &core.AggregatedConfigSource{},
 				},
 			},
-			RouteConfigName: RouteConfigName,
+			RouteConfigName: TrafficBoundRoute[trafficDirection],
 		},
 	}
 }
@@ -706,9 +761,6 @@ func MakeSidecarLocalRateLimit(rateLimitCache cache.RateLimitCache,
 		ratelimits = append(ratelimits, &route.RateLimit{
 			Actions: actions,
 		})
-	}
-	if len(ratelimits) == 0 {
-		return nil, nil, nil
 	}
 	filters["envoy.filters.http.local_ratelimit"] = MustNewAny(rateLimitConf)
 	return ratelimits, filters, nil

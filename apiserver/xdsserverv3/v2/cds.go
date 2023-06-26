@@ -33,6 +33,7 @@ import (
 	resourcev3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/service"
 )
 
@@ -53,14 +54,57 @@ const (
 
 func (cds *CDSBuilder) Generate(option *resource.BuildOption) (interface{}, error) {
 	var clusters []types.Resource
-	// 默认 passthrough cluster
 
+	// 默认 passthrough cluster
 	clusters = append(clusters, resource.PassthroughCluster)
+
+	inBoundClusters, err := cds.GenerateByDirection(option, corev3.TrafficDirection_INBOUND)
+	if err != nil {
+		return nil, err
+	}
+	outBoundClusters, err := cds.GenerateByDirection(option, corev3.TrafficDirection_OUTBOUND)
+	if err != nil {
+		return nil, err
+	}
+
+	clusters = append(clusters, inBoundClusters...)
+	clusters = append(clusters, outBoundClusters...)
+	return clusters, nil
+}
+
+func (cds *CDSBuilder) GenerateByDirection(option *resource.BuildOption,
+	direction corev3.TrafficDirection) ([]types.Resource, error) {
+	var clusters []types.Resource
+
+	selfServiceKey := model.ServiceKey{
+		Namespace: cds.client.GetSelfNamespace(),
+		Name:      cds.client.GetSelfService(),
+	}
+
+	ignore := func(svcKey model.ServiceKey) bool {
+		// 如果是 INBOUND 场景，只需要下发 XDS Sidecar Node 所归属的服务 INBOUND Cluster 规则
+		if direction == core.TrafficDirection_INBOUND {
+			if cds.client.IsGateway() {
+				return true
+			}
+			if !cds.client.IsGateway() && !selfServiceKey.Equal(&svcKey) {
+				return true
+			}
+		}
+		// 如果是网关，则自己的数据不会下发
+		if cds.client.IsGateway() && selfServiceKey.Equal(&svcKey) {
+			return true
+		}
+		return false
+	}
 
 	services := option.Services
 	// 每一个 polaris service 对应一个 envoy cluster
-	for _, service := range services {
-		c := cds.makeCluster(service, option.TrafficDirection)
+	for svcKey, svc := range services {
+		if ignore(svcKey) {
+			continue
+		}
+		c := cds.makeCluster(svc, direction)
 		if option.TLSMode == resource.TLSModePermissive {
 			// In permissive mode, we should use `TLSTransportSocket` to connect to mtls enabled endpoints.
 			// Or we use rawbuffer transport for those endpoints which not enabled mtls.
@@ -70,7 +114,7 @@ func (cds *CDSBuilder) Generate(option *resource.BuildOption) (interface{}, erro
 					Match: resource.MTLSTransportSocketMatch,
 					TransportSocket: resource.MakeTLSTransportSocket(&tlstrans.UpstreamTlsContext{
 						CommonTlsContext: resource.OutboundCommonTLSContext,
-						Sni:              fmt.Sprintf(SniTemp, service.Name, service.Namespace),
+						Sni:              fmt.Sprintf(SniTemp, svc.Name, svc.Namespace),
 					}),
 				},
 				{
@@ -92,26 +136,27 @@ func (cds *CDSBuilder) Generate(option *resource.BuildOption) (interface{}, erro
 					Name: "tls-mode",
 					TransportSocket: resource.MakeTLSTransportSocket(&tlstrans.UpstreamTlsContext{
 						CommonTlsContext: resource.OutboundCommonTLSContext,
-						Sni:              fmt.Sprintf(SniTemp, service.Name, service.Namespace),
+						Sni:              fmt.Sprintf(SniTemp, svc.Name, svc.Namespace),
 					}),
 				},
 			}
-
 		}
-
 		clusters = append(clusters, c)
 	}
-
 	return clusters, nil
 }
 
-func (cds *CDSBuilder) makeCluster(service *resource.ServiceInfo, trafficDirection corev3.TrafficDirection) *cluster.Cluster {
+func (cds *CDSBuilder) makeCluster(service *resource.ServiceInfo,
+	trafficDirection corev3.TrafficDirection) *cluster.Cluster {
+
+	name := resource.MakeServiceName(service.ServiceKey, trafficDirection)
+
 	return &cluster.Cluster{
-		Name:                 resource.MakeServiceName(service.ServiceKey, trafficDirection),
+		Name:                 name,
 		ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
 		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_EDS},
 		EdsClusterConfig: &cluster.Cluster_EdsClusterConfig{
-			ServiceName: service.Name,
+			ServiceName: name,
 			EdsConfig: &core.ConfigSource{
 				ResourceApiVersion: resourcev3.DefaultAPIVersion,
 				ConfigSourceSpecifier: &core.ConfigSource_Ads{

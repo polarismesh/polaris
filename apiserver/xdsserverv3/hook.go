@@ -27,23 +27,16 @@ import (
 // OnCreateWatch before call cachev3.SnapshotCache CreateWatch
 func (x *XDSServer) OnCreateWatch(request *cachev3.Request, streamState stream.StreamState,
 	value chan cachev3.Response) {
-	nodeProxy := x.nodeMgr.GetNode(request.Node.Id)
-	nodeProxy.RunOnce("OnCreateWatch", func() {
-		x.activeUpdateTask()
-	})
+	x.activeUpdateTask()
 }
 
 // OnCreateDeltaWatch before call cachev3.SnapshotCache OnCreateDeltaWatch
 func (x *XDSServer) OnCreateDeltaWatch(request *cachev3.DeltaRequest, state stream.StreamState,
 	value chan cachev3.DeltaResponse) {
-	nodeProxy := x.nodeMgr.GetNode(request.Node.Id)
-	nodeProxy.RunOnce("OnCreateDeltaWatch", func() {
-		x.activeUpdateTask()
-	})
+	x.activeUpdateTask()
 }
 
 // OnFetch before call cachev3.SnapshotCache OnFetch
 func (x *XDSServer) OnFetch(ctx context.Context, request *cachev3.Request) {
-	// nodeProxy := x.xdsNodesMgr.GetNode(request.Node.Id)
-	// x.buildGatewayXDSCache(nodeProxy, nil)
+	x.activeUpdateTask()
 }

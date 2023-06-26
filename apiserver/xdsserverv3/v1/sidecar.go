@@ -71,7 +71,7 @@ func (x *XDSServer) makeSnapshot(ns, version string, tlsMode resource.TLSMode,
 		zap.String("tls", string(tlsMode)), zap.String("resource", string(resource.DumpSnapShotJSON(snapshot))))
 	// 为每个 ns 刷写 cache ，推送 xds 更新
 	if err := x.cache.SetSnapshot(context.Background(), cacheKey, snapshot); err != nil {
-		log.Errorf("[XDS][Sidecar][V1] upsert snapshot error", zap.String("namespace", ns),
+		log.Error("[XDS][Sidecar][V1] upsert snapshot error", zap.String("namespace", ns),
 			zap.String("tls", string(tlsMode)), zap.Error(err))
 		return err
 	}

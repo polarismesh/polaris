@@ -76,6 +76,16 @@ type ServiceKey struct {
 	Name      string
 }
 
+func (s *ServiceKey) Equal(o *ServiceKey) bool {
+	if s == nil {
+		return false
+	}
+	if o == nil {
+		return false
+	}
+	return s.Name == o.Name && s.Namespace == o.Namespace
+}
+
 func (s *ServiceKey) IsExact() bool {
 	return s.Namespace != "" && s.Namespace != MatchAll && s.Name != "" && s.Name != MatchAll
 }

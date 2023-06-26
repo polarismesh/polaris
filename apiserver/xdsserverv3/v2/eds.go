@@ -25,12 +25,10 @@ import (
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
-	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/service"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
 // EDSBuilder .
@@ -48,27 +46,37 @@ func (eds *EDSBuilder) Generate(option *resource.BuildOption) (interface{}, erro
 	var resources []types.Resource
 	switch eds.client.RunType {
 	case resource.RunTypeGateway:
-		resources = append(resources, eds.makeBoundEndpoints(option)...)
+		resources = append(resources, eds.makeBoundEndpoints(option, core.TrafficDirection_OUTBOUND)...)
 	case resource.RunTypeSidecar:
 		// sidecar 场景，如果流量方向是 envoy -> sidecar 的话，那么 endpoint 只能是 本地 127.0.0.1
-		if option.TrafficDirection == corev3.TrafficDirection_INBOUND {
-			resources = append(resources, eds.makeSelfEndpoint(option)...)
-		} else {
-			resources = append(resources, eds.makeBoundEndpoints(option)...)
-		}
+		inBoundEndpoints := append(resources, eds.makeSelfEndpoint(option)...)
+		outBoundEndpoints := append(resources, eds.makeBoundEndpoints(option,
+			core.TrafficDirection_OUTBOUND)...)
+		resources = append(resources, inBoundEndpoints...)
+		resources = append(resources, outBoundEndpoints...)
 	}
 	return resources, nil
 }
 
-func (eds *EDSBuilder) makeBoundEndpoints(option *resource.BuildOption) []types.Resource {
+func (eds *EDSBuilder) makeBoundEndpoints(option *resource.BuildOption,
+	direction corev3.TrafficDirection) []types.Resource {
+
 	services := option.Services
+	selfServiceKey := model.ServiceKey{
+		Namespace: eds.client.GetSelfNamespace(),
+		Name:      eds.client.GetSelfService(),
+	}
 
 	var clusterLoads []types.Resource
 	for svcKey, serviceInfo := range services {
+		if eds.client.IsGateway() && selfServiceKey.Equal(&svcKey) {
+			continue
+		}
+
 		var lbEndpoints []*endpoint.LbEndpoint
 		for _, instance := range serviceInfo.Instances {
-			// 只加入健康的实例
-			if !isNormalEndpoint(instance) {
+			// 处于隔离状态或者权重为0的实例不进行下发
+			if !resource.IsNormalEndpoint(instance) {
 				continue
 			}
 			ep := &endpoint.LbEndpoint{
@@ -87,15 +95,15 @@ func (eds *EDSBuilder) makeBoundEndpoints(option *resource.BuildOption) []types.
 						},
 					},
 				},
-				HealthStatus:        formatEndpointHealth(instance),
+				HealthStatus:        resource.FormatEndpointHealth(instance),
 				LoadBalancingWeight: utils.NewUInt32Value(instance.GetWeight().GetValue()),
-				Metadata:            getEndpointMetaFromPolarisIns(instance),
+				Metadata:            resource.GenEndpointMetaFromPolarisIns(instance),
 			}
 			lbEndpoints = append(lbEndpoints, ep)
 		}
 
 		cla := &endpoint.ClusterLoadAssignment{
-			ClusterName: resource.MakeServiceName(svcKey, option.TrafficDirection),
+			ClusterName: resource.MakeServiceName(svcKey, direction),
 			Endpoints: []*endpoint.LocalityLbEndpoints{
 				{
 					LbEndpoints: lbEndpoints,
@@ -149,7 +157,7 @@ func (eds *EDSBuilder) makeSelfEndpoint(option *resource.BuildOption) []types.Re
 		lbEndpoints = append(lbEndpoints, ep)
 	}
 	cla := &endpoint.ClusterLoadAssignment{
-		ClusterName: resource.MakeServiceName(selfServiceKey, option.TrafficDirection),
+		ClusterName: resource.MakeServiceName(selfServiceKey, core.TrafficDirection_INBOUND),
 		Endpoints: []*endpoint.LocalityLbEndpoints{
 			{
 				LbEndpoints: lbEndpoints,
@@ -158,42 +166,4 @@ func (eds *EDSBuilder) makeSelfEndpoint(option *resource.BuildOption) []types.Re
 	}
 	clusterLoads = append(clusterLoads, cla)
 	return clusterLoads
-}
-
-func getEndpointMetaFromPolarisIns(ins *apiservice.Instance) *core.Metadata {
-	meta := &core.Metadata{}
-	fields := make(map[string]*_struct.Value)
-	for k, v := range ins.Metadata {
-		fields[k] = &_struct.Value{
-			Kind: &_struct.Value_StringValue{
-				StringValue: v,
-			},
-		}
-	}
-
-	meta.FilterMetadata = make(map[string]*_struct.Struct)
-	meta.FilterMetadata["envoy.lb"] = &_struct.Struct{
-		Fields: fields,
-	}
-	if ins.Metadata != nil && ins.Metadata[resource.TLSModeTag] != "" {
-		meta.FilterMetadata["envoy.transport_socket_match"] = resource.MTLSTransportSocketMatch
-	}
-	return meta
-}
-
-func isNormalEndpoint(ins *apiservice.Instance) bool {
-	if ins.GetIsolate().GetValue() {
-		return false
-	}
-	if ins.GetWeight().GetValue() == 0 {
-		return false
-	}
-	return true
-}
-
-func formatEndpointHealth(ins *apiservice.Instance) core.HealthStatus {
-	if ins.GetHealthy().GetValue() {
-		return core.HealthStatus_HEALTHY
-	}
-	return core.HealthStatus_UNHEALTHY
 }

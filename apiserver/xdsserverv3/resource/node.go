@@ -18,6 +18,8 @@
 package resource
 
 import (
+	"encoding/json"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -25,6 +27,7 @@ import (
 
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	structpb "github.com/golang/protobuf/ptypes/struct"
+	"go.uber.org/zap"
 )
 
 type RunType string
@@ -42,6 +45,10 @@ const (
 	GatewayNamespaceName = "gateway.polarismesh.cn/serviceNamespace"
 	// GatewayNamespaceName xds metadata key when node is run in gateway mode
 	GatewayServiceName = "gateway.polarismesh.cn/serviceName"
+	// OldGatewayNamespaceName xds metadata key when node is run in gateway mode
+	OldGatewayNamespaceName = "gateway_namespace"
+	// OldGatewayServiceName xds metadata key when node is run in gateway mode
+	OldGatewayServiceName = "gateway_service"
 	// SidecarServiceName xds metadata key when node is run in sidecar mode
 	SidecarServiceName = "sidecar.polarismesh.cn/serviceName"
 	// SidecarNamespaceName xds metadata key when node is run in sidecar mode
@@ -89,10 +96,14 @@ func (x *XDSNodeManager) AddNodeIfAbsent(streamId int64, node *core.Node) {
 	case RunTypeGateway:
 		if _, ok := x.gatewayNodes[node.Id]; !ok {
 			x.gatewayNodes[node.Id] = p
+			log.Info("[XDS][Node][V3] add gateway xds node", zap.Int64("stream", streamId),
+				zap.String("info", p.String()))
 		}
 	default:
 		if _, ok := x.sidecarNodes[node.Id]; !ok {
 			x.sidecarNodes[node.Id] = p
+			log.Info("[XDS][Node][V3] add sidecar xds node", zap.Int64("stream", streamId),
+				zap.String("info", p.String()))
 		}
 	}
 }
@@ -103,6 +114,8 @@ func (x *XDSNodeManager) DelNode(streamId int64) {
 
 	if p, ok := x.streamTonodes[streamId]; ok {
 		delete(x.nodes, p.Node.Id)
+		log.Info("[XDS][Node][V3] remove xds node", zap.Int64("stream", streamId),
+			zap.String("info", p.String()))
 	}
 	delete(x.streamTonodes, streamId)
 }
@@ -223,44 +236,46 @@ type XDSClient struct {
 	Version   string
 	Node      *core.Node
 	TLSMode   TLSMode
-
-	lock sync.Mutex
-	once map[string]*sync.Once
 }
 
-func (n *XDSClient) RunOnce(key string, f func()) {
-	n.lock.Lock()
-	defer n.lock.Unlock()
-
-	if _, ok := n.once[key]; !ok {
-		n.once[key] = &sync.Once{}
-	}
-
-	n.once[key].Do(f)
+func (n *XDSClient) String() string {
+	return fmt.Sprintf("nodeid=%s|type=%v|user=%s|addr=%s|version=%s|tls=%s|meta=%s", n.Node.GetId(),
+		n.RunType, n.User, n.IPAddr, n.Version, n.TLSMode, toJSON(n.Metadata))
 }
 
 func (n *XDSClient) IsGateway() bool {
 	service := n.Metadata[GatewayServiceName]
 	namespace := n.Metadata[GatewayNamespaceName]
-	return n.RunType == RunTypeGateway && service != "" && namespace != ""
+	oldSvc := n.Metadata[OldGatewayServiceName]
+	oldSvcNamespace := n.Metadata[OldGatewayNamespaceName]
+	hasNew := service != "" && namespace != ""
+	hasOld := oldSvc != "" && oldSvcNamespace != ""
+	return n.RunType == RunTypeGateway && (hasNew || hasOld)
 }
 
 func (n *XDSClient) GetSelfService() string {
 	if n.IsGateway() {
-		return n.Metadata[GatewayServiceName]
+		val, ok := n.Metadata[GatewayServiceName]
+		if ok {
+			return val
+		}
+		return n.Metadata[OldGatewayServiceName]
 	}
 	return n.Metadata[SidecarServiceName]
 }
 
 func (n *XDSClient) GetSelfNamespace() string {
 	if n.IsGateway() {
-		return n.Metadata[GatewayNamespaceName]
+		val, ok := n.Metadata[GatewayNamespaceName]
+		if ok {
+			return val
+		}
+		return n.Metadata[OldGatewayNamespaceName]
 	}
 	return n.Metadata[SidecarNamespaceName]
 }
 
 func parseNodeProxy(node *core.Node) *XDSClient {
-	tlsMode := node.Metadata.Fields[TLSModeTag].GetStringValue()
 	runType, polarisNamespace, _, hostIP := ParseNodeID(node.Id)
 	proxy := &XDSClient{
 		IPAddr:    hostIP,
@@ -268,14 +283,19 @@ func parseNodeProxy(node *core.Node) *XDSClient {
 		Namespace: polarisNamespace,
 		Node:      node,
 		TLSMode:   TLSModeNone,
-		once:      make(map[string]*sync.Once),
 	}
 
-	if tlsMode == string(TLSModePermissive) {
-		proxy.TLSMode = TLSModePermissive
-	}
-	if tlsMode == string(TLSModeStrict) {
-		proxy.TLSMode = TLSModeStrict
+	if node.Metadata != nil {
+		fieldVal, ok := node.Metadata.Fields[TLSModeTag]
+		if ok {
+			tlsMode := fieldVal.GetStringValue()
+			if tlsMode == string(TLSModePermissive) {
+				proxy.TLSMode = TLSModePermissive
+			}
+			if tlsMode == string(TLSModeStrict) {
+				proxy.TLSMode = TLSModeStrict
+			}
+		}
 	}
 
 	proxy.Metadata = parseMetadata(node.GetMetadata())
@@ -299,4 +319,16 @@ func parseMetadata(metaValues *structpb.Struct) map[string]string {
 		}
 	}
 	return values
+}
+
+func toJSON(m map[string]string) string {
+	if m == nil {
+		return "{}"
+	}
+
+	ba, err := json.Marshal(m)
+	if err != nil {
+		return "{}"
+	}
+	return string(ba)
 }

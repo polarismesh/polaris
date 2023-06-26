@@ -18,7 +18,6 @@
 package resource
 
 import (
-	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/service"
 )
@@ -46,18 +45,16 @@ type XDSBuilder interface {
 }
 
 type BuildOption struct {
-	Namespace        string
-	TrafficDirection corev3.TrafficDirection
-	TLSMode          TLSMode
-	Services         map[model.ServiceKey]*ServiceInfo
-	VersionLocal     string
+	Namespace    string
+	TLSMode      TLSMode
+	Services     map[model.ServiceKey]*ServiceInfo
+	VersionLocal string
 }
 
 func (opt *BuildOption) Clone() *BuildOption {
 	return &BuildOption{
-		Namespace:        opt.Namespace,
-		TrafficDirection: opt.TrafficDirection,
-		TLSMode:          opt.TLSMode,
-		Services:         opt.Services,
+		Namespace: opt.Namespace,
+		TLSMode:   opt.TLSMode,
+		Services:  opt.Services,
 	}
 }
