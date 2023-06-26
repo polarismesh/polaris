@@ -305,10 +305,20 @@ func TestNodeHashID(t *testing.T) {
 								StringValue: "abc",
 							},
 						},
+						resource.GatewayNamespaceName: &_struct.Value{
+							Kind: &structpb.Value_StringValue{
+								StringValue: "default",
+							},
+						},
+						resource.GatewayServiceName: &_struct.Value{
+							Kind: &structpb.Value_StringValue{
+								StringValue: "service",
+							},
+						},
 					},
 				},
 			},
-			TargetID: "gateway~default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
+			TargetID: "gateway/default/service",
 		},
 	}
 	for i, item := range testTable {

@@ -146,10 +146,10 @@ func (cds *CDSBuilder) GenerateByDirection(option *resource.BuildOption,
 	return clusters, nil
 }
 
-func (cds *CDSBuilder) makeCluster(service *resource.ServiceInfo,
+func (cds *CDSBuilder) makeCluster(svcInfo *resource.ServiceInfo,
 	trafficDirection corev3.TrafficDirection) *cluster.Cluster {
 
-	name := resource.MakeServiceName(service.ServiceKey, trafficDirection)
+	name := resource.MakeServiceName(svcInfo.ServiceKey, trafficDirection)
 
 	return &cluster.Cluster{
 		Name:                 name,
@@ -164,6 +164,6 @@ func (cds *CDSBuilder) makeCluster(service *resource.ServiceInfo,
 				},
 			},
 		},
-		LbSubsetConfig: resource.MakeLbSubsetConfig(service),
+		LbSubsetConfig: resource.MakeLbSubsetConfig(svcInfo),
 	}
 }

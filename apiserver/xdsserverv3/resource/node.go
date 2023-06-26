@@ -174,7 +174,7 @@ func (PolarisNodeHash) ID(node *core.Node) string {
 	if runType != string(RunTypeSidecar) {
 		gatewayNamespace := node.Metadata.Fields[GatewayNamespaceName].GetStringValue()
 		gatewayService := node.Metadata.Fields[GatewayServiceName].GetStringValue()
-		return gatewayNamespace + "/" + gatewayService
+		return runType + "/" + gatewayNamespace + "/" + gatewayService
 	}
 	// 兼容老版本注入的 envoy, 默认获取 snapshot resource 粒度为 namespace 级别, 只能下发 OUTBOUND 规则
 	ret := ns

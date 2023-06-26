@@ -261,26 +261,28 @@ func TestInstanceCache_GetServicePorts(t *testing.T) {
 		_ = ic.clear()
 		instances := genModelInstances("my-services", 10)
 
-		ports := make(map[string][]string)
+		ports := make(map[string][]*model.ServicePort)
 
 		for i := range instances {
 			ins := instances[i]
 			if _, ok := ports[ins.ServiceID]; !ok {
-				ports[ins.ServiceID] = make([]string, 0, 4)
+				ports[ins.ServiceID] = make([]*model.ServicePort, 0, 4)
 			}
 
 			values := ports[ins.ServiceID]
 			find := false
 
 			for j := range values {
-				if values[j] == fmt.Sprintf("%d", ins.Port()) {
+				if values[j].Port == ins.Port() {
 					find = true
 					break
 				}
 			}
 
 			if !find {
-				values = append(values, fmt.Sprintf("%d", ins.Port()))
+				values = append(values, &model.ServicePort{
+					Port: ins.Port(),
+				})
 			}
 
 			ports[ins.ServiceID] = values
@@ -299,9 +301,7 @@ func TestInstanceCache_GetServicePorts(t *testing.T) {
 
 			expectVal := ports[ins.ServiceID]
 			targetVal := ic.GetServicePorts(ins.ServiceID)
-
 			t.Logf("service-ports expectVal : %v, targetVal : %v", expectVal, targetVal)
-
 			assert.ElementsMatch(t, expectVal, targetVal)
 		}
 	})

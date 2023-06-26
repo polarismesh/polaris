@@ -297,20 +297,20 @@ func (rds *RDSBuilder) makeGatewayRoutes(option *resource.BuildOption,
 				continue
 			}
 
-			route := resource.MakeGatewayRoute(corev3.TrafficDirection_OUTBOUND, routeMatch,
+			gatewayRoute := resource.MakeGatewayRoute(corev3.TrafficDirection_OUTBOUND, routeMatch,
 				subRule.GetDestinations())
-			pathInfo := route.GetMatch().GetPath()
+			pathInfo := gatewayRoute.GetMatch().GetPath()
 			if pathInfo == "" {
-				pathInfo = route.GetMatch().GetSafeRegex().GetRegex()
+				pathInfo = gatewayRoute.GetMatch().GetSafeRegex().GetRegex()
 			}
 
 			seacher := rds.svr.Cache().RateLimit()
 			limits, typedPerFilterConfig, err := resource.MakeGatewayLocalRateLimit(seacher, pathInfo, selfService)
 			if err == nil {
-				route.TypedPerFilterConfig = typedPerFilterConfig
-				route.GetRoute().RateLimits = limits
+				gatewayRoute.TypedPerFilterConfig = typedPerFilterConfig
+				gatewayRoute.GetRoute().RateLimits = limits
 			}
-			routes = append(routes, route)
+			routes = append(routes, gatewayRoute)
 		}
 	}
 
@@ -351,7 +351,7 @@ func buildGatewayRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage
 	resource.BuildCommonRouteMatch(routeMatch, source)
 }
 
-func isMatchGatewaySource(source *traffic_manage.SourceService, service, namespace string) bool {
+func isMatchGatewaySource(source *traffic_manage.SourceService, svcName, svcNamespace string) bool {
 	var (
 		existPathLabel bool
 		matchService   bool
@@ -365,6 +365,6 @@ func isMatchGatewaySource(source *traffic_manage.SourceService, service, namespa
 		}
 	}
 
-	matchService = source.Service == service && source.Namespace == namespace
+	matchService = source.Service == svcName && source.Namespace == svcNamespace
 	return existPathLabel && matchService
 }
