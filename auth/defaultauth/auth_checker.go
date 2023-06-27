@@ -128,7 +128,8 @@ func (d *defaultAuthChecker) CheckClientPermission(preCtx *model.AcquireContext)
 	if !d.IsOpenClientAuth() {
 		return true, nil
 	}
-	return d.CheckPermission(preCtx)
+	preCtx.SetFromClient()
+	return d.checkPermission(preCtx)
 }
 
 // CheckConsolePermission 执行检查控制台动作判断是否有权限，并且对 RequestContext 注入操作者数据
@@ -136,10 +137,11 @@ func (d *defaultAuthChecker) CheckConsolePermission(preCtx *model.AcquireContext
 	if !d.IsOpenConsoleAuth() {
 		return true, nil
 	}
+	preCtx.SetFromConsole()
 	if preCtx.GetModule() == model.MaintainModule {
 		return d.checkMaintainPermission(preCtx)
 	}
-	return d.CheckPermission(preCtx)
+	return d.checkPermission(preCtx)
 }
 
 // CheckMaintainPermission 执行检查运维动作判断是否有权限
@@ -174,7 +176,7 @@ func (d *defaultAuthChecker) checkMaintainPermission(preCtx *model.AcquireContex
 //				b. 写操作，快速失败
 //	step 3. 拉取token对应的操作者相关信息，注入到请求上下文中
 //	step 4. 进行权限检查
-func (d *defaultAuthChecker) CheckPermission(authCtx *model.AcquireContext) (bool, error) {
+func (d *defaultAuthChecker) checkPermission(authCtx *model.AcquireContext) (bool, error) {
 	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
 	if err := d.VerifyCredential(authCtx); err != nil {
 		return false, err

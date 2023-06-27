@@ -208,7 +208,7 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 	})
 }
 
-func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
+func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 	reset(false)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -265,7 +265,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -287,7 +287,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -309,7 +309,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -331,7 +331,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -353,7 +353,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -375,7 +375,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -398,7 +398,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -420,7 +420,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -442,13 +442,13 @@ func Test_defaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
 }
 
-func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
+func Test_defaultAuthChecker_checkPermission_Write_Strict(t *testing.T) {
 	reset(true)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -506,7 +506,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -528,7 +528,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -550,7 +550,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -572,7 +572,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -594,7 +594,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -616,7 +616,7 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -638,13 +638,13 @@ func Test_defaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
 }
 
-func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
+func Test_defaultAuthChecker_checkPermission_Read_NoStrict(t *testing.T) {
 	reset(false)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -701,7 +701,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -723,7 +723,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -745,7 +745,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -767,7 +767,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -789,7 +789,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -811,7 +811,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -833,7 +833,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -855,13 +855,13 @@ func Test_defaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
 }
 
-func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
+func Test_defaultAuthChecker_checkPermission_Read_Strict(t *testing.T) {
 	reset(true)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -918,7 +918,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -940,7 +940,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -962,7 +962,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -984,7 +984,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -1006,7 +1006,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -1028,7 +1028,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -1050,7 +1050,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -1072,7 +1072,7 @@ func Test_defaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.checkPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
