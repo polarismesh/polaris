@@ -156,19 +156,11 @@
 401002 = "auth token empty" #EmptyAutToken
 401003 = "token already disabled" #TokenDisabled
 401004 = "token not existed" #TokenNotExisted
-<<<<<<< HEAD
 403001 = "token verify exception" #AuthTokenVerifyException
 403002 = "operation role exception" #OperationRoleException
 404001 = "not found the host cmdb" #CMDBNotFindHost
 409000 = "data is conflict, please try again" #DataConflict
 429001 = "instance has too many requests" #InstanceTooManyRequests
-=======
-403001 = "server limit the ip access" #IPRateLimit
-403002 = "server limit the api access" #APIRateLimit
-404001 = "not found the host cmdb" #CMDBNotFindHost
-409000 = "data is conflict, please try again" #DataConflict
-429001 = "your instance has too many requests" #InstanceTooManyRequests
->>>>>>> c07080f0... docs:add error code desc
 500000 = "execute exception" #ExecuteException
 500001 = "store layer exception" #StoreLayerException
 500002 = "cmdb plugin exception" #CMDBPluginException
@@ -177,8 +169,3 @@
 500006 = "parse circuit breaker failed" #ParseCircuitBreakerException
 500007 = "heartbeat execute exception" #HeartbeatException
 500008 = "instance async regist timeout" #InstanceRegisTimeout
-<<<<<<< HEAD
-=======
-500100 = "token verify exception" #AuthTokenVerifyException
-500101 = "operation role exception" #OperationRoleException
->>>>>>> c07080f0... docs:add error code desc
