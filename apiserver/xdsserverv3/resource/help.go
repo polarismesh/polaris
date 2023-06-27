@@ -221,7 +221,7 @@ func BuildWeightClustersV2(trafficDirection corev3.TrafficDirection,
 				},
 			}
 		}
-		cluster := &route.WeightedCluster_ClusterWeight{
+		weightCluster := &route.WeightedCluster_ClusterWeight{
 			Name: MakeServiceName(model.ServiceKey{
 				Namespace: destination.Namespace,
 				Name:      destination.Service,
@@ -236,9 +236,9 @@ func BuildWeightClustersV2(trafficDirection corev3.TrafficDirection,
 			},
 		}
 		if len(fields) == 0 {
-			cluster.MetadataMatch = nil
+			weightCluster.MetadataMatch = nil
 		}
-		weightedClusters = append(weightedClusters, cluster)
+		weightedClusters = append(weightedClusters, weightCluster)
 		totalWeight += destination.Weight
 	}
 
@@ -532,7 +532,7 @@ func BuildAllowAnyVHost() *route.VirtualHost {
 
 func MakeGatewayRoute(trafficDirection corev3.TrafficDirection, routeMatch *route.RouteMatch,
 	destinations []*traffic_manage.DestinationGroup) *route.Route {
-	route := &route.Route{
+	sidecarRoute := &route.Route{
 		Match: routeMatch,
 		Action: &route.Route_Route{
 			Route: &route.RouteAction{
@@ -542,7 +542,7 @@ func MakeGatewayRoute(trafficDirection corev3.TrafficDirection, routeMatch *rout
 			},
 		},
 	}
-	return route
+	return sidecarRoute
 }
 
 func MakeSidecarRoute(trafficDirection corev3.TrafficDirection, routeMatch *route.RouteMatch,
