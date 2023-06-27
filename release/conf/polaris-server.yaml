@@ -294,7 +294,7 @@ auth:
       # Console Strict Model, default true
       consoleStrict: true
       # Customer auth switch, default false
-      clientOpen: false
+      clientOpen: true
       # Customer Strict Model, default close
       clientStrict: false
 namespace:
