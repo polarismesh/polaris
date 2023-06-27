@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package xdsserverv3
+package resource
 
 import (
 	"encoding/json"
@@ -28,21 +28,21 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func dumpSnapShot(snapshot cache.ResourceSnapshot) []byte {
-	return yamlEncode(map[string]interface{}{
-		"endpoints": toJSONArray(snapshot.GetResources(res.EndpointType)),
-		"clusters":  toJSONArray(snapshot.GetResources(res.ClusterType)),
-		"routers":   toJSONArray(snapshot.GetResources(res.RouteType)),
-		"listeners": toJSONArray(snapshot.GetResources(res.ListenerType)),
+func DumpSnapShot(snapshot cache.ResourceSnapshot) []byte {
+	return YamlEncode(map[string]interface{}{
+		"endpoints": ToJSONArray(snapshot.GetResources(res.EndpointType)),
+		"clusters":  ToJSONArray(snapshot.GetResources(res.ClusterType)),
+		"routers":   ToJSONArray(snapshot.GetResources(res.RouteType)),
+		"listeners": ToJSONArray(snapshot.GetResources(res.ListenerType)),
 	})
 }
 
-func dumpSnapShotJSON(snapshot cache.ResourceSnapshot) []byte {
+func DumpSnapShotJSON(snapshot cache.ResourceSnapshot) []byte {
 	data, err := json.Marshal(map[string]interface{}{
-		"endpoints": toJSONArray(snapshot.GetResources(res.EndpointType)),
-		"clusters":  toJSONArray(snapshot.GetResources(res.ClusterType)),
-		"routers":   toJSONArray(snapshot.GetResources(res.RouteType)),
-		"listeners": toJSONArray(snapshot.GetResources(res.ListenerType)),
+		"endpoints": ToJSONArray(snapshot.GetResources(res.EndpointType)),
+		"clusters":  ToJSONArray(snapshot.GetResources(res.ClusterType)),
+		"routers":   ToJSONArray(snapshot.GetResources(res.RouteType)),
+		"listeners": ToJSONArray(snapshot.GetResources(res.ListenerType)),
 	})
 	if err != nil {
 		return nil
@@ -50,7 +50,7 @@ func dumpSnapShotJSON(snapshot cache.ResourceSnapshot) []byte {
 	return data
 }
 
-func yamlEncode(any interface{}) []byte {
+func YamlEncode(any interface{}) []byte {
 	data, err := json.Marshal(any)
 	if err != nil {
 		log.Errorf("yaml encode json marshal failed error %v", err)
@@ -68,7 +68,7 @@ func yamlEncode(any interface{}) []byte {
 	return data
 }
 
-func toJSONArray(resources map[string]types.Resource) []json.RawMessage {
+func ToJSONArray(resources map[string]types.Resource) []json.RawMessage {
 	list := make([]resouceWithName, 0, len(resources))
 	for name, x := range resources {
 		list = append(list, resouceWithName{resource: x, name: name})

@@ -53,12 +53,12 @@
 400140 = "server not open health check" #HealthCheckNotOpen
 400141 = "heartbeat on disabled instance" #HeartbeatOnDisabledIns
 400142 = "instance can only heartbeat 1 time per second" #HeartbeatExceedLimit
-400143 = "" #HeartbeatTypeNotFound
+400143 = "heartbeat type not found" #HeartbeatTypeNotFound
 400150 = "the length of metadata is too long or metadata contains invalid characters" #InvalidMetadata
 400151 = "invalid rate limit id" #InvalidRateLimitID
 400152 = "invalid rate limit labels" #InvalidRateLimitLabels
 400153 = "invalid rate limit amounts" #InvalidRateLimitAmounts
-400154 = "" #InvalidRateLimitName
+400154 = "invalid rate limit name" #InvalidRateLimitName
 400160 = "invalid circuit breaker id" #InvalidCircuitBreakerID
 400161 = "invalid circuit breaker version" #InvalidCircuitBreakerVersion
 400162 = "invalid circuit breaker name" #InvalidCircuitBreakerName

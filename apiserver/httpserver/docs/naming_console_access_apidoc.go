@@ -396,7 +396,7 @@ func EnrichGetInstanceLabelsApiDocs(r *restful.RouteBuilder) *restful.RouteBuild
 func EnrichCreateRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("创建限流规则").
 		Metadata(restfulspec.KeyOpenAPITags, rateLimitsApiTags).
-		Reads([]apitraffic.RateLimit{}, "create rate limits").
+		Reads([]apitraffic.Rule{}, "create rate limits").
 		Returns(0, "", struct {
 			BatchWriteResponse
 			Responses []struct {
@@ -408,7 +408,7 @@ func EnrichCreateRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 func EnrichDeleteRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("删除限流规则").
 		Metadata(restfulspec.KeyOpenAPITags, rateLimitsApiTags).
-		Reads([]apitraffic.RateLimit{}, "delete rate limits").
+		Reads([]apitraffic.Rule{}, "delete rate limits").
 		Returns(0, "", struct {
 			BatchWriteResponse
 			Responses []struct {
@@ -420,7 +420,7 @@ func EnrichDeleteRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 func EnrichUpdateRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("更新限流规则").
 		Metadata(restfulspec.KeyOpenAPITags, rateLimitsApiTags).
-		Reads([]apitraffic.RateLimit{}, "update rate limits").
+		Reads([]apitraffic.Rule{}, "update rate limits").
 		Returns(0, "", struct {
 			BatchWriteResponse
 			Responses []struct {
@@ -460,7 +460,7 @@ func EnrichGetRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 func EnrichEnableRateLimitsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("启用限流规则").
 		Metadata(restfulspec.KeyOpenAPITags, rateLimitsApiTags).
-		Reads([]apitraffic.RateLimit{}, "enable rate limits").
+		Reads([]apitraffic.Rule{}, "enable rate limits").
 		Returns(0, "", struct {
 			BatchWriteResponse
 			Responses []struct {

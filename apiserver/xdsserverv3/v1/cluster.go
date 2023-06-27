@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package xdsserverv3
+package v1
 
 import (
 	"fmt"
@@ -25,15 +25,14 @@ import (
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	tlstrans "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
-	resource "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	resourcev3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/golang/protobuf/ptypes"
 
+	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 	"github.com/polarismesh/polaris/common/model"
 )
 
-type CircuitBreakerConfigGetter func(id string) *model.ServiceWithCircuitBreaker
-
-func (x *XDSServer) makeCluster(service *ServiceInfo) *cluster.Cluster {
+func (x *XDSServer) makeCluster(service *resource.ServiceInfo) *cluster.Cluster {
 	return &cluster.Cluster{
 		Name:                 service.Name,
 		ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
@@ -41,19 +40,19 @@ func (x *XDSServer) makeCluster(service *ServiceInfo) *cluster.Cluster {
 		EdsClusterConfig: &cluster.Cluster_EdsClusterConfig{
 			ServiceName: service.Name,
 			EdsConfig: &core.ConfigSource{
-				ResourceApiVersion: resource.DefaultAPIVersion,
+				ResourceApiVersion: resourcev3.DefaultAPIVersion,
 				ConfigSourceSpecifier: &core.ConfigSource_Ads{
 					Ads: &core.AggregatedConfigSource{},
 				},
 			},
 		},
 
-		LbSubsetConfig: makeLbSubsetConfig(service),
+		LbSubsetConfig: resource.MakeLbSubsetConfig(service),
 		//OutlierDetection: makeOutlierDetection(circuitBreakerConf),
 	}
 }
 
-func (x *XDSServer) makeClusters(services []*ServiceInfo) []types.Resource {
+func (x *XDSServer) makeClusters(services map[model.ServiceKey]*resource.ServiceInfo) []types.Resource {
 	var clusters []types.Resource
 	// 默认 passthrough cluster
 
@@ -67,7 +66,7 @@ func (x *XDSServer) makeClusters(services []*ServiceInfo) []types.Resource {
 	return clusters
 }
 
-func (x *XDSServer) makePermissiveClusters(services []*ServiceInfo) []types.Resource {
+func (x *XDSServer) makePermissiveClusters(services map[model.ServiceKey]*resource.ServiceInfo) []types.Resource {
 	var clusters []types.Resource
 	// 默认 passthrough cluster & inbound cluster
 
@@ -96,7 +95,7 @@ func (x *XDSServer) makePermissiveClusters(services []*ServiceInfo) []types.Reso
 	return clusters
 }
 
-func (x *XDSServer) makeStrictClusters(services []*ServiceInfo) []types.Resource {
+func (x *XDSServer) makeStrictClusters(services map[model.ServiceKey]*resource.ServiceInfo) []types.Resource {
 	var clusters []types.Resource
 	// 默认 passthrough cluster & inbound cluster
 

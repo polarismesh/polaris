@@ -57,7 +57,7 @@ type InstanceCache interface {
 	// GetInstancesCountByServiceID 根据服务ID获取实例数
 	GetInstancesCountByServiceID(serviceID string) model.InstanceCount
 	// GetServicePorts 根据服务ID获取端口号
-	GetServicePorts(serviceID string) []string
+	GetServicePorts(serviceID string) []*model.ServicePort
 	// GetInstanceLabels Get the label of all instances under a service
 	GetInstanceLabels(serviceID string) *apiservice.InstanceLabels
 	// QueryInstances query instance for OSS
@@ -104,10 +104,7 @@ func (ic *instanceCache) initialize(opt map[string]interface{}) error {
 	ic.ids = new(sync.Map)
 	ic.services = new(sync.Map)
 	ic.instanceCounts = new(sync.Map)
-	ic.servicePortsBucket = &servicePortsBucket{
-		lock:         sync.RWMutex{},
-		servicePorts: make(map[string]map[string]struct{}),
-	}
+	ic.servicePortsBucket = newServicePortsBucket()
 	if opt == nil {
 		return nil
 	}
@@ -293,7 +290,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (map[strin
 			ic.services.Store(item.ServiceID, value)
 		}
 
-		ic.servicePortsBucket.appendPort(item.ServiceID, int(item.Port()))
+		ic.servicePortsBucket.appendPort(item.ServiceID, item.Protocol(), item.Port())
 
 		value.(*sync.Map).Store(item.ID(), item)
 	}
@@ -484,7 +481,7 @@ func (ic *instanceCache) GetInstanceLabels(serviceID string) *apiservice.Instanc
 	return ret
 }
 
-func (ic *instanceCache) GetServicePorts(serviceID string) []string {
+func (ic *instanceCache) GetServicePorts(serviceID string) []*model.ServicePort {
 	return ic.servicePortsBucket.listPort(serviceID)
 }
 

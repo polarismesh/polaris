@@ -56,6 +56,8 @@ type (
 		GetRoutingConfigCount() int
 		// QueryRoutingConfigsV2 Query Route Configuration List
 		QueryRoutingConfigsV2(args *RoutingArgs) (uint32, []*model.ExtendRouterConfig, error)
+		// ListRouterRule list all router rule
+		ListRouterRule(service, namespace string) []*model.ExtendRouterConfig
 		// IsConvertFromV1 Whether the current routing rules are converted from the V1 rule
 		IsConvertFromV1(id string) (string, bool)
 		// IteratorRouterRule iterator router rule
@@ -149,6 +151,16 @@ func (rc *routingConfigCache) name() string {
 	return RoutingConfigName
 }
 
+func (rc *routingConfigCache) ListRouterRule(service, namespace string) []*model.ExtendRouterConfig {
+	routerRules := rc.bucket.listEnableRules(service, namespace)
+	ret := make([]*model.ExtendRouterConfig, 0, len(routerRules))
+	for level := range routerRules {
+		items := routerRules[level]
+		ret = append(ret, items...)
+	}
+	return ret
+}
+
 // GetRouterConfigV2 Obtain routing configuration based on serviceid
 func (rc *routingConfigCache) GetRouterConfigV2(id, service, namespace string) (*apitraffic.Routing, error) {
 	if id == "" && service == "" && namespace == "" {
@@ -156,8 +168,7 @@ func (rc *routingConfigCache) GetRouterConfigV2(id, service, namespace string) (
 	}
 
 	routerRules := rc.bucket.listEnableRules(service, namespace)
-	inBounds, outBounds, revisions := rc.convertV2toV1(routerRules, service, namespace)
-
+	revisions := make([]string, 0, 8)
 	rulesV2 := make([]*apitraffic.RouteRule, 0, len(routerRules))
 	for level := range routerRules {
 		items := routerRules[level]
@@ -167,9 +178,32 @@ func (rc *routingConfigCache) GetRouterConfigV2(id, service, namespace string) (
 				return nil, err
 			}
 			rulesV2 = append(rulesV2, entry)
+			revisions = append(revisions, entry.GetRevision())
 		}
 	}
+	revision, err := CompositeComputeRevision(revisions)
+	if err != nil {
+		log.Warn("[Cache][Routing] v2=>v1 compute revisions fail, use fake revision", zap.Error(err))
+		revision = utils.NewV2Revision()
+	}
 
+	resp := &apitraffic.Routing{
+		Namespace: utils.NewStringValue(namespace),
+		Service:   utils.NewStringValue(service),
+		Rules:     rulesV2,
+		Revision:  utils.NewStringValue(revision),
+	}
+	return resp, nil
+}
+
+// GetRouterConfig Obtain routing configuration based on serviceid
+func (rc *routingConfigCache) GetRouterConfig(id, service, namespace string) (*apitraffic.Routing, error) {
+	if id == "" && service == "" && namespace == "" {
+		return nil, nil
+	}
+
+	routerRules := rc.bucket.listEnableRules(service, namespace)
+	inBounds, outBounds, revisions := rc.convertV2toV1(routerRules, service, namespace)
 	revision, err := CompositeComputeRevision(revisions)
 	if err != nil {
 		log.Warn("[Cache][Routing] v2=>v1 compute revisions fail, use fake revision", zap.Error(err))
@@ -181,21 +215,10 @@ func (rc *routingConfigCache) GetRouterConfigV2(id, service, namespace string) (
 		Service:   utils.NewStringValue(service),
 		Inbounds:  inBounds,
 		Outbounds: outBounds,
-		Rules:     rulesV2,
 		Revision:  utils.NewStringValue(revision),
 	}
 
 	return formatRoutingResponseV1(resp), nil
-}
-
-// GetRouterConfig Obtain routing configuration based on serviceid
-func (rc *routingConfigCache) GetRouterConfig(id, service, namespace string) (*apitraffic.Routing, error) {
-	ret, err := rc.GetRouterConfigV2(id, service, namespace)
-	if err != nil {
-		return nil, err
-	}
-	ret.Rules = nil
-	return ret, nil
 }
 
 // formatRoutingResponseV1 Give the client's cache, no need to expose EXTENDINFO information data

@@ -18,6 +18,7 @@
 package cache
 
 import (
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -281,12 +282,19 @@ func (sc *serviceCache) GetServiceByName(name string, namespace string) *model.S
 }
 
 func (sc *serviceCache) fillServicePorts(svc *model.Service) {
-	if svc.Ports == "" {
-		ports := sc.instCache.GetServicePorts(svc.ID)
-		if len(ports) > 0 {
-			svc.Ports = strings.Join(ports, ",")
-		}
+	if svc.Ports != "" {
+		return
 	}
+	ports := sc.instCache.GetServicePorts(svc.ID)
+	if len(ports) == 0 {
+		return
+	}
+	item := make([]string, 0, len(ports))
+	for i := range ports {
+		item = append(item, strconv.FormatUint(uint64(ports[i].Port), 10))
+	}
+	svc.ServicePorts = ports
+	svc.Ports = strings.Join(item, ",")
 }
 
 // CleanNamespace 清除Namespace对应的服务缓存

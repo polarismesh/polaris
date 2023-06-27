@@ -15,28 +15,38 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package xdsserverv3
+package v1
 
 import (
-	"context"
-
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/server/stream/v3"
+	"go.uber.org/atomic"
+
+	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
+	"github.com/polarismesh/polaris/service"
 )
 
-// OnCreateWatch before call cachev3.SnapshotCache CreateWatch
-func (x *XDSServer) OnCreateWatch(request *cachev3.Request, streamState stream.StreamState,
-	value chan cachev3.Response) {
-	x.activeUpdateTask()
+type options func(svr *XDSServer)
+
+func WithDiscoverServer(discoverSvr service.DiscoverServer) options {
+	return func(svr *XDSServer) {
+		svr.namingServer = discoverSvr
+	}
 }
 
-// OnCreateDeltaWatch before call cachev3.SnapshotCache OnCreateDeltaWatch
-func (x *XDSServer) OnCreateDeltaWatch(request *cachev3.DeltaRequest, state stream.StreamState,
-	value chan cachev3.DeltaResponse) {
-	x.activeUpdateTask()
+func WithSnapshot(cache cachev3.SnapshotCache) options {
+	return func(svr *XDSServer) {
+		svr.cache = cache
+	}
 }
 
-// OnFetch before call cachev3.SnapshotCache OnFetch
-func (x *XDSServer) OnFetch(ctx context.Context, request *cachev3.Request) {
-	x.activeUpdateTask()
+func WithVersion(versionNum *atomic.Uint64) options {
+	return func(svr *XDSServer) {
+		svr.versionNum = versionNum
+	}
+}
+
+func WithXDSNodeMgr(nodeMgr *resource.XDSNodeManager) options {
+	return func(svr *XDSServer) {
+		svr.xdsNodesMgr = nodeMgr
+	}
 }

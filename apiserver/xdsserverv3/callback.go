@@ -24,12 +24,13 @@ import (
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/gogo/protobuf/jsonpb"
 
+	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 	commonlog "github.com/polarismesh/polaris/common/log"
 )
 
 type Callbacks struct {
 	log     *commonlog.Scope
-	nodeMgr *XDSNodeManager
+	nodeMgr *resource.XDSNodeManager
 }
 
 func (cb *Callbacks) Report() {

@@ -20,22 +20,30 @@ package cache
 import (
 	"strconv"
 	"sync"
+
+	"github.com/polarismesh/polaris/common/model"
 )
+
+func newServicePortsBucket() *servicePortsBucket {
+	return &servicePortsBucket{
+		servicePorts: map[string]map[string]*model.ServicePort{},
+	}
+}
 
 type servicePortsBucket struct {
 	lock sync.RWMutex
 	// servicePorts service-id -> []port
-	servicePorts map[string]map[string]struct{}
+	servicePorts map[string]map[string]*model.ServicePort
 }
 
 func (b *servicePortsBucket) reset() {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
-	b.servicePorts = make(map[string]map[string]struct{})
+	b.servicePorts = make(map[string]map[string]*model.ServicePort)
 }
 
-func (b *servicePortsBucket) appendPort(serviceID string, port int) {
+func (b *servicePortsBucket) appendPort(serviceID string, protocol string, port uint32) {
 	if serviceID == "" || port == 0 {
 		return
 	}
@@ -44,18 +52,22 @@ func (b *servicePortsBucket) appendPort(serviceID string, port int) {
 	defer b.lock.Unlock()
 
 	if _, ok := b.servicePorts[serviceID]; !ok {
-		b.servicePorts[serviceID] = map[string]struct{}{}
+		b.servicePorts[serviceID] = map[string]*model.ServicePort{}
 	}
 
+	key := strconv.FormatInt(int64(port), 10) + "-" + protocol
 	ports := b.servicePorts[serviceID]
-	ports[strconv.FormatInt(int64(port), 10)] = struct{}{}
+	ports[key] = &model.ServicePort{
+		Port:     port,
+		Protocol: protocol,
+	}
 }
 
-func (b *servicePortsBucket) listPort(serviceID string) []string {
+func (b *servicePortsBucket) listPort(serviceID string) []*model.ServicePort {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 
-	ret := make([]string, 0, 4)
+	ret := make([]*model.ServicePort, 0, 4)
 
 	val, ok := b.servicePorts[serviceID]
 
@@ -64,8 +76,7 @@ func (b *servicePortsBucket) listPort(serviceID string) []string {
 	}
 
 	for k := range val {
-		ret = append(ret, k)
+		ret = append(ret, val[k])
 	}
-
 	return ret
 }
