@@ -214,11 +214,22 @@ func (authCtx *AcquireContext) GetMethod() string {
 	return authCtx.method
 }
 
+// SetFromClient 本次请求来自客户端
+func (authCtx *AcquireContext) SetFromClient() {
+	authCtx.fromClient = true
+}
+
+// SetFromConsole 本次请求来自OpenAPI
+func (authCtx *AcquireContext) SetFromConsole() {
+	authCtx.fromClient = false
+}
+
 // IsFromClient 本次请求是否来自客户端
 func (authCtx *AcquireContext) IsFromClient() bool {
 	return authCtx.fromClient
 }
 
+// IsFromConsole 本次请求是否来自OpenAPI
 func (authCtx *AcquireContext) IsFromConsole() bool {
 	return !authCtx.IsFromClient()
 }
