@@ -242,12 +242,15 @@ func parseGroupSearchArgs(
 		searchFilters[key] = value
 	}
 
-	// 如果当前不是管理员角色的话，只能查询该用户所关联的用户组列表以及自己创建的用户组
 	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
-		if !utils.ParseIsOwner(ctx) {
-			searchFilters["user_id"] = utils.ParseUserID(ctx)
-		}
+		// step 1: 设置 owner 信息，只能查看归属主帐户下的用户组
 		searchFilters["owner"] = utils.ParseOwnerID(ctx)
+		if authcommon.ParseUserRole(ctx) != model.OwnerUserRole {
+			// step 2: 非主帐户，只能查看自己所在的用户组
+			if _, ok := searchFilters["user_id"]; !ok {
+				searchFilters["user_id"] = utils.ParseUserID(ctx)
+			}
+		}
 	}
 
 	return searchFilters, nil

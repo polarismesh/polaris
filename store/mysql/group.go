@@ -404,9 +404,9 @@ func (u *groupStore) listGroupByUser(filters map[string]string, offset uint32, l
 				countSql += (" " + k + " like ? ")
 				args = append(args, "%"+v[:len(v)-1]+"%")
 			} else if k == "ug.owner" {
-				getSql += " (ug.owner = ? OR ul.user_id = ? ) "
-				countSql += " (ug.owner = ? OR ul.user_id = ? ) "
-				args = append(args, v, v)
+				getSql += " (ug.owner = ?) "
+				countSql += " (ug.owner = ?) "
+				args = append(args, v)
 			} else {
 				getSql += (" " + k + " = ? ")
 				countSql += (" " + k + " = ? ")
