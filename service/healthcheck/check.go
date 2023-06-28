@@ -121,10 +121,13 @@ func newCheckScheduler(ctx context.Context, slotNum int, minCheckInterval time.D
 		adoptInstancesChan:     make(chan AdoptEvent, 1024),
 		ctx:                    ctx,
 	}
-	go scheduler.doCheckInstances(ctx)
-	go scheduler.doCheckClient(ctx)
-	go scheduler.doAdopt(ctx)
 	return scheduler
+}
+
+func (c *CheckScheduler) run(ctx context.Context) {
+	go c.doCheckInstances(ctx)
+	go c.doCheckClient(ctx)
+	go c.doAdopt(ctx)
 }
 
 func (c *CheckScheduler) doCheckInstances(ctx context.Context) {
