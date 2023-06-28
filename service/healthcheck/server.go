@@ -136,21 +136,21 @@ func (s *Server) run(ctx context.Context) error {
 	go s.timeAdjuster.doTimeAdjust(ctx)
 	s.dispatcher.startDispatchingJob(ctx)
 
-	server.instanceEventChannel = make(chan *model.InstanceEvent, 1000)
-	go server.handleInstanceEventWorker(ctx)
+	s.instanceEventChannel = make(chan *model.InstanceEvent, 1000)
+	go s.handleInstanceEventWorker(ctx)
 
-	leaderChangeEventHandler := newLeaderChangeEventHandler(server.cacheProvider, s.hcOpt.MinCheckInterval)
+	leaderChangeEventHandler := newLeaderChangeEventHandler(s.cacheProvider, s.hcOpt.MinCheckInterval)
 	if err := eventhub.Subscribe(eventhub.LeaderChangeEventTopic, "selfServiceChecker",
 		leaderChangeEventHandler); err != nil {
 		return err
 	}
 
-	instanceEventHandler := newInstanceEventHealthCheckHandler(ctx, server.instanceEventChannel)
+	instanceEventHandler := newInstanceEventHealthCheckHandler(ctx, s.instanceEventChannel)
 	if err := eventhub.Subscribe(eventhub.InstanceEventTopic, "instanceHealthChecker",
 		instanceEventHandler); err != nil {
 		return err
 	}
-	if err := server.storage.StartLeaderElection(store.ElectionKeySelfServiceChecker); err != nil {
+	if err := s.storage.StartLeaderElection(store.ElectionKeySelfServiceChecker); err != nil {
 		return err
 	}
 	return nil
