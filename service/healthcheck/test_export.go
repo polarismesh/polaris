@@ -76,7 +76,7 @@ func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batc
 	testServer.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval,
 		hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)
 	testServer.dispatcher = newDispatcher(ctx, testServer)
-
+	finishInit = true
 	return testServer, testServer.run(ctx)
 }
 
