@@ -16,7 +16,7 @@
 
 function run_codecov() {
     test_standalone &
-    test_cluster &
+    test_cluster
     wait
 }
 
