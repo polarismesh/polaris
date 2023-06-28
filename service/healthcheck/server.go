@@ -123,8 +123,7 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 	server.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval,
 		hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)
 	server.dispatcher = newDispatcher(ctx, server)
-	server.run(ctx)
-	return nil
+	return server.run(ctx)
 }
 
 func (s *Server) run(ctx context.Context) error {
