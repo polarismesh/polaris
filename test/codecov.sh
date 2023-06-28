@@ -76,3 +76,5 @@ function test_cluster_discovery() {
     mv coverage_sqldb_3.cover ../
     popd
 }
+
+run_codecov
