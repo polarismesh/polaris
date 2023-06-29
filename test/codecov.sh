@@ -14,24 +14,7 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-set -ex         # Exit on error; debugging enabled.
-
-function run_codecov() {
-    test_standalone &
-    prepare_cluster_env
-    test_cluster_auth &
-    test_cluster_discovery &
-    test_cluster_config &
-
-    for pid in $(jobs -p); do
-        wait $pid
-        status=$?
-        if [ $status != 0 ]; then
-            echo "$pid status is $status have some error!"
-            exit 1
-        fi
-    done
-}
+set -ex # Exit on error; debugging enabled.
 
 function test_standalone() {
     export STORE_MODE=""
@@ -80,4 +63,17 @@ function test_cluster_discovery() {
     mv coverage_sqldb_3.cover ../
 }
 
-run_codecov
+test_standalone &
+prepare_cluster_env
+test_cluster_auth &
+test_cluster_discovery &
+test_cluster_config &
+
+for pid in $(jobs -p); do
+    wait $pid
+    status=$?
+    if [ $status != 0 ]; then
+        echo "$pid status is $status have some error!"
+        exit 1
+    fi
+done

@@ -199,6 +199,8 @@ func (d *DiscoverTestSuit) loadConfig() error {
 		confFileName = testdata.Path("service_test_sqldb.yaml")
 		d.DefaultCtx = context.WithValue(d.DefaultCtx, utils.ContextAuthTokenKey,
 			"nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
+	} else {
+		fmt.Printf("run store mode : boltdb\n")
 	}
 	// 如果有额外定制的配置文件，优先采用
 	if val := os.Getenv("POLARIS_TEST_BOOTSTRAP_FILE"); val != "" {
