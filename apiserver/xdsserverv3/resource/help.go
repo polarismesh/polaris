@@ -18,7 +18,7 @@
 package resource
 
 import (
-	"encoding/json"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"strconv"
@@ -764,52 +764,101 @@ func MakeSidecarLocalRateLimit(rateLimitCache cache.RateLimitCache,
 }
 
 // Translate the circuit breaker configuration of Polaris into OutlierDetection
-func makeOutlierDetection(conf *model.ServiceWithCircuitBreaker) *cluster.OutlierDetection {
-	if conf != nil {
-		cbRules := conf.CircuitBreaker.Inbounds
-		if cbRules == "" {
-			return nil
-		}
-
-		var inBounds []*apifault.CbRule
-		if err := json.Unmarshal([]byte(cbRules), &inBounds); err != nil {
-			log.Errorf("unmarshal inbounds circuitBreaker rule error, %v", err)
-			return nil
-		}
-
-		if len(inBounds) == 0 || len(inBounds[0].GetDestinations()) == 0 ||
-			inBounds[0].GetDestinations()[0].Policy == nil {
-			return nil
-		}
-
-		var (
-			consecutiveErrConfig *apifault.CbPolicy_ConsecutiveErrConfig
-			errorRateConfig      *apifault.CbPolicy_ErrRateConfig
-			policy               *apifault.CbPolicy
-			dest                 *apifault.DestinationSet
-		)
-
-		dest = inBounds[0].GetDestinations()[0]
-		policy = dest.Policy
-		consecutiveErrConfig = policy.Consecutive
-		errorRateConfig = policy.ErrorRate
-
-		outlierDetection := &cluster.OutlierDetection{}
-
-		if consecutiveErrConfig != nil {
-			outlierDetection.Consecutive_5Xx = &wrappers.UInt32Value{
-				Value: consecutiveErrConfig.ConsecutiveErrorToOpen.Value}
-		}
-		if errorRateConfig != nil {
-			outlierDetection.FailurePercentageRequestVolume = &wrappers.UInt32Value{
-				Value: errorRateConfig.RequestVolumeThreshold.Value}
-			outlierDetection.FailurePercentageThreshold = &wrappers.UInt32Value{
-				Value: errorRateConfig.ErrorRateToOpen.Value}
-		}
-
-		return outlierDetection
+func MakeOutlierDetection(serviceInfo *ServiceInfo) *cluster.OutlierDetection {
+	log.Infof("XDS][Sidecar] makeOutlierDetection service: %v enter", serviceInfo.Name)
+	circuitBreaker := serviceInfo.CircuitBreaker
+	if circuitBreaker == nil || len(circuitBreaker.Rules) == 0 {
+		return nil
 	}
-	return nil
+	var rule *apifault.CircuitBreakerRule
+	for _, item := range circuitBreaker.Rules {
+		log.Infof("[XDS][Sidecar] makeOutlierDetection rule: %+v", item)
+		if item.Level == apifault.Level_INSTANCE {
+			rule = item
+			break
+		}
+	}
+	// not config or close circuit breaker
+	if rule == nil || len(rule.TriggerCondition) == 0 || !rule.Enable {
+		return nil
+	}
+	triggerCondtion := rule.TriggerCondition[0]
+	outlierDetection := &cluster.OutlierDetection{}
+	outlierDetection.Interval = durationpb.New(time.Duration(triggerCondtion.GetInterval()) * time.Second)
+	outlierDetection.Consecutive_5Xx = &wrappers.UInt32Value{
+		Value: triggerCondtion.GetErrorCount()}
+	outlierDetection.FailurePercentageThreshold = &wrappers.UInt32Value{
+		Value: triggerCondtion.GetErrorPercent()}
+	outlierDetection.FailurePercentageRequestVolume = &wrappers.UInt32Value{
+		Value: triggerCondtion.GetMinimumRequest()}
+	if rule.RecoverCondition != nil {
+		outlierDetection.BaseEjectionTime =
+			durationpb.New(time.Duration(rule.GetRecoverCondition().GetSleepWindow()) * time.Second)
+	}
+
+	return outlierDetection
+}
+
+// Translate the FaultDetector configuration of Polaris into HealthCheck
+func MakeHealthCheck(serviceInfo *ServiceInfo) []*core.HealthCheck {
+	log.Infof("XDS][Sidecar] makeHealthCheck service: %v enter", serviceInfo.Name)
+	if serviceInfo.FaultDetect == nil || len(serviceInfo.FaultDetect.Rules) == 0 {
+		return nil
+	}
+	var healthChecks []*core.HealthCheck
+	for _, rule := range serviceInfo.FaultDetect.Rules {
+		log.Infof("[XDS][Sidecar] makeHealthCheck name: %v,  rule: %+v", rule.Name, rule)
+		healthCheck := &core.HealthCheck{
+			Timeout:            durationpb.New(time.Duration(rule.GetTimeout()) * time.Second),
+			Interval:           durationpb.New(time.Duration(rule.GetInterval()) * time.Second),
+			UnhealthyThreshold: &wrappers.UInt32Value{Value: 3},
+			HealthyThreshold:   &wrappers.UInt32Value{Value: 1},
+		}
+		if rule.GetProtocol() == apifault.FaultDetectRule_HTTP {
+			config := rule.GetHttpConfig()
+			if config == nil {
+				continue
+			}
+			var headers []*core.HeaderValueOption
+			for _, item := range config.GetHeaders() {
+				header := core.HeaderValueOption{
+					Header: &core.HeaderValue{
+						Key:   item.Key,
+						Value: item.Value,
+					},
+				}
+				headers = append(headers, &header)
+			}
+
+			httpHealthCheck := &core.HealthCheck_HttpHealthCheck{
+				Path:                config.Url,
+				Method:              core.RequestMethod(core.RequestMethod_value[config.Method]),
+				RequestHeadersToAdd: headers,
+			}
+			healthCheck.HealthChecker = &core.HealthCheck_HttpHealthCheck_{HttpHealthCheck: httpHealthCheck}
+			healthChecks = append(healthChecks, healthCheck)
+		} else if rule.GetProtocol() == apifault.FaultDetectRule_TCP {
+			config := rule.GetTcpConfig()
+			if config == nil {
+				continue
+			}
+			var receives []*core.HealthCheck_Payload
+			for _, item := range config.GetReceive() {
+				receives = append(receives, &core.HealthCheck_Payload{
+					Payload: &core.HealthCheck_Payload_Text{Text: hex.EncodeToString([]byte(item))},
+				})
+			}
+			tcpHealthCheck := &core.HealthCheck_TcpHealthCheck{
+				Send: &core.HealthCheck_Payload{
+					Payload: &core.HealthCheck_Payload_Text{Text: hex.EncodeToString([]byte(config.Send))},
+				},
+				Receive: receives,
+			}
+			healthCheck.HealthChecker = &core.HealthCheck_TcpHealthCheck_{TcpHealthCheck: tcpHealthCheck}
+			healthChecks = append(healthChecks, healthCheck)
+		}
+	}
+	return healthChecks
 }
 
 func MakeLbSubsetConfig(serviceInfo *ServiceInfo) *cluster.Cluster_LbSubsetConfig {

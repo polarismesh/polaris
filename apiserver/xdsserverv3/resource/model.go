@@ -18,6 +18,7 @@
 package resource
 
 import (
+	"github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
@@ -71,6 +72,10 @@ type ServiceInfo struct {
 	Ports                []*model.ServicePort
 	RateLimit            *traffic_manage.RateLimit
 	SvcRateLimitRevision string
+	CircuitBreaker         *fault_tolerance.CircuitBreaker
+	CircuitBreakerRevision string
+	FaultDetect            *fault_tolerance.FaultDetector
+	FaultDetectRevision    string
 }
 
 func (s *ServiceInfo) MatchService(ns, name string) bool {

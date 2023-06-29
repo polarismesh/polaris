@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: outlier-frontend
+  namespace: polaris-test
+spec:
+  ports:
+    - port: 8080
+      name: http
+  selector:
+    app: outlier-frontend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outlier-frontend
+  namespace: polaris-test
+  labels:
+    app: outlier-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: outlier-frontend
+  template:
+    metadata:
+      labels:
+        app: outlier-frontend
+    spec:
+      containers:
+        - name: outlier-frontend
+          image: repository/outlier_frontend
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          securityContext:
+            runAsUser: 1000
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: outlier-backend
+  namespace: polaris-test
+spec:
+  ports:
+    - port: 8090
+      name: http
+  selector:
+    app: outlier-backend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outlier-backend
+  namespace: polaris-test
+  labels:
+    app: outlier-backend
+spec:
+  replicas: 7
+  selector:
+    matchLabels:
+      app: outlier-backend
+  template:
+    metadata:
+      labels:
+        app: outlier-backend
+    spec:
+      containers:
+        - name: outlier-backend
+          image: repository/outlier_backend
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8090
+          securityContext:
+            runAsUser: 1000
+---

@@ -48,7 +48,8 @@ func (x *XDSServer) makeCluster(service *resource.ServiceInfo) *cluster.Cluster 
 		},
 
 		LbSubsetConfig: resource.MakeLbSubsetConfig(service),
-		//OutlierDetection: makeOutlierDetection(circuitBreakerConf),
+		OutlierDetection: resource.MakeOutlierDetection(service),
+		HealthChecks: resource.MakeHealthCheck(service),
 	}
 }
 
