@@ -60,18 +60,18 @@ var (
 
 // ServiceInfo 北极星服务结构体
 type ServiceInfo struct {
-	ID                   string
-	Name                 string
-	Namespace            string
-	ServiceKey           model.ServiceKey
-	AliasFor             *model.Service
-	Instances            []*apiservice.Instance
-	SvcInsRevision       string
-	Routing              *traffic_manage.Routing
-	SvcRoutingRevision   string
-	Ports                []*model.ServicePort
-	RateLimit            *traffic_manage.RateLimit
-	SvcRateLimitRevision string
+	ID                     string
+	Name                   string
+	Namespace              string
+	ServiceKey             model.ServiceKey
+	AliasFor               *model.Service
+	Instances              []*apiservice.Instance
+	SvcInsRevision         string
+	Routing                *traffic_manage.Routing
+	SvcRoutingRevision     string
+	Ports                  []*model.ServicePort
+	RateLimit              *traffic_manage.RateLimit
+	SvcRateLimitRevision   string
 	CircuitBreaker         *fault_tolerance.CircuitBreaker
 	CircuitBreakerRevision string
 	FaultDetect            *fault_tolerance.FaultDetector
