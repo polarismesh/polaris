@@ -80,6 +80,10 @@ jobs:
           MYSQL_DB_USER: root
           MYSQL_DB_PWD: root
         run: |
+          export STORE_MODE=""
+          go mod vendor
+          go test -timeout 120m ./... -v -covermode=count -coverprofile=coverage_1.cover -coverpkg=github.com/polarismesh/polaris/apiserver,github.com/polarismesh/polaris/apiserver/eurekaserver,github.com/polarismesh/polaris/auth/defaultauth,github.com/polarismesh/polaris/service,github.com/polarismesh/polaris/service/batch,github.com/polarismesh/polaris/service/healthcheck,github.com/polarismesh/polaris/cache,github.com/polarismesh/polaris/store/boltdb,github.com/polarismesh/polaris/store/mysql,github.com/polarismesh/polaris/plugin,github.com/polarismesh/polaris/config,github.com/polarismesh/polaris/plugin/healthchecker/leader,github.com/polarismesh/polaris/plugin/healthchecker/memory,github.com/polarismesh/polaris/plugin/healthchecker/redis,github.com/polarismesh/polaris/common/batchjob,github.com/polarismesh/polaris/common/eventhub,github.com/polarismesh/polaris/common/redispool,github.com/polarismesh/polaris/common/timewheel >test_standalone.log
+    
           # bash coverage.sh
           export MYSQL_DB_USER=${{ env.MYSQL_DB_USER }}
           export MYSQL_DB_PWD=${{ env.MYSQL_DB_PWD }}

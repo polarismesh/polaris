@@ -16,13 +16,6 @@
 
 set -ex # Exit on error; debugging enabled.
 
-function test_standalone() {
-    export STORE_MODE=""
-    # bash coverage.sh
-    go mod vendor
-    go test -timeout 120m ./... -v -covermode=count -coverprofile=coverage_1.cover -coverpkg=github.com/polarismesh/polaris/apiserver,github.com/polarismesh/polaris/apiserver/eurekaserver,github.com/polarismesh/polaris/auth/defaultauth,github.com/polarismesh/polaris/service,github.com/polarismesh/polaris/service/batch,github.com/polarismesh/polaris/service/healthcheck,github.com/polarismesh/polaris/cache,github.com/polarismesh/polaris/store/boltdb,github.com/polarismesh/polaris/store/mysql,github.com/polarismesh/polaris/plugin,github.com/polarismesh/polaris/config,github.com/polarismesh/polaris/plugin/healthchecker/leader,github.com/polarismesh/polaris/plugin/healthchecker/memory,github.com/polarismesh/polaris/plugin/healthchecker/redis,github.com/polarismesh/polaris/common/batchjob,github.com/polarismesh/polaris/common/eventhub,github.com/polarismesh/polaris/common/redispool,github.com/polarismesh/polaris/common/timewheel >test_standalone.log
-}
-
 function prepare_cluster_env() {
     # 测试配置
     echo "cur STORE MODE=${STORE_MODE}, MYSQL_DB_USER=${MYSQL_DB_USER}, MYSQL_DB_PWD=${MYSQL_DB_PWD}"
@@ -63,7 +56,6 @@ function test_cluster_discovery() {
     mv coverage_sqldb_3.cover ../
 }
 
-test_standalone &
 prepare_cluster_env
 test_cluster_auth &
 test_cluster_discovery &
