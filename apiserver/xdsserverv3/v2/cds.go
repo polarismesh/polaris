@@ -165,5 +165,7 @@ func (cds *CDSBuilder) makeCluster(svcInfo *resource.ServiceInfo,
 			},
 		},
 		LbSubsetConfig: resource.MakeLbSubsetConfig(svcInfo),
+		OutlierDetection: resource.MakeOutlierDetection(svcInfo),
+		HealthChecks: resource.MakeHealthCheck(svcInfo),
 	}
 }

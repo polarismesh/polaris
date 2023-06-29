@@ -409,6 +409,29 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 				svc.SvcRateLimitRevision = ratelimitResp.RateLimit.Revision.Value
 				svc.RateLimit = ratelimitResp.RateLimit
 			}
+			// 获取circuitBreaker配置
+			circuitBreakerResp := x.namingServer.GetCircuitBreakerWithCache(ctx, s)
+			if circuitBreakerResp.GetCode().Value != api.ExecuteSuccess {
+				log.Errorf("[XDSV3] error sync circuitBreaker for %s, info : %s",
+					svc.Name, circuitBreakerResp.Info.GetValue())
+				return fmt.Errorf("error sync circuitBreaker for %s", svc.Name)
+			}
+			if circuitBreakerResp.CircuitBreaker != nil {
+				svc.CircuitBreakerRevision = circuitBreakerResp.CircuitBreaker.Revision.Value
+				svc.CircuitBreaker = circuitBreakerResp.CircuitBreaker
+			}
+
+			// 获取faultDetect配置
+			faultDetectResp := x.namingServer.GetFaultDetectWithCache(ctx, s)
+			if faultDetectResp.GetCode().Value != api.ExecuteSuccess {
+				log.Errorf("[XDSV3] error sync faultDetect for %s, info : %s",
+					svc.Name, faultDetectResp.Info.GetValue())
+				return fmt.Errorf("error sync faultDetect for %s", svc.Name)
+			}
+			if faultDetectResp.FaultDetector != nil {
+				svc.FaultDetectRevision = faultDetectResp.FaultDetector.Revision
+				svc.FaultDetect = faultDetectResp.FaultDetector
+			}
 		}
 	}
 
@@ -438,6 +461,12 @@ func (x *XDSServer) checkUpdate(curServiceInfo, cacheServiceInfo map[model.Servi
 					return true
 				}
 				if info.SvcRateLimitRevision != serviceInfo.SvcRateLimitRevision {
+					return true
+				}
+				if info.CircuitBreakerRevision != serviceInfo.CircuitBreakerRevision {
+					return true
+				}
+				if info.FaultDetectRevision != serviceInfo.FaultDetectRevision {
 					return true
 				}
 				find = true
