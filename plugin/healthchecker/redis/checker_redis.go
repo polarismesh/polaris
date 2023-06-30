@@ -292,24 +292,6 @@ func (r *RedisHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckR
 	return checkResp, nil
 }
 
-// AddToCheck add the instances to check procedure
-func (r *RedisHealthChecker) AddToCheck(request *plugin.AddCheckRequest) error {
-	if len(request.Instances) == 0 {
-		return nil
-	}
-	resp := r.checkPool.Sdd(request.LocalHost, request.Instances)
-	return resp.Err
-}
-
-// RemoveFromCheck AddToCheck add the instances to check procedure
-func (r *RedisHealthChecker) RemoveFromCheck(request *plugin.AddCheckRequest) error {
-	if len(request.Instances) == 0 {
-		return nil
-	}
-	resp := r.checkPool.Srem(request.LocalHost, request.Instances)
-	return resp.Err
-}
-
 // Delete delete the target id
 func (r *RedisHealthChecker) Delete(ctx context.Context, id string) error {
 	resp := r.checkPool.Del(id)

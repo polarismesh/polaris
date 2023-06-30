@@ -153,16 +153,6 @@ func (r *MemoryHealthChecker) Check(request *plugin.CheckRequest) (*plugin.Check
 	return checkResp, nil
 }
 
-// AddToCheck add the instances to check procedure
-func (r *MemoryHealthChecker) AddToCheck(request *plugin.AddCheckRequest) error {
-	return nil
-}
-
-// RemoveFromCheck removes the instances from check procedure
-func (r *MemoryHealthChecker) RemoveFromCheck(request *plugin.AddCheckRequest) error {
-	return nil
-}
-
 // Delete delete the id
 func (r *MemoryHealthChecker) Delete(ctx context.Context, id string) error {
 	r.hbRecords.Delete(id)
