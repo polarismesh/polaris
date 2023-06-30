@@ -18,6 +18,7 @@ bootstrap:
   # Global log
   logger:
     # Log scope name
+    # Configuration center related logs
     config:
       # Log file location
       rotateOutputPath: log/runtime/polaris-config.log
@@ -25,99 +26,121 @@ bootstrap:
       errorRotateOutputPath: log/runtime/polaris-config-error.log
       # The maximum size of a single log file, 100 default, the unit is MB
       rotationMaxSize: 100
-      # How many log files are saved, default 10
-      rotationMaxBackups: 10
+      # How many log files are saved, default 30
+      rotationMaxBackups: 30
       # The maximum preservation days of a single log file, default 7
       rotationMaxAge: 7
       # Log output level，debug/info/warn/error
       outputLevel: info
       # Open the log file compression
-      # compress: false
+      compress: true
+      # onlyContent just print log content, not print log timestamp
+      # onlyContent: false
+    # Resource Auth, User Management Log
     auth:
       rotateOutputPath: log/runtime/polaris-auth.log
       errorRotateOutputPath: log/runtime/polaris-auth-error.log
       rotationMaxSize: 100
-      rotationMaxBackups: 10
+      rotationMaxBackups: 30
       rotationMaxAge: 7
       outputLevel: info
+      compress: true
+    # Storage layer log
     store:
       rotateOutputPath: log/runtime/polaris-store.log
       errorRotateOutputPath: log/runtime/polaris-store-error.log
       rotationMaxSize: 100
-      rotationMaxBackups: 10
+      rotationMaxBackups: 30
       rotationMaxAge: 7
       outputLevel: info
+      compress: true
+    # Server cache log log
     cache:
       rotateOutputPath: log/runtime/polaris-cache.log
       errorRotateOutputPath: log/runtime/polaris-cache-error.log
       rotationMaxSize: 100
-      rotationMaxBackups: 10
+      rotationMaxBackups: 30
       rotationMaxAge: 7
       outputLevel: info
+      compress: true
+    # Service discovery and governance rules related logs
     naming:
       rotateOutputPath: log/runtime/polaris-naming.log
       errorRotateOutputPath: log/runtime/polaris-naming-error.log
       rotationMaxSize: 100
-      rotationMaxBackups: 10
+      rotationMaxBackups: 30
       rotationMaxAge: 7
       outputLevel: info
+      compress: true
+    # Service discovery institutional health check log
     healthcheck:
       rotateOutputPath: log/runtime/polaris-healthcheck.log
       errorRotateOutputPath: log/runtime/polaris-healthcheck-error.log
       rotationMaxSize: 100
-      rotationMaxBackups: 10
+      rotationMaxBackups: 30
       rotationMaxAge: 7
       outputLevel: info
+      compress: true
+    # XDS protocol layer plug -in log
     xdsv3:
       rotateOutputPath: log/runtime/polaris-xdsv3.log
       errorRotateOutputPath: log/runtime/polaris-xdsv3-error.log
       rotationMaxSize: 100
-      rotationMaxBackups: 10
+      rotationMaxBackups: 30
       rotationMaxAge: 7
       outputLevel: info
+      compress: true
+    # Eureka protocol layer plug -in log
+    eureka:
+      rotateOutputPath: log/runtime/polaris-eureka.log
+      errorRotateOutputPath: log/runtime/polaris-eureka-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 30
+      rotationMaxAge: 7
+      outputLevel: info
+      compress: true
+    # APISERVER common log, record inbound request and outbound response 
     apiserver:
       rotateOutputPath: log/runtime/polaris-apiserver.log
       errorRotateOutputPath: log/runtime/polaris-apiserver-error.log
       rotationMaxSize: 100
-      rotationMaxBackups: 10
+      rotationMaxBackups: 30
       rotationMaxAge: 7
       outputLevel: info
-    token-bucket:
-      rotateOutputPath: log/runtime/polaris-ratelimit.log
-      errorRotateOutputPath: log/runtime/polaris-ratelimit-error.log
-      rotationMaxSize: 100
-      rotationMaxBackups: 10
-      rotationMaxAge: 7
-      outputLevel: info
+      compress: true
     default:
       rotateOutputPath: log/runtime/polaris-default.log
       errorRotateOutputPath: log/runtime/polaris-default-error.log
       rotationMaxSize: 100
-      rotationMaxBackups: 10
+      rotationMaxBackups: 30
       rotationMaxAge: 7
       outputLevel: info
-    discoverEventLocal:
-      rotateOutputPath: log/event/polaris-discoverevent.log
-      errorRotateOutputPath: log/event/polaris-discoverevent-error.log
+      compress: true
+    # server plugin logs
+    token-bucket:
+      rotateOutputPath: log/runtime/polaris-ratelimit.log
+      errorRotateOutputPath: log/runtime/polaris-ratelimit-error.log
       rotationMaxSize: 100
-      rotationMaxBackups: 10
+      rotationMaxBackups: 30
       rotationMaxAge: 7
       outputLevel: info
-      onlyContent: true
+      compress: true
     discoverLocal:
       rotateOutputPath: log/statis/polaris-discoverstat.log
       errorRotateOutputPath: log/statis/polaris-discoverstat-error.log
       rotationMaxSize: 100
-      rotationMaxBackups: 10
+      rotationMaxBackups: 30
       rotationMaxAge: 7
       outputLevel: info
+      compress: true
     local:
       rotateOutputPath: log/statis/polaris-statis.log
       errorRotateOutputPath: log/statis/polaris-statis-error.log
       rotationMaxSize: 100
-      rotationMaxBackups: 10
+      rotationMaxBackups: 30
       rotationMaxAge: 7
       outputLevel: info
+      compress: true
     HistoryLogger:
       rotateOutputPath: log/operation/polaris-history.log
       errorRotateOutputPath: log/operation/polaris-history-error.log
@@ -127,13 +150,22 @@ bootstrap:
       rotationMaxDurationForHour: 24
       outputLevel: info
       onlyContent: true
+    discoverEventLocal:
+      rotateOutputPath: log/event/polaris-discoverevent.log
+      errorRotateOutputPath: log/event/polaris-discoverevent-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 30
+      rotationMaxAge: 7
+      outputLevel: info
+      onlyContent: true
     cmdb:
       rotateOutputPath: log/runtime/polaris-cmdb.log
       errorRotateOutputPath: log/runtime/polaris-cmdb-error.log
       rotationMaxSize: 100
-      rotationMaxBackups: 10
+      rotationMaxBackups: 30
       rotationMaxAge: 7
       outputLevel: info
+      compress: true
   # Start the server in order
   startInOrder:
     # Start the Polaris-Server in order, mainly to avoid data synchronization logic when the server starts the DB to pull the DB out of high load

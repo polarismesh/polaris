@@ -21,4 +21,7 @@ import (
 	commonlog "github.com/polarismesh/polaris/common/log"
 )
 
-var log = commonlog.GetScopeOrDefaultByName(commonlog.APIServerLoggerName)
+var (
+	accesslog       = commonlog.GetScopeOrDefaultByName(commonlog.APIServerLoggerName)
+	eurekalog = commonlog.GetScopeOrDefaultByName("eureka")
+)

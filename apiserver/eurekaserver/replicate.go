@@ -52,14 +52,14 @@ const (
 
 // BatchReplication do the server request replication
 func (h *EurekaServer) BatchReplication(req *restful.Request, rsp *restful.Response) {
-	log.Infof("[EUREKA-SERVER] received replicate request %+v", req)
+	eurekalog.Infof("[EUREKA-SERVER] received replicate request %+v", req)
 	sourceSvrName := req.HeaderParameter(headerIdentityName)
 	remoteAddr := req.Request.RemoteAddr
 	if sourceSvrName == valueIdentityName {
 		// we should not process the replication from polaris
 		batchResponse := &ReplicationListResponse{ResponseList: []*ReplicationInstanceResponse{}}
 		if err := writeEurekaResponse(restful.MIME_JSON, batchResponse, req, rsp); nil != err {
-			log.Errorf("[EurekaServer]fail to write replicate response, client: %s, err: %v", remoteAddr, err)
+			eurekalog.Errorf("[EurekaServer]fail to write replicate response, client: %s, err: %v", remoteAddr, err)
 		}
 		return
 	}
@@ -67,7 +67,7 @@ func (h *EurekaServer) BatchReplication(req *restful.Request, rsp *restful.Respo
 	var err error
 	err = req.ReadEntity(replicateRequest)
 	if nil != err {
-		log.Errorf("[EUREKA-SERVER] fail to parse peer replicate request, uri: %s, client: %s, err: %v",
+		eurekalog.Errorf("[EUREKA-SERVER] fail to parse peer replicate request, uri: %s, client: %s, err: %v",
 			req.Request.RequestURI, remoteAddr, err)
 		writePolarisStatusCode(req, api.ParseException)
 		writeHeader(http.StatusBadRequest, rsp)
@@ -75,7 +75,7 @@ func (h *EurekaServer) BatchReplication(req *restful.Request, rsp *restful.Respo
 	}
 	token, err := getAuthFromEurekaRequestHeader(req)
 	if err != nil {
-		log.Infof("[EUREKA-SERVER]replicate request get basic auth info fail, code is %d", api.ExecuteException)
+		eurekalog.Infof("[EUREKA-SERVER]replicate request get basic auth info fail, code is %d", api.ExecuteException)
 		writePolarisStatusCode(req, api.ExecuteException)
 		writeHeader(http.StatusForbidden, rsp)
 		return
@@ -83,7 +83,7 @@ func (h *EurekaServer) BatchReplication(req *restful.Request, rsp *restful.Respo
 	namespace := readNamespaceFromRequest(req, h.namespace)
 	batchResponse, resultCode := h.doBatchReplicate(replicateRequest, token, namespace)
 	if err := writeEurekaResponseWithCode(restful.MIME_JSON, batchResponse, req, rsp, resultCode); nil != err {
-		log.Errorf("[EurekaServer]fail to write replicate response, client: %s, err: %v", remoteAddr, err)
+		eurekalog.Errorf("[EurekaServer]fail to write replicate response, client: %s, err: %v", remoteAddr, err)
 	}
 }
 
@@ -105,7 +105,7 @@ func (h *EurekaServer) doBatchReplicate(
 			resp, code := h.dispatch(instanceInfo, token, namespace)
 			if code != api.ExecuteSuccess {
 				atomic.CompareAndSwapUint32(&resultCode, api.ExecuteSuccess, code)
-				log.Warnf("[EUREKA-SERVER] fail to process replicate instance request, code is %d, action %s, instance %s, app %s",
+				eurekalog.Warnf("[EUREKA-SERVER] fail to process replicate instance request, code is %d, action %s, instance %s, app %s",
 					code, instanceInfo.Action, instanceInfo.Id, instanceInfo.AppName)
 			}
 			mutex.Lock()
@@ -122,10 +122,10 @@ func (h *EurekaServer) dispatch(
 	appName := formatReadName(replicationInstance.AppName)
 	ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, token)
 	var retCode = api.ExecuteSuccess
-	log.Debugf("[EurekaServer]dispatch replicate request %+v", replicationInstance)
+	eurekalog.Debugf("[EurekaServer]dispatch replicate request %+v", replicationInstance)
 	if nil != replicationInstance.InstanceInfo {
 		_ = convertInstancePorts(replicationInstance.InstanceInfo)
-		log.Debugf("[EurekaServer]dispatch replicate instance %+v, port %+v, sport %+v",
+		eurekalog.Debugf("[EurekaServer]dispatch replicate instance %+v, port %+v, sport %+v",
 			replicationInstance.InstanceInfo, replicationInstance.InstanceInfo.Port, replicationInstance.InstanceInfo.SecurePort)
 	}
 	switch replicationInstance.Action {
@@ -202,7 +202,7 @@ func (h *EurekaServer) shouldReplicate(e model.InstanceEvent) bool {
 	}
 
 	if len(e.Service) == 0 {
-		log.Warnf("[EUREKA]fail to replicate, service name is empty for event %s", e)
+		eurekalog.Warnf("[EUREKA]fail to replicate, service name is empty for event %s", e)
 		return false
 	}
 	metadata := e.MetaData
