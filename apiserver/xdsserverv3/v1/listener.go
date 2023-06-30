@@ -28,7 +28,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 )
 
-func makeListeners() []types.Resource {
+func makeListeners() ([]types.Resource, error) {
 	manager := &hcm.HttpConnectionManager{
 		CodecType:  hcm.HttpConnectionManager_AUTO,
 		StatPrefix: "http",
@@ -51,7 +51,7 @@ func makeListeners() []types.Resource {
 
 	pbst, err := ptypes.MarshalAny(manager)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	tcpConfig := &tcp.TcpProxy{
@@ -63,7 +63,7 @@ func makeListeners() []types.Resource {
 
 	tcpC, err := ptypes.MarshalAny(tcpConfig)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	return []types.Resource{
@@ -110,17 +110,23 @@ func makeListeners() []types.Resource {
 				},
 			},
 		},
+	}, nil
+}
+
+func makePermissiveListeners() ([]types.Resource, error) {
+	resources, err := makeListeners()
+	if err != nil {
+		return nil, err
 	}
-}
-
-func makePermissiveListeners() []types.Resource {
-	resources := makeListeners()
 	resources = append(resources, inboundListener())
-	return resources
+	return resources, nil
 }
 
-func makeStrictListeners() []types.Resource {
-	resources := makeListeners()
+func makeStrictListeners() ([]types.Resource, error) {
+	resources, err := makeListeners()
+	if err != nil {
+		return nil, err
+	}
 	resources = append(resources, inboundStrictListener())
-	return resources
+	return resources, nil
 }

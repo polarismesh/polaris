@@ -32,6 +32,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/service"
 )
 
@@ -105,9 +106,15 @@ func (lds *LDSBuilder) Generate(option *resource.BuildOption) (interface{}, erro
 func (lds *LDSBuilder) makeListener(option *resource.BuildOption,
 	direction corev3.TrafficDirection) ([]types.Resource, error) {
 
-	boundHCM := resource.MakeBoundHCM(direction)
+	var boundHCM *hcm.HttpConnectionManager
 	if lds.client.IsGateway() {
 		boundHCM = resource.MakeGatewayBoundHCM()
+	} else {
+		selfService := model.ServiceKey{
+			Namespace: lds.client.GetSelfNamespace(),
+			Name:      lds.client.GetSelfService(),
+		}
+		boundHCM = resource.MakeSidecarBoundHCM(selfService, direction)
 	}
 
 	listener := makeDefaultListener(direction, boundHCM)

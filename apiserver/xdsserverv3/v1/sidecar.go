@@ -37,7 +37,7 @@ import (
 )
 
 func (x *XDSServer) makeSnapshot(ns, version string, tlsMode resource.TLSMode,
-	services map[model.ServiceKey]*resource.ServiceInfo) (err error) {
+	services map[model.ServiceKey]*resource.ServiceInfo) error {
 
 	resources := make(map[resourcev3.Type][]types.Resource)
 	resources[resourcev3.EndpointType] = makeEndpoints(services)
@@ -45,18 +45,24 @@ func (x *XDSServer) makeSnapshot(ns, version string, tlsMode resource.TLSMode,
 
 	cacheKey := ns
 
+	var err error
 	switch tlsMode {
 	case resource.TLSModeNone:
 		resources[resourcev3.ClusterType] = x.makeClusters(services)
-		resources[resourcev3.ListenerType] = makeListeners()
+		resources[resourcev3.ListenerType], err = makeListeners()
 	case resource.TLSModePermissive:
 		resources[resourcev3.ClusterType] = x.makePermissiveClusters(services)
-		resources[resourcev3.ListenerType] = makePermissiveListeners()
+		resources[resourcev3.ListenerType], err = makePermissiveListeners()
 		cacheKey = ns + "/permissive"
 	case resource.TLSModeStrict:
 		resources[resourcev3.ClusterType] = x.makeStrictClusters(services)
-		resources[resourcev3.ListenerType] = makeStrictListeners()
+		resources[resourcev3.ListenerType], err = makeStrictListeners()
 		cacheKey = ns + "/strict"
+	}
+	if err != nil {
+		log.Error("[XDS][Sidecar][V1] fail to create resource", zap.String("namespace", ns),
+			zap.String("tls", string(tlsMode)), zap.Error(err))
+		return err
 	}
 
 	snapshot, err := cachev3.NewSnapshot(version, resources)
@@ -66,6 +72,8 @@ func (x *XDSServer) makeSnapshot(ns, version string, tlsMode resource.TLSMode,
 		return err
 	}
 	if err = snapshot.Consistent(); err != nil {
+		log.Error("[XDS][Sidecar][V1] check snapshot consistent", zap.String("namespace", ns),
+			zap.String("tls", string(tlsMode)), zap.Error(err))
 		return err
 	}
 	log.Info("[XDS][Sidecar][V1] upsert snapshot success", zap.String("namespace", ns),
@@ -76,7 +84,7 @@ func (x *XDSServer) makeSnapshot(ns, version string, tlsMode resource.TLSMode,
 			zap.String("tls", string(tlsMode)), zap.Error(err))
 		return err
 	}
-	return
+	return err
 }
 
 func (x *XDSServer) makeSidecarVirtualHosts(services map[model.ServiceKey]*resource.ServiceInfo) []types.Resource {

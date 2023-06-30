@@ -29,11 +29,13 @@ import (
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	listenerv3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	ratelimitconfv3 "github.com/envoyproxy/go-control-plane/envoy/config/ratelimit/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	filev3 "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
 	envoy_extensions_common_ratelimit_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
 	ratelimitv32 "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
 	lrl "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
+	ratelimitfilter "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ratelimit/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	tcp "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	v32 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
@@ -64,6 +66,11 @@ const (
 	RouteConfigName         = "polaris-router"
 	OutBoundRouteConfigName = "polaris-outbound-router"
 	InBoundRouteConfigName  = "polaris-inbound-cluster"
+)
+
+const (
+	LocalRateLimitStage       = 0
+	DistributedRateLimitStage = 1
 )
 
 var (
@@ -605,7 +612,9 @@ func MakeDefaultFilterChain() *listenerv3.FilterChain {
 	}
 }
 
-func MakeBoundHCM(trafficDirection corev3.TrafficDirection) *hcm.HttpConnectionManager {
+func MakeSidecarBoundHCM(svcKey model.ServiceKey,
+	trafficDirection corev3.TrafficDirection) *hcm.HttpConnectionManager {
+
 	hcmFilters := []*hcm.HttpFilter{
 		{
 			Name: wellknown.Router,
@@ -618,6 +627,29 @@ func MakeBoundHCM(trafficDirection corev3.TrafficDirection) *hcm.HttpConnectionM
 				ConfigType: &hcm.HttpFilter_TypedConfig{
 					TypedConfig: MustNewAny(&lrl.LocalRateLimit{
 						StatPrefix: "http_local_rate_limiter",
+						Stage:      LocalRateLimitStage,
+					}),
+				},
+			},
+			{
+				Name: "envoy.filters.http.ratelimit",
+				ConfigType: &hcm.HttpFilter_TypedConfig{
+					TypedConfig: MustNewAny(&ratelimitfilter.RateLimit{
+						Domain:      fmt.Sprintf("%s.%s", svcKey.Name, svcKey.Namespace),
+						Stage:       DistributedRateLimitStage,
+						RequestType: "external",
+						Timeout:     durationpb.New(2 * time.Second),
+						RateLimitService: &ratelimitconfv3.RateLimitServiceConfig{
+							GrpcService: &corev3.GrpcService{
+								TargetSpecifier: &corev3.GrpcService_EnvoyGrpc_{
+									EnvoyGrpc: &corev3.GrpcService_EnvoyGrpc{
+										ClusterName: "polaris_ratelimit",
+									},
+								},
+								Timeout: durationpb.New(time.Second),
+							},
+							TransportApiVersion: core.ApiVersion_V3,
+						},
 					}),
 				},
 			},
