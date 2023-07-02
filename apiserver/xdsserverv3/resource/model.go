@@ -53,7 +53,7 @@ const (
 	TLSModePermissive TLSMode = "permissive"
 )
 
-var (
+const (
 	// 这个是特殊指定的 prefix
 	MatchString_Prefix = apimodel.MatchString_MatchStringType(-1)
 )

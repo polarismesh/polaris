@@ -20,12 +20,15 @@ package v1
 import (
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	routerv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
+	original_dstv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/original_dst/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	tcp "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
-	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	resourcev3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 )
 
 func makeListeners() ([]types.Resource, error) {
@@ -35,7 +38,7 @@ func makeListeners() ([]types.Resource, error) {
 		RouteSpecifier: &hcm.HttpConnectionManager_Rds{
 			Rds: &hcm.Rds{
 				ConfigSource: &core.ConfigSource{
-					ResourceApiVersion: resource.DefaultAPIVersion,
+					ResourceApiVersion: resourcev3.DefaultAPIVersion,
 					ConfigSourceSpecifier: &core.ConfigSource_Ads{
 						Ads: &core.AggregatedConfigSource{},
 					},
@@ -47,6 +50,9 @@ func makeListeners() ([]types.Resource, error) {
 	}
 	manager.HttpFilters = append(manager.HttpFilters, &hcm.HttpFilter{
 		Name: wellknown.Router,
+		ConfigType: &hcm.HttpFilter_TypedConfig{
+			TypedConfig: resource.MustNewAny(&routerv3.Router{}),
+		},
 	})
 
 	pbst, err := ptypes.MarshalAny(manager)
@@ -107,6 +113,9 @@ func makeListeners() ([]types.Resource, error) {
 				{
 					// type.googleapis.com/envoy.extensions.filters.listener.original_dst.v3.OriginalDst
 					Name: wellknown.OriginalDestination,
+					ConfigType: &listener.ListenerFilter_TypedConfig{
+						TypedConfig: resource.MustNewAny(&original_dstv3.OriginalDst{}),
+					},
 				},
 			},
 		},

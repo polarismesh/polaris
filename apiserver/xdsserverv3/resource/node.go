@@ -159,8 +159,9 @@ func (x *XDSNodeManager) ListSidecarNodes() []*XDSClient {
 // ID id 的格式是 ${sidecar|gateway}~namespace/uuid~hostIp
 // case 1: envoy 为 sidecar 模式时，则 NodeID 的格式为以下两种
 //
-//	eg 1. namespace/uuid~hostIp
-//	eg 2. sidecar~namespace/uuid-hostIp
+//		eg 1. namespace/uuid~hostIp
+//		eg 2. sidecar~namespace/uuid-hostIp
+//	 eg 3. envoy_node_id="${NAMESPACE}/${INSTANCE_IP}~${POD_NAME}"
 //
 // case 2: envoy 为 gateway 模式时，则 NodeID 的格式为： gateway~namespace/uuid~hostIp
 func (PolarisNodeHash) ID(node *core.Node) string {
@@ -198,7 +199,7 @@ func (PolarisNodeHash) ID(node *core.Node) string {
 		sidecarService := node.Metadata.Fields[SidecarServiceName].GetStringValue()
 		// 如果存在, 则表示是由新版本 controller 注入的 envoy, 可以下发 INBOUND 规则
 		if sidecarNamespace != "" && sidecarService != "" {
-			ret = sidecarNamespace + "/" + sidecarService
+			ret = runType + "/" + sidecarNamespace + "/" + sidecarService
 		}
 
 		// 在判断是否设置了 TLS 相关参数
@@ -245,6 +246,7 @@ type XDSClient struct {
 	User      string
 	Namespace string
 	IPAddr    string
+	PodIP     string
 	Metadata  map[string]string
 	Version   string
 	Node      *core.Node
@@ -302,6 +304,7 @@ func parseNodeProxy(node *core.Node) *XDSClient {
 	runType, polarisNamespace, _, hostIP := ParseNodeID(node.Id)
 	proxy := &XDSClient{
 		IPAddr:    hostIP,
+		PodIP:     hostIP,
 		RunType:   RunType(runType),
 		Namespace: polarisNamespace,
 		Node:      node,

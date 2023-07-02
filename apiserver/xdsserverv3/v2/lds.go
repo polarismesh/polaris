@@ -24,6 +24,7 @@ import (
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	listenerv3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	httpinspector "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/http_inspector/v3"
+	original_dstv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/original_dst/v3"
 	tlsinspector "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/tls_inspector/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	tlstrans "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
@@ -56,6 +57,9 @@ var (
 		{
 			// type.googleapis.com/envoy.extensions.filters.listener.original_dst.v3.OriginalDst
 			Name: wellknown.OriginalDestination,
+			ConfigType: &listenerv3.ListenerFilter_TypedConfig{
+				TypedConfig: resource.MustNewAny(&original_dstv3.OriginalDst{}),
+			},
 		},
 	}
 

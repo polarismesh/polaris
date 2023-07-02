@@ -435,7 +435,7 @@ data:
         option:
           remote-conf: false # 是否使用远程配置
           ip-limit: # ip级限流，全局
-            open: true # 系统是否开启ip级限流
+            open: false # 系统是否开启ip级限流
             global:
               open: false
               bucket: 300 # 最高峰值
