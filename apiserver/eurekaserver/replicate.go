@@ -105,7 +105,8 @@ func (h *EurekaServer) doBatchReplicate(
 			resp, code := h.dispatch(instanceInfo, token, namespace)
 			if code != api.ExecuteSuccess {
 				atomic.CompareAndSwapUint32(&resultCode, api.ExecuteSuccess, code)
-				eurekalog.Warnf("[EUREKA-SERVER] fail to process replicate instance request, code is %d, action %s, instance %s, app %s",
+				eurekalog.Warnf("[EUREKA-SERVER] fail to process replicate instance request, code is %d, "+
+					"action %s, instance %s, app %s",
 					code, instanceInfo.Action, instanceInfo.Id, instanceInfo.AppName)
 			}
 			mutex.Lock()

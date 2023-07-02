@@ -39,11 +39,12 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/structpb"
+
+	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 )
 
 func mustNewAny(src proto.Message) *anypb.Any {

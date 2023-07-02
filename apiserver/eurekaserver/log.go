@@ -22,6 +22,6 @@ import (
 )
 
 var (
-	accesslog       = commonlog.GetScopeOrDefaultByName(commonlog.APIServerLoggerName)
+	accesslog = commonlog.GetScopeOrDefaultByName(commonlog.APIServerLoggerName)
 	eurekalog = commonlog.GetScopeOrDefaultByName("eureka")
 )
