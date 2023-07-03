@@ -64,9 +64,7 @@ type FileCache interface {
 type fileCache struct {
 	storage store.Store
 	// fileId -> Entry
-	files sync.Map
-	// fileId -> lock
-	fileLoadLocks sync.Map
+	files *utils.SegmentMap[string, *Entry]
 	// loadCnt
 	loadCnt int32
 	// getCnt
@@ -77,7 +75,7 @@ type fileCache struct {
 	expireCnt int32
 	// configGroups
 	configGroups *configFileGroupBucket
-	//
+	// singleLoadGroup
 	singleLoadGroup singleflight.Group
 	// expireTimeAfterWrite
 	expireTimeAfterWrite int
@@ -87,6 +85,7 @@ type fileCache struct {
 
 // Entry 缓存实体对象
 type Entry struct {
+	locker  sync.RWMutex
 	Content string
 	Md5     string
 	Version uint64
@@ -95,6 +94,15 @@ type Entry struct {
 	ExpireTime time.Time
 	// 标识是否是空缓存
 	Empty bool
+}
+
+func (e *Entry) update(v *Entry) {
+	e.Content = v.Content
+	e.Md5 = v.Md5
+	e.Empty = v.Empty
+	e.Version = v.Version
+	e.Tags = v.Tags
+	e.ExpireTime = v.ExpireTime
 }
 
 func (e *Entry) GetDataKey() string {
@@ -168,9 +176,8 @@ func (fc *fileCache) name() string {
 // Get 一般用于内部服务调用，所以不计入 metrics
 func (fc *fileCache) Get(namespace, group, fileName string) (*Entry, bool) {
 	fileId := utils.GenFileId(namespace, group, fileName)
-	storedEntry, ok := fc.files.Load(fileId)
+	entry, ok := fc.files.Get(fileId)
 	if ok {
-		entry := storedEntry.(*Entry)
 		return entry, true
 	}
 	return nil, false
@@ -240,24 +247,22 @@ func (fc *fileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 	atomic.AddInt32(&fc.getCnt, 1)
 
 	fileId := utils.GenFileId(namespace, group, fileName)
-	storedEntry, ok := fc.files.Load(fileId)
-	if ok {
-		return storedEntry.(*Entry), nil
+	entry, noExist := fc.files.ComputeIfAbsent(fileId, func(k string) *Entry {
+		// 默认创建一个空的 Entry，主要规避以下几个问题
+		// case 1: 存储层中没有该对象, 为了避免对象不存在时，一直击穿存储层
+		// case 2: 存储层出现负载问题，无法正常处理请求，一直击穿存储层
+		return &Entry{
+			ExpireTime: fc.getExpireTime(),
+			Empty:      true,
+		}
+	})
+	if !noExist {
+		return entry, nil
 	}
 
-	// 缓存未命中，则从数据库里加载数据
-
-	// 为了避免在大并发量的情况下，数据库被压垮，所以增加锁。同时为了提高性能，减小锁粒度
-	lockObj, _ := fc.fileLoadLocks.LoadOrStore(fileId, new(sync.Mutex))
-	loadLock := lockObj.(*sync.Mutex)
-	loadLock.Lock()
-	defer loadLock.Unlock()
-
-	// double check
-	storedEntry, ok = fc.files.Load(fileId)
-	if ok {
-		return storedEntry.(*Entry), nil
-	}
+	// 缓存未命中，则从存储层里加载数据
+	entry.locker.Lock()
+	defer entry.locker.Unlock()
 
 	// 从数据库中加载数据
 	atomic.AddInt32(&fc.loadCnt, 1)
@@ -265,26 +270,16 @@ func (fc *fileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 	file, tags, err := fc.getConfigFileReleaseAndTags(namespace, group, fileName)
 	if err != nil {
 		configLog.Error("[Config][Cache] load config file release and tags error.",
-			zap.String("namespace", namespace),
-			zap.String("group", group),
-			zap.String("fileName", fileName),
+			zap.String("namespace", namespace), zap.String("group", group), zap.String("fileName", fileName),
 			zap.Error(err))
 		return nil, err
 	}
 
-	// 数据库中没有该对象, 为了避免对象不存在时，一直击穿数据库，所以缓存空对象
 	if file == nil {
 		configLog.Warn("[Config][Cache] load config file release not found.",
-			zap.String("namespace", namespace),
-			zap.String("group", group),
-			zap.String("fileName", fileName),
+			zap.String("namespace", namespace), zap.String("group", group), zap.String("fileName", fileName),
 			zap.Error(err))
-		emptyEntry := &Entry{
-			ExpireTime: fc.getExpireTime(),
-			Empty:      true,
-		}
-		fc.files.Store(fileId, emptyEntry)
-		return emptyEntry, nil
+		return entry, nil
 	}
 
 	// 数据库中有对象，更新缓存
@@ -296,19 +291,15 @@ func (fc *fileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 		ExpireTime: fc.getExpireTime(),
 	}
 
-	// 缓存不存在，则直接存入缓存
-	if !ok {
-		fc.files.Store(fileId, newEntry)
-		return newEntry, nil
+	// case 1: 缓存不存在，则直接存入缓存
+	// case 2: 缓存存在，幂等判断只能存入版本号更大的
+	if noExist || (entry.Empty || newEntry.Version > entry.Version) {
+		entry.update(newEntry)
+		fc.files.Put(fileId, entry)
+		return entry, nil
 	}
 
-	// 缓存存在，幂等判断只能存入版本号更大的
-	oldEntry := storedEntry.(*Entry)
-	if oldEntry.Empty || newEntry.Version > oldEntry.Version {
-		fc.files.Store(fileId, newEntry)
-	}
-
-	return newEntry, nil
+	return entry, nil
 }
 
 func (fc *fileCache) getConfigFileReleaseAndTags(
@@ -338,7 +329,7 @@ func (fc *fileCache) getConfigFileReleaseAndTags(
 func (fc *fileCache) Remove(namespace, group, fileName string) {
 	atomic.AddInt32(&fc.removeCnt, 1)
 	fileId := utils.GenFileId(namespace, group, fileName)
-	fc.files.Delete(fileId)
+	fc.files.Del(fileId)
 }
 
 // ReLoad 重新加载缓存
@@ -349,13 +340,12 @@ func (fc *fileCache) ReLoad(namespace, group, fileName string) (*Entry, error) {
 
 // CleanAll 清空缓存，仅用于集成测试
 func (fc *fileCache) CleanAll() {
-	fc.files.Range(func(key, _ interface{}) bool {
-		fc.files.Delete(key)
-		return true
+	fc.files.Range(func(key string, _ *Entry) {
+		fc.files.Del(key)
 	})
 }
 
-// 缓存过期时间，为了避免集中失效，加上随机数。[60 ~ 70]分钟内随机失效
+// 缓存过期时间，为了避免集中失效，加上随机数。[60 ~ 70] second 内随机失效
 func (fc *fileCache) getExpireTime() time.Time {
 	randTime := rand.Intn(10*60) + fc.expireTimeAfterWrite
 	return time.Now().Add(time.Duration(randTime) * time.Second)
@@ -371,12 +361,11 @@ func (fc *fileCache) startClearExpireEntryTask(ctx context.Context) {
 			return
 		case <-t.C:
 			curExpiredFileCnt := 0
-			fc.files.Range(func(fileId, entry interface{}) bool {
-				if time.Now().After(entry.(*Entry).ExpireTime) {
-					fc.files.Delete(fileId)
+			fc.files.Range(func(fileId string, entry *Entry) {
+				if time.Now().After(entry.ExpireTime) {
+					fc.files.Del(fileId)
 					curExpiredFileCnt++
 				}
-				return true
 			})
 
 			if curExpiredFileCnt > 0 {

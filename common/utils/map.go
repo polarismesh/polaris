@@ -48,6 +48,19 @@ func (s *SegmentMap[K, V]) Put(k K, v V) {
 	solt[k] = v
 }
 
+func (s *SegmentMap[K, V]) ComputeIfAbsent(k K, supplier func(k K) V) (V, bool) {
+	lock, solt := s.caulIndex(k)
+	lock.Lock()
+	defer lock.Unlock()
+	oldVal, ok := solt[k]
+	if !ok {
+		v := supplier(k)
+		solt[k] = v
+		return v, true
+	}
+	return oldVal, false
+}
+
 func (s *SegmentMap[K, V]) PutIfAbsent(k K, v V) (V, bool) {
 	lock, solt := s.caulIndex(k)
 	lock.Lock()

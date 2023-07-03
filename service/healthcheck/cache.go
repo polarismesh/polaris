@@ -22,8 +22,10 @@ import (
 
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
+	"github.com/polarismesh/polaris/common/hash"
 	commonhash "github.com/polarismesh/polaris/common/hash"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 )
 
@@ -39,9 +41,9 @@ func init() {
 type CacheProvider struct {
 	svr                  *Server
 	selfService          string
-	selfServiceInstances *shardMap
-	healthCheckInstances *shardMap
-	healthCheckClients   *shardMap
+	selfServiceInstances *utils.SegmentMap[string, ItemWithChecker]
+	healthCheckInstances *utils.SegmentMap[string, ItemWithChecker]
+	healthCheckClients   *utils.SegmentMap[string, ItemWithChecker]
 }
 
 // CacheEvent provides the event for cache changes
@@ -55,9 +57,9 @@ func newCacheProvider(selfService string, svr *Server) *CacheProvider {
 	return &CacheProvider{
 		svr:                  svr,
 		selfService:          selfService,
-		selfServiceInstances: NewShardMap(1),
-		healthCheckInstances: NewShardMap(DefaultShardSize),
-		healthCheckClients:   NewShardMap(DefaultShardSize),
+		selfServiceInstances: utils.NewSegmentMap[string, ItemWithChecker](1, hash.Fnv32),
+		healthCheckInstances: utils.NewSegmentMap[string, ItemWithChecker](int(DefaultShardSize), hash.Fnv32),
+		healthCheckClients:   utils.NewSegmentMap[string, ItemWithChecker](int(DefaultShardSize), hash.Fnv32),
 	}
 }
 
@@ -124,7 +126,7 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 		}
 		// check exists
 		instanceId := actual.ID()
-		value, exists := c.healthCheckInstances.Load(instanceId)
+		value, exists := c.healthCheckInstances.Get(instanceId)
 		hcEnable, checker := c.isHealthCheckEnable(instProto)
 		if !hcEnable {
 			if !exists {
@@ -134,7 +136,7 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 			log.Infof("[Health Check][Cache]delete health check disabled instance is %s:%d, id is %s",
 				actual.Host(), actual.Port(), instanceId)
 			// instance is unhealthy, but exist, delete it.
-			ok := c.healthCheckInstances.DeleteIfExist(instanceId)
+			ok := c.healthCheckInstances.Del(instanceId)
 			if ok {
 				c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 			}
@@ -151,7 +153,7 @@ func (c *CacheProvider) OnUpdated(value interface{}) {
 				actual.Host(), actual.Port(), instanceId)
 			//   In the concurrent scenario, when the healthCheckInstance.Revision() of the same health instance is the same,
 			//   if it arrives here at the same time, it will be saved multiple times
-			c.healthCheckInstances.Store(instanceId, newInstanceWithChecker(actual, checker))
+			c.healthCheckInstances.Put(instanceId, newInstanceWithChecker(actual, checker))
 			c.sendEvent(CacheEvent{healthCheckInstancesChanged: true})
 		}
 	case *model.Client:
@@ -224,7 +226,7 @@ func (c *CacheProvider) RangeSelfServiceInstances(check func(instance *apiservic
 
 // GetSelfServiceInstance get self service instance by id
 func (c *CacheProvider) GetSelfServiceInstance(instanceId string) *model.Instance {
-	value, ok := c.selfServiceInstances.Load(instanceId)
+	value, ok := c.selfServiceInstances.Get(instanceId)
 	if !ok {
 		return nil
 	}
@@ -238,7 +240,7 @@ func (c *CacheProvider) GetSelfServiceInstance(instanceId string) *model.Instanc
 
 // GetInstance get instance by id
 func (c *CacheProvider) GetInstance(instanceId string) *model.Instance {
-	value, ok := c.healthCheckInstances.Load(instanceId)
+	value, ok := c.healthCheckInstances.Get(instanceId)
 	if !ok {
 		return nil
 	}
@@ -252,7 +254,7 @@ func (c *CacheProvider) GetInstance(instanceId string) *model.Instance {
 
 // GetInstance get instance by id
 func (c *CacheProvider) GetClient(clientId string) *model.Client {
-	value, ok := c.healthCheckClients.Load(clientId)
+	value, ok := c.healthCheckClients.Get(clientId)
 	if !ok {
 		return nil
 	}
@@ -268,7 +270,8 @@ func (c *CacheProvider) sendEvent(event CacheEvent) {
 	c.svr.dispatcher.UpdateStatusByEvent(event)
 }
 
-func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, values *shardMap) bool {
+func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker,
+	values *utils.SegmentMap[string, ItemWithChecker]) bool {
 	instanceId := instanceWithChecker.instance.ID()
 	value, isNew := values.PutIfAbsent(instanceId, instanceWithChecker)
 	if isNew {
@@ -286,22 +289,23 @@ func compareAndStoreServiceInstance(instanceWithChecker *InstanceWithChecker, va
 		instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(), instanceId)
 	// In the concurrent scenario, when the key and version are the same,
 	// if they arrive here at the same time, they will be saved multiple times.
-	values.Store(instanceId, instanceWithChecker)
+	values.Put(instanceId, instanceWithChecker)
 	return true
 }
 
-func storeServiceInstance(instanceWithChecker *InstanceWithChecker, values *shardMap) bool {
+func storeServiceInstance(instanceWithChecker *InstanceWithChecker,
+	values *utils.SegmentMap[string, ItemWithChecker]) bool {
 	log.Infof("[Health Check][Cache]create service instance is %s:%d, id is %s",
 		instanceWithChecker.instance.Host(), instanceWithChecker.instance.Port(),
 		instanceWithChecker.instance.ID())
 	instanceId := instanceWithChecker.instance.ID()
-	values.Store(instanceId, instanceWithChecker)
+	values.Put(instanceId, instanceWithChecker)
 	return true
 }
 
-func deleteServiceInstance(instance *apiservice.Instance, values *shardMap) bool {
+func deleteServiceInstance(instance *apiservice.Instance, values *utils.SegmentMap[string, ItemWithChecker]) bool {
 	instanceId := instance.GetId().GetValue()
-	ok := values.DeleteIfExist(instanceId)
+	ok := values.Del(instanceId)
 	if ok {
 		log.Infof("[Health Check][Cache]delete service instance is %s:%d, id is %s",
 			instance.GetHost().GetValue(), instance.GetPort().GetValue(), instanceId)
@@ -309,7 +313,8 @@ func deleteServiceInstance(instance *apiservice.Instance, values *shardMap) bool
 	return true
 }
 
-func compareAndStoreClient(clientWithChecker *ClientWithChecker, values *shardMap) bool {
+func compareAndStoreClient(clientWithChecker *ClientWithChecker,
+	values *utils.SegmentMap[string, ItemWithChecker]) bool {
 	clientId := clientWithChecker.client.Proto().GetId().GetValue()
 	_, isNew := values.PutIfAbsent(clientId, clientWithChecker)
 	if isNew {
@@ -320,17 +325,19 @@ func compareAndStoreClient(clientWithChecker *ClientWithChecker, values *shardMa
 	return false
 }
 
-func storeClient(clientWithChecker *ClientWithChecker, values *shardMap) bool {
+func storeClient(clientWithChecker *ClientWithChecker,
+	values *utils.SegmentMap[string, ItemWithChecker]) bool {
+
 	log.Infof("[Health Check][Cache]create client is %s, id is %s",
 		clientWithChecker.client.Proto().GetHost().GetValue(), clientWithChecker.client.Proto().GetId().GetValue())
 	clientId := clientWithChecker.client.Proto().GetId().GetValue()
-	values.Store(clientId, clientWithChecker)
+	values.Put(clientId, clientWithChecker)
 	return true
 }
 
-func deleteClient(client *apiservice.Client, values *shardMap) bool {
+func deleteClient(client *apiservice.Client, values *utils.SegmentMap[string, ItemWithChecker]) bool {
 	clientId := client.GetId().GetValue()
-	ok := values.DeleteIfExist(clientId)
+	ok := values.Del(clientId)
 	if ok {
 		log.Infof("[Health Check][Cache]delete client is %s, id is %s",
 			client.GetHost().GetValue(), clientId)

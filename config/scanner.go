@@ -24,6 +24,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/cache"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -36,23 +37,17 @@ const (
 
 // releaseMessageScanner 发布事件扫描器，根据发布时间获取发布事件，并通过 EventCenter 广播事件
 type releaseMessageScanner struct {
-	storage store.Store
-
+	storage         store.Store
 	lastScannerTime time.Time
-
-	scanInterval time.Duration
-
-	fileCache cache.FileCache
-
-	eventCenter *Center
+	scanInterval    time.Duration
+	fileCache       cache.FileCache
 }
 
 func initReleaseMessageScanner(ctx context.Context, storage store.Store, fileCache cache.FileCache,
-	eventCenter *Center, scanInterval time.Duration) error {
+	scanInterval time.Duration) error {
 	scanner := &releaseMessageScanner{
 		storage:         storage,
 		fileCache:       fileCache,
-		eventCenter:     eventCenter,
 		scanInterval:    scanInterval,
 		lastScannerTime: time.Now().Add(DefaultScanTimeOffset),
 	}
@@ -128,7 +123,7 @@ func (s *releaseMessageScanner) handlerReleases(firstTime bool, releases []*mode
 			isExpire := isExpireMessage(release)
 
 			if !firstTime && !isExpire {
-				s.eventCenter.handleEvent(Event{
+				eventhub.Publish(eventTypePublishConfigFile, &Event{
 					EventType: eventTypePublishConfigFile,
 					Message:   release,
 				})

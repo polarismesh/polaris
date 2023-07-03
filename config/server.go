@@ -70,7 +70,7 @@ type Server struct {
 	hooks         []ResourceHook
 
 	// chains
-	chains []ConfigFileChain
+	chains *ConfigChains
 }
 
 // Initialize 初始化配置中心模块
@@ -110,9 +110,7 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	s.namespaceOperator = namespaceOperator
 	s.fileCache = cacheMgn.ConfigFile()
 
-	// 初始化事件中心
-	eventCenter := NewEventCenter()
-	s.watchCenter = NewWatchCenter(eventCenter)
+	s.watchCenter = NewWatchCenter()
 
 	// 初始化连接管理器
 	connMng := NewConfigConnManager(ctx, s.watchCenter)
@@ -130,19 +128,16 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	}
 
 	// 初始化发布事件扫描器
-	if err := initReleaseMessageScanner(ctx, ss, s.fileCache, eventCenter, time.Second); err != nil {
+	if err := initReleaseMessageScanner(ctx, ss, s.fileCache, time.Second); err != nil {
 		log.Error("[Config][Server] init release message scanner error. ", zap.Error(err))
 		return errors.New("init config module error")
 	}
 
 	s.caches = cacheMgn
-	s.chains = []ConfigFileChain{
+	s.chains = newConfigChains(s, []ConfigFileChain{
 		&CryptoConfigFileChain{},
 		&ReleaseConfigFileChain{},
-	}
-	for i := range s.chains {
-		s.chains[i].Init(s)
-	}
+	})
 
 	log.Infof("[Config][Server] startup config module success.")
 	return nil
@@ -220,4 +215,77 @@ func (s *Server) RecordHistory(ctx context.Context, entry *model.RecordEntry) {
 	}
 	// 调用插件记录history
 	s.history.Record(entry)
+}
+
+func newConfigChains(svr *Server, chains []ConfigFileChain) *ConfigChains {
+	for i := range chains {
+		chains[i].Init(svr)
+	}
+	return &ConfigChains{
+		chains: []ConfigFileChain{
+			&CryptoConfigFileChain{},
+			&ReleaseConfigFileChain{},
+		},
+	}
+}
+
+type ConfigChains struct {
+	chains []ConfigFileChain
+}
+
+// BeforeCreateFile
+func (cc *ConfigChains) BeforeCreateFile(ctx context.Context, file *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+	for i := range cc.chains {
+		if errResp := cc.chains[i].BeforeCreateFile(ctx, file); errResp != nil {
+			return errResp
+		}
+	}
+	return nil
+}
+
+// AfterGetFile
+func (cc *ConfigChains) AfterGetFile(ctx context.Context, file *apiconfig.ConfigFile) (*apiconfig.ConfigFile, error) {
+	for i := range cc.chains {
+		_file, err := cc.chains[i].AfterGetFile(ctx, file)
+		if err != nil {
+			return nil, err
+		}
+		file = _file
+	}
+	return file, nil
+}
+
+// BeforeUpdateFile
+func (cc *ConfigChains) BeforeUpdateFile(ctx context.Context, file *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+	for i := range cc.chains {
+		if errResp := cc.chains[i].BeforeUpdateFile(ctx, file); errResp != nil {
+			return errResp
+		}
+	}
+	return nil
+}
+
+// AfterGetFileRelease
+func (cc *ConfigChains) AfterGetFileRelease(ctx context.Context, release *apiconfig.ConfigFileRelease) (*apiconfig.ConfigFileRelease, error) {
+	for i := range cc.chains {
+		_release, err := cc.chains[i].AfterGetFileRelease(ctx, release)
+		if err != nil {
+			return nil, err
+		}
+		release = _release
+	}
+	return release, nil
+}
+
+// AfterGetFileHistory
+func (cc *ConfigChains) AfterGetFileHistory(ctx context.Context,
+	history *apiconfig.ConfigFileReleaseHistory) (*apiconfig.ConfigFileReleaseHistory, error) {
+	for i := range cc.chains {
+		_history, err := cc.chains[i].AfterGetFileHistory(ctx, history)
+		if err != nil {
+			return nil, err
+		}
+		history = _history
+	}
+	return history, nil
 }

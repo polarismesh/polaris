@@ -170,12 +170,9 @@ func (s *Server) GetConfigFileRelease(
 		return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, nil)
 	}
 	release := configFileRelease2Api(fileRelease)
-	for i := range s.chains {
-		_release, err := s.chains[i].AfterGetFileRelease(ctx, release)
-		if err != nil {
-			return api.NewConfigFileReleaseResponseWithMessage(apimodel.Code_ExecuteException, err.Error())
-		}
-		release = _release
+	release, err = s.chains.AfterGetFileRelease(ctx, release)
+	if err != nil {
+		return api.NewConfigFileReleaseResponseWithMessage(apimodel.Code_ExecuteException, err.Error())
 	}
 	return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, release)
 }
