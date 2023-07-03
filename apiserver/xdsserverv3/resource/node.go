@@ -159,8 +159,9 @@ func (x *XDSNodeManager) ListSidecarNodes() []*XDSClient {
 // ID id 的格式是 ${sidecar|gateway}~namespace/uuid~hostIp
 // case 1: envoy 为 sidecar 模式时，则 NodeID 的格式为以下两种
 //
-//	eg 1. namespace/uuid~hostIp
-//	eg 2. sidecar~namespace/uuid-hostIp
+//		eg 1. namespace/uuid~hostIp
+//		eg 2. sidecar~namespace/uuid-hostIp
+//	 eg 3. envoy_node_id="${NAMESPACE}/${INSTANCE_IP}~${POD_NAME}"
 //
 // case 2: envoy 为 gateway 模式时，则 NodeID 的格式为： gateway~namespace/uuid~hostIp
 func (PolarisNodeHash) ID(node *core.Node) string {
@@ -169,11 +170,24 @@ func (PolarisNodeHash) ID(node *core.Node) string {
 	}
 
 	runType, ns, _, _ := ParseNodeID(node.Id)
+	if node.Metadata == nil || len(node.Metadata.Fields) == 0 {
+		return ns
+	}
 
 	// Gateway 类型直接按照 gateway_service 以及 gateway_namespace 纬度
 	if runType != string(RunTypeSidecar) {
 		gatewayNamespace := node.Metadata.Fields[GatewayNamespaceName].GetStringValue()
 		gatewayService := node.Metadata.Fields[GatewayServiceName].GetStringValue()
+		// 兼容老的 envoy gateway metadata 参数设置
+		if gatewayNamespace == "" {
+			gatewayNamespace = node.Metadata.Fields[OldGatewayNamespaceName].GetStringValue()
+		}
+		if gatewayNamespace == "" {
+			gatewayService = node.Metadata.Fields[OldGatewayServiceName].GetStringValue()
+		}
+		if gatewayNamespace == "" {
+			gatewayNamespace = ns
+		}
 		return runType + "/" + gatewayNamespace + "/" + gatewayService
 	}
 	// 兼容老版本注入的 envoy, 默认获取 snapshot resource 粒度为 namespace 级别, 只能下发 OUTBOUND 规则
@@ -185,7 +199,7 @@ func (PolarisNodeHash) ID(node *core.Node) string {
 		sidecarService := node.Metadata.Fields[SidecarServiceName].GetStringValue()
 		// 如果存在, 则表示是由新版本 controller 注入的 envoy, 可以下发 INBOUND 规则
 		if sidecarNamespace != "" && sidecarService != "" {
-			ret = sidecarNamespace + "/" + sidecarService
+			ret = runType + "/" + sidecarNamespace + "/" + sidecarService
 		}
 
 		// 在判断是否设置了 TLS 相关参数
@@ -232,6 +246,7 @@ type XDSClient struct {
 	User      string
 	Namespace string
 	IPAddr    string
+	PodIP     string
 	Metadata  map[string]string
 	Version   string
 	Node      *core.Node
@@ -253,6 +268,7 @@ func (n *XDSClient) IsGateway() bool {
 	return n.RunType == RunTypeGateway && (hasNew || hasOld)
 }
 
+// GetSelfService 获取 envoy 对应的 service 信息
 func (n *XDSClient) GetSelfService() string {
 	if n.IsGateway() {
 		val, ok := n.Metadata[GatewayServiceName]
@@ -264,21 +280,31 @@ func (n *XDSClient) GetSelfService() string {
 	return n.Metadata[SidecarServiceName]
 }
 
+// GetSelfNamespace 获取 envoy 对应的 namespace 信息
 func (n *XDSClient) GetSelfNamespace() string {
 	if n.IsGateway() {
 		val, ok := n.Metadata[GatewayNamespaceName]
 		if ok {
 			return val
 		}
-		return n.Metadata[OldGatewayNamespaceName]
+		val, ok = n.Metadata[OldGatewayNamespaceName]
+		if ok {
+			return val
+		}
+		return n.Namespace
 	}
-	return n.Metadata[SidecarNamespaceName]
+	val, ok := n.Metadata[SidecarNamespaceName]
+	if ok {
+		return val
+	}
+	return n.Namespace
 }
 
 func parseNodeProxy(node *core.Node) *XDSClient {
 	runType, polarisNamespace, _, hostIP := ParseNodeID(node.Id)
 	proxy := &XDSClient{
 		IPAddr:    hostIP,
+		PodIP:     hostIP,
 		RunType:   RunType(runType),
 		Namespace: polarisNamespace,
 		Node:      node,

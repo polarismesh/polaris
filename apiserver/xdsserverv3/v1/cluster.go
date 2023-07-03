@@ -47,9 +47,9 @@ func (x *XDSServer) makeCluster(service *resource.ServiceInfo) *cluster.Cluster 
 			},
 		},
 
-		LbSubsetConfig: resource.MakeLbSubsetConfig(service),
+		LbSubsetConfig:   resource.MakeLbSubsetConfig(service),
 		OutlierDetection: resource.MakeOutlierDetection(service),
-		HealthChecks: resource.MakeHealthCheck(service),
+		HealthChecks:     resource.MakeHealthCheck(service),
 	}
 }
 
@@ -78,13 +78,14 @@ func (x *XDSServer) makePermissiveClusters(services map[model.ServiceKey]*resour
 		c := x.makeCluster(service)
 		// In permissive mode, we should use `TLSTransportSocket` to connect to mtls enabled endpoints.
 		// Or we use rawbuffer transport for those endpoints which not enabled mtls.
+		sni := fmt.Sprintf("outbound_.default_.%s.%s.svc.cluster.local", service.Name, service.Namespace)
 		c.TransportSocketMatches = []*cluster.Cluster_TransportSocketMatch{
 			{
 				Name:  "tls-mode",
 				Match: mtlsTransportSocketMatch,
 				TransportSocket: makeTLSTransportSocket(&tlstrans.UpstreamTlsContext{
 					CommonTlsContext: outboundCommonTLSContext,
-					Sni:              fmt.Sprintf("outbound_.default_.%s.%s.svc.cluster.local", service.Name, service.Namespace),
+					Sni:              sni,
 				}),
 			},
 			rawBufferTransportSocketMatch,
@@ -107,18 +108,18 @@ func (x *XDSServer) makeStrictClusters(services map[model.ServiceKey]*resource.S
 		c := x.makeCluster(service)
 
 		// In strict mode, we should only use `TLSTransportSocket` to connect to mtls enabled endpoints.
+		sni := fmt.Sprintf("outbound_.default_.%s.%s.svc.cluster.local", service.Name, service.Namespace)
 		c.TransportSocketMatches = []*cluster.Cluster_TransportSocketMatch{
 			{
 				Name: "tls-mode",
 				TransportSocket: makeTLSTransportSocket(&tlstrans.UpstreamTlsContext{
 					CommonTlsContext: outboundCommonTLSContext,
-					Sni:              fmt.Sprintf("outbound_.default_.%s.%s.svc.cluster.local", service.Name, service.Namespace),
+					Sni:              sni,
 				}),
 			},
 		}
 
 		clusters = append(clusters, c)
 	}
-
 	return clusters
 }

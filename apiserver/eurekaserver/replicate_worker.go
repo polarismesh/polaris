@@ -64,7 +64,7 @@ func (r *ReplicateWorker) batchReplicate() {
 	for {
 		select {
 		case <-r.ctx.Done():
-			log.Infof("[EUREKA-SERVER] replicate worker done")
+			eurekalog.Infof("[EUREKA-SERVER] replicate worker done")
 			batchTicker.Stop()
 		case task := <-r.taskChannel:
 			batchTasks = append(batchTasks, task)
@@ -101,14 +101,14 @@ func (r *ReplicateWorker) doBatchReplicate(tasks []*ReplicationInstance) {
 	}
 	jsonData, err := json.Marshal(request)
 	if nil != err {
-		log.Errorf("[EUREKA-SERVER] fail to marshal replicate tasks: %v", err)
+		eurekalog.Errorf("[EUREKA-SERVER] fail to marshal replicate tasks: %v", err)
 		return
 	}
 	replicateInfo := make([]string, 0, len(tasks))
 	for _, task := range tasks {
 		replicateInfo = append(replicateInfo, fmt.Sprintf("%s:%s", task.Action, task.Id))
 	}
-	log.Infof("start to send replicate text %s, peers %v", string(jsonData), r.peers)
+	eurekalog.Infof("start to send replicate text %s, peers %v", string(jsonData), r.peers)
 	for _, peer := range r.peers {
 		go r.doReplicateToPeer(peer, tasks, jsonData, replicateInfo)
 	}
@@ -118,7 +118,7 @@ func (r *ReplicateWorker) doReplicateToPeer(
 	peer string, tasks []*ReplicationInstance, jsonData []byte, replicateInfo []string) {
 	response, err := sendHttpRequest(r.namespace, peer, jsonData, replicateInfo)
 	if nil != err {
-		log.Errorf("[EUREKA-SERVER] fail to batch replicate to %s, err: %v", peer, err)
+		eurekalog.Errorf("[EUREKA-SERVER] fail to batch replicate to %s, err: %v", peer, err)
 		return
 	}
 	if len(response.ResponseList) == 0 {
@@ -128,7 +128,7 @@ func (r *ReplicateWorker) doReplicateToPeer(
 		if respInstance.StatusCode == http.StatusNotFound {
 			task := tasks[i]
 			if task.Action == actionHeartbeat {
-				log.Infof("[EUREKA-SERVER] instance %s of service %s not exists in %s, do register instance info %+v",
+				eurekalog.Infof("[EUREKA-SERVER] instance %s of service %s not exists in %s, do register instance info %+v",
 					task.Id, task.AppName, peer, task.InstanceInfo)
 				// do the re-register
 				registerTask := &ReplicationInstance{
@@ -170,7 +170,7 @@ func sendHttpRequest(namespace string, peer string,
 	req, err := http.NewRequest(http.MethodPost,
 		fmt.Sprintf("http://%s/eureka/peerreplication/batch/", peer), bytes.NewBuffer(jsonData))
 	if nil != err {
-		log.Errorf("[EUREKA-SERVER] fail to create replicate request: %v", err)
+		eurekalog.Errorf("[EUREKA-SERVER] fail to create replicate request: %v", err)
 		return nil, err
 	}
 	req.Header.Set(headerIdentityName, valueIdentityName)
@@ -182,7 +182,7 @@ func sendHttpRequest(namespace string, peer string,
 	}
 	response, err := client.Do(req)
 	if err != nil {
-		log.Errorf("[EUREKA-SERVER] fail to send replicate request: %v", err)
+		eurekalog.Errorf("[EUREKA-SERVER] fail to send replicate request: %v", err)
 		return nil, err
 	}
 	defer func() {
@@ -194,9 +194,9 @@ func sendHttpRequest(namespace string, peer string,
 	respObj := &ReplicationListResponse{}
 	err = json.Unmarshal(respStr, respObj)
 	if nil != err {
-		log.Errorf("[EUREKA-SERVER] fail unmarshal text %s to ReplicationListResponse: %v", string(respStr), err)
+		eurekalog.Errorf("[EUREKA-SERVER] fail unmarshal text %s to ReplicationListResponse: %v", string(respStr), err)
 		return nil, err
 	}
-	log.Infof("[EUREKA-SERVER] success to replicate to %s, instances %v", peer, replicateInfo)
+	eurekalog.Infof("[EUREKA-SERVER] success to replicate to %s, instances %v", peer, replicateInfo)
 	return respObj, nil
 }

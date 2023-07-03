@@ -153,7 +153,7 @@ func (g *GRPCServer) buildInitOptions(option map[string]interface{}) []grpcserve
 	initOptions := []grpcserver.InitOption{
 		grpcserver.WithModule(model.DiscoverModule),
 		grpcserver.WithProtocol(g.GetProtocol()),
-		grpcserver.WithLogger(namingLog),
+		grpcserver.WithLogger(commonlog.FindScope(commonlog.APIServerLoggerName)),
 		grpcserver.WithMessageToCacheObject(discoverCacheConvert),
 	}
 

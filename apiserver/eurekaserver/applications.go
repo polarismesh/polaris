@@ -89,7 +89,7 @@ func (a *ApplicationsBuilder) BuildApplications(oldAppsCache *ApplicationsRespCa
 	for _, newService := range newServices {
 		instances, revision, err := getCacheInstancesFunc(a.namingServer, newService.ID)
 		if err != nil {
-			log.Errorf("[EurekaServer]fail to get revision for service %s, err is %v", newService.Name, err)
+			eurekalog.Errorf("[EurekaServer]fail to get revision for service %s, err is %v", newService.Name, err)
 			continue
 		}
 		// eureka does not return services without instances
@@ -214,12 +214,12 @@ func parsePortWrapper(info *InstanceInfo, instance *apiservice.Instance) {
 		sePort, err := strconv.Atoi(securePort)
 		if err != nil {
 			sePort = 0
-			log.Errorf("[EUREKA_SERVER]parse secure port error: %+v", err)
+			eurekalog.Errorf("[EUREKA_SERVER]parse secure port error: %+v", err)
 		}
 		sePortEnabled, err := strconv.ParseBool(securePortEnabled)
 		if err != nil {
 			sePortEnabled = false
-			log.Errorf("[EUREKA_SERVER]parse secure port enabled error: %+v", err)
+			eurekalog.Errorf("[EUREKA_SERVER]parse secure port enabled error: %+v", err)
 		}
 
 		info.SecurePort.Port = sePort
@@ -228,12 +228,12 @@ func parsePortWrapper(info *InstanceInfo, instance *apiservice.Instance) {
 		insePort, err := strconv.Atoi(insecurePort)
 		if err != nil {
 			insePort = 0
-			log.Errorf("[EUREKA_SERVER]parse insecure port error: %+v", err)
+			eurekalog.Errorf("[EUREKA_SERVER]parse insecure port error: %+v", err)
 		}
 		insePortEnabled, err := strconv.ParseBool(insecurePortEnabled)
 		if err != nil {
 			insePortEnabled = false
-			log.Errorf("[EUREKA_SERVER]parse insecure port enabled error: %+v", err)
+			eurekalog.Errorf("[EUREKA_SERVER]parse insecure port enabled error: %+v", err)
 		}
 
 		info.Port.Port = insePort
@@ -430,20 +430,20 @@ func constructResponseCache(newApps *Applications, instCount int, delta bool) *A
 	// 预先做一次序列化，以免高并发时候序列化会使得内存峰值过高
 	jsonBytes, err := json.MarshalIndent(newAppsCache.AppsResp, "", " ")
 	if err != nil {
-		log.Errorf("[EUREKA_SERVER]fail to marshal apps %s to json, err is %v", appsHashCode, err)
+		eurekalog.Errorf("[EUREKA_SERVER]fail to marshal apps %s to json, err is %v", appsHashCode, err)
 	} else {
 		newAppsCache.JsonBytes = jsonBytes
 	}
 	xmlBytes, err := xml.MarshalIndent(newAppsCache.AppsResp.Applications, " ", " ")
 	if err != nil {
-		log.Errorf("[EUREKA_SERVER]fail to marshal apps %s to xml, err is %v", appsHashCode, err)
+		eurekalog.Errorf("[EUREKA_SERVER]fail to marshal apps %s to xml, err is %v", appsHashCode, err)
 	} else {
 		newAppsCache.XmlBytes = xmlBytes
 	}
 	if !delta && len(jsonBytes) > 0 {
 		newAppsCache.Revision = sha1s(jsonBytes)
 	}
-	log.Infof("[EUREKA_SERVER]success to build apps cache, delta is %v, "+
+	eurekalog.Infof("[EUREKA_SERVER]success to build apps cache, delta is %v, "+
 		"length xmlBytes is %d, length jsonBytes is %d, instCount is %d", delta, len(xmlBytes), len(jsonBytes), instCount)
 	return newAppsCache
 }

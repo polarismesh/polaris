@@ -138,7 +138,7 @@ func (d *EurekaTestSuit) initialize(t *testing.T, callback func(t *testing.T, s 
 
 	bc, err := batch.NewBatchCtrlWithConfig(d.storage, cacheMgn, batchConfig)
 	if err != nil {
-		log.Errorf("new batch ctrl with config err: %s", err.Error())
+		eurekalog.Errorf("new batch ctrl with config err: %s", err.Error())
 		return err
 	}
 	bc.Start(ctx)

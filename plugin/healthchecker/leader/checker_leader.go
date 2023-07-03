@@ -364,18 +364,6 @@ func (c *LeaderHealthChecker) Query(ctx context.Context, request *plugin.QueryRe
 	}, nil
 }
 
-// AddToCheck add the instances to check procedure
-// NOTE: not support in LeaderHealthChecker
-func (c *LeaderHealthChecker) AddToCheck(request *plugin.AddCheckRequest) error {
-	return nil
-}
-
-// RemoveFromCheck removes the instances from check procedure
-// NOTE: not support in LeaderHealthChecker
-func (c *LeaderHealthChecker) RemoveFromCheck(request *plugin.AddCheckRequest) error {
-	return nil
-}
-
 // Delete delete record by key
 func (c *LeaderHealthChecker) Delete(ctx context.Context, key string) error {
 	if isSendFromPeer(ctx) {

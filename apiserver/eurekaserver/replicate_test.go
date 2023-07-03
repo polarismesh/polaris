@@ -53,7 +53,7 @@ func TestDispatchHeartbeat(t *testing.T) {
 	var replicateInstances = &ReplicationList{}
 
 	for i, instance := range instances {
-		log.Infof("replicate test: register %d", i)
+		eurekalog.Infof("replicate test: register %d", i)
 		replicateInstances.ReplicationList = append(replicateInstances.ReplicationList, &ReplicationInstance{
 			AppName:      appId,
 			Id:           instance.InstanceId,
@@ -66,7 +66,7 @@ func TestDispatchHeartbeat(t *testing.T) {
 
 	time.Sleep(10 * time.Second)
 	for i := 0; i < 5; i++ {
-		log.Infof("replicate test: heartbeat %d", i)
+		eurekalog.Infof("replicate test: heartbeat %d", i)
 		replicateInstances = &ReplicationList{}
 		for _, instance := range instances {
 			replicateInstances.ReplicationList = append(replicateInstances.ReplicationList, &ReplicationInstance{

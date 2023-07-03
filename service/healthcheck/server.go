@@ -81,32 +81,31 @@ func Initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 
 func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Controller) error {
 	server.hcOpt = hcOpt
-	if !hcOpt.Open {
-		return nil
-	}
 	if !cacheOpen {
 		return fmt.Errorf("[healthcheck]cache not open")
 	}
 	hcOpt.SetDefault()
-	if len(hcOpt.Checkers) > 0 {
-		server.checkers = make(map[int32]plugin.HealthChecker, len(hcOpt.Checkers))
-		for _, entry := range hcOpt.Checkers {
-			checker := plugin.GetHealthChecker(entry.Name, &entry)
-			if checker == nil {
-				return fmt.Errorf("[healthcheck]unknown healthchecker %s", entry.Name)
+	if hcOpt.Open {
+		if len(hcOpt.Checkers) > 0 {
+			server.checkers = make(map[int32]plugin.HealthChecker, len(hcOpt.Checkers))
+			for _, entry := range hcOpt.Checkers {
+				checker := plugin.GetHealthChecker(entry.Name, &entry)
+				if checker == nil {
+					return fmt.Errorf("[healthcheck]unknown healthchecker %s", entry.Name)
+				}
+				// The same health type check plugin can only exist in one
+				_, exist := server.checkers[int32(checker.Type())]
+				if exist {
+					return fmt.Errorf("[healthcheck]duplicate healthchecker %s, checkType %d", entry.Name, checker.Type())
+				}
+				server.checkers[int32(checker.Type())] = checker
+				if nil == server.defaultChecker {
+					server.defaultChecker = checker
+				}
 			}
-			// The same health type check plugin can only exist in one
-			_, exist := server.checkers[int32(checker.Type())]
-			if exist {
-				return fmt.Errorf("[healthcheck]duplicate healthchecker %s, checkType %d", entry.Name, checker.Type())
-			}
-			server.checkers[int32(checker.Type())] = checker
-			if nil == server.defaultChecker {
-				server.defaultChecker = checker
-			}
+		} else {
+			return fmt.Errorf("[healthcheck]no checker config")
 		}
-	} else {
-		return fmt.Errorf("[healthcheck]no checker config")
 	}
 	var err error
 	if server.storage, err = store.GetStore(); err != nil {
@@ -124,25 +123,35 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 	server.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval,
 		hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)
 	server.dispatcher = newDispatcher(ctx, server)
+	return server.run(ctx)
+}
 
-	server.instanceEventChannel = make(chan *model.InstanceEvent, 1000)
-	go server.handleInstanceEventWorker(ctx)
+func (s *Server) run(ctx context.Context) error {
+	if !s.isOpen() {
+		return nil
+	}
 
-	leaderChangeEventHandler := newLeaderChangeEventHandler(server.cacheProvider, hcOpt.MinCheckInterval)
-	if err = eventhub.Subscribe(eventhub.LeaderChangeEventTopic, "selfServiceChecker",
+	s.checkScheduler.run(ctx)
+	go s.timeAdjuster.doTimeAdjust(ctx)
+	s.dispatcher.startDispatchingJob(ctx)
+
+	s.instanceEventChannel = make(chan *model.InstanceEvent, 1000)
+	go s.handleInstanceEventWorker(ctx)
+
+	leaderChangeEventHandler := newLeaderChangeEventHandler(s.cacheProvider, s.hcOpt.MinCheckInterval)
+	if err := eventhub.Subscribe(eventhub.LeaderChangeEventTopic, "selfServiceChecker",
 		leaderChangeEventHandler); err != nil {
 		return err
 	}
 
-	instanceEventHandler := newInstanceEventHealthCheckHandler(ctx, server.instanceEventChannel)
-	if err = eventhub.Subscribe(eventhub.InstanceEventTopic, "instanceHealthChecker",
+	instanceEventHandler := newInstanceEventHealthCheckHandler(ctx, s.instanceEventChannel)
+	if err := eventhub.Subscribe(eventhub.InstanceEventTopic, "instanceHealthChecker",
 		instanceEventHandler); err != nil {
 		return err
 	}
-	if err = server.storage.StartLeaderElection(store.ElectionKeySelfServiceChecker); err != nil {
+	if err := s.storage.StartLeaderElection(store.ElectionKeySelfServiceChecker); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -199,7 +208,6 @@ func (s *Server) ListCheckerServer() []*model.Instance {
 	s.cacheProvider.selfServiceInstances.Range(func(instanceId string, value ItemWithChecker) {
 		ret = append(ret, value.GetInstance())
 	})
-
 	return ret
 }
 
@@ -300,6 +308,10 @@ func (s *Server) handleInstanceEventWorker(ctx context.Context) {
 // Checkers get all health checker, for test only
 func (s *Server) Checkers() map[int32]plugin.HealthChecker {
 	return s.checkers
+}
+
+func (s *Server) isOpen() bool {
+	return s.hcOpt.Open
 }
 
 func currentTimeSec() int64 {

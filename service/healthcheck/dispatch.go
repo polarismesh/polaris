@@ -58,7 +58,6 @@ func newDispatcher(ctx context.Context, svr *Server) *Dispatcher {
 		svr:   svr,
 		mutex: &sync.Mutex{},
 	}
-	dispatcher.startDispatchingJob(ctx)
 	return dispatcher
 }
 

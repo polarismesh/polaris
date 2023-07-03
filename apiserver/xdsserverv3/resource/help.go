@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"time"
 
 	accesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
@@ -29,11 +30,14 @@ import (
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	listenerv3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	ratelimitconfv3 "github.com/envoyproxy/go-control-plane/envoy/config/ratelimit/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	filev3 "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
 	envoy_extensions_common_ratelimit_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
 	ratelimitv32 "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
 	lrl "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
+	ratelimitfilter "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ratelimit/v3"
+	routerv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	tcp "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	v32 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
@@ -64,6 +68,13 @@ const (
 	RouteConfigName         = "polaris-router"
 	OutBoundRouteConfigName = "polaris-outbound-router"
 	InBoundRouteConfigName  = "polaris-inbound-cluster"
+)
+
+const (
+	// LocalRateLimitStage envoy local ratelimit stage
+	LocalRateLimitStage = 0
+	// DistributedRateLimitStage envoy remote ratelimit stage
+	DistributedRateLimitStage = 1
 )
 
 var (
@@ -286,7 +297,7 @@ func BuildRateLimitConf(prefix string) *lrl.LocalRateLimit {
 	return rateLimitConf
 }
 
-func BuildLocalRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLimit_Action,
+func BuildRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLimit_Action,
 	[]*ratelimitv32.LocalRateLimitDescriptor) {
 	actions := make([]*route.RateLimit_Action, 0, 8)
 	descriptors := make([]*ratelimitv32.LocalRateLimitDescriptor, 0, 8)
@@ -309,34 +320,35 @@ func BuildLocalRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLim
 		},
 	})
 	entries = append(entries, &ratelimitv32.RateLimitDescriptor_Entry{
-		Key:   "header_match",
+		Key:   ":path",
 		Value: methodName,
 	})
 	arguments := rule.GetArguments()
 
 	for i := range arguments {
 		arg := arguments[i]
+		descriptorKey := strings.ToLower(arg.GetType().String()) + "." + arg.Key
 		switch arg.Type {
 		case apitraffic.MatchArgument_HEADER:
-			headerValueMatch := BuildRateLimitActionHeaderValueMatch(arg.Key, arg.Value)
+			headerValueMatch := BuildRateLimitActionHeaderValueMatch(descriptorKey, arg.Value)
 			actions = append(actions, &route.RateLimit_Action{
 				ActionSpecifier: &route.RateLimit_Action_HeaderValueMatch_{
 					HeaderValueMatch: headerValueMatch,
 				},
 			})
 			entries = append(entries, &ratelimitv32.RateLimitDescriptor_Entry{
-				Key:   "header_match",
+				Key:   descriptorKey,
 				Value: arg.GetValue().GetValue().GetValue(),
 			})
 		case apitraffic.MatchArgument_QUERY:
-			queryParameterValueMatch := BuildRateLimitActionQueryParameterValueMatch(arg.Key, arg.Value)
+			queryParameterValueMatch := BuildRateLimitActionQueryParameterValueMatch(descriptorKey, arg.Value)
 			actions = append(actions, &route.RateLimit_Action{
 				ActionSpecifier: &route.RateLimit_Action_QueryParameterValueMatch_{
 					QueryParameterValueMatch: queryParameterValueMatch,
 				},
 			})
 			entries = append(entries, &ratelimitv32.RateLimitDescriptor_Entry{
-				Key:   "query_match",
+				Key:   descriptorKey,
 				Value: arg.GetValue().GetValue().GetValue(),
 			})
 		case apitraffic.MatchArgument_METHOD:
@@ -344,12 +356,12 @@ func BuildLocalRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLim
 				ActionSpecifier: &route.RateLimit_Action_RequestHeaders_{
 					RequestHeaders: &route.RateLimit_Action_RequestHeaders{
 						HeaderName:    ":method",
-						DescriptorKey: arg.Key,
+						DescriptorKey: descriptorKey,
 					},
 				},
 			})
 			entries = append(entries, &envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry{
-				Key:   arg.Key,
+				Key:   descriptorKey,
 				Value: arg.GetValue().GetValue().GetValue(),
 			})
 		case apitraffic.MatchArgument_CALLER_IP:
@@ -421,6 +433,7 @@ func BuildRateLimitActionQueryParameterValueMatch(key string,
 func BuildRateLimitActionHeaderValueMatch(key string,
 	value *apimodel.MatchString) *route.RateLimit_Action_HeaderValueMatch {
 	headerValueMatch := &route.RateLimit_Action_HeaderValueMatch{
+		DescriptorKey:   key,
 		DescriptorValue: value.GetValue().GetValue(),
 		Headers:         []*route.HeaderMatcher{},
 	}
@@ -605,10 +618,15 @@ func MakeDefaultFilterChain() *listenerv3.FilterChain {
 	}
 }
 
-func MakeBoundHCM(trafficDirection corev3.TrafficDirection) *hcm.HttpConnectionManager {
+func MakeSidecarBoundHCM(svcKey model.ServiceKey,
+	trafficDirection corev3.TrafficDirection) *hcm.HttpConnectionManager {
+
 	hcmFilters := []*hcm.HttpFilter{
 		{
 			Name: wellknown.Router,
+			ConfigType: &hcm.HttpFilter_TypedConfig{
+				TypedConfig: MustNewAny(&routerv3.Router{}),
+			},
 		},
 	}
 	if trafficDirection == corev3.TrafficDirection_INBOUND {
@@ -618,6 +636,29 @@ func MakeBoundHCM(trafficDirection corev3.TrafficDirection) *hcm.HttpConnectionM
 				ConfigType: &hcm.HttpFilter_TypedConfig{
 					TypedConfig: MustNewAny(&lrl.LocalRateLimit{
 						StatPrefix: "http_local_rate_limiter",
+						Stage:      LocalRateLimitStage,
+					}),
+				},
+			},
+			{
+				Name: "envoy.filters.http.ratelimit",
+				ConfigType: &hcm.HttpFilter_TypedConfig{
+					TypedConfig: MustNewAny(&ratelimitfilter.RateLimit{
+						Domain:      fmt.Sprintf("%s.%s", svcKey.Name, svcKey.Namespace),
+						Stage:       DistributedRateLimitStage,
+						RequestType: "external",
+						Timeout:     durationpb.New(2 * time.Second),
+						RateLimitService: &ratelimitconfv3.RateLimitServiceConfig{
+							GrpcService: &corev3.GrpcService{
+								TargetSpecifier: &corev3.GrpcService_EnvoyGrpc_{
+									EnvoyGrpc: &corev3.GrpcService_EnvoyGrpc{
+										ClusterName: "polaris_ratelimit",
+									},
+								},
+								Timeout: durationpb.New(time.Second),
+							},
+							TransportApiVersion: core.ApiVersion_V3,
+						},
 					}),
 				},
 			},
@@ -648,6 +689,9 @@ func MakeGatewayBoundHCM() *hcm.HttpConnectionManager {
 		},
 		{
 			Name: wellknown.Router,
+			ConfigType: &hcm.HttpFilter_TypedConfig{
+				TypedConfig: MustNewAny(&routerv3.Router{}),
+			},
 		},
 	}
 	trafficDirectionName := corev3.TrafficDirection_name[int32(corev3.TrafficDirection_INBOUND)]
@@ -709,21 +753,22 @@ func MakeGatewayLocalRateLimit(rateLimitCache cache.RateLimitCache, pathSpecifie
 		if rule == nil {
 			continue
 		}
-		// 跳过全局限流配置
-		// TODO 暂时不放开全局限流规则下发，后续等待 envoy polaris filter 插件开发或者在 polaris-sidecar 中实现 RLS 协议后
-		// 在放开该设置
-		if rule.GetType() == apitraffic.Rule_GLOBAL || rule.GetDisable().GetValue() {
+		if rule.GetDisable().GetValue() {
 			continue
 		}
 		if rule.GetMethod().GetValue().GetValue() != pathSpecifier {
 			continue
 		}
-		actions, descriptors := BuildLocalRateLimitDescriptors(rule)
+		actions, descriptors := BuildRateLimitDescriptors(rule)
 		rateLimitConf.Descriptors = descriptors
-		ratelimits = append(ratelimits, &route.RateLimit{
-			Actions: actions,
-		})
-		break
+		ratelimitRule := &route.RateLimit{Actions: actions}
+		switch rule.GetType() {
+		case apitraffic.Rule_LOCAL:
+			ratelimitRule.Stage = wrapperspb.UInt32(LocalRateLimitStage)
+		case apitraffic.Rule_GLOBAL:
+			ratelimitRule.Stage = wrapperspb.UInt32(DistributedRateLimitStage)
+		}
+		ratelimits = append(ratelimits, ratelimitRule)
 	}
 	if len(ratelimits) == 0 {
 		return nil, nil, nil
@@ -747,17 +792,19 @@ func MakeSidecarLocalRateLimit(rateLimitCache cache.RateLimitCache,
 		if rule == nil {
 			continue
 		}
-		// 跳过全局限流配置
-		// TODO 暂时不放开全局限流规则下发，后续等待 envoy polaris filter 插件开发或者在 polaris-sidecar 中实现 RLS 协议后
-		// 在放开该设置
-		if rule.GetType() == apitraffic.Rule_GLOBAL || rule.GetDisable().GetValue() {
+		if rule.GetDisable().GetValue() {
 			continue
 		}
-		actions, descriptors := BuildLocalRateLimitDescriptors(rule)
+		actions, descriptors := BuildRateLimitDescriptors(rule)
 		rateLimitConf.Descriptors = descriptors
-		ratelimits = append(ratelimits, &route.RateLimit{
-			Actions: actions,
-		})
+		ratelimitRule := &route.RateLimit{Actions: actions}
+		switch rule.GetType() {
+		case apitraffic.Rule_LOCAL:
+			ratelimitRule.Stage = wrapperspb.UInt32(LocalRateLimitStage)
+		case apitraffic.Rule_GLOBAL:
+			ratelimitRule.Stage = wrapperspb.UInt32(DistributedRateLimitStage)
+		}
+		ratelimits = append(ratelimits, ratelimitRule)
 	}
 	filters["envoy.filters.http.local_ratelimit"] = MustNewAny(rateLimitConf)
 	return ratelimits, filters, nil

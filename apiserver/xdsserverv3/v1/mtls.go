@@ -27,6 +27,7 @@ import (
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	filev3 "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
 	lrl "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
+	routerv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	httpinspector "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/http_inspector/v3"
 	tlsinspector "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/tls_inspector/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
@@ -42,6 +43,8 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/structpb"
+
+	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 )
 
 func mustNewAny(src proto.Message) *anypb.Any {
@@ -224,6 +227,9 @@ func inboundHCM() *hcm.HttpConnectionManager {
 	}
 	filters = append(filters, &hcm.HttpFilter{
 		Name: wellknown.Router,
+		ConfigType: &hcm.HttpFilter_TypedConfig{
+			TypedConfig: resource.MustNewAny(&routerv3.Router{}),
+		},
 	})
 	return &hcm.HttpConnectionManager{
 		StatPrefix:  "Inbound",

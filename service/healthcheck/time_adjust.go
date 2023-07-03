@@ -35,7 +35,6 @@ type TimeAdjuster struct {
 
 func newTimeAdjuster(ctx context.Context, storage store.Store) *TimeAdjuster {
 	adjuster := &TimeAdjuster{storage: storage}
-	go adjuster.doTimeAdjust(ctx)
 	return adjuster
 }
 

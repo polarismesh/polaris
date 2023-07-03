@@ -137,7 +137,7 @@ func (h *EurekaServer) GetAllApplications(req *restful.Request, rsp *restful.Res
 	remoteAddr := req.Request.RemoteAddr
 	acceptValue := getParamFromEurekaRequestHeader(req, restful.HEADER_Accept)
 	if err := writeResponse(parseAcceptValue(acceptValue), appsRespCache, req, rsp); nil != err {
-		log.Errorf("[EurekaServer]fail to write applications, client: %s, err: %v", remoteAddr, err)
+		eurekalog.Errorf("[EurekaServer]fail to write applications, client: %s, err: %v", remoteAddr, err)
 	}
 }
 
@@ -155,7 +155,7 @@ func (h *EurekaServer) GetApplication(req *restful.Request, rsp *restful.Respons
 	apps := appsRespCache.AppsResp.Applications
 	app := apps.GetApplication(appId)
 	if app == nil {
-		log.Errorf("[EurekaServer]service %s not found, client: %s", appId, remoteAddr)
+		eurekalog.Errorf("[EurekaServer]service %s not found, client: %s", appId, remoteAddr)
 		writePolarisStatusCode(req, api.NotFoundService)
 		writeHeader(http.StatusNotFound, rsp)
 		return
@@ -170,7 +170,7 @@ func (h *EurekaServer) GetApplication(req *restful.Request, rsp *restful.Respons
 		output = appResp
 	}
 	if err := writeEurekaResponse(acceptValue, output, req, rsp); nil != err {
-		log.Errorf("[EurekaServer]fail to write application, client: %s, err: %v", remoteAddr, err)
+		eurekalog.Errorf("[EurekaServer]fail to write application, client: %s, err: %v", remoteAddr, err)
 	}
 }
 
@@ -179,7 +179,7 @@ func (h *EurekaServer) GetAppInstance(req *restful.Request, rsp *restful.Respons
 	remoteAddr := req.Request.RemoteAddr
 	appId := readAppIdFromRequest(req)
 	if len(appId) == 0 {
-		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
+		eurekalog.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "service name is empty")
 		writePolarisStatusCode(req, api.InvalidServiceName)
 		writeHeader(http.StatusBadRequest, rsp)
@@ -187,7 +187,7 @@ func (h *EurekaServer) GetAppInstance(req *restful.Request, rsp *restful.Respons
 	}
 	instId := req.PathParameter(ParamInstId)
 	if len(instId) == 0 {
-		log.Errorf("[EUREKA-SERVER] fail to parse request uri, uri: %s, client: %s, err: %s",
+		eurekalog.Errorf("[EUREKA-SERVER] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "instance id is required")
 		writePolarisStatusCode(req, api.InvalidInstanceID)
 		writeHeader(http.StatusBadRequest, rsp)
@@ -198,14 +198,14 @@ func (h *EurekaServer) GetAppInstance(req *restful.Request, rsp *restful.Respons
 	apps := appsRespCache.AppsResp.Applications
 	app := apps.GetApplication(appId)
 	if app == nil {
-		log.Errorf("[EurekaServer]service %s not found, client: %s", appId, remoteAddr)
+		eurekalog.Errorf("[EurekaServer]service %s not found, client: %s", appId, remoteAddr)
 		writePolarisStatusCode(req, api.NotFoundService)
 		writeHeader(http.StatusNotFound, rsp)
 		return
 	}
 	ins := app.GetInstance(instId)
 	if ins == nil {
-		log.Errorf("[EurekaServer]instance %s not found, service: %s, client: %s", instId, appId, remoteAddr)
+		eurekalog.Errorf("[EurekaServer]instance %s not found, service: %s, client: %s", instId, appId, remoteAddr)
 		writePolarisStatusCode(req, api.NotFoundInstance)
 		writeHeader(http.StatusNotFound, rsp)
 		return
@@ -219,7 +219,7 @@ func (h *EurekaServer) GetAppInstance(req *restful.Request, rsp *restful.Respons
 		output = insResp
 	}
 	if err := writeEurekaResponse(acceptValue, output, req, rsp); nil != err {
-		log.Errorf("[EurekaServer]fail to write instance, client: %s, err: %v", remoteAddr, err)
+		eurekalog.Errorf("[EurekaServer]fail to write instance, client: %s, err: %v", remoteAddr, err)
 	}
 }
 
@@ -288,7 +288,7 @@ func (h *EurekaServer) GetDeltaApplications(req *restful.Request, rsp *restful.R
 	remoteAddr := req.Request.RemoteAddr
 	acceptValue := getParamFromEurekaRequestHeader(req, restful.HEADER_Accept)
 	if err := writeResponse(parseAcceptValue(acceptValue), appsRespCache, req, rsp); nil != err {
-		log.Errorf("[EurekaServer]fail to write delta applications, client: %s, err: %v", remoteAddr, err)
+		eurekalog.Errorf("[EurekaServer]fail to write delta applications, client: %s, err: %v", remoteAddr, err)
 	}
 }
 
@@ -317,21 +317,21 @@ func checkRegisterRequest(registrationRequest *RegistrationRequest, req *restful
 	var err error
 	remoteAddr := req.Request.RemoteAddr
 	if nil == registrationRequest.Instance {
-		log.Errorf("[EUREKA-SERVER] fail to parse register request, uri: %s, client: %s, err: %s",
+		eurekalog.Errorf("[EUREKA-SERVER] fail to parse register request, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "instance content required")
 		writePolarisStatusCode(req, api.EmptyRequest)
 		writeHeader(http.StatusBadRequest, rsp)
 		return false
 	}
 	if len(registrationRequest.Instance.InstanceId) == 0 && len(registrationRequest.Instance.HostName) == 0 {
-		log.Errorf("[EUREKA-SERVER] fail to parse register request, uri: %s, client: %s, err: %s",
+		eurekalog.Errorf("[EUREKA-SERVER] fail to parse register request, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "instance id required")
 		writePolarisStatusCode(req, api.InvalidInstanceID)
 		writeHeader(http.StatusBadRequest, rsp)
 	}
 	err = convertInstancePorts(registrationRequest.Instance)
 	if nil != err {
-		log.Errorf("[EUREKA-SERVER] fail to parse instance register request, "+
+		eurekalog.Errorf("[EUREKA-SERVER] fail to parse instance register request, "+
 			"invalid port value, client: %s, err: %v", remoteAddr, err)
 		writePolarisStatusCode(req, api.InvalidInstancePort)
 		writeHeader(http.StatusBadRequest, rsp)
@@ -345,7 +345,7 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 	appId := readAppIdFromRequest(req)
 
 	if len(appId) == 0 {
-		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
+		eurekalog.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "service name is empty")
 		writePolarisStatusCode(req, api.InvalidServiceName)
 		writeHeader(http.StatusBadRequest, rsp)
@@ -362,7 +362,7 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 		err = req.ReadEntity(registrationRequest)
 	}
 	if nil != err {
-		log.Errorf("[EUREKA-SERVER] fail to parse instance register request, uri: %s, client: %s, err: %v",
+		eurekalog.Errorf("[EUREKA-SERVER] fail to parse instance register request, uri: %s, client: %s, err: %v",
 			req.Request.RequestURI, remoteAddr, err)
 		writePolarisStatusCode(req, api.ParseException)
 		writeHeader(http.StatusBadRequest, rsp)
@@ -375,7 +375,7 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 
 	token, err := getAuthFromEurekaRequestHeader(req)
 	if err != nil {
-		log.Infof("[EUREKA-SERVER]instance (instId=%s, appId=%s) get basic auth info fail, code is %d",
+		eurekalog.Infof("[EUREKA-SERVER]instance (instId=%s, appId=%s) get basic auth info fail, code is %d",
 			registrationRequest.Instance.InstanceId, appId, api.ExecuteException)
 		writePolarisStatusCode(req, api.ExecuteException)
 		writeHeader(http.StatusUnauthorized, rsp)
@@ -385,13 +385,13 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 	ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, token)
 
 	namespace := readNamespaceFromRequest(req, h.namespace)
-	log.Infof(
+	eurekalog.Infof(
 		"[EUREKA-SERVER]received instance register request, "+
 			"client: %s, namespace: %s, instId: %s, appId: %s, ipAddr: %s",
 		remoteAddr, namespace, registrationRequest.Instance.InstanceId, appId, registrationRequest.Instance.IpAddr)
 	code := h.registerInstances(ctx, namespace, appId, registrationRequest.Instance, false)
 	if code == api.ExecuteSuccess || code == api.ExistedResource || code == api.SameInstanceRequest {
-		log.Infof(
+		eurekalog.Infof(
 			"[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) has been registered successfully,"+
 				" code is %d",
 			namespace, registrationRequest.Instance.InstanceId, appId, code)
@@ -399,7 +399,7 @@ func (h *EurekaServer) RegisterApplication(req *restful.Request, rsp *restful.Re
 		writeHeader(http.StatusNoContent, rsp)
 		return
 	}
-	log.Errorf("[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) has been registered failed, "+
+	eurekalog.Errorf("[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) has been registered failed, "+
 		"code is %d",
 		namespace, registrationRequest.Instance.InstanceId, appId, code)
 	writePolarisStatusCode(req, code)
@@ -411,7 +411,7 @@ func (h *EurekaServer) UpdateStatus(req *restful.Request, rsp *restful.Response)
 	remoteAddr := req.Request.RemoteAddr
 	appId := readAppIdFromRequest(req)
 	if len(appId) == 0 {
-		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
+		eurekalog.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "service name is empty")
 		writePolarisStatusCode(req, api.InvalidServiceName)
 		writeHeader(http.StatusBadRequest, rsp)
@@ -419,7 +419,7 @@ func (h *EurekaServer) UpdateStatus(req *restful.Request, rsp *restful.Response)
 	}
 	instId := req.PathParameter(ParamInstId)
 	if len(instId) == 0 {
-		log.Errorf("[EUREKA-SERVER] fail to parse request uri, uri: %s, client: %s, err: %s",
+		eurekalog.Errorf("[EUREKA-SERVER] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "instance id is required")
 		writePolarisStatusCode(req, api.InvalidInstanceID)
 		writeHeader(http.StatusBadRequest, rsp)
@@ -427,7 +427,7 @@ func (h *EurekaServer) UpdateStatus(req *restful.Request, rsp *restful.Response)
 	}
 	status := req.QueryParameter(ParamValue)
 	namespace := readNamespaceFromRequest(req, h.namespace)
-	log.Infof("[EUREKA-SERVER]received instance updateStatus request, "+
+	eurekalog.Infof("[EUREKA-SERVER]received instance updateStatus request, "+
 		"client: %s, namespace: %s, instId: %s, appId: %s, status: %s",
 		remoteAddr, namespace, instId, appId, status)
 	// check status
@@ -439,12 +439,12 @@ func (h *EurekaServer) UpdateStatus(req *restful.Request, rsp *restful.Response)
 	code := h.updateStatus(context.Background(), namespace, appId, instId, status, false)
 	writePolarisStatusCode(req, code)
 	if code == api.ExecuteSuccess || code == api.NoNeedUpdate {
-		log.Infof("[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) has been updated successfully",
+		eurekalog.Infof("[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) has been updated successfully",
 			namespace, instId, appId)
 		writeHeader(http.StatusOK, rsp)
 		return
 	}
-	log.Errorf("[EUREKA-SERVER]instance ((namespace=%s, instId=%s, appId=%s) has been updated failed, "+
+	eurekalog.Errorf("[EUREKA-SERVER]instance ((namespace=%s, instId=%s, appId=%s) has been updated failed, "+
 		"code is %d",
 		namespace, instId, appId, code)
 	if code == api.NotFoundResource {
@@ -459,7 +459,7 @@ func (h *EurekaServer) DeleteStatus(req *restful.Request, rsp *restful.Response)
 	remoteAddr := req.Request.RemoteAddr
 	appId := readAppIdFromRequest(req)
 	if len(appId) == 0 {
-		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
+		eurekalog.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "service name is empty")
 		writePolarisStatusCode(req, api.InvalidServiceName)
 		writeHeader(http.StatusBadRequest, rsp)
@@ -467,7 +467,7 @@ func (h *EurekaServer) DeleteStatus(req *restful.Request, rsp *restful.Response)
 	}
 	instId := req.PathParameter(ParamInstId)
 	if len(instId) == 0 {
-		log.Errorf("[EUREKA-SERVER] fail to parse request uri, uri: %s, client: %s, err: %s",
+		eurekalog.Errorf("[EUREKA-SERVER] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "instance id is required")
 		writePolarisStatusCode(req, api.InvalidInstanceID)
 		writeHeader(http.StatusBadRequest, rsp)
@@ -476,20 +476,20 @@ func (h *EurekaServer) DeleteStatus(req *restful.Request, rsp *restful.Response)
 
 	namespace := readNamespaceFromRequest(req, h.namespace)
 
-	log.Infof("[EUREKA-SERVER]received instance status delete request, "+
+	eurekalog.Infof("[EUREKA-SERVER]received instance status delete request, "+
 		"client: %s,namespace=%s, instId=%s, appId=%s",
 		remoteAddr, namespace, instId, appId)
 
 	code := h.updateStatus(context.Background(), namespace, appId, instId, StatusUp, false)
 	writePolarisStatusCode(req, code)
 	if code == api.ExecuteSuccess {
-		log.Infof("[EUREKA-SERVER]instance status (namespace=%s, instId=%s, appId=%s) "+
+		eurekalog.Infof("[EUREKA-SERVER]instance status (namespace=%s, instId=%s, appId=%s) "+
 			"has been deleted successfully",
 			namespace, instId, appId)
 		writeHeader(http.StatusOK, rsp)
 		return
 	}
-	log.Errorf("[EUREKA-SERVER]instance status (namespace=%s, instId=%s, appId=%s) "+
+	eurekalog.Errorf("[EUREKA-SERVER]instance status (namespace=%s, instId=%s, appId=%s) "+
 		"has been deleted failed, code is %d",
 		namespace, instId, appId, code)
 	if code == api.NotFoundResource {
@@ -504,7 +504,7 @@ func (h *EurekaServer) RenewInstance(req *restful.Request, rsp *restful.Response
 	remoteAddr := req.Request.RemoteAddr
 	appId := readAppIdFromRequest(req)
 	if len(appId) == 0 {
-		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
+		eurekalog.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "service name is empty")
 		writePolarisStatusCode(req, api.InvalidServiceName)
 		writeHeader(http.StatusBadRequest, rsp)
@@ -512,7 +512,7 @@ func (h *EurekaServer) RenewInstance(req *restful.Request, rsp *restful.Response
 	}
 	instId := req.PathParameter(ParamInstId)
 	if len(instId) == 0 {
-		log.Errorf("[EUREKA-SERVER] fail to parse request uri, uri: %s, client: %s, err: %s",
+		eurekalog.Errorf("[EUREKA-SERVER] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "instance id is required")
 		writePolarisStatusCode(req, api.InvalidInstanceID)
 		writeHeader(http.StatusBadRequest, rsp)
@@ -525,7 +525,7 @@ func (h *EurekaServer) RenewInstance(req *restful.Request, rsp *restful.Response
 		writeHeader(http.StatusOK, rsp)
 		return
 	}
-	log.Errorf("[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) heartbeat failed, code is %d",
+	eurekalog.Errorf("[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) heartbeat failed, code is %d",
 		namespace, instId, appId, code)
 	if code == api.NotFoundResource {
 		writeHeader(http.StatusNotFound, rsp)
@@ -539,7 +539,7 @@ func (h *EurekaServer) CancelInstance(req *restful.Request, rsp *restful.Respons
 	appId := readAppIdFromRequest(req)
 	remoteAddr := req.Request.RemoteAddr
 	if len(appId) == 0 {
-		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
+		eurekalog.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "service name is empty")
 		writePolarisStatusCode(req, api.InvalidServiceName)
 		writeHeader(http.StatusBadRequest, rsp)
@@ -547,26 +547,26 @@ func (h *EurekaServer) CancelInstance(req *restful.Request, rsp *restful.Respons
 	}
 	instId := req.PathParameter(ParamInstId)
 	if len(instId) == 0 {
-		log.Errorf("[EUREKA-SERVER] fail to parse request uri, uri: %s, client: %s, err: %s",
+		eurekalog.Errorf("[EUREKA-SERVER] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "instance id is required")
 		writePolarisStatusCode(req, api.InvalidInstanceID)
 		writeHeader(http.StatusBadRequest, rsp)
 		return
 	}
 	namespace := readNamespaceFromRequest(req, h.namespace)
-	log.Infof("[EUREKA-SERVER]received instance deregistered request, "+
+	eurekalog.Infof("[EUREKA-SERVER]received instance deregistered request, "+
 		"client: %s, namespace: %s, instId: %s, appId: %s",
 		remoteAddr, namespace, instId, appId)
 	code := h.deregisterInstance(context.Background(), namespace, appId, instId, false)
 	writePolarisStatusCode(req, code)
 	if code == api.ExecuteSuccess || code == api.NotFoundResource || code == api.SameInstanceRequest {
 		writeHeader(http.StatusOK, rsp)
-		log.Infof("[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) "+
+		eurekalog.Infof("[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) "+
 			"has been deregistered successfully, code is %d",
 			namespace, instId, appId, code)
 		return
 	}
-	log.Errorf("[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) has been deregistered failed,"+
+	eurekalog.Errorf("[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) has been deregistered failed,"+
 		" code is %d",
 		namespace, instId, appId, code)
 	writeHeader(int(code/1000), rsp)
@@ -577,7 +577,7 @@ func (h *EurekaServer) GetInstance(req *restful.Request, rsp *restful.Response) 
 	remoteAddr := req.Request.RemoteAddr
 	instId := req.PathParameter(ParamInstId)
 	if len(instId) == 0 {
-		log.Errorf("[EUREKA-SERVER] fail to parse request uri, uri: %s, client: %s, err: %s",
+		eurekalog.Errorf("[EUREKA-SERVER] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "instance id is required")
 		writePolarisStatusCode(req, api.InvalidInstanceID)
 		writeHeader(http.StatusBadRequest, rsp)
@@ -600,7 +600,7 @@ func (h *EurekaServer) GetInstance(req *restful.Request, rsp *restful.Response) 
 		output = insResp
 	}
 	if err := writeEurekaResponse(acceptValue, output, req, rsp); nil != err {
-		log.Errorf("[EurekaServer]fail to write instance, client: %s, err: %v", remoteAddr, err)
+		eurekalog.Errorf("[EurekaServer]fail to write instance, client: %s, err: %v", remoteAddr, err)
 	}
 }
 
@@ -609,7 +609,7 @@ func (h *EurekaServer) UpdateMetadata(req *restful.Request, rsp *restful.Respons
 	remoteAddr := req.Request.RemoteAddr
 	appId := readAppIdFromRequest(req)
 	if len(appId) == 0 {
-		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
+		eurekalog.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "service name is empty")
 		writePolarisStatusCode(req, api.InvalidServiceName)
 		writeHeader(http.StatusBadRequest, rsp)
@@ -617,7 +617,7 @@ func (h *EurekaServer) UpdateMetadata(req *restful.Request, rsp *restful.Respons
 	}
 	instId := req.PathParameter(ParamInstId)
 	if len(instId) == 0 {
-		log.Errorf("[EUREKA-SERVER] fail to parse request uri, uri: %s, client: %s, err: %s",
+		eurekalog.Errorf("[EUREKA-SERVER] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "instance id is required")
 		writePolarisStatusCode(req, api.InvalidInstanceID)
 		writeHeader(http.StatusBadRequest, rsp)
@@ -636,12 +636,12 @@ func (h *EurekaServer) UpdateMetadata(req *restful.Request, rsp *restful.Respons
 	code := h.updateMetadata(context.Background(), namespace, appId, instId, metadataMap)
 	writePolarisStatusCode(req, code)
 	if code == api.ExecuteSuccess {
-		log.Infof("[EUREKA-SERVER]instance metadata (namespace=%s, instId=%s, appId=%s) has been updated successfully",
+		eurekalog.Infof("[EUREKA-SERVER]instance metadata (namespace=%s, instId=%s, appId=%s) has been updated successfully",
 			namespace, instId, appId)
 		writeHeader(http.StatusOK, rsp)
 		return
 	}
-	log.Errorf("[EUREKA-SERVER]instance metadata (namespace=%s, instId=%s, appId=%s) has been updated failed, "+
+	eurekalog.Errorf("[EUREKA-SERVER]instance metadata (namespace=%s, instId=%s, appId=%s) has been updated failed, "+
 		"code is %d",
 		namespace, instId, appId, code)
 	if code == api.NotFoundResource {
@@ -656,7 +656,7 @@ func (h *EurekaServer) QueryByVipAddress(req *restful.Request, rsp *restful.Resp
 	remoteAddr := req.Request.RemoteAddr
 	vipAddress := req.PathParameter(ParamVip)
 	if len(vipAddress) == 0 {
-		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
+		eurekalog.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "vip address is empty")
 		writePolarisStatusCode(req, api.InvalidParameter)
 		writeHeader(http.StatusBadRequest, rsp)
@@ -670,7 +670,7 @@ func (h *EurekaServer) QueryByVipAddress(req *restful.Request, rsp *restful.Resp
 	})
 	acceptValue := getParamFromEurekaRequestHeader(req, restful.HEADER_Accept)
 	if err := writeResponse(parseAcceptValue(acceptValue), appsRespCache, req, rsp); nil != err {
-		log.Errorf("[EurekaServer]fail to write vip applications, client: %s, err: %v", remoteAddr, err)
+		eurekalog.Errorf("[EurekaServer]fail to write vip applications, client: %s, err: %v", remoteAddr, err)
 	}
 }
 
@@ -679,7 +679,7 @@ func (h *EurekaServer) QueryBySVipAddress(req *restful.Request, rsp *restful.Res
 	remoteAddr := req.Request.RemoteAddr
 	vipAddress := req.PathParameter(ParamSVip)
 	if len(vipAddress) == 0 {
-		log.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
+		eurekalog.Errorf("[EurekaServer] fail to parse request uri, uri: %s, client: %s, err: %s",
 			req.Request.RequestURI, remoteAddr, "svip address is empty")
 		writePolarisStatusCode(req, api.InvalidParameter)
 		writeHeader(http.StatusBadRequest, rsp)
@@ -692,6 +692,6 @@ func (h *EurekaServer) QueryBySVipAddress(req *restful.Request, rsp *restful.Res
 	})
 	acceptValue := getParamFromEurekaRequestHeader(req, restful.HEADER_Accept)
 	if err := writeResponse(parseAcceptValue(acceptValue), appsRespCache, req, rsp); nil != err {
-		log.Errorf("[EurekaServer]fail to write svip applications, client: %s, err: %v", remoteAddr, err)
+		eurekalog.Errorf("[EurekaServer]fail to write svip applications, client: %s, err: %v", remoteAddr, err)
 	}
 }

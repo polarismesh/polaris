@@ -20,22 +20,26 @@ package v1
 import (
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	routerv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
+	original_dstv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/original_dst/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	tcp "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
-	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	resourcev3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
+
+	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 )
 
-func makeListeners() []types.Resource {
+func makeListeners() ([]types.Resource, error) {
 	manager := &hcm.HttpConnectionManager{
 		CodecType:  hcm.HttpConnectionManager_AUTO,
 		StatPrefix: "http",
 		RouteSpecifier: &hcm.HttpConnectionManager_Rds{
 			Rds: &hcm.Rds{
 				ConfigSource: &core.ConfigSource{
-					ResourceApiVersion: resource.DefaultAPIVersion,
+					ResourceApiVersion: resourcev3.DefaultAPIVersion,
 					ConfigSourceSpecifier: &core.ConfigSource_Ads{
 						Ads: &core.AggregatedConfigSource{},
 					},
@@ -47,11 +51,14 @@ func makeListeners() []types.Resource {
 	}
 	manager.HttpFilters = append(manager.HttpFilters, &hcm.HttpFilter{
 		Name: wellknown.Router,
+		ConfigType: &hcm.HttpFilter_TypedConfig{
+			TypedConfig: resource.MustNewAny(&routerv3.Router{}),
+		},
 	})
 
 	pbst, err := ptypes.MarshalAny(manager)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	tcpConfig := &tcp.TcpProxy{
@@ -63,7 +70,7 @@ func makeListeners() []types.Resource {
 
 	tcpC, err := ptypes.MarshalAny(tcpConfig)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	return []types.Resource{
@@ -107,20 +114,29 @@ func makeListeners() []types.Resource {
 				{
 					// type.googleapis.com/envoy.extensions.filters.listener.original_dst.v3.OriginalDst
 					Name: wellknown.OriginalDestination,
+					ConfigType: &listener.ListenerFilter_TypedConfig{
+						TypedConfig: resource.MustNewAny(&original_dstv3.OriginalDst{}),
+					},
 				},
 			},
 		},
+	}, nil
+}
+
+func makePermissiveListeners() ([]types.Resource, error) {
+	resources, err := makeListeners()
+	if err != nil {
+		return nil, err
 	}
-}
-
-func makePermissiveListeners() []types.Resource {
-	resources := makeListeners()
 	resources = append(resources, inboundListener())
-	return resources
+	return resources, nil
 }
 
-func makeStrictListeners() []types.Resource {
-	resources := makeListeners()
+func makeStrictListeners() ([]types.Resource, error) {
+	resources, err := makeListeners()
+	if err != nil {
+		return nil, err
+	}
 	resources = append(resources, inboundStrictListener())
-	return resources
+	return resources, nil
 }

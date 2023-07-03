@@ -248,8 +248,8 @@ func (rds *RDSBuilder) makeGatewayRoutes(option *resource.BuildOption,
 	xdsNode *resource.XDSClient) ([]*route.Route, error) {
 
 	routes := make([]*route.Route, 0, 16)
-	callerService := xdsNode.Metadata[resource.GatewayServiceName]
-	callerNamespace := xdsNode.Metadata[resource.GatewayNamespaceName]
+	callerService := xdsNode.GetSelfService()
+	callerNamespace := xdsNode.GetSelfNamespace()
 	selfService := model.ServiceKey{
 		Namespace: callerNamespace,
 		Name:      callerService,

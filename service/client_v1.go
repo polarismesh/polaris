@@ -162,7 +162,7 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Servic
 		return resp
 	}
 
-	log.Info("[Service][Discover] list servies", zap.Int("size", len(svcs)), zap.String("revision", revision))
+	log.Debug("[Service][Discover] list servies", zap.Int("size", len(svcs)), zap.String("revision", revision))
 	if revision == req.GetRevision().GetValue() {
 		return api.NewDiscoverServiceResponse(apimodel.Code_DataNoChange, req)
 	}
@@ -204,7 +204,7 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Serv
 	// 数据源都来自Cache，这里拿到的service，已经是源服务
 	aliasFor := s.getServiceCache(serviceName, namespaceName)
 	if aliasFor == nil {
-		log.Infof("[Server][Service][Instance] not found name(%s) namespace(%s) service",
+		log.Debugf("[Server][Service][Instance] not found name(%s) namespace(%s) service",
 			serviceName, namespaceName)
 		return api.NewDiscoverInstanceResponse(apimodel.Code_NotFoundResource, req)
 	}

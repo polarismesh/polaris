@@ -90,10 +90,6 @@ type HealthChecker interface {
 	Check(request *CheckRequest) (*CheckResponse, error)
 	// Query queries the heartbeat time
 	Query(ctx context.Context, request *QueryRequest) (*QueryResponse, error)
-	// AddToCheck add the instances to check procedure
-	AddToCheck(request *AddCheckRequest) error
-	// RemoveFromCheck removes the instances from check procedure
-	RemoveFromCheck(request *AddCheckRequest) error
 	// Suspend health checker for entire expired duration manually
 	Suspend()
 	// SuspendTimeSec get the suspend time in seconds

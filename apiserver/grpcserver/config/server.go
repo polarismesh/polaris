@@ -60,7 +60,7 @@ func (g *ConfigGRPCServer) Initialize(ctx context.Context, option map[string]int
 	return g.BaseGrpcServer.Initialize(ctx, option,
 		grpcserver.WithModule(model.ConfigModule),
 		grpcserver.WithProtocol(g.GetProtocol()),
-		grpcserver.WithLogger(configLog),
+		grpcserver.WithLogger(commonlog.FindScope(commonlog.APIServerLoggerName)),
 	)
 }
 

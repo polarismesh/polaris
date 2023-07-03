@@ -316,6 +316,7 @@ data:
           concurrency: 64
       checkers:
     {{- if eq .Values.global.mode "cluster" }}
+      {{- if eq .Values.polaris.healthChecker "heartbeatRedis"  }}
         - name: heartbeatRedis
           option:
             kvAddr: {{ .Values.polaris.storage.redis.address }}
@@ -332,6 +333,9 @@ data:
             msgTimeout: 200ms
             concurrency: 200
             withTLS: {{ .Values.polaris.storage.redis.withTLS | default false }}
+      {{- else }}
+        - name: heartbeatLeader
+      {{- end}}
     {{- else }}
         - name: heartbeatMemory
     {{- end }}

@@ -29,10 +29,3 @@ data:
       polarisToken: "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I="
     monitorServer:
       address: "polaris-prometheus:9090"
-    # eventServer:
-    #   requestUrl:
-    #   timeout: 5s
-    # operationServer:
-    #   requestUrl:
-    #   timeout: 5s
-
