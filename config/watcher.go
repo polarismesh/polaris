@@ -35,9 +35,8 @@ const (
 )
 
 // Event 事件对象，包含类型和事件消息
-type Event struct {
-	EventType string
-	Message   interface{}
+type PublishConfigFileEvent struct {
+	Message *model.ConfigFileRelease
 }
 
 type FileReleaseCallback func(clientId string, rsp *apiconfig.ConfigClientResponse) bool
@@ -49,22 +48,18 @@ type watchContext struct {
 
 // watchCenter 处理客户端订阅配置请求，监听配置文件发布事件通知客户端
 type watchCenter struct {
+	lock sync.Mutex
 	// fileId -> clientId -> watchContext
-	configFileWatchers  *utils.SegmentMap[string, *utils.SegmentMap[string, *watchContext]]
-	lock                *sync.Mutex
-	releaseMessageQueue chan *model.ConfigFileRelease
+	configFileWatchers *utils.SegmentMap[string, *utils.SegmentMap[string, *watchContext]]
 }
 
 // NewWatchCenter 创建一个客户端监听配置发布的处理中心
 func NewWatchCenter() *watchCenter {
 	wc := &watchCenter{
-		configFileWatchers:  utils.NewSegmentMap[string, *utils.SegmentMap[string, *watchContext]](128, hash.Fnv32),
-		lock:                new(sync.Mutex),
-		releaseMessageQueue: make(chan *model.ConfigFileRelease, QueueSize),
+		configFileWatchers: utils.NewSegmentMap[string, *utils.SegmentMap[string, *watchContext]](128, hash.Fnv32),
 	}
 
-	eventhub.Subscribe(eventTypePublishConfigFile, utils.NewUUID(), wc)
-	go wc.handleMessage()
+	eventhub.Subscribe(eventhub.ConfigFilePublishTopic, utils.NewUUID(), wc, eventhub.WithQueueSize(QueueSize))
 	return wc
 }
 
@@ -75,11 +70,11 @@ func (wc *watchCenter) PreProcess(_ context.Context, e any) any {
 
 // OnEvent event process logic
 func (wc *watchCenter) OnEvent(ctx context.Context, arg any) error {
-	event, ok := arg.(*Event)
+	event, ok := arg.(*PublishConfigFileEvent)
 	if !ok {
 		return nil
 	}
-	wc.releaseMessageQueue <- event.Message.(*model.ConfigFileRelease)
+	wc.notifyToWatchers(event.Message)
 	return nil
 }
 
@@ -122,23 +117,10 @@ func (wc *watchCenter) RemoveWatcher(clientId string, watchConfigFiles []*apicon
 	}
 }
 
-func (wc *watchCenter) handleMessage() {
-	defer func() {
-		if err := recover(); err != nil {
-			log.Error("[Config][Watcher] handler config release message error.", zap.Any("err", err))
-		}
-	}()
-
-	for message := range wc.releaseMessageQueue {
-		wc.notifyToWatchers(message)
-	}
-}
-
 func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.ConfigFileRelease) {
 	watchFileId := utils.GenFileId(publishConfigFile.Namespace, publishConfigFile.Group, publishConfigFile.FileName)
 
 	log.Info("[Config][Watcher] received config file publish message.", zap.String("file", watchFileId))
-
 	watchers, ok := wc.configFileWatchers.Get(watchFileId)
 	if !ok {
 		return

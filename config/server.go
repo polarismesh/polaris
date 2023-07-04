@@ -39,6 +39,7 @@ var _ ConfigCenterServer = (*Server)(nil)
 const (
 	eventTypePublishConfigFile  = "PublishConfigFile"
 	defaultExpireTimeAfterWrite = 60 * 60 // expire after 1 hour
+	fileContentMaxLength        = 20000   // 文件内容限制为 2w 个字符
 )
 
 var (
@@ -94,10 +95,6 @@ func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cac
 	originServer.initialized = true
 	return nil
 }
-
-const (
-	fileContentMaxLength = 20000 // 文件内容限制为 2w 个字符
-)
 
 func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	namespaceOperator namespace.NamespaceOperateServer, cacheMgn *cache.CacheManager) error {

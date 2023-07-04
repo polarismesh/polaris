@@ -73,7 +73,7 @@ func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, gro
 	limit uint32, endId uint64) *apiconfig.ConfigBatchQueryResponse {
 
 	if limit > MaxPageSize {
-		return api.NewConfigFileReleaseHistoryBatchQueryResponse(apimodel.Code_InvalidParameter, 0, nil)
+		limit = MaxPageSize
 	}
 
 	count, saveDatas, err := s.storage.QueryConfigFileReleaseHistories(namespace,
@@ -107,11 +107,9 @@ func (s *Server) GetConfigFileLatestReleaseHistory(ctx context.Context, namespac
 	if err := CheckResourceName(utils.NewStringValue(namespace)); err != nil {
 		return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_InvalidNamespaceName, nil)
 	}
-
 	if err := CheckResourceName(utils.NewStringValue(group)); err != nil {
 		return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_InvalidNamespaceName, nil)
 	}
-
 	if err := CheckFileName(utils.NewStringValue(fileName)); err != nil {
 		return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_InvalidNamespaceName, nil)
 	}

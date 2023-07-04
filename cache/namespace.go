@@ -19,13 +19,13 @@ package cache
 
 import (
 	"math"
-	"sync"
 	"time"
 
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -41,27 +41,18 @@ func init() {
 // NamespaceCache 命名空间的 Cache 接口
 type NamespaceCache interface {
 	Cache
-
 	// GetNamespace
-	//  @param id
-	//  @return *model.Namespace
 	GetNamespace(id string) *model.Namespace
-
 	// GetNamespacesByName
-	//  @param names
-	//  @return []*model.Namespace
-	//  @return error
 	GetNamespacesByName(names []string) []*model.Namespace
-
 	// GetNamespaceList
-	//  @return []*model.Namespace
 	GetNamespaceList() []*model.Namespace
 }
 
 type namespaceCache struct {
 	*baseCache
 	storage store.Store
-	ids     *sync.Map
+	ids     *utils.SyncMap[string, *model.Namespace]
 	updater *singleflight.Group
 }
 
@@ -73,18 +64,13 @@ func newNamespaceCache(storage store.Store) NamespaceCache {
 }
 
 // initialize
-//
-//	@param c
-//	@return error
 func (nsCache *namespaceCache) initialize(c map[string]interface{}) error {
-	nsCache.ids = new(sync.Map)
+	nsCache.ids = utils.NewSyncMap[string, *model.Namespace]()
 	nsCache.updater = new(singleflight.Group)
 	return nil
 }
 
 // update
-//
-//	@return error
 func (nsCache *namespaceCache) update() error {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, _ := nsCache.updater.Do(nsCache.name(), func() (interface{}, error) {
@@ -127,11 +113,9 @@ func (nsCache *namespaceCache) setNamespaces(nsSlice []*model.Namespace) map[str
 }
 
 // clear
-//
-//	@return error
 func (nsCache *namespaceCache) clear() error {
 	nsCache.baseCache.clear()
-	nsCache.ids = new(sync.Map)
+	nsCache.ids = utils.NewSyncMap[string, *model.Namespace]()
 	return nil
 }
 
@@ -154,7 +138,7 @@ func (nsCache *namespaceCache) GetNamespace(id string) *model.Namespace {
 		return nil
 	}
 
-	return val.(*model.Namespace)
+	return val
 }
 
 // GetNamespacesByName
@@ -181,8 +165,7 @@ func (nsCache *namespaceCache) GetNamespacesByName(names []string) []*model.Name
 func (nsCache *namespaceCache) GetNamespaceList() []*model.Namespace {
 	nsArr := make([]*model.Namespace, 0, 8)
 
-	nsCache.ids.Range(func(key, value interface{}) bool {
-		ns := value.(*model.Namespace)
+	nsCache.ids.Range(func(key string, ns *model.Namespace) bool {
 		nsArr = append(nsArr, ns)
 
 		return true

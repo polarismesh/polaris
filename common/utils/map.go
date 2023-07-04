@@ -126,3 +126,49 @@ func (s *SegmentMap[K, V]) caulIndex(k K) (*sync.RWMutex, map[K]V) {
 	solt := s.solts[index]
 	return lock, solt
 }
+
+// NewSyncMap
+func NewSyncMap[K comparable, V any]() *SyncMap[K, V] {
+	return &SyncMap[K, V]{
+		m: &sync.Map{},
+	}
+}
+
+// SyncMap
+type SyncMap[K comparable, V any] struct {
+	m *sync.Map
+}
+
+// Load
+func (s *SyncMap[K, V]) Load(key K) (V, bool) {
+	v, ok := s.m.Load(key)
+	if ok {
+		return v.(V), ok
+	}
+	var empty V
+	return empty, false
+}
+
+// Store
+func (s *SyncMap[K, V]) Store(key K, val V) {
+	s.m.Store(key, val)
+}
+
+// Range
+func (s *SyncMap[K, V]) Range(f func(key K, val V) bool) {
+	s.m.Range(func(key, value any) bool {
+		return f(key.(K), value.(V))
+	})
+}
+
+// Delete
+func (s *SyncMap[K, V]) Delete(key K) {
+	s.m.Delete(key)
+}
+
+// LoadOrStore
+func (s *SyncMap[K, V]) LoadOrStore(key K, val V) (V, bool) {
+	actual, loaded := s.m.LoadOrStore(key, val)
+	ret, _ := actual.(V)
+	return ret, loaded
+}

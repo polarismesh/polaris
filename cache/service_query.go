@@ -20,7 +20,6 @@ package cache
 import (
 	"sort"
 	"strings"
-	"sync"
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -160,8 +159,8 @@ func (sc *serviceCache) matchInstances(instances []*model.Instance, instanceFilt
 // GetAllNamespaces 返回所有的命名空间
 func (sc *serviceCache) GetAllNamespaces() []string {
 	var res []string
-	sc.names.Range(func(k, v interface{}) bool {
-		res = append(res, k.(string))
+	sc.names.Range(func(k string, v *utils.SyncMap[string, *model.Service]) bool {
+		res = append(res, k)
 		return true
 	})
 	return res
@@ -316,8 +315,8 @@ func (sc *serviceCache) getServicesByIteratingCache(
 		if !ok {
 			return 0, nil, nil
 		}
-		spaces.(*sync.Map).Range(func(key, value interface{}) bool {
-			process(value.(*model.Service))
+		spaces.Range(func(key string, value *model.Service) bool {
+			process(value)
 			return true
 		})
 	} else {

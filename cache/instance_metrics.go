@@ -66,10 +66,7 @@ func (ic *instanceCache) reportMetricsInfo() {
 	})
 
 	// instance count metrics
-	ic.instanceCounts.Range(func(key, value any) bool {
-		serviceID := key.(string)
-		countInfo := value.(*model.InstanceCount)
-
+	ic.instanceCounts.Range(func(serviceID string, countInfo *model.InstanceCount) bool {
 		svc := serviceCache.GetServiceByID(serviceID)
 		if svc == nil {
 			log.Debug("[Cache][Instance] report metrics get service not found", zap.String("svc-id", serviceID))

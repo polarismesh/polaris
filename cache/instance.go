@@ -18,7 +18,6 @@
 package cache
 
 import (
-	"sync"
 	"time"
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
@@ -27,6 +26,7 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -68,12 +68,15 @@ type InstanceCache interface {
 type instanceCache struct {
 	*baseCache
 
-	cacheMgr           *CacheManager
-	storage            store.Store
-	lastMtimeLogged    int64
-	ids                *sync.Map // instanceid -> instance
-	services           *sync.Map // service id -> [instanceid ->instance]
-	instanceCounts     *sync.Map // service id -> [instanceCount]
+	cacheMgr        *CacheManager
+	storage         store.Store
+	lastMtimeLogged int64
+	// instanceid -> instance
+	ids *utils.SyncMap[string, *model.Instance]
+	// service id -> [instanceid ->instance]
+	services *utils.SyncMap[string, *utils.SyncMap[string, *model.Instance]]
+	// service id -> [instanceCount]
+	instanceCounts     *utils.SyncMap[string, *model.InstanceCount]
 	servicePortsBucket *servicePortsBucket
 	revisionCh         chan *revisionNotify
 	disableBusiness    bool
@@ -101,9 +104,9 @@ func newInstanceCache(cacheMgr *CacheManager, storage store.Store, ch chan *revi
 // initialize 初始化函数
 func (ic *instanceCache) initialize(opt map[string]interface{}) error {
 	ic.singleFlight = new(singleflight.Group)
-	ic.ids = new(sync.Map)
-	ic.services = new(sync.Map)
-	ic.instanceCounts = new(sync.Map)
+	ic.ids = utils.NewSyncMap[string, *model.Instance]()
+	ic.services = utils.NewSyncMap[string, *utils.SyncMap[string, *model.Instance]]()
+	ic.instanceCounts = utils.NewSyncMap[string, *model.InstanceCount]()
 	ic.servicePortsBucket = newServicePortsBucket()
 	if opt == nil {
 		return nil
@@ -197,9 +200,9 @@ func (ic *instanceCache) realUpdate() (map[string]time.Time, int64, error) {
 // clear 清理内部缓存数据
 func (ic *instanceCache) clear() error {
 	ic.baseCache.clear()
-	ic.ids = new(sync.Map)
-	ic.services = new(sync.Map)
-	ic.instanceCounts = new(sync.Map)
+	ic.ids = utils.NewSyncMap[string, *model.Instance]()
+	ic.services = utils.NewSyncMap[string, *utils.SyncMap[string, *model.Instance]]()
+	ic.instanceCounts = utils.NewSyncMap[string, *model.InstanceCount]()
 	ic.servicePortsBucket.reset()
 	ic.instanceCount = 0
 	return nil
@@ -263,7 +266,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (map[strin
 				continue
 			}
 
-			value.(*sync.Map).Delete(item.ID())
+			value.Delete(item.ID())
 			continue
 		}
 		// 有修改或者新增的数据
@@ -286,13 +289,12 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (map[strin
 		}
 		value, ok := ic.services.Load(item.ServiceID)
 		if !ok {
-			value = new(sync.Map)
+			value = utils.NewSyncMap[string, *model.Instance]()
 			ic.services.Store(item.ServiceID, value)
 		}
 
 		ic.servicePortsBucket.appendPort(item.ServiceID, item.Protocol(), item.Port())
-
-		value.(*sync.Map).Store(item.ID(), item)
+		value.Store(item.ID(), item)
 	}
 
 	if ic.instanceCount != instanceCount {
@@ -342,9 +344,8 @@ func (ic *instanceCache) postProcessUpdatedServices(affect map[string]bool) {
 			continue
 		}
 		count := &model.InstanceCount{}
-		value.(*sync.Map).Range(func(key, item interface{}) bool {
+		value.Range(func(key string, instance *model.Instance) bool {
 			count.TotalInstanceCount++
-			instance := item.(*model.Instance)
 			if isInstanceHealthy(instance) {
 				count.HealthyInstanceCount++
 			}
@@ -376,7 +377,7 @@ func (ic *instanceCache) GetInstance(instanceID string) *model.Instance {
 		return nil
 	}
 
-	return value.(*model.Instance)
+	return value
 }
 
 // GetInstancesByServiceID 根据ServiceID获取实例数据
@@ -391,8 +392,8 @@ func (ic *instanceCache) GetInstancesByServiceID(serviceID string) []*model.Inst
 	}
 
 	var out []*model.Instance
-	value.(*sync.Map).Range(func(k interface{}, v interface{}) bool {
-		out = append(out, v.(*model.Instance))
+	value.Range(func(k string, v *model.Instance) bool {
+		out = append(out, v)
 		return true
 	})
 
@@ -409,7 +410,7 @@ func (ic *instanceCache) GetInstancesCountByServiceID(serviceID string) model.In
 	if !ok {
 		return model.InstanceCount{}
 	}
-	return *(value.(*model.InstanceCount))
+	return *value
 }
 
 // IteratorInstances 迭代所有的instance的函数
@@ -427,13 +428,13 @@ func (ic *instanceCache) IteratorInstancesWithService(serviceID string, iterProc
 		return nil
 	}
 
-	return iteratorInstancesProc(value.(*sync.Map), iterProc)
+	return iteratorInstancesProc(value, iterProc)
 }
 
 // GetInstancesCount 获取实例的个数
 func (ic *instanceCache) GetInstancesCount() int {
 	count := 0
-	ic.ids.Range(func(key, value interface{}) bool {
+	ic.ids.Range(func(key string, value *model.Instance) bool {
 		count++
 		return true
 	})
@@ -457,7 +458,7 @@ func (ic *instanceCache) GetInstanceLabels(serviceID string) *apiservice.Instanc
 	}
 
 	tmp := make(map[string]map[string]struct{})
-	_ = iteratorInstancesProc(value.(*sync.Map), func(key string, value *model.Instance) (bool, error) {
+	_ = iteratorInstancesProc(value, func(key string, value *model.Instance) (bool, error) {
 		metadata := value.Metadata()
 		for k, v := range metadata {
 			if _, ok := tmp[k]; !ok {
@@ -486,14 +487,14 @@ func (ic *instanceCache) GetServicePorts(serviceID string) []*model.ServicePort 
 }
 
 // iteratorInstancesProc 迭代指定的instance数据，id->instance
-func iteratorInstancesProc(data *sync.Map, iterProc InstanceIterProc) error {
+func iteratorInstancesProc(data *utils.SyncMap[string, *model.Instance], iterProc InstanceIterProc) error {
 	var (
 		cont bool
 		err  error
 	)
 
-	proc := func(k, v interface{}) bool {
-		cont, err = iterProc(k.(string), v.(*model.Instance))
+	proc := func(k string, v *model.Instance) bool {
+		cont, err = iterProc(k, v)
 		if err != nil {
 			return false
 		}

@@ -123,9 +123,8 @@ func (s *releaseMessageScanner) handlerReleases(firstTime bool, releases []*mode
 			isExpire := isExpireMessage(release)
 
 			if !firstTime && !isExpire {
-				eventhub.Publish(eventTypePublishConfigFile, &Event{
-					EventType: eventTypePublishConfigFile,
-					Message:   release,
+				eventhub.Publish(eventhub.ConfigFilePublishTopic, &PublishConfigFileEvent{
+					Message: release,
 				})
 			}
 		}
