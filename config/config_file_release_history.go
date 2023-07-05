@@ -73,7 +73,7 @@ func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, gro
 	limit uint32, endId uint64) *apiconfig.ConfigBatchQueryResponse {
 
 	if limit > MaxPageSize {
-		return api.NewConfigFileReleaseHistoryBatchQueryResponse(apimodel.Code_InvalidParameter, 0, nil)
+		limit = MaxPageSize
 	}
 
 	count, saveDatas, err := s.storage.QueryConfigFileReleaseHistories(namespace,
@@ -91,12 +91,9 @@ func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, gro
 	var apiReleaseHistory []*apiconfig.ConfigFileReleaseHistory
 	for _, data := range saveDatas {
 		history := model.ToReleaseHistoryAPI(data)
-		for i := range s.chains {
-			_history, err := s.chains[i].AfterGetFileHistory(ctx, history)
-			if err != nil {
-				return api.NewConfigFileBatchQueryResponseWithMessage(commonstore.StoreCode2APICode(err), err.Error())
-			}
-			history = _history
+		history, err := s.chains.AfterGetFileHistory(ctx, history)
+		if err != nil {
+			return api.NewConfigFileBatchQueryResponseWithMessage(commonstore.StoreCode2APICode(err), err.Error())
 		}
 		apiReleaseHistory = append(apiReleaseHistory, history)
 	}
@@ -110,11 +107,9 @@ func (s *Server) GetConfigFileLatestReleaseHistory(ctx context.Context, namespac
 	if err := CheckResourceName(utils.NewStringValue(namespace)); err != nil {
 		return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_InvalidNamespaceName, nil)
 	}
-
 	if err := CheckResourceName(utils.NewStringValue(group)); err != nil {
 		return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_InvalidNamespaceName, nil)
 	}
-
 	if err := CheckFileName(utils.NewStringValue(fileName)); err != nil {
 		return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_InvalidNamespaceName, nil)
 	}
@@ -127,12 +122,9 @@ func (s *Server) GetConfigFileLatestReleaseHistory(ctx context.Context, namespac
 		return api.NewConfigFileReleaseHistoryResponse(commonstore.StoreCode2APICode(err), nil)
 	}
 	history := model.ToReleaseHistoryAPI(saveData)
-	for i := range s.chains {
-		_history, err := s.chains[i].AfterGetFileHistory(ctx, history)
-		if err != nil {
-			return api.NewConfigFileResponseWithMessage(commonstore.StoreCode2APICode(err), err.Error())
-		}
-		history = _history
+	history, err = s.chains.AfterGetFileHistory(ctx, history)
+	if err != nil {
+		return api.NewConfigFileResponseWithMessage(commonstore.StoreCode2APICode(err), err.Error())
 	}
 	return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_ExecuteSuccess, history)
 }

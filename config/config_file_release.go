@@ -29,7 +29,6 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	commonstore "github.com/polarismesh/polaris/common/store"
-	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -118,7 +117,8 @@ func (s *Server) PublishConfigFile(
 
 		s.RecordHistory(ctx, configFileReleaseRecordEntry(ctx, configFileRelease, createdFileRelease, model.OCreate))
 		s.recordReleaseHistory(ctx, createdFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess)
-		return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, configFileRelease2Api(createdFileRelease))
+		return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess,
+			model.ToConfiogFileReleaseApi(createdFileRelease))
 	}
 
 	// 更新发布
@@ -144,7 +144,8 @@ func (s *Server) PublishConfigFile(
 
 	s.recordReleaseHistory(ctx, updatedFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess)
 	s.RecordHistory(ctx, configFileReleaseRecordEntry(ctx, configFileRelease, updatedFileRelease, model.OCreate))
-	return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, configFileRelease2Api(updatedFileRelease))
+	return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess,
+		model.ToConfiogFileReleaseApi(updatedFileRelease))
 }
 
 // GetConfigFileRelease 获取配置文件发布内容
@@ -169,13 +170,10 @@ func (s *Server) GetConfigFileRelease(
 	if fileRelease == nil {
 		return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, nil)
 	}
-	release := configFileRelease2Api(fileRelease)
-	for i := range s.chains {
-		_release, err := s.chains[i].AfterGetFileRelease(ctx, release)
-		if err != nil {
-			return api.NewConfigFileReleaseResponseWithMessage(apimodel.Code_ExecuteException, err.Error())
-		}
-		release = _release
+	release := model.ToConfiogFileReleaseApi(fileRelease)
+	release, err = s.chains.AfterGetFileRelease(ctx, release)
+	if err != nil {
+		return api.NewConfigFileReleaseResponseWithMessage(apimodel.Code_ExecuteException, err.Error())
 	}
 	return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, release)
 }
@@ -187,11 +185,9 @@ func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace,
 	if err := CheckFileName(utils.NewStringValue(fileName)); err != nil {
 		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileName, nil)
 	}
-
 	if err := CheckResourceName(utils.NewStringValue(namespace)); err != nil {
 		return api.NewConfigFileResponse(apimodel.Code_InvalidNamespaceName, nil)
 	}
-
 	if err := CheckResourceName(utils.NewStringValue(group)); err != nil {
 		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileGroupName, nil)
 	}
@@ -215,8 +211,9 @@ func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace,
 		releaseModel.Name = releaseName
 		_, err := s.storage.UpdateConfigFileRelease(s.getTx(ctx), releaseModel)
 		if err != nil {
-			log.Error("[Config][Service] update release name error when delete release.", utils.ZapRequestIDByCtx(ctx),
-				utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
+			log.Error("[Config][Service] update release name error when delete release.",
+				utils.ZapRequestIDByCtx(ctx), utils.ZapNamespace(namespace), utils.ZapGroup(group),
+				utils.ZapFileName(fileName), zap.Error(err))
 			return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
 		}
 	}
@@ -253,28 +250,6 @@ func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace,
 
 func (s *Server) recordReleaseFail(ctx context.Context, configFileRelease *model.ConfigFileRelease) {
 	s.recordReleaseHistory(ctx, configFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusFail)
-}
-
-func configFileRelease2Api(release *model.ConfigFileRelease) *apiconfig.ConfigFileRelease {
-	if release == nil {
-		return nil
-	}
-
-	return &apiconfig.ConfigFileRelease{
-		Id:         utils.NewUInt64Value(release.Id),
-		Name:       utils.NewStringValue(release.Name),
-		Namespace:  utils.NewStringValue(release.Namespace),
-		Group:      utils.NewStringValue(release.Group),
-		FileName:   utils.NewStringValue(release.FileName),
-		Content:    utils.NewStringValue(release.Content),
-		Comment:    utils.NewStringValue(release.Comment),
-		Md5:        utils.NewStringValue(release.Md5),
-		Version:    utils.NewUInt64Value(release.Version),
-		CreateBy:   utils.NewStringValue(release.CreateBy),
-		CreateTime: utils.NewStringValue(commontime.Time2String(release.CreateTime)),
-		ModifyBy:   utils.NewStringValue(release.ModifyBy),
-		ModifyTime: utils.NewStringValue(commontime.Time2String(release.ModifyTime)),
-	}
 }
 
 // configFileReleaseRecordEntry 生成服务的记录entry

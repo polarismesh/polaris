@@ -31,6 +31,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/polarismesh/polaris/common/conn/limit/mock_net"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // TestConnLimit 模拟一下连接限制
@@ -442,5 +443,6 @@ func NewTestLimitListener(maxLimit int32, hostLimit int32) *Listener {
 		maxConnPerHost:       hostLimit,
 		purgeCounterInterval: time.Hour,
 		purgeCounterExpire:   300,
+		conns:                utils.NewSyncMap[string, *counter](),
 	}
 }

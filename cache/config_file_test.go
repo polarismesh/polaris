@@ -19,6 +19,7 @@ package cache
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -51,25 +52,30 @@ func TestGetAndRemoveAndReloadConfigFile(t *testing.T) {
 	mockedStorage.EXPECT().GetConfigFileRelease(nil, testNamespace, testGroup, testFile).Return(configFileRelease, nil).Times(3)
 	mockedStorage.EXPECT().QueryTagByConfigFile(testNamespace, testGroup, testFile).Return(configFileTags, nil).Times(3)
 
+	wait := sync.WaitGroup{}
 	for i := 0; i < 100; i++ {
+		wait.Add(1)
 		go func() {
+			defer wait.Done()
 			entry, _ := fileCache.GetOrLoadIfAbsent(testNamespace, testGroup, testFile)
 			assert.True(t, !entry.Empty)
 		}()
 	}
-
+	wait.Wait()
 	time.Sleep(100 * time.Millisecond)
 
 	// 删除缓存
 	fileCache.Remove(testNamespace, testGroup, testFile)
 
 	for i := 0; i < 100; i++ {
+		wait.Add(1)
 		go func() {
+			defer wait.Done()
 			entry, _ := fileCache.GetOrLoadIfAbsent(testNamespace, testGroup, testFile)
 			assert.True(t, !entry.Empty)
 		}()
 	}
-
+	wait.Wait()
 	time.Sleep(100 * time.Millisecond)
 
 	// 重新加载缓存
@@ -77,12 +83,14 @@ func TestGetAndRemoveAndReloadConfigFile(t *testing.T) {
 	assert.True(t, !reloadEntry.Empty)
 
 	for i := 0; i < 100; i++ {
+		wait.Add(1)
 		go func() {
+			defer wait.Done()
 			entry, _ := fileCache.GetOrLoadIfAbsent(testNamespace, testGroup, testFile)
 			assert.True(t, !entry.Empty)
 		}()
 	}
-
+	wait.Wait()
 	time.Sleep(100 * time.Millisecond)
 }
 
@@ -172,7 +180,7 @@ func newConfigFileMockedCache(t *testing.T) (*gomock.Controller, *mock.MockStore
 	control := gomock.NewController(t)
 	mockedStorage := mock.NewMockStore(control)
 	fileCache := newFileCache(context.Background(), mockedStorage)
-
+	fileCache.initialize(map[string]interface{}{})
 	return control, mockedStorage, fileCache
 }
 

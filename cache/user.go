@@ -43,39 +43,19 @@ const (
 // UserCache User information cache
 type UserCache interface {
 	Cache
-
 	// GetAdmin 获取管理员信息
 	GetAdmin() *model.User
-
 	// GetUserByID
-	//  @param id
-	//  @return *model.User
 	GetUserByID(id string) *model.User
-
 	// GetUserByName
-	//  @param name
-	//  @return *model.User
 	GetUserByName(name, ownerName string) *model.User
-
 	// GetUserGroup
-	//  @param id
-	//  @return *model.UserGroupDetail
 	GetGroup(id string) *model.UserGroupDetail
-
 	// IsUserInGroup 判断 userid 是否在对应的 group 中
-	//  @param userId
-	//  @param groupId
-	//  @return bool
 	IsUserInGroup(userId, groupId string) bool
-
 	// IsOwner
-	//  @param id
-	//  @return bool
 	IsOwner(id string) bool
-
 	// GetUserLinkGroupIds
-	//  @param id
-	//  @return []string
 	GetUserLinkGroupIds(id string) []string
 }
 
@@ -95,11 +75,15 @@ type userCache struct {
 
 	storage store.Store
 
-	adminUser   atomic.Value
-	users       *userBucket       // userid -> user
-	name2Users  *usernameBucket   // username -> user
-	groups      *groupBucket      // groupid -> group
-	user2Groups *userGroupsBucket // userid -> groups
+	adminUser atomic.Value
+	// userid -> user
+	users *userBucket
+	// username -> user
+	name2Users *usernameBucket
+	// groupid -> group
+	groups *groupBucket
+	// userid -> groups
+	user2Groups *userGroupsBucket
 
 	lastUserMtime  int64
 	lastGroupMtime int64

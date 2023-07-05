@@ -251,8 +251,8 @@ func (svr *serverAuthAbility) queryServiceResource(
 		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
 	}
 
-	names := utils.NewStringSet()
-	svcSet := model.NewServiceSet()
+	names := utils.NewSet[string]()
+	svcSet := utils.NewMap[string, *model.Service]()
 
 	for index := range req {
 		svcName := req[index].GetName().GetValue()
@@ -260,7 +260,7 @@ func (svr *serverAuthAbility) queryServiceResource(
 		names.Add(svcNamespace)
 		svc := svr.Cache().Service().GetServiceByName(svcName, svcNamespace)
 		if svc != nil {
-			svcSet.Add(svc)
+			svcSet.Store(svc.ID, svc)
 		}
 	}
 
@@ -278,8 +278,8 @@ func (svr *serverAuthAbility) queryServiceAliasResource(
 		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
 	}
 
-	names := utils.NewStringSet()
-	svcSet := model.NewServiceSet()
+	names := utils.NewSet[string]()
+	svcSet := utils.NewMap[string, *model.Service]()
 
 	for index := range req {
 		aliasSvcName := req[index].GetAlias().GetValue()
@@ -290,7 +290,7 @@ func (svr *serverAuthAbility) queryServiceAliasResource(
 		if alias != nil {
 			svc := svr.Cache().Service().GetServiceByID(alias.Reference)
 			if svc != nil {
-				svcSet.Add(svc)
+				svcSet.Store(svc.ID, svc)
 			}
 		}
 	}
@@ -310,8 +310,8 @@ func (svr *serverAuthAbility) queryInstanceResource(
 		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
 	}
 
-	names := utils.NewStringSet()
-	svcSet := model.NewServiceSet()
+	names := utils.NewSet[string]()
+	svcSet := utils.NewMap[string, *model.Service]()
 
 	for index := range req {
 		svcName := req[index].GetService().GetValue()
@@ -320,7 +320,7 @@ func (svr *serverAuthAbility) queryInstanceResource(
 		if svcNamespace != "" && svcName != "" {
 			svc := svr.Cache().Service().GetServiceByName(svcName, svcNamespace)
 			if svc != nil {
-				svcSet.Add(svc)
+				svcSet.Store(svc.ID, svc)
 			} else {
 				names.Add(svcNamespace)
 			}
@@ -329,7 +329,7 @@ func (svr *serverAuthAbility) queryInstanceResource(
 			if ins != nil {
 				svc := svr.Cache().Service().GetServiceByID(ins.ServiceID)
 				if svc != nil {
-					svcSet.Add(svc)
+					svcSet.Store(svc.ID, svc)
 				} else {
 					names.Add(svcNamespace)
 				}
@@ -351,15 +351,15 @@ func (svr *serverAuthAbility) queryCircuitBreakerResource(
 		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
 	}
 
-	names := utils.NewStringSet()
-	svcSet := model.NewServiceSet()
+	names := utils.NewSet[string]()
+	svcSet := utils.NewMap[string, *model.Service]()
 
 	for index := range req {
 		svcName := req[index].GetService().GetValue()
 		svcNamespace := req[index].GetNamespace().GetValue()
 		svc := svr.Cache().Service().GetServiceByName(svcName, svcNamespace)
 		if svc != nil {
-			svcSet.Add(svc)
+			svcSet.Store(svc.ID, svc)
 		}
 	}
 	ret := svr.convertToDiscoverResourceEntryMaps(names, svcSet)
@@ -376,15 +376,15 @@ func (svr *serverAuthAbility) queryCircuitBreakerReleaseResource(
 		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
 	}
 
-	names := utils.NewStringSet()
-	svcSet := model.NewServiceSet()
+	names := utils.NewSet[string]()
+	svcSet := utils.NewMap[string, *model.Service]()
 
 	for index := range req {
 		svcName := req[index].GetService().GetName().GetValue()
 		svcNamespace := req[index].GetService().GetNamespace().GetValue()
 		svc := svr.Cache().Service().GetServiceByName(svcName, svcNamespace)
 		if svc != nil {
-			svcSet.Add(svc)
+			svcSet.Store(svc.ID, svc)
 		}
 	}
 
@@ -402,15 +402,15 @@ func (svr *serverAuthAbility) queryRouteRuleResource(
 		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
 	}
 
-	names := utils.NewStringSet()
-	svcSet := model.NewServiceSet()
+	names := utils.NewSet[string]()
+	svcSet := utils.NewMap[string, *model.Service]()
 
 	for index := range req {
 		svcName := req[index].GetService().GetValue()
 		svcNamespace := req[index].GetNamespace().GetValue()
 		svc := svr.Cache().Service().GetServiceByName(svcName, svcNamespace)
 		if svc != nil {
-			svcSet.Add(svc)
+			svcSet.Store(svc.ID, svc)
 		}
 	}
 
@@ -428,15 +428,15 @@ func (svr *serverAuthAbility) queryRateLimitConfigResource(
 		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
 	}
 
-	names := utils.NewStringSet()
-	svcSet := model.NewServiceSet()
+	names := utils.NewSet[string]()
+	svcSet := utils.NewMap[string, *model.Service]()
 
 	for index := range req {
 		svcName := req[index].GetService().GetValue()
 		svcNamespace := req[index].GetNamespace().GetValue()
 		svc := svr.Cache().Service().GetServiceByName(svcName, svcNamespace)
 		if svc != nil {
-			svcSet.Add(svc)
+			svcSet.Store(svc.ID, svc)
 		}
 	}
 
@@ -448,8 +448,8 @@ func (svr *serverAuthAbility) queryRateLimitConfigResource(
 }
 
 // convertToDiscoverResourceEntryMaps 通用方法，进行转换为期望的、服务相关的 ResourceEntry
-func (svr *serverAuthAbility) convertToDiscoverResourceEntryMaps(nsSet utils.StringSet,
-	svcSet *model.ServiceSet) map[apisecurity.ResourceType][]model.ResourceEntry {
+func (svr *serverAuthAbility) convertToDiscoverResourceEntryMaps(nsSet *utils.Set[string],
+	svcSet *utils.Map[string, *model.Service]) map[apisecurity.ResourceType][]model.ResourceEntry {
 	var (
 		param = nsSet.ToSlice()
 		nsArr = svr.Cache().Namespace().GetNamespacesByName(param)
@@ -463,15 +463,13 @@ func (svr *serverAuthAbility) convertToDiscoverResourceEntryMaps(nsSet utils.Str
 		})
 	}
 
-	svcParam := svcSet.ToSlice()
-	svcRet := make([]model.ResourceEntry, 0, len(svcParam))
-	for index := range svcParam {
-		svc := svcParam[index]
+	svcRet := make([]model.ResourceEntry, 0, svcSet.Len())
+	svcSet.Range(func(key string, svc *model.Service) {
 		svcRet = append(svcRet, model.ResourceEntry{
 			ID:    svc.ID,
 			Owner: svc.Owner,
 		})
-	}
+	})
 
 	return map[apisecurity.ResourceType][]model.ResourceEntry{
 		apisecurity.ResourceType_Namespaces: nsRet,

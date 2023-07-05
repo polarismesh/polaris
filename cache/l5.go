@@ -19,10 +19,10 @@ package cache
 
 import (
 	"container/list"
-	"sync"
 
 	cl5common "github.com/polarismesh/polaris/common/cl5"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -62,10 +62,14 @@ type l5Cache struct {
 	lastSectionFlow  uint32
 	lastIPConfigFlow uint32
 
-	routeList    *sync.Map // <IP, <sidStr, setID> >
-	policyList   *sync.Map // <modID, Policy>
-	sectionList  *sync.Map // <modID, []*Section (list)>
-	ipConfigList *sync.Map // <IP, IPConfig>
+	// <IP, <sidStr, setID> >
+	routeList *utils.SyncMap[uint32, *utils.SyncMap[string, string]]
+	// <modID, Policy>
+	policyList *utils.SyncMap[uint32, *model.Policy]
+	// <modID, []*Section (list)>
+	sectionList *utils.SyncMap[uint32, *list.List]
+	// <IP, IPConfig>
+	ipConfigList *utils.SyncMap[uint32, *model.IPConfig]
 
 	// instances的信息
 	ic *instanceCache
@@ -86,10 +90,10 @@ func init() {
 
 // initialize 初始化函数
 func (lc *l5Cache) initialize(_ map[string]interface{}) error {
-	lc.routeList = new(sync.Map)
-	lc.policyList = new(sync.Map)
-	lc.sectionList = new(sync.Map)
-	lc.ipConfigList = new(sync.Map)
+	lc.routeList = utils.NewSyncMap[uint32, *utils.SyncMap[string, string]]()
+	lc.policyList = utils.NewSyncMap[uint32, *model.Policy]()
+	lc.sectionList = utils.NewSyncMap[uint32, *list.List]()
+	lc.ipConfigList = utils.NewSyncMap[uint32, *model.IPConfig]()
 	return nil
 }
 
@@ -111,10 +115,10 @@ func (lc *l5Cache) update() error {
 
 // clear 清理内部缓存数据
 func (lc *l5Cache) clear() error {
-	lc.routeList = new(sync.Map)
-	lc.policyList = new(sync.Map)
-	lc.sectionList = new(sync.Map)
-	lc.ipConfigList = new(sync.Map)
+	lc.routeList = utils.NewSyncMap[uint32, *utils.SyncMap[string, string]]()
+	lc.policyList = utils.NewSyncMap[uint32, *model.Policy]()
+	lc.sectionList = utils.NewSyncMap[uint32, *list.List]()
+	lc.ipConfigList = utils.NewSyncMap[uint32, *model.IPConfig]()
 	lc.lastRouteFlow = 0
 	lc.lastPolicyFlow = 0
 	lc.lastSectionFlow = 0
@@ -130,16 +134,15 @@ func (lc *l5Cache) name() string {
 // GetRouteByIP 根据Ip获取访问关系
 func (lc *l5Cache) GetRouteByIP(ip uint32) []*model.Route {
 	out := make([]*model.Route, 0, 10)
-	value, ok := lc.routeList.Load(ip)
+	entry, ok := lc.routeList.Load(ip)
 	if !ok {
 		// 该ip不存在访问关系，则返回一个空数组
 		return out
 	}
 
-	entry := value.(*sync.Map)
-	entry.Range(func(key, value interface{}) bool {
+	entry.Range(func(key string, value string) bool {
 		// sidStr -> setID
-		sid, err := cl5common.UnmarshalSid(key.(string))
+		sid, err := cl5common.UnmarshalSid(key)
 		if err != nil {
 			return true
 		}
@@ -148,7 +151,7 @@ func (lc *l5Cache) GetRouteByIP(ip uint32) []*model.Route {
 			IP:    ip,
 			ModID: sid.ModID,
 			CmdID: sid.CmdID,
-			SetID: value.(string),
+			SetID: value,
 		}
 		out = append(out, item)
 		return true
@@ -159,15 +162,14 @@ func (lc *l5Cache) GetRouteByIP(ip uint32) []*model.Route {
 
 // CheckRouteExisted 检查访问关系是否存在
 func (lc *l5Cache) CheckRouteExisted(ip uint32, modID uint32, cmdID uint32) bool {
-	value, ok := lc.routeList.Load(ip)
+	entry, ok := lc.routeList.Load(ip)
 	if !ok {
 		return false
 	}
 
-	entry := value.(*sync.Map)
 	found := false
-	entry.Range(func(key, value interface{}) bool {
-		sid, err := cl5common.UnmarshalSid(key.(string))
+	entry.Range(func(key string, value string) bool {
+		sid, err := cl5common.UnmarshalSid(key)
 		if err != nil {
 			// continue range
 			return true
@@ -191,17 +193,16 @@ func (lc *l5Cache) GetPolicy(modID uint32) *model.Policy {
 		return nil
 	}
 
-	return value.(*model.Policy)
+	return value
 }
 
 // GetSection 根据modID获取section信息
 func (lc *l5Cache) GetSection(modeID uint32) []*model.Section {
-	value, ok := lc.sectionList.Load(modeID)
+	obj, ok := lc.sectionList.Load(modeID)
 	if !ok {
 		return nil
 	}
 
-	obj := value.(*list.List)
 	out := make([]*model.Section, 0, obj.Len())
 	for e := obj.Front(); e != nil; e = e.Next() {
 		out = append(out, e.Value.(*model.Section))
@@ -217,7 +218,7 @@ func (lc *l5Cache) GetIPConfig(ip uint32) *model.IPConfig {
 		return nil
 	}
 
-	return value.(*model.IPConfig)
+	return value
 }
 
 // updateCL5Route 更新l5的route缓存数据
@@ -285,16 +286,16 @@ func (lc *l5Cache) setCL5Route(routes []*model.Route) error {
 				continue
 			}
 
-			value.(*sync.Map).Delete(sidStr)
+			value.Delete(sidStr)
 			continue
 		}
 
 		value, ok := lc.routeList.Load(item.IP)
 		if !ok {
-			value = new(sync.Map)
+			value = utils.NewSyncMap[string, string]()
 			lc.routeList.Store(item.IP, value)
 		}
-		value.(*sync.Map).Store(sidStr, item.SetID)
+		value.Store(sidStr, item.SetID)
 	}
 
 	if lc.lastRouteFlow < lastRouteFlow {
@@ -347,7 +348,7 @@ func (lc *l5Cache) setCL5Section(sections []*model.Section) error {
 		// 无论数据是否要删除，都执行删除老数据操作
 		var listObj *list.List
 		if value, ok := lc.sectionList.Load(item.ModID); ok {
-			listObj = value.(*list.List)
+			listObj = value
 		} else {
 			listObj = list.New()
 		}

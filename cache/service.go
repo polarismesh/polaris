@@ -27,6 +27,7 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -77,11 +78,15 @@ type ServiceCache interface {
 type serviceCache struct {
 	*baseCache
 
-	storage         store.Store
-	ids             *sync.Map // service_id -> service
-	names           *sync.Map // namespace -> [serviceName -> service]
-	cl5Sid2Name     *sync.Map // 兼容Cl5，sid -> name
-	cl5Names        *sync.Map // 兼容Cl5，name -> service
+	storage store.Store
+	// service_id -> service
+	ids *utils.SyncMap[string, *model.Service]
+	// namespace -> [serviceName -> service]
+	names *utils.SyncMap[string, *utils.SyncMap[string, *model.Service]]
+	// 兼容Cl5，sid -> name
+	cl5Sid2Name *utils.SyncMap[string, string]
+	// 兼容Cl5，name -> service
+	cl5Names        *utils.SyncMap[string, *model.Service]
 	alias           *serviceAliasBucket
 	serviceList     *serviceNamespaceBucket
 	revisionCh      chan *revisionNotify
@@ -90,10 +95,12 @@ type serviceCache struct {
 	singleFlight    *singleflight.Group
 	instCache       InstanceCache
 
-	plock               sync.RWMutex
-	pendingServices     *sync.Map // service-id -> struct{}{}
-	countLock           sync.Mutex
-	namespaceServiceCnt *sync.Map // namespace -> model.NamespaceServiceCount
+	plock sync.RWMutex
+	// service-id -> struct{}{}
+	pendingServices *utils.SyncMap[string, struct{}]
+	countLock       sync.Mutex
+	// namespace -> model.NamespaceServiceCount
+	namespaceServiceCnt *utils.SyncMap[string, *model.NamespaceServiceCount]
 
 	lastMtimeLogged int64
 
@@ -121,12 +128,12 @@ func newServiceCache(storage store.Store, ch chan *revisionNotify, instCache Ins
 // initialize 缓存对象初始化
 func (sc *serviceCache) initialize(opt map[string]interface{}) error {
 	sc.singleFlight = new(singleflight.Group)
-	sc.ids = new(sync.Map)
-	sc.names = new(sync.Map)
-	sc.cl5Sid2Name = new(sync.Map)
-	sc.cl5Names = new(sync.Map)
-	sc.pendingServices = new(sync.Map)
-	sc.namespaceServiceCnt = new(sync.Map)
+	sc.ids = utils.NewSyncMap[string, *model.Service]()
+	sc.names = utils.NewSyncMap[string, *utils.SyncMap[string, *model.Service]]()
+	sc.cl5Sid2Name = utils.NewSyncMap[string, string]()
+	sc.cl5Names = utils.NewSyncMap[string, *model.Service]()
+	sc.pendingServices = utils.NewSyncMap[string, struct{}]()
+	sc.namespaceServiceCnt = utils.NewSyncMap[string, *model.NamespaceServiceCount]()
 	if opt == nil {
 		return nil
 	}
@@ -196,12 +203,12 @@ func (sc *serviceCache) realUpdate() (map[string]time.Time, int64, error) {
 // clear 清理内部缓存数据
 func (sc *serviceCache) clear() error {
 	sc.baseCache.clear()
-	sc.ids = new(sync.Map)
-	sc.names = new(sync.Map)
-	sc.cl5Sid2Name = new(sync.Map)
-	sc.cl5Names = new(sync.Map)
-	sc.namespaceServiceCnt = new(sync.Map)
-	sc.pendingServices = new(sync.Map)
+	sc.ids = utils.NewSyncMap[string, *model.Service]()
+	sc.names = utils.NewSyncMap[string, *utils.SyncMap[string, *model.Service]]()
+	sc.cl5Sid2Name = utils.NewSyncMap[string, string]()
+	sc.cl5Names = utils.NewSyncMap[string, *model.Service]()
+	sc.pendingServices = utils.NewSyncMap[string, struct{}]()
+	sc.namespaceServiceCnt = utils.NewSyncMap[string, *model.NamespaceServiceCount]()
 	sc.alias = newServiceAliasBucket()
 	sc.serviceList = newServiceNamespaceBucket()
 	return nil
@@ -228,11 +235,10 @@ func (sc *serviceCache) GetServiceByID(id string) *model.Service {
 	if id == "" {
 		return nil
 	}
-	value, ok := sc.ids.Load(id)
+	svc, ok := sc.ids.Load(id)
 	if !ok {
 		return nil
 	}
-	svc := value.(*model.Service)
 	sc.fillServicePorts(svc)
 	return svc
 }
@@ -257,7 +263,7 @@ func (sc *serviceCache) GetOrLoadServiceByID(id string) *model.Service {
 			return nil
 		}
 	}
-	svc := value.(*model.Service)
+	svc := value
 	sc.fillServicePorts(svc)
 	return svc
 }
@@ -272,11 +278,11 @@ func (sc *serviceCache) GetServiceByName(name string, namespace string) *model.S
 	if !ok {
 		return nil
 	}
-	value, ok := spaces.(*sync.Map).Load(name)
+	value, ok := spaces.Load(name)
 	if !ok {
 		return nil
 	}
-	svc := value.(*model.Service)
+	svc := value
 	sc.fillServicePorts(svc)
 	return svc
 }
@@ -309,10 +315,9 @@ func (sc *serviceCache) IteratorServices(iterProc ServiceIterProc) error {
 		err  error
 	)
 
-	proc := func(k interface{}, v interface{}) bool {
-		svc := v.(*model.Service)
+	proc := func(k string, svc *model.Service) bool {
 		sc.fillServicePorts(svc)
-		cont, err = iterProc(k.(string), svc)
+		cont, err = iterProc(k, svc)
 		if err != nil {
 			return false
 		}
@@ -333,13 +338,13 @@ func (sc *serviceCache) GetNamespaceCntInfo(namespace string) model.NamespaceSer
 		}
 	}
 
-	return *val.(*model.NamespaceServiceCount)
+	return *val
 }
 
 // GetServicesCount 获取缓存中服务的个数
 func (sc *serviceCache) GetServicesCount() int {
 	count := 0
-	sc.ids.Range(func(key, value interface{}) bool {
+	sc.ids.Range(func(key string, value *model.Service) bool {
 		count++
 		return true
 	})
@@ -372,7 +377,7 @@ func (sc *serviceCache) GetServiceByCl5Name(cl5Name string) *model.Service {
 		return nil
 	}
 
-	return value.(*model.Service)
+	return value
 }
 
 // removeServices Delete the service data from the cache
@@ -389,7 +394,7 @@ func (sc *serviceCache) removeServices(service *model.Service) {
 	// Delete the index of servicename
 	spaceName := service.Namespace
 	if spaces, ok := sc.names.Load(spaceName); ok {
-		spaces.(*sync.Map).Delete(service.Name)
+		spaces.Delete(service.Name)
 	}
 
 	/******Compatible CL5******/
@@ -457,10 +462,10 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 
 		spaces, ok := sc.names.Load(spaceName)
 		if !ok {
-			spaces = new(sync.Map)
+			spaces = utils.NewSyncMap[string, *model.Service]()
 			sc.names.Store(spaceName, spaces)
 		}
-		spaces.(*sync.Map).Store(service.Name, service)
+		spaces.Store(service.Name, service)
 
 		/******兼容cl5******/
 		sc.updateCl5SidAndNames(service)
@@ -513,13 +518,12 @@ func (sc *serviceCache) appendServiceCountChangeNamespace(changeNs map[string]st
 	sc.plock.Lock()
 	defer sc.plock.Unlock()
 	waitDel := map[string]struct{}{}
-	sc.pendingServices.Range(func(key, _ any) bool {
-		svcId := key.(string)
+	sc.pendingServices.Range(func(svcId string, _ struct{}) bool {
 		svc, ok := sc.ids.Load(svcId)
 		if !ok {
 			return true
 		}
-		changeNs[svc.(*model.Service).Namespace] = struct{}{}
+		changeNs[svc.Namespace] = struct{}{}
 		waitDel[svcId] = struct{}{}
 		return true
 	})
@@ -540,9 +544,9 @@ func (sc *serviceCache) postProcessServiceAlias(aliases []*model.Service) {
 		}
 
 		if aliasExist {
-			sc.alias.addServiceAlias(alias, aliasFor.(*model.Service))
+			sc.alias.addServiceAlias(alias, aliasFor)
 		} else {
-			sc.alias.delServiceAlias(alias, aliasFor.(*model.Service))
+			sc.alias.delServiceAlias(alias, aliasFor)
 		}
 	}
 }
@@ -564,17 +568,15 @@ func (sc *serviceCache) postProcessUpdatedServices(affect map[string]struct{}) {
 			continue
 		}
 
-		newVal, _ := sc.namespaceServiceCnt.LoadOrStore(namespace, &model.NamespaceServiceCount{})
-		count := newVal.(*model.NamespaceServiceCount)
+		count, _ := sc.namespaceServiceCnt.LoadOrStore(namespace, &model.NamespaceServiceCount{})
 
 		// For count information under the Namespace involved in the change, it is necessary to re-come over.
 		count.ServiceCount = 0
 		count.InstanceCnt = &model.InstanceCount{}
 
-		value.(*sync.Map).Range(func(key, item interface{}) bool {
+		value.Range(func(key string, svc *model.Service) bool {
 			count.ServiceCount++
-			service := item.(*model.Service)
-			insCnt := sc.instCache.GetInstancesCountByServiceID(service.ID)
+			insCnt := sc.instCache.GetInstancesCountByServiceID(svc.ID)
 			count.InstanceCnt.TotalInstanceCount += insCnt.TotalInstanceCount
 			count.InstanceCnt.HealthyInstanceCount += insCnt.HealthyInstanceCount
 			return true

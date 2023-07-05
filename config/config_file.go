@@ -90,11 +90,8 @@ func (s *Server) createConfigFile(tx store.Tx, ctx context.Context,
 	if rsp := s.prepareCreateConfigFile(ctx, req); rsp.Code.Value != api.ExecuteSuccess {
 		return rsp
 	}
-
-	for i := range s.chains {
-		if errResp := s.chains[i].BeforeCreateFile(ctx, req); errResp != nil {
-			return errResp
-		}
+	if errResp := s.chains.BeforeCreateFile(ctx, req); errResp != nil {
+		return errResp
 	}
 
 	savaData := model.ToConfigFileStore(req)
@@ -152,10 +149,8 @@ func (s *Server) updateConfigFile(ctx context.Context, configFile *apiconfig.Con
 	group := configFile.Group.GetValue()
 	name := configFile.Name.GetValue()
 
-	for i := range s.chains {
-		if errResp := s.chains[i].BeforeUpdateFile(ctx, configFile); errResp != nil {
-			return errResp
-		}
+	if errResp := s.chains.BeforeUpdateFile(ctx, configFile); errResp != nil {
+		return errResp
 	}
 
 	updateData := model.ToConfigFileStore(configFile)
@@ -641,14 +636,7 @@ func (s *Server) enrichConfigFile(ctx context.Context, file *apiconfig.ConfigFil
 	}
 	file.Tags = tags
 
-	for i := range s.chains {
-		_file, err := s.chains[i].AfterGetFile(ctx, file)
-		if err != nil {
-			return nil, err
-		}
-		file = _file
-	}
-	return file, nil
+	return s.chains.AfterGetFile(ctx, file)
 }
 
 // getConfigFileDataKey 获取加密配置文件数据密钥

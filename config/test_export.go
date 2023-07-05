@@ -50,8 +50,8 @@ func TestCompareByMD5(clientConfigFile *apiconfig.ClientConfigFileInfo, cacheEnt
 
 // TestDecryptConfigFile 解密配置文件
 func (s *Server) TestDecryptConfigFile(ctx context.Context, configFile *apiconfig.ConfigFile) (err error) {
-	for i := range s.chains {
-		chain := s.chains[i]
+	for i := range s.chains.chains {
+		chain := s.chains.chains[i]
 		if val, ok := chain.(*CryptoConfigFileChain); ok {
 			if _, err := val.AfterGetFile(ctx, configFile); err != nil {
 				return err
@@ -64,8 +64,8 @@ func (s *Server) TestDecryptConfigFile(ctx context.Context, configFile *apiconfi
 // TestEncryptConfigFile 解密配置文件
 func (s *Server) TestEncryptConfigFile(ctx context.Context,
 	configFile *apiconfig.ConfigFile, algorithm string, dataKey string) error {
-	for i := range s.chains {
-		chain := s.chains[i]
+	for i := range s.chains.chains {
+		chain := s.chains.chains[i]
 		if val, ok := chain.(*CryptoConfigFileChain); ok {
 			return val.encryptConfigFile(ctx, configFile, algorithm, dataKey)
 		}

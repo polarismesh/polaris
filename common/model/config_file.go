@@ -175,7 +175,30 @@ func ToConfigFileAPI(file *ConfigFile) *config_manage.ConfigFile {
 	}
 }
 
-// transferConfigFileReleaseAPIModel2StoreModel
+// ToConfiogFileReleaseApi
+func ToConfiogFileReleaseApi(release *ConfigFileRelease) *config_manage.ConfigFileRelease {
+	if release == nil {
+		return nil
+	}
+
+	return &config_manage.ConfigFileRelease{
+		Id:         utils.NewUInt64Value(release.Id),
+		Name:       utils.NewStringValue(release.Name),
+		Namespace:  utils.NewStringValue(release.Namespace),
+		Group:      utils.NewStringValue(release.Group),
+		FileName:   utils.NewStringValue(release.FileName),
+		Content:    utils.NewStringValue(release.Content),
+		Comment:    utils.NewStringValue(release.Comment),
+		Md5:        utils.NewStringValue(release.Md5),
+		Version:    utils.NewUInt64Value(release.Version),
+		CreateBy:   utils.NewStringValue(release.CreateBy),
+		CreateTime: utils.NewStringValue(commontime.Time2String(release.CreateTime)),
+		ModifyBy:   utils.NewStringValue(release.ModifyBy),
+		ModifyTime: utils.NewStringValue(commontime.Time2String(release.ModifyTime)),
+	}
+}
+
+// ToConfigFileReleaseStore
 func ToConfigFileReleaseStore(release *config_manage.ConfigFileRelease) *ConfigFileRelease {
 	if release == nil {
 		return nil

@@ -19,7 +19,6 @@ package heartbeatmemory
 
 import (
 	"context"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -27,12 +26,13 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	commontime "github.com/polarismesh/polaris/common/time"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 )
 
 func TestMemoryHealthChecker_Query(t *testing.T) {
 	mhc := MemoryHealthChecker{
-		hbRecords: new(sync.Map),
+		hbRecords: utils.NewSyncMap[string, *HeartbeatRecord](),
 	}
 	id := "key1"
 	reportRequest := &plugin.ReportRequest{
@@ -58,9 +58,9 @@ func TestMemoryHealthChecker_Query(t *testing.T) {
 
 func TestMemoryHealthChecker_Check(t *testing.T) {
 	mhc := MemoryHealthChecker{
-		hbRecords: new(sync.Map),
+		hbRecords: utils.NewSyncMap[string, *HeartbeatRecord](),
 	}
-	test := HeartbeatRecord{
+	test := &HeartbeatRecord{
 		Server:     "127.0.0.1",
 		CurTimeSec: 1,
 	}
@@ -98,7 +98,7 @@ func TestMemoryHealthChecker_Check(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, qr.StayUnchanged)
 
-	test = HeartbeatRecord{
+	test = &HeartbeatRecord{
 		Server:     "127.0.0.1",
 		CurTimeSec: time.Now().Unix(),
 	}
@@ -123,7 +123,7 @@ func TestMemoryHealthChecker_Check(t *testing.T) {
 
 func TestReportAndCheck(t *testing.T) {
 	checker := MemoryHealthChecker{
-		hbRecords: new(sync.Map),
+		hbRecords: utils.NewSyncMap[string, *HeartbeatRecord](),
 	}
 	startTime := commontime.CurrentMillisecond() / 1000
 	instanceId := "testId"

@@ -46,21 +46,14 @@ const (
 // StrategyCache is a cache for strategy rules.
 type StrategyCache interface {
 	Cache
-
 	// GetStrategyDetailsByUID
-	//  @param uid
-	//  @return []*model.StrategyDetail
 	GetStrategyDetailsByUID(uid string) []*model.StrategyDetail
-
 	// GetStrategyDetailsByGroupID returns all strategy details of a group.
 	GetStrategyDetailsByGroupID(groupId string) []*model.StrategyDetail
-
 	// IsResourceLinkStrategy 该资源是否关联了鉴权策略
 	IsResourceLinkStrategy(resType apisecurity.ResourceType, resId string) bool
-
 	// IsResourceEditable 判断该资源是否可以操作
 	IsResourceEditable(principal model.Principal, resType apisecurity.ResourceType, resId string) bool
-
 	// ForceSyncStrategy2Cache 强制同步鉴权策略到cache (串行)
 	ForceSyncStrategy2Cache() error
 }
