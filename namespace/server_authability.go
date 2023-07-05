@@ -66,7 +66,7 @@ func (svr *serverAuthAbility) collectNamespaceAuthContext(ctx context.Context, r
 // queryNamespaceResource 根据所给的 namespace 信息，收集对应的 ResourceEntry 列表
 func (svr *serverAuthAbility) queryNamespaceResource(
 	req []*apimodel.Namespace) map[apisecurity.ResourceType][]model.ResourceEntry {
-	names := utils.NewStringSet()
+	names := utils.NewSet[string]()
 	for index := range req {
 		names.Add(req[index].Name.GetValue())
 	}

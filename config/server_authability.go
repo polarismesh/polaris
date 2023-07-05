@@ -143,7 +143,7 @@ func (s *serverAuthability) collectConfigFileTemplateAuthContext(ctx context.Con
 func (s *serverAuthability) queryConfigGroupResource(ctx context.Context,
 	req []*apiconfig.ConfigFileGroup) map[apisecurity.ResourceType][]model.ResourceEntry {
 
-	names := utils.NewStringSet()
+	names := utils.NewSet[string]()
 	namespace := req[0].GetNamespace().GetValue()
 	for index := range req {
 		names.Add(req[index].GetName().GetValue())
@@ -170,7 +170,7 @@ func (s *serverAuthability) queryConfigFileResource(ctx context.Context,
 		return nil
 	}
 	namespace := req[0].Namespace.GetValue()
-	groupNames := utils.NewStringSet()
+	groupNames := utils.NewSet[string]()
 
 	for _, apiConfigFile := range req {
 		groupNames.Add(apiConfigFile.Group.GetValue())
@@ -196,7 +196,7 @@ func (s *serverAuthability) queryConfigFileReleaseResource(ctx context.Context,
 		return nil
 	}
 	namespace := req[0].Namespace.GetValue()
-	groupNames := utils.NewStringSet()
+	groupNames := utils.NewSet[string]()
 
 	for _, apiConfigFile := range req {
 		groupNames.Add(apiConfigFile.Group.GetValue())
@@ -222,7 +222,7 @@ func (s *serverAuthability) queryConfigFileReleaseHistoryResource(ctx context.Co
 		return nil
 	}
 	namespace := req[0].Namespace.GetValue()
-	groupNames := utils.NewStringSet()
+	groupNames := utils.NewSet[string]()
 
 	for _, apiConfigFile := range req {
 		groupNames.Add(apiConfigFile.Group.GetValue())
