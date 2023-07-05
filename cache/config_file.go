@@ -28,6 +28,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
+	"github.com/polarismesh/polaris/common/hash"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -39,48 +40,6 @@ const (
 
 func init() {
 	RegisterCache(configFileCacheName, CacheConfigFile)
-}
-
-// FileCache file cache
-type FileCache interface {
-	Cache
-	// Get 通过ns,group,filename获取 Entry
-	Get(namespace, group, fileName string) (*Entry, bool)
-	// GetOrLoadIfAbsent
-	GetOrLoadIfAbsent(namespace, group, fileName string) (*Entry, error)
-	// Remove
-	Remove(namespace, group, fileName string)
-	// ReLoad
-	ReLoad(namespace, group, fileName string) (*Entry, error)
-	// GetOrLoadGroupByName
-	GetOrLoadGroupByName(namespace, group string) (*model.ConfigFileGroup, error)
-	// GetOrLoadGroupById
-	GetOrLoadGroupById(id uint64) (*model.ConfigFileGroup, error)
-	// CleanAll
-	CleanAll()
-}
-
-// FileCache 文件缓存，使用 loading cache 懒加载策略。同时写入时设置过期时间，定时清理过期的缓存。
-type fileCache struct {
-	storage store.Store
-	// fileId -> Entry
-	files *utils.SegmentMap[string, *Entry]
-	// loadCnt
-	loadCnt int32
-	// getCnt
-	getCnt int32
-	// removeCnt
-	removeCnt int32
-	// expireCnt
-	expireCnt int32
-	// configGroups
-	configGroups *configFileGroupBucket
-	// singleLoadGroup
-	singleLoadGroup singleflight.Group
-	// expireTimeAfterWrite
-	expireTimeAfterWrite int
-	// ctx
-	ctx context.Context
 }
 
 // Entry 缓存实体对象
@@ -127,6 +86,48 @@ func (e *Entry) Encrypted() bool {
 	return e.GetDataKey() != ""
 }
 
+// FileCache file cache
+type FileCache interface {
+	Cache
+	// Get 通过ns,group,filename获取 Entry
+	Get(namespace, group, fileName string) (*Entry, bool)
+	// GetOrLoadIfAbsent
+	GetOrLoadIfAbsent(namespace, group, fileName string) (*Entry, error)
+	// Remove
+	Remove(namespace, group, fileName string)
+	// ReLoad
+	ReLoad(namespace, group, fileName string) (*Entry, error)
+	// GetOrLoadGroupByName
+	GetOrLoadGroupByName(namespace, group string) (*model.ConfigFileGroup, error)
+	// GetOrLoadGroupById
+	GetOrLoadGroupById(id uint64) (*model.ConfigFileGroup, error)
+	// CleanAll
+	CleanAll()
+}
+
+// FileCache 文件缓存，使用 loading cache 懒加载策略。同时写入时设置过期时间，定时清理过期的缓存。
+type fileCache struct {
+	storage store.Store
+	// fileId -> Entry
+	files *utils.SegmentMap[string, *Entry]
+	// loadCnt
+	loadCnt int32
+	// getCnt
+	getCnt int32
+	// removeCnt
+	removeCnt int32
+	// expireCnt
+	expireCnt int32
+	// configGroups
+	configGroups *configFileGroupBucket
+	// singleLoadGroup
+	singleLoadGroup singleflight.Group
+	// expireTimeAfterWrite
+	expireTimeAfterWrite int
+	// ctx
+	ctx context.Context
+}
+
 // newFileCache 创建文件缓存
 func newFileCache(ctx context.Context, storage store.Store) FileCache {
 	cache := &fileCache{
@@ -144,6 +145,7 @@ func (fc *fileCache) initialize(opt map[string]interface{}) error {
 		fc.expireTimeAfterWrite = 3600
 	}
 
+	fc.files = utils.NewSegmentMap[string, *Entry](128, hash.Fnv32)
 	go fc.configGroups.runCleanExpire(fc.ctx, time.Minute, int64(fc.expireTimeAfterWrite))
 	go fc.startClearExpireEntryTask(fc.ctx)
 	go fc.startLogStatusTask(fc.ctx)
@@ -340,9 +342,7 @@ func (fc *fileCache) ReLoad(namespace, group, fileName string) (*Entry, error) {
 
 // CleanAll 清空缓存，仅用于集成测试
 func (fc *fileCache) CleanAll() {
-	fc.files.Range(func(key string, _ *Entry) {
-		fc.files.Del(key)
-	})
+	fc.files = utils.NewSegmentMap[string, *Entry](128, hash.Fnv32)
 }
 
 // 缓存过期时间，为了避免集中失效，加上随机数。[60 ~ 70] second 内随机失效
