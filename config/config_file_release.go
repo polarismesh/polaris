@@ -117,7 +117,8 @@ func (s *Server) PublishConfigFile(
 
 		s.RecordHistory(ctx, configFileReleaseRecordEntry(ctx, configFileRelease, createdFileRelease, model.OCreate))
 		s.recordReleaseHistory(ctx, createdFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess)
-		return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, model.ToConfiogFileReleaseApi(createdFileRelease))
+		return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess,
+			model.ToConfiogFileReleaseApi(createdFileRelease))
 	}
 
 	// 更新发布
@@ -143,7 +144,8 @@ func (s *Server) PublishConfigFile(
 
 	s.recordReleaseHistory(ctx, updatedFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess)
 	s.RecordHistory(ctx, configFileReleaseRecordEntry(ctx, configFileRelease, updatedFileRelease, model.OCreate))
-	return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, model.ToConfiogFileReleaseApi(updatedFileRelease))
+	return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess,
+		model.ToConfiogFileReleaseApi(updatedFileRelease))
 }
 
 // GetConfigFileRelease 获取配置文件发布内容

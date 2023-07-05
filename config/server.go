@@ -263,7 +263,9 @@ func (cc *ConfigChains) BeforeUpdateFile(ctx context.Context, file *apiconfig.Co
 }
 
 // AfterGetFileRelease
-func (cc *ConfigChains) AfterGetFileRelease(ctx context.Context, release *apiconfig.ConfigFileRelease) (*apiconfig.ConfigFileRelease, error) {
+func (cc *ConfigChains) AfterGetFileRelease(ctx context.Context,
+	release *apiconfig.ConfigFileRelease) (*apiconfig.ConfigFileRelease, error) {
+
 	for i := range cc.chains {
 		_release, err := cc.chains[i].AfterGetFileRelease(ctx, release)
 		if err != nil {

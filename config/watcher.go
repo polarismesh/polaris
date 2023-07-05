@@ -59,7 +59,7 @@ func NewWatchCenter() *watchCenter {
 		configFileWatchers: utils.NewSegmentMap[string, *utils.SegmentMap[string, *watchContext]](128, hash.Fnv32),
 	}
 
-	eventhub.Subscribe(eventhub.ConfigFilePublishTopic, utils.NewUUID(), wc, eventhub.WithQueueSize(QueueSize))
+	_ = eventhub.Subscribe(eventhub.ConfigFilePublishTopic, utils.NewUUID(), wc, eventhub.WithQueueSize(QueueSize))
 	return wc
 }
 
