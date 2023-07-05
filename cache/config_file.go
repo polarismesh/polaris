@@ -53,9 +53,16 @@ type Entry struct {
 	ExpireTime time.Time
 	// 标识是否是空缓存
 	Empty bool
+	//
+	initialize int32
+}
+
+func (e *Entry) isInitialize() bool {
+	return atomic.LoadInt32(&e.initialize) == 1
 }
 
 func (e *Entry) update(v *Entry) {
+	atomic.StoreInt32(&e.initialize, 1)
 	e.Content = v.Content
 	e.Md5 = v.Md5
 	e.Empty = v.Empty
@@ -253,18 +260,22 @@ func (fc *fileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 		// 默认创建一个空的 Entry，主要规避以下几个问题
 		// case 1: 存储层中没有该对象, 为了避免对象不存在时，一直击穿存储层
 		// case 2: 存储层出现负载问题，无法正常处理请求，一直击穿存储层
+		fmt.Println("start create " + fileId)
 		return &Entry{
 			ExpireTime: fc.getExpireTime(),
 			Empty:      true,
 		}
 	})
-	if !noExist {
+	if entry.isInitialize() {
 		return entry, nil
 	}
 
 	// 缓存未命中，则从存储层里加载数据
 	entry.locker.Lock()
 	defer entry.locker.Unlock()
+	if entry.isInitialize() {
+		return entry, nil
+	}
 
 	// 从数据库中加载数据
 	atomic.AddInt32(&fc.loadCnt, 1)
@@ -274,6 +285,10 @@ func (fc *fileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 		configLog.Error("[Config][Cache] load config file release and tags error.",
 			zap.String("namespace", namespace), zap.String("group", group), zap.String("fileName", fileName),
 			zap.Error(err))
+		entry.update(&Entry{
+			Empty:      true,
+			ExpireTime: fc.getExpireTime(),
+		})
 		return nil, err
 	}
 
@@ -281,6 +296,10 @@ func (fc *fileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 		configLog.Warn("[Config][Cache] load config file release not found.",
 			zap.String("namespace", namespace), zap.String("group", group), zap.String("fileName", fileName),
 			zap.Error(err))
+		entry.update(&Entry{
+			Empty:      true,
+			ExpireTime: fc.getExpireTime(),
+		})
 		return entry, nil
 	}
 
@@ -291,16 +310,15 @@ func (fc *fileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entr
 		Version:    file.Version,
 		Tags:       tags,
 		ExpireTime: fc.getExpireTime(),
+		Empty:      false,
 	}
 
 	// case 1: 缓存不存在，则直接存入缓存
 	// case 2: 缓存存在，幂等判断只能存入版本号更大的
-	if noExist || (entry.Empty || newEntry.Version > entry.Version) {
+	if noExist || entry.Empty || newEntry.Version > entry.Version {
 		entry.update(newEntry)
 		fc.files.Put(fileId, entry)
-		return entry, nil
 	}
-
 	return entry, nil
 }
 
