@@ -218,12 +218,7 @@ func newConfigChains(svr *Server, chains []ConfigFileChain) *ConfigChains {
 	for i := range chains {
 		chains[i].Init(svr)
 	}
-	return &ConfigChains{
-		chains: []ConfigFileChain{
-			&CryptoConfigFileChain{},
-			&ReleaseConfigFileChain{},
-		},
-	}
+	return &ConfigChains{chains: chains}
 }
 
 type ConfigChains struct {
