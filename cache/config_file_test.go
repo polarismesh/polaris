@@ -172,7 +172,7 @@ func newConfigFileMockedCache(t *testing.T) (*gomock.Controller, *mock.MockStore
 	control := gomock.NewController(t)
 	mockedStorage := mock.NewMockStore(control)
 	fileCache := newFileCache(context.Background(), mockedStorage)
-
+	fileCache.initialize(map[string]interface{}{})
 	return control, mockedStorage, fileCache
 }
 
