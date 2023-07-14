@@ -231,6 +231,11 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Serv
 	// 填充service数据
 	resp.Service = service2Api(aliasFor)
 	resp.Service.Revision.Value = revision
+	// 若为服务别名，则变更为服务别名信息
+	if s.serviceIsAlias(serviceName, namespaceName) {
+		resp.Service.Name.Value = serviceName
+		resp.Service.Namespace.Value = namespaceName
+	}
 	// 塞入源服务信息数据
 	resp.AliasFor = &apiservice.Service{
 		Namespace: utils.NewStringValue(aliasFor.Namespace),
@@ -491,6 +496,22 @@ func (s *Server) getServiceCache(name string, namespace string) *model.Service {
 		service.Meta = make(map[string]string)
 	}
 	return service
+}
+
+func (s *Server) serviceIsAlias(name string, namespace string) bool {
+	sc := s.caches.Service()
+	service := sc.GetServiceByName(name, namespace)
+	if service == nil {
+		return false
+	}
+	if service.IsAlias() {
+		service = sc.GetServiceByID(service.Reference)
+		if service == nil {
+			return false
+		}
+		return true
+	}
+	return false
 }
 
 func (s *Server) commonCheckDiscoverRequest(req *apiservice.Service, resp *apiservice.DiscoverResponse) bool {
