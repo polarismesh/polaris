@@ -1,4 +1,4 @@
-/**
+/*
  * Tencent is pleased to support the open source community by making Polaris available.
  *
  * Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
@@ -14,11 +14,8 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-
-package v1
-
-import (
-	commonlog "github.com/polarismesh/polaris/common/log"
-)
-
-var log = commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName)
+--
+-- Database: `polaris_server`
+--
+USE `polaris_server`;
+ALTER TABLE `config_file_release` ADD COLUMN `tags` varchar(2048) DEFAULT '' COMMENT '文件标签';

@@ -227,9 +227,11 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Serv
 		return api.NewDiscoverInstanceResponse(apimodel.Code_DataNoChange, req)
 	}
 
-	// revision不一致，重新获取数据
 	// 填充service数据
-	resp.Service = service2Api(aliasFor)
+	resp.Service = &apiservice.Service{
+		Name:      req.GetName(),
+		Namespace: req.GetNamespace(),
+	}
 	resp.Service.Revision.Value = revision
 	resp.Service.Name.Value = serviceName
 	resp.Service.Namespace.Value = namespaceName

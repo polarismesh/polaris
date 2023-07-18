@@ -28,8 +28,8 @@ import (
 var _ store.ConfigFileReleaseStore = (*configFileReleaseStore)(nil)
 
 type configFileReleaseStore struct {
-	db    *BaseDB
-	slave *BaseDB
+	master *BaseDB
+	slave  *BaseDB
 }
 
 // CreateConfigFileRelease 新建配置文件发布
@@ -44,7 +44,7 @@ func (cfr *configFileReleaseStore) CreateConfigFileRelease(tx store.Tx,
 			fileRelease.FileName, fileRelease.Content, fileRelease.Comment, fileRelease.Md5, fileRelease.Version,
 			fileRelease.CreateBy, fileRelease.ModifyBy)
 	} else {
-		_, err = cfr.db.Exec(s, fileRelease.Name, fileRelease.Namespace, fileRelease.Group, fileRelease.FileName,
+		_, err = cfr.master.Exec(s, fileRelease.Name, fileRelease.Namespace, fileRelease.Group, fileRelease.FileName,
 			fileRelease.Content, fileRelease.Comment, fileRelease.Md5, fileRelease.Version, fileRelease.CreateBy,
 			fileRelease.ModifyBy)
 	}
@@ -65,7 +65,7 @@ func (cfr *configFileReleaseStore) UpdateConfigFileRelease(tx store.Tx,
 			fileRelease.Md5, fileRelease.Version, fileRelease.ModifyBy, fileRelease.Namespace, fileRelease.Group,
 			fileRelease.FileName)
 	} else {
-		_, err = cfr.db.Exec(s, fileRelease.Name, fileRelease.Content, fileRelease.Comment, fileRelease.Md5,
+		_, err = cfr.master.Exec(s, fileRelease.Name, fileRelease.Content, fileRelease.Comment, fileRelease.Md5,
 			fileRelease.Version, fileRelease.ModifyBy, fileRelease.Namespace, fileRelease.Group, fileRelease.FileName)
 	}
 	if err != nil {
@@ -101,7 +101,7 @@ func (cfr *configFileReleaseStore) getConfigFileReleaseByFlag(tx store.Tx, names
 	if tx != nil {
 		rows, err = tx.GetDelegateTx().(*BaseTx).Query(querySql, namespace, group, fileName)
 	} else {
-		rows, err = cfr.db.Query(querySql, namespace, group, fileName)
+		rows, err = cfr.master.Query(querySql, namespace, group, fileName)
 	}
 	if err != nil {
 		return nil, err
@@ -124,7 +124,7 @@ func (cfr *configFileReleaseStore) DeleteConfigFileRelease(tx store.Tx, namespac
 	if tx != nil {
 		_, err = tx.GetDelegateTx().(*BaseTx).Exec(s, deleteBy, namespace, group, fileName)
 	} else {
-		_, err = cfr.db.Exec(s, deleteBy, namespace, group, fileName)
+		_, err = cfr.master.Exec(s, deleteBy, namespace, group, fileName)
 	}
 	if err != nil {
 		return store.Error(err)

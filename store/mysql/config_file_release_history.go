@@ -26,7 +26,8 @@ import (
 )
 
 type configFileReleaseHistoryStore struct {
-	db *BaseDB
+	master *BaseDB
+	slave  *BaseDB
 }
 
 // CreateConfigFileReleaseHistory 创建配置文件发布历史记录
@@ -44,7 +45,7 @@ func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(tx store
 			fileReleaseHistory.Type, fileReleaseHistory.Status, fileReleaseHistory.Format, fileReleaseHistory.Tags,
 			fileReleaseHistory.CreateBy, fileReleaseHistory.ModifyBy)
 	} else {
-		_, err = rh.db.Exec(s, fileReleaseHistory.Name, fileReleaseHistory.Namespace,
+		_, err = rh.master.Exec(s, fileReleaseHistory.Name, fileReleaseHistory.Namespace,
 			fileReleaseHistory.Group, fileReleaseHistory.FileName, fileReleaseHistory.Content,
 			fileReleaseHistory.Comment, fileReleaseHistory.Md5,
 			fileReleaseHistory.Type, fileReleaseHistory.Status, fileReleaseHistory.Format, fileReleaseHistory.Tags,
@@ -80,14 +81,14 @@ func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(namespa
 	queryParams = append(queryParams, "%"+fileName+"%")
 
 	var count uint32
-	err := rh.db.QueryRow(countSql, queryParams...).Scan(&count)
+	err := rh.master.QueryRow(countSql, queryParams...).Scan(&count)
 	if err != nil {
 		return 0, nil, err
 	}
 
 	queryParams = append(queryParams, offset)
 	queryParams = append(queryParams, limit)
-	rows, err := rh.db.Query(querySql, queryParams...)
+	rows, err := rh.master.Query(querySql, queryParams...)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -103,7 +104,7 @@ func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(namespa
 func (rh *configFileReleaseHistoryStore) GetLatestConfigFileReleaseHistory(namespace, group,
 	fileName string) (*model.ConfigFileReleaseHistory, error) {
 	s := rh.genSelectSql() + "where namespace = ? and `group` = ? and file_name = ? order by id desc limit 1"
-	rows, err := rh.db.Query(s, namespace, group, fileName)
+	rows, err := rh.master.Query(s, namespace, group, fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -118,6 +119,13 @@ func (rh *configFileReleaseHistoryStore) GetLatestConfigFileReleaseHistory(names
 	}
 
 	return fileReleaseHistories[0], nil
+}
+
+// CleanConfigFileReleaseHistory 清理配置发布历史
+func (rh *configFileReleaseHistoryStore) CleanConfigFileReleaseHistory(endTime time.Time, limit uint64) error {
+	delSql := "DELETE FROM config_file_release_history WHERE create_time < ? LIMIT ?"
+	_, err := rh.master.Exec(delSql, endTime, limit)
+	return err
 }
 
 func (rh *configFileReleaseHistoryStore) genSelectSql() string {

@@ -119,7 +119,9 @@ func Load(filePath string) (*Config, error) {
 		return nil, fmt.Errorf("read file %s error", filePath)
 	}
 
-	conf := &Config{}
+	conf := &Config{
+		Maintain: *admin.DefaultConfig(),
+	}
 	if err = parseYamlContent(string(buf), conf); err != nil {
 		fmt.Printf("[ERROR] %v\n", err)
 		return nil, err

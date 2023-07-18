@@ -186,9 +186,11 @@ func buildHashCode(version string, hashBuilder map[string]int, newApps *Applicat
 
 func parseStatus(instance *apiservice.Instance) string {
 	if instance.GetIsolate().GetValue() {
+		status, ok := instance.Metadata[InternalMetadataStatus]
+		if ok {
+			return status
+		}
 		return StatusOutOfService
-	} else if !instance.GetHealthy().GetValue() {
-		return StatusDown
 	}
 	return StatusUp
 }

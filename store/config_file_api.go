@@ -127,6 +127,9 @@ type ConfigFileReleaseHistoryStore interface {
 
 	// GetLatestConfigFileReleaseHistory 获取配置文件最后一次发布
 	GetLatestConfigFileReleaseHistory(namespace, group, fileName string) (*model.ConfigFileReleaseHistory, error)
+
+	// CleanConfigFileReleaseHistory 清理配置发布历史
+	CleanConfigFileReleaseHistory(endTime time.Time, limit uint64) error
 }
 
 type ConfigFileTagStore interface {

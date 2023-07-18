@@ -177,7 +177,6 @@ func (d *defaultAuthChecker) checkMaintainPermission(preCtx *model.AcquireContex
 //	step 3. 拉取token对应的操作者相关信息，注入到请求上下文中
 //	step 4. 进行权限检查
 func (d *defaultAuthChecker) checkPermission(authCtx *model.AcquireContext) (bool, error) {
-	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
 	if err := d.VerifyCredential(authCtx); err != nil {
 		return false, err
 	}
@@ -192,17 +191,18 @@ func (d *defaultAuthChecker) checkPermission(authCtx *model.AcquireContext) (boo
 		return false, model.ErrorTokenDisabled
 	}
 
+	log.Debug("[Auth][Checker] check permission args", utils.ZapRequestIDByCtx(authCtx.GetRequestContext()),
+		zap.String("method", authCtx.GetMethod()), zap.Any("resources", authCtx.GetAccessResources()))
+
 	ok, err := d.doCheckPermission(authCtx)
 	if ok {
 		return ok, nil
 	}
 
 	// 强制同步一次db中strategy数据到cache
-	err = d.cacheMgn.AuthStrategy().ForceSyncStrategy2Cache()
-	if err != nil {
-		log.Error("[Auth][Checker] check permission args", utils.ZapRequestID(reqId),
-			zap.String("method", authCtx.GetMethod()), zap.Any("resources", authCtx.GetAccessResources()))
-		log.Error("[Auth][Checker] force sync strategy to cache failed", utils.ZapRequestID(reqId), zap.Error(err))
+	if err = d.cacheMgn.AuthStrategy().ForceSync(); err != nil {
+		log.Error("[Auth][Checker] force sync strategy to cache failed",
+			utils.ZapRequestIDByCtx(authCtx.GetRequestContext()), zap.Error(err))
 		return false, err
 	}
 
@@ -232,7 +232,7 @@ func canDowngradeAnonymous(authCtx *model.AcquireContext, err error) bool {
 // step 1. 首先对 token 进行解析，获取相关的数据信息，注入到整个的 AcquireContext 中
 // step 2. 最后对 token 进行一些验证步骤的执行
 // step 3. 兜底措施：如果开启了鉴权的非严格模式，则根据错误的类型，判断是否转为匿名用户进行访问
-//   - 如果不是访问权限控制相关模块（用户、用户组、权限策略），不得转为匿名用户
+//   - 如果是访问权限控制相关模块（用户、用户组、权限策略），不得转为匿名用户
 func (d *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContext) error {
 	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
 
@@ -371,129 +371,6 @@ func (d *defaultAuthChecker) checkToken(tokenInfo *OperatorInfo) (string, bool, 
 	tokenInfo.Disable = !group.TokenEnable
 	return group.Owner, false, nil
 }
-
-// // findStrategies Inquire about TOKEN information, the actual all-associated authentication strategy
-// func (d *defaultAuthChecker) findStrategies(tokenInfo OperatorInfo) ([]*model.StrategyDetail, error) {
-// 	if IsEmptyOperator(tokenInfo) {
-// 		return make([]*model.StrategyDetail, 0), nil
-// 	}
-
-// 	var strategies []*model.StrategyDetail
-// 	if tokenInfo.IsUserToken {
-// 		user := d.cacheMgn.User().GetUserByID(tokenInfo.OperatorID)
-// 		if user == nil {
-// 			return nil, model.ErrorNoUser
-// 		}
-
-// 		strategies = d.findStrategiesByUserID(tokenInfo.OperatorID)
-// 	} else {
-// 		group := d.cacheMgn.User().GetGroup(tokenInfo.OperatorID)
-// 		if group == nil {
-// 			return nil, model.ErrorNoUserGroup
-// 		}
-
-// 		strategies = d.findStrategiesByGroupID(tokenInfo.OperatorID)
-// 	}
-
-// 	return strategies, nil
-// }
-
-// // findStrategiesByUserID 根据 user-id 查找相关联的鉴权策略（用户自己的 + 用户所在用户组的）
-// func (d *defaultAuthChecker) findStrategiesByUserID(userId string) []*model.StrategyDetail {
-// 	// Step 1, first pull all the strategy information involved in this user.
-// 	rules := d.cacheMgn.AuthStrategy().GetStrategyDetailsByUID(userId)
-
-// 	// Step 2, pull the Group information to which this user belongs
-// 	groupIds := d.cacheMgn.User().GetUserLinkGroupIds(userId)
-// 	for i := range groupIds {
-// 		ret := d.findStrategiesByGroupID(groupIds[i])
-// 		rules = append(rules, ret...)
-// 	}
-
-// 	// Take the strategy that pulls down
-// 	temp := make(map[string]*model.StrategyDetail, len(rules))
-// 	for i := range rules {
-// 		rule := rules[i]
-// 		temp[rule.ID] = rule
-// 	}
-
-// 	ret := make([]*model.StrategyDetail, 0, len(temp))
-// 	for _, val := range temp {
-// 		ret = append(ret, val)
-// 	}
-
-// 	return ret
-// }
-
-// // findStrategiesByGroupID 根据 group-id 查找相关联的鉴权策略
-// func (d *defaultAuthChecker) findStrategiesByGroupID(id string) []*model.StrategyDetail {
-// 	return d.cacheMgn.AuthStrategy().GetStrategyDetailsByGroupID(id)
-// }
-
-// // removeNoStrategyResources 移除没有关联任何鉴权策略的资源
-// func (d *defaultAuthChecker) removeNoStrategyResources(authCtx *model.AcquireContext) bool {
-// 	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
-// 	resources := authCtx.GetAccessResources()
-// 	cacheMgn := d.Cache()
-// 	newAccessRes := make(map[apisecurity.ResourceType][]model.ResourceEntry, 0)
-// 	checkIsFree := func(resType apisecurity.ResourceType, entry model.ResourceEntry) bool {
-// 		// if entry.Owner == "" ||
-// 		// 	strings.Compare(strings.ToLower(entry.Owner), strings.ToLower("polaris")) == 0 {
-// 		// 	return true
-// 		// }
-// 		return !cacheMgn.AuthStrategy().IsResourceLinkStrategy(resType, entry.ID)
-// 	}
-
-// 	// 检查命名空间
-// 	nsRes := resources[apisecurity.ResourceType_Namespaces]
-// 	newNsRes := make([]model.ResourceEntry, 0)
-// 	for index := range nsRes {
-// 		if checkIsFree(apisecurity.ResourceType_Namespaces, nsRes[index]) {
-// 			continue
-// 		}
-// 		newNsRes = append(newNsRes, nsRes[index])
-// 	}
-
-// 	newAccessRes[apisecurity.ResourceType_Namespaces] = newNsRes
-// 	if authCtx.GetModule() == model.DiscoverModule {
-// 		// 检查服务
-// 		svcRes := resources[apisecurity.ResourceType_Services]
-// 		newSvcRes := make([]model.ResourceEntry, 0)
-// 		for index := range svcRes {
-// 			if checkIsFree(apisecurity.ResourceType_Services, svcRes[index]) {
-// 				continue
-// 			}
-
-// 			newSvcRes = append(newSvcRes, svcRes[index])
-// 		}
-// 		newAccessRes[apisecurity.ResourceType_Services] = newSvcRes
-// 	}
-
-// 	if authCtx.GetModule() == model.ConfigModule {
-// 		// 检查配置
-// 		cfgRes := resources[apisecurity.ResourceType_ConfigGroups]
-// 		newCfgRes := make([]model.ResourceEntry, 0)
-// 		for index := range cfgRes {
-// 			if checkIsFree(apisecurity.ResourceType_ConfigGroups, cfgRes[index]) {
-// 				continue
-// 			}
-// 			newCfgRes = append(newCfgRes, cfgRes[index])
-// 		}
-// 		newAccessRes[apisecurity.ResourceType_ConfigGroups] = newCfgRes
-// 	}
-
-// 	log.Info("[Auth][Checker] remove no link strategy final result", utils.ZapRequestID(reqId),
-// 		zap.Any("resource", newAccessRes))
-
-// 	authCtx.SetAccessResources(newAccessRes)
-// 	noResourceNeedCheck := authCtx.IsAccessResourceEmpty()
-// 	if noResourceNeedCheck {
-// 		log.Debug("[Auth][Checker]", utils.ZapRequestID(reqId),
-// 			zap.String("msg", "need check permission resource is empty"))
-// 	}
-
-// 	return noResourceNeedCheck
-// }
 
 func (d *defaultAuthChecker) isResourceEditable(
 	principal model.Principal,

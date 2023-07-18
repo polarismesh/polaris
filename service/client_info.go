@@ -60,7 +60,12 @@ func (s *Server) checkAndStoreClient(ctx context.Context, req *apiservice.Client
 		}
 	}
 
-	return s.HealthServer().ReportByClient(context.Background(), req)
+	resp = s.HealthServer().ReportByClient(context.Background(), req)
+	respCode := apimodel.Code(resp.GetCode().GetValue())
+	if respCode == apimodel.Code_HealthCheckNotOpen || respCode == apimodel.Code_HeartbeatTypeNotFound {
+		return api.NewResponse(apimodel.Code_ExecuteSuccess)
+	}
+	return resp
 }
 
 func (s *Server) createClient(ctx context.Context, req *apiservice.Client) (*model.Client, *apiservice.Response) {

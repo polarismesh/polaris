@@ -173,6 +173,28 @@ func (rh *configFileReleaseHistoryStore) GetLatestConfigFileReleaseHistory(names
 	return histories[0], nil
 }
 
+func (rh *configFileReleaseHistoryStore) CleanConfigFileReleaseHistory(endTime time.Time, limit uint64) error {
+
+	fields := []string{FileHistoryFieldCreateTime, FileHistoryFieldId}
+	needDel := make([]string, 0, limit)
+
+	_, err := rh.handler.LoadValuesByFilter(tblConfigFileReleaseHistory, fields,
+		&model.ConfigFileReleaseHistory{}, func(m map[string]interface{}) bool {
+			saveCreateBy, _ := m[FileHistoryFieldCreateTime].(time.Time)
+			saveId := m[FileHistoryFieldId].(uint64)
+
+			if endTime.After(saveCreateBy) {
+				needDel = append(needDel, strconv.FormatUint(saveId, 10))
+			}
+			return false
+		})
+	if err != nil {
+		return err
+	}
+
+	return rh.handler.DeleteValues(tblConfigFileReleaseHistory, needDel)
+}
+
 // doConfigFileGroupPage 进行分页
 func doConfigFileHistoryPage(ret map[string]interface{}, offset, limit uint32) []*model.ConfigFileReleaseHistory {
 	var (

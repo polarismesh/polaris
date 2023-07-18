@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package v2
+package xdsserverv3
 
 import (
 	"context"
@@ -31,31 +31,22 @@ import (
 	"github.com/polarismesh/polaris/service"
 )
 
-func New(opt ...options) *XDSServer {
-	registerXDSBuilder()
-	svr := &XDSServer{}
-	for i := range opt {
-		opt[i](svr)
-	}
-	return svr
-}
-
-// XDSServer is the xDS server
-type XDSServer struct {
+// XdsResourceGenerator is the xDS resource generator
+type XdsResourceGenerator struct {
 	namingServer service.DiscoverServer
 	cache        cachev3.SnapshotCache
 	versionNum   *atomic.Uint64
 	xdsNodesMgr  *resource.XDSNodeManager
 }
 
-func (x *XDSServer) Generate(versionLocal string,
+func (x *XdsResourceGenerator) Generate(versionLocal string,
 	registryInfo map[string]map[model.ServiceKey]*resource.ServiceInfo) {
 
 	_ = x.buildSidecarXDSCache(versionLocal, registryInfo)
 	_ = x.buildGatewayXDSCache(versionLocal, registryInfo)
 }
 
-func (x *XDSServer) buildSidecarXDSCache(versionLocal string,
+func (x *XdsResourceGenerator) buildSidecarXDSCache(versionLocal string,
 	registryInfo map[string]map[model.ServiceKey]*resource.ServiceInfo) error {
 
 	nodes := x.xdsNodesMgr.ListSidecarNodes()
@@ -97,7 +88,7 @@ func (x *XDSServer) buildSidecarXDSCache(versionLocal string,
 }
 
 // buildGatewayXDSCache 网关场景是允许跨命名空间直接进行访问
-func (x *XDSServer) buildGatewayXDSCache(versionLocal string,
+func (x *XdsResourceGenerator) buildGatewayXDSCache(versionLocal string,
 	registryInfo map[string]map[model.ServiceKey]*resource.ServiceInfo) error {
 
 	nodes := x.xdsNodesMgr.ListGatewayNodes()
@@ -131,7 +122,7 @@ func (x *XDSServer) buildGatewayXDSCache(versionLocal string,
 }
 
 // makeSidecarSnapshot nodeId must be like sideacr~namespace or namespace
-func (x *XDSServer) makeSidecarSnapshot(xdsNode *resource.XDSClient, tlsMode resource.TLSMode,
+func (x *XdsResourceGenerator) makeSidecarSnapshot(xdsNode *resource.XDSClient, tlsMode resource.TLSMode,
 	version string, services map[model.ServiceKey]*resource.ServiceInfo) error {
 
 	// 构建所有 XDS 的 INBOUND Snapshot Resource
@@ -193,7 +184,7 @@ func (x *XDSServer) makeSidecarSnapshot(xdsNode *resource.XDSClient, tlsMode res
 }
 
 // makeGatewaySnapshot nodeId must be like gateway~namespace
-func (x *XDSServer) makeGatewaySnapshot(xdsNode *resource.XDSClient, tlsMode resource.TLSMode,
+func (x *XdsResourceGenerator) makeGatewaySnapshot(xdsNode *resource.XDSClient, tlsMode resource.TLSMode,
 	version string, registryInfo map[string]map[model.ServiceKey]*resource.ServiceInfo) error {
 
 	nodeId := xdsNode.Node.Id
@@ -262,7 +253,7 @@ func (x *XDSServer) makeGatewaySnapshot(xdsNode *resource.XDSClient, tlsMode res
 	return nil
 }
 
-func (x *XDSServer) generateXDSResource(xdsType resource.XDSType, xdsNode *resource.XDSClient,
+func (x *XdsResourceGenerator) generateXDSResource(xdsType resource.XDSType, xdsNode *resource.XDSClient,
 	opt *resource.BuildOption) ([]types.Resource, error) {
 
 	// 构建 XDS 资源缓存数据

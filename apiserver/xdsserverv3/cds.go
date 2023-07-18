@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package v2
+package xdsserverv3
 
 import (
 	"fmt"

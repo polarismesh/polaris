@@ -27,7 +27,8 @@ import (
 )
 
 type configFileTagStore struct {
-	db *BaseDB
+	master *BaseDB
+	slave  *BaseDB
 }
 
 // CreateConfigFileTag 创建配置文件标签
@@ -41,7 +42,7 @@ func (t *configFileTagStore) CreateConfigFileTag(tx store.Tx, fileTag *model.Con
 		_, err = tx.GetDelegateTx().(*BaseTx).Exec(insertSql, fileTag.Key, fileTag.Value, fileTag.Namespace,
 			fileTag.Group, fileTag.FileName, fileTag.CreateBy, fileTag.ModifyBy)
 	} else {
-		_, err = t.db.Exec(insertSql, fileTag.Key, fileTag.Value, fileTag.Namespace,
+		_, err = t.master.Exec(insertSql, fileTag.Key, fileTag.Value, fileTag.Namespace,
 			fileTag.Group, fileTag.FileName, fileTag.CreateBy, fileTag.ModifyBy)
 	}
 	if err != nil {
@@ -68,7 +69,7 @@ func (t *configFileTagStore) QueryConfigFileByTag(namespace, group, fileName str
 	for _, tag := range tags {
 		params = append(params, tag)
 	}
-	rows, err := t.db.Query(querySql, params...)
+	rows, err := t.master.Query(querySql, params...)
 	if err != nil {
 		return nil, store.Error(err)
 	}
@@ -83,7 +84,7 @@ func (t *configFileTagStore) QueryConfigFileByTag(namespace, group, fileName str
 // QueryTagByConfigFile 查询配置文件标签
 func (t *configFileTagStore) QueryTagByConfigFile(namespace, group, fileName string) ([]*model.ConfigFileTag, error) {
 	querySql := t.baseSelectSql() + " where namespace = ? and `group` = ? and file_name = ?"
-	rows, err := t.db.Query(querySql, namespace, group, fileName)
+	rows, err := t.master.Query(querySql, namespace, group, fileName)
 	if err != nil {
 		return nil, store.Error(err)
 	}
@@ -103,7 +104,7 @@ func (t *configFileTagStore) DeleteConfigFileTag(tx store.Tx, namespace, group, 
 	if tx != nil {
 		_, err = tx.GetDelegateTx().(*BaseTx).Exec(deleteSql, key, value, namespace, group, fileName)
 	} else {
-		_, err = t.db.Exec(deleteSql, key, value, namespace, group, fileName)
+		_, err = t.master.Exec(deleteSql, key, value, namespace, group, fileName)
 	}
 	if err != nil {
 		return store.Error(err)
@@ -118,7 +119,7 @@ func (t *configFileTagStore) DeleteTagByConfigFile(tx store.Tx, namespace, group
 	if tx != nil {
 		_, err = tx.GetDelegateTx().(*BaseTx).Exec(deleteSql, namespace, group, fileName)
 	} else {
-		_, err = t.db.Exec(deleteSql, namespace, group, fileName)
+		_, err = t.master.Exec(deleteSql, namespace, group, fileName)
 	}
 	if err != nil {
 		return store.Error(err)

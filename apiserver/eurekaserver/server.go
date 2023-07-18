@@ -65,6 +65,9 @@ const (
 	MetadataSecurePortEnabled   = "internal-eureka-secure-port-enabled"
 	MetadataReplicate           = "internal-eureka-replicate"
 	MetadataInstanceId          = "internal-eureka-instance-id"
+	
+	InternalMetadataStatus = "internal-eureka-status"
+	InternalMetadataOverriddenStatus = "internal-eureka-overriddenStatus"
 
 	ServerEureka = "eureka"
 
@@ -125,6 +128,7 @@ var (
 type EurekaServer struct {
 	server                 *http.Server
 	namingServer           service.DiscoverServer
+	originDiscoverSvr      service.DiscoverServer
 	healthCheckServer      *healthcheck.Server
 	connLimitConfig        *connlimit.Config
 	tlsInfo                *secure.TLSInfo
@@ -317,6 +321,12 @@ func (h *EurekaServer) Run(errCh chan error) {
 	var err error
 	// 引入功能模块和插件
 	h.namingServer, err = service.GetServer()
+	if err != nil {
+		eurekalog.Errorf("%v", err)
+		errCh <- err
+		return
+	}
+	h.originDiscoverSvr, err = service.GetOriginServer()
 	if err != nil {
 		eurekalog.Errorf("%v", err)
 		errCh <- err

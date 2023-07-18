@@ -620,15 +620,14 @@ func MakeDefaultFilterChain() *listenerv3.FilterChain {
 
 func MakeSidecarBoundHCM(svcKey model.ServiceKey,
 	trafficDirection corev3.TrafficDirection) *hcm.HttpConnectionManager {
-
-	hcmFilters := []*hcm.HttpFilter{
-		{
-			Name: wellknown.Router,
-			ConfigType: &hcm.HttpFilter_TypedConfig{
-				TypedConfig: MustNewAny(&routerv3.Router{}),
-			},
+	routerFilter := &hcm.HttpFilter{
+		Name: wellknown.Router,
+		ConfigType: &hcm.HttpFilter_TypedConfig{
+			TypedConfig: MustNewAny(&routerv3.Router{}),
 		},
 	}
+
+	hcmFilters := []*hcm.HttpFilter{routerFilter}
 	if trafficDirection == corev3.TrafficDirection_INBOUND {
 		hcmFilters = append([]*hcm.HttpFilter{
 			{

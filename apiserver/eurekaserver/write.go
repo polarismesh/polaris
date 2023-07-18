@@ -195,6 +195,9 @@ func convertEurekaInstance(
 	targetInstance.Metadata[MetadataInsecurePortEnabled] = strconv.FormatBool(insecureEnable)
 	targetInstance.Metadata[MetadataSecurePort] = strconv.Itoa(securePort)
 	targetInstance.Metadata[MetadataSecurePortEnabled] = strconv.FormatBool(secureEnable)
+	// 保存客户端注册时设置的 status 信息，该信息不会随着心跳的变化而调整
+	targetInstance.Metadata[InternalMetadataStatus] = instance.Status
+	targetInstance.Metadata[InternalMetadataOverriddenStatus] = instance.OverriddenStatus
 	return targetInstance
 }
 
@@ -244,18 +247,29 @@ func (h *EurekaServer) deregisterInstance(
 
 func (h *EurekaServer) updateStatus(
 	ctx context.Context, namespace string, appId string, instanceId string, status string, replicated bool) uint32 {
-	var isolated = false
-	if status != StatusUp {
-		isolated = true
-	}
 	ctx = context.WithValue(
 		ctx, model.CtxEventKeyMetadata, map[string]string{
 			MetadataReplicate:  strconv.FormatBool(replicated),
 			MetadataInstanceId: instanceId,
 		})
 	instanceId = checkOrBuildNewInstanceIdByNamespace(namespace, h.namespace, appId, instanceId, h.generateUniqueInstId)
-	resp := h.namingServer.UpdateInstance(ctx, &apiservice.Instance{
-		Id: &wrappers.StringValue{Value: instanceId}, Isolate: &wrappers.BoolValue{Value: isolated}})
+
+	saveIns, err := h.originDiscoverSvr.Cache().GetStore().GetInstance(instanceId)
+	if err != nil {
+		return uint32(apimodel.Code_StoreLayerException)
+	}
+
+	metadata := saveIns.Metadata()
+	metadata[InternalMetadataStatus] = status
+	isolated := status != StatusUp
+
+	updateIns := &apiservice.Instance{
+		Id:       &wrappers.StringValue{Value: instanceId},
+		Isolate:  &wrappers.BoolValue{Value: isolated},
+		Metadata: metadata,
+	}
+
+	resp := h.namingServer.UpdateInstance(ctx, updateIns)
 	return resp.GetCode().GetValue()
 }
 
@@ -274,7 +288,6 @@ func (h *EurekaServer) renew(ctx context.Context, namespace string, appId string
 	if code == api.HeartbeatOnDisabledIns {
 		return api.ExecuteSuccess
 	}
-
 	return code
 }
 

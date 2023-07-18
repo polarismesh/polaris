@@ -41,8 +41,6 @@ import (
 
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
-	v1 "github.com/polarismesh/polaris/apiserver/xdsserverv3/v1"
-	v2 "github.com/polarismesh/polaris/apiserver/xdsserverv3/v2"
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	connlimit "github.com/polarismesh/polaris/common/conn/limit"
@@ -71,18 +69,9 @@ type XDSServer struct {
 	server          *grpc.Server
 	connLimitConfig *connlimit.Config
 
-	// compatible 兼容性开关，预计将在 1.20.0 版本默认值为 false, 该开关主要控制是否需要兼容存量 polaris 注入的 envoy
-	// 当 compatible == true 时:
-	// - 旧版本的 polaris envoy 注入: apiserver-xds 插件将会按照命名空间的粒度下发该命名空间下的所有服务实例以及治理规则到 envoy sidecar 中,
-	//   但是只会涉及 OUTBOUND 相关规则, 并且 snapshot cache 的 key 是 namespace 粒度，即多个 envoy sidecar 共享一份
-	// 	 XDS Resource 数据
-	// - 新版本的 polaris envoy 注入: apiserver-xds 插件将会按照命名空间的粒度下发该命名空间下的所有服务实例以及治理规则到 envoy sidecar 中,
-	//   会涉及 INBOUND OUTBOUND 相关规则, 并且 snapshot cache 的 key 是 namespace + service 粒度，即相同服务下的 envoy sidecar 共享一份
-	compatible bool
-
-	nodeMgr      *resource.XDSNodeManager
-	registryInfo map[string]map[model.ServiceKey]*resource.ServiceInfo
-	resourceSvrs []ResourceServer
+	nodeMgr           *resource.XDSNodeManager
+	registryInfo      map[string]map[model.ServiceKey]*resource.ServiceInfo
+	resourceGenerator *XdsResourceGenerator
 
 	active       *atomic.Bool
 	finishCtx    context.Context
@@ -102,10 +91,6 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 	x.active = atomic.NewBool(false)
 	x.versionNum = atomic.NewUint64(0)
 	x.ctx = ctx
-	x.compatible = true
-	if val, ok := option["compatible"]; ok {
-		x.compatible, _ = val.(bool)
-	}
 
 	var err error
 
@@ -122,20 +107,12 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 		}
 		x.connLimitConfig = connConfig
 	}
-	x.resourceSvrs = []ResourceServer{
-		v2.New(
-			v2.WithDiscoverServer(x.namingServer),
-			v2.WithSnapshot(x.cache),
-			v2.WithVersion(x.versionNum),
-			v2.WithXDSNodeMgr(x.nodeMgr)),
-	}
-	if x.compatible {
-		// 这里只是为了兼容老的逻辑
-		x.resourceSvrs = append(x.resourceSvrs, v1.New(
-			v1.WithDiscoverServer(x.namingServer),
-			v1.WithSnapshot(x.cache),
-			v1.WithVersion(x.versionNum),
-			v1.WithXDSNodeMgr(x.nodeMgr)))
+	registerXDSBuilder()
+	x.resourceGenerator = &XdsResourceGenerator{
+		namingServer: x.namingServer,
+		cache:        x.cache,
+		versionNum:   x.versionNum,
+		xdsNodesMgr:  x.nodeMgr,
 	}
 	return nil
 }
@@ -144,7 +121,7 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 func (x *XDSServer) Run(errCh chan error) {
 	// 启动 grpc server
 	ctx := context.Background()
-	cb := &Callbacks{log: commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName), nodeMgr: x.nodeMgr}
+	cb := resource.NewCallback(commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName), x.nodeMgr)
 	srv := serverv3.NewServer(ctx, x.cache, cb)
 	var grpcOptions []grpc.ServerOption
 	grpcOptions = append(grpcOptions, grpc.MaxConcurrentStreams(1000))
@@ -440,9 +417,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 
 func (x *XDSServer) Generate(needPush map[string]map[model.ServiceKey]*resource.ServiceInfo) {
 	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
-	for i := range x.resourceSvrs {
-		x.resourceSvrs[i].Generate(versionLocal, needPush)
-	}
+	x.resourceGenerator.Generate(versionLocal, needPush)
 }
 
 func (x *XDSServer) checkUpdate(curServiceInfo, cacheServiceInfo map[model.ServiceKey]*resource.ServiceInfo) bool {

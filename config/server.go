@@ -37,9 +37,8 @@ import (
 var _ ConfigCenterServer = (*Server)(nil)
 
 const (
-	eventTypePublishConfigFile  = "PublishConfigFile"
-	defaultExpireTimeAfterWrite = 60 * 60 // expire after 1 hour
-	fileContentMaxLength        = 20000   // 文件内容限制为 2w 个字符
+	// 文件内容限制为 2w 个字符
+	fileContentMaxLength = 20000
 )
 
 var (
@@ -49,9 +48,9 @@ var (
 
 // Config 配置中心模块启动参数
 type Config struct {
-	Open               bool          `yaml:"open"`
-	ContentMaxLength   int64         `yaml:""json:"contentMaxLength"`
-	LongPollingTimeout time.Duration `yaml:"longPollingTimeout"`
+	Open                 bool          `yaml:"open"`
+	ContentMaxLength     int64         `yaml:""json:"contentMaxLength"`
+	LongPollingTimeout   time.Duration `yaml:"longPollingTimeout"`
 }
 
 // Server 配置中心核心服务

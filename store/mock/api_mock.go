@@ -9,7 +9,6 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
-
 	model "github.com/polarismesh/polaris/common/model"
 	store "github.com/polarismesh/polaris/store"
 )
@@ -276,6 +275,20 @@ func (m *MockStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, revi
 func (mr *MockStoreMockRecorder) BatchSetInstanceIsolate(ids, isolate, revision interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchSetInstanceIsolate", reflect.TypeOf((*MockStore)(nil).BatchSetInstanceIsolate), ids, isolate, revision)
+}
+
+// CleanConfigFileReleaseHistory mocks base method.
+func (m *MockStore) CleanConfigFileReleaseHistory(endTime time.Time, limit uint64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CleanConfigFileReleaseHistory", endTime, limit)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CleanConfigFileReleaseHistory indicates an expected call of CleanConfigFileReleaseHistory.
+func (mr *MockStoreMockRecorder) CleanConfigFileReleaseHistory(endTime, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanConfigFileReleaseHistory", reflect.TypeOf((*MockStore)(nil).CleanConfigFileReleaseHistory), endTime, limit)
 }
 
 // CleanInstance mocks base method.

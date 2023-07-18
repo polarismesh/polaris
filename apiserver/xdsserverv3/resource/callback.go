@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package xdsserverv3
+package resource
 
 import (
 	"context"
@@ -23,14 +23,21 @@ import (
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/gogo/protobuf/jsonpb"
+	"google.golang.org/protobuf/proto"
 
-	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 	commonlog "github.com/polarismesh/polaris/common/log"
 )
 
+func NewCallback(log *commonlog.Scope, nodeMgr *XDSNodeManager) *Callbacks {
+	return &Callbacks{
+		log:     log,
+		nodeMgr: nodeMgr,
+	}
+}
+
 type Callbacks struct {
 	log     *commonlog.Scope
-	nodeMgr *resource.XDSNodeManager
+	nodeMgr *XDSNodeManager
 }
 
 func (cb *Callbacks) Report() {
@@ -65,11 +72,6 @@ func (cb *Callbacks) OnDeltaStreamClosed(id int64, node *corev3.Node) {
 }
 
 func (cb *Callbacks) OnStreamRequest(id int64, req *discovery.DiscoveryRequest) error {
-	if cb.log.DebugEnabled() {
-		marshaler := jsonpb.Marshaler{}
-		str, _ := marshaler.MarshalToString(req)
-		cb.log.Debugf("on stream %d type %s request %s ", id, req.TypeUrl, str)
-	}
 	cb.nodeMgr.AddNodeIfAbsent(id, req.GetNode())
 	return nil
 }
@@ -77,19 +79,16 @@ func (cb *Callbacks) OnStreamRequest(id int64, req *discovery.DiscoveryRequest) 
 func (cb *Callbacks) OnStreamResponse(_ context.Context, id int64, req *discovery.DiscoveryRequest,
 	resp *discovery.DiscoveryResponse) {
 	if cb.log.DebugEnabled() {
+		cloneReq := proto.Clone(req).(*discovery.DiscoveryRequest)
+		cloneReq.Node = nil
 		marshaler := jsonpb.Marshaler{}
-		reqstr, _ := marshaler.MarshalToString(req)
+		reqstr, _ := marshaler.MarshalToString(cloneReq)
 		respstr, _ := marshaler.MarshalToString(resp)
 		cb.log.Debugf("on stream %d type %s request %s response %s", id, req.TypeUrl, reqstr, respstr)
 	}
 }
 
 func (cb *Callbacks) OnStreamDeltaRequest(id int64, req *discovery.DeltaDiscoveryRequest) error {
-	if cb.log.DebugEnabled() {
-		marshaler := jsonpb.Marshaler{}
-		str, _ := marshaler.MarshalToString(req)
-		cb.log.Debugf("on stream %d delta type %s request %s", id, req.TypeUrl, str)
-	}
 	cb.nodeMgr.AddNodeIfAbsent(id, req.GetNode())
 	return nil
 }
@@ -97,26 +96,25 @@ func (cb *Callbacks) OnStreamDeltaRequest(id int64, req *discovery.DeltaDiscover
 func (cb *Callbacks) OnStreamDeltaResponse(id int64, req *discovery.DeltaDiscoveryRequest,
 	resp *discovery.DeltaDiscoveryResponse) {
 	if cb.log.DebugEnabled() {
+		cloneReq := proto.Clone(req).(*discovery.DeltaDiscoveryRequest)
+		cloneReq.Node = nil
 		marshaler := jsonpb.Marshaler{}
-		reqstr, _ := marshaler.MarshalToString(req)
+		reqstr, _ := marshaler.MarshalToString(cloneReq)
 		respstr, _ := marshaler.MarshalToString(resp)
 		cb.log.Debugf("on delta stream %d type %s request %s response %s", id, req.TypeUrl, reqstr, respstr)
 	}
 }
 
 func (cb *Callbacks) OnFetchRequest(_ context.Context, req *discovery.DiscoveryRequest) error {
-	if cb.log.DebugEnabled() {
-		marshaler := jsonpb.Marshaler{}
-		str, _ := marshaler.MarshalToString(req)
-		cb.log.Debugf("on fetch type %s request %s ", req.TypeUrl, str)
-	}
 	return nil
 }
 
 func (cb *Callbacks) OnFetchResponse(req *discovery.DiscoveryRequest, resp *discovery.DiscoveryResponse) {
 	if cb.log.DebugEnabled() {
+		cloneReq := proto.Clone(req).(*discovery.DiscoveryRequest)
+		cloneReq.Node = nil
 		marshaler := jsonpb.Marshaler{}
-		reqstr, _ := marshaler.MarshalToString(req)
+		reqstr, _ := marshaler.MarshalToString(cloneReq)
 		respstr, _ := marshaler.MarshalToString(resp)
 		cb.log.Debugf("on fetch type %s request %s response %s", req.TypeUrl, reqstr, respstr)
 	}
