@@ -231,6 +231,8 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Serv
 	// 填充service数据
 	resp.Service = service2Api(aliasFor)
 	resp.Service.Revision.Value = revision
+	resp.Service.Name.Value = serviceName
+	resp.Service.Namespace.Value = namespaceName
 	// 塞入源服务信息数据
 	resp.AliasFor = &apiservice.Service{
 		Namespace: utils.NewStringValue(aliasFor.Namespace),
