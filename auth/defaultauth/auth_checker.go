@@ -496,13 +496,9 @@ func (d *defaultAuthChecker) checkToken(tokenInfo *OperatorInfo) (string, bool, 
 // }
 
 func (d *defaultAuthChecker) isResourceEditable(
-	userid string,
+	principal model.Principal,
 	resourceType apisecurity.ResourceType,
 	resEntries []model.ResourceEntry) bool {
-	principal := model.Principal{
-		PrincipalID:   userid,
-		PrincipalRole: model.PrincipalUser,
-	}
 	for _, entry := range resEntries {
 		if !d.cacheMgn.AuthStrategy().IsResourceEditable(principal, resourceType, entry.ID) {
 			return false
@@ -514,8 +510,6 @@ func (d *defaultAuthChecker) isResourceEditable(
 // doCheckPermission 执行权限检查
 func (d *defaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext) (bool, error) {
 
-	userId := utils.ParseUserID(authCtx.GetRequestContext())
-
 	var checkNamespace, checkSvc, checkCfgGroup bool
 
 	reqRes := authCtx.GetAccessResources()
@@ -523,9 +517,15 @@ func (d *defaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext) (b
 	svcResEntries := reqRes[apisecurity.ResourceType_Services]
 	cfgResEntries := reqRes[apisecurity.ResourceType_ConfigGroups]
 
-	checkNamespace = d.isResourceEditable(userId, apisecurity.ResourceType_Namespaces, nsResEntries)
-	checkSvc = d.isResourceEditable(userId, apisecurity.ResourceType_Services, svcResEntries)
-	checkCfgGroup = d.isResourceEditable(userId, apisecurity.ResourceType_ConfigGroups, cfgResEntries)
+	principleID, _ := authCtx.GetAttachment(model.OperatorIDKey).(string)
+	principleType, _ := authCtx.GetAttachment(model.OperatorPrincipalType).(model.PrincipalType)
+	p := model.Principal{
+		PrincipalID:   principleID,
+		PrincipalRole: principleType,
+	}
+	checkNamespace = d.isResourceEditable(p, apisecurity.ResourceType_Namespaces, nsResEntries)
+	checkSvc = d.isResourceEditable(p, apisecurity.ResourceType_Services, svcResEntries)
+	checkCfgGroup = d.isResourceEditable(p, apisecurity.ResourceType_ConfigGroups, cfgResEntries)
 
 	checkAllResEntries := checkNamespace && checkSvc && checkCfgGroup
 
