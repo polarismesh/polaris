@@ -120,7 +120,8 @@ func Load(filePath string) (*Config, error) {
 	}
 
 	conf := &Config{
-		Maintain: *admin.DefaultConfig(),
+		Bootstrap: defaultBootstrap(),
+		Maintain:  *admin.DefaultConfig(),
 	}
 	if err = parseYamlContent(string(buf), conf); err != nil {
 		fmt.Printf("[ERROR] %v\n", err)

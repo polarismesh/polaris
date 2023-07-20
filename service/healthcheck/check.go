@@ -190,7 +190,7 @@ func (c *CheckScheduler) processAdoptEvents(
 	for id := range instances {
 		instanceIds = append(instanceIds, id)
 	}
-	log.Info("[Health Check][Check] adopt event", zap.Any("instances", instanceIds),
+	log.Debug("[Health Check][Check] adopt event", zap.Any("instances", instanceIds),
 		zap.String("server", server.localHost), zap.Bool("add", add))
 	return instances
 }

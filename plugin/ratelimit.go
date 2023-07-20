@@ -77,6 +77,5 @@ func GetRatelimit() Ratelimit {
 			os.Exit(-1)
 		}
 	})
-
 	return plugin.(Ratelimit)
 }

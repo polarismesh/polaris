@@ -65,8 +65,8 @@ const (
 	MetadataSecurePortEnabled   = "internal-eureka-secure-port-enabled"
 	MetadataReplicate           = "internal-eureka-replicate"
 	MetadataInstanceId          = "internal-eureka-instance-id"
-	
-	InternalMetadataStatus = "internal-eureka-status"
+
+	InternalMetadataStatus           = "internal-eureka-status"
 	InternalMetadataOverriddenStatus = "internal-eureka-overriddenStatus"
 
 	ServerEureka = "eureka"
