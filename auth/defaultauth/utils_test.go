@@ -127,7 +127,7 @@ func Test_checkName(t *testing.T) {
 		},
 		{
 			args: args{
-				name: utils.NewStringValue("测试鉴-权策略_1"),
+				name: utils.NewStringValue("测试鉴-权策略_1."),
 			},
 			wantErr: false,
 		},
