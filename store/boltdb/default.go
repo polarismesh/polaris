@@ -20,8 +20,8 @@ package boltdb
 import (
 	"time"
 
-	"github.com/boltdb/bolt"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"
@@ -84,7 +84,6 @@ type boltStore struct {
 	*configFileStore
 	*configFileReleaseStore
 	*configFileReleaseHistoryStore
-	*configFileTagStore
 	*configFileTemplateStore
 
 	// v2 存储
@@ -329,11 +328,6 @@ func (m *boltStore) newConfigModuleStore() error {
 	var err error
 
 	m.configFileStore, err = newConfigFileStore(m.handler)
-	if err != nil {
-		return err
-	}
-
-	m.configFileTagStore, err = newConfigFileTagStore(m.handler)
 	if err != nil {
 		return err
 	}

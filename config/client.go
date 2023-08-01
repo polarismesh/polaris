@@ -25,14 +25,15 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/rsa"
+	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
 type (
-	compareFunction func(clientConfigFile *apiconfig.ClientConfigFileInfo, cacheEntry *cache.Entry) bool
+	compareFunction func(clientInfo *apiconfig.ClientConfigFileInfo, file *model.ConfigFileRelease) bool
 )
 
 // GetConfigFileForClient 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
@@ -45,46 +46,32 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 	publicKey := client.GetPublicKey().GetValue()
 
 	if namespace == "" || group == "" || fileName == "" {
-		return api.NewConfigClientResponseWithMessage(
+		return api.NewConfigClientResponseWithInfo(
 			apimodel.Code_BadRequest, "namespace & group & fileName can not be empty")
 	}
 
-	log.Info("[Config][Service] load config file from cache.", utils.ZapRequestIDByCtx(ctx),
+	log.Info("[Config][Service] load config file from cache.", utils.RequestID(ctx),
 		utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName),
 		zap.String("publicKey", publicKey))
 
 	// 从缓存中获取配置内容
-	entry, err := s.fileCache.GetOrLoadIfAbsent(namespace, group, fileName)
-	if err != nil {
-		log.Error("[Config][Service] get or load config file from cache error.",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return api.NewConfigClientResponseWithMessage(
-			apimodel.Code_ExecuteException, "load config file error")
-	}
-
-	if entry.Empty {
+	release := s.fileCache.GetActiveRelease(namespace, group, fileName)
+	if release == nil {
 		return api.NewConfigClientResponse(apimodel.Code_NotFoundResource, nil)
 	}
 
 	// 客户端版本号大于服务端版本号，服务端需要重新加载缓存
-	if clientVersion > entry.Version {
-		entry, err = s.fileCache.ReLoad(namespace, group, fileName)
-		if err != nil {
-			log.Error("[Config][Service] reload config file error.", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-
-			return api.NewConfigClientResponseWithMessage(
-				apimodel.Code_ExecuteException, "load config file error")
-		}
+	if clientVersion > release.Version {
+		return api.NewConfigClientResponse(apimodel.Code_DataNoChange, nil)
 	}
-	configFile, err := transferEntry2APIModel(client, entry)
+	configFile, err := toClientInfo(client, release)
 	if err != nil {
-		log.Error("[Config][Service] transfer entry to api model error.", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return api.NewConfigClientResponseWithMessage(
-			apimodel.Code_ExecuteException, "transfer entry to api model error")
+		log.Error("[Config][Service] get config file to client info", utils.RequestID(ctx), zap.Error(err))
+		return api.NewConfigClientResponseWithInfo(apimodel.Code_ExecuteException, err.Error())
 	}
-	log.Info("[Config][Client] client get config file success.", utils.ZapRequestIDByCtx(ctx),
+	log.Info("[Config][Client] client get config file success.", utils.RequestID(ctx),
 		zap.String("client", utils.ParseClientAddress(ctx)), zap.String("file", fileName),
-		zap.Uint64("version", entry.Version))
+		zap.Uint64("version", release.Version))
 	return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, configFile)
 }
 
@@ -110,98 +97,138 @@ func (s *Server) PublishConfigFileFromClient(ctx context.Context,
 }
 
 func (s *Server) WatchConfigFiles(ctx context.Context,
-	request *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error) {
-	clientAddr := utils.ParseClientAddress(ctx)
-	watchFiles := request.GetWatchFiles()
+	req *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error) {
+
+	watchFiles := req.GetWatchFiles()
 	// 2. 检查客户端是否有版本落后
-	resp := s.DoCheckClientConfigFile(ctx, watchFiles, compareByVersion)
-	if resp.Code.GetValue() != api.DataNoChange {
+	resp, needWatch := s.checkClientConfigFile(ctx, watchFiles, compareByVersion)
+	if !needWatch {
 		return func() *apiconfig.ConfigClientResponse {
 			return resp
 		}, nil
 	}
 
 	// 3. 监听配置变更，hold 请求 30s，30s 内如果有配置发布，则响应请求
-	clientId := clientAddr + "@" + utils.NewUUID()[0:8]
+	clientId := utils.ParseClientAddress(ctx) + "@" + utils.NewUUID()[0:8]
 	finishChan := s.ConnManager().AddConn(clientId, watchFiles)
 	return func() *apiconfig.ConfigClientResponse {
 		return <-finishChan
 	}, nil
 }
 
-func compareByVersion(clientConfigFile *apiconfig.ClientConfigFileInfo, cacheEntry *cache.Entry) bool {
-	return !cacheEntry.Empty && clientConfigFile.Version.GetValue() < cacheEntry.Version
-}
+// GetConfigFileNamesWithCache
+func (s *Server) GetConfigFileNamesWithCache(ctx context.Context, req *apiconfig.ConfigFileGroupRequest) *apiconfig.ConfigClientListResponse {
+	namespace := req.GetConfigFileGroup().GetNamespace().GetValue()
+	group := req.GetConfigFileGroup().GetName().GetValue()
 
-func compareByMD5(clientConfigFile *apiconfig.ClientConfigFileInfo, cacheEntry *cache.Entry) bool {
-	return clientConfigFile.Md5.GetValue() != cacheEntry.Md5
-}
+	out := api.NewConfigClientListResponse(apimodel.Code_ExecuteSuccess)
 
-func (s *Server) DoCheckClientConfigFile(ctx context.Context, configFiles []*apiconfig.ClientConfigFileInfo,
-	compartor compareFunction) *apiconfig.ConfigClientResponse {
-	if len(configFiles) == 0 {
-		return api.NewConfigClientResponse(apimodel.Code_InvalidWatchConfigFileFormat, nil)
+	if namespace == "" || group == "" {
+		out.Code = utils.NewUInt32Value(uint32(apimodel.Code_BadRequest))
+		out.Info = utils.NewStringValue("invalid namespace or group")
+		return out
 	}
 
-	for _, configFile := range configFiles {
+	releases, revision := s.fileCache.GetGroupActiveReleases(namespace, group)
+	if revision == req.GetRevision().GetValue() {
+		out.Code = utils.NewUInt32Value(uint32(apimodel.Code_DataNoChange))
+		return out
+	}
+	ret := make([]*apiconfig.ClientConfigFileInfo, 0, len(releases))
+	for i := range releases {
+		ret = append(ret, &apiconfig.ClientConfigFileInfo{
+			Namespace:   utils.NewStringValue(releases[i].Namespace),
+			Group:       utils.NewStringValue(releases[i].Group),
+			FileName:    utils.NewStringValue(releases[i].FileName),
+			Name:        utils.NewStringValue(releases[i].Name),
+			Version:     utils.NewUInt64Value(releases[i].Version),
+			ReleaseTime: utils.NewStringValue(commontime.Time2String(releases[i].ModifyTime)),
+		})
+	}
+
+	return &apiconfig.ConfigClientListResponse{
+		Code:            utils.NewUInt32Value(uint32(apimodel.Code_ExecuteSuccess)),
+		Info:            utils.NewStringValue(api.Code2Info(uint32(apimodel.Code_ExecuteSuccess))),
+		Revision:        utils.NewStringValue(revision),
+		Namespace:       namespace,
+		Group:           group,
+		ConfigFileInfos: ret,
+	}
+}
+
+func compareByVersion(clientInfo *apiconfig.ClientConfigFileInfo, file *model.ConfigFileRelease) bool {
+	return clientInfo.Version.GetValue() < file.Version
+}
+
+func compareByMD5(clientInfo *apiconfig.ClientConfigFileInfo, file *model.ConfigFileRelease) bool {
+	return clientInfo.Md5.GetValue() != file.Md5
+}
+
+func (s *Server) checkClientConfigFile(ctx context.Context, files []*apiconfig.ClientConfigFileInfo,
+	compartor compareFunction) (*apiconfig.ConfigClientResponse, bool) {
+	if len(files) == 0 {
+		return api.NewConfigClientResponse(apimodel.Code_InvalidWatchConfigFileFormat, nil), false
+	}
+	for _, configFile := range files {
 		namespace := configFile.Namespace.GetValue()
 		group := configFile.Group.GetValue()
 		fileName := configFile.FileName.GetValue()
 
 		if namespace == "" || group == "" || fileName == "" {
-			return api.NewConfigClientResponseWithMessage(apimodel.Code_BadRequest,
-				"namespace & group & fileName can not be empty")
+			return api.NewConfigClientResponseWithInfo(apimodel.Code_BadRequest,
+				"namespace & group & fileName can not be empty"), false
 		}
-
 		// 从缓存中获取最新的配置文件信息
-		entry, err := s.fileCache.GetOrLoadIfAbsent(namespace, group, fileName)
-
-		if err != nil {
-			log.Error("[Config][Service] get or load config file from cache error.",
-				utils.ZapRequestIDByCtx(ctx), utils.ZapFileName(fileName), zap.Error(err))
-
-			return api.NewConfigClientResponse(apimodel.Code_ExecuteException, nil)
-		}
-
-		if compartor(configFile, entry) {
-			return GenConfigFileResponse(namespace, group, fileName, "", entry.Md5, entry.Version)
+		release := s.fileCache.GetActiveRelease(namespace, group, fileName)
+		if compartor(configFile, release) {
+			ret := &apiconfig.ClientConfigFileInfo{
+				Namespace: utils.NewStringValue(namespace),
+				Group:     utils.NewStringValue(group),
+				FileName:  utils.NewStringValue(fileName),
+				Version:   utils.NewUInt64Value(release.Version),
+				Md5:       utils.NewStringValue(release.Md5),
+			}
+			return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, ret), false
 		}
 	}
-
-	return api.NewConfigClientResponse(apimodel.Code_DataNoChange, nil)
+	return nil, true
 }
 
-func transferEntry2APIModel(client *apiconfig.ClientConfigFileInfo,
-	entry *cache.Entry) (*apiconfig.ClientConfigFileInfo, error) {
+func toClientInfo(client *apiconfig.ClientConfigFileInfo,
+	release *model.ConfigFileRelease) (*apiconfig.ClientConfigFileInfo, error) {
+
 	namespace := client.GetNamespace().GetValue()
 	group := client.GetGroup().GetValue()
 	fileName := client.GetFileName().GetValue()
 	publicKey := client.GetPublicKey().GetValue()
 
+	copyMetadata := func() map[string]string {
+		ret := map[string]string{}
+		for k, v := range release.Metadata {
+			ret[k] = v
+		}
+		delete(ret, utils.ConfigFileTagKeyDataKey)
+		delete(ret, utils.ConfigFileTagKeyEncryptAlgo)
+		return ret
+	}()
+
 	configFile := &apiconfig.ClientConfigFileInfo{
 		Namespace: utils.NewStringValue(namespace),
 		Group:     utils.NewStringValue(group),
 		FileName:  utils.NewStringValue(fileName),
-		Content:   utils.NewStringValue(entry.Content),
-		Version:   utils.NewUInt64Value(entry.Version),
-		Md5:       utils.NewStringValue(entry.Md5),
-		Encrypted: utils.NewBoolValue(entry.Encrypted()),
-	}
-	for _, tag := range entry.Tags {
-		if tag.Key != utils.ConfigFileTagKeyDataKey && tag.Key != utils.ConfigFileTagKeyEncryptAlgo {
-			configFile.Tags = append(configFile.Tags, &apiconfig.ConfigFileTag{
-				Key:   utils.NewStringValue(tag.Key),
-				Value: utils.NewStringValue(tag.Value),
-			})
-		}
+		Content:   utils.NewStringValue(release.Content),
+		Version:   utils.NewUInt64Value(release.Version),
+		Md5:       utils.NewStringValue(release.Md5),
+		Encrypted: utils.NewBoolValue(release.IsEncrypted()),
+		Tags:      model.FromTagMap(copyMetadata),
 	}
 
-	dataKey := entry.GetDataKey()
-	encryptAlgo := entry.GetEncryptAlgo()
+	dataKey := release.GetEncryptDataKey()
+	encryptAlgo := release.GetEncryptAlgo()
 	if dataKey != "" && encryptAlgo != "" {
 		dataKeyBytes, err := base64.StdEncoding.DecodeString(dataKey)
 		if err != nil {
-			log.Error("[Config][Service] base64 decode data key error.", zap.String("dataKey", dataKey), zap.Error(err))
+			log.Error("[Config][Service] decode data key error.", zap.String("dataKey", dataKey), zap.Error(err))
 			return nil, err
 		}
 		if publicKey != "" {

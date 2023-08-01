@@ -15,27 +15,8 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package v1
+package cache
 
-import (
-	"github.com/polarismesh/polaris/namespace"
-	"github.com/polarismesh/polaris/service"
-	"github.com/polarismesh/polaris/service/healthcheck"
-)
+func (fc *configGroupCache) reportMetricsInfo(ns string, count int) {
 
-type HTTPServerV1 struct {
-	namespaceServer   namespace.NamespaceOperateServer
-	namingServer      service.DiscoverServer
-	healthCheckServer *healthcheck.Server
-}
-
-func NewV1Server(
-	namespaceServer namespace.NamespaceOperateServer,
-	namingServer service.DiscoverServer,
-	healthCheckServer *healthcheck.Server) *HTTPServerV1 {
-	return &HTTPServerV1{
-		namespaceServer:   namespaceServer,
-		namingServer:      namingServer,
-		healthCheckServer: healthCheckServer,
-	}
 }

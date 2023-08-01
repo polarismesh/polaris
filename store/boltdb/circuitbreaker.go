@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/boltdb/bolt"
+	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"

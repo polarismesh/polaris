@@ -29,6 +29,7 @@ const (
 	DiscoverAccess    string = "discover"
 	RegisterAccess    string = "register"
 	HealthcheckAccess string = "healthcheck"
+	CreateFileAccess  string = "createfile"
 )
 
 // Config API服务器配置

@@ -15,25 +15,48 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package httpserver
+package config
 
 import (
 	"fmt"
 
 	"github.com/emicklei/go-restful/v3"
 
+	"github.com/polarismesh/polaris/admin"
+	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/apiserver/httpserver/docs"
+	"github.com/polarismesh/polaris/config"
+	"github.com/polarismesh/polaris/namespace"
 )
 
+// HTTPServer
+type HTTPServer struct {
+	maintainServer  admin.AdminOperateServer
+	namespaceServer namespace.NamespaceOperateServer
+	configServer    config.ConfigCenterServer
+}
+
+// NewServer 创建V2版本的HTTPServer
+func NewServer(
+	maintainServer admin.AdminOperateServer,
+	namespaceServer namespace.NamespaceOperateServer,
+	configServer config.ConfigCenterServer) *HTTPServer {
+	return &HTTPServer{
+		maintainServer:  maintainServer,
+		namespaceServer: namespaceServer,
+		configServer:    configServer,
+	}
+}
+
 const (
-	configDefaultAccess string = "default"
+	defaultReadAccess   string = "default-read"
+	defaultAccess       string = "default"
 	configConsoleAccess string = "console"
-	configClientAccess  string = "client"
 )
 
 // GetConfigAccessServer 获取配置中心接口
-func (h *HTTPServer) GetConfigAccessServer(include []string) (*restful.WebService, error) {
-	consoleAccess := []string{configDefaultAccess}
+func (h *HTTPServer) GetConsoleAccessServer(include []string) (*restful.WebService, error) {
+	consoleAccess := []string{defaultAccess}
 
 	ws := new(restful.WebService)
 	ws.Path("/config/v1").Consumes(restful.MIME_JSON, "multipart/form-data").Produces(restful.MIME_JSON, "application/zip")
@@ -44,13 +67,10 @@ func (h *HTTPServer) GetConfigAccessServer(include []string) (*restful.WebServic
 
 	for _, item := range include {
 		switch item {
-		case configDefaultAccess:
-			h.bindConfigConsoleEndpoint(ws)
-			h.bindConfigClientEndpoint(ws)
-		case configConsoleAccess:
-			h.bindConfigConsoleEndpoint(ws)
-		case configClientAccess:
-			h.bindConfigClientEndpoint(ws)
+		case defaultReadAccess:
+			h.addDefaultReadAccess(ws)
+		case configConsoleAccess, defaultAccess:
+			h.addDefaultAccess(ws)
 		default:
 			log.Errorf("[Config][HttpServer] the patch of config endpoint [%s] does not exist", item)
 			return nil, fmt.Errorf("[Config][HttpServer] the patch of config endpoint [%s] does not exist", item)
@@ -60,7 +80,20 @@ func (h *HTTPServer) GetConfigAccessServer(include []string) (*restful.WebServic
 	return ws, nil
 }
 
-func (h *HTTPServer) bindConfigConsoleEndpoint(ws *restful.WebService) {
+func (h *HTTPServer) addDefaultReadAccess(ws *restful.WebService) {
+	ws.Route(docs.EnrichQueryConfigFileGroupsApiDocs(ws.GET("/configfilegroups").To(h.QueryConfigFileGroups)))
+	ws.Route(docs.EnrichGetConfigFileApiDocs(ws.GET("/configfiles").To(h.GetConfigFile)))
+	ws.Route(docs.EnrichQueryConfigFilesByGroupApiDocs(ws.GET("/configfiles/by-group").To(h.QueryConfigFilesByGroup)))
+	ws.Route(docs.EnrichSearchConfigFileApiDocs(ws.GET("/configfiles/search").To(h.SearchConfigFile)))
+	ws.Route(docs.EnrichGetAllConfigEncryptAlgorithms(ws.GET("/configfiles/encryptalgorithm").
+		To(h.GetAllConfigEncryptAlgorithms)))
+	ws.Route(docs.EnrichGetConfigFileReleaseApiDocs(ws.GET("/configfiles/release").To(h.GetConfigFileRelease)))
+	ws.Route(docs.EnrichGetConfigFileReleaseHistoryApiDocs(ws.GET("/configfiles/releasehistory").
+		To(h.GetConfigFileReleaseHistory)))
+	ws.Route(docs.EnrichGetAllConfigFileTemplatesApiDocs(ws.GET("/configfiletemplates").To(h.GetAllConfigFileTemplates)))
+}
+
+func (h *HTTPServer) addDefaultAccess(ws *restful.WebService) {
 	// 配置文件组
 	ws.Route(docs.EnrichCreateConfigFileGroupApiDocs(ws.POST("/configfilegroups").To(h.CreateConfigFileGroup)))
 	ws.Route(docs.EnrichQueryConfigFileGroupsApiDocs(ws.GET("/configfilegroups").To(h.QueryConfigFileGroups)))
@@ -93,11 +126,33 @@ func (h *HTTPServer) bindConfigConsoleEndpoint(ws *restful.WebService) {
 	ws.Route(docs.EnrichCreateConfigFileTemplateApiDocs(ws.POST("/configfiletemplates").To(h.CreateConfigFileTemplate)))
 }
 
-func (h *HTTPServer) bindConfigClientEndpoint(ws *restful.WebService) {
+// GetClientAccessServer 获取配置中心接口
+func (h *HTTPServer) GetClientAccessServer(ws *restful.WebService, include []string) error {
+	clientAccess := []string{apiserver.DiscoverAccess, apiserver.CreateFileAccess}
+
+	if len(include) == 0 {
+		include = clientAccess
+	}
+
+	for _, item := range include {
+		switch item {
+		case apiserver.CreateFileAccess:
+			h.addCreateFile(ws)
+		case apiserver.DiscoverAccess:
+			h.addDiscover(ws)
+		default:
+			log.Errorf("[Config][HttpServer] the patch of config endpoint [%s] does not exist", item)
+			return fmt.Errorf("[Config][HttpServer] the patch of config endpoint [%s] does not exist", item)
+		}
+	}
+
+	return nil
+}
+
+func (h *HTTPServer) addDiscover(ws *restful.WebService) {
 	ws.Route(docs.EnrichGetConfigFileForClientApiDocs(ws.GET("/GetConfigFile").To(h.ClientGetConfigFile)))
 	ws.Route(docs.EnrichWatchConfigFileForClientApiDocs(ws.POST("/WatchConfigFile").To(h.ClientWatchConfigFile)))
 }
 
-// StopConfigServer 停止配置中心模块
-func (h *HTTPServer) StopConfigServer() {
+func (h *HTTPServer) addCreateFile(ws *restful.WebService) {
 }

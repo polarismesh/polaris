@@ -24,6 +24,7 @@ import (
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
@@ -40,16 +41,21 @@ func TestInitialize(ctx context.Context, config Config, s store.Store, cacheMgn 
 	return newServerAuthAbility(mockServer, userMgn, strategyMgn), mockServer, nil
 }
 
-func TestCompareByVersion(clientConfigFile *apiconfig.ClientConfigFileInfo, cacheEntry *cache.Entry) bool {
-	return compareByVersion(clientConfigFile, cacheEntry)
+func (s *Server) TestCheckClientConfigFile(ctx context.Context, files []*apiconfig.ClientConfigFileInfo,
+	compartor compareFunction) (*apiconfig.ConfigClientResponse, bool) {
+	return s.checkClientConfigFile(ctx, files, compartor)
 }
 
-func TestCompareByMD5(clientConfigFile *apiconfig.ClientConfigFileInfo, cacheEntry *cache.Entry) bool {
-	return compareByMD5(clientConfigFile, cacheEntry)
+func TestCompareByVersion(clientInfo *apiconfig.ClientConfigFileInfo, file *model.ConfigFileRelease) bool {
+	return compareByVersion(clientInfo, file)
+}
+
+func TestCompareByMD5(clientInfo *apiconfig.ClientConfigFileInfo, file *model.ConfigFileRelease) bool {
+	return compareByMD5(clientInfo, file)
 }
 
 // TestDecryptConfigFile 解密配置文件
-func (s *Server) TestDecryptConfigFile(ctx context.Context, configFile *apiconfig.ConfigFile) (err error) {
+func (s *Server) TestDecryptConfigFile(ctx context.Context, configFile *model.ConfigFile) (err error) {
 	for i := range s.chains.chains {
 		chain := s.chains.chains[i]
 		if val, ok := chain.(*CryptoConfigFileChain); ok {
@@ -63,7 +69,7 @@ func (s *Server) TestDecryptConfigFile(ctx context.Context, configFile *apiconfi
 
 // TestEncryptConfigFile 解密配置文件
 func (s *Server) TestEncryptConfigFile(ctx context.Context,
-	configFile *apiconfig.ConfigFile, algorithm string, dataKey string) error {
+	configFile *model.ConfigFile, algorithm string, dataKey string) error {
 	for i := range s.chains.chains {
 		chain := s.chains.chains[i]
 		if val, ok := chain.(*CryptoConfigFileChain); ok {

@@ -4,7 +4,6 @@ go 1.20
 
 require (
 	github.com/BurntSushi/toml v1.2.0
-	github.com/boltdb/bolt v1.3.1
 	github.com/emicklei/go-restful/v3 v3.9.0
 	github.com/envoyproxy/go-control-plane v0.11.1
 	github.com/go-openapi/spec v0.20.7
@@ -84,10 +83,11 @@ require (
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/agiledragon/gomonkey/v2 v2.10.1
-	github.com/polarismesh/specification v1.3.2
+	github.com/polarismesh/specification v1.4.0-alpha.4
 )
 
 require (
+	go.etcd.io/bbolt v1.3.7
 	google.golang.org/genproto/googleapis/api v0.0.0-20230526203410-71b5a4ffd15e // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230526203410-71b5a4ffd15e // indirect
 )

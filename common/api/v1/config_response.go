@@ -24,8 +24,26 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func NewConfigClientResponse(
-	code apimodel.Code, configFile *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
+// ConfigCollect BatchWriteResponse添加Response
+func ConfigCollect(batchWriteResponse *apiconfig.ConfigBatchWriteResponse, response *apiconfig.ConfigResponse) {
+	// 非200的code，都归为异常
+	if CalcCode(response) != 200 {
+		if response.GetCode().GetValue() >= batchWriteResponse.GetCode().GetValue() {
+			batchWriteResponse.Code.Value = response.GetCode().GetValue()
+			batchWriteResponse.Info.Value = code2info[batchWriteResponse.GetCode().GetValue()]
+		}
+	}
+	batchWriteResponse.Responses = append(batchWriteResponse.Responses, response)
+}
+
+func NewConfigClientListResponse(code apimodel.Code) *apiconfig.ConfigClientListResponse {
+	return &apiconfig.ConfigClientListResponse{
+		Code: &wrappers.UInt32Value{Value: uint32(code)},
+		Info: &wrappers.StringValue{Value: code2info[uint32(code)]},
+	}
+}
+
+func NewConfigClientResponse(code apimodel.Code, configFile *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
 	return &apiconfig.ConfigClientResponse{
 		Code:       &wrappers.UInt32Value{Value: uint32(code)},
 		Info:       &wrappers.StringValue{Value: code2info[uint32(code)]},
@@ -41,19 +59,17 @@ func NewConfigClientResponseFromConfigResponse(response *apiconfig.ConfigRespons
 	}
 }
 
-func NewConfigClientResponseWithMessage(code apimodel.Code, message string) *apiconfig.ConfigClientResponse {
+func NewConfigClientResponseWithInfo(code apimodel.Code, message string) *apiconfig.ConfigClientResponse {
 	return &apiconfig.ConfigClientResponse{
 		Code: &wrappers.UInt32Value{Value: uint32(code)},
 		Info: &wrappers.StringValue{Value: message},
 	}
 }
 
-func NewConfigFileGroupResponse(
-	code apimodel.Code, configFileGroup *apiconfig.ConfigFileGroup) *apiconfig.ConfigResponse {
+func NewConfigResponse(code apimodel.Code) *apiconfig.ConfigResponse {
 	return &apiconfig.ConfigResponse{
-		Code:            &wrappers.UInt32Value{Value: uint32(code)},
-		Info:            &wrappers.StringValue{Value: code2info[uint32(code)]},
-		ConfigFileGroup: configFileGroup,
+		Code: &wrappers.UInt32Value{Value: uint32(code)},
+		Info: &wrappers.StringValue{Value: code2info[uint32(code)]},
 	}
 }
 
@@ -71,6 +87,34 @@ func NewConfigFileGroupBatchQueryResponse(code apimodel.Code, total uint32,
 		Info:             &wrappers.StringValue{Value: code2info[uint32(code)]},
 		Total:            &wrappers.UInt32Value{Value: total},
 		ConfigFileGroups: configFileGroups,
+	}
+}
+
+func NewConfigBatchQueryResponse(code apimodel.Code) *apiconfig.ConfigBatchQueryResponse {
+	return &apiconfig.ConfigBatchQueryResponse{
+		Code: &wrappers.UInt32Value{Value: uint32(code)},
+		Info: &wrappers.StringValue{Value: code2info[uint32(code)]},
+	}
+}
+
+func NewConfigBatchQueryResponseWithInfo(code apimodel.Code, info string) *apiconfig.ConfigBatchQueryResponse {
+	return &apiconfig.ConfigBatchQueryResponse{
+		Code: &wrappers.UInt32Value{Value: uint32(code)},
+		Info: &wrappers.StringValue{Value: info},
+	}
+}
+
+func NewConfigBatchWriteResponse(code apimodel.Code) *apiconfig.ConfigBatchWriteResponse {
+	return &apiconfig.ConfigBatchWriteResponse{
+		Code: &wrappers.UInt32Value{Value: uint32(code)},
+		Info: &wrappers.StringValue{Value: code2info[uint32(code)]},
+	}
+}
+
+func NewConfigBatchWriteResponseWithInfo(code apimodel.Code, info string) *apiconfig.ConfigBatchWriteResponse {
+	return &apiconfig.ConfigBatchWriteResponse{
+		Code: &wrappers.UInt32Value{Value: uint32(code)},
+		Info: &wrappers.StringValue{Value: info},
 	}
 }
 
@@ -92,10 +136,10 @@ func NewConfigFileResponse(code apimodel.Code, configFile *apiconfig.ConfigFile)
 	}
 }
 
-func NewConfigFileResponseWithMessage(code apimodel.Code, message string) *apiconfig.ConfigResponse {
+func NewConfigResponseWithInfo(code apimodel.Code, message string) *apiconfig.ConfigResponse {
 	return &apiconfig.ConfigResponse{
 		Code: &wrappers.UInt32Value{Value: uint32(code)},
-		Info: &wrappers.StringValue{Value: code2info[uint32(code)] + ":" + message},
+		Info: &wrappers.StringValue{Value: message},
 	}
 }
 

@@ -191,7 +191,7 @@ func (d *defaultAuthChecker) checkPermission(authCtx *model.AcquireContext) (boo
 		return false, model.ErrorTokenDisabled
 	}
 
-	log.Debug("[Auth][Checker] check permission args", utils.ZapRequestIDByCtx(authCtx.GetRequestContext()),
+	log.Debug("[Auth][Checker] check permission args", utils.RequestID(authCtx.GetRequestContext()),
 		zap.String("method", authCtx.GetMethod()), zap.Any("resources", authCtx.GetAccessResources()))
 
 	ok, err := d.doCheckPermission(authCtx)
@@ -202,7 +202,7 @@ func (d *defaultAuthChecker) checkPermission(authCtx *model.AcquireContext) (boo
 	// 强制同步一次db中strategy数据到cache
 	if err = d.cacheMgn.AuthStrategy().ForceSync(); err != nil {
 		log.Error("[Auth][Checker] force sync strategy to cache failed",
-			utils.ZapRequestIDByCtx(authCtx.GetRequestContext()), zap.Error(err))
+			utils.RequestID(authCtx.GetRequestContext()), zap.Error(err))
 		return false, err
 	}
 

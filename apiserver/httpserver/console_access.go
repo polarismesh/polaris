@@ -62,19 +62,19 @@ func (h *HTTPServer) GetCoreV1ConsoleAccessServer(ws *restful.WebService, includ
 }
 
 func (h *HTTPServer) addCoreDefaultReadAccess(ws *restful.WebService) {
-	ws.Route(ws.GET("/namespaces").To(h.v1Server.GetNamespaces).Operation("CoreGetNamespaces"))
-	ws.Route(ws.GET("/namespaces/token").To(h.v1Server.GetNamespaceToken).Operation("CoreGetNamespaceToken"))
+	ws.Route(ws.GET("/namespaces").To(h.discoverV1.GetNamespaces).Operation("CoreGetNamespaces"))
+	ws.Route(ws.GET("/namespaces/token").To(h.discoverV1.GetNamespaceToken).Operation("CoreGetNamespaceToken"))
 }
 
 func (h *HTTPServer) addCoreDefaultAccess(ws *restful.WebService) {
-	ws.Route(docs.EnrichCreateNamespacesApiDocs(ws.POST("/namespaces").To(h.v1Server.CreateNamespaces).
+	ws.Route(docs.EnrichCreateNamespacesApiDocs(ws.POST("/namespaces").To(h.discoverV1.CreateNamespaces).
 		Operation("CoreCreateNamespaces")))
-	ws.Route(docs.EnrichDeleteNamespacesApiDocs(ws.POST("/namespaces/delete").To(h.v1Server.DeleteNamespaces).
+	ws.Route(docs.EnrichDeleteNamespacesApiDocs(ws.POST("/namespaces/delete").To(h.discoverV1.DeleteNamespaces).
 		Operation("CoreDeleteNamespaces")))
-	ws.Route(docs.EnrichUpdateNamespacesApiDocs(ws.PUT("/namespaces").To(h.v1Server.UpdateNamespaces).
+	ws.Route(docs.EnrichUpdateNamespacesApiDocs(ws.PUT("/namespaces").To(h.discoverV1.UpdateNamespaces).
 		Operation("CoreUpdateNamespaces")))
-	ws.Route(docs.EnrichGetNamespacesApiDocs(ws.GET("/namespaces").To(h.v1Server.GetNamespaces).
+	ws.Route(docs.EnrichGetNamespacesApiDocs(ws.GET("/namespaces").To(h.discoverV1.GetNamespaces).
 		Operation("CoreGetNamespaces")))
-	ws.Route(ws.GET("/namespaces/token").To(h.v1Server.GetNamespaceToken).Operation("CoreGetNamespaceToken"))
-	ws.Route(ws.PUT("/namespaces/token").To(h.v1Server.UpdateNamespaceToken).Operation("CoreUpdateNamespaceToken"))
+	ws.Route(ws.GET("/namespaces/token").To(h.discoverV1.GetNamespaceToken).Operation("CoreGetNamespaceToken"))
+	ws.Route(ws.PUT("/namespaces/token").To(h.discoverV1.UpdateNamespaceToken).Operation("CoreUpdateNamespaceToken"))
 }

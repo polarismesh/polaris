@@ -32,8 +32,8 @@ import (
 	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	authcommon "github.com/polarismesh/polaris/common/auth"
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	commonstore "github.com/polarismesh/polaris/common/store"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -1037,7 +1037,7 @@ func (svr *server) fillResourceInfo(resp *apisecurity.AuthStrategy, data *model.
 						zap.String("id", data.ID), zap.String("config_file_group", res.ResID))
 					continue
 				}
-				group, _ := svr.cacheMgn.ConfigFile().GetOrLoadGroupById(groupId)
+				group := svr.cacheMgn.ConfigGroup().GetGroupByID(groupId)
 				if group == nil {
 					log.Warn("[Auth][Strategy] not found config_file_group in fill-info",
 						zap.String("id", data.ID), zap.String("config_file_group", res.ResID))

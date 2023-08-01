@@ -194,17 +194,6 @@ func NewCircuitBreakerResponse(code apimodel.Code, circuitBreaker *apifault.Circ
 }
 
 /**
- * @brief 创建回复带发布信息
- */
-func NewConfigResponse(code apimodel.Code, configRelease *apiservice.ConfigRelease) *apiservice.Response {
-	return &apiservice.Response{
-		Code:          &wrappers.UInt32Value{Value: uint32(code)},
-		Info:          &wrappers.StringValue{Value: code2info[uint32(code)]},
-		ConfigRelease: configRelease,
-	}
-}
-
-/**
  * @brief 创建批量回复
  */
 func NewBatchWriteResponse(code apimodel.Code) *apiservice.BatchWriteResponse {

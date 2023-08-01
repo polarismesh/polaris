@@ -19,7 +19,6 @@ package v1
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/emicklei/go-restful/v3"
@@ -29,158 +28,10 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
-	"github.com/polarismesh/polaris/apiserver/httpserver/docs"
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/utils"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 )
-
-const (
-	defaultReadAccess string = "default-read"
-	defaultAccess     string = "default"
-)
-
-// GetNamingConsoleAccessServer 注册管理端接口
-func (h *HTTPServerV1) GetNamingConsoleAccessServer(include []string) (*restful.WebService, error) {
-	consoleAccess := []string{defaultAccess}
-
-	ws := new(restful.WebService)
-
-	ws.Path("/naming/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
-
-	// 如果为空，则开启全部接口
-	if len(include) == 0 {
-		include = consoleAccess
-	}
-
-	var hasDefault = false
-	for _, item := range include {
-		if item == defaultAccess {
-			hasDefault = true
-			break
-		}
-	}
-	for _, item := range include {
-		switch item {
-		case defaultReadAccess:
-			if !hasDefault {
-				h.addDefaultReadAccess(ws)
-			}
-		case defaultAccess:
-			h.addDefaultAccess(ws)
-		default:
-			log.Errorf("method %s does not exist in HTTPServerV1 console access", item)
-			return nil, fmt.Errorf("method %s does not exist in HTTPServerV1 console access", item)
-		}
-	}
-	return ws, nil
-}
-
-// addDefaultReadAccess 增加默认读接口
-func (h *HTTPServerV1) addDefaultReadAccess(ws *restful.WebService) {
-	// 管理端接口：只包含读接口
-	ws.Route(docs.EnrichGetNamespacesApiDocs(ws.GET("/namespaces").To(h.GetNamespaces)))
-	ws.Route(docs.EnrichGetServicesApiDocs(ws.GET("/services").To(h.GetServices)))
-	ws.Route(docs.EnrichGetServicesCountApiDocs(ws.GET("/services/count").To(h.GetServicesCount)))
-	ws.Route(docs.EnrichGetServiceAliasesApiDocs(ws.GET("/service/aliases").To(h.GetServiceAliases)))
-
-	ws.Route(docs.EnrichGetInstancesApiDocs(ws.GET("/instances").To(h.GetInstances)))
-	ws.Route(docs.EnrichGetInstancesCountApiDocs(ws.GET("/instances/count").To(h.GetInstancesCount)))
-	ws.Route(docs.EnrichGetRateLimitsApiDocs(ws.GET("/ratelimits").To(h.GetRateLimits)))
-	ws.Route(docs.EnrichGetCircuitBreakerRulesApiDocs(ws.GET("/circuitbreaker/rules").To(h.GetCircuitBreakerRules)))
-	ws.Route(docs.EnrichGetFaultDetectRulesApiDocs(ws.GET("/faultdetectors").To(h.GetFaultDetectRules)))
-
-	// Deprecate -- start
-	ws.Route(ws.GET("/namespace/token").To(h.GetNamespaceToken))
-	ws.Route(ws.GET("/service/token").To(h.GetServiceToken))
-	ws.Route(ws.POST("/service/owner").To(h.GetServiceOwner))
-	ws.Route(ws.GET("/service/circuitbreaker").To(h.GetCircuitBreakerByService))
-	ws.Route(ws.GET("/circuitbreaker").To(h.GetCircuitBreaker))
-	ws.Route(ws.GET("/circuitbreaker/versions").To(h.GetCircuitBreakerVersions))
-	ws.Route(ws.GET("/circuitbreakers/master").To(h.GetMasterCircuitBreakers))
-	ws.Route(ws.GET("/circuitbreakers/release").To(h.GetReleaseCircuitBreakers))
-	ws.Route(ws.GET("/circuitbreaker/token").To(h.GetCircuitBreakerToken))
-	ws.Route(ws.GET("/routings").To(h.GetRoutings))
-	// Deprecate -- end
-}
-
-// addDefaultAccess 增加默认接口
-func (h *HTTPServerV1) addDefaultAccess(ws *restful.WebService) {
-	// 管理端接口：增删改查请求全部操作存储层
-	ws.Route(docs.EnrichCreateNamespacesApiDocsOld(ws.POST("/namespaces").To(h.CreateNamespaces)))
-	ws.Route(docs.EnrichDeleteNamespacesApiDocsOld(ws.POST("/namespaces/delete").To(h.DeleteNamespaces)))
-	ws.Route(docs.EnrichUpdateNamespacesApiDocsOld(ws.PUT("/namespaces").To(h.UpdateNamespaces)))
-	ws.Route(docs.EnrichGetNamespacesApiDocsOld(ws.GET("/namespaces").To(h.GetNamespaces)))
-
-	ws.Route(docs.EnrichCreateServicesApiDocs(ws.POST("/services").To(h.CreateServices)))
-	ws.Route(docs.EnrichDeleteServicesApiDocs(ws.POST("/services/delete").To(h.DeleteServices)))
-	ws.Route(docs.EnrichUpdateServicesApiDocs(ws.PUT("/services").To(h.UpdateServices)))
-	ws.Route(docs.EnrichGetServicesApiDocs(ws.GET("/services").To(h.GetServices)))
-	ws.Route(docs.EnrichGetAllServicesApiDocs(ws.GET("/services/all").To(h.GetAllServices)))
-	ws.Route(docs.EnrichGetServicesCountApiDocs(ws.GET("/services/count").To(h.GetServicesCount)))
-	ws.Route(docs.EnrichCreateServiceAliasApiDocs(ws.POST("/service/alias").To(h.CreateServiceAlias)))
-	ws.Route(docs.EnrichUpdateServiceAliasApiDocs(ws.PUT("/service/alias").To(h.UpdateServiceAlias)))
-	ws.Route(docs.EnrichGetServiceAliasesApiDocs(ws.GET("/service/aliases").To(h.GetServiceAliases)))
-	ws.Route(docs.EnrichDeleteServiceAliasesApiDocs(ws.POST("/service/aliases/delete").To(h.DeleteServiceAliases)))
-
-	ws.Route(docs.EnrichCreateInstancesApiDocs(ws.POST("/instances").To(h.CreateInstances)))
-	ws.Route(docs.EnrichDeleteInstancesApiDocs(ws.POST("/instances/delete").To(h.DeleteInstances)))
-	ws.Route(docs.EnrichDeleteInstancesByHostApiDocs(
-		ws.POST("/instances/delete/host").To(h.DeleteInstancesByHost)))
-	ws.Route(docs.EnrichUpdateInstancesApiDocs(ws.PUT("/instances").To(h.UpdateInstances)))
-	ws.Route(docs.EnrichUpdateInstancesIsolateApiDocs(
-		ws.PUT("/instances/isolate/host").To(h.UpdateInstancesIsolate)))
-	ws.Route(docs.EnrichGetInstancesApiDocs(ws.GET("/instances").To(h.GetInstances)))
-	ws.Route(docs.EnrichGetInstancesCountApiDocs(ws.GET("/instances/count").To(h.GetInstancesCount)))
-	ws.Route(docs.EnrichGetInstanceLabelsApiDocs(ws.GET("/instances/labels").To(h.GetInstanceLabels)))
-
-	ws.Route(docs.EnrichCreateRateLimitsApiDocs(ws.POST("/ratelimits").To(h.CreateRateLimits)))
-	ws.Route(docs.EnrichDeleteRateLimitsApiDocs(ws.POST("/ratelimits/delete").To(h.DeleteRateLimits)))
-	ws.Route(docs.EnrichUpdateRateLimitsApiDocs(ws.PUT("/ratelimits").To(h.UpdateRateLimits)))
-	ws.Route(docs.EnrichGetRateLimitsApiDocs(ws.GET("/ratelimits").To(h.GetRateLimits)))
-	ws.Route(docs.EnrichEnableRateLimitsApiDocs(ws.PUT("/ratelimits/enable").To(h.EnableRateLimits)))
-
-	// Deprecate -- start
-	ws.Route(ws.GET("/namespace/token").To(h.GetNamespaceToken))
-	ws.Route(ws.PUT("/namespace/token").To(h.UpdateNamespaceToken))
-	ws.Route(ws.PUT("/service/token").To(h.UpdateServiceToken))
-	ws.Route(ws.GET("/service/token").To(h.GetServiceToken))
-	ws.Route(ws.GET("/service/circuitbreaker").To(h.GetCircuitBreakerByService))
-	ws.Route(ws.POST("/service/owner").To(h.GetServiceOwner))
-	ws.Route(ws.POST("/circuitbreakers").To(h.CreateCircuitBreakers))
-	ws.Route(ws.POST("/circuitbreakers/version").To(h.CreateCircuitBreakerVersions))
-	ws.Route(ws.POST("/circuitbreakers/delete").To(h.DeleteCircuitBreakers))
-	ws.Route(ws.PUT("/circuitbreakers").To(h.UpdateCircuitBreakers))
-	ws.Route(ws.POST("/circuitbreakers/release").To(h.ReleaseCircuitBreakers))
-	ws.Route(ws.POST("/circuitbreakers/unbind").To(h.UnBindCircuitBreakers))
-	ws.Route(ws.GET("/circuitbreaker").To(h.GetCircuitBreaker))
-	ws.Route(ws.GET("/circuitbreaker/versions").To(h.GetCircuitBreakerVersions))
-	ws.Route(ws.GET("/circuitbreakers/master").To(h.GetMasterCircuitBreakers))
-	ws.Route(ws.GET("/circuitbreakers/release").To(h.GetReleaseCircuitBreakers))
-	ws.Route(ws.GET("/circuitbreaker/token").To(h.GetCircuitBreakerToken))
-	ws.Route(ws.POST("/routings").To(h.CreateRoutings))
-	ws.Route(ws.POST("/routings/delete").To(h.DeleteRoutings))
-	ws.Route(ws.PUT("/routings").To(h.UpdateRoutings))
-	ws.Route(ws.GET("/routings").To(h.GetRoutings))
-	// Deprecate -- end
-
-	ws.Route(docs.EnrichGetCircuitBreakerRulesApiDocs(
-		ws.GET("/circuitbreaker/rules").To(h.GetCircuitBreakerRules)))
-	ws.Route(docs.EnrichCreateCircuitBreakerRulesApiDocs(
-		ws.POST("/circuitbreaker/rules").To(h.CreateCircuitBreakerRules)))
-	ws.Route(docs.EnrichUpdateCircuitBreakerRulesApiDocs(
-		ws.PUT("/circuitbreaker/rules").To(h.UpdateCircuitBreakerRules)))
-	ws.Route(docs.EnrichDeleteCircuitBreakerRulesApiDocs(
-		ws.POST("/circuitbreaker/rules/delete").To(h.DeleteCircuitBreakerRules)))
-	ws.Route(docs.EnrichEnableCircuitBreakerRulesApiDocs(
-		ws.PUT("/circuitbreaker/rules/enable").To(h.EnableCircuitBreakerRules)))
-
-	ws.Route(docs.EnrichGetFaultDetectRulesApiDocs(ws.GET("/faultdetectors").To(h.GetFaultDetectRules)))
-	ws.Route(docs.EnrichCreateFaultDetectRulesApiDocs(ws.POST("/faultdetectors").To(h.CreateFaultDetectRules)))
-	ws.Route(docs.EnrichUpdateFaultDetectRulesApiDocs(ws.PUT("/faultdetectors").To(h.UpdateFaultDetectRules)))
-	ws.Route(docs.EnrichDeleteFaultDetectRulesApiDocs(
-		ws.POST("/faultdetectors/delete").To(h.DeleteFaultDetectRules)))
-}
 
 // CreateNamespaces 创建命名空间
 func (h *HTTPServerV1) CreateNamespaces(req *restful.Request, rsp *restful.Response) {

@@ -25,8 +25,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/boltdb/bolt"
 	_ "github.com/go-sql-driver/mysql"
+	bolt "go.etcd.io/bbolt"
 	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris/auth"

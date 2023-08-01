@@ -43,6 +43,8 @@ const (
 	OUpdateGroup OperationType = "UpdateGroup"
 	// OEnableRateLimit Update enable state
 	OUpdateEnable OperationType = "UpdateEnable"
+	// ORollback Rollback resource
+	ORollback OperationType = "Rollback"
 )
 
 // Resource Operating resources

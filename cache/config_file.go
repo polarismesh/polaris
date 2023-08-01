@@ -19,16 +19,14 @@ package cache
 
 import (
 	"context"
-	"fmt"
-	"math/rand"
-	"sync"
-	"sync/atomic"
+	"errors"
 	"time"
 
+	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/common/hash"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -42,138 +40,232 @@ func init() {
 	RegisterCache(configFileCacheName, CacheConfigFile)
 }
 
-// Entry 缓存实体对象
-type Entry struct {
-	locker  sync.RWMutex
-	Content string
-	Md5     string
-	Version uint64
-	Tags    []*model.ConfigFileTag
-	// 创建的时候，设置过期时间
-	ExpireTime time.Time
-	// 标识是否是空缓存
-	Empty bool
-	//
-	initialize int32
-}
-
-func (e *Entry) isInitialize() bool {
-	return atomic.LoadInt32(&e.initialize) == 1
-}
-
-func (e *Entry) update(v *Entry) {
-	atomic.StoreInt32(&e.initialize, 1)
-	e.Content = v.Content
-	e.Md5 = v.Md5
-	e.Empty = v.Empty
-	e.Version = v.Version
-	e.Tags = v.Tags
-	e.ExpireTime = v.ExpireTime
-}
-
-func (e *Entry) GetDataKey() string {
-	for _, tag := range e.Tags {
-		if tag.Key == utils.ConfigFileTagKeyDataKey {
-			return tag.Value
-		}
+type (
+	BaseConfigArgs struct {
+		// Namespace
+		Namespace string
+		// Group
+		Group string
+		// Offset
+		Offset uint32
+		// Limit
+		Limit uint32
+		// OrderField Sort field
+		OrderField string
+		// OrderType Sorting rules
+		OrderType string
 	}
-	return ""
-}
 
-func (e *Entry) GetEncryptAlgo() string {
-	for _, tag := range e.Tags {
-		if tag.Key == utils.ConfigFileTagKeyEncryptAlgo {
-			return tag.Value
-		}
+	ConfigFileArgs struct {
+		BaseConfigArgs
+		FileName string
+		Metadata map[string]string
 	}
-	return ""
-}
 
-func (e *Entry) Encrypted() bool {
-	return e.GetDataKey() != ""
-}
+	ConfigReleaseArgs struct {
+		BaseConfigArgs
+		// FileName
+		FileName string
+		// ReleaseName
+		ReleaseName string
+		// OnlyActive
+		OnlyActive bool
+		// Metadata
+		Metadata map[string]string
+		//
+		NoPage bool
+	}
+)
 
-// FileCache file cache
-type FileCache interface {
+// ConfigFileCache file cache
+type ConfigFileCache interface {
 	Cache
-	// Get 通过ns,group,filename获取 Entry
-	Get(namespace, group, fileName string) (*Entry, bool)
-	// GetOrLoadIfAbsent
-	GetOrLoadIfAbsent(namespace, group, fileName string) (*Entry, error)
-	// Remove
-	Remove(namespace, group, fileName string)
-	// ReLoad
-	ReLoad(namespace, group, fileName string) (*Entry, error)
-	// GetOrLoadGroupByName
-	GetOrLoadGroupByName(namespace, group string) (*model.ConfigFileGroup, error)
-	// GetOrLoadGroupById
-	GetOrLoadGroupById(id uint64) (*model.ConfigFileGroup, error)
-	// CleanAll
-	CleanAll()
+	// GetActiveRelease
+	GetGroupActiveReleases(namespace, group string) ([]*model.ConfigFileRelease, string)
+	// GetActiveRelease
+	GetActiveRelease(namespace, group, fileName string) *model.ConfigFileRelease
+	// GetRelease
+	GetRelease(key model.ConfigFileReleaseKey) *model.ConfigFileRelease
+	// QueryReleases
+	QueryReleases(args *ConfigReleaseArgs) (uint32, []*model.SimpleConfigFileRelease, error)
 }
 
 // FileCache 文件缓存，使用 loading cache 懒加载策略。同时写入时设置过期时间，定时清理过期的缓存。
 type fileCache struct {
+	*baseCache
 	storage store.Store
-	// fileId -> Entry
-	files *utils.SegmentMap[string, *Entry]
-	// loadCnt
-	loadCnt int32
-	// getCnt
-	getCnt int32
-	// removeCnt
-	removeCnt int32
-	// expireCnt
-	expireCnt int32
-	// configGroups
-	configGroups *configFileGroupBucket
-	// singleLoadGroup
-	singleLoadGroup singleflight.Group
-	// expireTimeAfterWrite
-	expireTimeAfterWrite int
-	// ctx
-	ctx context.Context
+	// releases config_release.id -> model.SimpleConfigFileRelease
+	releases *utils.SegmentMap[uint64, *model.SimpleConfigFileRelease]
+	// name2release config_release.<namespace, group, file_name, release_name> -> model.ConfigFileRelease
+	name2release *utils.SegmentMap[string, *model.SimpleConfigFileRelease]
+	// activeReleases namespace -> group -> []model.ConfigFileRelease
+	activeReleases *utils.SyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *model.SimpleConfigFileRelease]]]
+	// groupedActiveReleaseRevisions namespace -> group -> revision
+	activeReleaseRevisions *utils.SyncMap[string, *utils.SyncMap[string, string]]
+	// singleGroup
+	singleGroup singleflight.Group
+	// valueCache save ConfigFileRelease.Content into local file to reduce memory use
+	valueCache *bbolt.DB
+	// metricsFileCount
+	metricsFileCount *utils.SyncMap[string, *utils.SyncMap[string, uint64]]
+	// metricsReleaseCount
+	metricsReleaseCount *utils.SyncMap[string, *utils.SyncMap[string, uint64]]
 }
 
 // newFileCache 创建文件缓存
-func newFileCache(ctx context.Context, storage store.Store) FileCache {
+func newFileCache(ctx context.Context, storage store.Store) ConfigFileCache {
 	cache := &fileCache{
-		storage:      storage,
-		ctx:          ctx,
-		configGroups: newConfigFileGroupBucket(),
+		baseCache: newBaseCache(storage),
+		storage:   storage,
 	}
 	return cache
 }
 
 // initialize
 func (fc *fileCache) initialize(opt map[string]interface{}) error {
-	fc.expireTimeAfterWrite, _ = opt["expireTimeAfterWrite"].(int)
-	if fc.expireTimeAfterWrite == 0 {
-		fc.expireTimeAfterWrite = 3600
+	return nil
+}
+
+// update 更新缓存函数
+func (fc *fileCache) update() error {
+	err, _ := fc.singleUpdate()
+	return err
+}
+
+func (fc *fileCache) singleUpdate() (error, bool) {
+	// 多个线程竞争，只有一个线程进行更新
+	_, err, shared := fc.singleGroup.Do(fc.name(), func() (interface{}, error) {
+		defer func() {
+			fc.reportMetricsInfo()
+		}()
+		return nil, fc.doCacheUpdate(fc.name(), fc.realUpdate)
+	})
+	return err, shared
+}
+
+func (fc *fileCache) realUpdate() (map[string]time.Time, int64, error) {
+	// 拉取diff前的所有数据
+	start := time.Now()
+	releases, err := fc.s.GetMoreReleaseFile(fc.isFirstUpdate(), fc.LastFetchTime())
+	if err != nil {
+		return nil, 0, err
 	}
 
-	fc.files = utils.NewSegmentMap[string, *Entry](128, hash.Fnv32)
-	go fc.configGroups.runCleanExpire(fc.ctx, time.Minute, int64(fc.expireTimeAfterWrite))
-	go fc.startClearExpireEntryTask(fc.ctx)
-	go fc.startLogStatusTask(fc.ctx)
-	go fc.reportMetricsInfo(fc.ctx)
+	lastMimes, update, del, err := fc.setReleases(releases)
+	if err != nil {
+		return nil, 0, err
+	}
+	log.Info("[Cache][ConfigReleases] get more releases",
+		zap.Int("update", update), zap.Int("delete", del),
+		zap.Time("last", fc.LastMtime()), zap.Duration("used", time.Since(start)))
+	return lastMimes, int64(len(releases)), err
+}
+
+func (fc *fileCache) setReleases(releases []*model.ConfigFileRelease) (map[string]time.Time, int, int, error) {
+	lastMtime := fc.LastMtime().Unix()
+	update := 0
+	del := 0
+
+	affect := map[string]map[string]struct{}{}
+
+	for i := range releases {
+		item := releases[i]
+
+		if _, ok := affect[item.Namespace]; !ok {
+			affect[item.Namespace] = map[string]struct{}{}
+		}
+		affect[item.Namespace][item.Group] = struct{}{}
+
+		modifyUnix := item.ModifyTime.Unix()
+		if modifyUnix > lastMtime {
+			lastMtime = modifyUnix
+		}
+		oldVal, _ := fc.releases.Get(item.Id)
+		if !item.Valid {
+			del++
+			if err := fc.handleDeleteRelease(oldVal, item); err != nil {
+				return nil, update, del, err
+			}
+		} else {
+			update++
+			if err := fc.handleUpdateRelease(oldVal, item); err != nil {
+				return nil, update, del, err
+			}
+		}
+
+		eventhub.Publish(eventhub.ConfigFilePublishTopic, item.SimpleConfigFileRelease)
+	}
+	fc.postProcessUpdatedRelease(affect)
+	return map[string]time.Time{fc.name(): time.Unix(lastMtime, 0)}, update, del, nil
+}
+
+// handleUpdateRelease
+func (fc *fileCache) handleUpdateRelease(oldVal *model.SimpleConfigFileRelease, item *model.ConfigFileRelease) error {
+	fc.releases.Put(item.Id, item.SimpleConfigFileRelease)
+	fc.name2release.Put(item.ReleaseKey(), item.SimpleConfigFileRelease)
+	if !item.Active {
+		return nil
+	}
+	if _, ok := fc.activeReleases.Load(item.Namespace); !ok {
+		fc.activeReleases.Store(item.Namespace, utils.NewSyncMap[string,
+			*utils.SyncMap[string, *model.SimpleConfigFileRelease]]())
+	}
+	namespace, _ := fc.activeReleases.Load(item.Namespace)
+	if _, ok := namespace.Load(item.Group); !ok {
+		namespace.Store(item.Group, utils.NewSyncMap[string, *model.SimpleConfigFileRelease]())
+	}
+	group, _ := namespace.Load(item.Group)
+	group.Store(item.ActiveKey(), item.SimpleConfigFileRelease)
+	if err := fc.valueCache.Update(func(tx *bbolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists([]byte(item.OwnerKey()))
+		if err != nil {
+			return err
+		}
+		return bucket.Put([]byte(item.ActiveKey()), []byte(item.Content))
+	}); err != nil {
+		return errors.Join(err, errors.New("persistent config_file content fail"))
+	}
 	return nil
 }
 
-// addListener 添加
-func (fc *fileCache) addListener(_ []Listener) {
+// handleDeleteRelease
+func (fc *fileCache) handleDeleteRelease(oldVal *model.SimpleConfigFileRelease, item *model.ConfigFileRelease) error {
+	fc.releases.Del(item.Id)
+	fc.name2release.Del(item.ReleaseKey())
+	if oldVal == nil {
+		return nil
+	}
+	if !oldVal.Active {
+		return nil
+	}
+	if namespace, ok := fc.activeReleases.Load(item.Namespace); ok {
+		if group, ok := namespace.Load(item.Group); ok {
+			group.Delete(item.ActiveKey())
+		}
+	}
+	if err := fc.valueCache.Update(func(tx *bbolt.Tx) error {
+		bucket := tx.Bucket([]byte(item.OwnerKey()))
+		if bucket == nil {
+			return nil
+		}
+		return bucket.Delete([]byte(item.ActiveKey()))
+	}); err != nil {
+		return errors.Join(err, errors.New("remove config_file content fail"))
+	}
+	return nil
+}
+
+// postProcessUpdatedRelease
+func (fc *fileCache) postProcessUpdatedRelease(affect map[string]map[string]struct{}) {
 
 }
 
-// update
-func (fc *fileCache) update() error {
-	return nil
+func (fc *fileCache) LastMtime() time.Time {
+	return fc.baseCache.LastMtime(fc.name())
 }
 
 // clear
 func (fc *fileCache) clear() error {
-	fc.CleanAll()
-	fc.configGroups.clean()
 	return nil
 }
 
@@ -182,233 +274,89 @@ func (fc *fileCache) name() string {
 	return configFileCacheName
 }
 
-// Get 一般用于内部服务调用，所以不计入 metrics
-func (fc *fileCache) Get(namespace, group, fileName string) (*Entry, bool) {
-	fileId := utils.GenFileId(namespace, group, fileName)
-	entry, ok := fc.files.Get(fileId)
-	if ok {
-		return entry, true
+// GetActiveRelease
+func (fc *fileCache) GetGroupActiveReleases(namespace, group string) ([]*model.ConfigFileRelease, string) {
+	nsBucket, ok := fc.activeReleases.Load(namespace)
+	if !ok {
+		return nil, ""
 	}
-	return nil, false
-}
-
-// GetOrLoadGroupByName 获取配置分组缓存
-func (fc *fileCache) GetOrLoadGroupByName(namespace, group string) (*model.ConfigFileGroup, error) {
-	item := fc.configGroups.getGroupByName(namespace, group)
-	if item != nil {
-		return item, nil
+	groupBucket, ok := nsBucket.Load(group)
+	if !ok {
+		return nil, ""
 	}
-
-	key := namespace + utils.FileIdSeparator + group
-
-	ret, err, _ := fc.singleLoadGroup.Do(key, func() (interface{}, error) {
-		data, err := fc.storage.GetConfigFileGroup(namespace, group)
-		if err != nil {
-			return nil, err
-		}
-
-		fc.configGroups.saveGroup(namespace, group, data)
-		return data, nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	if ret != nil {
-		return ret.(*model.ConfigFileGroup), nil
-	}
-
-	return nil, nil
-}
-
-func (fc *fileCache) GetOrLoadGroupById(id uint64) (*model.ConfigFileGroup, error) {
-	item := fc.configGroups.getGroupById(id)
-	if item != nil {
-		return item, nil
-	}
-
-	key := fmt.Sprintf("config_group_%d", id)
-
-	ret, err, _ := fc.singleLoadGroup.Do(key, func() (interface{}, error) {
-		data, err := fc.storage.GetConfigFileGroupById(id)
-		if err != nil {
-			return nil, err
-		}
-
-		fc.configGroups.saveGroupById(id, data)
-		return data, nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	if ret != nil {
-		return ret.(*model.ConfigFileGroup), nil
-	}
-
-	return nil, nil
-}
-
-// GetOrLoadIfAbsent 获取缓存，如果缓存没命中则会从数据库中加载，如果数据库里获取不到数据，则会缓存一个空对象防止缓存一直被击穿
-func (fc *fileCache) GetOrLoadIfAbsent(namespace, group, fileName string) (*Entry, error) {
-	atomic.AddInt32(&fc.getCnt, 1)
-
-	fileId := utils.GenFileId(namespace, group, fileName)
-	entry, noExist := fc.files.ComputeIfAbsent(fileId, func(k string) *Entry {
-		// 默认创建一个空的 Entry，主要规避以下几个问题
-		// case 1: 存储层中没有该对象, 为了避免对象不存在时，一直击穿存储层
-		// case 2: 存储层出现负载问题，无法正常处理请求，一直击穿存储层
-		fmt.Println("start create " + fileId)
-		return &Entry{
-			ExpireTime: fc.getExpireTime(),
-			Empty:      true,
-		}
-	})
-	if entry.isInitialize() {
-		return entry, nil
-	}
-
-	// 缓存未命中，则从存储层里加载数据
-	entry.locker.Lock()
-	defer entry.locker.Unlock()
-	if entry.isInitialize() {
-		return entry, nil
-	}
-
-	// 从数据库中加载数据
-	atomic.AddInt32(&fc.loadCnt, 1)
-
-	file, tags, err := fc.getConfigFileReleaseAndTags(namespace, group, fileName)
-	if err != nil {
-		configLog.Error("[Config][Cache] load config file release and tags error.",
-			zap.String("namespace", namespace), zap.String("group", group), zap.String("fileName", fileName),
-			zap.Error(err))
-		entry.update(&Entry{
-			Empty:      true,
-			ExpireTime: fc.getExpireTime(),
+	ret := make([]*model.ConfigFileRelease, 0, 8)
+	groupBucket.Range(func(key string, val *model.SimpleConfigFileRelease) bool {
+		ret = append(ret, &model.ConfigFileRelease{
+			SimpleConfigFileRelease: val,
 		})
-		return nil, err
+		return true
+	})
+	groupRevisions, ok := fc.activeReleaseRevisions.Load(namespace)
+	if !ok {
+		return ret, utils.NewUUID()
 	}
-
-	if file == nil {
-		configLog.Warn("[Config][Cache] load config file release not found.",
-			zap.String("namespace", namespace), zap.String("group", group), zap.String("fileName", fileName),
-			zap.Error(err))
-		entry.update(&Entry{
-			Empty:      true,
-			ExpireTime: fc.getExpireTime(),
-		})
-		return entry, nil
-	}
-
-	// 数据库中有对象，更新缓存
-	newEntry := &Entry{
-		Content:    file.Content,
-		Md5:        file.Md5,
-		Version:    file.Version,
-		Tags:       tags,
-		ExpireTime: fc.getExpireTime(),
-		Empty:      false,
-	}
-
-	// case 1: 缓存不存在，则直接存入缓存
-	// case 2: 缓存存在，幂等判断只能存入版本号更大的
-	if noExist || entry.Empty || newEntry.Version > entry.Version {
-		entry.update(newEntry)
-		fc.files.Put(fileId, entry)
-	}
-	return entry, nil
+	revision, _ := groupRevisions.Load(group)
+	return ret, revision
 }
 
-func (fc *fileCache) getConfigFileReleaseAndTags(
-	namespace, group, fileName string) (*model.ConfigFileRelease, []*model.ConfigFileTag, error) {
-	file, err := fc.storage.GetConfigFileRelease(nil, namespace, group, fileName)
-	if err != nil {
-		configLog.Error("[Config][Cache] load config file release error.",
-			zap.String("namespace", namespace),
-			zap.String("group", group),
-			zap.String("fileName", fileName),
-			zap.Error(err))
-		return nil, nil, err
+// GetActiveRelease
+func (fc *fileCache) GetActiveRelease(namespace, group, fileName string) *model.ConfigFileRelease {
+	nsBucket, ok := fc.activeReleases.Load(namespace)
+	if !ok {
+		return nil
 	}
-	tags, err := fc.storage.QueryTagByConfigFile(namespace, group, fileName)
-	if err != nil {
-		configLog.Error("[Config][Cache] load config file tag error.",
-			zap.String("namespace", namespace),
-			zap.String("group", group),
-			zap.String("fileName", fileName),
-			zap.Error(err))
-		return nil, nil, err
+	groupBucket, ok := nsBucket.Load(group)
+	if !ok {
+		return nil
 	}
-	return file, tags, nil
+	searchKey := &model.ConfigFileReleaseKey{
+		Namespace: namespace,
+		Group:     group,
+		FileName:  fileName,
+	}
+	simple, ok := groupBucket.Load(searchKey.ActiveKey())
+	if !ok {
+		return nil
+	}
+	ret := &model.ConfigFileRelease{
+		SimpleConfigFileRelease: simple,
+	}
+	fc.loadValueCache(ret)
+	return ret
 }
 
-// Remove 删除缓存对象
-func (fc *fileCache) Remove(namespace, group, fileName string) {
-	atomic.AddInt32(&fc.removeCnt, 1)
-	fileId := utils.GenFileId(namespace, group, fileName)
-	fc.files.Del(fileId)
+// GetRelease
+func (fc *fileCache) GetRelease(key model.ConfigFileReleaseKey) *model.ConfigFileRelease {
+	var (
+		simple *model.SimpleConfigFileRelease
+	)
+	if key.Id != 0 {
+		simple, _ = fc.releases.Get(key.Id)
+	} else {
+		simple, _ = fc.name2release.Get(key.ReleaseKey())
+	}
+	if simple == nil {
+		return nil
+	}
+	ret := &model.ConfigFileRelease{
+		SimpleConfigFileRelease: simple,
+	}
+	fc.loadValueCache(ret)
+	return ret
 }
 
-// ReLoad 重新加载缓存
-func (fc *fileCache) ReLoad(namespace, group, fileName string) (*Entry, error) {
-	fc.Remove(namespace, group, fileName)
-	return fc.GetOrLoadIfAbsent(namespace, group, fileName)
+func (fc *fileCache) QueryReleases(args *ConfigReleaseArgs) (uint32, []*model.SimpleConfigFileRelease, error) {
+	return 0, nil, nil
 }
 
-// CleanAll 清空缓存，仅用于集成测试
-func (fc *fileCache) CleanAll() {
-	fc.files = utils.NewSegmentMap[string, *Entry](128, hash.Fnv32)
-}
-
-// 缓存过期时间，为了避免集中失效，加上随机数。[60 ~ 70] second 内随机失效
-func (fc *fileCache) getExpireTime() time.Time {
-	randTime := rand.Intn(10*60) + fc.expireTimeAfterWrite
-	return time.Now().Add(time.Duration(randTime) * time.Second)
-}
-
-// 定时清理过期的缓存
-func (fc *fileCache) startClearExpireEntryTask(ctx context.Context) {
-	t := time.NewTicker(time.Minute)
-	defer t.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-t.C:
-			curExpiredFileCnt := 0
-			fc.files.Range(func(fileId string, entry *Entry) {
-				if time.Now().After(entry.ExpireTime) {
-					fc.files.Del(fileId)
-					curExpiredFileCnt++
-				}
-			})
-
-			if curExpiredFileCnt > 0 {
-				configLog.Info("[Config][Cache] clear expired file cache.", zap.Int("count", curExpiredFileCnt))
-			}
-
-			atomic.AddInt32(&fc.expireCnt, int32(curExpiredFileCnt))
+func (fc *fileCache) loadValueCache(release *model.ConfigFileRelease) {
+	_ = fc.valueCache.View(func(tx *bbolt.Tx) error {
+		bucket := tx.Bucket([]byte(release.OwnerKey()))
+		if bucket == nil {
+			return nil
 		}
-	}
-}
-
-// print cache status at fix rate
-func (fc *fileCache) startLogStatusTask(ctx context.Context) {
-	t := time.NewTicker(time.Minute)
-	defer t.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-t.C:
-			configLog.Info("[Config][Cache] cache status:",
-				zap.Int32("getCnt", atomic.LoadInt32(&fc.getCnt)),
-				zap.Int32("loadCnt", atomic.LoadInt32(&fc.loadCnt)),
-				zap.Int32("removeCnt", atomic.LoadInt32(&fc.removeCnt)),
-				zap.Int32("expireCnt", atomic.LoadInt32(&fc.expireCnt)))
-		}
-	}
+		val := bucket.Get([]byte(release.ActiveKey()))
+		release.Content = string(val)
+		return nil
+	})
 }

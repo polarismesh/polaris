@@ -39,8 +39,7 @@ func (s *Server) CreateConfigFileTemplate(
 
 	rsp := s.GetConfigFileTemplate(ctx, template.GetName().GetValue())
 	if rsp.Code.Value == api.ExecuteSuccess {
-		return api.NewConfigFileTemplateResponseWithMessage(
-			apimodel.Code_BadRequest, "config file template existed")
+		return api.NewConfigResponse(apimodel.Code_ExistedResource)
 	}
 	if rsp.Code.Value != api.NotFoundResource {
 		return rsp
@@ -50,44 +49,43 @@ func (s *Server) CreateConfigFileTemplate(
 	userName := utils.ParseUserName(ctx)
 	template.CreateBy = utils.NewStringValue(userName)
 	template.ModifyBy = utils.NewStringValue(userName)
-	retData, err := s.storage.CreateConfigFileTemplate(saveData)
-	if err != nil {
-		log.Error("[Config][Service] create config file template error.", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return api.NewConfigFileTemplateResponse(commonstore.StoreCode2APICode(err), template)
+	if _, err := s.storage.CreateConfigFileTemplate(saveData); err != nil {
+		log.Error("[Config][Service] create config file template error.", utils.RequestID(ctx), zap.Error(err))
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 
-	return api.NewConfigFileTemplateResponse(apimodel.Code_ExecuteSuccess, model.ToConfigFileTemplateAPI(retData))
+	return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
 }
 
 // GetConfigFileTemplate get config file template by name
 func (s *Server) GetConfigFileTemplate(ctx context.Context, name string) *apiconfig.ConfigResponse {
 	if len(name) == 0 {
-		return api.NewConfigFileTemplateResponse(apimodel.Code_InvalidConfigFileTemplateName, nil)
+		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileTemplateName)
 	}
 
 	saveData, err := s.storage.GetConfigFileTemplate(name)
 	if err != nil {
 		log.Error("[Config][Service] get config file template error.",
-			utils.ZapRequestIDByCtx(ctx), zap.String("name", name), zap.Error(err))
-		return api.NewConfigFileTemplateResponse(commonstore.StoreCode2APICode(err), nil)
+			utils.RequestID(ctx), zap.String("name", name), zap.Error(err))
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 	if saveData == nil {
-		return api.NewConfigFileTemplateResponse(apimodel.Code_NotFoundResource, nil)
+		return api.NewConfigResponse(apimodel.Code_NotFoundResource)
 	}
 
-	return api.NewConfigFileTemplateResponse(apimodel.Code_ExecuteSuccess, model.ToConfigFileTemplateAPI(saveData))
+	return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
 }
 
 // GetAllConfigFileTemplates get all config file templates
 func (s *Server) GetAllConfigFileTemplates(ctx context.Context) *apiconfig.ConfigBatchQueryResponse {
 	templates, err := s.storage.QueryAllConfigFileTemplates()
 	if err != nil {
-		log.Error("[Config][Service]query all config file templates error.", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
-		return api.NewConfigFileTemplateBatchQueryResponse(commonstore.StoreCode2APICode(err), 0, nil)
+		log.Error("[Config][Service]query all config file templates error.", utils.RequestID(ctx), zap.Error(err))
+		return api.NewConfigBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}
 
 	if len(templates) == 0 {
-		return api.NewConfigFileTemplateBatchQueryResponse(apimodel.Code_ExecuteSuccess, 0, nil)
+		return api.NewConfigBatchQueryResponse(apimodel.Code_ExecuteSuccess)
 	}
 
 	var apiTemplates []*apiconfig.ConfigFileTemplate
@@ -100,10 +98,10 @@ func (s *Server) GetAllConfigFileTemplates(ctx context.Context) *apiconfig.Confi
 
 func (s *Server) checkConfigFileTemplateParam(template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
 	if err := CheckFileName(template.GetName()); err != nil {
-		return api.NewConfigFileTemplateResponse(apimodel.Code_InvalidConfigFileTemplateName, template)
+		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileTemplateName)
 	}
 	if err := CheckContentLength(template.Content.GetValue(), int(s.cfg.ContentMaxLength)); err != nil {
-		return api.NewConfigFileTemplateResponse(apimodel.Code_InvalidConfigFileContentLength, template)
+		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileContentLength)
 	}
 	if len(template.Content.GetValue()) == 0 {
 		return api.NewConfigFileTemplateResponseWithMessage(apimodel.Code_BadRequest, "content can not be blank.")

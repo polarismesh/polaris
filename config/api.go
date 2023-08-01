@@ -37,14 +37,10 @@ const (
 type ConfigFileGroupOperate interface {
 	// CreateConfigFileGroup 创建配置文件组
 	CreateConfigFileGroup(ctx context.Context, configFileGroup *apiconfig.ConfigFileGroup) *apiconfig.ConfigResponse
-
-	// QueryConfigFileGroups 查询配置文件组, namespace 为完全匹配，groupName 为模糊匹配, fileName 为模糊匹配文件名
-	QueryConfigFileGroups(ctx context.Context,
-		namespace, groupName, fileName string, offset, limit uint32) *apiconfig.ConfigBatchQueryResponse
-
+	// QueryConfigFileGroups 查询配置文件组
+	QueryConfigFileGroups(ctx context.Context, filter map[string]string) *apiconfig.ConfigBatchQueryResponse
 	// DeleteConfigFileGroup 删除配置文件组
 	DeleteConfigFileGroup(ctx context.Context, namespace, name string) *apiconfig.ConfigResponse
-
 	// UpdateConfigFileGroup 更新配置文件组
 	UpdateConfigFileGroup(ctx context.Context, configFileGroup *apiconfig.ConfigFileGroup) *apiconfig.ConfigResponse
 }
@@ -53,39 +49,27 @@ type ConfigFileGroupOperate interface {
 type ConfigFileOperate interface {
 	// CreateConfigFile 创建配置文件
 	CreateConfigFile(ctx context.Context, configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse
-
 	// GetConfigFileBaseInfo 获取单个配置文件基础信息，不包含发布信息
-	GetConfigFileBaseInfo(ctx context.Context, namespace, group, name string) *apiconfig.ConfigResponse
-
+	GetConfigFileBaseInfo(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse
 	// GetConfigFileRichInfo 获取单个配置文件基础信息，包含发布状态等信息
-	GetConfigFileRichInfo(ctx context.Context, namespace, group, name string) *apiconfig.ConfigResponse
-
+	GetConfigFileRichInfo(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse
 	// QueryConfigFilesByGroup query file group's config file
-	QueryConfigFilesByGroup(ctx context.Context,
-		namespace, group string, offset, limit uint32) *apiconfig.ConfigBatchQueryResponse
-
+	QueryConfigFilesByGroup(ctx context.Context, filter map[string]string) *apiconfig.ConfigBatchQueryResponse
 	// SearchConfigFile 按 group 和 name 模糊搜索配置文件
-	SearchConfigFile(ctx context.Context,
-		namespace, group, name, tags string, offset, limit uint32) *apiconfig.ConfigBatchQueryResponse
-
+	SearchConfigFile(ctx context.Context, filter map[string]string) *apiconfig.ConfigBatchQueryResponse
 	// UpdateConfigFile 更新配置文件
 	UpdateConfigFile(ctx context.Context, configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse
-
 	// DeleteConfigFile 删除配置文件
-	DeleteConfigFile(ctx context.Context, namespace, group, name, deleteBy string) *apiconfig.ConfigResponse
-
+	DeleteConfigFile(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse
 	// BatchDeleteConfigFile 批量删除配置文件
 	BatchDeleteConfigFile(ctx context.Context,
 		configFiles []*apiconfig.ConfigFile, operator string) *apiconfig.ConfigResponse
-
 	// ExportConfigFile 导出配置文件
 	ExportConfigFile(ctx context.Context,
 		configFileExport *apiconfig.ConfigFileExportRequest) *apiconfig.ConfigExportResponse
-
 	// ImportConfigFile 导入配置文件
 	ImportConfigFile(ctx context.Context,
 		configFiles []*apiconfig.ConfigFile, conflictHandling string) *apiconfig.ConfigImportResponse
-
 	// GetAllConfigEncryptAlgorithms 获取配置加密算法
 	GetAllConfigEncryptAlgorithms(ctx context.Context) *apiconfig.ConfigEncryptAlgorithmResponse
 }
@@ -94,50 +78,42 @@ type ConfigFileOperate interface {
 type ConfigFileReleaseOperate interface {
 	// PublishConfigFile 发布配置文件
 	PublishConfigFile(ctx context.Context, configFileRelease *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse
-
 	// GetConfigFileRelease 获取配置文件发布
-	GetConfigFileRelease(ctx context.Context, namespace, group, fileName string) *apiconfig.ConfigResponse
-
-	// DeleteConfigFileRelease 删除配置文件发布内容
-	DeleteConfigFileRelease(ctx context.Context, namespace, group, fileName, deleteBy string) *apiconfig.ConfigResponse
-}
-
-// ConfigFileReleaseHistoryOperate 配置文件发布历史接口
-type ConfigFileReleaseHistoryOperate interface {
-	// GetConfigFileReleaseHistory 获取配置文件的发布历史
-	GetConfigFileReleaseHistory(ctx context.Context,
-		namespace, group, fileName string, offset, limit uint32, endId uint64) *apiconfig.ConfigBatchQueryResponse
-
-	// GetConfigFileLatestReleaseHistory 获取最后一次发布记录
-	GetConfigFileLatestReleaseHistory(ctx context.Context, namespace, group, fileName string) *apiconfig.ConfigResponse
+	GetConfigFileRelease(ctx context.Context, req *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse
+	// DeleteConfigFileReleases 删除配置文件发布内容
+	DeleteConfigFileReleases(ctx context.Context, reqs []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse
+	// RollbackConfigFileReleases 批量回滚配置到指定版本
+	RollbackConfigFileReleases(ctx context.Context, releases []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse
+	// GetConfigFileReleases 查询所有的配置发布版本信息
+	GetConfigFileReleases(ctx context.Context, filters map[string]string) *apiconfig.ConfigBatchQueryResponse
+	// GetConfigFileReleaseVersions 查询所有的配置发布版本信息
+	GetConfigFileReleaseVersions(ctx context.Context, filters map[string]string) *apiconfig.ConfigBatchQueryResponse
+	// GetConfigFileReleaseHistories 获取配置文件的发布历史
+	GetConfigFileReleaseHistories(ctx context.Context, filter map[string]string) *apiconfig.ConfigBatchQueryResponse
 }
 
 // ConfigFileClientOperate 给客户端提供服务接口，不同的上层协议抽象的公共服务逻辑
 type ConfigFileClientOperate interface {
 	// GetConfigFileForClient 获取配置文件
 	GetConfigFileForClient(ctx context.Context, configFile *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse
-
 	// CreateConfigFileFromClient 调用config_file的方法创建配置文件
 	CreateConfigFileFromClient(ctx context.Context, fileInfo *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse
-
 	// UpdateConfigFileFromClient 调用config_file的方法更新配置文件
 	UpdateConfigFileFromClient(ctx context.Context, fileInfo *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse
-
 	// PublishConfigFileFromClient 调用config_file_release的方法发布配置文件
 	PublishConfigFileFromClient(ctx context.Context, fileInfo *apiconfig.ConfigFileRelease) *apiconfig.ConfigClientResponse
-
 	// WatchConfigFiles 客户端监听配置文件
 	WatchConfigFiles(ctx context.Context, request *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error)
+	// GetConfigFileNamesWithCache 获取某个配置分组下的配置文件
+	GetConfigFileNamesWithCache(ctx context.Context, req *apiconfig.ConfigFileGroupRequest) *apiconfig.ConfigClientListResponse
 }
 
 // ConfigFileTemplateOperate config file template operate
 type ConfigFileTemplateOperate interface {
 	// GetAllConfigFileTemplates get all config file templates
 	GetAllConfigFileTemplates(ctx context.Context) *apiconfig.ConfigBatchQueryResponse
-
 	// CreateConfigFileTemplate create config file template
 	CreateConfigFileTemplate(ctx context.Context, template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse
-
 	// GetConfigFileTemplate get config file template
 	GetConfigFileTemplate(ctx context.Context, name string) *apiconfig.ConfigResponse
 }
@@ -147,7 +123,6 @@ type ConfigCenterServer interface {
 	ConfigFileGroupOperate
 	ConfigFileOperate
 	ConfigFileReleaseOperate
-	ConfigFileReleaseHistoryOperate
 	ConfigFileClientOperate
 	ConfigFileTemplateOperate
 }

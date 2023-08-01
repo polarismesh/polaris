@@ -24,8 +24,8 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	authcommon "github.com/polarismesh/polaris/common/auth"
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -146,7 +146,9 @@ func (svr *serverAuthAbility) GetInstancesCount(ctx context.Context) *apiservice
 	return svr.targetServer.GetInstancesCount(ctx)
 }
 
-func (svr *serverAuthAbility) GetInstanceLabels(ctx context.Context, query map[string]string) *apiservice.Response {
+func (svr *serverAuthAbility) GetInstanceLabels(ctx context.Context,
+	query map[string]string) *apiservice.Response {
+
 	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Read, "GetInstanceLabels")
 	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
@@ -154,6 +156,5 @@ func (svr *serverAuthAbility) GetInstanceLabels(ctx context.Context, query map[s
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
 	return svr.targetServer.GetInstanceLabels(ctx, query)
 }

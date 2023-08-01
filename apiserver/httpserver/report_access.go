@@ -18,6 +18,8 @@
 package httpserver
 
 import (
+	"context"
+
 	"github.com/emicklei/go-restful/v3"
 
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/utils"
@@ -39,4 +41,23 @@ func (h *HTTPServer) GetReportClients(req *restful.Request, rsp *restful.Respons
 	ret := h.namingServer.GetPrometheusTargets(ctx, queryParams)
 
 	_ = rsp.WriteAsJson(ret)
+}
+
+// GetPrometheusDiscoveryServer 注册用于prometheus服务发现的接口
+func (h *HTTPServer) GetPrometheusDiscoveryServer(include []string) (*restful.WebService, error) {
+	ws := new(restful.WebService)
+	ws.Path("/prometheus/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
+	h.addPrometheusDefaultAccess(ws)
+	return ws, nil
+}
+
+func (h *HTTPServer) addPrometheusDefaultAccess(ws *restful.WebService) {
+	ws.Route(ws.GET("/clients").To(h.GetPrometheusClients))
+}
+
+// GetPrometheusClients 对接 prometheus 基于 http 的 service discovery
+func (h *HTTPServer) GetPrometheusClients(req *restful.Request, rsp *restful.Response) {
+	queryParams := httpcommon.ParseQueryParams(req)
+	ret := h.namingServer.GetPrometheusTargets(context.Background(), queryParams)
+	_ = rsp.WriteAsJson(ret.Response)
 }

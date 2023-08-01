@@ -23,8 +23,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/boltdb/bolt"
 	"github.com/golang/protobuf/proto"
+	bolt "go.etcd.io/bbolt"
 
 	"github.com/polarismesh/polaris/store"
 )

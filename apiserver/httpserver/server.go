@@ -32,9 +32,10 @@ import (
 
 	"github.com/polarismesh/polaris/admin"
 	"github.com/polarismesh/polaris/apiserver"
+	confighttp "github.com/polarismesh/polaris/apiserver/httpserver/config"
+	v1 "github.com/polarismesh/polaris/apiserver/httpserver/discover/v1"
+	v2 "github.com/polarismesh/polaris/apiserver/httpserver/discover/v2"
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/utils"
-	v1 "github.com/polarismesh/polaris/apiserver/httpserver/v1"
-	v2 "github.com/polarismesh/polaris/apiserver/httpserver/v2"
 	"github.com/polarismesh/polaris/auth"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/conn/keepalive"
@@ -75,8 +76,9 @@ type HTTPServer struct {
 	statis            plugin.Statis
 	whitelist         plugin.Whitelist
 
-	v1Server v1.HTTPServerV1
-	v2Server v2.HTTPServerV2
+	discoverV1 v1.HTTPServerV1
+	discoverV2 v2.HTTPServerV2
+	configSvr  confighttp.HTTPServer
 
 	userMgn     auth.UserServer
 	strategyMgn auth.StrategyServer
@@ -210,8 +212,8 @@ func (h *HTTPServer) Run(errCh chan error) {
 		return
 	}
 
-	h.v1Server = *v1.NewV1Server(h.namespaceServer, h.namingServer, h.healthCheckServer)
-	h.v2Server = *v2.NewV2Server(h.namespaceServer, h.namingServer, h.healthCheckServer)
+	h.discoverV1 = *v1.NewV1Server(h.namespaceServer, h.namingServer, h.healthCheckServer)
+	h.discoverV2 = *v2.NewV2Server(h.namespaceServer, h.namingServer, h.healthCheckServer)
 
 	// 初始化http server
 	address := fmt.Sprintf("%v:%v", h.listenIP, h.listenPort)
@@ -273,8 +275,6 @@ func (h *HTTPServer) Stop() {
 	if h.server != nil {
 		_ = h.server.Close()
 	}
-
-	h.StopConfigServer()
 }
 
 // Restart restart server
@@ -343,17 +343,23 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 			}
 		case "console":
 			if apiConfig.Enable {
-				namingServiceV1, err := h.v1Server.GetNamingConsoleAccessServer(apiConfig.Include)
+				namingServiceV1, err := h.discoverV1.GetNamingConsoleAccessServer(apiConfig.Include)
 				if err != nil {
 					return nil, err
 				}
 				wsContainer.Add(namingServiceV1)
 
-				namingServiceV2, err := h.v2Server.GetNamingConsoleAccessServer(apiConfig.Include)
+				namingServiceV2, err := h.discoverV2.GetNamingConsoleAccessServer(apiConfig.Include)
 				if err != nil {
 					return nil, err
 				}
 				wsContainer.Add(namingServiceV2)
+
+				configService, err := h.configSvr.GetConsoleAccessServer(apiConfig.Include)
+				if err != nil {
+					return nil, err
+				}
+				wsContainer.Add(configService)
 
 				ws := new(restful.WebService)
 				ws.Path("/core/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
@@ -377,19 +383,16 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 			}
 		case "client":
 			if apiConfig.Enable {
-				serviceV1, err := h.v1Server.GetClientAccessServer(apiConfig.Include)
-				if err != nil {
+				ws := new(restful.WebService)
+				ws.Path("/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
+
+				if err := h.discoverV1.GetClientAccessServer(ws, apiConfig.Include); err != nil {
 					return nil, err
 				}
-				wsContainer.Add(serviceV1)
-			}
-		case "config":
-			if apiConfig.Enable {
-				consoleService, err := h.GetConfigAccessServer(apiConfig.Include)
-				if err != nil {
+				if err := h.configSvr.GetClientAccessServer(ws, apiConfig.Include); err != nil {
 					return nil, err
 				}
-				wsContainer.Add(consoleService)
+				wsContainer.Add(ws)
 			}
 		default:
 			log.Errorf("api %s does not exist in httpserver", name)

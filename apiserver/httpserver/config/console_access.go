@@ -15,11 +15,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package httpserver
+package config
 
 import (
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/emicklei/go-restful/v3"
@@ -62,14 +61,8 @@ func (h *HTTPServer) QueryConfigFileGroups(req *restful.Request, rsp *restful.Re
 		Response: rsp,
 	}
 
-	namespace := handler.Request.QueryParameter("namespace")
-	group := handler.Request.QueryParameter("group")
-	fileName := handler.Request.QueryParameter("fileName")
-	offset, _ := strconv.ParseUint(handler.Request.QueryParameter("offset"), 10, 64)
-	limit, _ := strconv.ParseUint(handler.Request.QueryParameter("limit"), 10, 64)
-
-	response := h.configServer.QueryConfigFileGroups(handler.ParseHeaderContext(), namespace, group, fileName,
-		uint32(offset), uint32(limit))
+	filter := httpcommon.ParseQueryParams(req)
+	response := h.configServer.QueryConfigFileGroups(handler.ParseHeaderContext(), filter)
 
 	handler.WriteHeaderAndProto(response)
 }
@@ -97,13 +90,10 @@ func (h *HTTPServer) UpdateConfigFileGroup(req *restful.Request, rsp *restful.Re
 
 	configFileGroup := &apiconfig.ConfigFileGroup{}
 	ctx, err := handler.Parse(configFileGroup)
-	requestId := ctx.Value(utils.StringContext("request-id"))
-
 	if err != nil {
 		configLog.Error("[Config][HttpServer] parse config file group from request error.",
-			zap.String("requestId", requestId.(string)),
-			zap.String("error", err.Error()))
-		handler.WriteHeaderAndProto(api.NewConfigFileGroupResponseWithMessage(apimodel.Code_ParseException, err.Error()))
+			utils.RequestID(ctx), zap.Error(err))
+		handler.WriteHeaderAndProto(api.NewConfigResponseWithInfo(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -119,13 +109,10 @@ func (h *HTTPServer) CreateConfigFile(req *restful.Request, rsp *restful.Respons
 
 	configFile := &apiconfig.ConfigFile{}
 	ctx, err := handler.Parse(configFile)
-	requestId := ctx.Value(utils.StringContext("request-id"))
-
 	if err != nil {
 		configLog.Error("[Config][HttpServer] parse config file from request error.",
-			zap.String("requestId", requestId.(string)),
-			zap.String("error", err.Error()))
-		handler.WriteHeaderAndProto(api.NewConfigFileResponseWithMessage(apimodel.Code_ParseException, err.Error()))
+			utils.RequestID(ctx), zap.Error(err))
+		handler.WriteHeaderAndProto(api.NewConfigResponseWithInfo(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -143,7 +130,13 @@ func (h *HTTPServer) GetConfigFile(req *restful.Request, rsp *restful.Response) 
 	group := handler.Request.QueryParameter("group")
 	name := handler.Request.QueryParameter("name")
 
-	response := h.configServer.GetConfigFileRichInfo(handler.ParseHeaderContext(), namespace, group, name)
+	fileReq := &apiconfig.ConfigFile{
+		Namespace: utils.NewStringValue(namespace),
+		Group:     utils.NewStringValue(group),
+		Name:      utils.NewStringValue(name),
+	}
+
+	response := h.configServer.GetConfigFileRichInfo(handler.ParseHeaderContext(), fileReq)
 	handler.WriteHeaderAndProto(response)
 }
 
@@ -153,13 +146,8 @@ func (h *HTTPServer) QueryConfigFilesByGroup(req *restful.Request, rsp *restful.
 		Response: rsp,
 	}
 
-	namespace := handler.Request.QueryParameter("namespace")
-	group := handler.Request.QueryParameter("group")
-	offset, _ := strconv.ParseUint(handler.Request.QueryParameter("offset"), 10, 64)
-	limit, _ := strconv.ParseUint(handler.Request.QueryParameter("limit"), 10, 64)
-
-	response := h.configServer.QueryConfigFilesByGroup(handler.ParseHeaderContext(), namespace, group,
-		uint32(offset), uint32(limit))
+	filters := httpcommon.ParseQueryParams(req)
+	response := h.configServer.QueryConfigFilesByGroup(handler.ParseHeaderContext(), filters)
 	handler.WriteHeaderAndProto(response)
 }
 
@@ -170,15 +158,8 @@ func (h *HTTPServer) SearchConfigFile(req *restful.Request, rsp *restful.Respons
 		Response: rsp,
 	}
 
-	namespace := handler.Request.QueryParameter("namespace")
-	group := handler.Request.QueryParameter("group")
-	name := handler.Request.QueryParameter("name")
-	tags := handler.Request.QueryParameter("tags")
-	offset, _ := strconv.ParseUint(handler.Request.QueryParameter("offset"), 10, 64)
-	limit, _ := strconv.ParseUint(handler.Request.QueryParameter("limit"), 10, 64)
-
-	response := h.configServer.SearchConfigFile(handler.ParseHeaderContext(), namespace, group, name, tags,
-		uint32(offset), uint32(limit))
+	filters := httpcommon.ParseQueryParams(req)
+	response := h.configServer.SearchConfigFile(handler.ParseHeaderContext(), filters)
 
 	handler.WriteHeaderAndProto(response)
 }
@@ -192,12 +173,10 @@ func (h *HTTPServer) UpdateConfigFile(req *restful.Request, rsp *restful.Respons
 
 	configFile := &apiconfig.ConfigFile{}
 	ctx, err := handler.Parse(configFile)
-	requestId := ctx.Value(utils.StringContext("request-id"))
 	if err != nil {
 		configLog.Error("[Config][HttpServer] parse config file from request error.",
-			zap.String("requestId", requestId.(string)),
-			zap.String("error", err.Error()))
-		handler.WriteHeaderAndProto(api.NewConfigFileResponseWithMessage(apimodel.Code_ParseException, err.Error()))
+			utils.RequestID(ctx), zap.Error(err))
+		handler.WriteHeaderAndProto(api.NewConfigResponseWithInfo(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
@@ -214,9 +193,14 @@ func (h *HTTPServer) DeleteConfigFile(req *restful.Request, rsp *restful.Respons
 	namespace := handler.Request.QueryParameter("namespace")
 	group := handler.Request.QueryParameter("group")
 	name := handler.Request.QueryParameter("name")
-	operator := handler.Request.QueryParameter("deleteBy")
 
-	response := h.configServer.DeleteConfigFile(handler.ParseHeaderContext(), namespace, group, name, operator)
+	fileReq := &apiconfig.ConfigFile{
+		Namespace: utils.NewStringValue(namespace),
+		Group:     utils.NewStringValue(group),
+		Name:      utils.NewStringValue(name),
+	}
+
+	response := h.configServer.DeleteConfigFile(handler.ParseHeaderContext(), fileReq)
 	handler.WriteHeaderAndProto(response)
 }
 
@@ -266,7 +250,7 @@ func (h *HTTPServer) ExportConfigFile(req *restful.Request, rsp *restful.Respons
 		handler.Response.AddHeader("Content-Disposition", "attachment; filename=config.zip")
 		if _, err := handler.Response.ResponseWriter.Write(response.Data.Value); err != nil {
 			configLog.Error("[Config][HttpServer] response write error.",
-				utils.ZapRequestIDByCtx(ctx),
+				utils.RequestID(ctx),
 				zap.String("error", err.Error()))
 		}
 	}
@@ -342,9 +326,17 @@ func (h *HTTPServer) GetConfigFileRelease(req *restful.Request, rsp *restful.Res
 
 	namespace := handler.Request.QueryParameter("namespace")
 	group := handler.Request.QueryParameter("group")
+	fileName := handler.Request.QueryParameter("file_name")
 	name := handler.Request.QueryParameter("name")
 
-	response := h.configServer.GetConfigFileRelease(handler.ParseHeaderContext(), namespace, group, name)
+	fileReq := &apiconfig.ConfigFileRelease{
+		Namespace: utils.NewStringValue(namespace),
+		Group:     utils.NewStringValue(group),
+		FileName:  utils.NewStringValue(fileName),
+		Name:      utils.NewStringValue(name),
+	}
+
+	response := h.configServer.GetConfigFileRelease(handler.ParseHeaderContext(), fileReq)
 	handler.WriteHeaderAndProto(response)
 }
 
@@ -355,21 +347,8 @@ func (h *HTTPServer) GetConfigFileReleaseHistory(req *restful.Request, rsp *rest
 		Response: rsp,
 	}
 
-	namespace := handler.Request.QueryParameter("namespace")
-	group := handler.Request.QueryParameter("group")
-	name := handler.Request.QueryParameter("name")
-	endIdStr := handler.Request.QueryParameter("endId")
-	offset, _ := strconv.ParseUint(handler.Request.QueryParameter("offset"), 10, 64)
-	limit, _ := strconv.ParseUint(handler.Request.QueryParameter("limit"), 10, 64)
-	var endId uint64
-	if endIdStr == "" {
-		endId = 0
-	} else {
-		endId, _ = strconv.ParseUint(endIdStr, 10, 64)
-	}
-
-	response := h.configServer.GetConfigFileReleaseHistory(handler.ParseHeaderContext(),
-		namespace, group, name, uint32(offset), uint32(limit), endId)
+	filters := httpcommon.ParseQueryParams(req)
+	response := h.configServer.GetConfigFileReleaseHistories(handler.ParseHeaderContext(), filters)
 
 	handler.WriteHeaderAndProto(response)
 }

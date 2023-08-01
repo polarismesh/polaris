@@ -209,7 +209,17 @@ func (s *SyncMap[K, V]) LoadOrStore(key K, val V) (V, bool) {
 	return ret, loaded
 }
 
-// NewSyncMap
+// Len
+func (s *SyncMap[K, V]) Len() int {
+	var ret int
+	s.m.Range(func(_, _ any) bool {
+		ret++
+		return true
+	})
+	return ret
+}
+
+// NewMap
 func NewMap[K comparable, V any]() *Map[K, V] {
 	return &Map[K, V]{
 		m: map[K]V{},

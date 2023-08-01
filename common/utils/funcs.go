@@ -19,6 +19,7 @@ package utils
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"strings"
 
 	"github.com/google/uuid"
@@ -149,4 +150,9 @@ func StringSliceDeDuplication(s []string) []string {
 	}
 
 	return res
+}
+
+func MustJson(v interface{}) string {
+	data, _ := json.Marshal(v)
+	return string(data)
 }

@@ -45,7 +45,7 @@ var (
 	_ UserCache           = (*userCache)(nil)
 	_ StrategyCache       = (*strategyCache)(nil)
 	_ L5Cache             = (*l5Cache)(nil)
-	_ FileCache           = (*fileCache)(nil)
+	_ ConfigFileCache     = (*fileCache)(nil)
 	_ FaultDetectCache    = (*faultDetectCache)(nil)
 )
 
@@ -64,6 +64,7 @@ const (
 	CacheClient
 	CacheConfigFile
 	CacheFaultDetector
+	CacheConfigGroup
 
 	CacheLast
 )
@@ -84,6 +85,7 @@ const (
 	CacheNameClient          CacheName = "Client"
 	CacheNameConfigFile      CacheName = "ConfigFile"
 	CacheNameFaultDetectRule CacheName = "FaultDetectRule"
+	CacheNameConfigGroup     CacheName = "ConfigGroup"
 )
 
 var (
@@ -100,6 +102,7 @@ var (
 		CacheNameClient:          CacheClient,
 		CacheNameConfigFile:      CacheConfigFile,
 		CacheNameFaultDetectRule: CacheFaultDetector,
+		CacheNameConfigGroup:     CacheConfigGroup,
 	}
 )
 
@@ -550,8 +553,13 @@ func (nc *CacheManager) Client() ClientCache {
 }
 
 // ConfigFile get config file cache information
-func (nc *CacheManager) ConfigFile() FileCache {
-	return nc.caches[CacheConfigFile].(FileCache)
+func (nc *CacheManager) ConfigFile() ConfigFileCache {
+	return nc.caches[CacheConfigFile].(ConfigFileCache)
+}
+
+// ConfigGroup get config group cache information
+func (nc *CacheManager) ConfigGroup() ConfigGroupCache {
+	return nc.caches[CacheConfigGroup].(ConfigGroupCache)
 }
 
 // GetStore get store

@@ -15,29 +15,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package v2
+package config
 
 import (
-	"github.com/polarismesh/polaris/namespace"
-	"github.com/polarismesh/polaris/service"
-	"github.com/polarismesh/polaris/service/healthcheck"
+	commonlog "github.com/polarismesh/polaris/common/log"
 )
 
-// HTTPServerV2
-type HTTPServerV2 struct {
-	namespaceServer   namespace.NamespaceOperateServer
-	namingServer      service.DiscoverServer
-	healthCheckServer *healthcheck.Server
-}
-
-// NewV2Server 创建V2版本的HTTPServer
-func NewV2Server(
-	namespaceServer namespace.NamespaceOperateServer,
-	namingServer service.DiscoverServer,
-	healthCheckServer *healthcheck.Server) *HTTPServerV2 {
-	return &HTTPServerV2{
-		namespaceServer:   namespaceServer,
-		namingServer:      namingServer,
-		healthCheckServer: healthCheckServer,
-	}
-}
+var (
+	log       = commonlog.GetScopeOrDefaultByName(commonlog.APIServerLoggerName)
+	namingLog = commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName)
+	configLog = commonlog.GetScopeOrDefaultByName(commonlog.ConfigLoggerName)
+)

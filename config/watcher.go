@@ -36,7 +36,7 @@ const (
 
 // Event 事件对象，包含类型和事件消息
 type PublishConfigFileEvent struct {
-	Message *model.ConfigFileRelease
+	Message *model.SimpleConfigFileRelease
 }
 
 type FileReleaseCallback func(clientId string, rsp *apiconfig.ConfigClientResponse) bool
@@ -117,7 +117,7 @@ func (wc *watchCenter) RemoveWatcher(clientId string, watchConfigFiles []*apicon
 	}
 }
 
-func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.ConfigFileRelease) {
+func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.SimpleConfigFileRelease) {
 	watchFileId := utils.GenFileId(publishConfigFile.Namespace, publishConfigFile.Group, publishConfigFile.FileName)
 
 	log.Info("[Config][Watcher] received config file publish message.", zap.String("file", watchFileId))

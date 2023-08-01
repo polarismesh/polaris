@@ -26,60 +26,10 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris/apiserver"
-	"github.com/polarismesh/polaris/apiserver/httpserver/docs"
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/utils"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 )
-
-// GetClientAccessServer get client access server
-func (h *HTTPServerV1) GetClientAccessServer(include []string) (*restful.WebService, error) {
-	clientAccess := []string{apiserver.DiscoverAccess, apiserver.RegisterAccess, apiserver.HealthcheckAccess}
-
-	ws := new(restful.WebService)
-
-	ws.Path("/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
-
-	// 如果为空，则开启全部接口
-	if len(include) == 0 {
-		include = clientAccess
-	}
-
-	// 客户端接口：增删改请求操作存储层，查请求访问缓存
-	for _, item := range include {
-		switch item {
-		case apiserver.DiscoverAccess:
-			h.addDiscoverAccess(ws)
-		case apiserver.RegisterAccess:
-			h.addRegisterAccess(ws)
-		case apiserver.HealthcheckAccess:
-			h.addHealthCheckAccess(ws)
-		default:
-			log.Errorf("method %s does not exist in httpserver client access", item)
-			return nil, fmt.Errorf("method %s does not exist in httpserver client access", item)
-		}
-	}
-
-	return ws, nil
-}
-
-// addDiscoverAccess 增加服务发现接口
-func (h *HTTPServerV1) addDiscoverAccess(ws *restful.WebService) {
-	ws.Route(docs.EnrichReportClientApiDocs(ws.POST("/ReportClient").To(h.ReportClient)))
-	ws.Route(docs.EnrichDiscoverApiDocs(ws.POST("/Discover").To(h.Discover)))
-}
-
-// addRegisterAccess 增加注册/反注册接口
-func (h *HTTPServerV1) addRegisterAccess(ws *restful.WebService) {
-	ws.Route(docs.EnrichRegisterInstanceApiDocs(ws.POST("/RegisterInstance").To(h.RegisterInstance)))
-	ws.Route(docs.EnrichDeregisterInstanceApiDocs(ws.POST("/DeregisterInstance").To(h.DeregisterInstance)))
-}
-
-// addHealthCheckAccess 增加健康检查接口
-func (h *HTTPServerV1) addHealthCheckAccess(ws *restful.WebService) {
-	ws.Route(docs.EnrichHeartbeatApiDocs(ws.POST("/Heartbeat").To(h.Heartbeat)))
-}
 
 // ReportClient 客户端上报信息
 func (h *HTTPServerV1) ReportClient(req *restful.Request, rsp *restful.Response) {

@@ -15,15 +15,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package cl5
+package model
 
 import (
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
-
-	"github.com/polarismesh/polaris/common/model"
 )
 
 // Cl5ServerCluster cl5集群的ctx的key
@@ -33,7 +31,7 @@ type Cl5ServerCluster struct{}
 type Cl5ServerProtocol struct{}
 
 // MarshalSid Sid结构体，序列化转为sid字符串
-func MarshalSid(sid *model.Sid) string {
+func MarshalSid(sid *Sid) string {
 	return fmt.Sprintf("%d:%d", sid.ModID, sid.CmdID)
 }
 
@@ -43,7 +41,7 @@ func MarshalModCmd(modID uint32, cmdID uint32) string {
 }
 
 // UnmarshalSid 把sid字符串反序列化为结构体Sid
-func UnmarshalSid(sidStr string) (*model.Sid, error) {
+func UnmarshalSid(sidStr string) (*Sid, error) {
 	items := strings.Split(sidStr, ":")
 	if len(items) != 2 {
 		return nil, errors.New("invalid format sid string")
@@ -60,7 +58,7 @@ func UnmarshalSid(sidStr string) (*model.Sid, error) {
 		return nil, err
 	}
 
-	out := &model.Sid{
+	out := &Sid{
 		ModID: uint32(modID),
 		CmdID: uint32(cmdID),
 	}

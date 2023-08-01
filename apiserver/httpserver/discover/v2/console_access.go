@@ -18,7 +18,6 @@
 package v2
 
 import (
-	"fmt"
 	"io"
 	"strings"
 
@@ -27,67 +26,10 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
-	"github.com/polarismesh/polaris/apiserver/httpserver/docs"
+	v1 "github.com/polarismesh/polaris/apiserver/httpserver/discover/v1"
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/utils"
-	v1 "github.com/polarismesh/polaris/apiserver/httpserver/v1"
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
 )
-
-const (
-	defaultReadAccess string = "default-read"
-	defaultAccess     string = "default"
-)
-
-// GetNamingConsoleAccessServer 注册管理端接口
-func (h *HTTPServerV2) GetNamingConsoleAccessServer(include []string) (*restful.WebService, error) {
-	consoleAccess := []string{defaultAccess}
-
-	ws := new(restful.WebService)
-
-	ws.Path("/naming/v2").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
-
-	// 如果为空，则开启全部接口
-	if len(include) == 0 {
-		include = consoleAccess
-	}
-
-	var hasDefault = false
-	for _, item := range include {
-		if item == defaultAccess {
-			hasDefault = true
-			break
-		}
-	}
-	for _, item := range include {
-		switch item {
-		case defaultReadAccess:
-			if !hasDefault {
-				h.addDefaultReadAccess(ws)
-			}
-		case defaultAccess:
-			h.addDefaultAccess(ws)
-		default:
-			log.Errorf("method %s does not exist in HTTPServerV2 console access", item)
-			return nil, fmt.Errorf("method %s does not exist in HTTPServerV2 console access", item)
-		}
-	}
-	return ws, nil
-}
-
-// addDefaultReadAccess 增加默认读接口
-func (h *HTTPServerV2) addDefaultReadAccess(ws *restful.WebService) {
-	ws.Route(docs.EnrichCreateRouterRuleApiDocs(ws.POST("/routings").To(h.CreateRoutings)))
-	ws.Route(docs.EnrichGetRouterRuleApiDocs(ws.GET("/routings").To(h.GetRoutings)))
-}
-
-// addDefaultAccess 增加默认接口
-func (h *HTTPServerV2) addDefaultAccess(ws *restful.WebService) {
-	ws.Route(docs.EnrichCreateRouterRuleApiDocs(ws.POST("/routings").To(h.CreateRoutings)))
-	ws.Route(docs.EnrichDeleteRouterRuleApiDocs(ws.POST("/routings/delete").To(h.DeleteRoutings)))
-	ws.Route(docs.EnrichUpdateRouterRuleApiDocs(ws.PUT("/routings").To(h.UpdateRoutings)))
-	ws.Route(docs.EnrichGetRouterRuleApiDocs(ws.GET("/routings").To(h.GetRoutings)))
-	ws.Route(docs.EnrichEnableRouterRuleApiDocs(ws.PUT("/routings/enable").To(h.EnableRoutings)))
-}
 
 const (
 	deprecatedRoutingV2TypeUrl = "type.googleapis.com/v2."

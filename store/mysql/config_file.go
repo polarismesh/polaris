@@ -33,37 +33,80 @@ type configFileStore struct {
 }
 
 // CreateConfigFile 创建配置文件
-func (cf *configFileStore) CreateConfigFile(tx store.Tx, file *model.ConfigFile) (*model.ConfigFile, error) {
-	err := cf.hardDeleteConfigFile(file.Namespace, file.Group, file.Name)
-	if err != nil {
-		return nil, err
+func (cf *configFileStore) CreateConfigFileTx(tx store.Tx, file *model.ConfigFile) error {
+	dbTx := tx.GetDelegateTx().(*BaseTx)
+	deleteSql := "delete from config_file where namespace = ? and `group` = ? and name = ? and flag = 1"
+	if _, err := dbTx.Exec(deleteSql, file.Namespace, file.Group, file.Name); err != nil {
+		return store.Error(err)
 	}
+
 	createSql := "insert into config_file(name,namespace,`group`,content,comment,format,create_time, " +
 		"create_by,modify_time,modify_by) values " +
 		"(?,?,?,?,?,?,sysdate(),?,sysdate(),?)"
-	if tx != nil {
-		_, err = tx.GetDelegateTx().(*BaseTx).Exec(createSql, file.Name, file.Namespace, file.Group,
-			file.Content, file.Comment, file.Format, file.CreateBy, file.ModifyBy)
-	} else {
-		_, err = cf.master.Exec(createSql, file.Name, file.Namespace, file.Group, file.Content, file.Comment,
-			file.Format, file.CreateBy, file.ModifyBy)
+	if _, err := dbTx.Exec(createSql, file.Name, file.Namespace, file.Group,
+		file.Content, file.Comment, file.Format, file.CreateBy, file.ModifyBy); err != nil {
+		return store.Error(err)
 	}
-	if err != nil {
-		return nil, store.Error(err)
+
+	if err := cf.batchCleanTags(dbTx, file); err != nil {
+		return store.Error(err)
 	}
-	return cf.GetConfigFile(tx, file.Namespace, file.Group, file.Name)
+
+	return nil
+}
+
+func (cf *configFileStore) batchAddTags(tx *BaseTx, file *model.ConfigFile) error {
+	// 添加配置标签
+	insertSql := "insert into config_file_tag(`key`, `value`, namespace, `group`, file_name, " +
+		" create_time, create_by, modify_time, modify_by) values "
+	values := []string{}
+	args := []interface{}{}
+	for k, v := range file.Metadata {
+		values = append(values, " (?,?,?,?,?,sysdate(),?,sysdate(),?) ")
+		args = append(args, k, v, file.Namespace, file.Group, file.Name, file.CreateBy, file.ModifyBy)
+	}
+
+	_, err := tx.Exec(insertSql, args...)
+	return store.Error(err)
+}
+
+func (cf *configFileStore) batchCleanTags(tx *BaseTx, file *model.ConfigFile) error {
+	// 添加配置标签
+	cleanSql := "DELETE FROM config_file_tag WHERE namespace = ? AND `group` = ? AND file_name = ? "
+	args := []interface{}{file.Namespace, file.Group, file.Name}
+	_, err := tx.Exec(cleanSql, args...)
+	return store.Error(err)
+}
+
+// CountConfigFiles 获取一个配置文件组下的文件数量
+func (cfr *configFileStore) CountConfigFiles(namespace, group string) (uint64, error) {
+	metricsSql := "SELECT count(file_name) FROM config_file WHERE flag = 0 AND namespace = ? AND `group` = ?"
+	row := cfr.slave.QueryRow(metricsSql, namespace, group)
+	var total uint64
+	if err := row.Scan(&total); err != nil {
+		return 0, store.Error(err)
+	}
+	return total, nil
 }
 
 // GetConfigFile 获取配置文件
-func (cf *configFileStore) GetConfigFile(tx store.Tx, namespace, group, name string) (*model.ConfigFile, error) {
-	querySql := cf.baseSelectConfigFileSql() + "where namespace = ? and `group` = ? and name = ? and flag = 0"
-	var rows *sql.Rows
-	var err error
-	if tx != nil {
-		rows, err = tx.GetDelegateTx().(*BaseTx).Query(querySql, namespace, group, name)
-	} else {
-		rows, err = cf.master.Query(querySql, namespace, group, name)
+func (cf *configFileStore) GetConfigFile(namespace, group, name string) (*model.ConfigFile, error) {
+	tx, err := cf.master.Begin()
+	if err != nil {
+		return nil, store.Error(err)
 	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	return cf.GetConfigFileTx(NewSqlDBTx(tx), namespace, group, name)
+}
+
+// GetConfigFile 获取配置文件
+func (cf *configFileStore) GetConfigFileTx(tx store.Tx, namespace, group, name string) (*model.ConfigFile, error) {
+	dbTx := tx.GetDelegateTx().(*BaseTx)
+	querySql := cf.baseSelectConfigFileSql() + "where namespace = ? and `group` = ? and name = ? and flag = 0"
+	rows, err := dbTx.Query(querySql, namespace, group, name)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +117,6 @@ func (cf *configFileStore) GetConfigFile(tx store.Tx, namespace, group, name str
 	if len(files) > 0 {
 		return files[0], nil
 	}
-
 	return nil, nil
 }
 
@@ -106,8 +148,12 @@ func (cf *configFileStore) QueryConfigFilesByGroup(namespace, group string,
 }
 
 // QueryConfigFiles 翻页查询配置文件，group、name可为模糊匹配
-func (cf *configFileStore) QueryConfigFiles(namespace, group, name string,
-	offset, limit uint32) (uint32, []*model.ConfigFile, error) {
+func (cf *configFileStore) QueryConfigFiles(filter map[string]string, offset, limit uint32) (uint32, []*model.ConfigFile, error) {
+
+	namespace := filter["namespace"]
+	group := filter["group"]
+	name := filter["name"]
+
 	// 全部 namespace
 	if namespace == "" {
 		group = "%" + group + "%"
@@ -162,25 +208,20 @@ func (cf *configFileStore) QueryConfigFiles(namespace, group, name string,
 }
 
 // UpdateConfigFile 更新配置文件
-func (cf *configFileStore) UpdateConfigFile(tx store.Tx, file *model.ConfigFile) (*model.ConfigFile, error) {
+func (cf *configFileStore) UpdateConfigFileTx(tx store.Tx, file *model.ConfigFile) error {
 	updateSql := "update config_file set content = ? , comment = ?, format = ?, modify_time = sysdate(), " +
 		" modify_by = ? where namespace = ? and `group` = ? and name = ?"
-	var err error
-	if tx != nil {
-		_, err = tx.GetDelegateTx().(*BaseTx).Exec(updateSql, file.Content, file.Comment, file.Format,
-			file.ModifyBy, file.Namespace, file.Group, file.Name)
-	} else {
-		_, err = cf.master.Exec(updateSql, file.Content, file.Comment, file.Format, file.ModifyBy,
-			file.Namespace, file.Group, file.Name)
-	}
+	dbTx := tx.GetDelegateTx().(*BaseTx)
+	_, err := dbTx.Exec(updateSql, file.Content, file.Comment, file.Format,
+		file.ModifyBy, file.Namespace, file.Group, file.Name)
 	if err != nil {
-		return nil, store.Error(err)
+		return store.Error(err)
 	}
-	return cf.GetConfigFile(tx, file.Namespace, file.Group, file.Name)
+	return nil
 }
 
-// DeleteConfigFile 删除配置文件
-func (cf *configFileStore) DeleteConfigFile(tx store.Tx, namespace, group, name string) error {
+// DeleteConfigFileTx 删除配置文件
+func (cf *configFileStore) DeleteConfigFileTx(tx store.Tx, namespace, group, name string) error {
 	deleteSql := "update config_file set flag = 1 where namespace = ? and `group` = ? and name = ?"
 	var err error
 	if tx != nil {

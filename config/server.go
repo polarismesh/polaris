@@ -23,7 +23,6 @@ import (
 	"time"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
-	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
@@ -58,7 +57,8 @@ type Server struct {
 	cfg *Config
 
 	storage           store.Store
-	fileCache         cache.FileCache
+	fileCache         cache.ConfigFileCache
+	groupCache        cache.ConfigGroupCache
 	caches            *cache.CacheManager
 	watchCenter       *watchCenter
 	connManager       *connManager
@@ -123,12 +123,6 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 		log.Warnf("Not Found Crypto Plugin")
 	}
 
-	// 初始化发布事件扫描器
-	if err := initReleaseMessageScanner(ctx, ss, s.fileCache, time.Second); err != nil {
-		log.Error("[Config][Server] init release message scanner error. ", zap.Error(err))
-		return errors.New("init config module error")
-	}
-
 	s.caches = cacheMgn
 	s.chains = newConfigChains(s, []ConfigFileChain{
 		&CryptoConfigFileChain{},
@@ -162,7 +156,7 @@ func (s *Server) WatchCenter() *watchCenter {
 }
 
 // Cache 获取配置中心缓存模块
-func (s *Server) Cache() cache.FileCache {
+func (s *Server) Cache() cache.ConfigFileCache {
 	return s.fileCache
 }
 
@@ -225,7 +219,7 @@ type ConfigChains struct {
 }
 
 // BeforeCreateFile
-func (cc *ConfigChains) BeforeCreateFile(ctx context.Context, file *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+func (cc *ConfigChains) BeforeCreateFile(ctx context.Context, file *model.ConfigFile) *apiconfig.ConfigResponse {
 	for i := range cc.chains {
 		if errResp := cc.chains[i].BeforeCreateFile(ctx, file); errResp != nil {
 			return errResp
@@ -235,7 +229,7 @@ func (cc *ConfigChains) BeforeCreateFile(ctx context.Context, file *apiconfig.Co
 }
 
 // AfterGetFile
-func (cc *ConfigChains) AfterGetFile(ctx context.Context, file *apiconfig.ConfigFile) (*apiconfig.ConfigFile, error) {
+func (cc *ConfigChains) AfterGetFile(ctx context.Context, file *model.ConfigFile) (*model.ConfigFile, error) {
 	for i := range cc.chains {
 		_file, err := cc.chains[i].AfterGetFile(ctx, file)
 		if err != nil {
@@ -247,7 +241,7 @@ func (cc *ConfigChains) AfterGetFile(ctx context.Context, file *apiconfig.Config
 }
 
 // BeforeUpdateFile
-func (cc *ConfigChains) BeforeUpdateFile(ctx context.Context, file *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+func (cc *ConfigChains) BeforeUpdateFile(ctx context.Context, file *model.ConfigFile) *apiconfig.ConfigResponse {
 	for i := range cc.chains {
 		if errResp := cc.chains[i].BeforeUpdateFile(ctx, file); errResp != nil {
 			return errResp
@@ -258,7 +252,7 @@ func (cc *ConfigChains) BeforeUpdateFile(ctx context.Context, file *apiconfig.Co
 
 // AfterGetFileRelease
 func (cc *ConfigChains) AfterGetFileRelease(ctx context.Context,
-	release *apiconfig.ConfigFileRelease) (*apiconfig.ConfigFileRelease, error) {
+	release *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
 
 	for i := range cc.chains {
 		_release, err := cc.chains[i].AfterGetFileRelease(ctx, release)
@@ -272,7 +266,7 @@ func (cc *ConfigChains) AfterGetFileRelease(ctx context.Context,
 
 // AfterGetFileHistory
 func (cc *ConfigChains) AfterGetFileHistory(ctx context.Context,
-	history *apiconfig.ConfigFileReleaseHistory) (*apiconfig.ConfigFileReleaseHistory, error) {
+	history *model.ConfigFileReleaseHistory) (*model.ConfigFileReleaseHistory, error) {
 	for i := range cc.chains {
 		_history, err := cc.chains[i].AfterGetFileHistory(ctx, history)
 		if err != nil {

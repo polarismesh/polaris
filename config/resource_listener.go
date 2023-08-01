@@ -30,16 +30,9 @@ import (
 
 // ResourceHook The listener is placed before and after the resource operation, only normal flow
 type ResourceHook interface {
-
 	// Before
-	//  @param ctx
-	//  @param resourceType
 	Before(ctx context.Context, resourceType model.Resource)
-
 	// After
-	//  @param ctx
-	//  @param resourceType
-	//  @param res
 	After(ctx context.Context, resourceType model.Resource, res *ResourceEvent) error
 }
 

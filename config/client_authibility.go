@@ -37,7 +37,7 @@ func (s *serverAuthability) GetConfigFileForClient(ctx context.Context,
 			Group:     fileInfo.Group},
 		}, model.Read, "GetConfigFileForClient")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
-		return api.NewConfigClientResponseWithMessage(convertToErrCode(err), err.Error())
+		return api.NewConfigClientResponseWithInfo(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -55,7 +55,7 @@ func (s *serverAuthability) CreateConfigFileFromClient(ctx context.Context,
 			Group:     fileInfo.Group},
 		}, model.Create, "CreateConfigFileFromClient")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
-		return api.NewConfigClientResponseWithMessage(convertToErrCode(err), err.Error())
+		return api.NewConfigClientResponseWithInfo(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -68,13 +68,9 @@ func (s *serverAuthability) CreateConfigFileFromClient(ctx context.Context,
 func (s *serverAuthability) UpdateConfigFileFromClient(ctx context.Context,
 	fileInfo *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse {
 	authCtx := s.collectClientConfigFileAuthContext(ctx,
-		[]*apiconfig.ConfigFile{{
-			Namespace: fileInfo.Namespace,
-			Name:      fileInfo.Name,
-			Group:     fileInfo.Group},
-		}, model.Modify, "UpdateConfigFileFromClient")
+		[]*apiconfig.ConfigFile{fileInfo}, model.Modify, "UpdateConfigFileFromClient")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
-		return api.NewConfigClientResponseWithMessage(convertToErrCode(err), err.Error())
+		return api.NewConfigClientResponseWithInfo(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -93,7 +89,7 @@ func (s *serverAuthability) PublishConfigFileFromClient(ctx context.Context,
 			Group:     fileInfo.Group},
 		}, model.Modify, "PublishConfigFileFromClient")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
-		return api.NewConfigClientResponseWithMessage(convertToErrCode(err), err.Error())
+		return api.NewConfigClientResponseWithInfo(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -108,11 +104,31 @@ func (s *serverAuthability) WatchConfigFiles(ctx context.Context,
 	authCtx := s.collectClientWatchConfigFiles(ctx, request, model.Read, "WatchConfigFiles")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
 		return func() *apiconfig.ConfigClientResponse {
-			return api.NewConfigClientResponseWithMessage(convertToErrCode(err), err.Error())
+			return api.NewConfigClientResponseWithInfo(convertToErrCode(err), err.Error())
 		}, nil
 	}
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return s.targetServer.WatchConfigFiles(ctx, request)
+}
+
+// GetConfigFileNamesWithCache 获取某个配置分组下的配置文件
+func (s *serverAuthability) GetConfigFileNamesWithCache(ctx context.Context,
+	req *apiconfig.ConfigFileGroupRequest) *apiconfig.ConfigClientListResponse {
+
+	authCtx := s.collectClientConfigFileReleaseAuthContext(ctx, []*apiconfig.ConfigFileRelease{
+		&apiconfig.ConfigFileRelease{
+			Namespace: req.GetConfigFileGroup().GetNamespace(),
+			Group:     req.GetConfigFileGroup().GetName(),
+		},
+	}, model.Read, "GetConfigFileNamesWithCache")
+	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+		out := api.NewConfigClientListResponse(convertToErrCode(err))
+		return out
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+	return s.targetServer.GetConfigFileNamesWithCache(ctx, req)
 }
