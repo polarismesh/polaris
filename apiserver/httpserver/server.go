@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/emicklei/go-restful/v3"
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
@@ -49,6 +50,7 @@ import (
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/healthcheck"
+	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
 // HTTPServer HTTP API服务器
@@ -319,6 +321,7 @@ func (h *HTTPServer) Restart(option map[string]interface{}, apiConf map[string]a
 // createRestfulContainer create handler
 func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 	wsContainer := restful.NewContainer()
+	wsContainer.RecoverHandler(h.recoverFunc)
 
 	// 增加CORS TODO
 	cors := restful.CrossOriginResourceSharing{
@@ -608,4 +611,19 @@ func (h *HTTPServer) enterRateLimit(req *restful.Request, rsp *restful.Response)
 	}
 
 	return nil
+}
+
+func (h *HTTPServer) recoverFunc(i interface{}, w http.ResponseWriter) {
+	log.Errorf("panic %+v", i)
+	obj := &service_manage.Response{}
+
+	status := api.CalcCode(obj)
+	if code := obj.GetCode().GetValue(); code != api.ExecuteSuccess {
+		w.Header().Add(utils.PolarisCode, fmt.Sprintf("%d", code))
+		w.Header().Add(utils.PolarisMessage, api.Code2Info(code))
+	}
+	w.WriteHeader(status)
+
+	m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
+	_ = m.Marshal(w, obj)
 }

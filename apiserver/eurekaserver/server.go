@@ -405,7 +405,14 @@ func (h *EurekaServer) createRestfulContainer() (*restful.Container, error) {
 	wsContainer.Add(h.GetEurekaV2Server())
 	wsContainer.Add(h.GetEurekaV1Server())
 	wsContainer.Add(h.GetEurekaServer())
+	wsContainer.RecoverHandler(h.recoverFunc)
 	return wsContainer, nil
+}
+
+func (h *EurekaServer) recoverFunc(i interface{}, w http.ResponseWriter) {
+	eurekalog.Errorf("panic %+v", i)
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Header().Add(restful.HEADER_ContentType, restful.MIME_JSON)
 }
 
 // process 在接收和回复时统一处理请求
