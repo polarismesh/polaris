@@ -229,7 +229,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 
 	batchConfig := &batch.Config{
 		Register:         namingBatchConfig.Register,
-		Deregister:       namingBatchConfig.Register,
+		Deregister:       namingBatchConfig.Deregister,
 		ClientRegister:   namingBatchConfig.ClientRegister,
 		ClientDeregister: namingBatchConfig.ClientDeregister,
 		Heartbeat:        healthBatchConfig.Heartbeat,
