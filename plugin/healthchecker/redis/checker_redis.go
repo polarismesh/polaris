@@ -181,6 +181,7 @@ func (r *RedisHealthChecker) Report(ctx context.Context, request *plugin.ReportR
 	if resp.Err != nil {
 		log.Errorf("[Health Check][RedisCheck]addr:%s:%d, id:%s, set redis err:%s",
 			request.Host, request.Port, request.InstanceId, resp.Err)
+		return resp.Err
 	}
 	return nil
 }
