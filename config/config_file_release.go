@@ -19,6 +19,7 @@ package config
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
@@ -26,10 +27,13 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
 
+	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	commonstore "github.com/polarismesh/polaris/common/store"
+	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/store"
 )
 
 // PublishConfigFile 发布配置文件
@@ -40,216 +44,329 @@ func (s *Server) PublishConfigFile(
 	fileName := configFileRelease.FileName.GetValue()
 
 	if err := CheckFileName(utils.NewStringValue(fileName)); err != nil {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileName, nil)
+		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileName)
 	}
 	if err := CheckResourceName(utils.NewStringValue(namespace)); err != nil {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidNamespaceName, nil)
+		return api.NewConfigResponse(apimodel.Code_InvalidNamespaceName)
 	}
 	if err := CheckResourceName(utils.NewStringValue(group)); err != nil {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileGroupName, nil)
+		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileGroupName)
 	}
 	if !s.checkNamespaceExisted(namespace) {
-		return api.NewConfigFileReleaseResponse(apimodel.Code_NotFoundNamespace, configFileRelease)
+		return api.NewConfigResponse(apimodel.Code_NotFoundNamespace)
 	}
 
-	userName := utils.ParseUserName(ctx)
-	configFileRelease.CreateBy = utils.NewStringValue(userName)
-	configFileRelease.ModifyBy = utils.NewStringValue(userName)
+	tx, ctx, err := s.StartTxAndSetToContext(ctx)
+	if err != nil {
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
-	tx := s.getTx(ctx)
+	data, resp := s.handlePublishConfigFile(ctx, tx, configFileRelease)
+	if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
+		_ = tx.Rollback()
+		if data != nil {
+			s.recordReleaseFail(ctx, utils.ReleaseTypeNormal, data, err)
+		}
+		return resp
+	}
+
+	if err := tx.Commit(); err != nil {
+		s.recordReleaseFail(ctx, utils.ReleaseTypeNormal, data, err)
+		return api.NewConfigFileReleaseResponse(commonstore.StoreCode2APICode(err), nil)
+	}
+	s.recordReleaseHistory(ctx, data, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess, "")
+	return resp
+}
+
+// PublishConfigFile 发布配置文件
+func (s *Server) handlePublishConfigFile(ctx context.Context, tx store.Tx,
+	req *apiconfig.ConfigFileRelease) (*model.ConfigFileRelease, *apiconfig.ConfigResponse) {
+	namespace := req.Namespace.GetValue()
+	group := req.Group.GetValue()
+	fileName := req.FileName.GetValue()
+
 	// 获取待发布的 configFile 信息
-	toPublishFile, err := s.storage.GetConfigFile(tx, namespace, group, fileName)
+	toPublishFile, err := s.storage.GetConfigFileTx(tx, namespace, group, fileName)
 	if err != nil {
-		log.Error("[Config][Service] get config file error.", utils.ZapRequestIDByCtx(ctx),
-			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
-		s.recordReleaseFail(ctx, model.ToConfigFileReleaseStore(configFileRelease))
-		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
+		log.Error("[Config][Service] get config file error.", utils.RequestID(ctx),
+			zap.String("namespace", namespace), zap.String("group", group), zap.String("fileName", fileName),
+			zap.Error(err))
+		s.recordReleaseFail(ctx, utils.ReleaseTypeNormal, model.ToConfigFileReleaseStore(req), err)
+		return nil, api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
-
 	if toPublishFile == nil {
-		return api.NewConfigFileResponse(apimodel.Code_NotFoundResource, nil)
+		return nil, api.NewConfigResponse(apimodel.Code_NotFoundResource)
+	}
+	if releaseName := req.GetName().GetValue(); releaseName == "" {
+		req.Name = utils.NewStringValue(GenReleaseName("", fileName))
 	}
 
-	md5 := CalMd5(toPublishFile.Content)
-
-	// 获取 configFileRelease 信息
-	managedFileRelease, err := s.storage.GetConfigFileReleaseWithAllFlag(tx, namespace, group, fileName)
-	if err != nil {
-		log.Error("[Config][Service] get config file release error.", utils.ZapRequestIDByCtx(ctx),
-			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
-
-		s.recordReleaseFail(ctx, model.ToConfigFileReleaseStore(configFileRelease))
-		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
-	}
-
-	releaseName := configFileRelease.Name.GetValue()
-	if releaseName == "" {
-		if managedFileRelease == nil {
-			releaseName = GenReleaseName("", fileName)
-		} else {
-			releaseName = GenReleaseName(managedFileRelease.Name, fileName)
-		}
-	}
-
-	// 第一次发布
-	if managedFileRelease == nil {
-		fileRelease := &model.ConfigFileRelease{
-			Name:      releaseName,
-			Namespace: namespace,
-			Group:     group,
-			FileName:  fileName,
-			Content:   toPublishFile.Content,
-			Comment:   configFileRelease.Comment.GetValue(),
-			Md5:       md5,
-			Version:   1,
-			Flag:      0,
-			CreateBy:  configFileRelease.CreateBy.GetValue(),
-			ModifyBy:  configFileRelease.CreateBy.GetValue(),
-		}
-
-		createdFileRelease, err := s.storage.CreateConfigFileRelease(tx, fileRelease)
-		if err != nil {
-			log.Error("[Config][Service] create config file release error.", utils.ZapRequestIDByCtx(ctx),
-				utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
-			s.recordReleaseFail(ctx, model.ToConfigFileReleaseStore(configFileRelease))
-			return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
-		}
-
-		s.RecordHistory(ctx, configFileReleaseRecordEntry(ctx, configFileRelease, createdFileRelease, model.OCreate))
-		s.recordReleaseHistory(ctx, createdFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess)
-		return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess,
-			model.ToConfiogFileReleaseApi(createdFileRelease))
-	}
-
-	// 更新发布
 	fileRelease := &model.ConfigFileRelease{
-		Name:      releaseName,
-		Namespace: namespace,
-		Group:     group,
-		FileName:  fileName,
-		Content:   toPublishFile.Content,
-		Comment:   configFileRelease.Comment.GetValue(),
-		Md5:       md5,
-		Version:   managedFileRelease.Version + 1,
-		ModifyBy:  configFileRelease.CreateBy.GetValue(),
+		SimpleConfigFileRelease: &model.SimpleConfigFileRelease{
+			ConfigFileReleaseKey: &model.ConfigFileReleaseKey{
+				Name:      req.GetName().GetValue(),
+				Namespace: namespace,
+				Group:     group,
+				FileName:  fileName,
+			},
+			Format:   toPublishFile.Format,
+			Metadata: toPublishFile.Metadata,
+			Comment:  req.Comment.GetValue(),
+			Md5:      CalMd5(toPublishFile.Content),
+			CreateBy: utils.ParseUserName(ctx),
+			ModifyBy: utils.ParseUserName(ctx),
+		},
+		Content: toPublishFile.Content,
+	}
+	if err := s.storage.CreateConfigFileReleaseTx(tx, fileRelease); err != nil {
+		log.Error("[Config][Service] update config file release error.",
+			utils.RequestID(ctx), zap.String("namespace", namespace),
+			zap.String("group", group), zap.String("fileName", fileName), zap.Error(err))
+		return fileRelease, api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 
-	updatedFileRelease, err := s.storage.UpdateConfigFileRelease(tx, fileRelease)
-	if err != nil {
-		log.Error("[Config][Service] update config file release error.", utils.ZapRequestIDByCtx(ctx),
-			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
-		s.recordReleaseFail(ctx, model.ToConfigFileReleaseStore(configFileRelease))
-		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
-	}
-
-	s.recordReleaseHistory(ctx, updatedFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess)
-	s.RecordHistory(ctx, configFileReleaseRecordEntry(ctx, configFileRelease, updatedFileRelease, model.OCreate))
-	return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess,
-		model.ToConfiogFileReleaseApi(updatedFileRelease))
+	s.RecordHistory(ctx, configFileReleaseRecordEntry(ctx, req, fileRelease, model.OCreate))
+	return fileRelease, api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
 }
 
 // GetConfigFileRelease 获取配置文件发布内容
-func (s *Server) GetConfigFileRelease(
-	ctx context.Context, namespace, group, fileName string) *apiconfig.ConfigResponse {
-	if err := CheckFileName(utils.NewStringValue(fileName)); err != nil {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileName, nil)
+func (s *Server) GetConfigFileRelease(ctx context.Context, req *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
+	namespace := req.GetNamespace().GetValue()
+	group := req.GetGroup().GetValue()
+	fileName := req.GetFileName().GetValue()
+	releaseName := req.GetName().GetValue()
+	if errCode, errMsg := checkBaseReleaseParam(req); errCode != apimodel.Code_ExecuteSuccess {
+		return api.NewConfigResponseWithInfo(errCode, errMsg)
 	}
-	if err := CheckResourceName(utils.NewStringValue(namespace)); err != nil {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidNamespaceName, nil)
-	}
-	if err := CheckResourceName(utils.NewStringValue(group)); err != nil {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileGroupName, nil)
-	}
-
-	fileRelease, err := s.storage.GetConfigFileRelease(s.getTx(ctx), namespace, group, fileName)
-	if err != nil {
-		log.Error("[Config][Service]get config file release error.", utils.ZapRequestIDByCtx(ctx),
-			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
-		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
-	}
-	if fileRelease == nil {
-		return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, nil)
-	}
-	release := model.ToConfiogFileReleaseApi(fileRelease)
-	release, err = s.chains.AfterGetFileRelease(ctx, release)
-	if err != nil {
-		return api.NewConfigFileReleaseResponseWithMessage(apimodel.Code_ExecuteException, err.Error())
-	}
-	return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, release)
-}
-
-// DeleteConfigFileRelease 删除配置文件发布，删除配置文件的时候，同步删除配置文件发布数据
-func (s *Server) DeleteConfigFileRelease(ctx context.Context, namespace,
-	group, fileName, deleteBy string) *apiconfig.ConfigResponse {
-
-	if err := CheckFileName(utils.NewStringValue(fileName)); err != nil {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileName, nil)
-	}
-	if err := CheckResourceName(utils.NewStringValue(namespace)); err != nil {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidNamespaceName, nil)
-	}
-	if err := CheckResourceName(utils.NewStringValue(group)); err != nil {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileGroupName, nil)
-	}
-
-	latestReleaseRsp := s.GetConfigFileRelease(ctx, namespace, group, fileName)
-	if latestReleaseRsp.Code.GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
-		return api.NewConfigFileResponse(apimodel.Code(latestReleaseRsp.Code.GetValue()), nil)
-	}
-
-	var releaseName string
-	latestRelease := latestReleaseRsp.ConfigFileRelease
-	if latestRelease == nil {
-		// 从来没有发布过，无需删除
-		return api.NewConfigFileResponse(apimodel.Code_ExecuteSuccess, nil)
-	}
-
-	releaseName = GenReleaseName(latestRelease.Name.GetValue(), fileName)
-	if releaseName != latestRelease.Name.GetValue() {
-		// 更新releaseName
-		releaseModel := model.ToConfigFileReleaseStore(latestRelease)
-		releaseModel.Name = releaseName
-		_, err := s.storage.UpdateConfigFileRelease(s.getTx(ctx), releaseModel)
-		if err != nil {
-			log.Error("[Config][Service] update release name error when delete release.",
-				utils.ZapRequestIDByCtx(ctx), utils.ZapNamespace(namespace), utils.ZapGroup(group),
-				utils.ZapFileName(fileName), zap.Error(err))
-			return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
-		}
-	}
-
-	if err := s.storage.DeleteConfigFileRelease(s.getTx(ctx), namespace, group, fileName, deleteBy); err != nil {
-		log.Error("[Config][Service] delete config file release error.", utils.ZapRequestIDByCtx(ctx),
-			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
-		s.recordReleaseHistory(ctx, &model.ConfigFileRelease{
-			Name:      releaseName,
-			Namespace: namespace,
-			Group:     group,
-			FileName:  fileName,
-			ModifyBy:  deleteBy,
-		}, utils.ReleaseTypeDelete, utils.ReleaseStatusFail)
-		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
-	}
-
-	data := &model.ConfigFileRelease{
-		Name:      releaseName,
+	ret, err := s.storage.GetConfigFileRelease(&model.ConfigFileReleaseKey{
 		Namespace: namespace,
 		Group:     group,
 		FileName:  fileName,
-		ModifyBy:  deleteBy,
+		Name:      releaseName,
+	})
+	if err != nil {
+		log.Error("[Config][Service]get config file release error.", utils.RequestID(ctx),
+			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
-	s.recordReleaseHistory(ctx, data, utils.ReleaseTypeDelete, utils.ReleaseStatusSuccess)
-	s.RecordHistory(ctx, configFileReleaseRecordEntry(ctx, &apiconfig.ConfigFileRelease{
-		Namespace: utils.NewStringValue(namespace),
-		Name:      utils.NewStringValue(releaseName),
-		Group:     utils.NewStringValue(group),
-		FileName:  utils.NewStringValue(fileName),
-	}, data, model.ODelete))
-	return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, nil)
+	if ret == nil {
+		return api.NewConfigResponse(apimodel.Code_NotFoundResource)
+	}
+	ret, err = s.chains.AfterGetFileRelease(ctx, ret)
+	if err != nil {
+		out := api.NewConfigResponse(apimodel.Code_ExecuteException)
+		out.Info = utils.NewStringValue(err.Error())
+		return out
+	}
+	release := model.ToConfiogFileReleaseApi(ret)
+	return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, release)
 }
 
-func (s *Server) recordReleaseFail(ctx context.Context, configFileRelease *model.ConfigFileRelease) {
-	s.recordReleaseHistory(ctx, configFileRelease, utils.ReleaseTypeNormal, utils.ReleaseStatusFail)
+// DeleteConfigFileRelease 删除某个配置文件的发布 release
+func (s *Server) DeleteConfigFileReleases(ctx context.Context,
+	reqs []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse {
+
+	responses := api.NewConfigBatchWriteResponse(apimodel.Code_ExecuteSuccess)
+	chs := make([]chan *apiconfig.ConfigResponse, 0, len(reqs))
+	for i, instance := range reqs {
+		chs = append(chs, make(chan *apiconfig.ConfigResponse))
+		go func(index int, ins *apiconfig.ConfigFileRelease) {
+			chs[index] <- s.handleDeleteConfigFileRelease(ctx, ins)
+		}(i, instance)
+	}
+
+	for _, ch := range chs {
+		resp := <-ch
+		api.ConfigCollect(responses, resp)
+	}
+	return responses
+}
+
+func (s *Server) handleDeleteConfigFileRelease(ctx context.Context,
+	req *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
+
+	if errCode, errMsg := checkBaseReleaseParam(req); errCode != apimodel.Code_ExecuteSuccess {
+		return api.NewConfigResponseWithInfo(errCode, errMsg)
+	}
+	release := &model.ConfigFileRelease{
+		SimpleConfigFileRelease: &model.SimpleConfigFileRelease{
+			ConfigFileReleaseKey: &model.ConfigFileReleaseKey{
+				Name:      req.GetName().GetValue(),
+				Namespace: req.GetNamespace().GetValue(),
+				Group:     req.GetGroup().GetValue(),
+				FileName:  req.GetFileName().GetValue(),
+			},
+		},
+	}
+	if err := s.storage.DeleteConfigFileRelease(release.ConfigFileReleaseKey); err != nil {
+		log.Error("[Config][Service] delete config file release error.",
+			utils.RequestID(ctx), zap.String("namespace", req.GetNamespace().GetValue()),
+			zap.String("group", req.GetGroup().GetValue()), zap.String("fileName", req.GetFileName().GetValue()),
+			zap.Error(err))
+
+		s.recordReleaseFail(ctx, utils.ReleaseTypeDelete, release, err)
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
+	}
+
+	s.recordReleaseSuccess(ctx, utils.ReleaseTypeDelete, release)
+	s.RecordHistory(ctx, configFileReleaseRecordEntry(ctx, req, release, model.ODelete))
+	return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
+}
+
+func (s *Server) GetConfigFileReleaseVersions(ctx context.Context,
+	filters map[string]string) *apiconfig.ConfigBatchQueryResponse {
+
+	namespace := filters["namespace"]
+	group := filters["group"]
+	fileName := filters["file_name"]
+	if namespace == "" {
+		return api.NewConfigBatchQueryResponseWithInfo(apimodel.Code_BadRequest, "invalid namespace")
+	}
+	if group == "" {
+		return api.NewConfigBatchQueryResponseWithInfo(apimodel.Code_BadRequest, "invalid config group")
+	}
+	if fileName == "" {
+		return api.NewConfigBatchQueryResponseWithInfo(apimodel.Code_BadRequest, "invalid config file name")
+	}
+	args := cache.ConfigReleaseArgs{
+		BaseConfigArgs: cache.BaseConfigArgs{
+			Namespace: filters["namespace"],
+			Group:     filters["group"],
+		},
+		FileName:   filters["file_name"],
+		OnlyActive: false,
+		NoPage:     true,
+	}
+	return s.handleDescribeConfigFileReleases(ctx, args)
+}
+
+func (s *Server) GetConfigFileReleases(ctx context.Context,
+	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
+
+	searchFilters := map[string]string{}
+	for k, v := range filter {
+		if _, ok := availableSearch["config_file_release"][k]; ok {
+			searchFilters[k] = v
+		}
+	}
+
+	offset, limit, err := utils.ParseOffsetAndLimit(filter)
+	if err != nil {
+		return api.NewConfigBatchQueryResponseWithInfo(apimodel.Code_BadRequest, err.Error())
+	}
+
+	args := cache.ConfigReleaseArgs{
+		BaseConfigArgs: cache.BaseConfigArgs{
+			Namespace:  searchFilters["namespace"],
+			Group:      searchFilters["group"],
+			Offset:     offset,
+			Limit:      limit,
+			OrderField: searchFilters["order_field"],
+			OrderType:  searchFilters["order_type"],
+		},
+		FileName:   searchFilters["file_name"],
+		OnlyActive: strings.Compare(searchFilters["only_active"], "true") == 0,
+	}
+	return s.handleDescribeConfigFileReleases(ctx, args)
+}
+
+func (s *Server) handleDescribeConfigFileReleases(ctx context.Context,
+	args cache.ConfigReleaseArgs) *apiconfig.ConfigBatchQueryResponse {
+
+	total, simpleReleases, err := s.fileCache.QueryReleases(&args)
+	if err != nil {
+		return api.NewConfigBatchQueryResponseWithInfo(apimodel.Code_ExecuteException, err.Error())
+	}
+	ret := make([]*apiconfig.ConfigFileRelease, 0, len(simpleReleases))
+	for i := range simpleReleases {
+		item := simpleReleases[i]
+		ret = append(ret, &apiconfig.ConfigFileRelease{
+			Id:         utils.NewUInt64Value(item.Id),
+			Name:       utils.NewStringValue(item.Name),
+			Namespace:  utils.NewStringValue(item.Namespace),
+			Group:      utils.NewStringValue(item.Group),
+			FileName:   utils.NewStringValue(item.FileName),
+			Version:    utils.NewUInt64Value(item.Version),
+			Active:     utils.NewBoolValue(item.Active),
+			CreateTime: utils.NewStringValue(commontime.Time2String(item.CreateTime)),
+			ModifyTime: utils.NewStringValue(commontime.Time2String(item.ModifyTime)),
+		})
+	}
+
+	resp := api.NewConfigBatchQueryResponse(apimodel.Code_ExecuteSuccess)
+	resp.Total = utils.NewUInt32Value(total)
+	resp.ConfigFileReleases = ret
+	return resp
+}
+
+func (s *Server) RollbackConfigFileReleases(ctx context.Context,
+	reqs []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse {
+
+	responses := api.NewConfigBatchWriteResponse(apimodel.Code_ExecuteSuccess)
+	chs := make([]chan *apiconfig.ConfigResponse, 0, len(reqs))
+	for i, instance := range reqs {
+		chs = append(chs, make(chan *apiconfig.ConfigResponse))
+		go func(index int, ins *apiconfig.ConfigFileRelease) {
+			chs[index] <- s.handleRollbackConfigFileRelease(ctx, ins)
+		}(i, instance)
+	}
+
+	for _, ch := range chs {
+		resp := <-ch
+		api.ConfigCollect(responses, resp)
+	}
+	return responses
+}
+
+// handleRollbackConfigFileRelease 回滚配置
+func (s *Server) handleRollbackConfigFileRelease(ctx context.Context,
+	req *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
+	if errCode, errMsg := checkBaseReleaseParam(req); errCode != apimodel.Code_ExecuteSuccess {
+		return api.NewConfigResponseWithInfo(errCode, errMsg)
+	}
+	data := &model.ConfigFileRelease{
+		SimpleConfigFileRelease: &model.SimpleConfigFileRelease{
+			ConfigFileReleaseKey: &model.ConfigFileReleaseKey{
+				Name:      req.GetName().GetValue(),
+				Namespace: req.GetNamespace().GetValue(),
+				Group:     req.GetGroup().GetValue(),
+				FileName:  req.GetFileName().GetValue(),
+			},
+		},
+	}
+
+	targetRelease, err := s.storage.GetConfigFileRelease(data.ConfigFileReleaseKey)
+	if err != nil {
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
+	}
+	if targetRelease == nil {
+		return api.NewConfigResponse(apimodel.Code_NotFoundResource)
+	}
+
+	if err := s.storage.ActiveConfigFileRelease(data); err != nil {
+		log.Error("[Config][Service] rollback config file release error.",
+			utils.RequestID(ctx), zap.String("namespace", req.GetNamespace().GetValue()),
+			zap.String("group", req.GetGroup().GetValue()),
+			zap.String("fileName", req.GetFileName().GetValue()), zap.Error(err))
+
+		s.recordReleaseFail(ctx, utils.ReleaseTypeRollback, data, err)
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
+	}
+
+	s.recordReleaseSuccess(ctx, utils.ReleaseTypeRollback, data)
+	s.RecordHistory(ctx, configFileReleaseRecordEntry(ctx, req, data, model.ORollback))
+	return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
+}
+
+func (s *Server) recordReleaseSuccess(ctx context.Context, rType string, release *model.ConfigFileRelease) {
+	s.recordReleaseHistory(ctx, release, rType, utils.ReleaseStatusSuccess, "")
+}
+
+func (s *Server) recordReleaseFail(ctx context.Context, rType string, release *model.ConfigFileRelease, err error) {
+	s.recordReleaseHistory(ctx, release, rType, utils.ReleaseStatusFail, err.Error())
 }
 
 // configFileReleaseRecordEntry 生成服务的记录entry
@@ -270,4 +387,24 @@ func configFileReleaseRecordEntry(ctx context.Context, req *apiconfig.ConfigFile
 	}
 
 	return entry
+}
+
+func checkBaseReleaseParam(req *apiconfig.ConfigFileRelease) (apimodel.Code, string) {
+	namespace := req.GetNamespace().GetValue()
+	group := req.GetGroup().GetValue()
+	fileName := req.GetFileName().GetValue()
+	releaseName := req.GetName().GetValue()
+	if namespace == "" {
+		return apimodel.Code_BadRequest, "invalid namespace"
+	}
+	if group == "" {
+		return apimodel.Code_BadRequest, "invalid config group"
+	}
+	if fileName == "" {
+		return apimodel.Code_BadRequest, "invalid config file name"
+	}
+	if releaseName == "" {
+		return apimodel.Code_BadRequest, "invalid config release name"
+	}
+	return apimodel.Code_ExecuteSuccess, ""
 }

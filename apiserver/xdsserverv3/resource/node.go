@@ -188,7 +188,7 @@ func (PolarisNodeHash) ID(node *core.Node) string {
 		if gatewayNamespace == "" {
 			gatewayNamespace = ns
 		}
-		return runType + "/" + gatewayNamespace + "/" + gatewayService
+		return strings.Join([]string{runType, gatewayNamespace, gatewayService}, "/")
 	}
 	// 兼容老版本注入的 envoy, 默认获取 snapshot resource 粒度为 namespace 级别, 只能下发 OUTBOUND 规则
 	ret := ns

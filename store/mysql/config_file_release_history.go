@@ -19,37 +19,31 @@ package sqldb
 
 import (
 	"database/sql"
+	"encoding/json"
+	"strconv"
 	"time"
 
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
 type configFileReleaseHistoryStore struct {
-	db *BaseDB
+	master *BaseDB
+	slave  *BaseDB
 }
 
 // CreateConfigFileReleaseHistory 创建配置文件发布历史记录
-func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(tx store.Tx,
-	fileReleaseHistory *model.ConfigFileReleaseHistory) error {
+func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(history *model.ConfigFileReleaseHistory) error {
 	s := "insert into config_file_release_history(name, namespace, `group`, file_name, content, comment, " +
 		" md5, type, status, format, tags, " +
 		"create_time, create_by, modify_time, modify_by) values " +
 		"(?,?,?,?,?,?,?,?,?,?,?,sysdate(),?,sysdate(),?)"
-	var err error
-	if tx != nil {
-		_, err = tx.GetDelegateTx().(*BaseTx).Exec(s, fileReleaseHistory.Name, fileReleaseHistory.Namespace,
-			fileReleaseHistory.Group, fileReleaseHistory.FileName, fileReleaseHistory.Content,
-			fileReleaseHistory.Comment, fileReleaseHistory.Md5,
-			fileReleaseHistory.Type, fileReleaseHistory.Status, fileReleaseHistory.Format, fileReleaseHistory.Tags,
-			fileReleaseHistory.CreateBy, fileReleaseHistory.ModifyBy)
-	} else {
-		_, err = rh.db.Exec(s, fileReleaseHistory.Name, fileReleaseHistory.Namespace,
-			fileReleaseHistory.Group, fileReleaseHistory.FileName, fileReleaseHistory.Content,
-			fileReleaseHistory.Comment, fileReleaseHistory.Md5,
-			fileReleaseHistory.Type, fileReleaseHistory.Status, fileReleaseHistory.Format, fileReleaseHistory.Tags,
-			fileReleaseHistory.CreateBy, fileReleaseHistory.ModifyBy)
-	}
+	_, err := rh.master.Exec(s, history.Name, history.Namespace,
+		history.Group, history.FileName, history.Content,
+		history.Comment, history.Md5,
+		history.Type, history.Status, history.Format, utils.MustJson(history.Metadata),
+		history.CreateBy, history.ModifyBy)
 	if err != nil {
 		return store.Error(err)
 	}
@@ -57,10 +51,15 @@ func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(tx store
 }
 
 // QueryConfigFileReleaseHistories 获取配置文件的发布历史记录
-func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(namespace, group, fileName string,
-	offset, limit uint32, endId uint64) (uint32, []*model.ConfigFileReleaseHistory, error) {
+func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(filter map[string]string,
+	offset, limit uint32) (uint32, []*model.ConfigFileReleaseHistory, error) {
 	countSql := "select count(*) from config_file_release_history where "
 	querySql := rh.genSelectSql() + " where "
+
+	namespace := filter["namespace"]
+	group := filter["group"]
+	fileName := filter["name"]
+	endId, _ := strconv.ParseUint(filter["endId"], 10, 64)
 
 	var queryParams []interface{}
 	if namespace != "" {
@@ -80,14 +79,14 @@ func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(namespa
 	queryParams = append(queryParams, "%"+fileName+"%")
 
 	var count uint32
-	err := rh.db.QueryRow(countSql, queryParams...).Scan(&count)
+	err := rh.master.QueryRow(countSql, queryParams...).Scan(&count)
 	if err != nil {
 		return 0, nil, err
 	}
 
 	queryParams = append(queryParams, offset)
 	queryParams = append(queryParams, limit)
-	rows, err := rh.db.Query(querySql, queryParams...)
+	rows, err := rh.master.Query(querySql, queryParams...)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -100,30 +99,17 @@ func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(namespa
 	return count, fileReleaseHistories, nil
 }
 
-func (rh *configFileReleaseHistoryStore) GetLatestConfigFileReleaseHistory(namespace, group,
-	fileName string) (*model.ConfigFileReleaseHistory, error) {
-	s := rh.genSelectSql() + "where namespace = ? and `group` = ? and file_name = ? order by id desc limit 1"
-	rows, err := rh.db.Query(s, namespace, group, fileName)
-	if err != nil {
-		return nil, err
-	}
-
-	fileReleaseHistories, err := rh.transferRows(rows)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(fileReleaseHistories) == 0 {
-		return nil, nil
-	}
-
-	return fileReleaseHistories[0], nil
+// CleanConfigFileReleaseHistory 清理配置发布历史
+func (rh *configFileReleaseHistoryStore) CleanConfigFileReleaseHistory(endTime time.Time, limit uint64) error {
+	delSql := "DELETE FROM config_file_release_history WHERE create_time < ? LIMIT ?"
+	_, err := rh.master.Exec(delSql, endTime, limit)
+	return err
 }
 
 func (rh *configFileReleaseHistoryStore) genSelectSql() string {
-	return "select id, name, namespace, `group`, file_name, content, IFNULL(comment, ''), md5, format, tags, type, " +
-		" status, UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), UNIX_TIMESTAMP(modify_time), " +
-		"IFNULL(modify_by, '') from config_file_release_history "
+	return "select id, name, namespace, `group`, file_name, content, IFNULL(comment, ''), " +
+		" md5, format, tags, type, status, UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), " +
+		" UNIX_TIMESTAMP(modify_time), IFNULL(modify_by, '') from config_file_release_history "
 }
 
 func (rh *configFileReleaseHistoryStore) transferRows(rows *sql.Rows) ([]*model.ConfigFileReleaseHistory, error) {
@@ -136,12 +122,15 @@ func (rh *configFileReleaseHistoryStore) transferRows(rows *sql.Rows) ([]*model.
 
 	for rows.Next() {
 		fileReleaseHistory := &model.ConfigFileReleaseHistory{}
-		var ctime, mtime int64
+		var (
+			ctime, mtime int64
+			tags         string
+		)
 		err := rows.Scan(&fileReleaseHistory.Id, &fileReleaseHistory.Name, &fileReleaseHistory.Namespace,
 			&fileReleaseHistory.Group,
 			&fileReleaseHistory.FileName, &fileReleaseHistory.Content,
 			&fileReleaseHistory.Comment, &fileReleaseHistory.Md5, &fileReleaseHistory.Format,
-			&fileReleaseHistory.Tags,
+			&tags,
 			&fileReleaseHistory.Type, &fileReleaseHistory.Status,
 			&ctime, &fileReleaseHistory.CreateBy, &mtime, &fileReleaseHistory.ModifyBy)
 		if err != nil {
@@ -149,6 +138,8 @@ func (rh *configFileReleaseHistoryStore) transferRows(rows *sql.Rows) ([]*model.
 		}
 		fileReleaseHistory.CreateTime = time.Unix(ctime, 0)
 		fileReleaseHistory.ModifyTime = time.Unix(mtime, 0)
+		fileReleaseHistory.Metadata = map[string]string{}
+		_ = json.Unmarshal([]byte(tags), &fileReleaseHistory.Metadata)
 
 		fileReleaseHistories = append(fileReleaseHistories, fileReleaseHistory)
 	}

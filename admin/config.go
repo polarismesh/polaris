@@ -17,9 +17,30 @@
 
 package admin
 
-import "github.com/polarismesh/polaris/admin/job"
+import (
+	"github.com/polarismesh/polaris/admin/job"
+)
 
 // Config maintain configuration
 type Config struct {
 	Jobs []job.JobConfig `yaml:"jobs"`
+}
+
+func DefaultConfig() *Config {
+	return &Config{
+		Jobs: []job.JobConfig{
+			{
+				Name:   "CleanDeletedClients",
+				Enable: true,
+			},
+			{
+				Name:   "CleanDeletedInstances",
+				Enable: true,
+			},
+			{
+				Name:   "CleanConfigReleaseHistory",
+				Enable: true,
+			},
+		},
+	}
 }

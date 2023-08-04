@@ -24,8 +24,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/boltdb/bolt"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"

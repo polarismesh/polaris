@@ -24,6 +24,8 @@ const (
 	ReleaseTypeNormal = "normal"
 	// ReleaseTypeDelete 发布类型，删除配置文件
 	ReleaseTypeDelete = "delete"
+	// ReleaseTypeRollback 发布类型 回滚
+	ReleaseTypeRollback = "rollback"
 
 	// ReleaseStatusSuccess 发布成功状态
 	ReleaseStatusSuccess = "success"

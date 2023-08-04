@@ -426,8 +426,8 @@ func ZapRequestID(id string) zap.Field {
 	return zap.String("request-id", id)
 }
 
-// ZapRequestIDByCtx 从ctx中获取Request-ID
-func ZapRequestIDByCtx(ctx context.Context) zap.Field {
+// RequestID 从ctx中获取Request-ID
+func RequestID(ctx context.Context) zap.Field {
 	return zap.String("request-id", ParseRequestID(ctx))
 }
 

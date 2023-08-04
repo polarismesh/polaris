@@ -107,7 +107,7 @@ func Test_configFileGroupStore(t *testing.T) {
 
 				mockGroups[i].Comment = fmt.Sprintf("update_group_%d", i)
 
-				if _, err := store.UpdateConfigFileGroup(mockGroups[i]); err != nil {
+				if err := store.UpdateConfigFileGroup(mockGroups[i]); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -124,34 +124,6 @@ func Test_configFileGroupStore(t *testing.T) {
 				resetConfigFileGroupTimeAndIDField(time.Now(), false, val, mockVal)
 				assert.Equal(t, mockVal, val)
 			}
-		})
-	})
-
-	t.Run("配置分组插入-批量查询", func(t *testing.T) {
-		CreateTableDBHandlerAndRun(t, tblConfigFileGroup, func(t *testing.T, handler BoltHandler) {
-			store, err := newConfigFileGroupStore(handler)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			total := 2
-			mockGroups := mockConfigFileGroup(total)
-			groupNames := make([]string, 0, len(mockGroups))
-
-			for i := 0; i < total; i++ {
-				if _, err := store.CreateConfigFileGroup(mockGroups[i]); err != nil {
-					t.Fatal(err)
-				}
-				groupNames = append(groupNames, mockGroups[i].Name)
-			}
-
-			ret, err := store.FindConfigFileGroups(mockGroups[0].Namespace, groupNames)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			resetConfigFileGroupTimeAndIDField(time.Now(), true, append(mockGroups, ret...)...)
-			assert.ElementsMatch(t, mockGroups, ret)
 		})
 	})
 

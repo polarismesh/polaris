@@ -21,9 +21,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/boltdb/bolt"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"

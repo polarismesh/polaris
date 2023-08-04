@@ -20,7 +20,6 @@ package cache
 import (
 	"container/list"
 
-	cl5common "github.com/polarismesh/polaris/common/cl5"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -142,7 +141,7 @@ func (lc *l5Cache) GetRouteByIP(ip uint32) []*model.Route {
 
 	entry.Range(func(key string, value string) bool {
 		// sidStr -> setID
-		sid, err := cl5common.UnmarshalSid(key)
+		sid, err := model.UnmarshalSid(key)
 		if err != nil {
 			return true
 		}
@@ -169,7 +168,7 @@ func (lc *l5Cache) CheckRouteExisted(ip uint32, modID uint32, cmdID uint32) bool
 
 	found := false
 	entry.Range(func(key string, value string) bool {
-		sid, err := cl5common.UnmarshalSid(key)
+		sid, err := model.UnmarshalSid(key)
 		if err != nil {
 			// continue range
 			return true
@@ -277,7 +276,7 @@ func (lc *l5Cache) setCL5Route(routes []*model.Route) error {
 			lastRouteFlow = item.Flow
 		}
 
-		sidStr := cl5common.MarshalModCmd(item.ModID, item.CmdID)
+		sidStr := model.MarshalModCmd(item.ModID, item.CmdID)
 
 		// 待删除的route
 		if !item.Valid {

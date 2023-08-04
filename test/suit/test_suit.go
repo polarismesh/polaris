@@ -29,10 +29,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/boltdb/bolt"
 	_ "github.com/go-sql-driver/mysql"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+	bolt "go.etcd.io/bbolt"
 	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris/auth"
@@ -1113,8 +1113,6 @@ func (d *DiscoverTestSuit) ClearTestDataWhenUseRDS() error {
 		if err != nil {
 			return err
 		}
-		// 清理缓存
-		d.configOriginSvr.(*config.Server).Cache().CleanAll()
 		return tx.Commit()
 	}
 	return nil

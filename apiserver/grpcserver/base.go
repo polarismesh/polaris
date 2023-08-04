@@ -230,12 +230,23 @@ func (b *BaseGrpcServer) unaryInterceptor(ctx context.Context, req interface{},
 			rsp = api.NewResponse(apimodel.Code(code))
 			return
 		}
+		defer func() {
+			if panicInfo := recover(); panicInfo != nil {
+				// just log
+				b.log.Errorf("panic %+v", panicInfo)
+			}
+		}()
+
 		rsp, err = handler(ctx, req)
 	}()
 
 	b.postprocess(stream, rsp)
 
 	return
+}
+
+func (b *BaseGrpcServer) recoverFunc(i interface{}, w http.ResponseWriter) {
+
 }
 
 func (b *BaseGrpcServer) streamInterceptor(srv interface{}, ss grpc.ServerStream,
@@ -247,6 +258,12 @@ func (b *BaseGrpcServer) streamInterceptor(srv interface{}, ss grpc.ServerStream
 		WithVirtualStreamPreProcessFunc(b.preprocess),
 		WithVirtualStreamPostProcessFunc(b.postprocess),
 	)
+
+	defer func() {
+		if panicInfo := recover(); err != nil {
+			b.log.Errorf("panic %+v", panicInfo)
+		}
+	}()
 
 	err = handler(srv, stream)
 	if err != nil {

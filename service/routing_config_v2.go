@@ -79,13 +79,13 @@ func (s *Server) createRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 	conf, err := Api2RoutingConfigV2(req)
 	if err != nil {
 		log.Error("[Routing][V2] parse routing config v2 from request for create",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+			utils.RequestID(ctx), zap.Error(err))
 		return apiv1.NewResponse(apimodel.Code_ExecuteException)
 	}
 
 	if err := s.storage.CreateRoutingConfigV2(conf); err != nil {
 		log.Error("[Routing][V2] create routing config v2 store layer",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+			utils.RequestID(ctx), zap.Error(err))
 		return apiv1.NewResponse(commonstore.StoreCode2APICode(err))
 	}
 
@@ -127,7 +127,7 @@ func (s *Server) deleteRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 
 	if err := s.storage.DeleteRoutingConfigV2(req.Id); err != nil {
 		log.Error("[Routing][V2] delete routing config v2 store layer",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+			utils.RequestID(ctx), zap.Error(err))
 		return apiv1.NewResponse(commonstore.StoreCode2APICode(err))
 	}
 
@@ -175,7 +175,7 @@ func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 	conf, err := s.storage.GetRoutingConfigV2WithID(req.Id)
 	if err != nil {
 		log.Error("[Routing][V2] get routing config v2 store layer",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+			utils.RequestID(ctx), zap.Error(err))
 		return apiv1.NewResponse(commonstore.StoreCode2APICode(err))
 	}
 	if conf == nil {
@@ -186,13 +186,13 @@ func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 	reqModel.Revision = utils.NewV2Revision()
 	if err != nil {
 		log.Error("[Routing][V2] parse routing config v2 from request for update",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+			utils.RequestID(ctx), zap.Error(err))
 		return apiv1.NewResponse(apimodel.Code_ExecuteException)
 	}
 
 	if err := s.storage.UpdateRoutingConfigV2(reqModel); err != nil {
 		log.Error("[Routing][V2] update routing config v2 store layer",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+			utils.RequestID(ctx), zap.Error(err))
 		return apiv1.NewResponse(commonstore.StoreCode2APICode(err))
 	}
 
@@ -209,14 +209,14 @@ func (s *Server) QueryRoutingConfigsV2(ctx context.Context, query map[string]str
 
 	total, ret, err := s.Cache().RoutingConfig().QueryRoutingConfigsV2(args)
 	if err != nil {
-		log.Error("[Routing][V2] query routing list from cache", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+		log.Error("[Routing][V2] query routing list from cache", utils.RequestID(ctx), zap.Error(err))
 		return apiv1.NewBatchQueryResponse(apimodel.Code_ExecuteException)
 	}
 
 	routers, err := marshalRoutingV2toAnySlice(ret)
 	if err != nil {
 		log.Error("[Routing][V2] marshal routing list to anypb.Any list",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+			utils.RequestID(ctx), zap.Error(err))
 		return apiv1.NewBatchQueryResponse(apimodel.Code_ExecuteException)
 	}
 
@@ -253,7 +253,7 @@ func (s *Server) enableRoutings(ctx context.Context, req *apitraffic.RouteRule) 
 	conf, err := s.storage.GetRoutingConfigV2WithID(req.Id)
 	if err != nil {
 		log.Error("[Routing][V2] get routing config v2 store layer",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+			utils.RequestID(ctx), zap.Error(err))
 		return apiv1.NewResponse(commonstore.StoreCode2APICode(err))
 	}
 	if conf == nil {
@@ -265,7 +265,7 @@ func (s *Server) enableRoutings(ctx context.Context, req *apitraffic.RouteRule) 
 
 	if err := s.storage.EnableRouting(conf); err != nil {
 		log.Error("[Routing][V2] enable routing config v2 store layer",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+			utils.RequestID(ctx), zap.Error(err))
 		return apiv1.NewResponse(commonstore.StoreCode2APICode(err))
 	}
 
@@ -280,21 +280,21 @@ func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apitraffic.Rou
 	v1conf, err := s.storage.GetRoutingConfigWithID(svcId)
 	if err != nil {
 		log.Error("[Routing][V2] get routing config v1 store layer",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+			utils.RequestID(ctx), zap.Error(err))
 		return apiv1.NewResponse(commonstore.StoreCode2APICode(err))
 	}
 	if v1conf != nil {
 		svc, err := s.loadServiceByID(svcId)
 		if svc == nil {
 			log.Error("[Routing][V2] convert routing config v1 to v2 find svc",
-				utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+				utils.RequestID(ctx), zap.Error(err))
 			return apiv1.NewResponse(apimodel.Code_NotFoundService)
 		}
 
 		inV2, outV2, err := model.ConvertRoutingV1ToExtendV2(svc.Name, svc.Namespace, v1conf)
 		if err != nil {
 			log.Error("[Routing][V2] convert routing config v1 to v2",
-				utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+				utils.RequestID(ctx), zap.Error(err))
 			return apiv1.NewResponse(apimodel.Code_ExecuteException)
 		}
 
@@ -304,7 +304,7 @@ func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apitraffic.Rou
 				item, err := rules[i].ToApi()
 				if err != nil {
 					log.Error("[Routing][V2] convert routing config v1 to v2, format v2 to api",
-						utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+						utils.RequestID(ctx), zap.Error(err))
 					return nil, apiv1.NewResponse(apimodel.Code_ExecuteException)
 				}
 				ret = append(ret, item)

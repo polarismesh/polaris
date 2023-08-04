@@ -32,8 +32,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	authcommon "github.com/polarismesh/polaris/common/auth"
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	commonstore "github.com/polarismesh/polaris/common/store"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -476,7 +476,7 @@ func (svr *server) ResetUserToken(ctx context.Context, req *apisecurity.User) *a
 func checkUserViewPermission(ctx context.Context, user *model.User) bool {
 	role := authcommon.ParseUserRole(ctx)
 	if role == model.AdminUserRole {
-		log.Debug("check user view permission", utils.ZapRequestIDByCtx(ctx), zap.Bool("admin", true))
+		log.Debug("check user view permission", utils.RequestID(ctx), zap.Bool("admin", true))
 		return true
 	}
 
@@ -486,7 +486,7 @@ func checkUserViewPermission(ctx context.Context, user *model.User) bool {
 	}
 
 	if user.Owner == userId {
-		log.Debug("check user view permission", utils.ZapRequestIDByCtx(ctx),
+		log.Debug("check user view permission", utils.RequestID(ctx),
 			zap.Any("user", user), zap.String("owner", user.Owner), zap.String("operator", userId))
 		return true
 	}

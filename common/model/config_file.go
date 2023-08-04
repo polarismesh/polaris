@@ -18,7 +18,6 @@
 package model
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/polarismesh/specification/source/go/api/v1/config_manage"
@@ -35,10 +34,13 @@ type ConfigFileGroup struct {
 	Name       string
 	Namespace  string
 	Comment    string
-	CreateTime time.Time
 	Owner      string
-	CreateBy   string
+	Business   string
+	Department string
+	Metadata   map[string]string
+	CreateTime time.Time
 	ModifyTime time.Time
+	CreateBy   string
 	ModifyBy   string
 	Valid      bool
 }
@@ -58,25 +60,78 @@ type ConfigFile struct {
 	ModifyTime time.Time
 	ModifyBy   string
 	Valid      bool
+	Metadata   map[string]string
+	Status     string
+}
+
+func (s *ConfigFile) GetEncryptDataKey() string {
+	val, _ := s.Metadata[utils.ConfigFileTagKeyDataKey]
+	return val
+}
+
+func (s *ConfigFile) GetEncryptAlgo() string {
+	val, _ := s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
+	return val
+}
+func (s *ConfigFile) IsEncrypted() bool {
+	return s.GetEncryptDataKey() != ""
 }
 
 // ConfigFileRelease 配置文件发布数据持久化对象
 type ConfigFileRelease struct {
-	Id         uint64
-	Name       string
-	Namespace  string
-	Group      string
-	FileName   string
-	Content    string
+	*SimpleConfigFileRelease
+	Content string
+}
+
+type ConfigFileReleaseKey struct {
+	Id        uint64
+	Name      string
+	Namespace string
+	Group     string
+	FileName  string
+}
+
+func (c ConfigFileReleaseKey) OwnerKey() string {
+	return c.Namespace + "@" + c.Group
+}
+
+func (c ConfigFileReleaseKey) ActiveKey() string {
+	return c.Namespace + "@" + c.Group + "@" + c.FileName
+}
+
+func (c ConfigFileReleaseKey) ReleaseKey() string {
+	return c.Namespace + "@" + c.Group + "@" + c.FileName + "@" + c.Name
+}
+
+// SimpleConfigFileRelease 配置文件发布数据持久化对象
+type SimpleConfigFileRelease struct {
+	*ConfigFileReleaseKey
+	Version    uint64
 	Comment    string
 	Md5        string
-	Version    uint64
 	Flag       int
+	Active     bool
+	Valid      bool
+	Format     string
+	Metadata   map[string]string
 	CreateTime time.Time
 	CreateBy   string
 	ModifyTime time.Time
 	ModifyBy   string
-	Valid      bool
+}
+
+func (s SimpleConfigFileRelease) GetEncryptDataKey() string {
+	val, _ := s.Metadata[utils.ConfigFileTagKeyDataKey]
+	return val
+}
+
+func (s SimpleConfigFileRelease) GetEncryptAlgo() string {
+	val, _ := s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
+	return val
+}
+
+func (s SimpleConfigFileRelease) IsEncrypted() bool {
+	return s.GetEncryptDataKey() != ""
 }
 
 // ConfigFileReleaseHistory 配置文件发布历史记录数据持久化对象
@@ -87,7 +142,7 @@ type ConfigFileReleaseHistory struct {
 	Group      string
 	FileName   string
 	Format     string
-	Tags       string
+	Metadata   map[string]string
 	Content    string
 	Comment    string
 	Md5        string
@@ -98,6 +153,21 @@ type ConfigFileReleaseHistory struct {
 	ModifyTime time.Time
 	ModifyBy   string
 	Valid      bool
+	Reason     string
+}
+
+func (s ConfigFileReleaseHistory) GetEncryptDataKey() string {
+	val, _ := s.Metadata[utils.ConfigFileTagKeyDataKey]
+	return val
+}
+
+func (s ConfigFileReleaseHistory) GetEncryptAlgo() string {
+	val, _ := s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
+	return val
+}
+
+func (s ConfigFileReleaseHistory) IsEncrypted() bool {
+	return s.GetEncryptDataKey() != ""
 }
 
 // ConfigFileTag 配置文件标签数据持久化对象
@@ -233,16 +303,20 @@ func ToConfigFileReleaseStore(release *config_manage.ConfigFileRelease) *ConfigF
 	}
 
 	return &ConfigFileRelease{
-		Id:        id,
-		Namespace: release.Namespace.GetValue(),
-		Group:     release.Group.GetValue(),
-		FileName:  release.FileName.GetValue(),
-		Content:   content,
-		Comment:   comment,
-		Md5:       md5,
-		Version:   version,
-		CreateBy:  createBy,
-		ModifyBy:  modifyBy,
+		SimpleConfigFileRelease: &SimpleConfigFileRelease{
+			ConfigFileReleaseKey: &ConfigFileReleaseKey{
+				Id:        id,
+				Namespace: release.Namespace.GetValue(),
+				Group:     release.Group.GetValue(),
+				FileName:  release.FileName.GetValue(),
+			},
+			Comment:  comment,
+			Md5:      md5,
+			Version:  version,
+			CreateBy: createBy,
+			ModifyBy: modifyBy,
+		},
+		Content: content,
 	}
 }
 
@@ -259,7 +333,7 @@ func ToReleaseHistoryAPI(releaseHistory *ConfigFileReleaseHistory) *config_manag
 		Content:    utils.NewStringValue(releaseHistory.Content),
 		Comment:    utils.NewStringValue(releaseHistory.Comment),
 		Format:     utils.NewStringValue(releaseHistory.Format),
-		Tags:       FromTagJson(releaseHistory.Tags),
+		Tags:       FromTagMap(releaseHistory.Metadata),
 		Md5:        utils.NewStringValue(releaseHistory.Md5),
 		Type:       utils.NewStringValue(releaseHistory.Type),
 		Status:     utils.NewStringValue(releaseHistory.Status),
@@ -276,26 +350,25 @@ type kv struct {
 }
 
 // FromTagJson 从 Tags Json 字符串里反序列化出 Tags
-func FromTagJson(tagStr string) []*config_manage.ConfigFileTag {
-	if tagStr == "" {
-		return nil
-	}
-
-	kvs := make([]kv, 0, 10)
-	err := json.Unmarshal([]byte(tagStr), &kvs)
-	if err != nil {
-		return nil
-	}
-
+func FromTagMap(kvs map[string]string) []*config_manage.ConfigFileTag {
 	tags := make([]*config_manage.ConfigFileTag, 0, len(kvs))
-	for _, val := range kvs {
+	for k, v := range kvs {
 		tags = append(tags, &config_manage.ConfigFileTag{
-			Key:   utils.NewStringValue(val.Key),
-			Value: utils.NewStringValue(val.Value),
+			Key:   utils.NewStringValue(k),
+			Value: utils.NewStringValue(v),
 		})
 	}
 
 	return tags
+}
+
+func ToTagMap(tags []*ConfigFileTag) map[string]string {
+	kvs := map[string]string{}
+	for i := range tags {
+		kvs[tags[i].Key] = tags[i].Value
+	}
+
+	return kvs
 }
 
 func ToConfigGroupAPI(group *ConfigFileGroup) *config_manage.ConfigFileGroup {

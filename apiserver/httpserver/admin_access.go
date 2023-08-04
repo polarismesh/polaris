@@ -35,6 +35,20 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
+// GetIndexServer get index server
+func (h *HTTPServer) GetIndexServer() *restful.WebService {
+	ws := new(restful.WebService)
+
+	ws.Route(ws.GET("/").To(h.index))
+
+	return ws
+}
+
+// index  URL: "/"
+func (h *HTTPServer) index(_ *restful.Request, rsp *restful.Response) {
+	_, _ = rsp.Write([]byte("Polaris Server"))
+}
+
 // GetMaintainAccessServer 运维接口
 func (h *HTTPServer) GetAdminAccessServer() *restful.WebService {
 	ws := new(restful.WebService)

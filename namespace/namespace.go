@@ -411,11 +411,11 @@ func (s *Server) getServicesCountWithNamespace(namespace string) (uint32, error)
 
 // 根据命名空间查询配置分组总数
 func (s *Server) getConfigGroupCountWithNamespace(namespace string) (uint32, error) {
-	total, _, err := s.storage.QueryConfigFileGroups(namespace, "", 0, 1)
+	total, err := s.storage.CountConfigGroups(namespace)
 	if err != nil {
 		return 0, err
 	}
-	return total, nil
+	return uint32(total), nil
 }
 
 // 根据命名空间查询熔断规则数量

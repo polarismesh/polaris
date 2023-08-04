@@ -58,11 +58,11 @@ func TestClientSetupAndFileNotExisted(t *testing.T) {
 	assert.Equal(t, uint32(api.NotFoundResource), rsp.Code.GetValue(), "GetConfigFileForClient must notfound")
 
 	originSvr := testSuit.OriginConfigServer()
-	rsp2 := originSvr.DoCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByVersion)
+	rsp2, _ := originSvr.TestCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByVersion)
 	assert.Equal(t, uint32(api.DataNoChange), rsp2.Code.GetValue(), "checkClientConfigFileByVersion must nochange")
 	assert.Nil(t, rsp2.ConfigFile)
 
-	rsp3 := originSvr.DoCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByMD5)
+	rsp3, _ := originSvr.TestCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByMD5)
 	assert.Equal(t, uint32(api.DataNoChange), rsp3.Code.GetValue())
 	assert.Nil(t, rsp3.ConfigFile)
 }
@@ -106,12 +106,12 @@ func TestClientSetupAndFileExisted(t *testing.T) {
 
 	// 比较客户端配置是否落后
 	originSvr := testSuit.OriginConfigServer()
-	rsp4 := originSvr.DoCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByVersion)
+	rsp4, _ := originSvr.TestCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByVersion)
 	assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue())
 	assert.NotNil(t, rsp4.ConfigFile)
 	assert.Equal(t, config.CalMd5(configFile.Content.GetValue()), rsp4.ConfigFile.Md5.GetValue())
 
-	rsp5 := originSvr.DoCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByMD5)
+	rsp5, _ := originSvr.TestCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByMD5)
 	assert.Equal(t, api.ExecuteSuccess, rsp5.Code.GetValue())
 	assert.NotNil(t, rsp5.ConfigFile)
 	assert.Equal(t, uint64(1), rsp5.ConfigFile.Version.GetValue())
@@ -144,11 +144,11 @@ func TestClientSetupAndCreateNewFile(t *testing.T) {
 	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue(), "CreateConfigFileFromClient must success")
 
 	originSvr := testSuit.OriginConfigServer()
-	rsp2 := originSvr.DoCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByVersion)
+	rsp2, _ := originSvr.TestCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByVersion)
 	assert.Equal(t, api.DataNoChange, rsp2.Code.GetValue(), "checkClientConfigFileByVersion must nochange")
 	assert.Nil(t, rsp2.ConfigFile)
 
-	rsp3 := originSvr.DoCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByMD5)
+	rsp3, _ := originSvr.TestCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByMD5)
 	assert.Equal(t, api.DataNoChange, rsp3.Code.GetValue())
 	assert.Nil(t, rsp3.ConfigFile)
 }
@@ -184,11 +184,11 @@ func TestClientSetupAndCreateExistFile(t *testing.T) {
 	assert.Equal(t, api.ExistedResource, rsp1.Code.GetValue(), "CreateConfigFileFromClient again must error")
 
 	originSvr := testSuit.OriginConfigServer()
-	rsp2 := originSvr.DoCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByVersion)
+	rsp2, _ := originSvr.TestCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByVersion)
 	assert.Equal(t, api.DataNoChange, rsp2.Code.GetValue(), "checkClientConfigFileByVersion must nochange")
 	assert.Nil(t, rsp2.ConfigFile)
 
-	rsp3 := originSvr.DoCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByMD5)
+	rsp3, _ := originSvr.TestCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByMD5)
 	assert.Equal(t, api.DataNoChange, rsp3.Code.GetValue())
 	assert.Nil(t, rsp3.ConfigFile)
 }
@@ -368,13 +368,14 @@ func TestClientVersionBehindServer(t *testing.T) {
 	assert.Equal(t, latestContent, rsp4.ConfigFile.Content.GetValue())
 	assert.Equal(t, config.CalMd5(latestContent), rsp4.ConfigFile.Md5.GetValue())
 
+	svr := testSuit.OriginConfigServer()
 	// 比较客户端配置是否落后
-	rsp5 := testSuit.OriginConfigServer().DoCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(clientVersion), config.TestCompareByVersion)
+	rsp5, _ := svr.TestCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(clientVersion), config.TestCompareByVersion)
 	assert.Equal(t, api.ExecuteSuccess, rsp5.Code.GetValue())
 	assert.NotNil(t, rsp5.ConfigFile)
 	assert.Equal(t, config.CalMd5(latestContent), rsp5.ConfigFile.Md5.GetValue())
 
-	rsp6 := testSuit.OriginConfigServer().DoCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(clientVersion), config.TestCompareByMD5)
+	rsp6, _ := svr.TestCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(clientVersion), config.TestCompareByMD5)
 	assert.Equal(t, api.ExecuteSuccess, rsp6.Code.GetValue())
 	assert.NotNil(t, rsp6.ConfigFile)
 	assert.Equal(t, uint64(5), rsp6.ConfigFile.Version.GetValue())
@@ -556,7 +557,11 @@ func TestDeleteConfigFile(t *testing.T) {
 
 	// 删除配置文件
 	t.Log("remove config file")
-	rsp3 := testSuit.ConfigServer().DeleteConfigFile(testSuit.DefaultCtx, testNamespace, testGroup, testFile, operator)
+	rsp3 := testSuit.ConfigServer().DeleteConfigFile(testSuit.DefaultCtx, &apiconfig.ConfigFile{
+		Namespace: utils.NewStringValue(testNamespace),
+		Group:     utils.NewStringValue(testGroup),
+		Name:      utils.NewStringValue(testFile),
+	})
 	assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 
 	// 客户端收到推送通知

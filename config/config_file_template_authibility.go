@@ -45,7 +45,7 @@ func (s *serverAuthability) GetConfigFileTemplate(ctx context.Context, name stri
 	authCtx := s.collectConfigFileTemplateAuthContext(ctx,
 		[]*apiconfig.ConfigFileTemplate{}, model.Read, "GetAllConfigFileTemplates")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+		return api.NewConfigResponseWithInfo(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -60,7 +60,7 @@ func (s *serverAuthability) CreateConfigFileTemplate(ctx context.Context,
 	authCtx := s.collectConfigFileTemplateAuthContext(ctx,
 		[]*apiconfig.ConfigFileTemplate{template}, model.Create, "CreateConfigFileTemplate")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+		return api.NewConfigResponseWithInfo(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()

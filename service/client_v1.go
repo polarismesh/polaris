@@ -58,7 +58,7 @@ func (s *Server) ReportClient(ctx context.Context, req *apiservice.Client) *apis
 	if s.cmdb != nil {
 		location, err := s.cmdb.GetLocation(host)
 		if err != nil {
-			log.Errora(utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+			log.Errora(utils.RequestID(ctx), zap.Error(err))
 		}
 		if location != nil {
 			req.Location = location.Proto
@@ -227,12 +227,12 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Serv
 		return api.NewDiscoverInstanceResponse(apimodel.Code_DataNoChange, req)
 	}
 
-	// revision不一致，重新获取数据
 	// 填充service数据
-	resp.Service = service2Api(aliasFor)
+	resp.Service = &apiservice.Service{
+		Name:      req.GetName(),
+		Namespace: req.GetNamespace(),
+	}
 	resp.Service.Revision.Value = revision
-	resp.Service.Name.Value = serviceName
-	resp.Service.Namespace.Value = namespaceName
 	// 塞入源服务信息数据
 	resp.AliasFor = &apiservice.Service{
 		Namespace: utils.NewStringValue(aliasFor.Namespace),
@@ -274,7 +274,7 @@ func (s *Server) GetRoutingConfigWithCache(ctx context.Context, req *apiservice.
 
 	out, err := s.caches.RoutingConfig().GetRouterConfig(aliasFor.ID, aliasFor.Name, aliasFor.Namespace)
 	if err != nil {
-		log.Error("[Server][Service][Routing] discover routing", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+		log.Error("[Server][Service][Routing] discover routing", utils.RequestID(ctx), zap.Error(err))
 		return api.NewDiscoverRoutingResponse(apimodel.Code_ExecuteException, req)
 	}
 	if out == nil {
@@ -387,7 +387,7 @@ func (s *Server) GetFaultDetectWithCache(ctx context.Context, req *apiservice.Se
 	resp.Service.Revision = utils.NewStringValue(out.Revision)
 	resp.FaultDetector, err = faultDetectRule2ClientAPI(out)
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewDiscoverFaultDetectorResponse(apimodel.Code_ExecuteException, req)
 	}
 	return resp
@@ -433,7 +433,7 @@ func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *apiservice
 	resp.Service.Revision = utils.NewStringValue(out.Revision)
 	resp.CircuitBreaker, err = circuitBreaker2ClientAPI(out, req.GetName().GetValue(), req.GetNamespace().GetValue())
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_ExecuteException, req)
 	}
 	return resp

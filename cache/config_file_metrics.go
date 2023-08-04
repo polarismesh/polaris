@@ -18,98 +18,72 @@
 package cache
 
 import (
-	"context"
 	"time"
 
+	"github.com/polarismesh/polaris/common/metrics"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/plugin"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
-
-	"github.com/polarismesh/polaris/common/metrics"
-	"github.com/polarismesh/polaris/plugin"
 )
 
-func (fc *fileCache) reportMetricsInfo(ctx context.Context) {
-	ticker := time.NewTicker(time.Minute)
-	defer ticker.Stop()
+func (fc *fileCache) reportMetricsInfo() {
+	lastReportTime := fc.lastReportTime.Load()
+	if time.Since(lastReportTime) <= time.Minute {
+		return
+	}
+	defer func() {
+		fc.lastReportTime.Store(time.Now())
+	}()
 
-	var preGroup map[string]map[string]struct{}
+	metricValues := make([]metrics.ConfigMetrics, 0, 64)
 
-	for {
-		select {
-		case <-ticker.C:
-			tmpGroup := map[string]map[string]struct{}{}
-
-			configGroups, err := fc.storage.CountGroupEachNamespace()
-			if err != nil {
-				log.Error("[Cache][ConfigFile] report metrics for config_group each namespace", zap.Error(err))
-				continue
-			}
-
-			configFiles, err := fc.storage.CountConfigFileEachGroup()
-			if err != nil {
-				log.Error("[Cache][ConfigFile] report metrics for config_file each group", zap.Error(err))
-				continue
-			}
-
-			releaseFiles, err := fc.storage.CountConfigFileReleaseEachGroup()
-			if err != nil {
-				log.Error("[Cache][ConfigFile] report metrics for release config_file each group", zap.Error(err))
-				continue
-			}
-			for ns, groups := range configFiles {
-				if _, ok := tmpGroup[ns]; !ok {
-					tmpGroup[ns] = map[string]struct{}{}
-				}
-				for group := range groups {
-					tmpGroup[ns][group] = struct{}{}
-				}
-			}
-
-			metricValues := make([]metrics.ConfigMetrics, 0, 64)
-
-			for ns := range configGroups {
-				metricValues = append(metricValues, metrics.ConfigMetrics{
-					Type:    metrics.ConfigGroupMetric,
-					Total:   configGroups[ns],
-					Release: 0,
-					Labels: map[string]string{
-						metrics.LabelNamespace: ns,
-					},
-				})
-			}
-
-			for ns, groups := range configFiles {
-				for group, total := range groups {
-					metricValues = append(metricValues, metrics.ConfigMetrics{
-						Type:  metrics.FileMetric,
-						Total: total,
-						Labels: map[string]string{
-							metrics.LabelNamespace: ns,
-							metrics.LabelGroup:     group,
-						},
-					})
-				}
-			}
-
-			for ns, groups := range releaseFiles {
-				for group, total := range groups {
-					metricValues = append(metricValues, metrics.ConfigMetrics{
-						Type:  metrics.ReleaseFileMetric,
-						Total: total,
-						Labels: map[string]string{
-							metrics.LabelNamespace: ns,
-							metrics.LabelGroup:     group,
-						},
-					})
-				}
-			}
-			cleanExpireConfigFileMetricLabel(preGroup, tmpGroup)
-			preGroup = tmpGroup
-			plugin.GetStatis().ReportConfigMetrics(metricValues...)
-		case <-ctx.Done():
-			return
+	configFiles, err := fc.storage.CountConfigFileEachGroup()
+	if err != nil {
+		log.Error("[Cache][ConfigFile] report metrics for config_file each group", zap.Error(err))
+		return
+	}
+	tmpGroup := map[string]map[string]struct{}{}
+	for ns, groups := range configFiles {
+		if _, ok := tmpGroup[ns]; !ok {
+			tmpGroup[ns] = map[string]struct{}{}
+		}
+		for group := range groups {
+			tmpGroup[ns][group] = struct{}{}
 		}
 	}
+	cleanExpireConfigFileMetricLabel(fc.preMetricsFiles.Load(), tmpGroup)
+	fc.preMetricsFiles.Store(tmpGroup)
+
+	for ns, groups := range configFiles {
+		for group, total := range groups {
+			metricValues = append(metricValues, metrics.ConfigMetrics{
+				Type:  metrics.FileMetric,
+				Total: total,
+				Labels: map[string]string{
+					metrics.LabelNamespace: ns,
+					metrics.LabelGroup:     group,
+				},
+			})
+		}
+	}
+
+	fc.metricsReleaseCount.Range(func(namespace string, groups *utils.SyncMap[string, uint64]) bool {
+		groups.Range(func(groupName string, count uint64) bool {
+			metricValues = append(metricValues, metrics.ConfigMetrics{
+				Type:  metrics.ReleaseFileMetric,
+				Total: int64(count),
+				Labels: map[string]string{
+					metrics.LabelNamespace: namespace,
+					metrics.LabelGroup:     groupName,
+				},
+			})
+			return true
+		})
+		return true
+	})
+
+	plugin.GetStatis().ReportConfigMetrics(metricValues...)
 }
 
 func cleanExpireConfigFileMetricLabel(pre, curr map[string]map[string]struct{}) {

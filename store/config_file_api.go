@@ -29,132 +29,79 @@ type ConfigFileModuleStore interface {
 	ConfigFileStore
 	ConfigFileReleaseStore
 	ConfigFileReleaseHistoryStore
-	ConfigFileTagStore
 	ConfigFileTemplateStore
 }
 
 // ConfigFileGroupStore 配置文件组存储接口
 type ConfigFileGroupStore interface {
-
 	// CreateConfigFileGroup 创建配置文件组
 	CreateConfigFileGroup(fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error)
-
+	// UpdateConfigFileGroup 更新配置文件组
+	UpdateConfigFileGroup(fileGroup *model.ConfigFileGroup) error
 	// GetConfigFileGroup 获取单个配置文件组
 	GetConfigFileGroup(namespace, name string) (*model.ConfigFileGroup, error)
-
-	// QueryConfigFileGroups 翻页查询配置文件组, name 为模糊匹配关键字
-	QueryConfigFileGroups(namespace, name string, offset, limit uint32) (uint32, []*model.ConfigFileGroup, error)
-
 	// DeleteConfigFileGroup 删除配置文件组
 	DeleteConfigFileGroup(namespace, name string) error
-
-	// UpdateConfigFileGroup 更新配置文件组
-	UpdateConfigFileGroup(fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error)
-
-	// FindConfigFileGroups 获取一组配置文件组信息
-	FindConfigFileGroups(namespace string, names []string) ([]*model.ConfigFileGroup, error)
-
-	// GetConfigFileGroupById 根据Id获取文件组信息
-	GetConfigFileGroupById(id uint64) (*model.ConfigFileGroup, error)
-
-	// CountConfigGroupEachNamespace 统计 namespace 下的配置分组数量
-	CountGroupEachNamespace() (map[string]int64, error)
+	// GetMoreConfigGroup 获取配置分组
+	GetMoreConfigGroup(firstUpdate bool, mtime time.Time) ([]*model.ConfigFileGroup, error)
+	// CountConfigGroups 获取一个命名空间下的配置分组数量
+	CountConfigGroups(namespace string) (uint64, error)
 }
 
 // ConfigFileStore 配置文件存储接口
 type ConfigFileStore interface {
-
-	// CreateConfigFile 创建配置文件
-	CreateConfigFile(tx Tx, file *model.ConfigFile) (*model.ConfigFile, error)
-
+	// CreateConfigFileTx 创建配置文件
+	CreateConfigFileTx(tx Tx, file *model.ConfigFile) error
 	// GetConfigFile 获取配置文件
-	GetConfigFile(tx Tx, namespace, group, name string) (*model.ConfigFile, error)
-
+	GetConfigFile(namespace, group, name string) (*model.ConfigFile, error)
+	// GetConfigFileTx 获取配置文件
+	GetConfigFileTx(tx Tx, namespace, group, name string) (*model.ConfigFile, error)
 	// QueryConfigFiles 翻页查询配置文件，group、name可为模糊匹配
-	QueryConfigFiles(namespace, group, name string, offset, limit uint32) (uint32, []*model.ConfigFile, error)
-
-	// QueryConfigFilesByGroup query config file group's files
-	QueryConfigFilesByGroup(namespace, group string, offset, limit uint32) (uint32, []*model.ConfigFile, error)
-
-	// UpdateConfigFile 更新配置文件
-	UpdateConfigFile(tx Tx, file *model.ConfigFile) (*model.ConfigFile, error)
-
-	// DeleteConfigFile 删除配置文件
-	DeleteConfigFile(tx Tx, namespace, group, name string) error
-
-	// CountByConfigFileGroup 获取一个配置文件组下的文件数量
-	CountByConfigFileGroup(namespace, group string) (uint64, error)
-
+	QueryConfigFiles(filter map[string]string, offset uint32, limit uint32) (uint32, []*model.ConfigFile, error)
+	// UpdateConfigFileTx 更新配置文件
+	UpdateConfigFileTx(tx Tx, file *model.ConfigFile) error
+	// DeleteConfigFileTx 删除配置文件
+	DeleteConfigFileTx(tx Tx, namespace, group, name string) error
+	// CountConfigFiles 获取一个配置文件组下的文件数量
+	CountConfigFiles(namespace, group string) (uint64, error)
 	// CountConfigFileEachGroup 统计 namespace.group 下的配置文件数量
 	CountConfigFileEachGroup() (map[string]map[string]int64, error)
 }
 
 // ConfigFileReleaseStore 配置文件发布存储接口
 type ConfigFileReleaseStore interface {
-
-	// CreateConfigFileRelease 创建配置文件发布
-	CreateConfigFileRelease(tx Tx, fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error)
-
-	// UpdateConfigFileRelease 更新配置文件发布
-	UpdateConfigFileRelease(tx Tx, fileRelease *model.ConfigFileRelease) (*model.ConfigFileRelease, error)
-
+	// CreateConfigFileReleaseTx 创建配置文件发布
+	CreateConfigFileReleaseTx(tx Tx, fileRelease *model.ConfigFileRelease) error
 	// GetConfigFileRelease 获取配置文件发布内容，只获取 flag=0 的记录
-	GetConfigFileRelease(tx Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error)
-
-	// GetConfigFileReleaseWithAllFlag 获取配置文件发布内容，返回所有 flag 的记录
-	GetConfigFileReleaseWithAllFlag(tx Tx, namespace, group, fileName string) (*model.ConfigFileRelease, error)
-
+	GetConfigFileRelease(req *model.ConfigFileReleaseKey) (*model.ConfigFileRelease, error)
 	// DeleteConfigFileRelease 删除配置文件发布内容
-	DeleteConfigFileRelease(tx Tx, namespace, group, fileName, deleteBy string) error
-
-	// FindConfigFileReleaseByModifyTimeAfter 获取最近更新的配置文件发布
-	// 此方法用于 cache 增量更新，需要注意 modifyTime 应为数据库时间戳
-	FindConfigFileReleaseByModifyTimeAfter(modifyTime time.Time) ([]*model.ConfigFileRelease, error)
-
-	// CountConfigFileReleaseEachGroup 统计 namespace.group 下的已发布配置文件数量
-	CountConfigFileReleaseEachGroup() (map[string]map[string]int64, error)
+	DeleteConfigFileRelease(data *model.ConfigFileReleaseKey) error
+	// ActiveConfigFileRelease 指定激活发布的配置文件（激活具有排他性，同一个配置文件的所有 release 中只能有一个处于 active == true 状态）
+	ActiveConfigFileRelease(release *model.ConfigFileRelease) error
+	// CleanConfigFileReleasesTx
+	CleanConfigFileReleasesTx(tx Tx, namespace, group, fileName string) error
+	// GetMoreReleaseFile 获取最近更新的配置文件发布, 此方法用于 cache 增量更新，需要注意 modifyTime 应为数据库时间戳
+	GetMoreReleaseFile(firstUpdate bool, modifyTime time.Time) ([]*model.ConfigFileRelease, error)
+	// CountConfigReleases 获取一个配置文件组下的文件数量
+	CountConfigReleases(namespace, group string) (uint64, error)
 }
 
 // ConfigFileReleaseHistoryStore 配置文件发布历史存储接口
 type ConfigFileReleaseHistoryStore interface {
-
 	// CreateConfigFileReleaseHistory 创建配置文件发布历史记录
-	CreateConfigFileReleaseHistory(tx Tx, fileReleaseHistory *model.ConfigFileReleaseHistory) error
-
+	CreateConfigFileReleaseHistory(history *model.ConfigFileReleaseHistory) error
 	// QueryConfigFileReleaseHistories 获取配置文件的发布历史记录
-	QueryConfigFileReleaseHistories(namespace, group, fileName string, offset, limit uint32,
-		endId uint64) (uint32, []*model.ConfigFileReleaseHistory, error)
-
-	// GetLatestConfigFileReleaseHistory 获取配置文件最后一次发布
-	GetLatestConfigFileReleaseHistory(namespace, group, fileName string) (*model.ConfigFileReleaseHistory, error)
-}
-
-type ConfigFileTagStore interface {
-
-	// CreateConfigFileTag 创建配置文件标签
-	CreateConfigFileTag(tx Tx, fileTag *model.ConfigFileTag) error
-
-	// QueryConfigFileByTag 通过标签查询配置文件
-	QueryConfigFileByTag(namespace, group, fileName string, tags ...string) ([]*model.ConfigFileTag, error)
-
-	// QueryTagByConfigFile 查询配置文件标签
-	QueryTagByConfigFile(namespace, group, fileName string) ([]*model.ConfigFileTag, error)
-
-	// DeleteConfigFileTag 删除配置文件标签
-	DeleteConfigFileTag(tx Tx, namespace, group, fileName, key, value string) error
-
-	// DeleteTagByConfigFile 删除配置文件标签
-	DeleteTagByConfigFile(tx Tx, namespace, group, fileName string) error
+	QueryConfigFileReleaseHistories(filter map[string]string, offset, limit uint32) (uint32, []*model.ConfigFileReleaseHistory, error)
+	// CleanConfigFileReleaseHistory 清理配置发布历史
+	CleanConfigFileReleaseHistory(endTime time.Time, limit uint64) error
 }
 
 // ConfigFileTemplateStore config file template store
 type ConfigFileTemplateStore interface {
 	// QueryAllConfigFileTemplates query all config file templates
 	QueryAllConfigFileTemplates() ([]*model.ConfigFileTemplate, error)
-
 	// CreateConfigFileTemplate create config file template
 	CreateConfigFileTemplate(template *model.ConfigFileTemplate) (*model.ConfigFileTemplate, error)
-
 	// GetConfigFileTemplate get config file template by name
 	GetConfigFileTemplate(name string) (*model.ConfigFileTemplate, error)
 }

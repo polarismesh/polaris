@@ -28,40 +28,15 @@ import (
 )
 
 // GetConfigFileReleaseHistory 获取配置文件发布历史记录
-func (s *serverAuthability) GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset,
-	limit uint32, endId uint64) *apiconfig.ConfigBatchQueryResponse {
-	configFileReleaseHistory := &apiconfig.ConfigFileReleaseHistory{
-		Namespace: utils.NewStringValue(namespace),
-		Group:     utils.NewStringValue(group),
-		FileName:  utils.NewStringValue(fileName),
-	}
-	authCtx := s.collectConfigFileReleaseHistoryAuthContext(ctx,
-		[]*apiconfig.ConfigFileReleaseHistory{configFileReleaseHistory}, model.Read, "GetConfigFileReleaseHistory")
+func (s *serverAuthability) GetConfigFileReleaseHistories(ctx context.Context,
+	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
+
+	authCtx := s.collectConfigFileReleaseHistoryAuthContext(ctx, nil, model.Read, "GetConfigFileReleaseHistories")
 
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileBatchQueryResponseWithMessage(convertToErrCode(err), err.Error())
+		return api.NewConfigBatchQueryResponseWithInfo(convertToErrCode(err), err.Error())
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
-	return s.targetServer.GetConfigFileReleaseHistory(ctx, namespace, group, fileName, offset, limit, endId)
-}
-
-// GetConfigFileLatestReleaseHistory 获取配置文件最后一次发布记录
-func (s *serverAuthability) GetConfigFileLatestReleaseHistory(ctx context.Context, namespace, group,
-	fileName string) *apiconfig.ConfigResponse {
-	configFileReleaseHistory := &apiconfig.ConfigFileReleaseHistory{
-		Namespace: utils.NewStringValue(namespace),
-		Group:     utils.NewStringValue(group),
-		FileName:  utils.NewStringValue(fileName),
-	}
-	authCtx := s.collectConfigFileReleaseHistoryAuthContext(ctx,
-		[]*apiconfig.ConfigFileReleaseHistory{configFileReleaseHistory}, model.Read, "GetConfigFileLatestReleaseHistory")
-
-	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileReleaseResponseWithMessage(convertToErrCode(err), err.Error())
-	}
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return s.targetServer.GetConfigFileLatestReleaseHistory(ctx, namespace, group, fileName)
+	return s.targetServer.GetConfigFileReleaseHistories(ctx, filter)
 }

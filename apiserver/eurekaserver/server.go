@@ -66,6 +66,9 @@ const (
 	MetadataReplicate           = "internal-eureka-replicate"
 	MetadataInstanceId          = "internal-eureka-instance-id"
 
+	InternalMetadataStatus           = "internal-eureka-status"
+	InternalMetadataOverriddenStatus = "internal-eureka-overriddenStatus"
+
 	ServerEureka = "eureka"
 
 	KeyRegion = "region"
@@ -125,6 +128,7 @@ var (
 type EurekaServer struct {
 	server                 *http.Server
 	namingServer           service.DiscoverServer
+	originDiscoverSvr      service.DiscoverServer
 	healthCheckServer      *healthcheck.Server
 	connLimitConfig        *connlimit.Config
 	tlsInfo                *secure.TLSInfo
@@ -322,6 +326,12 @@ func (h *EurekaServer) Run(errCh chan error) {
 		errCh <- err
 		return
 	}
+	h.originDiscoverSvr, err = service.GetOriginServer()
+	if err != nil {
+		eurekalog.Errorf("%v", err)
+		errCh <- err
+		return
+	}
 	h.healthCheckServer, err = healthcheck.GetServer()
 	if err != nil {
 		eurekalog.Errorf("%v", err)
@@ -395,7 +405,14 @@ func (h *EurekaServer) createRestfulContainer() (*restful.Container, error) {
 	wsContainer.Add(h.GetEurekaV2Server())
 	wsContainer.Add(h.GetEurekaV1Server())
 	wsContainer.Add(h.GetEurekaServer())
+	wsContainer.RecoverHandler(h.recoverFunc)
 	return wsContainer, nil
+}
+
+func (h *EurekaServer) recoverFunc(i interface{}, w http.ResponseWriter) {
+	eurekalog.Errorf("panic %+v", i)
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Header().Add(restful.HEADER_ContentType, restful.MIME_JSON)
 }
 
 // process 在接收和回复时统一处理请求

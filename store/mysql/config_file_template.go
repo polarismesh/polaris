@@ -26,7 +26,8 @@ import (
 )
 
 type configFileTemplateStore struct {
-	db *BaseDB
+	master *BaseDB
+	slave  *BaseDB
 }
 
 // CreateConfigFileTemplate create config file template
@@ -35,7 +36,7 @@ func (cf *configFileTemplateStore) CreateConfigFileTemplate(
 	createSql := "insert into config_file_template(name,content,comment,format,create_time,create_by, " +
 		" modify_time,modify_by) values " +
 		"(?,?,?,?,sysdate(),?,sysdate(),?)"
-	_, err := cf.db.Exec(createSql, template.Name, template.Content, template.Comment, template.Format,
+	_, err := cf.master.Exec(createSql, template.Name, template.Content, template.Comment, template.Format,
 		template.CreateBy, template.ModifyBy)
 	if err != nil {
 		return nil, store.Error(err)
@@ -47,7 +48,7 @@ func (cf *configFileTemplateStore) CreateConfigFileTemplate(
 // GetConfigFileTemplate get config file template by name
 func (cf *configFileTemplateStore) GetConfigFileTemplate(name string) (*model.ConfigFileTemplate, error) {
 	querySql := cf.baseSelectConfigFileTemplateSql() + " where name = ?"
-	rows, err := cf.db.Query(querySql, name)
+	rows, err := cf.master.Query(querySql, name)
 	if err != nil {
 		return nil, store.Error(err)
 	}
@@ -65,7 +66,7 @@ func (cf *configFileTemplateStore) GetConfigFileTemplate(name string) (*model.Co
 // QueryAllConfigFileTemplates query all config file templates
 func (cf *configFileTemplateStore) QueryAllConfigFileTemplates() ([]*model.ConfigFileTemplate, error) {
 	querySql := cf.baseSelectConfigFileTemplateSql() + " order by id desc"
-	rows, err := cf.db.Query(querySql)
+	rows, err := cf.master.Query(querySql)
 	if err != nil {
 		return nil, store.Error(err)
 	}

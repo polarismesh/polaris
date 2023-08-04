@@ -198,10 +198,12 @@ func (c *LeaderHealthChecker) becomeLeader() {
 		_ = c.remote.Close()
 		c.remote = nil
 	}
+	if !c.isLeader() {
+		plog.Info("[HealthCheck][Leader] self become leader")
+	}
 	// leader 指向自己
 	atomic.StoreInt32(&c.leader, 1)
 	atomic.StoreInt32(&c.initialize, initializedSignal)
-	plog.Info("[HealthCheck][Leader] self become leader")
 }
 
 func (c *LeaderHealthChecker) becomeFollower(e store.LeaderChangeEvent, leaderVersion int64) {
