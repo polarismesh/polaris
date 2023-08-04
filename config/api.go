@@ -53,8 +53,6 @@ type ConfigFileOperate interface {
 	GetConfigFileBaseInfo(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse
 	// GetConfigFileRichInfo 获取单个配置文件基础信息，包含发布状态等信息
 	GetConfigFileRichInfo(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse
-	// QueryConfigFilesByGroup query file group's config file
-	QueryConfigFilesByGroup(ctx context.Context, filter map[string]string) *apiconfig.ConfigBatchQueryResponse
 	// SearchConfigFile 按 group 和 name 模糊搜索配置文件
 	SearchConfigFile(ctx context.Context, filter map[string]string) *apiconfig.ConfigBatchQueryResponse
 	// UpdateConfigFile 更新配置文件

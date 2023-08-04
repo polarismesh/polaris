@@ -15,21 +15,24 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package cache
+package utils
 
-import (
-	"github.com/polarismesh/polaris/common/metrics"
-	"github.com/polarismesh/polaris/plugin"
-)
+import "sync/atomic"
 
-func (fc *configGroupCache) reportMetricsInfo(ns string, count int) {
-	reportValue := metrics.ConfigMetrics{
-		Type:    metrics.ConfigGroupMetric,
-		Total:   int64(count),
-		Release: 0,
-		Labels: map[string]string{
-			metrics.LabelNamespace: ns,
-		},
-	}
-	plugin.GetStatis().ReportConfigMetrics(reportValue)
+func NewAtomicValue[V any](v V) *AtomicValue[V] {
+	a := new(AtomicValue[V])
+	a.Store(v)
+	return a
+}
+
+type AtomicValue[V any] struct {
+	a atomic.Value
+}
+
+func (a *AtomicValue[V]) Store(val V) {
+	a.a.Store(val)
+}
+
+func (a *AtomicValue[V]) Load() V {
+	return a.a.Load().(V)
 }

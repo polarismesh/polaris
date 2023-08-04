@@ -246,6 +246,13 @@ func (s *Server) hasResourceInConfigGroup(ctx context.Context, namespace, name s
 func (s *Server) QueryConfigFileGroups(ctx context.Context,
 	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
 
+	searchFilters := map[string]string{}
+	for k, v := range filter {
+		if _, ok := availableSearch["config_file_group"][k]; ok {
+			searchFilters[k] = v
+		}
+	}
+
 	offset, limit, err := utils.ParseOffsetAndLimit(filter)
 	if err != nil {
 		resp := api.NewConfigBatchQueryResponse(apimodel.Code_BadRequest)
@@ -254,11 +261,22 @@ func (s *Server) QueryConfigFileGroups(ctx context.Context,
 	}
 
 	args := &cache.ConfigGroupArgs{
-		Offset: offset,
-		Limit:  limit,
+		Namespace:  searchFilters["namespace"],
+		Name:       searchFilters["name"],
+		Business:   searchFilters["business"],
+		Department: searchFilters["department"],
+		Offset:     offset,
+		Limit:      limit,
+		OrderField: searchFilters["order_field"],
+		OrderType:  searchFilters["order_type"],
 	}
 
-	total, ret := s.groupCache.Query(args)
+	total, ret, err := s.groupCache.Query(args)
+	if err != nil {
+		resp := api.NewConfigBatchQueryResponse(commonstore.StoreCode2APICode(err))
+		resp.Info = utils.NewStringValue(err.Error())
+		return resp
+	}
 	values := make([]*apiconfig.ConfigFileGroup, 0, len(ret))
 	for i := range ret {
 		values = append(values, model.ToConfigGroupAPI(ret[i]))

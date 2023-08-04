@@ -28,6 +28,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -176,13 +177,13 @@ func (cf *configFileStore) QueryConfigFiles(filter map[string]string,
 			saveGroup, _ := m[FileFieldGroup].(string)
 			saveFileName, _ := m[FileFieldName].(string)
 
-			if hasNs && !strings.Contains(saveNs, namespace) {
+			if hasNs && utils.IsWildNotMatch(saveNs, namespace) {
 				return false
 			}
-			if hasGroup && !strings.Contains(saveGroup, group) {
+			if hasGroup && utils.IsWildNotMatch(saveGroup, group) {
 				return false
 			}
-			if hasName && !strings.Contains(saveFileName, name) {
+			if hasName && utils.IsWildNotMatch(saveFileName, name) {
 				return false
 			}
 

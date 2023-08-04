@@ -19,9 +19,11 @@ package sqldb
 
 import (
 	"database/sql"
+	"strings"
 	"time"
 
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -120,93 +122,6 @@ func (cf *configFileStore) GetConfigFileTx(tx store.Tx, namespace, group, name s
 	return nil, nil
 }
 
-func (cf *configFileStore) QueryConfigFilesByGroup(namespace, group string,
-	offset, limit uint32) (uint32, []*model.ConfigFile, error) {
-	var (
-		countSql = "select count(*) from config_file where namespace = ? and `group` = ? and flag = 0"
-		count    uint32
-		err      = cf.master.QueryRow(countSql, namespace, group).Scan(&count)
-	)
-
-	if err != nil {
-		return 0, nil, err
-	}
-
-	querySql := cf.baseSelectConfigFileSql() + "where namespace = ? and `group` = ? and flag = 0 order by id " +
-		" desc limit ?,?"
-	rows, err := cf.master.Query(querySql, namespace, group, offset, limit)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	files, err := cf.transferRows(rows)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	return count, files, nil
-}
-
-// QueryConfigFiles 翻页查询配置文件，group、name可为模糊匹配
-func (cf *configFileStore) QueryConfigFiles(filter map[string]string, offset, limit uint32) (uint32, []*model.ConfigFile, error) {
-
-	namespace := filter["namespace"]
-	group := filter["group"]
-	name := filter["name"]
-
-	// 全部 namespace
-	if namespace == "" {
-		group = "%" + group + "%"
-		name = "%" + name + "%"
-		countSql := "select count(*) from config_file where `group` like ? and name like ? and flag = 0"
-
-		var count uint32
-		err := cf.master.QueryRow(countSql, group, name).Scan(&count)
-		if err != nil {
-			return 0, nil, err
-		}
-
-		querySql := cf.baseSelectConfigFileSql() + "where `group` like ? and name like ? and flag = 0 " +
-			" order by id desc limit ?,?"
-		rows, err := cf.master.Query(querySql, group, name, offset, limit)
-		if err != nil {
-			return 0, nil, err
-		}
-
-		files, err := cf.transferRows(rows)
-		if err != nil {
-			return 0, nil, err
-		}
-
-		return count, files, nil
-	}
-
-	// 特定 namespace
-	group = "%" + group + "%"
-	name = "%" + name + "%"
-	countSql := "select count(*) from config_file where namespace = ? and `group` like ? and name like ? and flag = 0"
-
-	var count uint32
-	err := cf.master.QueryRow(countSql, namespace, group, name).Scan(&count)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	querySql := cf.baseSelectConfigFileSql() + "where namespace = ? and `group` like ? and name like ? " +
-		" and flag = 0 order by id desc limit ?,?"
-	rows, err := cf.master.Query(querySql, namespace, group, name, offset, limit)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	files, err := cf.transferRows(rows)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	return count, files, nil
-}
-
 // UpdateConfigFile 更新配置文件
 func (cf *configFileStore) UpdateConfigFileTx(tx store.Tx, file *model.ConfigFile) error {
 	updateSql := "update config_file set content = ? , comment = ?, format = ?, modify_time = sysdate(), " +
@@ -235,16 +150,48 @@ func (cf *configFileStore) DeleteConfigFileTx(tx store.Tx, namespace, group, nam
 	return nil
 }
 
-func (cf *configFileStore) CountByConfigFileGroup(namespace, group string) (uint64, error) {
-	countSql := "select count(*) from config_file where namespace = ? and `group` = ? and flag = 0"
-	var count uint64
-	err := cf.master.QueryRow(countSql, namespace, group).Scan(&count)
-	if err != nil {
-		return 0, err
+// QueryConfigFiles 翻页查询配置文件，group、name可为模糊匹配
+func (cf *configFileStore) QueryConfigFiles(filter map[string]string, offset, limit uint32) (uint32, []*model.ConfigFile, error) {
+
+	countSql := "SELECT COUNT(*) FROM config_file WHERE flag = 0 "
+	querySql := cf.baseSelectConfigFileSql() + " WHERE flag = 0 "
+
+	args := make([]interface{}, 0, len(filter))
+	searchQuery := make([]string, 0, len(filter))
+
+	for k, v := range filter {
+		v = utils.ParseWildNameForSql(v)
+		if utils.IsWildName(v) {
+			searchQuery = append(searchQuery, k+" LIKE ? ")
+		} else {
+			searchQuery = append(searchQuery, k+" = ? ")
+		}
+		args = append(args, v)
 	}
-	return count, nil
+
+	countSql = countSql + (strings.Join(searchQuery, " AND "))
+	var count uint32
+	err := cf.master.QueryRow(countSql, args...).Scan(&count)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	querySql = querySql + (strings.Join(searchQuery, " AND ")) + " ORDER BY id DESC LIMIT ?, ? "
+	args = append(args, offset, limit)
+	rows, err := cf.master.Query(querySql, args...)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	files, err := cf.transferRows(rows)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return count, files, nil
 }
 
+// CountConfigFileEachGroup
 func (cf *configFileStore) CountConfigFileEachGroup() (map[string]map[string]int64, error) {
 	metricsSql := "SELECT namespace, `group`, count(name) FROM config_file WHERE flag = 0 GROUP by namespace, `group`"
 	rows, err := cf.slave.Query(metricsSql)
@@ -277,8 +224,8 @@ func (cf *configFileStore) CountConfigFileEachGroup() (map[string]map[string]int
 }
 
 func (cf *configFileStore) baseSelectConfigFileSql() string {
-	return "select id, name,namespace,`group`,content,IFNULL(comment, ''),format, UNIX_TIMESTAMP(create_time), " +
-		" IFNULL(create_by, ''),UNIX_TIMESTAMP(modify_time),IFNULL(modify_by, '') from config_file "
+	return "SELECT id, name,namespace,`group`,content,IFNULL(comment, ''),format, UNIX_TIMESTAMP(create_time), " +
+		" IFNULL(create_by, ''),UNIX_TIMESTAMP(modify_time),IFNULL(modify_by, '') FROM config_file "
 }
 
 func (cf *configFileStore) hardDeleteConfigFile(namespace, group, name string) error {

@@ -246,6 +246,13 @@ func (s *Server) GetConfigFileReleaseVersions(ctx context.Context,
 func (s *Server) GetConfigFileReleases(ctx context.Context,
 	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
 
+	searchFilters := map[string]string{}
+	for k, v := range filter {
+		if _, ok := availableSearch["config_file_release"][k]; ok {
+			searchFilters[k] = v
+		}
+	}
+
 	offset, limit, err := utils.ParseOffsetAndLimit(filter)
 	if err != nil {
 		return api.NewConfigBatchQueryResponseWithInfo(apimodel.Code_BadRequest, err.Error())
@@ -253,13 +260,15 @@ func (s *Server) GetConfigFileReleases(ctx context.Context,
 
 	args := cache.ConfigReleaseArgs{
 		BaseConfigArgs: cache.BaseConfigArgs{
-			Namespace: filter["namespace"],
-			Group:     filter["group"],
-			Offset:    offset,
-			Limit:     limit,
+			Namespace:  searchFilters["namespace"],
+			Group:      searchFilters["group"],
+			Offset:     offset,
+			Limit:      limit,
+			OrderField: searchFilters["order_field"],
+			OrderType:  searchFilters["order_type"],
 		},
-		FileName:   filter["file_name"],
-		OnlyActive: strings.Compare(filter["only_active"], "true") == 0,
+		FileName:   searchFilters["file_name"],
+		OnlyActive: strings.Compare(searchFilters["only_active"], "true") == 0,
 	}
 	return s.handleDescribeConfigFileReleases(ctx, args)
 }

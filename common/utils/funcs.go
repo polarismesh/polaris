@@ -98,6 +98,11 @@ func IsWildMatchIgnoreCase(name, pattern string) bool {
 	return IsWildMatch(strings.ToLower(name), strings.ToLower(pattern))
 }
 
+// IsWildNotMatch .
+func IsWildNotMatch(name, pattern string) bool {
+	return !IsWildMatch(name, pattern)
+}
+
 // IsWildMatch 判断 name 是否匹配 pattern，pattern 可以是前缀或者后缀
 func IsWildMatch(name, pattern string) bool {
 	if IsPrefixWildName(pattern) {

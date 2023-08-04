@@ -64,6 +64,8 @@ type ConfigFileStore interface {
 	DeleteConfigFileTx(tx Tx, namespace, group, name string) error
 	// CountConfigFiles 获取一个配置文件组下的文件数量
 	CountConfigFiles(namespace, group string) (uint64, error)
+	// CountConfigFileEachGroup 统计 namespace.group 下的配置文件数量
+	CountConfigFileEachGroup() (map[string]map[string]int64, error)
 }
 
 // ConfigFileReleaseStore 配置文件发布存储接口

@@ -45,6 +45,42 @@ var (
 	originServer = &Server{}
 )
 
+var (
+	availableSearch = map[string]map[string]struct{}{
+		"config_file": {
+			"namespace":   {},
+			"group":       {},
+			"name":        {},
+			"offset":      {},
+			"limit":       {},
+			"order_type":  {},
+			"order_field": {},
+		},
+		"config_file_release": {
+			"namespace":    {},
+			"group":        {},
+			"file_name":    {},
+			"name":         {},
+			"release_name": {},
+			"offset":       {},
+			"limit":        {},
+			"order_type":   {},
+			"order_field":  {},
+		},
+		"config_file_group": {
+			"namespace":   {},
+			"group":       {},
+			"name":        {},
+			"business":    {},
+			"department":  {},
+			"offset":      {},
+			"limit":       {},
+			"order_type":  {},
+			"order_field": {},
+		},
+	}
+)
+
 // Config 配置中心模块启动参数
 type Config struct {
 	Open               bool          `yaml:"open"`

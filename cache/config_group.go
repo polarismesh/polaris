@@ -60,7 +60,7 @@ type ConfigGroupCache interface {
 	// GetGroupByID
 	GetGroupByID(id uint64) *model.ConfigFileGroup
 	// Query
-	Query(args *ConfigGroupArgs) (uint32, []*model.ConfigFileGroup)
+	Query(args *ConfigGroupArgs) (uint32, []*model.ConfigFileGroup, error)
 }
 
 type configGroupCache struct {
@@ -164,7 +164,7 @@ func (fc *configGroupCache) setConfigGroups(groups []*model.ConfigFileGroup) (ma
 	}, update, del
 }
 
-// clear
+// postProcessUpdatedGroups
 func (fc *configGroupCache) postProcessUpdatedGroups(affect map[string]struct{}) {
 	for ns := range affect {
 		nsBucket, _ := fc.name2groups.Load(ns)
@@ -204,7 +204,11 @@ func (fc *configGroupCache) GetGroupByID(id uint64) *model.ConfigFileGroup {
 }
 
 // Query
-func (fc *configGroupCache) Query(args *ConfigGroupArgs) (uint32, []*model.ConfigFileGroup) {
+func (fc *configGroupCache) Query(args *ConfigGroupArgs) (uint32, []*model.ConfigFileGroup, error) {
+	if err := fc.update(); err != nil {
+		return 0, nil, err
+	}
+
 	values := make([]*model.ConfigFileGroup, 0, 8)
 	fc.name2groups.Range(func(namespce string, groups *utils.SyncMap[string, *model.ConfigFileGroup]) bool {
 		if args.Namespace != "" && !utils.IsWildMatch(namespce, args.Namespace) {
@@ -242,7 +246,7 @@ func (fc *configGroupCache) Query(args *ConfigGroupArgs) (uint32, []*model.Confi
 		return orderByConfigGroupMtime(values[i], values[j], asc)
 	})
 
-	return uint32(len(values)), doPageConfigGroups(values, args.Offset, args.Limit)
+	return uint32(len(values)), doPageConfigGroups(values, args.Offset, args.Limit), nil
 }
 
 func orderByConfigGroupName(a, b *model.ConfigFileGroup, asc bool) bool {
@@ -272,7 +276,7 @@ func doPageConfigGroups(ret []*model.ConfigFileGroup, offset, limit uint32) []*m
 	if offset >= amount || limit == 0 {
 		return nil
 	}
-	endIdx := offset +limit
+	endIdx := offset + limit
 	if endIdx > amount {
 		endIdx = amount
 	}

@@ -291,9 +291,14 @@ func (s *Server) GetConfigFileRichInfo(ctx context.Context, req *apiconfig.Confi
 	return api.NewConfigFileResponse(apimodel.Code_ExecuteSuccess, ret)
 }
 
-// QueryConfigFilesByGroup querying configuration files
-func (s *Server) QueryConfigFilesByGroup(ctx context.Context,
-	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
+// SearchConfigFile 查询配置文件
+func (s *Server) SearchConfigFile(ctx context.Context, filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
+	searchFilters := map[string]string{}
+	for k, v := range filter {
+		if _, ok := availableSearch["config_file"][k]; ok {
+			searchFilters[k] = v
+		}
+	}
 
 	offset, limit, err := utils.ParseOffsetAndLimit(filter)
 	if err != nil {
@@ -302,7 +307,7 @@ func (s *Server) QueryConfigFilesByGroup(ctx context.Context,
 		return out
 	}
 
-	count, files, err := s.storage.QueryConfigFiles(filter, offset, limit)
+	count, files, err := s.storage.QueryConfigFiles(searchFilters, offset, limit)
 	if err != nil {
 		log.Error("[Config][Service]get config files by group error.", utils.RequestID(ctx),
 			zap.Error(err))
@@ -324,28 +329,6 @@ func (s *Server) QueryConfigFilesByGroup(ctx context.Context,
 	out.Total = utils.NewUInt32Value(count)
 	out.ConfigFiles = ret
 	return out
-}
-
-// SearchConfigFile 查询配置文件
-func (s *Server) SearchConfigFile(ctx context.Context, filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
-	offset, limit, err := utils.ParseOffsetAndLimit(filter)
-
-	count, files, err := s.storage.QueryConfigFiles(filter, offset, limit)
-	if err != nil {
-		log.Error("[Config][Service]get config files by group error.", utils.RequestID(ctx),
-			zap.Error(err))
-		return api.NewConfigFileBatchQueryResponse(commonstore.StoreCode2APICode(err), 0, nil)
-	}
-
-	if len(files) == 0 {
-		return api.NewConfigFileBatchQueryResponse(apimodel.Code_ExecuteSuccess, count, nil)
-	}
-
-	ret := make([]*apiconfig.ConfigFile, 0, len(files))
-	for _, file := range files {
-		ret = append(ret, model.ToConfigFileAPI(file))
-	}
-	return api.NewConfigFileBatchQueryResponse(apimodel.Code_ExecuteSuccess, count, ret)
 }
 
 // ExportConfigFile 导出配置文件

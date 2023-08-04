@@ -194,11 +194,12 @@ func (cfr *configFileReleaseStore) CountConfigReleases(namespace, group string) 
 func (cfr *configFileReleaseStore) CleanConfigFileReleasesTx(tx store.Tx, namespace, group, fileName string) error {
 	dbTx := tx.GetDelegateTx().(*bolt.Tx)
 
-	fields := []string{FileReleaseFieldNamespace, FileReleaseFieldGroup, FileReleaseFieldFileName}
+	fields := []string{FileReleaseFieldNamespace, FileReleaseFieldGroup, FileReleaseFieldFileName,
+		FileReleaseFieldValid}
 	values := map[string]interface{}{}
 	err := loadValuesByFilter(dbTx, tblConfigFileRelease, fields, &model.ConfigFileRelease{},
 		func(m map[string]interface{}) bool {
-			flag, _ := m[FileReleaseFieldFlag].(int)
+			flag, _ := m[FileReleaseFieldValid].(int)
 			// 已经删除的不管
 			if flag == 1 {
 				return false
@@ -212,8 +213,9 @@ func (cfr *configFileReleaseStore) CleanConfigFileReleasesTx(tx store.Tx, namesp
 		}, values)
 
 	properties := map[string]interface{}{
-		FileReleaseFieldFlag:  1,
-		FileReleaseFieldValid: false,
+		FileReleaseFieldFlag:       1,
+		FileReleaseFieldValid:      false,
+		FileReleaseFieldModifyTime: time.Now(),
 	}
 	for key := range values {
 		if err := updateValue(dbTx, tblConfigFileRelease, key, properties); err != nil {

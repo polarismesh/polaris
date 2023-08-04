@@ -227,7 +227,7 @@ func TestConfigFileCRUD(t *testing.T) {
 		}
 
 		// 第一页
-		rsp2 := testSuit.ConfigServer().QueryConfigFilesByGroup(testSuit.DefaultCtx, map[string]string{
+		rsp2 := testSuit.ConfigServer().SearchConfigFile(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
 			"group":     group,
 			"offset":    "0",
@@ -238,7 +238,7 @@ func TestConfigFileCRUD(t *testing.T) {
 		assert.Equal(t, 3, len(rsp2.ConfigFiles))
 
 		// 最后一页
-		rsp3 := testSuit.ConfigServer().QueryConfigFilesByGroup(testSuit.DefaultCtx, map[string]string{
+		rsp3 := testSuit.ConfigServer().SearchConfigFile(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
 			"group":     group,
 			"offset":    "6",
@@ -249,7 +249,7 @@ func TestConfigFileCRUD(t *testing.T) {
 		assert.Equal(t, 1, len(rsp3.ConfigFiles))
 
 		// group为空
-		rsp4 := testSuit.ConfigServer().QueryConfigFilesByGroup(testSuit.DefaultCtx, map[string]string{
+		rsp4 := testSuit.ConfigServer().SearchConfigFile(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
 			"group":     "",
 			"offset":    "0",

@@ -20,6 +20,8 @@ package cache
 import (
 	"context"
 	"errors"
+	"sort"
+	"strings"
 	"time"
 
 	"go.etcd.io/bbolt"
@@ -72,7 +74,7 @@ type (
 		OnlyActive bool
 		// Metadata
 		Metadata map[string]string
-		//
+		// NoPage
 		NoPage bool
 	}
 )
@@ -96,20 +98,22 @@ type fileCache struct {
 	storage store.Store
 	// releases config_release.id -> model.SimpleConfigFileRelease
 	releases *utils.SegmentMap[uint64, *model.SimpleConfigFileRelease]
-	// name2release config_release.<namespace, group, file_name, release_name> -> model.ConfigFileRelease
-	name2release *utils.SegmentMap[string, *model.SimpleConfigFileRelease]
+	// name2release namespace -> group -> file_name -> []model.ConfigFileRelease
+	name2release *utils.SyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *model.SimpleConfigFileRelease]]]]
 	// activeReleases namespace -> group -> []model.ConfigFileRelease
 	activeReleases *utils.SyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *model.SimpleConfigFileRelease]]]
 	// groupedActiveReleaseRevisions namespace -> group -> revision
 	activeReleaseRevisions *utils.SyncMap[string, *utils.SyncMap[string, string]]
 	// singleGroup
-	singleGroup singleflight.Group
+	singleGroup *singleflight.Group
 	// valueCache save ConfigFileRelease.Content into local file to reduce memory use
 	valueCache *bbolt.DB
-	// metricsFileCount
-	metricsFileCount *utils.SyncMap[string, *utils.SyncMap[string, uint64]]
 	// metricsReleaseCount
 	metricsReleaseCount *utils.SyncMap[string, *utils.SyncMap[string, uint64]]
+	// preMetricsFiles
+	preMetricsFiles *utils.AtomicValue[map[string]map[string]struct{}]
+	// lastReportTime
+	lastReportTime *utils.AtomicValue[time.Time]
 }
 
 // newFileCache 创建文件缓存
@@ -123,6 +127,16 @@ func newFileCache(ctx context.Context, storage store.Store) ConfigFileCache {
 
 // initialize
 func (fc *fileCache) initialize(opt map[string]interface{}) error {
+	fc.releases = utils.NewSegmentMap[uint64, *model.SimpleConfigFileRelease](128, func(k uint64) int {
+		return int(k)
+	})
+	fc.name2release = utils.NewSyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *model.SimpleConfigFileRelease]]]]()
+	fc.activeReleases = utils.NewSyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *model.SimpleConfigFileRelease]]]()
+	fc.activeReleaseRevisions = utils.NewSyncMap[string, *utils.SyncMap[string, string]]()
+	fc.singleGroup = &singleflight.Group{}
+	fc.metricsReleaseCount = utils.NewSyncMap[string, *utils.SyncMap[string, uint64]]()
+	fc.preMetricsFiles = utils.NewAtomicValue[map[string]map[string]struct{}](map[string]map[string]struct{}{})
+	fc.lastReportTime = utils.NewAtomicValue[time.Time](time.Time{})
 	return nil
 }
 
@@ -202,20 +216,42 @@ func (fc *fileCache) setReleases(releases []*model.ConfigFileRelease) (map[strin
 // handleUpdateRelease
 func (fc *fileCache) handleUpdateRelease(oldVal *model.SimpleConfigFileRelease, item *model.ConfigFileRelease) error {
 	fc.releases.Put(item.Id, item.SimpleConfigFileRelease)
-	fc.name2release.Put(item.ReleaseKey(), item.SimpleConfigFileRelease)
+
+	func() {
+		// 记录 namespace -> group -> file_name -> []SimpleRelease 信息
+		if _, ok := fc.name2release.Load(item.Namespace); !ok {
+			fc.name2release.Store(item.Namespace, utils.NewSyncMap[string,
+				*utils.SyncMap[string, *utils.SyncMap[string, *model.SimpleConfigFileRelease]]]())
+		}
+		namespace, _ := fc.name2release.Load(item.Namespace)
+		if _, ok := namespace.Load(item.Group); !ok {
+			namespace.Store(item.Group, utils.NewSyncMap[string, *utils.SyncMap[string, *model.SimpleConfigFileRelease]]())
+		}
+		group, _ := namespace.Load(item.Group)
+		group.Store(item.FileName, utils.NewSyncMap[string, *model.SimpleConfigFileRelease]())
+
+		files, _ := group.Load(item.FileName)
+		files.Store(item.Name, item.SimpleConfigFileRelease)
+	}()
+
 	if !item.Active {
 		return nil
 	}
-	if _, ok := fc.activeReleases.Load(item.Namespace); !ok {
-		fc.activeReleases.Store(item.Namespace, utils.NewSyncMap[string,
-			*utils.SyncMap[string, *model.SimpleConfigFileRelease]]())
-	}
-	namespace, _ := fc.activeReleases.Load(item.Namespace)
-	if _, ok := namespace.Load(item.Group); !ok {
-		namespace.Store(item.Group, utils.NewSyncMap[string, *model.SimpleConfigFileRelease]())
-	}
-	group, _ := namespace.Load(item.Group)
-	group.Store(item.ActiveKey(), item.SimpleConfigFileRelease)
+
+	func() {
+		// 保存 active 状态的所有发布 release 信息
+		if _, ok := fc.activeReleases.Load(item.Namespace); !ok {
+			fc.activeReleases.Store(item.Namespace, utils.NewSyncMap[string,
+				*utils.SyncMap[string, *model.SimpleConfigFileRelease]]())
+		}
+		namespace, _ := fc.activeReleases.Load(item.Namespace)
+		if _, ok := namespace.Load(item.Group); !ok {
+			namespace.Store(item.Group, utils.NewSyncMap[string, *model.SimpleConfigFileRelease]())
+		}
+		group, _ := namespace.Load(item.Group)
+		group.Store(item.ActiveKey(), item.SimpleConfigFileRelease)
+	}()
+
 	if err := fc.valueCache.Update(func(tx *bbolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(item.OwnerKey()))
 		if err != nil {
@@ -231,7 +267,29 @@ func (fc *fileCache) handleUpdateRelease(oldVal *model.SimpleConfigFileRelease, 
 // handleDeleteRelease
 func (fc *fileCache) handleDeleteRelease(oldVal *model.SimpleConfigFileRelease, item *model.ConfigFileRelease) error {
 	fc.releases.Del(item.Id)
-	fc.name2release.Del(item.ReleaseKey())
+
+	func() {
+		// 记录 namespace -> group -> file_name -> []SimpleRelease 信息
+		if _, ok := fc.name2release.Load(item.Namespace); !ok {
+			return
+		}
+		namespace, _ := fc.name2release.Load(item.Namespace)
+		if _, ok := namespace.Load(item.Group); !ok {
+			return
+		}
+		group, _ := namespace.Load(item.Group)
+		if _, ok := group.Load(item.FileName); !ok {
+			return
+		}
+
+		files, _ := group.Load(item.FileName)
+		files.Delete(item.Name)
+
+		if files.Len() == 0 {
+			group.Delete(item.FileName)
+		}
+	}()
+
 	if oldVal == nil {
 		return nil
 	}
@@ -257,7 +315,23 @@ func (fc *fileCache) handleDeleteRelease(oldVal *model.SimpleConfigFileRelease, 
 
 // postProcessUpdatedRelease
 func (fc *fileCache) postProcessUpdatedRelease(affect map[string]map[string]struct{}) {
-
+	for ns, groups := range affect {
+		nsBucket, ok := fc.name2release.Load(ns)
+		if !ok {
+			continue
+		}
+		if _, ok := fc.metricsReleaseCount.Load(ns); !ok {
+			fc.metricsReleaseCount.Store(ns, utils.NewSyncMap[string, uint64]())
+		}
+		nsMetric, _ := fc.metricsReleaseCount.Load(ns)
+		for group := range groups {
+			groupBucket, ok := nsBucket.Load(group)
+			if !ok {
+				continue
+			}
+			nsMetric.Store(group, uint64(groupBucket.Len()))
+		}
+	}
 }
 
 func (fc *fileCache) LastMtime() time.Time {
@@ -333,7 +407,19 @@ func (fc *fileCache) GetRelease(key model.ConfigFileReleaseKey) *model.ConfigFil
 	if key.Id != 0 {
 		simple, _ = fc.releases.Get(key.Id)
 	} else {
-		simple, _ = fc.name2release.Get(key.ReleaseKey())
+		nsB, ok := fc.name2release.Load(key.Namespace)
+		if !ok {
+			return nil
+		}
+		groupB, ok := nsB.Load(key.Group)
+		if !ok {
+			return nil
+		}
+		fileB, ok := groupB.Load(key.FileName)
+		if !ok {
+			return nil
+		}
+		simple, _ = fileB.Load(key.Name)
 	}
 	if simple == nil {
 		return nil
@@ -346,7 +432,105 @@ func (fc *fileCache) GetRelease(key model.ConfigFileReleaseKey) *model.ConfigFil
 }
 
 func (fc *fileCache) QueryReleases(args *ConfigReleaseArgs) (uint32, []*model.SimpleConfigFileRelease, error) {
-	return 0, nil, nil
+	if err := fc.update(); err != nil {
+		return 0, nil, err
+	}
+
+	values := make([]*model.SimpleConfigFileRelease, 0, args.Limit)
+	fc.name2release.Range(func(namespace string, groups *utils.SyncMap[string, *utils.SyncMap[string,
+		*utils.SyncMap[string, *model.SimpleConfigFileRelease]]]) bool {
+
+		if args.Namespace != "" && utils.IsWildNotMatch(namespace, args.Namespace) {
+			return true
+		}
+		groups.Range(func(group string, files *utils.SyncMap[string, *utils.SyncMap[string,
+			*model.SimpleConfigFileRelease]]) bool {
+
+			if args.Group != "" && utils.IsWildNotMatch(group, args.Group) {
+				return true
+			}
+			files.Range(func(fileName string, releases *utils.SyncMap[string, *model.SimpleConfigFileRelease]) bool {
+				if args.FileName != "" && utils.IsWildNotMatch(fileName, args.FileName) {
+					return true
+				}
+				releases.Range(func(releaseName string, item *model.SimpleConfigFileRelease) bool {
+					if args.ReleaseName != "" && utils.IsWildNotMatch(item.Name, args.ReleaseName) {
+						return true
+					}
+					if args.OnlyActive && !item.Active {
+						return true
+					}
+					if len(args.Metadata) > 0 {
+						for k, v := range args.Metadata {
+							sv, _ := item.Metadata[k]
+							if sv != v {
+								return true
+							}
+						}
+					}
+
+					values = append(values, item)
+					return true
+				})
+				return true
+			})
+			return true
+		})
+		return true
+	})
+
+	sort.Slice(values, func(i, j int) bool {
+		asc := strings.ToLower(args.OrderType) == "asc" || args.OrderType == ""
+		if strings.ToLower(args.OrderField) == "name" {
+			return orderByConfigReleaseName(values[i], values[j], asc)
+		}
+		return orderByConfigReleaseMtime(values[i], values[j], asc)
+	})
+
+	return uint32(len(values)), doPageConfigReleases(values, args), nil
+}
+
+func orderByConfigReleaseName(a, b *model.SimpleConfigFileRelease, asc bool) bool {
+	if a.Name < b.Name {
+		return asc
+	}
+	if a.Name > b.Name {
+		// false && asc always false
+		return false
+	}
+	return a.Id < b.Id && asc
+}
+
+func orderByConfigReleaseMtime(a, b *model.SimpleConfigFileRelease, asc bool) bool {
+	if a.ModifyTime.After(b.ModifyTime) {
+		return asc
+	}
+	if a.ModifyTime.Before(b.ModifyTime) {
+		// false && asc always false
+		return false
+	}
+	return a.Id < b.Id && asc
+}
+
+func doPageConfigReleases(values []*model.SimpleConfigFileRelease,
+	args *ConfigReleaseArgs) []*model.SimpleConfigFileRelease {
+
+	if args.NoPage {
+		return values
+	}
+
+	offset := args.Offset
+	limit := args.Limit
+
+	amount := uint32(len(values))
+	if offset >= amount || limit == 0 {
+		return nil
+	}
+	endIdx := offset + limit
+	if endIdx > amount {
+		endIdx = amount
+	}
+	return values[offset:endIdx]
 }
 
 func (fc *fileCache) loadValueCache(release *model.ConfigFileRelease) {

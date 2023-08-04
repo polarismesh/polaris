@@ -140,17 +140,6 @@ func (h *HTTPServer) GetConfigFile(req *restful.Request, rsp *restful.Response) 
 	handler.WriteHeaderAndProto(response)
 }
 
-func (h *HTTPServer) QueryConfigFilesByGroup(req *restful.Request, rsp *restful.Response) {
-	handler := &httpcommon.Handler{
-		Request:  req,
-		Response: rsp,
-	}
-
-	filters := httpcommon.ParseQueryParams(req)
-	response := h.configServer.QueryConfigFilesByGroup(handler.ParseHeaderContext(), filters)
-	handler.WriteHeaderAndProto(response)
-}
-
 // SearchConfigFile 按照 group 和 name 模糊搜索配置文件，按照 tag 搜索，多个tag之间或的关系
 func (h *HTTPServer) SearchConfigFile(req *restful.Request, rsp *restful.Response) {
 	handler := &httpcommon.Handler{

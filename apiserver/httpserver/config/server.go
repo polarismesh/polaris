@@ -83,7 +83,7 @@ func (h *HTTPServer) GetConsoleAccessServer(include []string) (*restful.WebServi
 func (h *HTTPServer) addDefaultReadAccess(ws *restful.WebService) {
 	ws.Route(docs.EnrichQueryConfigFileGroupsApiDocs(ws.GET("/configfilegroups").To(h.QueryConfigFileGroups)))
 	ws.Route(docs.EnrichGetConfigFileApiDocs(ws.GET("/configfiles").To(h.GetConfigFile)))
-	ws.Route(docs.EnrichQueryConfigFilesByGroupApiDocs(ws.GET("/configfiles/by-group").To(h.QueryConfigFilesByGroup)))
+	ws.Route(docs.EnrichQueryConfigFilesByGroupApiDocs(ws.GET("/configfiles/by-group").To(h.SearchConfigFile)))
 	ws.Route(docs.EnrichSearchConfigFileApiDocs(ws.GET("/configfiles/search").To(h.SearchConfigFile)))
 	ws.Route(docs.EnrichGetAllConfigEncryptAlgorithms(ws.GET("/configfiles/encryptalgorithm").
 		To(h.GetAllConfigEncryptAlgorithms)))
@@ -103,7 +103,7 @@ func (h *HTTPServer) addDefaultAccess(ws *restful.WebService) {
 	// 配置文件
 	ws.Route(docs.EnrichCreateConfigFileApiDocs(ws.POST("/configfiles").To(h.CreateConfigFile)))
 	ws.Route(docs.EnrichGetConfigFileApiDocs(ws.GET("/configfiles").To(h.GetConfigFile)))
-	ws.Route(docs.EnrichQueryConfigFilesByGroupApiDocs(ws.GET("/configfiles/by-group").To(h.QueryConfigFilesByGroup)))
+	ws.Route(docs.EnrichQueryConfigFilesByGroupApiDocs(ws.GET("/configfiles/by-group").To(h.SearchConfigFile)))
 	ws.Route(docs.EnrichSearchConfigFileApiDocs(ws.GET("/configfiles/search").To(h.SearchConfigFile)))
 	ws.Route(docs.EnrichUpdateConfigFileApiDocs(ws.PUT("/configfiles").To(h.UpdateConfigFile)))
 	ws.Route(docs.EnrichDeleteConfigFileApiDocs(ws.DELETE("/configfiles").To(h.DeleteConfigFile)))

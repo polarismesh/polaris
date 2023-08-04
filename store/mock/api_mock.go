@@ -333,6 +333,21 @@ func (mr *MockStoreMockRecorder) CleanInstance(instanceID interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanInstance", reflect.TypeOf((*MockStore)(nil).CleanInstance), instanceID)
 }
 
+// CountConfigFileEachGroup mocks base method.
+func (m *MockStore) CountConfigFileEachGroup() (map[string]map[string]int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountConfigFileEachGroup")
+	ret0, _ := ret[0].(map[string]map[string]int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountConfigFileEachGroup indicates an expected call of CountConfigFileEachGroup.
+func (mr *MockStoreMockRecorder) CountConfigFileEachGroup() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountConfigFileEachGroup", reflect.TypeOf((*MockStore)(nil).CountConfigFileEachGroup))
+}
+
 // CountConfigFiles mocks base method.
 func (m *MockStore) CountConfigFiles(namespace, group string) (uint64, error) {
 	m.ctrl.T.Helper()
