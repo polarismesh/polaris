@@ -74,7 +74,9 @@ func (cfr *configFileReleaseStore) GetConfigFileRelease(
 	if err != nil {
 		return nil, store.Error(err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 	return cfr.GetConfigFileReleaseTx(NewSqlDBTx(tx), req)
 }
 
@@ -143,7 +145,9 @@ func (cfr *configFileReleaseStore) GetConfigFileActiveRelease(file *model.Config
 	if err != nil {
 		return nil, store.Error(err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 	return cfr.GetConfigFileActiveReleaseTx(NewSqlDBTx(tx), file)
 }
 

@@ -218,8 +218,8 @@ func Test_configFileStore(t *testing.T) {
 
 			total, ret, err = s.QueryConfigFiles(map[string]string{
 				"namespace": "qweq",
-				"group": "qweq",
-				"name": "qweq",
+				"group":     "qweq",
+				"name":      "qweq",
 			}, 0, 100)
 
 			for i := range ret {

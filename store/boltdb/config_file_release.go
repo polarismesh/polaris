@@ -144,7 +144,9 @@ func (cfr *configFileReleaseStore) GetConfigFileActiveRelease(file *model.Config
 	if err != nil {
 		return nil, store.Error(err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 	return cfr.GetConfigFileActiveReleaseTx(tx, file)
 }
 

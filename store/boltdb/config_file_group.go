@@ -65,7 +65,7 @@ func (fg *configFileGroupStore) CreateConfigFileGroup(
 		return nil, store.NewStatusError(store.EmptyParamsErr, "ConfigFileGroup miss some param")
 	}
 
-	fg.handler.Execute(true, func(tx *bolt.Tx) error {
+	err := fg.handler.Execute(true, func(tx *bolt.Tx) error {
 		table, err := tx.CreateBucketIfNotExists([]byte(tblConfigFileGroup))
 		if err != nil {
 			return err
@@ -86,6 +86,9 @@ func (fg *configFileGroupStore) CreateConfigFileGroup(
 		}
 		return nil
 	})
+	if err != nil {
+		return nil, store.Error(err)
+	}
 	return fileGroup, nil
 }
 

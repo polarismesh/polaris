@@ -47,7 +47,7 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 	t.Run("step1-query-none", func(t *testing.T) {
 		rsp := testSuit.ConfigServer().QueryConfigFileGroups(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
-			"name":     testGroup,
+			"name":      testGroup,
 			"offset":    "0",
 			"limit":     "1",
 		})
@@ -68,7 +68,7 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 	t.Run("step3-query-existed", func(t *testing.T) {
 		rsp := testSuit.ConfigServer().QueryConfigFileGroups(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
-			"name":     testGroup,
+			"name":      testGroup,
 			"offset":    "0",
 			"limit":     "1",
 		})
@@ -83,7 +83,7 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 
 		rsp2 := testSuit.ConfigServer().SearchConfigFile(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
-			"name":     testGroup,
+			"name":      testGroup,
 			"offset":    "0",
 			"limit":     "10",
 		})
@@ -101,7 +101,7 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 
 		rsp2 := testSuit.ConfigServer().SearchConfigFile(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
-			"name":     testGroup,
+			"name":      testGroup,
 			"offset":    "0",
 			"limit":     "10",
 		})
@@ -113,7 +113,7 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 	t.Run("step5-query-none", func(t *testing.T) {
 		rsp := testSuit.ConfigServer().QueryConfigFileGroups(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
-			"name":     testGroup,
+			"name":      testGroup,
 			"offset":    "0",
 			"limit":     "1",
 		})
@@ -150,7 +150,7 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 		// 最后一页
 		rsp := testSuit.ConfigServer().QueryConfigFileGroups(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
-			"name":     randomGroupPrefix + "*",
+			"name":      randomGroupPrefix + "*",
 			"offset":    "6",
 			"limit":     "2",
 		})
@@ -161,7 +161,7 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 		// 超出页范围
 		rsp2 := testSuit.ConfigServer().QueryConfigFileGroups(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
-			"name":     randomGroupPrefix + "*",
+			"name":      randomGroupPrefix + "*",
 			"offset":    "8",
 			"limit":     "2",
 		})

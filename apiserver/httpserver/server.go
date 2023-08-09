@@ -29,6 +29,7 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/pkg/errors"
+	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/admin"
@@ -50,7 +51,6 @@ import (
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/healthcheck"
-	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
 // HTTPServer HTTP API服务器

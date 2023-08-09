@@ -88,6 +88,7 @@ func (s *ConfigFile) GetEncryptAlgo() string {
 	val, _ := s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
 	return val
 }
+
 func (s *ConfigFile) IsEncrypted() bool {
 	return s.Encrypt || s.GetEncryptDataKey() != ""
 }
