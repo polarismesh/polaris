@@ -281,7 +281,9 @@ func (s *Server) GetConfigFileBaseInfo(ctx context.Context, req *apiconfig.Confi
 	return out
 }
 
-func (s *Server) handleDescribeFileBase(ctx context.Context, req *apiconfig.ConfigFile) (*model.ConfigFile, *apiconfig.ConfigResponse) {
+func (s *Server) handleDescribeFileBase(ctx context.Context,
+	req *apiconfig.ConfigFile) (*model.ConfigFile, *apiconfig.ConfigResponse) {
+
 	namespace := req.GetNamespace().GetValue()
 	group := req.GetGroup().GetValue()
 	fileName := req.GetName().GetValue()

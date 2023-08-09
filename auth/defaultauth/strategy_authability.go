@@ -124,7 +124,7 @@ func (svr *strategyAuthAbility) GetStrategy(
 }
 
 // GetPrincipalResources get principal resources.
-func (svr *strategyAuthAbility) GetPrincipalResources(ctx context.Context, query map[string]string) *apiservice.Response { //nolint
+func (svr *strategyAuthAbility) GetPrincipalResources(ctx context.Context, query map[string]string) *apiservice.Response {
 	ctx, rsp := verifyAuth(ctx, ReadOp, NotOwner, svr.authMgn)
 	if rsp != nil {
 		return rsp

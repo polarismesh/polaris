@@ -43,7 +43,8 @@ type fileCache struct {
 	// releases config_release.id -> model.SimpleConfigFileRelease
 	releases *utils.SegmentMap[uint64, *model.SimpleConfigFileRelease]
 	// name2release namespace -> group -> file_name -> []model.ConfigFileRelease
-	name2release *utils.SyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *model.SimpleConfigFileRelease]]]]
+	name2release *utils.SyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string,
+		*utils.SyncMap[string, *model.SimpleConfigFileRelease]]]]
 	// activeReleases namespace -> group -> []model.ConfigFileRelease
 	activeReleases *utils.SyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *model.SimpleConfigFileRelease]]]
 	// groupedActiveReleaseRevisions namespace -> group -> revision
@@ -74,8 +75,10 @@ func (fc *fileCache) Initialize(opt map[string]interface{}) error {
 	fc.releases = utils.NewSegmentMap[uint64, *model.SimpleConfigFileRelease](1, func(k uint64) int {
 		return int(k)
 	})
-	fc.name2release = utils.NewSyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *model.SimpleConfigFileRelease]]]]()
-	fc.activeReleases = utils.NewSyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *model.SimpleConfigFileRelease]]]()
+	fc.name2release = utils.NewSyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string,
+		*utils.SyncMap[string, *model.SimpleConfigFileRelease]]]]()
+	fc.activeReleases = utils.NewSyncMap[string, *utils.SyncMap[string,
+		*utils.SyncMap[string, *model.SimpleConfigFileRelease]]]()
 	fc.activeReleaseRevisions = utils.NewSyncMap[string, *utils.SyncMap[string, string]]()
 	fc.singleGroup = &singleflight.Group{}
 	fc.metricsReleaseCount = utils.NewSyncMap[string, *utils.SyncMap[string, uint64]]()
@@ -442,7 +445,7 @@ func (fc *fileCache) QueryReleases(args *types.ConfigReleaseArgs) (uint32, []*mo
 					}
 					if len(args.Metadata) > 0 {
 						for k, v := range args.Metadata {
-							sv, _ := item.Metadata[k]
+							sv := item.Metadata[k]
 							if sv != v {
 								return true
 							}

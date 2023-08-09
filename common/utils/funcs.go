@@ -158,6 +158,7 @@ func StringSliceDeDuplication(s []string) []string {
 }
 
 func MustJson(v interface{}) string {
-	data, _ := json.Marshal(v)
+	data, err := json.Marshal(v)
+	_ = err
 	return string(data)
 }

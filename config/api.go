@@ -93,17 +93,18 @@ type ConfigFileReleaseOperate interface {
 // ConfigFileClientOperate 给客户端提供服务接口，不同的上层协议抽象的公共服务逻辑
 type ConfigFileClientOperate interface {
 	// GetConfigFileForClient 获取配置文件
-	GetConfigFileForClient(ctx context.Context, configFile *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse
+	GetConfigFileForClient(ctx context.Context, req *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse
 	// CreateConfigFileFromClient 调用config_file的方法创建配置文件
-	CreateConfigFileFromClient(ctx context.Context, fileInfo *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse
+	CreateConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse
 	// UpdateConfigFileFromClient 调用config_file的方法更新配置文件
-	UpdateConfigFileFromClient(ctx context.Context, fileInfo *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse
+	UpdateConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse
 	// PublishConfigFileFromClient 调用config_file_release的方法发布配置文件
-	PublishConfigFileFromClient(ctx context.Context, fileInfo *apiconfig.ConfigFileRelease) *apiconfig.ConfigClientResponse
+	PublishConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFileRelease) *apiconfig.ConfigClientResponse
 	// WatchConfigFiles 客户端监听配置文件
-	WatchConfigFiles(ctx context.Context, request *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error)
+	WatchConfigFiles(ctx context.Context, req *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error)
 	// GetConfigFileNamesWithCache 获取某个配置分组下的配置文件
-	GetConfigFileNamesWithCache(ctx context.Context, req *apiconfig.ConfigFileGroupRequest) *apiconfig.ConfigClientListResponse
+	GetConfigFileNamesWithCache(ctx context.Context,
+		req *apiconfig.ConfigFileGroupRequest) *apiconfig.ConfigClientListResponse
 }
 
 // ConfigFileTemplateOperate config file template operate

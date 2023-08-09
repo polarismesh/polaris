@@ -118,7 +118,7 @@ func (s *serverAuthability) GetConfigFileNamesWithCache(ctx context.Context,
 	req *apiconfig.ConfigFileGroupRequest) *apiconfig.ConfigClientListResponse {
 
 	authCtx := s.collectClientConfigFileReleaseAuthContext(ctx, []*apiconfig.ConfigFileRelease{
-		&apiconfig.ConfigFileRelease{
+		{
 			Namespace: req.GetConfigFileGroup().GetNamespace(),
 			Group:     req.GetConfigFileGroup().GetName(),
 		},

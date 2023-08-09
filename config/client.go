@@ -111,7 +111,9 @@ func (s *Server) WatchConfigFiles(ctx context.Context,
 }
 
 // GetConfigFileNamesWithCache
-func (s *Server) GetConfigFileNamesWithCache(ctx context.Context, req *apiconfig.ConfigFileGroupRequest) *apiconfig.ConfigClientListResponse {
+func (s *Server) GetConfigFileNamesWithCache(ctx context.Context,
+	req *apiconfig.ConfigFileGroupRequest) *apiconfig.ConfigClientListResponse {
+
 	namespace := req.GetConfigFileGroup().GetNamespace().GetValue()
 	group := req.GetConfigFileGroup().GetName().GetValue()
 

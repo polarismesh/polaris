@@ -459,7 +459,9 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *apis
 }
 
 // parseServiceArgs 解析服务的查询条件
-func parseServiceArgs(filter map[string]string, metaFilter map[string]string, ctx context.Context) *cachetypes.ServiceArgs {
+func parseServiceArgs(filter map[string]string, metaFilter map[string]string,
+	ctx context.Context) *cachetypes.ServiceArgs {
+
 	res := &cachetypes.ServiceArgs{
 		Filter:    filter,
 		Metadata:  metaFilter,

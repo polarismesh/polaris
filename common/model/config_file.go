@@ -80,13 +80,11 @@ func (s *ConfigFile) Key() *ConfigFileKey {
 }
 
 func (s *ConfigFile) GetEncryptDataKey() string {
-	val, _ := s.Metadata[utils.ConfigFileTagKeyDataKey]
-	return val
+	return s.Metadata[utils.ConfigFileTagKeyDataKey]
 }
 
 func (s *ConfigFile) GetEncryptAlgo() string {
-	val, _ := s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
-	return val
+	return s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
 }
 
 func (s *ConfigFile) IsEncrypted() bool {
@@ -145,13 +143,11 @@ type SimpleConfigFileRelease struct {
 }
 
 func (s SimpleConfigFileRelease) GetEncryptDataKey() string {
-	val, _ := s.Metadata[utils.ConfigFileTagKeyDataKey]
-	return val
+	return s.Metadata[utils.ConfigFileTagKeyDataKey]
 }
 
 func (s SimpleConfigFileRelease) GetEncryptAlgo() string {
-	val, _ := s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
-	return val
+	return s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
 }
 
 func (s SimpleConfigFileRelease) IsEncrypted() bool {
@@ -181,13 +177,11 @@ type ConfigFileReleaseHistory struct {
 }
 
 func (s ConfigFileReleaseHistory) GetEncryptDataKey() string {
-	val, _ := s.Metadata[utils.ConfigFileTagKeyDataKey]
-	return val
+	return s.Metadata[utils.ConfigFileTagKeyDataKey]
 }
 
 func (s ConfigFileReleaseHistory) GetEncryptAlgo() string {
-	val, _ := s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
-	return val
+	return s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
 }
 
 func (s ConfigFileReleaseHistory) IsEncrypted() bool {

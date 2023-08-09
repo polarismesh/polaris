@@ -146,9 +146,9 @@ func (cf *configFileStore) QueryConfigFiles(filter map[string]string,
 	offset, limit uint32) (uint32, []*model.ConfigFile, error) {
 	fields := []string{FileFieldNamespace, FileFieldGroup, FileFieldName, FileFieldValid}
 
-	namespace, _ := filter["namespace"]
-	group, _ := filter["group"]
-	name, _ := filter["name"]
+	namespace := filter["namespace"]
+	group := filter["group"]
+	name := filter["name"]
 
 	hasNs := len(namespace) != 0
 	hasGroup := len(group) != 0

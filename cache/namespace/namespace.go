@@ -31,8 +31,6 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
-const ()
-
 var (
 	_ types.NamespaceCache = (*namespaceCache)(nil)
 )

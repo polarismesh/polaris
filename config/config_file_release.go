@@ -434,7 +434,9 @@ func (s *Server) handleRollbackConfigFileRelease(ctx context.Context,
 	return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
 }
 
-func (s *Server) cleanConfigFileReleases(ctx context.Context, tx store.Tx, file *model.ConfigFile) *apiconfig.ConfigResponse {
+func (s *Server) cleanConfigFileReleases(ctx context.Context, tx store.Tx,
+	file *model.ConfigFile) *apiconfig.ConfigResponse {
+
 	// 先重新 active 下当前正在发布的
 	saveData, err := s.storage.GetConfigFileActiveReleaseTx(tx, file.Key())
 	if err != nil {
