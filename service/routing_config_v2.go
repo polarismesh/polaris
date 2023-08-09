@@ -29,7 +29,7 @@ import (
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	commonstore "github.com/polarismesh/polaris/common/store"
@@ -331,7 +331,7 @@ func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apitraffic.Rou
 }
 
 // parseServiceArgs The query conditions of the analysis service
-func parseRoutingArgs(query map[string]string, ctx context.Context) (*cache.RoutingArgs, *apiservice.Response) {
+func parseRoutingArgs(query map[string]string, ctx context.Context) (*cachetypes.RoutingArgs, *apiservice.Response) {
 	offset, limit, err := utils.ParseOffsetAndLimit(query)
 	if err != nil {
 		return nil, apiv1.NewResponse(apimodel.Code_InvalidParameter)
@@ -346,7 +346,7 @@ func parseRoutingArgs(query map[string]string, ctx context.Context) (*cache.Rout
 		filter[key] = value
 	}
 
-	res := &cache.RoutingArgs{
+	res := &cachetypes.RoutingArgs{
 		Filter:     filter,
 		Name:       filter["name"],
 		ID:         filter["id"],

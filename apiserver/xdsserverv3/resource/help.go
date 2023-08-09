@@ -58,7 +58,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/polarismesh/polaris/cache"
+	types "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -737,7 +737,7 @@ func MustNewAny(src proto.Message) *anypb.Any {
 	return a
 }
 
-func MakeGatewayLocalRateLimit(rateLimitCache cache.RateLimitCache, pathSpecifier string,
+func MakeGatewayLocalRateLimit(rateLimitCache types.RateLimitCache, pathSpecifier string,
 	svcKey model.ServiceKey) ([]*route.RateLimit, map[string]*anypb.Any, error) {
 	conf, _ := rateLimitCache.GetRateLimitRules(svcKey)
 	if conf == nil {
@@ -776,7 +776,7 @@ func MakeGatewayLocalRateLimit(rateLimitCache cache.RateLimitCache, pathSpecifie
 	return ratelimits, filters, nil
 }
 
-func MakeSidecarLocalRateLimit(rateLimitCache cache.RateLimitCache,
+func MakeSidecarLocalRateLimit(rateLimitCache types.RateLimitCache,
 	svcKey model.ServiceKey) ([]*route.RateLimit, map[string]*anypb.Any, error) {
 	conf, _ := rateLimitCache.GetRateLimitRules(svcKey)
 	if conf == nil {

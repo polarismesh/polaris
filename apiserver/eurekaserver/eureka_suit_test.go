@@ -30,6 +30,7 @@ import (
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
@@ -158,8 +159,8 @@ func (d *EurekaTestSuit) initialize(t *testing.T, callback func(t *testing.T, s 
 	healthCheckServer.SetInstanceCache(cacheMgn.Instance())
 
 	// 为 instance 的 cache 添加 健康检查的 Listener
-	cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
-	cacheMgn.AddListener(cache.CacheNameClient, []cache.Listener{cacheProvider})
+	cacheMgn.AddListener(cachetypes.CacheInstance, []cachetypes.Listener{cacheProvider})
+	cacheMgn.AddListener(cachetypes.CacheClient, []cachetypes.Listener{cacheProvider})
 
 	d.healthSvr = healthCheckServer
 	time.Sleep(5 * time.Second)

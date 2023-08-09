@@ -28,7 +28,7 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
@@ -59,8 +59,8 @@ type Server struct {
 	discoverEvent        plugin.DiscoverChannel
 	localHost            string
 	bc                   *batch.Controller
-	serviceCache         cache.ServiceCache
-	instanceCache        cache.InstanceCache
+	serviceCache         cachetypes.ServiceCache
+	instanceCache        cachetypes.InstanceCache
 	instanceEventChannel chan *model.InstanceEvent
 }
 
@@ -185,12 +185,12 @@ func SetServer(srv *Server) {
 }
 
 // SetServiceCache 设置服务缓存
-func (s *Server) SetServiceCache(serviceCache cache.ServiceCache) {
+func (s *Server) SetServiceCache(serviceCache cachetypes.ServiceCache) {
 	s.serviceCache = serviceCache
 }
 
 // SetInstanceCache 设置服务实例缓存
-func (s *Server) SetInstanceCache(instanceCache cache.InstanceCache) {
+func (s *Server) SetInstanceCache(instanceCache cachetypes.InstanceCache) {
 	s.instanceCache = instanceCache
 }
 

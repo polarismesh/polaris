@@ -22,14 +22,15 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/google/uuid"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	bolt "go.etcd.io/bbolt"
@@ -38,7 +39,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	_ "github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/cache"
-	_ "github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/log"
@@ -206,7 +207,7 @@ func (d *DiscoverTestSuit) loadConfig() error {
 	if val := os.Getenv("POLARIS_TEST_BOOTSTRAP_FILE"); val != "" {
 		confFileName = val
 	}
-	buf, err := ioutil.ReadFile(confFileName)
+	buf, err := os.ReadFile(confFileName)
 	if nil != err {
 		return fmt.Errorf("read file %s error", confFileName)
 	}
@@ -215,6 +216,19 @@ func (d *DiscoverTestSuit) loadConfig() error {
 		fmt.Printf("[ERROR] %v\n", err)
 		return err
 	}
+
+	resources := d.cfg.Cache.Resources
+	for i := range resources {
+		item := resources[i]
+		if item.Name == "configFile" {
+			item.Option = map[string]interface{}{
+				"cachePath": filepath.Join("/tmp/polaris/cache/", uuid.NewString()),
+			}
+		}
+		resources[i] = item
+	}
+	d.cfg.Cache.Resources = resources
+
 	return err
 }
 
@@ -232,9 +246,7 @@ func replaceEnv(configContent string) string {
 
 // 判断一个resp是否执行成功
 func RespSuccess(resp api.ResponseMessage) bool {
-
 	ret := api.CalcCode(resp) == 200
-
 	return ret
 }
 
@@ -358,8 +370,8 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	healthCheckServer.SetInstanceCache(cacheMgn.Instance())
 
 	// 为 instance 的 cache 添加 健康检查的 Listener
-	cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
-	cacheMgn.AddListener(cache.CacheNameClient, []cache.Listener{cacheProvider})
+	cacheMgn.AddListener(cachetypes.CacheInstance, []cachetypes.Listener{cacheProvider})
+	cacheMgn.AddListener(cachetypes.CacheClient, []cachetypes.Listener{cacheProvider})
 
 	val, originVal, err := service.TestInitialize(ctx, &d.cfg.Naming, &d.cfg.Cache, bc, cacheMgn, d.Storage, namespaceSvr,
 		healthCheckServer, userMgn, strategyMgn)
@@ -386,6 +398,9 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 func (d *DiscoverTestSuit) Destroy() {
 	eventhub.Shutdown()
 	d.cancel()
+	time.Sleep(5 * time.Second)
+
+	_ = d.cacheMgr.Close()
 	time.Sleep(5 * time.Second)
 
 	_ = d.Storage.Destroy()

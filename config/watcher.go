@@ -34,11 +34,6 @@ const (
 	QueueSize = 10240
 )
 
-// Event 事件对象，包含类型和事件消息
-type PublishConfigFileEvent struct {
-	Message *model.SimpleConfigFileRelease
-}
-
 type FileReleaseCallback func(clientId string, rsp *apiconfig.ConfigClientResponse) bool
 
 type watchContext struct {
@@ -70,8 +65,9 @@ func (wc *watchCenter) PreProcess(_ context.Context, e any) any {
 
 // OnEvent event process logic
 func (wc *watchCenter) OnEvent(ctx context.Context, arg any) error {
-	event, ok := arg.(*PublishConfigFileEvent)
+	event, ok := arg.(*eventhub.PublishConfigFileEvent)
 	if !ok {
+		log.Warn("[Config][Watcher] receive invalid event type")
 		return nil
 	}
 	wc.notifyToWatchers(event.Message)

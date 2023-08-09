@@ -398,8 +398,7 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 				wsContainer.Add(ws)
 			}
 		default:
-			log.Errorf("api %s does not exist in httpserver", name)
-			return nil, fmt.Errorf("api %s does not exist in httpserver", name)
+			log.Warnf("api %s does not exist in httpserver", name)
 		}
 	}
 

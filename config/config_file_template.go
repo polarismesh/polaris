@@ -36,16 +36,19 @@ func (s *Server) CreateConfigFileTemplate(
 	if checkRsp := s.checkConfigFileTemplateParam(template); checkRsp != nil {
 		return checkRsp
 	}
+	name := template.GetName().GetValue()
 
-	rsp := s.GetConfigFileTemplate(ctx, template.GetName().GetValue())
-	if rsp.Code.Value == api.ExecuteSuccess {
+	saveData, err := s.storage.GetConfigFileTemplate(name)
+	if err != nil {
+		log.Error("[Config][Service] get config file template error.",
+			utils.RequestID(ctx), zap.String("name", name), zap.Error(err))
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
+	}
+	if saveData != nil {
 		return api.NewConfigResponse(apimodel.Code_ExistedResource)
 	}
-	if rsp.Code.Value != api.NotFoundResource {
-		return rsp
-	}
 
-	saveData := model.ToConfigFileTemplateStore(template)
+	saveData = model.ToConfigFileTemplateStore(template)
 	userName := utils.ParseUserName(ctx)
 	template.CreateBy = utils.NewStringValue(userName)
 	template.ModifyBy = utils.NewStringValue(userName)
@@ -72,8 +75,9 @@ func (s *Server) GetConfigFileTemplate(ctx context.Context, name string) *apicon
 	if saveData == nil {
 		return api.NewConfigResponse(apimodel.Code_NotFoundResource)
 	}
-
-	return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
+	out := api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
+	out.ConfigFileTemplate = model.ToConfigFileTemplateAPI(saveData)
+	return out
 }
 
 // GetAllConfigFileTemplates get all config file templates

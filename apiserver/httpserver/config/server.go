@@ -51,7 +51,7 @@ func NewServer(
 const (
 	defaultReadAccess   string = "default-read"
 	defaultAccess       string = "default"
-	configConsoleAccess string = "console"
+	configConsoleAccess string = "config"
 )
 
 // GetConfigAccessServer 获取配置中心接口
@@ -141,8 +141,7 @@ func (h *HTTPServer) GetClientAccessServer(ws *restful.WebService, include []str
 		case apiserver.DiscoverAccess:
 			h.addDiscover(ws)
 		default:
-			log.Errorf("[Config][HttpServer] the patch of config endpoint [%s] does not exist", item)
-			return fmt.Errorf("[Config][HttpServer] the patch of config endpoint [%s] does not exist", item)
+			log.Warnf("[Config][HttpServer] the patch of config endpoint [%s] does not exist", item)
 		}
 	}
 

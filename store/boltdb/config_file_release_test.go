@@ -103,7 +103,7 @@ func Test_configFileReleaseStore(t *testing.T) {
 					FileName:  ret[i].FileName,
 					Name:      ret[i].Name,
 				}
-				err = s.DeleteConfigFileRelease(searchKey)
+				err = s.DeleteConfigFileReleaseTx(tx, searchKey)
 				assert.NoError(t, err, err)
 
 				oldCfr, err := s.GetConfigFileRelease(searchKey)

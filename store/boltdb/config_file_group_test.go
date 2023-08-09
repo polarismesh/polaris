@@ -56,11 +56,7 @@ func resetConfigFileGroupTimeAndIDField(tN time.Time, restID bool, datas ...*mod
 func Test_configFileGroupStore(t *testing.T) {
 	t.Run("配置分组插入", func(t *testing.T) {
 		CreateTableDBHandlerAndRun(t, tblConfigFileGroup, func(t *testing.T, handler BoltHandler) {
-			store, err := newConfigFileGroupStore(handler)
-			if err != nil {
-				t.Fatal(err)
-			}
-
+			store := newConfigFileGroupStore(handler)
 			total := 10
 			mockGroups := mockConfigFileGroup(total)
 
@@ -92,11 +88,7 @@ func Test_configFileGroupStore(t *testing.T) {
 
 	t.Run("配置分组更新", func(t *testing.T) {
 		CreateTableDBHandlerAndRun(t, tblConfigFileGroup, func(t *testing.T, handler BoltHandler) {
-			store, err := newConfigFileGroupStore(handler)
-			if err != nil {
-				t.Fatal(err)
-			}
-
+			store := newConfigFileGroupStore(handler)
 			total := 10
 			mockGroups := mockConfigFileGroup(total)
 
@@ -129,11 +121,7 @@ func Test_configFileGroupStore(t *testing.T) {
 
 	t.Run("配置分组插入-删除", func(t *testing.T) {
 		CreateTableDBHandlerAndRun(t, tblConfigFileGroup, func(t *testing.T, handler BoltHandler) {
-			store, err := newConfigFileGroupStore(handler)
-			if err != nil {
-				t.Fatal(err)
-			}
-
+			store := newConfigFileGroupStore(handler)
 			total := 10
 			mockGroups := mockConfigFileGroup(total)
 

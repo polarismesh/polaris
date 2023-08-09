@@ -26,6 +26,7 @@ import (
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
@@ -93,8 +94,8 @@ type Server struct {
 	cfg *Config
 
 	storage           store.Store
-	fileCache         cache.ConfigFileCache
-	groupCache        cache.ConfigGroupCache
+	fileCache         cachetypes.ConfigFileCache
+	groupCache        cachetypes.ConfigGroupCache
 	caches            *cache.CacheManager
 	watchCenter       *watchCenter
 	connManager       *connManager
@@ -141,6 +142,7 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	s.storage = ss
 	s.namespaceOperator = namespaceOperator
 	s.fileCache = cacheMgn.ConfigFile()
+	s.groupCache = cacheMgn.ConfigGroup()
 
 	s.watchCenter = NewWatchCenter()
 
@@ -192,7 +194,7 @@ func (s *Server) WatchCenter() *watchCenter {
 }
 
 // Cache 获取配置中心缓存模块
-func (s *Server) Cache() cache.ConfigFileCache {
+func (s *Server) Cache() cachetypes.ConfigFileCache {
 	return s.fileCache
 }
 

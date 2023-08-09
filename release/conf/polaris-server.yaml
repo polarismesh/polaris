@@ -14,7 +14,7 @@
 # specific language governing permissions and limitations under the License.
 
 # server Start guidance configuration
-#bootstrap:
+bootstrap:
 #  # Global log
 #  logger:
 #    # Log scope name
@@ -167,12 +167,12 @@
 #      outputLevel: info
 #      compress: true
 #  # Start the server in order
-#  startInOrder:
-#    # Start the Polaris-Server in order, mainly to avoid data synchronization logic when the server starts the DB to pull the DB out of high load
-#    open: true
-#    # The name of the start lock
-#    key: sz
-#  # Register as Arctic Star Service
+   startInOrder:
+     # Start the Polaris-Server in order, mainly to avoid data synchronization logic when the server starts the DB to pull the DB out of high load
+     open: true
+     # The name of the start lock
+     key: sz
+   # Register as Arctic Star Service
    polaris_service:
      ## level: self_address > network_inter > probe_address
      ## Obtain the IP of the VM or POD where Polaris is located by making a TCP connection with the probe_adreess address
@@ -250,15 +250,11 @@ apiservers:
       console:
         enable: true
         # OpenAPI group that needs to be exposed
-        include: [default]
+        include: [default, service, config]
       # client OpenAPI interface
       client:
         enable: true
-        include: [discover, register, healthcheck]
-      # configuration center OpenAPI interface
-      config:
-        enable: true
-        include: [default]
+        include: [discover, register, healthcheck, config]
     # Polaris is a client communication protocol layer based on the gRPC protocol, which is used for registration discovery and service governance rule delivery
   - name: service-grpc
     option:

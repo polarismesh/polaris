@@ -27,31 +27,22 @@ import (
 type Store interface {
 	// Name 存储层的名字
 	Name() string
-
 	// Initialize 存储的初始化函数
 	Initialize(c *Config) error
-
 	// Destroy 存储的析构函数
 	Destroy() error
-
 	// CreateTransaction 创建事务对象
 	CreateTransaction() (Transaction, error)
-
 	// StartTx 开启一个原子事务
 	StartTx() (Tx, error)
-
 	// NamespaceStore Service namespace interface
 	NamespaceStore
-
 	// NamingModuleStore Service Registration Discovery Module Storage Interface
 	NamingModuleStore
-
 	// ConfigFileModuleStore Configure the central module storage interface
 	ConfigFileModuleStore
-
 	// ClientStore Client the central module storage interface
 	ClientStore
-
 	// AdminStore Maintain inteface
 	AdminStore
 }
@@ -60,19 +51,14 @@ type Store interface {
 type NamespaceStore interface {
 	// AddNamespace Save a namespace
 	AddNamespace(namespace *model.Namespace) error
-
 	// UpdateNamespace Update namespace
 	UpdateNamespace(namespace *model.Namespace) error
-
 	// UpdateNamespaceToken Update namespace token
 	UpdateNamespaceToken(name string, token string) error
-
 	// GetNamespace Get the details of the namespace according to Name
 	GetNamespace(name string) (*model.Namespace, error)
-
 	// GetNamespaces Query Namespace from the database
 	GetNamespaces(filter map[string][]string, offset, limit int) ([]*model.Namespace, uint32, error)
-
 	// GetMoreNamespaces Get incremental data
 	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetMoreNamespaces(mtime time.Time) ([]*model.Namespace, error)
@@ -83,19 +69,14 @@ type NamespaceStore interface {
 type Transaction interface {
 	// Commit Transaction
 	Commit() error
-
 	// LockBootstrap Start the lock, limit the concurrent number of Server boot
 	LockBootstrap(key string, server string) error
-
 	// LockNamespace Row it locks Namespace
 	LockNamespace(name string) (*model.Namespace, error)
-
 	// DeleteNamespace Delete Namespace
 	DeleteNamespace(name string) error
-
 	// LockService Row it locks service
 	LockService(name string, namespace string) (*model.Service, error)
-
 	// RLockService Shared lock service
 	RLockService(name string, namespace string) (*model.Service, error)
 }

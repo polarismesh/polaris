@@ -53,9 +53,9 @@ type configFileGroupStore struct {
 	handler BoltHandler
 }
 
-func newConfigFileGroupStore(handler BoltHandler) (*configFileGroupStore, error) {
+func newConfigFileGroupStore(handler BoltHandler) *configFileGroupStore {
 	s := &configFileGroupStore{handler: handler}
-	return s, nil
+	return s
 }
 
 // CreateConfigFileGroup 创建配置文件组
@@ -66,7 +66,10 @@ func (fg *configFileGroupStore) CreateConfigFileGroup(
 	}
 
 	fg.handler.Execute(true, func(tx *bolt.Tx) error {
-		table := tx.Bucket([]byte(tblConfigFileGroup))
+		table, err := tx.CreateBucketIfNotExists([]byte(tblConfigFileGroup))
+		if err != nil {
+			return err
+		}
 		nextId, err := table.NextSequence()
 		if err != nil {
 			return err
@@ -81,7 +84,7 @@ func (fg *configFileGroupStore) CreateConfigFileGroup(
 			log.Error("[ConfigFileGroup] save info", zap.Error(err))
 			return err
 		}
-		return tx.Commit()
+		return nil
 	})
 	return fileGroup, nil
 }
@@ -165,9 +168,8 @@ func (fg *configFileGroupStore) DeleteConfigFileGroup(namespace, name string) er
 
 	if err := fg.handler.UpdateValue(tblConfigFileGroup, key, properties); err != nil {
 		log.Error("[ConfigFileGroup] do delete", zap.Error(err))
-		return err
+		return store.Error(err)
 	}
-
 	return nil
 }
 

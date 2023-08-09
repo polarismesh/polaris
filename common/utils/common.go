@@ -456,6 +456,11 @@ func ZapFileName(fileName string) zap.Field {
 	return zap.String("file-name", fileName)
 }
 
+// ZapReleaseName 生成fileName的日志描述
+func ZapReleaseName(fileName string) zap.Field {
+	return zap.String("release-name", fileName)
+}
+
 // CheckDbStrFieldLen 检查name字段是否超过DB中对应字段的最大字符长度限制
 func CheckDbStrFieldLen(param *wrappers.StringValue, dbLen int) error {
 	return CheckDbRawStrFieldLen(param.GetValue(), dbLen)

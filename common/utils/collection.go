@@ -55,6 +55,61 @@ func (set *Set[K]) Range(fn func(val K)) {
 	}
 }
 
+// NewSyncSet returns a new Set
+func NewSyncSet[K comparable]() *SyncSet[K] {
+	return &SyncSet[K]{
+		container: make(map[K]struct{}),
+	}
+}
+
+type SyncSet[K comparable] struct {
+	container map[K]struct{}
+	lock      sync.RWMutex
+}
+
+// Add adds a string to the set
+func (set *SyncSet[K]) Add(val K) {
+	set.lock.Lock()
+	defer set.lock.Unlock()
+
+	set.container[val] = struct{}{}
+}
+
+// Remove removes a string from the set
+func (set *SyncSet[K]) Remove(val K) {
+	set.lock.Lock()
+	defer set.lock.Unlock()
+
+	delete(set.container, val)
+}
+
+func (set *SyncSet[K]) ToSlice() []K {
+	set.lock.RLock()
+	defer set.lock.RUnlock()
+
+	ret := make([]K, 0, len(set.container))
+	for k := range set.container {
+		ret = append(ret, k)
+	}
+	return ret
+}
+
+func (set *SyncSet[K]) Range(fn func(val K)) {
+	set.lock.RLock()
+	defer set.lock.RUnlock()
+
+	for k := range set.container {
+		fn(k)
+	}
+}
+
+func (set *SyncSet[K]) Len() int {
+	set.lock.RLock()
+	defer set.lock.RUnlock()
+
+	return len(set.container)
+}
+
 func NewSegmentMap[K comparable, V any](soltNum int, hashFunc func(k K) int) *SegmentMap[K, V] {
 	locks := make([]*sync.RWMutex, 0, soltNum)
 	solts := make([]map[K]V, 0, soltNum)

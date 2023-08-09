@@ -39,13 +39,11 @@ func TestClientSetupAndFileNotExisted(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		testSuit.Destroy()
-	})
-	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
 		}
-	}()
+		testSuit.Destroy()
+	})
 
 	fileInfo := &apiconfig.ClientConfigFileInfo{
 		Namespace: &wrapperspb.StringValue{Value: testNamespace},
@@ -74,13 +72,12 @@ func TestClientSetupAndFileExisted(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		testSuit.Destroy()
-	})
-	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
 		}
-	}()
+		testSuit.Destroy()
+	})
+
 	// 创建并发布一个配置文件
 	configFile := assembleConfigFile()
 	rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
@@ -95,6 +92,9 @@ func TestClientSetupAndFileExisted(t *testing.T) {
 		FileName:  &wrapperspb.StringValue{Value: testFile},
 		Version:   &wrapperspb.UInt64Value{Value: 0},
 	}
+
+	// 强制 Cache 层 load 到本地
+	_ = testSuit.DiscoverServer().Cache().ConfigFile().Update()
 
 	// 拉取配置接口
 	rsp3 := testSuit.ConfigServer().GetConfigFileForClient(testSuit.DefaultCtx, fileInfo)
@@ -125,13 +125,11 @@ func TestClientSetupAndCreateNewFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		testSuit.Destroy()
-	})
-	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
 		}
-	}()
+		testSuit.Destroy()
+	})
 
 	fileInfo := &apiconfig.ConfigFile{
 		Namespace: &wrapperspb.StringValue{Value: testNamespace},
@@ -160,13 +158,11 @@ func TestClientSetupAndCreateExistFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		testSuit.Destroy()
-	})
-	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
 		}
-	}()
+		testSuit.Destroy()
+	})
 
 	fileInfo := &apiconfig.ConfigFile{
 		Namespace: &wrapperspb.StringValue{Value: testNamespace},
@@ -200,13 +196,11 @@ func TestClientSetupAndUpdateNewFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		testSuit.Destroy()
-	})
-	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
 		}
-	}()
+		testSuit.Destroy()
+	})
 
 	fileInfo := &apiconfig.ConfigFile{
 		Namespace: &wrapperspb.StringValue{Value: testNamespace},
@@ -227,13 +221,11 @@ func TestClientSetupAndUpdateExistFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		testSuit.Destroy()
-	})
-	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
 		}
-	}()
+		testSuit.Destroy()
+	})
 
 	fileInfo := &apiconfig.ConfigFile{
 		Namespace: &wrapperspb.StringValue{Value: testNamespace},
@@ -260,13 +252,11 @@ func TestClientSetupAndPublishNewFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		testSuit.Destroy()
-	})
-	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
 		}
-	}()
+		testSuit.Destroy()
+	})
 
 	fileReleaseInfo := &apiconfig.ConfigFileRelease{
 		Namespace: &wrapperspb.StringValue{Value: testNamespace},
@@ -287,13 +277,11 @@ func TestClientSetupAndPublishExistFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		testSuit.Destroy()
-	})
-	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
 		}
-	}()
+		testSuit.Destroy()
+	})
 
 	fileInfo := &apiconfig.ConfigFile{
 		Namespace: &wrapperspb.StringValue{Value: testNamespace},
@@ -325,14 +313,11 @@ func TestClientVersionBehindServer(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		testSuit.Destroy()
-	})
-
-	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
 		}
-	}()
+		testSuit.Destroy()
+	})
 
 	// 创建并连续发布5次
 	configFile := assembleConfigFile()
@@ -346,7 +331,7 @@ func TestClientVersionBehindServer(t *testing.T) {
 		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 		// 发布
 		rsp3 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, assembleConfigFileRelease(configFile))
-		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
+		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue(), rsp3.GetInfo().GetValue())
 	}
 
 	// 客户端版本号为4， 服务端由于连续发布5次，所以版本号为5
@@ -359,6 +344,8 @@ func TestClientVersionBehindServer(t *testing.T) {
 		FileName:  &wrapperspb.StringValue{Value: testFile},
 		Version:   &wrapperspb.UInt64Value{Value: clientVersion},
 	}
+
+	_ = testSuit.DiscoverServer().Cache().ConfigFile().Update()
 
 	// 拉取配置接口
 	rsp4 := testSuit.ConfigServer().GetConfigFileForClient(testSuit.DefaultCtx, fileInfo)
@@ -389,20 +376,16 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		testSuit.Destroy()
-	})
-
-	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
 		}
-	}()
+		testSuit.Destroy()
+	})
 
 	// 创建并发布配置文件
 	configFile := assembleConfigFile()
 
 	t.Run("第一次订阅发布", func(t *testing.T) {
-
 		received := make(chan uint64)
 
 		watchConfigFiles := assembleDefaultClientConfigFile(0)
@@ -412,11 +395,12 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 			testSuit.OriginConfigServer().WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
 		}()
 
-		testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
-			t.Logf("clientId=[%s] receive config publish msg", clientId)
-			received <- rsp.ConfigFile.Version.GetValue()
-			return true
-		})
+		testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles,
+			func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
+				t.Logf("clientId=[%s] receive config publish msg", clientId)
+				received <- rsp.ConfigFile.Version.GetValue()
+				return true
+			})
 
 		rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
@@ -437,11 +421,12 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 
 		clientId := "TestWatchConfigFileAtFirstPublish-second"
 
-		testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles, func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
-			t.Logf("clientId=[%s] receive config publish msg", clientId)
-			received <- rsp.ConfigFile.Version.GetValue()
-			return true
-		})
+		testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles,
+			func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
+				t.Logf("clientId=[%s] receive config publish msg", clientId)
+				received <- rsp.ConfigFile.Version.GetValue()
+				return true
+			})
 
 		rsp3 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, assembleConfigFileRelease(configFile))
 		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
@@ -462,13 +447,11 @@ func Test10000ClientWatchConfigFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		testSuit.Destroy()
-	})
-	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
 		}
-	}()
+		testSuit.Destroy()
+	})
 
 	clientSize := 10000
 	received := make(map[string]bool)
@@ -524,14 +507,11 @@ func TestDeleteConfigFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		testSuit.Destroy()
-	})
-
-	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
 		}
-	}()
+		testSuit.Destroy()
+	})
 
 	// 创建并发布一个配置文件
 	configFile := assembleConfigFile()

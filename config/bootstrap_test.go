@@ -145,7 +145,7 @@ func assembleConfigFileWithRandomGroupAndFixedFileName(name string) *apiconfig.C
 
 func assembleConfigFileRelease(configFile *apiconfig.ConfigFile) *apiconfig.ConfigFileRelease {
 	return &apiconfig.ConfigFileRelease{
-		Name:      utils.NewStringValue("release-name"),
+		Name:      utils.NewStringValue("release-name-" + uuid.NewString()),
 		Namespace: configFile.Namespace,
 		Group:     configFile.Group,
 		FileName:  configFile.Name,

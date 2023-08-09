@@ -29,7 +29,7 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	commonstore "github.com/polarismesh/polaris/common/store"
@@ -459,8 +459,8 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *apis
 }
 
 // parseServiceArgs 解析服务的查询条件
-func parseServiceArgs(filter map[string]string, metaFilter map[string]string, ctx context.Context) *cache.ServiceArgs {
-	res := &cache.ServiceArgs{
+func parseServiceArgs(filter map[string]string, metaFilter map[string]string, ctx context.Context) *cachetypes.ServiceArgs {
+	res := &cachetypes.ServiceArgs{
 		Filter:    filter,
 		Metadata:  metaFilter,
 		Namespace: filter["namespace"],

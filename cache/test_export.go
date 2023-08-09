@@ -28,6 +28,9 @@ import (
 var (
 	TestCacheInitialize = func(ctx context.Context, cacheOpt *Config, storage store.Store) (*CacheManager, error) {
 		mgr, err := newCacheManager(ctx, cacheOpt, storage)
+		if err != nil {
+			return nil, err
+		}
 		if err := Run(mgr, ctx); err != nil {
 			return nil, err
 		}

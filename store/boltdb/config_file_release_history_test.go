@@ -63,11 +63,7 @@ func resetHistoryTimeAndIDField(tN time.Time, datas ...*model.ConfigFileReleaseH
 func Test_configFileReleaseHistoryStore(t *testing.T) {
 	t.Run("配置发布历史插入", func(t *testing.T) {
 		CreateTableDBHandlerAndRun(t, tblConfigFileReleaseHistory, func(t *testing.T, handler BoltHandler) {
-			store, err := newConfigFileReleaseHistoryStore(handler)
-			if err != nil {
-				t.Fatal(err)
-			}
-
+			store := newConfigFileReleaseHistoryStore(handler)
 			total := 10
 			mockHistories := mockConfigFileHistory(total, "")
 

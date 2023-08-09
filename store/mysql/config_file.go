@@ -34,6 +34,26 @@ type configFileStore struct {
 	slave  *BaseDB
 }
 
+// LockConfigFile 加锁配置文件
+func (cf *configFileStore) LockConfigFile(tx store.Tx, file *model.ConfigFileKey) (*model.ConfigFile, error) {
+	dbTx := tx.GetDelegateTx().(*BaseTx)
+	args := []interface{}{file.Namespace, file.Group, file.Name}
+	lockSql := cf.baseSelectConfigFileSql() + " WHERE namespace = ? AND `group` = ? AND name = ? AND flag = 0 FOR UPDATE"
+
+	rows, err := dbTx.Query(lockSql, args...)
+	if err != nil {
+		return nil, store.Error(err)
+	}
+	files, err := cf.transferRows(rows)
+	if err != nil {
+		return nil, err
+	}
+	if len(files) > 0 {
+		return files[0], nil
+	}
+	return nil, nil
+}
+
 // CreateConfigFile 创建配置文件
 func (cf *configFileStore) CreateConfigFileTx(tx store.Tx, file *model.ConfigFile) error {
 	dbTx := tx.GetDelegateTx().(*BaseTx)

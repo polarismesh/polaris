@@ -36,18 +36,18 @@ func (m *MockStore) EXPECT() *MockStoreMockRecorder {
 	return m.recorder
 }
 
-// ActiveConfigFileRelease mocks base method.
-func (m *MockStore) ActiveConfigFileRelease(release *model.ConfigFileRelease) error {
+// ActiveConfigFileReleaseTx mocks base method.
+func (m *MockStore) ActiveConfigFileReleaseTx(tx store.Tx, release *model.ConfigFileRelease) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ActiveConfigFileRelease", release)
+	ret := m.ctrl.Call(m, "ActiveConfigFileReleaseTx", tx, release)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// ActiveConfigFileRelease indicates an expected call of ActiveConfigFileRelease.
-func (mr *MockStoreMockRecorder) ActiveConfigFileRelease(release interface{}) *gomock.Call {
+// ActiveConfigFileReleaseTx indicates an expected call of ActiveConfigFileReleaseTx.
+func (mr *MockStoreMockRecorder) ActiveConfigFileReleaseTx(tx, release interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActiveConfigFileRelease", reflect.TypeOf((*MockStore)(nil).ActiveConfigFileRelease), release)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActiveConfigFileReleaseTx", reflect.TypeOf((*MockStore)(nil).ActiveConfigFileReleaseTx), tx, release)
 }
 
 // AddGroup mocks base method.
@@ -606,18 +606,18 @@ func (mr *MockStoreMockRecorder) DeleteConfigFileGroup(namespace, name interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteConfigFileGroup", reflect.TypeOf((*MockStore)(nil).DeleteConfigFileGroup), namespace, name)
 }
 
-// DeleteConfigFileRelease mocks base method.
-func (m *MockStore) DeleteConfigFileRelease(data *model.ConfigFileReleaseKey) error {
+// DeleteConfigFileReleaseTx mocks base method.
+func (m *MockStore) DeleteConfigFileReleaseTx(tx store.Tx, data *model.ConfigFileReleaseKey) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteConfigFileRelease", data)
+	ret := m.ctrl.Call(m, "DeleteConfigFileReleaseTx", tx, data)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// DeleteConfigFileRelease indicates an expected call of DeleteConfigFileRelease.
-func (mr *MockStoreMockRecorder) DeleteConfigFileRelease(data interface{}) *gomock.Call {
+// DeleteConfigFileReleaseTx indicates an expected call of DeleteConfigFileReleaseTx.
+func (mr *MockStoreMockRecorder) DeleteConfigFileReleaseTx(tx, data interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteConfigFileRelease", reflect.TypeOf((*MockStore)(nil).DeleteConfigFileRelease), data)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteConfigFileReleaseTx", reflect.TypeOf((*MockStore)(nil).DeleteConfigFileReleaseTx), tx, data)
 }
 
 // DeleteConfigFileTx mocks base method.
@@ -1023,6 +1023,36 @@ func (mr *MockStoreMockRecorder) GetConfigFile(namespace, group, name interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigFile", reflect.TypeOf((*MockStore)(nil).GetConfigFile), namespace, group, name)
 }
 
+// GetConfigFileActiveRelease mocks base method.
+func (m *MockStore) GetConfigFileActiveRelease(file *model.ConfigFileKey) (*model.ConfigFileRelease, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConfigFileActiveRelease", file)
+	ret0, _ := ret[0].(*model.ConfigFileRelease)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetConfigFileActiveRelease indicates an expected call of GetConfigFileActiveRelease.
+func (mr *MockStoreMockRecorder) GetConfigFileActiveRelease(file interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigFileActiveRelease", reflect.TypeOf((*MockStore)(nil).GetConfigFileActiveRelease), file)
+}
+
+// GetConfigFileActiveReleaseTx mocks base method.
+func (m *MockStore) GetConfigFileActiveReleaseTx(tx store.Tx, file *model.ConfigFileKey) (*model.ConfigFileRelease, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConfigFileActiveReleaseTx", tx, file)
+	ret0, _ := ret[0].(*model.ConfigFileRelease)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetConfigFileActiveReleaseTx indicates an expected call of GetConfigFileActiveReleaseTx.
+func (mr *MockStoreMockRecorder) GetConfigFileActiveReleaseTx(tx, file interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigFileActiveReleaseTx", reflect.TypeOf((*MockStore)(nil).GetConfigFileActiveReleaseTx), tx, file)
+}
+
 // GetConfigFileGroup mocks base method.
 func (m *MockStore) GetConfigFileGroup(namespace, name string) (*model.ConfigFileGroup, error) {
 	m.ctrl.T.Helper()
@@ -1051,6 +1081,21 @@ func (m *MockStore) GetConfigFileRelease(req *model.ConfigFileReleaseKey) (*mode
 func (mr *MockStoreMockRecorder) GetConfigFileRelease(req interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigFileRelease", reflect.TypeOf((*MockStore)(nil).GetConfigFileRelease), req)
+}
+
+// GetConfigFileReleaseTx mocks base method.
+func (m *MockStore) GetConfigFileReleaseTx(tx store.Tx, req *model.ConfigFileReleaseKey) (*model.ConfigFileRelease, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConfigFileReleaseTx", tx, req)
+	ret0, _ := ret[0].(*model.ConfigFileRelease)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetConfigFileReleaseTx indicates an expected call of GetConfigFileReleaseTx.
+func (mr *MockStoreMockRecorder) GetConfigFileReleaseTx(tx, req interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigFileReleaseTx", reflect.TypeOf((*MockStore)(nil).GetConfigFileReleaseTx), tx, req)
 }
 
 // GetConfigFileTemplate mocks base method.
@@ -2094,6 +2139,21 @@ func (m *MockStore) ListReleaseCircuitBreakers(filters map[string]string, offset
 func (mr *MockStoreMockRecorder) ListReleaseCircuitBreakers(filters, offset, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListReleaseCircuitBreakers", reflect.TypeOf((*MockStore)(nil).ListReleaseCircuitBreakers), filters, offset, limit)
+}
+
+// LockConfigFile mocks base method.
+func (m *MockStore) LockConfigFile(tx store.Tx, file *model.ConfigFileKey) (*model.ConfigFile, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LockConfigFile", tx, file)
+	ret0, _ := ret[0].(*model.ConfigFile)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LockConfigFile indicates an expected call of LockConfigFile.
+func (mr *MockStoreMockRecorder) LockConfigFile(tx, file interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LockConfigFile", reflect.TypeOf((*MockStore)(nil).LockConfigFile), tx, file)
 }
 
 // LooseAddStrategyResources mocks base method.

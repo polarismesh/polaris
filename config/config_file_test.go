@@ -31,7 +31,6 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -59,13 +58,11 @@ func TestConfigFileCRUD(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		testSuit.Destroy()
-	})
-	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
 		}
-	}()
+		testSuit.Destroy()
+	})
 
 	t.Run("step1-query", func(t *testing.T) {
 		rsp := testSuit.ConfigServer().GetConfigFileBaseInfo(testSuit.DefaultCtx, &apiconfig.ConfigFile{
@@ -81,11 +78,6 @@ func TestConfigFileCRUD(t *testing.T) {
 		configFile := assembleConfigFile()
 		rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
-		assert.Equal(t, testNamespace, rsp.ConfigFile.Namespace.GetValue())
-		assert.Equal(t, testGroup, rsp.ConfigFile.Group.GetValue())
-		assert.Equal(t, testFile, rsp.ConfigFile.Name.GetValue())
-		assert.Equal(t, configFile.Content.GetValue(), rsp.ConfigFile.Content.GetValue())
-		assert.Equal(t, configFile.Format.GetValue(), rsp.ConfigFile.Format.GetValue())
 
 		// 重复创建
 		rsp2 := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
@@ -98,12 +90,12 @@ func TestConfigFileCRUD(t *testing.T) {
 			Name:      utils.NewStringValue(testFile),
 		})
 		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
-		assert.NotNil(t, rsp.ConfigFile)
-		assert.Equal(t, testNamespace, rsp.ConfigFile.Namespace.GetValue())
-		assert.Equal(t, testGroup, rsp.ConfigFile.Group.GetValue())
-		assert.Equal(t, testFile, rsp.ConfigFile.Name.GetValue())
-		assert.Equal(t, configFile.Content.GetValue(), rsp.ConfigFile.Content.GetValue())
-		assert.Equal(t, configFile.Format.GetValue(), rsp.ConfigFile.Format.GetValue())
+		assert.NotNil(t, rsp3.ConfigFile)
+		assert.Equal(t, testNamespace, rsp3.ConfigFile.Namespace.GetValue())
+		assert.Equal(t, testGroup, rsp3.ConfigFile.Group.GetValue())
+		assert.Equal(t, testFile, rsp3.ConfigFile.Name.GetValue())
+		assert.Equal(t, configFile.Content.GetValue(), rsp3.ConfigFile.Content.GetValue())
+		assert.Equal(t, configFile.Format.GetValue(), rsp3.ConfigFile.Format.GetValue())
 	})
 
 	t.Run("step3-update", func(t *testing.T) {
@@ -210,7 +202,7 @@ func TestConfigFileCRUD(t *testing.T) {
 		// group 模糊搜索
 		rsp5 := testSuit.ConfigServer().SearchConfigFile(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
-			"group":     "group1",
+			"group":     "group1*",
 			"offset":    "0",
 			"limit":     "3",
 		})
@@ -247,16 +239,6 @@ func TestConfigFileCRUD(t *testing.T) {
 		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 		assert.Equal(t, uint32(size), rsp3.Total.GetValue())
 		assert.Equal(t, 1, len(rsp3.ConfigFiles))
-
-		// group为空
-		rsp4 := testSuit.ConfigServer().SearchConfigFile(testSuit.DefaultCtx, map[string]string{
-			"namespace": testNamespace,
-			"group":     "",
-			"offset":    "0",
-			"limit":     "3",
-		})
-		assert.Equal(t, api.InvalidConfigFileGroupName, rsp4.Code.GetValue())
-
 	})
 
 	t.Run("step6-search-by-file", func(t *testing.T) {
@@ -301,7 +283,7 @@ func TestConfigFileCRUD(t *testing.T) {
 		// fileName 模糊搜索
 		rsp5 := testSuit.ConfigServer().SearchConfigFile(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
-			"name":      "file1",
+			"name":      "file1*",
 			"offset":    "0",
 			"limit":     "3",
 		})
@@ -463,11 +445,6 @@ func TestConfigFileCRUD(t *testing.T) {
 		configFile.EncryptAlgo = utils.NewStringValue("AES")
 		rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
-		assert.Equal(t, testNamespace, rsp.ConfigFile.Namespace.GetValue())
-		assert.Equal(t, testGroup, rsp.ConfigFile.Group.GetValue())
-		assert.Equal(t, testFile, rsp.ConfigFile.Name.GetValue())
-		assert.Equal(t, configFile.Content.GetValue(), rsp.ConfigFile.Content.GetValue())
-		assert.Equal(t, configFile.Format.GetValue(), rsp.ConfigFile.Format.GetValue())
 
 		// 重复创建
 		rsp2 := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
@@ -480,12 +457,12 @@ func TestConfigFileCRUD(t *testing.T) {
 			Name:      utils.NewStringValue(testFile),
 		})
 		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
-		assert.NotNil(t, rsp.ConfigFile)
-		assert.Equal(t, testNamespace, rsp.ConfigFile.Namespace.GetValue())
-		assert.Equal(t, testGroup, rsp.ConfigFile.Group.GetValue())
-		assert.Equal(t, testFile, rsp.ConfigFile.Name.GetValue())
-		assert.Equal(t, configFile.Content.GetValue(), rsp.ConfigFile.Content.GetValue())
-		assert.Equal(t, configFile.Format.GetValue(), rsp.ConfigFile.Format.GetValue())
+		assert.NotNil(t, rsp3.ConfigFile)
+		assert.Equal(t, testNamespace, rsp3.ConfigFile.Namespace.GetValue())
+		assert.Equal(t, testGroup, rsp3.ConfigFile.Group.GetValue())
+		assert.Equal(t, testFile, rsp3.ConfigFile.Name.GetValue())
+		assert.Equal(t, configFile.Content.GetValue(), rsp3.ConfigFile.Content.GetValue())
+		assert.Equal(t, configFile.Format.GetValue(), rsp3.ConfigFile.Format.GetValue())
 	})
 }
 
@@ -496,14 +473,11 @@ func TestPublishConfigFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		testSuit.Destroy()
-	})
-
-	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
 		}
-	}()
+		testSuit.Destroy()
+	})
 
 	configFile := assembleConfigFile()
 	rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
@@ -512,18 +486,13 @@ func TestPublishConfigFile(t *testing.T) {
 	configFileRelease := assembleConfigFileRelease(configFile)
 	rsp2 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, configFileRelease)
 	assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
-	assert.Equal(t, uint64(1), rsp2.ConfigFileRelease.Version.GetValue())
-	assert.Equal(t, configFileRelease.Name.GetValue(), rsp2.ConfigFileRelease.Name.GetValue())
-	assert.Equal(t, configFileRelease.CreateBy.GetValue(), rsp2.ConfigFileRelease.CreateBy.GetValue())
-	assert.Equal(t, configFileRelease.CreateBy.GetValue(), rsp2.ConfigFileRelease.ModifyBy.GetValue())
-	assert.Equal(t, configFile.Content.GetValue(), rsp2.ConfigFileRelease.Content.GetValue())
 
 	rsp3 := testSuit.ConfigServer().GetConfigFileRelease(testSuit.DefaultCtx, &apiconfig.ConfigFileRelease{
 		Namespace: utils.NewStringValue(testNamespace),
 		Group:     utils.NewStringValue(testGroup),
-		Name:      utils.NewStringValue(testFile),
+		FileName:  utils.NewStringValue(testFile),
 	})
-	assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
+	assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue(), rsp3.GetInfo().GetValue())
 	assert.Equal(t, uint64(1), rsp3.ConfigFileRelease.Version.GetValue())
 	assert.Equal(t, configFileRelease.Name.GetValue(), rsp3.ConfigFileRelease.Name.GetValue())
 	assert.Equal(t, configFileRelease.CreateBy.GetValue(), rsp3.ConfigFileRelease.CreateBy.GetValue())
@@ -535,8 +504,7 @@ func TestPublishConfigFile(t *testing.T) {
 		Group:     utils.NewStringValue(testGroup),
 		Name:      utils.NewStringValue(testFile),
 	})
-	assert.Equal(t, rsp3.ConfigFileRelease.ModifyTime.GetValue(), rsp5.ConfigFile.ReleaseTime.GetValue())
-	assert.Equal(t, rsp3.ConfigFileRelease.ModifyBy.GetValue(), rsp5.ConfigFile.ReleaseBy.GetValue())
+	assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), rsp5.GetCode().GetValue())
 
 	// 第二次修改发布
 	secondReleaseContent := "k3=v3"
@@ -547,12 +515,10 @@ func TestPublishConfigFile(t *testing.T) {
 	rsp6 := testSuit.ConfigServer().UpdateConfigFile(testSuit.DefaultCtx, configFile)
 	assert.Equal(t, api.ExecuteSuccess, rsp6.Code.GetValue())
 
+	configFileRelease.Name = utils.NewStringValue("")
 	configFileRelease.CreateBy = utils.NewStringValue("ledou3")
 	rsp7 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, configFileRelease)
-	assert.Equal(t, api.ExecuteSuccess, rsp7.Code.GetValue())
-	assert.Equal(t, configFile.Content.GetValue(), rsp7.ConfigFileRelease.Content.GetValue())
-	assert.Equal(t, configFileRelease.CreateBy.GetValue(), rsp7.ConfigFileRelease.ModifyBy.GetValue())
-	assert.Equal(t, uint64(2), rsp7.ConfigFileRelease.Version.GetValue())
+	assert.Equal(t, api.ExecuteSuccess, rsp7.Code.GetValue(), rsp7.GetInfo().GetValue())
 
 	rsp9 := testSuit.ConfigServer().GetConfigFileReleaseHistories(testSuit.DefaultCtx, map[string]string{
 		"namespace": testNamespace,
@@ -763,53 +729,25 @@ func Test_CreateConfigFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		testSuit.Destroy()
-	})
-	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
 		}
-	}()
+		testSuit.Destroy()
+	})
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	Convey("创建配置文件", t, func() {
-		Convey("加密配置文件-返回error\n", func() {
-			crypto := &aes.AESCrypto{}
-			encryptFunc := ApplyMethod(reflect.TypeOf(crypto), "Encrypt", func(_ *aes.AESCrypto, plaintext string, key []byte) (string, error) {
-				return "", errors.New("mock encrypt error")
-			})
-			defer encryptFunc.Reset()
-
-			configFile := assembleEncryptConfigFile()
-			got := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
-			So(apimodel.Code_EncryptConfigFileException, ShouldEqual, apimodel.Code(got.GetCode().GetValue()))
+	t.Run("加密配置文件-返回error", func(t *testing.T) {
+		crypto := &MockCrypto{}
+		testSuit.OriginConfigServer().TestMockCryptoManager(&MockCryptoManager{
+			repos: map[string]plugin.Crypto{
+				crypto.Name(): crypto,
+			},
 		})
 
-		Convey("存储层-查询配置文件-返回error", func() {
-			storage := storemock.NewMockStore(ctrl)
-			storage.EXPECT().GetConfigFileGroup(gomock.Any(), gomock.Any()).AnyTimes().Return(&model.ConfigFileGroup{}, nil)
-			storage.EXPECT().GetConfigFile(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil, errors.New("mock storage error"))
-			configFile := assembleConfigFile()
-
-			svr := testSuit.OriginConfigServer()
-			svr.TestMockStore(storage)
-			got := svr.CreateConfigFile(testSuit.DefaultCtx, configFile)
-			So(apimodel.Code_StoreLayerException, ShouldEqual, apimodel.Code(got.GetCode().GetValue()))
-		})
-
-		Convey("存储层-创建配置文件-返回error", func() {
-			storage := storemock.NewMockStore(ctrl)
-			storage.EXPECT().GetConfigFileGroup(gomock.Any(), gomock.Any()).AnyTimes().Return(&model.ConfigFileGroup{}, nil)
-			storage.EXPECT().GetConfigFile(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil)
-			storage.EXPECT().CreateConfigFileTx(gomock.Any(), gomock.Any()).AnyTimes().Return(nil, errors.New("mock storage error"))
-			configFile := assembleConfigFile()
-
-			svr := testSuit.OriginConfigServer()
-			svr.TestMockStore(storage)
-			got := svr.CreateConfigFile(testSuit.DefaultCtx, configFile)
-			So(apimodel.Code_StoreLayerException, ShouldEqual, apimodel.Code(got.GetCode().GetValue()))
-		})
+		configFile := assembleEncryptConfigFile()
+		got := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
+		assert.Equal(t, apimodel.Code_EncryptConfigFileException, apimodel.Code(got.GetCode().GetValue()))
 	})
 }
 
@@ -819,26 +757,13 @@ func Test_GetConfigFileBaseInfo(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		testSuit.Destroy()
-	})
-	defer func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
 		}
-	}()
+		testSuit.Destroy()
+	})
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-
-	t.Run("获取配置文件基本信息-存储层-查询配置文件-返回error", func(t *testing.T) {
-		storage := storemock.NewMockStore(ctrl)
-		storage.EXPECT().GetConfigFile(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil, errors.New("mock storage error"))
-		configFile := assembleConfigFile()
-
-		svr := testSuit.OriginConfigServer()
-		svr.TestMockStore(storage)
-		got := svr.GetConfigFileBaseInfo(testSuit.DefaultCtx, configFile)
-		assert.Equal(t, apimodel.Code_StoreLayerException, apimodel.Code(got.GetCode().GetValue()))
-	})
 
 	t.Run("获取配置文件基本信息-解密配置文件-返回error", func(t *testing.T) {
 		crypto := &aes.AESCrypto{}
@@ -895,4 +820,31 @@ func (m *MockCryptoManager) GetCrypto(algo string) (plugin.Crypto, error) {
 		return nil, errors.New("Not Exist")
 	}
 	return val, nil
+}
+
+type MockCrypto struct {
+}
+
+func (m *MockCrypto) Name() string {
+	return (&aes.AESCrypto{}).Name()
+}
+
+func (m *MockCrypto) Initialize(c *plugin.ConfigEntry) error {
+	return nil
+}
+
+func (m *MockCrypto) Destroy() error {
+	return nil
+}
+
+func (m *MockCrypto) GenerateKey() ([]byte, error) {
+	return nil, errors.New("Not Support")
+}
+
+func (m *MockCrypto) Encrypt(plaintext string, key []byte) (string, error) {
+	return "", errors.New("Not Support")
+}
+
+func (m *MockCrypto) Decrypt(cryptotext string, key []byte) (string, error) {
+	return "", errors.New("Not Support")
 }

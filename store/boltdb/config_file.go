@@ -58,51 +58,39 @@ var (
 )
 
 type configFileStore struct {
-	id      uint64
 	handler BoltHandler
 }
 
-func newConfigFileStore(handler BoltHandler) (*configFileStore, error) {
-	s := &configFileStore{handler: handler, id: 0}
-	ret, err := handler.LoadValues(tblConfigFileID, []string{tblConfigFileID}, &IDHolder{})
-	if err != nil {
-		return nil, err
-	}
-	if len(ret) == 0 {
-		return s, nil
-	}
-	val := ret[tblConfigFileID].(*IDHolder)
-	s.id = val.ID
-	return s, nil
+func newConfigFileStore(handler BoltHandler) *configFileStore {
+	s := &configFileStore{handler: handler}
+	return s
+}
+
+func (cf *configFileStore) LockConfigFile(tx store.Tx, file *model.ConfigFileKey) (*model.ConfigFile, error) {
+	return cf.GetConfigFileTx(tx, file.Namespace, file.Group, file.Name)
 }
 
 // CreateConfigFile 创建配置文件
 func (cf *configFileStore) CreateConfigFileTx(proxyTx store.Tx, file *model.ConfigFile) error {
-	_, err := DoTransactionIfNeed(proxyTx, cf.handler, func(tx *bolt.Tx) ([]interface{}, error) {
-		cf.id++
-		file.Id = cf.id
-		file.Valid = true
-		file.CreateTime = time.Now()
-		file.ModifyTime = file.CreateTime
-
-		if err := saveValue(tx, tblConfigFileID, tblConfigFileID, &IDHolder{
-			ID: cf.id,
-		}); err != nil {
-			log.Error("[ConfigFile] save auto_increment id", zap.Error(err))
-			return nil, err
-		}
-
-		key := fmt.Sprintf("%s@%s@%s", file.Namespace, file.Group, file.Name)
-		if err := saveValue(tx, tblConfigFile, key, file); err != nil {
-			log.Error("[ConfigFile] save config_file", zap.String("key", key), zap.Error(err))
-			return nil, err
-		}
-
-		return nil, nil
-	})
-
+	dbTx := proxyTx.GetDelegateTx().(*bolt.Tx)
+	table, err := dbTx.CreateBucketIfNotExists([]byte(tblConfigFile))
 	if err != nil {
 		return store.Error(err)
+	}
+	nextId, err := table.NextSequence()
+	if err != nil {
+		return store.Error(err)
+	}
+
+	file.Id = nextId
+	file.Valid = true
+	file.CreateTime = time.Now()
+	file.ModifyTime = file.CreateTime
+
+	key := fmt.Sprintf("%s@%s@%s", file.Namespace, file.Group, file.Name)
+	if err := saveValue(dbTx, tblConfigFile, key, file); err != nil {
+		log.Error("[ConfigFile] save config_file", zap.String("key", key), zap.Error(err))
+		return err
 	}
 	return nil
 }

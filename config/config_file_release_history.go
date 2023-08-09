@@ -59,7 +59,8 @@ func (s *Server) recordReleaseHistory(ctx context.Context, fileRelease *model.Co
 }
 
 // GetConfigFileReleaseHistories 获取配置文件发布历史记录
-func (s *Server) GetConfigFileReleaseHistories(ctx context.Context, filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
+func (s *Server) GetConfigFileReleaseHistories(ctx context.Context,
+	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
 
 	offset, limit, err := utils.ParseOffsetAndLimit(filter)
 	if err != nil {

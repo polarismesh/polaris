@@ -45,6 +45,12 @@ type ConfigFileGroup struct {
 	Valid      bool
 }
 
+type ConfigFileKey struct {
+	Name      string
+	Namespace string
+	Group     string
+}
+
 // ConfigFile 配置文件数据持久化对象
 type ConfigFile struct {
 	Id         uint64
@@ -61,7 +67,16 @@ type ConfigFile struct {
 	ModifyBy   string
 	Valid      bool
 	Metadata   map[string]string
+	Encrypt    bool
 	Status     string
+}
+
+func (s *ConfigFile) Key() *ConfigFileKey {
+	return &ConfigFileKey{
+		Name:      s.Name,
+		Namespace: s.Namespace,
+		Group:     s.Group,
+	}
 }
 
 func (s *ConfigFile) GetEncryptDataKey() string {
@@ -74,7 +89,7 @@ func (s *ConfigFile) GetEncryptAlgo() string {
 	return val
 }
 func (s *ConfigFile) IsEncrypted() bool {
-	return s.GetEncryptDataKey() != ""
+	return s.Encrypt || s.GetEncryptDataKey() != ""
 }
 
 // ConfigFileRelease 配置文件发布数据持久化对象
@@ -89,6 +104,14 @@ type ConfigFileReleaseKey struct {
 	Namespace string
 	Group     string
 	FileName  string
+}
+
+func (c ConfigFileReleaseKey) ToFileKey() *ConfigFileKey {
+	return &ConfigFileKey{
+		Name:      c.FileName,
+		Group:     c.Group,
+		Namespace: c.Namespace,
+	}
 }
 
 func (c ConfigFileReleaseKey) OwnerKey() string {
@@ -223,6 +246,7 @@ func ToConfigFileStore(file *config_manage.ConfigFile) *ConfigFile {
 		Comment:   comment,
 		Format:    format,
 		CreateBy:  createBy,
+		Encrypt:   file.GetEncrypted().GetValue(),
 	}
 }
 

@@ -20,9 +20,11 @@ package sqldb
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -36,16 +38,30 @@ type configFileReleaseStore struct {
 // CreateConfigFileRelease 新建配置文件发布
 func (cfr *configFileReleaseStore) CreateConfigFileReleaseTx(tx store.Tx,
 	data *model.ConfigFileRelease) error {
-
-	s := "INSERT INTO config_file_release(name, namespace, `group`, file_name, content, " +
-		" comment, md5, version, create_time, create_by, modify_time, modify_by) VALUES" +
-		"(?,?,?,?,?,?,?,?, sysdate(),?,sysdate(),?)"
-
+	if tx == nil {
+		return errors.New("tx is nil")
+	}
 	dbTx := tx.GetDelegateTx().(*BaseTx)
-	_, err := dbTx.Exec(s, data.Name, data.Namespace, data.Group,
-		data.FileName, data.Content, data.Comment, data.Md5, data.Version,
-		data.CreateBy, data.ModifyBy)
+	args := []interface{}{data.Namespace, data.Group, data.Name}
+	_, err := dbTx.Exec("SELECT id FROM config_file WHERE namespace = ? AND `group` = ? AND name = ? FOR UPDATE", args...)
 	if err != nil {
+		return store.Error(err)
+	}
+	maxVersion, err := cfr.inactiveConfigFileRelease(dbTx, data)
+	if err != nil {
+		return store.Error(err)
+	}
+
+	s := "INSERT INTO config_file_release(name, namespace, `group`, file_name, content , comment, md5, " +
+		" version, create_time, create_by , modify_time, modify_by, active, tags) " +
+		" VALUES (?, ?, ?, ?, ? , ?, ?, ?, sysdate(), ? , sysdate(), ?, 1, ?)"
+
+	args = []interface{}{
+		data.Name, data.Namespace, data.Group,
+		data.FileName, data.Content, data.Comment, data.Md5, maxVersion + 1,
+		data.CreateBy, data.ModifyBy, utils.MustJson(data.Metadata),
+	}
+	if _, err = dbTx.Exec(s, args...); err != nil {
 		return store.Error(err)
 	}
 	return nil
@@ -54,7 +70,19 @@ func (cfr *configFileReleaseStore) CreateConfigFileReleaseTx(tx store.Tx,
 // GetConfigFileRelease 获取配置文件发布，只返回 flag=0 的记录
 func (cfr *configFileReleaseStore) GetConfigFileRelease(
 	req *model.ConfigFileReleaseKey) (*model.ConfigFileRelease, error) {
+	tx, err := cfr.master.Begin()
+	if err != nil {
+		return nil, store.Error(err)
+	}
+	defer tx.Rollback()
+	return cfr.GetConfigFileReleaseTx(NewSqlDBTx(tx), req)
+}
 
+// GetConfigFileReleaseTx 在已开启的事务中获取配置文件发布内容，只获取 flag=0 的记录
+func (cfr *configFileReleaseStore) GetConfigFileReleaseTx(tx store.Tx,
+	req *model.ConfigFileReleaseKey) (*model.ConfigFileRelease, error) {
+
+	dbTx := tx.GetDelegateTx().(*BaseTx)
 	querySql := cfr.baseQuerySql() + "WHERE namespace = ? AND `group` = ? AND " +
 		" file_name = ? AND name = ? AND flag = 0 "
 	var (
@@ -62,7 +90,7 @@ func (cfr *configFileReleaseStore) GetConfigFileRelease(
 		err  error
 	)
 
-	rows, err = cfr.master.Query(querySql, req.Namespace, req.Group, req.FileName, req.Name)
+	rows, err = dbTx.Query(querySql, req.Namespace, req.Group, req.FileName, req.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -77,10 +105,11 @@ func (cfr *configFileReleaseStore) GetConfigFileRelease(
 }
 
 // DeleteConfigFileRelease
-func (cfr *configFileReleaseStore) DeleteConfigFileRelease(data *model.ConfigFileReleaseKey) error {
+func (cfr *configFileReleaseStore) DeleteConfigFileReleaseTx(tx store.Tx, data *model.ConfigFileReleaseKey) error {
+	dbTx := tx.GetDelegateTx().(*BaseTx)
 	s := "update config_file_release set flag = 1, modify_time = sysdate() " +
 		" where namespace = ? and `group` = ? and file_name = ? and name = ?"
-	_, err := cfr.master.Exec(s, data.Namespace, data.Group, data.FileName, data.Name)
+	_, err := dbTx.Exec(s, data.Namespace, data.Group, data.FileName, data.Name)
 	if err != nil {
 		return store.Error(err)
 	}
@@ -108,29 +137,61 @@ func (cfr *configFileReleaseStore) CleanDeletedConfigFileRelease(endTime time.Ti
 	return err
 }
 
-// ActiveConfigFileRelease
-func (cfr *configFileReleaseStore) ActiveConfigFileRelease(release *model.ConfigFileRelease) error {
-	return cfr.master.processWithTransaction("ActiveConfigFileRelease", func(tx *BaseTx) error {
-		args := []interface{}{release.Namespace, release.Group, release.FileName}
-		if _, err := tx.Exec("SELECT * FROM config_file WHERE namespace = ? AND `group` = ? AND "+
-			" name = ? FOR UPDATE", args...); err != nil {
-			return err
-		}
-		maxVersion, err := cfr.inactiveConfigFileRelease(tx, release)
-		if err != nil {
-			return err
-		}
-		args = []interface{}{maxVersion + 1, release.Namespace, release.Group,
-			release.FileName, release.Name}
-		//	update 指定的 release 记录，设置其 active、version 以及 mtime
-		updateSql := "UPDATE config_file_release SET active = 1, version = ?, modify_time = sysdate() " +
-			" WHERE namespace = ? AND `group` = ? AND file_name = ? AND name = ?"
-		if _, err := tx.Exec(updateSql, args...); err != nil {
-			return err
-		}
+// GetConfigFileActiveRelease .
+func (cfr *configFileReleaseStore) GetConfigFileActiveRelease(file *model.ConfigFileKey) (*model.ConfigFileRelease, error) {
+	tx, err := cfr.master.Begin()
+	if err != nil {
+		return nil, store.Error(err)
+	}
+	defer tx.Rollback()
+	return cfr.GetConfigFileActiveReleaseTx(NewSqlDBTx(tx), file)
+}
 
-		return tx.Commit()
-	})
+// GetConfigFileActiveReleaseTx .
+func (cfr *configFileReleaseStore) GetConfigFileActiveReleaseTx(tx store.Tx,
+	file *model.ConfigFileKey) (*model.ConfigFileRelease, error) {
+
+	dbTx := tx.GetDelegateTx().(*BaseTx)
+	querySql := cfr.baseQuerySql() + "WHERE namespace = ? AND `group` = ? AND " +
+		" file_name = ? AND active = 1 AND flag = 0 "
+	var (
+		rows *sql.Rows
+		err  error
+	)
+
+	rows, err = dbTx.Query(querySql, file.Namespace, file.Group, file.Name)
+	if err != nil {
+		return nil, err
+	}
+	fileRelease, err := cfr.transferRows(rows)
+	if err != nil {
+		return nil, err
+	}
+	if len(fileRelease) > 1 {
+		return nil, errors.New("multi active file release found")
+	}
+	if len(fileRelease) > 0 {
+		return fileRelease[0], nil
+	}
+	return nil, nil
+}
+
+// ActiveConfigFileReleaseTx
+func (cfr *configFileReleaseStore) ActiveConfigFileReleaseTx(tx store.Tx, release *model.ConfigFileRelease) error {
+	dbTx := tx.GetDelegateTx().(*BaseTx)
+	maxVersion, err := cfr.inactiveConfigFileRelease(dbTx, release)
+	if err != nil {
+		return err
+	}
+	args := []interface{}{maxVersion + 1, release.Namespace, release.Group,
+		release.FileName, release.Name}
+	//	update 指定的 release 记录，设置其 active、version 以及 mtime
+	updateSql := "UPDATE config_file_release SET active = 1, version = ?, modify_time = sysdate() " +
+		" WHERE namespace = ? AND `group` = ? AND file_name = ? AND name = ?"
+	if _, err := dbTx.Exec(updateSql, args...); err != nil {
+		return store.Error(err)
+	}
+	return nil
 }
 
 func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *BaseTx,

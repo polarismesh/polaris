@@ -27,7 +27,7 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	commonstore "github.com/polarismesh/polaris/common/store"
@@ -260,7 +260,7 @@ func (s *Server) QueryConfigFileGroups(ctx context.Context,
 		return resp
 	}
 
-	args := &cache.ConfigGroupArgs{
+	args := &cachetypes.ConfigGroupArgs{
 		Namespace:  searchFilters["namespace"],
 		Name:       searchFilters["name"],
 		Business:   searchFilters["business"],

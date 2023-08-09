@@ -143,6 +143,10 @@ func (s *serverAuthability) collectConfigFileTemplateAuthContext(ctx context.Con
 func (s *serverAuthability) queryConfigGroupResource(ctx context.Context,
 	req []*apiconfig.ConfigFileGroup) map[apisecurity.ResourceType][]model.ResourceEntry {
 
+	if len(req) == 0 {
+		return nil
+	}
+
 	names := utils.NewSet[string]()
 	namespace := req[0].GetNamespace().GetValue()
 	for index := range req {
