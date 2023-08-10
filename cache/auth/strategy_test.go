@@ -26,24 +26,28 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	types "github.com/polarismesh/polaris/cache/api"
+	cachemock "github.com/polarismesh/polaris/cache/mock"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store/mock"
 )
 
 func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	var cacheMgr types.CacheManager
-	mockStore := mock.NewMockStore(ctrl)
-
 	t.Run("资源没有关联任何策略", func(t *testing.T) {
-		userCache := &userCache{}
+		ctrl := gomock.NewController(t)
+		mockCacheMgr := cachemock.NewMockCacheManager(ctrl)
+		mockStore := mock.NewMockStore(ctrl)
+	
+		t.Cleanup(func() {
+			ctrl.Finish()
+		})
+
+		userCache := NewUserCache(mockStore, mockCacheMgr)
+		strategyCache := NewStrategyCache(mockStore, mockCacheMgr).(*strategyCache)
+
+		mockCacheMgr.EXPECT().GetCacher(types.CacheUser).Return(userCache).AnyTimes()
+
 		userCache.Initialize(map[string]interface{}{})
-		strategyCache := &strategyCache{
-			BaseCache: types.NewBaseCache(mockStore, cacheMgr),
-			userCache: userCache,
-		}
 		strategyCache.Initialize(map[string]interface{}{})
 
 		strategyCache.setStrategys(buildStrategies(10))
@@ -57,12 +61,20 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 	})
 
 	t.Run("操作的目标资源关联了策略-自己在principal-user列表中", func(t *testing.T) {
-		userCache := &userCache{}
+		ctrl := gomock.NewController(t)
+		mockCacheMgr := cachemock.NewMockCacheManager(ctrl)
+		mockStore := mock.NewMockStore(ctrl)
+	
+		t.Cleanup(func() {
+			ctrl.Finish()
+		})
+
+		userCache := NewUserCache(mockStore, mockCacheMgr)
+		strategyCache := NewStrategyCache(mockStore, mockCacheMgr).(*strategyCache)
+
+		mockCacheMgr.EXPECT().GetCacher(types.CacheUser).Return(userCache).AnyTimes()
+
 		userCache.Initialize(map[string]interface{}{})
-		strategyCache := &strategyCache{
-			BaseCache: types.NewBaseCache(mockStore, cacheMgr),
-			userCache: userCache,
-		}
 		strategyCache.Initialize(map[string]interface{}{})
 
 		strategyCache.setStrategys([]*model.StrategyDetail{
@@ -95,13 +107,22 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 	})
 
 	t.Run("操作的目标资源关联了策略-自己不在principal-user列表中", func(t *testing.T) {
-		userCache := &userCache{}
+		ctrl := gomock.NewController(t)
+		mockCacheMgr := cachemock.NewMockCacheManager(ctrl)
+		mockStore := mock.NewMockStore(ctrl)
+	
+		t.Cleanup(func() {
+			ctrl.Finish()
+		})
+
+		userCache := NewUserCache(mockStore, mockCacheMgr)
+		strategyCache := NewStrategyCache(mockStore, mockCacheMgr).(*strategyCache)
+
+		mockCacheMgr.EXPECT().GetCacher(types.CacheUser).Return(userCache).AnyTimes()
+
 		userCache.Initialize(map[string]interface{}{})
-		strategyCache := &strategyCache{
-			BaseCache: types.NewBaseCache(mockStore, cacheMgr),
-			userCache: userCache,
-		}
 		strategyCache.Initialize(map[string]interface{}{})
+
 		strategyCache.setStrategys(buildStrategies(10))
 
 		ret := strategyCache.IsResourceEditable(model.Principal{
@@ -113,12 +134,20 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 	})
 
 	t.Run("操作的目标资源关联了策略-自己属于principal-group中组成员", func(t *testing.T) {
-		userCache := &userCache{}
+		ctrl := gomock.NewController(t)
+		mockCacheMgr := cachemock.NewMockCacheManager(ctrl)
+		mockStore := mock.NewMockStore(ctrl)
+	
+		t.Cleanup(func() {
+			ctrl.Finish()
+		})
+
+		userCache := NewUserCache(mockStore, mockCacheMgr).(*userCache)
+		strategyCache := NewStrategyCache(mockStore, mockCacheMgr).(*strategyCache)
+
+		mockCacheMgr.EXPECT().GetCacher(types.CacheUser).Return(userCache).AnyTimes()
+
 		userCache.Initialize(map[string]interface{}{})
-		strategyCache := &strategyCache{
-			BaseCache: types.NewBaseCache(mockStore, cacheMgr),
-			userCache: userCache,
-		}
 		strategyCache.Initialize(map[string]interface{}{})
 
 		userCache.groups.Store("group-1", &model.UserGroupDetail{
@@ -145,12 +174,20 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 	})
 
 	t.Run("操作关联策略的资源-策略在操作成功-策略移除操作失败", func(t *testing.T) {
-		userCache := &userCache{}
+		ctrl := gomock.NewController(t)
+		mockCacheMgr := cachemock.NewMockCacheManager(ctrl)
+		mockStore := mock.NewMockStore(ctrl)
+	
+		t.Cleanup(func() {
+			ctrl.Finish()
+		})
+
+		userCache := NewUserCache(mockStore, mockCacheMgr).(*userCache)
+		strategyCache := NewStrategyCache(mockStore, mockCacheMgr).(*strategyCache)
+
+		mockCacheMgr.EXPECT().GetCacher(types.CacheUser).Return(userCache).AnyTimes()
+
 		userCache.Initialize(map[string]interface{}{})
-		strategyCache := &strategyCache{
-			BaseCache: types.NewBaseCache(mockStore, cacheMgr),
-			userCache: userCache,
-		}
 		strategyCache.Initialize(map[string]interface{}{})
 
 		userCache.groups.Store("group-1", &model.UserGroupDetail{
@@ -227,12 +264,20 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		userCache := &userCache{}
+		ctrl := gomock.NewController(t)
+		mockCacheMgr := cachemock.NewMockCacheManager(ctrl)
+		mockStore := mock.NewMockStore(ctrl)
+	
+		t.Cleanup(func() {
+			ctrl.Finish()
+		})
+
+		userCache := NewUserCache(mockStore, mockCacheMgr).(*userCache)
+		strategyCache := NewStrategyCache(mockStore, mockCacheMgr).(*strategyCache)
+
+		mockCacheMgr.EXPECT().GetCacher(types.CacheUser).Return(userCache).AnyTimes()
+
 		userCache.Initialize(map[string]interface{}{})
-		strategyCache := &strategyCache{
-			BaseCache: types.NewBaseCache(mockStore, cacheMgr),
-			userCache: userCache,
-		}
 		strategyCache.Initialize(map[string]interface{}{})
 
 		userCache.groups.Store("group-1", &model.UserGroupDetail{
