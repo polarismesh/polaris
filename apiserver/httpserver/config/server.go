@@ -34,7 +34,7 @@ type HTTPServer struct {
 	configServer    config.ConfigCenterServer
 }
 
-// NewServer 创建V2版本的HTTPServer
+// NewServer 创建配置中心的 HttpServer
 func NewServer(
 	maintainServer admin.AdminOperateServer,
 	namespaceServer namespace.NamespaceOperateServer,

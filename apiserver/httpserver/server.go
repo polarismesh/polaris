@@ -216,6 +216,7 @@ func (h *HTTPServer) Run(errCh chan error) {
 
 	h.discoverV1 = *v1.NewV1Server(h.namespaceServer, h.namingServer, h.healthCheckServer)
 	h.discoverV2 = *v2.NewV2Server(h.namespaceServer, h.namingServer, h.healthCheckServer)
+	h.configSvr = *confighttp.NewServer(h.maintainServer, h.namespaceServer, h.configServer)
 
 	// 初始化http server
 	address := fmt.Sprintf("%v:%v", h.listenIP, h.listenPort)
