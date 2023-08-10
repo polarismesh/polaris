@@ -101,7 +101,6 @@ func (nc *CacheManager) Close() error {
 			return err
 		}
 	}
-
 	return nil
 }
 

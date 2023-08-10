@@ -100,7 +100,9 @@ func openBoltCache(opt map[string]interface{}) (*bbolt.DB, error) {
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		return nil, err
 	}
-	valueCache, err := bbolt.Open(filepath.Join(path, "config_file.bolt"), os.ModePerm, &bbolt.Options{})
+	dbFile := filepath.Join(path, "config_file.bolt")
+	_ = os.Remove(dbFile)
+	valueCache, err := bbolt.Open(dbFile, os.ModePerm, &bbolt.Options{})
 	if err != nil {
 		return nil, err
 	}

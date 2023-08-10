@@ -90,6 +90,9 @@ func newGroupTest(t *testing.T) *GroupTest {
 	if err != nil {
 		t.Error(err)
 	}
+	t.Cleanup(func() {
+		_ = cacheMgn.Close()
+	})
 
 	time.Sleep(time.Second)
 
@@ -127,7 +130,7 @@ func newGroupTest(t *testing.T) *GroupTest {
 
 func (g *GroupTest) Clean() {
 	g.cancel()
-	time.Sleep(5 * time.Second)
+	g.cacheMgn.Close()
 	g.ctrl.Finish()
 }
 

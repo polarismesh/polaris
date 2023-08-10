@@ -77,11 +77,10 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer func() {
+	t.Cleanup(func() {
 		cancel()
-		cacheMgn.Clear()
-		time.Sleep(2 * time.Second)
-	}()
+		cacheMgn.Close()
+	})
 
 	checker := &defaultAuthChecker{}
 	checker.Initialize(&auth.Config{
@@ -235,11 +234,10 @@ func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer func() {
+	t.Cleanup(func() {
 		cancel()
-		cacheMgn.Clear()
-		time.Sleep(2 * time.Second)
-	}()
+		cacheMgn.Close()
+	})
 
 	time.Sleep(time.Second)
 
@@ -475,11 +473,10 @@ func Test_defaultAuthChecker_checkPermission_Write_Strict(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer func() {
+	t.Cleanup(func() {
 		cancel()
-		cacheMgn.Clear()
-		time.Sleep(2 * time.Second)
-	}()
+		cacheMgn.Close()
+	})
 
 	time.Sleep(time.Second)
 
@@ -671,11 +668,10 @@ func Test_defaultAuthChecker_checkPermission_Read_NoStrict(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer func() {
+	t.Cleanup(func() {
 		cancel()
-		cacheMgn.Clear()
-		time.Sleep(2 * time.Second)
-	}()
+		cacheMgn.Close()
+	})
 
 	time.Sleep(time.Second)
 
@@ -888,11 +884,10 @@ func Test_defaultAuthChecker_checkPermission_Read_Strict(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer func() {
+	t.Cleanup(func() {
 		cancel()
-		cacheMgn.Clear()
-		time.Sleep(2 * time.Second)
-	}()
+		cacheMgn.Close()
+	})
 
 	time.Sleep(time.Second)
 
@@ -1105,11 +1100,10 @@ func Test_defaultAuthChecker_Initialize(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer func() {
+	t.Cleanup(func() {
 		cancel()
-		cacheMgn.Clear()
-		time.Sleep(2 * time.Second)
-	}()
+		cacheMgn.Close()
+	})
 
 	t.Run("使用未迁移至auth.user.option及auth.strategy.option的配置", func(t *testing.T) {
 		reset(true)

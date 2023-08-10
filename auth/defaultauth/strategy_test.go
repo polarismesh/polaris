@@ -99,8 +99,6 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 		t.Fatal(err)
 	}
 
-	time.Sleep(2 * time.Second)
-
 	checker := &defaultAuthChecker{}
 	checker.Initialize(&auth.Config{
 		User: &auth.UserConfig{
@@ -119,6 +117,10 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 		},
 	}, storage, cacheMgn)
 	checker.cacheMgn = cacheMgn
+
+	t.Cleanup(func() {
+		cacheMgn.Close()
+	})
 
 	svr := &strategyAuthAbility{
 		authMgn: checker,
@@ -154,9 +156,7 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 
 func (g *StrategyTest) Clean() {
 	g.cancel()
-	_ = g.cacheMgn.Clear()
-	g.ctrl.Finish()
-	time.Sleep(5 * time.Second)
+	_ = g.cacheMgn.Close()
 }
 
 func Test_GetPrincipalResources(t *testing.T) {
