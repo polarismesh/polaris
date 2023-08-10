@@ -18,8 +18,6 @@
 package config
 
 import (
-	"fmt"
-
 	"github.com/emicklei/go-restful/v3"
 
 	"github.com/polarismesh/polaris/admin"
@@ -71,9 +69,6 @@ func (h *HTTPServer) GetConsoleAccessServer(include []string) (*restful.WebServi
 			h.addDefaultReadAccess(ws)
 		case configConsoleAccess, defaultAccess:
 			h.addDefaultAccess(ws)
-		default:
-			log.Errorf("[Config][HttpServer] the patch of config endpoint [%s] does not exist", item)
-			return nil, fmt.Errorf("[Config][HttpServer] the patch of config endpoint [%s] does not exist", item)
 		}
 	}
 
@@ -140,8 +135,6 @@ func (h *HTTPServer) GetClientAccessServer(ws *restful.WebService, include []str
 			h.addCreateFile(ws)
 		case apiserver.DiscoverAccess:
 			h.addDiscover(ws)
-		default:
-			log.Warnf("[Config][HttpServer] the patch of config endpoint [%s] does not exist", item)
 		}
 	}
 
@@ -151,6 +144,7 @@ func (h *HTTPServer) GetClientAccessServer(ws *restful.WebService, include []str
 func (h *HTTPServer) addDiscover(ws *restful.WebService) {
 	ws.Route(docs.EnrichGetConfigFileForClientApiDocs(ws.GET("/GetConfigFile").To(h.ClientGetConfigFile)))
 	ws.Route(docs.EnrichWatchConfigFileForClientApiDocs(ws.POST("/WatchConfigFile").To(h.ClientWatchConfigFile)))
+	ws.Route(docs.EnrichGetConfigFileMetadataList(ws.POST("/GetConfigFileMetadataList").To(h.GetConfigFileMetadataList)))
 }
 
 func (h *HTTPServer) addCreateFile(ws *restful.WebService) {

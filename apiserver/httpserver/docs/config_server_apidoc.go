@@ -268,6 +268,14 @@ func EnrichWatchConfigFileForClientApiDocs(r *restful.RouteBuilder) *restful.Rou
 		Returns(0, "", config_manage.ConfigClientResponse{})
 }
 
+func EnrichGetConfigFileMetadataList(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.
+		Doc("监听配置").
+		Metadata(restfulspec.KeyOpenAPITags, configClientApiTags).
+		Reads(apiconfig.ClientWatchConfigFileRequest{}, "通过 Http LongPolling 机制订阅配置变更。").
+		Returns(0, "", config_manage.ConfigClientResponse{})
+}
+
 func EnrichGetAllConfigEncryptAlgorithms(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("返回当前配置加解密的算法").

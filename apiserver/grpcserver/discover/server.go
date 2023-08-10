@@ -29,6 +29,7 @@ import (
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/apiserver/grpcserver"
 	v1 "github.com/polarismesh/polaris/apiserver/grpcserver/discover/v1"
+	"github.com/polarismesh/polaris/apiserver/grpcserver/utils"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/service"
@@ -107,7 +108,7 @@ func (g *GRPCServer) Run(errCh chan error) {
 					// 注册 v1 版本的 spec discover server
 					apiservice.RegisterPolarisGRPCServer(server, g.v1server)
 					apiservice.RegisterPolarisHeartbeatGRPCServer(server, g.v1server)
-					openMethod, getErr := apiserver.GetClientOpenMethod(config.Include, g.GetProtocol())
+					openMethod, getErr := utils.GetClientOpenMethod(config.Include, g.GetProtocol())
 					if getErr != nil {
 						return getErr
 					}
