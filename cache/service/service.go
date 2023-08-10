@@ -68,6 +68,8 @@ type serviceCache struct {
 	lastCheckAllTime int64
 
 	revisionWorker *ServiceRevisionWorker
+
+	cancel context.CancelFunc
 }
 
 // NewServiceCache 返回一个serviceCache
@@ -91,13 +93,27 @@ func (sc *serviceCache) Initialize(opt map[string]interface{}) error {
 	sc.pendingServices = utils.NewSyncMap[string, struct{}]()
 	sc.namespaceServiceCnt = utils.NewSyncMap[string, *model.NamespaceServiceCount]()
 	sc.revisionWorker = newRevisionWorker(sc, sc.instCache.(*instanceCache))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	sc.cancel = cancel
 	// 先启动revision计算协程
-	go sc.revisionWorker.revisionWorker(context.Background())
+	go sc.revisionWorker.revisionWorker(ctx)
 	if opt == nil {
 		return nil
 	}
 	sc.disableBusiness, _ = opt["disableBusiness"].(bool)
 	sc.needMeta, _ = opt["needMeta"].(bool)
+	return nil
+}
+
+// LastMtime 最后一次更新时间
+func (sc *serviceCache) Close() error {
+	if err := sc.BaseCache.Close(); err != nil {
+		return err
+	}
+	if sc.cancel != nil {
+		sc.cancel()
+	}
 	return nil
 }
 

@@ -42,6 +42,11 @@ func (sc *serviceCache) forceUpdate() error {
 // GetServicesByFilter 通过filter在缓存中进行服务过滤
 func (sc *serviceCache) GetServicesByFilter(serviceFilters *types.ServiceArgs,
 	instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.EnhancedService, error) {
+
+	if err := sc.forceUpdate(); err != nil {
+		return 0, nil, err
+	}
+
 	var amount uint32
 	var err error
 	var services []*model.Service
@@ -103,7 +108,7 @@ func (sc *serviceCache) matchInstances(instances []*model.Instance, instanceFilt
 			instanceMatched := true
 			for key, metaPattern := range instanceFilters.Meta {
 				if instanceMetaValue, ok := instanceMetaMap[key]; !ok ||
-					!utils.IsWildMatch(instanceMetaValue, metaPattern) {
+					utils.IsWildNotMatch(instanceMetaValue, metaPattern) {
 					instanceMatched = false
 					break
 				}

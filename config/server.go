@@ -79,6 +79,17 @@ var (
 			"order_type":  "order_type",
 			"order_field": "order_field",
 		},
+		"config_file_history": {
+			"namespace":   "namespace",
+			"group":       "name",
+			"name":        "name",
+			"offset":      "offset",
+			"limit":       "limit",
+			"endId":       "endId",
+			"end_id":      "endId",
+			"order_type":  "order_type",
+			"order_field": "order_field",
+		},
 	}
 )
 

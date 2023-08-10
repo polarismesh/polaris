@@ -62,12 +62,19 @@ func (s *Server) recordReleaseHistory(ctx context.Context, fileRelease *model.Co
 func (s *Server) GetConfigFileReleaseHistories(ctx context.Context,
 	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
 
+	searchFilter := map[string]string{}
+	for k, v := range filter {
+		if nk, ok := availableSearch["config_file_release"][k]; ok {
+			searchFilter[nk] = v
+		}
+	}
+
 	offset, limit, err := utils.ParseOffsetAndLimit(filter)
 	if err != nil {
 		return api.NewConfigBatchQueryResponseWithInfo(apimodel.Code_BadRequest, err.Error())
 	}
 
-	count, saveDatas, err := s.storage.QueryConfigFileReleaseHistories(filter, offset, limit)
+	count, saveDatas, err := s.storage.QueryConfigFileReleaseHistories(searchFilter, offset, limit)
 	if err != nil {
 		log.Error("[Config][Service] get config file release history error.", utils.RequestID(ctx),
 			zap.Any("filter", filter), zap.Error(err))

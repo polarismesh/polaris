@@ -398,16 +398,9 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 func (d *DiscoverTestSuit) Destroy() {
 	eventhub.Shutdown()
 	d.cancel()
-	time.Sleep(5 * time.Second)
-
-	_ = d.cacheMgr.Close()
-	time.Sleep(5 * time.Second)
-
-	_ = d.Storage.Destroy()
-	time.Sleep(5 * time.Second)
-
 	healthcheck.TestDestroy()
-	time.Sleep(5 * time.Second)
+	_ = d.cacheMgr.Close()
+	_ = d.Storage.Destroy()
 }
 
 func (d *DiscoverTestSuit) CleanReportClient() {
