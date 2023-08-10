@@ -127,8 +127,8 @@ func (c *Client) QueryConfigGroup(group *apiconfig.ConfigFileGroup,
 	offset, limit int64) (*apiconfig.ConfigBatchQueryResponse, error) {
 	fmt.Printf("\nquery config_file_groups\n")
 
-	url := fmt.Sprintf("http://%v/config/%v/configfilegroups?namespace=%s&group=%s&fileName=%s&offset=%d&limit=%d",
-		c.Address, c.Version, group.Namespace.GetValue(), group.Name.GetValue(), "", offset, limit)
+	url := fmt.Sprintf("http://%v/config/%v/configfilegroups?namespace=%s&group=%s&offset=%d&limit=%d",
+		c.Address, c.Version, group.Namespace.GetValue(), group.Name.GetValue(), offset, limit)
 
 	body, err := JSONFromConfigGroup(group)
 	if err != nil {

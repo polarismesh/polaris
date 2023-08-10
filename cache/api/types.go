@@ -18,6 +18,7 @@
 package api
 
 import (
+	"runtime"
 	"sync"
 	"time"
 
@@ -575,7 +576,9 @@ func (bc *BaseCache) DoCacheUpdate(name string, executor func() (map[string]time
 	}
 	defer func() {
 		if err := recover(); err != nil {
-			log.Errorf("[Cache][%s] run cache update panic: %+v", name, err)
+			var buf [4086]byte
+			n := runtime.Stack(buf[:], false)
+			log.Errorf("[Cache][%s] run cache update panic: %+v, stack\n%s\n", name, err, string(buf[:n]))
 		} else {
 			bc.lastFetchTime = curStoreTime
 		}

@@ -99,6 +99,7 @@ func (fc *configGroupCache) setConfigGroups(groups []*model.ConfigFileGroup) (ma
 
 	for i := range groups {
 		item := groups[i]
+		affect[item.Namespace] = struct{}{}
 
 		if !item.Valid {
 			del++
@@ -117,8 +118,6 @@ func (fc *configGroupCache) setConfigGroups(groups []*model.ConfigFileGroup) (ma
 			nsBucket.Store(item.Name, item)
 		}
 
-		affect[item.Namespace] = struct{}{}
-
 		modifyUnix := item.ModifyTime.Unix()
 		if modifyUnix > lastMtime {
 			lastMtime = modifyUnix
@@ -135,9 +134,11 @@ func (fc *configGroupCache) setConfigGroups(groups []*model.ConfigFileGroup) (ma
 // postProcessUpdatedGroups
 func (fc *configGroupCache) postProcessUpdatedGroups(affect map[string]struct{}) {
 	for ns := range affect {
-		nsBucket, _ := fc.name2groups.Load(ns)
-		count := nsBucket.Len()
-		fc.reportMetricsInfo(ns, count)
+		nsBucket, ok := fc.name2groups.Load(ns)
+		if ok {
+			count := nsBucket.Len()
+			fc.reportMetricsInfo(ns, count)
+		}
 	}
 }
 

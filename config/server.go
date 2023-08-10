@@ -70,7 +70,7 @@ var (
 		},
 		"config_file_group": {
 			"namespace":   "namespace",
-			"group":       "group",
+			"group":       "name",
 			"name":        "name",
 			"business":    "business",
 			"department":  "department",

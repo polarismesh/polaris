@@ -248,8 +248,8 @@ func (s *Server) QueryConfigFileGroups(ctx context.Context,
 
 	searchFilters := map[string]string{}
 	for k, v := range filter {
-		if _, ok := availableSearch["config_file_group"][k]; ok {
-			searchFilters[k] = v
+		if newK, ok := availableSearch["config_file_group"][k]; ok {
+			searchFilters[newK] = v
 		}
 	}
 
