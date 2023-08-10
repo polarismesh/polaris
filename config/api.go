@@ -49,8 +49,6 @@ type ConfigFileGroupOperate interface {
 type ConfigFileOperate interface {
 	// CreateConfigFile 创建配置文件
 	CreateConfigFile(ctx context.Context, configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse
-	// GetConfigFileBaseInfo 获取单个配置文件基础信息，不包含发布信息
-	GetConfigFileBaseInfo(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse
 	// GetConfigFileRichInfo 获取单个配置文件基础信息，包含发布状态等信息
 	GetConfigFileRichInfo(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse
 	// SearchConfigFile 按 group 和 name 模糊搜索配置文件

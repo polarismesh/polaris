@@ -65,7 +65,7 @@ func TestConfigFileCRUD(t *testing.T) {
 	})
 
 	t.Run("step1-query", func(t *testing.T) {
-		rsp := testSuit.ConfigServer().GetConfigFileBaseInfo(testSuit.DefaultCtx, &apiconfig.ConfigFile{
+		rsp := testSuit.ConfigServer().GetConfigFileRichInfo(testSuit.DefaultCtx, &apiconfig.ConfigFile{
 			Namespace: utils.NewStringValue(testNamespace),
 			Group:     utils.NewStringValue(testGroup),
 			Name:      utils.NewStringValue(testFile),
@@ -84,7 +84,7 @@ func TestConfigFileCRUD(t *testing.T) {
 		assert.Equal(t, uint32(api.ExistedResource), rsp2.Code.GetValue())
 
 		// 创建完之后再查询
-		rsp3 := testSuit.ConfigServer().GetConfigFileBaseInfo(testSuit.DefaultCtx, &apiconfig.ConfigFile{
+		rsp3 := testSuit.ConfigServer().GetConfigFileRichInfo(testSuit.DefaultCtx, &apiconfig.ConfigFile{
 			Namespace: utils.NewStringValue(testNamespace),
 			Group:     utils.NewStringValue(testGroup),
 			Name:      utils.NewStringValue(testFile),
@@ -101,7 +101,7 @@ func TestConfigFileCRUD(t *testing.T) {
 	t.Run("step3-update", func(t *testing.T) {
 		testSuit.DefaultCtx = context.WithValue(testSuit.DefaultCtx, utils.ContextUserNameKey, "polaris")
 
-		rsp := testSuit.ConfigServer().GetConfigFileBaseInfo(testSuit.DefaultCtx, &apiconfig.ConfigFile{
+		rsp := testSuit.ConfigServer().GetConfigFileRichInfo(testSuit.DefaultCtx, &apiconfig.ConfigFile{
 			Namespace: utils.NewStringValue(testNamespace),
 			Group:     utils.NewStringValue(testGroup),
 			Name:      utils.NewStringValue(testFile),
@@ -119,7 +119,7 @@ func TestConfigFileCRUD(t *testing.T) {
 		assert.Equal(t, newContent, rsp2.ConfigFile.Content.GetValue())
 
 		// 更新完之后再查询
-		rsp3 := testSuit.ConfigServer().GetConfigFileBaseInfo(testSuit.DefaultCtx, &apiconfig.ConfigFile{
+		rsp3 := testSuit.ConfigServer().GetConfigFileRichInfo(testSuit.DefaultCtx, &apiconfig.ConfigFile{
 			Namespace: utils.NewStringValue(testNamespace),
 			Group:     utils.NewStringValue(testGroup),
 			Name:      utils.NewStringValue(testFile),
@@ -150,7 +150,7 @@ func TestConfigFileCRUD(t *testing.T) {
 		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
 
 		// 删除后，查询不到
-		rsp3 := testSuit.ConfigServer().GetConfigFileBaseInfo(testSuit.DefaultCtx, &apiconfig.ConfigFile{
+		rsp3 := testSuit.ConfigServer().GetConfigFileRichInfo(testSuit.DefaultCtx, &apiconfig.ConfigFile{
 			Namespace: utils.NewStringValue(testNamespace),
 			Group:     utils.NewStringValue(testGroup),
 			Name:      utils.NewStringValue(testFile),
@@ -444,19 +444,19 @@ func TestConfigFileCRUD(t *testing.T) {
 		configFile.Encrypted = utils.NewBoolValue(true)
 		configFile.EncryptAlgo = utils.NewStringValue("AES")
 		rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
-		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
+		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue(), rsp.GetInfo().GetValue())
 
 		// 重复创建
 		rsp2 := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
-		assert.Equal(t, uint32(api.ExistedResource), rsp2.Code.GetValue())
+		assert.Equal(t, uint32(api.ExistedResource), rsp2.Code.GetValue(), rsp2.GetInfo().GetValue())
 
 		// 创建完之后再查询
-		rsp3 := testSuit.ConfigServer().GetConfigFileBaseInfo(testSuit.DefaultCtx, &apiconfig.ConfigFile{
+		rsp3 := testSuit.ConfigServer().GetConfigFileRichInfo(testSuit.DefaultCtx, &apiconfig.ConfigFile{
 			Namespace: utils.NewStringValue(testNamespace),
 			Group:     utils.NewStringValue(testGroup),
 			Name:      utils.NewStringValue(testFile),
 		})
-		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
+		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue(), rsp3.GetInfo().GetValue())
 		assert.NotNil(t, rsp3.ConfigFile)
 		assert.Equal(t, testNamespace, rsp3.ConfigFile.Namespace.GetValue())
 		assert.Equal(t, testGroup, rsp3.ConfigFile.Group.GetValue())
@@ -751,7 +751,7 @@ func Test_CreateConfigFile(t *testing.T) {
 	})
 }
 
-func Test_GetConfigFileBaseInfo(t *testing.T) {
+func Test_GetConfigFileRichInfo(t *testing.T) {
 	testSuit := &ConfigCenterTest{}
 	if err := testSuit.Initialize(); err != nil {
 		t.Fatal(err)
@@ -789,7 +789,7 @@ func Test_GetConfigFileBaseInfo(t *testing.T) {
 				crypto.Name(): crypto,
 			},
 		})
-		got := testSuit.ConfigServer().GetConfigFileBaseInfo(testSuit.DefaultCtx, configFile)
+		got := testSuit.ConfigServer().GetConfigFileRichInfo(testSuit.DefaultCtx, configFile)
 		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(got.GetCode().GetValue()), got.GetInfo().GetValue())
 	})
 }

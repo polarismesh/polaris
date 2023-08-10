@@ -37,17 +37,18 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer func() {
+	t.Cleanup(func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
 		}
-	}()
+		testSuit.Destroy()
+	})
 
 	// 查询不存在的 group
 	t.Run("step1-query-none", func(t *testing.T) {
 		rsp := testSuit.ConfigServer().QueryConfigFileGroups(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
-			"name":      testGroup,
+			"group":     testGroup,
 			"offset":    "0",
 			"limit":     "1",
 		})
@@ -68,7 +69,7 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 	t.Run("step3-query-existed", func(t *testing.T) {
 		rsp := testSuit.ConfigServer().QueryConfigFileGroups(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
-			"name":      testGroup,
+			"group":     testGroup,
 			"offset":    "0",
 			"limit":     "1",
 		})
@@ -83,7 +84,7 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 
 		rsp2 := testSuit.ConfigServer().SearchConfigFile(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
-			"name":      testGroup,
+			"group":     testGroup,
 			"offset":    "0",
 			"limit":     "10",
 		})
@@ -101,7 +102,7 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 
 		rsp2 := testSuit.ConfigServer().SearchConfigFile(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
-			"name":      testGroup,
+			"group":     testGroup,
 			"offset":    "0",
 			"limit":     "10",
 		})
@@ -113,7 +114,7 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 	t.Run("step5-query-none", func(t *testing.T) {
 		rsp := testSuit.ConfigServer().QueryConfigFileGroups(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
-			"name":      testGroup,
+			"group":     testGroup,
 			"offset":    "0",
 			"limit":     "1",
 		})

@@ -233,6 +233,12 @@ func ToConfigFileStore(file *config_manage.ConfigFile) *ConfigFile {
 	if file.Format != nil {
 		format = file.Format.Value
 	}
+
+	metadata := ToTagMap(file.GetTags())
+	if file.GetEncryptAlgo().GetValue() != "" {
+		metadata[utils.ConfigFileTagKeyEncryptAlgo] = file.GetEncryptAlgo().GetValue()
+	}
+
 	return &ConfigFile{
 		Name:      file.Name.GetValue(),
 		Namespace: file.Namespace.GetValue(),
@@ -242,6 +248,7 @@ func ToConfigFileStore(file *config_manage.ConfigFile) *ConfigFile {
 		Format:    format,
 		CreateBy:  createBy,
 		Encrypt:   file.GetEncrypted().GetValue(),
+		Metadata:  metadata,
 	}
 }
 
@@ -381,10 +388,10 @@ func FromTagMap(kvs map[string]string) []*config_manage.ConfigFileTag {
 	return tags
 }
 
-func ToTagMap(tags []*ConfigFileTag) map[string]string {
+func ToTagMap(tags []*config_manage.ConfigFileTag) map[string]string {
 	kvs := map[string]string{}
 	for i := range tags {
-		kvs[tags[i].Key] = tags[i].Value
+		kvs[tags[i].GetKey().GetValue()] = tags[i].GetKey().GetValue()
 	}
 
 	return kvs

@@ -62,17 +62,17 @@ function test_cluster_discovery() {
     mv coverage_sqldb_3.cover ../
 }
 
-test_standalone &
+test_standalone
 prepare_cluster_env
-test_cluster_auth &
-test_cluster_discovery &
-test_cluster_config &
+test_cluster_auth
+test_cluster_discovery
+test_cluster_config
 
-for pid in $(jobs -p); do
-    wait $pid
-    status=$?
-    if [ $status != 0 ]; then
-        echo "$pid status is $status have some error!"
-        exit 1
-    fi
-done
+# for pid in $(jobs -p); do
+#     wait $pid
+#     status=$?
+#     if [ $status != 0 ]; then
+#         echo "$pid status is $status have some error!"
+#         exit 1
+#     fi
+# done

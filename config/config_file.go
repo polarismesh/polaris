@@ -266,21 +266,6 @@ func (s *Server) BatchDeleteConfigFile(ctx context.Context, configFiles []*apico
 	return api.NewConfigFileResponse(apimodel.Code_ExecuteSuccess, nil)
 }
 
-// GetConfigFileBaseInfo 获取配置文件，只返回基础元信息
-func (s *Server) GetConfigFileBaseInfo(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-	if errResp := checkReadFileParameter(req); errResp != nil {
-		return errResp
-	}
-
-	file, errResp := s.handleDescribeFileBase(ctx, req)
-	if errResp != nil {
-		return errResp
-	}
-	out := api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
-	out.ConfigFile = model.ToConfigFileAPI(file)
-	return out
-}
-
 func (s *Server) handleDescribeFileBase(ctx context.Context,
 	req *apiconfig.ConfigFile) (*model.ConfigFile, *apiconfig.ConfigResponse) {
 

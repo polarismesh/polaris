@@ -42,21 +42,6 @@ func (s *serverAuthability) CreateConfigFile(ctx context.Context,
 	return s.targetServer.CreateConfigFile(ctx, configFile)
 }
 
-// GetConfigFileBaseInfo 获取配置文件，只返回基础元信息
-func (s *serverAuthability) GetConfigFileBaseInfo(ctx context.Context,
-	req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-
-	authCtx := s.collectConfigFileAuthContext(
-		ctx, []*apiconfig.ConfigFile{req}, model.Read, "GetConfigFileBaseInfo")
-	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponseWithInfo(convertToErrCode(err), err.Error())
-	}
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
-	return s.targetServer.GetConfigFileBaseInfo(ctx, req)
-}
-
 // GetConfigFileRichInfo 获取单个配置文件基础信息，包含发布状态等信息
 func (s *serverAuthability) GetConfigFileRichInfo(ctx context.Context,
 	req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
