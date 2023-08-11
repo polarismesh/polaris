@@ -730,7 +730,7 @@ func (sc *ServiceRevisionWorker) processRevisionWorker(req *revisionNotify) bool
 	}
 
 	sc.setRevisions(req.serviceID, revision) // string -> string
-	log.Infof("[Cache] compute service id(%s) instances revision : %s", req.serviceID, revision)
+	log.Debugf("[Cache] compute service id(%s) instances revision : %s", req.serviceID, revision)
 	return true
 }
 
