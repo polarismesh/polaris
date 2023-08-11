@@ -37,7 +37,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockCacheMgr := cachemock.NewMockCacheManager(ctrl)
 		mockStore := mock.NewMockStore(ctrl)
-	
+
 		t.Cleanup(func() {
 			ctrl.Finish()
 		})
@@ -64,7 +64,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockCacheMgr := cachemock.NewMockCacheManager(ctrl)
 		mockStore := mock.NewMockStore(ctrl)
-	
+
 		t.Cleanup(func() {
 			ctrl.Finish()
 		})
@@ -110,7 +110,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockCacheMgr := cachemock.NewMockCacheManager(ctrl)
 		mockStore := mock.NewMockStore(ctrl)
-	
+
 		t.Cleanup(func() {
 			ctrl.Finish()
 		})
@@ -137,7 +137,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockCacheMgr := cachemock.NewMockCacheManager(ctrl)
 		mockStore := mock.NewMockStore(ctrl)
-	
+
 		t.Cleanup(func() {
 			ctrl.Finish()
 		})
@@ -177,7 +177,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockCacheMgr := cachemock.NewMockCacheManager(ctrl)
 		mockStore := mock.NewMockStore(ctrl)
-	
+
 		t.Cleanup(func() {
 			ctrl.Finish()
 		})
@@ -267,7 +267,7 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockCacheMgr := cachemock.NewMockCacheManager(ctrl)
 		mockStore := mock.NewMockStore(ctrl)
-	
+
 		t.Cleanup(func() {
 			ctrl.Finish()
 		})

@@ -231,7 +231,7 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Serv
 	resp.Service = &apiservice.Service{
 		Name:      req.GetName(),
 		Namespace: req.GetNamespace(),
-		Revision: utils.NewStringValue(revision),
+		Revision:  utils.NewStringValue(revision),
 	}
 	// 塞入源服务信息数据
 	resp.AliasFor = &apiservice.Service{

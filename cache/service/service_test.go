@@ -381,16 +381,21 @@ func genModelInstancesByServices(
 
 // TestServiceCache_GetServicesByFilter 根据实例的host查询对应的服务列表
 func TestServiceCache_GetServicesByFilter(t *testing.T) {
-	ctl, _, sc, _ := newTestServiceCache(t)
+	ctl, mockStore, sc, _ := newTestServiceCache(t)
 	defer ctl.Finish()
 
-	t.Run("可以根据服务host, 正常获取缓存的服务信息", func(t *testing.T) {
+	t.Run("可以根据服务host-正常获取缓存的服务信息", func(t *testing.T) {
 		_ = sc.Clear()
 		services := genModelServiceByNamespace(100, "default")
 		sc.setServices(services)
 
 		svcInstances, instances := genModelInstancesByServices(services, 2)
 		ic := sc.instCache.(*instanceCache)
+
+		mockStore.EXPECT().GetServicesCount().Return(uint32(len(services)), nil).AnyTimes()
+		mockStore.EXPECT().GetInstancesCount().Return(uint32(len(instances)), nil).AnyTimes()
+		mockStore.EXPECT().GetMoreServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(services, nil).AnyTimes()
+		mockStore.EXPECT().GetMoreInstances(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(instances, nil).AnyTimes()
 		ic.setInstances(instances)
 
 		hostToService := make(map[string]string)
