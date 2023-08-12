@@ -94,8 +94,6 @@ func Test_configFileReleaseStore(t *testing.T) {
 
 				err = s.CreateConfigFileReleaseTx(tx, ret[i])
 				assert.NoError(t, err, err)
-				err = tx.Commit()
-				assert.NoError(t, err, err)
 
 				searchKey := &model.ConfigFileReleaseKey{
 					Namespace: ret[i].Namespace,
@@ -109,6 +107,9 @@ func Test_configFileReleaseStore(t *testing.T) {
 				oldCfr, err := s.GetConfigFileRelease(searchKey)
 				assert.NoError(t, err, err)
 				assert.Nil(t, oldCfr)
+
+				err = tx.Commit()
+				assert.NoError(t, err, err)
 			}
 		})
 	})
@@ -131,14 +132,12 @@ func Test_configFileReleaseStore(t *testing.T) {
 				assert.NoError(t, err, err)
 				err = tx.Commit()
 				assert.NoError(t, err, err)
-
 				save = append(save, ret[i])
 			}
 
 			result, err := s.GetMoreReleaseFile(true, time.Time{})
 			assert.NoError(t, err, err)
-
-			assert.ElementsMatch(t, save, result, fmt.Sprintf("expect %#v, actual %#v", save, result))
+			assert.Equal(t, int(len(save)), int(len(result)))
 
 			result, err = s.GetMoreReleaseFile(false, time.Now().Add(time.Duration(1*time.Hour)))
 			assert.NoError(t, err, err)

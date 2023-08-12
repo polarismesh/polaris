@@ -41,6 +41,9 @@ func mockConfigFileHistory(total int, fileName string) []*model.ConfigFileReleas
 			CreateTime: time.Now(),
 			ModifyTime: time.Now(),
 			Valid:      true,
+			Metadata: map[string]string{
+				"mock_key": "mock_value",
+			},
 		}
 
 		if len(fileName) != 0 {

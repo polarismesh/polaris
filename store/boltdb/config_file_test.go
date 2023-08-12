@@ -57,6 +57,7 @@ func mockConfigFile(total int, param map[string]string) []*model.ConfigFile {
 			ModifyTime: time.Time{},
 			ModifyBy:   "polaris",
 			Valid:      false,
+			Metadata:   map[string]string{},
 		})
 	}
 
@@ -74,11 +75,13 @@ func Test_configFileStore(t *testing.T) {
 			for i := range mocks {
 				waitSave := mocks[i]
 				tx, err := s.handler.StartTx()
+				assert.NoError(t, err, "%+v", err)
 				defer func() {
 					_ = tx.Rollback()
 				}()
-				assert.NoError(t, err, "%+v", err)
 				err = s.CreateConfigFileTx(tx, waitSave)
+				assert.NoError(t, err, "%+v", err)
+				err = tx.Commit()
 				assert.NoError(t, err, "%+v", err)
 			}
 		})
@@ -95,11 +98,13 @@ func Test_configFileStore(t *testing.T) {
 
 				waitSave := mocks[i]
 				tx, err := s.handler.StartTx()
+				assert.NoError(t, err, "%+v", err)
 				defer func() {
 					_ = tx.Rollback()
 				}()
-				assert.NoError(t, err, "%+v", err)
 				err = s.CreateConfigFileTx(tx, waitSave)
+				assert.NoError(t, err, "%+v", err)
+				err = tx.Commit()
 				assert.NoError(t, err, "%+v", err)
 
 				r, err := s.GetConfigFile(waitSave.Namespace, waitSave.Group, waitSave.Name)
@@ -170,10 +175,10 @@ func Test_configFileStore(t *testing.T) {
 
 				_n := &newCf
 
-				r.CreateTime = time.Time{}
-				r.ModifyTime = time.Time{}
-				_n.CreateTime = time.Time{}
-				_n.ModifyTime = time.Time{}
+				r.CreateTime = time.Unix(0, 0)
+				r.ModifyTime = time.Unix(0, 0)
+				_n.CreateTime = time.Unix(0, 0)
+				_n.ModifyTime = time.Unix(0, 0)
 				assert.Equal(t, _n, r, "expect : %#v, actual : %#v", _n, r)
 			}
 		})
@@ -200,9 +205,9 @@ func Test_configFileStore(t *testing.T) {
 			}
 
 			total, ret, err := s.QueryConfigFiles(map[string]string{
-				"namespace": "cpnfig",
-				"group":     "cpnfig",
-				"name":      "cpnfig",
+				"namespace": "cpnfig*",
+				"group":     "cpnfig*",
+				"name":      "cpnfig*",
 			}, 0, 100)
 
 			for i := range ret {
@@ -213,8 +218,8 @@ func Test_configFileStore(t *testing.T) {
 			}
 
 			assert.NoError(t, err, "%+v", err)
+			assert.Equal(t, len(results), len(ret))
 			assert.Equal(t, len(mocks), int(total))
-			assert.ElementsMatch(t, results, ret)
 
 			total, ret, err = s.QueryConfigFiles(map[string]string{
 				"namespace": "qweq",

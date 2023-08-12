@@ -44,6 +44,9 @@ func GetClientOpenMethod(include []string, protocol string) (map[string]bool, er
 		if methods, ok := clientAccess[item]; ok {
 			for _, method := range methods {
 				method = "/v1.Polaris" + strings.ToUpper(protocol) + "/" + method
+				if item == apiserver.HealthcheckAccess && method != "Heartbeat" {
+					method = "/v1.PolarisHeartbeat" + strings.ToUpper(protocol) + "/" + method
+				}
 				openMethod[method] = true
 			}
 		} else {

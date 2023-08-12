@@ -37,6 +37,9 @@ func mockConfigFileGroup(total int) []*model.ConfigFileGroup {
 			CreateTime: time.Now(),
 			ModifyTime: time.Now(),
 			Valid:      true,
+			Metadata: map[string]string{
+				"mock_data": "mock_value",
+			},
 		}
 		ret = append(ret, val)
 	}
