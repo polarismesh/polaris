@@ -91,9 +91,9 @@ func (h *HTTPServer) addDefaultReadAccess(ws *restful.WebService) {
 func (h *HTTPServer) addDefaultAccess(ws *restful.WebService) {
 	// 配置文件组
 	ws.Route(docs.EnrichCreateConfigFileGroupApiDocs(ws.POST("/configfilegroups").To(h.CreateConfigFileGroup)))
-	ws.Route(docs.EnrichQueryConfigFileGroupsApiDocs(ws.GET("/configfilegroups").To(h.QueryConfigFileGroups)))
-	ws.Route(docs.EnrichDeleteConfigFileGroupApiDocs(ws.DELETE("/configfilegroups").To(h.DeleteConfigFileGroup)))
 	ws.Route(docs.EnrichUpdateConfigFileGroupApiDocs(ws.PUT("/configfilegroups").To(h.UpdateConfigFileGroup)))
+	ws.Route(docs.EnrichDeleteConfigFileGroupApiDocs(ws.DELETE("/configfilegroups").To(h.DeleteConfigFileGroup)))
+	ws.Route(docs.EnrichQueryConfigFileGroupsApiDocs(ws.GET("/configfilegroups").To(h.QueryConfigFileGroups)))
 
 	// 配置文件
 	ws.Route(docs.EnrichCreateConfigFileApiDocs(ws.POST("/configfiles").To(h.CreateConfigFile)))

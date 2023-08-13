@@ -16,7 +16,10 @@
 
 set -ex # Exit on error; debugging enabled.
 
+cur_dir=$(pwd)
+
 function test_standalone() {
+    cd ${cur_dir}
     export STORE_MODE=""
     go mod vendor
     go test -timeout 120m ./... -v -covermode=count -coverprofile=coverage_1.cover -coverpkg=github.com/polarismesh/polaris/apiserver,github.com/polarismesh/polaris/apiserver/eurekaserver,github.com/polarismesh/polaris/auth/defaultauth,github.com/polarismesh/polaris/service,github.com/polarismesh/polaris/service/batch,github.com/polarismesh/polaris/service/healthcheck,github.com/polarismesh/polaris/cache,github.com/polarismesh/polaris/store/boltdb,github.com/polarismesh/polaris/store/mysql,github.com/polarismesh/polaris/plugin,github.com/polarismesh/polaris/config,github.com/polarismesh/polaris/plugin/healthchecker/leader,github.com/polarismesh/polaris/plugin/healthchecker/memory,github.com/polarismesh/polaris/plugin/healthchecker/redis,github.com/polarismesh/polaris/common/batchjob,github.com/polarismesh/polaris/common/eventhub,github.com/polarismesh/polaris/common/redispool,github.com/polarismesh/polaris/common/timewheel
@@ -36,6 +39,7 @@ function prepare_cluster_env() {
 }
 
 function test_cluster_auth() {
+    cd ${cur_dir}
     # 测试鉴权
     export STORE_MODE=sqldb
     echo "cur STORE MODE=${STORE_MODE}, MYSQL_DB_USER=${MYSQL_DB_USER}, MYSQL_DB_PWD=${MYSQL_DB_PWD}"
@@ -45,6 +49,7 @@ function test_cluster_auth() {
 }
 
 function test_cluster_config() {
+    cd ${cur_dir}
     # 测试配置中心
     export STORE_MODE=sqldb
     echo "cur STORE MODE=${STORE_MODE}, MYSQL_DB_USER=${MYSQL_DB_USER}, MYSQL_DB_PWD=${MYSQL_DB_PWD}"
@@ -54,6 +59,7 @@ function test_cluster_config() {
 }
 
 function test_cluster_discovery() {
+    cd ${cur_dir}
     # 测试服务、治理
     export STORE_MODE=sqldb
     echo "cur STORE MODE=${STORE_MODE}, MYSQL_DB_USER=${MYSQL_DB_USER}, MYSQL_DB_PWD=${MYSQL_DB_PWD}"

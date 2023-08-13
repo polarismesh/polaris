@@ -518,6 +518,7 @@ CREATE TABLE `config_file_release`
     `tags`        text             COMMENT '文件标签',
     `active`      tinyint(4)      NOT NULL DEFAULT '0' COMMENT '是否处于使用中',
     `flag`        tinyint(4)      NOT NULL DEFAULT '0' COMMENT '是否被删除',
+    `description`  varchar(512)             DEFAULT NULL COMMENT '发布描述',
     `create_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `create_by`   varchar(32)              DEFAULT NULL COMMENT '创建人',
     `modify_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
