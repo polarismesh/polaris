@@ -393,20 +393,6 @@ func (mr *MockStoreMockRecorder) CountConfigReleases(namespace, group, onlyActiv
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountConfigReleases", reflect.TypeOf((*MockStore)(nil).CountConfigReleases), namespace, group, onlyActive)
 }
 
-// CreateCircuitBreaker mocks base method.
-func (m *MockStore) CreateCircuitBreaker(circuitBreaker *model.CircuitBreaker) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateCircuitBreaker", circuitBreaker)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreateCircuitBreaker indicates an expected call of CreateCircuitBreaker.
-func (mr *MockStoreMockRecorder) CreateCircuitBreaker(circuitBreaker interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCircuitBreaker", reflect.TypeOf((*MockStore)(nil).CreateCircuitBreaker), circuitBreaker)
-}
-
 // CreateCircuitBreakerRule mocks base method.
 func (m *MockStore) CreateCircuitBreakerRule(cbRule *model.CircuitBreakerRule) error {
 	m.ctrl.T.Helper()
@@ -676,20 +662,6 @@ func (mr *MockStoreMockRecorder) DeleteInstance(instanceID interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInstance", reflect.TypeOf((*MockStore)(nil).DeleteInstance), instanceID)
 }
 
-// DeleteMasterCircuitBreaker mocks base method.
-func (m *MockStore) DeleteMasterCircuitBreaker(id string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteMasterCircuitBreaker", id)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteMasterCircuitBreaker indicates an expected call of DeleteMasterCircuitBreaker.
-func (mr *MockStoreMockRecorder) DeleteMasterCircuitBreaker(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMasterCircuitBreaker", reflect.TypeOf((*MockStore)(nil).DeleteMasterCircuitBreaker), id)
-}
-
 // DeleteRateLimit mocks base method.
 func (m *MockStore) DeleteRateLimit(limiting *model.RateLimit) error {
 	m.ctrl.T.Helper()
@@ -788,20 +760,6 @@ func (mr *MockStoreMockRecorder) DeleteStrategy(id interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteStrategy", reflect.TypeOf((*MockStore)(nil).DeleteStrategy), id)
 }
 
-// DeleteTagCircuitBreaker mocks base method.
-func (m *MockStore) DeleteTagCircuitBreaker(id, version string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteTagCircuitBreaker", id, version)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteTagCircuitBreaker indicates an expected call of DeleteTagCircuitBreaker.
-func (mr *MockStoreMockRecorder) DeleteTagCircuitBreaker(id, version interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTagCircuitBreaker", reflect.TypeOf((*MockStore)(nil).DeleteTagCircuitBreaker), id, version)
-}
-
 // DeleteUser mocks base method.
 func (m *MockStore) DeleteUser(user *model.User) error {
 	m.ctrl.T.Helper()
@@ -887,66 +845,6 @@ func (mr *MockStoreMockRecorder) GenNextL5Sid(layoutID interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenNextL5Sid", reflect.TypeOf((*MockStore)(nil).GenNextL5Sid), layoutID)
 }
 
-// GetCircuitBreaker mocks base method.
-func (m *MockStore) GetCircuitBreaker(id, version string) (*model.CircuitBreaker, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCircuitBreaker", id, version)
-	ret0, _ := ret[0].(*model.CircuitBreaker)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCircuitBreaker indicates an expected call of GetCircuitBreaker.
-func (mr *MockStoreMockRecorder) GetCircuitBreaker(id, version interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreaker", reflect.TypeOf((*MockStore)(nil).GetCircuitBreaker), id, version)
-}
-
-// GetCircuitBreakerForCache mocks base method.
-func (m *MockStore) GetCircuitBreakerForCache(mtime time.Time, firstUpdate bool) ([]*model.ServiceWithCircuitBreaker, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCircuitBreakerForCache", mtime, firstUpdate)
-	ret0, _ := ret[0].([]*model.ServiceWithCircuitBreaker)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCircuitBreakerForCache indicates an expected call of GetCircuitBreakerForCache.
-func (mr *MockStoreMockRecorder) GetCircuitBreakerForCache(mtime, firstUpdate interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreakerForCache", reflect.TypeOf((*MockStore)(nil).GetCircuitBreakerForCache), mtime, firstUpdate)
-}
-
-// GetCircuitBreakerMasterRelation mocks base method.
-func (m *MockStore) GetCircuitBreakerMasterRelation(ruleID string) ([]*model.CircuitBreakerRelation, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCircuitBreakerMasterRelation", ruleID)
-	ret0, _ := ret[0].([]*model.CircuitBreakerRelation)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCircuitBreakerMasterRelation indicates an expected call of GetCircuitBreakerMasterRelation.
-func (mr *MockStoreMockRecorder) GetCircuitBreakerMasterRelation(ruleID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreakerMasterRelation", reflect.TypeOf((*MockStore)(nil).GetCircuitBreakerMasterRelation), ruleID)
-}
-
-// GetCircuitBreakerRelation mocks base method.
-func (m *MockStore) GetCircuitBreakerRelation(ruleID, ruleVersion string) ([]*model.CircuitBreakerRelation, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCircuitBreakerRelation", ruleID, ruleVersion)
-	ret0, _ := ret[0].([]*model.CircuitBreakerRelation)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCircuitBreakerRelation indicates an expected call of GetCircuitBreakerRelation.
-func (mr *MockStoreMockRecorder) GetCircuitBreakerRelation(ruleID, ruleVersion interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreakerRelation", reflect.TypeOf((*MockStore)(nil).GetCircuitBreakerRelation), ruleID, ruleVersion)
-}
-
 // GetCircuitBreakerRules mocks base method.
 func (m *MockStore) GetCircuitBreakerRules(filter map[string]string, offset, limit uint32) (uint32, []*model.CircuitBreakerRule, error) {
 	m.ctrl.T.Helper()
@@ -976,36 +874,6 @@ func (m *MockStore) GetCircuitBreakerRulesForCache(mtime time.Time, firstUpdate 
 func (mr *MockStoreMockRecorder) GetCircuitBreakerRulesForCache(mtime, firstUpdate interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreakerRulesForCache", reflect.TypeOf((*MockStore)(nil).GetCircuitBreakerRulesForCache), mtime, firstUpdate)
-}
-
-// GetCircuitBreakerVersions mocks base method.
-func (m *MockStore) GetCircuitBreakerVersions(id string) ([]string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCircuitBreakerVersions", id)
-	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCircuitBreakerVersions indicates an expected call of GetCircuitBreakerVersions.
-func (mr *MockStoreMockRecorder) GetCircuitBreakerVersions(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreakerVersions", reflect.TypeOf((*MockStore)(nil).GetCircuitBreakerVersions), id)
-}
-
-// GetCircuitBreakersByService mocks base method.
-func (m *MockStore) GetCircuitBreakersByService(name, namespace string) (*model.CircuitBreaker, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCircuitBreakersByService", name, namespace)
-	ret0, _ := ret[0].(*model.CircuitBreaker)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCircuitBreakersByService indicates an expected call of GetCircuitBreakersByService.
-func (mr *MockStoreMockRecorder) GetCircuitBreakersByService(name, namespace interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreakersByService", reflect.TypeOf((*MockStore)(nil).GetCircuitBreakersByService), name, namespace)
 }
 
 // GetConfigFile mocks base method.
@@ -2111,36 +1979,6 @@ func (mr *MockStoreMockRecorder) ListLeaderElections() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListLeaderElections", reflect.TypeOf((*MockStore)(nil).ListLeaderElections))
 }
 
-// ListMasterCircuitBreakers mocks base method.
-func (m *MockStore) ListMasterCircuitBreakers(filters map[string]string, offset, limit uint32) (*model.CircuitBreakerDetail, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListMasterCircuitBreakers", filters, offset, limit)
-	ret0, _ := ret[0].(*model.CircuitBreakerDetail)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListMasterCircuitBreakers indicates an expected call of ListMasterCircuitBreakers.
-func (mr *MockStoreMockRecorder) ListMasterCircuitBreakers(filters, offset, limit interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMasterCircuitBreakers", reflect.TypeOf((*MockStore)(nil).ListMasterCircuitBreakers), filters, offset, limit)
-}
-
-// ListReleaseCircuitBreakers mocks base method.
-func (m *MockStore) ListReleaseCircuitBreakers(filters map[string]string, offset, limit uint32) (*model.CircuitBreakerDetail, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListReleaseCircuitBreakers", filters, offset, limit)
-	ret0, _ := ret[0].(*model.CircuitBreakerDetail)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListReleaseCircuitBreakers indicates an expected call of ListReleaseCircuitBreakers.
-func (mr *MockStoreMockRecorder) ListReleaseCircuitBreakers(filters, offset, limit interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListReleaseCircuitBreakers", reflect.TypeOf((*MockStore)(nil).ListReleaseCircuitBreakers), filters, offset, limit)
-}
-
 // LockConfigFile mocks base method.
 func (m *MockStore) LockConfigFile(tx store.Tx, file *model.ConfigFileKey) (*model.ConfigFile, error) {
 	m.ctrl.T.Helper()
@@ -2231,20 +2069,6 @@ func (mr *MockStoreMockRecorder) QueryConfigFiles(filter, offset, limit interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryConfigFiles", reflect.TypeOf((*MockStore)(nil).QueryConfigFiles), filter, offset, limit)
 }
 
-// ReleaseCircuitBreaker mocks base method.
-func (m *MockStore) ReleaseCircuitBreaker(circuitBreakerRelation *model.CircuitBreakerRelation) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ReleaseCircuitBreaker", circuitBreakerRelation)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ReleaseCircuitBreaker indicates an expected call of ReleaseCircuitBreaker.
-func (mr *MockStoreMockRecorder) ReleaseCircuitBreaker(circuitBreakerRelation interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseCircuitBreaker", reflect.TypeOf((*MockStore)(nil).ReleaseCircuitBreaker), circuitBreakerRelation)
-}
-
 // ReleaseLeaderElection mocks base method.
 func (m *MockStore) ReleaseLeaderElection(key string) error {
 	m.ctrl.T.Helper()
@@ -2329,48 +2153,6 @@ func (m *MockStore) StartTx() (store.Tx, error) {
 func (mr *MockStoreMockRecorder) StartTx() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartTx", reflect.TypeOf((*MockStore)(nil).StartTx))
-}
-
-// TagCircuitBreaker mocks base method.
-func (m *MockStore) TagCircuitBreaker(circuitBreaker *model.CircuitBreaker) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TagCircuitBreaker", circuitBreaker)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// TagCircuitBreaker indicates an expected call of TagCircuitBreaker.
-func (mr *MockStoreMockRecorder) TagCircuitBreaker(circuitBreaker interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagCircuitBreaker", reflect.TypeOf((*MockStore)(nil).TagCircuitBreaker), circuitBreaker)
-}
-
-// UnbindCircuitBreaker mocks base method.
-func (m *MockStore) UnbindCircuitBreaker(serviceID, ruleID, ruleVersion string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UnbindCircuitBreaker", serviceID, ruleID, ruleVersion)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UnbindCircuitBreaker indicates an expected call of UnbindCircuitBreaker.
-func (mr *MockStoreMockRecorder) UnbindCircuitBreaker(serviceID, ruleID, ruleVersion interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnbindCircuitBreaker", reflect.TypeOf((*MockStore)(nil).UnbindCircuitBreaker), serviceID, ruleID, ruleVersion)
-}
-
-// UpdateCircuitBreaker mocks base method.
-func (m *MockStore) UpdateCircuitBreaker(circuitBraker *model.CircuitBreaker) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateCircuitBreaker", circuitBraker)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateCircuitBreaker indicates an expected call of UpdateCircuitBreaker.
-func (mr *MockStoreMockRecorder) UpdateCircuitBreaker(circuitBraker interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCircuitBreaker", reflect.TypeOf((*MockStore)(nil).UpdateCircuitBreaker), circuitBraker)
 }
 
 // UpdateCircuitBreakerRule mocks base method.

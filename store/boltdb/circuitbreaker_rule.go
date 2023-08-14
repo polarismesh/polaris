@@ -44,6 +44,34 @@ const (
 	CbFieldRule         = "Rule"
 )
 
+const (
+	// rule 相关信息以及映射
+	tblCircuitBreaker string = "circuitbreaker_rule"
+
+	// relation 相关信息以及映射信息
+	tblCircuitBreakerRelation string = "circuitbreaker_rule_relation"
+	VersionForMaster          string = "master"
+	CBFieldNameValid          string = "Valid"
+	CBFieldNameVersion        string = "Version"
+	CBFieldNameID             string = "ID"
+	CBFieldNameModifyTime     string = "ModifyTime"
+
+	CBRFieldNameServiceID   string = "ServiceID"
+	CBRFieldNameRuleID      string = "RuleID"
+	CBRFieldNameRuleVersion string = "RuleVersion"
+
+	CBRelationFieldServiceID   string = "ServiceID"
+	CBRelationFieldRuleID      string = "RuleID"
+	CBRelationFieldRuleVersion string = "RuleVersion"
+	CBRelationFieldValid       string = "Valid"
+	CBRelationFieldCreateTime  string = "CreateTime"
+	CBRelationFieldModifyTime  string = "ModifyTime"
+)
+
+type circuitBreakerStore struct {
+	handler BoltHandler
+}
+
 func initCircuitBreakerRule(cb *model.CircuitBreakerRule) {
 	cb.Valid = true
 	cb.CreateTime = time.Now()

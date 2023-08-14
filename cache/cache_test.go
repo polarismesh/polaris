@@ -80,8 +80,7 @@ func TestCacheManager_Start(t *testing.T) {
 		storage.EXPECT().GetMoreL5IPConfigs(uint32(0)).Return(nil, nil).MaxTimes(3)
 		storage.EXPECT().GetRateLimitsForCache(beg, true).Return(nil, nil).MaxTimes(1)
 		storage.EXPECT().GetRateLimitsForCache(beg, false).Return(nil, nil).MaxTimes(3)
-		storage.EXPECT().GetCircuitBreakerForCache(beg, true).Return(nil, nil).MaxTimes(1)
-		storage.EXPECT().GetCircuitBreakerForCache(beg, false).Return(nil, nil).MaxTimes(3)
+		storage.EXPECT().GetCircuitBreakerRulesForCache(beg, false).Return(nil, nil).MaxTimes(3)
 		storage.EXPECT().GetInstancesCount().Return(uint32(0), nil).MaxTimes(1)
 
 		ctx, cancel := context.WithCancel(context.Background())

@@ -709,19 +709,6 @@ func (s *Server) getRateLimitingCountWithService(name string, namespace string) 
 	return total, nil
 }
 
-// getCircuitBreakerCountWithService 获取服务下熔断规则总数
-func (s *Server) getCircuitBreakerCountWithService(name string, namespace string) (uint32, error) {
-	circuitBreaker, err := s.storage.GetCircuitBreakersByService(name, namespace)
-	if err != nil {
-		return 0, err
-	}
-
-	if circuitBreaker == nil {
-		return 0, nil
-	}
-	return 1, nil
-}
-
 // isServiceExistedResource 检查服务下的资源存在情况，在删除服务的时候需要用到
 func (s *Server) isServiceExistedResource(rid, pid string, service *model.Service) *apiservice.Response {
 	// 服务别名，不需要判断
