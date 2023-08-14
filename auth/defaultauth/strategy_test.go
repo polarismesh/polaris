@@ -641,7 +641,13 @@ func Test_GetStrategy(t *testing.T) {
 	})
 
 	t.Run("查询鉴权策略-目标owner不为自己", func(t *testing.T) {
-		index := rand.Intn(len(strategyTest.defaultStrategies))
+		var index int
+		for {
+			index = rand.Intn(len(strategyTest.defaultStrategies))
+			if index != 2 {
+				break
+			}
+		}
 		oldOwner := strategyTest.strategies[index].Owner
 
 		defer func() {
