@@ -129,11 +129,28 @@ func (s *Server) handlePublishConfigFile(ctx context.Context, tx store.Tx,
 		},
 		Content: toPublishFile.Content,
 	}
-	if err := s.storage.CreateConfigFileReleaseTx(tx, fileRelease); err != nil {
-		log.Error("[Config][Release] create config file release error.",
+	saveRelease, err := s.storage.GetConfigFileReleaseTx(tx, fileRelease.ConfigFileReleaseKey)
+	if err != nil {
+		log.Error("[Config][Service] create config file release error.",
 			utils.RequestID(ctx), zap.String("namespace", namespace),
 			zap.String("group", group), zap.String("fileName", fileName), zap.Error(err))
-		return fileRelease, api.NewConfigResponse(commonstore.StoreCode2APICode(err))
+		return fileRelease, api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
+	}
+	// 重新激活
+	if saveRelease != nil {
+		if err := s.storage.ActiveConfigFileReleaseTx(tx, fileRelease); err != nil {
+			log.Error("[Config][Service] create config file release error.",
+				utils.RequestID(ctx), zap.String("namespace", namespace),
+				zap.String("group", group), zap.String("fileName", fileName), zap.Error(err))
+			return fileRelease, api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
+		}
+	} else {
+		if err := s.storage.CreateConfigFileReleaseTx(tx, fileRelease); err != nil {
+			log.Error("[Config][Release] create config file release error.",
+				utils.RequestID(ctx), zap.String("namespace", namespace),
+				zap.String("group", group), zap.String("fileName", fileName), zap.Error(err))
+			return fileRelease, api.NewConfigResponse(commonstore.StoreCode2APICode(err))
+		}
 	}
 
 	s.RecordHistory(ctx, configFileReleaseRecordEntry(ctx, req, fileRelease, model.OCreate))
