@@ -20,4 +20,5 @@
 USE `polaris_server`;
 ALTER TABLE `config_file_release` ADD COLUMN `tags` varchar(2048) DEFAULT '' COMMENT '文件标签';
 ALTER TABLE `config_file_release` ADD COLUMN `active` tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否处于使用中';
-ALTER TABLE `config_file_release` ADD COLUMN `description` varchar(512) DEFAULT NULL COMMENT '发布描述';
+ALTER TABLE `config_file_release` ADD COLUMN `description` varchar(512) DEFAULT '' COMMENT '发布描述';
+ALTER TABLE `config_file_release_history` ADD COLUMN `reason` varchar(3000) DEFAULT '' COMMENT '发布原因';

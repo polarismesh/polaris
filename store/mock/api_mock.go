@@ -379,18 +379,18 @@ func (mr *MockStoreMockRecorder) CountConfigGroups(namespace interface{}) *gomoc
 }
 
 // CountConfigReleases mocks base method.
-func (m *MockStore) CountConfigReleases(namespace, group string) (uint64, error) {
+func (m *MockStore) CountConfigReleases(namespace, group string, onlyActive bool) (uint64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CountConfigReleases", namespace, group)
+	ret := m.ctrl.Call(m, "CountConfigReleases", namespace, group, onlyActive)
 	ret0, _ := ret[0].(uint64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CountConfigReleases indicates an expected call of CountConfigReleases.
-func (mr *MockStoreMockRecorder) CountConfigReleases(namespace, group interface{}) *gomock.Call {
+func (mr *MockStoreMockRecorder) CountConfigReleases(namespace, group, onlyActive interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountConfigReleases", reflect.TypeOf((*MockStore)(nil).CountConfigReleases), namespace, group)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountConfigReleases", reflect.TypeOf((*MockStore)(nil).CountConfigReleases), namespace, group, onlyActive)
 }
 
 // CreateCircuitBreaker mocks base method.

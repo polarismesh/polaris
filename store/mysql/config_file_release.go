@@ -47,19 +47,25 @@ func (cfr *configFileReleaseStore) CreateConfigFileReleaseTx(tx store.Tx,
 	if err != nil {
 		return store.Error(err)
 	}
+
+	clean := "DELETE FROM config_file_release WHERE namespace = ? AND `group` = ? AND file_name = ? AND name = ? AND flag = 1"
+	if _, err := dbTx.Exec(clean, data.Namespace, data.Group, data.FileName, data.Name); err != nil {
+		return store.Error(err)
+	}
+
 	maxVersion, err := cfr.inactiveConfigFileRelease(dbTx, data)
 	if err != nil {
 		return store.Error(err)
 	}
 
 	s := "INSERT INTO config_file_release(name, namespace, `group`, file_name, content , comment, md5, " +
-		" version, create_time, create_by , modify_time, modify_by, active, tags) " +
-		" VALUES (?, ?, ?, ?, ? , ?, ?, ?, sysdate(), ? , sysdate(), ?, 1, ?)"
+		" version, create_time, create_by , modify_time, modify_by, active, tags, description) " +
+		" VALUES (?, ?, ?, ?, ? , ?, ?, ?, sysdate(), ? , sysdate(), ?, 1, ?, ?)"
 
 	args = []interface{}{
 		data.Name, data.Namespace, data.Group,
 		data.FileName, data.Content, data.Comment, data.Md5, maxVersion + 1,
-		data.CreateBy, data.ModifyBy, utils.MustJson(data.Metadata),
+		data.CreateBy, data.ModifyBy, utils.MustJson(data.Metadata), data.Description,
 	}
 	if _, err = dbTx.Exec(s, args...); err != nil {
 		return store.Error(err)
@@ -239,10 +245,14 @@ func (cfr *configFileReleaseStore) GetMoreReleaseFile(firstUpdate bool,
 }
 
 // CountConfigReleases 获取一个配置文件组下的文件数量
-func (cfr *configFileReleaseStore) CountConfigReleases(namespace, group string) (uint64, error) {
+func (cfr *configFileReleaseStore) CountConfigReleases(namespace, group string, onlyActive bool) (uint64, error) {
 	metricsSql := "SELECT count(file_name) FROM config_file_release WHERE flag = 0 " +
 		" AND namespace = ? AND `group` = ?"
-	row := cfr.slave.QueryRow(metricsSql, namespace, group)
+	if onlyActive {
+		metricsSql = "SELECT count(file_name) FROM config_file_release WHERE flag = 0 " +
+			" AND namespace = ? AND `group` = ? AND active = 1"
+	}
+	row := cfr.master.QueryRow(metricsSql, namespace, group)
 	var total uint64
 	if err := row.Scan(&total); err != nil {
 		return 0, store.Error(err)
@@ -253,7 +263,7 @@ func (cfr *configFileReleaseStore) CountConfigReleases(namespace, group string) 
 func (cfr *configFileReleaseStore) baseQuerySql() string {
 	return "SELECT id, name, namespace, `group`, file_name, content, IFNULL(comment, ''), " +
 		" md5, version, UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), UNIX_TIMESTAMP(modify_time), " +
-		" IFNULL(modify_by, ''), flag, IFNULL(tags, ''), active FROM config_file_release "
+		" IFNULL(modify_by, ''), flag, IFNULL(tags, ''), active, IFNULL(description, '') FROM config_file_release "
 }
 
 func (cfr *configFileReleaseStore) transferRows(rows *sql.Rows) ([]*model.ConfigFileRelease, error) {
@@ -275,7 +285,7 @@ func (cfr *configFileReleaseStore) transferRows(rows *sql.Rows) ([]*model.Config
 		err := rows.Scan(&fileRelease.Id, &fileRelease.Name, &fileRelease.Namespace, &fileRelease.Group,
 			&fileRelease.FileName, &fileRelease.Content,
 			&fileRelease.Comment, &fileRelease.Md5, &fileRelease.Version, &ctime, &fileRelease.CreateBy,
-			&mtime, &fileRelease.ModifyBy, &fileRelease.Flag, &tags, &active)
+			&mtime, &fileRelease.ModifyBy, &fileRelease.Flag, &tags, &active, &fileRelease.Description)
 		if err != nil {
 			return nil, err
 		}

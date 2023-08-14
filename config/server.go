@@ -96,7 +96,7 @@ var (
 // Config 配置中心模块启动参数
 type Config struct {
 	Open               bool          `yaml:"open"`
-	ContentMaxLength   int64         `yaml:""json:"contentMaxLength"`
+	ContentMaxLength   int64         `yaml:"contentMaxLength"`
 	LongPollingTimeout time.Duration `yaml:"longPollingTimeout"`
 }
 

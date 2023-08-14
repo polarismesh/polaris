@@ -128,18 +128,19 @@ func (c ConfigFileReleaseKey) ReleaseKey() string {
 // SimpleConfigFileRelease 配置文件发布数据持久化对象
 type SimpleConfigFileRelease struct {
 	*ConfigFileReleaseKey
-	Version    uint64
-	Comment    string
-	Md5        string
-	Flag       int
-	Active     bool
-	Valid      bool
-	Format     string
-	Metadata   map[string]string
-	CreateTime time.Time
-	CreateBy   string
-	ModifyTime time.Time
-	ModifyBy   string
+	Version     uint64
+	Comment     string
+	Md5         string
+	Flag        int
+	Active      bool
+	Valid       bool
+	Format      string
+	Description string
+	Metadata    map[string]string
+	CreateTime  time.Time
+	CreateBy    string
+	ModifyTime  time.Time
+	ModifyBy    string
 }
 
 func (s SimpleConfigFileRelease) GetEncryptDataKey() string {

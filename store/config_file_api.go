@@ -91,7 +91,7 @@ type ConfigFileReleaseStore interface {
 	// GetMoreReleaseFile 获取最近更新的配置文件发布, 此方法用于 cache 增量更新，需要注意 modifyTime 应为数据库时间戳
 	GetMoreReleaseFile(firstUpdate bool, modifyTime time.Time) ([]*model.ConfigFileRelease, error)
 	// CountConfigReleases 获取一个配置文件组下的文件数量
-	CountConfigReleases(namespace, group string) (uint64, error)
+	CountConfigReleases(namespace, group string, onlyActive bool) (uint64, error)
 }
 
 // ConfigFileReleaseHistoryStore 配置文件发布历史存储接口

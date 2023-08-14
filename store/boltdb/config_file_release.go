@@ -200,13 +200,19 @@ func (cfr *configFileReleaseStore) DeleteConfigFileReleaseTx(tx store.Tx, data *
 }
 
 // CountConfigReleases count the release data
-func (cfr *configFileReleaseStore) CountConfigReleases(namespace, group string) (uint64, error) {
-	fields := []string{FileReleaseFieldNamespace, FileReleaseFieldGroup, FileReleaseFieldValid}
+func (cfr *configFileReleaseStore) CountConfigReleases(namespace, group string, onlyActive bool) (uint64, error) {
+	fields := []string{FileReleaseFieldNamespace, FileReleaseFieldGroup, FileReleaseFieldValid, FileReleaseFieldActive}
 	ret, err := cfr.handler.LoadValuesByFilter(tblConfigFileRelease, fields, &ConfigFileRelease{},
 		func(m map[string]interface{}) bool {
 			valid, _ := m[FileReleaseFieldValid].(bool)
 			if !valid {
 				return false
+			}
+			if onlyActive {
+				active, _ := m[FileReleaseFieldActive].(bool)
+				if !active {
+					return false
+				}
 			}
 			saveNs, _ := m[FileReleaseFieldNamespace].(string)
 			saveGroup, _ := m[FileReleaseFieldNamespace].(string)

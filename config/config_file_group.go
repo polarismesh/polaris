@@ -230,7 +230,7 @@ func (s *Server) hasResourceInConfigGroup(ctx context.Context, namespace, name s
 	if total != 0 {
 		return api.NewConfigResponse(apimodel.Code_ExistedResource)
 	}
-	total, err = s.storage.CountConfigReleases(namespace, name)
+	total, err = s.storage.CountConfigReleases(namespace, name, true)
 	if err != nil {
 		log.Error("[Config][Service] get config file group failed. ", utils.RequestID(ctx),
 			utils.ZapNamespace(namespace), utils.ZapGroup(name), zap.Error(err))

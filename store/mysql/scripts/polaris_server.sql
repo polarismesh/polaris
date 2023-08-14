@@ -552,6 +552,7 @@ CREATE TABLE `config_file_release_history`
     `create_by`   varchar(32)              DEFAULT NULL COMMENT '创建人',
     `modify_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
     `modify_by`   varchar(32)              DEFAULT NULL COMMENT '最后更新人',
+    `reason`      varchar(3000)             DEFAULT '' COMMENT '原因',
     PRIMARY KEY (`id`),
     KEY `idx_file` (`namespace`, `group`, `file_name`)
 ) ENGINE = InnoDB
