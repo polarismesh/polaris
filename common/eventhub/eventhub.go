@@ -89,6 +89,10 @@ func Shutdown() {
 	if eh == nil {
 		return
 	}
+	eh.shutdown()
+}
+
+func (e *eventHub) shutdown() {
 	eh.mu.Lock()
 	defer eh.mu.Unlock()
 

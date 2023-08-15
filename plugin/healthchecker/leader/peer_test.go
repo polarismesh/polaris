@@ -126,7 +126,7 @@ func TestLocalPeer(t *testing.T) {
 
 	t.Cleanup(func() {
 		_ = checker.Destroy()
-		eventhub.TestShutdownEventHub()
+		eventhub.TestInitEventHub()
 		ctrl.Finish()
 	})
 
@@ -207,7 +207,7 @@ func TestRemotePeer(t *testing.T) {
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		_ = checker.Destroy()
-		eventhub.TestShutdownEventHub()
+		eventhub.TestInitEventHub()
 		ctrl.Finish()
 	})
 
@@ -269,7 +269,7 @@ func newMockPolarisGRPCSever(t *testing.T, port uint32) (*MockPolarisGRPCServer,
 	ctrl := gomock.NewController(t)
 	eventhub.TestInitEventHub()
 	t.Cleanup(func() {
-		eventhub.TestShutdownEventHub()
+		eventhub.TestInitEventHub()
 		ctrl.Finish()
 	})
 	mockStore := mock.NewMockStore(ctrl)

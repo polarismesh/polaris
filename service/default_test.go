@@ -34,7 +34,7 @@ func Test_Initialize(t *testing.T) {
 	t.Cleanup(func() {
 		once = sync.Once{}
 		finishInit = false
-		eventhub.TestShutdownEventHub()
+		eventhub.TestInitEventHub()
 	})
 
 	eventhub.TestInitEventHub()

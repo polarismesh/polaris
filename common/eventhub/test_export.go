@@ -22,16 +22,12 @@ import (
 )
 
 func TestInitEventHub() {
+	oldEh := eh
+	ctx, cancel := context.WithCancel(context.Background())
 	eh = &eventHub{
+		ctx:    ctx,
+		cancel: cancel,
 		topics: make(map[string]*topic),
 	}
-	eh.ctx, eh.cancel = context.WithCancel(context.Background())
-}
-
-func TestShutdownEventHub() {
-	if eh == nil {
-		return
-	}
-	Shutdown()
-	eh = nil
+	oldEh.shutdown()
 }
