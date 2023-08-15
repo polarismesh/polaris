@@ -20,7 +20,6 @@ package config
 import (
 	"context"
 	"errors"
-	"time"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
@@ -95,9 +94,8 @@ var (
 
 // Config 配置中心模块启动参数
 type Config struct {
-	Open               bool          `yaml:"open"`
-	ContentMaxLength   int64         `yaml:"contentMaxLength"`
-	LongPollingTimeout time.Duration `yaml:"longPollingTimeout"`
+	Open             bool  `yaml:"open"`
+	ContentMaxLength int64 `yaml:"contentMaxLength"`
 }
 
 // Server 配置中心核心服务

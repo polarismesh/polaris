@@ -75,10 +75,22 @@ jobs:
       - name: Vert check
         run: bash vert.sh -install && bash vert.sh
 
-      - name: Go Test
+      - name: Standalone Test
         env:
           MYSQL_DB_USER: root
           MYSQL_DB_PWD: root
+          RUN_MODE: STANDALONE
+        run: |
+          # bash coverage.sh
+          export MYSQL_DB_USER=${{ env.MYSQL_DB_USER }}
+          export MYSQL_DB_PWD=${{ env.MYSQL_DB_PWD }}
+          bash test/codecov.sh
+
+      - name: Cluster Test
+        env:
+          MYSQL_DB_USER: root
+          MYSQL_DB_PWD: root
+          RUN_MODE: CLUSTER
         run: |
           # bash coverage.sh
           export MYSQL_DB_USER=${{ env.MYSQL_DB_USER }}
