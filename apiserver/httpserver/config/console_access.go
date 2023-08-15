@@ -316,7 +316,11 @@ func (h *HTTPServer) GetConfigFileRelease(req *restful.Request, rsp *restful.Res
 	namespace := handler.Request.QueryParameter("namespace")
 	group := handler.Request.QueryParameter("group")
 	fileName := handler.Request.QueryParameter("file_name")
-	name := handler.Request.QueryParameter("name")
+	name := handler.Request.QueryParameter("release_name")
+	// 兼容旧的查询参数
+	if fileName == "" {
+		fileName = handler.Request.QueryParameter("name")
+	}
 
 	fileReq := &apiconfig.ConfigFileRelease{
 		Namespace: utils.NewStringValue(namespace),

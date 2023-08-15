@@ -133,6 +133,9 @@ func (fc *fileCache) realUpdate() (map[string]time.Time, int64, error) {
 	if err != nil {
 		return nil, 0, err
 	}
+	if len(releases) == 0 {
+		return nil, 0, nil
+	}
 
 	lastMimes, update, del, err := fc.setReleases(releases)
 	if err != nil {
@@ -465,36 +468,38 @@ func (fc *fileCache) QueryReleases(args *types.ConfigReleaseArgs) (uint32, []*mo
 	})
 
 	sort.Slice(values, func(i, j int) bool {
-		asc := strings.ToLower(args.OrderType) == "asc" || args.OrderType == ""
+		asc := strings.ToLower(args.OrderType) == "asc"
 		if strings.ToLower(args.OrderField) == "name" {
 			return orderByConfigReleaseName(values[i], values[j], asc)
 		}
-		return orderByConfigReleaseMtime(values[i], values[j], asc)
+		if strings.ToLower(args.OrderField) == "mtime" {
+			return orderByConfigReleaseMtime(values[i], values[j], asc)
+		}
+		return orderByConfigReleaseVersion(values[i], values[j], asc)
 	})
 
 	return uint32(len(values)), doPageConfigReleases(values, args), nil
 }
 
 func orderByConfigReleaseName(a, b *model.SimpleConfigFileRelease, asc bool) bool {
-	if a.Name < b.Name {
-		return asc
+	if asc {
+		return a.Name <= b.Name
 	}
-	if a.Name > b.Name {
-		// false && asc always false
-		return false
-	}
-	return a.Id < b.Id && asc
+	return a.Name > b.Name
 }
 
 func orderByConfigReleaseMtime(a, b *model.SimpleConfigFileRelease, asc bool) bool {
-	if a.ModifyTime.After(b.ModifyTime) {
-		return asc
+	if asc {
+		return a.ModifyTime.Before(b.ModifyTime)
 	}
-	if a.ModifyTime.Before(b.ModifyTime) {
-		// false && asc always false
-		return false
+	return a.ModifyTime.After(b.ModifyTime)
+}
+
+func orderByConfigReleaseVersion(a, b *model.SimpleConfigFileRelease, asc bool) bool {
+	if asc {
+		return a.Version < b.Version
 	}
-	return a.Id < b.Id && asc
+	return a.Version > b.Version
 }
 
 func doPageConfigReleases(values []*model.SimpleConfigFileRelease,

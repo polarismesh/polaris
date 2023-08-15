@@ -29,5 +29,7 @@ func TestInitEventHub() {
 		cancel: cancel,
 		topics: make(map[string]*topic),
 	}
-	oldEh.shutdown()
+	if oldEh != nil {
+		oldEh.shutdown()
+	}
 }

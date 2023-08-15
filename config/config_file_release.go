@@ -82,10 +82,7 @@ func (s *Server) PublishConfigFile(ctx context.Context,
 			utils.ZapReleaseName(req.GetName().GetValue()), zap.Error(err))
 		return api.NewConfigFileReleaseResponse(commonstore.StoreCode2APICode(err), nil)
 	}
-	log.Info("[Config][Release] publish config file success.", utils.RequestID(ctx),
-		utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName),
-		utils.ZapReleaseName(req.GetName().GetValue()))
-	s.recordReleaseHistory(ctx, data, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess, "")
+	s.recordReleaseSuccess(ctx, utils.ReleaseTypeNormal, data)
 	return resp
 }
 
@@ -139,7 +136,7 @@ func (s *Server) handlePublishConfigFile(ctx context.Context, tx store.Tx,
 	// 重新激活
 	if saveRelease != nil {
 		if err := s.storage.ActiveConfigFileReleaseTx(tx, fileRelease); err != nil {
-			log.Error("[Config][Service] create config file release error.",
+			log.Error("[Config][Service] re-active config file release error.",
 				utils.RequestID(ctx), zap.String("namespace", namespace),
 				zap.String("group", group), zap.String("fileName", fileName), zap.Error(err))
 			return fileRelease, api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
@@ -244,15 +241,16 @@ func (s *Server) handleDeleteConfigFileRelease(ctx context.Context,
 	var (
 		errRef     error
 		needRecord = true
+		recordData *model.ConfigFileRelease
 	)
 	defer func() {
 		if !needRecord {
 			return
 		}
 		if errRef != nil {
-			s.recordReleaseFail(ctx, utils.ReleaseTypeDelete, release, errRef)
+			s.recordReleaseFail(ctx, utils.ReleaseTypeDelete, recordData, errRef)
 		} else {
-			s.recordReleaseSuccess(ctx, utils.ReleaseTypeDelete, release)
+			s.recordReleaseSuccess(ctx, utils.ReleaseTypeDelete, recordData)
 		}
 	}()
 
@@ -274,6 +272,7 @@ func (s *Server) handleDeleteConfigFileRelease(ctx context.Context,
 		errRef = err
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
+	recordData = saveData
 	if saveData == nil {
 		needRecord = false
 		return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
@@ -439,7 +438,11 @@ func (s *Server) RollbackConfigFileRelease(ctx context.Context,
 		_ = tx.Rollback()
 	}()
 
-	if ret := s.handleRollbackConfigFileRelease(ctx, tx, data); ret != nil {
+	targetRelease, ret := s.handleRollbackConfigFileRelease(ctx, tx, data)
+	if targetRelease != nil {
+		data = targetRelease
+	}
+	if ret != nil {
 		_ = tx.Rollback()
 		s.recordReleaseFail(ctx, utils.ReleaseTypeRollback, data, err)
 		return ret
@@ -457,25 +460,25 @@ func (s *Server) RollbackConfigFileRelease(ctx context.Context,
 
 // handleRollbackConfigFileRelease 回滚配置
 func (s *Server) handleRollbackConfigFileRelease(ctx context.Context, tx store.Tx,
-	data *model.ConfigFileRelease) *apiconfig.ConfigResponse {
+	data *model.ConfigFileRelease) (*model.ConfigFileRelease, *apiconfig.ConfigResponse) {
 
 	targetRelease, err := s.storage.GetConfigFileReleaseTx(tx, data.ConfigFileReleaseKey)
 	if err != nil {
 		log.Error("[Config][Release] rollback config file get target release", zap.Error(err))
-		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
+		return nil, api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 	if targetRelease == nil {
 		log.Error("[Config][Release] rollback config file to target release not found")
-		return api.NewConfigResponse(apimodel.Code_NotFoundResource)
+		return nil, api.NewConfigResponse(apimodel.Code_NotFoundResource)
 	}
 
 	if err := s.storage.ActiveConfigFileReleaseTx(tx, data); err != nil {
 		log.Error("[Config][Release] rollback config file release error.",
 			utils.RequestID(ctx), zap.String("namespace", data.Namespace),
 			zap.String("group", data.Group), zap.String("fileName", data.FileName), zap.Error(err))
-		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
+		return targetRelease, api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
-	return nil
+	return targetRelease, nil
 }
 
 func (s *Server) cleanConfigFileReleases(ctx context.Context, tx store.Tx,

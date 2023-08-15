@@ -94,6 +94,7 @@ func (t *topic) close(ctx context.Context) {
 
 // run read msg from topic queue and send to all subscription
 func (t *topic) run(ctx context.Context) {
+	log.Infof("[EventHub] topic:%s run dispatch", t.name)
 	for {
 		select {
 		case msg := <-t.queue:

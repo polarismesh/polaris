@@ -47,8 +47,8 @@ func (s *Server) recordReleaseHistory(ctx context.Context, fileRelease *model.Co
 		Type:      releaseType,
 		Status:    status,
 		Reason:    reason,
-		CreateBy:  fileRelease.ModifyBy,
-		ModifyBy:  fileRelease.ModifyBy,
+		CreateBy:  utils.ParseUserName(ctx),
+		ModifyBy:  utils.ParseUserName(ctx),
 	}
 
 	if err := s.storage.CreateConfigFileReleaseHistory(releaseHistory); err != nil {

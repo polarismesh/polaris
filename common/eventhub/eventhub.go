@@ -19,6 +19,7 @@ package eventhub
 
 import (
 	"context"
+	"errors"
 	"sync"
 )
 
@@ -27,13 +28,19 @@ var (
 	eh       *eventHub
 )
 
+var (
+	ErrorEventhubNotInitialize = errors.New("eventhub not initialize")
+)
+
 // InitEventHub initialize event hub
 func InitEventHub() {
 	initOnce.Do(func() {
+		ctx, cancel := context.WithCancel(context.Background())
 		eh = &eventHub{
+			ctx:    ctx,
+			cancel: cancel,
 			topics: make(map[string]*topic),
 		}
-		eh.ctx, eh.cancel = context.WithCancel(context.Background())
 	})
 }
 
@@ -51,12 +58,13 @@ type eventHub struct {
 // Publish pushlish event to topic
 // @param topic Topic name
 // @param event Event object
-func Publish(topic string, event Event) {
+func Publish(topic string, event Event) error {
 	if eh == nil {
-		return
+		return ErrorEventhubNotInitialize
 	}
 	t := eh.getTopic(topic)
 	t.publish(eh.ctx, event)
+	return nil
 }
 
 // Subscribe subscribe topic
@@ -67,7 +75,7 @@ func Publish(topic string, event Event) {
 // @return error Subscribe failed, return error
 func Subscribe(topic string, name string, handler Handler, opts ...SubOption) error {
 	if eh == nil {
-		return nil
+		return ErrorEventhubNotInitialize
 	}
 	t := eh.getTopic(topic)
 	return t.subscribe(eh.ctx, name, handler, opts...)
@@ -97,7 +105,6 @@ func (e *eventHub) shutdown() {
 	defer eh.mu.Unlock()
 
 	eh.cancel()
-
 	for _, t := range eh.topics {
 		t.close(eh.ctx)
 		delete(eh.topics, t.name)

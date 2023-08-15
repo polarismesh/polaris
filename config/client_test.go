@@ -28,6 +28,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/config"
 )
@@ -403,10 +404,20 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 			})
 
 		rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
+		t.Log("create config file success")
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 
 		rsp2 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, assembleConfigFileRelease(configFile))
+		t.Log("publish config file success")
 		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
+
+		saveData, err := testSuit.Storage.GetConfigFileActiveRelease(&model.ConfigFileKey{
+			Name:      configFile.GetName().GetValue(),
+			Namespace: configFile.GetNamespace().GetValue(),
+			Group:     configFile.GetGroup().GetValue(),
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, configFile.GetContent().GetValue(), saveData.Content)
 
 		receivedVersion := <-received
 		assert.Equal(t, uint64(1), receivedVersion)

@@ -366,6 +366,9 @@ func ParseUserName(ctx context.Context) string {
 	}
 
 	userName, _ := ctx.Value(ContextUserNameKey).(string)
+	if userName == "" {
+		return ParseOperator(ctx)
+	}
 	return userName
 }
 
@@ -396,7 +399,7 @@ func ParseOperator(ctx context.Context) string {
 		return defaultOperator
 	}
 
-	if operator, _ := ctx.Value(StringContext("operator")).(string); operator != "" {
+	if operator, _ := ctx.Value(ContextOperator).(string); operator != "" {
 		return operator
 	}
 

@@ -166,9 +166,9 @@ func (s *Server) checkClientConfigFile(ctx context.Context, files []*apiconfig.C
 		return api.NewConfigClientResponse(apimodel.Code_InvalidWatchConfigFileFormat, nil), false
 	}
 	for _, configFile := range files {
-		namespace := configFile.Namespace.GetValue()
-		group := configFile.Group.GetValue()
-		fileName := configFile.FileName.GetValue()
+		namespace := configFile.GetNamespace().GetValue()
+		group := configFile.GetGroup().GetValue()
+		fileName := configFile.GetFileName().GetValue()
 
 		if namespace == "" || group == "" || fileName == "" {
 			return api.NewConfigClientResponseWithInfo(apimodel.Code_BadRequest,

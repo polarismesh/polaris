@@ -258,7 +258,6 @@ func (d *DiscoverTestSuit) Initialize(opts ...options) error {
 
 // 内部初始化函数
 func (d *DiscoverTestSuit) initialize(opts ...options) error {
-	eventhub.TestInitEventHub()
 	// 初始化defaultCtx
 	d.DefaultCtx = context.WithValue(context.Background(), utils.StringContext("request-id"), "test-1")
 	d.DefaultCtx = context.WithValue(d.DefaultCtx, utils.ContextAuthTokenKey,
@@ -287,14 +286,14 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 
 	_ = commonlog.Configure(d.cfg.Bootstrap.Logger)
 
-	commonlog.GetScopeOrDefaultByName(commonlog.DefaultLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeOrDefaultByName(commonlog.CacheLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeOrDefaultByName(commonlog.StoreLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.ErrorLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.DefaultLoggerName).SetOutputLevel(commonlog.InfoLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName).SetOutputLevel(commonlog.InfoLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.CacheLoggerName).SetOutputLevel(commonlog.InfoLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.StoreLoggerName).SetOutputLevel(commonlog.InfoLevel)
+	commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.InfoLevel)
 
 	metrics.InitMetrics()
-	eventhub.InitEventHub()
+	eventhub.TestInitEventHub()
 
 	// 初始化存储层
 	store.SetStoreConfig(&d.cfg.Store)

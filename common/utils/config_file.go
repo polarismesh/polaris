@@ -22,10 +22,12 @@ import "strings"
 const (
 	// ReleaseTypeNormal 发布类型，全量发布
 	ReleaseTypeNormal = "normal"
-	// ReleaseTypeDelete 发布类型，删除配置文件
+	// ReleaseTypeDelete 发布类型，删除配置发布
 	ReleaseTypeDelete = "delete"
 	// ReleaseTypeRollback 发布类型 回滚
 	ReleaseTypeRollback = "rollback"
+	// ReleaseTypeClean 发布类型，清空配置发布
+	ReleaseTypeClean = "clean"
 
 	// ReleaseStatusSuccess 发布成功状态
 	ReleaseStatusSuccess = "success"
