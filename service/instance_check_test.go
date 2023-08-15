@@ -61,7 +61,6 @@ func TestInstanceCheck(t *testing.T) {
 	//time.Sleep(20 * time.Second)
 	for i := 0; i < 50; i++ {
 		for instanceId := range instanceIds {
-			fmt.Printf("%d report instance for %s, round 1\n", i, instanceId)
 			discoverSuit.HealthCheckServer().Report(
 				context.Background(), &apiservice.Instance{Id: &wrapperspb.StringValue{Value: instanceId}})
 		}

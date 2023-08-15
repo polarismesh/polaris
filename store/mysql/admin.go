@@ -76,9 +76,7 @@ func (l *leaderElectionStore) CreateLeaderElection(key string) error {
 	log.Debugf("[Store][database] create leader election (%s)", key)
 	return l.master.processWithTransaction("createLeaderElection", func(tx *BaseTx) error {
 		mainStr := "insert ignore into leader_election (elect_key, leader) values (?, ?)"
-
-		_, err := tx.Exec(mainStr, key, "")
-		if err != nil {
+		if _, err := tx.Exec(mainStr, key, ""); err != nil {
 			log.Errorf("[Store][database] create leader election (%s), err: %s", key, err.Error())
 		}
 
@@ -86,7 +84,6 @@ func (l *leaderElectionStore) CreateLeaderElection(key string) error {
 			log.Errorf("[Store][database] create leader election (%s) commit tx err: %s", key, err.Error())
 			return err
 		}
-
 		return nil
 	})
 }
@@ -173,12 +170,7 @@ func fetchLeaderElectionRows(rows *sql.Rows) ([]*model.LeaderElection, error) {
 
 	for rows.Next() {
 		space := &model.LeaderElection{}
-		err := rows.Scan(
-			&space.ElectKey,
-			&space.Host,
-			&space.Ctime,
-			&space.Mtime)
-		if err != nil {
+		if err := rows.Scan(&space.ElectKey, &space.Host, &space.Ctime, &space.Mtime); err != nil {
 			log.Errorf("[Store][database] fetch leader election rows scan err: %s", err.Error())
 			return nil, err
 		}

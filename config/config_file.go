@@ -523,7 +523,7 @@ func (s *Server) checkConfigFileParams(configFile *apiconfig.ConfigFile) *apicon
 		return api.NewConfigFileResponse(apimodel.Code_InvalidNamespaceName, configFile)
 	}
 	if err := CheckContentLength(configFile.Content.GetValue(), int(s.cfg.ContentMaxLength)); err != nil {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileContentLength, configFile)
+		return api.NewConfigResponseWithInfo(apimodel.Code_InvalidConfigFileContentLength, err.Error())
 	}
 	if len(configFile.Tags) > 0 {
 		for _, tag := range configFile.Tags {
@@ -569,13 +569,13 @@ func configFileRecordEntry(ctx context.Context, req *apiconfig.ConfigFile,
 
 func checkReadFileParameter(req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
 	if req.GetNamespace().GetValue() == "" {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidNamespaceName, nil)
+		return api.NewConfigResponse(apimodel.Code_InvalidNamespaceName)
 	}
 	if req.GetGroup().GetValue() == "" {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileGroupName, nil)
+		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileGroupName)
 	}
 	if req.GetName().GetValue() == "" {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileName, nil)
+		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileName)
 	}
 	return nil
 }

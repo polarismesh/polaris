@@ -241,8 +241,14 @@ func (s *Server) handleDeleteConfigFileRelease(ctx context.Context,
 			},
 		},
 	}
-	var errRef error
+	var (
+		errRef     error
+		needRecord = true
+	)
 	defer func() {
+		if !needRecord {
+			return
+		}
 		if errRef != nil {
 			s.recordReleaseFail(ctx, utils.ReleaseTypeDelete, release, errRef)
 		} else {
@@ -268,6 +274,11 @@ func (s *Server) handleDeleteConfigFileRelease(ctx context.Context,
 		errRef = err
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
+	if saveData == nil {
+		needRecord = false
+		return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
+	}
+	// 如果存在处于 active 状态的配置，重新在激活一下，触发版本的更新变动
 	if saveData.Active {
 		if err := s.storage.ActiveConfigFileReleaseTx(tx, saveData); err != nil {
 			errRef = err

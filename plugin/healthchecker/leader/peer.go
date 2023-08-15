@@ -169,7 +169,6 @@ func (p *RemotePeer) Serve(_ context.Context, checker *LeaderHealthChecker,
 		conn, err := grpc.DialContext(ctx, fmt.Sprintf("%s:%d", listenIP, listenPort),
 			grpc.WithBlock(),
 			grpc.WithInsecure(),
-			grpc.WithTimeout(5*time.Second),
 		)
 		if err != nil {
 			_ = p.Close()
