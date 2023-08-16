@@ -24,8 +24,8 @@ import (
 )
 
 var (
-	initOnce sync.Once
-	eh       *eventHub
+	initOnce       sync.Once
+	globalEventHub *eventHub
 )
 
 var (
@@ -35,7 +35,7 @@ var (
 // InitEventHub initialize event hub
 func InitEventHub() {
 	initOnce.Do(func() {
-		eh = createEventhub()
+		globalEventHub = createEventhub()
 	})
 }
 
@@ -63,9 +63,13 @@ type eventHub struct {
 // @param topic Topic name
 // @param event Event object
 func Publish(topic string, event Event) error {
-	if eh == nil {
+	if globalEventHub == nil {
 		return ErrorEventhubNotInitialize
 	}
+	return globalEventHub.Publish(topic, event)
+}
+
+func (eh *eventHub) Publish(topic string, event Event) error {
 	t := eh.getTopic(topic)
 	t.publish(eh.ctx, event)
 	return nil
@@ -78,35 +82,34 @@ func Publish(topic string, event Event) error {
 // @param opts Subscription options
 // @return error Subscribe failed, return error
 func Subscribe(topic string, handler Handler, opts ...SubOption) (*SubscribtionContext, error) {
-	return eh.Subscribe(topic, handler, opts...)
-}
-
-func (eh *eventHub) Subscribe(topic string, handler Handler,
-	opts ...SubOption) (*SubscribtionContext, error) {
-
-	if eh == nil {
+	if globalEventHub == nil {
 		return nil, ErrorEventhubNotInitialize
 	}
-	t := eh.getTopic(topic)
-	return t.subscribe(eh.ctx, handler, opts...)
+	return globalEventHub.Subscribe(topic, handler, opts...)
+}
+
+func (e *eventHub) Subscribe(topic string, handler Handler,
+	opts ...SubOption) (*SubscribtionContext, error) {
+	t := e.getTopic(topic)
+	return t.subscribe(e.ctx, handler, opts...)
 }
 
 // Shutdown shutdown event hub
 func Shutdown() {
-	if eh == nil {
+	if globalEventHub == nil {
 		return
 	}
-	eh.shutdown()
+	globalEventHub.shutdown()
 }
 
 func (e *eventHub) shutdown() {
-	eh.mu.Lock()
-	defer eh.mu.Unlock()
+	e.mu.Lock()
+	defer e.mu.Unlock()
 
-	eh.cancel()
-	for _, t := range eh.topics {
-		t.close(eh.ctx)
-		delete(eh.topics, t.name)
+	e.cancel()
+	for _, t := range e.topics {
+		t.close(e.ctx)
+		delete(e.topics, t.name)
 	}
 }
 
