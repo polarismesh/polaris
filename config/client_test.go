@@ -28,9 +28,11 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
+	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/config"
+	testsuit "github.com/polarismesh/polaris/test/suit"
 )
 
 // TestClientSetupAndFileNotExisted 测试客户端启动时（version=0），并且配置不存在的情况下拉取配置
@@ -373,9 +375,14 @@ func TestClientVersionBehindServer(t *testing.T) {
 // TestWatchConfigFileAtFirstPublish 测试监听配置，并且第一次发布配置
 func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 	testSuit := &ConfigCenterTest{}
-	if err := testSuit.Initialize(); err != nil {
+	if err := testSuit.Initialize(func(cfg *testsuit.TestConfig) {
+		for _, v := range cfg.Bootstrap.Logger {
+			v.SetOutputLevel(commonlog.DebugLevel.Name())
+		}
+	}); err != nil {
 		t.Fatal(err)
 	}
+
 	t.Cleanup(func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
@@ -419,8 +426,12 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, configFile.GetContent().GetValue(), saveData.Content)
 
-		receivedVersion := <-received
-		assert.Equal(t, uint64(1), receivedVersion)
+		select {
+		case receivedVersion := <-received:
+			assert.Equal(t, uint64(1), receivedVersion)
+		case <-time.After(10 * time.Second):
+			t.Fatal("time out")
+		}
 	})
 
 	t.Run("第二次订阅发布", func(t *testing.T) {
@@ -443,8 +454,12 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 
 		// 等待回调
-		receivedVersion := <-received
-		assert.Equal(t, uint64(2), receivedVersion)
+		select {
+		case receivedVersion := <-received:
+			assert.Equal(t, uint64(2), receivedVersion)
+		case <-time.After(10 * time.Second):
+			t.Fatal("time out")
+		}
 
 		// 为了避免影响其它 case，删除订阅
 		testSuit.OriginConfigServer().WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
@@ -557,8 +572,13 @@ func TestDeleteConfigFile(t *testing.T) {
 
 	// 客户端收到推送通知
 	t.Log("wait receive config change msg")
-	receivedVersion := <-received
-	assert.Equal(t, uint64(2), receivedVersion)
+	select {
+	case receivedVersion := <-received:
+		assert.Equal(t, uint64(2), receivedVersion)
+		assert.Equal(t, uint64(2), receivedVersion)
+	case <-time.After(10 * time.Second):
+		t.Fatal("time out")
+	}
 
 	fileInfo := &apiconfig.ClientConfigFileInfo{
 		Namespace: &wrapperspb.StringValue{Value: testNamespace},

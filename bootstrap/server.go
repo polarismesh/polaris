@@ -276,7 +276,6 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 		service.WithCacheManager(&cfg.Cache, cacheMgn),
 		service.WithHealthCheckSvr(healthCheckServer),
 		service.WithNamespaceSvr(namespaceSvr),
-		service.WithHiddenService(map[model.ServiceKey]struct{}{}),
 	}
 
 	// 初始化服务模块

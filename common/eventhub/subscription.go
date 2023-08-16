@@ -35,6 +35,15 @@ type Handler interface {
 	OnEvent(ctx context.Context, any2 any) error
 }
 
+type SubscribtionContext struct {
+	subID  string
+	cancel context.CancelFunc
+}
+
+func (s *SubscribtionContext) Cancel() {
+	s.cancel()
+}
+
 // Subscription subscription info
 type subscription struct {
 	name    string
@@ -101,7 +110,7 @@ func (s *subscription) receive(ctx context.Context) {
 	}
 }
 
-func (s *subscription) close(ctx context.Context) {
+func (s *subscription) close() {
 	close(s.closeCh)
 }
 

@@ -206,5 +206,4 @@ func (d *EurekaTestSuit) Destroy() {
 	d.cancel()
 	d.cacheMgr.Close()
 	d.storage.Destroy()
-	healthcheck.TestDestroy()
 }

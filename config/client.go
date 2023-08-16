@@ -204,7 +204,6 @@ func toClientInfo(client *apiconfig.ClientConfigFileInfo,
 			ret[k] = v
 		}
 		delete(ret, utils.ConfigFileTagKeyDataKey)
-		delete(ret, utils.ConfigFileTagKeyEncryptAlgo)
 		return ret
 	}()
 
@@ -240,10 +239,6 @@ func toClientInfo(client *apiconfig.ClientConfigFileInfo,
 			&apiconfig.ConfigFileTag{
 				Key:   utils.NewStringValue(utils.ConfigFileTagKeyDataKey),
 				Value: utils.NewStringValue(dataKey),
-			},
-			&apiconfig.ConfigFileTag{
-				Key:   utils.NewStringValue(utils.ConfigFileTagKeyEncryptAlgo),
-				Value: utils.NewStringValue(encryptAlgo),
 			},
 		)
 	}

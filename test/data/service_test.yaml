@@ -23,7 +23,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: info
+      outputLevel: error
       # outputPaths:
       # - stdout
       # errorOutputPaths:
@@ -34,7 +34,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: info
+      outputLevel: error
       # outputPaths:
       #   - stdout
       # errorOutputPaths:
@@ -45,7 +45,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: info
+      outputLevel: error
       # outputPaths:
       #   - stdout
       # errorOutputPaths:
@@ -56,7 +56,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: info
+      outputLevel: error
       # outputPaths:
       #   - stdout
       # errorOutputPaths:
@@ -67,7 +67,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: info
+      outputLevel: error
       # outputPaths:
       #   - stdout
       # errorOutputPaths:
@@ -78,7 +78,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: info
+      outputLevel: error
       # outputPaths:
       #   - stdout
       # errorOutputPaths:
@@ -89,7 +89,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: info
+      outputLevel: error
       # outputPaths:
       #   - stdout
       # errorOutputPaths:
@@ -100,7 +100,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: info
+      outputLevel: error
       # outputPaths:
       #   - stdout
       # errorOutputPaths:
@@ -111,7 +111,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: info
+      outputLevel: error
       # outputPaths:
       #   - stdout
       # errorOutputPaths:
@@ -122,7 +122,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: info
+      outputLevel: error
       # outputPaths:
       #   - stdout
       # errorOutputPaths:
@@ -133,7 +133,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: info
+      outputLevel: error
       onlyContent: true
       # outputPaths:
       #   - stdout
@@ -145,7 +145,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: info
+      outputLevel: error
       # outputPaths:
       #   - stdout
       # errorOutputPaths:
@@ -156,7 +156,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: info
+      outputLevel: error
       # outputPaths:
       #   - stdout
       # errorOutputPaths:
@@ -168,7 +168,7 @@ bootstrap:
       rotationMaxBackups: 10
       rotationMaxAge: 7
       rotationMaxDurationForHour: 24
-      outputLevel: info
+      outputLevel: error
       onlyContent: true
       # outputPaths:
       #   - stdout
@@ -180,7 +180,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: info
+      outputLevel: error
       # outputPaths:
       #   - stdout
       # errorOutputPaths:

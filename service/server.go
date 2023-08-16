@@ -25,6 +25,7 @@ import (
 
 	"github.com/polarismesh/polaris/cache"
 	cacheservice "github.com/polarismesh/polaris/cache/service"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -54,9 +55,8 @@ type Server struct {
 
 	createServiceSingle *singleflight.Group
 
-	hooks []ResourceHook
-
-	polarisServiceSet map[model.ServiceKey]struct{}
+	hooks   []ResourceHook
+	subCtxs []*eventhub.SubscribtionContext
 }
 
 // HealthServer 健康检查Server

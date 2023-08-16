@@ -26,7 +26,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris/auth"
-	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/store/mock"
 )
 
@@ -34,10 +33,7 @@ func Test_Initialize(t *testing.T) {
 	t.Cleanup(func() {
 		once = sync.Once{}
 		finishInit = false
-		eventhub.TestInitEventHub()
 	})
-
-	eventhub.TestInitEventHub()
 
 	ctrl := gomock.NewController(t)
 	s := mock.NewMockStore(ctrl)

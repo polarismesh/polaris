@@ -21,7 +21,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/service/batch"
 	"github.com/polarismesh/polaris/store"
@@ -78,9 +77,4 @@ func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batc
 	testServer.dispatcher = newDispatcher(ctx, testServer)
 	finishInit = true
 	return testServer, testServer.run(ctx)
-}
-
-func TestDestroy() {
-	eventhub.Unsubscribe(eventhub.LeaderChangeEventTopic, "selfServiceChecker")
-	eventhub.Unsubscribe(eventhub.InstanceEventTopic, "instanceHealthChecker")
 }

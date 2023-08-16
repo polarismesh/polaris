@@ -117,6 +117,8 @@ type Server struct {
 
 	// chains
 	chains *ConfigChains
+
+	sequence int64
 }
 
 // Initialize 初始化配置中心模块

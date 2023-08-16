@@ -103,7 +103,7 @@ func TestLocalPeer(t *testing.T) {
 	localPeer := newLocalPeer()
 	assert.NotNil(t, localPeer)
 	ctrl := gomock.NewController(t)
-	eventhub.TestInitEventHub()
+	eventhub.InitEventHub()
 	mockStore := mock.NewMockStore(ctrl)
 	mockStore.EXPECT().StartLeaderElection(gomock.Any()).Return(nil).AnyTimes()
 	checker := &LeaderHealthChecker{
@@ -126,7 +126,7 @@ func TestLocalPeer(t *testing.T) {
 
 	t.Cleanup(func() {
 		_ = checker.Destroy()
-		eventhub.TestInitEventHub()
+		eventhub.InitEventHub()
 		ctrl.Finish()
 	})
 
@@ -182,7 +182,7 @@ func TestLocalPeer(t *testing.T) {
 
 func TestRemotePeer(t *testing.T) {
 	// close old event hub
-	eventhub.TestInitEventHub()
+	eventhub.InitEventHub()
 	ctrl := gomock.NewController(t)
 	mockStore := mock.NewMockStore(ctrl)
 	mockStore.EXPECT().StartLeaderElection(gomock.Any()).Return(nil)
@@ -207,7 +207,7 @@ func TestRemotePeer(t *testing.T) {
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		_ = checker.Destroy()
-		eventhub.TestInitEventHub()
+		eventhub.InitEventHub()
 		ctrl.Finish()
 	})
 
@@ -267,9 +267,8 @@ func newMockPolarisGRPCSever(t *testing.T, port uint32) (*MockPolarisGRPCServer,
 		_ = ln.Close()
 	})
 	ctrl := gomock.NewController(t)
-	eventhub.TestInitEventHub()
+	eventhub.InitEventHub()
 	t.Cleanup(func() {
-		eventhub.TestInitEventHub()
 		ctrl.Finish()
 	})
 	mockStore := mock.NewMockStore(ctrl)

@@ -43,7 +43,8 @@ type watchContext struct {
 
 // watchCenter 处理客户端订阅配置请求，监听配置文件发布事件通知客户端
 type watchCenter struct {
-	lock sync.Mutex
+	subCtx *eventhub.SubscribtionContext
+	lock   sync.Mutex
 	// fileId -> clientId -> watchContext
 	configFileWatchers *utils.SegmentMap[string, *utils.SegmentMap[string, *watchContext]]
 }
@@ -54,7 +55,7 @@ func NewWatchCenter() *watchCenter {
 		configFileWatchers: utils.NewSegmentMap[string, *utils.SegmentMap[string, *watchContext]](128, hash.Fnv32),
 	}
 
-	_ = eventhub.Subscribe(eventhub.ConfigFilePublishTopic, utils.NewUUID(), wc, eventhub.WithQueueSize(QueueSize))
+	wc.subCtx, _ = eventhub.Subscribe(eventhub.ConfigFilePublishTopic, wc, eventhub.WithQueueSize(QueueSize))
 	return wc
 }
 

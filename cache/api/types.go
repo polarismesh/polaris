@@ -569,6 +569,10 @@ func (bc *BaseCache) IsFirstUpdate() bool {
 
 // update
 func (bc *BaseCache) DoCacheUpdate(name string, executor func() (map[string]time.Time, int64, error)) error {
+	if bc.IsFirstUpdate() {
+		log.Infof("[Cache][%s] begin run cache update work", name)
+	}
+
 	curStoreTime, err := bc.s.GetUnixSecond(0)
 	if err != nil {
 		curStoreTime = bc.lastFetchTime

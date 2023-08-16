@@ -35,13 +35,17 @@ var (
 // InitEventHub initialize event hub
 func InitEventHub() {
 	initOnce.Do(func() {
-		ctx, cancel := context.WithCancel(context.Background())
-		eh = &eventHub{
-			ctx:    ctx,
-			cancel: cancel,
-			topics: make(map[string]*topic),
-		}
+		eh = createEventhub()
 	})
+}
+
+func createEventhub() *eventHub {
+	ctx, cancel := context.WithCancel(context.Background())
+	return &eventHub{
+		ctx:    ctx,
+		cancel: cancel,
+		topics: make(map[string]*topic),
+	}
 }
 
 // Event evnt type
@@ -73,23 +77,18 @@ func Publish(topic string, event Event) error {
 // @param handler Message handler
 // @param opts Subscription options
 // @return error Subscribe failed, return error
-func Subscribe(topic string, name string, handler Handler, opts ...SubOption) error {
-	if eh == nil {
-		return ErrorEventhubNotInitialize
-	}
-	t := eh.getTopic(topic)
-	return t.subscribe(eh.ctx, name, handler, opts...)
+func Subscribe(topic string, handler Handler, opts ...SubOption) (*SubscribtionContext, error) {
+	return eh.Subscribe(topic, handler, opts...)
 }
 
-// Unsubscribe unsubscribe topic
-// @param topic Topic name
-// @param name Subscribe name
-func Unsubscribe(topic string, name string) {
+func (eh *eventHub) Subscribe(topic string, handler Handler,
+	opts ...SubOption) (*SubscribtionContext, error) {
+
 	if eh == nil {
-		return
+		return nil, ErrorEventhubNotInitialize
 	}
 	t := eh.getTopic(topic)
-	t.unsubscribe(eh.ctx, name)
+	return t.subscribe(eh.ctx, handler, opts...)
 }
 
 // Shutdown shutdown event hub

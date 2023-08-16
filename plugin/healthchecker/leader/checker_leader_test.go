@@ -34,11 +34,9 @@ import (
 )
 
 func TestLeaderHealthChecker_OnEvent(t *testing.T) {
-	eventhub.TestInitEventHub()
 	ctrl := gomock.NewController(t)
-	eventhub.TestInitEventHub()
+	eventhub.InitEventHub()
 	t.Cleanup(func() {
-		eventhub.TestInitEventHub()
 		ctrl.Finish()
 	})
 	mockStore := mock.NewMockStore(ctrl)

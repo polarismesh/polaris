@@ -19,7 +19,6 @@ package service
 
 import (
 	"github.com/polarismesh/polaris/cache"
-	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/service/batch"
 	"github.com/polarismesh/polaris/service/healthcheck"
@@ -58,11 +57,5 @@ func WithCacheManager(cacheOpt *cache.Config, c *cache.CacheManager) InitOption 
 func WithBatchController(c *batch.Controller) InitOption {
 	return func(s *Server) {
 		s.bc = c
-	}
-}
-
-func WithHiddenService(c map[model.ServiceKey]struct{}) InitOption {
-	return func(s *Server) {
-		s.polarisServiceSet = c
 	}
 }

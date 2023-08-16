@@ -286,14 +286,8 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 
 	_ = commonlog.Configure(d.cfg.Bootstrap.Logger)
 
-	commonlog.GetScopeOrDefaultByName(commonlog.DefaultLoggerName).SetOutputLevel(commonlog.InfoLevel)
-	commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName).SetOutputLevel(commonlog.InfoLevel)
-	commonlog.GetScopeOrDefaultByName(commonlog.CacheLoggerName).SetOutputLevel(commonlog.InfoLevel)
-	commonlog.GetScopeOrDefaultByName(commonlog.StoreLoggerName).SetOutputLevel(commonlog.InfoLevel)
-	commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.InfoLevel)
-
 	metrics.InitMetrics()
-	eventhub.TestInitEventHub()
+	eventhub.InitEventHub()
 
 	// 初始化存储层
 	store.SetStoreConfig(&d.cfg.Store)
@@ -395,9 +389,8 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 }
 
 func (d *DiscoverTestSuit) Destroy() {
-	eventhub.Shutdown()
 	d.cancel()
-	healthcheck.TestDestroy()
+	d.healthCheckServer.Destroy()
 	_ = d.cacheMgr.Close()
 	_ = d.Storage.Destroy()
 }

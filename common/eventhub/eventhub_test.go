@@ -37,7 +37,7 @@ func TestEventHub_Init(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			InitEventHub()
+			eh := createEventhub()
 			assert.NotNil(t, eh)
 		})
 	}
@@ -66,16 +66,17 @@ func TestEventHub_Publish(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		InitEventHub()
+		eh := createEventhub()
 		t.Run(tt.name, func(t *testing.T) {
-			err := Subscribe(tt.args.topic, tt.args.name, tt.args.handler, tt.args.opts...)
+			subCtx, err := eh.Subscribe(tt.args.topic, tt.args.handler, tt.args.opts...)
 			assert.Nil(t, err)
 			for i := 0; i < tt.args.eventNum; i++ {
 				Publish(tt.args.topic, i)
 			}
+			subCtx.Cancel()
 			time.Sleep(5 * time.Second)
 			fmt.Println("number of goroutines:", runtime.NumGoroutine())
-			Shutdown()
+			eh.shutdown()
 		})
 	}
 }
@@ -117,11 +118,12 @@ func TestEventHub_Subscribe(t *testing.T) {
 			wantErr: nil,
 		},
 	}
-	InitEventHub()
+	eh := createEventhub()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := Subscribe(tt.args.topic, tt.args.name, tt.args.handler, tt.args.opts...)
+			subCtx, err := eh.Subscribe(tt.args.topic, tt.args.handler, tt.args.opts...)
 			assert.Equal(t, tt.wantErr, err)
+			subCtx.Cancel()
 		})
 	}
 }
@@ -147,12 +149,12 @@ func TestEventHub_Unsubscribe(t *testing.T) {
 			wantErr: nil,
 		},
 	}
-	InitEventHub()
+	eh := createEventhub()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := Subscribe(tt.args.topic, tt.args.name, tt.args.handler)
+			subCtx, err := eh.Subscribe(tt.args.topic, tt.args.handler)
 			assert.Nil(t, err)
-			Unsubscribe(tt.args.topic, tt.args.name)
+			subCtx.Cancel()
 			time.Sleep(2 * time.Second)
 		})
 	}
@@ -168,10 +170,10 @@ func TestEventHub_Shutdown(t *testing.T) {
 			wantTopicNum: 0,
 		},
 	}
-	TestInitEventHub()
+	eh := createEventhub()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			Shutdown()
+			eh.shutdown()
 			assert.Equal(t, tt.wantTopicNum, len(eh.topics))
 		})
 	}
@@ -198,7 +200,7 @@ func TestEventHub_createTopic(t *testing.T) {
 			},
 		},
 	}
-	InitEventHub()
+	eh := createEventhub()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := eh.createTopic(tt.args.name)
@@ -239,7 +241,7 @@ func TestEventHub_getTopic(t *testing.T) {
 			},
 		},
 	}
-	InitEventHub()
+	eh := createEventhub()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := eh.getTopic(tt.args.name)

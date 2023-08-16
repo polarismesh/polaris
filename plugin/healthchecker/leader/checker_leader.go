@@ -109,6 +109,8 @@ type LeaderHealthChecker struct {
 	putBatchCtrl *batchjob.BatchController
 	// getBatchCtrl 批任务执行器
 	getBatchCtrl *batchjob.BatchController
+	// subCtx
+	subCtx *eventhub.SubscribtionContext
 }
 
 // Name .
@@ -129,9 +131,11 @@ func (c *LeaderHealthChecker) Initialize(entry *plugin.ConfigEntry) error {
 	if err := c.self.Serve(context.Background(), c, "", 0); err != nil {
 		return err
 	}
-	if err := eventhub.Subscribe(eventhub.LeaderChangeEventTopic, subscriberName, c); err != nil {
+	subCtx, err := eventhub.Subscribe(eventhub.LeaderChangeEventTopic, c)
+	if err != nil {
 		return err
 	}
+	c.subCtx = subCtx
 	if c.s == nil {
 		storage, err := store.GetStore()
 		if err != nil {
@@ -252,7 +256,7 @@ func (c *LeaderHealthChecker) becomeFollower(e store.LeaderChangeEvent, leaderVe
 
 // Destroy .
 func (c *LeaderHealthChecker) Destroy() error {
-	eventhub.Unsubscribe(eventhub.LeaderChangeEventTopic, subscriberName)
+	c.subCtx.Cancel()
 	return nil
 }
 

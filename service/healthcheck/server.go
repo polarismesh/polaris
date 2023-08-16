@@ -62,6 +62,8 @@ type Server struct {
 	serviceCache         cachetypes.ServiceCache
 	instanceCache        cachetypes.InstanceCache
 	instanceEventChannel chan *model.InstanceEvent
+
+	subCtxs []*eventhub.SubscribtionContext
 }
 
 // Initialize 初始化
@@ -113,7 +115,7 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 	}
 
 	server.bc = bc
-
+	server.subCtxs = make([]*eventhub.SubscribtionContext, 0, 4)
 	server.localHost = hcOpt.LocalHost
 	server.history = plugin.GetHistory()
 	server.discoverEvent = plugin.GetDiscoverEvent()
@@ -139,16 +141,19 @@ func (s *Server) run(ctx context.Context) error {
 	go s.handleInstanceEventWorker(ctx)
 
 	leaderChangeEventHandler := newLeaderChangeEventHandler(s.cacheProvider, s.hcOpt.MinCheckInterval)
-	if err := eventhub.Subscribe(eventhub.LeaderChangeEventTopic, "selfServiceChecker",
-		leaderChangeEventHandler); err != nil {
+	subCtx, err := eventhub.Subscribe(eventhub.LeaderChangeEventTopic, leaderChangeEventHandler)
+	if err != nil {
 		return err
 	}
+	s.subCtxs = append(s.subCtxs, subCtx)
 
 	instanceEventHandler := newInstanceEventHealthCheckHandler(ctx, s.instanceEventChannel)
-	if err := eventhub.Subscribe(eventhub.InstanceEventTopic, "instanceHealthChecker",
-		instanceEventHandler); err != nil {
+	subCtx, err = eventhub.Subscribe(eventhub.InstanceEventTopic, instanceEventHandler)
+	if err != nil {
 		return err
 	}
+	s.subCtxs = append(s.subCtxs, subCtx)
+
 	if err := s.storage.StartLeaderElection(store.ElectionKeySelfServiceChecker); err != nil {
 		return err
 	}
@@ -168,6 +173,12 @@ func (s *Server) Reports(ctx context.Context, req []*apiservice.InstanceHeartbea
 // ReportByClient report heartbeat request by client
 func (s *Server) ReportByClient(ctx context.Context, req *apiservice.Client) *apiservice.Response {
 	return s.doReportByClient(ctx, req)
+}
+
+func (s *Server) Destroy() {
+	for i := range s.subCtxs {
+		s.subCtxs[i].Cancel()
+	}
 }
 
 // GetServer 获取已经初始化好的Server
