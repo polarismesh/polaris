@@ -72,7 +72,7 @@ func (cfr *configFileReleaseStore) CreateConfigFileReleaseTx(proxyTx store.Tx,
 	// 是否存在当前 release
 	values := map[string]interface{}{}
 	if err := loadValues(tx, tblConfigFileRelease, []string{fileRelease.ReleaseKey()},
-		&model.ConfigFileRelease{}, values); err != nil {
+		&ConfigFileRelease{}, values); err != nil {
 		return err
 	}
 	if len(values) != 0 {

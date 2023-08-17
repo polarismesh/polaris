@@ -187,7 +187,7 @@ func (fc *fileCache) setReleases(releases []*model.ConfigFileRelease) (map[strin
 }
 
 func (fc *fileCache) sendEvent(item *model.ConfigFileRelease) {
-	eventhub.Publish(eventhub.ConfigFilePublishTopic, &eventhub.PublishConfigFileEvent{
+	_ = eventhub.Publish(eventhub.ConfigFilePublishTopic, &eventhub.PublishConfigFileEvent{
 		Message: item.SimpleConfigFileRelease,
 	})
 }

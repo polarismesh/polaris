@@ -52,6 +52,7 @@ import (
 	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
 	_ "github.com/polarismesh/polaris/plugin/crypto/aes"
 	_ "github.com/polarismesh/polaris/plugin/discoverevent/local"
+	_ "github.com/polarismesh/polaris/plugin/healthchecker/leader"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/memory"
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/redis"
 	_ "github.com/polarismesh/polaris/plugin/history/logger"

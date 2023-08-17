@@ -34,11 +34,14 @@ type configFileReleaseHistoryStore struct {
 }
 
 // CreateConfigFileReleaseHistory 创建配置文件发布历史记录
-func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(history *model.ConfigFileReleaseHistory) error {
-	s := "insert into config_file_release_history(name, namespace, `group`, file_name, content, comment, " +
-		" md5, type, status, format, tags, " +
-		"create_time, create_by, modify_time, modify_by) values " +
-		"(?,?,?,?,?,?,?,?,?,?,?,sysdate(),?,sysdate(),?)"
+func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(
+	history *model.ConfigFileReleaseHistory) error {
+
+	s := "INSERT INTO config_file_release_history(" +
+		" name, namespace, `group`, file_name, content, comment, md5, type, status, format, tags, " +
+		"create_time, create_by, modify_time, modify_by) " +
+		" VALUES " +
+		"(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, sysdate(), ?, sysdate(), ?)"
 	_, err := rh.master.Exec(s, history.Name, history.Namespace,
 		history.Group, history.FileName, history.Content,
 		history.Comment, history.Md5,
@@ -53,8 +56,8 @@ func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(history 
 // QueryConfigFileReleaseHistories 获取配置文件的发布历史记录
 func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(filter map[string]string,
 	offset, limit uint32) (uint32, []*model.ConfigFileReleaseHistory, error) {
-	countSql := "select count(*) from config_file_release_history where "
-	querySql := rh.genSelectSql() + " where "
+	countSql := "SELECT COUNT(*) FROM config_file_release_history WHERE "
+	querySql := rh.genSelectSql() + " WHERE "
 
 	namespace := filter["namespace"]
 	group := filter["group"]
@@ -63,18 +66,18 @@ func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(filter 
 
 	var queryParams []interface{}
 	if namespace != "" {
-		countSql += " namespace = ? and "
-		querySql += " namespace = ? and "
+		countSql += " namespace = ? AND "
+		querySql += " namespace = ? AND "
 		queryParams = append(queryParams, namespace)
 	}
 	if endId > 0 {
-		countSql += " id < ? and "
-		querySql += " id < ? and "
+		countSql += " id < ? AND "
+		querySql += " id < ? AND "
 		queryParams = append(queryParams, endId)
 	}
 
-	countSql += "`group` like ? and file_name like ?"
-	querySql += "`group` like ? and file_name like ? order by id desc limit ?, ?"
+	countSql += "`group` LIKE ? AND file_name LIKE ?"
+	querySql += "`group` LIKE ? AND file_name LIKE ? ORDER BY id DESC LIMIT ?, ?"
 	queryParams = append(queryParams, "%"+group+"%")
 	queryParams = append(queryParams, "%"+fileName+"%")
 
@@ -107,9 +110,9 @@ func (rh *configFileReleaseHistoryStore) CleanConfigFileReleaseHistory(endTime t
 }
 
 func (rh *configFileReleaseHistoryStore) genSelectSql() string {
-	return "select id, name, namespace, `group`, file_name, content, IFNULL(comment, ''), " +
+	return "SELECT id, name, namespace, `group`, file_name, content, IFNULL(comment, ''), " +
 		" md5, format, tags, type, status, UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), " +
-		" UNIX_TIMESTAMP(modify_time), IFNULL(modify_by, '') from config_file_release_history "
+		" UNIX_TIMESTAMP(modify_time), IFNULL(modify_by, '') FROM config_file_release_history "
 }
 
 func (rh *configFileReleaseHistoryStore) transferRows(rows *sql.Rows) ([]*model.ConfigFileReleaseHistory, error) {

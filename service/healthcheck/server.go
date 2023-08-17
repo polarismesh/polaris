@@ -243,7 +243,7 @@ func (s *Server) publishInstanceEvent(serviceID string, event model.InstanceEven
 	if event.Instance != nil {
 		// event.Instance = proto.Clone(event.Instance).(*apiservice.Instance)
 	}
-	eventhub.Publish(eventhub.InstanceEventTopic, event)
+	_ = eventhub.Publish(eventhub.InstanceEventTopic, event)
 }
 
 // GetLastHeartbeat 获取上一次心跳的时间

@@ -102,9 +102,10 @@ func (s *serverAuthability) DeleteConfigFile(ctx context.Context,
 }
 
 // BatchDeleteConfigFile 批量删除配置文件
-func (s *serverAuthability) BatchDeleteConfigFile(ctx context.Context, configFiles []*apiconfig.ConfigFile,
-	operator string) *apiconfig.ConfigResponse {
-	authCtx := s.collectConfigFileAuthContext(ctx, configFiles, model.Delete, "BatchDeleteConfigFile")
+func (s *serverAuthability) BatchDeleteConfigFile(ctx context.Context,
+	req []*apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+
+	authCtx := s.collectConfigFileAuthContext(ctx, req, model.Delete, "BatchDeleteConfigFile")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigResponseWithInfo(convertToErrCode(err), err.Error())
 	}
@@ -112,7 +113,7 @@ func (s *serverAuthability) BatchDeleteConfigFile(ctx context.Context, configFil
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.BatchDeleteConfigFile(ctx, configFiles, operator)
+	return s.targetServer.BatchDeleteConfigFile(ctx, req)
 }
 
 func (s *serverAuthability) ExportConfigFile(ctx context.Context,

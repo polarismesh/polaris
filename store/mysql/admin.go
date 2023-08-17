@@ -282,7 +282,7 @@ func (le *leaderElectionStateMachine) tick() {
 }
 
 func (le *leaderElectionStateMachine) publishLeaderChangeEvent() {
-	eventhub.Publish(eventhub.LeaderChangeEventTopic, store.LeaderChangeEvent{
+	_ = eventhub.Publish(eventhub.LeaderChangeEventTopic, store.LeaderChangeEvent{
 		Key:        le.electKey,
 		Leader:     le.isLeader(),
 		LeaderHost: le.leader,

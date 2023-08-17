@@ -110,7 +110,11 @@ func (h *HTTPServer) addDefaultAccess(ws *restful.WebService) {
 
 	// 配置文件发布
 	ws.Route(docs.EnrichPublishConfigFileApiDocs(ws.POST("/configfiles/release").To(h.PublishConfigFile)))
+	ws.Route(docs.EnrichGetConfigFileReleaseApiDocs(ws.PUT("/configfiles/releases/rollback").To(h.RollbackConfigFileReleases)))
 	ws.Route(docs.EnrichGetConfigFileReleaseApiDocs(ws.GET("/configfiles/release").To(h.GetConfigFileRelease)))
+	ws.Route(docs.EnrichGetConfigFileReleaseApiDocs(ws.GET("/configfiles/releases").To(h.GetConfigFileReleases)))
+	ws.Route(docs.EnrichGetConfigFileReleaseApiDocs(ws.POST("/configfiles/releases/delete").To(h.DeleteConfigFileReleases)))
+	ws.Route(docs.EnrichGetConfigFileReleaseApiDocs(ws.GET("/configfiles/release/versions").To(h.GetConfigFileReleaseVersions)))
 
 	// 配置文件发布历史
 	ws.Route(docs.EnrichGetConfigFileReleaseHistoryApiDocs(ws.GET("/configfiles/releasehistory").

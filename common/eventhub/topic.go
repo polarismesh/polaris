@@ -22,6 +22,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+
 	"github.com/polarismesh/polaris/common/log"
 )
 

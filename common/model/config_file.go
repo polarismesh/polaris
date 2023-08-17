@@ -91,6 +91,14 @@ func (s *ConfigFile) IsEncrypted() bool {
 	return s.Encrypt || s.GetEncryptDataKey() != ""
 }
 
+func NewConfigFileRelease() *ConfigFileRelease {
+	return &ConfigFileRelease{
+		SimpleConfigFileRelease: &SimpleConfigFileRelease{
+			ConfigFileReleaseKey: &ConfigFileReleaseKey{},
+		},
+	}
+}
+
 // ConfigFileRelease 配置文件发布数据持久化对象
 type ConfigFileRelease struct {
 	*SimpleConfigFileRelease

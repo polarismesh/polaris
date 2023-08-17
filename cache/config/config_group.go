@@ -79,6 +79,9 @@ func (fc *configGroupCache) realUpdate() (map[string]time.Time, int64, error) {
 	if err != nil {
 		return nil, 0, err
 	}
+	if len(groups) == 0 {
+		return nil, 0, nil
+	}
 	lastMimes, update, del := fc.setConfigGroups(groups)
 	log.Info("[Cache][ConfigGroup] get more config_groups",
 		zap.Int("update", update), zap.Int("delete", del),

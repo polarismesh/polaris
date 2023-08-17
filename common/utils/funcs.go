@@ -162,3 +162,44 @@ func MustJson(v interface{}) string {
 	_ = err
 	return string(data)
 }
+
+// IsNotEqualMap metadata need update
+func IsNotEqualMap(req map[string]string, old map[string]string) bool {
+	if req == nil {
+		return false
+	}
+
+	if len(req) != len(old) {
+		return true
+	}
+
+	needUpdate := false
+	for key, value := range req {
+		oldValue, ok := old[key]
+		if !ok {
+			needUpdate = true
+			break
+		}
+		if value != oldValue {
+			needUpdate = true
+			break
+		}
+	}
+	if needUpdate {
+		return needUpdate
+	}
+
+	for key, value := range old {
+		newValue, ok := req[key]
+		if !ok {
+			needUpdate = true
+			break
+		}
+		if value != newValue {
+			needUpdate = true
+			break
+		}
+	}
+
+	return needUpdate
+}

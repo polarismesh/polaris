@@ -19,6 +19,10 @@
 --
 USE `polaris_server`;
 
+/* 配置分组表变更操作 */
+ALTER TABLE `config_file_group`
+ADD COLUMN `flag` tinyint (4) NOT NULL DEFAULT '0' COMMENT '是否被删除',
+
 /* 配置发布表变更操作 */
 ALTER TABLE `config_file_release`
 ADD COLUMN `tags` text COMMENT '文件标签';
@@ -31,7 +35,8 @@ ADD COLUMN `description` varchar(512) DEFAULT '' COMMENT '发布描述';
 
 ALTER TABLE `config_file_release` ADD UNIQUE KEY `uk_file_release` (`namespace`, `group`, `file_name`, `name`);
 
-ALTER TABLE `config_file_release` DROP KEY `uk_file`;
+ALTER TABLE `config_file_release`
+DROP KEY `uk_file`;
 
 /* 配置历史表变更操作 */
 ALTER TABLE `config_file_release_history`

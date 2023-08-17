@@ -30,16 +30,19 @@ import (
 
 var _ store.ConfigFileReleaseStore = (*configFileReleaseStore)(nil)
 
+var (
+	ErrTxIsNil = errors.New("tx is nil")
+)
+
 type configFileReleaseStore struct {
 	master *BaseDB
 	slave  *BaseDB
 }
 
 // CreateConfigFileRelease 新建配置文件发布
-func (cfr *configFileReleaseStore) CreateConfigFileReleaseTx(tx store.Tx,
-	data *model.ConfigFileRelease) error {
+func (cfr *configFileReleaseStore) CreateConfigFileReleaseTx(tx store.Tx, data *model.ConfigFileRelease) error {
 	if tx == nil {
-		return errors.New("tx is nil")
+		return ErrTxIsNil
 	}
 	dbTx := tx.GetDelegateTx().(*BaseTx)
 	args := []interface{}{data.Namespace, data.Group, data.Name}
@@ -74,8 +77,7 @@ func (cfr *configFileReleaseStore) CreateConfigFileReleaseTx(tx store.Tx,
 }
 
 // GetConfigFileRelease 获取配置文件发布，只返回 flag=0 的记录
-func (cfr *configFileReleaseStore) GetConfigFileRelease(
-	req *model.ConfigFileReleaseKey) (*model.ConfigFileRelease, error) {
+func (cfr *configFileReleaseStore) GetConfigFileRelease(req *model.ConfigFileReleaseKey) (*model.ConfigFileRelease, error) {
 	tx, err := cfr.master.Begin()
 	if err != nil {
 		return nil, store.Error(err)
@@ -89,6 +91,9 @@ func (cfr *configFileReleaseStore) GetConfigFileRelease(
 // GetConfigFileReleaseTx 在已开启的事务中获取配置文件发布内容，只获取 flag=0 的记录
 func (cfr *configFileReleaseStore) GetConfigFileReleaseTx(tx store.Tx,
 	req *model.ConfigFileReleaseKey) (*model.ConfigFileRelease, error) {
+	if tx == nil {
+		return nil, ErrTxIsNil
+	}
 
 	dbTx := tx.GetDelegateTx().(*BaseTx)
 	querySql := cfr.baseQuerySql() + "WHERE namespace = ? AND `group` = ? AND " +
@@ -114,6 +119,10 @@ func (cfr *configFileReleaseStore) GetConfigFileReleaseTx(tx store.Tx,
 
 // DeleteConfigFileRelease
 func (cfr *configFileReleaseStore) DeleteConfigFileReleaseTx(tx store.Tx, data *model.ConfigFileReleaseKey) error {
+	if tx == nil {
+		return ErrTxIsNil
+	}
+
 	dbTx := tx.GetDelegateTx().(*BaseTx)
 	s := "update config_file_release set flag = 1, modify_time = sysdate() " +
 		" where namespace = ? and `group` = ? and file_name = ? and name = ?"
@@ -127,6 +136,9 @@ func (cfr *configFileReleaseStore) DeleteConfigFileReleaseTx(tx store.Tx, data *
 // CleanConfigFileReleasesTx
 func (cfr *configFileReleaseStore) CleanConfigFileReleasesTx(tx store.Tx,
 	namespace, group, fileName string) error {
+	if tx == nil {
+		return ErrTxIsNil
+	}
 
 	dbTx := tx.GetDelegateTx().(*BaseTx)
 	s := "UPDATE config_file_release SET flag = 1, modify_time = sysdate() WHERE namespace = ? " +
@@ -160,6 +172,9 @@ func (cfr *configFileReleaseStore) GetConfigFileActiveRelease(file *model.Config
 // GetConfigFileActiveReleaseTx .
 func (cfr *configFileReleaseStore) GetConfigFileActiveReleaseTx(tx store.Tx,
 	file *model.ConfigFileKey) (*model.ConfigFileRelease, error) {
+	if tx == nil {
+		return nil, ErrTxIsNil
+	}
 
 	dbTx := tx.GetDelegateTx().(*BaseTx)
 	querySql := cfr.baseQuerySql() + "WHERE namespace = ? AND `group` = ? AND " +
@@ -188,6 +203,10 @@ func (cfr *configFileReleaseStore) GetConfigFileActiveReleaseTx(tx store.Tx,
 
 // ActiveConfigFileReleaseTx
 func (cfr *configFileReleaseStore) ActiveConfigFileReleaseTx(tx store.Tx, release *model.ConfigFileRelease) error {
+	if tx == nil {
+		return ErrTxIsNil
+	}
+
 	dbTx := tx.GetDelegateTx().(*BaseTx)
 	maxVersion, err := cfr.inactiveConfigFileRelease(dbTx, release)
 	if err != nil {
@@ -206,6 +225,9 @@ func (cfr *configFileReleaseStore) ActiveConfigFileReleaseTx(tx store.Tx, releas
 
 func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *BaseTx,
 	release *model.ConfigFileRelease) (uint64, error) {
+	if tx == nil {
+		return 0, ErrTxIsNil
+	}
 
 	args := []interface{}{release.Namespace, release.Group, release.FileName}
 	//	先取消所有 active == true 的记录
@@ -277,7 +299,7 @@ func (cfr *configFileReleaseStore) transferRows(rows *sql.Rows) ([]*model.Config
 	var fileReleases []*model.ConfigFileRelease
 
 	for rows.Next() {
-		fileRelease := &model.ConfigFileRelease{}
+		fileRelease := model.NewConfigFileRelease()
 		var (
 			ctime, mtime, active int64
 			tags                 string

@@ -134,7 +134,7 @@ func (s *Server) handlePublishConfigFile(ctx context.Context, tx store.Tx,
 	}
 	saveRelease, err := s.storage.GetConfigFileReleaseTx(tx, fileRelease.ConfigFileReleaseKey)
 	if err != nil {
-		log.Error("[Config][Service] publish config file when get release.",
+		log.Error("[Config][Release] publish config file when get release.",
 			utils.RequestID(ctx), utils.ZapNamespace(namespace), utils.ZapGroup(group),
 			utils.ZapFileName(fileName), zap.Error(err))
 		return fileRelease, api.NewConfigResponse(commonstore.StoreCode2APICode(err))
@@ -142,7 +142,7 @@ func (s *Server) handlePublishConfigFile(ctx context.Context, tx store.Tx,
 	// 重新激活
 	if saveRelease != nil {
 		if err := s.storage.ActiveConfigFileReleaseTx(tx, fileRelease); err != nil {
-			log.Error("[Config][Service] re-active config file release error.",
+			log.Error("[Config][Release] re-active config file release error.",
 				utils.RequestID(ctx), utils.ZapNamespace(namespace), utils.ZapGroup(group),
 				utils.ZapFileName(fileName), zap.Error(err))
 			return fileRelease, api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
@@ -372,8 +372,9 @@ func (s *Server) GetConfigFileReleases(ctx context.Context,
 			OrderField: searchFilters["order_field"],
 			OrderType:  searchFilters["order_type"],
 		},
-		FileName:   searchFilters["file_name"],
-		OnlyActive: strings.Compare(searchFilters["only_active"], "true") == 0,
+		FileName:    searchFilters["file_name"],
+		ReleaseName: searchFilters["release_name"],
+		OnlyActive:  strings.Compare(searchFilters["only_active"], "true") == 0,
 	}
 	return s.handleDescribeConfigFileReleases(ctx, args)
 }

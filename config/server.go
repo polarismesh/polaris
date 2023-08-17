@@ -59,13 +59,14 @@ var (
 		"config_file_release": {
 			"namespace":    "namespace",
 			"group":        "group",
-			"file_name":    "file_na,e",
-			"name":         "name",
+			"file_name":    "file_name",
+			"name":         "release_name",
 			"release_name": "release_name",
 			"offset":       "offset",
 			"limit":        "limit",
 			"order_type":   "order_type",
 			"order_field":  "order_field",
+			"only_active":  "only_active",
 		},
 		"config_file_group": {
 			"namespace":   "namespace",

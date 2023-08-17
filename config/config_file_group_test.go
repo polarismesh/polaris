@@ -130,7 +130,7 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 		}
 
 		rsp2 := testSuit.ConfigServer().CreateConfigFileGroup(testSuit.DefaultCtx, assembleConfigFileGroup())
-		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
+		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue(), rsp2.GetInfo().GetValue())
 	})
 
 	// 模糊查询

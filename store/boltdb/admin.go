@@ -46,7 +46,7 @@ func (m *adminStore) StartLeaderElection(key string) error {
 		return nil
 	}
 	m.leMap[key] = true
-	eventhub.Publish(eventhub.LeaderChangeEventTopic, store.LeaderChangeEvent{Key: key, Leader: true})
+	_ = eventhub.Publish(eventhub.LeaderChangeEventTopic, store.LeaderChangeEvent{Key: key, Leader: true})
 	return nil
 }
 
@@ -95,7 +95,7 @@ func (m *adminStore) ReleaseLeaderElection(key string) error {
 
 	if v {
 		m.leMap[key] = false
-		eventhub.Publish(eventhub.LeaderChangeEventTopic, store.LeaderChangeEvent{Key: key, Leader: false})
+		_ = eventhub.Publish(eventhub.LeaderChangeEventTopic, store.LeaderChangeEvent{Key: key, Leader: false})
 	}
 
 	return nil

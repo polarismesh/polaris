@@ -165,7 +165,7 @@ func (s *Server) updateConfigFileAttribute(saveData, updateData *model.ConfigFil
 		needUpdate = true
 		saveData.Format = updateData.Format
 	}
-	if len(updateData.Metadata) > 0 {
+	if utils.IsNotEqualMap(updateData.Metadata, saveData.Metadata) {
 		needUpdate = true
 		saveData.Metadata = updateData.Metadata
 	}
@@ -175,9 +175,8 @@ func (s *Server) updateConfigFileAttribute(saveData, updateData *model.ConfigFil
 func (s *Server) prepareCreateConfigFile(ctx context.Context,
 	configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
 
-	userName := utils.ParseUserName(ctx)
-	configFile.CreateBy = utils.NewStringValue(userName)
-	configFile.ModifyBy = utils.NewStringValue(userName)
+	configFile.CreateBy = utils.NewStringValue(utils.ParseUserName(ctx))
+	configFile.ModifyBy = utils.NewStringValue(utils.ParseUserName(ctx))
 
 	// 如果配置文件组不存在则自动创建
 	createGroupRsp := s.createConfigFileGroupIfAbsent(ctx, &apiconfig.ConfigFileGroup{
@@ -194,12 +193,11 @@ func (s *Server) prepareCreateConfigFile(ctx context.Context,
 }
 
 // BatchDeleteConfigFile 批量删除配置文件
-func (s *Server) BatchDeleteConfigFile(ctx context.Context, configFiles []*apiconfig.ConfigFile,
-	operator string) *apiconfig.ConfigResponse {
-	if len(configFiles) == 0 {
+func (s *Server) BatchDeleteConfigFile(ctx context.Context, req []*apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+	if len(req) == 0 {
 		api.NewConfigFileResponse(apimodel.Code_ExecuteSuccess, nil)
 	}
-	for _, configFile := range configFiles {
+	for _, configFile := range req {
 		rsp := s.DeleteConfigFile(ctx, configFile)
 		if rsp.Code.GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 			return rsp
@@ -275,7 +273,7 @@ func (s *Server) GetConfigFileRichInfo(ctx context.Context, req *apiconfig.Confi
 	if err != nil {
 		log.Error("[Config][File] get config file error.", utils.RequestID(ctx),
 			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
-		return api.NewConfigResponseWithInfo(apimodel.Code_ExecuteException, err.Error())
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 	if file == nil {
 		return api.NewConfigResponse(apimodel.Code_NotFoundResource)
@@ -292,18 +290,21 @@ func (s *Server) GetConfigFileRichInfo(ctx context.Context, req *apiconfig.Confi
 
 // SearchConfigFile 查询配置文件
 func (s *Server) SearchConfigFile(ctx context.Context, filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
-	searchFilters := map[string]string{}
-	for k, v := range filter {
-		if _, ok := availableSearch["config_file"][k]; ok {
-			searchFilters[k] = v
-		}
-	}
-
 	offset, limit, err := utils.ParseOffsetAndLimit(filter)
 	if err != nil {
 		out := api.NewConfigBatchQueryResponse(apimodel.Code_BadRequest)
 		out.Info = utils.NewStringValue(err.Error())
 		return out
+	}
+	searchFilters := map[string]string{}
+	for k, v := range filter {
+		// 无效查询参数自动忽略
+		if v == "" {
+			continue
+		}
+		if _, ok := availableSearch["config_file"][k]; ok {
+			searchFilters[k] = v
+		}
 	}
 
 	count, files, err := s.storage.QueryConfigFiles(searchFilters, offset, limit)

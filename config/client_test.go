@@ -84,10 +84,10 @@ func TestClientSetupAndFileExisted(t *testing.T) {
 	// 创建并发布一个配置文件
 	configFile := assembleConfigFile()
 	rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
-	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
+	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue(), rsp.GetInfo().GetValue())
 
 	rsp2 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, assembleConfigFileRelease(configFile))
-	assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
+	assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue(), rsp.GetInfo().GetValue())
 
 	fileInfo := &apiconfig.ClientConfigFileInfo{
 		Namespace: &wrapperspb.StringValue{Value: testNamespace},
@@ -110,12 +110,12 @@ func TestClientSetupAndFileExisted(t *testing.T) {
 	// 比较客户端配置是否落后
 	originSvr := testSuit.OriginConfigServer()
 	rsp4, _ := originSvr.TestCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByVersion)
-	assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue())
+	assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue(), rsp4.GetInfo().GetValue())
 	assert.NotNil(t, rsp4.ConfigFile)
 	assert.Equal(t, config.CalMd5(configFile.Content.GetValue()), rsp4.ConfigFile.Md5.GetValue())
 
 	rsp5, _ := originSvr.TestCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByMD5)
-	assert.Equal(t, api.ExecuteSuccess, rsp5.Code.GetValue())
+	assert.Equal(t, api.ExecuteSuccess, rsp5.Code.GetValue(), rsp5.GetInfo().GetValue())
 	assert.NotNil(t, rsp5.ConfigFile)
 	assert.Equal(t, uint64(1), rsp5.ConfigFile.Version.GetValue())
 	assert.Equal(t, config.CalMd5(configFile.Content.GetValue()), rsp5.ConfigFile.Md5.GetValue())
@@ -142,15 +142,15 @@ func TestClientSetupAndCreateNewFile(t *testing.T) {
 	}
 
 	rsp := testSuit.ConfigServer().CreateConfigFileFromClient(testSuit.DefaultCtx, fileInfo)
-	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue(), "CreateConfigFileFromClient must success")
+	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue(), rsp.GetInfo().GetValue())
 
 	originSvr := testSuit.OriginConfigServer()
 	rsp2, _ := originSvr.TestCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByVersion)
-	assert.Equal(t, api.DataNoChange, rsp2.Code.GetValue(), "checkClientConfigFileByVersion must nochange")
+	assert.Equal(t, api.DataNoChange, rsp2.Code.GetValue(), rsp2.GetInfo().GetValue())
 	assert.Nil(t, rsp2.ConfigFile)
 
 	rsp3, _ := originSvr.TestCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByMD5)
-	assert.Equal(t, api.DataNoChange, rsp3.Code.GetValue())
+	assert.Equal(t, api.DataNoChange, rsp3.Code.GetValue(), rsp3.GetInfo().GetValue())
 	assert.Nil(t, rsp3.ConfigFile)
 }
 

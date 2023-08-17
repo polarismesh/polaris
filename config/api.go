@@ -58,8 +58,7 @@ type ConfigFileOperate interface {
 	// DeleteConfigFile 删除配置文件
 	DeleteConfigFile(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse
 	// BatchDeleteConfigFile 批量删除配置文件
-	BatchDeleteConfigFile(ctx context.Context,
-		configFiles []*apiconfig.ConfigFile, operator string) *apiconfig.ConfigResponse
+	BatchDeleteConfigFile(ctx context.Context, req []*apiconfig.ConfigFile) *apiconfig.ConfigResponse
 	// ExportConfigFile 导出配置文件
 	ExportConfigFile(ctx context.Context,
 		configFileExport *apiconfig.ConfigFileExportRequest) *apiconfig.ConfigExportResponse
