@@ -68,7 +68,7 @@ func (cfr *configFileReleaseStore) CreateConfigFileReleaseTx(tx store.Tx, data *
 	args = []interface{}{
 		data.Name, data.Namespace, data.Group,
 		data.FileName, data.Content, data.Comment, data.Md5, maxVersion + 1,
-		data.CreateBy, data.ModifyBy, utils.MustJson(data.Metadata), data.Description,
+		data.CreateBy, data.ModifyBy, utils.MustJson(data.Metadata), data.ReleaseDescription,
 	}
 	if _, err = dbTx.Exec(s, args...); err != nil {
 		return store.Error(err)
@@ -307,7 +307,7 @@ func (cfr *configFileReleaseStore) transferRows(rows *sql.Rows) ([]*model.Config
 		err := rows.Scan(&fileRelease.Id, &fileRelease.Name, &fileRelease.Namespace, &fileRelease.Group,
 			&fileRelease.FileName, &fileRelease.Content,
 			&fileRelease.Comment, &fileRelease.Md5, &fileRelease.Version, &ctime, &fileRelease.CreateBy,
-			&mtime, &fileRelease.ModifyBy, &fileRelease.Flag, &tags, &active, &fileRelease.Description)
+			&mtime, &fileRelease.ModifyBy, &fileRelease.Flag, &tags, &active, &fileRelease.ReleaseDescription)
 		if err != nil {
 			return nil, err
 		}

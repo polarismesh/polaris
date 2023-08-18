@@ -114,3 +114,18 @@ func (s *serverAuthability) RollbackConfigFileReleases(ctx context.Context,
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return s.targetServer.RollbackConfigFileReleases(ctx, reqs)
 }
+
+// UpsertAndReleaseConfigFile .
+func (s *serverAuthability) UpsertAndReleaseConfigFile(ctx context.Context,
+	req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
+	authCtx := s.collectConfigFilePublishAuthContext(ctx, []*apiconfig.ConfigFilePublishInfo{req},
+		model.Modify, "UpsertAndReleaseConfigFile")
+	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewConfigFileResponse(convertToErrCode(err), nil)
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return s.targetServer.UpsertAndReleaseConfigFile(ctx, req)
+}

@@ -85,6 +85,8 @@ type ConfigFileReleaseOperate interface {
 	GetConfigFileReleaseVersions(ctx context.Context, filters map[string]string) *apiconfig.ConfigBatchQueryResponse
 	// GetConfigFileReleaseHistories 获取配置文件的发布历史
 	GetConfigFileReleaseHistories(ctx context.Context, filter map[string]string) *apiconfig.ConfigBatchQueryResponse
+	// UpsertAndReleaseConfigFile 创建/更新配置文件并发布
+	UpsertAndReleaseConfigFile(ctx context.Context, req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse
 }
 
 // ConfigFileClientOperate 给客户端提供服务接口，不同的上层协议抽象的公共服务逻辑

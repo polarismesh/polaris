@@ -35,24 +35,26 @@ func (s *Server) recordReleaseHistory(ctx context.Context, fileRelease *model.Co
 	releaseType, status, reason string) {
 
 	releaseHistory := &model.ConfigFileReleaseHistory{
-		Name:      fileRelease.Name,
-		Namespace: fileRelease.Namespace,
-		Group:     fileRelease.Group,
-		FileName:  fileRelease.FileName,
-		Content:   fileRelease.Content,
-		Format:    fileRelease.Format,
-		Metadata:  fileRelease.Metadata,
-		Comment:   fileRelease.Comment,
-		Md5:       fileRelease.Md5,
-		Type:      releaseType,
-		Status:    status,
-		Reason:    reason,
-		CreateBy:  utils.ParseUserName(ctx),
-		ModifyBy:  utils.ParseUserName(ctx),
+		Name:               fileRelease.Name,
+		Namespace:          fileRelease.Namespace,
+		Group:              fileRelease.Group,
+		FileName:           fileRelease.FileName,
+		Content:            fileRelease.Content,
+		Format:             fileRelease.Format,
+		Metadata:           fileRelease.Metadata,
+		Comment:            fileRelease.Comment,
+		Md5:                fileRelease.Md5,
+		Version:            fileRelease.Version,
+		Type:               releaseType,
+		Status:             status,
+		Reason:             reason,
+		CreateBy:           utils.ParseUserName(ctx),
+		ModifyBy:           utils.ParseUserName(ctx),
+		ReleaseDescription: fileRelease.ReleaseDescription,
 	}
 
 	if err := s.storage.CreateConfigFileReleaseHistory(releaseHistory); err != nil {
-		log.Error("[Config][Service] create config file release history error.", utils.RequestID(ctx),
+		log.Error("[Config][History] create config file release history error.", utils.RequestID(ctx),
 			utils.ZapNamespace(fileRelease.Namespace), utils.ZapGroup(fileRelease.Group),
 			utils.ZapFileName(fileRelease.FileName), zap.Error(err))
 	}
@@ -76,7 +78,7 @@ func (s *Server) GetConfigFileReleaseHistories(ctx context.Context,
 
 	count, saveDatas, err := s.storage.QueryConfigFileReleaseHistories(searchFilter, offset, limit)
 	if err != nil {
-		log.Error("[Config][Service] get config file release history error.", utils.RequestID(ctx),
+		log.Error("[Config][History] get config file release history error.", utils.RequestID(ctx),
 			zap.Any("filter", filter), zap.Error(err))
 		return api.NewConfigBatchQueryResponseWithInfo(commonstore.StoreCode2APICode(err), err.Error())
 	}

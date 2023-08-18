@@ -269,7 +269,7 @@ func TestSelfInstanceImmediatelyCheck(t *testing.T) {
 	instanceId1 := "inst_self_1"
 	instanceId2 := "inst_self_2"
 
-	hbInterval := 4
+	hbInterval := 1
 	discoverSuit.addInstance(t, &apiservice.Instance{
 		Id:                wrapperspb.String(instanceId1),
 		Service:           wrapperspb.String("polaris.checker"),
@@ -299,6 +299,7 @@ func TestSelfInstanceImmediatelyCheck(t *testing.T) {
 	})
 
 	time.Sleep(10 * time.Second)
+	_ = discoverSuit.DiscoverServer().Cache().Instance().Update()
 
 	cacheProvider, _ := discoverSuit.HealthCheckServer().CacheProvider()
 	instance1 := cacheProvider.GetSelfServiceInstance(instanceId1)

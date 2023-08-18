@@ -460,3 +460,22 @@ func (h *HTTPServer) GetAllConfigEncryptAlgorithms(req *restful.Request, rsp *re
 	)
 	handler.WriteHeaderAndProto(response)
 }
+
+// UpsertAndReleaseConfigFile
+func (h *HTTPServer) UpsertAndReleaseConfigFile(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	configFile := &apiconfig.ConfigFilePublishInfo{}
+	ctx, err := handler.Parse(configFile)
+	if err != nil {
+		configLog.Error("[Config][HttpServer] parse config file from request error.",
+			utils.RequestID(ctx), zap.String("error", err.Error()))
+		handler.WriteHeaderAndProto(api.NewConfigResponseWithInfo(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+
+	handler.WriteHeaderAndProto(h.configServer.UpsertAndReleaseConfigFile(ctx, configFile))
+}

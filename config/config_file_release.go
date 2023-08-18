@@ -123,12 +123,13 @@ func (s *Server) handlePublishConfigFile(ctx context.Context, tx store.Tx,
 				Group:     group,
 				FileName:  fileName,
 			},
-			Format:   toPublishFile.Format,
-			Metadata: toPublishFile.Metadata,
-			Comment:  req.Comment.GetValue(),
-			Md5:      CalMd5(toPublishFile.Content),
-			CreateBy: utils.ParseUserName(ctx),
-			ModifyBy: utils.ParseUserName(ctx),
+			Format:             toPublishFile.Format,
+			Metadata:           toPublishFile.Metadata,
+			Comment:            req.GetComment().GetValue(),
+			Md5:                CalMd5(toPublishFile.Content),
+			CreateBy:           utils.ParseUserName(ctx),
+			ModifyBy:           utils.ParseUserName(ctx),
+			ReleaseDescription: req.GetReleaseDescription().GetValue(),
 		},
 		Content: toPublishFile.Content,
 	}
@@ -390,17 +391,20 @@ func (s *Server) handleDescribeConfigFileReleases(ctx context.Context,
 	for i := range simpleReleases {
 		item := simpleReleases[i]
 		ret = append(ret, &apiconfig.ConfigFileRelease{
-			Id:         utils.NewUInt64Value(item.Id),
-			Name:       utils.NewStringValue(item.Name),
-			Namespace:  utils.NewStringValue(item.Namespace),
-			Group:      utils.NewStringValue(item.Group),
-			FileName:   utils.NewStringValue(item.FileName),
-			Version:    utils.NewUInt64Value(item.Version),
-			Active:     utils.NewBoolValue(item.Active),
-			CreateTime: utils.NewStringValue(commontime.Time2String(item.CreateTime)),
-			ModifyTime: utils.NewStringValue(commontime.Time2String(item.ModifyTime)),
-			CreateBy:   utils.NewStringValue(item.CreateBy),
-			ModifyBy:   utils.NewStringValue(item.ModifyBy),
+			Id:                 utils.NewUInt64Value(item.Id),
+			Name:               utils.NewStringValue(item.Name),
+			Namespace:          utils.NewStringValue(item.Namespace),
+			Group:              utils.NewStringValue(item.Group),
+			FileName:           utils.NewStringValue(item.FileName),
+			Format:             utils.NewStringValue(item.Format),
+			Version:            utils.NewUInt64Value(item.Version),
+			Active:             utils.NewBoolValue(item.Active),
+			CreateTime:         utils.NewStringValue(commontime.Time2String(item.CreateTime)),
+			ModifyTime:         utils.NewStringValue(commontime.Time2String(item.ModifyTime)),
+			CreateBy:           utils.NewStringValue(item.CreateBy),
+			ModifyBy:           utils.NewStringValue(item.ModifyBy),
+			ReleaseDescription: utils.NewStringValue(item.ReleaseDescription),
+			Tags:               model.FromTagMap(item.Metadata),
 		})
 	}
 
@@ -448,7 +452,8 @@ func (s *Server) RollbackConfigFileRelease(ctx context.Context,
 
 	tx, err := s.storage.StartTx()
 	if err != nil {
-		log.Error("[Config][File] start store tx error.", utils.RequestID(ctx), zap.Error(err))
+		log.Error("[Config][File] rollback config file releasw when begin tx.",
+			utils.RequestID(ctx), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 	defer func() {
@@ -466,6 +471,8 @@ func (s *Server) RollbackConfigFileRelease(ctx context.Context,
 	}
 
 	if err := tx.Commit(); err != nil {
+		log.Error("[Config][File] rollback config file releasw when commit tx.",
+			utils.RequestID(ctx), zap.Error(err))
 		s.recordReleaseFail(ctx, utils.ReleaseTypeRollback, data, err)
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
@@ -498,6 +505,78 @@ func (s *Server) handleRollbackConfigFileRelease(ctx context.Context, tx store.T
 	return targetRelease, nil
 }
 
+func (s *Server) UpsertAndReleaseConfigFile(ctx context.Context,
+	req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
+
+	if err := utils.CheckResourceName(req.GetNamespace()); err != nil {
+		return api.NewConfigResponseWithInfo(apimodel.Code_BadRequest, "invalid config namespace")
+	}
+	if err := utils.CheckResourceName(req.GetGroup()); err != nil {
+		return api.NewConfigResponseWithInfo(apimodel.Code_BadRequest, "invalid config group")
+	}
+	if err := CheckFileName(req.GetFileName()); err != nil {
+		return api.NewConfigResponseWithInfo(apimodel.Code_BadRequest, "invalid config file_name")
+	}
+
+	upsertFileReq := &apiconfig.ConfigFile{
+		Name:        req.GetFileName(),
+		Namespace:   req.GetNamespace(),
+		Group:       req.GetGroup(),
+		Content:     req.GetContent(),
+		Format:      req.GetFormat(),
+		Comment:     req.GetComment(),
+		Tags:        req.GetTags(),
+		CreateBy:    utils.NewStringValue(utils.ParseUserName(ctx)),
+		ModifyBy:    utils.NewStringValue(utils.ParseUserName(ctx)),
+		ReleaseTime: utils.NewStringValue(req.GetReleaseDescription().GetValue()),
+	}
+	if rsp := s.prepareCreateConfigFile(ctx, upsertFileReq); rsp.Code.Value != api.ExecuteSuccess {
+		return rsp
+	}
+
+	tx, err := s.storage.StartTx()
+	if err != nil {
+		log.Error("[Config][File] upsert config file when begin tx.", utils.RequestID(ctx), zap.Error(err))
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
+	}
+
+	defer func() {
+		_ = tx.Rollback()
+	}()
+	upsertResp := s.handleCreateConfigFile(ctx, tx, upsertFileReq)
+	if upsertResp.GetCode().GetValue() == uint32(apimodel.Code_ExistedResource) {
+		upsertResp = s.handleUpdateConfigFile(ctx, tx, upsertFileReq)
+	}
+	if upsertResp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
+		return upsertResp
+	}
+
+	data, releaseResp := s.handlePublishConfigFile(ctx, tx, &apiconfig.ConfigFileRelease{
+		Name:               req.GetReleaseName(),
+		Namespace:          req.GetNamespace(),
+		Group:              req.GetGroup(),
+		FileName:           req.GetFileName(),
+		CreateBy:           utils.NewStringValue(utils.ParseUserName(ctx)),
+		ModifyBy:           utils.NewStringValue(utils.ParseUserName(ctx)),
+		ReleaseDescription: req.GetReleaseDescription(),
+	})
+	if releaseResp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
+		_ = tx.Rollback()
+		if data != nil {
+			s.recordReleaseFail(ctx, utils.ReleaseTypeNormal, data, errors.New(releaseResp.GetInfo().GetValue()))
+		}
+		return releaseResp
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Error("[Config][File] upsert config file when commit tx.", utils.RequestID(ctx), zap.Error(err))
+		s.recordReleaseFail(ctx, utils.ReleaseTypeNormal, data, err)
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
+	}
+	s.recordReleaseHistory(ctx, data, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess, "")
+	return releaseResp
+}
+
 func (s *Server) cleanConfigFileReleases(ctx context.Context, tx store.Tx,
 	file *model.ConfigFile) *apiconfig.ConfigResponse {
 
@@ -506,11 +585,10 @@ func (s *Server) cleanConfigFileReleases(ctx context.Context, tx store.Tx,
 	if err != nil {
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
-	if saveData == nil {
-		return nil
-	}
-	if err := s.storage.ActiveConfigFileReleaseTx(tx, saveData); err != nil {
-		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
+	if saveData != nil {
+		if err := s.storage.ActiveConfigFileReleaseTx(tx, saveData); err != nil {
+			return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
+		}
 	}
 	if err := s.storage.CleanConfigFileReleasesTx(tx, file.Namespace, file.Group, file.Name); err != nil {
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))

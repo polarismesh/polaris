@@ -39,14 +39,14 @@ func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(
 
 	s := "INSERT INTO config_file_release_history(" +
 		" name, namespace, `group`, file_name, content, comment, md5, type, status, format, tags, " +
-		"create_time, create_by, modify_time, modify_by) " +
+		"create_time, create_by, modify_time, modify_by, version, reason, description) " +
 		" VALUES " +
-		"(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, sysdate(), ?, sysdate(), ?)"
+		"(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, sysdate(), ?, sysdate(), ?, ?)"
 	_, err := rh.master.Exec(s, history.Name, history.Namespace,
 		history.Group, history.FileName, history.Content,
 		history.Comment, history.Md5,
 		history.Type, history.Status, history.Format, utils.MustJson(history.Metadata),
-		history.CreateBy, history.ModifyBy)
+		history.CreateBy, history.ModifyBy, history.Version, history.Reason, history.ReleaseDescription)
 	if err != nil {
 		return store.Error(err)
 	}
@@ -112,7 +112,8 @@ func (rh *configFileReleaseHistoryStore) CleanConfigFileReleaseHistory(endTime t
 func (rh *configFileReleaseHistoryStore) genSelectSql() string {
 	return "SELECT id, name, namespace, `group`, file_name, content, IFNULL(comment, ''), " +
 		" md5, format, tags, type, status, UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), " +
-		" UNIX_TIMESTAMP(modify_time), IFNULL(modify_by, '') FROM config_file_release_history "
+		" UNIX_TIMESTAMP(modify_time), IFNULL(modify_by, ''), IFNULL(reason, ''), " +
+		" IFNULL(description, ''), version FROM config_file_release_history "
 }
 
 func (rh *configFileReleaseHistoryStore) transferRows(rows *sql.Rows) ([]*model.ConfigFileReleaseHistory, error) {
@@ -121,35 +122,30 @@ func (rh *configFileReleaseHistoryStore) transferRows(rows *sql.Rows) ([]*model.
 	}
 	defer rows.Close()
 
-	var fileReleaseHistories []*model.ConfigFileReleaseHistory
+	records := make([]*model.ConfigFileReleaseHistory, 0, 16)
 
 	for rows.Next() {
-		fileReleaseHistory := &model.ConfigFileReleaseHistory{}
+		item := &model.ConfigFileReleaseHistory{}
 		var (
 			ctime, mtime int64
 			tags         string
 		)
-		err := rows.Scan(&fileReleaseHistory.Id, &fileReleaseHistory.Name, &fileReleaseHistory.Namespace,
-			&fileReleaseHistory.Group,
-			&fileReleaseHistory.FileName, &fileReleaseHistory.Content,
-			&fileReleaseHistory.Comment, &fileReleaseHistory.Md5, &fileReleaseHistory.Format,
-			&tags,
-			&fileReleaseHistory.Type, &fileReleaseHistory.Status,
-			&ctime, &fileReleaseHistory.CreateBy, &mtime, &fileReleaseHistory.ModifyBy)
+		err := rows.Scan(&item.Id, &item.Name, &item.Namespace, &item.Group, &item.FileName, &item.Content,
+			&item.Comment, &item.Md5, &item.Format, &tags, &item.Type, &item.Status, &ctime, &item.CreateBy,
+			&mtime, &item.ModifyBy, &item.Reason, &item.ReleaseDescription, &item.Version)
 		if err != nil {
 			return nil, err
 		}
-		fileReleaseHistory.CreateTime = time.Unix(ctime, 0)
-		fileReleaseHistory.ModifyTime = time.Unix(mtime, 0)
-		fileReleaseHistory.Metadata = map[string]string{}
-		_ = json.Unmarshal([]byte(tags), &fileReleaseHistory.Metadata)
+		item.CreateTime = time.Unix(ctime, 0)
+		item.ModifyTime = time.Unix(mtime, 0)
+		item.Metadata = map[string]string{}
+		_ = json.Unmarshal([]byte(tags), &item.Metadata)
 
-		fileReleaseHistories = append(fileReleaseHistories, fileReleaseHistory)
+		records = append(records, item)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-
-	return fileReleaseHistories, nil
+	return records, nil
 }

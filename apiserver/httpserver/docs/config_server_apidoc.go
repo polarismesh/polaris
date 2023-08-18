@@ -84,6 +84,14 @@ func EnrichCreateConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Returns(0, "", BaseResponse{})
 }
 
+func EnrichUpsertAndReleaseConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.
+		Doc("创建/更新并发布配置文件").
+		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
+		Reads(apiconfig.ConfigFilePublishInfo{}).
+		Returns(0, "", BaseResponse{})
+}
+
 func EnrichGetConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("拉取配置").

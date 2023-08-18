@@ -151,7 +151,7 @@ func TestCreateRoutingConfig(t *testing.T) {
 		_, serviceResp := discoverSuit.createCommonService(t, 120)
 		discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-		_ = discoverSuit.DiscoverServer().Cache().TestRefresh()
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		req := &apitraffic.Routing{}
 		req.Service = serviceResp.Name
 		req.Namespace = serviceResp.Namespace
