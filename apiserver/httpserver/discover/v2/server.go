@@ -86,8 +86,6 @@ func (h *HTTPServerV2) GetNamingConsoleAccessServer(include []string) (*restful.
 			h.addDefaultAccess(ws)
 		case routingAccess:
 			h.addRouterRuleAccess(ws)
-		default:
-			log.Warnf("method %s does not exist in HTTPServerV2 console access", item)
 		}
 	}
 	return ws, nil

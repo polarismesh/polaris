@@ -37,11 +37,12 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer func() {
+	t.Cleanup(func() {
 		if err := testSuit.clearTestData(); err != nil {
 			t.Fatal(err)
 		}
-	}()
+		testSuit.Destroy()
+	})
 
 	// 查询不存在的 group
 	t.Run("step1-query-none", func(t *testing.T) {
@@ -59,8 +60,6 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 	t.Run("step2-create", func(t *testing.T) {
 		rsp := testSuit.ConfigServer().CreateConfigFileGroup(testSuit.DefaultCtx, assembleConfigFileGroup())
 		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
-		assert.Equal(t, testNamespace, rsp.ConfigFileGroup.Namespace.GetValue())
-		assert.Equal(t, testGroup, rsp.ConfigFileGroup.Name.GetValue())
 
 		rsp2 := testSuit.ConfigServer().CreateConfigFileGroup(testSuit.DefaultCtx, assembleConfigFileGroup())
 		assert.Equal(t, uint32(api.ExistedResource), rsp2.Code.GetValue())
@@ -95,8 +94,11 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 
 	// 删除 group
 	t.Run("step4-delete", func(t *testing.T) {
-		rsp := testSuit.ConfigServer().DeleteConfigFileGroup(testSuit.DefaultCtx, testNamespace, testGroup)
-		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
+		rsp := testSuit.ConfigServer().DeleteConfigFile(testSuit.DefaultCtx, assembleConfigFile())
+		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue(), rsp.GetInfo().GetValue())
+
+		rsp = testSuit.ConfigServer().DeleteConfigFileGroup(testSuit.DefaultCtx, testNamespace, testGroup)
+		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue(), rsp.GetInfo().GetValue())
 
 		rsp2 := testSuit.ConfigServer().SearchConfigFile(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
@@ -105,7 +107,7 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 			"limit":     "10",
 		})
 		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
-		assert.Equal(t, uint32(0), rsp2.Total.GetValue())
+		assert.Equal(t, uint32(0), rsp2.GetTotal().GetValue())
 	})
 
 	// 再次查询group，由于被删除，所以查不到
@@ -125,20 +127,17 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 		for i := 0; i < int(randomGroupSize); i++ {
 			rsp := testSuit.ConfigServer().CreateConfigFileGroup(testSuit.DefaultCtx, assembleRandomConfigFileGroup())
 			assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
-			assert.Equal(t, testNamespace, rsp.ConfigFileGroup.Namespace.GetValue())
 		}
 
 		rsp2 := testSuit.ConfigServer().CreateConfigFileGroup(testSuit.DefaultCtx, assembleConfigFileGroup())
-		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
-		assert.Equal(t, testNamespace, rsp2.ConfigFileGroup.Namespace.GetValue())
-		assert.Equal(t, testGroup, rsp2.ConfigFileGroup.Name.GetValue())
+		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue(), rsp2.GetInfo().GetValue())
 	})
 
 	// 模糊查询
 	t.Run("step7-query-random", func(t *testing.T) {
 		rsp := testSuit.ConfigServer().QueryConfigFileGroups(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
-			"group":     randomGroupPrefix,
+			"name":      randomGroupPrefix + "*",
 			"offset":    "0",
 			"limit":     "2",
 		})
@@ -152,7 +151,7 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 		// 最后一页
 		rsp := testSuit.ConfigServer().QueryConfigFileGroups(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
-			"group":     randomGroupPrefix,
+			"name":      randomGroupPrefix + "*",
 			"offset":    "6",
 			"limit":     "2",
 		})
@@ -163,7 +162,7 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 		// 超出页范围
 		rsp2 := testSuit.ConfigServer().QueryConfigFileGroups(testSuit.DefaultCtx, map[string]string{
 			"namespace": testNamespace,
-			"group":     randomGroupPrefix,
+			"name":      randomGroupPrefix + "*",
 			"offset":    "8",
 			"limit":     "2",
 		})

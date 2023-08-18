@@ -19,8 +19,9 @@ package eventhub
 
 import (
 	"context"
-	"fmt"
 	"sync"
+
+	"github.com/google/uuid"
 
 	"github.com/polarismesh/polaris/common/log"
 )
@@ -54,23 +55,31 @@ func (t *topic) publish(ctx context.Context, event Event) {
 }
 
 // subscribe subscribe msg from topic
-func (t *topic) subscribe(ctx context.Context, name string, handler Handler, opts ...SubOption) error {
-	sub := newSubscription(name, handler, opts...)
+func (t *topic) subscribe(ctx context.Context, handler Handler,
+	opts ...SubOption) (*SubscribtionContext, error) {
+
+	subID := uuid.NewString()
+	sub := newSubscription(subID, handler, opts...)
 
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	t.subs[subID] = sub
 
-	if _, ok := t.subs[sub.name]; ok {
-		return fmt.Errorf("[EventHub] topic:%s has duplicate subscription:%s", t.name, sub.name)
+	newCtx, cancel := context.WithCancel(ctx)
+	subscribtionCtx := &SubscribtionContext{
+		subID: subID,
+		cancel: func() {
+			cancel()
+			t.unsubscribe(subID)
+		},
 	}
-	t.subs[sub.name] = sub
 
-	go sub.receive(ctx)
-	return nil
+	go sub.receive(newCtx)
+	return subscribtionCtx, nil
 }
 
 // unsubscribe unsubscrib msg from topic
-func (t *topic) unsubscribe(ctx context.Context, name string) {
+func (t *topic) unsubscribe(name string) {
 	sub, ok := t.subs[name]
 	if !ok {
 		return
@@ -78,7 +87,6 @@ func (t *topic) unsubscribe(ctx context.Context, name string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	delete(t.subs, sub.name)
-	sub.close(ctx)
 }
 
 // close close topic
@@ -87,13 +95,14 @@ func (t *topic) close(ctx context.Context) {
 	defer t.mu.Unlock()
 	close(t.closeCh)
 	for _, sub := range t.subs {
-		sub.close(ctx)
+		sub.close()
 		delete(t.subs, sub.name)
 	}
 }
 
 // run read msg from topic queue and send to all subscription
 func (t *topic) run(ctx context.Context) {
+	log.Infof("[EventHub] topic:%s run dispatch", t.name)
 	for {
 		select {
 		case msg := <-t.queue:

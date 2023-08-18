@@ -235,94 +235,23 @@ type RateLimitStore interface {
 
 // CircuitBreakerStore 熔断规则的存储接口
 type CircuitBreakerStore interface {
-	// CreateCircuitBreaker 新增熔断规则
-	// Deprecated: use CreateCircuitBreakerRule instead
-	CreateCircuitBreaker(circuitBreaker *model.CircuitBreaker) error
-
-	// TagCircuitBreaker 标记熔断规则
-	// Deprecated: no longer need to tag
-	TagCircuitBreaker(circuitBreaker *model.CircuitBreaker) error
-
-	// ReleaseCircuitBreaker 发布熔断规则
-	// Deprecated: no longer need to release
-	ReleaseCircuitBreaker(circuitBreakerRelation *model.CircuitBreakerRelation) error
-
-	// UnbindCircuitBreaker 解绑熔断规则
-	// Deprecated: no longer need to unbind
-	UnbindCircuitBreaker(serviceID, ruleID, ruleVersion string) error
-
-	// DeleteTagCircuitBreaker 删除已标记熔断规则
-	// Deprecated: no longer need to tag
-	DeleteTagCircuitBreaker(id string, version string) error
-
-	// DeleteMasterCircuitBreaker 删除master熔断规则
-	// Deprecated: use DeleteCircuitBreakerRule instead
-	DeleteMasterCircuitBreaker(id string) error
-
-	// UpdateCircuitBreaker 修改熔断规则
-	// Deprecated: use UpdateCircuitBreakerRule instead
-	UpdateCircuitBreaker(circuitBraker *model.CircuitBreaker) error
-
-	// GetCircuitBreaker 获取熔断规则
-	// Deprecated: use GetCircuitBreakerRuleWithID instead
-	GetCircuitBreaker(id, version string) (*model.CircuitBreaker, error)
-
-	// GetCircuitBreakerVersions 获取熔断规则的所有版本
-	// Deprecated: use GetCircuitBreakerRuleWithID instead
-	GetCircuitBreakerVersions(id string) ([]string, error)
-
-	// GetCircuitBreakerMasterRelation 获取熔断规则master版本的绑定关系
-	// Deprecated: use GetCircuitBreakerRules instead
-	GetCircuitBreakerMasterRelation(ruleID string) ([]*model.CircuitBreakerRelation, error)
-
-	// GetCircuitBreakerRelation 获取已标记熔断规则的绑定关系
-	// Deprecated: use GetCircuitBreakerRules instead
-	GetCircuitBreakerRelation(ruleID, ruleVersion string) ([]*model.CircuitBreakerRelation, error)
-
-	// GetCircuitBreakerForCache 根据修改时间拉取增量熔断规则
-	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
-	// Deprecated: use GetCircuitBreakerRulesForCache instead
-	GetCircuitBreakerForCache(mtime time.Time, firstUpdate bool) ([]*model.ServiceWithCircuitBreaker, error)
-
-	// ListMasterCircuitBreakers 获取master熔断规则
-	// Deprecated: use GetCircuitBreakerRules instead
-	ListMasterCircuitBreakers(filters map[string]string, offset uint32, limit uint32) (
-		*model.CircuitBreakerDetail, error)
-
-	// ListReleaseCircuitBreakers 获取已发布规则
-	// Deprecated: use GetCircuitBreakerRules instead
-	ListReleaseCircuitBreakers(filters map[string]string, offset, limit uint32) (
-		*model.CircuitBreakerDetail, error)
-
-	// GetCircuitBreakersByService 根据服务获取熔断规则
-	// Deprecated: use GetCircuitBreakerRules instead
-	GetCircuitBreakersByService(name string, namespace string) (*model.CircuitBreaker, error)
-
 	// CreateCircuitBreakerRule create general circuitbreaker rule
 	CreateCircuitBreakerRule(cbRule *model.CircuitBreakerRule) error
-
 	// UpdateCircuitBreakerRule update general circuitbreaker rule
 	UpdateCircuitBreakerRule(cbRule *model.CircuitBreakerRule) error
-
 	// DeleteCircuitBreakerRule delete general circuitbreaker rule
 	DeleteCircuitBreakerRule(id string) error
-
 	// HasCircuitBreakerRule check circuitbreaker rule exists
 	HasCircuitBreakerRule(id string) (bool, error)
-
 	// HasCircuitBreakerRuleByName check circuitbreaker rule exists for name
 	HasCircuitBreakerRuleByName(name string, namespace string) (bool, error)
-
 	// HasCircuitBreakerRuleByNameExcludeId check circuitbreaker rule exists for name not this id
 	HasCircuitBreakerRuleByNameExcludeId(name string, namespace string, id string) (bool, error)
-
 	// GetCircuitBreakerRules get all circuitbreaker rules by query and limit
 	GetCircuitBreakerRules(
 		filter map[string]string, offset uint32, limit uint32) (uint32, []*model.CircuitBreakerRule, error)
-
 	// GetCircuitBreakerRulesForCache get increment circuitbreaker rules
 	GetCircuitBreakerRulesForCache(mtime time.Time, firstUpdate bool) ([]*model.CircuitBreakerRule, error)
-
 	// EnableCircuitBreakerRule enable specific circuitbreaker rule
 	EnableCircuitBreakerRule(cbRule *model.CircuitBreakerRule) error
 }

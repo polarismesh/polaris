@@ -22,8 +22,30 @@ import (
 	"errors"
 	"sync"
 
+	types "github.com/polarismesh/polaris/cache/api"
+	cacheauth "github.com/polarismesh/polaris/cache/auth"
+	cacheclient "github.com/polarismesh/polaris/cache/client"
+	cacheconfig "github.com/polarismesh/polaris/cache/config"
+	cachens "github.com/polarismesh/polaris/cache/namespace"
+	cachesvc "github.com/polarismesh/polaris/cache/service"
 	"github.com/polarismesh/polaris/store"
 )
+
+func init() {
+	RegisterCache(types.NamespaceName, types.CacheNamespace)
+	RegisterCache(types.ServiceName, types.CacheService)
+	RegisterCache(types.InstanceName, types.CacheInstance)
+	RegisterCache(types.RoutingConfigName, types.CacheRoutingConfig)
+	RegisterCache(types.RateLimitConfigName, types.CacheRateLimit)
+	RegisterCache(types.FaultDetectRuleName, types.CacheFaultDetector)
+	RegisterCache(types.CircuitBreakerName, types.CacheCircuitBreaker)
+	RegisterCache(types.L5Name, types.CacheCL5)
+	RegisterCache(types.ConfigFileCacheName, types.CacheConfigFile)
+	RegisterCache(types.ConfigGroupCacheName, types.CacheConfigGroup)
+	RegisterCache(types.UsersName, types.CacheUser)
+	RegisterCache(types.StrategyRuleName, types.CacheAuthStrategy)
+	RegisterCache(types.ClientName, types.CacheClient)
+}
 
 var (
 	cacheMgn   *CacheManager
@@ -53,59 +75,43 @@ func initialize(ctx context.Context, cacheOpt *Config, storage store.Store) erro
 	}
 
 	var err error
-
 	cacheMgn, err = newCacheManager(ctx, cacheOpt, storage)
-
 	return err
 }
 
 func newCacheManager(ctx context.Context, cacheOpt *Config, storage store.Store) (*CacheManager, error) {
 	SetCacheConfig(cacheOpt)
 	mgr := &CacheManager{
-		storage:       storage,
-		caches:        make([]Cache, CacheLast),
-		comRevisionCh: make(chan *revisionNotify, RevisionChanCount),
-		revisions:     map[string]string{},
-	}
-
-	ic := newInstanceCache(mgr, storage, mgr.comRevisionCh)
-	sc := newServiceCache(storage, mgr.comRevisionCh, ic)
-	mgr.caches[CacheService] = sc
-	mgr.caches[CacheInstance] = ic
-	mgr.caches[CacheRoutingConfig] = newRoutingConfigCache(storage, sc)
-	mgr.caches[CacheCL5] = &l5Cache{
 		storage: storage,
-		ic:      ic,
-		sc:      sc,
+		caches:  make([]types.Cache, types.CacheLast),
 	}
-	mgr.caches[CacheRateLimit] = newRateLimitCache(storage, sc)
-	mgr.caches[CacheCircuitBreaker] = newCircuitBreakerCache(storage)
-	mgr.caches[CacheFaultDetector] = newFaultDetectCache(storage)
-	mgr.caches[CacheUser] = newUserCache(storage)
-	mgr.caches[CacheAuthStrategy] = newStrategyCache(storage, mgr.caches[CacheUser].(UserCache))
-	mgr.caches[CacheNamespace] = newNamespaceCache(storage)
-	mgr.caches[CacheClient] = newClientCache(storage)
-	mgr.caches[CacheConfigFile] = newFileCache(ctx, storage)
 
-	if len(mgr.caches) != CacheLast {
+	// 命名空间缓存
+	mgr.RegisterCacher(types.CacheNamespace, cachens.NewNamespaceCache(storage, mgr))
+	// 注册发现 & 服务治理缓存
+	mgr.RegisterCacher(types.CacheService, cachesvc.NewServiceCache(storage, mgr))
+	mgr.RegisterCacher(types.CacheInstance, cachesvc.NewInstanceCache(storage, mgr))
+	mgr.RegisterCacher(types.CacheRoutingConfig, cachesvc.NewRoutingConfigCache(storage, mgr))
+	mgr.RegisterCacher(types.CacheRateLimit, cachesvc.NewRateLimitCache(storage, mgr))
+	mgr.RegisterCacher(types.CacheCircuitBreaker, cachesvc.NewCircuitBreakerCache(storage, mgr))
+	mgr.RegisterCacher(types.CacheFaultDetector, cachesvc.NewFaultDetectCache(storage, mgr))
+	mgr.RegisterCacher(types.CacheCL5, cachesvc.NewL5Cache(storage, mgr))
+	// 配置分组 & 配置发布缓存
+	mgr.RegisterCacher(types.CacheConfigFile, cacheconfig.NewConfigFileCache(storage, mgr))
+	mgr.RegisterCacher(types.CacheConfigGroup, cacheconfig.NewConfigGroupCache(storage, mgr))
+	// 用户/用户组 & 鉴权规则缓存
+	mgr.RegisterCacher(types.CacheUser, cacheauth.NewUserCache(storage, mgr))
+	mgr.RegisterCacher(types.CacheAuthStrategy, cacheauth.NewStrategyCache(storage, mgr))
+	// 北极星SDK Client
+	mgr.RegisterCacher(types.CacheClient, cacheclient.NewClientCache(storage, mgr))
+
+	if len(mgr.caches) != int(types.CacheLast) {
 		return nil, errors.New("some Cache implement not loaded into CacheManager")
 	}
 
-	// call cache.addlistener here, need ensure that all of cache impl has been instantiated and loaded
-	mgr.AddListener(CacheNameInstance, []Listener{
-		&watchInstanceReload{
-			Handler: func(val interface{}) {
-				if svcIds, ok := val.(map[string]bool); ok {
-					mgr.caches[CacheService].(*serviceCache).notifyServiceCountReload(svcIds)
-				}
-			},
-		},
-	})
-
-	if err := mgr.initialize(); err != nil {
+	if err := mgr.Initialize(); err != nil {
 		return nil, err
 	}
-
 	return mgr, nil
 }
 
@@ -119,13 +125,9 @@ func Run(cacheMgr *CacheManager, ctx context.Context) error {
 }
 
 // GetCacheManager
-//
-//	@return *CacheManager
-//	@return error
 func GetCacheManager() (*CacheManager, error) {
 	if !finishInit {
 		return nil, errors.New("cache has not done Initialize")
 	}
-
 	return cacheMgn, nil
 }

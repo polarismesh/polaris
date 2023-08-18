@@ -43,24 +43,18 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 	group := client.GetGroup().GetValue()
 	fileName := client.GetFileName().GetValue()
 	clientVersion := client.GetVersion().GetValue()
-	publicKey := client.GetPublicKey().GetValue()
 
 	if namespace == "" || group == "" || fileName == "" {
 		return api.NewConfigClientResponseWithInfo(
 			apimodel.Code_BadRequest, "namespace & group & fileName can not be empty")
 	}
-
-	log.Info("[Config][Service] load config file from cache.", utils.RequestID(ctx),
-		utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName),
-		zap.String("publicKey", publicKey))
-
 	// 从缓存中获取配置内容
 	release := s.fileCache.GetActiveRelease(namespace, group, fileName)
 	if release == nil {
 		return api.NewConfigClientResponse(apimodel.Code_NotFoundResource, nil)
 	}
 
-	// 客户端版本号大于服务端版本号，服务端需要重新加载缓存
+	// 客户端版本号大于服务端版本号，服务端不返回变更
 	if clientVersion > release.Version {
 		return api.NewConfigClientResponse(apimodel.Code_DataNoChange, nil)
 	}
@@ -89,7 +83,7 @@ func (s *Server) UpdateConfigFileFromClient(ctx context.Context,
 	return api.NewConfigClientResponseFromConfigResponse(configResponse)
 }
 
-// PublishConfigFileFromClient 调用config_file_release接口删除配置文件
+// PublishConfigFileFromClient 调用config_file_release接口发布配置文件
 func (s *Server) PublishConfigFileFromClient(ctx context.Context,
 	client *apiconfig.ConfigFileRelease) *apiconfig.ConfigClientResponse {
 	configResponse := s.PublishConfigFile(ctx, client)
@@ -117,7 +111,9 @@ func (s *Server) WatchConfigFiles(ctx context.Context,
 }
 
 // GetConfigFileNamesWithCache
-func (s *Server) GetConfigFileNamesWithCache(ctx context.Context, req *apiconfig.ConfigFileGroupRequest) *apiconfig.ConfigClientListResponse {
+func (s *Server) GetConfigFileNamesWithCache(ctx context.Context,
+	req *apiconfig.ConfigFileGroupRequest) *apiconfig.ConfigClientListResponse {
+
 	namespace := req.GetConfigFileGroup().GetNamespace().GetValue()
 	group := req.GetConfigFileGroup().GetName().GetValue()
 
@@ -157,7 +153,7 @@ func (s *Server) GetConfigFileNamesWithCache(ctx context.Context, req *apiconfig
 }
 
 func compareByVersion(clientInfo *apiconfig.ClientConfigFileInfo, file *model.ConfigFileRelease) bool {
-	return clientInfo.Version.GetValue() < file.Version
+	return clientInfo.GetVersion().GetValue() < file.Version
 }
 
 func compareByMD5(clientInfo *apiconfig.ClientConfigFileInfo, file *model.ConfigFileRelease) bool {
@@ -170,9 +166,9 @@ func (s *Server) checkClientConfigFile(ctx context.Context, files []*apiconfig.C
 		return api.NewConfigClientResponse(apimodel.Code_InvalidWatchConfigFileFormat, nil), false
 	}
 	for _, configFile := range files {
-		namespace := configFile.Namespace.GetValue()
-		group := configFile.Group.GetValue()
-		fileName := configFile.FileName.GetValue()
+		namespace := configFile.GetNamespace().GetValue()
+		group := configFile.GetGroup().GetValue()
+		fileName := configFile.GetFileName().GetValue()
 
 		if namespace == "" || group == "" || fileName == "" {
 			return api.NewConfigClientResponseWithInfo(apimodel.Code_BadRequest,
@@ -180,7 +176,7 @@ func (s *Server) checkClientConfigFile(ctx context.Context, files []*apiconfig.C
 		}
 		// 从缓存中获取最新的配置文件信息
 		release := s.fileCache.GetActiveRelease(namespace, group, fileName)
-		if compartor(configFile, release) {
+		if release != nil && compartor(configFile, release) {
 			ret := &apiconfig.ClientConfigFileInfo{
 				Namespace: utils.NewStringValue(namespace),
 				Group:     utils.NewStringValue(group),
@@ -191,7 +187,7 @@ func (s *Server) checkClientConfigFile(ctx context.Context, files []*apiconfig.C
 			return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, ret), false
 		}
 	}
-	return nil, true
+	return api.NewConfigClientResponse(apimodel.Code_DataNoChange, nil), true
 }
 
 func toClientInfo(client *apiconfig.ClientConfigFileInfo,
@@ -208,7 +204,6 @@ func toClientInfo(client *apiconfig.ClientConfigFileInfo,
 			ret[k] = v
 		}
 		delete(ret, utils.ConfigFileTagKeyDataKey)
-		delete(ret, utils.ConfigFileTagKeyEncryptAlgo)
 		return ret
 	}()
 
@@ -244,10 +239,6 @@ func toClientInfo(client *apiconfig.ClientConfigFileInfo,
 			&apiconfig.ConfigFileTag{
 				Key:   utils.NewStringValue(utils.ConfigFileTagKeyDataKey),
 				Value: utils.NewStringValue(dataKey),
-			},
-			&apiconfig.ConfigFileTag{
-				Key:   utils.NewStringValue(utils.ConfigFileTagKeyEncryptAlgo),
-				Value: utils.NewStringValue(encryptAlgo),
 			},
 		)
 	}

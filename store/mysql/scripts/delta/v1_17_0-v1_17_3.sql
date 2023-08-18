@@ -18,4 +18,33 @@
 -- Database: `polaris_server`
 --
 USE `polaris_server`;
-ALTER TABLE `config_file_release` ADD COLUMN `tags` varchar(2048) DEFAULT '' COMMENT '文件标签';
+
+/* 配置分组表变更操作 */
+ALTER TABLE `config_file_group`
+ADD COLUMN `flag` tinyint (4) NOT NULL DEFAULT '0' COMMENT '是否被删除',
+/* 配置发布表变更操作 */
+ALTER TABLE `config_file_release`
+ADD COLUMN `tags` text COMMENT '文件标签';
+
+ALTER TABLE `config_file_release`
+ADD COLUMN `active` tinyint (4) NOT NULL DEFAULT '0' COMMENT '是否处于使用中';
+
+ALTER TABLE `config_file_release`
+ADD COLUMN `description` varchar(512) DEFAULT '' COMMENT '发布描述';
+
+ALTER TABLE `config_file_release` ADD UNIQUE KEY `uk_file_release` (`namespace`, `group`, `file_name`, `name`);
+
+ALTER TABLE `config_file_release`
+DROP KEY `uk_file`;
+
+/* 配置历史表变更操作 */
+ALTER TABLE `config_file_release_history`
+ADD COLUMN `reason` varchar(3000) DEFAULT '' COMMENT '发布原因';
+
+ALTER TABLE `config_file_release_history` MODIFY COLUMN `tags` text COMMENT '文件标签';
+
+ALTER TABLE `config_file_release_history`
+ADD COLUMN `version` bigint (11) COMMENT '版本号, 每次发布自增1';
+
+ALTER TABLE `config_file_release_history`
+ADD COLUMN `description` varchar(512) DEFAULT NULL COMMENT '发布描述',

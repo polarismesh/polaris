@@ -434,7 +434,7 @@ func TestGetInstances(t *testing.T) {
 	}
 	defer discoverSuit.Destroy()
 	t.Run("可以正常获取到实例信息", func(t *testing.T) {
-		_ = discoverSuit.DiscoverServer().Cache().TestRefresh() // 为了防止影响，每个函数需要把缓存的内容清空
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate() // 为了防止影响，每个函数需要把缓存的内容清空
 		_, serviceResp := discoverSuit.createCommonService(t, 320)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
@@ -463,7 +463,7 @@ func TestGetInstances(t *testing.T) {
 		t.Logf("pass: %+v", resp.GetInstances()[0])
 	})
 	t.Run("注册实例，查询实例列表，实例反注册，revision会改变", func(t *testing.T) {
-		_ = discoverSuit.DiscoverServer().Cache().TestRefresh() // 为了防止影响，每个函数需要把缓存的内容清空
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate() // 为了防止影响，每个函数需要把缓存的内容清空
 		_, serviceResp := discoverSuit.createCommonService(t, 100)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
@@ -2457,7 +2457,7 @@ func Test_HealthCheckInstanceMetadata(t *testing.T) {
 		err := future.Wait()
 		assert.NoError(t, err)
 
-		discoverSuit.DiscoverServer().Cache().TestRefresh()
+		discoverSuit.DiscoverServer().Cache().TestUpdate()
 		ins1Cache := discoverSuit.DiscoverServer().Cache().Instance().GetInstance(ins1.GetId().GetValue())
 		assert.NotNil(t, ins1Cache, "ins1Cache is nil")
 		val, ok := ins1Cache.Metadata()[model.MetadataInstanceLastHeartbeatTime]
@@ -2471,7 +2471,7 @@ func Test_HealthCheckInstanceMetadata(t *testing.T) {
 		err := future.Wait()
 		assert.NoError(t, err)
 
-		discoverSuit.DiscoverServer().Cache().TestRefresh()
+		discoverSuit.DiscoverServer().Cache().TestUpdate()
 		ins1Cache := discoverSuit.DiscoverServer().Cache().Instance().GetInstance(ins1.GetId().GetValue())
 		assert.NotNil(t, ins1Cache, "ins1Cache is nil")
 		_, ok := ins1Cache.Metadata()[model.MetadataInstanceLastHeartbeatTime]
@@ -2518,7 +2518,7 @@ func Test_OperateInstanceMetadata(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		discoverSuit.DiscoverServer().Cache().TestRefresh()
+		discoverSuit.DiscoverServer().Cache().TestUpdate()
 		ins1Cache := discoverSuit.DiscoverServer().Cache().Instance().GetInstance(ins1.GetId().GetValue())
 		assert.NotNil(t, ins1Cache, "ins1Cache is nil")
 		val, ok := ins1Cache.Metadata()["ins1_mock_key"]
@@ -2556,7 +2556,7 @@ func Test_OperateInstanceMetadata(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		discoverSuit.DiscoverServer().Cache().TestRefresh()
+		discoverSuit.DiscoverServer().Cache().TestUpdate()
 		ins1Cache := discoverSuit.DiscoverServer().Cache().Instance().GetInstance(ins1.GetId().GetValue())
 		assert.NotNil(t, ins1Cache, "ins1Cache is nil")
 		_, ok := ins1Cache.Metadata()["ins1_mock_key"]

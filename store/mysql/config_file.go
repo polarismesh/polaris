@@ -22,9 +22,26 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
+)
+
+var (
+	configFileStoreFieldMapping = map[string]map[string]string{
+		"config_file": {
+			"group":     "`group`",
+			"file_name": "name",
+		},
+		"config_file_release": {
+			"group":        "`group`",
+			"file_name":    "file_name",
+			"release_name": "name",
+		},
+		"config_file_group": {},
+	}
 )
 
 var _ store.ConfigFileStore = (*configFileStore)(nil)
@@ -34,17 +51,48 @@ type configFileStore struct {
 	slave  *BaseDB
 }
 
+// LockConfigFile 加锁配置文件
+func (cf *configFileStore) LockConfigFile(tx store.Tx, file *model.ConfigFileKey) (*model.ConfigFile, error) {
+	if tx == nil {
+		return nil, ErrTxIsNil
+	}
+
+	dbTx := tx.GetDelegateTx().(*BaseTx)
+	args := []interface{}{file.Namespace, file.Group, file.Name}
+	lockSql := cf.baseSelectConfigFileSql() +
+		" WHERE namespace = ? AND `group` = ? AND name = ? AND flag = 0 FOR UPDATE"
+
+	rows, err := dbTx.Query(lockSql, args...)
+	if err != nil {
+		return nil, store.Error(err)
+	}
+	files, err := cf.transferRows(rows)
+	if err != nil {
+		return nil, err
+	}
+	if len(files) > 0 {
+		return files[0], nil
+	}
+	return nil, nil
+}
+
 // CreateConfigFile 创建配置文件
 func (cf *configFileStore) CreateConfigFileTx(tx store.Tx, file *model.ConfigFile) error {
+	if tx == nil {
+		return ErrTxIsNil
+	}
+
 	dbTx := tx.GetDelegateTx().(*BaseTx)
-	deleteSql := "delete from config_file where namespace = ? and `group` = ? and name = ? and flag = 1"
+	deleteSql := "DELETE FROM config_file WHERE namespace = ? AND `group` = ? AND name = ? AND flag = 1"
 	if _, err := dbTx.Exec(deleteSql, file.Namespace, file.Group, file.Name); err != nil {
 		return store.Error(err)
 	}
 
-	createSql := "insert into config_file(name,namespace,`group`,content,comment,format,create_time, " +
-		"create_by,modify_time,modify_by) values " +
-		"(?,?,?,?,?,?,sysdate(),?,sysdate(),?)"
+	createSql := "INSERT INTO config_file( " +
+		" name, namespace, `group`, content, comment, format, create_time, " +
+		"create_by, modify_time, modify_by) " +
+		" VALUES " +
+		"(?, ?, ?, ?, ?, ?, sysdate(), ?, sysdate(), ?)"
 	if _, err := dbTx.Exec(createSql, file.Name, file.Namespace, file.Group,
 		file.Content, file.Comment, file.Format, file.CreateBy, file.ModifyBy); err != nil {
 		return store.Error(err)
@@ -53,21 +101,28 @@ func (cf *configFileStore) CreateConfigFileTx(tx store.Tx, file *model.ConfigFil
 	if err := cf.batchCleanTags(dbTx, file); err != nil {
 		return store.Error(err)
 	}
-
+	if err := cf.batchAddTags(dbTx, file); err != nil {
+		return store.Error(err)
+	}
 	return nil
 }
 
 func (cf *configFileStore) batchAddTags(tx *BaseTx, file *model.ConfigFile) error {
-	// 添加配置标签
-	insertSql := "insert into config_file_tag(`key`, `value`, namespace, `group`, file_name, " +
-		" create_time, create_by, modify_time, modify_by) values "
-	values := []string{}
-	args := []interface{}{}
-	for k, v := range file.Metadata {
-		values = append(values, " (?,?,?,?,?,sysdate(),?,sysdate(),?) ")
-		args = append(args, k, v, file.Namespace, file.Group, file.Name, file.CreateBy, file.ModifyBy)
+	if len(file.Metadata) == 0 {
+		return nil
 	}
 
+	// 添加配置标签
+	insertSql := "INSERT INTO config_file_tag(" +
+		" `key`, `value`, namespace, `group`, file_name, create_time, create_by, modify_time, modify_by) " +
+		" VALUES "
+	valuesSql := []string{}
+	args := []interface{}{}
+	for k, v := range file.Metadata {
+		valuesSql = append(valuesSql, " (?, ?, ?, ?, ?, sysdate(), ?, sysdate(), ?) ")
+		args = append(args, k, v, file.Namespace, file.Group, file.Name, file.CreateBy, file.ModifyBy)
+	}
+	insertSql = insertSql + strings.Join(valuesSql, ",")
 	_, err := tx.Exec(insertSql, args...)
 	return store.Error(err)
 }
@@ -80,9 +135,33 @@ func (cf *configFileStore) batchCleanTags(tx *BaseTx, file *model.ConfigFile) er
 	return store.Error(err)
 }
 
+func (cf *configFileStore) loadFileTags(tx *BaseTx, file *model.ConfigFile) error {
+	querySql := "SELECT `key`, `value` FROM config_file_tag WHERE namespace = ? AND " +
+		" `group` = ? AND file_name = ? "
+
+	rows, err := tx.Query(querySql, file.Namespace, file.Group, file.Name)
+	if err != nil {
+		return err
+	}
+	if rows == nil {
+		return nil
+	}
+	defer rows.Close()
+
+	file.Metadata = make(map[string]string)
+	for rows.Next() {
+		var key, value string
+		if err := rows.Scan(&key, &value); err != nil {
+			return err
+		}
+		file.Metadata[key] = value
+	}
+	return nil
+}
+
 // CountConfigFiles 获取一个配置文件组下的文件数量
 func (cfr *configFileStore) CountConfigFiles(namespace, group string) (uint64, error) {
-	metricsSql := "SELECT count(file_name) FROM config_file WHERE flag = 0 AND namespace = ? AND `group` = ?"
+	metricsSql := "SELECT count(*) FROM config_file WHERE flag = 0 AND namespace = ? AND `group` = ?"
 	row := cfr.slave.QueryRow(metricsSql, namespace, group)
 	var total uint64
 	if err := row.Scan(&total); err != nil {
@@ -105,31 +184,51 @@ func (cf *configFileStore) GetConfigFile(namespace, group, name string) (*model.
 }
 
 // GetConfigFile 获取配置文件
-func (cf *configFileStore) GetConfigFileTx(tx store.Tx, namespace, group, name string) (*model.ConfigFile, error) {
+func (cf *configFileStore) GetConfigFileTx(tx store.Tx,
+	namespace, group, name string) (*model.ConfigFile, error) {
+	if tx == nil {
+		return nil, ErrTxIsNil
+	}
+
 	dbTx := tx.GetDelegateTx().(*BaseTx)
-	querySql := cf.baseSelectConfigFileSql() + "where namespace = ? and `group` = ? and name = ? and flag = 0"
+	querySql := cf.baseSelectConfigFileSql() + "WHERE namespace = ? AND `group` = ? AND name = ? AND flag = 0"
 	rows, err := dbTx.Query(querySql, namespace, group, name)
 	if err != nil {
-		return nil, err
+		return nil, store.Error(err)
 	}
 	files, err := cf.transferRows(rows)
 	if err != nil {
-		return nil, err
+		return nil, store.Error(err)
 	}
-	if len(files) > 0 {
-		return files[0], nil
+	if len(files) == 0 {
+		return nil, nil
 	}
-	return nil, nil
+	ret := files[0]
+	if err := cf.loadFileTags(dbTx, ret); err != nil {
+		return nil, store.Error(err)
+	}
+	return ret, nil
 }
 
 // UpdateConfigFile 更新配置文件
 func (cf *configFileStore) UpdateConfigFileTx(tx store.Tx, file *model.ConfigFile) error {
-	updateSql := "update config_file set content = ? , comment = ?, format = ?, modify_time = sysdate(), " +
-		" modify_by = ? where namespace = ? and `group` = ? and name = ?"
+	if tx == nil {
+		return ErrTxIsNil
+	}
+
+	updateSql := "UPDATE config_file SET content = ?, comment = ?, format = ?, modify_time = sysdate(), " +
+		" modify_by = ? WHERE namespace = ? AND `group` = ? AND name = ?"
 	dbTx := tx.GetDelegateTx().(*BaseTx)
 	_, err := dbTx.Exec(updateSql, file.Content, file.Comment, file.Format,
 		file.ModifyBy, file.Namespace, file.Group, file.Name)
 	if err != nil {
+		return store.Error(err)
+	}
+
+	if err := cf.batchCleanTags(dbTx, file); err != nil {
+		return store.Error(err)
+	}
+	if err := cf.batchAddTags(dbTx, file); err != nil {
 		return store.Error(err)
 	}
 	return nil
@@ -137,14 +236,13 @@ func (cf *configFileStore) UpdateConfigFileTx(tx store.Tx, file *model.ConfigFil
 
 // DeleteConfigFileTx 删除配置文件
 func (cf *configFileStore) DeleteConfigFileTx(tx store.Tx, namespace, group, name string) error {
-	deleteSql := "update config_file set flag = 1 where namespace = ? and `group` = ? and name = ?"
-	var err error
-	if tx != nil {
-		_, err = tx.GetDelegateTx().(*BaseTx).Exec(deleteSql, namespace, group, name)
-	} else {
-		_, err = cf.master.Exec(deleteSql, namespace, group, name)
+	if tx == nil {
+		return ErrTxIsNil
 	}
-	if err != nil {
+
+	deleteSql := "UPDATE config_file SET flag = 1 WHERE namespace = ? AND `group` = ? AND name = ?"
+	dbTx := tx.GetDelegateTx().(*BaseTx)
+	if _, err := dbTx.Exec(deleteSql, namespace, group, name); err != nil {
 		return store.Error(err)
 	}
 	return nil
@@ -160,16 +258,27 @@ func (cf *configFileStore) QueryConfigFiles(filter map[string]string, offset, li
 	searchQuery := make([]string, 0, len(filter))
 
 	for k, v := range filter {
-		v = utils.ParseWildNameForSql(v)
+		if v, ok := configFileStoreFieldMapping["config_file"][k]; ok {
+			k = v
+		}
 		if utils.IsWildName(v) {
 			searchQuery = append(searchQuery, k+" LIKE ? ")
 		} else {
 			searchQuery = append(searchQuery, k+" = ? ")
 		}
-		args = append(args, v)
+		args = append(args, utils.ParseWildNameForSql(v))
 	}
 
+	if len(searchQuery) > 0 {
+		countSql = countSql + " AND "
+		querySql = querySql + " AND "
+	}
 	countSql = countSql + (strings.Join(searchQuery, " AND "))
+
+	if log.DebugEnabled() {
+		log.Debug("[Config][Storage] query config files", zap.String("count-sql", countSql))
+	}
+
 	var count uint32
 	err := cf.master.QueryRow(countSql, args...).Scan(&count)
 	if err != nil {
@@ -177,6 +286,10 @@ func (cf *configFileStore) QueryConfigFiles(filter map[string]string, offset, li
 	}
 
 	querySql = querySql + (strings.Join(searchQuery, " AND ")) + " ORDER BY id DESC LIMIT ?, ? "
+
+	if log.DebugEnabled() {
+		log.Debug("[Config][Storage] query config files", zap.String("query-sql", countSql))
+	}
 	args = append(args, offset, limit)
 	rows, err := cf.master.Query(querySql, args...)
 	if err != nil {
@@ -224,15 +337,14 @@ func (cf *configFileStore) CountConfigFileEachGroup() (map[string]map[string]int
 }
 
 func (cf *configFileStore) baseSelectConfigFileSql() string {
-	return "SELECT id, name,namespace,`group`,content,IFNULL(comment, ''),format, UNIX_TIMESTAMP(create_time), " +
-		" IFNULL(create_by, ''),UNIX_TIMESTAMP(modify_time),IFNULL(modify_by, '') FROM config_file "
+	return "SELECT  " +
+		" id, name, namespace, `group`, content, IFNULL(comment, ''), format, " +
+		" UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), UNIX_TIMESTAMP(modify_time), " +
+		" IFNULL(modify_by, '') FROM config_file "
 }
 
 func (cf *configFileStore) hardDeleteConfigFile(namespace, group, name string) error {
-	log.Infof("[Config][Storage] delete config file. namespace = %s, group = %s, name = %s", namespace, group, name)
-
-	deleteSql := "delete from config_file where namespace = ? and `group` = ? and name = ? and flag = 1"
-
+	deleteSql := "DELETE FROM config_file WHERE namespace = ? AND `group` = ? AND name = ? AND flag = 1"
 	_, err := cf.master.Exec(deleteSql, namespace, group, name)
 	if err != nil {
 		return store.Error(err)

@@ -56,9 +56,9 @@ type configFileReleaseHistoryStore struct {
 	handler BoltHandler
 }
 
-func newConfigFileReleaseHistoryStore(handler BoltHandler) (*configFileReleaseHistoryStore, error) {
+func newConfigFileReleaseHistoryStore(handler BoltHandler) *configFileReleaseHistoryStore {
 	s := &configFileReleaseHistoryStore{handler: handler}
-	return s, nil
+	return s
 }
 
 // CreateConfigFileReleaseHistory 创建配置文件发布历史记录
@@ -66,7 +66,10 @@ func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(
 	history *model.ConfigFileReleaseHistory) error {
 
 	err := rh.handler.Execute(true, func(tx *bolt.Tx) error {
-		table := tx.Bucket([]byte(tblConfigFileReleaseHistory))
+		table, err := tx.CreateBucketIfNotExists([]byte(tblConfigFileReleaseHistory))
+		if err != nil {
+			return err
+		}
 		nextId, err := table.NextSequence()
 		if err != nil {
 			return err
@@ -90,7 +93,7 @@ func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(
 
 // QueryConfigFileReleaseHistories 获取配置文件的发布历史记录
 func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(filter map[string]string,
-	limit, offset uint32) (uint32, []*model.ConfigFileReleaseHistory, error) {
+	offset, limit uint32) (uint32, []*model.ConfigFileReleaseHistory, error) {
 
 	var (
 		namespace = filter["namespace"]

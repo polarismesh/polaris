@@ -20,12 +20,12 @@ package config
 import (
 	"context"
 	"errors"
-	"time"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
@@ -46,46 +46,57 @@ var (
 )
 
 var (
-	availableSearch = map[string]map[string]struct{}{
+	availableSearch = map[string]map[string]string{
 		"config_file": {
-			"namespace":   {},
-			"group":       {},
-			"name":        {},
-			"offset":      {},
-			"limit":       {},
-			"order_type":  {},
-			"order_field": {},
+			"namespace":   "namespace",
+			"group":       "group",
+			"name":        "name",
+			"offset":      "offset",
+			"limit":       "limit",
+			"order_type":  "order_type",
+			"order_field": "order_field",
 		},
 		"config_file_release": {
-			"namespace":    {},
-			"group":        {},
-			"file_name":    {},
-			"name":         {},
-			"release_name": {},
-			"offset":       {},
-			"limit":        {},
-			"order_type":   {},
-			"order_field":  {},
+			"namespace":    "namespace",
+			"group":        "group",
+			"file_name":    "file_name",
+			"name":         "release_name",
+			"release_name": "release_name",
+			"offset":       "offset",
+			"limit":        "limit",
+			"order_type":   "order_type",
+			"order_field":  "order_field",
+			"only_active":  "only_active",
 		},
 		"config_file_group": {
-			"namespace":   {},
-			"group":       {},
-			"name":        {},
-			"business":    {},
-			"department":  {},
-			"offset":      {},
-			"limit":       {},
-			"order_type":  {},
-			"order_field": {},
+			"namespace":   "namespace",
+			"group":       "name",
+			"name":        "name",
+			"business":    "business",
+			"department":  "department",
+			"offset":      "offset",
+			"limit":       "limit",
+			"order_type":  "order_type",
+			"order_field": "order_field",
+		},
+		"config_file_release_history": {
+			"namespace":   "namespace",
+			"group":       "group",
+			"name":        "file_name",
+			"offset":      "offset",
+			"limit":       "limit",
+			"endId":       "endId",
+			"end_id":      "endId",
+			"order_type":  "order_type",
+			"order_field": "order_field",
 		},
 	}
 )
 
 // Config 配置中心模块启动参数
 type Config struct {
-	Open               bool          `yaml:"open"`
-	ContentMaxLength   int64         `yaml:""json:"contentMaxLength"`
-	LongPollingTimeout time.Duration `yaml:"longPollingTimeout"`
+	Open             bool  `yaml:"open"`
+	ContentMaxLength int64 `yaml:"contentMaxLength"`
 }
 
 // Server 配置中心核心服务
@@ -93,8 +104,8 @@ type Server struct {
 	cfg *Config
 
 	storage           store.Store
-	fileCache         cache.ConfigFileCache
-	groupCache        cache.ConfigGroupCache
+	fileCache         cachetypes.ConfigFileCache
+	groupCache        cachetypes.ConfigGroupCache
 	caches            *cache.CacheManager
 	watchCenter       *watchCenter
 	connManager       *connManager
@@ -107,6 +118,8 @@ type Server struct {
 
 	// chains
 	chains *ConfigChains
+
+	sequence int64
 }
 
 // Initialize 初始化配置中心模块
@@ -141,6 +154,7 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	s.storage = ss
 	s.namespaceOperator = namespaceOperator
 	s.fileCache = cacheMgn.ConfigFile()
+	s.groupCache = cacheMgn.ConfigGroup()
 
 	s.watchCenter = NewWatchCenter()
 
@@ -192,7 +206,7 @@ func (s *Server) WatchCenter() *watchCenter {
 }
 
 // Cache 获取配置中心缓存模块
-func (s *Server) Cache() cache.ConfigFileCache {
+func (s *Server) Cache() cachetypes.ConfigFileCache {
 	return s.fileCache
 }
 

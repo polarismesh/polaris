@@ -68,3 +68,20 @@ func (h *HTTPServer) ClientWatchConfigFile(req *restful.Request, rsp *restful.Re
 	}
 	handler.WriteHeaderAndProto(callback())
 }
+
+// GetConfigFileMetadataList 统一发现接口
+func (h *HTTPServer) GetConfigFileMetadataList(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	in := &apiconfig.ConfigFileGroupRequest{}
+	ctx, err := handler.Parse(in)
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+	out := h.configServer.GetConfigFileNamesWithCache(ctx, in)
+	handler.WriteHeaderAndProto(out)
+}

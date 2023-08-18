@@ -49,8 +49,6 @@ type ConfigFileGroupOperate interface {
 type ConfigFileOperate interface {
 	// CreateConfigFile 创建配置文件
 	CreateConfigFile(ctx context.Context, configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse
-	// GetConfigFileBaseInfo 获取单个配置文件基础信息，不包含发布信息
-	GetConfigFileBaseInfo(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse
 	// GetConfigFileRichInfo 获取单个配置文件基础信息，包含发布状态等信息
 	GetConfigFileRichInfo(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse
 	// SearchConfigFile 按 group 和 name 模糊搜索配置文件
@@ -60,8 +58,7 @@ type ConfigFileOperate interface {
 	// DeleteConfigFile 删除配置文件
 	DeleteConfigFile(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse
 	// BatchDeleteConfigFile 批量删除配置文件
-	BatchDeleteConfigFile(ctx context.Context,
-		configFiles []*apiconfig.ConfigFile, operator string) *apiconfig.ConfigResponse
+	BatchDeleteConfigFile(ctx context.Context, req []*apiconfig.ConfigFile) *apiconfig.ConfigResponse
 	// ExportConfigFile 导出配置文件
 	ExportConfigFile(ctx context.Context,
 		configFileExport *apiconfig.ConfigFileExportRequest) *apiconfig.ConfigExportResponse
@@ -88,22 +85,25 @@ type ConfigFileReleaseOperate interface {
 	GetConfigFileReleaseVersions(ctx context.Context, filters map[string]string) *apiconfig.ConfigBatchQueryResponse
 	// GetConfigFileReleaseHistories 获取配置文件的发布历史
 	GetConfigFileReleaseHistories(ctx context.Context, filter map[string]string) *apiconfig.ConfigBatchQueryResponse
+	// UpsertAndReleaseConfigFile 创建/更新配置文件并发布
+	UpsertAndReleaseConfigFile(ctx context.Context, req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse
 }
 
 // ConfigFileClientOperate 给客户端提供服务接口，不同的上层协议抽象的公共服务逻辑
 type ConfigFileClientOperate interface {
 	// GetConfigFileForClient 获取配置文件
-	GetConfigFileForClient(ctx context.Context, configFile *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse
+	GetConfigFileForClient(ctx context.Context, req *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse
 	// CreateConfigFileFromClient 调用config_file的方法创建配置文件
-	CreateConfigFileFromClient(ctx context.Context, fileInfo *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse
+	CreateConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse
 	// UpdateConfigFileFromClient 调用config_file的方法更新配置文件
-	UpdateConfigFileFromClient(ctx context.Context, fileInfo *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse
+	UpdateConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse
 	// PublishConfigFileFromClient 调用config_file_release的方法发布配置文件
-	PublishConfigFileFromClient(ctx context.Context, fileInfo *apiconfig.ConfigFileRelease) *apiconfig.ConfigClientResponse
+	PublishConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFileRelease) *apiconfig.ConfigClientResponse
 	// WatchConfigFiles 客户端监听配置文件
-	WatchConfigFiles(ctx context.Context, request *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error)
+	WatchConfigFiles(ctx context.Context, req *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error)
 	// GetConfigFileNamesWithCache 获取某个配置分组下的配置文件
-	GetConfigFileNamesWithCache(ctx context.Context, req *apiconfig.ConfigFileGroupRequest) *apiconfig.ConfigClientListResponse
+	GetConfigFileNamesWithCache(ctx context.Context,
+		req *apiconfig.ConfigFileGroupRequest) *apiconfig.ConfigClientListResponse
 }
 
 // ConfigFileTemplateOperate config file template operate

@@ -134,16 +134,12 @@ func BuildDefaultStrategyName(role PrincipalType, name string) string {
 type ResourceOperation int16
 
 const (
-
 	// Read 只读动作
 	Read ResourceOperation = 10
-
 	// Create 创建动作
 	Create ResourceOperation = 20
-
 	// Modify 修改动作
 	Modify ResourceOperation = 30
-
 	// Delete 删除动作
 	Delete ResourceOperation = 40
 )

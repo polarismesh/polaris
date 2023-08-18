@@ -1,0 +1,1 @@
+mockgen -source=api/types.go -destination=mock/cache_mock.go -package=mock

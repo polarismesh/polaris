@@ -35,40 +35,50 @@ func (s *Server) recordReleaseHistory(ctx context.Context, fileRelease *model.Co
 	releaseType, status, reason string) {
 
 	releaseHistory := &model.ConfigFileReleaseHistory{
-		Name:      fileRelease.Name,
-		Namespace: fileRelease.Namespace,
-		Group:     fileRelease.Group,
-		FileName:  fileRelease.FileName,
-		Content:   fileRelease.Content,
-		Format:    fileRelease.Format,
-		Metadata:  fileRelease.Metadata,
-		Comment:   fileRelease.Comment,
-		Md5:       fileRelease.Md5,
-		Type:      releaseType,
-		Status:    status,
-		Reason:    reason,
-		CreateBy:  fileRelease.ModifyBy,
-		ModifyBy:  fileRelease.ModifyBy,
+		Name:               fileRelease.Name,
+		Namespace:          fileRelease.Namespace,
+		Group:              fileRelease.Group,
+		FileName:           fileRelease.FileName,
+		Content:            fileRelease.Content,
+		Format:             fileRelease.Format,
+		Metadata:           fileRelease.Metadata,
+		Comment:            fileRelease.Comment,
+		Md5:                fileRelease.Md5,
+		Version:            fileRelease.Version,
+		Type:               releaseType,
+		Status:             status,
+		Reason:             reason,
+		CreateBy:           utils.ParseUserName(ctx),
+		ModifyBy:           utils.ParseUserName(ctx),
+		ReleaseDescription: fileRelease.ReleaseDescription,
 	}
 
 	if err := s.storage.CreateConfigFileReleaseHistory(releaseHistory); err != nil {
-		log.Error("[Config][Service] create config file release history error.", utils.RequestID(ctx),
+		log.Error("[Config][History] create config file release history error.", utils.RequestID(ctx),
 			utils.ZapNamespace(fileRelease.Namespace), utils.ZapGroup(fileRelease.Group),
 			utils.ZapFileName(fileRelease.FileName), zap.Error(err))
 	}
 }
 
 // GetConfigFileReleaseHistories 获取配置文件发布历史记录
-func (s *Server) GetConfigFileReleaseHistories(ctx context.Context, filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
+func (s *Server) GetConfigFileReleaseHistories(ctx context.Context,
+	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
 
 	offset, limit, err := utils.ParseOffsetAndLimit(filter)
 	if err != nil {
 		return api.NewConfigBatchQueryResponseWithInfo(apimodel.Code_BadRequest, err.Error())
 	}
 
-	count, saveDatas, err := s.storage.QueryConfigFileReleaseHistories(filter, offset, limit)
+	searchFilter := map[string]string{}
+	for k, v := range filter {
+		if nk, ok := availableSearch["config_file_release_history"][k]; ok {
+			searchFilter[nk] = v
+		}
+	}
+
+	count, saveDatas, err := s.storage.QueryConfigFileReleaseHistories(searchFilter, offset, limit)
 	if err != nil {
-		log.Error("[Config][Service] get config file release history error.", utils.RequestID(ctx),
+		log.Error("[Config][History] get config file release history error.", utils.RequestID(ctx),
 			zap.Any("filter", filter), zap.Error(err))
 		return api.NewConfigBatchQueryResponseWithInfo(commonstore.StoreCode2APICode(err), err.Error())
 	}

@@ -20,7 +20,5 @@ package cache
 import commonlog "github.com/polarismesh/polaris/common/log"
 
 var (
-	log       = commonlog.GetScopeOrDefaultByName(commonlog.CacheLoggerName)
-	naminglog = commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName)
-	configLog = commonlog.GetScopeOrDefaultByName(commonlog.ConfigLoggerName)
+	log = commonlog.GetScopeOrDefaultByName(commonlog.CacheLoggerName)
 )

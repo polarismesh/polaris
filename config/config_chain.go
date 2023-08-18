@@ -64,13 +64,14 @@ func (chain *CryptoConfigFileChain) Name() string {
 func (chain *CryptoConfigFileChain) BeforeCreateFile(ctx context.Context,
 	file *model.ConfigFile) *apiconfig.ConfigResponse {
 	// 配置加密
-	if file.IsEncrypted() {
-		if err := chain.encryptConfigFile(ctx, file, file.GetEncryptAlgo(), ""); err != nil {
-			log.Error("[Config][Service] encrypt config file error.", utils.RequestID(ctx),
-				utils.ZapNamespace(file.Namespace), utils.ZapGroup(file.Group),
-				utils.ZapFileName(file.Name), zap.Error(err))
-			return api.NewConfigResponseWithInfo(apimodel.Code_EncryptConfigFileException, err.Error())
-		}
+	if !file.IsEncrypted() {
+		return nil
+	}
+	if err := chain.encryptConfigFile(ctx, file, file.GetEncryptAlgo(), ""); err != nil {
+		log.Error("[Config][Service] encrypt config file error.", utils.RequestID(ctx),
+			utils.ZapNamespace(file.Namespace), utils.ZapGroup(file.Group),
+			utils.ZapFileName(file.Name), zap.Error(err))
+		return api.NewConfigResponseWithInfo(apimodel.Code_EncryptConfigFileException, err.Error())
 	}
 	return nil
 }
@@ -93,6 +94,7 @@ func (chain *CryptoConfigFileChain) AfterGetFile(ctx context.Context,
 			utils.ZapNamespace(file.Namespace), utils.ZapGroup(file.Group),
 			utils.ZapFileName(file.Name), zap.Error(err))
 	}
+	delete(file.Metadata, utils.ConfigFileTagKeyDataKey)
 	return file, nil
 }
 
@@ -168,7 +170,7 @@ func (chain *CryptoConfigFileChain) decryptConfigFileContent(dataKey, algorithm,
 	if cryptoMgr == nil {
 		return "", nil
 	}
-	// 没有加密算法不加密
+	// 没有加密算法不解密
 	if algorithm == "" {
 		return "", nil
 	}
@@ -229,6 +231,9 @@ func (chain *CryptoConfigFileChain) encryptConfigFile(ctx context.Context, confi
 		return err
 	}
 	configFile.Content = cipherContent
+	if len(configFile.Metadata) == 0 {
+		configFile.Metadata = map[string]string{}
+	}
 	configFile.Metadata[utils.ConfigFileTagKeyDataKey] = base64.StdEncoding.EncodeToString(dateKeyBytes)
 	configFile.Metadata[utils.ConfigFileTagKeyEncryptAlgo] = algorithm
 	configFile.Metadata[utils.ConfigFileTagKeyUseEncrypted] = "true"

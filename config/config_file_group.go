@@ -19,7 +19,6 @@ package config
 
 import (
 	"context"
-	"reflect"
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
@@ -27,7 +26,7 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	commonstore "github.com/polarismesh/polaris/common/store"
@@ -47,16 +46,14 @@ func (s *Server) CreateConfigFileGroup(ctx context.Context, req *apiconfig.Confi
 	if _, errResp := s.namespaceOperator.CreateNamespaceIfAbsent(ctx, &apimodel.Namespace{
 		Name: req.GetNamespace(),
 	}); errResp != nil {
-		log.Error("[Config][Service] create namespace failed.", utils.RequestID(ctx),
+		log.Error("[Config][Group] create namespace failed.", utils.RequestID(ctx),
 			utils.ZapNamespace(namespace), utils.ZapGroup(groupName), zap.String("err", errResp.String()))
 		return api.NewConfigResponse(apimodel.Code(errResp.Code.GetValue()))
 	}
 
 	fileGroup, err := s.storage.GetConfigFileGroup(namespace, groupName)
 	if err != nil {
-		log.Error("[Config][Service] get config file group error.",
-			utils.RequestID(ctx),
-			zap.Error(err))
+		log.Error("[Config][Group] get config file group error.", utils.RequestID(ctx), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 	if fileGroup != nil {
@@ -69,18 +66,18 @@ func (s *Server) CreateConfigFileGroup(ctx context.Context, req *apiconfig.Confi
 
 	ret, err := s.storage.CreateConfigFileGroup(saveData)
 	if err != nil {
-		log.Error("[Config][Service] create config file group error.", utils.RequestID(ctx),
+		log.Error("[Config][Group] create config file group error.", utils.RequestID(ctx),
 			utils.ZapNamespace(namespace), utils.ZapGroup(groupName), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 
-	log.Info("[Config][Service] create config file group successful.", utils.RequestID(ctx),
+	log.Info("[Config][Group] create config file group successful.", utils.RequestID(ctx),
 		utils.ZapNamespace(namespace), utils.ZapGroup(groupName))
 
 	// 这里设置在 config-group 的 id 信息
 	req.Id = utils.NewUInt64Value(ret.Id)
 	if err := s.afterConfigGroupResource(ctx, req); err != nil {
-		log.Error("[Config][Service] create config_file_group after resource",
+		log.Error("[Config][Group] create config_file_group after resource",
 			utils.RequestID(ctx), zap.Error(err))
 		return api.NewConfigResponse(apimodel.Code_ExecuteException)
 	}
@@ -100,7 +97,7 @@ func (s *Server) UpdateConfigFileGroup(ctx context.Context, req *apiconfig.Confi
 
 	saveData, err := s.storage.GetConfigFileGroup(namespace, groupName)
 	if err != nil {
-		log.Error("[Config][Service] get config file group failed. ", utils.RequestID(ctx),
+		log.Error("[Config][Group] get config file group failed. ", utils.RequestID(ctx),
 			utils.ZapNamespace(namespace), utils.ZapGroup(groupName), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
@@ -116,14 +113,14 @@ func (s *Server) UpdateConfigFileGroup(ctx context.Context, req *apiconfig.Confi
 	}
 
 	if err := s.storage.UpdateConfigFileGroup(updateData); err != nil {
-		log.Error("[Config][Service] update config file group failed. ", utils.RequestID(ctx),
+		log.Error("[Config][Group] update config file group failed. ", utils.RequestID(ctx),
 			utils.ZapNamespace(namespace), utils.ZapGroup(groupName), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 
 	req.Id = utils.NewUInt64Value(saveData.Id)
 	if err := s.afterConfigGroupResource(ctx, req); err != nil {
-		log.Error("[Config][Service] update config_file_group after resource",
+		log.Error("[Config][Group] update config_file_group after resource",
 			utils.RequestID(ctx), zap.Error(err))
 		return api.NewConfigResponse(apimodel.Code_ExecuteException)
 	}
@@ -146,7 +143,7 @@ func (s *Server) updateGroupAttribute(saveData, updateData *model.ConfigFileGrou
 		needUpdate = true
 		saveData.Department = updateData.Department
 	}
-	if !reflect.DeepEqual(saveData.Metadata, updateData.Metadata) {
+	if utils.IsNotEqualMap(updateData.Metadata, saveData.Metadata) {
 		needUpdate = true
 		saveData.Metadata = updateData.Metadata
 	}
@@ -163,7 +160,7 @@ func (s *Server) createConfigFileGroupIfAbsent(ctx context.Context,
 
 	group, err := s.storage.GetConfigFileGroup(namespace, name)
 	if err != nil {
-		log.Error("[Config][Service] query config file group error.", utils.RequestID(ctx),
+		log.Error("[Config][Group] query config file group error.", utils.RequestID(ctx),
 			utils.ZapNamespace(namespace), utils.ZapGroup(name), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
@@ -182,12 +179,12 @@ func (s *Server) DeleteConfigFileGroup(ctx context.Context, namespace, name stri
 		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileGroupName)
 	}
 
-	log.Info("[Config][Service] delete config file group. ", utils.RequestID(ctx),
+	log.Info("[Config][Group] delete config file group. ", utils.RequestID(ctx),
 		utils.ZapNamespace(namespace), utils.ZapGroup(name))
 
 	configGroup, err := s.storage.GetConfigFileGroup(namespace, name)
 	if err != nil {
-		log.Error("[Config][Service] get config file group failed. ", utils.RequestID(ctx),
+		log.Error("[Config][Group] get config file group failed. ", utils.RequestID(ctx),
 			utils.ZapNamespace(namespace), utils.ZapGroup(name), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
@@ -199,7 +196,7 @@ func (s *Server) DeleteConfigFileGroup(ctx context.Context, namespace, name stri
 	}
 
 	if err := s.storage.DeleteConfigFileGroup(namespace, name); err != nil {
-		log.Error("[Config][Service] delete config file group failed. ", utils.RequestID(ctx),
+		log.Error("[Config][Group] delete config file group failed. ", utils.RequestID(ctx),
 			utils.ZapNamespace(namespace), utils.ZapGroup(name), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
@@ -209,7 +206,7 @@ func (s *Server) DeleteConfigFileGroup(ctx context.Context, namespace, name stri
 		Namespace: utils.NewStringValue(configGroup.Namespace),
 		Name:      utils.NewStringValue(configGroup.Name),
 	}); err != nil {
-		log.Error("[Config][Service] delete config_file_group after resource",
+		log.Error("[Config][Group] delete config_file_group after resource",
 			utils.RequestID(ctx), zap.Error(err))
 		return api.NewConfigResponse(apimodel.Code_ExecuteException)
 	}
@@ -223,16 +220,16 @@ func (s *Server) DeleteConfigFileGroup(ctx context.Context, namespace, name stri
 func (s *Server) hasResourceInConfigGroup(ctx context.Context, namespace, name string) *apiconfig.ConfigResponse {
 	total, err := s.storage.CountConfigFiles(namespace, name)
 	if err != nil {
-		log.Error("[Config][Service] get config file group failed. ", utils.RequestID(ctx),
+		log.Error("[Config][Group] get config file group failed. ", utils.RequestID(ctx),
 			utils.ZapNamespace(namespace), utils.ZapGroup(name), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 	if total != 0 {
 		return api.NewConfigResponse(apimodel.Code_ExistedResource)
 	}
-	total, err = s.storage.CountConfigReleases(namespace, name)
+	total, err = s.storage.CountConfigReleases(namespace, name, true)
 	if err != nil {
-		log.Error("[Config][Service] get config file group failed. ", utils.RequestID(ctx),
+		log.Error("[Config][Group] get config file group failed. ", utils.RequestID(ctx),
 			utils.ZapNamespace(namespace), utils.ZapGroup(name), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
@@ -246,13 +243,6 @@ func (s *Server) hasResourceInConfigGroup(ctx context.Context, namespace, name s
 func (s *Server) QueryConfigFileGroups(ctx context.Context,
 	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
 
-	searchFilters := map[string]string{}
-	for k, v := range filter {
-		if _, ok := availableSearch["config_file_group"][k]; ok {
-			searchFilters[k] = v
-		}
-	}
-
 	offset, limit, err := utils.ParseOffsetAndLimit(filter)
 	if err != nil {
 		resp := api.NewConfigBatchQueryResponse(apimodel.Code_BadRequest)
@@ -260,7 +250,14 @@ func (s *Server) QueryConfigFileGroups(ctx context.Context,
 		return resp
 	}
 
-	args := &cache.ConfigGroupArgs{
+	searchFilters := map[string]string{}
+	for k, v := range filter {
+		if newK, ok := availableSearch["config_file_group"][k]; ok {
+			searchFilters[newK] = v
+		}
+	}
+
+	args := &cachetypes.ConfigGroupArgs{
 		Namespace:  searchFilters["namespace"],
 		Name:       searchFilters["name"],
 		Business:   searchFilters["business"],

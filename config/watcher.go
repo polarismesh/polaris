@@ -34,11 +34,6 @@ const (
 	QueueSize = 10240
 )
 
-// Event 事件对象，包含类型和事件消息
-type PublishConfigFileEvent struct {
-	Message *model.SimpleConfigFileRelease
-}
-
 type FileReleaseCallback func(clientId string, rsp *apiconfig.ConfigClientResponse) bool
 
 type watchContext struct {
@@ -48,7 +43,8 @@ type watchContext struct {
 
 // watchCenter 处理客户端订阅配置请求，监听配置文件发布事件通知客户端
 type watchCenter struct {
-	lock sync.Mutex
+	subCtx *eventhub.SubscribtionContext
+	lock   sync.Mutex
 	// fileId -> clientId -> watchContext
 	configFileWatchers *utils.SegmentMap[string, *utils.SegmentMap[string, *watchContext]]
 }
@@ -59,7 +55,7 @@ func NewWatchCenter() *watchCenter {
 		configFileWatchers: utils.NewSegmentMap[string, *utils.SegmentMap[string, *watchContext]](128, hash.Fnv32),
 	}
 
-	_ = eventhub.Subscribe(eventhub.ConfigFilePublishTopic, utils.NewUUID(), wc, eventhub.WithQueueSize(QueueSize))
+	wc.subCtx, _ = eventhub.Subscribe(eventhub.ConfigFilePublishTopic, wc, eventhub.WithQueueSize(QueueSize))
 	return wc
 }
 
@@ -70,8 +66,9 @@ func (wc *watchCenter) PreProcess(_ context.Context, e any) any {
 
 // OnEvent event process logic
 func (wc *watchCenter) OnEvent(ctx context.Context, arg any) error {
-	event, ok := arg.(*PublishConfigFileEvent)
+	event, ok := arg.(*eventhub.PublishConfigFileEvent)
 	if !ok {
+		log.Warn("[Config][Watcher] receive invalid event type")
 		return nil
 	}
 	wc.notifyToWatchers(event.Message)

@@ -41,9 +41,10 @@ func (s *Server) CreateConfigFile(ctx context.Context, req *apiconfig.ConfigFile
 		return rsp
 	}
 
-	tx, ctx, err := s.StartTxAndSetToContext(ctx)
+	tx, err := s.storage.StartTx()
 	if err != nil {
-		return api.NewConfigResponseWithInfo(commonstore.StoreCode2APICode(err), err.Error())
+		log.Error("[Config][File] create config file begin tx.", utils.RequestID(ctx), zap.Error(err))
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 	defer func() {
 		_ = tx.Rollback()
@@ -54,16 +55,26 @@ func (s *Server) CreateConfigFile(ctx context.Context, req *apiconfig.ConfigFile
 		return resp
 	}
 	if err := tx.Commit(); err != nil {
-		return api.NewConfigResponseWithInfo(commonstore.StoreCode2APICode(err), err.Error())
+		log.Error("[Config][File] create config file commit tx.", utils.RequestID(ctx), zap.Error(err))
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
+	resp.ConfigFile = req
 	return resp
 }
 
 func (s *Server) handleCreateConfigFile(ctx context.Context, tx store.Tx,
 	req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
 
-	if rsp := s.prepareCreateConfigFile(ctx, req); rsp.Code.Value != api.ExecuteSuccess {
-		return rsp
+	data, err := s.storage.GetConfigFileTx(tx, req.GetNamespace().GetValue(), req.GetGroup().GetValue(),
+		req.GetName().GetValue())
+	if err != nil {
+		log.Error("[Config][File] create config file when get save data.", utils.RequestID(ctx),
+			utils.ZapNamespace(req.GetNamespace().GetValue()), utils.ZapGroup(req.GetGroup().GetValue()),
+			utils.ZapFileName(req.GetName().GetValue()), zap.Error(err))
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
+	}
+	if data != nil {
+		return api.NewConfigResponse(apimodel.Code_ExistedResource)
 	}
 
 	savaData := model.ToConfigFileStore(req)
@@ -72,34 +83,38 @@ func (s *Server) handleCreateConfigFile(ctx context.Context, tx store.Tx,
 	}
 	// 创建配置文件
 	if err := s.storage.CreateConfigFileTx(tx, savaData); err != nil {
-		log.Error("[Config][Service] create config file error.", utils.RequestID(ctx),
+		log.Error("[Config][File] create config file error.", utils.RequestID(ctx),
 			utils.ZapNamespace(req.GetNamespace().GetValue()), utils.ZapGroup(req.GetGroup().GetValue()),
 			utils.ZapFileName(req.GetName().GetValue()), zap.Error(err))
-		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), req)
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
-	log.Info("[Config][Service] create config file success.", utils.RequestID(ctx),
-		utils.ZapNamespace(req.GetNamespace().GetValue()), utils.ZapGroup(req.GetGroup().GetValue()),
-		utils.ZapFileName(req.GetName().GetValue()))
 	s.RecordHistory(ctx, configFileRecordEntry(ctx, req, model.OCreate))
-	return api.NewConfigFileResponse(apimodel.Code_ExecuteSuccess, req)
+	return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
 }
 
 // UpdateConfigFile 更新配置文件
-func (s *Server) UpdateConfigFile(ctx context.Context, configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-	if checkRsp := s.checkConfigFileParams(configFile); checkRsp != nil {
+func (s *Server) UpdateConfigFile(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+	if checkRsp := s.checkConfigFileParams(req); checkRsp != nil {
 		return checkRsp
 	}
-	tx, ctx, err := s.StartTxAndSetToContext(ctx)
+	tx, err := s.storage.StartTx()
 	if err != nil {
-		return api.NewConfigResponseWithInfo(commonstore.StoreCode2APICode(err), err.Error())
+		log.Error("[Config][File] update config file begin tx.", utils.RequestID(ctx), zap.Error(err))
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
-	resp := s.handleUpdateConfigFile(ctx, tx, configFile)
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	resp := s.handleUpdateConfigFile(ctx, tx, req)
 	if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 		return resp
 	}
 	if err := tx.Commit(); err != nil {
+		log.Error("[Config][File] update config file commit tx.", utils.RequestID(ctx), zap.Error(err))
 		return api.NewConfigResponseWithInfo(commonstore.StoreCode2APICode(err), err.Error())
 	}
+	s.RecordHistory(ctx, configFileRecordEntry(ctx, req, model.OUpdate))
 	return resp
 }
 
@@ -113,11 +128,15 @@ func (s *Server) handleUpdateConfigFile(ctx context.Context, tx store.Tx,
 	saveData, err := s.storage.GetConfigFileTx(tx, req.GetNamespace().GetValue(), req.GetGroup().GetValue(),
 		req.GetName().GetValue())
 	if err != nil {
-		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), req)
+		log.Error("[Config][File] update config file when get save data.", utils.RequestID(ctx), zap.Error(err))
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
+	}
+	if saveData == nil {
+		return api.NewConfigResponse(apimodel.Code_NotFoundResource)
 	}
 	updateData, needUpdate := s.updateConfigFileAttribute(saveData, model.ToConfigFileStore(req))
 	if !needUpdate {
-		return api.NewConfigFileResponse(apimodel.Code_NoNeedUpdate, req)
+		return api.NewConfigResponse(apimodel.Code_NoNeedUpdate)
 	}
 
 	if errResp := s.chains.BeforeUpdateFile(ctx, updateData); errResp != nil {
@@ -125,11 +144,10 @@ func (s *Server) handleUpdateConfigFile(ctx context.Context, tx store.Tx,
 	}
 
 	if err := s.storage.UpdateConfigFileTx(tx, updateData); err != nil {
-		log.Error("[Config][Service] update config file error.", utils.RequestID(ctx),
+		log.Error("[Config][File] update config file error.", utils.RequestID(ctx),
 			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(name), zap.Error(err))
 		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), req)
 	}
-	s.RecordHistory(ctx, configFileRecordEntry(ctx, req, model.OUpdate))
 	return api.NewConfigFileResponse(apimodel.Code_ExecuteSuccess, model.ToConfigFileAPI(updateData))
 }
 
@@ -147,7 +165,7 @@ func (s *Server) updateConfigFileAttribute(saveData, updateData *model.ConfigFil
 		needUpdate = true
 		saveData.Format = updateData.Format
 	}
-	if len(updateData.Metadata) > 0 {
+	if utils.IsNotEqualMap(updateData.Metadata, saveData.Metadata) {
 		needUpdate = true
 		saveData.Metadata = updateData.Metadata
 	}
@@ -157,9 +175,8 @@ func (s *Server) updateConfigFileAttribute(saveData, updateData *model.ConfigFil
 func (s *Server) prepareCreateConfigFile(ctx context.Context,
 	configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
 
-	userName := utils.ParseUserName(ctx)
-	configFile.CreateBy = utils.NewStringValue(userName)
-	configFile.ModifyBy = utils.NewStringValue(userName)
+	configFile.CreateBy = utils.NewStringValue(utils.ParseUserName(ctx))
+	configFile.ModifyBy = utils.NewStringValue(utils.ParseUserName(ctx))
 
 	// 如果配置文件组不存在则自动创建
 	createGroupRsp := s.createConfigFileGroupIfAbsent(ctx, &apiconfig.ConfigFileGroup{
@@ -171,6 +188,20 @@ func (s *Server) prepareCreateConfigFile(ctx context.Context,
 
 	if createGroupRsp.Code.GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 		return api.NewConfigFileResponse(apimodel.Code(createGroupRsp.Code.GetValue()), configFile)
+	}
+	return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
+}
+
+// BatchDeleteConfigFile 批量删除配置文件
+func (s *Server) BatchDeleteConfigFile(ctx context.Context, req []*apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+	if len(req) == 0 {
+		api.NewConfigFileResponse(apimodel.Code_ExecuteSuccess, nil)
+	}
+	for _, configFile := range req {
+		rsp := s.DeleteConfigFile(ctx, configFile)
+		if rsp.Code.GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
+			return rsp
+		}
 	}
 	return api.NewConfigFileResponse(apimodel.Code_ExecuteSuccess, nil)
 }
@@ -185,91 +216,47 @@ func (s *Server) DeleteConfigFile(ctx context.Context, req *apiconfig.ConfigFile
 	group := req.GetGroup().GetValue()
 	fileName := req.GetName().GetValue()
 
-	tx, ctx, _ := s.StartTxAndSetToContext(ctx)
+	tx, err := s.storage.StartTx()
+	if err != nil {
+		log.Error("[Config][File] delete config file begin tx.", utils.RequestID(ctx), zap.Error(err))
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
+	}
 	defer func() { _ = tx.Rollback() }()
 
-	file, err := s.storage.GetConfigFileTx(nil, namespace, group, fileName)
+	file, err := s.storage.LockConfigFile(tx, &model.ConfigFileKey{
+		Namespace: namespace,
+		Group:     group,
+		Name:      fileName,
+	})
 	if err != nil {
-		log.Error("[Config][Service] get config file error.", utils.RequestID(ctx),
+		log.Error("[Config][File] delete config file when lock.", utils.RequestID(ctx),
 			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
-		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 	if file == nil {
-		return api.NewConfigFileResponse(apimodel.Code_ExecuteSuccess, nil)
+		return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
 	}
-
 	// 1. 删除配置文件发布内容
-	if err := s.storage.CleanConfigFileReleasesTx(tx, namespace, group, fileName); err != nil {
-		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
+	if errResp := s.cleanConfigFileReleases(ctx, tx, file); errResp != nil {
+		return errResp
 	}
-
 	// 2. 删除配置文件
 	if err = s.storage.DeleteConfigFileTx(tx, namespace, group, fileName); err != nil {
-		log.Error("[Config][Service] delete config file error.", utils.RequestID(ctx),
+		log.Error("[Config][File] delete config file error.", utils.RequestID(ctx),
 			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
-		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
-
 	if err := tx.Commit(); err != nil {
-		log.Error("[Config][Service] commit delete config file tx error.", utils.RequestID(ctx),
+		log.Error("[Config][File] delete config file when commit tx.", utils.RequestID(ctx),
 			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
-		return api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
-
-	log.Info("[Config][Service] delete config file success.", utils.RequestID(ctx),
-		utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName))
 	s.RecordHistory(ctx, configFileRecordEntry(ctx, &apiconfig.ConfigFile{
 		Namespace: utils.NewStringValue(namespace),
 		Group:     utils.NewStringValue(group),
 		Name:      utils.NewStringValue(fileName),
 	}, model.ODelete))
-	return api.NewConfigFileResponse(apimodel.Code_ExecuteSuccess, nil)
-}
-
-// BatchDeleteConfigFile 批量删除配置文件
-func (s *Server) BatchDeleteConfigFile(ctx context.Context, configFiles []*apiconfig.ConfigFile,
-	operator string) *apiconfig.ConfigResponse {
-	if len(configFiles) == 0 {
-		api.NewConfigFileResponse(apimodel.Code_ExecuteSuccess, nil)
-	}
-	for _, configFile := range configFiles {
-		rsp := s.DeleteConfigFile(ctx, configFile)
-		if rsp.Code.GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
-			return rsp
-		}
-	}
-	return api.NewConfigFileResponse(apimodel.Code_ExecuteSuccess, nil)
-}
-
-// GetConfigFileBaseInfo 获取配置文件，只返回基础元信息
-func (s *Server) GetConfigFileBaseInfo(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-	if errResp := checkReadFileParameter(req); errResp != nil {
-		return errResp
-	}
-
-	file, errResp := s.handleDescribeFileBase(ctx, req)
-	if errResp != nil {
-		return errResp
-	}
-	ret := model.ToConfigFileAPI(file)
-	return api.NewConfigFileResponse(apimodel.Code_ExecuteSuccess, ret)
-}
-
-func (s *Server) handleDescribeFileBase(ctx context.Context, req *apiconfig.ConfigFile) (*model.ConfigFile, *apiconfig.ConfigResponse) {
-	namespace := req.GetNamespace().GetValue()
-	group := req.GetGroup().GetValue()
-	fileName := req.GetName().GetValue()
-
-	file, err := s.storage.GetConfigFile(namespace, group, fileName)
-	if err != nil {
-		log.Error("[Config][Service] get config file error.", utils.RequestID(ctx),
-			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
-		return nil, api.NewConfigResponseWithInfo(apimodel.Code_ExecuteException, err.Error())
-	}
-	if file == nil {
-		return nil, api.NewConfigFileResponse(apimodel.Code_NotFoundResource, nil)
-	}
-	return file, nil
+	return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
 }
 
 // GetConfigFileRichInfo 获取单个配置文件基础信息，包含发布状态等信息
@@ -278,10 +265,20 @@ func (s *Server) GetConfigFileRichInfo(ctx context.Context, req *apiconfig.Confi
 		return errResp
 	}
 
-	file, errResp := s.handleDescribeFileBase(ctx, req)
-	if errResp != nil {
-		return errResp
+	namespace := req.GetNamespace().GetValue()
+	group := req.GetGroup().GetValue()
+	fileName := req.GetName().GetValue()
+
+	file, err := s.storage.GetConfigFile(namespace, group, fileName)
+	if err != nil {
+		log.Error("[Config][File] get config file error.", utils.RequestID(ctx),
+			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
+	if file == nil {
+		return api.NewConfigResponse(apimodel.Code_NotFoundResource)
+	}
+
 	// 填充发布信息、标签信息等
 	richFile, err := s.chains.AfterGetFile(ctx, file)
 	if err != nil {
@@ -293,23 +290,26 @@ func (s *Server) GetConfigFileRichInfo(ctx context.Context, req *apiconfig.Confi
 
 // SearchConfigFile 查询配置文件
 func (s *Server) SearchConfigFile(ctx context.Context, filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
-	searchFilters := map[string]string{}
-	for k, v := range filter {
-		if _, ok := availableSearch["config_file"][k]; ok {
-			searchFilters[k] = v
-		}
-	}
-
 	offset, limit, err := utils.ParseOffsetAndLimit(filter)
 	if err != nil {
 		out := api.NewConfigBatchQueryResponse(apimodel.Code_BadRequest)
 		out.Info = utils.NewStringValue(err.Error())
 		return out
 	}
+	searchFilters := map[string]string{}
+	for k, v := range filter {
+		// 无效查询参数自动忽略
+		if v == "" {
+			continue
+		}
+		if _, ok := availableSearch["config_file"][k]; ok {
+			searchFilters[k] = v
+		}
+	}
 
 	count, files, err := s.storage.QueryConfigFiles(searchFilters, offset, limit)
 	if err != nil {
-		log.Error("[Config][Service]get config files by group error.", utils.RequestID(ctx),
+		log.Error("[Config][File]get config files by group error.", utils.RequestID(ctx),
 			zap.Error(err))
 		out := api.NewConfigBatchQueryResponse(commonstore.StoreCode2APICode(err))
 		return out
@@ -357,7 +357,7 @@ func (s *Server) ExportConfigFile(ctx context.Context,
 		for _, group := range groups {
 			files, err := s.getGroupAllConfigFiles(namespace, group)
 			if err != nil {
-				log.Error("[Config][Service] get config file by group error.", utils.RequestID(ctx),
+				log.Error("[Config][File] get config file by group error.", utils.RequestID(ctx),
 					utils.ZapNamespace(namespace), utils.ZapGroup(group), zap.Error(err))
 				return api.NewConfigFileExportResponse(commonstore.StoreCode2APICode(err), nil)
 			}
@@ -368,7 +368,7 @@ func (s *Server) ExportConfigFile(ctx context.Context,
 		for _, name := range names {
 			file, err := s.storage.GetConfigFile(namespace, groups[0], name)
 			if err != nil {
-				log.Error("[Config][Service] get config file error.", utils.RequestID(ctx),
+				log.Error("[Config][File] get config file error.", utils.RequestID(ctx),
 					utils.ZapNamespace(namespace), utils.ZapGroup(groups[0]), utils.ZapFileName(name),
 					zap.Error(err))
 				return api.NewConfigFileExportResponse(commonstore.StoreCode2APICode(err), nil)
@@ -376,7 +376,7 @@ func (s *Server) ExportConfigFile(ctx context.Context,
 			configFiles = append(configFiles, file)
 		}
 	} else {
-		log.Error("[Config][Service] export config file error.", utils.RequestID(ctx),
+		log.Error("[Config][File] export config file error.", utils.RequestID(ctx),
 			utils.ZapNamespace(namespace), zap.String("groups", strings.Join(groups, ",")),
 			zap.String("names", strings.Join(names, ",")))
 		return api.NewConfigFileExportResponse(apimodel.Code_InvalidParameter, nil)
@@ -418,7 +418,10 @@ func (s *Server) ImportConfigFile(ctx context.Context,
 	}
 
 	// 开启事务
-	tx, ctx, _ := s.StartTxAndSetToContext(ctx)
+	tx, err := s.storage.StartTx()
+	if err != nil {
+		return api.NewConfigFileImportResponse(commonstore.StoreCode2APICode(err), nil, nil, nil)
+	}
 	defer func() { _ = tx.Rollback() }()
 
 	// 记录创建，跳过，覆盖的配置文件
@@ -434,7 +437,7 @@ func (s *Server) ImportConfigFile(ctx context.Context,
 
 		managedFile, err := s.storage.GetConfigFileTx(tx, namespace, group, name)
 		if err != nil {
-			log.Error("[Config][Service] get config file error.", utils.RequestID(ctx),
+			log.Error("[Config][File] get config file error.", utils.RequestID(ctx),
 				utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(name), zap.Error(err))
 			return api.NewConfigFileImportResponse(commonstore.StoreCode2APICode(err), nil, nil, nil)
 		}
@@ -446,7 +449,7 @@ func (s *Server) ImportConfigFile(ctx context.Context,
 			} else if conflictHandling == utils.ConfigFileImportConflictOverwrite {
 				resp := s.handleUpdateConfigFile(ctx, tx, configFile)
 				if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
-					log.Error("[Config][Service] update config file error.", utils.RequestID(ctx),
+					log.Error("[Config][File] update config file error.", utils.RequestID(ctx),
 						utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(name), zap.Error(err))
 					return api.NewConfigFileImportResponse(commonstore.StoreCode2APICode(err), nil, nil, nil)
 				}
@@ -457,7 +460,7 @@ func (s *Server) ImportConfigFile(ctx context.Context,
 			// 配置文件不存在则创建
 			resp := s.handleCreateConfigFile(ctx, tx, configFile)
 			if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
-				log.Error("[Config][Service] create config file error.", utils.RequestID(ctx),
+				log.Error("[Config][File] create config file error.", utils.RequestID(ctx),
 					utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(name), zap.Error(err))
 				return api.NewConfigFileImportResponse(commonstore.StoreCode2APICode(err), nil, nil, nil)
 			}
@@ -467,7 +470,7 @@ func (s *Server) ImportConfigFile(ctx context.Context,
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.Error("[Config][Service] commit import config file tx error.", utils.RequestID(ctx), zap.Error(err))
+		log.Error("[Config][File] commit import config file tx error.", utils.RequestID(ctx), zap.Error(err))
 		return api.NewConfigFileImportResponse(commonstore.StoreCode2APICode(err), nil, nil, nil)
 	}
 
@@ -507,7 +510,7 @@ func (s *Server) checkConfigFileParams(configFile *apiconfig.ConfigFile) *apicon
 		return api.NewConfigFileResponse(apimodel.Code_InvalidNamespaceName, configFile)
 	}
 	if err := CheckContentLength(configFile.Content.GetValue(), int(s.cfg.ContentMaxLength)); err != nil {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileContentLength, configFile)
+		return api.NewConfigResponseWithInfo(apimodel.Code_InvalidConfigFileContentLength, err.Error())
 	}
 	if len(configFile.Tags) > 0 {
 		for _, tag := range configFile.Tags {
@@ -553,13 +556,13 @@ func configFileRecordEntry(ctx context.Context, req *apiconfig.ConfigFile,
 
 func checkReadFileParameter(req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
 	if req.GetNamespace().GetValue() == "" {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidNamespaceName, nil)
+		return api.NewConfigResponse(apimodel.Code_InvalidNamespaceName)
 	}
 	if req.GetGroup().GetValue() == "" {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileGroupName, nil)
+		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileGroupName)
 	}
 	if req.GetName().GetValue() == "" {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileName, nil)
+		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileName)
 	}
 	return nil
 }

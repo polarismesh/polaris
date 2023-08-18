@@ -20,7 +20,6 @@ package defaultauth
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -38,9 +37,10 @@ import (
 var (
 	// ErrorNotAllowedAccess 鉴权失败
 	ErrorNotAllowedAccess error = errors.New(api.Code2Info(api.NotAllowedAccess))
-
 	// ErrorInvalidParameter 不合法的参数
 	ErrorInvalidParameter error = errors.New(api.Code2Info(api.InvalidParameter))
+	// ErrorNotPermission .
+	ErrorNotPermission = errors.New("no permission")
 )
 
 // defaultAuthChecker 北极星自带的默认鉴权中心
@@ -255,12 +255,6 @@ func (d *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContext) err
 		ctx = context.WithValue(ctx, utils.ContextIsOwnerKey, isOwner)
 		ctx = context.WithValue(ctx, utils.ContextUserIDKey, operator.OperatorID)
 		ctx = context.WithValue(ctx, utils.ContextOwnerIDKey, ownerId)
-		// 注入用户名信息
-		user := d.Cache().User().GetUserByID(operator.OperatorID)
-		if user != nil {
-			ctx = context.WithValue(ctx, utils.ContextUserNameKey, user.Name)
-		}
-
 		authCtx.SetRequestContext(ctx)
 		d.parseOperatorInfo(operator, authCtx)
 		if operator.Disable {
@@ -287,8 +281,18 @@ func (d *defaultAuthChecker) parseOperatorInfo(operator OperatorInfo, authCtx *m
 	ctx := authCtx.GetRequestContext()
 	if operator.IsUserToken {
 		user := d.Cache().User().GetUserByID(operator.OperatorID)
-		operator.Role = user.Type
-		ctx = context.WithValue(ctx, utils.ContextUserRoleIDKey, user.Type)
+		if user != nil {
+			operator.Role = user.Type
+			ctx = context.WithValue(ctx, utils.ContextOperator, user.Name)
+			ctx = context.WithValue(ctx, utils.ContextUserNameKey, user.Name)
+			ctx = context.WithValue(ctx, utils.ContextUserRoleIDKey, user.Type)
+		}
+	} else {
+		userGroup := d.Cache().User().GetGroup(operator.OperatorID)
+		if userGroup != nil {
+			ctx = context.WithValue(ctx, utils.ContextOperator, userGroup.Name)
+			ctx = context.WithValue(ctx, utils.ContextUserNameKey, userGroup.Name)
+		}
 	}
 
 	authCtx.SetAttachment(model.OperatorRoleKey, operator.Role)
@@ -408,13 +412,13 @@ func (d *defaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext) (b
 
 	var err error
 	if !checkAllResEntries {
-		err = fmt.Errorf("no permission")
+		err = ErrorNotPermission
 	}
-
 	return checkAllResEntries, err
 }
 
 // checkAction 检查操作是否和策略匹配
-func (d *defaultAuthChecker) checkAction(expect string, actual model.ResourceOperation) bool {
+func (d *defaultAuthChecker) checkAction(expect string, actual model.ResourceOperation, method string) bool {
+	// TODO 后续可针对读写操作进行鉴权, 并且可以针对具体的方法调用进行鉴权控制
 	return true
 }

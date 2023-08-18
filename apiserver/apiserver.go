@@ -20,9 +20,6 @@ package apiserver
 import (
 	"context"
 	"fmt"
-	"strings"
-
-	"github.com/polarismesh/polaris/common/log"
 )
 
 const (
@@ -74,34 +71,4 @@ func Register(name string, server Apiserver) error {
 	Slots[name] = server
 
 	return nil
-}
-
-// GetClientOpenMethod 获取客户端openMethod
-func GetClientOpenMethod(include []string, protocol string) (map[string]bool, error) {
-	clientAccess := make(map[string][]string)
-	clientAccess[DiscoverAccess] = []string{"Discover", "ReportClient"}
-	clientAccess[RegisterAccess] = []string{"RegisterInstance", "DeregisterInstance"}
-	clientAccess[HealthcheckAccess] = []string{"Heartbeat", "BatchHeartbeat", "BatchGetHeartbeat", "BatchDelHeartbeat"}
-
-	openMethod := make(map[string]bool)
-	// 如果为空，开启全部接口
-	if len(include) == 0 {
-		for key := range clientAccess {
-			include = append(include, key)
-		}
-	}
-
-	for _, item := range include {
-		if methods, ok := clientAccess[item]; ok {
-			for _, method := range methods {
-				method = "/v1.Polaris" + strings.ToUpper(protocol) + "/" + method
-				openMethod[method] = true
-			}
-		} else {
-			log.Errorf("method %s does not exist in %sserver client access", item, protocol)
-			return nil, fmt.Errorf("method %s does not exist in %sserver client access", item, protocol)
-		}
-	}
-
-	return openMethod, nil
 }

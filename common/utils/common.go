@@ -366,6 +366,9 @@ func ParseUserName(ctx context.Context) string {
 	}
 
 	userName, _ := ctx.Value(ContextUserNameKey).(string)
+	if userName == "" {
+		return ParseOperator(ctx)
+	}
 	return userName
 }
 
@@ -396,7 +399,7 @@ func ParseOperator(ctx context.Context) string {
 		return defaultOperator
 	}
 
-	if operator, _ := ctx.Value(StringContext("operator")).(string); operator != "" {
+	if operator, _ := ctx.Value(ContextOperator).(string); operator != "" {
 		return operator
 	}
 
@@ -454,6 +457,11 @@ func ZapGroup(group string) zap.Field {
 // ZapFileName 生成fileName的日志描述
 func ZapFileName(fileName string) zap.Field {
 	return zap.String("file-name", fileName)
+}
+
+// ZapReleaseName 生成fileName的日志描述
+func ZapReleaseName(fileName string) zap.Field {
+	return zap.String("release-name", fileName)
 }
 
 // CheckDbStrFieldLen 检查name字段是否超过DB中对应字段的最大字符长度限制

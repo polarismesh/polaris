@@ -45,6 +45,12 @@ type ConfigFileGroup struct {
 	Valid      bool
 }
 
+type ConfigFileKey struct {
+	Name      string
+	Namespace string
+	Group     string
+}
+
 // ConfigFile 配置文件数据持久化对象
 type ConfigFile struct {
 	Id         uint64
@@ -61,20 +67,36 @@ type ConfigFile struct {
 	ModifyBy   string
 	Valid      bool
 	Metadata   map[string]string
+	Encrypt    bool
 	Status     string
 }
 
+func (s *ConfigFile) Key() *ConfigFileKey {
+	return &ConfigFileKey{
+		Name:      s.Name,
+		Namespace: s.Namespace,
+		Group:     s.Group,
+	}
+}
+
 func (s *ConfigFile) GetEncryptDataKey() string {
-	val, _ := s.Metadata[utils.ConfigFileTagKeyDataKey]
-	return val
+	return s.Metadata[utils.ConfigFileTagKeyDataKey]
 }
 
 func (s *ConfigFile) GetEncryptAlgo() string {
-	val, _ := s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
-	return val
+	return s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
 }
+
 func (s *ConfigFile) IsEncrypted() bool {
-	return s.GetEncryptDataKey() != ""
+	return s.Encrypt || s.GetEncryptDataKey() != ""
+}
+
+func NewConfigFileRelease() *ConfigFileRelease {
+	return &ConfigFileRelease{
+		SimpleConfigFileRelease: &SimpleConfigFileRelease{
+			ConfigFileReleaseKey: &ConfigFileReleaseKey{},
+		},
+	}
 }
 
 // ConfigFileRelease 配置文件发布数据持久化对象
@@ -89,6 +111,14 @@ type ConfigFileReleaseKey struct {
 	Namespace string
 	Group     string
 	FileName  string
+}
+
+func (c ConfigFileReleaseKey) ToFileKey() *ConfigFileKey {
+	return &ConfigFileKey{
+		Name:      c.FileName,
+		Group:     c.Group,
+		Namespace: c.Namespace,
+	}
 }
 
 func (c ConfigFileReleaseKey) OwnerKey() string {
@@ -106,28 +136,27 @@ func (c ConfigFileReleaseKey) ReleaseKey() string {
 // SimpleConfigFileRelease 配置文件发布数据持久化对象
 type SimpleConfigFileRelease struct {
 	*ConfigFileReleaseKey
-	Version    uint64
-	Comment    string
-	Md5        string
-	Flag       int
-	Active     bool
-	Valid      bool
-	Format     string
-	Metadata   map[string]string
-	CreateTime time.Time
-	CreateBy   string
-	ModifyTime time.Time
-	ModifyBy   string
+	Version            uint64
+	Comment            string
+	Md5                string
+	Flag               int
+	Active             bool
+	Valid              bool
+	Format             string
+	Metadata           map[string]string
+	CreateTime         time.Time
+	CreateBy           string
+	ModifyTime         time.Time
+	ModifyBy           string
+	ReleaseDescription string
 }
 
 func (s SimpleConfigFileRelease) GetEncryptDataKey() string {
-	val, _ := s.Metadata[utils.ConfigFileTagKeyDataKey]
-	return val
+	return s.Metadata[utils.ConfigFileTagKeyDataKey]
 }
 
 func (s SimpleConfigFileRelease) GetEncryptAlgo() string {
-	val, _ := s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
-	return val
+	return s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
 }
 
 func (s SimpleConfigFileRelease) IsEncrypted() bool {
@@ -136,34 +165,34 @@ func (s SimpleConfigFileRelease) IsEncrypted() bool {
 
 // ConfigFileReleaseHistory 配置文件发布历史记录数据持久化对象
 type ConfigFileReleaseHistory struct {
-	Id         uint64
-	Name       string
-	Namespace  string
-	Group      string
-	FileName   string
-	Format     string
-	Metadata   map[string]string
-	Content    string
-	Comment    string
-	Md5        string
-	Type       string
-	Status     string
-	CreateTime time.Time
-	CreateBy   string
-	ModifyTime time.Time
-	ModifyBy   string
-	Valid      bool
-	Reason     string
+	Id                 uint64
+	Name               string
+	Namespace          string
+	Group              string
+	FileName           string
+	Format             string
+	Metadata           map[string]string
+	Content            string
+	Comment            string
+	Version            uint64
+	Md5                string
+	Type               string
+	Status             string
+	CreateTime         time.Time
+	CreateBy           string
+	ModifyTime         time.Time
+	ModifyBy           string
+	Valid              bool
+	Reason             string
+	ReleaseDescription string
 }
 
 func (s ConfigFileReleaseHistory) GetEncryptDataKey() string {
-	val, _ := s.Metadata[utils.ConfigFileTagKeyDataKey]
-	return val
+	return s.Metadata[utils.ConfigFileTagKeyDataKey]
 }
 
 func (s ConfigFileReleaseHistory) GetEncryptAlgo() string {
-	val, _ := s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
-	return val
+	return s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
 }
 
 func (s ConfigFileReleaseHistory) IsEncrypted() bool {
@@ -215,6 +244,12 @@ func ToConfigFileStore(file *config_manage.ConfigFile) *ConfigFile {
 	if file.Format != nil {
 		format = file.Format.Value
 	}
+
+	metadata := ToTagMap(file.GetTags())
+	if file.GetEncryptAlgo().GetValue() != "" {
+		metadata[utils.ConfigFileTagKeyEncryptAlgo] = file.GetEncryptAlgo().GetValue()
+	}
+
 	return &ConfigFile{
 		Name:      file.Name.GetValue(),
 		Namespace: file.Namespace.GetValue(),
@@ -223,6 +258,8 @@ func ToConfigFileStore(file *config_manage.ConfigFile) *ConfigFile {
 		Comment:   comment,
 		Format:    format,
 		CreateBy:  createBy,
+		Encrypt:   file.GetEncrypted().GetValue(),
+		Metadata:  metadata,
 	}
 }
 
@@ -252,19 +289,22 @@ func ToConfiogFileReleaseApi(release *ConfigFileRelease) *config_manage.ConfigFi
 	}
 
 	return &config_manage.ConfigFileRelease{
-		Id:         utils.NewUInt64Value(release.Id),
-		Name:       utils.NewStringValue(release.Name),
-		Namespace:  utils.NewStringValue(release.Namespace),
-		Group:      utils.NewStringValue(release.Group),
-		FileName:   utils.NewStringValue(release.FileName),
-		Content:    utils.NewStringValue(release.Content),
-		Comment:    utils.NewStringValue(release.Comment),
-		Md5:        utils.NewStringValue(release.Md5),
-		Version:    utils.NewUInt64Value(release.Version),
-		CreateBy:   utils.NewStringValue(release.CreateBy),
-		CreateTime: utils.NewStringValue(commontime.Time2String(release.CreateTime)),
-		ModifyBy:   utils.NewStringValue(release.ModifyBy),
-		ModifyTime: utils.NewStringValue(commontime.Time2String(release.ModifyTime)),
+		Id:                 utils.NewUInt64Value(release.Id),
+		Name:               utils.NewStringValue(release.Name),
+		Namespace:          utils.NewStringValue(release.Namespace),
+		Group:              utils.NewStringValue(release.Group),
+		FileName:           utils.NewStringValue(release.FileName),
+		Format:             utils.NewStringValue(release.Format),
+		Content:            utils.NewStringValue(release.Content),
+		Comment:            utils.NewStringValue(release.Comment),
+		Md5:                utils.NewStringValue(release.Md5),
+		Version:            utils.NewUInt64Value(release.Version),
+		CreateBy:           utils.NewStringValue(release.CreateBy),
+		CreateTime:         utils.NewStringValue(commontime.Time2String(release.CreateTime)),
+		ModifyBy:           utils.NewStringValue(release.ModifyBy),
+		ModifyTime:         utils.NewStringValue(commontime.Time2String(release.ModifyTime)),
+		ReleaseDescription: utils.NewStringValue(release.ReleaseDescription),
+		Tags:               FromTagMap(release.Metadata),
 	}
 }
 
@@ -362,10 +402,10 @@ func FromTagMap(kvs map[string]string) []*config_manage.ConfigFileTag {
 	return tags
 }
 
-func ToTagMap(tags []*ConfigFileTag) map[string]string {
+func ToTagMap(tags []*config_manage.ConfigFileTag) map[string]string {
 	kvs := map[string]string{}
 	for i := range tags {
-		kvs[tags[i].Key] = tags[i].Value
+		kvs[tags[i].GetKey().GetValue()] = tags[i].GetKey().GetValue()
 	}
 
 	return kvs
@@ -385,6 +425,9 @@ func ToConfigGroupAPI(group *ConfigFileGroup) *config_manage.ConfigFileGroup {
 		ModifyBy:   utils.NewStringValue(group.ModifyBy),
 		CreateTime: utils.NewStringValue(commontime.Time2String(group.CreateTime)),
 		ModifyTime: utils.NewStringValue(commontime.Time2String(group.ModifyTime)),
+		Business:   utils.NewStringValue(group.Business),
+		Department: utils.NewStringValue(group.Department),
+		Metadata:   group.Metadata,
 	}
 }
 
@@ -404,12 +447,15 @@ func ToConfigGroupStore(group *config_manage.ConfigFileGroup) *ConfigFileGroup {
 		groupOwner = createBy
 	}
 	return &ConfigFileGroup{
-		Name:      group.Name.GetValue(),
-		Namespace: group.Namespace.GetValue(),
-		Comment:   comment,
-		CreateBy:  createBy,
-		Valid:     true,
-		Owner:     groupOwner,
+		Name:       group.GetName().GetValue(),
+		Namespace:  group.GetNamespace().GetValue(),
+		Comment:    comment,
+		CreateBy:   createBy,
+		Valid:      true,
+		Owner:      groupOwner,
+		Business:   group.GetBusiness().GetValue(),
+		Department: group.GetDepartment().GetValue(),
+		Metadata:   group.GetMetadata(),
 	}
 }
 

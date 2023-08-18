@@ -18,8 +18,6 @@
 package httpserver
 
 import (
-	"fmt"
-
 	"github.com/emicklei/go-restful/v3"
 
 	"github.com/polarismesh/polaris/apiserver/httpserver/docs"
@@ -53,9 +51,6 @@ func (h *HTTPServer) GetCoreV1ConsoleAccessServer(ws *restful.WebService, includ
 			}
 		case defaultAccess:
 			h.addCoreDefaultAccess(ws)
-		default:
-			log.Errorf("[HttpServer][Core] method %s does not exist in httpserver console access", item)
-			return fmt.Errorf("method %s does not exist in httpserver console access", item)
 		}
 	}
 	return nil

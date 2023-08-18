@@ -472,7 +472,8 @@ CREATE TABLE `config_file`
     `modify_by`   varchar(32)              DEFAULT NULL COMMENT '最后更新人',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_file` (`namespace`, `group`, `name`)
-) ENGINE = InnoDB COMMENT = '配置文件表';
+) ENGINE = InnoDB
+  AUTO_INCREMENT = 1 COMMENT = '配置文件表';
 
 -- --------------------------------------------------------
 --
@@ -489,9 +490,14 @@ CREATE TABLE `config_file_group`
     `create_by`   varchar(32)              DEFAULT NULL COMMENT '创建人',
     `modify_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
     `modify_by`   varchar(32)              DEFAULT NULL COMMENT '最后更新人',
+    `business`     varchar(64)            DEFAULT NULL comment 'Service business information',
+    `department`   varchar(1024)          DEFAULT NULL comment 'Service department information',
+    `metadata` text             COMMENT '配置分组标签',
+    `flag`        tinyint(4)      NOT NULL DEFAULT '0' COMMENT '是否被删除',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_name` (`namespace`, `name`)
-) ENGINE = InnoDB COMMENT = '配置文件组表';
+) ENGINE = InnoDB
+  AUTO_INCREMENT = 1 COMMENT = '配置文件组表';
 
 -- --------------------------------------------------------
 --
@@ -504,20 +510,24 @@ CREATE TABLE `config_file_release`
     `namespace`   varchar(64)     NOT NULL COMMENT '所属的namespace',
     `group`       varchar(128)    NOT NULL COMMENT '所属的文件组',
     `file_name`   varchar(128)    NOT NULL COMMENT '配置文件名',
+    `format`      varchar(16)              DEFAULT 'text' COMMENT '文件格式，枚举值',
     `content`     longtext        NOT NULL COMMENT '文件内容',
     `comment`     varchar(512)             DEFAULT NULL COMMENT '备注信息',
-    `tags`        varchar(2048)            DEFAULT '' COMMENT '文件标签',
     `md5`         varchar(128)    NOT NULL COMMENT 'content的md5值',
-    `version`     int(11)         NOT NULL COMMENT '版本号，每次发布自增1',
+    `version`     bigint(11)         NOT NULL COMMENT '版本号，每次发布自增1',
     `flag`        tinyint(4)      NOT NULL DEFAULT '0' COMMENT '是否被删除',
     `create_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `create_by`   varchar(32)              DEFAULT NULL COMMENT '创建人',
     `modify_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
     `modify_by`   varchar(32)              DEFAULT NULL COMMENT '最后更新人',
+    `tags`        text             COMMENT '文件标签',
+    `active`      tinyint(4)      NOT NULL DEFAULT '0' COMMENT '是否处于使用中',
+    `description`  varchar(512)             DEFAULT NULL COMMENT '发布描述',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_file` (`namespace`, `group`, `file_name`),
+    UNIQUE KEY `uk_file` (`namespace`, `group`, `file_name`, `name`),
     KEY `idx_modify_time` (`modify_time`)
-) ENGINE = InnoDB COMMENT = '配置文件发布表';
+) ENGINE = InnoDB
+  AUTO_INCREMENT = 1 COMMENT = '配置文件发布表';
 
 -- --------------------------------------------------------
 --
@@ -532,7 +542,6 @@ CREATE TABLE `config_file_release_history`
     `file_name`   varchar(128)    NOT NULL COMMENT '配置文件名',
     `content`     longtext        NOT NULL COMMENT '文件内容',
     `format`      varchar(16)              DEFAULT 'text' COMMENT '文件格式',
-    `tags`        varchar(2048)            DEFAULT '' COMMENT '文件标签',
     `comment`     varchar(512)             DEFAULT NULL COMMENT '备注信息',
     `md5`         varchar(128)    NOT NULL COMMENT 'content的md5值',
     `type`        varchar(32)     NOT NULL COMMENT '发布类型，例如全量发布、灰度发布',
@@ -541,9 +550,14 @@ CREATE TABLE `config_file_release_history`
     `create_by`   varchar(32)              DEFAULT NULL COMMENT '创建人',
     `modify_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
     `modify_by`   varchar(32)              DEFAULT NULL COMMENT '最后更新人',
+    `tags`        text             COMMENT '文件标签',
+    `version`     bigint(11)        COMMENT '版本号，每次发布自增1',
+    `reason`      varchar(3000)             DEFAULT '' COMMENT '原因',
+    `description`  varchar(512)             DEFAULT NULL COMMENT '发布描述',
     PRIMARY KEY (`id`),
     KEY `idx_file` (`namespace`, `group`, `file_name`)
-) ENGINE = InnoDB COMMENT = '配置文件发布历史表';
+) ENGINE = InnoDB
+  AUTO_INCREMENT = 1 COMMENT = '配置文件发布历史表';
 
 -- --------------------------------------------------------
 --

@@ -18,8 +18,6 @@
 package config
 
 import (
-	"fmt"
-
 	"github.com/emicklei/go-restful/v3"
 
 	"github.com/polarismesh/polaris/admin"
@@ -36,7 +34,7 @@ type HTTPServer struct {
 	configServer    config.ConfigCenterServer
 }
 
-// NewServer 创建V2版本的HTTPServer
+// NewServer 创建配置中心的 HttpServer
 func NewServer(
 	maintainServer admin.AdminOperateServer,
 	namespaceServer namespace.NamespaceOperateServer,
@@ -51,7 +49,7 @@ func NewServer(
 const (
 	defaultReadAccess   string = "default-read"
 	defaultAccess       string = "default"
-	configConsoleAccess string = "console"
+	configConsoleAccess string = "config"
 )
 
 // GetConfigAccessServer 获取配置中心接口
@@ -71,9 +69,6 @@ func (h *HTTPServer) GetConsoleAccessServer(include []string) (*restful.WebServi
 			h.addDefaultReadAccess(ws)
 		case configConsoleAccess, defaultAccess:
 			h.addDefaultAccess(ws)
-		default:
-			log.Errorf("[Config][HttpServer] the patch of config endpoint [%s] does not exist", item)
-			return nil, fmt.Errorf("[Config][HttpServer] the patch of config endpoint [%s] does not exist", item)
 		}
 	}
 
@@ -96,9 +91,9 @@ func (h *HTTPServer) addDefaultReadAccess(ws *restful.WebService) {
 func (h *HTTPServer) addDefaultAccess(ws *restful.WebService) {
 	// 配置文件组
 	ws.Route(docs.EnrichCreateConfigFileGroupApiDocs(ws.POST("/configfilegroups").To(h.CreateConfigFileGroup)))
-	ws.Route(docs.EnrichQueryConfigFileGroupsApiDocs(ws.GET("/configfilegroups").To(h.QueryConfigFileGroups)))
-	ws.Route(docs.EnrichDeleteConfigFileGroupApiDocs(ws.DELETE("/configfilegroups").To(h.DeleteConfigFileGroup)))
 	ws.Route(docs.EnrichUpdateConfigFileGroupApiDocs(ws.PUT("/configfilegroups").To(h.UpdateConfigFileGroup)))
+	ws.Route(docs.EnrichDeleteConfigFileGroupApiDocs(ws.DELETE("/configfilegroups").To(h.DeleteConfigFileGroup)))
+	ws.Route(docs.EnrichQueryConfigFileGroupsApiDocs(ws.GET("/configfilegroups").To(h.QueryConfigFileGroups)))
 
 	// 配置文件
 	ws.Route(docs.EnrichCreateConfigFileApiDocs(ws.POST("/configfiles").To(h.CreateConfigFile)))
@@ -115,7 +110,12 @@ func (h *HTTPServer) addDefaultAccess(ws *restful.WebService) {
 
 	// 配置文件发布
 	ws.Route(docs.EnrichPublishConfigFileApiDocs(ws.POST("/configfiles/release").To(h.PublishConfigFile)))
+	ws.Route(docs.EnrichGetConfigFileReleaseApiDocs(ws.PUT("/configfiles/releases/rollback").To(h.RollbackConfigFileReleases)))
 	ws.Route(docs.EnrichGetConfigFileReleaseApiDocs(ws.GET("/configfiles/release").To(h.GetConfigFileRelease)))
+	ws.Route(docs.EnrichGetConfigFileReleaseApiDocs(ws.GET("/configfiles/releases").To(h.GetConfigFileReleases)))
+	ws.Route(docs.EnrichGetConfigFileReleaseApiDocs(ws.POST("/configfiles/releases/delete").To(h.DeleteConfigFileReleases)))
+	ws.Route(docs.EnrichGetConfigFileReleaseApiDocs(ws.GET("/configfiles/release/versions").To(h.GetConfigFileReleaseVersions)))
+	ws.Route(docs.EnrichUpsertAndReleaseConfigFileApiDocs(ws.POST("/configfiles/createandpub").To(h.UpsertAndReleaseConfigFile)))
 
 	// 配置文件发布历史
 	ws.Route(docs.EnrichGetConfigFileReleaseHistoryApiDocs(ws.GET("/configfiles/releasehistory").
@@ -140,9 +140,6 @@ func (h *HTTPServer) GetClientAccessServer(ws *restful.WebService, include []str
 			h.addCreateFile(ws)
 		case apiserver.DiscoverAccess:
 			h.addDiscover(ws)
-		default:
-			log.Errorf("[Config][HttpServer] the patch of config endpoint [%s] does not exist", item)
-			return fmt.Errorf("[Config][HttpServer] the patch of config endpoint [%s] does not exist", item)
 		}
 	}
 
@@ -152,6 +149,7 @@ func (h *HTTPServer) GetClientAccessServer(ws *restful.WebService, include []str
 func (h *HTTPServer) addDiscover(ws *restful.WebService) {
 	ws.Route(docs.EnrichGetConfigFileForClientApiDocs(ws.GET("/GetConfigFile").To(h.ClientGetConfigFile)))
 	ws.Route(docs.EnrichWatchConfigFileForClientApiDocs(ws.POST("/WatchConfigFile").To(h.ClientWatchConfigFile)))
+	ws.Route(docs.EnrichGetConfigFileMetadataList(ws.POST("/GetConfigFileMetadataList").To(h.GetConfigFileMetadataList)))
 }
 
 func (h *HTTPServer) addCreateFile(ws *restful.WebService) {

@@ -29,7 +29,7 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	commonstore "github.com/polarismesh/polaris/common/store"
@@ -440,11 +440,6 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *apis
 	}
 
 	serviceArgs := parseServiceArgs(serviceFilters, serviceMetas, ctx)
-	err = s.caches.Service().Update()
-	if err != nil {
-		log.Errorf("[Server][Service][Query] req(%+v) update store err: %s", query, err.Error())
-		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))
-	}
 	total, services, err := s.caches.Service().GetServicesByFilter(serviceArgs, instanceArgs, offset, limit)
 	if err != nil {
 		log.Errorf("[Server][Service][Query] req(%+v) store err: %s", query, err.Error())
@@ -459,8 +454,10 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *apis
 }
 
 // parseServiceArgs 解析服务的查询条件
-func parseServiceArgs(filter map[string]string, metaFilter map[string]string, ctx context.Context) *cache.ServiceArgs {
-	res := &cache.ServiceArgs{
+func parseServiceArgs(filter map[string]string, metaFilter map[string]string,
+	ctx context.Context) *cachetypes.ServiceArgs {
+
+	res := &cachetypes.ServiceArgs{
 		Filter:    filter,
 		Metadata:  metaFilter,
 		Namespace: filter["namespace"],
@@ -710,19 +707,6 @@ func (s *Server) getRateLimitingCountWithService(name string, namespace string) 
 		return 0, err
 	}
 	return total, nil
-}
-
-// getCircuitBreakerCountWithService 获取服务下熔断规则总数
-func (s *Server) getCircuitBreakerCountWithService(name string, namespace string) (uint32, error) {
-	circuitBreaker, err := s.storage.GetCircuitBreakersByService(name, namespace)
-	if err != nil {
-		return 0, err
-	}
-
-	if circuitBreaker == nil {
-		return 0, nil
-	}
-	return 1, nil
 }
 
 // isServiceExistedResource 检查服务下的资源存在情况，在删除服务的时候需要用到

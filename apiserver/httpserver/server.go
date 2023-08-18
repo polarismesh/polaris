@@ -29,6 +29,7 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/pkg/errors"
+	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/admin"
@@ -50,7 +51,6 @@ import (
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/healthcheck"
-	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
 // HTTPServer HTTP API服务器
@@ -216,6 +216,7 @@ func (h *HTTPServer) Run(errCh chan error) {
 
 	h.discoverV1 = *v1.NewV1Server(h.namespaceServer, h.namingServer, h.healthCheckServer)
 	h.discoverV2 = *v2.NewV2Server(h.namespaceServer, h.namingServer, h.healthCheckServer)
+	h.configSvr = *confighttp.NewServer(h.maintainServer, h.namespaceServer, h.configServer)
 
 	// 初始化http server
 	address := fmt.Sprintf("%v:%v", h.listenIP, h.listenPort)
@@ -398,8 +399,7 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 				wsContainer.Add(ws)
 			}
 		default:
-			log.Errorf("api %s does not exist in httpserver", name)
-			return nil, fmt.Errorf("api %s does not exist in httpserver", name)
+			log.Warnf("api %s does not exist in httpserver", name)
 		}
 	}
 

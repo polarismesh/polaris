@@ -99,8 +99,6 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 		t.Fatal(err)
 	}
 
-	time.Sleep(2 * time.Second)
-
 	checker := &defaultAuthChecker{}
 	checker.Initialize(&auth.Config{
 		User: &auth.UserConfig{
@@ -119,6 +117,10 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 		},
 	}, storage, cacheMgn)
 	checker.cacheMgn = cacheMgn
+
+	t.Cleanup(func() {
+		cacheMgn.Close()
+	})
 
 	svr := &strategyAuthAbility{
 		authMgn: checker,
@@ -154,9 +156,7 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 
 func (g *StrategyTest) Clean() {
 	g.cancel()
-	_ = g.cacheMgn.Clear()
-	g.ctrl.Finish()
-	time.Sleep(5 * time.Second)
+	_ = g.cacheMgn.Close()
 }
 
 func Test_GetPrincipalResources(t *testing.T) {
@@ -624,6 +624,7 @@ func Test_GetStrategy(t *testing.T) {
 		// 主账户查询自己的策略
 		strategyTest.storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategyTest.strategies[0], nil)
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
+		_ = strategyTest.cacheMgn.TestUpdate()
 		resp := strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[0].ID},
 		})
@@ -632,6 +633,7 @@ func Test_GetStrategy(t *testing.T) {
 		// 主账户查询自己自账户的策略
 		strategyTest.storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategyTest.strategies[1], nil)
 		valCtx = context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
+		_ = strategyTest.cacheMgn.TestUpdate()
 		resp = strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[1].ID},
 		})
@@ -639,7 +641,13 @@ func Test_GetStrategy(t *testing.T) {
 	})
 
 	t.Run("查询鉴权策略-目标owner不为自己", func(t *testing.T) {
-		index := rand.Intn(len(strategyTest.defaultStrategies))
+		var index int
+		for {
+			index = rand.Intn(len(strategyTest.defaultStrategies))
+			if index != 2 {
+				break
+			}
+		}
 		oldOwner := strategyTest.strategies[index].Owner
 
 		defer func() {
@@ -647,11 +655,11 @@ func Test_GetStrategy(t *testing.T) {
 		}()
 
 		strategyTest.strategies[index].Owner = strategyTest.users[2].ID
-
 		strategyTest.storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategyTest.strategies[index], nil)
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
 
+		_ = strategyTest.cacheMgn.TestUpdate()
 		resp := strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[0].ID},
 		})
@@ -665,6 +673,7 @@ func Test_GetStrategy(t *testing.T) {
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[1].Token)
 
+		_ = strategyTest.cacheMgn.TestUpdate()
 		resp := strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[1].ID},
 		})
@@ -677,6 +686,7 @@ func Test_GetStrategy(t *testing.T) {
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[1].Token)
 
+		_ = strategyTest.cacheMgn.TestUpdate()
 		resp := strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[len(strategyTest.users)-1+2].ID},
 		})
@@ -689,6 +699,7 @@ func Test_GetStrategy(t *testing.T) {
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[1].Token)
 
+		_ = strategyTest.cacheMgn.TestUpdate()
 		resp := strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[2].ID},
 		})
@@ -701,6 +712,7 @@ func Test_GetStrategy(t *testing.T) {
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[1].Token)
 
+		_ = strategyTest.cacheMgn.TestUpdate()
 		resp := strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: utils.NewUUID()},
 		})

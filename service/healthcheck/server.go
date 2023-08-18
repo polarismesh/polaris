@@ -28,7 +28,7 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
@@ -59,9 +59,11 @@ type Server struct {
 	discoverEvent        plugin.DiscoverChannel
 	localHost            string
 	bc                   *batch.Controller
-	serviceCache         cache.ServiceCache
-	instanceCache        cache.InstanceCache
+	serviceCache         cachetypes.ServiceCache
+	instanceCache        cachetypes.InstanceCache
 	instanceEventChannel chan *model.InstanceEvent
+
+	subCtxs []*eventhub.SubscribtionContext
 }
 
 // Initialize 初始化
@@ -113,7 +115,7 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 	}
 
 	server.bc = bc
-
+	server.subCtxs = make([]*eventhub.SubscribtionContext, 0, 4)
 	server.localHost = hcOpt.LocalHost
 	server.history = plugin.GetHistory()
 	server.discoverEvent = plugin.GetDiscoverEvent()
@@ -139,16 +141,19 @@ func (s *Server) run(ctx context.Context) error {
 	go s.handleInstanceEventWorker(ctx)
 
 	leaderChangeEventHandler := newLeaderChangeEventHandler(s.cacheProvider, s.hcOpt.MinCheckInterval)
-	if err := eventhub.Subscribe(eventhub.LeaderChangeEventTopic, "selfServiceChecker",
-		leaderChangeEventHandler); err != nil {
+	subCtx, err := eventhub.Subscribe(eventhub.LeaderChangeEventTopic, leaderChangeEventHandler)
+	if err != nil {
 		return err
 	}
+	s.subCtxs = append(s.subCtxs, subCtx)
 
 	instanceEventHandler := newInstanceEventHealthCheckHandler(ctx, s.instanceEventChannel)
-	if err := eventhub.Subscribe(eventhub.InstanceEventTopic, "instanceHealthChecker",
-		instanceEventHandler); err != nil {
+	subCtx, err = eventhub.Subscribe(eventhub.InstanceEventTopic, instanceEventHandler)
+	if err != nil {
 		return err
 	}
+	s.subCtxs = append(s.subCtxs, subCtx)
+
 	if err := s.storage.StartLeaderElection(store.ElectionKeySelfServiceChecker); err != nil {
 		return err
 	}
@@ -170,6 +175,12 @@ func (s *Server) ReportByClient(ctx context.Context, req *apiservice.Client) *ap
 	return s.doReportByClient(ctx, req)
 }
 
+func (s *Server) Destroy() {
+	for i := range s.subCtxs {
+		s.subCtxs[i].Cancel()
+	}
+}
+
 // GetServer 获取已经初始化好的Server
 func GetServer() (*Server, error) {
 	if !finishInit {
@@ -185,12 +196,12 @@ func SetServer(srv *Server) {
 }
 
 // SetServiceCache 设置服务缓存
-func (s *Server) SetServiceCache(serviceCache cache.ServiceCache) {
+func (s *Server) SetServiceCache(serviceCache cachetypes.ServiceCache) {
 	s.serviceCache = serviceCache
 }
 
 // SetInstanceCache 设置服务实例缓存
-func (s *Server) SetInstanceCache(instanceCache cache.InstanceCache) {
+func (s *Server) SetInstanceCache(instanceCache cachetypes.InstanceCache) {
 	s.instanceCache = instanceCache
 }
 
@@ -232,7 +243,7 @@ func (s *Server) publishInstanceEvent(serviceID string, event model.InstanceEven
 	if event.Instance != nil {
 		// event.Instance = proto.Clone(event.Instance).(*apiservice.Instance)
 	}
-	eventhub.Publish(eventhub.InstanceEventTopic, event)
+	_ = eventhub.Publish(eventhub.InstanceEventTopic, event)
 }
 
 // GetLastHeartbeat 获取上一次心跳的时间

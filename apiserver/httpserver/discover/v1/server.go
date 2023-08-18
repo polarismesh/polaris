@@ -18,8 +18,6 @@
 package v1
 
 import (
-	"fmt"
-
 	"github.com/emicklei/go-restful/v3"
 
 	"github.com/polarismesh/polaris/apiserver"
@@ -97,8 +95,6 @@ func (h *HTTPServerV1) GetNamingConsoleAccessServer(include []string) (*restful.
 			h.addRoutingRuleAccess(ws)
 		case rateLimitAccess:
 			h.addRateLimitRuleAccess(ws)
-		default:
-			log.Warnf("method %s does not exist in HTTPServerV1 console access", item)
 		}
 	}
 	return ws, nil
@@ -245,12 +241,8 @@ func (h *HTTPServerV1) GetClientAccessServer(ws *restful.WebService, include []s
 			h.addRegisterAccess(ws)
 		case apiserver.HealthcheckAccess:
 			h.addHealthCheckAccess(ws)
-		default:
-			log.Errorf("method %s does not exist in httpserver client access", item)
-			return fmt.Errorf("method %s does not exist in httpserver client access", item)
 		}
 	}
-
 	return nil
 }
 

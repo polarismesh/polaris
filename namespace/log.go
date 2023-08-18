@@ -22,6 +22,6 @@ import (
 )
 
 var (
-	log     = commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName)
+	log     = commonlog.GetScopeOrDefaultByName(commonlog.DefaultLoggerName)
 	authLog = commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName)
 )

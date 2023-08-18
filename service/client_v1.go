@@ -210,7 +210,7 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Serv
 	}
 	s.RecordDiscoverStatis(aliasFor.Name, aliasFor.Namespace)
 	// 获取revision，如果revision一致，则不返回内容，直接返回一个状态码
-	revision := s.caches.GetServiceInstanceRevision(aliasFor.ID)
+	revision := s.caches.Service().GetRevisionWorker().GetServiceInstanceRevision(aliasFor.ID)
 	if revision == "" {
 		// 不能直接获取，则需要重新计算，大部分情况都可以直接获取的
 		// 获取instance数据，service已经是源服务，可以直接查找cache
@@ -231,8 +231,8 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Serv
 	resp.Service = &apiservice.Service{
 		Name:      req.GetName(),
 		Namespace: req.GetNamespace(),
+		Revision:  utils.NewStringValue(revision),
 	}
-	resp.Service.Revision.Value = revision
 	// 塞入源服务信息数据
 	resp.AliasFor = &apiservice.Service{
 		Namespace: utils.NewStringValue(aliasFor.Namespace),

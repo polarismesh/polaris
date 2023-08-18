@@ -200,8 +200,6 @@ func (h *HTTPServer) BatchDeleteConfigFile(req *restful.Request, rsp *restful.Re
 		Response: rsp,
 	}
 
-	operator := handler.Request.QueryParameter("deleteBy")
-
 	var configFiles ConfigFileArr
 	ctx, err := handler.ParseArray(func() proto.Message {
 		msg := &apiconfig.ConfigFile{}
@@ -213,7 +211,7 @@ func (h *HTTPServer) BatchDeleteConfigFile(req *restful.Request, rsp *restful.Re
 		return
 	}
 
-	response := h.configServer.BatchDeleteConfigFile(ctx, configFiles, operator)
+	response := h.configServer.BatchDeleteConfigFile(ctx, configFiles)
 	handler.WriteHeaderAndProto(response)
 }
 
@@ -306,6 +304,76 @@ func (h *HTTPServer) PublishConfigFile(req *restful.Request, rsp *restful.Respon
 	handler.WriteHeaderAndProto(h.configServer.PublishConfigFile(ctx, configFile))
 }
 
+// RollbackConfigFileReleases 获取配置文件最后一次发布内容
+func (h *HTTPServer) RollbackConfigFileReleases(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	var releases []*apiconfig.ConfigFileRelease
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &apiconfig.ConfigFileRelease{}
+		releases = append(releases, msg)
+		return msg
+	})
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+	response := h.configServer.RollbackConfigFileReleases(ctx, releases)
+
+	handler.WriteHeaderAndProto(response)
+}
+
+// DeleteConfigFileReleases
+func (h *HTTPServer) DeleteConfigFileReleases(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	var releases []*apiconfig.ConfigFileRelease
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &apiconfig.ConfigFileRelease{}
+		releases = append(releases, msg)
+		return msg
+	})
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+
+	response := h.configServer.DeleteConfigFileReleases(ctx, releases)
+	handler.WriteHeaderAndProto(response)
+}
+
+// GetConfigFileReleaseVersions 获取配置文件最后一次发布内容
+func (h *HTTPServer) GetConfigFileReleaseVersions(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	queryParams := httpcommon.ParseQueryParams(req)
+	response := h.configServer.GetConfigFileReleaseVersions(handler.ParseHeaderContext(), queryParams)
+
+	handler.WriteHeaderAndProto(response)
+}
+
+// GetConfigFileReleases 获取配置文件最后一次发布内容
+func (h *HTTPServer) GetConfigFileReleases(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	queryParams := httpcommon.ParseQueryParams(req)
+	response := h.configServer.GetConfigFileReleases(handler.ParseHeaderContext(), queryParams)
+
+	handler.WriteHeaderAndProto(response)
+}
+
 // GetConfigFileRelease 获取配置文件最后一次发布内容
 func (h *HTTPServer) GetConfigFileRelease(req *restful.Request, rsp *restful.Response) {
 	handler := &httpcommon.Handler{
@@ -316,7 +384,11 @@ func (h *HTTPServer) GetConfigFileRelease(req *restful.Request, rsp *restful.Res
 	namespace := handler.Request.QueryParameter("namespace")
 	group := handler.Request.QueryParameter("group")
 	fileName := handler.Request.QueryParameter("file_name")
-	name := handler.Request.QueryParameter("name")
+	name := handler.Request.QueryParameter("release_name")
+	// 兼容旧的查询参数
+	if fileName == "" {
+		fileName = handler.Request.QueryParameter("name")
+	}
 
 	fileReq := &apiconfig.ConfigFileRelease{
 		Namespace: utils.NewStringValue(namespace),
@@ -387,4 +459,23 @@ func (h *HTTPServer) GetAllConfigEncryptAlgorithms(req *restful.Request, rsp *re
 		zap.Uint32("code", response.GetCode().GetValue()),
 	)
 	handler.WriteHeaderAndProto(response)
+}
+
+// UpsertAndReleaseConfigFile
+func (h *HTTPServer) UpsertAndReleaseConfigFile(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	configFile := &apiconfig.ConfigFilePublishInfo{}
+	ctx, err := handler.Parse(configFile)
+	if err != nil {
+		configLog.Error("[Config][HttpServer] parse config file from request error.",
+			utils.RequestID(ctx), zap.String("error", err.Error()))
+		handler.WriteHeaderAndProto(api.NewConfigResponseWithInfo(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+
+	handler.WriteHeaderAndProto(h.configServer.UpsertAndReleaseConfigFile(ctx, configFile))
 }

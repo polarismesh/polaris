@@ -81,7 +81,7 @@ func (fg *configFileGroupStore) UpdateConfigFileGroup(fileGroup *model.ConfigFil
 
 // GetConfigFileGroup 获取配置文件组
 func (fg *configFileGroupStore) GetConfigFileGroup(namespace, name string) (*model.ConfigFileGroup, error) {
-	querySql := fg.genConfigFileGroupSelectSql() + " WHERE namespace = ? AND name = ?"
+	querySql := fg.genConfigFileGroupSelectSql() + " WHERE namespace = ? AND name = ? AND flag = 0 "
 	rows, err := fg.master.Query(querySql, namespace, name)
 	if err != nil {
 		return nil, store.Error(err)
@@ -98,7 +98,7 @@ func (fg *configFileGroupStore) GetConfigFileGroup(namespace, name string) (*mod
 
 // DeleteConfigFileGroup 删除配置文件组
 func (fg *configFileGroupStore) DeleteConfigFileGroup(namespace, name string) error {
-	deleteSql := "DELETE FROM config_file_group WHERE namespace = ? and name=?"
+	deleteSql := "UPDATE config_file_group SET flag = 1 WHERE namespace = ? AND name = ?"
 	if _, err := fg.master.Exec(deleteSql, namespace, name); err != nil {
 		return store.Error(err)
 	}
@@ -109,12 +109,12 @@ func (fg *configFileGroupStore) GetMoreConfigGroup(firstUpdate bool,
 	mtime time.Time) ([]*model.ConfigFileGroup, error) {
 
 	if firstUpdate {
-		mtime = time.Time{}
+		mtime = time.Unix(0, 1)
 	}
 	loadSql := "SELECT id, name, namespace, IFNULL(comment,''), UNIX_TIMESTAMP(create_time), " +
 		" IFNULL(create_by,''), UNIX_TIMESTAMP(modify_time), IFNULL(modify_by,''), " +
-		" IFNULL(owner,''), business, department, metadata, flag FROM config_file_group " +
-		" WHERE modify_time >= ?"
+		" IFNULL(owner,''), IFNULL(business,''), IFNULL(department,''), IFNULL(metadata,'{}'), " +
+		" flag FROM config_file_group WHERE modify_time >= ?"
 
 	rows, err := fg.slave.Query(loadSql, mtime)
 	if err != nil {
@@ -137,7 +137,8 @@ func (fg *configFileGroupStore) CountConfigGroups(namespace string) (uint64, err
 func (fg *configFileGroupStore) genConfigFileGroupSelectSql() string {
 	return "SELECT id, name, namespace, IFNULL(comment,''), UNIX_TIMESTAMP(create_time), " +
 		" IFNULL(create_by,''), UNIX_TIMESTAMP(modify_time), IFNULL(modify_by,''), " +
-		" IFNULL(owner,'') FROM config_file_group "
+		" IFNULL(owner,''), IFNULL(business,''), IFNULL(department,''), IFNULL(metadata,'{}'), " +
+		" flag FROM config_file_group "
 }
 
 func (fg *configFileGroupStore) transferRows(rows *sql.Rows) ([]*model.ConfigFileGroup, error) {

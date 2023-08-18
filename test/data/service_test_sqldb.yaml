@@ -258,19 +258,20 @@ healthcheck:
       maxBatchCount: 32
       concurrency: 64
   checkers:
+    - name: heartbeatLeader
     # - name: heartbeatMemory
-    - name: heartbeatRedis
-      option:
-        kvAddr: 127.0.0.1:6379 ##REDIS_ADDR##
-        kvUser: ##REDIS_USER#
-        kvPasswd: ##REDIS_PWD##
-        poolSize: 32
-        minIdleConns: 30
-        idleTimeout: 120s
-        connectTimeout: 200ms
-        msgTimeout: 200ms
-        concurrency: 64
-        withTLS: false
+    # - name: heartbeatRedis
+    #   option:
+    #     kvAddr: 127.0.0.1:6379 ##REDIS_ADDR##
+    #     kvUser: ##REDIS_USER#
+    #     kvPasswd: ##REDIS_PWD##
+    #     poolSize: 32
+    #     minIdleConns: 30
+    #     idleTimeout: 120s
+    #     connectTimeout: 200ms
+    #     msgTimeout: 200ms
+    #     concurrency: 64
+    #     withTLS: false
 # 缓存配置
 cache:
   open: true
@@ -290,12 +291,9 @@ cache:
     - name: strategyRule # 加载鉴权规则数据
     - name: namespace # 加载命名空间数据
     - name: client # 加载命名空间数据
-    - name: configFile
-      option:
-        #配置文件缓存过期时间，单位s
-        expireTimeAfterWrite: 3600
+    - name: configFile # 配置文件发布缓存
+    - name: configGroup # 加载配置分组缓存
     - name: faultDetectRule
-#    - name: l5 # 加载l5数据
 # 存储配置
 store:
   # 单机文件存储插件

@@ -60,64 +60,108 @@ type configFileReleaseStore struct {
 	handler BoltHandler
 }
 
-func newConfigFileReleaseStore(handler BoltHandler) (*configFileReleaseStore, error) {
+func newConfigFileReleaseStore(handler BoltHandler) *configFileReleaseStore {
 	s := &configFileReleaseStore{handler: handler}
-	return s, nil
+	return s
 }
 
-// CreateConfigFileRelease 新建配置文件发布
+// CreateConfigFileReleaseTx 新建配置文件发布
 func (cfr *configFileReleaseStore) CreateConfigFileReleaseTx(proxyTx store.Tx,
 	fileRelease *model.ConfigFileRelease) error {
-	_, err := DoTransactionIfNeed(proxyTx, cfr.handler, func(tx *bolt.Tx) ([]interface{}, error) {
-		// 是否存在当前 release
-		values := map[string]interface{}{}
-		if err := loadValues(tx, tblConfigFileRelease, []string{fileRelease.ReleaseKey()},
-			&model.ConfigFileRelease{}, values); err != nil {
-			return nil, err
-		}
-		if len(values) != 0 {
-			return nil, store.NewStatusError(store.DuplicateEntryErr, "exist record")
-		}
+	tx := proxyTx.GetDelegateTx().(*bolt.Tx)
+	// 是否存在当前 release
+	values := map[string]interface{}{}
+	if err := loadValues(tx, tblConfigFileRelease, []string{fileRelease.ReleaseKey()},
+		&ConfigFileRelease{}, values); err != nil {
+		return err
+	}
+	if len(values) != 0 {
+		return store.NewStatusError(store.DuplicateEntryErr, "exist record")
+	}
 
-		table := tx.Bucket([]byte(tblConfigFileRelease))
-		nextId, err := table.NextSequence()
-		if err != nil {
-			return nil, err
-		}
-		fileRelease.Id = nextId
-		fileRelease.Valid = true
-		tN := time.Now()
-		fileRelease.CreateTime = tN
-		fileRelease.ModifyTime = tN
+	table, err := tx.CreateBucketIfNotExists([]byte(tblConfigFileRelease))
+	if err != nil {
+		return store.Error(err)
+	}
+	nextId, err := table.NextSequence()
+	if err != nil {
+		return store.Error(err)
+	}
+	fileRelease.Id = nextId
+	fileRelease.Valid = true
+	tN := time.Now()
+	fileRelease.CreateTime = tN
+	fileRelease.ModifyTime = tN
 
-		maxVersion, err := cfr.inactiveConfigFileRelease(tx, fileRelease)
-		if err != nil {
-			return nil, err
-		}
+	maxVersion, err := cfr.inactiveConfigFileRelease(tx, fileRelease)
+	if err != nil {
+		return store.Error(err)
+	}
 
-		fileRelease.Active = true
-		fileRelease.Version = maxVersion + 1
-		if err := saveValue(tx, tblConfigFileRelease, fileRelease.ReleaseKey(), fileRelease); err != nil {
-			log.Error("[ConfigFileRelease] save info", zap.Error(err))
-			return nil, err
-		}
-		return nil, nil
-	})
-	return err
+	fileRelease.Active = true
+	fileRelease.Version = maxVersion + 1
+	err = saveValue(tx, tblConfigFileRelease, fileRelease.ReleaseKey(), cfr.toStoreData(fileRelease))
+	if err != nil {
+		log.Error("[ConfigFileRelease] save info", zap.Error(err))
+		return store.Error(err)
+	}
+	return nil
 }
 
-// GetConfigFileActiveRelease Get the configuration file release, only the record of FLAG = 0
-func (cfr *configFileReleaseStore) GetConfigFileActiveRelease(namespace,
-	group, fileName string) (*model.ConfigFileRelease, error) {
-	fields := []string{FileReleaseFieldNamespace, FileReleaseFieldGroup, FileReleaseFieldFileName,
-		FileReleaseFieldActive, FileReleaseFieldFlag}
+// GetConfigFileRelease Get the configuration file release, only the record of FLAG = 0
+func (cfr *configFileReleaseStore) GetConfigFileRelease(args *model.ConfigFileReleaseKey) (*model.ConfigFileRelease, error) {
 
-	// 查询这个 release 相关的所有
-	values, err := cfr.handler.LoadValuesByFilter(tblConfigFileRelease, fields, &model.ConfigFileRelease{},
+	values, err := cfr.handler.LoadValues(tblConfigFileRelease, []string{args.ReleaseKey()},
+		&ConfigFileRelease{})
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range values {
+		return cfr.toModelData(v.(*ConfigFileRelease)), nil
+	}
+	return nil, nil
+}
+
+// GetConfigFileRelease Get the configuration file release, only the record of FLAG = 0
+func (cfr *configFileReleaseStore) GetConfigFileReleaseTx(tx store.Tx,
+	args *model.ConfigFileReleaseKey) (*model.ConfigFileRelease, error) {
+	dbTx := tx.GetDelegateTx().(*bolt.Tx)
+	values := make(map[string]interface{}, 1)
+	err := loadValues(dbTx, tblConfigFileRelease, []string{args.ReleaseKey()},
+		&ConfigFileRelease{}, values)
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range values {
+		return cfr.toModelData(v.(*ConfigFileRelease)), nil
+	}
+	return nil, nil
+}
+
+// GetConfigFileActiveRelease .
+func (cfr *configFileReleaseStore) GetConfigFileActiveRelease(file *model.ConfigFileKey) (*model.ConfigFileRelease, error) {
+	tx, err := cfr.handler.StartTx()
+	if err != nil {
+		return nil, store.Error(err)
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+	return cfr.GetConfigFileActiveReleaseTx(tx, file)
+}
+
+func (cfr *configFileReleaseStore) GetConfigFileActiveReleaseTx(tx store.Tx,
+	file *model.ConfigFileKey) (*model.ConfigFileRelease, error) {
+	dbTx := tx.GetDelegateTx().(*bolt.Tx)
+
+	fields := []string{FileReleaseFieldActive, FileReleaseFieldNamespace, FileReleaseFieldGroup,
+		FileReleaseFieldFileName, FileReleaseFieldValid}
+	values := make(map[string]interface{}, 1)
+	err := loadValuesByFilter(dbTx, tblConfigFileRelease, fields, &ConfigFileRelease{},
 		func(m map[string]interface{}) bool {
-			flag, _ := m[FileReleaseFieldFlag].(int)
+			valid, _ := m[FileReleaseFieldValid].(bool)
 			// 已经删除的不管
-			if flag == 1 {
+			if !valid {
 				return false
 			}
 			active, _ := m[FileReleaseFieldActive].(bool)
@@ -128,57 +172,47 @@ func (cfr *configFileReleaseStore) GetConfigFileActiveRelease(namespace,
 			saveGroup, _ := m[FileReleaseFieldGroup].(string)
 			saveFileName, _ := m[FileReleaseFieldFileName].(string)
 
-			expect := saveNs == namespace && saveGroup == group && saveFileName == fileName
+			expect := saveNs == file.Namespace && saveGroup == file.Group && saveFileName == file.Name
 			return expect
-		})
+		}, values)
 	if err != nil {
 		return nil, err
 	}
 	for _, v := range values {
-		return v.(*model.ConfigFileRelease), nil
-	}
-	return nil, nil
-}
-
-// GetConfigFileRelease Get the configuration file release, only the record of FLAG = 0
-func (cfr *configFileReleaseStore) GetConfigFileRelease(args *model.ConfigFileReleaseKey) (*model.ConfigFileRelease, error) {
-
-	values, err := cfr.handler.LoadValues(tblConfigFileRelease, []string{args.ReleaseKey()},
-		&model.ConfigFileRelease{})
-	if err != nil {
-		return nil, err
-	}
-	for _, v := range values {
-		return v.(*model.ConfigFileRelease), nil
+		return cfr.toModelData(v.(*ConfigFileRelease)), nil
 	}
 	return nil, nil
 }
 
 // DeleteConfigFileRelease Delete the release data
-func (cfr *configFileReleaseStore) DeleteConfigFileRelease(data *model.ConfigFileReleaseKey) error {
-	_, err := DoTransactionIfNeed(nil, cfr.handler, func(tx *bolt.Tx) ([]interface{}, error) {
-		properties := make(map[string]interface{})
+func (cfr *configFileReleaseStore) DeleteConfigFileReleaseTx(tx store.Tx, data *model.ConfigFileReleaseKey) error {
+	dbTx := tx.GetDelegateTx().(*bolt.Tx)
+	properties := make(map[string]interface{})
 
-		properties[FileReleaseFieldValid] = false
-		properties[FileReleaseFieldFlag] = 1
-		properties[FileReleaseFieldModifyTime] = time.Now()
-		if err := updateValue(tx, tblConfigFileRelease, data.ReleaseKey(), properties); err != nil {
-			log.Error("[ConfigFileRelease] delete info", zap.Error(err))
-			return nil, err
-		}
-		return nil, nil
-	})
-	return err
+	properties[FileReleaseFieldValid] = false
+	properties[FileReleaseFieldFlag] = 1
+	properties[FileReleaseFieldModifyTime] = time.Now()
+	if err := updateValue(dbTx, tblConfigFileRelease, data.ReleaseKey(), properties); err != nil {
+		log.Error("[ConfigFileRelease] delete info", zap.Error(err))
+		return store.Error(err)
+	}
+	return nil
 }
 
 // CountConfigReleases count the release data
-func (cfr *configFileReleaseStore) CountConfigReleases(namespace, group string) (uint64, error) {
-	fields := []string{FileReleaseFieldNamespace, FileReleaseFieldGroup, FileReleaseFieldValid}
-	ret, err := cfr.handler.LoadValuesByFilter(tblConfigFileRelease, fields, &model.ConfigFileRelease{},
+func (cfr *configFileReleaseStore) CountConfigReleases(namespace, group string, onlyActive bool) (uint64, error) {
+	fields := []string{FileReleaseFieldNamespace, FileReleaseFieldGroup, FileReleaseFieldValid, FileReleaseFieldActive}
+	ret, err := cfr.handler.LoadValuesByFilter(tblConfigFileRelease, fields, &ConfigFileRelease{},
 		func(m map[string]interface{}) bool {
 			valid, _ := m[FileReleaseFieldValid].(bool)
 			if !valid {
 				return false
+			}
+			if onlyActive {
+				active, _ := m[FileReleaseFieldActive].(bool)
+				if !active {
+					return false
+				}
 			}
 			saveNs, _ := m[FileReleaseFieldNamespace].(string)
 			saveGroup, _ := m[FileReleaseFieldNamespace].(string)
@@ -197,7 +231,7 @@ func (cfr *configFileReleaseStore) CleanConfigFileReleasesTx(tx store.Tx, namesp
 	fields := []string{FileReleaseFieldNamespace, FileReleaseFieldGroup, FileReleaseFieldFileName,
 		FileReleaseFieldValid}
 	values := map[string]interface{}{}
-	err := loadValuesByFilter(dbTx, tblConfigFileRelease, fields, &model.ConfigFileRelease{},
+	err := loadValuesByFilter(dbTx, tblConfigFileRelease, fields, &ConfigFileRelease{},
 		func(m map[string]interface{}) bool {
 			flag, _ := m[FileReleaseFieldValid].(int)
 			// 已经删除的不管
@@ -235,8 +269,8 @@ func (cfr *configFileReleaseStore) GetMoreReleaseFile(firstUpdate bool,
 		modifyTime = time.Time{}
 	}
 
-	fields := []string{FileReleaseFieldModifyTime, FileReleaseFieldActive}
-	ret, err := cfr.handler.LoadValuesByFilter(tblConfigFileRelease, fields, &model.ConfigFileRelease{},
+	fields := []string{FileReleaseFieldModifyTime}
+	ret, err := cfr.handler.LoadValuesByFilter(tblConfigFileRelease, fields, &ConfigFileRelease{},
 		func(m map[string]interface{}) bool {
 			saveMt, _ := m[FileReleaseFieldModifyTime].(time.Time)
 			return !saveMt.Before(modifyTime)
@@ -248,23 +282,22 @@ func (cfr *configFileReleaseStore) GetMoreReleaseFile(firstUpdate bool,
 
 	releases := make([]*model.ConfigFileRelease, 0, len(ret))
 	for _, v := range ret {
-		releases = append(releases, v.(*model.ConfigFileRelease))
+		releases = append(releases, cfr.toModelData(v.(*ConfigFileRelease)))
 	}
 	return releases, nil
 }
 
-func (cfr *configFileReleaseStore) ActiveConfigFileRelease(release *model.ConfigFileRelease) error {
-	return cfr.handler.Execute(true, func(tx *bolt.Tx) error {
-		maxVersion, err := cfr.inactiveConfigFileRelease(tx, release)
-		if err != nil {
-			return err
-		}
-		properties := make(map[string]interface{})
-		properties[FileReleaseFieldVersion] = maxVersion + 1
-		properties[FileReleaseFieldActive] = true
-		properties[FileReleaseFieldModifyTime] = time.Now()
-		return updateValue(tx, tblConfigFileRelease, release.ReleaseKey(), properties)
-	})
+func (cfr *configFileReleaseStore) ActiveConfigFileReleaseTx(tx store.Tx, release *model.ConfigFileRelease) error {
+	dbTx := tx.GetDelegateTx().(*bolt.Tx)
+	maxVersion, err := cfr.inactiveConfigFileRelease(dbTx, release)
+	if err != nil {
+		return err
+	}
+	properties := make(map[string]interface{})
+	properties[FileReleaseFieldVersion] = maxVersion + 1
+	properties[FileReleaseFieldActive] = true
+	properties[FileReleaseFieldModifyTime] = time.Now()
+	return updateValue(dbTx, tblConfigFileRelease, release.ReleaseKey(), properties)
 }
 
 func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *bolt.Tx,
@@ -276,7 +309,7 @@ func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *bolt.Tx,
 	values := map[string]interface{}{}
 	var maxVersion uint64
 	// 查询这个 release 相关的所有
-	if err := loadValuesByFilter(tx, tblConfigFileRelease, fields, &model.ConfigFileRelease{},
+	if err := loadValuesByFilter(tx, tblConfigFileRelease, fields, &ConfigFileRelease{},
 		func(m map[string]interface{}) bool {
 			flag, _ := m[FileReleaseFieldFlag].(int)
 			// 已经删除的不管
@@ -300,6 +333,7 @@ func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *bolt.Tx,
 	}
 	properties := map[string]interface{}{
 		FileReleaseFieldActive:     false,
+		FileReleaseFieldFlag:       1,
 		FileReleaseFieldModifyTime: time.Now(),
 	}
 	for key := range values {
@@ -315,7 +349,7 @@ func (cfr *configFileReleaseStore) CleanDeletedConfigFileRelease(endTime time.Ti
 
 	fields := []string{FileReleaseFieldModifyTime}
 	needDel, err := cfr.handler.LoadValuesByFilter(tblConfigFileRelease, fields,
-		&model.ConfigFileRelease{}, func(m map[string]interface{}) bool {
+		&ConfigFileRelease{}, func(m map[string]interface{}) bool {
 			saveModifyTime, _ := m[FileReleaseFieldModifyTime].(time.Time)
 			return endTime.After(saveModifyTime)
 		})
@@ -328,4 +362,75 @@ func (cfr *configFileReleaseStore) CleanDeletedConfigFileRelease(endTime time.Ti
 		keys = append(keys, i)
 	}
 	return cfr.handler.DeleteValues(tblConfigFileRelease, keys)
+}
+
+type ConfigFileRelease struct {
+	Id         uint64
+	Name       string
+	Namespace  string
+	Group      string
+	FileName   string
+	Version    uint64
+	Comment    string
+	Md5        string
+	Flag       int
+	Active     bool
+	Valid      bool
+	Format     string
+	Metadata   map[string]string
+	CreateTime time.Time
+	CreateBy   string
+	ModifyTime time.Time
+	ModifyBy   string
+	Content    string
+}
+
+func (cfr *configFileReleaseStore) toModelData(data *ConfigFileRelease) *model.ConfigFileRelease {
+	return &model.ConfigFileRelease{
+		SimpleConfigFileRelease: &model.SimpleConfigFileRelease{
+			ConfigFileReleaseKey: &model.ConfigFileReleaseKey{
+				Id:        data.Id,
+				Name:      data.Name,
+				Namespace: data.Namespace,
+				Group:     data.Group,
+				FileName:  data.FileName,
+			},
+			Comment:    data.Comment,
+			Md5:        data.Md5,
+			Active:     data.Active,
+			Valid:      data.Valid,
+			Flag:       data.Flag,
+			Format:     data.FileName,
+			Metadata:   data.Metadata,
+			Version:    data.Version,
+			CreateTime: data.CreateTime,
+			CreateBy:   data.CreateBy,
+			ModifyTime: data.ModifyTime,
+			ModifyBy:   data.ModifyBy,
+		},
+		Content: data.Content,
+	}
+}
+
+func (cfr *configFileReleaseStore) toStoreData(data *model.ConfigFileRelease) *ConfigFileRelease {
+	return &ConfigFileRelease{
+		Id:         data.Id,
+		Name:       data.Name,
+		Namespace:  data.Namespace,
+		Group:      data.Group,
+		FileName:   data.FileName,
+		Version:    data.Version,
+		Comment:    data.Comment,
+		Md5:        data.Md5,
+		Flag:       data.Flag,
+		Active:     data.Active,
+		Valid:      data.Valid,
+		Format:     data.FileName,
+		Metadata:   data.Metadata,
+		CreateTime: data.CreateTime,
+		CreateBy:   data.CreateBy,
+		ModifyTime: data.ModifyTime,
+		ModifyBy:   data.ModifyBy,
+		Content:    data.Content,
+	}
 }

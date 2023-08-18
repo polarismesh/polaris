@@ -30,6 +30,7 @@ import (
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
@@ -76,6 +77,7 @@ type EurekaTestSuit struct {
 	updateCacheInterval time.Duration
 	cancel              context.CancelFunc
 	storage             store.Store
+	cacheMgr            *cache.CacheManager
 }
 
 type options func(cfg *TestConfig)
@@ -117,6 +119,7 @@ func (d *EurekaTestSuit) initialize(t *testing.T, callback func(t *testing.T, s 
 	if err != nil {
 		return err
 	}
+	d.cacheMgr = cacheMgn
 
 	// 批量控制器
 	namingBatchConfig, err := batch.ParseBatchConfig(d.cfg.Naming.Batch)
@@ -158,8 +161,8 @@ func (d *EurekaTestSuit) initialize(t *testing.T, callback func(t *testing.T, s 
 	healthCheckServer.SetInstanceCache(cacheMgn.Instance())
 
 	// 为 instance 的 cache 添加 健康检查的 Listener
-	cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
-	cacheMgn.AddListener(cache.CacheNameClient, []cache.Listener{cacheProvider})
+	cacheMgn.AddListener(cachetypes.CacheInstance, []cachetypes.Listener{cacheProvider})
+	cacheMgn.AddListener(cachetypes.CacheClient, []cachetypes.Listener{cacheProvider})
 
 	d.healthSvr = healthCheckServer
 	time.Sleep(5 * time.Second)
@@ -201,11 +204,6 @@ func replaceEnv(configContent string) string {
 
 func (d *EurekaTestSuit) Destroy() {
 	d.cancel()
-	time.Sleep(5 * time.Second)
-
+	d.cacheMgr.Close()
 	d.storage.Destroy()
-	time.Sleep(5 * time.Second)
-
-	healthcheck.TestDestroy()
-	time.Sleep(5 * time.Second)
 }

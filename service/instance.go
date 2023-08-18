@@ -601,7 +601,7 @@ func (s *Server) updateInstanceAttribute(
 	needUpdate := false
 	insProto := instance.Proto
 	var updateEvents = make(map[model.InstanceEventType]bool)
-	if ok := instanceMetaNeedUpdate(req.GetMetadata(), instance.Metadata()); ok {
+	if ok := utils.IsNotEqualMap(req.GetMetadata(), instance.Metadata()); ok {
 		insProto.Metadata = req.GetMetadata()
 		needUpdate = true
 		updateEvents[model.EventInstanceUpdate] = true
@@ -985,7 +985,7 @@ func (s *Server) sendDiscoverEvent(event model.InstanceEvent) {
 		// In order not to cause `panic` in cause multi-corporate data op, do deep copy
 		// event.Instance = proto.Clone(event.Instance).(*apiservice.Instance)
 	}
-	eventhub.Publish(eventhub.InstanceEventTopic, event)
+	_ = eventhub.Publish(eventhub.InstanceEventTopic, event)
 }
 
 type wrapSvcName interface {
@@ -1219,47 +1219,6 @@ func preGetInstances(query map[string]string) (map[string]string, map[string]str
 	}
 
 	return filters, metaFilter, nil
-}
-
-// instance metadata need update
-func instanceMetaNeedUpdate(req map[string]string, old map[string]string) bool {
-	if req == nil {
-		return false
-	}
-
-	if len(req) != len(old) {
-		return true
-	}
-
-	needUpdate := false
-	for key, value := range req {
-		oldValue, ok := old[key]
-		if !ok {
-			needUpdate = true
-			break
-		}
-		if value != oldValue {
-			needUpdate = true
-			break
-		}
-	}
-	if needUpdate {
-		return needUpdate
-	}
-
-	for key, value := range old {
-		newValue, ok := req[key]
-		if !ok {
-			needUpdate = true
-			break
-		}
-		if value != newValue {
-			needUpdate = true
-			break
-		}
-	}
-
-	return needUpdate
 }
 
 // 批量操作实例

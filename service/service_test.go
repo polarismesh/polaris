@@ -699,9 +699,7 @@ func TestGetServices4(t *testing.T) {
 
 // 联合查询场景
 func TestGetServices5(t *testing.T) {
-
 	t.SkipNow()
-
 	discoverSuit := &DiscoverTestSuit{}
 	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
@@ -863,7 +861,8 @@ func TestGetService6(t *testing.T) {
 			defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 		}
 
-		filters := map[string]string{"offset": "0",
+		filters := map[string]string{
+			"offset":          "0",
 			"limit":           "100",
 			"instance_keys":   "2my-meta,my-meta-a1",
 			"instance_values": "my-meta-100,111*",

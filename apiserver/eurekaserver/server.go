@@ -151,6 +151,7 @@ type EurekaServer struct {
 
 	replicatePeers       map[string][]string
 	generateUniqueInstId bool
+	subCtxs              []*eventhub.SubscribtionContext
 }
 
 // GetPort 获取端口
@@ -178,6 +179,7 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 	}
 	h.option = option
 	h.openAPI = api
+	h.subCtxs = make([]*eventhub.SubscribtionContext, 0, 4)
 
 	var namespace = DefaultNamespace
 	if namespaceValue, ok := option[optionNamespace]; ok {
@@ -341,11 +343,12 @@ func (h *EurekaServer) Run(errCh chan error) {
 	if len(h.replicatePeers) > 0 {
 		h.eventHandlerHandler = &EurekaInstanceEventHandler{
 			BaseInstanceEventHandler: service.NewBaseInstanceEventHandler(h.namingServer), svr: h}
-		if err = eventhub.Subscribe(
-			eventhub.InstanceEventTopic, "eureka-replication", h.eventHandlerHandler); nil != err {
+		subCtx, err := eventhub.Subscribe(eventhub.InstanceEventTopic, h.eventHandlerHandler)
+		if err != nil {
 			errCh <- err
 			return
 		}
+		h.subCtxs = append(h.subCtxs, subCtx)
 	}
 	h.workers = NewApplicationsWorkers(h.refreshInterval, h.deltaExpireInterval, h.enableSelfPreservation,
 		h.namingServer, h.healthCheckServer, h.namespace)

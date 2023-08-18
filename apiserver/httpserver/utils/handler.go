@@ -25,7 +25,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"path"
 	"strings"
@@ -394,7 +393,7 @@ func ParseQueryParams(req *restful.Request) map[string]string {
 
 // ParseJsonBody parse http body as json object
 func ParseJsonBody(req *restful.Request, value interface{}) error {
-	body, err := ioutil.ReadAll(req.Request.Body)
+	body, err := io.ReadAll(req.Request.Body)
 	if err != nil {
 		return err
 	}

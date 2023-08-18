@@ -96,6 +96,17 @@ func (s *serverAuthability) collectConfigFileReleaseAuthContext(ctx context.Cont
 	)
 }
 
+func (s *serverAuthability) collectConfigFilePublishAuthContext(ctx context.Context, req []*apiconfig.ConfigFilePublishInfo,
+	op model.ResourceOperation, methodName string) *model.AcquireContext {
+	return model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithModule(model.ConfigModule),
+		model.WithOperation(op),
+		model.WithMethod(methodName),
+		model.WithAccessResources(s.queryConfigFilePublishResource(ctx, req)),
+	)
+}
+
 func (s *serverAuthability) collectClientConfigFileReleaseAuthContext(ctx context.Context,
 	req []*apiconfig.ConfigFileRelease, op model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
@@ -142,6 +153,10 @@ func (s *serverAuthability) collectConfigFileTemplateAuthContext(ctx context.Con
 
 func (s *serverAuthability) queryConfigGroupResource(ctx context.Context,
 	req []*apiconfig.ConfigFileGroup) map[apisecurity.ResourceType][]model.ResourceEntry {
+
+	if len(req) == 0 {
+		return nil
+	}
 
 	names := utils.NewSet[string]()
 	namespace := req[0].GetNamespace().GetValue()
@@ -212,6 +227,30 @@ func (s *serverAuthability) queryConfigFileReleaseResource(ctx context.Context,
 	}
 	authLog.Debug("[Config][Server] collect config_file access res",
 		utils.RequestID(ctx), zap.Any("res", ret))
+	return ret
+}
+
+func (s *serverAuthability) queryConfigFilePublishResource(ctx context.Context,
+	req []*apiconfig.ConfigFilePublishInfo) map[apisecurity.ResourceType][]model.ResourceEntry {
+
+	if len(req) == 0 {
+		return nil
+	}
+	namespace := req[0].GetNamespace().GetValue()
+	groupNames := utils.NewSet[string]()
+
+	for _, apiConfigFile := range req {
+		groupNames.Add(apiConfigFile.GetGroup().GetValue())
+	}
+	entries, err := s.queryConfigGroupRsEntryByNames(ctx, namespace, groupNames.ToSlice())
+	if err != nil {
+		authLog.Debug("[Config][Server] collect config_file res", utils.RequestID(ctx), zap.Error(err))
+		return nil
+	}
+	ret := map[apisecurity.ResourceType][]model.ResourceEntry{
+		apisecurity.ResourceType_ConfigGroups: entries,
+	}
+	authLog.Debug("[Config][Server] collect config_file access res", utils.RequestID(ctx), zap.Any("res", ret))
 	return ret
 }
 
