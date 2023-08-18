@@ -41,7 +41,7 @@ func (rh *configFileReleaseHistoryStore) CreateConfigFileReleaseHistory(
 		" name, namespace, `group`, file_name, content, comment, md5, type, status, format, tags, " +
 		"create_time, create_by, modify_time, modify_by, version, reason, description) " +
 		" VALUES " +
-		"(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, sysdate(), ?, sysdate(), ?, ?)"
+		"(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, sysdate(), ?, sysdate(), ?, ?, ?, ?)"
 	_, err := rh.master.Exec(s, history.Name, history.Namespace,
 		history.Group, history.FileName, history.Content,
 		history.Comment, history.Md5,
@@ -76,8 +76,8 @@ func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(filter 
 		queryParams = append(queryParams, endId)
 	}
 
-	countSql += "`group` LIKE ? AND file_name LIKE ?"
-	querySql += "`group` LIKE ? AND file_name LIKE ? ORDER BY id DESC LIMIT ?, ?"
+	countSql += " `group` LIKE ? AND file_name LIKE ? "
+	querySql += " `group` LIKE ? AND file_name LIKE ? ORDER BY id DESC LIMIT ?, ? "
 	queryParams = append(queryParams, "%"+group+"%")
 	queryParams = append(queryParams, "%"+fileName+"%")
 
