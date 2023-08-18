@@ -22,7 +22,6 @@ USE `polaris_server`;
 /* 配置分组表变更操作 */
 ALTER TABLE `config_file_group`
 ADD COLUMN `flag` tinyint (4) NOT NULL DEFAULT '0' COMMENT '是否被删除',
-
 /* 配置发布表变更操作 */
 ALTER TABLE `config_file_release`
 ADD COLUMN `tags` text COMMENT '文件标签';
@@ -46,3 +45,6 @@ ALTER TABLE `config_file_release_history` MODIFY COLUMN `tags` text COMMENT '文
 
 ALTER TABLE `config_file_release_history`
 ADD COLUMN `version` bigint (11) COMMENT '版本号, 每次发布自增1';
+
+ALTER TABLE `config_file_release_history`
+ADD COLUMN `description` varchar(512) DEFAULT NULL COMMENT '发布描述',

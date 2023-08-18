@@ -79,10 +79,10 @@ var (
 			"order_type":  "order_type",
 			"order_field": "order_field",
 		},
-		"config_file_history": {
+		"config_file_release_history": {
 			"namespace":   "namespace",
-			"group":       "name",
-			"name":        "name",
+			"group":       "group",
+			"name":        "file_name",
 			"offset":      "offset",
 			"limit":       "limit",
 			"endId":       "endId",

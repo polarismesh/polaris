@@ -524,7 +524,7 @@ func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mode
 func (u *userStore) collectUsers(handler QueryHandler, querySql string, args []interface{}) ([]*model.User, error) {
 	rows, err := u.master.Query(querySql, args...)
 	if err != nil {
-		log.Error("[Store][User] list user ", zap.String("query sql", querySql), zap.Any("args", args))
+		log.Error("[Store][User] list user ", zap.String("query sql", querySql), zap.Any("args", args), zap.Error(err))
 		return nil, store.Error(err)
 	}
 	defer func() {

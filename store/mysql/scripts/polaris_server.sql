@@ -553,6 +553,7 @@ CREATE TABLE `config_file_release_history`
     `tags`        text             COMMENT '文件标签',
     `version`     bigint(11)        COMMENT '版本号，每次发布自增1',
     `reason`      varchar(3000)             DEFAULT '' COMMENT '原因',
+    `description`  varchar(512)             DEFAULT NULL COMMENT '发布描述',
     PRIMARY KEY (`id`),
     KEY `idx_file` (`namespace`, `group`, `file_name`)
 ) ENGINE = InnoDB
