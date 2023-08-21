@@ -571,10 +571,13 @@ func (bc *BaseCache) LastMtime(label string) time.Time {
 
 func (bc *BaseCache) LastFetchTime() time.Time {
 	lastTime := time.Unix(bc.lastFetchTime, 0)
+	// 由于存在主从同步延迟的情况，稍微拉长一点查询时间范围，扣除几秒
 	tmp := lastTime.Add(DefaultTimeDiff)
+	// 如果 lastTime 为 0，会导致 tmp 被扣为负数，此时返回原值
 	if zeroTime.After(tmp) {
 		return lastTime
 	}
+	// 否则返回扣减后的值
 	return tmp
 }
 

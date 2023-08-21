@@ -7,9 +7,10 @@ import (
 )
 
 func TestBaseCache_LastFetchTime(t *testing.T) {
+	bc := &BaseCache{}
+	assert.EqualValues(t, 0, bc.LastFetchTime().Unix())
+
 	lt := time.Now()
-	bc := &BaseCache{
-		lastFetchTime: lt.Unix(),
-	}
+	bc.lastFetchTime = lt.Unix()
 	assert.Equal(t, lt.Add(DefaultTimeDiff).Unix(), bc.LastFetchTime().Unix())
 }
