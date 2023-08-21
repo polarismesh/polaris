@@ -63,7 +63,8 @@ func NewCircuitBreakerCache(s store.Store, cacheMgr types.CacheManager) types.Ci
 }
 
 // Initialize 实现Cache接口的函数
-func (c *circuitBreakerCache) Initialize(_ map[string]interface{}) error {
+func (c *circuitBreakerCache) Initialize(op map[string]interface{}) error {
+	c.InitBaseOptions(op)
 	return nil
 }
 
@@ -77,7 +78,7 @@ func (c *circuitBreakerCache) Update() error {
 }
 
 func (c *circuitBreakerCache) realUpdate() (map[string]time.Time, int64, error) {
-	cbRules, err := c.storage.GetCircuitBreakerRulesForCache(c.LastFetchTime(), c.IsFirstUpdate())
+	cbRules, err := c.storage.GetCircuitBreakerRulesForCache(c.fetchStartTime(), c.IsFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache] circuit breaker config cache update err:%s", err.Error())
 		return nil, -1, err
@@ -100,6 +101,14 @@ func (c *circuitBreakerCache) Clear() error {
 // name 实现资源名称
 func (c *circuitBreakerCache) Name() string {
 	return types.CircuitBreakerName
+}
+
+// fetchStartTime 获取数据增量更新起始时间
+func (c *circuitBreakerCache) fetchStartTime() time.Time {
+	if c.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+		return c.LastMtime(c.Name())
+	}
+	return c.LastFetchTime()
 }
 
 // GetCircuitBreakerConfig 根据serviceID获取熔断规则

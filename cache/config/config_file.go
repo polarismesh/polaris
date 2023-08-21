@@ -89,6 +89,7 @@ func (fc *fileCache) Initialize(opt map[string]interface{}) error {
 		return err
 	}
 	fc.valueCache = valueCache
+	fc.InitBaseOptions(opt)
 	return nil
 }
 
@@ -129,7 +130,7 @@ func (fc *fileCache) singleUpdate() (error, bool) {
 func (fc *fileCache) realUpdate() (map[string]time.Time, int64, error) {
 	// 拉取diff前的所有数据
 	start := time.Now()
-	releases, err := fc.storage.GetMoreReleaseFile(fc.IsFirstUpdate(), fc.LastFetchTime())
+	releases, err := fc.storage.GetMoreReleaseFile(fc.IsFirstUpdate(), fc.fetchStartTime())
 	if err != nil {
 		return nil, 0, err
 	}
@@ -315,6 +316,14 @@ func (fc *fileCache) postProcessUpdatedRelease(affect map[string]map[string]stru
 
 func (fc *fileCache) LastMtime() time.Time {
 	return fc.BaseCache.LastMtime(fc.Name())
+}
+
+// fetchStartTime 获取数据增量更新起始时间
+func (fc *fileCache) fetchStartTime() time.Time {
+	if fc.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+		return fc.LastMtime()
+	}
+	return fc.LastFetchTime()
 }
 
 // Clear

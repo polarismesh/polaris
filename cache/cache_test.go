@@ -66,7 +66,7 @@ func TestCacheManager_Start(t *testing.T) {
 		c, err := cache.TestCacheInitialize(context.Background(), &cache.Config{Open: true}, storage)
 		assert.Nil(t, err)
 		assert.NotNil(t, c)
-		beg := time.Unix(0, 0).Add(types.DefaultTimeDiff)
+		beg := time.Unix(0, 0).Add(types.TimeDiff)
 		storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 		storage.EXPECT().GetMoreInstances(beg, true, false, nil).Return(nil, nil).MaxTimes(1)
 		storage.EXPECT().GetMoreInstances(beg, false, false, nil).Return(nil, nil).MaxTimes(3)

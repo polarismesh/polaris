@@ -56,6 +56,7 @@ func (fc *configGroupCache) Initialize(opt map[string]interface{}) error {
 	fc.groups = utils.NewSyncMap[uint64, *model.ConfigFileGroup]()
 	fc.name2groups = utils.NewSyncMap[string, *utils.SyncMap[string, *model.ConfigFileGroup]]()
 	fc.singleGroup = &singleflight.Group{}
+	fc.InitBaseOptions(opt)
 	return nil
 }
 
@@ -75,7 +76,7 @@ func (fc *configGroupCache) singleUpdate() (error, bool) {
 
 func (fc *configGroupCache) realUpdate() (map[string]time.Time, int64, error) {
 	start := time.Now()
-	groups, err := fc.storage.GetMoreConfigGroup(fc.IsFirstUpdate(), fc.LastFetchTime())
+	groups, err := fc.storage.GetMoreConfigGroup(fc.IsFirstUpdate(), fc.fetchStartTime())
 	if err != nil {
 		return nil, 0, err
 	}
@@ -91,6 +92,14 @@ func (fc *configGroupCache) realUpdate() (map[string]time.Time, int64, error) {
 
 func (fc *configGroupCache) LastMtime() time.Time {
 	return fc.BaseCache.LastMtime(fc.Name())
+}
+
+// fetchStartTime 获取数据增量更新起始时间
+func (fc *configGroupCache) fetchStartTime() time.Time {
+	if fc.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+		return fc.LastMtime()
+	}
+	return fc.LastFetchTime()
 }
 
 func (fc *configGroupCache) setConfigGroups(groups []*model.ConfigFileGroup) (map[string]time.Time, int, int) {

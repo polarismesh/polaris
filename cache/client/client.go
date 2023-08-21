@@ -57,6 +57,14 @@ func (c *clientCache) LastMtime() time.Time {
 	return c.BaseCache.LastMtime(c.Name())
 }
 
+// fetchStartTime 获取数据增量更新起始时间
+func (c *clientCache) fetchStartTime() time.Time {
+	if c.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+		return c.LastMtime()
+	}
+	return c.LastFetchTime()
+}
+
 // NewClientCache 新建一个clientCache
 func NewClientCache(storage store.Store, cacheMgr types.CacheManager) types.ClientCache {
 	return &clientCache{
@@ -67,9 +75,10 @@ func NewClientCache(storage store.Store, cacheMgr types.CacheManager) types.Clie
 }
 
 // initialize 初始化函数
-func (c *clientCache) Initialize(_ map[string]interface{}) error {
+func (c *clientCache) Initialize(op map[string]interface{}) error {
 	c.singleFlight = &singleflight.Group{}
 	c.lastUpdateTime = time.Unix(0, 0)
+	c.InitBaseOptions(op)
 	return nil
 }
 
@@ -90,7 +99,7 @@ func (c *clientCache) Update() error {
 func (c *clientCache) realUpdate() (map[string]time.Time, int64, error) {
 	// 拉取diff前的所有数据
 	start := time.Now()
-	clients, err := c.storage.GetMoreClients(c.LastFetchTime(), c.IsFirstUpdate())
+	clients, err := c.storage.GetMoreClients(c.fetchStartTime(), c.IsFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache][Client] update get storage more err: %s", err.Error())
 		return nil, -1, err

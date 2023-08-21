@@ -63,12 +63,13 @@ func NewRoutingConfigCache(s store.Store, cacheMgr types.CacheManager) types.Rou
 }
 
 // initialize The function of implementing the cache interface
-func (rc *routingConfigCache) Initialize(_ map[string]interface{}) error {
+func (rc *routingConfigCache) Initialize(op map[string]interface{}) error {
 	rc.lastMtimeV1 = time.Unix(0, 0)
 	rc.lastMtimeV2 = time.Unix(0, 0)
 	rc.pendingV1RuleIds = make(map[string]*model.RoutingConfig)
 	rc.bucket = newRouteRuleBucket()
 	rc.serviceCache = rc.BaseCache.CacheMgr.GetCacher(types.CacheService).(*serviceCache)
+	rc.InitBaseOptions(op)
 	return nil
 }
 
@@ -83,13 +84,13 @@ func (rc *routingConfigCache) Update() error {
 
 // update The function of implementing the cache interface
 func (rc *routingConfigCache) realUpdate() (map[string]time.Time, int64, error) {
-	outV1, err := rc.storage.GetRoutingConfigsForCache(rc.LastFetchTime(), rc.IsFirstUpdate())
+	outV1, err := rc.storage.GetRoutingConfigsForCache(rc.v1FetchStartTime(), rc.IsFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache] routing config v1 cache get from store err: %s", err.Error())
 		return nil, -1, err
 	}
 
-	outV2, err := rc.storage.GetRoutingConfigsV2ForCache(rc.LastFetchTime(), rc.IsFirstUpdate())
+	outV2, err := rc.storage.GetRoutingConfigsV2ForCache(rc.v2FetchStartTime(), rc.IsFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache] routing config v2 cache get from store err: %s", err.Error())
 		return nil, -1, err
@@ -114,6 +115,27 @@ func (rc *routingConfigCache) Clear() error {
 // Name The function of implementing the cache interface
 func (rc *routingConfigCache) Name() string {
 	return types.RoutingConfigName
+}
+
+// V2Name The function of implementing the cache interface
+func (rc *routingConfigCache) V2Name() string {
+	return types.RoutingConfigName + "v2"
+}
+
+// v1FetchStartTime 获取数据增量更新起始时间
+func (rc *routingConfigCache) v1FetchStartTime() time.Time {
+	if rc.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+		return rc.LastMtime(rc.Name())
+	}
+	return rc.LastFetchTime()
+}
+
+// v2FetchStartTime 获取数据增量更新起始时间
+func (rc *routingConfigCache) v2FetchStartTime() time.Time {
+	if rc.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+		return rc.LastMtime(rc.V2Name())
+	}
+	return rc.LastFetchTime()
 }
 
 func (rc *routingConfigCache) ListRouterRule(service, namespace string) []*model.ExtendRouterConfig {
@@ -266,7 +288,7 @@ func (rc *routingConfigCache) setRoutingConfigV2(lastMtimes map[string]time.Time
 		return
 	}
 
-	lastMtimeV2 := rc.LastMtime(rc.Name() + "v2").Unix()
+	lastMtimeV2 := rc.LastMtime(rc.V2Name()).Unix()
 	for _, entry := range cs {
 		if entry.ID == "" {
 			continue
@@ -285,7 +307,7 @@ func (rc *routingConfigCache) setRoutingConfigV2(lastMtimes map[string]time.Time
 		}
 		rc.bucket.saveV2(extendEntry)
 	}
-	lastMtimes[rc.Name()+"v2"] = time.Unix(lastMtimeV2, 0)
+	lastMtimes[rc.V2Name()] = time.Unix(lastMtimeV2, 0)
 }
 
 func (rc *routingConfigCache) IsConvertFromV1(id string) (string, bool) {

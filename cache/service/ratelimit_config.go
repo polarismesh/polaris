@@ -54,9 +54,10 @@ func NewRateLimitCache(s store.Store, cacheMgr types.CacheManager) types.RateLim
 }
 
 // Initialize 实现Cache接口的initialize函数
-func (rlc *rateLimitCache) Initialize(_ map[string]interface{}) error {
+func (rlc *rateLimitCache) Initialize(op map[string]interface{}) error {
 	rlc.rules = newRateLimitRuleBucket()
 	rlc.svcCache = rlc.CacheMgr.GetCacher(types.CacheService).(*serviceCache)
+	rlc.InitBaseOptions(op)
 	return nil
 }
 
@@ -71,7 +72,7 @@ func (rlc *rateLimitCache) Update() error {
 }
 
 func (rlc *rateLimitCache) realUpdate() (map[string]time.Time, int64, error) {
-	rateLimits, err := rlc.storage.GetRateLimitsForCache(rlc.LastFetchTime(), rlc.IsFirstUpdate())
+	rateLimits, err := rlc.storage.GetRateLimitsForCache(rlc.fetchStartTime(), rlc.IsFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache] rate limit cache update err: %s", err.Error())
 		return nil, -1, err
@@ -83,6 +84,14 @@ func (rlc *rateLimitCache) realUpdate() (map[string]time.Time, int64, error) {
 // Name 获取资源名称
 func (rlc *rateLimitCache) Name() string {
 	return types.RateLimitConfigName
+}
+
+// fetchStartTime 获取数据增量更新起始时间
+func (rlc *rateLimitCache) fetchStartTime() time.Time {
+	if rlc.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+		return rlc.LastMtime(rlc.Name())
+	}
+	return rlc.LastFetchTime()
 }
 
 // Clear 实现Cache接口的clear函数

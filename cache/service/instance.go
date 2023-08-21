@@ -93,6 +93,7 @@ func (ic *instanceCache) Initialize(opt map[string]interface{}) error {
 			ic.systemServiceID = append(ic.systemServiceID, service.ID)
 		}
 	}
+	ic.InitBaseOptions(opt)
 	return nil
 }
 
@@ -117,6 +118,14 @@ func (ic *instanceCache) singleUpdate() (error, bool) {
 
 func (ic *instanceCache) LastMtime() time.Time {
 	return ic.BaseCache.LastMtime(ic.Name())
+}
+
+// fetchStartTime 获取数据增量更新起始时间
+func (ic *instanceCache) fetchStartTime() time.Time {
+	if ic.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+		return ic.LastMtime()
+	}
+	return ic.LastFetchTime()
 }
 
 func (ic *instanceCache) checkAll() {
@@ -147,7 +156,7 @@ const maxLoadTimeDuration = 1 * time.Second
 func (ic *instanceCache) realUpdate() (map[string]time.Time, int64, error) {
 	// 拉取diff前的所有数据
 	start := time.Now()
-	instances, err := ic.storage.GetMoreInstances(ic.LastFetchTime(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID)
+	instances, err := ic.storage.GetMoreInstances(ic.fetchStartTime(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID)
 	if err != nil {
 		log.Errorf("[Cache][Instance] update get storage more err: %s", err.Error())
 		return nil, -1, err

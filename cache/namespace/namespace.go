@@ -50,9 +50,10 @@ func NewNamespaceCache(storage store.Store, cacheMgr types.CacheManager) types.N
 }
 
 // Initialize
-func (nsCache *namespaceCache) Initialize(c map[string]interface{}) error {
+func (nsCache *namespaceCache) Initialize(op map[string]interface{}) error {
 	nsCache.ids = utils.NewSyncMap[string, *model.Namespace]()
 	nsCache.updater = new(singleflight.Group)
+	nsCache.InitBaseOptions(op)
 	return nil
 }
 
@@ -66,10 +67,7 @@ func (nsCache *namespaceCache) Update() error {
 }
 
 func (nsCache *namespaceCache) realUpdate() (map[string]time.Time, int64, error) {
-	var (
-		lastTime = nsCache.LastFetchTime()
-		ret, err = nsCache.storage.GetMoreNamespaces(lastTime)
-	)
+	ret, err := nsCache.storage.GetMoreNamespaces(nsCache.fetchStartTime())
 	if err != nil {
 		log.Error("[Cache][Namespace] get storage more", zap.Error(err))
 		return nil, -1, err
@@ -110,6 +108,14 @@ func (nsCache *namespaceCache) Clear() error {
 //	@return string
 func (nsCache *namespaceCache) Name() string {
 	return types.NamespaceName
+}
+
+// fetchStartTime 获取数据增量更新起始时间
+func (nsCache *namespaceCache) fetchStartTime() time.Time {
+	if nsCache.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+		return nsCache.LastMtime(nsCache.Name())
+	}
+	return nsCache.LastFetchTime()
 }
 
 // GetNamespace

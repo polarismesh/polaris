@@ -62,7 +62,7 @@ func NewStrategyCache(storage store.Store, cacheMgr types.CacheManager) types.St
 	}
 }
 
-func (sc *strategyCache) Initialize(c map[string]interface{}) error {
+func (sc *strategyCache) Initialize(op map[string]interface{}) error {
 	sc.userCache = sc.BaseCache.CacheMgr.GetCacher(types.CacheUser).(*userCache)
 	sc.strategys = utils.NewSyncMap[string, *model.StrategyDetailCache]()
 	sc.uid2Strategy = utils.NewSyncMap[string, *utils.SyncSet[string]]()
@@ -72,6 +72,7 @@ func (sc *strategyCache) Initialize(c map[string]interface{}) error {
 	sc.configGroup2Strategy = utils.NewSyncMap[string, *utils.SyncSet[string]]()
 	sc.singleFlight = new(singleflight.Group)
 	sc.lastMtime = 0
+	sc.InitBaseOptions(op)
 	return nil
 }
 
@@ -91,7 +92,7 @@ func (sc *strategyCache) realUpdate() (map[string]time.Time, int64, error) {
 	// 获取几秒前的全部数据
 	var (
 		start           = time.Now()
-		lastTime        = sc.LastFetchTime()
+		lastTime        = sc.fetchStartTime()
 		strategies, err = sc.storage.GetStrategyDetailsForCache(lastTime, sc.IsFirstUpdate())
 	)
 	if err != nil {
@@ -104,7 +105,7 @@ func (sc *strategyCache) realUpdate() (map[string]time.Time, int64, error) {
 	if timeDiff > time.Second {
 		log.Info("[Cache][AuthStrategy] get more auth strategy",
 			zap.Int("add", add), zap.Int("update", update), zap.Int("delete", del),
-			zap.Time("last", lastTime), zap.Duration("used", time.Since(start)))
+			zap.Time("last", sc.LastMtime(sc.Name())), zap.Duration("used", time.Since(start)))
 	}
 	return lastMtimes, int64(len(strategies)), nil
 }
@@ -301,6 +302,14 @@ func (sc *strategyCache) Clear() error {
 
 func (sc *strategyCache) Name() string {
 	return types.StrategyRuleName
+}
+
+// fetchStartTime 获取数据增量更新起始时间
+func (sc *strategyCache) fetchStartTime() time.Time {
+	if sc.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+		return sc.LastMtime(sc.Name())
+	}
+	return sc.LastFetchTime()
 }
 
 // 对于 check 逻辑，如果是计算 * 策略，则必须要求 * 资源下必须有策略

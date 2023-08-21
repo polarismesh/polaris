@@ -103,6 +103,7 @@ func (sc *serviceCache) Initialize(opt map[string]interface{}) error {
 	}
 	sc.disableBusiness, _ = opt["disableBusiness"].(bool)
 	sc.needMeta, _ = opt["needMeta"].(bool)
+	sc.InitBaseOptions(opt)
 	return nil
 }
 
@@ -120,6 +121,14 @@ func (sc *serviceCache) Close() error {
 // LastMtime 最后一次更新时间
 func (sc *serviceCache) LastMtime() time.Time {
 	return sc.BaseCache.LastMtime(sc.Name())
+}
+
+// fetchStartTime 获取数据增量更新起始时间
+func (sc *serviceCache) fetchStartTime() time.Time {
+	if sc.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+		return sc.LastMtime()
+	}
+	return sc.LastFetchTime()
 }
 
 // update Service缓存更新函数
@@ -161,7 +170,7 @@ func (sc *serviceCache) checkAll() {
 func (sc *serviceCache) realUpdate() (map[string]time.Time, int64, error) {
 	// 获取几秒前的全部数据
 	start := time.Now()
-	services, err := sc.storage.GetMoreServices(sc.LastFetchTime(), sc.IsFirstUpdate(), sc.disableBusiness, sc.needMeta)
+	services, err := sc.storage.GetMoreServices(sc.fetchStartTime(), sc.IsFirstUpdate(), sc.disableBusiness, sc.needMeta)
 	if err != nil {
 		log.Errorf("[Cache][Service] update services err: %s", err.Error())
 		return nil, -1, err

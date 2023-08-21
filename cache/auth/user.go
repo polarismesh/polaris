@@ -34,6 +34,9 @@ import (
 
 const (
 	NameLinkOwnerTemp = "%s@%s"
+
+	lastMtimeLabelUsers = "users"
+	lastMtimeLabelGroup = "group"
 )
 
 type userRefreshResult struct {
@@ -62,9 +65,6 @@ type userCache struct {
 	// userid -> groups
 	user2Groups *utils.SyncMap[string, *utils.SyncSet[string]]
 
-	lastUserMtime  int64
-	lastGroupMtime int64
-
 	singleFlight *singleflight.Group
 }
 
@@ -77,13 +77,14 @@ func NewUserCache(storage store.Store, cacheMgr types.CacheManager) types.UserCa
 }
 
 // Initialize
-func (uc *userCache) Initialize(_ map[string]interface{}) error {
+func (uc *userCache) Initialize(op map[string]interface{}) error {
 	uc.users = utils.NewSyncMap[string, *model.User]()
 	uc.name2Users = utils.NewSyncMap[string, *model.User]()
 	uc.groups = utils.NewSyncMap[string, *model.UserGroupDetail]()
 	uc.user2Groups = utils.NewSyncMap[string, *utils.SyncSet[string]]()
 	uc.adminUser = atomic.Value{}
 	uc.singleFlight = new(singleflight.Group)
+	uc.InitBaseOptions(op)
 	return nil
 }
 
@@ -98,13 +99,16 @@ func (uc *userCache) Update() error {
 func (uc *userCache) realUpdate() (map[string]time.Time, int64, error) {
 	// Get all data before a few seconds
 	start := time.Now()
-	users, err := uc.storage.GetUsersForCache(uc.LastFetchTime(), uc.IsFirstUpdate())
+
+	userFetchStartTime, groupFetchStartTime := uc.userFetchStartTime(), uc.groupFetchStartTime()
+
+	users, err := uc.storage.GetUsersForCache(userFetchStartTime, uc.IsFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache][User] update user err: %s", err.Error())
 		return nil, -1, err
 	}
 
-	groups, err := uc.storage.GetGroupsForCache(uc.LastFetchTime(), uc.IsFirstUpdate())
+	groups, err := uc.storage.GetGroupsForCache(groupFetchStartTime, uc.IsFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache][Group] update group err: %s", err.Error())
 		return nil, -1, err
@@ -117,13 +121,13 @@ func (uc *userCache) realUpdate() (map[string]time.Time, int64, error) {
 			zap.Int("add", refreshRet.userAdd),
 			zap.Int("update", refreshRet.userUpdate),
 			zap.Int("delete", refreshRet.userDel),
-			zap.Time("last", time.Unix(uc.lastUserMtime, 0)), zap.Duration("used", time.Since(start)))
+			zap.Time("last", uc.LastMtime(lastMtimeLabelUsers)), zap.Duration("used", time.Since(start)))
 
 		log.Info("[Cache][Group] get more group",
 			zap.Int("add", refreshRet.groupAdd),
 			zap.Int("update", refreshRet.groupUpdate),
 			zap.Int("delete", refreshRet.groupDel),
-			zap.Time("last", time.Unix(uc.lastGroupMtime, 0)), zap.Duration("used", time.Since(start)))
+			zap.Time("last", uc.LastMtime(lastMtimeLabelGroup)), zap.Duration("used", time.Since(start)))
 	}
 	return lastMimes, int64(len(users) + len(groups)), nil
 }
@@ -161,7 +165,7 @@ func (uc *userCache) setUserAndGroups(users []*model.User,
 func (uc *userCache) handlerUserCacheUpdate(lastMimes map[string]time.Time, ret *userRefreshResult, users []*model.User,
 	filter func(user *model.User) bool, ownerSupplier func(user *model.User) *model.User) {
 
-	lastUserMtime := uc.LastMtime("users").Unix()
+	lastUserMtime := uc.LastMtime(lastMtimeLabelUsers).Unix()
 
 	for i := range users {
 		user := users[i]
@@ -199,14 +203,14 @@ func (uc *userCache) handlerUserCacheUpdate(lastMimes map[string]time.Time, ret 
 		}
 	}
 
-	lastMimes["users"] = time.Unix(lastUserMtime, 0)
+	lastMimes[lastMtimeLabelUsers] = time.Unix(lastUserMtime, 0)
 }
 
 // handlerGroupCacheUpdate 处理用户组信息更新
 func (uc *userCache) handlerGroupCacheUpdate(lastMimes map[string]time.Time, ret *userRefreshResult,
 	groups []*model.UserGroupDetail) {
 
-	lastGroupMtime := uc.LastMtime("group").Unix()
+	lastGroupMtime := uc.LastMtime(lastMtimeLabelGroup).Unix()
 
 	// 更新 groups 数据信息
 	for i := range groups {
@@ -255,7 +259,7 @@ func (uc *userCache) handlerGroupCacheUpdate(lastMimes map[string]time.Time, ret
 		}
 	}
 
-	lastMimes["group"] = time.Unix(lastGroupMtime, 0)
+	lastMimes[lastMtimeLabelGroup] = time.Unix(lastGroupMtime, 0)
 }
 
 func (uc *userCache) Clear() error {
@@ -265,13 +269,27 @@ func (uc *userCache) Clear() error {
 	uc.groups = utils.NewSyncMap[string, *model.UserGroupDetail]()
 	uc.user2Groups = utils.NewSyncMap[string, *utils.SyncSet[string]]()
 	uc.adminUser = atomic.Value{}
-	uc.lastUserMtime = 0
-	uc.lastGroupMtime = 0
 	return nil
 }
 
 func (uc *userCache) Name() string {
 	return types.UsersName
+}
+
+// userFetchStartTime 获取数据增量更新起始时间
+func (uc *userCache) userFetchStartTime() time.Time {
+	if uc.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+		return uc.LastMtime(lastMtimeLabelUsers)
+	}
+	return uc.LastFetchTime()
+}
+
+// groupFetchStartTime 获取数据增量更新起始时间
+func (uc *userCache) groupFetchStartTime() time.Time {
+	if uc.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+		return uc.LastMtime(lastMtimeLabelGroup)
+	}
+	return uc.LastFetchTime()
 }
 
 // GetAdmin 获取管理员数据信息

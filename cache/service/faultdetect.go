@@ -62,7 +62,8 @@ func NewFaultDetectCache(s store.Store, cacheMgr types.CacheManager) types.Fault
 }
 
 // Initialize 实现Cache接口的函数
-func (f *faultDetectCache) Initialize(_ map[string]interface{}) error {
+func (f *faultDetectCache) Initialize(op map[string]interface{}) error {
+	f.InitBaseOptions(op)
 	return nil
 }
 
@@ -75,7 +76,7 @@ func (f *faultDetectCache) Update() error {
 
 // update 实现Cache接口的函数
 func (f *faultDetectCache) realUpdate() (map[string]time.Time, int64, error) {
-	fdRules, err := f.storage.GetFaultDetectRulesForCache(f.LastFetchTime(), f.IsFirstUpdate())
+	fdRules, err := f.storage.GetFaultDetectRulesForCache(f.fetchStartTime(), f.IsFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache] fault detect config cache update err:%s", err.Error())
 		return nil, -1, err
@@ -99,6 +100,14 @@ func (f *faultDetectCache) Clear() error {
 // Name 实现资源名称
 func (f *faultDetectCache) Name() string {
 	return types.FaultDetectRuleName
+}
+
+// fetchStartTime 获取数据增量更新起始时间
+func (f *faultDetectCache) fetchStartTime() time.Time {
+	if f.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+		return f.LastMtime(f.Name())
+	}
+	return f.LastFetchTime()
 }
 
 // GetFaultDetectConfig 根据serviceID获取探测规则

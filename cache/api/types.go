@@ -483,21 +483,32 @@ type (
 )
 
 var (
-	// DefaultTimeDiff default time diff
-	DefaultTimeDiff = -5 * time.Second
+	// TimeDiff default time diff
+	TimeDiff = -5 * time.Second
+)
+
+const (
+	// FetchFromLastFetchTime 获取上次缓存更新时间到现在期间的增量更新
+	FetchFromLastFetchTime = "last_fetch_time"
+	// FetchFromLastMtime 获取最近一次数据修改时间到现在期间的增量更新
+	FetchFromLastMtime = "last_mtime"
 )
 
 // BaseCache 对于 Cache 中的一些 func 做统一实现，避免重复逻辑
 type BaseCache struct {
 	lock sync.RWMutex
-	// firtstUpdate Whether the cache is loaded for the first time
+	// firstUpdate Whether the cache is loaded for the first time
 	// this field can only make value on exec initialize/clean, and set it to false on exec update
-	firtstUpdate  bool
-	s             store.Store
+	firstUpdate bool
+	s           store.Store
+	// lastFetchTime 上次缓存刷新时间
 	lastFetchTime int64
-	lastMtimes    map[string]time.Time
-	Manager       *ListenerManager
-	CacheMgr      CacheManager
+	// lastMtimes 数据最近一次修改时间
+	lastMtimes map[string]time.Time
+	// fetchStartTimeType 增量更新时，从 store 层查询数据的起始时间类型
+	fetchStartTimeType string
+	Manager            *ListenerManager
+	CacheMgr           CacheManager
 }
 
 func NewBaseCache(s store.Store, cacheMgr CacheManager) *BaseCache {
@@ -515,9 +526,20 @@ func (bc *BaseCache) initialize() {
 	defer bc.lock.Unlock()
 
 	bc.lastFetchTime = 1
-	bc.firtstUpdate = true
+	bc.firstUpdate = true
 	bc.Manager = NewListenerManager()
 	bc.lastMtimes = map[string]time.Time{}
+}
+
+// InitBaseOptions 初始化通用配置选项
+func (bc *BaseCache) InitBaseOptions(options map[string]any) {
+	// 增量更新时，从 store 层查询数据的起始时间类型
+	bc.fetchStartTimeType, _ = options["fetchStartTimeType"].(string)
+}
+
+// GetFetchStartTimeType
+func (bc *BaseCache) GetFetchStartTimeType() string {
+	return bc.fetchStartTimeType
 }
 
 var (
@@ -549,7 +571,7 @@ func (bc *BaseCache) LastMtime(label string) time.Time {
 
 func (bc *BaseCache) LastFetchTime() time.Time {
 	lastTime := time.Unix(bc.lastFetchTime, 0)
-	tmp := lastTime.Add(DefaultTimeDiff)
+	tmp := lastTime.Add(TimeDiff)
 	if zeroTime.After(tmp) {
 		return lastTime
 	}
@@ -564,7 +586,7 @@ func (bc *BaseCache) OriginLastFetchTime() time.Time {
 }
 
 func (bc *BaseCache) IsFirstUpdate() bool {
-	return bc.firtstUpdate
+	return bc.firstUpdate
 }
 
 // update
@@ -610,7 +632,7 @@ func (bc *BaseCache) DoCacheUpdate(name string, executor func() (map[string]time
 	if total >= 0 {
 		metrics.RecordCacheUpdateCost(time.Since(start), name, total)
 	}
-	bc.firtstUpdate = false
+	bc.firstUpdate = false
 	return nil
 }
 
@@ -619,7 +641,7 @@ func (bc *BaseCache) Clear() {
 	defer bc.lock.Unlock()
 	bc.lastMtimes = make(map[string]time.Time)
 	bc.lastFetchTime = 1
-	bc.firtstUpdate = true
+	bc.firstUpdate = true
 }
 
 // AddListener 添加
