@@ -483,8 +483,8 @@ type (
 )
 
 var (
-	// TimeDiff default time diff
-	TimeDiff = -5 * time.Second
+	// DefaultTimeDiff default time diff
+	DefaultTimeDiff = -5 * time.Second
 )
 
 const (
@@ -571,7 +571,7 @@ func (bc *BaseCache) LastMtime(label string) time.Time {
 
 func (bc *BaseCache) LastFetchTime() time.Time {
 	lastTime := time.Unix(bc.lastFetchTime, 0)
-	tmp := lastTime.Add(TimeDiff)
+	tmp := lastTime.Add(DefaultTimeDiff)
 	if zeroTime.After(tmp) {
 		return lastTime
 	}

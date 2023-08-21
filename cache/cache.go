@@ -45,7 +45,7 @@ type CacheManager struct {
 // Initialize 缓存对象初始化
 func (nc *CacheManager) Initialize() error {
 	if config.DiffTime != 0 {
-		types.TimeDiff = config.DiffTime
+		types.DefaultTimeDiff = config.DiffTime
 	}
 
 	for _, obj := range nc.caches {
