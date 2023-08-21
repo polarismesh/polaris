@@ -21,8 +21,13 @@ import "time"
 
 // Config 缓存配置
 type Config struct {
-	Open      bool          `yaml:"open"`
-	DiffTime  time.Duration `yaml:"diffTime"`
+	// Open 是否开启本地缓存功能
+	Open bool `yaml:"open"`
+	// DiffTime 缓存刷新时，拉取的是拉取间隔时间内的增量更新。可以通过该字段设置拉取更长时间范围，应对服务器时钟回拨和数据库延迟场景
+	DiffTime time.Duration `yaml:"diffTime"`
+	// RefreshInterval 缓存刷新间隔
+	RefreshInterval time.Duration `yaml:"refreshInterval"`
+	// Resources 缓存条目详细配置
 	Resources []ConfigEntry `yaml:"resources"`
 }
 

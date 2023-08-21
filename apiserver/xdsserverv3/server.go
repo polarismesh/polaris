@@ -275,7 +275,7 @@ func (x *XDSServer) startSynTask(ctx context.Context) {
 		}
 	}
 
-	ticker := time.NewTicker(5 * cache.UpdateCacheInterval)
+	ticker := time.NewTicker(5 * cache.DefaultUpdateCacheInterval)
 	for {
 		select {
 		case <-ticker.C:

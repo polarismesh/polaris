@@ -32,8 +32,8 @@ var (
 )
 
 const (
-	// UpdateCacheInterval 缓存更新时间间隔
-	UpdateCacheInterval = 1 * time.Second
+	// DefaultUpdateCacheInterval 默认缓存更新时间间隔
+	DefaultUpdateCacheInterval = 1 * time.Second
 )
 
 // CacheManager 名字服务缓存
@@ -140,7 +140,10 @@ func (nc *CacheManager) Clear() error {
 
 // GetUpdateCacheInterval 获取当前cache的更新间隔
 func (nc *CacheManager) GetUpdateCacheInterval() time.Duration {
-	return UpdateCacheInterval
+	if config.RefreshInterval > 0 {
+		return config.RefreshInterval
+	}
+	return DefaultUpdateCacheInterval
 }
 
 func (nc *CacheManager) AddListener(cacheIndex types.CacheIndex, listeners []types.Listener) {
