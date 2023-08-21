@@ -60,7 +60,7 @@ var (
 )
 
 // CreateUsers 批量创建用户
-func (svr *server) CreateUsers(ctx context.Context, req []*apisecurity.User) *apiservice.BatchWriteResponse {
+func (svr *Server) CreateUsers(ctx context.Context, req []*apisecurity.User) *apiservice.BatchWriteResponse {
 	batchResp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 
 	for i := range req {
@@ -72,7 +72,7 @@ func (svr *server) CreateUsers(ctx context.Context, req []*apisecurity.User) *ap
 }
 
 // CreateUser 创建用户
-func (svr *server) CreateUser(ctx context.Context, req *apisecurity.User) *apiservice.Response {
+func (svr *Server) CreateUser(ctx context.Context, req *apisecurity.User) *apiservice.Response {
 	requestID := utils.ParseRequestID(ctx)
 	ownerID := utils.ParseOwnerID(ctx)
 	req.Owner = utils.NewStringValue(ownerID)
@@ -115,7 +115,7 @@ func (svr *server) CreateUser(ctx context.Context, req *apisecurity.User) *apise
 	return svr.createUser(ctx, req)
 }
 
-func (svr *server) createUser(ctx context.Context, req *apisecurity.User) *apiservice.Response {
+func (svr *Server) createUser(ctx context.Context, req *apisecurity.User) *apiservice.Response {
 	requestID := utils.ParseRequestID(ctx)
 
 	data, err := createUserModel(req, authcommon.ParseUserRole(ctx))
@@ -141,7 +141,7 @@ func (svr *server) createUser(ctx context.Context, req *apisecurity.User) *apise
 }
 
 // UpdateUser 更新用户信息，仅能修改 comment 以及账户密码
-func (svr *server) UpdateUser(ctx context.Context, req *apisecurity.User) *apiservice.Response {
+func (svr *Server) UpdateUser(ctx context.Context, req *apisecurity.User) *apiservice.Response {
 	requestID := utils.ParseRequestID(ctx)
 
 	if checkErrResp := checkUpdateUser(req); checkErrResp != nil {
@@ -187,7 +187,7 @@ func (svr *server) UpdateUser(ctx context.Context, req *apisecurity.User) *apise
 }
 
 // UpdateUserPassword 更新用户密码信息
-func (svr *server) UpdateUserPassword(ctx context.Context, req *apisecurity.ModifyUserPassword) *apiservice.Response {
+func (svr *Server) UpdateUserPassword(ctx context.Context, req *apisecurity.ModifyUserPassword) *apiservice.Response {
 	requestID := utils.ParseRequestID(ctx)
 
 	user, err := svr.storage.GetUser(req.Id.GetValue())
@@ -232,7 +232,7 @@ func (svr *server) UpdateUserPassword(ctx context.Context, req *apisecurity.Modi
 }
 
 // DeleteUsers 批量删除用户
-func (svr *server) DeleteUsers(ctx context.Context, reqs []*apisecurity.User) *apiservice.BatchWriteResponse {
+func (svr *Server) DeleteUsers(ctx context.Context, reqs []*apisecurity.User) *apiservice.BatchWriteResponse {
 	resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 
 	for index := range reqs {
@@ -248,7 +248,7 @@ func (svr *server) DeleteUsers(ctx context.Context, reqs []*apisecurity.User) *a
 // Case 2. 删除主账户，如果主账户下还存在子账户，必须先删除子账户，才能删除主账户
 // Case 3. 主账户角色下，只能删除自己创建的子账户
 // Case 4. 超级账户角色下，可以删除任意账户
-func (svr *server) DeleteUser(ctx context.Context, req *apisecurity.User) *apiservice.Response {
+func (svr *Server) DeleteUser(ctx context.Context, req *apisecurity.User) *apiservice.Response {
 	requestID := utils.ParseRequestID(ctx)
 	user, err := svr.storage.GetUser(req.Id.GetValue())
 	if err != nil {
@@ -295,7 +295,7 @@ func (svr *server) DeleteUser(ctx context.Context, req *apisecurity.User) *apise
 }
 
 // GetUsers 查询用户列表
-func (svr *server) GetUsers(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
+func (svr *Server) GetUsers(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	requestID := utils.ParseRequestID(ctx)
 	log.Debug("[Auth][User] origin get users query params",
 		utils.ZapRequestID(requestID), zap.Any("query", query))
@@ -347,7 +347,7 @@ func (svr *server) GetUsers(ctx context.Context, query map[string]string) *apise
 }
 
 // GetUserToken 获取用户 token
-func (svr *server) GetUserToken(ctx context.Context, req *apisecurity.User) *apiservice.Response {
+func (svr *Server) GetUserToken(ctx context.Context, req *apisecurity.User) *apiservice.Response {
 	var user *model.User
 	if req.GetId().GetValue() != "" {
 		user = svr.cacheMgn.User().GetUserByID(req.GetId().GetValue())
@@ -387,7 +387,7 @@ func (svr *server) GetUserToken(ctx context.Context, req *apisecurity.User) *api
 }
 
 // UpdateUserToken 更新用户 token
-func (svr *server) UpdateUserToken(ctx context.Context, req *apisecurity.User) *apiservice.Response {
+func (svr *Server) UpdateUserToken(ctx context.Context, req *apisecurity.User) *apiservice.Response {
 	requestID := utils.ParseRequestID(ctx)
 	if checkErrResp := checkUpdateUser(req); checkErrResp != nil {
 		return checkErrResp
@@ -428,7 +428,7 @@ func (svr *server) UpdateUserToken(ctx context.Context, req *apisecurity.User) *
 }
 
 // ResetUserToken 重置用户 token
-func (svr *server) ResetUserToken(ctx context.Context, req *apisecurity.User) *apiservice.Response {
+func (svr *Server) ResetUserToken(ctx context.Context, req *apisecurity.User) *apiservice.Response {
 	requestID := utils.ParseRequestID(ctx)
 	if checkErrResp := checkUpdateUser(req); checkErrResp != nil {
 		return checkErrResp

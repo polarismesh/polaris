@@ -27,6 +27,7 @@ import (
 
 	types "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -35,6 +36,8 @@ type circuitBreakerCache struct {
 	*types.BaseCache
 
 	storage store.Store
+	// rules record id -> *model.CircuitBreakerRule
+	rules *utils.SyncMap[string, *model.CircuitBreakerRule]
 	// increment cache
 	// fetched service cache
 	// key1: namespace, key2: service
@@ -53,6 +56,7 @@ func NewCircuitBreakerCache(s store.Store, cacheMgr types.CacheManager) types.Ci
 	return &circuitBreakerCache{
 		BaseCache:       types.NewBaseCache(s, cacheMgr),
 		storage:         s,
+		rules:           utils.NewSyncMap[string, *model.CircuitBreakerRule](),
 		circuitBreakers: make(map[string]map[string]*model.ServiceWithCircuitBreakerRules),
 		nsWildcardRules: make(map[string]*model.ServiceWithCircuitBreakerRules),
 		allWildcardRules: model.NewServiceWithCircuitBreakerRules(model.ServiceKey{
@@ -91,6 +95,7 @@ func (c *circuitBreakerCache) Clear() error {
 	c.BaseCache.Clear()
 	c.lock.Lock()
 	c.allWildcardRules.Clear()
+	c.rules = utils.NewSyncMap[string, *model.CircuitBreakerRule]()
 	c.nsWildcardRules = make(map[string]*model.ServiceWithCircuitBreakerRules)
 	c.circuitBreakers = make(map[string]map[string]*model.ServiceWithCircuitBreakerRules)
 	c.lock.Unlock()
@@ -331,11 +336,24 @@ func (c *circuitBreakerCache) setCircuitBreaker(cbRules []*model.CircuitBreakerR
 		if cbRule.ModifyTime.Unix() > lastMtime {
 			lastMtime = cbRule.ModifyTime.Unix()
 		}
+
+		oldRule, ok := c.rules.Load(cbRule.ID)
+		if ok {
+			// 对比规则前后绑定的服务是否出现了变化，清理掉之前所绑定的信息数据
+			if oldRule.IsServiceChange(cbRule) {
+				// 从老的规则中获取所有的 svcKeys 信息列表
+				svcKeys := getServicesInvolveByCircuitBreakerRule(oldRule)
+				// 挨个清空
+				c.deleteCircuitBreakerFromServiceCache(cbRule.ID, svcKeys)
+			}
+		}
 		svcKeys := getServicesInvolveByCircuitBreakerRule(cbRule)
 		if !cbRule.Valid {
+			c.rules.Delete(cbRule.ID)
 			c.deleteCircuitBreakerFromServiceCache(cbRule.ID, svcKeys)
 			continue
 		}
+		c.rules.Store(cbRule.ID, cbRule)
 		c.storeCircuitBreakerToServiceCache(cbRule, svcKeys)
 	}
 

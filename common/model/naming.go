@@ -391,6 +391,12 @@ type CircuitBreakerRule struct {
 	EnableTime   time.Time
 }
 
+func (c *CircuitBreakerRule) IsServiceChange(other *CircuitBreakerRule) bool {
+	srcSvcEqual := c.SrcService == other.SrcService && c.SrcNamespace == other.SrcNamespace
+	dstSvcEqual := c.DstService == other.DstService && c.DstNamespace == other.DstNamespace
+	return srcSvcEqual && dstSvcEqual
+}
+
 // FaultDetectRule 故障探测规则
 type FaultDetectRule struct {
 	Proto        *apifault.FaultDetectRule

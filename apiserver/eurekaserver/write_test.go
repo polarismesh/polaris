@@ -27,11 +27,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/store"
 	"github.com/polarismesh/polaris/store/mock"
+	testsuit "github.com/polarismesh/polaris/test/suit"
 )
 
 func TestEurekaServer_renew(t *testing.T) {
@@ -90,43 +93,63 @@ func TestEurekaServer_renew(t *testing.T) {
 
 	disableBeatIns.Proto.Id = utils.NewStringValue(disableBeatInsId)
 
-	eurekaSuit := &EurekaTestSuit{}
-	if err := eurekaSuit.initialize(t, func(t *testing.T, s *mock.MockStore) error {
-		s.
-			EXPECT().
-			GetMoreInstances(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			AnyTimes().
-			Return(map[string]*model.Instance{
-				insId:            ins,
-				disableBeatInsId: disableBeatIns,
-			}, nil)
-		s.
-			EXPECT().
-			GetMoreServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			AnyTimes().
-			Return(map[string]*model.Service{
-				ins.ServiceID: {
-					ID:        ins.ServiceID,
-					Name:      ins.Proto.GetService().GetValue(),
-					Namespace: ins.Proto.GetNamespace().GetValue(),
-				},
-			}, nil)
+	ctrl := gomock.NewController(t)
 
-		s.EXPECT().GetInstancesCount().AnyTimes().Return(uint32(1), nil)
-		s.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
-		s.EXPECT().GetServicesCount().Return(uint32(1), nil).AnyTimes()
-		s.EXPECT().StartLeaderElection(gomock.Any()).AnyTimes()
-		s.EXPECT().Destroy().Return(nil)
-		return nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+	mockStore := mock.NewMockStore(ctrl)
+	mockStore.EXPECT().
+		GetMoreInstances(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		AnyTimes().
+		Return(map[string]*model.Instance{
+			insId:            ins,
+			disableBeatInsId: disableBeatIns,
+		}, nil)
+	mockStore.EXPECT().
+		GetMoreServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		AnyTimes().
+		Return(map[string]*model.Service{
+			ins.ServiceID: {
+				ID:        ins.ServiceID,
+				Name:      ins.Proto.GetService().GetValue(),
+				Namespace: ins.Proto.GetNamespace().GetValue(),
+			},
+		}, nil)
+
+	mockStore.EXPECT().GetInstancesCount().AnyTimes().Return(uint32(1), nil)
+	mockStore.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
+	mockStore.EXPECT().GetServicesCount().Return(uint32(1), nil).AnyTimes()
+	mockStore.EXPECT().StartLeaderElection(gomock.Any()).AnyTimes()
+	mockStore.EXPECT().Destroy().Return(nil)
+	mockStore.EXPECT().Initialize(gomock.Any()).Return(nil).AnyTimes()
+	mockStore.EXPECT().Name().Return("eureka_store_test").AnyTimes()
+
+	eurekaSuit := newEurekaTestSuit()
+	eurekaSuit.ReplaceStore(func() store.Store {
+		store.TestGetStore()
+		store.StoreSlots["eureka_store_test"] = mockStore
+		return mockStore
+	})
+	eurekaSuit.Initialize(func(conf *testsuit.TestConfig) {
+		conf.Cache = cache.Config{
+			Open: true,
+			Resources: []cache.ConfigEntry{
+				{
+					Name: "service",
+				},
+				{
+					Name: "instance",
+				},
+			},
+		}
+		store.TestInjectConfig(store.Config{
+			Name: "eureka_store_test",
+		})
+	})
 
 	defer eurekaSuit.Destroy()
 
 	t.Run("eureka客户端心跳上报-实例正常且开启心跳", func(t *testing.T) {
 		svr := &EurekaServer{
-			healthCheckServer: eurekaSuit.healthSvr,
+			healthCheckServer: eurekaSuit.HealthCheckServer(),
 		}
 		code := svr.renew(context.Background(), ins.Namespace(), "", insId, false)
 		assert.Equalf(t, api.ExecuteSuccess, code, "code need success, actual : %d", code)
@@ -134,7 +157,7 @@ func TestEurekaServer_renew(t *testing.T) {
 
 	t.Run("eureka客户端心跳上报-实例未开启心跳", func(t *testing.T) {
 		svr := &EurekaServer{
-			healthCheckServer: eurekaSuit.healthSvr,
+			healthCheckServer: eurekaSuit.HealthCheckServer(),
 		}
 		code := svr.renew(context.Background(), ins.Namespace(), "", disableBeatInsId, false)
 		assert.Equalf(t, api.ExecuteSuccess, code, "code need success, actual : %d", code)
@@ -142,7 +165,7 @@ func TestEurekaServer_renew(t *testing.T) {
 
 	t.Run("eureka客户端心跳上报-实例不存在", func(t *testing.T) {
 		svr := &EurekaServer{
-			healthCheckServer: eurekaSuit.healthSvr,
+			healthCheckServer: eurekaSuit.HealthCheckServer(),
 		}
 		instId := utils.NewUUID()
 		var code uint32

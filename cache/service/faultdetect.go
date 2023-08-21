@@ -27,6 +27,7 @@ import (
 
 	types "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -34,6 +35,8 @@ type faultDetectCache struct {
 	*types.BaseCache
 
 	storage store.Store
+	// rules record id -> *model.FaultDetectRule
+	rules *utils.SyncMap[string, *model.FaultDetectRule]
 	// increment cache
 	// fetched service cache
 	// key1: namespace, key2: service
@@ -43,8 +46,7 @@ type faultDetectCache struct {
 	// all rules are wildcard specific
 	allWildcardRules *model.ServiceWithFaultDetectRules
 	lock             sync.RWMutex
-
-	singleFlight singleflight.Group
+	singleFlight     singleflight.Group
 }
 
 // NewFaultDetectCache faultDetectCache constructor
@@ -52,6 +54,7 @@ func NewFaultDetectCache(s store.Store, cacheMgr types.CacheManager) types.Fault
 	return &faultDetectCache{
 		BaseCache:        types.NewBaseCache(s, cacheMgr),
 		storage:          s,
+		rules:            utils.NewSyncMap[string, *model.FaultDetectRule](),
 		svcSpecificRules: make(map[string]map[string]*model.ServiceWithFaultDetectRules),
 		nsWildcardRules:  make(map[string]*model.ServiceWithFaultDetectRules),
 		allWildcardRules: model.NewServiceWithFaultDetectRules(model.ServiceKey{
@@ -90,6 +93,7 @@ func (f *faultDetectCache) Clear() error {
 	f.BaseCache.Clear()
 	f.lock.Lock()
 	f.allWildcardRules.Clear()
+	f.rules = utils.NewSyncMap[string, *model.FaultDetectRule]()
 	f.nsWildcardRules = make(map[string]*model.ServiceWithFaultDetectRules)
 	f.svcSpecificRules = make(map[string]map[string]*model.ServiceWithFaultDetectRules)
 	f.lock.Unlock()

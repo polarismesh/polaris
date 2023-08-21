@@ -45,18 +45,25 @@ type CacheManager struct {
 // Initialize 缓存对象初始化
 func (nc *CacheManager) Initialize() error {
 	if config.DiffTime != 0 {
-		types.DefaultTimeDiff = config.DiffTime
+		if config.DiffTime > 0 {
+			types.DefaultTimeDiff = config.DiffTime
+		} else {
+			types.DefaultTimeDiff = -1 * config.DiffTime
+		}
 	}
 
 	for _, obj := range nc.caches {
-		var option map[string]interface{}
+		var entryItem *ConfigEntry
 		for _, entry := range config.Resources {
 			if obj.Name() == entry.Name {
-				option = entry.Option
+				entryItem = &entry
 				break
 			}
 		}
-		if err := obj.Initialize(option); err != nil {
+		if entryItem == nil {
+			continue
+		}
+		if err := obj.Initialize(entryItem.Option); err != nil {
 			return err
 		}
 	}

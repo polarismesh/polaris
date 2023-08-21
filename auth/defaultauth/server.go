@@ -34,15 +34,27 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
-type server struct {
+func NewServer(storage store.Store,
+	history plugin.History,
+	cacheMgn *cache.CacheManager,
+	authMgn *DefaultAuthChecker) *Server {
+	return &Server{
+		storage:  storage,
+		history:  history,
+		cacheMgn: cacheMgn,
+		authMgn:  authMgn,
+	}
+}
+
+type Server struct {
 	storage  store.Store
 	history  plugin.History
 	cacheMgn *cache.CacheManager
-	authMgn  *defaultAuthChecker
+	authMgn  *DefaultAuthChecker
 }
 
 // initialize
-func (svr *server) initialize() error {
+func (svr *Server) initialize() error {
 	// 获取History插件，注意：插件的配置在bootstrap已经设置好
 	svr.history = plugin.GetHistory()
 	if svr.history == nil {
@@ -53,7 +65,7 @@ func (svr *server) initialize() error {
 }
 
 // Login 登录动作
-func (svr *server) Login(req *apisecurity.LoginRequest) *apiservice.Response {
+func (svr *Server) Login(req *apisecurity.LoginRequest) *apiservice.Response {
 	username := req.GetName().GetValue()
 	ownerName := req.GetOwner().GetValue()
 	if ownerName == "" {
@@ -83,8 +95,8 @@ func (svr *server) Login(req *apisecurity.LoginRequest) *apiservice.Response {
 	})
 }
 
-// RecordHistory server对外提供history插件的简单封装
-func (svr *server) RecordHistory(entry *model.RecordEntry) {
+// RecordHistory Server对外提供history插件的简单封装
+func (svr *Server) RecordHistory(entry *model.RecordEntry) {
 	// 如果插件没有初始化，那么不记录history
 	if svr.history == nil {
 		return
@@ -100,7 +112,7 @@ func (svr *server) RecordHistory(entry *model.RecordEntry) {
 
 // AfterResourceOperation 对于资源的添加删除操作，需要执行后置逻辑
 // 所有子用户或者用户分组，都默认获得对所创建的资源的写权限
-func (svr *server) AfterResourceOperation(afterCtx *model.AcquireContext) error {
+func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error {
 	if !svr.authMgn.IsOpenAuth() || afterCtx.GetOperation() == model.Read {
 		return nil
 	}
@@ -165,7 +177,7 @@ func (svr *server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 }
 
 // handleUserStrategy
-func (svr *server) handleUserStrategy(userIds []string, afterCtx *model.AcquireContext, isRemove bool) error {
+func (svr *Server) handleUserStrategy(userIds []string, afterCtx *model.AcquireContext, isRemove bool) error {
 	for index := range utils.StringSliceDeDuplication(userIds) {
 		userId := userIds[index]
 		user := svr.cacheMgn.User().GetUserByID(userId)
@@ -187,7 +199,7 @@ func (svr *server) handleUserStrategy(userIds []string, afterCtx *model.AcquireC
 }
 
 // handleGroupStrategy
-func (svr *server) handleGroupStrategy(groupIds []string, afterCtx *model.AcquireContext, isRemove bool) error {
+func (svr *Server) handleGroupStrategy(groupIds []string, afterCtx *model.AcquireContext, isRemove bool) error {
 	for index := range utils.StringSliceDeDuplication(groupIds) {
 		groupId := groupIds[index]
 		group := svr.cacheMgn.User().GetGroup(groupId)
@@ -207,7 +219,7 @@ func (svr *server) handleGroupStrategy(groupIds []string, afterCtx *model.Acquir
 
 // handlerModifyDefaultStrategy 处理默认策略的修改
 // case 1. 如果默认策略是全部放通
-func (svr *server) handlerModifyDefaultStrategy(id, ownerId string, uType model.PrincipalType,
+func (svr *Server) handlerModifyDefaultStrategy(id, ownerId string, uType model.PrincipalType,
 	afterCtx *model.AcquireContext, cleanRealtion bool) error {
 	// Get the default policy rules
 	strategy, err := svr.storage.GetDefaultStrategyDetailByPrincipal(id, uType)
