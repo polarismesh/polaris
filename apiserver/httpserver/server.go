@@ -470,15 +470,8 @@ func (h *HTTPServer) preprocess(req *restful.Request, rsp *restful.Response) err
 	platformID := req.HeaderParameter("Platform-Id")
 	requestURL := req.Request.URL.String()
 	if !strings.Contains(requestURL, Discover) {
-		var scope *commonlog.Scope
-		if strings.Contains(requestURL, "naming") {
-			scope = namingLog
-		} else {
-			scope = configLog
-		}
-
 		// 打印请求
-		scope.Info("receive request",
+		log.Info("receive request",
 			zap.String("client-address", req.Request.RemoteAddr),
 			zap.String("user-agent", req.HeaderParameter("User-Agent")),
 			utils.ZapRequestID(requestID),

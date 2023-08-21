@@ -136,6 +136,8 @@ type DiscoverTestSuit struct {
 	originSvr           service.DiscoverServer
 	healthCheckServer   *healthcheck.Server
 	cacheMgr            *cache.CacheManager
+	userMgn             auth.UserServer
+	strategyMgn         auth.StrategyServer
 	namespaceSvr        ns.NamespaceOperateServer
 	cancelFlag          bool
 	updateCacheInterval time.Duration
@@ -144,10 +146,15 @@ type DiscoverTestSuit struct {
 	Storage             store.Store
 	bc                  *batch.Controller
 	cleanDataOp         TestDataClean
+	caller              func() store.Store
 }
 
 func (d *DiscoverTestSuit) InjectSuit(*DiscoverTestSuit) {
 
+}
+
+func (d *DiscoverTestSuit) CacheMgr() *cache.CacheManager {
+	return d.cacheMgr
 }
 
 func (d *DiscoverTestSuit) GetTestDataClean() TestDataClean {
@@ -178,16 +185,20 @@ func (d *DiscoverTestSuit) NamespaceServer() ns.NamespaceOperateServer {
 	return d.namespaceSvr
 }
 
+func (d *DiscoverTestSuit) UserServer() auth.UserServer {
+	return d.userMgn
+}
+
+func (d *DiscoverTestSuit) StrategyServer() auth.StrategyServer {
+	return d.strategyMgn
+}
+
 func (d *DiscoverTestSuit) UpdateCacheInterval() time.Duration {
 	return d.updateCacheInterval
 }
 
 func (d *DiscoverTestSuit) BatchController() *batch.Controller {
 	return d.bc
-}
-
-func (d *DiscoverTestSuit) ReplaceStore(s store.Store) {
-	d.Storage = s
 }
 
 // 加载配置
@@ -257,6 +268,10 @@ func (d *DiscoverTestSuit) Initialize(opts ...options) error {
 	return d.initialize(opts...)
 }
 
+func (d *DiscoverTestSuit) ReplaceStore(caller func() store.Store) {
+	d.caller = caller
+}
+
 // 内部初始化函数
 func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	// 初始化defaultCtx
@@ -291,9 +306,13 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	eventhub.InitEventHub()
 
 	// 初始化存储层
-	store.SetStoreConfig(&d.cfg.Store)
-	s, _ := store.TestGetStore()
-	d.Storage = s
+	if d.caller != nil {
+		d.Storage = d.caller()
+	} else {
+		store.SetStoreConfig(&d.cfg.Store)
+		s, _ := store.TestGetStore()
+		d.Storage = s
+	}
 
 	plugin.SetPluginConfig(&d.cfg.Plugin)
 
@@ -302,20 +321,22 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	d.cancel = cancel
 
 	// 初始化缓存模块
-	cacheMgn, err := cache.TestCacheInitialize(ctx, &d.cfg.Cache, s)
+	cacheMgn, err := cache.TestCacheInitialize(ctx, &d.cfg.Cache, d.Storage)
 	if err != nil {
 		panic(err)
 	}
 	d.cacheMgr = cacheMgn
 
 	// 初始化鉴权层
-	userMgn, strategyMgn, err := auth.TestInitialize(ctx, &d.cfg.Auth, s, cacheMgn)
+	userMgn, strategyMgn, err := auth.TestInitialize(ctx, &d.cfg.Auth, d.Storage, cacheMgn)
 	if err != nil {
 		panic(err)
 	}
+	d.userMgn = userMgn
+	d.strategyMgn = strategyMgn
 
 	// 初始化命名空间模块
-	namespaceSvr, err := ns.TestInitialize(ctx, &d.cfg.Namespace, s, cacheMgn, userMgn, strategyMgn)
+	namespaceSvr, err := ns.TestInitialize(ctx, &d.cfg.Namespace, d.Storage, cacheMgn, userMgn, strategyMgn)
 	if err != nil {
 		panic(err)
 	}
@@ -339,7 +360,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 		Heartbeat:        healthBatchConfig.Heartbeat,
 	}
 
-	bc, err := batch.NewBatchCtrlWithConfig(s, cacheMgn, batchConfig)
+	bc, err := batch.NewBatchCtrlWithConfig(d.Storage, cacheMgn, batchConfig)
 	if err != nil {
 		log.Errorf("new batch ctrl with config err: %s", err.Error())
 		panic(err)

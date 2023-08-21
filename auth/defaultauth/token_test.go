@@ -15,28 +15,28 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth
+package defaultauth_test
 
 import (
 	"fmt"
 	"testing"
 	"time"
 
+	"github.com/polarismesh/polaris/auth/defaultauth"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // Test_CustomDesignSalt 主要用于有自定义salt需求的用户
 func Test_CustomDesignSalt(t *testing.T) {
-	AuthOption = DefaultAuthConfig()
-
+	defaultauth.AuthOption = defaultauth.DefaultAuthConfig()
 	// 设置自定义的 salt 值，长度需要满足在 [16, 24, 32] 中的任意一个
-	AuthOption.Salt = "polarismesh@2021"
+	defaultauth.AuthOption.Salt = "polarismesh@2021"
 
 	//  polaris 用户的ID
 	uid := "65e4789a6d5b49669adf1e9e8387549c"
 	fmt.Printf("uid=%s\n", uid)
 
-	token, err := createToken(uid, "")
+	token, err := defaultauth.TestCreateToken(uid, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,13 +57,13 @@ func Test_CustomDesignSalt(t *testing.T) {
 }
 
 func TestCreateToken(t *testing.T) {
-	AuthOption = DefaultAuthConfig()
-	AuthOption.Salt = "polarismesh@2021"
+	defaultauth.AuthOption = defaultauth.DefaultAuthConfig()
+	defaultauth.AuthOption.Salt = "polarismesh@2021"
 
 	uid := "65e4789a6d5b49669adf1e9e8387549c"
 	fmt.Printf("uid=%s\n", uid)
 
-	token, err := createToken(uid, "")
+	token, err := defaultauth.TestCreateToken(uid, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func TestCreateToken(t *testing.T) {
 
 func TestDecodeToken(t *testing.T) {
 	token := "bRJ76j5/mXQ1RFS0fs1vYIlcmGljGJ2W/CYKBKNVAdLGlW1otecX2qVQF0khlISq0q1r2v4fkI0o8OrhWcE="
-	v, err := decryptMessage([]byte("polaris@acb04d93c6e14bc1"), token)
+	v, err := defaultauth.TestDecryptMessage([]byte("polaris@acb04d93c6e14bc1"), token)
 
 	if err != nil {
 		t.Fatal(err)

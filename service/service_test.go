@@ -1359,8 +1359,6 @@ func TestConcurrencyCreateSameService(t *testing.T) {
 	t.Cleanup(func() {
 		cancel()
 		ctrl.Finish()
-
-		time.Sleep(10 * time.Second)
 	})
 
 	createMockResource := func() (*service.Server, *mock.MockStore) {
@@ -1371,9 +1369,19 @@ func TestConcurrencyCreateSameService(t *testing.T) {
 		)
 
 		mockStore := mock.NewMockStore(ctrl)
+		mockStore.EXPECT().GetMoreNamespaces(gomock.Any()).Return([]*model.Namespace{
+			&model.Namespace{
+				Name: "mock_ns",
+			},
+		}, nil)
 		mockStore.EXPECT().GetUnixSecond(gomock.Any()).Return(time.Now().Unix(), nil).AnyTimes()
 		cacheMgr, err = cache.TestCacheInitialize(ctx, &cache.Config{
 			Open: true,
+			Resources: []cache.ConfigEntry{
+				{
+					Name: "namespace",
+				},
+			},
 		}, mockStore)
 		assert.NoError(t, err)
 
