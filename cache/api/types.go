@@ -575,8 +575,7 @@ func (bc *BaseCache) LastFetchTime() time.Time {
 	if zeroTime.After(tmp) {
 		return lastTime
 	}
-	lastTime = tmp
-	return lastTime
+	return tmp
 }
 
 // OriginLastFetchTime only for test

@@ -420,7 +420,7 @@ config:
 cache:
   open: true
   refreshInterval: 1s # How long to refresh cache
-  diffTime: -0s # Load for an extra time range during cache refresh
+  diffTime: -5s # Load for an extra time range during cache refresh
   resources:
     - name: service # Load service data
       option:
