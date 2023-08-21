@@ -413,3 +413,8 @@ type FaultDetectRule struct {
 	CreateTime   time.Time
 	ModifyTime   time.Time
 }
+
+func (c *FaultDetectRule) IsServiceChange(other *FaultDetectRule) bool {
+	dstSvcEqual := c.DstService == other.DstService && c.DstNamespace == other.DstNamespace
+	return dstSvcEqual
+}

@@ -304,14 +304,27 @@ func (f *faultDetectCache) setFaultDetectRules(fdRules []*model.FaultDetectRule)
 	lastMtime := f.LastMtime(f.Name()).Unix()
 
 	for _, fdRule := range fdRules {
+		oldRule, ok := f.rules.Load(fdRule.ID)
+		if ok {
+			// 对比规则前后绑定的服务是否出现了变化，清理掉之前所绑定的信息数据
+			if oldRule.IsServiceChange(fdRule) {
+				// 从老的规则中获取所有的 svcKeys 信息列表
+				svcKeys := getServicesInvolveByFaultDetectRule(oldRule)
+				// 挨个清空
+				f.deleteFaultDetectRuleFromServiceCache(fdRule.ID, svcKeys)
+			}
+		}
+
 		if fdRule.ModifyTime.Unix() > lastMtime {
 			lastMtime = fdRule.ModifyTime.Unix()
 		}
 		svcKeys := getServicesInvolveByFaultDetectRule(fdRule)
 		if !fdRule.Valid {
+			f.rules.Delete(fdRule.ID)
 			f.deleteFaultDetectRuleFromServiceCache(fdRule.ID, svcKeys)
 			continue
 		}
+		f.rules.Store(fdRule.ID, fdRule)
 		f.storeFaultDetectRuleToServiceCache(fdRule, svcKeys)
 	}
 
