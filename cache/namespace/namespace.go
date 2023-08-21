@@ -112,7 +112,7 @@ func (nsCache *namespaceCache) Name() string {
 
 // fetchStartTime 获取数据增量更新起始时间
 func (nsCache *namespaceCache) fetchStartTime() time.Time {
-	if nsCache.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+	if nsCache.GetFetchStartTimeType() == types.FetchFromLastMtime {
 		return nsCache.LastMtime(nsCache.Name())
 	}
 	return nsCache.LastFetchTime()

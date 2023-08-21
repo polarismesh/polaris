@@ -104,7 +104,7 @@ func (f *faultDetectCache) Name() string {
 
 // fetchStartTime 获取数据增量更新起始时间
 func (f *faultDetectCache) fetchStartTime() time.Time {
-	if f.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+	if f.GetFetchStartTimeType() == types.FetchFromLastMtime {
 		return f.LastMtime(f.Name())
 	}
 	return f.LastFetchTime()

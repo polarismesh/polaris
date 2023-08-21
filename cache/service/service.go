@@ -125,7 +125,7 @@ func (sc *serviceCache) LastMtime() time.Time {
 
 // fetchStartTime 获取数据增量更新起始时间
 func (sc *serviceCache) fetchStartTime() time.Time {
-	if sc.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+	if sc.GetFetchStartTimeType() == types.FetchFromLastMtime {
 		return sc.LastMtime()
 	}
 	return sc.LastFetchTime()

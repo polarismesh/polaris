@@ -306,7 +306,7 @@ func (sc *strategyCache) Name() string {
 
 // fetchStartTime 获取数据增量更新起始时间
 func (sc *strategyCache) fetchStartTime() time.Time {
-	if sc.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+	if sc.GetFetchStartTimeType() == types.FetchFromLastMtime {
 		return sc.LastMtime(sc.Name())
 	}
 	return sc.LastFetchTime()

@@ -124,7 +124,7 @@ func (rc *routingConfigCache) V2Name() string {
 
 // v1FetchStartTime 获取数据增量更新起始时间
 func (rc *routingConfigCache) v1FetchStartTime() time.Time {
-	if rc.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+	if rc.GetFetchStartTimeType() == types.FetchFromLastMtime {
 		return rc.LastMtime(rc.Name())
 	}
 	return rc.LastFetchTime()
@@ -132,7 +132,7 @@ func (rc *routingConfigCache) v1FetchStartTime() time.Time {
 
 // v2FetchStartTime 获取数据增量更新起始时间
 func (rc *routingConfigCache) v2FetchStartTime() time.Time {
-	if rc.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+	if rc.GetFetchStartTimeType() == types.FetchFromLastMtime {
 		return rc.LastMtime(rc.V2Name())
 	}
 	return rc.LastFetchTime()

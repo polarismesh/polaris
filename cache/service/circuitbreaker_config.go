@@ -105,7 +105,7 @@ func (c *circuitBreakerCache) Name() string {
 
 // fetchStartTime 获取数据增量更新起始时间
 func (c *circuitBreakerCache) fetchStartTime() time.Time {
-	if c.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+	if c.GetFetchStartTimeType() == types.FetchFromLastMtime {
 		return c.LastMtime(c.Name())
 	}
 	return c.LastFetchTime()

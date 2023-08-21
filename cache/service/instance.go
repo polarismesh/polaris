@@ -122,7 +122,7 @@ func (ic *instanceCache) LastMtime() time.Time {
 
 // fetchStartTime 获取数据增量更新起始时间
 func (ic *instanceCache) fetchStartTime() time.Time {
-	if ic.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+	if ic.GetFetchStartTimeType() == types.FetchFromLastMtime {
 		return ic.LastMtime()
 	}
 	return ic.LastFetchTime()

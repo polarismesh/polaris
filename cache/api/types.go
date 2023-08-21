@@ -489,9 +489,9 @@ var (
 
 const (
 	// FetchFromLastFetchTime 获取上次缓存更新时间到现在期间的增量更新
-	FetchFromLastFetchTime = "last_fetch_time"
+	FetchFromLastFetchTime = "fromLastFetchTime"
 	// FetchFromLastMtime 获取最近一次数据修改时间到现在期间的增量更新
-	FetchFromLastMtime = "last_mtime"
+	FetchFromLastMtime = "fromLastModifyTime"
 )
 
 // BaseCache 对于 Cache 中的一些 func 做统一实现，避免重复逻辑

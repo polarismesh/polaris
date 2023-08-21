@@ -278,7 +278,7 @@ func (uc *userCache) Name() string {
 
 // userFetchStartTime 获取数据增量更新起始时间
 func (uc *userCache) userFetchStartTime() time.Time {
-	if uc.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+	if uc.GetFetchStartTimeType() == types.FetchFromLastMtime {
 		return uc.LastMtime(lastMtimeLabelUsers)
 	}
 	return uc.LastFetchTime()
@@ -286,7 +286,7 @@ func (uc *userCache) userFetchStartTime() time.Time {
 
 // groupFetchStartTime 获取数据增量更新起始时间
 func (uc *userCache) groupFetchStartTime() time.Time {
-	if uc.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+	if uc.GetFetchStartTimeType() == types.FetchFromLastMtime {
 		return uc.LastMtime(lastMtimeLabelGroup)
 	}
 	return uc.LastFetchTime()

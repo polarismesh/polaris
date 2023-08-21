@@ -88,7 +88,7 @@ func (rlc *rateLimitCache) Name() string {
 
 // fetchStartTime 获取数据增量更新起始时间
 func (rlc *rateLimitCache) fetchStartTime() time.Time {
-	if rlc.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+	if rlc.GetFetchStartTimeType() == types.FetchFromLastMtime {
 		return rlc.LastMtime(rlc.Name())
 	}
 	return rlc.LastFetchTime()

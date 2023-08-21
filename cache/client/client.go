@@ -59,7 +59,7 @@ func (c *clientCache) LastMtime() time.Time {
 
 // fetchStartTime 获取数据增量更新起始时间
 func (c *clientCache) fetchStartTime() time.Time {
-	if c.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+	if c.GetFetchStartTimeType() == types.FetchFromLastMtime {
 		return c.LastMtime()
 	}
 	return c.LastFetchTime()

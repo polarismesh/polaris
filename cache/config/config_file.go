@@ -320,7 +320,7 @@ func (fc *fileCache) LastMtime() time.Time {
 
 // fetchStartTime 获取数据增量更新起始时间
 func (fc *fileCache) fetchStartTime() time.Time {
-	if fc.GetFetchStartTimeType() == types.FetchFromLastFetchTime {
+	if fc.GetFetchStartTimeType() == types.FetchFromLastMtime {
 		return fc.LastMtime()
 	}
 	return fc.LastFetchTime()
