@@ -15,27 +15,19 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth
+package defaultauth_test
 
 import (
-	"context"
 	"errors"
-	"fmt"
-	"io/ioutil"
-	"os"
-	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	bolt "go.etcd.io/bbolt"
-	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
 	_ "github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	commonlog "github.com/polarismesh/polaris/common/log"
-	"github.com/polarismesh/polaris/common/metrics"
-	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
 	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
@@ -54,7 +46,7 @@ import (
 	_ "github.com/polarismesh/polaris/store/boltdb"
 	_ "github.com/polarismesh/polaris/store/mysql"
 	sqldb "github.com/polarismesh/polaris/store/mysql"
-	testdata "github.com/polarismesh/polaris/test/data"
+	testsuit "github.com/polarismesh/polaris/test/suit"
 )
 
 const (
@@ -78,54 +70,7 @@ type TestConfig struct {
 }
 
 type AuthTestSuit struct {
-	cfg                 *TestConfig
-	cancelFlag          bool
-	updateCacheInterval time.Duration
-	defaultCtx          context.Context
-	cancel              context.CancelFunc
-	storage             store.Store
-	userMgn             auth.UserServer
-	strategyMgn         auth.StrategyServer
-}
-
-// 加载配置
-func (d *AuthTestSuit) loadConfig() error {
-
-	d.cfg = new(TestConfig)
-
-	confFileName := testdata.Path("auth_test.yaml")
-	if os.Getenv("STORE_MODE") == "sqldb" {
-		fmt.Printf("run store mode : sqldb\n")
-		confFileName = testdata.Path("auth_test_sqldb.yaml")
-		d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey,
-			"nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
-	}
-	// 如果有额外定制的配置文件，优先采用
-	if val := os.Getenv("POLARIS_TEST_BOOTSTRAP_FILE"); val != "" {
-		confFileName = val
-	}
-	buf, err := ioutil.ReadFile(confFileName)
-	if nil != err {
-		return fmt.Errorf("read file %s error", confFileName)
-	}
-
-	if err = parseYamlContent(string(buf), d.cfg); err != nil {
-		fmt.Printf("[ERROR] %v\n", err)
-		return err
-	}
-	return err
-}
-
-func parseYamlContent(content string, conf *TestConfig) error {
-	if err := yaml.Unmarshal([]byte(replaceEnv(content)), conf); nil != err {
-		return fmt.Errorf("parse yaml %s error:%w", content, err)
-	}
-	return nil
-}
-
-// replaceEnv replace holder by env list
-func replaceEnv(configContent string) string {
-	return os.ExpandEnv(configContent)
+	testsuit.DiscoverTestSuit
 }
 
 // 判断一个resp是否执行成功
@@ -138,86 +83,10 @@ func respSuccess(resp api.ResponseMessage) bool {
 
 type options func(cfg *TestConfig)
 
-// 内部初始化函数
-func (d *AuthTestSuit) initialize(opts ...options) error {
-	// 初始化defaultCtx
-	d.defaultCtx = context.WithValue(context.Background(), utils.StringContext("request-id"), "test-1")
-	d.defaultCtx = context.WithValue(d.defaultCtx, utils.ContextAuthTokenKey,
-		"nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
-
-	if err := os.RemoveAll("polaris.bolt"); err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			panic(err)
-		}
-	}
-
-	if err := d.loadConfig(); err != nil {
-		panic(err)
-	}
-
-	for i := range opts {
-		opts[i](d.cfg)
-	}
-
-	_ = commonlog.Configure(d.cfg.Bootstrap.Logger)
-
-	commonlog.GetScopeOrDefaultByName(commonlog.DefaultLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeOrDefaultByName(commonlog.ConfigLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeOrDefaultByName(commonlog.StoreLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-	commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName).SetOutputLevel(commonlog.ErrorLevel)
-
-	metrics.InitMetrics()
-
-	// 初始化存储层
-	store.SetStoreConfig(&d.cfg.Store)
-	s, _ := store.TestGetStore()
-	d.storage = s
-
-	plugin.SetPluginConfig(&d.cfg.Plugin)
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	d.cancel = cancel
-
-	// 初始化缓存模块
-	cacheMgn, err := cache.TestCacheInitialize(ctx, &d.cfg.Cache, s)
-	if err != nil {
-		panic(err)
-	}
-
-	// 初始化鉴权层（包括用户管理器和策略管理器）
-	userMgn, strategyMgn, err := auth.TestInitialize(ctx, &d.cfg.Auth, s, cacheMgn)
-	if err != nil {
-		panic(err)
-	}
-
-	d.userMgn = userMgn
-	d.strategyMgn = strategyMgn
-
-	// 多等待一会
-	d.updateCacheInterval = cacheMgn.GetUpdateCacheInterval() + time.Millisecond*500
-
-	time.Sleep(5 * time.Second)
-	return nil
-}
-
-func (d *AuthTestSuit) Destroy() {
-	d.cleanAllUser()
-	d.cleanAllUserGroup()
-	d.cleanAllAuthStrategy()
-
-	d.cancel()
-	time.Sleep(5 * time.Second)
-
-	d.storage.Destroy()
-	time.Sleep(5 * time.Second)
-}
-
 func (d *AuthTestSuit) cleanAllUser() {
-	if d.storage.Name() == sqldb.STORENAME {
+	if d.Storage.Name() == sqldb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -233,9 +102,9 @@ func (d *AuthTestSuit) cleanAllUser() {
 
 			dbTx.Commit()
 		}()
-	} else if d.storage.Name() == boltdb.STORENAME {
+	} else if d.Storage.Name() == boltdb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -255,9 +124,9 @@ func (d *AuthTestSuit) cleanAllUser() {
 }
 
 func (d *AuthTestSuit) cleanAllUserGroup() {
-	if d.storage.Name() == sqldb.STORENAME {
+	if d.Storage.Name() == sqldb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -277,9 +146,9 @@ func (d *AuthTestSuit) cleanAllUserGroup() {
 
 			dbTx.Commit()
 		}()
-	} else if d.storage.Name() == boltdb.STORENAME {
+	} else if d.Storage.Name() == boltdb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -299,9 +168,9 @@ func (d *AuthTestSuit) cleanAllUserGroup() {
 }
 
 func (d *AuthTestSuit) cleanAllAuthStrategy() {
-	if d.storage.Name() == sqldb.STORENAME {
+	if d.Storage.Name() == sqldb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}
@@ -325,9 +194,9 @@ func (d *AuthTestSuit) cleanAllAuthStrategy() {
 
 			dbTx.Commit()
 		}()
-	} else if d.storage.Name() == boltdb.STORENAME {
+	} else if d.Storage.Name() == boltdb.STORENAME {
 		func() {
-			tx, err := d.storage.StartTx()
+			tx, err := d.Storage.StartTx()
 			if err != nil {
 				panic(err)
 			}

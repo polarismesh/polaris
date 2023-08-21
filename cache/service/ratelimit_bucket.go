@@ -27,128 +27,110 @@ import (
 
 	types "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 func newRateLimitRuleBucket() *rateLimitRuleBucket {
 	return &rateLimitRuleBucket{
-		ids:   map[string]*model.RateLimit{},
-		rules: map[string]*subRateLimitRuleBucket{},
+		ids:   utils.NewSyncMap[string, *model.RateLimit](),
+		rules: utils.NewSyncMap[string, *subRateLimitRuleBucket](),
 	}
 }
 
 type rateLimitRuleBucket struct {
-	lock  sync.RWMutex
-	ids   map[string]*model.RateLimit
-	rules map[string]*subRateLimitRuleBucket
+	ids   *utils.SyncMap[string, *model.RateLimit]
+	rules *utils.SyncMap[string, *subRateLimitRuleBucket]
 }
 
 func (r *rateLimitRuleBucket) foreach(proc types.RateLimitIterProc) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
-	for _, b := range r.rules {
-		b.foreach(proc)
-	}
+	r.rules.Range(func(key string, val *subRateLimitRuleBucket) bool {
+		val.foreach(proc)
+		return true
+	})
 }
 
 func (r *rateLimitRuleBucket) count() int {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	count := 0
-	for _, b := range r.rules {
-		count += b.count()
-	}
+	r.rules.Range(func(key string, val *subRateLimitRuleBucket) bool {
+		count += val.count()
+		return true
+	})
 	return count
 }
 
 func (r *rateLimitRuleBucket) saveRule(rule *model.RateLimit) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
 	r.cleanOldSvcRule(rule)
 
-	r.ids[rule.ID] = rule
+	r.ids.Store(rule.ID, rule)
 	key := buildServiceKey(rule.Proto.GetNamespace().GetValue(), rule.Proto.GetService().GetValue())
 
-	if _, ok := r.rules[key]; !ok {
-		r.rules[key] = &subRateLimitRuleBucket{
+	if _, ok := r.rules.Load(key); !ok {
+		r.rules.Store(key, &subRateLimitRuleBucket{
 			rules: map[string]*model.RateLimit{},
-		}
+		})
 	}
 
-	b := r.rules[key]
+	b, _ := r.rules.Load(key)
 	b.saveRule(rule)
 }
 
 // cleanOldSvcRule 清理规则之前绑定的服务数据信息
 func (r *rateLimitRuleBucket) cleanOldSvcRule(rule *model.RateLimit) {
-	oldRule, ok := r.ids[rule.ID]
+	oldRule, ok := r.ids.Load(rule.ID)
 	if !ok {
 		return
 	}
 	// 清理原来老记录的绑定数据信息
 	key := buildServiceKey(oldRule.Proto.GetNamespace().GetValue(), oldRule.Proto.GetService().GetValue())
-	bucket, ok := r.rules[key]
+	bucket, ok := r.rules.Load(key)
 	if !ok {
 		return
 	}
 	// 删除服务绑定的限流规则信息
 	bucket.delRule(rule)
 	if bucket.count() == 0 {
-		delete(r.rules, key)
+		r.rules.Delete(key)
 	}
 }
 
 func (r *rateLimitRuleBucket) delRule(rule *model.RateLimit) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
 	r.cleanOldSvcRule(rule)
-	delete(r.ids, rule.ID)
+	r.ids.Delete(rule.ID)
 
 	key := buildServiceKey(rule.Proto.GetNamespace().GetValue(), rule.Proto.GetService().GetValue())
-	if _, ok := r.rules[key]; !ok {
+	if _, ok := r.rules.Load(key); !ok {
 		return
 	}
 
-	b := r.rules[key]
+	b, _ := r.rules.Load(key)
 	b.delRule(rule)
 	if b.count() == 0 {
-		delete(r.rules, key)
+		r.rules.Delete(key)
 	}
 }
 
 func (r *rateLimitRuleBucket) getRuleByID(id string) *model.RateLimit {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
-	return r.ids[id]
+	ret, _ := r.ids.Load(id)
+	return ret
 }
 
 func (r *rateLimitRuleBucket) getRules(serviceKey model.ServiceKey) ([]*model.RateLimit, string) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	key := buildServiceKey(serviceKey.Namespace, serviceKey.Name)
-	if _, ok := r.rules[key]; !ok {
+	if _, ok := r.rules.Load(key); !ok {
 		return nil, ""
 	}
 
-	b := r.rules[key]
+	b, _ := r.rules.Load(key)
 	return b.toSlice(), b.revision
 }
 
 func (r *rateLimitRuleBucket) reloadRevision(serviceKey model.ServiceKey) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	key := buildServiceKey(serviceKey.Namespace, serviceKey.Name)
-	if _, ok := r.rules[key]; !ok {
+	v, ok := r.rules.Load(key)
+	if !ok {
 		return
 	}
-
-	r.rules[key].reloadRevision()
+	v.reloadRevision()
 }
 
 type subRateLimitRuleBucket struct {

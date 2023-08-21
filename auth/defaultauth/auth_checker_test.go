@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth
+package defaultauth_test
 
 import (
 	"context"
@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/cache"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -35,12 +36,12 @@ import (
 )
 
 func Test_defaultAuthManager_ParseToken(t *testing.T) {
-	AuthOption.Salt = "polaris@a7b068ce3235442b"
+	defaultauth.AuthOption.Salt = "polaris@a7b068ce3235442b"
 	token := "orRm9Zt7sMqQaAM5b7yHLXnhWsr5dfPT0jpRlQ+C0tdy2UmuDa/X3uFG"
 
-	authMgn := &defaultAuthChecker{}
+	authMgn := &defaultauth.DefaultAuthChecker{}
 
-	tokenInfo, err := authMgn.decodeToken(token)
+	tokenInfo, err := authMgn.DecodeToken(token)
 
 	if err != nil {
 		t.Fatal(err)
@@ -49,7 +50,7 @@ func Test_defaultAuthManager_ParseToken(t *testing.T) {
 	t.Logf("%#v", tokenInfo)
 }
 
-func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
+func Test_DefaultAuthChecker_VerifyCredential(t *testing.T) {
 	reset(false)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -82,7 +83,7 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 		cacheMgn.Close()
 	})
 
-	checker := &defaultAuthChecker{}
+	checker := &defaultauth.DefaultAuthChecker{}
 	checker.Initialize(&auth.Config{
 		User: &auth.UserConfig{
 			Name:   "",
@@ -95,14 +96,14 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 			},
 		},
 	}, storage, cacheMgn)
-	checker.cacheMgn = cacheMgn
+	checker.SetCacheMgr(cacheMgn)
 
 	t.Run("主账户正常情况", func(t *testing.T) {
 		reset(false)
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 		)
 
 		err = checker.VerifyCredential(authCtx)
@@ -120,48 +121,48 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 		)
 		err = checker.VerifyCredential(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 		assert.Equal(t, users[1].ID, utils.ParseUserID(authCtx.GetRequestContext()), "user-id should be equal")
 		assert.False(t, utils.ParseIsOwner(authCtx.GetRequestContext()), "should not be owner")
-		assert.True(t, authCtx.GetAttachment(model.TokenDetailInfoKey).(OperatorInfo).Disable, "should be disable")
+		assert.True(t, authCtx.GetAttachment(model.TokenDetailInfoKey).(defaultauth.OperatorInfo).Disable, "should be disable")
 	})
 
 	t.Run("权限检查非严格模式-错误的token字符串-降级为匿名用户", func(t *testing.T) {
 		reset(false)
-		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_defaultAuthChecker_VerifyCredential")
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_DefaultAuthChecker_VerifyCredential")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 		)
 		err = checker.VerifyCredential(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
-		assert.True(t, authCtx.GetAttachment(model.TokenDetailInfoKey).(OperatorInfo).Anonymous, "should be anonymous")
+		assert.True(t, authCtx.GetAttachment(model.TokenDetailInfoKey).(defaultauth.OperatorInfo).Anonymous, "should be anonymous")
 	})
 
 	t.Run("权限检查非严格模式-空token字符串-降级为匿名用户", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 		)
 		err = checker.VerifyCredential(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
-		assert.True(t, authCtx.GetAttachment(model.TokenDetailInfoKey).(OperatorInfo).Anonymous, "should be anonymous")
+		assert.True(t, authCtx.GetAttachment(model.TokenDetailInfoKey).(defaultauth.OperatorInfo).Anonymous, "should be anonymous")
 	})
 
 	t.Run("权限检查非严格模式-错误的token字符串-访问鉴权模块", func(t *testing.T) {
 		reset(false)
-		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_defaultAuthChecker_VerifyCredential")
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_DefaultAuthChecker_VerifyCredential")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
 			model.WithModule(model.AuthModule),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 		)
 		err = checker.VerifyCredential(authCtx)
 		t.Logf("%+v", err)
@@ -173,7 +174,7 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
 			model.WithModule(model.AuthModule),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 		)
 		err = checker.VerifyCredential(authCtx)
 		t.Logf("%+v", err)
@@ -182,10 +183,10 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 
 	t.Run("权限检查严格模式-token非法-不允许降级为匿名用户", func(t *testing.T) {
 		reset(true)
-		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_defaultAuthChecker_VerifyCredential")
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_DefaultAuthChecker_VerifyCredential")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 		)
 		err = checker.VerifyCredential(authCtx)
 		t.Logf("%+v", err)
@@ -198,7 +199,7 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 		)
 		err = checker.VerifyCredential(authCtx)
 		t.Logf("%+v", err)
@@ -207,7 +208,7 @@ func Test_defaultAuthChecker_VerifyCredential(t *testing.T) {
 	})
 }
 
-func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
+func Test_DefaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 	reset(false)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -241,8 +242,8 @@ func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	checker := &defaultAuthChecker{}
-	checker.cacheMgn = cacheMgn
+	checker := &defaultauth.DefaultAuthChecker{}
+	checker.SetCacheMgr(cacheMgn)
 
 	freeIndex := len(users) + len(groups) + 1
 
@@ -250,7 +251,7 @@ func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
@@ -263,7 +264,7 @@ func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -272,7 +273,7 @@ func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
@@ -285,7 +286,7 @@ func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -294,7 +295,7 @@ func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
@@ -307,7 +308,7 @@ func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -316,7 +317,7 @@ func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
@@ -329,7 +330,7 @@ func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -338,7 +339,7 @@ func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
@@ -351,7 +352,7 @@ func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -360,7 +361,7 @@ func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
@@ -373,7 +374,7 @@ func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -382,7 +383,7 @@ func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groups[1].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			// model.WithToken(groups[1].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
@@ -396,7 +397,7 @@ func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -405,7 +406,7 @@ func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "users[1].Token")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
@@ -418,7 +419,7 @@ func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -427,7 +428,7 @@ func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
@@ -440,13 +441,13 @@ func Test_defaultAuthChecker_checkPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
 }
 
-func Test_defaultAuthChecker_checkPermission_Write_Strict(t *testing.T) {
+func Test_DefaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 	reset(true)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -480,8 +481,8 @@ func Test_defaultAuthChecker_checkPermission_Write_Strict(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	checker := &defaultAuthChecker{}
-	checker.cacheMgn = cacheMgn
+	checker := &defaultauth.DefaultAuthChecker{}
+	checker.SetCacheMgr(cacheMgn)
 
 	freeIndex := len(users) + len(groups) + 1
 
@@ -489,7 +490,7 @@ func Test_defaultAuthChecker_checkPermission_Write_Strict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			// model.WithToken(users[0].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
@@ -503,7 +504,7 @@ func Test_defaultAuthChecker_checkPermission_Write_Strict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -512,7 +513,7 @@ func Test_defaultAuthChecker_checkPermission_Write_Strict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
@@ -525,7 +526,7 @@ func Test_defaultAuthChecker_checkPermission_Write_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -534,7 +535,7 @@ func Test_defaultAuthChecker_checkPermission_Write_Strict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
@@ -547,17 +548,17 @@ func Test_defaultAuthChecker_checkPermission_Write_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
 
 	t.Run("权限检查严格模式-token非法-匿名账户操作资源（资源有策略）", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_defaultAuthChecker_VerifyCredential")
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_DefaultAuthChecker_VerifyCredential")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			// model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// model.WithToken("Test_DefaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
@@ -569,7 +570,7 @@ func Test_defaultAuthChecker_checkPermission_Write_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -578,7 +579,7 @@ func Test_defaultAuthChecker_checkPermission_Write_Strict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			// model.WithToken(""),
 			model.WithModule(model.DiscoverModule),
 			model.WithOperation(model.Create),
@@ -591,17 +592,17 @@ func Test_defaultAuthChecker_checkPermission_Write_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
 
 	t.Run("权限检查严格模式-token非法-匿名账户操作资源（资源没有策略）", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_defaultAuthChecker_VerifyCredential")
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_DefaultAuthChecker_VerifyCredential")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			// model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// model.WithToken("Test_DefaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
@@ -613,7 +614,7 @@ func Test_defaultAuthChecker_checkPermission_Write_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -622,7 +623,7 @@ func Test_defaultAuthChecker_checkPermission_Write_Strict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			// model.WithToken(""),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
@@ -635,13 +636,13 @@ func Test_defaultAuthChecker_checkPermission_Write_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
 }
 
-func Test_defaultAuthChecker_checkPermission_Read_NoStrict(t *testing.T) {
+func Test_DefaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 	reset(false)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -675,8 +676,8 @@ func Test_defaultAuthChecker_checkPermission_Read_NoStrict(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	checker := &defaultAuthChecker{}
-	checker.cacheMgn = cacheMgn
+	checker := &defaultauth.DefaultAuthChecker{}
+	checker.SetCacheMgr(cacheMgn)
 
 	freeIndex := len(users) + len(groups) + 1
 
@@ -684,7 +685,7 @@ func Test_defaultAuthChecker_checkPermission_Read_NoStrict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			// model.WithToken(users[0].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
@@ -697,7 +698,7 @@ func Test_defaultAuthChecker_checkPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -706,7 +707,7 @@ func Test_defaultAuthChecker_checkPermission_Read_NoStrict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
@@ -719,7 +720,7 @@ func Test_defaultAuthChecker_checkPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -728,7 +729,7 @@ func Test_defaultAuthChecker_checkPermission_Read_NoStrict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
@@ -741,7 +742,7 @@ func Test_defaultAuthChecker_checkPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -750,7 +751,7 @@ func Test_defaultAuthChecker_checkPermission_Read_NoStrict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
@@ -763,7 +764,7 @@ func Test_defaultAuthChecker_checkPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -772,7 +773,7 @@ func Test_defaultAuthChecker_checkPermission_Read_NoStrict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			// model.WithToken(""),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
@@ -785,7 +786,7 @@ func Test_defaultAuthChecker_checkPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -794,7 +795,7 @@ func Test_defaultAuthChecker_checkPermission_Read_NoStrict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			// model.WithToken(""),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
@@ -807,17 +808,17 @@ func Test_defaultAuthChecker_checkPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
 
 	t.Run("权限检查非严格模式-匿名账户正常读操作-token非法-资源有策略", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_defaultAuthChecker_VerifyCredential")
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_DefaultAuthChecker_VerifyCredential")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			// model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// model.WithToken("Test_DefaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
@@ -829,17 +830,17 @@ func Test_defaultAuthChecker_checkPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
 
 	t.Run("权限检查非严格模式-匿名账户正常读操作-token非法-资源无策略", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_defaultAuthChecker_VerifyCredential")
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_DefaultAuthChecker_VerifyCredential")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			// model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// model.WithToken("Test_DefaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
@@ -851,13 +852,13 @@ func Test_defaultAuthChecker_checkPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
 }
 
-func Test_defaultAuthChecker_checkPermission_Read_Strict(t *testing.T) {
+func Test_DefaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 	reset(true)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -891,8 +892,8 @@ func Test_defaultAuthChecker_checkPermission_Read_Strict(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	checker := &defaultAuthChecker{}
-	checker.cacheMgn = cacheMgn
+	checker := &defaultauth.DefaultAuthChecker{}
+	checker.SetCacheMgr(cacheMgn)
 
 	freeIndex := len(users) + len(groups) + 1
 
@@ -900,7 +901,7 @@ func Test_defaultAuthChecker_checkPermission_Read_Strict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			// model.WithToken(users[0].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
@@ -913,7 +914,7 @@ func Test_defaultAuthChecker_checkPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -922,7 +923,7 @@ func Test_defaultAuthChecker_checkPermission_Read_Strict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
@@ -935,7 +936,7 @@ func Test_defaultAuthChecker_checkPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -944,7 +945,7 @@ func Test_defaultAuthChecker_checkPermission_Read_Strict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
@@ -957,7 +958,7 @@ func Test_defaultAuthChecker_checkPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -966,7 +967,7 @@ func Test_defaultAuthChecker_checkPermission_Read_Strict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
@@ -979,7 +980,7 @@ func Test_defaultAuthChecker_checkPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -988,7 +989,7 @@ func Test_defaultAuthChecker_checkPermission_Read_Strict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			// model.WithToken(""),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
@@ -1001,7 +1002,7 @@ func Test_defaultAuthChecker_checkPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -1010,7 +1011,7 @@ func Test_defaultAuthChecker_checkPermission_Read_Strict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
 			// model.WithToken(""),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
@@ -1023,17 +1024,17 @@ func Test_defaultAuthChecker_checkPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
 
 	t.Run("权限检查严格模式-匿名账户正常读操作-token非法-资源有策略", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_defaultAuthChecker_VerifyCredential")
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_DefaultAuthChecker_VerifyCredential")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			// model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// model.WithToken("Test_DefaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
@@ -1045,17 +1046,17 @@ func Test_defaultAuthChecker_checkPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
 
 	t.Run("权限检查严格模式-匿名账户正常读操作-token非法-资源无策略", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_defaultAuthChecker_VerifyCredential")
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_DefaultAuthChecker_VerifyCredential")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_defaultAuthChecker_VerifyCredential"),
-			// model.WithToken("Test_defaultAuthChecker_VerifyCredential"),
+			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// model.WithToken("Test_DefaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
@@ -1067,13 +1068,13 @@ func Test_defaultAuthChecker_checkPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.checkPermission(authCtx)
+		_, err = checker.CheckPermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
 }
 
-func Test_defaultAuthChecker_Initialize(t *testing.T) {
+func Test_DefaultAuthChecker_Initialize(t *testing.T) {
 	reset(true)
 
 	ctrl := gomock.NewController(t)
@@ -1107,7 +1108,7 @@ func Test_defaultAuthChecker_Initialize(t *testing.T) {
 
 	t.Run("使用未迁移至auth.user.option及auth.strategy.option的配置", func(t *testing.T) {
 		reset(true)
-		authChecker := &defaultAuthChecker{}
+		authChecker := &defaultauth.DefaultAuthChecker{}
 		cfg := &auth.Config{}
 		cfg.SetDefault()
 		cfg.Name = ""
@@ -1119,19 +1120,19 @@ func Test_defaultAuthChecker_Initialize(t *testing.T) {
 		}
 		err := authChecker.Initialize(cfg, storage, cacheMgn)
 		assert.NoError(t, err)
-		assert.Equal(t, &AuthConfig{
+		assert.Equal(t, &defaultauth.AuthConfig{
 			ConsoleOpen:   true,
 			ClientOpen:    true,
 			Salt:          "polarismesh@2021",
 			Strict:        false,
 			ConsoleStrict: true,
 			ClientStrict:  false,
-		}, AuthOption)
+		}, defaultauth.AuthOption)
 	})
 
 	t.Run("使用完全迁移至auth.user.option及auth.strategy.option的配置", func(t *testing.T) {
 		reset(true)
-		authChecker := &defaultAuthChecker{}
+		authChecker := &defaultauth.DefaultAuthChecker{}
 
 		cfg := &auth.Config{}
 		cfg.SetDefault()
@@ -1150,18 +1151,18 @@ func Test_defaultAuthChecker_Initialize(t *testing.T) {
 
 		err := authChecker.Initialize(cfg, storage, cacheMgn)
 		assert.NoError(t, err)
-		assert.Equal(t, &AuthConfig{
+		assert.Equal(t, &defaultauth.AuthConfig{
 			ConsoleOpen:   true,
 			ClientOpen:    true,
 			Salt:          "polarismesh@2021",
 			Strict:        false,
 			ConsoleStrict: true,
-		}, AuthOption)
+		}, defaultauth.AuthOption)
 	})
 
 	t.Run("使用部分迁移至auth.user.option及auth.strategy.option的配置（应当报错）", func(t *testing.T) {
 		reset(true)
-		authChecker := &defaultAuthChecker{}
+		authChecker := &defaultauth.DefaultAuthChecker{}
 		cfg := &auth.Config{}
 		cfg.SetDefault()
 		cfg.Name = ""

@@ -100,7 +100,7 @@ func (s *Server) doReport(ctx context.Context, instance *apiservice.Instance) *a
 	}
 	code, err := s.baseReport(ctx, id, request)
 	if err != nil {
-		log.Errorf("[Heartbeat][Server]fail to do report for %s:%d, id is %s, err is %v",
+		log.Errorf("[Heartbeat][Server] fail to do report for %s:%d, id is %s, err is %v",
 			instance.GetHost().GetValue(), instance.GetPort().GetValue(), id, err)
 		return api.NewInstanceResponse(apimodel.Code_HeartbeatException, instance)
 	}

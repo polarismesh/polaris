@@ -144,7 +144,7 @@ func checkEmail(email *wrappers.StringValue) error {
 
 // verifyAuth 用于 user、group 以及 strategy 模块的鉴权工作检查
 func verifyAuth(ctx context.Context, isWrite bool,
-	needOwner bool, authMgn *defaultAuthChecker) (context.Context, *apiservice.Response) {
+	needOwner bool, authMgn *DefaultAuthChecker) (context.Context, *apiservice.Response) {
 	reqId := utils.ParseRequestID(ctx)
 	authToken := utils.ParseAuthToken(ctx)
 

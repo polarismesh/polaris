@@ -337,17 +337,22 @@ func (s *Server) checkCircuitBreakerRuleExists(id, requestID string) *apiservice
 
 // GetCircuitBreakerRules Query CircuitBreaker rules
 func (s *Server) GetCircuitBreakerRules(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
-	for key := range query {
-		if _, ok := CircuitBreakerRuleFilters[key]; !ok {
-			log.Errorf("params %s is not allowed in querying circuitbreaker rule", key)
-			return api.NewBatchQueryResponse(apimodel.Code_InvalidParameter)
-		}
-	}
 	offset, limit, err := utils.ParseOffsetAndLimit(query)
 	if err != nil {
 		return api.NewBatchQueryResponse(apimodel.Code_InvalidParameter)
 	}
-	total, cbRules, err := s.storage.GetCircuitBreakerRules(query, offset, limit)
+	searchFilter := make(map[string]string, len(query))
+	for key, value := range query {
+		if _, ok := CircuitBreakerRuleFilters[key]; !ok {
+			log.Errorf("params %s is not allowed in querying circuitbreaker rule", key)
+			return api.NewBatchQueryResponse(apimodel.Code_InvalidParameter)
+		}
+		if value == "" {
+			continue
+		}
+		searchFilter[key] = value
+	}
+	total, cbRules, err := s.storage.GetCircuitBreakerRules(searchFilter, offset, limit)
 	if err != nil {
 		log.Errorf("get circuitbreaker rules store err: %s", err.Error())
 		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))
