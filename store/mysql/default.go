@@ -170,7 +170,7 @@ func parseStoreConfig(opts interface{}) (*dbConfig, error) {
 		if val != nil {
 			needCheckFields[key] = fmt.Sprintf("%v", val)
 		} else {
-			log.Warnf("[Store][database] config field is empty: %s", key)
+			log.Warnf("[Store][database] config field is empty. field: %s", key)
 		}
 	}
 
