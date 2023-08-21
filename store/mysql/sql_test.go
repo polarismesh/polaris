@@ -31,3 +31,11 @@ func TestPlaceholdersN(t *testing.T) {
 		So(PlaceholdersN(3), ShouldEqual, "?,?,?")
 	})
 }
+
+func Test_Quick(t *testing.T) {
+	slice := make([]string, 0, 1)
+	slice = nil
+	for i := range slice {
+		t.Log(slice[i])
+	}
+}

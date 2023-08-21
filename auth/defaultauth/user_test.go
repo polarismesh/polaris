@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth
+package defaultauth_test
 
 import (
 	"context"
@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	commonlog "github.com/polarismesh/polaris/common/log"
@@ -51,7 +52,7 @@ type UserTest struct {
 	cacheMgn *cache.CacheManager
 	checker  auth.AuthChecker
 
-	svr *userAuthAbility
+	svr *defaultauth.UserAuthAbility
 
 	cancel context.CancelFunc
 	ctrl   *gomock.Controller
@@ -104,17 +105,13 @@ func newUserTest(t *testing.T) *UserTest {
 
 	time.Sleep(5 * time.Second)
 
-	checker := &defaultAuthChecker{}
-	checker.cacheMgn = cacheMgn
+	checker := &defaultauth.DefaultAuthChecker{}
+	checker.SetCacheMgr(cacheMgn)
 
-	svr := &userAuthAbility{
-		authMgn: checker,
-		target: &server{
-			storage:  storage,
-			cacheMgn: cacheMgn,
-			authMgn:  checker,
-		},
-	}
+	svr := defaultauth.NewUserAuthAbility(
+		checker,
+		defaultauth.NewServer(storage, nil, cacheMgn, checker),
+	)
 
 	return &UserTest{
 		admin:    admin,
@@ -138,7 +135,7 @@ func newUserTest(t *testing.T) *UserTest {
 func (g *UserTest) Clean() {
 	g.ctrl.Finish()
 	g.cancel()
-	_ = g.cacheMgn.Clear()
+	_ = g.cacheMgn.Close()
 	time.Sleep(2 * time.Second)
 }
 
@@ -839,15 +836,20 @@ func Test_server_UpdateUserToken(t *testing.T) {
 
 func Test_AuthServer_NormalOperateUser(t *testing.T) {
 	suit := &AuthTestSuit{}
-	if err := suit.initialize(); err != nil {
+	if err := suit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer suit.Destroy()
+	t.Cleanup(func() {
+		suit.cleanAllAuthStrategy()
+		suit.cleanAllUser()
+		suit.cleanAllUserGroup()
+		suit.Destroy()
+	})
 
 	users := createApiMockUser(10, "test")
 
 	t.Run("正常创建用户", func(t *testing.T) {
-		resp := suit.userMgn.CreateUsers(suit.defaultCtx, users)
+		resp := suit.UserServer().CreateUsers(suit.DefaultCtx, users)
 
 		if !respSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())
@@ -855,19 +857,19 @@ func Test_AuthServer_NormalOperateUser(t *testing.T) {
 	})
 
 	t.Run("非正常创建用户-直接操作存储层", func(t *testing.T) {
-		err := suit.storage.AddUser(&model.User{})
+		err := suit.Storage.AddUser(&model.User{})
 		assert.Error(t, err)
 	})
 
 	t.Run("正常更新用户", func(t *testing.T) {
 		users[0].Comment = utils.NewStringValue("update user comment")
-		resp := suit.userMgn.UpdateUser(suit.defaultCtx, users[0])
+		resp := suit.UserServer().UpdateUser(suit.DefaultCtx, users[0])
 
 		if !respSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())
 		}
 
-		qresp := suit.userMgn.GetUsers(suit.defaultCtx, map[string]string{
+		qresp := suit.UserServer().GetUsers(suit.DefaultCtx, map[string]string{
 			"id": users[0].GetId().GetValue(),
 		})
 
@@ -883,13 +885,13 @@ func Test_AuthServer_NormalOperateUser(t *testing.T) {
 	})
 
 	t.Run("正常删除用户", func(t *testing.T) {
-		resp := suit.userMgn.DeleteUsers(suit.defaultCtx, []*apisecurity.User{users[3]})
+		resp := suit.UserServer().DeleteUsers(suit.DefaultCtx, []*apisecurity.User{users[3]})
 
 		if !respSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())
 		}
 
-		qresp := suit.userMgn.GetUsers(suit.defaultCtx, map[string]string{
+		qresp := suit.UserServer().GetUsers(suit.DefaultCtx, map[string]string{
 			"id": users[3].GetId().GetValue(),
 		})
 
@@ -902,15 +904,15 @@ func Test_AuthServer_NormalOperateUser(t *testing.T) {
 	})
 
 	t.Run("正常更新用户Token", func(t *testing.T) {
-		resp := suit.userMgn.ResetUserToken(suit.defaultCtx, users[0])
+		resp := suit.UserServer().ResetUserToken(suit.DefaultCtx, users[0])
 
 		if !respSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())
 		}
 
-		time.Sleep(suit.updateCacheInterval)
+		_ = suit.CacheMgr().TestUpdate()
 
-		qresp := suit.userMgn.GetUserToken(suit.defaultCtx, users[0])
+		qresp := suit.UserServer().GetUserToken(suit.DefaultCtx, users[0])
 		if !respSuccess(qresp) {
 			t.Fatal(resp.GetInfo().GetValue())
 		}

@@ -90,6 +90,8 @@ jobs:
         env:
           MYSQL_DB_USER: root
           MYSQL_DB_PWD: root
+          REDIS_ADDR: 127.0.0.1:6379
+          REDIS_PWD: ""
           RUN_MODE: CLUSTER
         run: |
           # bash coverage.sh

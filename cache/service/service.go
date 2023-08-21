@@ -274,6 +274,9 @@ func (sc *serviceCache) fillServicePorts(svc *model.Service) {
 	if svc.Ports != "" {
 		return
 	}
+	if sc.instCache == nil {
+		return
+	}
 	ports := sc.instCache.GetServicePorts(svc.ID)
 	if len(ports) == 0 {
 		return

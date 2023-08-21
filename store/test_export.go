@@ -22,7 +22,7 @@ import (
 	"fmt"
 )
 
-// GetStore 获取Store
+// TestGetStore 获取Store
 func TestGetStore() (Store, error) {
 	name := config.Name
 	if name == "" {
@@ -41,4 +41,9 @@ func TestGetStore() (Store, error) {
 		panic(err)
 	}
 	return s, nil
+}
+
+// TestInjectConfig just for test
+func TestInjectConfig(conf Config) {
+	config = &conf
 }

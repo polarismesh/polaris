@@ -43,13 +43,17 @@ var (
 	ErrorNotPermission = errors.New("no permission")
 )
 
-// defaultAuthChecker 北极星自带的默认鉴权中心
-type defaultAuthChecker struct {
+// DefaultAuthChecker 北极星自带的默认鉴权中心
+type DefaultAuthChecker struct {
 	cacheMgn *cache.CacheManager
 }
 
+func (d *DefaultAuthChecker) SetCacheMgr(mgr *cache.CacheManager) {
+	d.cacheMgn = mgr
+}
+
 // Initialize 执行初始化动作
-func (d *defaultAuthChecker) Initialize(options *auth.Config, s store.Store, cacheMgn *cache.CacheManager) error {
+func (d *DefaultAuthChecker) Initialize(options *auth.Config, s store.Store, cacheMgn *cache.CacheManager) error {
 	// 新版本鉴权策略配置均从auth.Option中迁移至auth.user.option及auth.strategy.option中
 	var (
 		strategyContentBytes []byte
@@ -104,36 +108,36 @@ func (d *defaultAuthChecker) Initialize(options *auth.Config, s store.Store, cac
 }
 
 // Cache 获取缓存统一管理
-func (d *defaultAuthChecker) Cache() *cache.CacheManager {
+func (d *DefaultAuthChecker) Cache() *cache.CacheManager {
 	return d.cacheMgn
 }
 
 // IsOpenConsoleAuth 针对控制台是否开启了操作鉴权
-func (d *defaultAuthChecker) IsOpenConsoleAuth() bool {
+func (d *DefaultAuthChecker) IsOpenConsoleAuth() bool {
 	return AuthOption.ConsoleOpen
 }
 
 // IsOpenClientAuth 针对客户端是否开启了操作鉴权
-func (d *defaultAuthChecker) IsOpenClientAuth() bool {
+func (d *DefaultAuthChecker) IsOpenClientAuth() bool {
 	return AuthOption.ClientOpen
 }
 
 // IsOpenAuth 返回对于控制台/客户端任意其中的一个是否开启了操作鉴权
-func (d *defaultAuthChecker) IsOpenAuth() bool {
+func (d *DefaultAuthChecker) IsOpenAuth() bool {
 	return d.IsOpenConsoleAuth() || d.IsOpenClientAuth()
 }
 
 // CheckClientPermission 执行检查客户端动作判断是否有权限，并且对 RequestContext 注入操作者数据
-func (d *defaultAuthChecker) CheckClientPermission(preCtx *model.AcquireContext) (bool, error) {
+func (d *DefaultAuthChecker) CheckClientPermission(preCtx *model.AcquireContext) (bool, error) {
 	if !d.IsOpenClientAuth() {
 		return true, nil
 	}
 	preCtx.SetFromClient()
-	return d.checkPermission(preCtx)
+	return d.CheckPermission(preCtx)
 }
 
 // CheckConsolePermission 执行检查控制台动作判断是否有权限，并且对 RequestContext 注入操作者数据
-func (d *defaultAuthChecker) CheckConsolePermission(preCtx *model.AcquireContext) (bool, error) {
+func (d *DefaultAuthChecker) CheckConsolePermission(preCtx *model.AcquireContext) (bool, error) {
 	if !d.IsOpenConsoleAuth() {
 		return true, nil
 	}
@@ -141,11 +145,11 @@ func (d *defaultAuthChecker) CheckConsolePermission(preCtx *model.AcquireContext
 	if preCtx.GetModule() == model.MaintainModule {
 		return d.checkMaintainPermission(preCtx)
 	}
-	return d.checkPermission(preCtx)
+	return d.CheckPermission(preCtx)
 }
 
 // CheckMaintainPermission 执行检查运维动作判断是否有权限
-func (d *defaultAuthChecker) checkMaintainPermission(preCtx *model.AcquireContext) (bool, error) {
+func (d *DefaultAuthChecker) checkMaintainPermission(preCtx *model.AcquireContext) (bool, error) {
 	if err := d.VerifyCredential(preCtx); err != nil {
 		return false, err
 	}
@@ -176,7 +180,7 @@ func (d *defaultAuthChecker) checkMaintainPermission(preCtx *model.AcquireContex
 //				b. 写操作，快速失败
 //	step 3. 拉取token对应的操作者相关信息，注入到请求上下文中
 //	step 4. 进行权限检查
-func (d *defaultAuthChecker) checkPermission(authCtx *model.AcquireContext) (bool, error) {
+func (d *DefaultAuthChecker) CheckPermission(authCtx *model.AcquireContext) (bool, error) {
 	if err := d.VerifyCredential(authCtx); err != nil {
 		return false, err
 	}
@@ -233,7 +237,7 @@ func canDowngradeAnonymous(authCtx *model.AcquireContext, err error) bool {
 // step 2. 最后对 token 进行一些验证步骤的执行
 // step 3. 兜底措施：如果开启了鉴权的非严格模式，则根据错误的类型，判断是否转为匿名用户进行访问
 //   - 如果是访问权限控制相关模块（用户、用户组、权限策略），不得转为匿名用户
-func (d *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContext) error {
+func (d *DefaultAuthChecker) VerifyCredential(authCtx *model.AcquireContext) error {
 	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
 
 	checkErr := func() error {
@@ -277,7 +281,7 @@ func (d *defaultAuthChecker) VerifyCredential(authCtx *model.AcquireContext) err
 	return nil
 }
 
-func (d *defaultAuthChecker) parseOperatorInfo(operator OperatorInfo, authCtx *model.AcquireContext) {
+func (d *DefaultAuthChecker) parseOperatorInfo(operator OperatorInfo, authCtx *model.AcquireContext) {
 	ctx := authCtx.GetRequestContext()
 	if operator.IsUserToken {
 		user := d.Cache().User().GetUserByID(operator.OperatorID)
@@ -309,8 +313,13 @@ func (d *defaultAuthChecker) parseOperatorInfo(operator OperatorInfo, authCtx *m
 	authCtx.SetRequestContext(ctx)
 }
 
+// DecodeToken
+func (d *DefaultAuthChecker) DecodeToken(t string) (OperatorInfo, error) {
+	return d.decodeToken(t)
+}
+
 // decodeToken 解析 token 信息，如果 t == ""，直接返回一个空对象
-func (d *defaultAuthChecker) decodeToken(t string) (OperatorInfo, error) {
+func (d *DefaultAuthChecker) decodeToken(t string) (OperatorInfo, error) {
 	if t == "" {
 		return OperatorInfo{}, model.ErrorTokenInvalid
 	}
@@ -340,7 +349,7 @@ func (d *defaultAuthChecker) decodeToken(t string) (OperatorInfo, error) {
 
 // checkToken 对 token 进行检查，如果 token 是一个空，直接返回默认值，但是不返回错误
 // return {owner-id} {is-owner} {error}
-func (d *defaultAuthChecker) checkToken(tokenInfo *OperatorInfo) (string, bool, error) {
+func (d *DefaultAuthChecker) checkToken(tokenInfo *OperatorInfo) (string, bool, error) {
 	if IsEmptyOperator(*tokenInfo) {
 		return "", false, nil
 	}
@@ -376,7 +385,7 @@ func (d *defaultAuthChecker) checkToken(tokenInfo *OperatorInfo) (string, bool, 
 	return group.Owner, false, nil
 }
 
-func (d *defaultAuthChecker) isResourceEditable(
+func (d *DefaultAuthChecker) isResourceEditable(
 	principal model.Principal,
 	resourceType apisecurity.ResourceType,
 	resEntries []model.ResourceEntry) bool {
@@ -389,7 +398,7 @@ func (d *defaultAuthChecker) isResourceEditable(
 }
 
 // doCheckPermission 执行权限检查
-func (d *defaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext) (bool, error) {
+func (d *DefaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext) (bool, error) {
 
 	var checkNamespace, checkSvc, checkCfgGroup bool
 
@@ -418,7 +427,7 @@ func (d *defaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext) (b
 }
 
 // checkAction 检查操作是否和策略匹配
-func (d *defaultAuthChecker) checkAction(expect string, actual model.ResourceOperation, method string) bool {
+func (d *DefaultAuthChecker) checkAction(expect string, actual model.ResourceOperation, method string) bool {
 	// TODO 后续可针对读写操作进行鉴权, 并且可以针对具体的方法调用进行鉴权控制
 	return true
 }

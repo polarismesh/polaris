@@ -59,11 +59,7 @@ func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batc
 			return nil, fmt.Errorf("[healthcheck]no checker config")
 		}
 	}
-	var err error
-	if testServer.storage, err = store.GetStore(); err != nil {
-		return nil, err
-	}
-
+	testServer.storage = storage
 	testServer.bc = bc
 
 	testServer.localHost = hcOpt.LocalHost

@@ -48,15 +48,15 @@ const (
 	CircuitBreakerName = "circuitBreakerConfig"
 	// FaultDetectRuleName fault detect config name
 	FaultDetectRuleName = "faultDetectRule"
-	// ConfigGroupCacheName
+	// ConfigGroupCacheName config group config name
 	ConfigGroupCacheName = "configGroup"
-	// ConfigFileCacheName
+	// ConfigFileCacheName config file config name
 	ConfigFileCacheName = "configFile"
 	// ClientName client cache name
 	ClientName = "client"
-	// UsersName
+	// UsersName user data config name
 	UsersName = "users"
-	// StrategyRuleName
+	// StrategyRuleName strategy rule config name
 	StrategyRuleName = "strategyRule"
 )
 

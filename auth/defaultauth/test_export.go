@@ -18,10 +18,27 @@
 package defaultauth
 
 import (
-	"github.com/polarismesh/polaris/auth"
+	"context"
+
+	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
-func init() {
-	_ = auth.RegisterUserServer(&UserAuthAbility{})
-	_ = auth.RegisterStrategyServer(&StrategyAuthAbility{})
+func TestCheckPassword(password *wrappers.StringValue) error {
+	return checkPassword(password)
+}
+
+func TestCheckName(password *wrappers.StringValue) error {
+	return checkName(password)
+}
+
+func TestCreateToken(uid, gid string) (string, error) {
+	return createToken(uid, gid)
+}
+
+func TestDecryptMessage(key []byte, message string) (string, error) {
+	return decryptMessage(key, message)
+}
+
+func TestParseStrategySearchArgs(ctx context.Context, searchFilters map[string]string) map[string]string {
+	return parseStrategySearchArgs(ctx, searchFilters)
 }

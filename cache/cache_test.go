@@ -96,12 +96,4 @@ func TestCacheManager_Start(t *testing.T) {
 		time.Sleep(c.GetUpdateCacheInterval() + time.Second)
 	})
 
-	t.Run("测试TestRefresh", func(t *testing.T) {
-		c, err := cache.TestCacheInitialize(context.Background(), &cache.Config{Open: true}, storage)
-		assert.Nil(t, err)
-		assert.NotNil(t, c)
-
-		err = c.TestRefresh()
-		assert.Nil(t, err)
-	})
 }

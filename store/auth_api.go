@@ -25,31 +25,22 @@ import (
 
 // UserStore User-related operation interface
 type UserStore interface {
-
 	// AddUser Create a user
 	AddUser(user *model.User) error
-
 	// UpdateUser Update user
 	UpdateUser(user *model.User) error
-
 	// DeleteUser delete users
 	DeleteUser(user *model.User) error
-
 	// GetSubCount Number of getting a child account
 	GetSubCount(user *model.User) (uint32, error)
-
 	// GetUser Obtain user
 	GetUser(id string) (*model.User, error)
-
 	// GetUserByName Get a unique user according to Name + Owner
 	GetUserByName(name, ownerId string) (*model.User, error)
-
 	// GetUserByIDS Get users according to USER IDS batch
 	GetUserByIds(ids []string) ([]*model.User, error)
-
 	// GetUsers Query user list
 	GetUsers(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.User, error)
-
 	// GetUsersForCache Used to refresh user cache
 	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*model.User, error)
