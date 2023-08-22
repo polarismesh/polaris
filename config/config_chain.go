@@ -88,8 +88,10 @@ func (chain *CryptoConfigFileChain) AfterGetFile(ctx context.Context,
 	// 前一次发布的配置并未加密，现在准备发布的配置是开启了加密的，因此这里可能配置就是一个未加密的状态
 	// 这里就直接原样返回
 	if err == nil && plainContent != "" {
+		file.OriginContent = file.Content
 		file.Content = plainContent
-	} else {
+	}
+	if err != nil {
 		log.Error("[Config][Chain][Crypto] decrypt config file content",
 			utils.ZapNamespace(file.Namespace), utils.ZapGroup(file.Group),
 			utils.ZapFileName(file.Name), zap.Error(err))
@@ -271,8 +273,10 @@ func (chain *ReleaseConfigFileChain) AfterGetFile(ctx context.Context,
 	activeFile := chain.svr.fileCache.GetActiveRelease(namespace, group, name)
 	if activeFile != nil {
 		// 如果最后一次发布的内容和当前文件内容一致，则展示最后一次发布状态。否则说明文件有修改，待发布
-		if activeFile.Content == file.Content {
+		if activeFile.Content == file.OriginContent {
 			file.Status = utils.ReleaseTypeNormal
+			file.ReleaseBy = activeFile.ModifyBy
+			file.ReleaseTime = activeFile.ModifyTime
 		} else {
 			file.Status = utils.ReleaseStatusToRelease
 		}

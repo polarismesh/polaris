@@ -203,11 +203,7 @@ func (cf *configFileStore) GetConfigFileTx(tx store.Tx,
 	if len(files) == 0 {
 		return nil, nil
 	}
-	ret := files[0]
-	if err := cf.loadFileTags(dbTx, ret); err != nil {
-		return nil, store.Error(err)
-	}
-	return ret, nil
+	return files[0], nil
 }
 
 // UpdateConfigFile 更新配置文件
@@ -338,9 +334,10 @@ func (cf *configFileStore) CountConfigFileEachGroup() (map[string]map[string]int
 
 func (cf *configFileStore) baseSelectConfigFileSql() string {
 	return "SELECT  " +
-		" id, name, namespace, `group`, content, IFNULL(comment, ''), format, " +
+		" id, name, cf.namespace, cf.group, content, IFNULL(comment, ''), format, " +
 		" UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), UNIX_TIMESTAMP(modify_time), " +
-		" IFNULL(modify_by, '') FROM config_file "
+		" IFNULL(modify_by, ''), ct.key, ct.value FROM config_file cf LEFT JOIN config_file_tag ct ON " +
+		" cf.namespace = ct.namespace AND cf.group = ct.group AND cf.name = ct.file_name "
 }
 
 func (cf *configFileStore) hardDeleteConfigFile(namespace, group, name string) error {
@@ -359,25 +356,37 @@ func (cf *configFileStore) transferRows(rows *sql.Rows) ([]*model.ConfigFile, er
 	}
 	defer rows.Close()
 
-	var files []*model.ConfigFile
+	var (
+		files  = make([]*model.ConfigFile, 0, 32)
+		record = make(map[string]*model.ConfigFile)
+	)
 
 	for rows.Next() {
-		file := &model.ConfigFile{}
-		var ctime, mtime int64
+		file := &model.ConfigFile{
+			Metadata: map[string]string{},
+		}
+		var (
+			ctime, mtime int64
+			key, value   string
+		)
 		err := rows.Scan(&file.Id, &file.Name, &file.Namespace, &file.Group, &file.Content, &file.Comment,
-			&file.Format, &ctime, &file.CreateBy, &mtime, &file.ModifyBy)
+			&file.Format, &ctime, &file.CreateBy, &mtime, &file.ModifyBy, &key, &value)
 		if err != nil {
 			return nil, err
 		}
 		file.CreateTime = time.Unix(ctime, 0)
 		file.ModifyTime = time.Unix(mtime, 0)
 
-		files = append(files, file)
+		if _, ok := record[file.KeyString()]; !ok {
+			record[file.KeyString()] = file
+			files = append(files, file)
+		}
+		oldVal, _ := record[file.KeyString()]
+		oldVal.Metadata[key] = value
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-
 	return files, nil
 }

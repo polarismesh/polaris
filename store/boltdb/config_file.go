@@ -38,19 +38,22 @@ const (
 	tblConfigFile   string = "ConfigFile"
 	tblConfigFileID string = "ConfigFileID"
 
-	FileFieldId         string = "Id"
-	FileFieldName       string = "Name"
-	FileFieldNamespace  string = "Namespace"
-	FileFieldGroup      string = "Group"
-	FileFieldContent    string = "Content"
-	FileFieldComment    string = "Comment"
-	FileFieldFormat     string = "Format"
-	FileFieldFlag       string = "Flag"
-	FileFieldCreateTime string = "CreateTime"
-	FileFieldCreateBy   string = "CreateBy"
-	FileFieldModifyTime string = "ModifyTime"
-	FileFieldModifyBy   string = "ModifyBy"
-	FileFieldValid      string = "Valid"
+	FileFieldId          string = "Id"
+	FileFieldName        string = "Name"
+	FileFieldNamespace   string = "Namespace"
+	FileFieldGroup       string = "Group"
+	FileFieldContent     string = "Content"
+	FileFieldComment     string = "Comment"
+	FileFieldFormat      string = "Format"
+	FileFieldFlag        string = "Flag"
+	FileFieldCreateTime  string = "CreateTime"
+	FileFieldCreateBy    string = "CreateBy"
+	FileFieldModifyTime  string = "ModifyTime"
+	FileFieldModifyBy    string = "ModifyBy"
+	FileFieldValid       string = "Valid"
+	FileFieldMetadata    string = "Metadata"
+	FileFieldEncrypt     string = "Encrypt"
+	FileFieldEncryptAlgo string = "EncryptAlgo"
 )
 
 var (
@@ -193,6 +196,9 @@ func (cf *configFileStore) UpdateConfigFileTx(tx store.Tx, file *model.ConfigFil
 	properties[FileFieldContent] = file.Content
 	properties[FileFieldComment] = file.Comment
 	properties[FileFieldFormat] = file.Format
+	properties[FileFieldMetadata] = file.Metadata
+	properties[FileFieldEncrypt] = file.Encrypt
+	properties[FileFieldEncryptAlgo] = file.EncryptAlgo
 	properties[FileFieldModifyTime] = time.Now()
 	properties[FileFieldModifyBy] = file.ModifyBy
 	if err := updateValue(dbTx, tblConfigFile, key, properties); err != nil {

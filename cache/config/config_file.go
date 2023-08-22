@@ -179,6 +179,8 @@ func (fc *fileCache) setReleases(releases []*model.ConfigFileRelease) (map[strin
 		}
 
 		if item.Active {
+			configLog.Info("[Config][Release][Cache] notify config release change",
+				zap.Any("info", item.SimpleConfigFileRelease))
 			fc.sendEvent(item)
 		}
 	}
