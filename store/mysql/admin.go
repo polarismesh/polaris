@@ -21,6 +21,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -429,11 +430,51 @@ func (m *adminStore) ReleaseLeaderElection(key string) error {
 // BatchCleanDeletedInstances batch clean soft deleted instances
 func (m *adminStore) BatchCleanDeletedInstances(timeout time.Duration, batchSize uint32) (uint32, error) {
 	log.Infof("[Store][database] batch clean soft deleted instances(%d)", batchSize)
-	var rows int64
+	var rowsAffected int64
 	err := m.master.processWithTransaction("batchCleanDeletedInstances", func(tx *BaseTx) error {
-		mainStr := "delete from instance where flag = 1 and " +
-			"mtime <= FROM_UNIXTIME(UNIX_TIMESTAMP(SYSDATE()) - ?) limit ?"
-		result, err := tx.Exec(mainStr, int32(timeout.Seconds()), batchSize)
+		// 查询出需要清理的实例 ID 信息
+		loadWaitDel := "SELECT id FROM instance WHERE flag = 1 AND " +
+			"mtime <= FROM_UNIXTIME(UNIX_TIMESTAMP(SYSDATE()) - ?) LIMIT ?"
+		rows, err := tx.Query(loadWaitDel, int32(timeout.Seconds()), batchSize)
+		if err != nil {
+			log.Errorf("[Store][database] batch clean soft deleted instances(%d), err: %s", batchSize, err.Error())
+			return store.Error(err)
+		}
+		waitDelIds := make([]interface{}, 0, batchSize)
+		defer func() {
+			_ = rows.Close()
+		}()
+
+		placeholders := make([]string, 0, batchSize)
+		for rows.Next() {
+			var id string
+			if err := rows.Scan(&id); err != nil {
+				log.Errorf("[Store][database] scan deleted instances id, err: %s", err.Error())
+				return store.Error(err)
+			}
+			waitDelIds = append(waitDelIds, id)
+			placeholders = append(placeholders, "?")
+		}
+
+		if len(waitDelIds) == 0 {
+			return nil
+		}
+		inSql := strings.Join(placeholders, ",")
+
+		cleanMetaStr := fmt.Sprintf("delete from instance_metadata where id in (%s)", inSql)
+		if _, err := tx.Exec(cleanMetaStr, waitDelIds...); err != nil {
+			log.Errorf("[Store][database] batch clean soft deleted instances(%d), err: %s", batchSize, err.Error())
+			return store.Error(err)
+		}
+
+		cleanCheckStr := fmt.Sprintf("delete from health_check where id in (%s)", inSql)
+		if _, err := tx.Exec(cleanCheckStr, waitDelIds...); err != nil {
+			log.Errorf("[Store][database] batch clean soft deleted instances(%d), err: %s", batchSize, err.Error())
+			return store.Error(err)
+		}
+
+		cleanInsStr := fmt.Sprintf("delete from instance where flag = 1 and id in (%s)", inSql)
+		result, err := tx.Exec(cleanInsStr, waitDelIds...)
 		if err != nil {
 			log.Errorf("[Store][database] batch clean soft deleted instances(%d), err: %s", batchSize, err.Error())
 			return store.Error(err)
@@ -452,10 +493,10 @@ func (m *adminStore) BatchCleanDeletedInstances(timeout time.Duration, batchSize
 			return err
 		}
 
-		rows = tRows
+		rowsAffected = tRows
 		return nil
 	})
-	return uint32(rows), err
+	return uint32(rowsAffected), err
 }
 
 func (m *adminStore) GetUnHealthyInstances(timeout time.Duration, limit uint32) ([]string, error) {

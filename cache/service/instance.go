@@ -105,11 +105,6 @@ func (ic *instanceCache) Update() error {
 func (ic *instanceCache) singleUpdate() (error, bool) {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, shared := ic.singleFlight.Do(ic.Name(), func() (interface{}, error) {
-		defer func() {
-			ic.lastMtimeLogged = types.LogLastMtime(ic.lastMtimeLogged, ic.LastMtime().Unix(), "Instance")
-			ic.checkAll()
-			ic.reportMetricsInfo()
-		}()
 		return nil, ic.DoCacheUpdate(ic.Name(), ic.realUpdate)
 	})
 	return err, shared
@@ -119,7 +114,7 @@ func (ic *instanceCache) LastMtime() time.Time {
 	return ic.BaseCache.LastMtime(ic.Name())
 }
 
-func (ic *instanceCache) checkAll() {
+func (ic *instanceCache) checkAll(tx store.Tx) {
 	curTimeSec := time.Now().Unix()
 	if curTimeSec-ic.lastCheckAllTime < checkAllIntervalSec {
 		return
@@ -127,7 +122,7 @@ func (ic *instanceCache) checkAll() {
 	defer func() {
 		ic.lastCheckAllTime = curTimeSec
 	}()
-	count, err := ic.storage.GetInstancesCount()
+	count, err := ic.storage.GetInstancesCountTx(tx)
 	if err != nil {
 		log.Errorf("[Cache][Instance] get instance count from storage err: %s", err.Error())
 		return
@@ -145,9 +140,24 @@ func (ic *instanceCache) checkAll() {
 const maxLoadTimeDuration = 1 * time.Second
 
 func (ic *instanceCache) realUpdate() (map[string]time.Time, int64, error) {
+	tx, err := ic.storage.StartReadTx()
+	if err != nil {
+	}
+
+	defer func() {
+		tx.Rollback()
+	}()
+
+	defer func() {
+		ic.lastMtimeLogged = types.LogLastMtime(ic.lastMtimeLogged, ic.LastMtime().Unix(), "Instance")
+		ic.checkAll(tx)
+		ic.reportMetricsInfo()
+	}()
+
 	// 拉取diff前的所有数据
 	start := time.Now()
-	instances, err := ic.storage.GetMoreInstances(ic.LastFetchTime(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID)
+	instances, err := ic.storage.GetMoreInstances(tx, ic.LastFetchTime(), ic.IsFirstUpdate(), ic.needMeta,
+		ic.systemServiceID)
 	if err != nil {
 		log.Errorf("[Cache][Instance] update get storage more err: %s", err.Error())
 		return nil, -1, err

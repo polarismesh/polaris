@@ -192,12 +192,21 @@ func (ins *instanceStore) CleanInstance(instanceID string) error {
 }
 
 // cleanInstance 清理数据
-// TODO 后续修改instance表，id外键删除级联，那么可以执行一次delete操作
 func cleanInstance(tx *BaseTx, instanceID string) error {
 	log.Infof("[Store][database] clean instance(%s)", instanceID)
-	mainStr := "delete from instance where id = ? and flag = 1"
-	if _, err := tx.Exec(mainStr, instanceID); err != nil {
+	cleanIns := "delete from instance where id = ? and flag = 1"
+	if _, err := tx.Exec(cleanIns, instanceID); err != nil {
 		log.Errorf("[Store][database] clean instance(%s), err: %s", instanceID, err.Error())
+		return store.Error(err)
+	}
+	cleanMeta := "delete from instance_metadata where id = ?"
+	if _, err := tx.Exec(cleanMeta, instanceID); err != nil {
+		log.Errorf("[Store][database] clean instance_metadata(%s), err: %s", instanceID, err.Error())
+		return store.Error(err)
+	}
+	cleanCheck := "delete from health_check where id = ?"
+	if _, err := tx.Exec(cleanCheck, instanceID); err != nil {
+		log.Errorf("[Store][database] clean health_check(%s), err: %s", instanceID, err.Error())
 		return store.Error(err)
 	}
 	return nil
@@ -354,6 +363,28 @@ func (ins *instanceStore) GetInstancesCount() (uint32, error) {
 	return count, nil
 }
 
+// GetInstancesCountTx .
+func (ins *instanceStore) GetInstancesCountTx(tx store.Tx) (uint32, error) {
+	dbTx, _ := tx.GetDelegateTx().(*BaseTx)
+	countStr := "select count(*) from instance where flag = 0"
+	var count uint32
+	var err error
+	Retry("query-instance-row", func() error {
+		err = dbTx.QueryRow(countStr).Scan(&count)
+		return err
+	})
+	switch {
+	case err == sql.ErrNoRows:
+		return 0, nil
+	case err != nil:
+		log.Errorf("[Store][database] get instances count scan err: %s", err.Error())
+		return 0, err
+	default:
+	}
+
+	return count, nil
+}
+
 // GetInstancesMainByService 根据服务和host获取实例
 // @note 不包括metadata
 func (ins *instanceStore) GetInstancesMainByService(serviceID, host string) ([]*model.Instance, error) {
@@ -459,16 +490,18 @@ func (ins *instanceStore) getExpandInstancesCount(filter, metaFilter map[string]
 // GetMoreInstances 根据mtime获取增量修改数据
 // 这里会返回所有的数据的，包括valid=false的数据
 // 对于首次拉取，firstUpdate=true，只会拉取flag!=1的数据
-func (ins *instanceStore) GetMoreInstances(mtime time.Time, firstUpdate, needMeta bool, serviceID []string) (
-	map[string]*model.Instance, error) {
+func (ins *instanceStore) GetMoreInstances(tx store.Tx, mtime time.Time, firstUpdate, needMeta bool,
+	serviceID []string) (map[string]*model.Instance, error) {
+
+	dbTx, _ := tx.GetDelegateTx().(*BaseTx)
 	if needMeta {
-		instances, err := ins.getMoreInstancesMainWithMeta(mtime, firstUpdate, serviceID)
+		instances, err := ins.getMoreInstancesMainWithMeta(dbTx, mtime, firstUpdate, serviceID)
 		if err != nil {
 			return nil, err
 		}
 		return instances, nil
 	}
-	instances, err := ins.getMoreInstancesMain(mtime, firstUpdate, serviceID)
+	instances, err := ins.getMoreInstancesMain(dbTx, mtime, firstUpdate, serviceID)
 	if err != nil {
 		return nil, err
 	}
@@ -684,19 +717,19 @@ func (ins *instanceStore) getInstance(instanceID string) (*model.Instance, error
 
 // getMoreInstancesMainWithMeta 获取增量instance+healthcheck+meta内容
 // @note ro库有多个实例，且主库到ro库各实例的同步时间不一致。为避免获取不到meta，需要采用一条sql语句获取全部数据
-func (ins *instanceStore) getMoreInstancesMainWithMeta(mtime time.Time, firstUpdate bool, serviceID []string) (
+func (ins *instanceStore) getMoreInstancesMainWithMeta(tx *BaseTx, mtime time.Time, firstUpdate bool, serviceID []string) (
 	map[string]*model.Instance, error) {
 	// 首次拉取
 	if firstUpdate {
 		// 获取全量服务实例
-		instances, err := ins.getMoreInstancesMain(mtime, firstUpdate, serviceID)
+		instances, err := ins.getMoreInstancesMain(tx, mtime, firstUpdate, serviceID)
 		if err != nil {
 			log.Errorf("[Store][database] get more instance main err: %s", err.Error())
 			return nil, err
 		}
 		// 获取全量服务实例元数据
 		str := "select id, mkey, mvalue from instance_metadata"
-		rows, err := ins.slave.Query(str)
+		rows, err := tx.Query(str)
 		if err != nil {
 			log.Errorf("[Store][database] acquire instances meta query err: %s", err.Error())
 			return nil, err
@@ -772,8 +805,9 @@ func fetchInstanceWithMetaRows(rows *sql.Rows) (map[string]*model.Instance, erro
 }
 
 // getMoreInstancesMain 获取增量instances 主表内容，health_check内容
-func (ins *instanceStore) getMoreInstancesMain(mtime time.Time, firstUpdate bool, serviceID []string) (
-	map[string]*model.Instance, error) {
+func (ins *instanceStore) getMoreInstancesMain(tx *BaseTx, mtime time.Time, firstUpdate bool,
+	serviceID []string) (map[string]*model.Instance, error) {
+
 	str := genInstanceSelectSQL() + " where instance.mtime >= FROM_UNIXTIME(?)"
 	args := make([]interface{}, 0, len(serviceID)+1)
 	args = append(args, timeToTimestamp(mtime))
@@ -790,7 +824,7 @@ func (ins *instanceStore) getMoreInstancesMain(mtime time.Time, firstUpdate bool
 		args = append(args, id)
 	}
 
-	rows, err := ins.slave.Query(str, args...)
+	rows, err := tx.Query(str, args...)
 	if err != nil {
 		log.Errorf("[Store][database] get more instance query err: %s", err.Error())
 		return nil, err

@@ -21,8 +21,11 @@ import "time"
 
 // Config 缓存配置
 type Config struct {
-	Open      bool          `yaml:"open"`
-	DiffTime  time.Duration `yaml:"diffTime"`
+	// Open 是否启用缓存
+	Open bool `yaml:"open"`
+	// DiffTime 设置拉取时间范围, [T1 - abs(DiffTime), T1]
+	DiffTime time.Duration `yaml:"diffTime"`
+	// Resources 设置那些资源需要使用缓存
 	Resources []ConfigEntry `yaml:"resources"`
 }
 

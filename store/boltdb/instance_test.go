@@ -26,6 +26,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
@@ -179,8 +180,15 @@ func TestInstanceStore_GetMoreInstances(t *testing.T) {
 	insStore := &instanceStore{handler: handler}
 	batchAddInstances(t, insStore, "svcid2", insCount)
 
+	tx, err := insStore.handler.StartTx()
+	assert.NoError(t, err)
+
+	t.Cleanup(func() {
+		tx.Rollback()
+	})
+
 	tt, _ := time.Parse("2006-01-02 15:04:05", "2021-01-02 15:04:05")
-	m, err := insStore.GetMoreInstances(tt, false, false, []string{"svcid2"})
+	m, err := insStore.GetMoreInstances(tx, tt, false, false, []string{"svcid2"})
 	if err != nil {
 		t.Fatal(err)
 	}

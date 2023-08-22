@@ -333,6 +333,10 @@ func (m *boltStore) StartTx() (store.Tx, error) {
 	return m.handler.StartTx()
 }
 
+func (m *boltStore) StartReadTx() (store.Tx, error) {
+	return m.handler.StartTx()
+}
+
 func init() {
 	s := &boltStore{}
 	_ = store.RegisterStore(s)

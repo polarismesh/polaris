@@ -117,7 +117,7 @@ func TestInstanceCache_Update(t *testing.T) {
 		}
 
 		gomock.InOrder(storage.EXPECT().
-			GetMoreInstances(gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
+			GetMoreInstances(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
 			Return(ret, nil))
 		gomock.InOrder(storage.EXPECT().GetInstancesCount().Return(uint32(15), nil))
 		if err := ic.Update(); err != nil {
@@ -135,7 +135,7 @@ func TestInstanceCache_Update(t *testing.T) {
 	t.Run("数据为空，更新的内容为空", func(t *testing.T) {
 		_ = ic.Clear()
 		gomock.InOrder(storage.EXPECT().
-			GetMoreInstances(gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
+			GetMoreInstances(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
 			Return(nil, nil))
 		if err := ic.Update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -155,7 +155,7 @@ func TestInstanceCache_Update(t *testing.T) {
 
 		gomock.InOrder(
 			storage.EXPECT().
-				GetMoreInstances(gomock.Any(), gomock.Any(), ic.needMeta, ic.systemServiceID).
+				GetMoreInstances(gomock.Any(), gomock.Any(), gomock.Any(), ic.needMeta, ic.systemServiceID).
 				Return(instances, nil),
 			storage.EXPECT().GetUnixSecond(gomock.Any()).Return(maxMtime.Unix(), nil).AnyTimes(),
 		)
@@ -176,7 +176,7 @@ func TestInstanceCache_Update2(t *testing.T) {
 	t.Run("数据库返回失败，update会返回失败", func(t *testing.T) {
 		_ = ic.Clear()
 		gomock.InOrder(storage.EXPECT().
-			GetMoreInstances(gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
+			GetMoreInstances(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
 			Return(nil, fmt.Errorf("storage get error")))
 		gomock.InOrder(storage.EXPECT().GetInstancesCount().Return(uint32(0), fmt.Errorf("storage get error")))
 		if err := ic.Update(); err != nil {
@@ -190,7 +190,7 @@ func TestInstanceCache_Update2(t *testing.T) {
 		_ = ic.Clear()
 		instances := genModelInstances("service-a", 20)
 		gomock.InOrder(storage.EXPECT().
-			GetMoreInstances(gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
+			GetMoreInstances(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
 			Return(instances, nil))
 		if err := ic.Update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -206,7 +206,7 @@ func TestInstanceCache_Update2(t *testing.T) {
 			idx++
 		}
 		gomock.InOrder(storage.EXPECT().
-			GetMoreInstances(gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
+			GetMoreInstances(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
 			Return(instances, nil))
 		if err := ic.Update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -224,7 +224,7 @@ func TestInstanceCache_Update2(t *testing.T) {
 		queryCount := int32(0)
 		storage.EXPECT().GetInstancesCount().Return(uint32(0), nil).AnyTimes()
 		storage.EXPECT().
-			GetMoreInstances(gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
+			GetMoreInstances(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
 			DoAndReturn(func(mtime time.Time, firstUpdate, needMeta bool, svcIds []string) (map[string]*model.Instance, error) {
 				atomic.AddInt32(&queryCount, 1)
 				if atomic.LoadInt32(&queryCount) == 2 {
@@ -247,7 +247,7 @@ func TestInstanceCache_GetInstance(t *testing.T) {
 		_ = ic.Clear()
 		instances := genModelInstances("my-services", 10)
 		gomock.InOrder(storage.EXPECT().
-			GetMoreInstances(gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
+			GetMoreInstances(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
 			Return(instances, nil))
 		gomock.InOrder(storage.EXPECT().GetInstancesCount().Return(uint32(10), nil))
 		if err := ic.Update(); err != nil {
@@ -299,7 +299,7 @@ func TestInstanceCache_GetServicePorts(t *testing.T) {
 		}
 
 		gomock.InOrder(storage.EXPECT().
-			GetMoreInstances(gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
+			GetMoreInstances(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
 			Return(instances, nil))
 		gomock.InOrder(storage.EXPECT().GetInstancesCount().Return(uint32(10), nil))
 		if err := ic.Update(); err != nil {
@@ -350,7 +350,7 @@ func TestInstanceCache_fillIntrnalLabels(t *testing.T) {
 		}
 
 		gomock.InOrder(storage.EXPECT().
-			GetMoreInstances(gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
+			GetMoreInstances(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
 			Return(instances, nil))
 		gomock.InOrder(storage.EXPECT().GetInstancesCount().Return(uint32(10), nil))
 		if err := ic.Update(); err != nil {
@@ -393,7 +393,7 @@ func TestGetInstancesByServiceID(t *testing.T) {
 		}
 
 		gomock.InOrder(storage.EXPECT().
-			GetMoreInstances(gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
+			GetMoreInstances(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
 			Return(ret, nil))
 		gomock.InOrder(storage.EXPECT().
 			GetInstancesCount().
