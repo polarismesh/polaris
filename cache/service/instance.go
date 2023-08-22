@@ -148,7 +148,7 @@ func (ic *instanceCache) realUpdate() (map[string]time.Time, int64, error) {
 		if tx != nil {
 			_ = tx.Rollback()
 		}
-		log.Errorf("[Cache][Instance] begin transaction storage read tx", zap.Error(err))
+		log.Error("[Cache][Instance] begin transaction storage read tx", zap.Error(err))
 		return nil, -1, err
 	}
 
