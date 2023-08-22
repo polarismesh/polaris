@@ -21,9 +21,10 @@ import (
 	"fmt"
 	"strings"
 
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/common/log"
-	"go.uber.org/zap"
 )
 
 // GetClientOpenMethod 获取客户端openMethod
