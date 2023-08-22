@@ -91,6 +91,8 @@ type Tx interface {
 	Rollback() error
 	// GetDelegateTx Get the original proxy transaction object.Different storage types have no business implementation
 	GetDelegateTx() interface{}
+	// CreateReadView create a snapshot read view
+	CreateReadView() error
 }
 
 // ToolStore Storage related functions and tool interfaces

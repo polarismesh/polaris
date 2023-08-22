@@ -19,10 +19,12 @@ package service
 
 import (
 	"crypto/sha1"
+	"fmt"
 	"sort"
 	"sync"
 	"time"
 
+	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
 	types "github.com/polarismesh/polaris/cache/api"
@@ -310,6 +312,8 @@ func (f *faultDetectCache) setFaultDetectRules(fdRules []*model.FaultDetectRule)
 			if oldRule.IsServiceChange(fdRule) {
 				// 从老的规则中获取所有的 svcKeys 信息列表
 				svcKeys := getServicesInvolveByFaultDetectRule(oldRule)
+				log.Info("[Cache][FaultDetect] clean rule bind old service info",
+					zap.String("svc-keys", fmt.Sprintf("%#v", svcKeys)), zap.String("rule-id", fdRule.ID))
 				// 挨个清空
 				f.deleteFaultDetectRuleFromServiceCache(fdRule.ID, svcKeys)
 			}

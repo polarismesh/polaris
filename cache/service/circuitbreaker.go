@@ -19,10 +19,12 @@ package service
 
 import (
 	"crypto/sha1"
+	"fmt"
 	"sort"
 	"sync"
 	"time"
 
+	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
 	types "github.com/polarismesh/polaris/cache/api"
@@ -81,12 +83,16 @@ func (c *circuitBreakerCache) Update() error {
 }
 
 func (c *circuitBreakerCache) realUpdate() (map[string]time.Time, int64, error) {
+	start := time.Now()
 	cbRules, err := c.storage.GetCircuitBreakerRulesForCache(c.LastFetchTime(), c.IsFirstUpdate())
 	if err != nil {
-		log.Errorf("[Cache] circuit breaker config cache update err:%s", err.Error())
+		log.Errorf("[Cache][CircuitBreaker] cache update err:%s", err.Error())
 		return nil, -1, err
 	}
-	lastMtimes := c.setCircuitBreaker(cbRules)
+	lastMtimes, upsert, del := c.setCircuitBreaker(cbRules)
+	log.Info("[Cache][CircuitBreaker] get more rules",
+		zap.Int("pull-from-store", len(cbRules)), zap.Int("upsert", upsert), zap.Int("delete", del),
+		zap.Time("last", c.LastMtime(c.Name())), zap.Duration("used", time.Since(start)))
 	return lastMtimes, int64(len(cbRules)), nil
 }
 
@@ -230,8 +236,6 @@ func (c *circuitBreakerCache) storeCircuitBreakerToServiceCache(
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	c.cleanOldCircuitBreakerToServiceCache(entry, svcKeys)
-
 	if len(svcKeys) == 0 {
 		// all wildcard
 		c.storeAndReloadCircuitBreakerRules(c.allWildcardRules, entry)
@@ -299,11 +303,6 @@ func (c *circuitBreakerCache) storeCircuitBreakerToServiceCache(
 	}
 }
 
-func (c *circuitBreakerCache) cleanOldCircuitBreakerToServiceCache(
-	entry *model.CircuitBreakerRule, svcKeys map[model.ServiceKey]bool) {
-
-}
-
 const allMatched = "*"
 
 func getServicesInvolveByCircuitBreakerRule(cbRule *model.CircuitBreakerRule) map[model.ServiceKey]bool {
@@ -325,10 +324,14 @@ func getServicesInvolveByCircuitBreakerRule(cbRule *model.CircuitBreakerRule) ma
 }
 
 // setCircuitBreaker 更新store的数据到cache中
-func (c *circuitBreakerCache) setCircuitBreaker(cbRules []*model.CircuitBreakerRule) map[string]time.Time {
+func (c *circuitBreakerCache) setCircuitBreaker(
+	cbRules []*model.CircuitBreakerRule) (map[string]time.Time, int, int) {
+
 	if len(cbRules) == 0 {
-		return nil
+		return nil, 0, 0
 	}
+
+	var upsert, del int
 
 	lastMtime := c.LastMtime(c.Name()).Unix()
 
@@ -343,23 +346,27 @@ func (c *circuitBreakerCache) setCircuitBreaker(cbRules []*model.CircuitBreakerR
 			if oldRule.IsServiceChange(cbRule) {
 				// 从老的规则中获取所有的 svcKeys 信息列表
 				svcKeys := getServicesInvolveByCircuitBreakerRule(oldRule)
+				log.Info("[Cache][CircuitBreaker] clean rule bind old service info",
+					zap.String("svc-keys", fmt.Sprintf("%#v", svcKeys)), zap.String("rule-id", cbRule.ID))
 				// 挨个清空
 				c.deleteCircuitBreakerFromServiceCache(cbRule.ID, svcKeys)
 			}
 		}
 		svcKeys := getServicesInvolveByCircuitBreakerRule(cbRule)
 		if !cbRule.Valid {
+			del++
 			c.rules.Delete(cbRule.ID)
 			c.deleteCircuitBreakerFromServiceCache(cbRule.ID, svcKeys)
 			continue
 		}
+		upsert++
 		c.rules.Store(cbRule.ID, cbRule)
 		c.storeCircuitBreakerToServiceCache(cbRule, svcKeys)
 	}
 
 	return map[string]time.Time{
 		c.Name(): time.Unix(lastMtime, 0),
-	}
+	}, upsert, del
 }
 
 // GetCircuitBreakerCount 获取熔断规则总数

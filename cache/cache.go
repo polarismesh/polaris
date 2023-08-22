@@ -47,8 +47,8 @@ func (nc *CacheManager) Initialize() error {
 	if config.DiffTime != 0 {
 		types.DefaultTimeDiff = -1 * (config.DiffTime.Abs())
 	}
-	if types.DefaultTimeDiff.Abs() > 0 {
-		return fmt.Errorf("cache diff time to pull store must negative number", types.DefaultTimeDiff)
+	if types.DefaultTimeDiff > 0 {
+		return fmt.Errorf("cache diff time to pull store must negative number: %+v", types.DefaultTimeDiff)
 	}
 
 	for _, obj := range nc.caches {

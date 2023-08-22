@@ -92,7 +92,6 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 	storage.EXPECT().GetStrategyResources(gomock.Eq(users[1].ID), gomock.Any()).AnyTimes().Return(strategies[1].Resources, nil)
 	storage.EXPECT().GetStrategyResources(gomock.Eq(groups[1].ID), gomock.Any()).AnyTimes().Return(strategies[len(users)-1+2].Resources, nil)
 
-
 	ctx, cancel := context.WithCancel(context.Background())
 	cacheMgn, err := cache.TestCacheInitialize(ctx, cfg, storage)
 	if err != nil {
