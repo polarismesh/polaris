@@ -2681,6 +2681,20 @@ func (mr *MockTxMockRecorder) Commit() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Commit", reflect.TypeOf((*MockTx)(nil).Commit))
 }
 
+// CreateReadView mocks base method.
+func (m *MockTx) CreateReadView() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateReadView")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateReadView indicates an expected call of CreateReadView.
+func (mr *MockTxMockRecorder) CreateReadView() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateReadView", reflect.TypeOf((*MockTx)(nil).CreateReadView))
+}
+
 // GetDelegateTx mocks base method.
 func (m *MockTx) GetDelegateTx() interface{} {
 	m.ctrl.T.Helper()
