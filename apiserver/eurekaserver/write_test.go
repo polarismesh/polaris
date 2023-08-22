@@ -95,6 +95,11 @@ func TestEurekaServer_renew(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 
+	mockTx := mock.NewMockTx(ctrl)
+	mockTx.EXPECT().Commit().Return(nil).AnyTimes()
+	mockTx.EXPECT().Rollback().Return(nil).AnyTimes()
+	mockTx.EXPECT().CreateReadView().Return(nil).AnyTimes()
+
 	mockStore := mock.NewMockStore(ctrl)
 	mockStore.EXPECT().
 		GetMoreInstances(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -103,6 +108,7 @@ func TestEurekaServer_renew(t *testing.T) {
 			insId:            ins,
 			disableBeatInsId: disableBeatIns,
 		}, nil)
+	mockStore.EXPECT().StartReadTx().Return(mockTx, nil).AnyTimes()
 	mockStore.EXPECT().
 		GetMoreServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		AnyTimes().
