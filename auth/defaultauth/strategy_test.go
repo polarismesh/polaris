@@ -656,7 +656,7 @@ func Test_GetStrategy(t *testing.T) {
 
 		_ = strategyTest.cacheMgn.TestUpdate()
 		resp := strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
-			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[0].ID},
+			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[index].ID},
 		})
 
 		assert.Equal(t, api.NotAllowedAccess, resp.Code.GetValue(), resp.Info.GetValue())
