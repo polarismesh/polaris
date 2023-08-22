@@ -192,6 +192,7 @@ func TestInstanceStore_GetMoreInstances(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	_ = tx.Commit()
 
 	if len(m) != 5 {
 		t.Fatal(fmt.Sprintf("get more instances error, except len is %d, got %d", 5, len(m)))
