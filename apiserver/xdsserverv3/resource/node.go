@@ -182,7 +182,7 @@ func (PolarisNodeHash) ID(node *core.Node) string {
 		if gatewayNamespace == "" {
 			gatewayNamespace = node.Metadata.Fields[OldGatewayNamespaceName].GetStringValue()
 		}
-		if gatewayNamespace == "" {
+		if gatewayService == "" {
 			gatewayService = node.Metadata.Fields[OldGatewayServiceName].GetStringValue()
 		}
 		if gatewayNamespace == "" {
