@@ -88,7 +88,6 @@ func (chain *CryptoConfigFileChain) AfterGetFile(ctx context.Context,
 	// 前一次发布的配置并未加密，现在准备发布的配置是开启了加密的，因此这里可能配置就是一个未加密的状态
 	// 这里就直接原样返回
 	if err == nil && plainContent != "" {
-		file.OriginContent = file.Content
 		file.Content = plainContent
 	}
 	if err != nil {
@@ -136,7 +135,8 @@ func (chain *CryptoConfigFileChain) AfterGetFileRelease(ctx context.Context,
 	plainContent, err := chain.decryptConfigFileContent(encryptDataKey, encryptAlgo, release.Content)
 	if err == nil && plainContent != "" {
 		release.Content = plainContent
-	} else {
+	}
+	if err != nil {
 		log.Error("[Config][Chain][Crypto] decrypt release config file content",
 			utils.ZapNamespace(release.Namespace), utils.ZapGroup(release.Group),
 			utils.ZapFileName(release.Name), zap.Error(err))

@@ -404,7 +404,7 @@ func (cfr *configFileReleaseStore) toModelData(data *ConfigFileRelease) *model.C
 			Active:     data.Active,
 			Valid:      data.Valid,
 			Flag:       data.Flag,
-			Format:     data.FileName,
+			Format:     data.Format,
 			Metadata:   data.Metadata,
 			Version:    data.Version,
 			CreateTime: data.CreateTime,

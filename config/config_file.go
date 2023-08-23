@@ -153,6 +153,8 @@ func (s *Server) handleUpdateConfigFile(ctx context.Context, tx store.Tx,
 
 func (s *Server) updateConfigFileAttribute(saveData, updateData *model.ConfigFile) (*model.ConfigFile, bool) {
 	needUpdate := false
+	oldMetadata := saveData.Metadata
+	oldEncrtptAlgo := saveData.EncryptAlgo
 	if saveData.Comment != updateData.Comment {
 		needUpdate = true
 		saveData.Comment = updateData.Comment
@@ -177,6 +179,15 @@ func (s *Server) updateConfigFileAttribute(saveData, updateData *model.ConfigFil
 		needUpdate = true
 		saveData.EncryptAlgo = updateData.EncryptAlgo
 	}
+	// 填充加密所需要的 Metadata Key 数据
+	if saveData.Encrypt && saveData.EncryptAlgo == oldEncrtptAlgo {
+		if len(saveData.Metadata) == 0 {
+			saveData.Metadata = map[string]string{}
+		}
+		saveData.Metadata[utils.ConfigFileTagKeyDataKey] = oldMetadata[utils.ConfigFileTagKeyDataKey]
+		saveData.Metadata[utils.ConfigFileTagKeyEncryptAlgo] = oldMetadata[utils.ConfigFileTagKeyEncryptAlgo]
+	}
+
 	return saveData, needUpdate
 }
 
