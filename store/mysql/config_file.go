@@ -381,7 +381,7 @@ func (cf *configFileStore) transferRows(rows *sql.Rows) ([]*model.ConfigFile, er
 			record[file.KeyString()] = file
 			files = append(files, file)
 		}
-		oldVal, _ := record[file.KeyString()]
+		oldVal := record[file.KeyString()]
 		oldVal.Metadata[key] = value
 	}
 

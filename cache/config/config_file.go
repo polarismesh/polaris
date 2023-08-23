@@ -194,7 +194,7 @@ func (fc *fileCache) sendEvent(item *model.ConfigFileRelease) {
 	})
 	if err != nil {
 		configLog.Error("[Config][Release][Cache] notify config release change",
-		zap.Any("info", item.ConfigFileReleaseKey), zap.Error(err))
+			zap.Any("info", item.ConfigFileReleaseKey), zap.Error(err))
 	}
 }
 
