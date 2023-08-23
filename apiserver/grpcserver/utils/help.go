@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"strings"
 
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/common/log"
 )
@@ -43,17 +45,17 @@ func GetClientOpenMethod(include []string, protocol string) (map[string]bool, er
 	for _, item := range include {
 		if methods, ok := clientAccess[item]; ok {
 			for _, method := range methods {
-				method = "/v1.Polaris" + strings.ToUpper(protocol) + "/" + method
+				recordMethod := "/v1.Polaris" + strings.ToUpper(protocol) + "/" + method
 				if item == apiserver.HealthcheckAccess && method != "Heartbeat" {
-					method = "/v1.PolarisHeartbeat" + strings.ToUpper(protocol) + "/" + method
+					recordMethod = "/v1.PolarisHeartbeat" + strings.ToUpper(protocol) + "/" + method
 				}
-				openMethod[method] = true
+				openMethod[recordMethod] = true
 			}
 		} else {
 			log.Errorf("method %s does not exist in %sserver client access", item, protocol)
 			return nil, fmt.Errorf("method %s does not exist in %sserver client access", item, protocol)
 		}
 	}
-
+	log.Info("[APIServer] client open method info", zap.Any("openMethod", openMethod))
 	return openMethod, nil
 }

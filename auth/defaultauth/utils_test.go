@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+
 	"github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/common/utils"
 )

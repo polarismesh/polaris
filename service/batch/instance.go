@@ -78,7 +78,7 @@ type InstanceCtrl struct {
 func NewBatchRegisterCtrl(storage store.Store, cacheMgn *cache.CacheManager,
 	config *CtrlConfig) (*InstanceCtrl, error) {
 
-	register, err := newBatchInstanceCtrl(storage, cacheMgn, config)
+	register, err := newBatchInstanceCtrl("register", storage, cacheMgn, config)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func NewBatchRegisterCtrl(storage store.Store, cacheMgn *cache.CacheManager,
 // NewBatchDeregisterCtrl 实例反注册的操作对象
 func NewBatchDeregisterCtrl(storage store.Store, cacheMgn *cache.CacheManager, config *CtrlConfig) (
 	*InstanceCtrl, error) {
-	deregister, err := newBatchInstanceCtrl(storage, cacheMgn, config)
+	deregister, err := newBatchInstanceCtrl("deregister", storage, cacheMgn, config)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func NewBatchDeregisterCtrl(storage store.Store, cacheMgn *cache.CacheManager, c
 // NewBatchHeartbeatCtrl 实例心跳的操作对象
 func NewBatchHeartbeatCtrl(storage store.Store, cacheMgn *cache.CacheManager, config *CtrlConfig) (
 	*InstanceCtrl, error) {
-	heartbeat, err := newBatchInstanceCtrl(storage, cacheMgn, config)
+	heartbeat, err := newBatchInstanceCtrl("heartbeat", storage, cacheMgn, config)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +145,7 @@ func (ctrl *InstanceCtrl) Start(ctx context.Context) {
 }
 
 // newBatchInstanceCtrl 创建批量控制instance的对象
-func newBatchInstanceCtrl(storage store.Store, cacheMgn *cache.CacheManager,
+func newBatchInstanceCtrl(label string, storage store.Store, cacheMgn *cache.CacheManager,
 	config *CtrlConfig) (*InstanceCtrl, error) {
 
 	if config == nil || !config.Open {
@@ -177,7 +177,7 @@ func newBatchInstanceCtrl(storage store.Store, cacheMgn *cache.CacheManager,
 		// mean not allow drop expire task
 		taskLife = time.Duration(0)
 	}
-	log.Info("[Batch] drop expire regis-instance task", zap.Bool("switch-open", taskLife == 0))
+	log.Info("[Batch] drop expire task", zap.String("type", label), zap.Bool("switch-open", taskLife == 0))
 
 	instance := &InstanceCtrl{
 		config:          config,

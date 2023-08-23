@@ -28,7 +28,6 @@ import (
 	_ "github.com/polarismesh/polaris/plugin/ratelimit/token"
 	_ "github.com/polarismesh/polaris/plugin/statis/logger"
 	_ "github.com/polarismesh/polaris/plugin/statis/prometheus"
-
 	testsuit "github.com/polarismesh/polaris/test/suit"
 )
 

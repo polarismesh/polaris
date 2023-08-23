@@ -153,6 +153,8 @@ func (s *Server) handleUpdateConfigFile(ctx context.Context, tx store.Tx,
 
 func (s *Server) updateConfigFileAttribute(saveData, updateData *model.ConfigFile) (*model.ConfigFile, bool) {
 	needUpdate := false
+	oldMetadata := saveData.Metadata
+	oldEncrtptAlgo := saveData.EncryptAlgo
 	if saveData.Comment != updateData.Comment {
 		needUpdate = true
 		saveData.Comment = updateData.Comment
@@ -169,6 +171,23 @@ func (s *Server) updateConfigFileAttribute(saveData, updateData *model.ConfigFil
 		needUpdate = true
 		saveData.Metadata = updateData.Metadata
 	}
+	if saveData.Encrypt != updateData.Encrypt {
+		needUpdate = true
+		saveData.Encrypt = updateData.Encrypt
+	}
+	if saveData.EncryptAlgo != updateData.EncryptAlgo {
+		needUpdate = true
+		saveData.EncryptAlgo = updateData.EncryptAlgo
+	}
+	// 填充加密所需要的 Metadata Key 数据
+	if saveData.Encrypt && saveData.EncryptAlgo == oldEncrtptAlgo {
+		if len(saveData.Metadata) == 0 {
+			saveData.Metadata = map[string]string{}
+		}
+		saveData.Metadata[utils.ConfigFileTagKeyDataKey] = oldMetadata[utils.ConfigFileTagKeyDataKey]
+		saveData.Metadata[utils.ConfigFileTagKeyEncryptAlgo] = oldMetadata[utils.ConfigFileTagKeyEncryptAlgo]
+	}
+
 	return saveData, needUpdate
 }
 
@@ -307,10 +326,16 @@ func (s *Server) SearchConfigFile(ctx context.Context, filter map[string]string)
 		}
 	}
 
+	if err := s.fileCache.Update(); err != nil {
+		log.Error("[Config][File] force update release cache when search config files.",
+			utils.RequestID(ctx), zap.Error(err))
+		out := api.NewConfigBatchQueryResponse(commonstore.StoreCode2APICode(err))
+		return out
+	}
+
 	count, files, err := s.storage.QueryConfigFiles(searchFilters, offset, limit)
 	if err != nil {
-		log.Error("[Config][File]get config files by group error.", utils.RequestID(ctx),
-			zap.Error(err))
+		log.Error("[Config][File] search config files.", utils.RequestID(ctx), zap.Error(err))
 		out := api.NewConfigBatchQueryResponse(commonstore.StoreCode2APICode(err))
 		return out
 	}
@@ -323,6 +348,12 @@ func (s *Server) SearchConfigFile(ctx context.Context, filter map[string]string)
 
 	ret := make([]*apiconfig.ConfigFile, 0, len(files))
 	for _, file := range files {
+		file, err := s.chains.AfterGetFile(ctx, file)
+		if err != nil {
+			log.Error("[Config][File] search files run chain after-get file.", utils.RequestID(ctx),
+				zap.Error(err))
+			return api.NewConfigBatchQueryResponse(apimodel.Code_ExecuteException)
+		}
 		ret = append(ret, model.ToConfigFileAPI(file))
 	}
 	out := api.NewConfigBatchQueryResponse(apimodel.Code_ExecuteSuccess)

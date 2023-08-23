@@ -35,6 +35,8 @@ type Store interface {
 	CreateTransaction() (Transaction, error)
 	// StartTx 开启一个原子事务
 	StartTx() (Tx, error)
+	// StartReadTx 开启一个原子事务
+	StartReadTx() (Tx, error)
 	// NamespaceStore Service namespace interface
 	NamespaceStore
 	// NamingModuleStore Service Registration Discovery Module Storage Interface
@@ -89,6 +91,8 @@ type Tx interface {
 	Rollback() error
 	// GetDelegateTx Get the original proxy transaction object.Different storage types have no business implementation
 	GetDelegateTx() interface{}
+	// CreateReadView create a snapshot read view
+	CreateReadView() error
 }
 
 // ToolStore Storage related functions and tool interfaces

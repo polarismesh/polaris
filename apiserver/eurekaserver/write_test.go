@@ -95,14 +95,20 @@ func TestEurekaServer_renew(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 
+	mockTx := mock.NewMockTx(ctrl)
+	mockTx.EXPECT().Commit().Return(nil).AnyTimes()
+	mockTx.EXPECT().Rollback().Return(nil).AnyTimes()
+	mockTx.EXPECT().CreateReadView().Return(nil).AnyTimes()
+
 	mockStore := mock.NewMockStore(ctrl)
 	mockStore.EXPECT().
-		GetMoreInstances(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		GetMoreInstances(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		AnyTimes().
 		Return(map[string]*model.Instance{
 			insId:            ins,
 			disableBeatInsId: disableBeatIns,
 		}, nil)
+	mockStore.EXPECT().StartReadTx().Return(mockTx, nil).AnyTimes()
 	mockStore.EXPECT().
 		GetMoreServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		AnyTimes().
@@ -114,7 +120,7 @@ func TestEurekaServer_renew(t *testing.T) {
 			},
 		}, nil)
 
-	mockStore.EXPECT().GetInstancesCount().AnyTimes().Return(uint32(1), nil)
+	mockStore.EXPECT().GetInstancesCountTx(gomock.Any()).AnyTimes().Return(uint32(1), nil)
 	mockStore.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 	mockStore.EXPECT().GetServicesCount().Return(uint32(1), nil).AnyTimes()
 	mockStore.EXPECT().StartLeaderElection(gomock.Any()).AnyTimes()

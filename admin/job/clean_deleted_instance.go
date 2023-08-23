@@ -68,7 +68,6 @@ func (job *cleanDeletedInstancesJob) execute() {
 		}
 
 		log.Infof("[Maintain][Job][CleanDeletedInstances] clean deleted instance count %d", count)
-
 		if count < batchSize {
 			break
 		}

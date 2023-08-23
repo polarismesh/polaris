@@ -67,7 +67,11 @@ func (h *HTTPServer) GetConsoleAccessServer(include []string) (*restful.WebServi
 		switch item {
 		case defaultReadAccess:
 			h.addDefaultReadAccess(ws)
+			// 仅为了兼容老的客户端发现路径
+			h.addDiscover(ws)
 		case configConsoleAccess, defaultAccess:
+			// 仅为了兼容老的客户端发现路径
+			h.addDiscover(ws)
 			h.addDefaultAccess(ws)
 		}
 	}

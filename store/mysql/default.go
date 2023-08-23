@@ -243,6 +243,14 @@ func (s *stableStore) StartTx() (store.Tx, error) {
 	return NewSqlDBTx(tx), nil
 }
 
+func (s *stableStore) StartReadTx() (store.Tx, error) {
+	tx, err := s.slave.Begin()
+	if err != nil {
+		return nil, err
+	}
+	return NewSqlDBTx(tx), nil
+}
+
 // newStore 初始化子类
 func (s *stableStore) newStore() {
 	s.namespaceStore = &namespaceStore{master: s.master, slave: s.slave}

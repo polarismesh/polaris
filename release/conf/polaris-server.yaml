@@ -114,7 +114,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 30
       rotationMaxAge: 7
-      outputLevel: info
+      outputLevel: debug
       compress: true
     # server plugin logs
     token-bucket:

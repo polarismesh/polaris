@@ -48,6 +48,12 @@ func newTestServiceCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *se
 
 	mockCacheMgr.EXPECT().GetCacher(types.CacheService).Return(mockSvcCache).AnyTimes()
 	mockCacheMgr.EXPECT().GetCacher(types.CacheInstance).Return(mockInstCache).AnyTimes()
+
+	mockTx := mock.NewMockTx(ctl)
+	mockTx.EXPECT().Commit().Return(nil).AnyTimes()
+	mockTx.EXPECT().Rollback().Return(nil).AnyTimes()
+	mockTx.EXPECT().CreateReadView().Return(nil).AnyTimes()
+	storage.EXPECT().StartReadTx().Return(mockTx, nil).AnyTimes()
 	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 
 	opt := map[string]interface{}{
@@ -393,9 +399,9 @@ func TestServiceCache_GetServicesByFilter(t *testing.T) {
 		ic := sc.instCache.(*instanceCache)
 
 		mockStore.EXPECT().GetServicesCount().Return(uint32(len(services)), nil).AnyTimes()
-		mockStore.EXPECT().GetInstancesCount().Return(uint32(len(instances)), nil).AnyTimes()
+		mockStore.EXPECT().GetInstancesCountTx(gomock.Any()).Return(uint32(len(instances)), nil).AnyTimes()
 		mockStore.EXPECT().GetMoreServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(services, nil).AnyTimes()
-		mockStore.EXPECT().GetMoreInstances(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(instances, nil).AnyTimes()
+		mockStore.EXPECT().GetMoreInstances(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(instances, nil).AnyTimes()
 		ic.setInstances(instances)
 
 		hostToService := make(map[string]string)

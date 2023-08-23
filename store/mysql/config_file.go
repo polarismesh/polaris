@@ -34,6 +34,7 @@ var (
 		"config_file": {
 			"group":     "`group`",
 			"file_name": "name",
+			"namespace": "namespace",
 		},
 		"config_file_release": {
 			"group":        "`group`",
@@ -203,11 +204,10 @@ func (cf *configFileStore) GetConfigFileTx(tx store.Tx,
 	if len(files) == 0 {
 		return nil, nil
 	}
-	ret := files[0]
-	if err := cf.loadFileTags(dbTx, ret); err != nil {
+	if err := cf.loadFileTags(dbTx, files[0]); err != nil {
 		return nil, store.Error(err)
 	}
-	return ret, nil
+	return files[0], nil
 }
 
 // UpdateConfigFile 更新配置文件
@@ -275,30 +275,38 @@ func (cf *configFileStore) QueryConfigFiles(filter map[string]string, offset, li
 	}
 	countSql = countSql + (strings.Join(searchQuery, " AND "))
 
-	if log.DebugEnabled() {
-		log.Debug("[Config][Storage] query config files", zap.String("count-sql", countSql))
-	}
-
 	var count uint32
 	err := cf.master.QueryRow(countSql, args...).Scan(&count)
 	if err != nil {
-		return 0, nil, err
+		log.Error("[Config][Storage] query config files", zap.String("count-sql", countSql), zap.Error(err))
+		return 0, nil, store.Error(err)
 	}
 
 	querySql = querySql + (strings.Join(searchQuery, " AND ")) + " ORDER BY id DESC LIMIT ?, ? "
 
-	if log.DebugEnabled() {
-		log.Debug("[Config][Storage] query config files", zap.String("query-sql", countSql))
-	}
 	args = append(args, offset, limit)
 	rows, err := cf.master.Query(querySql, args...)
 	if err != nil {
-		return 0, nil, err
+		log.Error("[Config][Storage] query config files", zap.String("query-sql", countSql), zap.Error(err))
+		return 0, nil, store.Error(err)
 	}
 
 	files, err := cf.transferRows(rows)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, store.Error(err)
+	}
+
+	err = cf.slave.processWithTransaction("batch-load-file-tags", func(tx *BaseTx) error {
+		for i := range files {
+			item := files[i]
+			if err := cf.loadFileTags(tx, item); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return 0, nil, store.Error(err)
 	}
 
 	return count, files, nil
@@ -337,8 +345,7 @@ func (cf *configFileStore) CountConfigFileEachGroup() (map[string]map[string]int
 }
 
 func (cf *configFileStore) baseSelectConfigFileSql() string {
-	return "SELECT  " +
-		" id, name, namespace, `group`, content, IFNULL(comment, ''), format, " +
+	return "SELECT id, name, namespace, `group`, content, IFNULL(comment, ''), format, " +
 		" UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), UNIX_TIMESTAMP(modify_time), " +
 		" IFNULL(modify_by, '') FROM config_file "
 }
@@ -359,25 +366,26 @@ func (cf *configFileStore) transferRows(rows *sql.Rows) ([]*model.ConfigFile, er
 	}
 	defer rows.Close()
 
-	var files []*model.ConfigFile
+	var (
+		files = make([]*model.ConfigFile, 0, 32)
+	)
 
 	for rows.Next() {
-		file := &model.ConfigFile{}
+		file := &model.ConfigFile{
+			Metadata: map[string]string{},
+		}
 		var ctime, mtime int64
-		err := rows.Scan(&file.Id, &file.Name, &file.Namespace, &file.Group, &file.Content, &file.Comment,
-			&file.Format, &ctime, &file.CreateBy, &mtime, &file.ModifyBy)
-		if err != nil {
+		if err := rows.Scan(&file.Id, &file.Name, &file.Namespace, &file.Group, &file.Content, &file.Comment,
+			&file.Format, &ctime, &file.CreateBy, &mtime, &file.ModifyBy); err != nil {
 			return nil, err
 		}
 		file.CreateTime = time.Unix(ctime, 0)
 		file.ModifyTime = time.Unix(mtime, 0)
-
 		files = append(files, file)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-
 	return files, nil
 }

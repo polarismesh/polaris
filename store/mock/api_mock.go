@@ -1180,6 +1180,21 @@ func (mr *MockStoreMockRecorder) GetInstancesCount() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstancesCount", reflect.TypeOf((*MockStore)(nil).GetInstancesCount))
 }
 
+// GetInstancesCountTx mocks base method.
+func (m *MockStore) GetInstancesCountTx(tx store.Tx) (uint32, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstancesCountTx", tx)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInstancesCountTx indicates an expected call of GetInstancesCountTx.
+func (mr *MockStoreMockRecorder) GetInstancesCountTx(tx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstancesCountTx", reflect.TypeOf((*MockStore)(nil).GetInstancesCountTx), tx)
+}
+
 // GetInstancesMainByService mocks base method.
 func (m *MockStore) GetInstancesMainByService(serviceID, host string) ([]*model.Instance, error) {
 	m.ctrl.T.Helper()
@@ -1241,18 +1256,18 @@ func (mr *MockStoreMockRecorder) GetMoreConfigGroup(firstUpdate, mtime interface
 }
 
 // GetMoreInstances mocks base method.
-func (m *MockStore) GetMoreInstances(mtime time.Time, firstUpdate, needMeta bool, serviceID []string) (map[string]*model.Instance, error) {
+func (m *MockStore) GetMoreInstances(tx store.Tx, mtime time.Time, firstUpdate, needMeta bool, serviceID []string) (map[string]*model.Instance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMoreInstances", mtime, firstUpdate, needMeta, serviceID)
+	ret := m.ctrl.Call(m, "GetMoreInstances", tx, mtime, firstUpdate, needMeta, serviceID)
 	ret0, _ := ret[0].(map[string]*model.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetMoreInstances indicates an expected call of GetMoreInstances.
-func (mr *MockStoreMockRecorder) GetMoreInstances(mtime, firstUpdate, needMeta, serviceID interface{}) *gomock.Call {
+func (mr *MockStoreMockRecorder) GetMoreInstances(tx, mtime, firstUpdate, needMeta, serviceID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreInstances", reflect.TypeOf((*MockStore)(nil).GetMoreInstances), mtime, firstUpdate, needMeta, serviceID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreInstances", reflect.TypeOf((*MockStore)(nil).GetMoreInstances), tx, mtime, firstUpdate, needMeta, serviceID)
 }
 
 // GetMoreL5Extend mocks base method.
@@ -2140,6 +2155,21 @@ func (mr *MockStoreMockRecorder) StartLeaderElection(key interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartLeaderElection", reflect.TypeOf((*MockStore)(nil).StartLeaderElection), key)
 }
 
+// StartReadTx mocks base method.
+func (m *MockStore) StartReadTx() (store.Tx, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StartReadTx")
+	ret0, _ := ret[0].(store.Tx)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// StartReadTx indicates an expected call of StartReadTx.
+func (mr *MockStoreMockRecorder) StartReadTx() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartReadTx", reflect.TypeOf((*MockStore)(nil).StartReadTx))
+}
+
 // StartTx mocks base method.
 func (m *MockStore) StartTx() (store.Tx, error) {
 	m.ctrl.T.Helper()
@@ -2649,6 +2679,20 @@ func (m *MockTx) Commit() error {
 func (mr *MockTxMockRecorder) Commit() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Commit", reflect.TypeOf((*MockTx)(nil).Commit))
+}
+
+// CreateReadView mocks base method.
+func (m *MockTx) CreateReadView() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateReadView")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateReadView indicates an expected call of CreateReadView.
+func (mr *MockTxMockRecorder) CreateReadView() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateReadView", reflect.TypeOf((*MockTx)(nil).CreateReadView))
 }
 
 // GetDelegateTx mocks base method.

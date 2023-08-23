@@ -19,6 +19,7 @@ package config
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
@@ -32,15 +33,23 @@ const (
 	defaultLongPollingTimeout = 30000 * time.Millisecond
 )
 
-type connection struct {
+type ClientConn struct {
+	once             sync.Once
 	finishTime       time.Time
 	finishChan       chan *apiconfig.ConfigClientResponse
 	watchConfigFiles []*apiconfig.ClientConfigFileInfo
 }
 
+func (c *ClientConn) reply(rsp *apiconfig.ConfigClientResponse) {
+	c.once.Do(func() {
+		c.finishChan <- rsp
+		close(c.finishChan)
+	})
+}
+
 type connManager struct {
 	watchCenter    *watchCenter
-	conns          *utils.SegmentMap[string, *connection] // client -> connection
+	conns          *utils.SegmentMap[string, *ClientConn] // client -> ClientConn
 	stopWorkerFunc context.CancelFunc
 }
 
@@ -56,7 +65,7 @@ var (
 // NewConfigConnManager 初始化连接管理器，定时响应超时的请求
 func NewConfigConnManager(ctx context.Context, watchCenter *watchCenter) *connManager {
 	cm = &connManager{
-		conns:       utils.NewSegmentMap[string, *connection](128, hash.Fnv32),
+		conns:       utils.NewSegmentMap[string, *ClientConn](128, hash.Fnv32),
 		watchCenter: watchCenter,
 	}
 
@@ -70,7 +79,7 @@ func (c *connManager) AddConn(
 
 	finishChan := make(chan *apiconfig.ConfigClientResponse)
 
-	cm.conns.Put(clientId, &connection{
+	cm.conns.Put(clientId, &ClientConn{
 		finishTime:       time.Now().Add(defaultLongPollingTimeout),
 		finishChan:       finishChan,
 		watchConfigFiles: files,
@@ -78,8 +87,7 @@ func (c *connManager) AddConn(
 
 	c.watchCenter.AddWatcher(clientId, files, func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
 		if conn, ok := cm.conns.Get(clientId); ok {
-			conn.finishChan <- rsp
-			close(conn.finishChan)
+			conn.reply(rsp)
 			c.removeConn(clientId)
 		}
 		return true
@@ -109,9 +117,9 @@ func (c *connManager) startHandleTimeoutRequestWorker(ctx context.Context) {
 				continue
 			}
 			tNow := time.Now()
-			cm.conns.Range(func(client string, conn *connection) {
+			cm.conns.Range(func(client string, conn *ClientConn) {
 				if tNow.After(conn.finishTime) {
-					conn.finishChan <- notModifiedResponse
+					conn.reply(notModifiedResponse)
 					c.removeConn(client)
 				}
 			})

@@ -147,6 +147,8 @@ func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cac
 func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	namespaceOperator namespace.NamespaceOperateServer, cacheMgn *cache.CacheManager) error {
 
+	var err error
+
 	s.cfg = &config
 	if s.cfg.ContentMaxLength <= 0 {
 		s.cfg.ContentMaxLength = fileContentMaxLength
@@ -156,7 +158,10 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	s.fileCache = cacheMgn.ConfigFile()
 	s.groupCache = cacheMgn.ConfigGroup()
 
-	s.watchCenter = NewWatchCenter()
+	s.watchCenter, err = NewWatchCenter()
+	if err != nil {
+		return err
+	}
 
 	// 初始化连接管理器
 	connMng := NewConfigConnManager(ctx, s.watchCenter)
@@ -280,6 +285,7 @@ func (cc *ConfigChains) BeforeCreateFile(ctx context.Context, file *model.Config
 
 // AfterGetFile
 func (cc *ConfigChains) AfterGetFile(ctx context.Context, file *model.ConfigFile) (*model.ConfigFile, error) {
+	file.OriginContent = file.Content
 	for i := range cc.chains {
 		_file, err := cc.chains[i].AfterGetFile(ctx, file)
 		if err != nil {

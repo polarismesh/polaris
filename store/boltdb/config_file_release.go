@@ -304,7 +304,7 @@ func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *bolt.Tx,
 	release *model.ConfigFileRelease) (uint64, error) {
 
 	fields := []string{FileReleaseFieldNamespace, FileReleaseFieldGroup, FileReleaseFieldFileName,
-		FileReleaseFieldVersion, FileReleaseFieldFlag}
+		FileReleaseFieldVersion, FileReleaseFieldFlag, FileReleaseFieldActive}
 
 	values := map[string]interface{}{}
 	var maxVersion uint64
@@ -316,11 +316,16 @@ func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *bolt.Tx,
 			if flag == 1 {
 				return false
 			}
+			isActive, _ := m[FileReleaseFieldActive].(bool)
+			if !isActive {
+				return false
+			}
 			saveNs, _ := m[FileReleaseFieldNamespace].(string)
 			saveGroup, _ := m[FileReleaseFieldGroup].(string)
 			saveFileName, _ := m[FileReleaseFieldFileName].(string)
 
-			expect := saveNs == release.Namespace && saveGroup == release.Group && saveFileName == release.FileName
+			expect := saveNs == release.Namespace && saveGroup == release.Group &&
+				saveFileName == release.FileName
 			if expect {
 				saveVersion, _ := m[FileReleaseFieldVersion].(uint64)
 				if saveVersion > maxVersion {
@@ -333,7 +338,6 @@ func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *bolt.Tx,
 	}
 	properties := map[string]interface{}{
 		FileReleaseFieldActive:     false,
-		FileReleaseFieldFlag:       1,
 		FileReleaseFieldModifyTime: time.Now(),
 	}
 	for key := range values {
@@ -400,7 +404,7 @@ func (cfr *configFileReleaseStore) toModelData(data *ConfigFileRelease) *model.C
 			Active:     data.Active,
 			Valid:      data.Valid,
 			Flag:       data.Flag,
-			Format:     data.FileName,
+			Format:     data.Format,
 			Metadata:   data.Metadata,
 			Version:    data.Version,
 			CreateTime: data.CreateTime,

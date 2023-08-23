@@ -89,7 +89,8 @@ func (chain *CryptoConfigFileChain) AfterGetFile(ctx context.Context,
 	// 这里就直接原样返回
 	if err == nil && plainContent != "" {
 		file.Content = plainContent
-	} else {
+	}
+	if err != nil {
 		log.Error("[Config][Chain][Crypto] decrypt config file content",
 			utils.ZapNamespace(file.Namespace), utils.ZapGroup(file.Group),
 			utils.ZapFileName(file.Name), zap.Error(err))
@@ -134,7 +135,8 @@ func (chain *CryptoConfigFileChain) AfterGetFileRelease(ctx context.Context,
 	plainContent, err := chain.decryptConfigFileContent(encryptDataKey, encryptAlgo, release.Content)
 	if err == nil && plainContent != "" {
 		release.Content = plainContent
-	} else {
+	}
+	if err != nil {
 		log.Error("[Config][Chain][Crypto] decrypt release config file content",
 			utils.ZapNamespace(release.Namespace), utils.ZapGroup(release.Group),
 			utils.ZapFileName(release.Name), zap.Error(err))
@@ -271,8 +273,10 @@ func (chain *ReleaseConfigFileChain) AfterGetFile(ctx context.Context,
 	activeFile := chain.svr.fileCache.GetActiveRelease(namespace, group, name)
 	if activeFile != nil {
 		// 如果最后一次发布的内容和当前文件内容一致，则展示最后一次发布状态。否则说明文件有修改，待发布
-		if activeFile.Content == file.Content {
+		if activeFile.Content == file.OriginContent {
 			file.Status = utils.ReleaseTypeNormal
+			file.ReleaseBy = activeFile.ModifyBy
+			file.ReleaseTime = activeFile.ModifyTime
 		} else {
 			file.Status = utils.ReleaseStatusToRelease
 		}
