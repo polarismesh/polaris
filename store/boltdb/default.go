@@ -20,8 +20,8 @@ package boltdb
 import (
 	"time"
 
-	"github.com/boltdb/bolt"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"
@@ -84,7 +84,6 @@ type boltStore struct {
 	*configFileStore
 	*configFileReleaseStore
 	*configFileReleaseHistoryStore
-	*configFileTagStore
 	*configFileTemplateStore
 
 	// v2 存储
@@ -280,91 +279,39 @@ func (m *boltStore) newStore() error {
 	}
 	m.clientStore = &clientStore{handler: m.handler}
 
-	if err := m.newDiscoverModuleStore(); err != nil {
-		return err
-	}
-	if err := m.newAuthModuleStore(); err != nil {
-		return err
-	}
-	if err := m.newConfigModuleStore(); err != nil {
-		return err
-	}
-
-	if err := m.newMaintainModuleStore(); err != nil {
-		return err
-	}
-
+	m.newDiscoverModuleStore()
+	m.newAuthModuleStore()
+	m.newConfigModuleStore()
+	m.newMaintainModuleStore()
 	return nil
 }
 
-func (m *boltStore) newDiscoverModuleStore() error {
+func (m *boltStore) newDiscoverModuleStore() {
 	m.serviceStore = &serviceStore{handler: m.handler}
-
 	m.instanceStore = &instanceStore{handler: m.handler}
-
 	m.routingStore = &routingStore{handler: m.handler}
-
 	m.rateLimitStore = &rateLimitStore{handler: m.handler}
-
 	m.circuitBreakerStore = &circuitBreakerStore{handler: m.handler}
-
 	m.faultDetectStore = &faultDetectStore{handler: m.handler}
-
 	m.routingStoreV2 = &routingStoreV2{handler: m.handler}
-
-	return nil
 }
 
-func (m *boltStore) newAuthModuleStore() error {
+func (m *boltStore) newAuthModuleStore() {
 	m.userStore = &userStore{handler: m.handler}
-
 	m.strategyStore = &strategyStore{handler: m.handler}
-
 	m.groupStore = &groupStore{handler: m.handler}
-
-	return nil
 }
 
-func (m *boltStore) newConfigModuleStore() error {
-	var err error
-
-	m.configFileStore, err = newConfigFileStore(m.handler)
-	if err != nil {
-		return err
-	}
-
-	m.configFileTagStore, err = newConfigFileTagStore(m.handler)
-	if err != nil {
-		return err
-	}
-
-	m.configFileGroupStore, err = newConfigFileGroupStore(m.handler)
-	if err != nil {
-		return err
-	}
-
-	m.configFileReleaseHistoryStore, err = newConfigFileReleaseHistoryStore(m.handler)
-	if err != nil {
-		return err
-	}
-
-	m.configFileReleaseStore, err = newConfigFileReleaseStore(m.handler)
-	if err != nil {
-		return err
-	}
-
-	m.configFileTemplateStore, err = newConfigFileTemplateStore(m.handler)
-	if err != nil {
-		return err
-	}
-
-	return nil
+func (m *boltStore) newConfigModuleStore() {
+	m.configFileStore = newConfigFileStore(m.handler)
+	m.configFileGroupStore = newConfigFileGroupStore(m.handler)
+	m.configFileReleaseHistoryStore = newConfigFileReleaseHistoryStore(m.handler)
+	m.configFileReleaseStore = newConfigFileReleaseStore(m.handler)
+	m.configFileTemplateStore = newConfigFileTemplateStore(m.handler)
 }
 
-func (m *boltStore) newMaintainModuleStore() error {
+func (m *boltStore) newMaintainModuleStore() {
 	m.adminStore = &adminStore{handler: m.handler, leMap: make(map[string]bool)}
-
-	return nil
 }
 
 // Destroy store
@@ -383,6 +330,10 @@ func (m *boltStore) CreateTransaction() (store.Transaction, error) {
 
 // StartTx starting transactions
 func (m *boltStore) StartTx() (store.Tx, error) {
+	return m.handler.StartTx()
+}
+
+func (m *boltStore) StartReadTx() (store.Tx, error) {
 	return m.handler.StartTx()
 }
 

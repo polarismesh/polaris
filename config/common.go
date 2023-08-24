@@ -18,34 +18,12 @@
 package config
 
 import (
-	"context"
 	"errors"
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	"github.com/polarismesh/polaris/common/model"
-	"github.com/polarismesh/polaris/common/utils"
-	"github.com/polarismesh/polaris/store"
 )
-
-const (
-	ContextTxKey = utils.StringContext("Config-Tx")
-)
-
-// StartTxAndSetToContext 开启一个事务，并放入到上下文里
-func (s *Server) StartTxAndSetToContext(ctx context.Context) (store.Tx, context.Context, error) {
-	tx, err := s.storage.StartTx()
-	return tx, context.WithValue(ctx, ContextTxKey, tx), err
-}
-
-// getTx 从上下文里获取事务对象
-func (s *Server) getTx(ctx context.Context) store.Tx {
-	tx := ctx.Value(ContextTxKey)
-	if tx == nil {
-		return nil
-	}
-	return tx.(store.Tx)
-}
 
 func (s *Server) checkNamespaceExisted(namespaceName string) bool {
 	namespace, _ := s.storage.GetNamespace(namespaceName)

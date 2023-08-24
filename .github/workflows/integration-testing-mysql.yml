@@ -76,9 +76,9 @@ jobs:
     steps:
       # Setup the environment.
       - name: Setup Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
-          go-version: 1.19
+          go-version: "1.20"
       # Checkout latest code
       - name: Checkout repo
         uses: actions/checkout@v2
@@ -105,6 +105,8 @@ jobs:
         env:
           MYSQL_DB_USER: root
           MYSQL_DB_PWD: root
+          REDIS_ADDR: 127.0.0.1:6379
+          REDIS_PWD: 
         run: |
           export STORE_MODE=sqldb
           export MYSQL_DB_USER=${{ env.MYSQL_DB_USER }}

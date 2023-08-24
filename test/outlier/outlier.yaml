@@ -1,0 +1,92 @@
+# Tencent is pleased to support the open source community by making Polaris available.
+#
+# Copyright (C) 2019 THL A29 Limited, a Tencent company. All rights reserved.
+#
+# Licensed under the BSD 3-Clause License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software distributed
+# under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+# CONDITIONS OF ANY KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations under the License.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: outlier-frontend
+  namespace: polaris-test
+spec:
+  ports:
+    - port: 8080
+      name: http
+  selector:
+    app: outlier-frontend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outlier-frontend
+  namespace: polaris-test
+  labels:
+    app: outlier-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: outlier-frontend
+  template:
+    metadata:
+      labels:
+        app: outlier-frontend
+    spec:
+      containers:
+        - name: outlier-frontend
+          image: repository/outlier_frontend
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          securityContext:
+            runAsUser: 1000
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: outlier-backend
+  namespace: polaris-test
+spec:
+  ports:
+    - port: 8090
+      name: http
+  selector:
+    app: outlier-backend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outlier-backend
+  namespace: polaris-test
+  labels:
+    app: outlier-backend
+spec:
+  replicas: 7
+  selector:
+    matchLabels:
+      app: outlier-backend
+  template:
+    metadata:
+      labels:
+        app: outlier-backend
+    spec:
+      containers:
+        - name: outlier-backend
+          image: repository/outlier_backend
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8090
+          securityContext:
+            runAsUser: 1000
+---

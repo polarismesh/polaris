@@ -24,10 +24,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/boltdb/bolt"
+	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -37,19 +38,22 @@ const (
 	tblConfigFile   string = "ConfigFile"
 	tblConfigFileID string = "ConfigFileID"
 
-	FileFieldId         string = "Id"
-	FileFieldName       string = "Name"
-	FileFieldNamespace  string = "Namespace"
-	FileFieldGroup      string = "Group"
-	FileFieldContent    string = "Content"
-	FileFieldComment    string = "Comment"
-	FileFieldFormat     string = "Format"
-	FileFieldFlag       string = "Flag"
-	FileFieldCreateTime string = "CreateTime"
-	FileFieldCreateBy   string = "CreateBy"
-	FileFieldModifyTime string = "ModifyTime"
-	FileFieldModifyBy   string = "ModifyBy"
-	FileFieldValid      string = "Valid"
+	FileFieldId          string = "Id"
+	FileFieldName        string = "Name"
+	FileFieldNamespace   string = "Namespace"
+	FileFieldGroup       string = "Group"
+	FileFieldContent     string = "Content"
+	FileFieldComment     string = "Comment"
+	FileFieldFormat      string = "Format"
+	FileFieldFlag        string = "Flag"
+	FileFieldCreateTime  string = "CreateTime"
+	FileFieldCreateBy    string = "CreateBy"
+	FileFieldModifyTime  string = "ModifyTime"
+	FileFieldModifyBy    string = "ModifyBy"
+	FileFieldValid       string = "Valid"
+	FileFieldMetadata    string = "Metadata"
+	FileFieldEncrypt     string = "Encrypt"
+	FileFieldEncryptAlgo string = "EncryptAlgo"
 )
 
 var (
@@ -57,91 +61,62 @@ var (
 )
 
 type configFileStore struct {
-	id      uint64
 	handler BoltHandler
 }
 
-func newConfigFileStore(handler BoltHandler) (*configFileStore, error) {
-	s := &configFileStore{handler: handler, id: 0}
-	ret, err := handler.LoadValues(tblConfigFileID, []string{tblConfigFileID}, &IDHolder{})
-	if err != nil {
-		return nil, err
-	}
-	if len(ret) == 0 {
-		return s, nil
-	}
-	val := ret[tblConfigFileID].(*IDHolder)
-	s.id = val.ID
-	return s, nil
+func newConfigFileStore(handler BoltHandler) *configFileStore {
+	s := &configFileStore{handler: handler}
+	return s
+}
+
+func (cf *configFileStore) LockConfigFile(tx store.Tx, file *model.ConfigFileKey) (*model.ConfigFile, error) {
+	return cf.GetConfigFileTx(tx, file.Namespace, file.Group, file.Name)
 }
 
 // CreateConfigFile 创建配置文件
-func (cf *configFileStore) CreateConfigFile(proxyTx store.Tx, file *model.ConfigFile) (*model.ConfigFile, error) {
-	ret, err := DoTransactionIfNeed(proxyTx, cf.handler, func(tx *bolt.Tx) ([]interface{}, error) {
-		cf.id++
-		file.Id = cf.id
-		file.Valid = true
-		file.CreateTime = time.Now()
-		file.ModifyTime = file.CreateTime
-
-		if err := saveValue(tx, tblConfigFileID, tblConfigFileID, &IDHolder{
-			ID: cf.id,
-		}); err != nil {
-			log.Error("[ConfigFile] save auto_increment id", zap.Error(err))
-			return nil, err
-		}
-
-		key := fmt.Sprintf("%s@%s@%s", file.Namespace, file.Group, file.Name)
-		if err := saveValue(tx, tblConfigFile, key, file); err != nil {
-			log.Error("[ConfigFile] save config_file", zap.String("key", key), zap.Error(err))
-			return nil, err
-		}
-
-		data, err := cf.getConfigFile(tx, file.Namespace, file.Group, file.Name)
-		if err != nil {
-			return nil, err
-		}
-		if data == nil {
-			return nil, nil
-		}
-		return []interface{}{data}, nil
-	})
-
+func (cf *configFileStore) CreateConfigFileTx(proxyTx store.Tx, file *model.ConfigFile) error {
+	dbTx := proxyTx.GetDelegateTx().(*bolt.Tx)
+	table, err := dbTx.CreateBucketIfNotExists([]byte(tblConfigFile))
 	if err != nil {
-		return nil, err
+		return store.Error(err)
+	}
+	nextId, err := table.NextSequence()
+	if err != nil {
+		return store.Error(err)
 	}
 
-	if len(ret) == 0 {
-		return nil, nil
-	}
+	file.Id = nextId
+	file.Valid = true
+	file.CreateTime = time.Now()
+	file.ModifyTime = file.CreateTime
 
-	return ret[0].(*model.ConfigFile), nil
+	key := fmt.Sprintf("%s@%s@%s", file.Namespace, file.Group, file.Name)
+	if err := saveValue(dbTx, tblConfigFile, key, file); err != nil {
+		log.Error("[ConfigFile] save config_file", zap.String("key", key), zap.Error(err))
+		return err
+	}
+	return nil
 }
 
-// GetConfigFile 获取配置文件
-func (cf *configFileStore) GetConfigFile(proxyTx store.Tx, namespace, group, name string) (*model.ConfigFile, error) {
-	ret, err := DoTransactionIfNeed(proxyTx, cf.handler, func(tx *bolt.Tx) ([]interface{}, error) {
-		data, err := cf.getConfigFile(tx, namespace, group, name)
-		if err != nil {
-			return nil, err
-		}
+func (cf *configFileStore) GetConfigFile(namespace, group, name string) (*model.ConfigFile, error) {
+	tx, err := cf.handler.StartTx()
+	if err != nil {
+		return nil, store.Error(err)
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+	return cf.GetConfigFileTx(tx, namespace, group, name)
+}
 
-		if data == nil {
-			return nil, nil
-		}
-
-		return []interface{}{data}, nil
-	})
-
+// GetConfigFileTx 获取配置文件
+func (cf *configFileStore) GetConfigFileTx(tx store.Tx, namespace, group, name string) (*model.ConfigFile, error) {
+	dbTx := tx.GetDelegateTx().(*bolt.Tx)
+	data, err := cf.getConfigFile(dbTx, namespace, group, name)
 	if err != nil {
 		return nil, err
 	}
-
-	if len(ret) == 0 {
-		return nil, nil
-	}
-
-	return ret[0].(*model.ConfigFile), nil
+	return data, nil
 }
 
 // GetConfigFile 获取配置文件
@@ -169,44 +144,14 @@ func (cf *configFileStore) getConfigFile(tx *bolt.Tx, namespace, group, name str
 	return nil, nil
 }
 
-func (cf *configFileStore) QueryConfigFilesByGroup(namespace, group string,
-	offset, limit uint32) (uint32, []*model.ConfigFile, error) {
-	fields := []string{FileFieldNamespace, FileFieldGroup, FileFieldValid}
-
-	hasNs := len(namespace) != 0
-	hasGroup := len(group) != 0
-
-	ret, err := cf.handler.LoadValuesByFilter(tblConfigFile, fields, &model.ConfigFile{},
-		func(m map[string]interface{}) bool {
-			valid, _ := m[FileFieldValid].(bool)
-			if !valid {
-				return false
-			}
-
-			saveNs, _ := m[FileFieldNamespace].(string)
-			saveGroup, _ := m[FileFieldGroup].(string)
-
-			if hasNs && !strings.Contains(saveNs, namespace) {
-				return false
-			}
-			if hasGroup && !strings.Contains(saveGroup, group) {
-				return false
-			}
-
-			return true
-		})
-
-	if err != nil {
-		return 0, nil, err
-	}
-
-	return uint32(len(ret)), doConfigFilePage(ret, offset, limit), nil
-}
-
 // QueryConfigFiles 翻页查询配置文件，group、name可为模糊匹配
-func (cf *configFileStore) QueryConfigFiles(namespace, group, name string,
+func (cf *configFileStore) QueryConfigFiles(filter map[string]string,
 	offset, limit uint32) (uint32, []*model.ConfigFile, error) {
 	fields := []string{FileFieldNamespace, FileFieldGroup, FileFieldName, FileFieldValid}
+
+	namespace := filter["namespace"]
+	group := filter["group"]
+	name := filter["name"]
 
 	hasNs := len(namespace) != 0
 	hasGroup := len(group) != 0
@@ -223,13 +168,13 @@ func (cf *configFileStore) QueryConfigFiles(namespace, group, name string,
 			saveGroup, _ := m[FileFieldGroup].(string)
 			saveFileName, _ := m[FileFieldName].(string)
 
-			if hasNs && !strings.Contains(saveNs, namespace) {
+			if hasNs && utils.IsWildNotMatch(saveNs, namespace) {
 				return false
 			}
-			if hasGroup && !strings.Contains(saveGroup, group) {
+			if hasGroup && utils.IsWildNotMatch(saveGroup, group) {
 				return false
 			}
-			if hasName && !strings.Contains(saveFileName, name) {
+			if hasName && utils.IsWildNotMatch(saveFileName, name) {
 				return false
 			}
 
@@ -244,42 +189,26 @@ func (cf *configFileStore) QueryConfigFiles(namespace, group, name string,
 }
 
 // UpdateConfigFile 更新配置文件
-func (cf *configFileStore) UpdateConfigFile(proxyTx store.Tx, file *model.ConfigFile) (*model.ConfigFile, error) {
-	ret, err := DoTransactionIfNeed(proxyTx, cf.handler, func(tx *bolt.Tx) ([]interface{}, error) {
-		key := fmt.Sprintf("%s@%s@%s", file.Namespace, file.Group, file.Name)
-
-		properties := make(map[string]interface{})
-		properties[FileFieldContent] = file.Content
-		properties[FileFieldComment] = file.Comment
-		properties[FileFieldFormat] = file.Format
-		properties[FileFieldModifyTime] = time.Now()
-		properties[FileFieldModifyBy] = file.ModifyBy
-		if err := updateValue(tx, tblConfigFile, key, properties); err != nil {
-			return nil, err
-		}
-		data, err := cf.getConfigFile(tx, file.Namespace, file.Group, file.Name)
-		if err != nil {
-			return nil, err
-		}
-		if data == nil {
-			return nil, nil
-		}
-		return []interface{}{data}, nil
-	})
-
-	if err != nil {
-		return nil, err
+func (cf *configFileStore) UpdateConfigFileTx(tx store.Tx, file *model.ConfigFile) error {
+	dbTx := tx.GetDelegateTx().(*bolt.Tx)
+	key := fmt.Sprintf("%s@%s@%s", file.Namespace, file.Group, file.Name)
+	properties := make(map[string]interface{})
+	properties[FileFieldContent] = file.Content
+	properties[FileFieldComment] = file.Comment
+	properties[FileFieldFormat] = file.Format
+	properties[FileFieldMetadata] = file.Metadata
+	properties[FileFieldEncrypt] = file.Encrypt
+	properties[FileFieldEncryptAlgo] = file.EncryptAlgo
+	properties[FileFieldModifyTime] = time.Now()
+	properties[FileFieldModifyBy] = file.ModifyBy
+	if err := updateValue(dbTx, tblConfigFile, key, properties); err != nil {
+		return err
 	}
-
-	if len(ret) == 0 {
-		return nil, nil
-	}
-
-	return ret[0].(*model.ConfigFile), nil
+	return nil
 }
 
 // DeleteConfigFile 删除配置文件
-func (cf *configFileStore) DeleteConfigFile(proxyTx store.Tx, namespace, group, name string) error {
+func (cf *configFileStore) DeleteConfigFileTx(proxyTx store.Tx, namespace, group, name string) error {
 	_, err := DoTransactionIfNeed(proxyTx, cf.handler, func(tx *bolt.Tx) ([]interface{}, error) {
 		key := fmt.Sprintf("%s@%s@%s", namespace, group, name)
 
@@ -293,8 +222,8 @@ func (cf *configFileStore) DeleteConfigFile(proxyTx store.Tx, namespace, group, 
 	return err
 }
 
-// CountByConfigFileGroup 统计配置文件组下的配置文件数量
-func (cf *configFileStore) CountByConfigFileGroup(namespace, group string) (uint64, error) {
+// CountConfigFiles 统计配置文件组下的配置文件数量
+func (cf *configFileStore) CountConfigFiles(namespace, group string) (uint64, error) {
 	hasNs := len(namespace) != 0
 	hasGroup := len(group) != 0
 

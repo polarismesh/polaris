@@ -23,8 +23,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/boltdb/bolt"
 	"github.com/golang/protobuf/proto"
+	bolt "go.etcd.io/bbolt"
 
 	"github.com/polarismesh/polaris/store"
 )
@@ -466,32 +466,39 @@ func getKeys(bucket *bolt.Bucket) ([]string, error) {
 func (b *boltHandler) CountValues(typ string) (int, error) {
 	var count int
 	err := b.db.View(func(tx *bolt.Tx) error {
-		typeBucket := tx.Bucket([]byte(typ))
-		if typeBucket == nil {
-			return nil
-		}
-		return typeBucket.ForEach(func(k, v []byte) error {
-			subBucket := typeBucket.Bucket(k)
-			canCount := true
+		ret, err := countValues(tx, typ)
+		count = ret
+		return err
+	})
+	return count, err
+}
 
-			if subBucket != nil {
-				data := subBucket.Get([]byte(toBucketField(DataValidFieldName)))
-				if len(data) == 0 {
-					canCount = true
-				} else {
-					val, err := decodeBoolBuffer(DataValidFieldName, data)
-					if err != nil {
-						return err
-					}
-					canCount = val
+func countValues(tx *bolt.Tx, typ string) (int, error) {
+	var count int
+	typeBucket := tx.Bucket([]byte(typ))
+	if typeBucket == nil {
+		return 0, nil
+	}
+	err := typeBucket.ForEach(func(k, v []byte) error {
+		subBucket := typeBucket.Bucket(k)
+		canCount := true
+
+		if subBucket != nil {
+			data := subBucket.Get([]byte(toBucketField(DataValidFieldName)))
+			if len(data) == 0 {
+				canCount = true
+			} else {
+				val, err := decodeBoolBuffer(DataValidFieldName, data)
+				if err != nil {
+					return err
 				}
+				canCount = val
 			}
-			if canCount {
-				count++
-			}
-
-			return nil
-		})
+		}
+		if canCount {
+			count++
+		}
+		return nil
 	})
 	return count, err
 }

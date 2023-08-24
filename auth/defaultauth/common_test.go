@@ -15,32 +15,38 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth
+package defaultauth_test
 
 import (
 	"fmt"
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/cache"
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	storemock "github.com/polarismesh/polaris/store/mock"
 )
 
 func reset(strict bool) {
-	AuthOption = DefaultAuthConfig()
-	AuthOption.ClientOpen = true
-	AuthOption.ConsoleOpen = true
-	AuthOption.Strict = strict
-	AuthOption.ConsoleStrict = strict
-	AuthOption.ClientStrict = strict
+	defaultauth.AuthOption = defaultauth.DefaultAuthConfig()
+	defaultauth.AuthOption.ClientOpen = true
+	defaultauth.AuthOption.ConsoleOpen = true
+	defaultauth.AuthOption.Strict = strict
+	defaultauth.AuthOption.ConsoleStrict = strict
+	defaultauth.AuthOption.ClientStrict = strict
 }
 
 func initCache(ctrl *gomock.Controller) (*cache.Config, *storemock.MockStore) {
+	metrics.InitMetrics()
 	/*
 		- name: service # 加载服务数据
 		  option:
@@ -69,6 +75,9 @@ func initCache(ctrl *gomock.Controller) (*cache.Config, *storemock.MockStore) {
 				},
 			},
 			{
+				Name: "instance",
+			},
+			{
 				Name: "users",
 			},
 			{
@@ -82,8 +91,24 @@ func initCache(ctrl *gomock.Controller) (*cache.Config, *storemock.MockStore) {
 
 	storage := storemock.NewMockStore(ctrl)
 
+	mockTx := storemock.NewMockTx(ctrl)
+	mockTx.EXPECT().Commit().Return(nil).AnyTimes()
+	mockTx.EXPECT().Rollback().Return(nil).AnyTimes()
+	mockTx.EXPECT().CreateReadView().Return(nil).AnyTimes()
+
+	storage.EXPECT().StartReadTx().Return(mockTx, nil).AnyTimes()
 	storage.EXPECT().GetServicesCount().AnyTimes().Return(uint32(1), nil)
-	storage.EXPECT().GetInstancesCount().AnyTimes().Return(uint32(1), nil)
+	storage.EXPECT().GetInstancesCountTx(gomock.Any()).AnyTimes().Return(uint32(1), nil)
+	storage.EXPECT().GetMoreInstances(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(map[string]*model.Instance{
+		"123": {
+			Proto: &service_manage.Instance{
+				Id:   wrapperspb.String(uuid.NewString()),
+				Host: wrapperspb.String("127.0.0.1"),
+				Port: wrapperspb.UInt32(8080),
+			},
+			Valid: true,
+		},
+	}, nil).AnyTimes()
 	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 
 	return cfg, storage
@@ -137,7 +162,7 @@ func createMockUser(total int, prefix ...string) []*model.User {
 			id = ownerId
 		}
 		pwd, _ := bcrypt.GenerateFromPassword([]byte("polaris"), bcrypt.DefaultCost)
-		token, _ := createToken(id, "")
+		token, _ := defaultauth.TestCreateToken(id, "")
 		users = append(users, &model.User{
 			ID:       id,
 			Name:     fmt.Sprintf(nameTemp, i),
@@ -193,7 +218,7 @@ func createMockUserGroup(users []*model.User) []*model.UserGroupDetail {
 		user := users[i]
 		id := utils.NewUUID()
 
-		token, _ := createToken("", id)
+		token, _ := defaultauth.TestCreateToken("", id)
 
 		groups = append(groups, &model.UserGroupDetail{
 			UserGroup: &model.UserGroup{

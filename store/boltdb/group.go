@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/boltdb/bolt"
+	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"
@@ -393,6 +393,10 @@ func (gs *groupStore) listGroupByUser(filters map[string]string, offset uint32,
 			if ok && !valid {
 				return false
 			}
+			saveOwner := m[GroupFieldOwner]
+			if existOwner && saveOwner != owner {
+				return false
+			}
 
 			if sName, ok := filters["name"]; ok {
 				saveName, _ := m[GroupFieldName].(string)
@@ -404,7 +408,6 @@ func (gs *groupStore) listGroupByUser(filters map[string]string, offset uint32,
 				}
 			}
 
-			saveOwner := m[GroupFieldOwner]
 			saveVal, ok := m[GroupFieldUserIds]
 			if !ok {
 				return false
@@ -412,10 +415,6 @@ func (gs *groupStore) listGroupByUser(filters map[string]string, offset uint32,
 
 			saveUserIds := saveVal.(map[string]string)
 			_, exist := saveUserIds[userID]
-
-			if existOwner {
-				return exist || saveOwner == owner
-			}
 			return exist
 		})
 

@@ -24,6 +24,8 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	"github.com/polarismesh/polaris/cache"
+	cacheservice "github.com/polarismesh/polaris/cache/service"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -53,9 +55,8 @@ type Server struct {
 
 	createServiceSingle *singleflight.Group
 
-	hooks []ResourceHook
-
-	polarisServiceSet map[model.ServiceKey]struct{}
+	hooks   []ResourceHook
+	subCtxs []*eventhub.SubscribtionContext
 }
 
 // HealthServer 健康检查Server
@@ -104,7 +105,7 @@ func (s *Server) RecordDiscoverStatis(service, discoverNamespace string) {
 
 // GetServiceInstanceRevision 获取服务实例的revision
 func (s *Server) GetServiceInstanceRevision(serviceID string, instances []*model.Instance) (string, error) {
-	if revision := s.caches.GetServiceInstanceRevision(serviceID); revision != "" {
+	if revision := s.caches.Service().GetRevisionWorker().GetServiceInstanceRevision(serviceID); revision != "" {
 		return revision, nil
 	}
 
@@ -113,7 +114,7 @@ func (s *Server) GetServiceInstanceRevision(serviceID string, instances []*model
 		return "", model.ErrorNoService
 	}
 
-	data, err := cache.ComputeRevision(svc.Revision, instances)
+	data, err := cacheservice.ComputeRevision(svc.Revision, instances)
 	if err != nil {
 		return "", err
 	}

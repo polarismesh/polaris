@@ -14,11 +14,12 @@ English | [简体中文](./README-zh.md)
 
 README：
 
-- [Introduction](#introduction)
-- [How to install](#how-to-install)
-- [How to develop service](#how-to-develop-service)
-- [How to integrate service gateway](#how-to-integrate-service-gateway)
-- [Chat group](#chat-group)
+- [Polaris: Service Discovery and Governance](#polaris-service-discovery-and-governance)
+  - [Introduction](#introduction)
+  - [How to install](#how-to-install)
+  - [How to develop service](#how-to-develop-service)
+  - [How to integrate service gateway](#how-to-integrate-service-gateway)
+  - [Chat group](#chat-group)
 
 Visit [Website](https://polarismesh.cn/) to learn more
 
@@ -93,4 +94,4 @@ You can integrate service gateways with Polaris service discovery and governance
 
 Please scan the QR code to join the chat group.
 
-<img src="https://main.qcloudimg.com/raw/bff4285d70498058caa212805b83a620.jpg" width="20%" height="20%" />
+<img src="./qrcode.png" width="20%" height="20%" />

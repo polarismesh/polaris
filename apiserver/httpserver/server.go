@@ -27,14 +27,17 @@ import (
 	"time"
 
 	"github.com/emicklei/go-restful/v3"
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/pkg/errors"
+	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/admin"
 	"github.com/polarismesh/polaris/apiserver"
+	confighttp "github.com/polarismesh/polaris/apiserver/httpserver/config"
+	v1 "github.com/polarismesh/polaris/apiserver/httpserver/discover/v1"
+	v2 "github.com/polarismesh/polaris/apiserver/httpserver/discover/v2"
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/utils"
-	v1 "github.com/polarismesh/polaris/apiserver/httpserver/v1"
-	v2 "github.com/polarismesh/polaris/apiserver/httpserver/v2"
 	"github.com/polarismesh/polaris/auth"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/conn/keepalive"
@@ -75,8 +78,9 @@ type HTTPServer struct {
 	statis            plugin.Statis
 	whitelist         plugin.Whitelist
 
-	v1Server v1.HTTPServerV1
-	v2Server v2.HTTPServerV2
+	discoverV1 v1.HTTPServerV1
+	discoverV2 v2.HTTPServerV2
+	configSvr  confighttp.HTTPServer
 
 	userMgn     auth.UserServer
 	strategyMgn auth.StrategyServer
@@ -210,8 +214,9 @@ func (h *HTTPServer) Run(errCh chan error) {
 		return
 	}
 
-	h.v1Server = *v1.NewV1Server(h.namespaceServer, h.namingServer, h.healthCheckServer)
-	h.v2Server = *v2.NewV2Server(h.namespaceServer, h.namingServer, h.healthCheckServer)
+	h.discoverV1 = *v1.NewV1Server(h.namespaceServer, h.namingServer, h.healthCheckServer)
+	h.discoverV2 = *v2.NewV2Server(h.namespaceServer, h.namingServer, h.healthCheckServer)
+	h.configSvr = *confighttp.NewServer(h.maintainServer, h.namespaceServer, h.configServer)
 
 	// 初始化http server
 	address := fmt.Sprintf("%v:%v", h.listenIP, h.listenPort)
@@ -281,8 +286,6 @@ func (h *HTTPServer) Stop() {
 			log.Errorf("httpserver shutdown failed, err: %v\n", err)
 		}
 	}
-
-	h.StopConfigServer()
 }
 
 // Restart restart server
@@ -327,6 +330,7 @@ func (h *HTTPServer) Restart(option map[string]interface{}, apiConf map[string]a
 // createRestfulContainer create handler
 func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 	wsContainer := restful.NewContainer()
+	wsContainer.RecoverHandler(h.recoverFunc)
 
 	// 增加CORS TODO
 	cors := restful.CrossOriginResourceSharing{
@@ -351,17 +355,23 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 			}
 		case "console":
 			if apiConfig.Enable {
-				namingServiceV1, err := h.v1Server.GetNamingConsoleAccessServer(apiConfig.Include)
+				namingServiceV1, err := h.discoverV1.GetNamingConsoleAccessServer(apiConfig.Include)
 				if err != nil {
 					return nil, err
 				}
 				wsContainer.Add(namingServiceV1)
 
-				namingServiceV2, err := h.v2Server.GetNamingConsoleAccessServer(apiConfig.Include)
+				namingServiceV2, err := h.discoverV2.GetNamingConsoleAccessServer(apiConfig.Include)
 				if err != nil {
 					return nil, err
 				}
 				wsContainer.Add(namingServiceV2)
+
+				configService, err := h.configSvr.GetConsoleAccessServer(apiConfig.Include)
+				if err != nil {
+					return nil, err
+				}
+				wsContainer.Add(configService)
 
 				ws := new(restful.WebService)
 				ws.Path("/core/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
@@ -385,23 +395,19 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 			}
 		case "client":
 			if apiConfig.Enable {
-				serviceV1, err := h.v1Server.GetClientAccessServer(apiConfig.Include)
-				if err != nil {
+				ws := new(restful.WebService)
+				ws.Path("/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
+
+				if err := h.discoverV1.GetClientAccessServer(ws, apiConfig.Include); err != nil {
 					return nil, err
 				}
-				wsContainer.Add(serviceV1)
-			}
-		case "config":
-			if apiConfig.Enable {
-				consoleService, err := h.GetConfigAccessServer(apiConfig.Include)
-				if err != nil {
+				if err := h.configSvr.GetClientAccessServer(ws, apiConfig.Include); err != nil {
 					return nil, err
 				}
-				wsContainer.Add(consoleService)
+				wsContainer.Add(ws)
 			}
 		default:
-			log.Errorf("api %s does not exist in httpserver", name)
-			return nil, fmt.Errorf("api %s does not exist in httpserver", name)
+			log.Warnf("api %s does not exist in httpserver", name)
 		}
 	}
 
@@ -472,15 +478,8 @@ func (h *HTTPServer) preprocess(req *restful.Request, rsp *restful.Response) err
 	platformID := req.HeaderParameter("Platform-Id")
 	requestURL := req.Request.URL.String()
 	if !strings.Contains(requestURL, Discover) {
-		var scope *commonlog.Scope
-		if strings.Contains(requestURL, "naming") {
-			scope = namingLog
-		} else {
-			scope = configLog
-		}
-
 		// 打印请求
-		scope.Info("receive request",
+		log.Info("receive request",
 			zap.String("client-address", req.Request.RemoteAddr),
 			zap.String("user-agent", req.HeaderParameter("User-Agent")),
 			utils.ZapRequestID(requestID),
@@ -613,4 +612,19 @@ func (h *HTTPServer) enterRateLimit(req *restful.Request, rsp *restful.Response)
 	}
 
 	return nil
+}
+
+func (h *HTTPServer) recoverFunc(i interface{}, w http.ResponseWriter) {
+	log.Errorf("panic %+v", i)
+	obj := &service_manage.Response{}
+
+	status := api.CalcCode(obj)
+	if code := obj.GetCode().GetValue(); code != api.ExecuteSuccess {
+		w.Header().Add(utils.PolarisCode, fmt.Sprintf("%d", code))
+		w.Header().Add(utils.PolarisMessage, api.Code2Info(code))
+	}
+	w.WriteHeader(status)
+
+	m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
+	_ = m.Marshal(w, obj)
 }

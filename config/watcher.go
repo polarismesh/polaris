@@ -18,11 +18,13 @@
 package config
 
 import (
+	"context"
 	"sync"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"go.uber.org/zap"
 
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -40,28 +42,40 @@ type watchContext struct {
 
 // watchCenter 处理客户端订阅配置请求，监听配置文件发布事件通知客户端
 type watchCenter struct {
-	eventCenter         *Center
-	configFileWatchers  *sync.Map // fileId -> clientId -> watchContext
-	lock                *sync.Mutex
-	releaseMessageQueue chan *model.ConfigFileRelease
+	subCtx *eventhub.SubscribtionContext
+	lock   sync.Mutex
+	// fileId -> clientId -> watchContext
+	configFileWatchers *utils.SyncMap[string, *utils.SyncMap[string, *watchContext]]
 }
 
 // NewWatchCenter 创建一个客户端监听配置发布的处理中心
-func NewWatchCenter(eventCenter *Center) *watchCenter {
+func NewWatchCenter() (*watchCenter, error) {
 	wc := &watchCenter{
-		eventCenter:         eventCenter,
-		configFileWatchers:  new(sync.Map),
-		lock:                new(sync.Mutex),
-		releaseMessageQueue: make(chan *model.ConfigFileRelease, QueueSize),
+		configFileWatchers: utils.NewSyncMap[string, *utils.SyncMap[string, *watchContext]](),
 	}
 
-	eventCenter.WatchEvent(eventTypePublishConfigFile, func(event Event) bool {
-		wc.releaseMessageQueue <- event.Message.(*model.ConfigFileRelease)
-		return true
-	})
+	var err error
+	wc.subCtx, err = eventhub.Subscribe(eventhub.ConfigFilePublishTopic, wc, eventhub.WithQueueSize(QueueSize))
+	if err != nil {
+		return nil, err
+	}
+	return wc, nil
+}
 
-	wc.handleMessage()
-	return wc
+// PreProcess do preprocess logic for event
+func (wc *watchCenter) PreProcess(_ context.Context, e any) any {
+	return e
+}
+
+// OnEvent event process logic
+func (wc *watchCenter) OnEvent(ctx context.Context, arg any) error {
+	event, ok := arg.(*eventhub.PublishConfigFileEvent)
+	if !ok {
+		log.Warn("[Config][Watcher] receive invalid event type")
+		return nil
+	}
+	wc.notifyToWatchers(event.Message)
+	return nil
 }
 
 // AddWatcher 新增订阅者
@@ -72,30 +86,15 @@ func (wc *watchCenter) AddWatcher(clientId string, watchConfigFiles []*apiconfig
 	}
 	for _, file := range watchConfigFiles {
 		watchFileId := utils.GenFileId(file.Namespace.GetValue(), file.Group.GetValue(), file.FileName.GetValue())
-
 		log.Info("[Config][Watcher] add watcher.", zap.Any("client-id", clientId),
 			zap.String("watch-file-id", watchFileId), zap.Uint64("client-version", file.Version.GetValue()))
 
-		watchers, ok := wc.configFileWatchers.Load(watchFileId)
-		if !ok {
-			wc.lock.Lock()
-			// double check
-			watchers, ok = wc.configFileWatchers.Load(watchFileId)
-			if !ok {
-				newWatchers := new(sync.Map)
-				newWatchers.Store(clientId, &watchContext{
-					fileReleaseCb: fileReleaseCb,
-					ClientVersion: file.Version.GetValue(),
-				})
-				wc.configFileWatchers.Store(watchFileId, newWatchers)
-			}
-			wc.lock.Unlock()
-			continue
-		}
-
-		watcherMap := watchers.(*sync.Map)
-
-		watcherMap.Store(clientId, &watchContext{
+		watchers, _ := wc.configFileWatchers.ComputeIfAbsent(watchFileId,
+			func(k string) *utils.SyncMap[string, *watchContext] {
+				newWatchers := utils.NewSyncMap[string, *watchContext]()
+				return newWatchers
+			})
+		watchers.Store(clientId, &watchContext{
 			fileReleaseCb: fileReleaseCb,
 			ClientVersion: file.Version.GetValue(),
 		})
@@ -114,30 +113,14 @@ func (wc *watchCenter) RemoveWatcher(clientId string, watchConfigFiles []*apicon
 		if !ok {
 			continue
 		}
-		watcherMap := watchers.(*sync.Map)
-		watcherMap.Delete(clientId)
+		watchers.Delete(clientId)
 	}
 }
 
-func (wc *watchCenter) handleMessage() {
-	go func() {
-		defer func() {
-			if err := recover(); err != nil {
-				log.Error("[Config][Watcher] handler config release message error.", zap.Any("err", err))
-			}
-		}()
-
-		for message := range wc.releaseMessageQueue {
-			wc.notifyToWatchers(message)
-		}
-	}()
-}
-
-func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.ConfigFileRelease) {
+func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.SimpleConfigFileRelease) {
 	watchFileId := utils.GenFileId(publishConfigFile.Namespace, publishConfigFile.Group, publishConfigFile.FileName)
 
 	log.Info("[Config][Watcher] received config file publish message.", zap.String("file", watchFileId))
-
 	watchers, ok := wc.configFileWatchers.Load(watchFileId)
 	if !ok {
 		return
@@ -146,18 +129,16 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.ConfigFileRelea
 	response := GenConfigFileResponse(publishConfigFile.Namespace, publishConfigFile.Group,
 		publishConfigFile.FileName, "", publishConfigFile.Md5, publishConfigFile.Version)
 
-	watcherMap := watchers.(*sync.Map)
-	watcherMap.Range(func(clientId, watchCtx interface{}) bool {
-		c := watchCtx.(*watchContext)
-		if c.ClientVersion < publishConfigFile.Version {
+	watchers.Range(func(clientId string, watchCtx *watchContext) bool {
+		if watchCtx.ClientVersion < publishConfigFile.Version {
+			watchCtx.fileReleaseCb(clientId, response)
 			log.Info("[Config][Watcher] notify to client.",
-				zap.String("file", watchFileId), zap.String("clientId", clientId.(string)),
+				zap.String("file", watchFileId), zap.String("clientId", clientId),
 				zap.Uint64("version", publishConfigFile.Version))
-			c.fileReleaseCb(clientId.(string), response)
 		} else {
 			log.Info("[Config][Watcher] notify to client ignore.",
-				zap.String("file", watchFileId), zap.String("clientId", clientId.(string)),
-				zap.Uint64("client-version", c.ClientVersion),
+				zap.String("file", watchFileId), zap.String("clientId", clientId),
+				zap.Uint64("client-version", watchCtx.ClientVersion),
 				zap.Uint64("version", publishConfigFile.Version))
 		}
 		return true

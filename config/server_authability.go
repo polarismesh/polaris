@@ -96,6 +96,17 @@ func (s *serverAuthability) collectConfigFileReleaseAuthContext(ctx context.Cont
 	)
 }
 
+func (s *serverAuthability) collectConfigFilePublishAuthContext(ctx context.Context, req []*apiconfig.ConfigFilePublishInfo,
+	op model.ResourceOperation, methodName string) *model.AcquireContext {
+	return model.NewAcquireContext(
+		model.WithRequestContext(ctx),
+		model.WithModule(model.ConfigModule),
+		model.WithOperation(op),
+		model.WithMethod(methodName),
+		model.WithAccessResources(s.queryConfigFilePublishResource(ctx, req)),
+	)
+}
+
 func (s *serverAuthability) collectClientConfigFileReleaseAuthContext(ctx context.Context,
 	req []*apiconfig.ConfigFileRelease, op model.ResourceOperation, methodName string) *model.AcquireContext {
 	return model.NewAcquireContext(
@@ -143,7 +154,11 @@ func (s *serverAuthability) collectConfigFileTemplateAuthContext(ctx context.Con
 func (s *serverAuthability) queryConfigGroupResource(ctx context.Context,
 	req []*apiconfig.ConfigFileGroup) map[apisecurity.ResourceType][]model.ResourceEntry {
 
-	names := utils.NewStringSet()
+	if len(req) == 0 {
+		return nil
+	}
+
+	names := utils.NewSet[string]()
 	namespace := req[0].GetNamespace().GetValue()
 	for index := range req {
 		names.Add(req[index].GetName().GetValue())
@@ -151,14 +166,14 @@ func (s *serverAuthability) queryConfigGroupResource(ctx context.Context,
 	entries, err := s.queryConfigGroupRsEntryByNames(ctx, namespace, names.ToSlice())
 	if err != nil {
 		authLog.Error("[Config][Server] collect config_file_group res",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+			utils.RequestID(ctx), zap.Error(err))
 		return nil
 	}
 	ret := map[apisecurity.ResourceType][]model.ResourceEntry{
 		apisecurity.ResourceType_ConfigGroups: entries,
 	}
 	authLog.Debug("[Config][Server] collect config_file_group access res",
-		utils.ZapRequestIDByCtx(ctx), zap.Any("res", ret))
+		utils.RequestID(ctx), zap.Any("res", ret))
 	return ret
 }
 
@@ -170,7 +185,7 @@ func (s *serverAuthability) queryConfigFileResource(ctx context.Context,
 		return nil
 	}
 	namespace := req[0].Namespace.GetValue()
-	groupNames := utils.NewStringSet()
+	groupNames := utils.NewSet[string]()
 
 	for _, apiConfigFile := range req {
 		groupNames.Add(apiConfigFile.Group.GetValue())
@@ -178,14 +193,14 @@ func (s *serverAuthability) queryConfigFileResource(ctx context.Context,
 	entries, err := s.queryConfigGroupRsEntryByNames(ctx, namespace, groupNames.ToSlice())
 	if err != nil {
 		authLog.Error("[Config][Server] collect config_file res",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+			utils.RequestID(ctx), zap.Error(err))
 		return nil
 	}
 	ret := map[apisecurity.ResourceType][]model.ResourceEntry{
 		apisecurity.ResourceType_ConfigGroups: entries,
 	}
 	authLog.Debug("[Config][Server] collect config_file access res",
-		utils.ZapRequestIDByCtx(ctx), zap.Any("res", ret))
+		utils.RequestID(ctx), zap.Any("res", ret))
 	return ret
 }
 
@@ -196,7 +211,7 @@ func (s *serverAuthability) queryConfigFileReleaseResource(ctx context.Context,
 		return nil
 	}
 	namespace := req[0].Namespace.GetValue()
-	groupNames := utils.NewStringSet()
+	groupNames := utils.NewSet[string]()
 
 	for _, apiConfigFile := range req {
 		groupNames.Add(apiConfigFile.Group.GetValue())
@@ -204,14 +219,38 @@ func (s *serverAuthability) queryConfigFileReleaseResource(ctx context.Context,
 	entries, err := s.queryConfigGroupRsEntryByNames(ctx, namespace, groupNames.ToSlice())
 	if err != nil {
 		authLog.Debug("[Config][Server] collect config_file res",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+			utils.RequestID(ctx), zap.Error(err))
 		return nil
 	}
 	ret := map[apisecurity.ResourceType][]model.ResourceEntry{
 		apisecurity.ResourceType_ConfigGroups: entries,
 	}
 	authLog.Debug("[Config][Server] collect config_file access res",
-		utils.ZapRequestIDByCtx(ctx), zap.Any("res", ret))
+		utils.RequestID(ctx), zap.Any("res", ret))
+	return ret
+}
+
+func (s *serverAuthability) queryConfigFilePublishResource(ctx context.Context,
+	req []*apiconfig.ConfigFilePublishInfo) map[apisecurity.ResourceType][]model.ResourceEntry {
+
+	if len(req) == 0 {
+		return nil
+	}
+	namespace := req[0].GetNamespace().GetValue()
+	groupNames := utils.NewSet[string]()
+
+	for _, apiConfigFile := range req {
+		groupNames.Add(apiConfigFile.GetGroup().GetValue())
+	}
+	entries, err := s.queryConfigGroupRsEntryByNames(ctx, namespace, groupNames.ToSlice())
+	if err != nil {
+		authLog.Debug("[Config][Server] collect config_file res", utils.RequestID(ctx), zap.Error(err))
+		return nil
+	}
+	ret := map[apisecurity.ResourceType][]model.ResourceEntry{
+		apisecurity.ResourceType_ConfigGroups: entries,
+	}
+	authLog.Debug("[Config][Server] collect config_file access res", utils.RequestID(ctx), zap.Any("res", ret))
 	return ret
 }
 
@@ -222,7 +261,7 @@ func (s *serverAuthability) queryConfigFileReleaseHistoryResource(ctx context.Co
 		return nil
 	}
 	namespace := req[0].Namespace.GetValue()
-	groupNames := utils.NewStringSet()
+	groupNames := utils.NewSet[string]()
 
 	for _, apiConfigFile := range req {
 		groupNames.Add(apiConfigFile.Group.GetValue())
@@ -230,14 +269,14 @@ func (s *serverAuthability) queryConfigFileReleaseHistoryResource(ctx context.Co
 	entries, err := s.queryConfigGroupRsEntryByNames(ctx, namespace, groupNames.ToSlice())
 	if err != nil {
 		authLog.Debug("[Config][Server] collect config_file res",
-			utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+			utils.RequestID(ctx), zap.Error(err))
 		return nil
 	}
 	ret := map[apisecurity.ResourceType][]model.ResourceEntry{
 		apisecurity.ResourceType_ConfigGroups: entries,
 	}
 	authLog.Debug("[Config][Server] collect config_file access res",
-		utils.ZapRequestIDByCtx(ctx), zap.Any("res", ret))
+		utils.RequestID(ctx), zap.Any("res", ret))
 	return ret
 }
 
@@ -246,11 +285,7 @@ func (s *serverAuthability) queryConfigGroupRsEntryByNames(ctx context.Context, 
 
 	configFileGroups := make([]*model.ConfigFileGroup, 0, len(names))
 	for i := range names {
-		data, err := s.targetServer.fileCache.GetOrLoadGroupByName(namespace, names[i])
-		if err != nil {
-			return nil, err
-		}
-
+		data := s.targetServer.groupCache.GetGroupByName(namespace, names[i])
 		if data == nil {
 			continue
 		}
@@ -286,10 +321,7 @@ func (s *serverAuthability) queryWatchConfigFilesResource(ctx context.Context,
 			continue
 		}
 		temp[key] = struct{}{}
-		data, err := s.targetServer.fileCache.GetOrLoadGroupByName(namespace, groupName)
-		if err != nil {
-			continue
-		}
+		data := s.targetServer.groupCache.GetGroupByName(namespace, groupName)
 		if data == nil {
 			continue
 		}
@@ -303,6 +335,6 @@ func (s *serverAuthability) queryWatchConfigFilesResource(ctx context.Context,
 		apisecurity.ResourceType_ConfigGroups: entries,
 	}
 	authLog.Debug("[Config][Server] collect config_file watch access res",
-		utils.ZapRequestIDByCtx(ctx), zap.Any("res", ret))
+		utils.RequestID(ctx), zap.Any("res", ret))
 	return ret
 }

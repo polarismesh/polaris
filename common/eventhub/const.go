@@ -23,4 +23,6 @@ const (
 	InstanceEventTopic = "instance_event"
 	// LeaderChangeEventTopic
 	LeaderChangeEventTopic = "leader_change_event"
+	// ConfigFilePublishTopic
+	ConfigFilePublishTopic = "configfile_publish"
 )

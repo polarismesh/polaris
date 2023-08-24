@@ -26,16 +26,20 @@ import (
 )
 
 type configFileTemplateStore struct {
-	db *BaseDB
+	master *BaseDB
+	slave  *BaseDB
 }
 
 // CreateConfigFileTemplate create config file template
 func (cf *configFileTemplateStore) CreateConfigFileTemplate(
 	template *model.ConfigFileTemplate) (*model.ConfigFileTemplate, error) {
-	createSql := "insert into config_file_template(name,content,comment,format,create_time,create_by, " +
-		" modify_time,modify_by) values " +
-		"(?,?,?,?,sysdate(),?,sysdate(),?)"
-	_, err := cf.db.Exec(createSql, template.Name, template.Content, template.Comment, template.Format,
+	createSql := `
+	INSERT INTO config_file_template (name, content, comment, format, create_time
+		, create_by, modify_time, modify_by)
+	VALUES (?, ?, ?, ?, sysdate()
+		, ?, sysdate(), ?)
+	`
+	_, err := cf.master.Exec(createSql, template.Name, template.Content, template.Comment, template.Format,
 		template.CreateBy, template.ModifyBy)
 	if err != nil {
 		return nil, store.Error(err)
@@ -46,8 +50,8 @@ func (cf *configFileTemplateStore) CreateConfigFileTemplate(
 
 // GetConfigFileTemplate get config file template by name
 func (cf *configFileTemplateStore) GetConfigFileTemplate(name string) (*model.ConfigFileTemplate, error) {
-	querySql := cf.baseSelectConfigFileTemplateSql() + " where name = ?"
-	rows, err := cf.db.Query(querySql, name)
+	querySql := cf.baseSelectConfigFileTemplateSql() + " WHERE name = ?"
+	rows, err := cf.master.Query(querySql, name)
 	if err != nil {
 		return nil, store.Error(err)
 	}
@@ -64,8 +68,8 @@ func (cf *configFileTemplateStore) GetConfigFileTemplate(name string) (*model.Co
 
 // QueryAllConfigFileTemplates query all config file templates
 func (cf *configFileTemplateStore) QueryAllConfigFileTemplates() ([]*model.ConfigFileTemplate, error) {
-	querySql := cf.baseSelectConfigFileTemplateSql() + " order by id desc"
-	rows, err := cf.db.Query(querySql)
+	querySql := cf.baseSelectConfigFileTemplateSql() + " ORDER BY id DESC"
+	rows, err := cf.master.Query(querySql)
 	if err != nil {
 		return nil, store.Error(err)
 	}
@@ -78,8 +82,15 @@ func (cf *configFileTemplateStore) QueryAllConfigFileTemplates() ([]*model.Confi
 }
 
 func (cf *configFileTemplateStore) baseSelectConfigFileTemplateSql() string {
-	return "select id, name, content,IFNULL(comment, ''),format, UNIX_TIMESTAMP(create_time),  " +
-		" IFNULL(create_by, ''),UNIX_TIMESTAMP(modify_time),IFNULL(modify_by, '') from config_file_template "
+	return `
+SELECT id, name, content
+	, IFNULL(comment, ''), format
+	, UNIX_TIMESTAMP(create_time)
+	, IFNULL(create_by, '')
+	, UNIX_TIMESTAMP(modify_time)
+	, IFNULL(modify_by, '')
+FROM config_file_template 
+	`
 }
 
 func (cf *configFileTemplateStore) transferRows(rows *sql.Rows) ([]*model.ConfigFileTemplate, error) {

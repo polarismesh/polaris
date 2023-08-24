@@ -32,24 +32,31 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
-type strategyAuthAbility struct {
-	authMgn *defaultAuthChecker
-	target  *server
+func NewStrategyAuthAbility(authMgn *DefaultAuthChecker, target *Server) *StrategyAuthAbility {
+	return &StrategyAuthAbility{
+		authMgn: authMgn,
+		target:  target,
+	}
+}
+
+type StrategyAuthAbility struct {
+	authMgn *DefaultAuthChecker
+	target  *Server
 }
 
 // Initialize 执行初始化动作
-func (svr *strategyAuthAbility) Initialize(authOpt *auth.Config, storage store.Store,
+func (svr *StrategyAuthAbility) Initialize(authOpt *auth.Config, storage store.Store,
 	cacheMgn *cache.CacheManager) error {
 	var (
 		history = plugin.GetHistory()
-		authMgn = &defaultAuthChecker{}
+		authMgn = &DefaultAuthChecker{}
 	)
 	if err := authMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
 		return err
 	}
 
 	svr.authMgn = authMgn
-	svr.target = &server{
+	svr.target = &Server{
 		storage:  storage,
 		history:  history,
 		cacheMgn: cacheMgn,
@@ -59,12 +66,12 @@ func (svr *strategyAuthAbility) Initialize(authOpt *auth.Config, storage store.S
 }
 
 // Name of the user operator plugin
-func (svr *strategyAuthAbility) Name() string {
+func (svr *StrategyAuthAbility) Name() string {
 	return auth.DefaultStrategyMgnPluginName
 }
 
 // CreateStrategy creates a new strategy.
-func (svr *strategyAuthAbility) CreateStrategy(
+func (svr *StrategyAuthAbility) CreateStrategy(
 	ctx context.Context, strategy *apisecurity.AuthStrategy) *apiservice.Response {
 	ctx, rsp := verifyAuth(ctx, WriteOp, MustOwner, svr.authMgn)
 	if rsp != nil {
@@ -76,7 +83,7 @@ func (svr *strategyAuthAbility) CreateStrategy(
 }
 
 // UpdateStrategies update a strategy.
-func (svr *strategyAuthAbility) UpdateStrategies(ctx context.Context,
+func (svr *StrategyAuthAbility) UpdateStrategies(ctx context.Context,
 	reqs []*apisecurity.ModifyAuthStrategy) *apiservice.BatchWriteResponse {
 	ctx, rsp := verifyAuth(ctx, WriteOp, MustOwner, svr.authMgn)
 	if rsp != nil {
@@ -89,7 +96,7 @@ func (svr *strategyAuthAbility) UpdateStrategies(ctx context.Context,
 }
 
 // DeleteStrategies delete strategy.
-func (svr *strategyAuthAbility) DeleteStrategies(ctx context.Context,
+func (svr *StrategyAuthAbility) DeleteStrategies(ctx context.Context,
 	reqs []*apisecurity.AuthStrategy) *apiservice.BatchWriteResponse {
 	ctx, rsp := verifyAuth(ctx, WriteOp, MustOwner, svr.authMgn)
 	if rsp != nil {
@@ -102,7 +109,7 @@ func (svr *strategyAuthAbility) DeleteStrategies(ctx context.Context,
 }
 
 // GetStrategies get strategy list .
-func (svr *strategyAuthAbility) GetStrategies(ctx context.Context,
+func (svr *StrategyAuthAbility) GetStrategies(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
 	ctx, rsp := verifyAuth(ctx, ReadOp, NotOwner, svr.authMgn)
 	if rsp != nil {
@@ -113,7 +120,7 @@ func (svr *strategyAuthAbility) GetStrategies(ctx context.Context,
 }
 
 // GetStrategy get strategy.
-func (svr *strategyAuthAbility) GetStrategy(
+func (svr *StrategyAuthAbility) GetStrategy(
 	ctx context.Context, strategy *apisecurity.AuthStrategy) *apiservice.Response {
 	ctx, rsp := verifyAuth(ctx, ReadOp, NotOwner, svr.authMgn)
 	if rsp != nil {
@@ -124,7 +131,7 @@ func (svr *strategyAuthAbility) GetStrategy(
 }
 
 // GetPrincipalResources get principal resources.
-func (svr *strategyAuthAbility) GetPrincipalResources(ctx context.Context, query map[string]string) *apiservice.Response { //nolint
+func (svr *StrategyAuthAbility) GetPrincipalResources(ctx context.Context, query map[string]string) *apiservice.Response {
 	ctx, rsp := verifyAuth(ctx, ReadOp, NotOwner, svr.authMgn)
 	if rsp != nil {
 		return rsp
@@ -134,11 +141,11 @@ func (svr *strategyAuthAbility) GetPrincipalResources(ctx context.Context, query
 }
 
 // GetAuthChecker 获取鉴权管理器
-func (svr *strategyAuthAbility) GetAuthChecker() auth.AuthChecker {
+func (svr *StrategyAuthAbility) GetAuthChecker() auth.AuthChecker {
 	return svr.authMgn
 }
 
 // AfterResourceOperation is called after resource operation
-func (svr *strategyAuthAbility) AfterResourceOperation(afterCtx *model.AcquireContext) error {
+func (svr *StrategyAuthAbility) AfterResourceOperation(afterCtx *model.AcquireContext) error {
 	return svr.target.AfterResourceOperation(afterCtx)
 }

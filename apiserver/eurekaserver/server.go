@@ -66,6 +66,9 @@ const (
 	MetadataReplicate           = "internal-eureka-replicate"
 	MetadataInstanceId          = "internal-eureka-instance-id"
 
+	InternalMetadataStatus           = "internal-eureka-status"
+	InternalMetadataOverriddenStatus = "internal-eureka-overriddenStatus"
+
 	ServerEureka = "eureka"
 
 	KeyRegion = "region"
@@ -125,6 +128,7 @@ var (
 type EurekaServer struct {
 	server                 *http.Server
 	namingServer           service.DiscoverServer
+	originDiscoverSvr      service.DiscoverServer
 	healthCheckServer      *healthcheck.Server
 	connLimitConfig        *connlimit.Config
 	tlsInfo                *secure.TLSInfo
@@ -147,6 +151,7 @@ type EurekaServer struct {
 
 	replicatePeers       map[string][]string
 	generateUniqueInstId bool
+	subCtxs              []*eventhub.SubscribtionContext
 }
 
 // GetPort 获取端口
@@ -174,6 +179,7 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 	}
 	h.option = option
 	h.openAPI = api
+	h.subCtxs = make([]*eventhub.SubscribtionContext, 0, 4)
 
 	var namespace = DefaultNamespace
 	if namespaceValue, ok := option[optionNamespace]; ok {
@@ -251,7 +257,7 @@ func (h *EurekaServer) Initialize(ctx context.Context, option map[string]interfa
 		}
 	}
 
-	log.Infof("[EUREKA] custom eureka parameters: %v", CustomEurekaParameters)
+	eurekalog.Infof("[EUREKA] custom eureka parameters: %v", CustomEurekaParameters)
 	return nil
 }
 
@@ -307,7 +313,7 @@ func parsePeersToReplicate(defaultNamespace string, replicatePeerObjs []interfac
 
 // Run 启动HTTP API服务器
 func (h *EurekaServer) Run(errCh chan error) {
-	log.Infof("start EurekaServer")
+	eurekalog.Infof("start EurekaServer")
 	h.exitCh = make(chan struct{})
 	h.start = true
 	defer func() {
@@ -318,24 +324,31 @@ func (h *EurekaServer) Run(errCh chan error) {
 	// 引入功能模块和插件
 	h.namingServer, err = service.GetServer()
 	if err != nil {
-		log.Errorf("%v", err)
+		eurekalog.Errorf("%v", err)
+		errCh <- err
+		return
+	}
+	h.originDiscoverSvr, err = service.GetOriginServer()
+	if err != nil {
+		eurekalog.Errorf("%v", err)
 		errCh <- err
 		return
 	}
 	h.healthCheckServer, err = healthcheck.GetServer()
 	if err != nil {
-		log.Errorf("%v", err)
+		eurekalog.Errorf("%v", err)
 		errCh <- err
 		return
 	}
 	if len(h.replicatePeers) > 0 {
 		h.eventHandlerHandler = &EurekaInstanceEventHandler{
 			BaseInstanceEventHandler: service.NewBaseInstanceEventHandler(h.namingServer), svr: h}
-		if err = eventhub.Subscribe(
-			eventhub.InstanceEventTopic, "eureka-replication", h.eventHandlerHandler); nil != err {
+		subCtx, err := eventhub.Subscribe(eventhub.InstanceEventTopic, h.eventHandlerHandler)
+		if err != nil {
 			errCh <- err
 			return
 		}
+		h.subCtxs = append(h.subCtxs, subCtx)
 	}
 	h.workers = NewApplicationsWorkers(h.refreshInterval, h.deltaExpireInterval, h.enableSelfPreservation,
 		h.namingServer, h.healthCheckServer, h.namespace)
@@ -353,18 +366,18 @@ func (h *EurekaServer) Run(errCh chan error) {
 
 	ln, err := net.Listen("tcp", address)
 	if err != nil {
-		log.Errorf("net listen(%s) err: %s", address, err.Error())
+		eurekalog.Errorf("net listen(%s) err: %s", address, err.Error())
 		errCh <- err
 		return
 	}
 	ln = keepalive.NewTcpKeepAliveListener(3*time.Minute, ln.(*net.TCPListener))
 	// 开启最大连接数限制
 	if h.connLimitConfig != nil && h.connLimitConfig.OpenConnLimit {
-		log.Infof("http server use max connection limit per ip: %d, http max limit: %d",
+		eurekalog.Infof("http server use max connection limit per ip: %d, http max limit: %d",
 			h.connLimitConfig.MaxConnPerHost, h.connLimitConfig.MaxConnLimit)
 		ln, err = connlimit.NewListener(ln, h.GetProtocol(), h.connLimitConfig)
 		if err != nil {
-			log.Errorf("conn limit init err: %s", err.Error())
+			eurekalog.Errorf("conn limit init err: %s", err.Error())
 			errCh <- err
 			return
 		}
@@ -378,14 +391,14 @@ func (h *EurekaServer) Run(errCh chan error) {
 		err = server.ServeTLS(ln, h.tlsInfo.CertFile, h.tlsInfo.KeyFile)
 	}
 	if err != nil && err != http.ErrServerClosed {
-		log.Errorf("%+v", err)
+		eurekalog.Errorf("%+v", err)
 		if !h.restart {
-			log.Infof("not in restart progress, broadcast error")
+			eurekalog.Infof("not in restart progress, broadcast error")
 			errCh <- err
 		}
 		return
 	}
-	log.Infof("EurekaServer stop")
+	eurekalog.Infof("EurekaServer stop")
 }
 
 // 创建handler
@@ -395,7 +408,14 @@ func (h *EurekaServer) createRestfulContainer() (*restful.Container, error) {
 	wsContainer.Add(h.GetEurekaV2Server())
 	wsContainer.Add(h.GetEurekaV1Server())
 	wsContainer.Add(h.GetEurekaServer())
+	wsContainer.RecoverHandler(h.recoverFunc)
 	return wsContainer, nil
+}
+
+func (h *EurekaServer) recoverFunc(i interface{}, w http.ResponseWriter) {
+	eurekalog.Errorf("panic %+v", i)
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Header().Add(restful.HEADER_ContentType, restful.MIME_JSON)
 }
 
 // process 在接收和回复时统一处理请求
@@ -431,7 +451,7 @@ func (h *EurekaServer) preprocess(req *restful.Request, rsp *restful.Response) e
 
 	if isImportantRequest(req) {
 		// 打印请求
-		log.Info("receive request",
+		accesslog.Info("receive request",
 			zap.String("client-address", req.Request.RemoteAddr),
 			zap.String("user-agent", req.HeaderParameter("User-Agent")),
 			zap.String("method", req.Request.Method),
@@ -460,7 +480,7 @@ func (h *EurekaServer) enterRateLimit(req *restful.Request, rsp *restful.Respons
 		return nil
 	}
 	if ok := h.rateLimit.Allow(plugin.IPRatelimit, segments[0]); !ok {
-		log.Error("ip ratelimit is not allow", zap.String("client", address))
+		accesslog.Error("ip ratelimit is not allow", zap.String("client", address))
 		RateLimitResponse(rsp)
 		return errors.New("ip ratelimit is not allow")
 	}
@@ -469,7 +489,7 @@ func (h *EurekaServer) enterRateLimit(req *restful.Request, rsp *restful.Respons
 	apiName := fmt.Sprintf("%s:%s", req.Request.Method,
 		strings.TrimSuffix(req.Request.URL.Path, "/"))
 	if ok := h.rateLimit.Allow(plugin.APIRatelimit, apiName); !ok {
-		log.Error("api ratelimit is not allow", zap.String("client", address), zap.String("api", apiName))
+		accesslog.Error("api ratelimit is not allow", zap.String("client", address), zap.String("api", apiName))
 		RateLimitResponse(rsp)
 		return errors.New("api ratelimit is not allow")
 	}
@@ -505,7 +525,7 @@ func (h *EurekaServer) postproccess(req *restful.Request, rsp *restful.Response)
 	diff := now.Sub(startTime)
 	// 打印耗时超过1s的请求
 	if diff > time.Second {
-		log.Info("handling time > 1s",
+		accesslog.Info("handling time > 1s",
 			zap.String("client-address", req.Request.RemoteAddr),
 			zap.String("user-agent", req.HeaderParameter("User-Agent")),
 			zap.String("method", req.Request.Method),
@@ -596,7 +616,7 @@ func (h *EurekaServer) Stop() {
 // Restart 重启eurekaServer
 func (h *EurekaServer) Restart(
 	option map[string]interface{}, api map[string]apiserver.APIConfig, errCh chan error) error {
-	log.Infof("restart httpserver new config: %+v", option)
+	eurekalog.Infof("restart httpserver new config: %+v", option)
 	// 备份一下option
 	backupOption := h.option
 	// 备份一下api
@@ -611,21 +631,21 @@ func (h *EurekaServer) Restart(
 		<-h.exitCh
 	}
 
-	log.Infof("old httpserver has stopped, begin restart httpserver")
+	eurekalog.Infof("old httpserver has stopped, begin restart httpserver")
 
 	if err := h.Initialize(context.Background(), option, api); err != nil {
 		h.restart = false
 		if initErr := h.Initialize(context.Background(), backupOption, backupAPI); initErr != nil {
-			log.Errorf("start httpserver with backup cfg err: %s", initErr.Error())
+			eurekalog.Errorf("start httpserver with backup cfg err: %s", initErr.Error())
 			return initErr
 		}
 		go h.Run(errCh)
 
-		log.Errorf("restart httpserver initialize err: %s", err.Error())
+		eurekalog.Errorf("restart httpserver initialize err: %s", err.Error())
 		return err
 	}
 
-	log.Infof("init httpserver successfully, restart it")
+	eurekalog.Infof("init httpserver successfully, restart it")
 	h.restart = false
 	go h.Run(errCh)
 	return nil

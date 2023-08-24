@@ -22,10 +22,9 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
-	"github.com/boltdb/bolt"
+	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"
@@ -33,8 +32,8 @@ import (
 )
 
 const (
-	tblConfigFileGroup       string = "ConfigFileGroup"
-	tblConfigFileGroupID     string = "ConfigFileGroupID"
+	tblConfigFileGroup string = "ConfigFileGroup"
+
 	FileGroupFieldId         string = "Id"
 	FileGroupFieldName       string = "Name"
 	FileGroupFieldNamespace  string = "Namespace"
@@ -44,6 +43,9 @@ const (
 	FileGroupFieldCreateTime string = "CreateTime"
 	FileGroupFieldModifyTime string = "ModifyTime"
 	FileGroupFieldValid      string = "Valid"
+	FileGroupFieldBusiness   string = "Business"
+	FileGroupFieldDepartment string = "Department"
+	FileGroupFieldMetadata   string = "Metadata"
 )
 
 var (
@@ -51,29 +53,12 @@ var (
 )
 
 type configFileGroupStore struct {
-	lock    *sync.Mutex
-	id      uint64
 	handler BoltHandler
 }
 
-func newConfigFileGroupStore(handler BoltHandler) (*configFileGroupStore, error) {
-	s := &configFileGroupStore{handler: handler, id: 0, lock: &sync.Mutex{}}
-
-	ret, err := handler.LoadValues(tblConfigFileGroupID, []string{tblConfigFileGroupID}, &IDHolder{})
-
-	if err != nil {
-		return nil, err
-	}
-
-	if len(ret) == 0 {
-		return s, err
-	}
-
-	val := ret[tblConfigFileGroupID].(*IDHolder)
-
-	s.id = val.ID
-
-	return s, nil
+func newConfigFileGroupStore(handler BoltHandler) *configFileGroupStore {
+	s := &configFileGroupStore{handler: handler}
+	return s
 }
 
 // CreateConfigFileGroup 创建配置文件组
@@ -83,45 +68,30 @@ func (fg *configFileGroupStore) CreateConfigFileGroup(
 		return nil, store.NewStatusError(store.EmptyParamsErr, "ConfigFileGroup miss some param")
 	}
 
-	return fg.createConfigFileGroup(fileGroup)
-}
+	err := fg.handler.Execute(true, func(tx *bolt.Tx) error {
+		table, err := tx.CreateBucketIfNotExists([]byte(tblConfigFileGroup))
+		if err != nil {
+			return err
+		}
+		nextId, err := table.NextSequence()
+		if err != nil {
+			return err
+		}
+		fileGroup.Id = nextId
+		fileGroup.Valid = true
+		fileGroup.CreateTime = time.Now()
+		fileGroup.ModifyTime = fileGroup.CreateTime
 
-func (fg *configFileGroupStore) createConfigFileGroup(
-	fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
-	proxy, err := fg.handler.StartTx()
+		key := fmt.Sprintf("%s@@%s", fileGroup.Namespace, fileGroup.Name)
+		if err := saveValue(tx, tblConfigFileGroup, key, fileGroup); err != nil {
+			log.Error("[ConfigFileGroup] save info", zap.Error(err))
+			return err
+		}
+		return nil
+	})
 	if err != nil {
-		return nil, err
+		return nil, store.Error(err)
 	}
-	tx := proxy.GetDelegateTx().(*bolt.Tx)
-	defer func() {
-		_ = tx.Rollback()
-	}()
-
-	fg.id++
-	fileGroup.Id = fg.id
-	fileGroup.Valid = true
-	fileGroup.CreateTime = time.Now()
-	fileGroup.ModifyTime = fileGroup.CreateTime
-
-	if err := saveValue(tx, tblConfigFileGroupID, tblConfigFileGroupID, &IDHolder{
-		ID: fg.id,
-	}); err != nil {
-		log.Error("[ConfigFileGroup] save auto_increment id", zap.Error(err))
-		return nil, err
-	}
-
-	key := fmt.Sprintf("%s@@%s", fileGroup.Namespace, fileGroup.Name)
-
-	if err := saveValue(tx, tblConfigFileGroup, key, fileGroup); err != nil {
-		log.Error("[ConfigFileGroup] save info", zap.Error(err))
-		return nil, err
-	}
-
-	if err := tx.Commit(); err != nil {
-		log.Error("[ConfigFileGroup] do tx commit", zap.Error(err))
-		return nil, err
-	}
-
 	return fileGroup, nil
 }
 
@@ -137,22 +107,14 @@ func (fg *configFileGroupStore) GetConfigFileGroup(namespace, name string) (*mod
 		log.Error("[ConfigFileGroup] find by namespace and name", zap.Error(err))
 		return nil, err
 	}
-
-	if len(ret) > 1 {
-		return nil, ErrMultipleConfigFileGroupFound
-	}
 	if len(ret) == 0 {
 		return nil, nil
 	}
-
-	var cfg *model.ConfigFileGroup
-	for k, v := range ret {
-		if k == key {
-			cfg = v.(*model.ConfigFileGroup)
-			break
-		}
+	val := ret[key]
+	if val == nil {
+		return nil, nil
 	}
-
+	cfg := val.(*model.ConfigFileGroup)
 	if !cfg.Valid {
 		return nil, nil
 	}
@@ -212,105 +174,75 @@ func (fg *configFileGroupStore) DeleteConfigFileGroup(namespace, name string) er
 
 	if err := fg.handler.UpdateValue(tblConfigFileGroup, key, properties); err != nil {
 		log.Error("[ConfigFileGroup] do delete", zap.Error(err))
-		return err
+		return store.Error(err)
 	}
-
 	return nil
 }
 
 // UpdateConfigFileGroup 更新配置文件组信息
-func (fg *configFileGroupStore) UpdateConfigFileGroup(
-	fileGroup *model.ConfigFileGroup) (*model.ConfigFileGroup, error) {
+func (fg *configFileGroupStore) UpdateConfigFileGroup(fileGroup *model.ConfigFileGroup) error {
 	if fileGroup.Namespace == "" || fileGroup.Name == "" {
-		return nil, store.NewStatusError(store.EmptyParamsErr, "ConfigFileGroup miss some param")
+		return store.NewStatusError(store.EmptyParamsErr, "ConfigFileGroup miss some param")
 	}
 
 	key := fmt.Sprintf("%s@@%s", fileGroup.Namespace, fileGroup.Name)
 	properties := make(map[string]interface{})
 	properties[FileGroupFieldComment] = fileGroup.Comment
 	properties[FileGroupFieldModifyBy] = fileGroup.ModifyBy
+	properties[FileGroupFieldBusiness] = fileGroup.Business
+	properties[FileGroupFieldDepartment] = fileGroup.Department
+	properties[FileGroupFieldMetadata] = fileGroup.Metadata
 	properties[FileGroupFieldModifyTime] = time.Now()
 
 	if err := fg.handler.UpdateValue(tblConfigFileGroup, key, properties); err != nil {
 		log.Error("[ConfigFileGroup] do update", zap.Error(err))
-		return fileGroup, err
+		return store.Error(err)
 	}
-
-	return nil, nil
+	return nil
 }
 
-// FindConfigFileGroups 查询配置文件组
-func (fg *configFileGroupStore) FindConfigFileGroups(namespace string,
-	names []string) ([]*model.ConfigFileGroup, error) {
-	keys := make([]string, 0, len(names))
-	for i := range names {
-		keys = append(keys, fmt.Sprintf("%s@@%s", namespace, names[i]))
+func (fg *configFileGroupStore) GetMoreConfigGroup(firstUpdate bool,
+	mtime time.Time) ([]*model.ConfigFileGroup, error) {
+
+	if firstUpdate {
+		mtime = time.Time{}
 	}
 
-	ret, err := fg.handler.LoadValues(tblConfigFileGroup, keys, &model.ConfigFileGroup{})
+	fields := []string{FileGroupFieldModifyTime}
+	ret, err := fg.handler.LoadValuesByFilter(tblConfigFileGroup, fields, &model.ConfigFileGroup{},
+		func(m map[string]interface{}) bool {
+			saveMt, _ := m[FileGroupFieldModifyTime].(time.Time)
+			return !saveMt.Before(mtime)
+		})
+
 	if err != nil {
-		log.Error("[ConfigFileGroup] find by names", zap.Error(err))
 		return nil, err
 	}
 
 	groups := make([]*model.ConfigFileGroup, 0, len(ret))
-	for k := range ret {
-		groups = append(groups, ret[k].(*model.ConfigFileGroup))
+	for _, v := range ret {
+		groups = append(groups, v.(*model.ConfigFileGroup))
 	}
 
 	return groups, nil
 }
 
-func (fg *configFileGroupStore) GetConfigFileGroupById(id uint64) (*model.ConfigFileGroup, error) {
-	fields := []string{FileGroupFieldId, FileGroupFieldValid}
+// CountConfigReleases count the release data
+func (fg *configFileGroupStore) CountConfigGroups(namespace string) (uint64, error) {
+	fields := []string{FileGroupFieldNamespace, FileGroupFieldValid}
 	ret, err := fg.handler.LoadValuesByFilter(tblConfigFileGroup, fields, &model.ConfigFileGroup{},
 		func(m map[string]interface{}) bool {
-			if valid, _ := m[FileGroupFieldValid].(bool); !valid {
+			valid, _ := m[FileGroupFieldValid].(bool)
+			if !valid {
 				return false
 			}
-			saveId := m[FileGroupFieldId].(uint64)
-
-			return saveId == id
+			saveNs, _ := m[FileGroupFieldNamespace].(string)
+			return saveNs == namespace
 		})
 	if err != nil {
-		log.Error("[ConfigFileGroup] find by id", zap.Error(err))
-		return nil, err
+		return 0, err
 	}
-
-	if len(ret) == 0 {
-		return nil, nil
-	}
-
-	if len(ret) > 1 {
-		return nil, ErrMultipleConfigFileGroupFound
-	}
-
-	for k := range ret {
-		return ret[k].(*model.ConfigFileGroup), nil
-	}
-
-	return nil, nil
-}
-
-func (fg *configFileGroupStore) CountGroupEachNamespace() (map[string]int64, error) {
-	values, err := fg.handler.LoadValuesAll(tblConfigFileGroup, &model.ConfigFileGroup{})
-	if err != nil {
-		return nil, err
-	}
-
-	ret := make(map[string]int64)
-	for i := range values {
-		group := values[i].(*model.ConfigFileGroup)
-		if !group.Valid {
-			continue
-		}
-		if _, ok := ret[group.Namespace]; !ok {
-			ret[group.Namespace] = 0
-		}
-		ret[group.Namespace] = ret[group.Namespace] + 1
-	}
-
-	return ret, nil
+	return uint64(len(ret)), err
 }
 
 // doConfigFileGroupPage 进行分页

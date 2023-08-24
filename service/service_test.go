@@ -699,9 +699,7 @@ func TestGetServices4(t *testing.T) {
 
 // 联合查询场景
 func TestGetServices5(t *testing.T) {
-
 	t.SkipNow()
-
 	discoverSuit := &DiscoverTestSuit{}
 	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
@@ -863,7 +861,8 @@ func TestGetService6(t *testing.T) {
 			defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 		}
 
-		filters := map[string]string{"offset": "0",
+		filters := map[string]string{
+			"offset":          "0",
 			"limit":           "100",
 			"instance_keys":   "2my-meta,my-meta-a1",
 			"instance_values": "my-meta-100,111*",
@@ -1360,8 +1359,6 @@ func TestConcurrencyCreateSameService(t *testing.T) {
 	t.Cleanup(func() {
 		cancel()
 		ctrl.Finish()
-
-		time.Sleep(10 * time.Second)
 	})
 
 	createMockResource := func() (*service.Server, *mock.MockStore) {
@@ -1372,9 +1369,19 @@ func TestConcurrencyCreateSameService(t *testing.T) {
 		)
 
 		mockStore := mock.NewMockStore(ctrl)
+		mockStore.EXPECT().GetMoreNamespaces(gomock.Any()).Return([]*model.Namespace{
+			&model.Namespace{
+				Name: "mock_ns",
+			},
+		}, nil)
 		mockStore.EXPECT().GetUnixSecond(gomock.Any()).Return(time.Now().Unix(), nil).AnyTimes()
 		cacheMgr, err = cache.TestCacheInitialize(ctx, &cache.Config{
 			Open: true,
+			Resources: []cache.ConfigEntry{
+				{
+					Name: "namespace",
+				},
+			},
 		}, mockStore)
 		assert.NoError(t, err)
 

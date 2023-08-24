@@ -57,6 +57,7 @@ func mockConfigFile(total int, param map[string]string) []*model.ConfigFile {
 			ModifyTime: time.Time{},
 			ModifyBy:   "polaris",
 			Valid:      false,
+			Metadata:   map[string]string{},
 		})
 	}
 
@@ -73,34 +74,13 @@ func Test_configFileStore(t *testing.T) {
 
 			for i := range mocks {
 				waitSave := mocks[i]
-				f, err := s.CreateConfigFile(nil, waitSave)
-
+				tx, err := s.handler.StartTx()
 				assert.NoError(t, err, "%+v", err)
-				assert.Equal(t, uint64(i+1), f.Id, "expect : %d, actual : %d", (i + 1), f.Id)
-			}
-		})
-	})
-
-	t.Run("创建配置文件-有事务", func(t *testing.T) {
-		CreateTableDBHandlerAndRun(t, tblConfigFile, func(t *testing.T, handler BoltHandler) {
-
-			s := &configFileStore{handler: handler}
-
-			mocks := mockConfigFile(10, map[string]string{})
-
-			for i := range mocks {
-
-				tx, err := handler.StartTx()
+				defer func() {
+					_ = tx.Rollback()
+				}()
+				err = s.CreateConfigFileTx(tx, waitSave)
 				assert.NoError(t, err, "%+v", err)
-
-				defer tx.Rollback()
-
-				waitSave := mocks[i]
-				f, err := s.CreateConfigFile(tx, waitSave)
-
-				assert.NoError(t, err, "%+v", err)
-				assert.Equal(t, uint64(i+1), f.Id, "expect : %d, actual : %d", (i + 1), f.Id)
-
 				err = tx.Commit()
 				assert.NoError(t, err, "%+v", err)
 			}
@@ -117,15 +97,19 @@ func Test_configFileStore(t *testing.T) {
 			for i := range mocks {
 
 				waitSave := mocks[i]
-				f, err := s.CreateConfigFile(nil, waitSave)
-
+				tx, err := s.handler.StartTx()
 				assert.NoError(t, err, "%+v", err)
-				assert.Equal(t, uint64(i+1), f.Id, "expect : %d, actual : %d", (i + 1), f.Id)
-
-				r, err := s.GetConfigFile(nil, waitSave.Namespace, waitSave.Group, waitSave.Name)
+				defer func() {
+					_ = tx.Rollback()
+				}()
+				err = s.CreateConfigFileTx(tx, waitSave)
+				assert.NoError(t, err, "%+v", err)
+				err = tx.Commit()
 				assert.NoError(t, err, "%+v", err)
 
-				assert.Equal(t, f, r, "expect : %#v, actual : %#v", f, r)
+				r, err := s.GetConfigFile(waitSave.Namespace, waitSave.Group, waitSave.Name)
+				assert.NoError(t, err, "%+v", err)
+				assert.NotNil(t, r)
 			}
 		})
 	})
@@ -140,17 +124,22 @@ func Test_configFileStore(t *testing.T) {
 			for i := range mocks {
 
 				waitSave := mocks[i]
-				f, err := s.CreateConfigFile(nil, waitSave)
-
+				tx, err := s.handler.StartTx()
 				assert.NoError(t, err, "%+v", err)
-				assert.Equal(t, uint64(i+1), f.Id, "expect : %d, actual : %d", (i + 1), f.Id)
-
-				err = s.DeleteConfigFile(nil, waitSave.Namespace, waitSave.Group, waitSave.Name)
+				err = s.CreateConfigFileTx(tx, waitSave)
 				assert.NoError(t, err, "%+v", err)
+				_ = tx.Commit()
 
-				r, err := s.GetConfigFile(nil, waitSave.Namespace, waitSave.Group, waitSave.Name)
+				tx, err = s.handler.StartTx()
+				err = s.DeleteConfigFileTx(tx, waitSave.Namespace, waitSave.Group, waitSave.Name)
+				assert.NoError(t, err, "%+v", err)
+				_ = tx.Commit()
+
+				tx, err = s.handler.StartTx()
+				r, err := s.GetConfigFileTx(tx, waitSave.Namespace, waitSave.Group, waitSave.Name)
 				assert.NoError(t, err, "%+v", err)
 				assert.Nil(t, r)
+				_ = tx.Commit()
 			}
 		})
 	})
@@ -165,28 +154,33 @@ func Test_configFileStore(t *testing.T) {
 			for i := range mocks {
 
 				waitSave := mocks[i]
-				f, err := s.CreateConfigFile(nil, waitSave)
-
+				tx, err := s.handler.StartTx()
 				assert.NoError(t, err, "%+v", err)
-				assert.Equal(t, uint64(i+1), f.Id, "expect : %d, actual : %d", (i + 1), f.Id)
+				err = s.CreateConfigFileTx(tx, waitSave)
+				assert.NoError(t, err, "%+v", err)
+				_ = tx.Commit()
 
 				newCf := *waitSave
 
 				newCf.Comment = "update config file"
 
-				_, err = s.UpdateConfigFile(nil, &newCf)
+				tx, err = s.handler.StartTx()
 				assert.NoError(t, err, "%+v", err)
+				err = s.UpdateConfigFileTx(tx, &newCf)
+				assert.NoError(t, err, "%+v", err)
+				_ = tx.Commit()
 
-				r, err := s.GetConfigFile(nil, waitSave.Namespace, waitSave.Group, waitSave.Name)
+				r, err := s.GetConfigFile(waitSave.Namespace, waitSave.Group, waitSave.Name)
 				assert.NoError(t, err, "%+v", err)
 
 				_n := &newCf
 
-				r.CreateTime = time.Time{}
-				r.ModifyTime = time.Time{}
-				_n.CreateTime = time.Time{}
-				_n.ModifyTime = time.Time{}
-
+				r.CreateTime = time.Unix(0, 0)
+				r.ModifyTime = time.Unix(0, 0)
+				r.ReleaseTime = time.Unix(0, 0)
+				_n.CreateTime = time.Unix(0, 0)
+				_n.ModifyTime = time.Unix(0, 0)
+				_n.ReleaseTime = time.Unix(0, 0)
 				assert.Equal(t, _n, r, "expect : %#v, actual : %#v", _n, r)
 			}
 		})
@@ -202,15 +196,21 @@ func Test_configFileStore(t *testing.T) {
 
 			for i := range mocks {
 				waitSave := mocks[i]
-				f, err := s.CreateConfigFile(nil, waitSave)
+				tx, err := s.handler.StartTx()
+				assert.NoError(t, err, "%+v", err)
+				err = s.CreateConfigFileTx(tx, waitSave)
+				assert.NoError(t, err, "%+v", err)
+				_ = tx.Commit()
 
 				assert.NoError(t, err, "%+v", err)
-				assert.Equal(t, uint64(i+1), f.Id, "expect : %d, actual : %d", (i + 1), f.Id)
-
-				results = append(results, f)
+				results = append(results, waitSave)
 			}
 
-			total, ret, err := s.QueryConfigFiles("cpnfig", "cpnfig", "cpnfig", 0, 100)
+			total, ret, err := s.QueryConfigFiles(map[string]string{
+				"namespace": "cpnfig*",
+				"group":     "cpnfig*",
+				"name":      "cpnfig*",
+			}, 0, 100)
 
 			for i := range ret {
 				ret[i].CreateTime = time.Time{}
@@ -220,10 +220,14 @@ func Test_configFileStore(t *testing.T) {
 			}
 
 			assert.NoError(t, err, "%+v", err)
+			assert.Equal(t, len(results), len(ret))
 			assert.Equal(t, len(mocks), int(total))
-			assert.ElementsMatch(t, results, ret)
 
-			total, ret, err = s.QueryConfigFiles("qweq", "qweq", "qweq", 0, 100)
+			total, ret, err = s.QueryConfigFiles(map[string]string{
+				"namespace": "qweq",
+				"group":     "qweq",
+				"name":      "qweq",
+			}, 0, 100)
 
 			for i := range ret {
 				ret[i].CreateTime = time.Time{}

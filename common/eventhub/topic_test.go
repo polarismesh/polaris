@@ -99,7 +99,6 @@ func Test_topic_subscribe(t *testing.T) {
 			name: "topic subscribe",
 			args: args{
 				ctx:     context.Background(),
-				name:    "sub1",
 				handler: &printEventHandler{},
 				opts:    []SubOption{WithQueueSize(100)},
 			},
@@ -109,10 +108,9 @@ func Test_topic_subscribe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tr := newTopic("topic2")
-			err := tr.subscribe(tt.args.ctx, tt.args.name, tt.args.handler, tt.args.opts...)
+			subCtx, err := tr.subscribe(tt.args.ctx, tt.args.handler, tt.args.opts...)
 			assert.Equal(t, tt.wantErr, err)
-			assert.Equal(t, tr.subs[tt.args.name].name, tt.args.name)
-
+			subCtx.Cancel()
 		})
 	}
 }
@@ -132,7 +130,6 @@ func Test_topic_unsubscribe(t *testing.T) {
 			name: "topic unsubscribe",
 			args: args{
 				ctx:     context.Background(),
-				name:    "sub1",
 				handler: &printEventHandler{},
 			},
 			wantErr: nil,
@@ -141,9 +138,12 @@ func Test_topic_unsubscribe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tr := newTopic("topic3")
-			tr.subscribe(tt.args.ctx, tt.args.name, tt.args.handler)
-			tr.unsubscribe(tt.args.ctx, tt.args.name)
-			_, ok := tr.subs[tt.args.name]
+			subCtx, err := tr.subscribe(tt.args.ctx, tt.args.handler)
+			assert.NoError(t, err)
+			_, ok := tr.subs[subCtx.subID]
+			assert.True(t, ok)
+			subCtx.Cancel()
+			_, ok = tr.subs[subCtx.subID]
 			assert.False(t, ok)
 		})
 	}
@@ -175,12 +175,13 @@ func Test_topic_run(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tr := newTopic("topic4")
-			err := tr.subscribe(tt.args.ctx, tt.args.name, tt.args.handler, tt.args.opts...)
+			subCtx, err := tr.subscribe(tt.args.ctx, tt.args.handler, tt.args.opts...)
 			assert.Nil(t, err)
 			go tr.run(tt.args.ctx)
 			for i := 0; i < tt.args.num; i++ {
 				tr.publish(tt.args.ctx, i)
 			}
+			subCtx.Cancel()
 			tr.close(tt.args.ctx)
 			assert.Zero(t, len(tr.subs))
 		})

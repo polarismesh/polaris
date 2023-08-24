@@ -181,6 +181,7 @@ func (r *RedisHealthChecker) Report(ctx context.Context, request *plugin.ReportR
 	if resp.Err != nil {
 		log.Errorf("[Health Check][RedisCheck]addr:%s:%d, id:%s, set redis err:%s",
 			request.Host, request.Port, request.InstanceId, resp.Err)
+		return resp.Err
 	}
 	return nil
 }
@@ -290,24 +291,6 @@ func (r *RedisHealthChecker) Check(request *plugin.CheckRequest) (*plugin.CheckR
 	}
 	log.Debugf("[Health Check][RedisCheck]instanceId is %s, healthy is %v", request.InstanceId, checkResp.Healthy)
 	return checkResp, nil
-}
-
-// AddToCheck add the instances to check procedure
-func (r *RedisHealthChecker) AddToCheck(request *plugin.AddCheckRequest) error {
-	if len(request.Instances) == 0 {
-		return nil
-	}
-	resp := r.checkPool.Sdd(request.LocalHost, request.Instances)
-	return resp.Err
-}
-
-// RemoveFromCheck AddToCheck add the instances to check procedure
-func (r *RedisHealthChecker) RemoveFromCheck(request *plugin.AddCheckRequest) error {
-	if len(request.Instances) == 0 {
-		return nil
-	}
-	resp := r.checkPool.Srem(request.LocalHost, request.Instances)
-	return resp.Err
 }
 
 // Delete delete the target id

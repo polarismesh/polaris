@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth
+package defaultauth_test
 
 import (
 	"context"
@@ -28,6 +28,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/cache"
 	v1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
@@ -50,7 +51,7 @@ type GroupTest struct {
 	cacheMgn *cache.CacheManager
 	checker  auth.AuthChecker
 
-	svr *groupAuthAbility
+	svr *defaultauth.GroupAuthAbility
 
 	cancel context.CancelFunc
 }
@@ -90,20 +91,19 @@ func newGroupTest(t *testing.T) *GroupTest {
 	if err != nil {
 		t.Error(err)
 	}
+	t.Cleanup(func() {
+		_ = cacheMgn.Close()
+	})
 
 	time.Sleep(time.Second)
 
-	checker := &defaultAuthChecker{}
-	checker.cacheMgn = cacheMgn
+	checker := &defaultauth.DefaultAuthChecker{}
+	checker.SetCacheMgr(cacheMgn)
 
-	svr := &groupAuthAbility{
-		authMgn: checker,
-		target: &server{
-			storage:  storage,
-			cacheMgn: cacheMgn,
-			authMgn:  checker,
-		},
-	}
+	svr := defaultauth.NewGroupAuthAbility(
+		checker,
+		defaultauth.NewServer(storage, nil, cacheMgn, checker),
+	)
 
 	return &GroupTest{
 		ctrl: ctrl,
@@ -127,7 +127,7 @@ func newGroupTest(t *testing.T) *GroupTest {
 
 func (g *GroupTest) Clean() {
 	g.cancel()
-	time.Sleep(5 * time.Second)
+	g.cacheMgn.Close()
 	g.ctrl.Finish()
 }
 
@@ -677,10 +677,15 @@ func Test_server_RefreshGroupToken(t *testing.T) {
 
 func Test_AuthServer_NormalOperateUserGroup(t *testing.T) {
 	suit := &AuthTestSuit{}
-	if err := suit.initialize(); err != nil {
+	if err := suit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer suit.Destroy()
+	t.Cleanup(func() {
+		suit.cleanAllAuthStrategy()
+		suit.cleanAllUser()
+		suit.cleanAllUserGroup()
+		suit.Destroy()
+	})
 
 	users := createApiMockUser(10, "test")
 	for i := range users {
@@ -690,14 +695,14 @@ func Test_AuthServer_NormalOperateUserGroup(t *testing.T) {
 	groups := createMockApiUserGroup([]*apisecurity.User{users[0]})
 
 	t.Run("正常创建用户组", func(t *testing.T) {
-		bresp := suit.userMgn.CreateUsers(suit.defaultCtx, users)
+		bresp := suit.UserServer().CreateUsers(suit.DefaultCtx, users)
 		if !respSuccess(bresp) {
 			t.Fatal(bresp.GetInfo().GetValue())
 		}
 
-		time.Sleep(suit.updateCacheInterval)
+		_ = suit.CacheMgr().TestUpdate()
 
-		resp := suit.userMgn.CreateGroup(suit.defaultCtx, groups[0])
+		resp := suit.UserServer().CreateGroup(suit.DefaultCtx, groups[0])
 
 		if !respSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())
@@ -723,14 +728,14 @@ func Test_AuthServer_NormalOperateUserGroup(t *testing.T) {
 			},
 		}
 
-		resp := suit.userMgn.UpdateGroups(suit.defaultCtx, req)
+		resp := suit.UserServer().UpdateGroups(suit.DefaultCtx, req)
 		if !respSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())
 		}
 
-		time.Sleep(suit.updateCacheInterval)
+		_ = suit.CacheMgr().TestUpdate()
 
-		qresp := suit.userMgn.GetGroup(suit.defaultCtx, groups[0])
+		qresp := suit.UserServer().GetGroup(suit.DefaultCtx, groups[0])
 
 		if !respSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())
@@ -741,15 +746,15 @@ func Test_AuthServer_NormalOperateUserGroup(t *testing.T) {
 	})
 
 	t.Run("正常更新用户组Token", func(t *testing.T) {
-		resp := suit.userMgn.ResetGroupToken(suit.defaultCtx, groups[0])
+		resp := suit.UserServer().ResetGroupToken(suit.DefaultCtx, groups[0])
 
 		if !respSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())
 		}
 
-		time.Sleep(suit.updateCacheInterval)
+		_ = suit.CacheMgr().TestUpdate()
 
-		qresp := suit.userMgn.GetGroupToken(suit.defaultCtx, groups[0])
+		qresp := suit.UserServer().GetGroupToken(suit.DefaultCtx, groups[0])
 		if !respSuccess(qresp) {
 			t.Fatal(resp.GetInfo().GetValue())
 		}
@@ -757,7 +762,7 @@ func Test_AuthServer_NormalOperateUserGroup(t *testing.T) {
 	})
 
 	t.Run("正常查询某个用户组下的用户列表", func(t *testing.T) {
-		qresp := suit.userMgn.GetUsers(suit.defaultCtx, map[string]string{
+		qresp := suit.UserServer().GetUsers(suit.DefaultCtx, map[string]string{
 			"group_id": groups[0].GetId().GetValue(),
 		})
 
@@ -780,7 +785,7 @@ func Test_AuthServer_NormalOperateUserGroup(t *testing.T) {
 	})
 
 	t.Run("正常查询用户组列表", func(t *testing.T) {
-		qresp := suit.userMgn.GetGroups(suit.defaultCtx, map[string]string{})
+		qresp := suit.UserServer().GetGroups(suit.DefaultCtx, map[string]string{})
 
 		if !respSuccess(qresp) {
 			t.Fatal(qresp.GetInfo().GetValue())
@@ -791,7 +796,7 @@ func Test_AuthServer_NormalOperateUserGroup(t *testing.T) {
 	})
 
 	t.Run("查询某个用户所在的所有分组", func(t *testing.T) {
-		qresp := suit.userMgn.GetGroups(suit.defaultCtx, map[string]string{
+		qresp := suit.UserServer().GetGroups(suit.DefaultCtx, map[string]string{
 			"user_id": users[0].GetId().GetValue(),
 		})
 
@@ -804,13 +809,13 @@ func Test_AuthServer_NormalOperateUserGroup(t *testing.T) {
 	})
 
 	t.Run("正常删除用户组", func(t *testing.T) {
-		resp := suit.userMgn.DeleteGroups(suit.defaultCtx, groups)
+		resp := suit.UserServer().DeleteGroups(suit.DefaultCtx, groups)
 
 		if !respSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())
 		}
 
-		qresp := suit.userMgn.GetGroup(suit.defaultCtx, groups[0])
+		qresp := suit.UserServer().GetGroup(suit.DefaultCtx, groups[0])
 
 		if respSuccess(qresp) {
 			t.Fatal(qresp.GetInfo().GetValue())

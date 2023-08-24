@@ -21,6 +21,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
@@ -71,3 +72,75 @@ func (m *ConfigFileArr) String() string { return proto.CompactTextString(m) }
 
 // ProtoMessage proto message
 func (*ConfigFileArr) ProtoMessage() {}
+
+// UserArr 命名空间数组定义
+type UserArr []*apisecurity.User
+
+// Reset 清空数组
+func (m *UserArr) Reset() { *m = UserArr{} }
+
+// String return string
+func (m *UserArr) String() string { return proto.CompactTextString(m) }
+
+// ProtoMessage return proto message
+func (*UserArr) ProtoMessage() {}
+
+// GroupArr 命名空间数组定义
+type GroupArr []*apisecurity.UserGroup
+
+// Reset 清空数组
+func (m *GroupArr) Reset() { *m = GroupArr{} }
+
+// String return string
+func (m *GroupArr) String() string { return proto.CompactTextString(m) }
+
+// ProtoMessage return proto message
+func (*GroupArr) ProtoMessage() {}
+
+// ModifyGroupArr 命名空间数组定义
+type ModifyGroupArr []*apisecurity.ModifyUserGroup
+
+// Reset 清空数组
+func (m *ModifyGroupArr) Reset() { *m = ModifyGroupArr{} }
+
+// String return string
+func (m *ModifyGroupArr) String() string { return proto.CompactTextString(m) }
+
+// ProtoMessage return proto message
+func (*ModifyGroupArr) ProtoMessage() {}
+
+// StrategyArr 命名空间数组定义
+type StrategyArr []*apisecurity.AuthStrategy
+
+// Reset 清空数组
+func (m *StrategyArr) Reset() { *m = StrategyArr{} }
+
+// String return string
+func (m *StrategyArr) String() string { return proto.CompactTextString(m) }
+
+// ProtoMessage return proto message
+func (*StrategyArr) ProtoMessage() {}
+
+// ModifyStrategyArr 命名空间数组定义
+type ModifyStrategyArr []*apisecurity.ModifyAuthStrategy
+
+// Reset 清空数组
+func (m *ModifyStrategyArr) Reset() { *m = ModifyStrategyArr{} }
+
+// String return string
+func (m *ModifyStrategyArr) String() string { return proto.CompactTextString(m) }
+
+// ProtoMessage return proto message
+func (*ModifyStrategyArr) ProtoMessage() {}
+
+// AuthResourceArr 命名空间数组定义
+type AuthResourceArr []*apisecurity.StrategyResources
+
+// Reset 清空数组
+func (m *AuthResourceArr) Reset() { *m = AuthResourceArr{} }
+
+// String return string
+func (m *AuthResourceArr) String() string { return proto.CompactTextString(m) }
+
+// ProtoMessage return proto message
+func (*AuthResourceArr) ProtoMessage() {}

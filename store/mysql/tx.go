@@ -40,3 +40,9 @@ func (t *Tx) Rollback() error {
 func (t *Tx) GetDelegateTx() interface{} {
 	return t.delegateTx
 }
+
+func (t *Tx) CreateReadView() error {
+	tx := t.delegateTx
+	_, err := tx.Exec("START TRANSACTION WITH CONSISTENT SNAPSHOT")
+	return err
+}

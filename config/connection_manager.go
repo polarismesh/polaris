@@ -25,6 +25,7 @@ import (
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/hash"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -32,15 +33,23 @@ const (
 	defaultLongPollingTimeout = 30000 * time.Millisecond
 )
 
-type connection struct {
+type ClientConn struct {
+	once             sync.Once
 	finishTime       time.Time
 	finishChan       chan *apiconfig.ConfigClientResponse
 	watchConfigFiles []*apiconfig.ClientConfigFileInfo
 }
 
+func (c *ClientConn) reply(rsp *apiconfig.ConfigClientResponse) {
+	c.once.Do(func() {
+		c.finishChan <- rsp
+		close(c.finishChan)
+	})
+}
+
 type connManager struct {
 	watchCenter    *watchCenter
-	conns          *sync.Map // client -> connection
+	conns          *utils.SegmentMap[string, *ClientConn] // client -> ClientConn
 	stopWorkerFunc context.CancelFunc
 }
 
@@ -56,7 +65,7 @@ var (
 // NewConfigConnManager 初始化连接管理器，定时响应超时的请求
 func NewConfigConnManager(ctx context.Context, watchCenter *watchCenter) *connManager {
 	cm = &connManager{
-		conns:       new(sync.Map),
+		conns:       utils.NewSegmentMap[string, *ClientConn](128, hash.Fnv32),
 		watchCenter: watchCenter,
 	}
 
@@ -70,17 +79,15 @@ func (c *connManager) AddConn(
 
 	finishChan := make(chan *apiconfig.ConfigClientResponse)
 
-	cm.conns.Store(clientId, &connection{
+	cm.conns.Put(clientId, &ClientConn{
 		finishTime:       time.Now().Add(defaultLongPollingTimeout),
 		finishChan:       finishChan,
 		watchConfigFiles: files,
 	})
 
 	c.watchCenter.AddWatcher(clientId, files, func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
-		if connObj, ok := cm.conns.Load(clientId); ok {
-			conn := connObj.(*connection)
-			conn.finishChan <- rsp
-			close(conn.finishChan)
+		if conn, ok := cm.conns.Get(clientId); ok {
+			conn.reply(rsp)
 			c.removeConn(clientId)
 		}
 		return true
@@ -90,13 +97,12 @@ func (c *connManager) AddConn(
 }
 
 func (c *connManager) removeConn(clientId string) {
-	conn, ok := cm.conns.Load(clientId)
+	conn, ok := cm.conns.Get(clientId)
 	if !ok {
 		return
 	}
-	connObj := conn.(*connection)
-	c.watchCenter.RemoveWatcher(clientId, connObj.watchConfigFiles)
-	cm.conns.Delete(clientId)
+	c.watchCenter.RemoveWatcher(clientId, conn.watchConfigFiles)
+	cm.conns.Del(clientId)
 }
 
 func (c *connManager) startHandleTimeoutRequestWorker(ctx context.Context) {
@@ -111,13 +117,11 @@ func (c *connManager) startHandleTimeoutRequestWorker(ctx context.Context) {
 				continue
 			}
 			tNow := time.Now()
-			cm.conns.Range(func(client, conn interface{}) bool {
-				connCtx := conn.(*connection)
-				if tNow.After(connCtx.finishTime) {
-					connCtx.finishChan <- notModifiedResponse
-					c.removeConn(client.(string))
+			cm.conns.Range(func(client string, conn *ClientConn) {
+				if tNow.After(conn.finishTime) {
+					conn.reply(notModifiedResponse)
+					c.removeConn(client)
 				}
-				return true
 			})
 		}
 	}

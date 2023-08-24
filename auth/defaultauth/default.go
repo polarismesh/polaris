@@ -22,6 +22,6 @@ import (
 )
 
 func init() {
-	_ = auth.RegisterUserServer(&userAuthAbility{})
-	_ = auth.RegisterStrategyServer(&strategyAuthAbility{})
+	_ = auth.RegisterUserServer(&UserAuthAbility{})
+	_ = auth.RegisterStrategyServer(&StrategyAuthAbility{})
 }

@@ -182,7 +182,7 @@ func Test_subscription_receive(t *testing.T) {
 			}()
 			go s.receive(tt.args.ctx)
 			time.Sleep(2 * time.Second)
-			s.close(tt.args.ctx)
+			s.close()
 			assert.Equal(t, tt.want, handler.got)
 		})
 	}

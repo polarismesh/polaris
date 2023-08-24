@@ -131,34 +131,6 @@ func (c *ComponentStatics) add(ac *APICall) {
 	}
 }
 
-// log and print the statics messages
-// func (c *ComponentStatics) log() {
-// 	startTime := time.Now()
-// 	if len(c.statis) == 0 {
-// 		log.Info(fmt.Sprintf("Statis %s: No API Call\n", commontime.Time2String(startTime)))
-// 		return
-// 	}
-// 	defer func() {
-// 		passDuration := time.Since(startTime)
-// 		if passDuration >= MaxLogWaitDuration {
-// 			log.Warnf("[APICall]api static log duration %s, pass max %s", passDuration, MaxLogWaitDuration)
-// 		}
-// 	}()
-
-// 	duplicateStatis := make([]*APICallStatisItem, 0, len(c.statis))
-// 	for _, item := range c.statis {
-// 		duplicateStatis = append(duplicateStatis, item)
-// 	}
-// 	c.statis = make(map[string]*APICallStatisItem)
-
-// 	go func() {
-// 		c.mutex.Lock()
-// 		defer c.mutex.Unlock()
-
-// 		c.handler(c.t, startTime, duplicateStatis)
-// 	}()
-// }
-
 // collect log and print the statics messages
 func (c *ComponentStatics) deal() {
 	startTime := time.Now()

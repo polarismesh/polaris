@@ -36,6 +36,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	boot_config "github.com/polarismesh/polaris/bootstrap/config"
 	"github.com/polarismesh/polaris/cache"
+	types "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/log"
@@ -230,7 +231,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 
 	batchConfig := &batch.Config{
 		Register:         namingBatchConfig.Register,
-		Deregister:       namingBatchConfig.Register,
+		Deregister:       namingBatchConfig.Deregister,
 		ClientRegister:   namingBatchConfig.ClientRegister,
 		ClientDeregister: namingBatchConfig.ClientDeregister,
 		Heartbeat:        healthBatchConfig.Heartbeat,
@@ -261,8 +262,8 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 		healthCheckServer.SetServiceCache(cacheMgn.Service())
 		healthCheckServer.SetInstanceCache(cacheMgn.Instance())
 		// 为 instance 的 cache 添加 健康检查的 Listener
-		cacheMgn.AddListener(cache.CacheNameInstance, []cache.Listener{cacheProvider})
-		cacheMgn.AddListener(cache.CacheNameClient, []cache.Listener{cacheProvider})
+		cacheMgn.AddListener(types.CacheInstance, []types.Listener{cacheProvider})
+		cacheMgn.AddListener(types.CacheClient, []types.Listener{cacheProvider})
 	}
 
 	namespaceSvr, err := namespace.GetServer()
@@ -276,7 +277,6 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 		service.WithCacheManager(&cfg.Cache, cacheMgn),
 		service.WithHealthCheckSvr(healthCheckServer),
 		service.WithNamespaceSvr(namespaceSvr),
-		service.WithHiddenService(map[model.ServiceKey]struct{}{}),
 	}
 
 	// 初始化服务模块

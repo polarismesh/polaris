@@ -152,14 +152,12 @@ func buildHealthCheck(instance *InstanceInfo, targetInstance *apiservice.Instanc
 }
 
 func buildStatus(instance *InstanceInfo, targetInstance *apiservice.Instance) {
-	// 由于eureka的实例都会自动报心跳，心跳由北极星接管，因此客户端报上来的人工状态OUT_OF_SERVICE，通过isolate来进行代替
-	status := instance.Status
-	if status == "OUT_OF_SERVICE" {
+	// eureka注册的实例默认healthy为true，即使设置为false也会被心跳触发变更为true
+	// eureka实例非UP状态设置isolate为true，进行流量隔离
+	targetInstance.Healthy = &wrappers.BoolValue{Value: true}
+	targetInstance.Isolate = &wrappers.BoolValue{Value: false}
+	if instance.Status != "UP" {
 		targetInstance.Isolate = &wrappers.BoolValue{Value: true}
-	} else if status == "UP" {
-		targetInstance.Healthy = &wrappers.BoolValue{Value: true}
-	} else {
-		targetInstance.Healthy = &wrappers.BoolValue{Value: false}
 	}
 }
 
@@ -197,6 +195,9 @@ func convertEurekaInstance(
 	targetInstance.Metadata[MetadataInsecurePortEnabled] = strconv.FormatBool(insecureEnable)
 	targetInstance.Metadata[MetadataSecurePort] = strconv.Itoa(securePort)
 	targetInstance.Metadata[MetadataSecurePortEnabled] = strconv.FormatBool(secureEnable)
+	// 保存客户端注册时设置的 status 信息，该信息不会随着心跳的变化而调整
+	targetInstance.Metadata[InternalMetadataStatus] = instance.Status
+	targetInstance.Metadata[InternalMetadataOverriddenStatus] = instance.OverriddenStatus
 	return targetInstance
 }
 
@@ -246,18 +247,29 @@ func (h *EurekaServer) deregisterInstance(
 
 func (h *EurekaServer) updateStatus(
 	ctx context.Context, namespace string, appId string, instanceId string, status string, replicated bool) uint32 {
-	var isolated = false
-	if status != StatusUp {
-		isolated = true
-	}
 	ctx = context.WithValue(
 		ctx, model.CtxEventKeyMetadata, map[string]string{
 			MetadataReplicate:  strconv.FormatBool(replicated),
 			MetadataInstanceId: instanceId,
 		})
 	instanceId = checkOrBuildNewInstanceIdByNamespace(namespace, h.namespace, appId, instanceId, h.generateUniqueInstId)
-	resp := h.namingServer.UpdateInstance(ctx, &apiservice.Instance{
-		Id: &wrappers.StringValue{Value: instanceId}, Isolate: &wrappers.BoolValue{Value: isolated}})
+
+	saveIns, err := h.originDiscoverSvr.Cache().GetStore().GetInstance(instanceId)
+	if err != nil {
+		return uint32(apimodel.Code_StoreLayerException)
+	}
+
+	metadata := saveIns.Metadata()
+	metadata[InternalMetadataStatus] = status
+	isolated := status != StatusUp
+
+	updateIns := &apiservice.Instance{
+		Id:       &wrappers.StringValue{Value: instanceId},
+		Isolate:  &wrappers.BoolValue{Value: isolated},
+		Metadata: metadata,
+	}
+
+	resp := h.namingServer.UpdateInstance(ctx, updateIns)
 	return resp.GetCode().GetValue()
 }
 
@@ -276,7 +288,6 @@ func (h *EurekaServer) renew(ctx context.Context, namespace string, appId string
 	if code == api.HeartbeatOnDisabledIns {
 		return api.ExecuteSuccess
 	}
-
 	return code
 }
 

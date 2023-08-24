@@ -24,7 +24,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/boltdb/bolt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
@@ -33,6 +32,7 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+	bolt "go.etcd.io/bbolt"
 
 	_ "github.com/polarismesh/polaris/auth/defaultauth"
 	_ "github.com/polarismesh/polaris/cache"

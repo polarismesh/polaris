@@ -28,7 +28,6 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	"github.com/polarismesh/polaris/common/api/l5"
-	cl5common "github.com/polarismesh/polaris/common/cl5"
 	"github.com/polarismesh/polaris/common/model"
 )
 
@@ -235,7 +234,7 @@ func (s *Server) RegisterByNameCmd(rbnc *l5.Cl5RegisterByNameCmd) (*l5.Cl5Regist
 }
 
 func (s *Server) computeService(modID uint32, cmdID uint32) *model.Service {
-	sidStr := cl5common.MarshalModCmd(modID, cmdID)
+	sidStr := model.MarshalModCmd(modID, cmdID)
 	// 根据sid找到所述命名空间
 	namespaces := ComputeNamespace(modID, cmdID)
 	for _, namespace := range namespaces {
@@ -337,7 +336,7 @@ func (s *Server) getCalleeByRoute(route *model.Route) []*model.Callee {
 // 注意，sid--> reference，通过索引服务才能拿到真实的数据
 func (s *Server) getSidConfig(modID uint32, cmdID uint32) *model.SidConfig {
 	sid := &model.Sid{ModID: modID, CmdID: cmdID}
-	sidStr := cl5common.MarshalSid(sid)
+	sidStr := model.MarshalSid(sid)
 
 	// 先获取一下namespace
 	namespaces := ComputeNamespace(modID, cmdID)
@@ -382,7 +381,7 @@ func (s *Server) getSidConfigByName(name string) *model.SidConfig {
 		return nil
 	}
 
-	sid, err := cl5common.UnmarshalSid(sidMeta)
+	sid, err := model.UnmarshalSid(sidMeta)
 	if err != nil {
 		log.Errorf("[Server] unmarshal sid(%s) err: %s", sidMeta, err.Error())
 		return nil
@@ -426,12 +425,12 @@ func (s *Server) getRealSidConfigMeta(service *model.Service) *model.SidConfig {
 
 // 获取cl5.discover
 func (s *Server) getCl5DiscoverList(ctx context.Context, clientIP uint32) *l5.Cl5L5SvrList {
-	clusterName, _ := ctx.Value(cl5common.Cl5ServerCluster{}).(string)
+	clusterName, _ := ctx.Value(model.Cl5ServerCluster{}).(string)
 	if clusterName == "" {
 		log.Warnf("[Cl5] get server cluster name is empty")
 		return nil
 	}
-	protocol, _ := ctx.Value(cl5common.Cl5ServerProtocol{}).(string)
+	protocol, _ := ctx.Value(model.Cl5ServerProtocol{}).(string)
 
 	service := s.getCl5DiscoverService(clusterName, clientIP)
 	if service == nil {

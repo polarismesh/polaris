@@ -59,7 +59,7 @@ func TestConfigFileTemplateCRUD(t *testing.T) {
 		assert.Equal(t, api.ExecuteSuccess, createRsp.Code.GetValue())
 		//repeat create
 		createRsp = testSuit.ConfigServer().CreateConfigFileTemplate(testSuit.DefaultCtx, template1)
-		assert.Equal(t, api.BadRequest, createRsp.Code.GetValue())
+		assert.Equal(t, api.ExistedResource, createRsp.Code.GetValue(), createRsp.GetInfo().GetValue())
 	})
 
 	t.Run("second-query", func(t *testing.T) {

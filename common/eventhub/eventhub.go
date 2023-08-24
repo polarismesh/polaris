@@ -19,22 +19,33 @@ package eventhub
 
 import (
 	"context"
+	"errors"
 	"sync"
 )
 
 var (
-	initOnce sync.Once
-	eh       *eventHub
+	initOnce       sync.Once
+	globalEventHub *eventHub
+)
+
+var (
+	ErrorEventhubNotInitialize = errors.New("eventhub not initialize")
 )
 
 // InitEventHub initialize event hub
 func InitEventHub() {
 	initOnce.Do(func() {
-		eh = &eventHub{
-			topics: make(map[string]*topic),
-		}
-		eh.ctx, eh.cancel = context.WithCancel(context.Background())
+		globalEventHub = createEventhub()
 	})
+}
+
+func createEventhub() *eventHub {
+	ctx, cancel := context.WithCancel(context.Background())
+	return &eventHub{
+		ctx:    ctx,
+		cancel: cancel,
+		topics: make(map[string]*topic),
+	}
 }
 
 // Event evnt type
@@ -51,12 +62,17 @@ type eventHub struct {
 // Publish pushlish event to topic
 // @param topic Topic name
 // @param event Event object
-func Publish(topic string, event Event) {
-	if eh == nil {
-		return
+func Publish(topic string, event Event) error {
+	if globalEventHub == nil {
+		return ErrorEventhubNotInitialize
 	}
+	return globalEventHub.Publish(topic, event)
+}
+
+func (eh *eventHub) Publish(topic string, event Event) error {
 	t := eh.getTopic(topic)
 	t.publish(eh.ctx, event)
+	return nil
 }
 
 // Subscribe subscribe topic
@@ -65,38 +81,35 @@ func Publish(topic string, event Event) {
 // @param handler Message handler
 // @param opts Subscription options
 // @return error Subscribe failed, return error
-func Subscribe(topic string, name string, handler Handler, opts ...SubOption) error {
-	if eh == nil {
-		return nil
+func Subscribe(topic string, handler Handler, opts ...SubOption) (*SubscribtionContext, error) {
+	if globalEventHub == nil {
+		return nil, ErrorEventhubNotInitialize
 	}
-	t := eh.getTopic(topic)
-	return t.subscribe(eh.ctx, name, handler, opts...)
+	return globalEventHub.Subscribe(topic, handler, opts...)
 }
 
-// Unsubscribe unsubscribe topic
-// @param topic Topic name
-// @param name Subscribe name
-func Unsubscribe(topic string, name string) {
-	if eh == nil {
-		return
-	}
-	t := eh.getTopic(topic)
-	t.unsubscribe(eh.ctx, name)
+func (e *eventHub) Subscribe(topic string, handler Handler,
+	opts ...SubOption) (*SubscribtionContext, error) {
+	t := e.getTopic(topic)
+	return t.subscribe(e.ctx, handler, opts...)
 }
 
 // Shutdown shutdown event hub
 func Shutdown() {
-	if eh == nil {
+	if globalEventHub == nil {
 		return
 	}
-	eh.mu.Lock()
-	defer eh.mu.Unlock()
+	globalEventHub.shutdown()
+}
 
-	eh.cancel()
+func (e *eventHub) shutdown() {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 
-	for _, t := range eh.topics {
-		t.close(eh.ctx)
-		delete(eh.topics, t.name)
+	e.cancel()
+	for _, t := range e.topics {
+		t.close(e.ctx)
+		delete(e.topics, t.name)
 	}
 }
 

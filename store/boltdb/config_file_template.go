@@ -20,10 +20,11 @@ package boltdb
 import (
 	"time"
 
-	"github.com/boltdb/bolt"
+	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/store"
 )
 
 const (
@@ -32,22 +33,12 @@ const (
 )
 
 type configFileTemplateStore struct {
-	id      uint64
 	handler BoltHandler
 }
 
-func newConfigFileTemplateStore(handler BoltHandler) (*configFileTemplateStore, error) {
-	s := &configFileTemplateStore{handler: handler, id: 0}
-	ret, err := handler.LoadValues(tblConfigFileTemplateID, []string{tblConfigFileTemplateID}, &IDHolder{})
-	if err != nil {
-		return nil, err
-	}
-	if len(ret) == 0 {
-		return s, nil
-	}
-	val := ret[tblConfigFileTemplateID].(*IDHolder)
-	s.id = val.ID
-	return s, nil
+func newConfigFileTemplateStore(handler BoltHandler) *configFileTemplateStore {
+	s := &configFileTemplateStore{handler: handler}
+	return s
 }
 
 // QueryAllConfigFileTemplates query all config file templates
@@ -114,17 +105,18 @@ func (cf *configFileTemplateStore) CreateConfigFileTemplate(
 		_ = tx.Rollback()
 	}()
 
-	cf.id++
-	template.Id = cf.id
+	table, err := tx.CreateBucketIfNotExists([]byte(tblConfigFile))
+	if err != nil {
+		return nil, store.Error(err)
+	}
+	nextId, err := table.NextSequence()
+	if err != nil {
+		return nil, store.Error(err)
+	}
+
+	template.Id = nextId
 	template.CreateTime = time.Now()
 	template.ModifyTime = time.Now()
-
-	if err := saveValue(tx, tblConfigFileTemplateID, tblConfigFileTemplateID, &IDHolder{
-		ID: cf.id,
-	}); err != nil {
-		log.Error("[ConfigFileTemplate] save auto_increment id", zap.Error(err))
-		return nil, err
-	}
 
 	key := template.Name
 	if err := saveValue(tx, tblConfigFileTemplate, key, template); err != nil {

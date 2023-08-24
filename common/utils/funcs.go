@@ -19,6 +19,7 @@ package utils
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"strings"
 
 	"github.com/google/uuid"
@@ -97,6 +98,11 @@ func IsWildMatchIgnoreCase(name, pattern string) bool {
 	return IsWildMatch(strings.ToLower(name), strings.ToLower(pattern))
 }
 
+// IsWildNotMatch .
+func IsWildNotMatch(name, pattern string) bool {
+	return !IsWildMatch(name, pattern)
+}
+
 // IsWildMatch 判断 name 是否匹配 pattern，pattern 可以是前缀或者后缀
 func IsWildMatch(name, pattern string) bool {
 	if IsPrefixWildName(pattern) {
@@ -149,4 +155,51 @@ func StringSliceDeDuplication(s []string) []string {
 	}
 
 	return res
+}
+
+func MustJson(v interface{}) string {
+	data, err := json.Marshal(v)
+	_ = err
+	return string(data)
+}
+
+// IsNotEqualMap metadata need update
+func IsNotEqualMap(req map[string]string, old map[string]string) bool {
+	if req == nil {
+		return false
+	}
+
+	if len(req) != len(old) {
+		return true
+	}
+
+	needUpdate := false
+	for key, value := range req {
+		oldValue, ok := old[key]
+		if !ok {
+			needUpdate = true
+			break
+		}
+		if value != oldValue {
+			needUpdate = true
+			break
+		}
+	}
+	if needUpdate {
+		return needUpdate
+	}
+
+	for key, value := range old {
+		newValue, ok := req[key]
+		if !ok {
+			needUpdate = true
+			break
+		}
+		if value != newValue {
+			needUpdate = true
+			break
+		}
+	}
+
+	return needUpdate
 }

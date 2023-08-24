@@ -19,11 +19,11 @@ package heartbeatmemory
 
 import (
 	"context"
-	"sync"
 	"sync/atomic"
 
 	commonLog "github.com/polarismesh/polaris/common/log"
 	commontime "github.com/polarismesh/polaris/common/time"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 )
 
@@ -44,7 +44,7 @@ type HeartbeatRecord struct {
 
 // MemoryHealthChecker memory health checker
 type MemoryHealthChecker struct {
-	hbRecords      *sync.Map
+	hbRecords      *utils.SyncMap[string, *HeartbeatRecord]
 	suspendTimeSec int64
 }
 
@@ -55,7 +55,7 @@ func (r *MemoryHealthChecker) Name() string {
 
 // Initialize initialize plugin
 func (r *MemoryHealthChecker) Initialize(c *plugin.ConfigEntry) error {
-	r.hbRecords = &sync.Map{}
+	r.hbRecords = utils.NewSyncMap[string, *HeartbeatRecord]()
 	return nil
 }
 
@@ -71,7 +71,7 @@ func (r *MemoryHealthChecker) Type() plugin.HealthCheckType {
 
 // Report process heartbeat info report
 func (r *MemoryHealthChecker) Report(ctx context.Context, request *plugin.ReportRequest) error {
-	record := HeartbeatRecord{
+	record := &HeartbeatRecord{
 		Server:     request.LocalHost,
 		CurTimeSec: request.CurTimeSec,
 		Count:      request.Count,
@@ -83,13 +83,12 @@ func (r *MemoryHealthChecker) Report(ctx context.Context, request *plugin.Report
 
 // Query queries the heartbeat time
 func (r *MemoryHealthChecker) Query(ctx context.Context, request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
-	recordValue, ok := r.hbRecords.Load(request.InstanceId)
+	record, ok := r.hbRecords.Load(request.InstanceId)
 	if !ok {
 		return &plugin.QueryResponse{
 			LastHeartbeatSec: 0,
 		}, nil
 	}
-	record := recordValue.(HeartbeatRecord)
 	log.Debugf("[HealthCheck][MemoryCheck]query hb record, instanceId %s, record %+v", request.InstanceId, record)
 	return &plugin.QueryResponse{
 		Server:           record.Server,
@@ -151,16 +150,6 @@ func (r *MemoryHealthChecker) Check(request *plugin.CheckRequest) (*plugin.Check
 	}
 
 	return checkResp, nil
-}
-
-// AddToCheck add the instances to check procedure
-func (r *MemoryHealthChecker) AddToCheck(request *plugin.AddCheckRequest) error {
-	return nil
-}
-
-// RemoveFromCheck removes the instances from check procedure
-func (r *MemoryHealthChecker) RemoveFromCheck(request *plugin.AddCheckRequest) error {
-	return nil
 }
 
 // Delete delete the id

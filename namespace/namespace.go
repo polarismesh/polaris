@@ -201,19 +201,6 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *apimodel.Namespace) *
 		return api.NewNamespaceResponse(apimodel.Code_NamespaceExistedServices, req)
 	}
 
-	// 判断属于该命名空间的熔断规则是否都已经被删除
-	total, err = s.getCircuitBreakerCountWithNamespace(namespace.Name)
-	if err != nil {
-		log.Error("get circuitBreakers count with namespace err",
-			utils.ZapRequestID(requestID),
-			zap.String("err", err.Error()))
-		return api.NewNamespaceResponse(commonstore.StoreCode2APICode(err), req)
-	}
-	if total != 0 {
-		log.Error("the removed namespace has remain circuitBreakers", utils.ZapRequestID(requestID))
-		return api.NewNamespaceResponse(apimodel.Code_NamespaceExistedCircuitBreakers, req)
-	}
-
 	// 判断属于该命名空间的服务是否都已经被删除
 	total, err = s.getConfigGroupCountWithNamespace(namespace.Name)
 	if err != nil {
@@ -411,21 +398,11 @@ func (s *Server) getServicesCountWithNamespace(namespace string) (uint32, error)
 
 // 根据命名空间查询配置分组总数
 func (s *Server) getConfigGroupCountWithNamespace(namespace string) (uint32, error) {
-	total, _, err := s.storage.QueryConfigFileGroups(namespace, "", 0, 1)
+	total, err := s.storage.CountConfigGroups(namespace)
 	if err != nil {
 		return 0, err
 	}
-	return total, nil
-}
-
-// 根据命名空间查询熔断规则数量
-func (s *Server) getCircuitBreakerCountWithNamespace(namespace string) (uint32, error) {
-	filter := map[string]string{"namespace": namespace}
-	details, err := s.storage.ListMasterCircuitBreakers(filter, 0, 1)
-	if err != nil {
-		return 0, err
-	}
-	return details.Total, nil
+	return uint32(total), nil
 }
 
 // loadNamespace

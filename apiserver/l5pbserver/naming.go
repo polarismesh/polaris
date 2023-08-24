@@ -29,7 +29,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/api/l5"
-	l5common "github.com/polarismesh/polaris/common/cl5"
+	"github.com/polarismesh/polaris/common/model"
 )
 
 type l5Code uint32
@@ -115,8 +115,8 @@ func (l *L5pbserver) handleRequest(req *cl5Request, requestData []byte) l5Code {
 // handleSyncByAgentCmd 根据SID列表获取路由信息
 func (l *L5pbserver) handleSyncByAgentCmd(conn net.Conn, iPkg *l5.Cl5Pkg) l5Code {
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, l5common.Cl5ServerCluster{}, l.clusterName)
-	ctx = context.WithValue(ctx, l5common.Cl5ServerProtocol{}, l.GetProtocol())
+	ctx = context.WithValue(ctx, model.Cl5ServerCluster{}, l.clusterName)
+	ctx = context.WithValue(ctx, model.Cl5ServerProtocol{}, l.GetProtocol())
 	syncByAgentAck, err := l.namingServer.SyncByAgentCmd(ctx, iPkg.GetSyncByAgentCmd())
 	if err != nil {
 		log.Errorf("%v", err)

@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth
+package defaultauth_test
 
 import (
 	"context"
@@ -30,6 +30,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
@@ -55,7 +56,7 @@ type StrategyTest struct {
 	cacheMgn *cache.CacheManager
 	checker  auth.AuthChecker
 
-	svr *strategyAuthAbility
+	svr *defaultauth.StrategyAuthAbility
 
 	cancel context.CancelFunc
 
@@ -79,7 +80,7 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 	allStrategies = append(allStrategies, defaultStrategies...)
 	allStrategies = append(allStrategies, strategies...)
 
-	storage := storemock.NewMockStore(ctrl)
+	cfg, storage := initCache(ctrl)
 
 	storage.EXPECT().GetServicesCount().AnyTimes().Return(uint32(1), nil)
 	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
@@ -91,17 +92,13 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 	storage.EXPECT().GetStrategyResources(gomock.Eq(users[1].ID), gomock.Any()).AnyTimes().Return(strategies[1].Resources, nil)
 	storage.EXPECT().GetStrategyResources(gomock.Eq(groups[1].ID), gomock.Any()).AnyTimes().Return(strategies[len(users)-1+2].Resources, nil)
 
-	cfg, _ := initCache(ctrl)
-
 	ctx, cancel := context.WithCancel(context.Background())
 	cacheMgn, err := cache.TestCacheInitialize(ctx, cfg, storage)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	time.Sleep(2 * time.Second)
-
-	checker := &defaultAuthChecker{}
+	checker := &defaultauth.DefaultAuthChecker{}
 	checker.Initialize(&auth.Config{
 		User: &auth.UserConfig{
 			Name: "",
@@ -118,16 +115,16 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 			},
 		},
 	}, storage, cacheMgn)
-	checker.cacheMgn = cacheMgn
+	checker.SetCacheMgr(cacheMgn)
 
-	svr := &strategyAuthAbility{
-		authMgn: checker,
-		target: &server{
-			storage:  storage,
-			cacheMgn: cacheMgn,
-			authMgn:  checker,
-		},
-	}
+	t.Cleanup(func() {
+		cacheMgn.Close()
+	})
+
+	svr := defaultauth.NewStrategyAuthAbility(
+		checker,
+		defaultauth.NewServer(storage, nil, cacheMgn, checker),
+	)
 
 	return &StrategyTest{
 		ownerOne: users[0],
@@ -154,9 +151,7 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 
 func (g *StrategyTest) Clean() {
 	g.cancel()
-	_ = g.cacheMgn.Clear()
-	g.ctrl.Finish()
-	time.Sleep(5 * time.Second)
+	_ = g.cacheMgn.Close()
 }
 
 func Test_GetPrincipalResources(t *testing.T) {
@@ -624,6 +619,7 @@ func Test_GetStrategy(t *testing.T) {
 		// 主账户查询自己的策略
 		strategyTest.storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategyTest.strategies[0], nil)
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
+		_ = strategyTest.cacheMgn.TestUpdate()
 		resp := strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[0].ID},
 		})
@@ -632,6 +628,7 @@ func Test_GetStrategy(t *testing.T) {
 		// 主账户查询自己自账户的策略
 		strategyTest.storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategyTest.strategies[1], nil)
 		valCtx = context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
+		_ = strategyTest.cacheMgn.TestUpdate()
 		resp = strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[1].ID},
 		})
@@ -639,7 +636,13 @@ func Test_GetStrategy(t *testing.T) {
 	})
 
 	t.Run("查询鉴权策略-目标owner不为自己", func(t *testing.T) {
-		index := rand.Intn(len(strategyTest.defaultStrategies))
+		var index int
+		for {
+			index = rand.Intn(len(strategyTest.defaultStrategies))
+			if index != 2 {
+				break
+			}
+		}
 		oldOwner := strategyTest.strategies[index].Owner
 
 		defer func() {
@@ -647,13 +650,13 @@ func Test_GetStrategy(t *testing.T) {
 		}()
 
 		strategyTest.strategies[index].Owner = strategyTest.users[2].ID
-
 		strategyTest.storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategyTest.strategies[index], nil)
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
 
+		_ = strategyTest.cacheMgn.TestUpdate()
 		resp := strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
-			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[0].ID},
+			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[index].ID},
 		})
 
 		assert.Equal(t, api.NotAllowedAccess, resp.Code.GetValue(), resp.Info.GetValue())
@@ -665,6 +668,7 @@ func Test_GetStrategy(t *testing.T) {
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[1].Token)
 
+		_ = strategyTest.cacheMgn.TestUpdate()
 		resp := strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[1].ID},
 		})
@@ -677,6 +681,7 @@ func Test_GetStrategy(t *testing.T) {
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[1].Token)
 
+		_ = strategyTest.cacheMgn.TestUpdate()
 		resp := strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[len(strategyTest.users)-1+2].ID},
 		})
@@ -689,6 +694,7 @@ func Test_GetStrategy(t *testing.T) {
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[1].Token)
 
+		_ = strategyTest.cacheMgn.TestUpdate()
 		resp := strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: strategyTest.strategies[2].ID},
 		})
@@ -701,6 +707,7 @@ func Test_GetStrategy(t *testing.T) {
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[1].Token)
 
+		_ = strategyTest.cacheMgn.TestUpdate()
 		resp := strategyTest.svr.GetStrategy(valCtx, &apisecurity.AuthStrategy{
 			Id: &wrapperspb.StringValue{Value: utils.NewUUID()},
 		})
@@ -818,7 +825,7 @@ func Test_parseStrategySearchArgs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := parseStrategySearchArgs(tt.args.ctx, tt.args.searchFilters); !reflect.DeepEqual(got, tt.want) {
+			if got := defaultauth.TestParseStrategySearchArgs(tt.args.ctx, tt.args.searchFilters); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("parseStrategySearchArgs() = %v, want %v", got, tt.want)
 			}
 		})
@@ -827,15 +834,20 @@ func Test_parseStrategySearchArgs(t *testing.T) {
 
 func Test_AuthServer_NormalOperateStrategy(t *testing.T) {
 	suit := &AuthTestSuit{}
-	if err := suit.initialize(); err != nil {
+	if err := suit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
-	defer suit.Destroy()
+	t.Cleanup(func() {
+		suit.cleanAllAuthStrategy()
+		suit.cleanAllUser()
+		suit.cleanAllUserGroup()
+		suit.Destroy()
+	})
 
 	users := createApiMockUser(10, "test")
 
 	t.Run("正常创建用户", func(t *testing.T) {
-		resp := suit.userMgn.CreateUsers(suit.defaultCtx, users)
+		resp := suit.UserServer().CreateUsers(suit.DefaultCtx, users)
 
 		if !respSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())
@@ -844,13 +856,13 @@ func Test_AuthServer_NormalOperateStrategy(t *testing.T) {
 
 	t.Run("正常更新用户", func(t *testing.T) {
 		users[0].Comment = utils.NewStringValue("update user comment")
-		resp := suit.userMgn.UpdateUser(suit.defaultCtx, users[0])
+		resp := suit.UserServer().UpdateUser(suit.DefaultCtx, users[0])
 
 		if !respSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())
 		}
 
-		qresp := suit.userMgn.GetUsers(suit.defaultCtx, map[string]string{
+		qresp := suit.UserServer().GetUsers(suit.DefaultCtx, map[string]string{
 			"id": users[0].GetId().GetValue(),
 		})
 
@@ -866,13 +878,13 @@ func Test_AuthServer_NormalOperateStrategy(t *testing.T) {
 	})
 
 	t.Run("正常删除用户", func(t *testing.T) {
-		resp := suit.userMgn.DeleteUsers(suit.defaultCtx, []*apisecurity.User{users[3]})
+		resp := suit.UserServer().DeleteUsers(suit.DefaultCtx, []*apisecurity.User{users[3]})
 
 		if !respSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())
 		}
 
-		qresp := suit.userMgn.GetUsers(suit.defaultCtx, map[string]string{
+		qresp := suit.UserServer().GetUsers(suit.DefaultCtx, map[string]string{
 			"id": users[3].GetId().GetValue(),
 		})
 
@@ -885,15 +897,15 @@ func Test_AuthServer_NormalOperateStrategy(t *testing.T) {
 	})
 
 	t.Run("正常更新用户Token", func(t *testing.T) {
-		resp := suit.userMgn.ResetUserToken(suit.defaultCtx, users[0])
+		resp := suit.UserServer().ResetUserToken(suit.DefaultCtx, users[0])
 
 		if !respSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())
 		}
 
-		time.Sleep(suit.updateCacheInterval)
+		_ = suit.CacheMgr().TestUpdate()
 
-		qresp := suit.userMgn.GetUserToken(suit.defaultCtx, users[0])
+		qresp := suit.UserServer().GetUserToken(suit.DefaultCtx, users[0])
 		if !respSuccess(qresp) {
 			t.Fatal(resp.GetInfo().GetValue())
 		}

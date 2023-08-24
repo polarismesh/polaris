@@ -28,18 +28,15 @@ import (
 var (
 	TestCacheInitialize = func(ctx context.Context, cacheOpt *Config, storage store.Store) (*CacheManager, error) {
 		mgr, err := newCacheManager(ctx, cacheOpt, storage)
+		if err != nil {
+			return nil, err
+		}
 		if err := Run(mgr, ctx); err != nil {
 			return nil, err
 		}
 		return mgr, err
 	}
 )
-
-// TestRefresh only for test
-func (nc *CacheManager) TestRefresh() error {
-	_ = nc.clear()
-	return nc.update()
-}
 
 // TestUpdate only for test
 func (nc *CacheManager) TestUpdate() error {

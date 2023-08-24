@@ -30,7 +30,7 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	commonstore "github.com/polarismesh/polaris/common/store"
@@ -286,7 +286,7 @@ func (s *Server) GetRateLimits(ctx context.Context, query map[string]string) *ap
 	return out
 }
 
-func parseRateLimitArgs(query map[string]string) (*cache.RateLimitRuleArgs, *apiservice.BatchQueryResponse) {
+func parseRateLimitArgs(query map[string]string) (*cachetypes.RateLimitRuleArgs, *apiservice.BatchQueryResponse) {
 	for key := range query {
 		if _, ok := RateLimitFilters[key]; !ok {
 			log.Errorf("params %s is not allowed in querying rate limits", key)
@@ -299,7 +299,7 @@ func parseRateLimitArgs(query map[string]string) (*cache.RateLimitRuleArgs, *api
 		return nil, api.NewBatchQueryResponse(apimodel.Code_InvalidParameter)
 	}
 
-	args := &cache.RateLimitRuleArgs{
+	args := &cachetypes.RateLimitRuleArgs{
 		Filter:     query,
 		ID:         query["id"],
 		Name:       query["name"],

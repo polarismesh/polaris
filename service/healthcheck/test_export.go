@@ -19,11 +19,8 @@ package healthcheck
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
-	"github.com/polarismesh/polaris/common/eventhub"
-	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/service/batch"
 	"github.com/polarismesh/polaris/store"
@@ -35,73 +32,45 @@ func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batc
 	testServer := new(Server)
 	testServer.hcOpt = hcOpt
 
-	if !hcOpt.Open {
-		return nil, errors.New("healthcheck not open")
-	}
 	if !cacheOpen {
 		return nil, fmt.Errorf("[healthcheck]cache not open")
 	}
 	hcOpt.SetDefault()
-	if len(hcOpt.Checkers) > 0 {
-		testServer.checkers = make(map[int32]plugin.HealthChecker, len(hcOpt.Checkers))
-		for _, entry := range hcOpt.Checkers {
-			checker := plugin.GetHealthChecker(entry.Name, &entry)
-			if checker == nil {
-				return nil, fmt.Errorf("[healthcheck]unknown healthchecker %s", entry.Name)
+	if hcOpt.Open {
+		if len(hcOpt.Checkers) > 0 {
+			testServer.checkers = make(map[int32]plugin.HealthChecker, len(hcOpt.Checkers))
+			for _, entry := range hcOpt.Checkers {
+				checker := plugin.GetHealthChecker(entry.Name, &entry)
+				if checker == nil {
+					return nil, fmt.Errorf("[healthcheck]unknown healthchecker %s", entry.Name)
+				}
+				// The same health type check plugin can only exist in one
+				_, exist := testServer.checkers[int32(checker.Type())]
+				if exist {
+					return nil, fmt.Errorf("[healthcheck]duplicate healthchecker %s, checkType %d",
+						entry.Name, checker.Type())
+				}
+				testServer.checkers[int32(checker.Type())] = checker
+				if nil == testServer.defaultChecker {
+					testServer.defaultChecker = checker
+				}
 			}
-			// The same health type check plugin can only exist in one
-			_, exist := testServer.checkers[int32(checker.Type())]
-			if exist {
-				return nil, fmt.Errorf("[healthcheck]duplicate healthchecker %s, checkType %d",
-					entry.Name, checker.Type())
-			}
-
-			testServer.checkers[int32(checker.Type())] = checker
-			if nil == testServer.defaultChecker {
-				testServer.defaultChecker = checker
-			}
+		} else {
+			return nil, fmt.Errorf("[healthcheck]no checker config")
 		}
-	} else {
-		return nil, fmt.Errorf("[healthcheck]no checker config")
 	}
-
 	testServer.storage = storage
 	testServer.bc = bc
 
 	testServer.localHost = hcOpt.LocalHost
 	testServer.history = plugin.GetHistory()
+	testServer.discoverEvent = plugin.GetDiscoverEvent()
 
 	testServer.cacheProvider = newCacheProvider(hcOpt.Service, testServer)
-	testServer.timeAdjuster = newTimeAdjuster(ctx, storage)
+	testServer.timeAdjuster = newTimeAdjuster(ctx, testServer.storage)
 	testServer.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval,
 		hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)
 	testServer.dispatcher = newDispatcher(ctx, testServer)
-
-	testServer.instanceEventChannel = make(chan *model.InstanceEvent, 1000)
-	go testServer.handleInstanceEventWorker(ctx)
-
-	leaderChangeEventHandler := newLeaderChangeEventHandler(testServer.cacheProvider, hcOpt.MinCheckInterval)
-	if err := eventhub.Subscribe(eventhub.LeaderChangeEventTopic, "selfServiceChecker",
-		leaderChangeEventHandler); err != nil {
-		return nil, err
-	}
-
-	instanceEventHandler := newInstanceEventHealthCheckHandler(ctx, server.instanceEventChannel)
-	if err := eventhub.Subscribe(eventhub.InstanceEventTopic, "instanceHealthChecker",
-		instanceEventHandler); err != nil {
-		return nil, err
-	}
-
-	if err := testServer.storage.StartLeaderElection(store.ElectionKeySelfServiceChecker); err != nil {
-		return nil, err
-	}
-
 	finishInit = true
-
-	return testServer, nil
-}
-
-func TestDestroy() {
-	eventhub.Unsubscribe(eventhub.LeaderChangeEventTopic, "selfServiceChecker")
-	eventhub.Unsubscribe(eventhub.InstanceEventTopic, "instanceHealthChecker")
+	return testServer, testServer.run(ctx)
 }

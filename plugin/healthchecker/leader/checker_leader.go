@@ -109,6 +109,8 @@ type LeaderHealthChecker struct {
 	putBatchCtrl *batchjob.BatchController
 	// getBatchCtrl 批任务执行器
 	getBatchCtrl *batchjob.BatchController
+	// subCtx
+	subCtx *eventhub.SubscribtionContext
 }
 
 // Name .
@@ -129,9 +131,11 @@ func (c *LeaderHealthChecker) Initialize(entry *plugin.ConfigEntry) error {
 	if err := c.self.Serve(context.Background(), c, "", 0); err != nil {
 		return err
 	}
-	if err := eventhub.Subscribe(eventhub.LeaderChangeEventTopic, subscriberName, c); err != nil {
+	subCtx, err := eventhub.Subscribe(eventhub.LeaderChangeEventTopic, c)
+	if err != nil {
 		return err
 	}
+	c.subCtx = subCtx
 	if c.s == nil {
 		storage, err := store.GetStore()
 		if err != nil {
@@ -198,10 +202,12 @@ func (c *LeaderHealthChecker) becomeLeader() {
 		_ = c.remote.Close()
 		c.remote = nil
 	}
+	if !c.isLeader() {
+		plog.Info("[HealthCheck][Leader] self become leader")
+	}
 	// leader 指向自己
 	atomic.StoreInt32(&c.leader, 1)
 	atomic.StoreInt32(&c.initialize, initializedSignal)
-	plog.Info("[HealthCheck][Leader] self become leader")
 }
 
 func (c *LeaderHealthChecker) becomeFollower(e store.LeaderChangeEvent, leaderVersion int64) {
@@ -250,7 +256,7 @@ func (c *LeaderHealthChecker) becomeFollower(e store.LeaderChangeEvent, leaderVe
 
 // Destroy .
 func (c *LeaderHealthChecker) Destroy() error {
-	eventhub.Unsubscribe(eventhub.LeaderChangeEventTopic, subscriberName)
+	c.subCtx.Cancel()
 	return nil
 }
 
@@ -362,18 +368,6 @@ func (c *LeaderHealthChecker) Query(ctx context.Context, request *plugin.QueryRe
 		Count:            record.Record.Count,
 		Exists:           record.Exist,
 	}, nil
-}
-
-// AddToCheck add the instances to check procedure
-// NOTE: not support in LeaderHealthChecker
-func (c *LeaderHealthChecker) AddToCheck(request *plugin.AddCheckRequest) error {
-	return nil
-}
-
-// RemoveFromCheck removes the instances from check procedure
-// NOTE: not support in LeaderHealthChecker
-func (c *LeaderHealthChecker) RemoveFromCheck(request *plugin.AddCheckRequest) error {
-	return nil
 }
 
 // Delete delete record by key

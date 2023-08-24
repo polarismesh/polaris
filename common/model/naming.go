@@ -37,30 +37,36 @@ type Namespace struct {
 	ModifyTime time.Time
 }
 
+type ServicePort struct {
+	Port     uint32
+	Protocol string
+}
+
 // Service 服务数据
 type Service struct {
-	ID          string
-	Name        string
-	Namespace   string
-	Business    string
-	Ports       string
-	Meta        map[string]string
-	Comment     string
-	Department  string
-	CmdbMod1    string
-	CmdbMod2    string
-	CmdbMod3    string
-	Token       string
-	Owner       string
-	Revision    string
-	Reference   string
-	ReferFilter string
-	PlatformID  string
-	Valid       bool
-	CreateTime  time.Time
-	ModifyTime  time.Time
-	Mtime       int64
-	Ctime       int64
+	ID           string
+	Name         string
+	Namespace    string
+	Business     string
+	Ports        string
+	Meta         map[string]string
+	Comment      string
+	Department   string
+	CmdbMod1     string
+	CmdbMod2     string
+	CmdbMod3     string
+	Token        string
+	Owner        string
+	Revision     string
+	Reference    string
+	ReferFilter  string
+	PlatformID   string
+	Valid        bool
+	CreateTime   time.Time
+	ModifyTime   time.Time
+	Mtime        int64
+	Ctime        int64
+	ServicePorts []*ServicePort
 }
 
 // EnhancedService 服务增强数据
@@ -74,6 +80,20 @@ type EnhancedService struct {
 type ServiceKey struct {
 	Namespace string
 	Name      string
+}
+
+func (s *ServiceKey) Equal(o *ServiceKey) bool {
+	if s == nil {
+		return false
+	}
+	if o == nil {
+		return false
+	}
+	return s.Name == o.Name && s.Namespace == o.Namespace
+}
+
+func (s *ServiceKey) IsExact() bool {
+	return s.Namespace != "" && s.Namespace != MatchAll && s.Name != "" && s.Name != MatchAll
 }
 
 // IsAlias 便捷函数封装
@@ -371,6 +391,12 @@ type CircuitBreakerRule struct {
 	EnableTime   time.Time
 }
 
+func (c *CircuitBreakerRule) IsServiceChange(other *CircuitBreakerRule) bool {
+	srcSvcEqual := c.SrcService == other.SrcService && c.SrcNamespace == other.SrcNamespace
+	dstSvcEqual := c.DstService == other.DstService && c.DstNamespace == other.DstNamespace
+	return !srcSvcEqual || !dstSvcEqual
+}
+
 // FaultDetectRule 故障探测规则
 type FaultDetectRule struct {
 	Proto        *apifault.FaultDetectRule
@@ -386,4 +412,9 @@ type FaultDetectRule struct {
 	Valid        bool
 	CreateTime   time.Time
 	ModifyTime   time.Time
+}
+
+func (c *FaultDetectRule) IsServiceChange(other *FaultDetectRule) bool {
+	dstSvcEqual := c.DstService == other.DstService && c.DstNamespace == other.DstNamespace
+	return !dstSvcEqual
 }

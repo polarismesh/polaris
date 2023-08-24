@@ -29,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 const (
@@ -58,16 +59,16 @@ func newCounter() *counter {
 // Listener 包装 net.Listener
 type Listener struct {
 	net.Listener
-	protocol             string             // 协议，主要用以日志记录与全局对象索引
-	conns                sync.Map           // 保存 ip -> counter
-	maxConnPerHost       int32              // 每个IP最多的连接数
-	maxConnLimit         int32              // 当前listener最大的连接数限制
-	whiteList            map[string]bool    // 白名单列表
-	readTimeout          time.Duration      // 读超时
-	connCount            int32              // 当前listener保持连接的个数
-	purgeCounterInterval time.Duration      // 回收过期counter的
-	purgeCounterExpire   int64              // counter过期的秒数
-	purgeCancel          context.CancelFunc // 停止purge协程的ctx
+	protocol             string                           // 协议，主要用以日志记录与全局对象索引
+	conns                *utils.SyncMap[string, *counter] // 保存 ip -> counter
+	maxConnPerHost       int32                            // 每个IP最多的连接数
+	maxConnLimit         int32                            // 当前listener最大的连接数限制
+	whiteList            map[string]bool                  // 白名单列表
+	readTimeout          time.Duration                    // 读超时
+	connCount            int32                            // 当前listener保持连接的个数
+	purgeCounterInterval time.Duration                    // 回收过期counter的
+	purgeCounterExpire   int64                            // counter过期的秒数
+	purgeCancel          context.CancelFunc               // 停止purge协程的ctx
 }
 
 // NewListener returns a new listener
@@ -115,6 +116,7 @@ func NewListener(l net.Listener, protocol string, config *Config) (net.Listener,
 		readTimeout:          config.ReadTimeout,
 		purgeCounterInterval: config.PurgeCounterInterval,
 		purgeCounterExpire:   int64(config.PurgeCounterExpire / time.Second),
+		conns:                utils.NewSyncMap[string, *counter](),
 	}
 	// 把listener放到全局变量中，方便外部访问
 	if err := SetLimitListener(lis); err != nil {
@@ -146,8 +148,7 @@ func (l *Listener) Close() error {
 // GetHostConnCount 查看对应ip的连接数
 func (l *Listener) GetHostConnCount(host string) int32 {
 	var connNum int32
-	if value, ok := l.conns.Load(host); ok {
-		c := value.(*counter)
+	if c, ok := l.conns.Load(host); ok {
 		c.mu.RLock()
 		connNum = c.size
 		c.mu.RUnlock()
@@ -158,8 +159,7 @@ func (l *Listener) GetHostConnCount(host string) int32 {
 
 // Range 遍历当前持有连接的host
 func (l *Listener) Range(fn func(host string, count int32) bool) {
-	l.conns.Range(func(key, value interface{}) bool {
-		host := key.(string)
+	l.conns.Range(func(host string, value *counter) bool {
 		return fn(host, l.GetHostConnCount(host))
 	})
 }
@@ -172,7 +172,7 @@ func (l *Listener) GetListenerConnCount() int32 {
 // GetDistinctHostCount 获取当前缓存的host的个数
 func (l *Listener) GetDistinctHostCount() int32 {
 	var count int32
-	l.conns.Range(func(key, value interface{}) bool {
+	l.conns.Range(func(key string, value *counter) bool {
 		count++
 		return true
 	})
@@ -181,12 +181,11 @@ func (l *Listener) GetDistinctHostCount() int32 {
 
 // GetHostActiveConns 获取指定host的活跃的连接
 func (l *Listener) GetHostActiveConns(host string) map[string]*Conn {
-	obj, ok := l.conns.Load(host)
+	ct, ok := l.conns.Load(host)
 	if !ok {
 		return nil
 	}
 
-	ct := obj.(*counter)
 	ct.mu.RLock()
 	out := make(map[string]*Conn, len(ct.actives))
 	for address, conn := range ct.actives {
@@ -218,15 +217,15 @@ func (l *Listener) GetHostConnStats(host string) []*HostConnStat {
 	// 只获取一个，推荐每次只获取一个
 	if host != "" {
 		if obj, ok := l.conns.Load(host); ok {
-			out = append(out, loadStat(host, obj.(*counter)))
+			out = append(out, loadStat(host, obj))
 			return out
 		}
 		return nil
 	}
 
 	// 全量扫描，比较耗时
-	l.conns.Range(func(key, value interface{}) bool {
-		out = append(out, loadStat(key.(string), value.(*counter)))
+	l.conns.Range(func(key string, value *counter) bool {
+		out = append(out, loadStat(key, value))
 		return true
 	})
 	return out
@@ -234,12 +233,11 @@ func (l *Listener) GetHostConnStats(host string) []*HostConnStat {
 
 // GetHostConnection 获取指定host和port的连接
 func (l *Listener) GetHostConnection(host string, port int) *Conn {
-	obj, ok := l.conns.Load(host)
+	ct, ok := l.conns.Load(host)
 	if !ok {
 		return nil
 	}
 
-	ct := obj.(*counter)
 	target := fmt.Sprintf("%s:%d", host, port)
 	ct.mu.RLock()
 	defer ct.mu.RUnlock()
@@ -285,7 +283,7 @@ func (l *Listener) acquire(conn net.Conn, address string, host string) *Conn {
 		return limiterConn
 	}
 
-	value, ok := l.conns.Load(host)
+	c, ok := l.conns.Load(host)
 	// 首次访问, 置1返回ok
 	if !ok {
 		ctr := newCounter()
@@ -294,7 +292,6 @@ func (l *Listener) acquire(conn net.Conn, address string, host string) *Conn {
 		return limiterConn
 	}
 
-	c := value.(*counter)
 	c.mu.Lock() // release是并发的，因此需要加锁
 	// 如果连接数已经超过阈值, 则返回失败, 使用方要调用release减少计数
 	// 如果在白名单中，则直接忽略host连接限制
@@ -322,8 +319,7 @@ func (l *Listener) release(conn *Conn) {
 	log.Debugf("release conn for: %s", conn.host)
 	l.descConnCount()
 
-	if value, ok := l.conns.Load(conn.host); ok {
-		c := value.(*counter)
+	if c, ok := l.conns.Load(conn.host); ok {
 		c.mu.Lock()
 		c.size--
 		// map里面存储的是指针，可以不用store，这里直接对指针的内存操作
@@ -389,9 +385,8 @@ func (l *Listener) purgeExpireCounterHandler() {
 	start := time.Now()
 	scanCount := 0
 	purgeCount := 0
-	l.conns.Range(func(key, value interface{}) bool {
+	l.conns.Range(func(key string, ct *counter) bool {
 		scanCount++
-		ct := value.(*counter)
 		ct.mu.RLock()
 		if ct.size == 0 && time.Now().Unix()-ct.lastAccess > l.purgeCounterExpire {
 			// log.Infof("[Listener][%s] purge expire counter: %s", l.protocol, key.(string))

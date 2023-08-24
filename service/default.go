@@ -99,6 +99,7 @@ func initialize(ctx context.Context, namingOpt *Config, opts ...InitOption) erro
 	// l5service
 	namingServer.l5service = &l5service{}
 	namingServer.createServiceSingle = &singleflight.Group{}
+	namingServer.subCtxs = make([]*eventhub.SubscribtionContext, 0, 4)
 
 	for i := range opts {
 		opts[i](namingServer)
@@ -162,8 +163,9 @@ func pluginInitialize() {
 		BaseInstanceEventHandler: NewBaseInstanceEventHandler(namingServer),
 		subscriber:               subscriber,
 	}
-	if err := eventhub.Subscribe(eventhub.InstanceEventTopic, subscriber.Name(), eventHandler); err != nil {
+	subCtx, err := eventhub.Subscribe(eventhub.InstanceEventTopic, eventHandler)
+	if err != nil {
 		log.Warnf("register DiscoverEvent into eventhub:%s %v", subscriber.Name(), err)
 	}
-
+	namingServer.subCtxs = append(namingServer.subCtxs, subCtx)
 }

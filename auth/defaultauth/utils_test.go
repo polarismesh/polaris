@@ -15,13 +15,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth
+package defaultauth_test
 
 import (
 	"testing"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 
+	"github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -97,7 +98,7 @@ func Test_checkPassword(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := checkPassword(tt.args.password); (err != nil) != tt.wantErr {
+			if err := defaultauth.TestCheckPassword(tt.args.password); (err != nil) != tt.wantErr {
 				t.Errorf("checkPassword() error = %v, wantErr %v, args = %#v", err, tt.wantErr, tt.args.password.GetValue())
 			}
 		})
@@ -127,7 +128,7 @@ func Test_checkName(t *testing.T) {
 		},
 		{
 			args: args{
-				name: utils.NewStringValue("测试鉴-权策略_1"),
+				name: utils.NewStringValue("测试鉴-权策略_1."),
 			},
 			wantErr: false,
 		},
@@ -146,7 +147,7 @@ func Test_checkName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := checkName(tt.args.name); (err != nil) != tt.wantErr {
+			if err := defaultauth.TestCheckName(tt.args.name); (err != nil) != tt.wantErr {
 				t.Errorf("checkName() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

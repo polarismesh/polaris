@@ -28,7 +28,7 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
@@ -59,9 +59,11 @@ type Server struct {
 	discoverEvent        plugin.DiscoverChannel
 	localHost            string
 	bc                   *batch.Controller
-	serviceCache         cache.ServiceCache
-	instanceCache        cache.InstanceCache
+	serviceCache         cachetypes.ServiceCache
+	instanceCache        cachetypes.InstanceCache
 	instanceEventChannel chan *model.InstanceEvent
+
+	subCtxs []*eventhub.SubscribtionContext
 }
 
 // Initialize 初始化
@@ -81,32 +83,31 @@ func Initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 
 func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Controller) error {
 	server.hcOpt = hcOpt
-	if !hcOpt.Open {
-		return nil
-	}
 	if !cacheOpen {
 		return fmt.Errorf("[healthcheck]cache not open")
 	}
 	hcOpt.SetDefault()
-	if len(hcOpt.Checkers) > 0 {
-		server.checkers = make(map[int32]plugin.HealthChecker, len(hcOpt.Checkers))
-		for _, entry := range hcOpt.Checkers {
-			checker := plugin.GetHealthChecker(entry.Name, &entry)
-			if checker == nil {
-				return fmt.Errorf("[healthcheck]unknown healthchecker %s", entry.Name)
+	if hcOpt.Open {
+		if len(hcOpt.Checkers) > 0 {
+			server.checkers = make(map[int32]plugin.HealthChecker, len(hcOpt.Checkers))
+			for _, entry := range hcOpt.Checkers {
+				checker := plugin.GetHealthChecker(entry.Name, &entry)
+				if checker == nil {
+					return fmt.Errorf("[healthcheck]unknown healthchecker %s", entry.Name)
+				}
+				// The same health type check plugin can only exist in one
+				_, exist := server.checkers[int32(checker.Type())]
+				if exist {
+					return fmt.Errorf("[healthcheck]duplicate healthchecker %s, checkType %d", entry.Name, checker.Type())
+				}
+				server.checkers[int32(checker.Type())] = checker
+				if nil == server.defaultChecker {
+					server.defaultChecker = checker
+				}
 			}
-			// The same health type check plugin can only exist in one
-			_, exist := server.checkers[int32(checker.Type())]
-			if exist {
-				return fmt.Errorf("[healthcheck]duplicate healthchecker %s, checkType %d", entry.Name, checker.Type())
-			}
-			server.checkers[int32(checker.Type())] = checker
-			if nil == server.defaultChecker {
-				server.defaultChecker = checker
-			}
+		} else {
+			return fmt.Errorf("[healthcheck]no checker config")
 		}
-	} else {
-		return fmt.Errorf("[healthcheck]no checker config")
 	}
 	var err error
 	if server.storage, err = store.GetStore(); err != nil {
@@ -114,7 +115,7 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 	}
 
 	server.bc = bc
-
+	server.subCtxs = make([]*eventhub.SubscribtionContext, 0, 4)
 	server.localHost = hcOpt.LocalHost
 	server.history = plugin.GetHistory()
 	server.discoverEvent = plugin.GetDiscoverEvent()
@@ -124,25 +125,38 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 	server.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval,
 		hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)
 	server.dispatcher = newDispatcher(ctx, server)
+	return server.run(ctx)
+}
 
-	server.instanceEventChannel = make(chan *model.InstanceEvent, 1000)
-	go server.handleInstanceEventWorker(ctx)
-
-	leaderChangeEventHandler := newLeaderChangeEventHandler(server.cacheProvider, hcOpt.MinCheckInterval)
-	if err = eventhub.Subscribe(eventhub.LeaderChangeEventTopic, "selfServiceChecker",
-		leaderChangeEventHandler); err != nil {
-		return err
+func (s *Server) run(ctx context.Context) error {
+	if !s.isOpen() {
+		return nil
 	}
 
-	instanceEventHandler := newInstanceEventHealthCheckHandler(ctx, server.instanceEventChannel)
-	if err = eventhub.Subscribe(eventhub.InstanceEventTopic, "instanceHealthChecker",
-		instanceEventHandler); err != nil {
-		return err
-	}
-	if err = server.storage.StartLeaderElection(store.ElectionKeySelfServiceChecker); err != nil {
-		return err
-	}
+	s.checkScheduler.run(ctx)
+	go s.timeAdjuster.doTimeAdjust(ctx)
+	s.dispatcher.startDispatchingJob(ctx)
 
+	s.instanceEventChannel = make(chan *model.InstanceEvent, 1000)
+	go s.handleInstanceEventWorker(ctx)
+
+	leaderChangeEventHandler := newLeaderChangeEventHandler(s.cacheProvider, s.hcOpt.MinCheckInterval)
+	subCtx, err := eventhub.Subscribe(eventhub.LeaderChangeEventTopic, leaderChangeEventHandler)
+	if err != nil {
+		return err
+	}
+	s.subCtxs = append(s.subCtxs, subCtx)
+
+	instanceEventHandler := newInstanceEventHealthCheckHandler(ctx, s.instanceEventChannel)
+	subCtx, err = eventhub.Subscribe(eventhub.InstanceEventTopic, instanceEventHandler)
+	if err != nil {
+		return err
+	}
+	s.subCtxs = append(s.subCtxs, subCtx)
+
+	if err := s.storage.StartLeaderElection(store.ElectionKeySelfServiceChecker); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -161,6 +175,12 @@ func (s *Server) ReportByClient(ctx context.Context, req *apiservice.Client) *ap
 	return s.doReportByClient(ctx, req)
 }
 
+func (s *Server) Destroy() {
+	for i := range s.subCtxs {
+		s.subCtxs[i].Cancel()
+	}
+}
+
 // GetServer 获取已经初始化好的Server
 func GetServer() (*Server, error) {
 	if !finishInit {
@@ -176,12 +196,12 @@ func SetServer(srv *Server) {
 }
 
 // SetServiceCache 设置服务缓存
-func (s *Server) SetServiceCache(serviceCache cache.ServiceCache) {
+func (s *Server) SetServiceCache(serviceCache cachetypes.ServiceCache) {
 	s.serviceCache = serviceCache
 }
 
 // SetInstanceCache 设置服务实例缓存
-func (s *Server) SetInstanceCache(instanceCache cache.InstanceCache) {
+func (s *Server) SetInstanceCache(instanceCache cachetypes.InstanceCache) {
 	s.instanceCache = instanceCache
 }
 
@@ -199,7 +219,6 @@ func (s *Server) ListCheckerServer() []*model.Instance {
 	s.cacheProvider.selfServiceInstances.Range(func(instanceId string, value ItemWithChecker) {
 		ret = append(ret, value.GetInstance())
 	})
-
 	return ret
 }
 
@@ -224,7 +243,7 @@ func (s *Server) publishInstanceEvent(serviceID string, event model.InstanceEven
 	if event.Instance != nil {
 		// event.Instance = proto.Clone(event.Instance).(*apiservice.Instance)
 	}
-	eventhub.Publish(eventhub.InstanceEventTopic, event)
+	_ = eventhub.Publish(eventhub.InstanceEventTopic, event)
 }
 
 // GetLastHeartbeat 获取上一次心跳的时间
@@ -300,6 +319,10 @@ func (s *Server) handleInstanceEventWorker(ctx context.Context) {
 // Checkers get all health checker, for test only
 func (s *Server) Checkers() map[int32]plugin.HealthChecker {
 	return s.checkers
+}
+
+func (s *Server) isOpen() bool {
+	return s.hcOpt.Open
 }
 
 func currentTimeSec() int64 {

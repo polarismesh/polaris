@@ -181,7 +181,7 @@ func (a *ApplicationsWorker) cleanupExpiredLeases() {
 			startIndex = i
 			break
 		}
-		log.Infof("[Eureka]lease %s(%s) has expired, lastUpdateTime %d, curTimeSec %d",
+		eurekalog.Infof("[Eureka]lease %s(%s) has expired, lastUpdateTime %d, curTimeSec %d",
 			lease.instance.InstanceId, lease.instance.ActionType, lease.lastUpdateTimeSec, curTimeSec)
 	}
 	if startIndex == -1 && len(a.leases) > 0 {
@@ -305,7 +305,7 @@ func diffApplicationInstances(curTimeSec int64, oldApplication *Application, new
 }
 
 func addLease(out []*Lease, lease *Lease) []*Lease {
-	log.Infof("[EUREKA] add delta instance %s(%s)", lease.instance.InstanceId, lease.instance.ActionType)
+	eurekalog.Infof("[EUREKA] add delta instance %s(%s)", lease.instance.InstanceId, lease.instance.ActionType)
 	out = append(out, lease)
 	return out
 }

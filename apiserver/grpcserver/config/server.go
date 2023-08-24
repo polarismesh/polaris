@@ -60,7 +60,7 @@ func (g *ConfigGRPCServer) Initialize(ctx context.Context, option map[string]int
 	return g.BaseGrpcServer.Initialize(ctx, option,
 		grpcserver.WithModule(model.ConfigModule),
 		grpcserver.WithProtocol(g.GetProtocol()),
-		grpcserver.WithLogger(configLog),
+		grpcserver.WithLogger(commonlog.FindScope(commonlog.APIServerLoggerName)),
 	)
 }
 
@@ -72,7 +72,7 @@ func (g *ConfigGRPCServer) Run(errCh chan error) {
 			case "client":
 				if apiConfig.Enable {
 					apiconfig.RegisterPolarisConfigGRPCServer(server, g)
-					openMethod, getErr := getConfigClientOpenMethod(g.GetProtocol())
+					openMethod, getErr := GetClientOpenMethod(g.GetProtocol())
 					if getErr != nil {
 						return getErr
 					}
@@ -126,9 +126,10 @@ func (g *ConfigGRPCServer) allowAccess(method string) bool {
 	return g.BaseGrpcServer.AllowAccess(method)
 }
 
-func getConfigClientOpenMethod(protocol string) (map[string]bool, error) {
+// GetClientOpenMethod .
+func GetClientOpenMethod(protocol string) (map[string]bool, error) {
 	openMethods := []string{"GetConfigFile", "CreateConfigFile",
-		"UpdateConfigFile", "PublishConfigFile", "WatchConfigFiles"}
+		"UpdateConfigFile", "PublishConfigFile", "WatchConfigFiles", "GetConfigFileMetadataList"}
 
 	openMethod := make(map[string]bool)
 

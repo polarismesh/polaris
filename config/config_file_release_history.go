@@ -32,107 +32,74 @@ import (
 
 // recordReleaseHistory 新增配置文件发布历史记录
 func (s *Server) recordReleaseHistory(ctx context.Context, fileRelease *model.ConfigFileRelease,
-	releaseType, status string) {
+	releaseType, status, reason string) {
 
-	namespace, group, fileName := fileRelease.Namespace, fileRelease.Group, fileRelease.FileName
-
-	// 获取 format 信息
-	var format string
-	configFileResponse := s.GetConfigFileBaseInfo(ctx, namespace, group, fileName)
-	if configFileResponse.ConfigFile != nil {
-		format = configFileResponse.ConfigFile.Format.GetValue()
-	}
-
-	// 获取配置文件标签信息
-	tags, _ := s.queryTagsByConfigFileWithAPIModels(ctx, namespace, group, fileName)
 	releaseHistory := &model.ConfigFileReleaseHistory{
-		Name:      fileRelease.Name,
-		Namespace: namespace,
-		Group:     group,
-		FileName:  fileName,
-		Content:   fileRelease.Content,
-		Format:    format,
-		Tags:      ToTagJsonStr(tags),
-		Comment:   fileRelease.Comment,
-		Md5:       fileRelease.Md5,
-		Type:      releaseType,
-		Status:    status,
-		CreateBy:  fileRelease.ModifyBy,
-		ModifyBy:  fileRelease.ModifyBy,
+		Name:               fileRelease.Name,
+		Namespace:          fileRelease.Namespace,
+		Group:              fileRelease.Group,
+		FileName:           fileRelease.FileName,
+		Content:            fileRelease.Content,
+		Format:             fileRelease.Format,
+		Metadata:           fileRelease.Metadata,
+		Comment:            fileRelease.Comment,
+		Md5:                fileRelease.Md5,
+		Version:            fileRelease.Version,
+		Type:               releaseType,
+		Status:             status,
+		Reason:             reason,
+		CreateBy:           utils.ParseUserName(ctx),
+		ModifyBy:           utils.ParseUserName(ctx),
+		ReleaseDescription: fileRelease.ReleaseDescription,
 	}
 
-	if err := s.storage.CreateConfigFileReleaseHistory(s.getTx(ctx), releaseHistory); err != nil {
-		log.Error("[Config][Service] create config file release history error.", utils.ZapRequestIDByCtx(ctx),
+	if err := s.storage.CreateConfigFileReleaseHistory(releaseHistory); err != nil {
+		log.Error("[Config][History] create config file release history error.", utils.RequestID(ctx),
 			utils.ZapNamespace(fileRelease.Namespace), utils.ZapGroup(fileRelease.Group),
 			utils.ZapFileName(fileRelease.FileName), zap.Error(err))
 	}
 }
 
-// GetConfigFileReleaseHistory 获取配置文件发布历史记录
-func (s *Server) GetConfigFileReleaseHistory(ctx context.Context, namespace, group, fileName string, offset,
-	limit uint32, endId uint64) *apiconfig.ConfigBatchQueryResponse {
+// GetConfigFileReleaseHistories 获取配置文件发布历史记录
+func (s *Server) GetConfigFileReleaseHistories(ctx context.Context,
+	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
 
-	if limit > MaxPageSize {
-		return api.NewConfigFileReleaseHistoryBatchQueryResponse(apimodel.Code_InvalidParameter, 0, nil)
+	offset, limit, err := utils.ParseOffsetAndLimit(filter)
+	if err != nil {
+		return api.NewConfigBatchQueryResponseWithInfo(apimodel.Code_BadRequest, err.Error())
 	}
 
-	count, saveDatas, err := s.storage.QueryConfigFileReleaseHistories(namespace,
-		group, fileName, offset, limit, endId)
+	searchFilter := map[string]string{}
+	for k, v := range filter {
+		if nk, ok := availableSearch["config_file_release_history"][k]; ok {
+			searchFilter[nk] = v
+		}
+	}
+
+	count, saveDatas, err := s.storage.QueryConfigFileReleaseHistories(searchFilter, offset, limit)
 	if err != nil {
-		log.Error("[Config][Service] get config file release history error.", utils.ZapRequestIDByCtx(ctx),
-			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
-		return api.NewConfigFileReleaseHistoryBatchQueryResponse(commonstore.StoreCode2APICode(err), 0, nil)
+		log.Error("[Config][History] get config file release history error.", utils.RequestID(ctx),
+			zap.Any("filter", filter), zap.Error(err))
+		return api.NewConfigBatchQueryResponseWithInfo(commonstore.StoreCode2APICode(err), err.Error())
 	}
 
 	if len(saveDatas) == 0 {
-		return api.NewConfigFileReleaseHistoryBatchQueryResponse(apimodel.Code_ExecuteSuccess, count, nil)
+		out := api.NewConfigBatchQueryResponse(apimodel.Code_ExecuteSuccess)
+		out.Total = utils.NewUInt32Value(0)
+		return out
 	}
 
-	var apiReleaseHistory []*apiconfig.ConfigFileReleaseHistory
+	var histories []*apiconfig.ConfigFileReleaseHistory
 	for _, data := range saveDatas {
-		history := model.ToReleaseHistoryAPI(data)
-		for i := range s.chains {
-			_history, err := s.chains[i].AfterGetFileHistory(ctx, history)
-			if err != nil {
-				return api.NewConfigFileBatchQueryResponseWithMessage(commonstore.StoreCode2APICode(err), err.Error())
-			}
-			history = _history
-		}
-		apiReleaseHistory = append(apiReleaseHistory, history)
-	}
-	return api.NewConfigFileReleaseHistoryBatchQueryResponse(apimodel.Code_ExecuteSuccess, count, apiReleaseHistory)
-}
-
-// GetConfigFileLatestReleaseHistory 获取配置文件最后一次发布记录
-func (s *Server) GetConfigFileLatestReleaseHistory(ctx context.Context, namespace, group,
-	fileName string) *apiconfig.ConfigResponse {
-
-	if err := CheckResourceName(utils.NewStringValue(namespace)); err != nil {
-		return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_InvalidNamespaceName, nil)
-	}
-
-	if err := CheckResourceName(utils.NewStringValue(group)); err != nil {
-		return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_InvalidNamespaceName, nil)
-	}
-
-	if err := CheckFileName(utils.NewStringValue(fileName)); err != nil {
-		return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_InvalidNamespaceName, nil)
-	}
-
-	saveData, err := s.storage.GetLatestConfigFileReleaseHistory(namespace, group, fileName)
-	if err != nil {
-		log.Error("[Config][Service] get latest config file release error", utils.ZapRequestIDByCtx(ctx),
-			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err),
-		)
-		return api.NewConfigFileReleaseHistoryResponse(commonstore.StoreCode2APICode(err), nil)
-	}
-	history := model.ToReleaseHistoryAPI(saveData)
-	for i := range s.chains {
-		_history, err := s.chains[i].AfterGetFileHistory(ctx, history)
+		data, err := s.chains.AfterGetFileHistory(ctx, data)
 		if err != nil {
-			return api.NewConfigFileResponseWithMessage(commonstore.StoreCode2APICode(err), err.Error())
+			return api.NewConfigBatchQueryResponseWithInfo(apimodel.Code_ExecuteException, err.Error())
 		}
-		history = _history
+		history := model.ToReleaseHistoryAPI(data)
+		histories = append(histories, history)
 	}
-	return api.NewConfigFileReleaseHistoryResponse(apimodel.Code_ExecuteSuccess, history)
+	out := api.NewConfigBatchQueryResponse(apimodel.Code_ExecuteSuccess)
+	out.Total = utils.NewUInt32Value(count)
+	out.ConfigFileReleaseHistories = histories
+	return out
 }

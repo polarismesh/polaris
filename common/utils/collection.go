@@ -18,52 +18,305 @@
 // Package utils contains common utility functions
 package utils
 
-// StringSet is a set of strings
-type StringSet interface {
-	Add(val string)
+import "sync"
 
-	Remove(val string)
-
-	ToSlice() []string
-
-	Range(func(val string) bool)
-}
-
-// NewStringSet returns a new StringSet
-func NewStringSet() StringSet {
-	return &stringSet{
-		container: make(map[string]struct{}),
+// NewSet returns a new Set
+func NewSet[K comparable]() *Set[K] {
+	return &Set[K]{
+		container: make(map[K]struct{}),
 	}
 }
 
-type stringSet struct {
-	container map[string]struct{}
+type Set[K comparable] struct {
+	container map[K]struct{}
 }
 
 // Add adds a string to the set
-func (set *stringSet) Add(val string) {
+func (set *Set[K]) Add(val K) {
 	set.container[val] = struct{}{}
 }
 
 // Remove removes a string from the set
-func (set *stringSet) Remove(val string) {
+func (set *Set[K]) Remove(val K) {
 	delete(set.container, val)
 }
 
-func (set *stringSet) ToSlice() []string {
-	ret := make([]string, 0, len(set.container))
-
+func (set *Set[K]) ToSlice() []K {
+	ret := make([]K, 0, len(set.container))
 	for k := range set.container {
 		ret = append(ret, k)
 	}
-
 	return ret
 }
 
-func (set *stringSet) Range(fn func(val string) bool) {
+func (set *Set[K]) Range(fn func(val K)) {
 	for k := range set.container {
-		if !fn(k) {
-			break
-		}
+		fn(k)
 	}
+}
+
+// NewSyncSet returns a new Set
+func NewSyncSet[K comparable]() *SyncSet[K] {
+	return &SyncSet[K]{
+		container: make(map[K]struct{}),
+	}
+}
+
+type SyncSet[K comparable] struct {
+	container map[K]struct{}
+	lock      sync.RWMutex
+}
+
+// Add adds a string to the set
+func (set *SyncSet[K]) Add(val K) {
+	set.lock.Lock()
+	defer set.lock.Unlock()
+
+	set.container[val] = struct{}{}
+}
+
+// Remove removes a string from the set
+func (set *SyncSet[K]) Remove(val K) {
+	set.lock.Lock()
+	defer set.lock.Unlock()
+
+	delete(set.container, val)
+}
+
+func (set *SyncSet[K]) ToSlice() []K {
+	set.lock.RLock()
+	defer set.lock.RUnlock()
+
+	ret := make([]K, 0, len(set.container))
+	for k := range set.container {
+		ret = append(ret, k)
+	}
+	return ret
+}
+
+func (set *SyncSet[K]) Range(fn func(val K)) {
+	set.lock.RLock()
+	defer set.lock.RUnlock()
+
+	for k := range set.container {
+		fn(k)
+	}
+}
+
+func (set *SyncSet[K]) Len() int {
+	set.lock.RLock()
+	defer set.lock.RUnlock()
+
+	return len(set.container)
+}
+
+func NewSegmentMap[K comparable, V any](soltNum int, hashFunc func(k K) int) *SegmentMap[K, V] {
+	locks := make([]*sync.RWMutex, 0, soltNum)
+	solts := make([]map[K]V, 0, soltNum)
+	for i := 0; i < int(soltNum); i++ {
+		locks = append(locks, &sync.RWMutex{})
+		solts = append(solts, map[K]V{})
+	}
+	return &SegmentMap[K, V]{
+		soltNum:  soltNum,
+		locks:    locks,
+		solts:    solts,
+		hashFunc: hashFunc,
+	}
+}
+
+type SegmentMap[K comparable, V any] struct {
+	soltNum  int
+	locks    []*sync.RWMutex
+	solts    []map[K]V
+	hashFunc func(k K) int
+}
+
+func (s *SegmentMap[K, V]) Put(k K, v V) {
+	lock, solt := s.caulIndex(k)
+	lock.Lock()
+	defer lock.Unlock()
+	solt[k] = v
+}
+
+func (s *SegmentMap[K, V]) ComputeIfAbsent(k K, supplier func(k K) V) (V, bool) {
+	lock, solt := s.caulIndex(k)
+	lock.Lock()
+	defer lock.Unlock()
+	oldVal, ok := solt[k]
+	if !ok {
+		v := supplier(k)
+		solt[k] = v
+		return v, true
+	}
+	return oldVal, false
+}
+
+func (s *SegmentMap[K, V]) PutIfAbsent(k K, v V) (V, bool) {
+	lock, solt := s.caulIndex(k)
+	lock.Lock()
+	defer lock.Unlock()
+	oldVal, ok := solt[k]
+	if !ok {
+		solt[k] = v
+		return oldVal, true
+	}
+	return oldVal, false
+}
+
+func (s *SegmentMap[K, V]) Get(k K) (V, bool) {
+	lock, solt := s.caulIndex(k)
+	lock.RLock()
+	defer lock.RUnlock()
+
+	v, ok := solt[k]
+	return v, ok
+}
+
+func (s *SegmentMap[K, V]) Del(k K) bool {
+	lock, solt := s.caulIndex(k)
+	lock.Lock()
+	defer lock.Unlock()
+
+	_, ok := solt[k]
+	delete(solt, k)
+	return ok
+}
+
+func (s *SegmentMap[K, V]) Range(f func(k K, v V)) {
+	for i := 0; i < s.soltNum; i++ {
+		lock := s.locks[i]
+		solt := s.solts[i]
+		func() {
+			lock.RLock()
+			defer lock.RUnlock()
+			for k, v := range solt {
+				f(k, v)
+			}
+		}()
+	}
+}
+
+func (s *SegmentMap[K, V]) Count() uint64 {
+	count := uint64(0)
+	for i := 0; i < s.soltNum; i++ {
+		lock := s.locks[i]
+		solt := s.solts[i]
+		func() {
+			lock.RLock()
+			defer lock.RUnlock()
+			count += uint64(len(solt))
+		}()
+	}
+	return count
+}
+
+func (s *SegmentMap[K, V]) caulIndex(k K) (*sync.RWMutex, map[K]V) {
+	index := s.hashFunc(k) % s.soltNum
+	lock := s.locks[index]
+	solt := s.solts[index]
+	return lock, solt
+}
+
+// NewSyncMap
+func NewSyncMap[K comparable, V any]() *SyncMap[K, V] {
+	return &SyncMap[K, V]{
+		m: &sync.Map{},
+	}
+}
+
+// SyncMap
+type SyncMap[K comparable, V any] struct {
+	m *sync.Map
+}
+
+// ComputeIfAbsent
+func (s *SyncMap[K, V]) ComputeIfAbsent(k K, supplier func(k K) V) (V, bool) {
+	actual, loaded := s.m.LoadOrStore(k, supplier(k))
+	ret, _ := actual.(V)
+	return ret, loaded
+}
+
+// Load
+func (s *SyncMap[K, V]) Load(key K) (V, bool) {
+	v, ok := s.m.Load(key)
+	if ok {
+		return v.(V), ok
+	}
+	var empty V
+	return empty, false
+}
+
+// Store
+func (s *SyncMap[K, V]) Store(key K, val V) {
+	s.m.Store(key, val)
+}
+
+// Range
+func (s *SyncMap[K, V]) Range(f func(key K, val V) bool) {
+	s.m.Range(func(key, value any) bool {
+		return f(key.(K), value.(V))
+	})
+}
+
+// Delete
+func (s *SyncMap[K, V]) Delete(key K) {
+	s.m.Delete(key)
+}
+
+// LoadOrStore
+func (s *SyncMap[K, V]) LoadOrStore(key K, val V) (V, bool) {
+	actual, loaded := s.m.LoadOrStore(key, val)
+	ret, _ := actual.(V)
+	return ret, loaded
+}
+
+// Len
+func (s *SyncMap[K, V]) Len() int {
+	var ret int
+	s.m.Range(func(_, _ any) bool {
+		ret++
+		return true
+	})
+	return ret
+}
+
+// NewMap
+func NewMap[K comparable, V any]() *Map[K, V] {
+	return &Map[K, V]{
+		m: map[K]V{},
+	}
+}
+
+// Map
+type Map[K comparable, V any] struct {
+	m map[K]V
+}
+
+// Load
+func (s *Map[K, V]) Load(key K) (V, bool) {
+	v, ok := s.m[key]
+	return v, ok
+}
+
+// Store
+func (s *Map[K, V]) Store(key K, val V) {
+	s.m[key] = val
+}
+
+// Range
+func (s *Map[K, V]) Range(f func(key K, val V)) {
+	for k, v := range s.m {
+		f(k, v)
+	}
+}
+
+// Delete
+func (s *Map[K, V]) Delete(key K) {
+	delete(s.m, key)
+}
+
+// Len
+func (s *Map[K, V]) Len() int {
+	return len(s.m)
 }

@@ -69,3 +69,10 @@ func (g *ConfigGRPCServer) WatchConfigFiles(ctx context.Context,
 	}
 	return callback(), nil
 }
+
+func (g *ConfigGRPCServer) GetConfigFileMetadataList(ctx context.Context,
+	req *apiconfig.ConfigFileGroupRequest) (*apiconfig.ConfigClientListResponse, error) {
+
+	ctx = grpcserver.ConvertContext(ctx)
+	return g.configServer.GetConfigFileNamesWithCache(ctx, req), nil
+}

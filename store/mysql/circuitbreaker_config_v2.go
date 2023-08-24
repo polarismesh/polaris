@@ -59,6 +59,22 @@ const (
 			unix_timestamp(mtime), unix_timestamp(etime) from circuitbreaker_rule_v2 where mtime > FROM_UNIXTIME(?)`
 )
 
+const (
+	labelCreateCircuitBreakerRuleOld    = "createCircuitBreakerRuleOld"
+	labelTagCircuitBreakerRuleOld       = "tagCircuitBreakerRuleOld"
+	labelDeleteTagCircuitBreakerRuleOld = "deleteTagCircuitBreakerRuleOld"
+	labelReleaseCircuitBreakerRuleOld   = "releaseCircuitBreakerRuleOld"
+	labelUnbindCircuitBreakerRuleOld    = "unbindCircuitBreakerRuleOld"
+	labelUpdateCircuitBreakerRuleOld    = "updateCircuitBreakerRuleOld"
+	labelDeleteCircuitBreakerRuleOld    = "deleteCircuitBreakerRuleOld"
+)
+
+// circuitBreakerStore 的实现
+type circuitBreakerStore struct {
+	master *BaseDB
+	slave  *BaseDB
+}
+
 func (c *circuitBreakerStore) CreateCircuitBreakerRule(cbRule *model.CircuitBreakerRule) error {
 	err := RetryTransaction(labelCreateCircuitBreakerRule, func() error {
 		return c.createCircuitBreakerRule(cbRule)

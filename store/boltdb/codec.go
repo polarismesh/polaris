@@ -25,8 +25,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/boltdb/bolt"
 	"github.com/golang/protobuf/proto"
+	bolt "go.etcd.io/bbolt"
 )
 
 const (

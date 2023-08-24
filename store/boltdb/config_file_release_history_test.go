@@ -41,6 +41,9 @@ func mockConfigFileHistory(total int, fileName string) []*model.ConfigFileReleas
 			CreateTime: time.Now(),
 			ModifyTime: time.Now(),
 			Valid:      true,
+			Metadata: map[string]string{
+				"mock_key": "mock_value",
+			},
 		}
 
 		if len(fileName) != 0 {
@@ -63,16 +66,12 @@ func resetHistoryTimeAndIDField(tN time.Time, datas ...*model.ConfigFileReleaseH
 func Test_configFileReleaseHistoryStore(t *testing.T) {
 	t.Run("配置发布历史插入", func(t *testing.T) {
 		CreateTableDBHandlerAndRun(t, tblConfigFileReleaseHistory, func(t *testing.T, handler BoltHandler) {
-			store, err := newConfigFileReleaseHistoryStore(handler)
-			if err != nil {
-				t.Fatal(err)
-			}
-
+			store := newConfigFileReleaseHistoryStore(handler)
 			total := 10
 			mockHistories := mockConfigFileHistory(total, "")
 
 			for i := 0; i < total; i++ {
-				if err := store.CreateConfigFileReleaseHistory(nil, mockHistories[i]); err != nil {
+				if err := store.CreateConfigFileReleaseHistory(mockHistories[i]); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -96,37 +95,6 @@ func Test_configFileReleaseHistoryStore(t *testing.T) {
 			}
 
 			assert.Equal(t, total, len(idMap))
-		})
-	})
-
-	t.Run("配置发布历史查询最新纪录", func(t *testing.T) {
-		CreateTableDBHandlerAndRun(t, tblConfigFileReleaseHistory, func(t *testing.T, handler BoltHandler) {
-			store, err := newConfigFileReleaseHistoryStore(handler)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			total := 10
-			mockHistories := mockConfigFileHistory(total, "latest_config_file")
-
-			for i := 0; i < total; i++ {
-				if err := store.CreateConfigFileReleaseHistory(nil, mockHistories[i]); err != nil {
-					t.Fatal(err)
-				}
-			}
-
-			mockVal := mockHistories[total-1]
-			val, err := store.GetLatestConfigFileReleaseHistory(mockVal.Namespace, mockVal.Group, mockVal.FileName)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			assert.NotNil(t, val)
-
-			copyVal := *val
-			resetHistoryTimeAndIDField(time.Now(), val, mockVal)
-			assert.Equal(t, mockVal, val)
-			assert.Equal(t, uint64(total), copyVal.Id)
 		})
 	})
 }

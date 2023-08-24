@@ -46,12 +46,13 @@ type Cache interface {
 
 // CacheObject
 type CacheObject struct {
+	// OriginVal
 	OriginVal proto.Message
-
+	// preparedVal
 	preparedVal *grpc.PreparedMsg
-
+	// CacheType
 	CacheType string
-
+	// Key
 	Key string
 }
 

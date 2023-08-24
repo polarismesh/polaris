@@ -58,7 +58,7 @@ func (s *Server) ReportClient(ctx context.Context, req *apiservice.Client) *apis
 	if s.cmdb != nil {
 		location, err := s.cmdb.GetLocation(host)
 		if err != nil {
-			log.Errora(utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+			log.Errora(utils.RequestID(ctx), zap.Error(err))
 		}
 		if location != nil {
 			req.Location = location.Proto
@@ -162,7 +162,7 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Servic
 		return resp
 	}
 
-	log.Info("[Service][Discover] list servies", zap.Int("size", len(svcs)), zap.String("revision", revision))
+	log.Debug("[Service][Discover] list servies", zap.Int("size", len(svcs)), zap.String("revision", revision))
 	if revision == req.GetRevision().GetValue() {
 		return api.NewDiscoverServiceResponse(apimodel.Code_DataNoChange, req)
 	}
@@ -204,13 +204,13 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Serv
 	// 数据源都来自Cache，这里拿到的service，已经是源服务
 	aliasFor := s.getServiceCache(serviceName, namespaceName)
 	if aliasFor == nil {
-		log.Infof("[Server][Service][Instance] not found name(%s) namespace(%s) service",
+		log.Debugf("[Server][Service][Instance] not found name(%s) namespace(%s) service",
 			serviceName, namespaceName)
 		return api.NewDiscoverInstanceResponse(apimodel.Code_NotFoundResource, req)
 	}
 	s.RecordDiscoverStatis(aliasFor.Name, aliasFor.Namespace)
 	// 获取revision，如果revision一致，则不返回内容，直接返回一个状态码
-	revision := s.caches.GetServiceInstanceRevision(aliasFor.ID)
+	revision := s.caches.Service().GetRevisionWorker().GetServiceInstanceRevision(aliasFor.ID)
 	if revision == "" {
 		// 不能直接获取，则需要重新计算，大部分情况都可以直接获取的
 		// 获取instance数据，service已经是源服务，可以直接查找cache
@@ -227,10 +227,12 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Serv
 		return api.NewDiscoverInstanceResponse(apimodel.Code_DataNoChange, req)
 	}
 
-	// revision不一致，重新获取数据
 	// 填充service数据
-	resp.Service = service2Api(aliasFor)
-	resp.Service.Revision.Value = revision
+	resp.Service = &apiservice.Service{
+		Name:      req.GetName(),
+		Namespace: req.GetNamespace(),
+		Revision:  utils.NewStringValue(revision),
+	}
 	// 塞入源服务信息数据
 	resp.AliasFor = &apiservice.Service{
 		Namespace: utils.NewStringValue(aliasFor.Namespace),
@@ -272,7 +274,7 @@ func (s *Server) GetRoutingConfigWithCache(ctx context.Context, req *apiservice.
 
 	out, err := s.caches.RoutingConfig().GetRouterConfig(aliasFor.ID, aliasFor.Name, aliasFor.Namespace)
 	if err != nil {
-		log.Error("[Server][Service][Routing] discover routing", utils.ZapRequestIDByCtx(ctx), zap.Error(err))
+		log.Error("[Server][Service][Routing] discover routing", utils.RequestID(ctx), zap.Error(err))
 		return api.NewDiscoverRoutingResponse(apimodel.Code_ExecuteException, req)
 	}
 	if out == nil {
@@ -385,7 +387,7 @@ func (s *Server) GetFaultDetectWithCache(ctx context.Context, req *apiservice.Se
 	resp.Service.Revision = utils.NewStringValue(out.Revision)
 	resp.FaultDetector, err = faultDetectRule2ClientAPI(out)
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewDiscoverFaultDetectorResponse(apimodel.Code_ExecuteException, req)
 	}
 	return resp
@@ -431,7 +433,7 @@ func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *apiservice
 	resp.Service.Revision = utils.NewStringValue(out.Revision)
 	resp.CircuitBreaker, err = circuitBreaker2ClientAPI(out, req.GetName().GetValue(), req.GetNamespace().GetValue())
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestIDByCtx(ctx))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewDiscoverCircuitBreakerResponse(apimodel.Code_ExecuteException, req)
 	}
 	return resp

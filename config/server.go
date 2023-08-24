@@ -20,13 +20,12 @@ package config
 import (
 	"context"
 	"errors"
-	"time"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
-	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
@@ -37,8 +36,8 @@ import (
 var _ ConfigCenterServer = (*Server)(nil)
 
 const (
-	eventTypePublishConfigFile  = "PublishConfigFile"
-	defaultExpireTimeAfterWrite = 60 * 60 // expire after 1 hour
+	// 文件内容限制为 2w 个字符
+	fileContentMaxLength = 20000
 )
 
 var (
@@ -46,11 +45,58 @@ var (
 	originServer = &Server{}
 )
 
+var (
+	availableSearch = map[string]map[string]string{
+		"config_file": {
+			"namespace":   "namespace",
+			"group":       "group",
+			"name":        "name",
+			"offset":      "offset",
+			"limit":       "limit",
+			"order_type":  "order_type",
+			"order_field": "order_field",
+		},
+		"config_file_release": {
+			"namespace":    "namespace",
+			"group":        "group",
+			"file_name":    "file_name",
+			"name":         "release_name",
+			"release_name": "release_name",
+			"offset":       "offset",
+			"limit":        "limit",
+			"order_type":   "order_type",
+			"order_field":  "order_field",
+			"only_active":  "only_active",
+		},
+		"config_file_group": {
+			"namespace":   "namespace",
+			"group":       "name",
+			"name":        "name",
+			"business":    "business",
+			"department":  "department",
+			"offset":      "offset",
+			"limit":       "limit",
+			"order_type":  "order_type",
+			"order_field": "order_field",
+		},
+		"config_file_release_history": {
+			"namespace":   "namespace",
+			"group":       "group",
+			"name":        "file_name",
+			"offset":      "offset",
+			"limit":       "limit",
+			"endId":       "endId",
+			"end_id":      "endId",
+			"order_type":  "order_type",
+			"order_field": "order_field",
+		},
+	}
+)
+
 // Config 配置中心模块启动参数
 type Config struct {
-	Open               bool          `yaml:"open"`
-	ContentMaxLength   int64         `yaml:""json:"contentMaxLength"`
-	LongPollingTimeout time.Duration `yaml:"longPollingTimeout"`
+	Open             bool  `yaml:"open"`
+	ContentMaxLength int64 `yaml:"contentMaxLength"`
 }
 
 // Server 配置中心核心服务
@@ -58,7 +104,8 @@ type Server struct {
 	cfg *Config
 
 	storage           store.Store
-	fileCache         cache.FileCache
+	fileCache         cachetypes.ConfigFileCache
+	groupCache        cachetypes.ConfigGroupCache
 	caches            *cache.CacheManager
 	watchCenter       *watchCenter
 	connManager       *connManager
@@ -70,7 +117,9 @@ type Server struct {
 	hooks         []ResourceHook
 
 	// chains
-	chains []ConfigFileChain
+	chains *ConfigChains
+
+	sequence int64
 }
 
 // Initialize 初始化配置中心模块
@@ -95,12 +144,10 @@ func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cac
 	return nil
 }
 
-const (
-	fileContentMaxLength = 20000 // 文件内容限制为 2w 个字符
-)
-
 func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	namespaceOperator namespace.NamespaceOperateServer, cacheMgn *cache.CacheManager) error {
+
+	var err error
 
 	s.cfg = &config
 	if s.cfg.ContentMaxLength <= 0 {
@@ -109,10 +156,12 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	s.storage = ss
 	s.namespaceOperator = namespaceOperator
 	s.fileCache = cacheMgn.ConfigFile()
+	s.groupCache = cacheMgn.ConfigGroup()
 
-	// 初始化事件中心
-	eventCenter := NewEventCenter()
-	s.watchCenter = NewWatchCenter(eventCenter)
+	s.watchCenter, err = NewWatchCenter()
+	if err != nil {
+		return err
+	}
 
 	// 初始化连接管理器
 	connMng := NewConfigConnManager(ctx, s.watchCenter)
@@ -129,20 +178,11 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 		log.Warnf("Not Found Crypto Plugin")
 	}
 
-	// 初始化发布事件扫描器
-	if err := initReleaseMessageScanner(ctx, ss, s.fileCache, eventCenter, time.Second); err != nil {
-		log.Error("[Config][Server] init release message scanner error. ", zap.Error(err))
-		return errors.New("init config module error")
-	}
-
 	s.caches = cacheMgn
-	s.chains = []ConfigFileChain{
+	s.chains = newConfigChains(s, []ConfigFileChain{
 		&CryptoConfigFileChain{},
 		&ReleaseConfigFileChain{},
-	}
-	for i := range s.chains {
-		s.chains[i].Init(s)
-	}
+	})
 
 	log.Infof("[Config][Server] startup config module success.")
 	return nil
@@ -171,7 +211,7 @@ func (s *Server) WatchCenter() *watchCenter {
 }
 
 // Cache 获取配置中心缓存模块
-func (s *Server) Cache() cache.FileCache {
+func (s *Server) Cache() cachetypes.ConfigFileCache {
 	return s.fileCache
 }
 
@@ -220,4 +260,75 @@ func (s *Server) RecordHistory(ctx context.Context, entry *model.RecordEntry) {
 	}
 	// 调用插件记录history
 	s.history.Record(entry)
+}
+
+func newConfigChains(svr *Server, chains []ConfigFileChain) *ConfigChains {
+	for i := range chains {
+		chains[i].Init(svr)
+	}
+	return &ConfigChains{chains: chains}
+}
+
+type ConfigChains struct {
+	chains []ConfigFileChain
+}
+
+// BeforeCreateFile
+func (cc *ConfigChains) BeforeCreateFile(ctx context.Context, file *model.ConfigFile) *apiconfig.ConfigResponse {
+	for i := range cc.chains {
+		if errResp := cc.chains[i].BeforeCreateFile(ctx, file); errResp != nil {
+			return errResp
+		}
+	}
+	return nil
+}
+
+// AfterGetFile
+func (cc *ConfigChains) AfterGetFile(ctx context.Context, file *model.ConfigFile) (*model.ConfigFile, error) {
+	file.OriginContent = file.Content
+	for i := range cc.chains {
+		_file, err := cc.chains[i].AfterGetFile(ctx, file)
+		if err != nil {
+			return nil, err
+		}
+		file = _file
+	}
+	return file, nil
+}
+
+// BeforeUpdateFile
+func (cc *ConfigChains) BeforeUpdateFile(ctx context.Context, file *model.ConfigFile) *apiconfig.ConfigResponse {
+	for i := range cc.chains {
+		if errResp := cc.chains[i].BeforeUpdateFile(ctx, file); errResp != nil {
+			return errResp
+		}
+	}
+	return nil
+}
+
+// AfterGetFileRelease
+func (cc *ConfigChains) AfterGetFileRelease(ctx context.Context,
+	release *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
+
+	for i := range cc.chains {
+		_release, err := cc.chains[i].AfterGetFileRelease(ctx, release)
+		if err != nil {
+			return nil, err
+		}
+		release = _release
+	}
+	return release, nil
+}
+
+// AfterGetFileHistory
+func (cc *ConfigChains) AfterGetFileHistory(ctx context.Context,
+	history *model.ConfigFileReleaseHistory) (*model.ConfigFileReleaseHistory, error) {
+	for i := range cc.chains {
+		_history, err := cc.chains[i].AfterGetFileHistory(ctx, history)
+		if err != nil {
+			return nil, err
+		}
+		history = _history
+	}
+	return history, nil
 }

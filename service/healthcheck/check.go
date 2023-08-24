@@ -121,10 +121,13 @@ func newCheckScheduler(ctx context.Context, slotNum int, minCheckInterval time.D
 		adoptInstancesChan:     make(chan AdoptEvent, 1024),
 		ctx:                    ctx,
 	}
-	go scheduler.doCheckInstances(ctx)
-	go scheduler.doCheckClient(ctx)
-	go scheduler.doAdopt(ctx)
 	return scheduler
+}
+
+func (c *CheckScheduler) run(ctx context.Context) {
+	go c.doCheckInstances(ctx)
+	go c.doCheckClient(ctx)
+	go c.doAdopt(ctx)
 }
 
 func (c *CheckScheduler) doCheckInstances(ctx context.Context) {
@@ -187,26 +190,9 @@ func (c *CheckScheduler) processAdoptEvents(
 	for id := range instances {
 		instanceIds = append(instanceIds, id)
 	}
-	var err error
-	if add {
-		log.Infof("[Health Check][Check]add adopting instances, ids are %v", instanceIds)
-		err = checker.AddToCheck(&plugin.AddCheckRequest{
-			Instances: instanceIds,
-			LocalHost: server.localHost,
-		})
-	} else {
-		log.Infof("[Health Check][Check]remove adopting instances, ids are %v", instanceIds)
-		err = checker.RemoveFromCheck(&plugin.AddCheckRequest{
-			Instances: instanceIds,
-			LocalHost: server.localHost,
-		})
-	}
-	if err != nil {
-		log.Errorf("[Health Check][Check]fail to do adopt event, instances %v, localhost %s, add %v",
-			instanceIds, server.localHost, add)
-		return instances
-	}
-	return make(map[string]bool)
+	log.Debug("[Health Check][Check] adopt event", zap.Any("instances", instanceIds),
+		zap.String("server", server.localHost), zap.Bool("add", add))
+	return instances
 }
 
 func (c *CheckScheduler) addAdopting(instanceId string, checker plugin.HealthChecker) {

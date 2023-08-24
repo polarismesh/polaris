@@ -37,7 +37,7 @@ func (s *serverAuthability) CreateConfigFileGroup(ctx context.Context,
 
 	// 验证 token 信息
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+		return api.NewConfigResponseWithInfo(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -47,19 +47,19 @@ func (s *serverAuthability) CreateConfigFileGroup(ctx context.Context,
 }
 
 // QueryConfigFileGroups 查询配置文件组
-func (s *serverAuthability) QueryConfigFileGroups(ctx context.Context, namespace, groupName,
-	fileName string, offset, limit uint32) *apiconfig.ConfigBatchQueryResponse {
-	authCtx := s.collectConfigGroupAuthContext(ctx, []*apiconfig.ConfigFileGroup{{Name: utils.NewStringValue(groupName),
-		Namespace: utils.NewStringValue(namespace)}}, model.Read, "QueryConfigFileGroups")
+func (s *serverAuthability) QueryConfigFileGroups(ctx context.Context,
+	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
+
+	authCtx := s.collectConfigGroupAuthContext(ctx, nil, model.Read, "QueryConfigFileGroups")
 
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileGroupBatchQueryResponse(convertToErrCode(err), 0, nil)
+		return api.NewConfigBatchQueryResponse(convertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	resp := s.targetServer.QueryConfigFileGroups(ctx, namespace, groupName, fileName, offset, limit)
+	resp := s.targetServer.QueryConfigFileGroups(ctx, filter)
 	if len(resp.ConfigFileGroups) != 0 {
 		principal := model.Principal{
 			PrincipalID:   utils.ParseUserID(ctx),
@@ -87,7 +87,7 @@ func (s *serverAuthability) DeleteConfigFileGroup(
 		Namespace: utils.NewStringValue(namespace)}}, model.Delete, "DeleteConfigFileGroup")
 
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+		return api.NewConfigResponseWithInfo(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -103,11 +103,10 @@ func (s *serverAuthability) UpdateConfigFileGroup(ctx context.Context,
 		model.Modify, "UpdateConfigFileGroup")
 
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+		return api.NewConfigResponseWithInfo(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
 	return s.targetServer.UpdateConfigFileGroup(ctx, configFileGroup)
 }

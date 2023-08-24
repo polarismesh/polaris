@@ -33,7 +33,7 @@ func (s *serverAuthability) CreateConfigFile(ctx context.Context,
 	authCtx := s.collectConfigFileAuthContext(
 		ctx, []*apiconfig.ConfigFile{configFile}, model.Create, "CreateConfigFile")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+		return api.NewConfigResponseWithInfo(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -42,77 +42,32 @@ func (s *serverAuthability) CreateConfigFile(ctx context.Context,
 	return s.targetServer.CreateConfigFile(ctx, configFile)
 }
 
-// GetConfigFileBaseInfo 获取配置文件，只返回基础元信息
-func (s *serverAuthability) GetConfigFileBaseInfo(ctx context.Context, namespace,
-	group, name string) *apiconfig.ConfigResponse {
-	configFile := &apiconfig.ConfigFile{
-		Namespace: utils.NewStringValue(namespace),
-		Group:     utils.NewStringValue(group),
-		Name:      utils.NewStringValue(name),
-	}
-	authCtx := s.collectConfigFileAuthContext(
-		ctx, []*apiconfig.ConfigFile{configFile}, model.Read, "GetConfigFileBaseInfo")
-	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
-	}
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
-	return s.targetServer.GetConfigFileBaseInfo(ctx, namespace, group, name)
-}
-
 // GetConfigFileRichInfo 获取单个配置文件基础信息，包含发布状态等信息
-func (s *serverAuthability) GetConfigFileRichInfo(ctx context.Context, namespace,
-	group, name string) *apiconfig.ConfigResponse {
-	configFile := &apiconfig.ConfigFile{
-		Namespace: utils.NewStringValue(namespace),
-		Group:     utils.NewStringValue(group),
-		Name:      utils.NewStringValue(name),
-	}
+func (s *serverAuthability) GetConfigFileRichInfo(ctx context.Context,
+	req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+
 	authCtx := s.collectConfigFileAuthContext(
-		ctx, []*apiconfig.ConfigFile{configFile}, model.Read, "GetConfigFileRichInfo")
+		ctx, []*apiconfig.ConfigFile{req}, model.Read, "GetConfigFileRichInfo")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+		return api.NewConfigResponseWithInfo(convertToErrCode(err), err.Error())
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
-	return s.targetServer.GetConfigFileRichInfo(ctx, namespace, group, name)
-}
-
-func (s *serverAuthability) QueryConfigFilesByGroup(ctx context.Context, namespace, group string,
-	offset, limit uint32) *apiconfig.ConfigBatchQueryResponse {
-	configFile := &apiconfig.ConfigFile{
-		Namespace: utils.NewStringValue(namespace),
-		Group:     utils.NewStringValue(group),
-	}
-	authCtx := s.collectConfigFileAuthContext(
-		ctx, []*apiconfig.ConfigFile{configFile}, model.Read, "QueryConfigFilesByGroup")
-	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileBatchQueryResponseWithMessage(convertToErrCode(err), err.Error())
-	}
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
-	return s.targetServer.QueryConfigFilesByGroup(ctx, namespace, group, offset, limit)
+	return s.targetServer.GetConfigFileRichInfo(ctx, req)
 }
 
 // SearchConfigFile 查询配置文件
-func (s *serverAuthability) SearchConfigFile(ctx context.Context, namespace, group, name,
-	tags string, offset, limit uint32) *apiconfig.ConfigBatchQueryResponse {
-	configFile := &apiconfig.ConfigFile{
-		Namespace: utils.NewStringValue(namespace),
-		Group:     utils.NewStringValue(group),
-	}
-	authCtx := s.collectConfigFileAuthContext(
-		ctx, []*apiconfig.ConfigFile{configFile}, model.Read, "SearchConfigFile")
+func (s *serverAuthability) SearchConfigFile(ctx context.Context,
+	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
+
+	authCtx := s.collectConfigFileAuthContext(ctx, nil, model.Read, "SearchConfigFile")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileBatchQueryResponseWithMessage(convertToErrCode(err), err.Error())
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.SearchConfigFile(ctx, namespace, group, name, tags, offset, limit)
+	return s.targetServer.SearchConfigFile(ctx, filter)
 }
 
 // UpdateConfigFile 更新配置文件
@@ -121,7 +76,7 @@ func (s *serverAuthability) UpdateConfigFile(
 	authCtx := s.collectConfigFileAuthContext(
 		ctx, []*apiconfig.ConfigFile{configFile}, model.Modify, "UpdateConfigFile")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+		return api.NewConfigResponseWithInfo(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -131,36 +86,34 @@ func (s *serverAuthability) UpdateConfigFile(
 }
 
 // DeleteConfigFile 删除配置文件，删除配置文件同时会通知客户端 Not_Found
-func (s *serverAuthability) DeleteConfigFile(ctx context.Context, namespace, group,
-	name, deleteBy string) *apiconfig.ConfigResponse {
+func (s *serverAuthability) DeleteConfigFile(ctx context.Context,
+	req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+
 	authCtx := s.collectConfigFileAuthContext(ctx,
-		[]*apiconfig.ConfigFile{{
-			Namespace: utils.NewStringValue(namespace),
-			Name:      utils.NewStringValue(name),
-			Group:     utils.NewStringValue(group)},
-		}, model.Delete, "DeleteConfigFile")
+		[]*apiconfig.ConfigFile{req}, model.Delete, "DeleteConfigFile")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+		return api.NewConfigResponseWithInfo(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.DeleteConfigFile(ctx, namespace, group, name, deleteBy)
+	return s.targetServer.DeleteConfigFile(ctx, req)
 }
 
 // BatchDeleteConfigFile 批量删除配置文件
-func (s *serverAuthability) BatchDeleteConfigFile(ctx context.Context, configFiles []*apiconfig.ConfigFile,
-	operator string) *apiconfig.ConfigResponse {
-	authCtx := s.collectConfigFileAuthContext(ctx, configFiles, model.Delete, "BatchDeleteConfigFile")
+func (s *serverAuthability) BatchDeleteConfigFile(ctx context.Context,
+	req []*apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+
+	authCtx := s.collectConfigFileAuthContext(ctx, req, model.Delete, "BatchDeleteConfigFile")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileResponseWithMessage(convertToErrCode(err), err.Error())
+		return api.NewConfigResponseWithInfo(convertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.BatchDeleteConfigFile(ctx, configFiles, operator)
+	return s.targetServer.BatchDeleteConfigFile(ctx, req)
 }
 
 func (s *serverAuthability) ExportConfigFile(ctx context.Context,
