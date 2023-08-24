@@ -544,7 +544,7 @@ func polarisServiceRegister(polarisService *boot_config.PolarisService, apiServe
 				host, port, protocol, svc)
 		}
 	}
-	if len(SelfServiceInstance) > 0 {
+	if len(SelfServiceInstance) > 0 && !polarisService.DisableHeartbeat {
 		log.Infof("start self health checker")
 		var err error
 		if selfHeathChecker, err = NewSelfHeathChecker(SelfServiceInstance, hbInterval); nil != err {

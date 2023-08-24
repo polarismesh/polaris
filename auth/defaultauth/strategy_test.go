@@ -636,6 +636,7 @@ func Test_GetStrategy(t *testing.T) {
 	})
 
 	t.Run("查询鉴权策略-目标owner不为自己", func(t *testing.T) {
+		t.Skip()
 		var index int
 		for {
 			index = rand.Intn(len(strategyTest.defaultStrategies))

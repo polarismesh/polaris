@@ -26,6 +26,8 @@ VERSION ?= $(shell cat version 2>/dev/null)
 # - use environment variables to overwrite this value (e.g export IMAGE_TAG=v0.0.2)
 IMAGE_TAG ?= $(VERSION)
 
+ARCH ?= "amd64"
+
 all: build
 
 ##@ General
@@ -49,7 +51,7 @@ help: ## Display this help.
 
 .PHONY: build
 build: ## Build binary and tarball.
-	bash ./release/build.sh $(VERSION)
+	bash ./release/build.sh $(VERSION) $(ARCH)
 
 .PHONY: build-docker
 build-docker: ## Build polaris-server docker images.

@@ -67,6 +67,7 @@ type PolarisService struct {
 	SelfAddress       string     `yaml:"self_address"`
 	NetworkInter      string     `yaml:"network_inter"`
 	Isolated          bool       `yaml:"isolated"`
+	DisableHeartbeat  bool       `yaml:"disable_heartbeat"`
 	HeartbeatInterval int        `yaml:"heartbeat_interval"`
 	Services          []*Service `yaml:"services"`
 }
