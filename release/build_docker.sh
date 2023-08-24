@@ -34,6 +34,7 @@ arch_list=( "amd64" "arm64" )
 platforms=""
 
 for arch in ${arch_list[@]}; do
+    export GOARCH=${arch}
     make build VERSION=${docker_tag} ARCH=${arch}
 
     if [ $? != 0 ]; then

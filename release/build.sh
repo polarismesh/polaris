@@ -14,7 +14,6 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
-
 set -e
 
 if [[ $(uname) == 'Darwin' ]]; then
@@ -31,10 +30,6 @@ workdir=$(dirname $(dirname $(realpath $0)))
 version=$(cat version 2>/dev/null)
 bin_name="polaris-server"
 
-if [ $# == 1 ]; then
-  version=$1
-fi
-
 if [ "${GOOS}" == "windows" ]; then
   bin_name="polaris-server.exe"
 fi
@@ -47,9 +42,17 @@ if [ "${GOARCH}" == "" ]; then
   GOARCH=$(go env GOARCH)
 fi
 
+if [ $# == 1 ]; then
+  version=$1
+fi
+if [ $# == 2 ]; then
+  version=$1
+  export GOARCH=$2
+fi
+
 folder_name="polaris-server-release_${version}.${GOOS}.${GOARCH}"
 pkg_name="${folder_name}.zip"
-echo "GOOS is ${GOOS}, binary name is ${bin_name}"
+echo "GOOS is ${GOOS}, GOARCH is ${GOARCH}, binary name is ${bin_name}"
 
 echo "workdir=${workdir}"
 cd ${workdir}
@@ -65,7 +68,7 @@ export CGO_ENABLED=0
 build_date=$(date "+%Y%m%d.%H%M%S")
 package="github.com/polarismesh/polaris-server/common/version"
 sqldb_res="store/mysql"
-go build -o ${bin_name} -ldflags="-X ${package}.Version=${version} -X ${package}.BuildDate=${build_date}"
+GOARCH=${GOARCH} GOOS=${GOOS} go build -o ${bin_name} -ldflags="-X ${package}.Version=${version} -X ${package}.BuildDate=${build_date}"
 
 # 打包
 mkdir -p ${folder_name}
