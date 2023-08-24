@@ -18,6 +18,7 @@
 package eurekaserver
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -103,4 +104,17 @@ func Test_parsePeersToReplicate(t *testing.T) {
 				"parsePeersToReplicate(%v, %v)", tt.args.defaultNamespace, tt.args.replicatePeerObjs)
 		})
 	}
+}
+
+func TestEurekaServer_Stop(t *testing.T) {
+	t.Run("stop server", func(t *testing.T) {
+		eurekaServer := &EurekaServer{
+			server: &http.Server{
+				Addr: ":8761",
+			},
+			workers: &ApplicationsWorkers{},
+		}
+		go eurekaServer.server.ListenAndServe()
+		eurekaServer.Stop()
+	})
 }

@@ -372,9 +372,9 @@ func StopServers(servers []apiserver.Apiserver) {
 	for _, s := range servers {
 		wg.Add(1)
 		go func(s apiserver.Apiserver, wg *sync.WaitGroup) {
+			defer wg.Done()
 			log.Infof("start stop server protocol: %s", s.GetProtocol())
 			s.Stop()
-			wg.Done()
 			log.Infof("complete stop server protocol: %s", s.GetProtocol())
 		}(s, wg)
 	}
