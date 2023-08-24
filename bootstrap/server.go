@@ -375,7 +375,7 @@ func StopServers(servers []apiserver.Apiserver) {
 			log.Infof("start stop server protocol: %s", s.GetProtocol())
 			s.Stop()
 			wg.Done()
-			log.Infof("complate stop server protocol: %s", s.GetProtocol())
+			log.Infof("complete stop server protocol: %s", s.GetProtocol())
 		}(s, wg)
 	}
 	wg.Wait()

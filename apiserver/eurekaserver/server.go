@@ -607,7 +607,7 @@ func (h *EurekaServer) Stop() {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 		if err := h.server.Shutdown(ctx); nil != err {
-			log.Errorf("EurekaServer shutdown failed, err: %v\n", err)
+			eurekalog.Errorf("EurekaServer shutdown failed, err: %v\n", err)
 		}
 	}
 	h.workers.Stop()
