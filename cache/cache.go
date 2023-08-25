@@ -45,11 +45,10 @@ type CacheManager struct {
 // Initialize 缓存对象初始化
 func (nc *CacheManager) Initialize() error {
 	if config.DiffTime != 0 {
-		if config.DiffTime < 0 {
-			types.DefaultTimeDiff = config.DiffTime
-		} else {
-			types.DefaultTimeDiff = -config.DiffTime // 转成负数
-		}
+		types.DefaultTimeDiff = -config.DiffTime.Abs()
+	}
+	if types.DefaultTimeDiff > 0 {
+		return fmt.Errorf("cache diff time to pull store must negative number: %+v", types.DefaultTimeDiff)
 	}
 
 	for _, obj := range nc.caches {

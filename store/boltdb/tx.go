@@ -44,3 +44,7 @@ func (t *Tx) Rollback() error {
 func (t *Tx) GetDelegateTx() interface{} {
 	return t.delegateTx
 }
+
+func (t *Tx) CreateReadView() error {
+	return nil
+}

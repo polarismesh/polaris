@@ -177,8 +177,10 @@ func Test_configFileStore(t *testing.T) {
 
 				r.CreateTime = time.Unix(0, 0)
 				r.ModifyTime = time.Unix(0, 0)
+				r.ReleaseTime = time.Unix(0, 0)
 				_n.CreateTime = time.Unix(0, 0)
 				_n.ModifyTime = time.Unix(0, 0)
+				_n.ReleaseTime = time.Unix(0, 0)
 				assert.Equal(t, _n, r, "expect : %#v, actual : %#v", _n, r)
 			}
 		})

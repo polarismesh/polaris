@@ -181,6 +181,8 @@ bootstrap:
     # network_inter: eth0
     ## Show the setting node itself IP information
     # self_address: 127.0.0.1
+    # disable_heartbeat disable polaris_server node run heartbeat action to keep lease polaris_service
+    # disable_heartbeat: true
     # Whether to open the server to register
     enable_register: true
     # Registered North Star Server Examples isolation status

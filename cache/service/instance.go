@@ -106,11 +106,6 @@ func (ic *instanceCache) Update() error {
 func (ic *instanceCache) singleUpdate() (error, bool) {
 	// 多个线程竞争，只有一个线程进行更新
 	_, err, shared := ic.singleFlight.Do(ic.Name(), func() (interface{}, error) {
-		defer func() {
-			ic.lastMtimeLogged = types.LogLastMtime(ic.lastMtimeLogged, ic.LastMtime().Unix(), "Instance")
-			ic.checkAll()
-			ic.reportMetricsInfo()
-		}()
 		return nil, ic.DoCacheUpdate(ic.Name(), ic.realUpdate)
 	})
 	return err, shared
@@ -128,7 +123,7 @@ func (ic *instanceCache) fetchStartTime() time.Time {
 	return ic.LastFetchTime()
 }
 
-func (ic *instanceCache) checkAll() {
+func (ic *instanceCache) checkAll(tx store.Tx) {
 	curTimeSec := time.Now().Unix()
 	if curTimeSec-ic.lastCheckAllTime < checkAllIntervalSec {
 		return
@@ -136,7 +131,7 @@ func (ic *instanceCache) checkAll() {
 	defer func() {
 		ic.lastCheckAllTime = curTimeSec
 	}()
-	count, err := ic.storage.GetInstancesCount()
+	count, err := ic.storage.GetInstancesCountTx(tx)
 	if err != nil {
 		log.Errorf("[Cache][Instance] get instance count from storage err: %s", err.Error())
 		return
@@ -156,20 +151,54 @@ const maxLoadTimeDuration = 1 * time.Second
 func (ic *instanceCache) realUpdate() (map[string]time.Time, int64, error) {
 	// 拉取diff前的所有数据
 	start := time.Now()
-	instances, err := ic.storage.GetMoreInstances(ic.fetchStartTime(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID)
+	tx, err := ic.storage.StartReadTx()
 	if err != nil {
-		log.Errorf("[Cache][Instance] update get storage more err: %s", err.Error())
+		if tx != nil {
+			_ = tx.Rollback()
+		}
+		log.Error("[Cache][Instance] begin transaction storage read tx", zap.Error(err))
 		return nil, -1, err
 	}
 
-	lastMimes, update, del := ic.setInstances(instances)
-	timeDiff := time.Since(start)
-	if timeDiff > 1*time.Second {
-		log.Info("[Cache][Instance] get more instances",
-			zap.Int("update", update), zap.Int("delete", del),
-			zap.Time("last", ic.LastMtime()), zap.Duration("used", time.Since(start)))
+	var instanceChangeEvents []*cacheInstanceEvent
+	defer func() {
+		_ = tx.Rollback()
+		for i := range instanceChangeEvents {
+			ic.Manager.OnEvent(instanceChangeEvents[i].item, instanceChangeEvents[i].eventType)
+		}
+		ic.reportMetricsInfo()
+	}()
+
+	if err := tx.CreateReadView(); err != nil {
+		log.Error("[Cache][Instance] create storage snapshot read view", zap.Error(err))
+		return nil, -1, err
 	}
-	return lastMimes, int64(len(instances)), err
+
+	events, lastMtimes, total, err := ic.handleUpdate(start, tx)
+	_ = tx.Commit()
+	instanceChangeEvents = events
+	return lastMtimes, total, err
+}
+
+func (ic *instanceCache) handleUpdate(start time.Time, tx store.Tx) ([]*cacheInstanceEvent, map[string]time.Time, int64, error) {
+	defer func() {
+		ic.lastMtimeLogged = types.LogLastMtime(ic.lastMtimeLogged, ic.LastMtime().Unix(), "Instance")
+		ic.checkAll(tx)
+	}()
+
+	instances, err := ic.storage.GetMoreInstances(tx, ic.fetchStartTime(), ic.IsFirstUpdate(),
+		ic.needMeta, ic.systemServiceID)
+
+	if err != nil {
+		log.Error("[Cache][Instance] update get storage more", zap.Error(err))
+		return nil, nil, -1, err
+	}
+
+	events, lastMtimes, update, del := ic.setInstances(instances)
+	log.Info("[Cache][Instance] get more instances",
+		zap.Int("pull-from-store", len(instances)), zap.Int("update", update), zap.Int("delete", del),
+		zap.Time("last", ic.LastMtime()), zap.Duration("used", time.Since(start)))
+	return events, lastMtimes, int64(len(instances)), err
 }
 
 // Clear 清理内部缓存数据
@@ -200,11 +229,11 @@ func (ic *instanceCache) getSystemServices() ([]*model.Service, error) {
 
 // setInstances 保存instance到内存中
 // 返回：更新个数，删除个数
-func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (map[string]time.Time, int, int) {
+func (ic *instanceCache) setInstances(ins map[string]*model.Instance) ([]*cacheInstanceEvent, map[string]time.Time, int, int) {
 	if len(ins) == 0 {
-		return nil, 0, 0
+		return nil, nil, 0, 0
 	}
-
+	events := make([]*cacheInstanceEvent, 0, len(ins))
 	addInstances := map[string]string{}
 	updateInstances := map[string]string{}
 	deleteInstances := map[string]string{}
@@ -233,7 +262,10 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (map[strin
 			del++
 			ic.ids.Delete(item.ID())
 			if itemExist {
-				ic.Manager.OnEvent(item, types.EventDeleted)
+				events = append(events, &cacheInstanceEvent{
+					item:      item,
+					eventType: types.EventDeleted,
+				})
 				instanceCount--
 			}
 			value, ok := ic.services.Load(item.ServiceID)
@@ -257,10 +289,16 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (map[strin
 		if !itemExist {
 			addInstances[item.ID()] = item.Revision()
 			instanceCount++
-			ic.Manager.OnEvent(item, types.EventCreated)
+			events = append(events, &cacheInstanceEvent{
+				item:      item,
+				eventType: types.EventCreated,
+			})
 		} else {
 			updateInstances[item.ID()] = item.Revision()
-			ic.Manager.OnEvent(item, types.EventUpdated)
+			events = append(events, &cacheInstanceEvent{
+				item:      item,
+				eventType: types.EventUpdated,
+			})
 		}
 		value, ok := ic.services.Load(item.ServiceID)
 		if !ok {
@@ -283,7 +321,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) (map[strin
 
 	ic.postProcessUpdatedServices(affect)
 	ic.svcCache.notifyServiceCountReload(affect)
-	return map[string]time.Time{
+	return events, map[string]time.Time{
 		ic.Name(): time.Unix(lastMtime, 0),
 	}, update, del
 }
@@ -478,4 +516,9 @@ func iteratorInstancesProc(data *utils.SyncMap[string, *model.Instance], iterPro
 
 	data.Range(proc)
 	return err
+}
+
+type cacheInstanceEvent struct {
+	item      *model.Instance
+	eventType types.EventType
 }

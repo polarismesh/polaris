@@ -312,6 +312,18 @@ func (i *instanceStore) GetInstancesCount() (uint32, error) {
 	return uint32(count), nil
 }
 
+// GetInstancesCountTx Get the total number of instances
+func (i *instanceStore) GetInstancesCountTx(tx store.Tx) (uint32, error) {
+	dbTx, _ := tx.GetDelegateTx().(*bolt.Tx)
+	count, err := countValues(dbTx, tblNameInstance)
+	if err != nil {
+		log.Errorf("[Store][boltdb] get instance count error, %v", err)
+		return 0, err
+	}
+
+	return uint32(count), nil
+}
+
 // GetInstancesMainByService Get instances based on service and Host
 func (i *instanceStore) GetInstancesMainByService(serviceID, host string) ([]*model.Instance, error) {
 
@@ -500,8 +512,10 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 }
 
 // GetMoreInstances Get incremental instances according to mtime
-func (i *instanceStore) GetMoreInstances(
-	mtime time.Time, firstUpdate, needMeta bool, serviceID []string) (map[string]*model.Instance, error) {
+func (i *instanceStore) GetMoreInstances(tx store.Tx, mtime time.Time, firstUpdate, needMeta bool,
+	serviceID []string) (map[string]*model.Instance, error) {
+
+	dbTx, _ := tx.GetDelegateTx().(*bolt.Tx)
 
 	fields := []string{insFieldProto, insFieldServiceID, insFieldValid}
 	svcIdMap := make(map[string]bool)
@@ -509,7 +523,8 @@ func (i *instanceStore) GetMoreInstances(
 		svcIdMap[s] = true
 	}
 
-	instances, err := i.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
+	instances := make(map[string]interface{})
+	err := loadValuesByFilter(dbTx, tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
 
 			if firstUpdate {
@@ -548,7 +563,7 @@ func (i *instanceStore) GetMoreInstances(
 			}
 
 			return true
-		})
+		}, instances)
 
 	if err != nil {
 		log.Errorf("[Store][boltdb] load instance from kv error, %v", err)

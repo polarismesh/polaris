@@ -43,6 +43,9 @@ const (
 	FileGroupFieldCreateTime string = "CreateTime"
 	FileGroupFieldModifyTime string = "ModifyTime"
 	FileGroupFieldValid      string = "Valid"
+	FileGroupFieldBusiness   string = "Business"
+	FileGroupFieldDepartment string = "Department"
+	FileGroupFieldMetadata   string = "Metadata"
 )
 
 var (
@@ -186,6 +189,9 @@ func (fg *configFileGroupStore) UpdateConfigFileGroup(fileGroup *model.ConfigFil
 	properties := make(map[string]interface{})
 	properties[FileGroupFieldComment] = fileGroup.Comment
 	properties[FileGroupFieldModifyBy] = fileGroup.ModifyBy
+	properties[FileGroupFieldBusiness] = fileGroup.Business
+	properties[FileGroupFieldDepartment] = fileGroup.Department
+	properties[FileGroupFieldMetadata] = fileGroup.Metadata
 	properties[FileGroupFieldModifyTime] = time.Now()
 
 	if err := fg.handler.UpdateValue(tblConfigFileGroup, key, properties); err != nil {

@@ -230,6 +230,13 @@ type SyncMap[K comparable, V any] struct {
 	m *sync.Map
 }
 
+// ComputeIfAbsent
+func (s *SyncMap[K, V]) ComputeIfAbsent(k K, supplier func(k K) V) (V, bool) {
+	actual, loaded := s.m.LoadOrStore(k, supplier(k))
+	ret, _ := actual.(V)
+	return ret, loaded
+}
+
 // Load
 func (s *SyncMap[K, V]) Load(key K) (V, bool) {
 	v, ok := s.m.Load(key)

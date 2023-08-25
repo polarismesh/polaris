@@ -22,8 +22,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/polarismesh/polaris/auth/defaultauth"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/polarismesh/polaris/auth/defaultauth"
 )
 
 // Test_CustomDesignSalt 主要用于有自定义salt需求的用户

@@ -180,6 +180,8 @@ func (fc *fileCache) setReleases(releases []*model.ConfigFileRelease) (map[strin
 		}
 
 		if item.Active {
+			configLog.Info("[Config][Release][Cache] notify config release change",
+				zap.Any("info", item.SimpleConfigFileRelease))
 			fc.sendEvent(item)
 		}
 	}
@@ -188,9 +190,13 @@ func (fc *fileCache) setReleases(releases []*model.ConfigFileRelease) (map[strin
 }
 
 func (fc *fileCache) sendEvent(item *model.ConfigFileRelease) {
-	_ = eventhub.Publish(eventhub.ConfigFilePublishTopic, &eventhub.PublishConfigFileEvent{
+	err := eventhub.Publish(eventhub.ConfigFilePublishTopic, &eventhub.PublishConfigFileEvent{
 		Message: item.SimpleConfigFileRelease,
 	})
+	if err != nil {
+		configLog.Error("[Config][Release][Cache] notify config release change",
+			zap.Any("info", item.ConfigFileReleaseKey), zap.Error(err))
+	}
 }
 
 // handleUpdateRelease

@@ -133,6 +133,9 @@ type InstanceStore interface {
 	// GetInstancesCount 获取有效的实例总数
 	GetInstancesCount() (uint32, error)
 
+	// GetInstancesCountTx 获取有效的实例总数
+	GetInstancesCountTx(tx Tx) (uint32, error)
+
 	// GetInstancesMainByService 根据服务和Host获取实例（不包括metadata）
 	GetInstancesMainByService(serviceID, host string) ([]*model.Instance, error)
 
@@ -142,7 +145,7 @@ type InstanceStore interface {
 
 	// GetMoreInstances 根据mtime获取增量instances，返回所有store的变更信息
 	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
-	GetMoreInstances(mtime time.Time, firstUpdate, needMeta bool, serviceID []string) (map[string]*model.Instance, error)
+	GetMoreInstances(tx Tx, mtime time.Time, firstUpdate, needMeta bool, serviceID []string) (map[string]*model.Instance, error)
 
 	// SetInstanceHealthStatus 设置实例的健康状态
 	SetInstanceHealthStatus(instanceID string, flag int, revision string) error

@@ -62,3 +62,34 @@ func Test_SegmentMap(t *testing.T) {
 	assert.False(t, ok)
 	assert.Equal(t, key, oldVal)
 }
+
+func Test_SyncSegmentMap(t *testing.T) {
+	segmentMap := NewSegmentMap[string, *SegmentMap[string, string]](32, func(k string) int {
+		return commonhash.Fnv32(k)
+	})
+
+	total := 100
+	for i := 0; i < total; i++ {
+		go func(i int) {
+			subMap, _ := segmentMap.ComputeIfAbsent(fmt.Sprintf("key-%d", i), func(k string) *SegmentMap[string, string] {
+				return NewSegmentMap[string, string](128, func(k string) int {
+					return commonhash.Fnv32(k)
+				})
+			})
+			subMap.Put(fmt.Sprintf("key-%d", i), fmt.Sprintf("key-%d", i))
+		}(i)
+	}
+
+	for {
+		count := 0
+		segmentMap.Range(func(k string, v *SegmentMap[string, string]) {
+			v.Range(func(k string, v string) {
+				t.Logf("%s %s", k, v)
+			})
+			count++
+		})
+		if count == total {
+			break
+		}
+	}
+}

@@ -91,9 +91,15 @@ func initCache(ctrl *gomock.Controller) (*cache.Config, *storemock.MockStore) {
 
 	storage := storemock.NewMockStore(ctrl)
 
+	mockTx := storemock.NewMockTx(ctrl)
+	mockTx.EXPECT().Commit().Return(nil).AnyTimes()
+	mockTx.EXPECT().Rollback().Return(nil).AnyTimes()
+	mockTx.EXPECT().CreateReadView().Return(nil).AnyTimes()
+
+	storage.EXPECT().StartReadTx().Return(mockTx, nil).AnyTimes()
 	storage.EXPECT().GetServicesCount().AnyTimes().Return(uint32(1), nil)
-	storage.EXPECT().GetInstancesCount().AnyTimes().Return(uint32(1), nil)
-	storage.EXPECT().GetMoreInstances(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(map[string]*model.Instance{
+	storage.EXPECT().GetInstancesCountTx(gomock.Any()).AnyTimes().Return(uint32(1), nil)
+	storage.EXPECT().GetMoreInstances(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(map[string]*model.Instance{
 		"123": {
 			Proto: &service_manage.Instance{
 				Id:   wrapperspb.String(uuid.NewString()),

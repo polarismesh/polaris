@@ -42,20 +42,16 @@ import (
 // PublishConfigFile 发布配置文件
 func (s *Server) PublishConfigFile(ctx context.Context, req *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
 
-	namespace := req.GetNamespace().GetValue()
-	group := req.GetGroup().GetValue()
-	fileName := req.GetFileName().GetValue()
-
-	if err := CheckFileName(utils.NewStringValue(fileName)); err != nil {
+	if err := CheckFileName(req.GetFileName()); err != nil {
 		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileName)
 	}
-	if err := CheckResourceName(utils.NewStringValue(namespace)); err != nil {
+	if err := CheckResourceName(req.GetNamespace()); err != nil {
 		return api.NewConfigResponse(apimodel.Code_InvalidNamespaceName)
 	}
-	if err := CheckResourceName(utils.NewStringValue(group)); err != nil {
+	if err := CheckResourceName(req.GetGroup()); err != nil {
 		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileGroupName)
 	}
-	if !s.checkNamespaceExisted(namespace) {
+	if !s.checkNamespaceExisted(req.GetNamespace().GetValue()) {
 		return api.NewConfigResponse(apimodel.Code_NotFoundNamespace)
 	}
 
@@ -199,7 +195,7 @@ func (s *Server) GetConfigFileRelease(ctx context.Context, req *apiconfig.Config
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 	if ret == nil {
-		return api.NewConfigResponse(apimodel.Code_NotFoundResource)
+		return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
 	}
 	ret, err = s.chains.AfterGetFileRelease(ctx, ret)
 	if err != nil {
