@@ -51,7 +51,7 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           VERSION: ${{ steps.get_version.outputs.VERSION }}
         run: |
-          make build VERSION=${VERSION}
+          make build VERSION=${VERSION} ARCH=${GOARCH}
           PACKAGE_NAME=$(ls | grep polaris-server-release*.zip | sed -n '1p')
           echo ::set-output name=name::${PACKAGE_NAME}
 

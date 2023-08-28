@@ -47,4 +47,4 @@ ALTER TABLE `config_file_release_history`
 ADD COLUMN `version` bigint (11) COMMENT '版本号, 每次发布自增1';
 
 ALTER TABLE `config_file_release_history`
-ADD COLUMN `description` varchar(512) DEFAULT NULL COMMENT '发布描述',
+ADD COLUMN `description` varchar(512) DEFAULT NULL COMMENT '发布描述';
