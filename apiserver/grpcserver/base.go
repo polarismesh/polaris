@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"runtime"
 	"strings"
 	"time"
 
@@ -232,8 +233,9 @@ func (b *BaseGrpcServer) unaryInterceptor(ctx context.Context, req interface{},
 		}
 		defer func() {
 			if panicInfo := recover(); panicInfo != nil {
-				// just log
-				b.log.Errorf("panic %+v", panicInfo)
+				var buf [4086]byte
+				n := runtime.Stack(buf[:], false)
+				b.log.Errorf("panic %+v", string(buf[:n]))
 			}
 		}()
 
