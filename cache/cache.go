@@ -149,10 +149,6 @@ func (nc *CacheManager) GetUpdateCacheInterval() time.Duration {
 	return UpdateCacheInterval
 }
 
-func (nc *CacheManager) AddListener(cacheIndex types.CacheIndex, listeners []types.Listener) {
-	nc.caches[cacheIndex].AddListener(listeners)
-}
-
 // Service 获取Service缓存信息
 func (nc *CacheManager) Service() types.ServiceCache {
 	return nc.caches[types.CacheService].(types.ServiceCache)

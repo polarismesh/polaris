@@ -36,7 +36,6 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	boot_config "github.com/polarismesh/polaris/bootstrap/config"
 	"github.com/polarismesh/polaris/cache"
-	types "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/log"
@@ -255,15 +254,8 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 		return err
 	}
 	if cfg.HealthChecks.Open {
-		cacheProvider, err := healthCheckServer.CacheProvider()
-		if err != nil {
-			return err
-		}
 		healthCheckServer.SetServiceCache(cacheMgn.Service())
 		healthCheckServer.SetInstanceCache(cacheMgn.Instance())
-		// 为 instance 的 cache 添加 健康检查的 Listener
-		cacheMgn.AddListener(types.CacheInstance, []types.Listener{cacheProvider})
-		cacheMgn.AddListener(types.CacheClient, []types.Listener{cacheProvider})
 	}
 
 	namespaceSvr, err := namespace.GetServer()

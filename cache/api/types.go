@@ -86,8 +86,6 @@ const (
 type Cache interface {
 	// Initialize
 	Initialize(c map[string]interface{}) error
-	// AddListener 添加
-	AddListener(listeners []Listener)
 	// Update .
 	Update() error
 	// Clear .
@@ -496,7 +494,6 @@ type BaseCache struct {
 	s             store.Store
 	lastFetchTime int64
 	lastMtimes    map[string]time.Time
-	Manager       *ListenerManager
 	CacheMgr      CacheManager
 }
 
@@ -620,13 +617,6 @@ func (bc *BaseCache) Clear() {
 	bc.lastMtimes = make(map[string]time.Time)
 	bc.lastFetchTime = 1
 	bc.firstUpdate = true
-}
-
-// AddListener 添加
-func (bc *BaseCache) AddListener(listeners []Listener) {
-	bc.lock.Lock()
-	defer bc.lock.Unlock()
-	bc.Manager.Append(listeners...)
 }
 
 func (bc *BaseCache) Close() error {

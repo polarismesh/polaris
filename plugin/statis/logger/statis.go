@@ -114,11 +114,12 @@ func (a *StatisWorker) metricsHandle(mt metrics.CallMetricType, start time.Time,
 	header := fmt.Sprintf("Statis %s:\n", startStr)
 
 	header += fmt.Sprintf(
-		"%-48v|%12v|%12v|%12v|%12v|%12v|\n", "", "Code", "Count", "Min(ms)", "Max(ms)", "Avg(ms)")
+		"%-48v|%12v|%12v|%12v|%12v|%12v|%12v|%12v|\n", "", "Protocol", "Code", "TrafficDirection", "Count",
+		"Min(ms)", "Max(ms)", "Avg(ms)")
 
 	var msg string
 	for i := range statics {
-		msg += statics[i].String()
+		msg += formatAPICallStatisItem(mt, statics[i])
 	}
 	if len(msg) == 0 {
 		log.Info(fmt.Sprintf("Statis %s: No API Call\n", startStr))
@@ -126,4 +127,17 @@ func (a *StatisWorker) metricsHandle(mt metrics.CallMetricType, start time.Time,
 	}
 
 	log.Info(header + msg)
+}
+
+func formatAPICallStatisItem(mt metrics.CallMetricType, item *base.APICallStatisItem) string {
+	if item.Count == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%-48v|%12v|%12v|%12v|%12v|%12.3f|%12.3f|%12.3f|\n",
+		item.API, mt, item.TrafficDirection, item.Code, item.Count,
+		float64(item.MinTime)/1e6,
+		float64(item.MaxTime)/1e6,
+		float64(item.AccTime)/float64(item.Count)/1e6,
+	)
+
 }

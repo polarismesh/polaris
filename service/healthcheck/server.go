@@ -137,11 +137,24 @@ func (s *Server) run(ctx context.Context) error {
 	go s.timeAdjuster.doTimeAdjust(ctx)
 	s.dispatcher.startDispatchingJob(ctx)
 
+	subCtx, err := eventhub.SubscribeWithFunc(eventhub.CacheInstanceEventTopic,
+		s.cacheProvider.handleInstanceCacheEvent)
+	if err != nil {
+		return err
+	}
+	s.subCtxs = append(s.subCtxs, subCtx)
+	subCtx, err = eventhub.SubscribeWithFunc(eventhub.CacheClientEventTopic,
+		s.cacheProvider.handleClientCacheEvent)
+	if err != nil {
+		return err
+	}
+	s.subCtxs = append(s.subCtxs, subCtx)
+
 	s.instanceEventChannel = make(chan *model.InstanceEvent, 1000)
 	go s.handleInstanceEventWorker(ctx)
 
 	leaderChangeEventHandler := newLeaderChangeEventHandler(s.cacheProvider, s.hcOpt.MinCheckInterval)
-	subCtx, err := eventhub.Subscribe(eventhub.LeaderChangeEventTopic, leaderChangeEventHandler)
+	subCtx, err = eventhub.Subscribe(eventhub.LeaderChangeEventTopic, leaderChangeEventHandler)
 	if err != nil {
 		return err
 	}

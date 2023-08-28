@@ -26,6 +26,7 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	types "github.com/polarismesh/polaris/cache/api"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -152,11 +153,11 @@ func (ic *instanceCache) realUpdate() (map[string]time.Time, int64, error) {
 		return nil, -1, err
 	}
 
-	var instanceChangeEvents []*cacheInstanceEvent
+	var instanceChangeEvents []*eventhub.CacheInstanceEvent
 	defer func() {
 		_ = tx.Rollback()
 		for i := range instanceChangeEvents {
-			ic.Manager.OnEvent(instanceChangeEvents[i].item, instanceChangeEvents[i].eventType)
+			eventhub.Publish(eventhub.CacheInstanceEventTopic, instanceChangeEvents[i])
 		}
 		ic.reportMetricsInfo()
 	}()
@@ -172,7 +173,9 @@ func (ic *instanceCache) realUpdate() (map[string]time.Time, int64, error) {
 	return lastMtimes, total, err
 }
 
-func (ic *instanceCache) handleUpdate(start time.Time, tx store.Tx) ([]*cacheInstanceEvent, map[string]time.Time, int64, error) {
+func (ic *instanceCache) handleUpdate(start time.Time, tx store.Tx) ([]*eventhub.CacheInstanceEvent,
+	map[string]time.Time, int64, error) {
+
 	defer func() {
 		ic.lastMtimeLogged = types.LogLastMtime(ic.lastMtimeLogged, ic.LastMtime().Unix(), "Instance")
 		ic.checkAll(tx)
@@ -221,11 +224,13 @@ func (ic *instanceCache) getSystemServices() ([]*model.Service, error) {
 
 // setInstances 保存instance到内存中
 // 返回：更新个数，删除个数
-func (ic *instanceCache) setInstances(ins map[string]*model.Instance) ([]*cacheInstanceEvent, map[string]time.Time, int, int) {
+func (ic *instanceCache) setInstances(ins map[string]*model.Instance) ([]*eventhub.CacheInstanceEvent,
+	map[string]time.Time, int, int) {
+
 	if len(ins) == 0 {
 		return nil, nil, 0, 0
 	}
-	events := make([]*cacheInstanceEvent, 0, len(ins))
+	events := make([]*eventhub.CacheInstanceEvent, 0, len(ins))
 	addInstances := map[string]string{}
 	updateInstances := map[string]string{}
 	deleteInstances := map[string]string{}
@@ -254,9 +259,9 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) ([]*cacheI
 			del++
 			ic.ids.Delete(item.ID())
 			if itemExist {
-				events = append(events, &cacheInstanceEvent{
-					item:      item,
-					eventType: types.EventDeleted,
+				events = append(events, &eventhub.CacheInstanceEvent{
+					Instance:  item,
+					EventType: eventhub.EventDeleted,
 				})
 				instanceCount--
 			}
@@ -281,15 +286,15 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) ([]*cacheI
 		if !itemExist {
 			addInstances[item.ID()] = item.Revision()
 			instanceCount++
-			events = append(events, &cacheInstanceEvent{
-				item:      item,
-				eventType: types.EventCreated,
+			events = append(events, &eventhub.CacheInstanceEvent{
+				Instance:  item,
+				EventType: eventhub.EventCreated,
 			})
 		} else {
 			updateInstances[item.ID()] = item.Revision()
-			events = append(events, &cacheInstanceEvent{
-				item:      item,
-				eventType: types.EventUpdated,
+			events = append(events, &eventhub.CacheInstanceEvent{
+				Instance:  item,
+				EventType: eventhub.EventUpdated,
 			})
 		}
 		value, ok := ic.services.Load(item.ServiceID)
@@ -508,9 +513,4 @@ func iteratorInstancesProc(data *utils.SyncMap[string, *model.Instance], iterPro
 
 	data.Range(proc)
 	return err
-}
-
-type cacheInstanceEvent struct {
-	item      *model.Instance
-	eventType types.EventType
 }
