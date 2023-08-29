@@ -51,16 +51,14 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           VERSION: ${{ steps.get_version.outputs.VERSION }}
         run: |
-          make build VERSION=${VERSION}
+          make build VERSION=${VERSION} ARCH=${GOARCH}
           PACKAGE_NAME=$(ls | grep polaris-server-release*.zip | sed -n '1p')
           echo ::set-output name=name::${PACKAGE_NAME}
 
       - name: Upload asset
-        uses: actions/upload-release-asset@v1
+        uses: softprops/action-gh-release@v0.1.15
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./${{ steps.build.outputs.name }}
-          asset_name: ${{ steps.build.outputs.name }}
-          asset_content_type: application/gzip
+          files: ./${{ steps.build.outputs.name }}
+          name: ${{ steps.build.outputs.name }}
