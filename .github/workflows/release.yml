@@ -61,4 +61,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: ./${{ steps.build.outputs.name }}
-          name: ${{ steps.build.outputs.name }}
+          name: ${{ steps.get_version.outputs.VERSION }}
