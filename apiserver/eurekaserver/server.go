@@ -601,7 +601,14 @@ func (h *EurekaServer) Stop() {
 	// 目的：防止restart的时候，connLimit冲突
 	connlimit.RemoveLimitListener(h.GetProtocol())
 	if h.server != nil {
-		_ = h.server.Close()
+		// 延迟三秒，等待http server关闭，做到流量无损。
+		// 在此之前已经建立的链接，会正常执行业务，若执行时长超过3秒，则会抛出异常。
+		// 若是在3秒内提前处理完所有请求，h.server会提前关闭。
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if err := h.server.Shutdown(ctx); nil != err {
+			eurekalog.Errorf("EurekaServer shutdown failed, err: %v\n", err)
+		}
 	}
 	h.workers.Stop()
 }
