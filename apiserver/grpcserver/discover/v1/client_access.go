@@ -129,7 +129,7 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 		var out *apiservice.DiscoverResponse
 		switch in.Type {
 		case apiservice.DiscoverRequest_INSTANCE:
-			out = g.namingServer.ServiceInstancesCache(ctx, in.Service)
+			out = g.namingServer.ServiceInstancesCache(ctx, &apiservice.DiscoverFilter{}, in.Service)
 		case apiservice.DiscoverRequest_ROUTING:
 			out = g.namingServer.GetRoutingConfigWithCache(ctx, in.Service)
 		case apiservice.DiscoverRequest_RATE_LIMIT:

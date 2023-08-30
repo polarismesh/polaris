@@ -448,7 +448,7 @@ func TestGetInstances(t *testing.T) {
 			Name:      utils.NewStringValue(instanceResp.GetService().GetValue()),
 			Namespace: utils.NewStringValue(instanceResp.GetNamespace().GetValue()),
 		}
-		resp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, req)
+		resp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, &apiservice.DiscoverFilter{}, req)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -472,7 +472,7 @@ func TestGetInstances(t *testing.T) {
 
 		// 需要等待一会，等本地缓存更新
 		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
-		resp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, serviceResp)
+		resp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, &apiservice.DiscoverFilter{}, serviceResp)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -483,7 +483,7 @@ func TestGetInstances(t *testing.T) {
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
 		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
-		resp = discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, serviceResp)
+		resp = discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, &apiservice.DiscoverFilter{}, serviceResp)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -507,7 +507,7 @@ func TestGetInstances1(t *testing.T) {
 	discover := func(t *testing.T, service *apiservice.Service, check func(cnt int) bool) *apiservice.DiscoverResponse {
 		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		time.Sleep(discoverSuit.UpdateCacheInterval())
-		resp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, service)
+		resp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, &apiservice.DiscoverFilter{}, service)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
@@ -554,7 +554,7 @@ func TestGetInstances1(t *testing.T) {
 		})
 
 		serviceResp.Revision = firstResp.Service.GetRevision()
-		if resp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, serviceResp); !respSuccess(resp) {
+		if resp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, &apiservice.DiscoverFilter{}, serviceResp); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		} else {
 			if len(resp.Instances) != 0 {
@@ -1124,7 +1124,7 @@ func TestInstancesContainLocation(t *testing.T) {
 	locationCheck(instance.GetLocation(), getInstances[0].GetLocation())
 
 	_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
-	discoverResp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, service)
+	discoverResp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, &apiservice.DiscoverFilter{}, service)
 	if len(discoverResp.GetInstances()) != 1 {
 		t.Fatalf("error: %d", len(discoverResp.GetInstances()))
 	}

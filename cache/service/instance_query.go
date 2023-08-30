@@ -212,6 +212,10 @@ func (ic *instanceCache) QueryInstances(filter, metaFilter map[string]string,
 		return true, nil
 	})
 
+	sort.Slice(tempInstances, func(i, j int) bool {
+		return tempInstances[i].ModifyTime.After(tempInstances[j].ModifyTime)
+	})
+
 	total, ret := ic.doPage(tempInstances, offset, limit)
 	return total, ret, nil
 }
@@ -224,10 +228,5 @@ func (ic *instanceCache) doPage(ins []*model.Instance, offset, limit uint32) (ui
 	if offset+limit > total {
 		return total, ins[offset:]
 	}
-
-	sort.Slice(ins, func(i, j int) bool {
-		return ins[i].ModifyTime.After(ins[j].ModifyTime)
-	})
-
 	return total, ins[offset : offset+limit]
 }

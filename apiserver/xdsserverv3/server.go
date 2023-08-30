@@ -359,7 +359,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 			svc.Routing = routerRule
 
 			// 获取instance配置
-			resp := x.namingServer.ServiceInstancesCache(ctx, s)
+			resp := x.namingServer.ServiceInstancesCache(ctx, &apiservice.DiscoverFilter{}, s)
 			if resp.GetCode().Value != api.ExecuteSuccess {
 				log.Errorf("[XDSV3] error sync instances for namespace(%s) service(%s), info : %s",
 					svc.Namespace, svc.Name, resp.Info.GetValue())

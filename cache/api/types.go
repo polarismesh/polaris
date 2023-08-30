@@ -32,6 +32,10 @@ import (
 )
 
 const (
+	AllMatched = "*"
+)
+
+const (
 	// NamespaceName cache name
 	NamespaceName = "namespace"
 	// ServiceName
@@ -108,12 +112,14 @@ type (
 	// NamespaceCache 命名空间的 Cache 接口
 	NamespaceCache interface {
 		Cache
-		// GetNamespace
+		// GetNamespace get target namespace by id
 		GetNamespace(id string) *model.Namespace
-		// GetNamespacesByName
+		// GetNamespacesByName list all namespace by name
 		GetNamespacesByName(names []string) []*model.Namespace
-		// GetNamespaceList
+		// GetNamespaceList list all namespace
 		GetNamespaceList() []*model.Namespace
+		// GetVisibleNamespaces list target namespace can visible other namespaces
+		GetVisibleNamespaces(namespace string) []*model.Namespace
 	}
 )
 
@@ -176,6 +182,8 @@ type (
 		GetAliasFor(name string, namespace string) *model.Service
 		// GetRevisionWorker .
 		GetRevisionWorker() ServiceRevisionWorker
+		// GetVisibleServicesInOtherNamespace get same service in other namespace and it's visible
+		GetVisibleServicesInOtherNamespace(name string, namespace string) []*model.Service
 	}
 
 	// ServiceRevisionWorker
@@ -215,6 +223,8 @@ type (
 		GetInstanceLabels(serviceID string) *apiservice.InstanceLabels
 		// QueryInstances query instance for OSS
 		QueryInstances(filter, metaFilter map[string]string, offset, limit uint32) (uint32, []*model.Instance, error)
+		// DiscoverServiceInstances 服务发现获取实例
+		DiscoverServiceInstances(serviceID string, onlyHealthy bool) []*model.Instance
 	}
 )
 

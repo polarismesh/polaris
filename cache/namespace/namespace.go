@@ -19,12 +19,14 @@ package namespace
 
 import (
 	"math"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
 	types "github.com/polarismesh/polaris/cache/api"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -40,6 +42,10 @@ type namespaceCache struct {
 	storage store.Store
 	ids     *utils.SyncMap[string, *model.Namespace]
 	updater *singleflight.Group
+
+	exportLock sync.RWMutex
+	// exportNamespace 某个命名空间下的所有服务的可见性
+	exportNamespace map[string]map[string]struct{}
 }
 
 func NewNamespaceCache(storage store.Store, cacheMgr types.CacheManager) types.NamespaceCache {
@@ -84,18 +90,74 @@ func (nsCache *namespaceCache) setNamespaces(nsSlice []*model.Namespace) map[str
 
 	for index := range nsSlice {
 		ns := nsSlice[index]
+		oldNs, hasOldVal := nsCache.ids.Load(ns.Name)
+		eventType := eventhub.EventCreated
 		if !ns.Valid {
+			eventType = eventhub.EventDeleted
 			nsCache.ids.Delete(ns.Name)
 		} else {
+			if !hasOldVal {
+				eventType = eventhub.EventCreated
+			} else {
+				eventType = eventhub.EventUpdated
+			}
 			nsCache.ids.Store(ns.Name, ns)
 		}
-
+		nsCache.handleNamespaceChange(eventType, oldNs, ns)
+		eventhub.Publish(eventhub.CacheNamespaceEventTopic, &eventhub.CacheNamespaceEvent{
+			OldItem:   oldNs,
+			Item:      ns,
+			EventType: eventType,
+		})
 		lastMtime = int64(math.Max(float64(lastMtime), float64(ns.ModifyTime.Unix())))
 	}
 
 	return map[string]time.Time{
 		nsCache.Name(): time.Unix(lastMtime, 0),
 	}
+}
+
+func (nsCache *namespaceCache) handleNamespaceChange(et eventhub.EventType, oldItem, item *model.Namespace) {
+	nsCache.exportLock.Lock()
+	defer nsCache.exportLock.Unlock()
+
+	switch et {
+	case eventhub.EventUpdated, eventhub.EventCreated:
+		exportTo := item.ServiceExportTo
+		nsCache.exportNamespace[item.Name] = map[string]struct{}{}
+		for i := range exportTo {
+			nsCache.exportNamespace[item.Name][i] = struct{}{}
+		}
+	case eventhub.EventDeleted:
+		delete(nsCache.exportNamespace, item.Name)
+	}
+}
+
+func (nsCache *namespaceCache) GetVisibleNamespaces(namespace string) []*model.Namespace {
+	nsCache.exportLock.Lock()
+	defer nsCache.exportLock.Unlock()
+
+	ret := make(map[string]*model.Namespace, 8)
+
+	// 根据命名空间级别的可见性进行查询
+	// 先看精确的
+	for exportNs, viewerNs := range nsCache.exportNamespace {
+		_, exactMatch := viewerNs[namespace]
+		_, allMatch := viewerNs[types.AllMatched]
+		if !exactMatch && !allMatch {
+			continue
+		}
+		val := nsCache.GetNamespace(exportNs)
+		if val != nil {
+			ret[val.Name] = val
+		}
+	}
+
+	values := make([]*model.Namespace, 0, len(ret))
+	for _, item := range ret {
+		values = append(values, item)
+	}
+	return values
 }
 
 // clear

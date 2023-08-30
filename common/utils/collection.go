@@ -110,6 +110,15 @@ func (set *SyncSet[K]) Len() int {
 	return len(set.container)
 }
 
+// Contains contains target value
+func (set *SyncSet[K]) Contains(val K) bool {
+	set.lock.Lock()
+	defer set.lock.Unlock()
+
+	_, exist := set.container[val]
+	return exist
+}
+
 func NewSegmentMap[K comparable, V any](soltNum int, hashFunc func(k K) int) *SegmentMap[K, V] {
 	locks := make([]*sync.RWMutex, 0, soltNum)
 	solts := make([]map[K]V, 0, soltNum)

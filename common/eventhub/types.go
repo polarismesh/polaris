@@ -31,6 +31,8 @@ const (
 	CacheInstanceEventTopic = "cache_instance_event"
 	// CacheClientEventTopic record cache occur client add/update/del event
 	CacheClientEventTopic = "cache_client_event"
+	// CacheNamespaceEventTopic record cache occur namespace add/update/del event
+	CacheNamespaceEventTopic = "cache_namespace_event"
 )
 
 // PublishConfigFileEvent 事件对象，包含类型和事件消息
@@ -57,5 +59,11 @@ type CacheInstanceEvent struct {
 
 type CacheClientEvent struct {
 	Client    *model.Client
+	EventType EventType
+}
+
+type CacheNamespaceEvent struct {
+	OldItem   *model.Namespace
+	Item      *model.Namespace
 	EventType EventType
 }

@@ -113,7 +113,7 @@ func (h *HTTPServerV1) Discover(req *restful.Request, rsp *restful.Response) {
 	var ret *apiservice.DiscoverResponse
 	switch discoverRequest.Type {
 	case apiservice.DiscoverRequest_INSTANCE:
-		ret = h.namingServer.ServiceInstancesCache(ctx, discoverRequest.Service)
+		ret = h.namingServer.ServiceInstancesCache(ctx, discoverRequest.Filter, discoverRequest.Service)
 	case apiservice.DiscoverRequest_ROUTING:
 		ret = h.namingServer.GetRoutingConfigWithCache(ctx, discoverRequest.Service)
 	case apiservice.DiscoverRequest_RATE_LIMIT:

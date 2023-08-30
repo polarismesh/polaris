@@ -55,7 +55,7 @@ func TestDiscoverInstances(t *testing.T) {
 		}
 		t.Run("正常服务发现，返回的数据齐全", func(t *testing.T) {
 			_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
-			out := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, service)
+			out := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, &apiservice.DiscoverFilter{}, service)
 			assert.True(t, respSuccess(out))
 			assert.Equal(t, count, len(out.GetInstances()))
 			for _, resp := range out.GetInstances() {
@@ -75,7 +75,7 @@ func TestDiscoverInstances(t *testing.T) {
 			}
 		})
 		t.Run("service-metadata修改，revision会修改", func(t *testing.T) {
-			out := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, service)
+			out := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, &apiservice.DiscoverFilter{}, service)
 			assert.True(t, respSuccess(out))
 			oldRevision := out.GetService().GetRevision().GetValue()
 

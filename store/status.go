@@ -26,27 +26,47 @@ type StatusCode uint32
 
 // 状态码定义
 const (
-	Ok                            StatusCode = iota
-	EmptyParamsErr                           // 参数不合法
-	OutOfRangeErr                            // 数据不合法，比如越级了，超过了字段大小
-	DataConflictErr                          // 数据冲突，在并发更新metadata的时候可能会出现
-	NotFoundNamespace                        // 找不到namespace，service插入依赖namespace是否存在
-	NotFoundService                          // 找不到service，在instance等资源插入的时候依赖service是否存在
-	NotFoundMasterConfig                     // 在标记规则前，需要保证规则的master版本存在
-	NotFoundTagConfigOrService               // 在发布规则前，需要保证规则已标记且服务存在
-	ExistReleasedConfig                      // 在删除规则时，发现存在已经发布的版本
-	AffectedRowsNotMatch                     // 操作的行数与预期不符合
-	DuplicateEntryErr                        // 主键重复，一般是资源已存在了，提醒用户资源存在
-	ForeignKeyErr                            // 外键错误，一般是操作不当导致的
-	DeadlockErr                              // 数据库死锁
-	NotFoundMeshOrService                    // 网格订阅服务的时候，网格或者服务不存在
-	NotFoundMeshService                      // 更新订阅服务的时候，订阅服务不存在
-	NotFoundCircuitBreaker                   // Failed to find target CircuitBreaker
-	NotFoundReleaseCircuitBreaker            // Failed to find fuse breaker information associated with service
+	Ok StatusCode = iota
+	// 参数不合法
+	EmptyParamsErr
+	// 数据不合法，比如越级了，超过了字段大小
+	OutOfRangeErr
+	// 数据冲突，在并发更新metadata的时候可能会出现
+	DataConflictErr
+	// 找不到namespace，service插入依赖namespace是否存在
+	NotFoundNamespace
+	// 找不到service，在instance等资源插入的时候依赖service是否存在
+	NotFoundService
+	// 在标记规则前，需要保证规则的master版本存在
+	NotFoundMasterConfig
+	// 在发布规则前，需要保证规则已标记且服务存在
+	NotFoundTagConfigOrService
+	// 在删除规则时，发现存在已经发布的版本
+	ExistReleasedConfig
+	// 操作的行数与预期不符合
+	AffectedRowsNotMatch
+	// 主键重复，一般是资源已存在了，提醒用户资源存在
+	DuplicateEntryErr
+	// 外键错误，一般是操作不当导致的
+	ForeignKeyErr
+	// 数据库死锁
+	DeadlockErr
+	// 网格订阅服务的时候，网格或者服务不存在
+	NotFoundMeshOrService
+	// 更新订阅服务的时候，订阅服务不存在
+	NotFoundMeshService
+	// Failed to find target CircuitBreaker
+	NotFoundCircuitBreaker
+	// Failed to find fuse breaker information associated with service
+	NotFoundReleaseCircuitBreaker
 	Unknown
-	NotFoundUser       // 用户不存在
-	NotFoundUserGroup  // 用户组不存在
-	InvalidUserIDSlice // 非法的用户ID列表
+	// 用户不存在
+	NotFoundUser
+	// 用户组不存在
+	NotFoundUserGroup
+	// 非法的用户ID列表
+	InvalidUserIDSlice
+	NotFoundResource
 )
 
 // Error 普通error转StatusError
