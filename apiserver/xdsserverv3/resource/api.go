@@ -22,20 +22,6 @@ import (
 	"github.com/polarismesh/polaris/service"
 )
 
-var (
-	builderFactory = map[XDSType]func() XDSBuilder{}
-)
-
-// RegisterFactory
-func RegisterFactory(xdsType XDSType, factory func() XDSBuilder) {
-	builderFactory[xdsType] = factory
-}
-
-// GetBuilder .
-func GetBuilder(xdsType XDSType) XDSBuilder {
-	return builderFactory[xdsType]()
-}
-
 // XDSBuilder .
 type XDSBuilder interface {
 	// Init
