@@ -84,15 +84,12 @@ func (rds *RDSBuilder) makeSidecarVirtualHosts(option *resource.BuildOption) []t
 		hosts = append(hosts, vHost)
 	}
 
-	// 最后是 allow_any
-	hosts = append(hosts, resource.BuildAllowAnyVHost())
-
 	routeConfiguration := &route.RouteConfiguration{
 		Name: resource.OutBoundRouteConfigName,
 		ValidateClusters: &wrappers.BoolValue{
 			Value: false,
 		},
-		VirtualHosts: hosts,
+		VirtualHosts: append(hosts, resource.BuildAllowAnyVHost()),
 	}
 	routeConfs = append(routeConfs, routeConfiguration)
 

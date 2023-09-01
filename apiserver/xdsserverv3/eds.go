@@ -25,6 +25,7 @@ import (
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 	"github.com/polarismesh/polaris/common/model"
@@ -49,10 +50,9 @@ func (eds *EDSBuilder) Generate(option *resource.BuildOption) (interface{}, erro
 	case resource.RunTypeGateway:
 		resources = append(resources, eds.makeBoundEndpoints(option, core.TrafficDirection_OUTBOUND)...)
 	case resource.RunTypeSidecar:
-		// sidecar 场景，如果流量方向是 envoy -> sidecar 的话，那么 endpoint 只能是 本地 127.0.0.1
-		inBoundEndpoints := append(resources, eds.makeSelfEndpoint(option)...)
-		outBoundEndpoints := append(resources, eds.makeBoundEndpoints(option,
-			core.TrafficDirection_OUTBOUND)...)
+		// sidecar 场景，如果流量方向是 envoy -> 业务 POD，那么 endpoint 只能是 本地 127.0.0.1
+		inBoundEndpoints := eds.makeSelfEndpoint(option)
+		outBoundEndpoints := eds.makeBoundEndpoints(option, core.TrafficDirection_OUTBOUND)
 		resources = append(resources, inBoundEndpoints...)
 		resources = append(resources, outBoundEndpoints...)
 	}
@@ -165,7 +165,8 @@ func (eds *EDSBuilder) makeSelfEndpoint(option *resource.BuildOption) []types.Re
 					},
 				},
 			},
-			HealthStatus: core.HealthStatus_HEALTHY,
+			LoadBalancingWeight: wrapperspb.UInt32(100),
+			HealthStatus:        core.HealthStatus_HEALTHY,
 		}
 		lbEndpoints = append(lbEndpoints, ep)
 	}

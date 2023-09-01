@@ -37,7 +37,7 @@ import (
 )
 
 var (
-	namingLog = commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName)
+	accesslog = commonlog.GetScopeOrDefaultByName(commonlog.APIServerLoggerName)
 )
 
 // ReportClient 客户端上报
@@ -101,7 +101,7 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 		}
 
 		msg := fmt.Sprintf("receive grpc discover request: %s", in.Service.String())
-		namingLog.Info(msg,
+		accesslog.Info(msg,
 			zap.String("type", apiservice.DiscoverRequest_DiscoverRequestType_name[int32(in.Type)]),
 			zap.String("client-address", clientAddress),
 			zap.String("user-agent", userAgent),
