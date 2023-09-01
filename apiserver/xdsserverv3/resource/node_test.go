@@ -44,12 +44,12 @@ func Test_parseNodeID(t *testing.T) {
 		{
 			name: "test-1",
 			args: args{
-				nodeID: "sidecar~default/12345~127.0.0.1",
+				nodeID: "sidecar~bookinfo/productpage-v1-7bc8c4cb99-c69gh~10.0.0.208",
 			},
-			wantRunType:          "sidecar",
-			wantPolarisNamespace: "default",
-			wantUuid:             "12345",
-			wantHostIP:           "127.0.0.1",
+			wantRunType:          string(RunTypeSidecar),
+			wantPolarisNamespace: "bookinfo",
+			wantUuid:             "productpage-v1-7bc8c4cb99-c69gh",
+			wantHostIP:           "10.0.0.208",
 		},
 		{
 			name: "test-1",
