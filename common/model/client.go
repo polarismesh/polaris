@@ -117,7 +117,6 @@ func Store2ClientStat(clientStatStore *ClientStatStore) *apiservice.StatInfo {
 	return statInfo
 }
 
-
 const (
 	StatReportPrometheus string = "prometheus"
 )
@@ -132,4 +131,3 @@ type PrometheusTarget struct {
 	Targets []string          `json:"targets"`
 	Labels  map[string]string `json:"labels"`
 }
-
