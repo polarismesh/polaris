@@ -214,7 +214,9 @@ func (sc *serviceContractCache) Query(filter map[string]string, offset, limit ui
 	return retVal, total, nil
 }
 
-func (sc *serviceContractCache) toPage(values []*model.EnrichServiceContract, offset, limit uint32) ([]*model.EnrichServiceContract, uint32) {
+func (sc *serviceContractCache) toPage(values []*model.EnrichServiceContract, offset,
+	limit uint32) ([]*model.EnrichServiceContract, uint32) {
+
 	// 所有符合条件的服务数量
 	amount := uint32(len(values))
 	// 判断 offset 和 limit 是否允许返回对应的服务

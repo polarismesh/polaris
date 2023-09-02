@@ -53,14 +53,13 @@ func (s *Server) CreateServiceContracts(ctx context.Context,
 
 	responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for _, item := range req {
-		response := s.CreateServiceContract(ctx, item) //HTTP API
+		response := s.CreateServiceContract(ctx, item)
 		api.Collect(responses, response)
 	}
 	return api.FormatBatchWriteResponse(responses)
 }
 
 func (s *Server) CreateServiceContract(ctx context.Context, contract *apiservice.ServiceContract) *apiservice.Response {
-	//五元组保证唯一性
 	contractId, errRsp := utils.CheckContractTetrad(contract)
 	if errRsp != nil {
 		return errRsp
@@ -68,18 +67,18 @@ func (s *Server) CreateServiceContract(ctx context.Context, contract *apiservice
 
 	existContract, err := s.storage.GetServiceContract(contractId)
 	if err != nil {
-		log.Errorf("[Service][Contract] get service_contract from store when create", utils.RequestID(ctx),
+		log.Error("[Service][Contract] get service_contract from store when create", utils.RequestID(ctx),
 			zap.Error(err))
 		return api.NewAnyDataResponse(store.StoreCode2APICode(err), contract)
 	}
 	if existContract != nil {
-		if existContract.Content == contract.Content { //无需更新
+		if existContract.Content == contract.Content {
 			return api.NewAnyDataResponse(apimodel.Code_ExecuteSuccess, nil)
 		}
 		existContract.Content = contract.Content
 		existContract.Revision = utils.NewUUID()
 		if err := s.storage.UpdateServiceContract(existContract.ServiceContract); err != nil {
-			log.Errorf("[Service][Contract] do update to store", utils.RequestID(ctx), zap.Error(err))
+			log.Error("[Service][Contract] do update to store", utils.RequestID(ctx), zap.Error(err))
 			return api.NewAnyDataResponse(store.StoreCode2APICode(err), contract)
 		}
 		return api.NewAnyDataResponse(apimodel.Code_ExecuteSuccess, nil)
@@ -97,7 +96,7 @@ func (s *Server) CreateServiceContract(ctx context.Context, contract *apiservice
 	}
 
 	if err := s.storage.CreateServiceContract(saveData); err != nil {
-		log.Errorf("[Service][Contract] do save to store", utils.RequestID(ctx), zap.Error(err))
+		log.Error("[Service][Contract] do save to store", utils.RequestID(ctx), zap.Error(err))
 		return api.NewAnyDataResponse(store.StoreCode2APICode(err), nil)
 	}
 	s.RecordHistory(ctx, serviceContractRecordEntry(ctx, contract, &model.EnrichServiceContract{
@@ -134,7 +133,6 @@ func (s *Server) GetServiceContracts(ctx context.Context, query map[string]strin
 		return out
 	}
 	for _, item := range ret {
-		//处理methods
 		methods := make([]*apiservice.InterfaceDescriptor, 0)
 		for _, methodItem := range item.Interfaces {
 			methods = append(methods, &apiservice.InterfaceDescriptor{
@@ -175,7 +173,7 @@ func (s *Server) GetServiceContracts(ctx context.Context, query map[string]strin
 			Mtime: commontime.Time2String(item.ModifyTime),
 		}
 		if addErr := api.AddAnyDataIntoBatchQuery(out, contract); addErr != nil {
-			log.Errorf("[Service][Contract] add service_contract as any data fail: %v",
+			log.Error("[Service][Contract] add service_contract as any data fail",
 				utils.RequestID(ctx), zap.Error(err))
 			continue
 		}
@@ -192,7 +190,7 @@ func (s *Server) DeleteServiceContracts(ctx context.Context,
 
 	responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for _, item := range req {
-		response := s.DeleteServiceContract(ctx, item) //HTTP API
+		response := s.DeleteServiceContract(ctx, item)
 		api.Collect(responses, response)
 	}
 	return api.FormatBatchWriteResponse(responses)
@@ -217,7 +215,7 @@ func (s *Server) DeleteServiceContract(ctx context.Context,
 
 	saveData, err := s.storage.GetServiceContract(contractID)
 	if err != nil {
-		log.Errorf("[Service][Contract] get save service_contract when delete", utils.RequestID(ctx), zap.Error(err))
+		log.Error("[Service][Contract] get save service_contract when delete", utils.RequestID(ctx), zap.Error(err))
 		return api.NewAnyDataResponse(store.StoreCode2APICode(err), nil)
 	}
 	if saveData == nil {
@@ -234,7 +232,7 @@ func (s *Server) DeleteServiceContract(ctx context.Context,
 	}
 
 	if createErr := s.storage.DeleteServiceContract(deleteData); createErr != nil {
-		log.Errorf("[Service][Contract] do delete from store", utils.RequestID(ctx), zap.Error(err))
+		log.Error("[Service][Contract] do delete from store", utils.RequestID(ctx), zap.Error(err))
 		return api.NewAnyDataResponse(store.StoreCode2APICode(err), nil)
 	}
 	s.RecordHistory(ctx, serviceContractRecordEntry(ctx, contract, &model.EnrichServiceContract{
@@ -261,7 +259,7 @@ func (s *Server) CreateServiceContractInterfaces(ctx context.Context,
 	for _, item := range contract.Interfaces {
 		interfaceId, errRsp := utils.CheckContractInterfaceTetrad(createData.ID, source, item)
 		if errRsp != nil {
-			log.Errorf("[Service][Contract] check service_contract interface id", utils.RequestID(ctx),
+			log.Error("[Service][Contract] check service_contract interface id", utils.RequestID(ctx),
 				zap.String("err", errRsp.GetInfo().GetValue()))
 			return errRsp
 		}
@@ -277,7 +275,7 @@ func (s *Server) CreateServiceContractInterfaces(ctx context.Context,
 	}
 
 	if err := s.storage.AddServiceContractInterfaces(createData); err != nil {
-		log.Errorf("[Service][Contract] full replace service_contract interfaces", utils.RequestID(ctx), zap.Error(err))
+		log.Error("[Service][Contract] full replace service_contract interfaces", utils.RequestID(ctx), zap.Error(err))
 		return api.NewAnyDataResponse(store.StoreCode2APICode(err), nil)
 	}
 	s.RecordHistory(ctx, serviceContractRecordEntry(ctx, contract, createData, model.OUpdate))
@@ -303,7 +301,7 @@ func (s *Server) AppendServiceContractInterfaces(ctx context.Context,
 	for _, item := range contract.Interfaces {
 		interfaceId, errRsp := utils.CheckContractInterfaceTetrad(appendData.ID, apiservice.InterfaceDescriptor_Manual, item)
 		if errRsp != nil {
-			log.Errorf("[Service][Contract] check service_contract interface id", utils.RequestID(ctx),
+			log.Error("[Service][Contract] check service_contract interface id", utils.RequestID(ctx),
 				zap.String("err", errRsp.GetInfo().GetValue()))
 			return errRsp
 		}
@@ -318,7 +316,7 @@ func (s *Server) AppendServiceContractInterfaces(ctx context.Context,
 		})
 	}
 	if err := s.storage.AppendServiceContractInterfaces(appendData); err != nil {
-		log.Errorf("[Service][Contract] append service_contract interfaces", utils.RequestID(ctx), zap.Error(err))
+		log.Error("[Service][Contract] append service_contract interfaces", utils.RequestID(ctx), zap.Error(err))
 		return api.NewAnyDataResponse(store.StoreCode2APICode(err), nil)
 	}
 	s.RecordHistory(ctx, serviceContractRecordEntry(ctx, contract, appendData, model.OUpdate))
@@ -344,7 +342,7 @@ func (s *Server) DeleteServiceContractInterfaces(ctx context.Context,
 	for _, item := range contract.Interfaces {
 		interfaceId, errRsp := utils.CheckContractInterfaceTetrad(deleteData.ID, apiservice.InterfaceDescriptor_Manual, item)
 		if errRsp != nil {
-			log.Errorf("[Service][Contract] check service_contract interface id", utils.RequestID(ctx),
+			log.Error("[Service][Contract] check service_contract interface id", utils.RequestID(ctx),
 				zap.String("err", errRsp.GetInfo().GetValue()))
 			return errRsp
 		}
@@ -356,7 +354,7 @@ func (s *Server) DeleteServiceContractInterfaces(ctx context.Context,
 		})
 	}
 	if err := s.storage.DeleteServiceContractInterfaces(deleteData); err != nil {
-		log.Errorf("[Service][Contract] delete service_contract interfaces", utils.RequestID(ctx), zap.Error(err))
+		log.Error("[Service][Contract] delete service_contract interfaces", utils.RequestID(ctx), zap.Error(err))
 		return api.NewAnyDataResponse(store.StoreCode2APICode(err), nil)
 	}
 	s.RecordHistory(ctx, serviceContractRecordEntry(ctx, contract, deleteData, model.ODelete))

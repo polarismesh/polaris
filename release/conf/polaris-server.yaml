@@ -444,6 +444,7 @@ cache:
     - name: configFile
     - name: configGroup
     - name: faultDetectRule
+    - name: serviceContract
 #    - name: l5 # Load L5 data
 # Maintain configuration
 maintain:

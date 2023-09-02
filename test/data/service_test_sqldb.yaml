@@ -294,6 +294,7 @@ cache:
     - name: configFile
     - name: configGroup
     - name: faultDetectRule
+    - name: serviceContract
 # 存储配置
 store:
   # 单机文件存储插件
