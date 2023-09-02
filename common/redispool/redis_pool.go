@@ -425,10 +425,11 @@ func (p *redisPool) afterHandleTask(startTime time.Time, command string, task *T
 		}
 	}
 	p.statis.ReportCallMetrics(metrics.CallMetric{
-		Type:     metrics.RedisCallMetric,
-		API:      command,
-		Code:     int(code),
-		Duration: costDuration,
+		Type:             metrics.RedisCallMetric,
+		API:              command,
+		Code:             int(code),
+		Duration:         costDuration,
+		TrafficDirection: metrics.TrafficDirectionOutBound,
 	})
 }
 

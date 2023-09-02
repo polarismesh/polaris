@@ -19,7 +19,6 @@ package namespace
 
 import (
 	"math"
-	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -43,9 +42,8 @@ type namespaceCache struct {
 	ids     *utils.SyncMap[string, *model.Namespace]
 	updater *singleflight.Group
 
-	exportLock sync.RWMutex
 	// exportNamespace 某个命名空间下的所有服务的可见性
-	exportNamespace map[string]map[string]struct{}
+	exportNamespace *utils.SyncMap[string, *utils.SyncSet[string]]
 }
 
 func NewNamespaceCache(storage store.Store, cacheMgr types.CacheManager) types.NamespaceCache {
@@ -59,6 +57,7 @@ func NewNamespaceCache(storage store.Store, cacheMgr types.CacheManager) types.N
 func (nsCache *namespaceCache) Initialize(c map[string]interface{}) error {
 	nsCache.ids = utils.NewSyncMap[string, *model.Namespace]()
 	nsCache.updater = new(singleflight.Group)
+	nsCache.exportNamespace = utils.NewSyncMap[string, *utils.SyncSet[string]]()
 	return nil
 }
 
@@ -118,40 +117,36 @@ func (nsCache *namespaceCache) setNamespaces(nsSlice []*model.Namespace) map[str
 }
 
 func (nsCache *namespaceCache) handleNamespaceChange(et eventhub.EventType, oldItem, item *model.Namespace) {
-	nsCache.exportLock.Lock()
-	defer nsCache.exportLock.Unlock()
-
 	switch et {
 	case eventhub.EventUpdated, eventhub.EventCreated:
 		exportTo := item.ServiceExportTo
-		nsCache.exportNamespace[item.Name] = map[string]struct{}{}
+		viewer := utils.NewSyncSet[string]()
 		for i := range exportTo {
-			nsCache.exportNamespace[item.Name][i] = struct{}{}
+			viewer.Add(i)
 		}
+		nsCache.exportNamespace.Store(item.Name, viewer)
 	case eventhub.EventDeleted:
-		delete(nsCache.exportNamespace, item.Name)
+		nsCache.exportNamespace.Delete(item.Name)
 	}
 }
 
 func (nsCache *namespaceCache) GetVisibleNamespaces(namespace string) []*model.Namespace {
-	nsCache.exportLock.Lock()
-	defer nsCache.exportLock.Unlock()
-
 	ret := make(map[string]*model.Namespace, 8)
 
 	// 根据命名空间级别的可见性进行查询
 	// 先看精确的
-	for exportNs, viewerNs := range nsCache.exportNamespace {
-		_, exactMatch := viewerNs[namespace]
-		_, allMatch := viewerNs[types.AllMatched]
+	nsCache.exportNamespace.Range(func(exportNs string, viewerNs *utils.SyncSet[string]) bool {
+		exactMatch := viewerNs.Contains(namespace)
+		allMatch := viewerNs.Contains(types.AllMatched)
 		if !exactMatch && !allMatch {
-			continue
+			return true
 		}
 		val := nsCache.GetNamespace(exportNs)
 		if val != nil {
 			ret[val.Name] = val
 		}
-	}
+		return true
+	})
 
 	values := make([]*model.Namespace, 0, len(ret))
 	for _, item := range ret {
@@ -164,6 +159,7 @@ func (nsCache *namespaceCache) GetVisibleNamespaces(namespace string) []*model.N
 func (nsCache *namespaceCache) Clear() error {
 	nsCache.BaseCache.Clear()
 	nsCache.ids = utils.NewSyncMap[string, *model.Namespace]()
+	nsCache.exportNamespace = utils.NewSyncMap[string, *utils.SyncSet[string]]()
 	return nil
 }
 

@@ -30,6 +30,7 @@ import (
 
 // APICall 接口调用
 type APICall struct {
+	Count            int
 	Api              string
 	Code             int
 	Duration         int64
@@ -110,13 +111,14 @@ func (c *ComponentStatics) add(ac *APICall) {
 		}
 	} else {
 		c.statis[index] = &APICallStatisItem{
-			API:      ac.Api,
-			Code:     ac.Code,
-			Count:    1,
-			AccTime:  ac.Duration,
-			MinTime:  ac.Duration,
-			MaxTime:  ac.Duration,
-			Protocol: ac.Protocol,
+			API:              ac.Api,
+			Code:             ac.Code,
+			Count:            int64(ac.Count),
+			AccTime:          ac.Duration,
+			MinTime:          ac.Duration,
+			MaxTime:          ac.Duration,
+			Protocol:         ac.Protocol,
+			TrafficDirection: ac.TrafficDirection,
 		}
 	}
 }
@@ -155,14 +157,15 @@ func (c *ComponentStatics) deal() {
 
 		if item.ZeroDuration <= MaxZeroDuration {
 			c.statis[key] = &APICallStatisItem{
-				API:          item.API,
-				Code:         item.Code,
-				Count:        0,
-				Protocol:     item.Protocol,
-				AccTime:      0,
-				MinTime:      math.MaxInt64,
-				MaxTime:      0,
-				ZeroDuration: item.ZeroDuration,
+				API:              item.API,
+				Code:             item.Code,
+				Count:            0,
+				Protocol:         item.Protocol,
+				AccTime:          0,
+				MinTime:          math.MaxInt64,
+				MaxTime:          0,
+				ZeroDuration:     item.ZeroDuration,
+				TrafficDirection: item.TrafficDirection,
 			}
 		}
 	}

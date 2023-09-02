@@ -485,9 +485,9 @@ store:
     master:
       dbType: mysql
       dbName: polaris_server
-      dbUser: root ##DB_USER##
-      dbPwd: 528LcT528 ##DB_PWD##
-      dbAddr: 127.0.0.1:3306 ##DB_ADDR##
+      dbUser: ##DB_USER##
+      dbPwd: ##DB_PWD##
+      dbAddr: ##DB_ADDR##
       maxOpenConns: 300
       maxIdleConns: 50
       connMaxLifetime: 300 # Unit second

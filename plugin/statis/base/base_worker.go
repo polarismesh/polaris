@@ -47,12 +47,16 @@ func (s *BaseWorker) ReportCallMetrics(metric metrics.CallMetric) {
 	switch metric.Type {
 	default:
 		item := &APICall{
+			Count:            metric.Times,
 			Api:              metric.API,
 			Protocol:         metric.Protocol,
 			Code:             metric.Code,
 			Duration:         int64(metric.Duration.Nanoseconds()),
 			Component:        metric.Type,
-			TrafficDirection: string(metric.TrafficDirection),
+			TrafficDirection: string(metrics.TrafficDirectionInBound),
+		}
+		if metric.TrafficDirection != "" {
+			item.TrafficDirection = string(metric.TrafficDirection)
 		}
 		s.apiStatis.Add(item)
 	case metrics.ProtobufCacheCallMetric:
