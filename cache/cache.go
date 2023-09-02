@@ -184,6 +184,11 @@ func (nc *CacheManager) FaultDetector() types.FaultDetectCache {
 	return nc.caches[types.CacheFaultDetector].(types.FaultDetectCache)
 }
 
+// ServiceContract 获取服务契约缓存
+func (nc *CacheManager) ServiceContract() types.ServiceContractCache {
+	return nc.caches[types.CacheServiceContract].(types.ServiceContractCache)
+}
+
 // User Get user information cache information
 func (nc *CacheManager) User() types.UserCache {
 	return nc.caches[types.CacheUser].(types.UserCache)

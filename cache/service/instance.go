@@ -381,19 +381,27 @@ func (ic *instanceCache) runHealthyProtect(affect map[string]bool) {
 func (ic *instanceCache) computeInstanceCount(affect map[string]bool) {
 	for serviceID := range affect {
 		// 构建服务数量统计
-		value, ok := ic.services.Load(serviceID)
+		serviceInstances, ok := ic.services.Load(serviceID)
 		if !ok {
 			ic.instanceCounts.Delete(serviceID)
 			continue
 		}
-		count := &model.InstanceCount{}
-		value.Range(func(key string, instance *model.Instance) {
+		count := &model.InstanceCount{
+			VersionCounts: map[string]*model.InstanceVersionCount{},
+		}
+		serviceInstances.Range(func(key string, instance *model.Instance) {
+			if _, ok := count.VersionCounts[instance.Version()]; !ok {
+				count.VersionCounts[instance.Version()] = &model.InstanceVersionCount{}
+			}
 			count.TotalInstanceCount++
+			count.VersionCounts[instance.Version()].TotalInstanceCount++
 			if isInstanceHealthy(instance) {
 				count.HealthyInstanceCount++
+				count.VersionCounts[instance.Version()].HealthyInstanceCount++
 			}
 			if instance.Proto.GetIsolate().GetValue() {
 				count.IsolateInstanceCount++
+				count.VersionCounts[instance.Version()].IsolateInstanceCount++
 			}
 		})
 		if count.TotalInstanceCount == 0 {

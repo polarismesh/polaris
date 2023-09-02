@@ -62,6 +62,8 @@ const (
 	UsersName = "users"
 	// StrategyRuleName strategy rule config name
 	StrategyRuleName = "strategyRule"
+	// ServiceContractName service contract config name
+	ServiceContractName = "serviceContract"
 )
 
 type CacheIndex int
@@ -82,6 +84,7 @@ const (
 	CacheConfigFile
 	CacheFaultDetector
 	CacheConfigGroup
+	CacheServiceContract
 
 	CacheLast
 )
@@ -194,6 +197,13 @@ type (
 		GetServiceRevisionCount() int
 		// GetServiceInstanceRevision
 		GetServiceInstanceRevision(serviceID string) string
+	}
+
+	// ServiceContractCache .
+	ServiceContractCache interface {
+		Cache
+		// Query .
+		Query(filter map[string]string, offset, limit uint32) ([]*model.EnrichServiceContract, uint32, error)
 	}
 )
 

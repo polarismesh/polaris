@@ -70,14 +70,8 @@ type boltStore struct {
 	*rateLimitStore
 	*circuitBreakerStore
 	*faultDetectStore
-
-	// 工具
-	*toolStore
-
-	// 鉴权模块相关
-	*userStore
-	*groupStore
-	*strategyStore
+	*routingStoreV2
+	*serviceContractStore
 
 	// 配置中心stores
 	*configFileGroupStore
@@ -86,11 +80,14 @@ type boltStore struct {
 	*configFileReleaseHistoryStore
 	*configFileTemplateStore
 
-	// v2 存储
-	*routingStoreV2
-
 	// adminStore store
 	*adminStore
+	// 工具
+	*toolStore
+	// 鉴权模块相关
+	*userStore
+	*groupStore
+	*strategyStore
 
 	handler BoltHandler
 	start   bool
@@ -294,6 +291,7 @@ func (m *boltStore) newDiscoverModuleStore() {
 	m.circuitBreakerStore = &circuitBreakerStore{handler: m.handler}
 	m.faultDetectStore = &faultDetectStore{handler: m.handler}
 	m.routingStoreV2 = &routingStoreV2{handler: m.handler}
+	m.serviceContractStore = &serviceContractStore{handler: m.handler}
 }
 
 func (m *boltStore) newAuthModuleStore() {

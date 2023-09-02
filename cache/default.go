@@ -45,6 +45,7 @@ func init() {
 	RegisterCache(types.UsersName, types.CacheUser)
 	RegisterCache(types.StrategyRuleName, types.CacheAuthStrategy)
 	RegisterCache(types.ClientName, types.CacheClient)
+	RegisterCache(types.ServiceContractName, types.CacheServiceContract)
 }
 
 var (
@@ -96,6 +97,7 @@ func newCacheManager(ctx context.Context, cacheOpt *Config, storage store.Store)
 	mgr.RegisterCacher(types.CacheCircuitBreaker, cachesvc.NewCircuitBreakerCache(storage, mgr))
 	mgr.RegisterCacher(types.CacheFaultDetector, cachesvc.NewFaultDetectCache(storage, mgr))
 	mgr.RegisterCacher(types.CacheCL5, cachesvc.NewL5Cache(storage, mgr))
+	mgr.RegisterCacher(types.CacheServiceContract, cachesvc.NewServiceContractCache(storage, mgr))
 	// 配置分组 & 配置发布缓存
 	mgr.RegisterCacher(types.CacheConfigFile, cacheconfig.NewConfigFileCache(storage, mgr))
 	mgr.RegisterCacher(types.CacheConfigGroup, cacheconfig.NewConfigGroupCache(storage, mgr))

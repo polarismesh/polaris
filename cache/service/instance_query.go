@@ -136,7 +136,7 @@ func (ic *instanceCache) forceQueryUpdate() error {
 	// shared == true，表示当前已经有正在 update 执行的任务，这个任务不一定能够读取到最新的数据
 	// 为了避免读取到脏数据，在发起一次 singleUpdate
 	if shared {
-		naminglog.Debug("[Server][Instances][Query] force query update second")
+		naminglog.Debug("[Server][Instances][Query] force query update from store")
 		err, _ = ic.singleUpdate()
 	}
 	return err

@@ -151,6 +151,7 @@ type ServiceAlias struct {
 	Comment        string
 	CreateTime     time.Time
 	ModifyTime     time.Time
+	ExportTo       map[string]struct{}
 }
 
 // WeightType 服务下实例的权重类型
@@ -391,6 +392,18 @@ func flag2valid(flag int) bool {
 
 // InstanceCount Service instance statistics
 type InstanceCount struct {
+	// IsolateInstanceCount 隔离状态的实例
+	IsolateInstanceCount uint32
+	// HealthyInstanceCount 健康实例数
+	HealthyInstanceCount uint32
+	// TotalInstanceCount 总实例数
+	TotalInstanceCount uint32
+	// VersionCounts 按照实例的版本进行统计计算
+	VersionCounts map[string]*InstanceVersionCount
+}
+
+// InstanceVersionCount instance version metrics count
+type InstanceVersionCount struct {
 	// IsolateInstanceCount 隔离状态的实例
 	IsolateInstanceCount uint32
 	// HealthyInstanceCount 健康实例数

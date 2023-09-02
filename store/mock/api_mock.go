@@ -106,6 +106,20 @@ func (mr *MockStoreMockRecorder) AddService(service interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddService", reflect.TypeOf((*MockStore)(nil).AddService), service)
 }
 
+// AddServiceContractInterfaces mocks base method.
+func (m *MockStore) AddServiceContractInterfaces(contract *model.EnrichServiceContract) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddServiceContractInterfaces", contract)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddServiceContractInterfaces indicates an expected call of AddServiceContractInterfaces.
+func (mr *MockStoreMockRecorder) AddServiceContractInterfaces(contract interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddServiceContractInterfaces", reflect.TypeOf((*MockStore)(nil).AddServiceContractInterfaces), contract)
+}
+
 // AddStrategy mocks base method.
 func (m *MockStore) AddStrategy(strategy *model.StrategyDetail) error {
 	m.ctrl.T.Helper()
@@ -132,6 +146,20 @@ func (m *MockStore) AddUser(user *model.User) error {
 func (mr *MockStoreMockRecorder) AddUser(user interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddUser", reflect.TypeOf((*MockStore)(nil).AddUser), user)
+}
+
+// AppendServiceContractInterfaces mocks base method.
+func (m *MockStore) AppendServiceContractInterfaces(contract *model.EnrichServiceContract) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AppendServiceContractInterfaces", contract)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AppendServiceContractInterfaces indicates an expected call of AppendServiceContractInterfaces.
+func (mr *MockStoreMockRecorder) AppendServiceContractInterfaces(contract interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AppendServiceContractInterfaces", reflect.TypeOf((*MockStore)(nil).AppendServiceContractInterfaces), contract)
 }
 
 // BatchAddClients mocks base method.
@@ -549,6 +577,20 @@ func (mr *MockStoreMockRecorder) CreateRoutingConfigV2Tx(tx, conf interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRoutingConfigV2Tx", reflect.TypeOf((*MockStore)(nil).CreateRoutingConfigV2Tx), tx, conf)
 }
 
+// CreateServiceContract mocks base method.
+func (m *MockStore) CreateServiceContract(contract *model.ServiceContract) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateServiceContract", contract)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateServiceContract indicates an expected call of CreateServiceContract.
+func (mr *MockStoreMockRecorder) CreateServiceContract(contract interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateServiceContract", reflect.TypeOf((*MockStore)(nil).CreateServiceContract), contract)
+}
+
 // CreateTransaction mocks base method.
 func (m *MockStore) CreateTransaction() (store.Transaction, error) {
 	m.ctrl.T.Helper()
@@ -744,6 +786,34 @@ func (m *MockStore) DeleteServiceAlias(name, namespace string) error {
 func (mr *MockStoreMockRecorder) DeleteServiceAlias(name, namespace interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteServiceAlias", reflect.TypeOf((*MockStore)(nil).DeleteServiceAlias), name, namespace)
+}
+
+// DeleteServiceContract mocks base method.
+func (m *MockStore) DeleteServiceContract(contract *model.ServiceContract) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteServiceContract", contract)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteServiceContract indicates an expected call of DeleteServiceContract.
+func (mr *MockStoreMockRecorder) DeleteServiceContract(contract interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteServiceContract", reflect.TypeOf((*MockStore)(nil).DeleteServiceContract), contract)
+}
+
+// DeleteServiceContractInterfaces mocks base method.
+func (m *MockStore) DeleteServiceContractInterfaces(contract *model.EnrichServiceContract) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteServiceContractInterfaces", contract)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteServiceContractInterfaces indicates an expected call of DeleteServiceContractInterfaces.
+func (mr *MockStoreMockRecorder) DeleteServiceContractInterfaces(contract interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteServiceContractInterfaces", reflect.TypeOf((*MockStore)(nil).DeleteServiceContractInterfaces), contract)
 }
 
 // DeleteStrategy mocks base method.
@@ -1375,6 +1445,21 @@ func (mr *MockStoreMockRecorder) GetMoreReleaseFile(firstUpdate, modifyTime inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreReleaseFile", reflect.TypeOf((*MockStore)(nil).GetMoreReleaseFile), firstUpdate, modifyTime)
 }
 
+// GetMoreServiceContracts mocks base method.
+func (m *MockStore) GetMoreServiceContracts(firstUpdate bool, mtime time.Time) ([]*model.EnrichServiceContract, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMoreServiceContracts", firstUpdate, mtime)
+	ret0, _ := ret[0].([]*model.EnrichServiceContract)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMoreServiceContracts indicates an expected call of GetMoreServiceContracts.
+func (mr *MockStoreMockRecorder) GetMoreServiceContracts(firstUpdate, mtime interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreServiceContracts", reflect.TypeOf((*MockStore)(nil).GetMoreServiceContracts), firstUpdate, mtime)
+}
+
 // GetMoreServices mocks base method.
 func (m *MockStore) GetMoreServices(mtime time.Time, firstUpdate, disableBusiness, needMeta bool) (map[string]*model.Service, error) {
 	m.ctrl.T.Helper()
@@ -1601,6 +1686,21 @@ func (m *MockStore) GetServiceByID(id string) (*model.Service, error) {
 func (mr *MockStoreMockRecorder) GetServiceByID(id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServiceByID", reflect.TypeOf((*MockStore)(nil).GetServiceByID), id)
+}
+
+// GetServiceContract mocks base method.
+func (m *MockStore) GetServiceContract(id string) (*model.EnrichServiceContract, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetServiceContract", id)
+	ret0, _ := ret[0].(*model.EnrichServiceContract)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetServiceContract indicates an expected call of GetServiceContract.
+func (mr *MockStoreMockRecorder) GetServiceContract(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServiceContract", reflect.TypeOf((*MockStore)(nil).GetServiceContract), id)
 }
 
 // GetServices mocks base method.
@@ -2379,6 +2479,20 @@ func (m *MockStore) UpdateServiceAlias(alias *model.Service, needUpdateOwner boo
 func (mr *MockStoreMockRecorder) UpdateServiceAlias(alias, needUpdateOwner interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateServiceAlias", reflect.TypeOf((*MockStore)(nil).UpdateServiceAlias), alias, needUpdateOwner)
+}
+
+// UpdateServiceContract mocks base method.
+func (m *MockStore) UpdateServiceContract(contract *model.ServiceContract) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateServiceContract", contract)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateServiceContract indicates an expected call of UpdateServiceContract.
+func (mr *MockStoreMockRecorder) UpdateServiceContract(contract interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateServiceContract", reflect.TypeOf((*MockStore)(nil).UpdateServiceContract), contract)
 }
 
 // UpdateServiceToken mocks base method.
