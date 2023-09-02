@@ -103,7 +103,7 @@ func (nsCache *namespaceCache) setNamespaces(nsSlice []*model.Namespace) map[str
 			nsCache.ids.Store(ns.Name, ns)
 		}
 		nsCache.handleNamespaceChange(eventType, oldNs, ns)
-		eventhub.Publish(eventhub.CacheNamespaceEventTopic, &eventhub.CacheNamespaceEvent{
+		_ = eventhub.Publish(eventhub.CacheNamespaceEventTopic, &eventhub.CacheNamespaceEvent{
 			OldItem:   oldNs,
 			Item:      ns,
 			EventType: eventType,

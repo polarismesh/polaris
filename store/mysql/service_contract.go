@@ -29,7 +29,7 @@ import (
 )
 
 var (
-	//允许查询的字段
+	// contractAvaiableFilter 允许查询的字段
 	contractAvaiableFilter = map[string]struct{}{
 		"name":      {},
 		"service":   {},
@@ -147,7 +147,7 @@ func (s *serviceContractStore) AddServiceContractInterfaces(contract *model.Enri
 			return err
 		}
 
-		//新增批量数据
+		// 新增批量数据
 		for _, item := range contract.Interfaces {
 			addSql := "REPLACE INTO service_contract_detail(`id`,`contract_id`, `method`, `path` ,`content`,`revision`" +
 				",`flag`,`ctime`, `mtime`" +
@@ -260,7 +260,6 @@ func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime t
 		})
 	}
 
-	//批量查询methods列表
 	idList := make([]string, 0)
 	for _, item := range list {
 		idList = append(idList, fmt.Sprintf(`"%s"`, item.ID))

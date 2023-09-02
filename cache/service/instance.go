@@ -159,7 +159,7 @@ func (ic *instanceCache) realUpdate() (map[string]time.Time, int64, error) {
 	defer func() {
 		_ = tx.Rollback()
 		for i := range instanceChangeEvents {
-			eventhub.Publish(eventhub.CacheInstanceEventTopic, instanceChangeEvents[i])
+			_ = eventhub.Publish(eventhub.CacheInstanceEventTopic, instanceChangeEvents[i])
 		}
 		ic.reportMetricsInfo()
 	}()
@@ -264,7 +264,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) ([]*eventh
 		}
 		affect[item.ServiceID] = true
 		oldInstance, itemExist := ic.ids.Load(item.ID())
-		//匿名实例 或切换了service的实例需要清理缓存
+		// 匿名实例 或切换了service的实例需要清理缓存
 		if itemExist {
 			if oldInstance.ServiceID != item.ServiceID {
 				deleteInstances[item.ID()] = item.Revision()

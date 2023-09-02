@@ -157,7 +157,7 @@ func (c *clientCache) setClients(clients map[string]*model.Client) (map[string]t
 			del++
 			c.deleteClient(id)
 			if itemExist {
-				eventhub.Publish(eventhub.CacheClientEventTopic, &eventhub.CacheClientEvent{
+				_ = eventhub.Publish(eventhub.CacheClientEventTopic, &eventhub.CacheClientEvent{
 					Client:    client,
 					EventType: eventhub.EventDeleted,
 				})
@@ -169,12 +169,12 @@ func (c *clientCache) setClients(clients map[string]*model.Client) (map[string]t
 		update++
 		c.storeClient(id, client)
 		if !itemExist {
-			eventhub.Publish(eventhub.CacheClientEventTopic, &eventhub.CacheClientEvent{
+			_ = eventhub.Publish(eventhub.CacheClientEventTopic, &eventhub.CacheClientEvent{
 				Client:    client,
 				EventType: eventhub.EventCreated,
 			})
 		} else {
-			eventhub.Publish(eventhub.CacheClientEventTopic, &eventhub.CacheClientEvent{
+			_ = eventhub.Publish(eventhub.CacheClientEventTopic, &eventhub.CacheClientEvent{
 				Client:    client,
 				EventType: eventhub.EventUpdated,
 			})
