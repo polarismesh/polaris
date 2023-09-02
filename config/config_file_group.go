@@ -25,6 +25,7 @@ import (
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -276,7 +277,14 @@ func (s *Server) QueryConfigFileGroups(ctx context.Context,
 	}
 	values := make([]*apiconfig.ConfigFileGroup, 0, len(ret))
 	for i := range ret {
-		values = append(values, model.ToConfigGroupAPI(ret[i]))
+		item := model.ToConfigGroupAPI(ret[i])
+		fileCount, err := s.storage.CountConfigFiles(ret[i].Namespace, ret[i].Name)
+		if err != nil {
+			log.Error("[Config][Service] get config file count for group error.", utils.RequestID(ctx),
+				utils.ZapNamespace(ret[i].Namespace), utils.ZapGroup(ret[i].Name), zap.Error(err))
+		}
+		item.FileCount = wrapperspb.UInt64(fileCount)
+		values = append(values, item)
 	}
 
 	resp := api.NewConfigBatchQueryResponse(apimodel.Code_ExecuteSuccess)
