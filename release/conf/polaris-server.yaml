@@ -243,6 +243,10 @@ apiservers:
         whiteList: 127.0.0.1
         purgeCounterInterval: 10s
         purgeCounterExpired: 5s
+      # Referenced from: [Pull Requests 387], in order to improve the processing of service discovery QPS when using api-http server
+      enableCacheProto: false
+      # Cache default size
+      sizeCacheProto: 128
     # Set the type of open API interface
     api:
       # admin OpenAPI interface

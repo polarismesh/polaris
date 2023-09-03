@@ -72,7 +72,7 @@ func (c *CacheObject) PrepareMessage(stream grpc.ServerStream) error {
 // protobufCache PB object cache, reduce the overhead caused by the serialization of the PB repeated object
 type protobufCache struct {
 	enabled       bool
-	cahceRegistry map[string]*lru.ARCCache
+	cacheRegistry map[string]*lru.ARCCache
 }
 
 // NewCache Component a PB cache pool
@@ -88,25 +88,25 @@ func NewCache(options map[string]interface{}, cacheType []string) (Cache, error)
 		size = 128
 	}
 
-	cahceRegistry := make(map[string]*lru.ARCCache)
+	cacheRegistry := make(map[string]*lru.ARCCache)
 
 	for i := range cacheType {
 		cache, err := lru.NewARC(size)
 		if err != nil {
 			return nil, fmt.Errorf("init protobuf=[%s] cache fail : %+v", cacheType[i], err)
 		}
-		cahceRegistry[cacheType[i]] = cache
+		cacheRegistry[cacheType[i]] = cache
 	}
 
 	return &protobufCache{
 		enabled:       enabled,
-		cahceRegistry: cahceRegistry,
+		cacheRegistry: cacheRegistry,
 	}, nil
 }
 
 // Get value by cacheType and key
 func (pc *protobufCache) Get(cacheType string, key string) *CacheObject {
-	c, ok := pc.cahceRegistry[cacheType]
+	c, ok := pc.cacheRegistry[cacheType]
 	if !ok {
 		return nil
 	}
@@ -135,7 +135,7 @@ func (pc *protobufCache) Put(v *CacheObject) (*CacheObject, bool) {
 	cacheType := v.CacheType
 	key := v.Key
 
-	c, ok := pc.cahceRegistry[cacheType]
+	c, ok := pc.cacheRegistry[cacheType]
 	if !ok {
 		return nil, false
 	}
