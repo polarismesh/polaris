@@ -149,7 +149,7 @@ func TestGetClientOpenMethod(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "case=1",
+			name: "case=2",
 			args: args{
 				include: []string{
 					apiserver.DiscoverAccess,
@@ -157,8 +157,9 @@ func TestGetClientOpenMethod(t *testing.T) {
 				protocol: "grpc",
 			},
 			want: map[string]bool{
-				"/v1.PolarisGRPC/Discover":     true,
-				"/v1.PolarisGRPC/ReportClient": true,
+				"/v1.PolarisGRPC/Discover":                             true,
+				"/v1.PolarisGRPC/ReportClient":                         true,
+				"/v1.PolarisServiceContractGRPC/ReportServiceContract": true,
 			},
 			wantErr: false,
 		},
