@@ -252,6 +252,10 @@ func (n *namespaceStore) GetMoreNamespaces(mtime time.Time) ([]*model.Namespace,
 }
 
 func (n *namespaceStore) toModel(data *Namespace) *model.Namespace {
+	return toModelNamespace(data)
+}
+
+func toModelNamespace(data *Namespace) *model.Namespace {
 	export := make(map[string]struct{})
 	_ = json.Unmarshal([]byte(data.ServiceExportTo), &export)
 	return &model.Namespace{
