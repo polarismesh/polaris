@@ -227,19 +227,15 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Serv
 		return api.NewDiscoverInstanceResponse(apimodel.Code_DataNoChange, req)
 	}
 
-	// 填充service数据
-	resp.Service = &apiservice.Service{
-		Name:      req.GetName(),
-		Namespace: req.GetNamespace(),
-		Revision:  utils.NewStringValue(revision),
-	}
+	resp.Service = service2Api(aliasFor)
 	// 塞入源服务信息数据
-	resp.AliasFor = &apiservice.Service{
-		Namespace: utils.NewStringValue(aliasFor.Namespace),
-		Name:      utils.NewStringValue(aliasFor.Name),
-	}
+	resp.AliasFor = service2Api(aliasFor)
+	// 替换 service 名称
+	resp.Service.Name = req.GetName()
+	resp.Service.Namespace = req.GetNamespace()
+	resp.Service.Revision = utils.NewStringValue(revision)
 	// 填充instance数据
-	resp.Instances = make([]*apiservice.Instance, 0) // TODO
+	resp.Instances = make([]*apiservice.Instance, 0)
 	_ = s.caches.Instance().
 		IteratorInstancesWithService(aliasFor.ID, // service已经是源服务
 			func(key string, value *model.Instance) (b bool, e error) {
