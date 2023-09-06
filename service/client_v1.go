@@ -237,6 +237,7 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, filter *apiservice.D
 
 	for _, svc := range visibleServices {
 		specSvc := &apiservice.Service{
+			Id:        utils.NewStringValue(svc.ID),
 			Name:      utils.NewStringValue(svc.Name),
 			Namespace: utils.NewStringValue(svc.Namespace),
 		}

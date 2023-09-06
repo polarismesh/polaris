@@ -36,6 +36,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/service"
@@ -609,19 +610,47 @@ func TestRemoveInstance(t *testing.T) {
 		discoverSuit.removeCommonInstance(t, serviceResp, instanceResp.GetId().GetValue())
 	})
 	t.Run("反注册，获取不到心跳信息", func(t *testing.T) {
+		waitCreate := &sync.WaitGroup{}
+		waitCreateOnce := &sync.Once{}
+		waitRemove := &sync.WaitGroup{}
+		waitRemoveOnce := &sync.Once{}
+		waitCreate.Add(1)
+		waitRemove.Add(1)
+
+		wCtx, _ := eventhub.SubscribeWithFunc(eventhub.CacheInstanceEventTopic, func(ctx context.Context, any2 any) error {
+			time.Sleep(3 * time.Second)
+			event := any2.(*eventhub.CacheInstanceEvent)
+			t.Logf("receive instance change event : %#v", event)
+			switch event.EventType {
+			case eventhub.EventCreated:
+				waitCreateOnce.Do(func() {
+					waitCreate.Done()
+				})
+			case eventhub.EventDeleted:
+				waitRemoveOnce.Do(func() {
+					waitRemove.Done()
+				})
+			}
+			return nil
+		})
+		t.Cleanup(func() {
+			wCtx.Cancel()
+		})
+
 		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1111)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
 		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		waitCreate.Wait()
 		discoverSuit.HeartBeat(t, serviceResp, instanceResp.GetId().GetValue())
 		resp := discoverSuit.GetLastHeartBeat(t, serviceResp, instanceResp.GetId().GetValue())
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		discoverSuit.removeCommonInstance(t, serviceResp, instanceResp.GetId().GetValue())
 		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		waitRemove.Wait()
 		resp = discoverSuit.GetLastHeartBeat(t, serviceResp, instanceResp.GetId().GetValue())
 		if !respNotFound(resp) {
 			t.Fatalf("heart beat resp should be not found, but got %v", resp)

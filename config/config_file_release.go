@@ -350,8 +350,8 @@ func (s *Server) GetConfigFileReleases(ctx context.Context,
 
 	searchFilters := map[string]string{}
 	for k, v := range filter {
-		if _, ok := availableSearch["config_file_release"][k]; ok {
-			searchFilters[k] = v
+		if nK, ok := availableSearch["config_file_release"][k]; ok {
+			searchFilters[nK] = v
 		}
 	}
 

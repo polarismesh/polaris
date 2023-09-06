@@ -18,6 +18,7 @@
 package config_test
 
 import (
+	"testing"
 	"time"
 
 	"github.com/google/uuid"
@@ -162,4 +163,18 @@ func assembleDefaultClientConfigFile(version uint64) []*apiconfig.ClientConfigFi
 			Version:   utils.NewUInt64Value(version),
 		},
 	}
+}
+
+func newConfigCenterTestSuit(t *testing.T) *ConfigCenterTest {
+	testSuit := &ConfigCenterTest{}
+	if err := testSuit.Initialize(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := testSuit.clearTestData(); err != nil {
+			t.Fatal(err)
+		}
+		testSuit.Destroy()
+	})
+	return testSuit
 }

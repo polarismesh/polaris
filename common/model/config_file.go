@@ -324,6 +324,7 @@ func ToConfiogFileReleaseApi(release *ConfigFileRelease) *config_manage.ConfigFi
 		ModifyTime:         utils.NewStringValue(commontime.Time2String(release.ModifyTime)),
 		ReleaseDescription: utils.NewStringValue(release.ReleaseDescription),
 		Tags:               FromTagMap(release.Metadata),
+		Active:             utils.NewBoolValue(release.Active),
 	}
 }
 
@@ -384,22 +385,24 @@ func ToReleaseHistoryAPI(releaseHistory *ConfigFileReleaseHistory) *config_manag
 		return nil
 	}
 	return &config_manage.ConfigFileReleaseHistory{
-		Id:         utils.NewUInt64Value(releaseHistory.Id),
-		Name:       utils.NewStringValue(releaseHistory.Name),
-		Namespace:  utils.NewStringValue(releaseHistory.Namespace),
-		Group:      utils.NewStringValue(releaseHistory.Group),
-		FileName:   utils.NewStringValue(releaseHistory.FileName),
-		Content:    utils.NewStringValue(releaseHistory.Content),
-		Comment:    utils.NewStringValue(releaseHistory.Comment),
-		Format:     utils.NewStringValue(releaseHistory.Format),
-		Tags:       FromTagMap(releaseHistory.Metadata),
-		Md5:        utils.NewStringValue(releaseHistory.Md5),
-		Type:       utils.NewStringValue(releaseHistory.Type),
-		Status:     utils.NewStringValue(releaseHistory.Status),
-		CreateBy:   utils.NewStringValue(releaseHistory.CreateBy),
-		CreateTime: utils.NewStringValue(commontime.Time2String(releaseHistory.CreateTime)),
-		ModifyBy:   utils.NewStringValue(releaseHistory.ModifyBy),
-		ModifyTime: utils.NewStringValue(commontime.Time2String(releaseHistory.ModifyTime)),
+		Id:                 utils.NewUInt64Value(releaseHistory.Id),
+		Name:               utils.NewStringValue(releaseHistory.Name),
+		Namespace:          utils.NewStringValue(releaseHistory.Namespace),
+		Group:              utils.NewStringValue(releaseHistory.Group),
+		FileName:           utils.NewStringValue(releaseHistory.FileName),
+		Content:            utils.NewStringValue(releaseHistory.Content),
+		Comment:            utils.NewStringValue(releaseHistory.Comment),
+		Format:             utils.NewStringValue(releaseHistory.Format),
+		Tags:               FromTagMap(releaseHistory.Metadata),
+		Md5:                utils.NewStringValue(releaseHistory.Md5),
+		Type:               utils.NewStringValue(releaseHistory.Type),
+		Status:             utils.NewStringValue(releaseHistory.Status),
+		CreateBy:           utils.NewStringValue(releaseHistory.CreateBy),
+		CreateTime:         utils.NewStringValue(commontime.Time2String(releaseHistory.CreateTime)),
+		ModifyBy:           utils.NewStringValue(releaseHistory.ModifyBy),
+		ModifyTime:         utils.NewStringValue(commontime.Time2String(releaseHistory.ModifyTime)),
+		ReleaseDescription: utils.NewStringValue(releaseHistory.ReleaseDescription),
+		Reason:             utils.NewStringValue(releaseHistory.Reason),
 	}
 }
 

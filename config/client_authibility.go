@@ -27,24 +27,6 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-// GetConfigFileForClient 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
-func (s *serverAuthability) GetConfigFileForClient(ctx context.Context,
-	fileInfo *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
-	authCtx := s.collectClientConfigFileAuthContext(ctx,
-		[]*apiconfig.ConfigFile{{
-			Namespace: fileInfo.Namespace,
-			Name:      fileInfo.FileName,
-			Group:     fileInfo.Group},
-		}, model.Read, "GetConfigFileForClient")
-	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
-		return api.NewConfigClientResponseWithInfo(convertToErrCode(err), err.Error())
-	}
-
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return s.targetServer.GetConfigFileForClient(ctx, fileInfo)
-}
-
 // CreateConfigFileFromClient 调用config_file的方法创建配置文件
 func (s *serverAuthability) CreateConfigFileFromClient(ctx context.Context,
 	fileInfo *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse {
@@ -87,7 +69,7 @@ func (s *serverAuthability) PublishConfigFileFromClient(ctx context.Context,
 			Namespace: fileInfo.Namespace,
 			Name:      fileInfo.FileName,
 			Group:     fileInfo.Group},
-		}, model.Modify, "PublishConfigFileFromClient")
+		}, model.Create, "PublishConfigFileFromClient")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
 		return api.NewConfigClientResponseWithInfo(convertToErrCode(err), err.Error())
 	}
@@ -96,6 +78,24 @@ func (s *serverAuthability) PublishConfigFileFromClient(ctx context.Context,
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return s.targetServer.PublishConfigFileFromClient(ctx, fileInfo)
+}
+
+// GetConfigFileForClient 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
+func (s *serverAuthability) GetConfigFileForClient(ctx context.Context,
+	fileInfo *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
+	authCtx := s.collectClientConfigFileAuthContext(ctx,
+		[]*apiconfig.ConfigFile{{
+			Namespace: fileInfo.Namespace,
+			Name:      fileInfo.FileName,
+			Group:     fileInfo.Group},
+		}, model.Read, "GetConfigFileForClient")
+	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+		return api.NewConfigClientResponseWithInfo(convertToErrCode(err), err.Error())
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+	return s.targetServer.GetConfigFileForClient(ctx, fileInfo)
 }
 
 // WatchConfigFiles 监听配置文件变化

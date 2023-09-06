@@ -454,7 +454,7 @@ func acquireLocalhost(ctx context.Context, polarisService *boot_config.PolarisSe
 	}
 	if len(polarisService.SelfAddress) != 0 {
 		utils.LocalHost = polarisService.SelfAddress
-		return utils.WithLocalhost(ctx, polarisService.SelfAddress), nil
+		return utils.WithLocalhost(ctx, utils.LocalHost), nil
 	}
 	if len(polarisService.NetworkInter) != 0 {
 		netInter, err := net.InterfaceByName(polarisService.NetworkInter)
@@ -471,7 +471,7 @@ func acquireLocalhost(ctx context.Context, polarisService *boot_config.PolarisSe
 			if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 				if ipnet.IP.To4() != nil {
 					utils.LocalHost = ipnet.IP.String()
-					return utils.WithLocalhost(ctx, polarisService.SelfAddress), nil
+					return utils.WithLocalhost(ctx, utils.LocalHost), nil
 				}
 			}
 		}
@@ -484,7 +484,7 @@ func acquireLocalhost(ctx context.Context, polarisService *boot_config.PolarisSe
 	}
 	log.Infof("[Bootstrap] get local host: %s", localHost)
 	utils.LocalHost = localHost
-	return utils.WithLocalhost(ctx, localHost), nil
+	return utils.WithLocalhost(ctx, utils.LocalHost), nil
 }
 
 func acquireLocalPort(ctx context.Context, apientries []apiserver.Config) {

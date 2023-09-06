@@ -36,7 +36,6 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
-// FileCache 文件缓存，使用 loading cache 懒加载策略。同时写入时设置过期时间，定时清理过期的缓存。
 type fileCache struct {
 	*types.BaseCache
 	storage store.Store
