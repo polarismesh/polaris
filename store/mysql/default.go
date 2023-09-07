@@ -167,8 +167,11 @@ func parseStoreConfig(opts interface{}) (*dbConfig, error) {
 		if !ok {
 			return nil, fmt.Errorf("config Plugin %s:%s type must be string", STORENAME, key)
 		}
-
-		needCheckFields[key] = fmt.Sprintf("%v", val)
+		if val != nil {
+			needCheckFields[key] = fmt.Sprintf("%v", val)
+		} else {
+			log.Warnf("[Store][database] config field is empty: %s", key)
+		}
 	}
 
 	c := &dbConfig{
