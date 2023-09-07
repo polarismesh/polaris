@@ -36,7 +36,8 @@ type continuumPoint struct {
 
 // Continuum consistent hash ring
 type Continuum struct {
-	ring points
+	ring  points
+	hosts map[string]struct{}
 }
 
 type points []continuumPoint
@@ -70,6 +71,7 @@ func New(buckets map[Bucket]bool) *Continuum {
 	}
 
 	ring := make(points, 0, numBuckets*160)
+	hosts := make(map[string]struct{}, numBuckets)
 
 	var totalWeight uint32
 	for bucket := range buckets {
@@ -81,7 +83,10 @@ func New(buckets map[Bucket]bool) *Continuum {
 
 		// this is the equivalent of C's promotion rules, but in Go, to maintain exact compatibility with the C library
 		limit := int(pct * 40.0 * float64(numBuckets))
-
+		// 跳过权重为0节点
+		if limit != 0 {
+			hosts[bucket.Host] = struct{}{}
+		}
 		for k := 0; k < limit; k++ {
 			/* 40 hashes, 4 numbers per hash = 160 points per bucket */
 			ss := fmt.Sprintf("%s-%d", bucket.Host, k)
@@ -100,7 +105,8 @@ func New(buckets map[Bucket]bool) *Continuum {
 	sort.Sort(ring)
 
 	return &Continuum{
-		ring: ring,
+		ring:  ring,
+		hosts: hosts,
 	}
 }
 
@@ -118,4 +124,12 @@ func (c *Continuum) Hash(h uint) string {
 	}
 
 	return c.ring[i].bucket.Host
+}
+
+func (c *Continuum) ContainsHost(host string) bool {
+	if len(c.hosts) == 0 {
+		return false
+	}
+	_, ok := c.hosts[host]
+	return ok
 }
