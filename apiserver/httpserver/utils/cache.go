@@ -15,17 +15,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package grpcserver
+package utils
 
 import (
 	"fmt"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 	lru "github.com/hashicorp/golang-lru"
-	"google.golang.org/grpc"
-
-	"github.com/polarismesh/polaris/common/metrics"
-	"github.com/polarismesh/polaris/plugin"
 )
 
 const (
@@ -44,33 +41,31 @@ type Cache interface {
 	Put(v *CacheObject) (*CacheObject, bool)
 }
 
-// CacheObject
 type CacheObject struct {
-	// OriginVal
 	OriginVal proto.Message
-	// preparedVal
-	preparedVal *grpc.PreparedMsg
-	// CacheType
+
+	buf []byte
+
 	CacheType string
-	// Key
+
 	Key string
 }
 
-func (c *CacheObject) GetPreparedMessage() *grpc.PreparedMsg {
-	return c.preparedVal
+func (c *CacheObject) GetBuf() []byte {
+	return c.buf
 }
 
-func (c *CacheObject) PrepareMessage(stream grpc.ServerStream) error {
-	pmsg := &grpc.PreparedMsg{}
-	if err := pmsg.Encode(stream, c.OriginVal); err != nil {
+func (c *CacheObject) Marshal(m proto.Message) error {
+	jsonpbMsg := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
+	msg, err := jsonpbMsg.MarshalToString(m)
+	if err != nil {
 		return err
 	}
-	c.preparedVal = pmsg
+	c.buf = []byte(msg)
 	return nil
 }
 
-// protobufCache PB object cache, reduce the overhead caused by the serialization of the PB repeated object
-type protobufCache struct {
+type jsonProtoBufferCache struct {
 	enabled       bool
 	cacheRegistry map[string]*lru.ARCCache
 }
@@ -98,48 +93,35 @@ func NewCache(options map[string]interface{}, cacheType []string) (Cache, error)
 		cacheRegistry[cacheType[i]] = cache
 	}
 
-	return &protobufCache{
+	return &jsonProtoBufferCache{
 		enabled:       enabled,
 		cacheRegistry: cacheRegistry,
 	}, nil
 }
 
-// Get value by cacheType and key
-func (pc *protobufCache) Get(cacheType string, key string) *CacheObject {
-	c, ok := pc.cacheRegistry[cacheType]
+func (jbc *jsonProtoBufferCache) Get(cacheType string, key string) *CacheObject {
+	c, ok := jbc.cacheRegistry[cacheType]
 	if !ok {
 		return nil
 	}
 
 	val, exist := c.Get(key)
-	plugin.GetStatis().ReportCallMetrics(metrics.CallMetric{
-		Type:     metrics.ProtobufCacheCallMetric,
-		Protocol: cacheType,
-		Success:  exist,
-		Times:    1,
-	})
-
-	if val == nil {
+	if !exist {
 		return nil
 	}
-
 	return val.(*CacheObject)
 }
 
-// Put save cache value
-func (pc *protobufCache) Put(v *CacheObject) (*CacheObject, bool) {
+func (jbc *jsonProtoBufferCache) Put(v *CacheObject) (*CacheObject, bool) {
 	if v == nil {
 		return nil, false
 	}
-
 	cacheType := v.CacheType
 	key := v.Key
-
-	c, ok := pc.cacheRegistry[cacheType]
+	c, ok := jbc.cacheRegistry[cacheType]
 	if !ok {
 		return nil, false
 	}
-
 	c.Add(key, v)
 	return v, true
 }

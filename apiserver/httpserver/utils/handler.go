@@ -43,6 +43,12 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
+var (
+	convert          MessageToCache
+	protoCache       Cache
+	enableProtoCache = false
+)
+
 // Handler HTTP请求/回复处理器
 type Handler struct {
 	Request  *restful.Request
@@ -319,9 +325,7 @@ func (h *Handler) WriteHeaderAndProto(obj api.ResponseMessage) {
 	h.Response.AddHeader(utils.PolarisRequestID, requestID)
 	h.Response.WriteHeader(status)
 
-	m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
-	err := m.Marshal(h.Response, h.i18nAction(obj))
-	if err != nil {
+	if err := h.handleResponse(h.i18nAction(obj)); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
 	}
 }
@@ -401,4 +405,55 @@ func ParseJsonBody(req *restful.Request, value interface{}) error {
 		return err
 	}
 	return nil
+}
+
+func (h *Handler) handleResponse(obj api.ResponseMessage) error {
+	if !enableProtoCache {
+		m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
+		return m.Marshal(h.Response, obj)
+	}
+	cacheVal := convert(obj)
+	if cacheVal == nil {
+		m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
+		return m.Marshal(h.Response, obj)
+	}
+	if saveVal := protoCache.Get(cacheVal.CacheType, cacheVal.Key); saveVal != nil {
+		if len(saveVal.GetBuf()) > 0 {
+			_, err := h.Response.Write(saveVal.GetBuf())
+			return err
+		}
+		return nil
+	}
+
+	if err := cacheVal.Marshal(obj); err != nil {
+		log.Warn("[Api-http][ProtoCache] prepare message fail, direct send msg", zap.String("key", cacheVal.Key),
+			zap.Error(err))
+		m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
+		return m.Marshal(h.Response, obj)
+	}
+
+	cacheVal, ok := protoCache.Put(cacheVal)
+	if !ok || cacheVal == nil {
+		log.Warn("[Api-http][ProtoCache] put cache ignore", zap.String("key", cacheVal.Key),
+			zap.String("cacheType", cacheVal.CacheType))
+		m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
+		return m.Marshal(h.Response, obj)
+	}
+	if len(cacheVal.GetBuf()) > 0 {
+		_, err := h.Response.Write(cacheVal.GetBuf())
+		return err
+	}
+	return nil
+}
+
+func InitProtoCache(option map[string]interface{}, cacheTypes []string, discoverCacheConvert MessageToCache) {
+	enableProtoCache = true
+	cache, err := NewCache(option, cacheTypes)
+	if err != nil {
+		log.Warn("[Api-http][Discover] new protobuf cache", zap.Error(err))
+	}
+	if cache != nil {
+		protoCache = cache
+		convert = discoverCacheConvert
+	}
 }
