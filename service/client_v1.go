@@ -211,8 +211,6 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, filter *apiservice.D
 			serviceName, namespaceName)
 		return api.NewDiscoverInstanceResponse(apimodel.Code_NotFoundResource, req)
 	}
-	s.RecordDiscoverStatis(aliasFor.Name, aliasFor.Namespace)
-
 	visibleServices := s.caches.Service().GetVisibleServicesInOtherNamespace(aliasFor.Name, aliasFor.Namespace)
 	visibleServices = append(visibleServices, aliasFor)
 
@@ -249,15 +247,14 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, filter *apiservice.D
 		}
 	}
 
-	// revision不一致，重新获取数据
 	// 填充service数据
 	resp.Service = service2Api(aliasFor)
+	// 这里需要把服务信息改为用户请求的服务名以及命名空间
+	resp.Service.Name = req.GetName()
+	resp.Service.Namespace = req.GetNamespace()
 	resp.Service.Revision = utils.NewStringValue(aggregateRevision)
 	// 塞入源服务信息数据
-	resp.AliasFor = &apiservice.Service{
-		Namespace: utils.NewStringValue(aliasFor.Namespace),
-		Name:      utils.NewStringValue(aliasFor.Name),
-	}
+	resp.AliasFor = service2Api(aliasFor)
 	// 填充instance数据
 	resp.Instances = make([]*apiservice.Instance, 0, len(finalInstances))
 	for i := range finalInstances {

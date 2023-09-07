@@ -18,6 +18,7 @@
 package config
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/emicklei/go-restful/v3"
@@ -27,6 +28,10 @@ import (
 
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/utils"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/metrics"
+	commontime "github.com/polarismesh/polaris/common/time"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 func (h *HTTPServer) ClientGetConfigFile(req *restful.Request, rsp *restful.Response) {
@@ -43,7 +48,20 @@ func (h *HTTPServer) ClientGetConfigFile(req *restful.Request, rsp *restful.Resp
 		Version:   &wrapperspb.UInt64Value{Value: version},
 	}
 
-	response := h.configServer.GetConfigFileForClient(handler.ParseHeaderContext(), configFile)
+	ctx := handler.ParseHeaderContext()
+	startTime := commontime.CurrentMillisecond()
+	defer func() {
+		plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+			ClientIP:  utils.ParseClientAddress(ctx),
+			Namespace: configFile.GetNamespace().GetValue(),
+			Resource: fmt.Sprintf("CONFIG_FILE:%s|%s|%d", configFile.GetGroup().GetValue(),
+				configFile.GetFileName().GetValue(), version),
+			Timestamp: startTime,
+			CostTime:  commontime.CurrentMillisecond() - startTime,
+		})
+	}()
+
+	response := h.configServer.GetConfigFileForClient(ctx, configFile)
 	handler.WriteHeaderAndProto(response)
 }
 
@@ -82,6 +100,19 @@ func (h *HTTPServer) GetConfigFileMetadataList(req *restful.Request, rsp *restfu
 		handler.WriteHeaderAndProto(api.NewResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
+
+	startTime := commontime.CurrentMillisecond()
+	defer func() {
+		plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+			ClientIP:  utils.ParseClientAddress(ctx),
+			Namespace: in.GetConfigFileGroup().GetNamespace().GetValue(),
+			Resource: fmt.Sprintf("CONFIG_FILE_LIST:%s|%s", in.GetConfigFileGroup().GetName().GetValue(),
+				in.GetRevision().GetValue()),
+			Timestamp: startTime,
+			CostTime:  commontime.CurrentMillisecond() - startTime,
+		})
+	}()
+
 	out := h.configServer.GetConfigFileNamesWithCache(ctx, in)
 	handler.WriteHeaderAndProto(out)
 }

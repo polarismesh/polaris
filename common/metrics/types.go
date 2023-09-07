@@ -104,6 +104,14 @@ type DiscoveryMetric struct {
 	Labels   map[string]string
 }
 
+type ClientDiscoverMetric struct {
+	ClientIP  string
+	Namespace string
+	Resource  string
+	Timestamp int64
+	CostTime  int64
+}
+
 type ConfigMetricType string
 
 const (

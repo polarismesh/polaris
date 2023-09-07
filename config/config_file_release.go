@@ -462,7 +462,7 @@ func (s *Server) RollbackConfigFileRelease(ctx context.Context,
 	}
 	if ret != nil {
 		_ = tx.Rollback()
-		s.recordReleaseFail(ctx, utils.ReleaseTypeRollback, data, err)
+		s.recordReleaseFail(ctx, utils.ReleaseTypeRollback, data, errors.New(ret.GetInfo().GetValue()))
 		return ret
 	}
 

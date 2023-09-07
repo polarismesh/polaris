@@ -27,6 +27,7 @@ import (
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/plugin/statis/base"
+	"go.uber.org/zap"
 )
 
 const (
@@ -94,8 +95,9 @@ func (s *StatisWorker) ReportConfigMetrics(metric ...metrics.ConfigMetrics) {
 }
 
 // ReportDiscoverCall report discover service times
-func (s *StatisWorker) ReportDiscoverCall(service, namespace string, ttMill int64) {
-
+func (s *StatisWorker) ReportDiscoverCall(metric metrics.ClientDiscoverMetric) {
+	discoverlog.Info("", zap.String("client-ip", metric.ClientIP), zap.String("namespace", metric.Namespace),
+		zap.String("resource", metric.Resource), zap.Int64("access-time", metric.Timestamp))
 }
 
 func (a *StatisWorker) metricsHandle(mt metrics.CallMetricType, start time.Time,

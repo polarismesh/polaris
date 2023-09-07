@@ -39,7 +39,7 @@ func Test_PublishConfigFile(t *testing.T) {
 	)
 
 	t.Run("pubslish_file_noexist", func(t *testing.T) {
-		
+
 	})
 
 	t.Run("normal_publish", func(t *testing.T) {
@@ -188,12 +188,66 @@ func Test_RollbackConfigFileRelease(t *testing.T) {
 
 	// 回滚某个配置版本
 	t.Run("rollback_config_release", func(t *testing.T) {
-		testSuit.ConfigServer().RollbackConfigFileReleases(testSuit.DefaultCtx, []*config_manage.ConfigFileRelease{})
+		resp := testSuit.ConfigServer().RollbackConfigFileReleases(testSuit.DefaultCtx, []*config_manage.ConfigFileRelease{
+			{
+				Name:      utils.NewStringValue(mockReleaseName),
+				Namespace: utils.NewStringValue(mockNamespace),
+				Group:     utils.NewStringValue(mockGroup),
+				FileName:  utils.NewStringValue(mockFileName),
+			},
+		})
+
+		// 正常回滚成功
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue(), resp.GetInfo().GetValue())
+		secondResp := testSuit.ConfigServer().GetConfigFileRelease(testSuit.DefaultCtx, &config_manage.ConfigFileRelease{
+			Name:      utils.NewStringValue(mockReleaseName + "Second"),
+			Namespace: utils.NewStringValue(mockNamespace),
+			Group:     utils.NewStringValue(mockGroup),
+			FileName:  utils.NewStringValue(mockFileName),
+		})
+		// 获取配置发布成功
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), secondResp.GetCode().GetValue(), secondResp.GetInfo().GetValue())
+		// 必须是处于非使用状态
+		assert.False(t, secondResp.GetConfigFileRelease().GetActive().GetValue(), secondResp.GetInfo().GetValue())
+
+		firstResp := testSuit.ConfigServer().GetConfigFileRelease(testSuit.DefaultCtx, &config_manage.ConfigFileRelease{
+			Name:      utils.NewStringValue(mockReleaseName),
+			Namespace: utils.NewStringValue(mockNamespace),
+			Group:     utils.NewStringValue(mockGroup),
+			FileName:  utils.NewStringValue(mockFileName),
+		})
+		// 获取配置发布成功
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue(), resp.GetInfo().GetValue())
+		// 必须是处于使用状态
+		assert.True(t, firstResp.GetConfigFileRelease().GetActive().GetValue(), resp.GetInfo().GetValue())
+
+		// 客户端获取符合预期, 这里强制触发一次缓存数据同步
+		_ = testSuit.CacheMgr().TestUpdate()
+		clientResp := testSuit.ConfigServer().GetConfigFileForClient(testSuit.DefaultCtx, &config_manage.ClientConfigFileInfo{
+			Namespace: utils.NewStringValue(mockNamespace),
+			Group:     utils.NewStringValue(mockGroup),
+			FileName:  utils.NewStringValue(mockFileName),
+		})
+
+		// 获取配置发布成功
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), clientResp.GetCode().GetValue(), clientResp.GetInfo().GetValue())
+		assert.Equal(t, mockContent, clientResp.GetConfigFile().GetContent().GetValue())
+		assert.Equal(t, firstResp.GetConfigFileRelease().GetVersion().GetValue(), clientResp.GetConfigFile().GetVersion().GetValue())
 	})
 
 	// 回滚不存在的目标版本
 	t.Run("rollback_notexist_release", func(t *testing.T) {
-		testSuit.ConfigServer().RollbackConfigFileReleases(testSuit.DefaultCtx, []*config_manage.ConfigFileRelease{})
+		resp := testSuit.ConfigServer().RollbackConfigFileReleases(testSuit.DefaultCtx, []*config_manage.ConfigFileRelease{
+			{
+				Name:      utils.NewStringValue(mockReleaseName + "_NotExist"),
+				Namespace: utils.NewStringValue(mockNamespace),
+				Group:     utils.NewStringValue(mockGroup),
+				FileName:  utils.NewStringValue(mockFileName),
+			},
+		})
+
+		// 回滚失败成功
+		assert.Equal(t, uint32(apimodel.Code_NotFoundResource), resp.GetCode().GetValue(), resp.GetInfo().GetValue())
 	})
 }
 

@@ -28,7 +28,11 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	"github.com/polarismesh/polaris/common/api/l5"
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
+	commontime "github.com/polarismesh/polaris/common/time"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 var (
@@ -70,7 +74,7 @@ func (s *Server) SyncByAgentCmd(ctx context.Context, sbac *l5.Cl5SyncByAgentCmd)
 	optList := sbac.GetOptList().GetOpt()
 
 	routes := s.getRoutes(clientIP, optList)
-	modIDList, callees, sidConfigs := s.getCallees(routes)
+	modIDList, callees, sidConfigs := s.getCallees(ctx, routes)
 	policys, sections := s.getPolicysAndSections(modIDList)
 
 	sbaac := &l5.Cl5SyncByAgentAckCmd{
@@ -172,12 +176,12 @@ func (s *Server) getRoutes(clientIP int32, optList []*l5.Cl5OptObj) []*model.Rou
 }
 
 // get callee
-func (s *Server) getCallees(routes []*model.Route) (map[uint32]bool, []*model.Callee, []*model.SidConfig) {
+func (s *Server) getCallees(ctx context.Context, routes []*model.Route) (map[uint32]bool, []*model.Callee, []*model.SidConfig) {
 	modIDList := make(map[uint32]bool)
 	var callees []*model.Callee
 	var sidConfigs []*model.SidConfig
 	for _, entry := range routes {
-		servers := s.getCalleeByRoute(entry) // 返回nil代表没有找到任何实例
+		servers := s.getCalleeByRoute(ctx, entry) // 返回nil代表没有找到任何实例
 		if servers == nil {
 			log.Warnf("[Cl5] can not found the instances for sid(%d:%d)", entry.ModID, entry.CmdID)
 			// Stat::instance()->add_lost_route(sbac.agent_ip(),vt_route[i].modId,vt_route[i].cmdId); TODO
@@ -248,7 +252,7 @@ func (s *Server) computeService(modID uint32, cmdID uint32) *model.Service {
 }
 
 // 根据访问关系获取所有符合的被调信息
-func (s *Server) getCalleeByRoute(route *model.Route) []*model.Callee {
+func (s *Server) getCalleeByRoute(ctx context.Context, route *model.Route) []*model.Callee {
 	out := make([]*model.Callee, 0)
 	if route == nil {
 		return nil
@@ -257,7 +261,12 @@ func (s *Server) getCalleeByRoute(route *model.Route) []*model.Callee {
 	if service == nil {
 		return nil
 	}
-	s.RecordDiscoverStatis(service.Name, service.Namespace)
+	plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+		ClientIP:  utils.ParseClientAddress(ctx),
+		Namespace: service.Namespace,
+		Resource:  "l5:" + service.Name,
+		Timestamp: commontime.CurrentMillisecond(),
+	})
 
 	hasInstance := false
 	_ = s.caches.Instance().IteratorInstancesWithService(service.ID,

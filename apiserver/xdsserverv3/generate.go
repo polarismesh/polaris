@@ -162,23 +162,24 @@ func (x *XdsResourceGenerator) makeSidecarSnapshot(cacheKey string, xdsNode *res
 
 	snapshot, err := cachev3.NewSnapshot(version, resources)
 	if err != nil {
-		log.Error("[XDS][Sidecar][V2] fail to create snapshot", zap.Any("envoy-node", xdsNode.Node),
-			zap.String("cacheKey", cacheKey), zap.Error(err))
+		log.Error("[XDS][Sidecar][V2] fail to create snapshot", zap.Any("envoy-node", xdsNode.Node.Id),
+			zap.String("cacheKey", cacheKey), zap.String("snapshot", string(resource.DumpSnapShotJSON(snapshot))),
+			zap.Error(err))
 		return err
 	}
 	if err := snapshot.Consistent(); err != nil {
-		log.Error("[XDS][Sidecar][V2] verify snapshot consistent", zap.Any("envoy-node", xdsNode.Node),
+		log.Error("[XDS][Sidecar][V2] verify snapshot consistent", zap.Any("envoy-node", xdsNode.Node.Id),
 			zap.String("cacheKey", cacheKey), zap.Error(err))
 		return err
 	}
 
 	// 为每个 nodeId 刷写 cache ，推送 xds 更新
 	if err := x.cache.SetSnapshot(context.Background(), cacheKey, snapshot); err != nil {
-		log.Error("[XDS][Sidecar][V2] upsert snapshot error", zap.Any("envoy-node", xdsNode.Node),
+		log.Error("[XDS][Sidecar][V2] upsert snapshot error", zap.Any("envoy-node", xdsNode.Node.Id),
 			zap.String("cacheKey", cacheKey), zap.Error(err))
 		return err
 	}
-	log.Info("[XDS][Sidecar][V2] upsert snapshot success", zap.Any("envoy-node", xdsNode.Node),
+	log.Info("[XDS][Sidecar][V2] upsert snapshot success", zap.Any("envoy-node", xdsNode.Node.Id),
 		zap.String("cacheKey", cacheKey), zap.String("snapshot", string(resource.DumpSnapShotJSON(snapshot))))
 	return nil
 }

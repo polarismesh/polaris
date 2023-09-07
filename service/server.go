@@ -27,7 +27,6 @@ import (
 	cacheservice "github.com/polarismesh/polaris/cache/service"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
-	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
@@ -96,11 +95,6 @@ func (s *Server) RecordHistory(ctx context.Context, entry *model.RecordEntry) {
 	}
 	// 调用插件记录history
 	s.history.Record(entry)
-}
-
-// RecordDiscoverStatis 打印服务发现统计
-func (s *Server) RecordDiscoverStatis(service, discoverNamespace string) {
-	plugin.GetStatis().ReportDiscoverCall(service, discoverNamespace, commontime.CurrentMillisecond())
 }
 
 // GetServiceInstanceRevision 获取服务实例的revision
