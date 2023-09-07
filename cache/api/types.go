@@ -490,9 +490,9 @@ var (
 // BaseCache 对于 Cache 中的一些 func 做统一实现，避免重复逻辑
 type BaseCache struct {
 	lock sync.RWMutex
-	// firtstUpdate Whether the cache is loaded for the first time
+	// firstUpdate Whether the cache is loaded for the first time
 	// this field can only make value on exec initialize/clean, and set it to false on exec update
-	firtstUpdate  bool
+	firstUpdate   bool
 	s             store.Store
 	lastFetchTime int64
 	lastMtimes    map[string]time.Time
@@ -515,7 +515,7 @@ func (bc *BaseCache) initialize() {
 	defer bc.lock.Unlock()
 
 	bc.lastFetchTime = 1
-	bc.firtstUpdate = true
+	bc.firstUpdate = true
 	bc.Manager = NewListenerManager()
 	bc.lastMtimes = map[string]time.Time{}
 }
@@ -564,7 +564,7 @@ func (bc *BaseCache) OriginLastFetchTime() time.Time {
 }
 
 func (bc *BaseCache) IsFirstUpdate() bool {
-	return bc.firtstUpdate
+	return bc.firstUpdate
 }
 
 // update
@@ -610,7 +610,7 @@ func (bc *BaseCache) DoCacheUpdate(name string, executor func() (map[string]time
 	if total >= 0 {
 		metrics.RecordCacheUpdateCost(time.Since(start), name, total)
 	}
-	bc.firtstUpdate = false
+	bc.firstUpdate = false
 	return nil
 }
 
@@ -619,7 +619,7 @@ func (bc *BaseCache) Clear() {
 	defer bc.lock.Unlock()
 	bc.lastMtimes = make(map[string]time.Time)
 	bc.lastFetchTime = 1
-	bc.firtstUpdate = true
+	bc.firstUpdate = true
 }
 
 // AddListener 添加
