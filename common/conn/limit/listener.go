@@ -385,17 +385,22 @@ func (l *Listener) purgeExpireCounterHandler() {
 	start := time.Now()
 	scanCount := 0
 	purgeCount := 0
+	waitDel := []string{}
 	l.conns.Range(func(key string, ct *counter) bool {
 		scanCount++
 		ct.mu.RLock()
 		if ct.size == 0 && time.Now().Unix()-ct.lastAccess > l.purgeCounterExpire {
-			// log.Infof("[Listener][%s] purge expire counter: %s", l.protocol, key.(string))
-			l.conns.Delete(key)
+			waitDel = append(waitDel, key)
 			purgeCount++
 		}
 		ct.mu.RUnlock()
 		return true
 	})
+
+	for i := range waitDel {
+		// log.Infof("[Listener][%s] purge expire counter: %s", l.protocol, waitDel[i])
+		l.conns.Delete(waitDel[i])
+	}
 
 	spendTime := time.Since(start)
 	log.Infof("[Listener][%s] purge expire counter total(%d), use time: %+v, scan total(%d), scan qps: %.2f",
