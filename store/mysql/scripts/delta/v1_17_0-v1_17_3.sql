@@ -37,7 +37,10 @@ ALTER TABLE `config_file_release`
     ADD COLUMN `tags` text COMMENT '文件标签';
 
 ALTER TABLE `config_file_release`
-    ADD COLUMN `active` tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否处于使用中';
+ADD COLUMN `active` tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否处于使用中';
+
+ALTER TABLE `config_file_release`
+ADD COLUMN `format` varchar(16) DEFAULT 'text' COMMENT '文件格式，枚举值';
 
 ALTER TABLE `config_file_release`
     ADD COLUMN `description` varchar(512) DEFAULT '' COMMENT '发布描述';

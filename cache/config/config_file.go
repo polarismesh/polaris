@@ -212,8 +212,9 @@ func (fc *fileCache) handleUpdateRelease(oldVal *model.SimpleConfigFileRelease, 
 			namespace.Store(item.Group, utils.NewSyncMap[string, *utils.SyncMap[string, *model.SimpleConfigFileRelease]]())
 		}
 		group, _ := namespace.Load(item.Group)
-		group.Store(item.FileName, utils.NewSyncMap[string, *model.SimpleConfigFileRelease]())
-
+		group.ComputeIfAbsent(item.FileName, func(k string) *utils.SyncMap[string, *model.SimpleConfigFileRelease] {
+			return utils.NewSyncMap[string, *model.SimpleConfigFileRelease]()
+		})
 		files, _ := group.Load(item.FileName)
 		files.Store(item.Name, item.SimpleConfigFileRelease)
 	}()
