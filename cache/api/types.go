@@ -533,13 +533,16 @@ func (bc *BaseCache) initialize() {
 
 	bc.lastFetchTime = 1
 	bc.firstUpdate = true
-	bc.Manager = NewListenerManager()
 	bc.lastMtimes = map[string]time.Time{}
 }
 
 var (
 	zeroTime = time.Unix(0, 0)
 )
+
+func (bc *BaseCache) Store() store.Store {
+	return bc.s
+}
 
 func (bc *BaseCache) ResetLastMtime(label string) {
 	bc.lock.Lock()

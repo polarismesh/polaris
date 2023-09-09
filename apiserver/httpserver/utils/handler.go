@@ -47,6 +47,7 @@ var (
 	convert          MessageToCache
 	protoCache       Cache
 	enableProtoCache = false
+	accesslog        = commonlog.GetScopeOrDefaultByName(commonlog.APIServerLoggerName)
 )
 
 // Handler HTTP请求/回复处理器
