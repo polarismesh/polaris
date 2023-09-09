@@ -429,7 +429,7 @@ func (cfr *configFileReleaseStore) toStoreData(data *model.ConfigFileRelease) *C
 		Flag:       data.Flag,
 		Active:     data.Active,
 		Valid:      data.Valid,
-		Format:     data.FileName,
+		Format:     data.Format,
 		Metadata:   data.Metadata,
 		CreateTime: data.CreateTime,
 		CreateBy:   data.CreateBy,

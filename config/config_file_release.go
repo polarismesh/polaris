@@ -321,9 +321,16 @@ func (s *Server) handleDeleteConfigFileRelease(ctx context.Context,
 func (s *Server) GetConfigFileReleaseVersions(ctx context.Context,
 	filters map[string]string) *apiconfig.ConfigBatchQueryResponse {
 
-	namespace := filters["namespace"]
-	group := filters["group"]
-	fileName := filters["file_name"]
+	searchFilters := map[string]string{}
+	for k, v := range filters {
+		if nk, ok := availableSearch["config_file_release"][k]; ok {
+			searchFilters[nk] = v
+		}
+	}
+
+	namespace := searchFilters["namespace"]
+	group := searchFilters["group"]
+	fileName := searchFilters["file_name"]
 	if namespace == "" {
 		return api.NewConfigBatchQueryResponseWithInfo(apimodel.Code_BadRequest, "invalid namespace")
 	}
@@ -350,8 +357,8 @@ func (s *Server) GetConfigFileReleases(ctx context.Context,
 
 	searchFilters := map[string]string{}
 	for k, v := range filter {
-		if _, ok := availableSearch["config_file_release"][k]; ok {
-			searchFilters[k] = v
+		if nk, ok := availableSearch["config_file_release"][k]; ok {
+			searchFilters[nk] = v
 		}
 	}
 
