@@ -262,7 +262,7 @@ func (b *BaseGrpcServer) streamInterceptor(srv interface{}, ss grpc.ServerStream
 	)
 
 	defer func() {
-		if panicInfo := recover(); err != nil {
+		if panicInfo := recover(); panicInfo != nil {
 			b.log.Errorf("panic %+v", panicInfo)
 		}
 	}()
