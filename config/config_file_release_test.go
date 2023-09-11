@@ -39,7 +39,16 @@ func Test_PublishConfigFile(t *testing.T) {
 	)
 
 	t.Run("pubslish_file_noexist", func(t *testing.T) {
+		pubResp := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFileRelease{
+			Name:      utils.NewStringValue(mockReleaseName),
+			Namespace: utils.NewStringValue(mockNamespace),
+			Group:     utils.NewStringValue(mockGroup),
+			FileName:  utils.NewStringValue(mockFileName),
+		})
 
+
+		// 正常发布成功
+		assert.Equal(t, uint32(apimodel.Code_NotFoundResource), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
 	})
 
 	t.Run("normal_publish", func(t *testing.T) {
