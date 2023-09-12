@@ -555,7 +555,9 @@ func (sc *serviceCache) postProcessUpdatedServices(affect map[string]struct{}) {
 			continue
 		}
 
-		count, _ := sc.namespaceServiceCnt.LoadOrStore(namespace, &model.NamespaceServiceCount{})
+		count, _ := sc.namespaceServiceCnt.ComputeIfAbsent(namespace, func(_ string) *model.NamespaceServiceCount {
+			return &model.NamespaceServiceCount{}
+		})
 
 		// For count information under the Namespace involved in the change, it is necessary to re-come over.
 		count.ServiceCount = 0

@@ -293,13 +293,6 @@ func (s *SyncMap[K, V]) Delete(key K) {
 	delete(s.m, key)
 }
 
-// LoadOrStore
-func (s *SyncMap[K, V]) LoadOrStore(key K, val V) (V, bool) {
-	return s.ComputeIfAbsent(key, func(_ K) V {
-		return val
-	})
-}
-
 // Len
 func (s *SyncMap[K, V]) Len() int {
 	s.lock.RLock()
