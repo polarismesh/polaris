@@ -292,6 +292,7 @@ func BuildRateLimitConf(prefix string) *lrl.LocalRateLimit {
 				Append: wrapperspb.Bool(false),
 			},
 		},
+		// the token bucket must shared across all worker threads
 		LocalRateLimitPerDownstreamConnection: false,
 	}
 	return rateLimitConf
@@ -456,7 +457,7 @@ func BuildRateLimitActionHeaderValueMatch(key string, argument *apitraffic.Match
 	case apimodel.MatchString_REGEX:
 		headerValueMatch.Headers = []*route.HeaderMatcher{
 			{
-				Name: key,
+				Name: argument.GetKey(),
 				HeaderMatchSpecifier: &route.HeaderMatcher_SafeRegexMatch{
 					SafeRegexMatch: &v32.RegexMatcher{
 						EngineType: &v32.RegexMatcher_GoogleRe2{},
@@ -469,7 +470,7 @@ func BuildRateLimitActionHeaderValueMatch(key string, argument *apitraffic.Match
 		// 专门用于 prefix
 		headerValueMatch.Headers = []*route.HeaderMatcher{
 			{
-				Name: key,
+				Name: argument.GetKey(),
 				HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
 					StringMatch: &v32.StringMatcher{
 						MatchPattern: &v32.StringMatcher_Prefix{

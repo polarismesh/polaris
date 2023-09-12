@@ -21,7 +21,17 @@ USE `polaris_server`;
 
 /* 配置分组表变更操作 */
 ALTER TABLE `config_file_group`
-ADD COLUMN `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否被删除',
+ADD COLUMN `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否被删除';
+
+ALTER TABLE `config_file_group`
+ADD COLUMN `business` varchar(64) DEFAULT NULL comment 'Service business information';
+
+ALTER TABLE `config_file_group`
+ADD COLUMN `department` varchar(1024) DEFAULT NULL comment 'Service department information';
+
+ALTER TABLE `config_file_group`
+ADD COLUMN `metadata` text COMMENT '配置分组标签';
+
 /* 配置发布表变更操作 */
 ALTER TABLE `config_file_release`
 ADD COLUMN `tags` text COMMENT '文件标签';
