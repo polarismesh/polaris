@@ -314,6 +314,7 @@ func BuildRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLimit_Ac
 	actions = append(actions, &route.RateLimit_Action{
 		ActionSpecifier: &route.RateLimit_Action_HeaderValueMatch_{
 			HeaderValueMatch: BuildRateLimitActionHeaderValueMatch(":path", &apitraffic.MatchArgument{
+				Key: ":path",
 				Value: &apimodel.MatchString{
 					Type:      methodMatchType,
 					Value:     wrapperspb.String(methodName),
