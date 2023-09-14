@@ -99,6 +99,8 @@ CREATE TABLE `namespace`
     `flag`    TINYINT(4)    NOT NULL DEFAULT '0' COMMENT 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
     `ctime`   TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
     `mtime`   TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last updated time',
+    `service_export_to` TEXT COMMENT 'namespace metadata',
+    `metadata` TEXT COMMENT 'namespace metadata',
     PRIMARY KEY (`name`)
 ) ENGINE = InnoDB;
 
@@ -207,6 +209,7 @@ CREATE TABLE `service`
     `platform_id`  VARCHAR(32)            DEFAULT '' COMMENT 'The platform ID to which the service belongs',
     `ctime`        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
     `mtime`        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last updated time',
+    `export_to` TEXT COMMENT 'service export to some namespace',
     PRIMARY KEY (`id`),
     UNIQUE KEY `name` (`name`, `namespace`),
     KEY `namespace` (`namespace`),

@@ -26,6 +26,9 @@ import (
 )
 
 func (s *Server) checkNamespaceExisted(namespaceName string) bool {
+	if val := s.caches.Namespace().GetNamespace(namespaceName); val != nil {
+		return true
+	}
 	namespace, _ := s.storage.GetNamespace(namespaceName)
 	return namespace != nil
 }

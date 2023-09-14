@@ -22,12 +22,13 @@ import (
 	"fmt"
 	"time"
 
+	"go.uber.org/zap"
+
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/plugin/statis/base"
-	"go.uber.org/zap"
 )
 
 const (

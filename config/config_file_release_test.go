@@ -20,10 +20,11 @@ package config_test
 import (
 	"testing"
 
-	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // Test_PublishConfigFile 测试配置文件发布
@@ -39,16 +40,31 @@ func Test_PublishConfigFile(t *testing.T) {
 	)
 
 	t.Run("pubslish_file_noexist", func(t *testing.T) {
-		pubResp := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFileRelease{
-			Name:      utils.NewStringValue(mockReleaseName),
-			Namespace: utils.NewStringValue(mockNamespace),
-			Group:     utils.NewStringValue(mockGroup),
-			FileName:  utils.NewStringValue(mockFileName),
+		t.Run("namespace_not_exist", func(t *testing.T) {
+			pubResp := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFileRelease{
+				Name:      utils.NewStringValue(mockReleaseName),
+				Namespace: utils.NewStringValue(mockNamespace),
+				Group:     utils.NewStringValue(mockGroup),
+				FileName:  utils.NewStringValue(mockFileName),
+			})
+			// 发布失败
+			assert.Equal(t, uint32(apimodel.Code_NotFoundNamespace), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
 		})
 
+		t.Run("file_not_exist", func(t *testing.T) {
+			testSuit.NamespaceServer().CreateNamespace(testSuit.DefaultCtx, &apimodel.Namespace{
+				Name: utils.NewStringValue(mockNamespace),
+			})
 
-		// 正常发布成功
-		assert.Equal(t, uint32(apimodel.Code_NotFoundResource), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
+			pubResp := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFileRelease{
+				Name:      utils.NewStringValue(mockReleaseName),
+				Namespace: utils.NewStringValue(mockNamespace),
+				Group:     utils.NewStringValue(mockGroup),
+				FileName:  utils.NewStringValue(mockFileName),
+			})
+			// 发布失败
+			assert.Equal(t, uint32(apimodel.Code_NotFoundResource), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
+		})
 	})
 
 	t.Run("normal_publish", func(t *testing.T) {
