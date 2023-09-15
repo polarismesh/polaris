@@ -84,12 +84,12 @@ func TestBoltHandler_LoadNamespace(t *testing.T) {
 		CreateTime: time.Now(),
 		ModifyTime: time.Now(),
 	}
-	nsValues, err := handler.LoadValues(tblNameNamespace, []string{nsValue.Name}, &model.Namespace{})
+	nsValues, err := handler.LoadValues(tblNameNamespace, []string{nsValue.Name}, &Namespace{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	targetNsValue := nsValues[nsValue.Name]
-	targetNs := targetNsValue.(*model.Namespace)
+	targetNs := targetNsValue.(*Namespace)
 	fmt.Printf("loaded ns is %+v\n", targetNs)
 	if nsValue.Name != targetNs.Name {
 		fmt.Printf("name not equals\n")
