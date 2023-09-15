@@ -128,7 +128,7 @@ func (s *StatisWorker) ReportConfigMetrics(metric ...metrics.ConfigMetrics) {
 }
 
 // ReportDiscoverCall report discover service times
-func (s *StatisWorker) ReportDiscoverCall(service, namespace string, ttMill int64) {
+func (s *StatisWorker) ReportDiscoverCall(metric metrics.ClientDiscoverMetric) {
 	// ignore not support this
 }
 

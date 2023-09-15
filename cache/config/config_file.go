@@ -36,7 +36,6 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
-// FileCache 文件缓存，使用 loading cache 懒加载策略。同时写入时设置过期时间，定时清理过期的缓存。
 type fileCache struct {
 	*types.BaseCache
 	storage store.Store
@@ -213,8 +212,9 @@ func (fc *fileCache) handleUpdateRelease(oldVal *model.SimpleConfigFileRelease, 
 			namespace.Store(item.Group, utils.NewSyncMap[string, *utils.SyncMap[string, *model.SimpleConfigFileRelease]]())
 		}
 		group, _ := namespace.Load(item.Group)
-		group.Store(item.FileName, utils.NewSyncMap[string, *model.SimpleConfigFileRelease]())
-
+		group.ComputeIfAbsent(item.FileName, func(k string) *utils.SyncMap[string, *model.SimpleConfigFileRelease] {
+			return utils.NewSyncMap[string, *model.SimpleConfigFileRelease]()
+		})
 		files, _ := group.Load(item.FileName)
 		files.Store(item.Name, item.SimpleConfigFileRelease)
 	}()

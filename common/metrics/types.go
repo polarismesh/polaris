@@ -44,26 +44,36 @@ type CallMetricType string
 
 const (
 	// SystemCallMetric Time consuming statistics of some asynchronous tasks inside
-	SystemCallMetric CallMetricType = "innerCall"
+	SystemCallMetric CallMetricType = "system"
 	// ServerCallMetric Apiserver-layer interface call consumption statistics
-	ServerCallMetric CallMetricType = "serverCall"
+	ServerCallMetric CallMetricType = "api"
 	// RedisCallMetric Redis call time consumption statistics
-	RedisCallMetric CallMetricType = "redisCall"
+	RedisCallMetric CallMetricType = "redis"
 	// StoreCallMetric Store call time consumption statistics
-	StoreCallMetric CallMetricType = "storeCall"
+	StoreCallMetric CallMetricType = "store"
 	// ProtobufCacheCallMetric PB encode cache call/hit statistics
 	ProtobufCacheCallMetric CallMetricType = "pbCacheCall"
 )
 
+type TrafficDirection string
+
+const (
+	// TrafficDirectionInBound .
+	TrafficDirectionInBound TrafficDirection = "INBOUND"
+	// TrafficDirectionOutBound .
+	TrafficDirectionOutBound TrafficDirection = "OUTBOUND"
+)
+
 type CallMetric struct {
-	Type     CallMetricType
-	API      string
-	Protocol string
-	Code     int
-	Times    int
-	Success  bool
-	Duration time.Duration
-	Labels   map[string]string
+	Type             CallMetricType
+	API              string
+	Protocol         string
+	Code             int
+	Times            int
+	Success          bool
+	Duration         time.Duration
+	Labels           map[string]string
+	TrafficDirection TrafficDirection
 }
 
 func (m CallMetric) GetLabels() map[string]string {
@@ -92,6 +102,14 @@ type DiscoveryMetric struct {
 	Online   int64
 	Isolate  int64
 	Labels   map[string]string
+}
+
+type ClientDiscoverMetric struct {
+	ClientIP  string
+	Namespace string
+	Resource  string
+	Timestamp int64
+	CostTime  int64
 }
 
 type ConfigMetricType string

@@ -110,6 +110,15 @@ func (set *SyncSet[K]) Len() int {
 	return len(set.container)
 }
 
+// Contains contains target value
+func (set *SyncSet[K]) Contains(val K) bool {
+	set.lock.Lock()
+	defer set.lock.Unlock()
+
+	_, exist := set.container[val]
+	return exist
+}
+
 func NewSegmentMap[K comparable, V any](soltNum int, hashFunc func(k K) int) *SegmentMap[K, V] {
 	locks := make([]*sync.RWMutex, 0, soltNum)
 	solts := make([]map[K]V, 0, soltNum)
@@ -221,27 +230,38 @@ func (s *SegmentMap[K, V]) caulIndex(k K) (*sync.RWMutex, map[K]V) {
 // NewSyncMap
 func NewSyncMap[K comparable, V any]() *SyncMap[K, V] {
 	return &SyncMap[K, V]{
-		m: &sync.Map{},
+		m: make(map[K]V, 16),
 	}
 }
 
 // SyncMap
 type SyncMap[K comparable, V any] struct {
-	m *sync.Map
+	lock sync.RWMutex
+	m    map[K]V
 }
 
 // ComputeIfAbsent
 func (s *SyncMap[K, V]) ComputeIfAbsent(k K, supplier func(k K) V) (V, bool) {
-	actual, loaded := s.m.LoadOrStore(k, supplier(k))
-	ret, _ := actual.(V)
-	return ret, loaded
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	actual, exist := s.m[k]
+	if exist {
+		return actual, false
+	}
+	val := supplier(k)
+	s.m[k] = val
+	return val, true
 }
 
 // Load
 func (s *SyncMap[K, V]) Load(key K) (V, bool) {
-	v, ok := s.m.Load(key)
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	v, ok := s.m[key]
 	if ok {
-		return v.(V), ok
+		return v, ok
 	}
 	var empty V
 	return empty, false
@@ -249,36 +269,36 @@ func (s *SyncMap[K, V]) Load(key K) (V, bool) {
 
 // Store
 func (s *SyncMap[K, V]) Store(key K, val V) {
-	s.m.Store(key, val)
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	s.m[key] = val
 }
 
 // Range
 func (s *SyncMap[K, V]) Range(f func(key K, val V) bool) {
-	s.m.Range(func(key, value any) bool {
-		return f(key.(K), value.(V))
-	})
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	for k, v := range s.m {
+		_ = f(k, v)
+	}
 }
 
 // Delete
 func (s *SyncMap[K, V]) Delete(key K) {
-	s.m.Delete(key)
-}
+	s.lock.Lock()
+	defer s.lock.Unlock()
 
-// LoadOrStore
-func (s *SyncMap[K, V]) LoadOrStore(key K, val V) (V, bool) {
-	actual, loaded := s.m.LoadOrStore(key, val)
-	ret, _ := actual.(V)
-	return ret, loaded
+	delete(s.m, key)
 }
 
 // Len
 func (s *SyncMap[K, V]) Len() int {
-	var ret int
-	s.m.Range(func(_, _ any) bool {
-		ret++
-		return true
-	})
-	return ret
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	return len(s.m)
 }
 
 // NewMap

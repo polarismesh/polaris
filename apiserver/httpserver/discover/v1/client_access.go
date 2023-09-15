@@ -19,16 +19,17 @@ package v1
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/emicklei/go-restful/v3"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-	"go.uber.org/zap"
 
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/utils"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/metrics"
+	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 // ReportClient 客户端上报信息
@@ -102,18 +103,21 @@ func (h *HTTPServerV1) Discover(req *restful.Request, rsp *restful.Response) {
 		return
 	}
 
-	msg := fmt.Sprintf("receive http discover request: %s", discoverRequest.Service.String())
-	namingLog.Info(msg,
-		zap.String("type", apiservice.DiscoverRequest_DiscoverRequestType_name[int32(discoverRequest.Type)]),
-		zap.String("client-address", req.Request.RemoteAddr),
-		zap.String("user-agent", req.HeaderParameter("User-Agent")),
-		utils.ZapRequestID(req.HeaderParameter("Request-Id")),
-	)
+	startTime := commontime.CurrentMillisecond()
+	defer func() {
+		plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+			ClientIP:  utils.ParseClientAddress(ctx),
+			Namespace: discoverRequest.GetService().GetNamespace().GetValue(),
+			Resource:  discoverRequest.Type.String() + ":" + discoverRequest.GetService().GetName().GetValue(),
+			Timestamp: startTime,
+			CostTime:  commontime.CurrentMillisecond() - startTime,
+		})
+	}()
 
 	var ret *apiservice.DiscoverResponse
 	switch discoverRequest.Type {
 	case apiservice.DiscoverRequest_INSTANCE:
-		ret = h.namingServer.ServiceInstancesCache(ctx, discoverRequest.Service)
+		ret = h.namingServer.ServiceInstancesCache(ctx, discoverRequest.Filter, discoverRequest.Service)
 	case apiservice.DiscoverRequest_ROUTING:
 		ret = h.namingServer.GetRoutingConfigWithCache(ctx, discoverRequest.Service)
 	case apiservice.DiscoverRequest_RATE_LIMIT:

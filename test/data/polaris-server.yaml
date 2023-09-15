@@ -373,26 +373,25 @@ config:
 cache:
   open: true
   resources:
-    - name: service # 加载服务数据
+    - name: service # Load service data
       option:
-        disableBusiness: false # 不加载业务服务
-        needMeta: true # 加载服务元数据
-    - name: instance # 加载实例数据
+        disableBusiness: false # Do not load business services
+        needMeta: true # Load service metadata
+    - name: instance # Load instance data
       option:
-        disableBusiness: false # 不加载业务服务实例
-        needMeta: true # 加载实例元数据
-    - name: routingConfig # 加载路由数据
-    - name: rateLimitConfig # 加载限流数据
-    - name: circuitBreakerConfig # 加载熔断数据
-    - name: users # 加载用户、用户组数据
-    - name: strategyRule # 加载鉴权规则数据
-    - name: namespace # 加载命名空间数据
-    - name: client # 加载命名空间数据
+        disableBusiness: false # Do not load business service examples
+        needMeta: true # Load instance metadata
+    - name: routingConfig # Load route data
+    - name: rateLimitConfig # Load current limit data
+    - name: circuitBreakerConfig # Load the fuse data
+    - name: users # Load user and user group data
+    - name: strategyRule # Loading the rules of appraisal
+    - name: namespace # Load the naming space data
+    - name: client # Load Client-SDK instance data
     - name: configFile
-      option:
-        #配置文件缓存过期时间，单位s
-        expireTimeAfterWrite: 3600
+    - name: configGroup
     - name: faultDetectRule
+    - name: serviceContract
 #    - name: l5 # 加载l5数据
 # 存储配置
 store:

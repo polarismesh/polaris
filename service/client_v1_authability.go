@@ -93,7 +93,7 @@ func (svr *serverAuthAbility) GetServiceWithCache(
 
 // ServiceInstancesCache is the interface for getting service instances cache
 func (svr *serverAuthAbility) ServiceInstancesCache(
-	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+	ctx context.Context, filter *apiservice.DiscoverFilter, req *apiservice.Service) *apiservice.DiscoverResponse {
 
 	authCtx := svr.collectServiceAuthContext(
 		ctx, []*apiservice.Service{req}, model.Read, "DiscoverInstances")
@@ -106,7 +106,7 @@ func (svr *serverAuthAbility) ServiceInstancesCache(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.ServiceInstancesCache(ctx, req)
+	return svr.targetServer.ServiceInstancesCache(ctx, filter, req)
 }
 
 // GetRoutingConfigWithCache is the interface for getting routing config with cache

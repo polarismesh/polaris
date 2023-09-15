@@ -14,24 +14,9 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 
-SET
-    SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-
-SET
-    time_zone = "+00:00";
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT = @@CHARACTER_SET_CLIENT */
-;
-
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS = @@CHARACTER_SET_RESULTS */
-;
-
-/*!40101 SET @OLD_COLLATION_CONNECTION = @@COLLATION_CONNECTION */
-;
-
-/*!40101 SET NAMES utf8mb4 */
-;
+SET time_zone = "+00:00";
 
 --
 -- Database: `polaris_server`
@@ -42,46 +27,30 @@ USE `polaris_server`;
 
 -- --------------------------------------------------------
 --
--- Table structure `business`
---
-CREATE TABLE `business`
-(
-    `id`    varchar(32)   NOT NULL comment 'Unique ID',
-    `name`  varchar(64)   NOT NULL comment 'business name',
-    `token` varchar(64)   NOT NULL comment 'Token ID of the business',
-    `owner` varchar(1024) NOT NULL comment 'The business is responsible for Owner',
-    `flag`  tinyint(4)    NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
-    `ctime` timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
-    `mtime` timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
-    PRIMARY KEY (`id`)
-) ENGINE = InnoDB;
-
--- --------------------------------------------------------
---
 -- Table structure `instance`
 --
 CREATE TABLE `instance`
 (
-    `id`                  varchar(128) NOT NULL comment 'Unique ID',
-    `service_id`          varchar(32)  NOT NULL comment 'Service ID',
-    `vpc_id`              varchar(64)           DEFAULT NULL comment 'VPC ID',
-    `host`                varchar(128) NOT NULL comment 'instance Host Information',
-    `port`                int(11)      NOT NULL comment 'instance port information',
-    `protocol`            varchar(32)           DEFAULT NULL comment 'Listening protocols for corresponding ports, such as TPC, UDP, GRPC, DUBBO, etc.',
-    `version`             varchar(32)           DEFAULT NULL comment 'The version of the instance can be used for version routing',
-    `health_status`       tinyint(4)   NOT NULL DEFAULT '1' comment 'The health status of the instance, 1 is health, 0 is unhealthy',
-    `isolate`             tinyint(4)   NOT NULL DEFAULT '0' comment 'Example isolation status flag, 0 is not isolated, 1 is isolated',
-    `weight`              smallint(6)  NOT NULL DEFAULT '100' comment 'The weight of the instance is mainly used for LoadBalance, default is 100',
-    `enable_health_check` tinyint(4)   NOT NULL DEFAULT '0' comment 'Whether to open a heartbeat on an instance, check the logic, 0 is not open, 1 is open',
-    `logic_set`           varchar(128)          DEFAULT NULL comment 'Example logic packet information',
-    `cmdb_region`         varchar(128)          DEFAULT NULL comment 'The region information of the instance is mainly used to close the route',
-    `cmdb_zone`           varchar(128)          DEFAULT NULL comment 'The ZONE information of the instance is mainly used to close the route.',
-    `cmdb_idc`            varchar(128)          DEFAULT NULL comment 'The IDC information of the instance is mainly used to close the route',
-    `priority`            tinyint(4)   NOT NULL DEFAULT '0' comment 'Example priority, currently useless',
-    `revision`            varchar(32)  NOT NULL comment 'Instance version information',
-    `flag`                tinyint(4)   NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
-    `ctime`               timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
-    `mtime`               timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    `id`                  VARCHAR(128) NOT NULL COMMENT 'Unique ID',
+    `service_id`          VARCHAR(32)  NOT NULL COMMENT 'Service ID',
+    `vpc_id`              VARCHAR(64)           DEFAULT NULL COMMENT 'VPC ID',
+    `host`                VARCHAR(128) NOT NULL COMMENT 'instance Host Information',
+    `port`                INT(11)      NOT NULL COMMENT 'instance port information',
+    `protocol`            VARCHAR(32)           DEFAULT NULL COMMENT 'Listening protocols for corresponding ports, such as TPC, UDP, GRPC, DUBBO, etc.',
+    `version`             VARCHAR(32)           DEFAULT NULL COMMENT 'The version of the instance can be used for version routing',
+    `health_status`       TINYINT(4)   NOT NULL DEFAULT '1' COMMENT 'The health status of the instance, 1 is health, 0 is unhealthy',
+    `isolate`             TINYINT(4)   NOT NULL DEFAULT '0' COMMENT 'Example isolation status flag, 0 is not isolated, 1 is isolated',
+    `weight`              SMALLINT(6)  NOT NULL DEFAULT '100' COMMENT 'The weight of the instance is mainly used for LoadBalance, default is 100',
+    `enable_health_check` TINYINT(4)   NOT NULL DEFAULT '0' COMMENT 'Whether to open a heartbeat on an instance, check the logic, 0 is not open, 1 is open',
+    `logic_set`           VARCHAR(128)          DEFAULT NULL COMMENT 'Example logic packet information',
+    `cmdb_region`         VARCHAR(128)          DEFAULT NULL COMMENT 'The region information of the instance is mainly used to close the route',
+    `cmdb_zone`           VARCHAR(128)          DEFAULT NULL COMMENT 'The ZONE information of the instance is mainly used to close the route.',
+    `cmdb_idc`            VARCHAR(128)          DEFAULT NULL COMMENT 'The IDC information of the instance is mainly used to close the route',
+    `priority`            TINYINT(4)   NOT NULL DEFAULT '0' COMMENT 'Example priority, currently useless',
+    `revision`            VARCHAR(32)  NOT NULL COMMENT 'Instance version information',
+    `flag`                TINYINT(4)   NOT NULL DEFAULT '0' COMMENT 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
+    `ctime`               TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+    `mtime`               TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last updated time',
     PRIMARY KEY (`id`),
     KEY `service_id` (`service_id`),
     KEY `mtime` (`mtime`),
@@ -94,9 +63,9 @@ CREATE TABLE `instance`
 --
 CREATE TABLE `health_check`
 (
-    `id`   varchar(128) NOT NULL comment 'Instance ID',
-    `type` tinyint(4)   NOT NULL DEFAULT '0' comment 'Instance health check type',
-    `ttl`  int(11)      NOT NULL comment 'TTL time jumping',
+    `id`   VARCHAR(128) NOT NULL COMMENT 'Instance ID',
+    `type` TINYINT(4)   NOT NULL DEFAULT '0' COMMENT 'Instance health check type',
+    `ttl`  INT(11)      NOT NULL COMMENT 'TTL time jumping',
     PRIMARY KEY (`id`)
     /* CONSTRAINT `health_check_ibfk_1` FOREIGN KEY (`id`) REFERENCES `instance` (`id`) ON DELETE CASCADE ON UPDATE CASCADE */
 ) ENGINE = InnoDB;
@@ -107,11 +76,11 @@ CREATE TABLE `health_check`
 --
 CREATE TABLE `instance_metadata`
 (
-    `id`     varchar(128)  NOT NULL comment 'Instance ID',
-    `mkey`   varchar(128)  NOT NULL comment 'instance label of Key',
-    `mvalue` varchar(4096) NOT NULL comment 'instance label Value',
-    `ctime`  timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
-    `mtime`  timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    `id`     VARCHAR(128)  NOT NULL COMMENT 'Instance ID',
+    `mkey`   VARCHAR(128)  NOT NULL COMMENT 'instance label of Key',
+    `mvalue` VARCHAR(4096) NOT NULL COMMENT 'instance label Value',
+    `ctime`  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+    `mtime`  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last updated time',
     PRIMARY KEY (`id`, `mkey`),
     KEY `mkey` (`mkey`)
     /* CONSTRAINT `instance_metadata_ibfk_1` FOREIGN KEY (`id`) REFERENCES `instance` (`id`) ON DELETE CASCADE ON UPDATE CASCADE */
@@ -123,13 +92,15 @@ CREATE TABLE `instance_metadata`
 --
 CREATE TABLE `namespace`
 (
-    `name`    varchar(64)   NOT NULL comment 'Namespace name, unique',
-    `comment` varchar(1024)          DEFAULT NULL comment 'Description of namespace',
-    `token`   varchar(64)   NOT NULL comment 'TOKEN named space for write operation check',
-    `owner`   varchar(1024) NOT NULL comment 'Responsible for named space Owner',
-    `flag`    tinyint(4)    NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
-    `ctime`   timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
-    `mtime`   timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    `name`    VARCHAR(64)   NOT NULL COMMENT 'Namespace name, unique',
+    `comment` VARCHAR(1024)          DEFAULT NULL COMMENT 'Description of namespace',
+    `token`   VARCHAR(64)   NOT NULL COMMENT 'TOKEN named space for write operation check',
+    `owner`   VARCHAR(1024) NOT NULL COMMENT 'Responsible for named space Owner',
+    `flag`    TINYINT(4)    NOT NULL DEFAULT '0' COMMENT 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
+    `ctime`   TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+    `mtime`   TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last updated time',
+    `service_export_to` TEXT COMMENT 'namespace metadata',
+    `metadata` TEXT COMMENT 'namespace metadata',
     PRIMARY KEY (`name`)
 ) ENGINE = InnoDB;
 
@@ -164,13 +135,13 @@ VALUES ('Polaris',
 --
 CREATE TABLE `routing_config`
 (
-    `id`         varchar(32) NOT NULL comment 'Routing configuration ID',
-    `in_bounds`  text comment 'Service is routing rules',
-    `out_bounds` text comment 'Service main routing rules',
-    `revision`   varchar(40) NOT NULL comment 'Routing rule version',
-    `flag`       tinyint(4)  NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
-    `ctime`      timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
-    `mtime`      timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    `id`         VARCHAR(32) NOT NULL COMMENT 'Routing configuration ID',
+    `in_bounds`  TEXT COMMENT 'Service is routing rules',
+    `out_bounds` TEXT COMMENT 'Service main routing rules',
+    `revision`   VARCHAR(40) NOT NULL COMMENT 'Routing rule version',
+    `flag`       TINYINT(4)  NOT NULL DEFAULT '0' COMMENT 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
+    `ctime`      TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+    `mtime`      TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last updated time',
     PRIMARY KEY (`id`),
     KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB;
@@ -181,19 +152,19 @@ CREATE TABLE `routing_config`
 --
 CREATE TABLE `ratelimit_config`
 (
-    `id`         varchar(32)    NOT NULL comment 'ratelimit rule ID',
-    `name`       varchar(64)    NOT NULL comment 'ratelimt rule name',
-    `disable`     tinyint(4)    NOT NULL DEFAULT '0' comment 'ratelimit disable',
-    `service_id` varchar(32)    NOT NULL comment 'Service ID',
-    `method`     varchar(512)   NOT NULL comment 'ratelimit method',
-    `labels`     text           NOT NULL comment 'Conductive flow for a specific label',
-    `priority`   smallint(6)    NOT NULL DEFAULT '0' comment 'ratelimit rule priority',
-    `rule`       text           NOT NULL comment 'Current limiting rules',
-    `revision`   varchar(32)    NOT NULL comment 'Limiting version',
-    `flag`       tinyint(4)     NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
-    `ctime`      timestamp      NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
-    `mtime`      timestamp      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
-    `etime`      timestamp      NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'RateLimit rule enable time',
+    `id`         VARCHAR(32)  NOT NULL COMMENT 'ratelimit rule ID',
+    `name`       VARCHAR(64)  NOT NULL COMMENT 'ratelimt rule name',
+    `disable`    TINYINT(4)   NOT NULL DEFAULT '0' COMMENT 'ratelimit disable',
+    `service_id` VARCHAR(32)  NOT NULL COMMENT 'Service ID',
+    `method`     VARCHAR(512) NOT NULL COMMENT 'ratelimit method',
+    `labels`     TEXT         NOT NULL COMMENT 'Conductive flow for a specific label',
+    `priority`   SMALLINT(6)  NOT NULL DEFAULT '0' COMMENT 'ratelimit rule priority',
+    `rule`       TEXT         NOT NULL COMMENT 'Current limiting rules',
+    `revision`   VARCHAR(32)  NOT NULL COMMENT 'Limiting version',
+    `flag`       TINYINT(4)   NOT NULL DEFAULT '0' COMMENT 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
+    `ctime`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+    `mtime`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last updated time',
+    `etime`      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'RateLimit rule enable time',
     PRIMARY KEY (`id`),
     KEY `mtime` (`mtime`),
     KEY `service_id` (`service_id`)
@@ -205,9 +176,9 @@ CREATE TABLE `ratelimit_config`
 --
 CREATE TABLE `ratelimit_revision`
 (
-    `service_id`    varchar(32) NOT NULL comment 'Service ID',
-    `last_revision` varchar(40) NOT NULL comment 'The latest limited limiting rule version of the corresponding service',
-    `mtime`         timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    `service_id`    VARCHAR(32) NOT NULL COMMENT 'Service ID',
+    `last_revision` VARCHAR(40) NOT NULL COMMENT 'The latest limited limiting rule version of the corresponding service',
+    `mtime`         TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last updated time',
     PRIMARY KEY (`service_id`),
     KEY `service_id` (`service_id`),
     KEY `mtime` (`mtime`)
@@ -219,25 +190,26 @@ CREATE TABLE `ratelimit_revision`
 --
 CREATE TABLE `service`
 (
-    `id`           varchar(32)   NOT NULL comment 'Service ID',
-    `name`         varchar(128)  NOT NULL comment 'Service name, only under the namespace',
-    `namespace`    varchar(64)   NOT NULL comment 'Namespace belongs to the service',
-    `ports`        text                   DEFAULT NULL comment 'Service will have a list of all port information of the external exposure (single process exposing multiple protocols)',
-    `business`     varchar(64)            DEFAULT NULL comment 'Service business information',
-    `department`   varchar(1024)          DEFAULT NULL comment 'Service department information',
-    `cmdb_mod1`    varchar(1024)          DEFAULT NULL comment '',
-    `cmdb_mod2`    varchar(1024)          DEFAULT NULL comment '',
-    `cmdb_mod3`    varchar(1024)          DEFAULT NULL comment '',
-    `comment`      varchar(1024)          DEFAULT NULL comment 'Description information',
-    `token`        varchar(2048) NOT NULL comment 'Service token, used to handle all the services involved in the service',
-    `revision`     varchar(32)   NOT NULL comment 'Service version information',
-    `owner`        varchar(1024) NOT NULL comment 'Owner information belonging to the service',
-    `flag`         tinyint(4)    NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
-    `reference`    varchar(32)            DEFAULT NULL comment 'Service alias, what is the actual service name that the service is actually pointed out?',
-    `refer_filter` varchar(1024)          DEFAULT NULL comment '',
-    `platform_id`  varchar(32)            DEFAULT '' comment 'The platform ID to which the service belongs',
-    `ctime`        timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
-    `mtime`        timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    `id`           VARCHAR(32)   NOT NULL COMMENT 'Service ID',
+    `name`         VARCHAR(128)  NOT NULL COMMENT 'Service name, only under the namespace',
+    `namespace`    VARCHAR(64)   NOT NULL COMMENT 'Namespace belongs to the service',
+    `ports`        TEXT                   DEFAULT NULL COMMENT 'Service will have a list of all port information of the external exposure (single process exposing multiple protocols)',
+    `business`     VARCHAR(64)            DEFAULT NULL COMMENT 'Service business information',
+    `department`   VARCHAR(1024)          DEFAULT NULL COMMENT 'Service department information',
+    `cmdb_mod1`    VARCHAR(1024)          DEFAULT NULL COMMENT '',
+    `cmdb_mod2`    VARCHAR(1024)          DEFAULT NULL COMMENT '',
+    `cmdb_mod3`    VARCHAR(1024)          DEFAULT NULL COMMENT '',
+    `comment`      VARCHAR(1024)          DEFAULT NULL COMMENT 'Description information',
+    `token`        VARCHAR(2048) NOT NULL COMMENT 'Service token, used to handle all the services involved in the service',
+    `revision`     VARCHAR(32)   NOT NULL COMMENT 'Service version information',
+    `owner`        VARCHAR(1024) NOT NULL COMMENT 'Owner information belonging to the service',
+    `flag`         TINYINT(4)    NOT NULL DEFAULT '0' COMMENT 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
+    `reference`    VARCHAR(32)            DEFAULT NULL COMMENT 'Service alias, what is the actual service name that the service is actually pointed out?',
+    `refer_filter` VARCHAR(1024)          DEFAULT NULL COMMENT '',
+    `platform_id`  VARCHAR(32)            DEFAULT '' COMMENT 'The platform ID to which the service belongs',
+    `ctime`        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+    `mtime`        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last updated time',
+    `export_to` TEXT COMMENT 'service export to some namespace',
     PRIMARY KEY (`id`),
     UNIQUE KEY `name` (`name`, `namespace`),
     KEY `namespace` (`namespace`),
@@ -279,11 +251,11 @@ VALUES ('fbca9bfa04ae4ead86e1ecf5811e32a9',
 --
 CREATE TABLE `service_metadata`
 (
-    `id`     varchar(32)   NOT NULL comment 'Service ID',
-    `mkey`   varchar(128)  NOT NULL comment 'Service label key',
-    `mvalue` varchar(4096) NOT NULL comment 'Service label Value',
-    `ctime`  timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
-    `mtime`  timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    `id`     VARCHAR(32)   NOT NULL COMMENT 'Service ID',
+    `mkey`   VARCHAR(128)  NOT NULL COMMENT 'Service label key',
+    `mvalue` VARCHAR(4096) NOT NULL COMMENT 'Service label Value',
+    `ctime`  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+    `mtime`  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last updated time',
     PRIMARY KEY (`id`, `mkey`),
     KEY `mkey` (`mkey`)
     /* CONSTRAINT `service_metadata_ibfk_1` FOREIGN KEY (`id`) REFERENCES `service` (`id`) ON DELETE CASCADE ON UPDATE CASCADE */
@@ -293,12 +265,13 @@ CREATE TABLE `service_metadata`
 --
 -- Table structure `owner_service_map`Quickly query all services under an Owner
 --
-CREATE TABLE `owner_service_map`
+CREATE TABLE
+    `owner_service_map`
 (
-    `id`        varchar(32)  NOT NULL comment '',
-    `owner`     varchar(32)  NOT NULL comment 'Service Owner',
-    `service`   varchar(128) NOT NULL comment 'service name',
-    `namespace` varchar(64)  NOT NULL comment 'namespace name',
+    `id`        VARCHAR(32)  NOT NULL COMMENT '',
+    `owner`     VARCHAR(32)  NOT NULL COMMENT 'Service Owner',
+    `service`   VARCHAR(128) NOT NULL COMMENT 'service name',
+    `namespace` VARCHAR(64)  NOT NULL COMMENT 'namespace name',
     PRIMARY KEY (`id`),
     KEY `owner` (`owner`),
     KEY `name` (`service`, `namespace`)
@@ -310,21 +283,21 @@ CREATE TABLE `owner_service_map`
 --
 CREATE TABLE `circuitbreaker_rule`
 (
-    `id`         varchar(97)   NOT NULL comment 'Melting rule ID',
-    `version`    varchar(32)   NOT NULL DEFAULT 'master' comment 'Melting rule version, default is MASTR',
-    `name`       varchar(128)  NOT NULL comment 'Melting rule name',
-    `namespace`  varchar(64)   NOT NULL comment 'Melting rule belongs to name space',
-    `business`   varchar(64)            DEFAULT NULL comment 'Business information of fuse regular',
-    `department` varchar(1024)          DEFAULT NULL comment 'Department information to which the fuse regular belongs',
-    `comment`    varchar(1024)          DEFAULT NULL comment 'Description of the fuse rule',
-    `inbounds`   text          NOT NULL comment 'Service-tuned fuse rule',
-    `outbounds`  text          NOT NULL comment 'Service Motoring Fuse Rule',
-    `token`      varchar(32)   NOT NULL comment 'Token, which is fucking, mainly for writing operation check',
-    `owner`      varchar(1024) NOT NULL comment 'Melting rule Owner information',
-    `revision`   varchar(32)   NOT NULL comment 'Melt rule version information',
-    `flag`       tinyint(4)    NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
-    `ctime`      timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
-    `mtime`      timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    `id`         VARCHAR(97)   NOT NULL COMMENT 'Melting rule ID',
+    `version`    VARCHAR(32)   NOT NULL DEFAULT 'master' COMMENT 'Melting rule version, default is MASTR',
+    `name`       VARCHAR(128)  NOT NULL COMMENT 'Melting rule name',
+    `namespace`  VARCHAR(64)   NOT NULL COMMENT 'Melting rule belongs to name space',
+    `business`   VARCHAR(64)            DEFAULT NULL COMMENT 'Business information of fuse regular',
+    `department` VARCHAR(1024)          DEFAULT NULL COMMENT 'Department information to which the fuse regular belongs',
+    `comment`    VARCHAR(1024)          DEFAULT NULL COMMENT 'Description of the fuse rule',
+    `inbounds`   TEXT          NOT NULL COMMENT 'Service-tuned fuse rule',
+    `outbounds`  TEXT          NOT NULL COMMENT 'Service Motoring Fuse Rule',
+    `token`      VARCHAR(32)   NOT NULL COMMENT 'Token, which is fucking, mainly for writing operation check',
+    `owner`      VARCHAR(1024) NOT NULL COMMENT 'Melting rule Owner information',
+    `revision`   VARCHAR(32)   NOT NULL COMMENT 'Melt rule version information',
+    `flag`       TINYINT(4)    NOT NULL DEFAULT '0' COMMENT 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
+    `ctime`      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+    `mtime`      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last updated time',
     PRIMARY KEY (`id`, `version`),
     UNIQUE KEY `name` (`name`, `namespace`, `version`),
     KEY `mtime` (`mtime`)
@@ -336,12 +309,12 @@ CREATE TABLE `circuitbreaker_rule`
 --
 CREATE TABLE `circuitbreaker_rule_relation`
 (
-    `service_id`   varchar(32) NOT NULL comment 'Service ID',
-    `rule_id`      varchar(97) NOT NULL comment 'Melting rule ID',
-    `rule_version` varchar(32) NOT NULL comment 'Melting rule version',
-    `flag`         tinyint(4)  NOT NULL DEFAULT '0' comment 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
-    `ctime`        timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
-    `mtime`        timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    `service_id`   VARCHAR(32) NOT NULL COMMENT 'Service ID',
+    `rule_id`      VARCHAR(97) NOT NULL COMMENT 'Melting rule ID',
+    `rule_version` VARCHAR(32) NOT NULL COMMENT 'Melting rule version',
+    `flag`         TINYINT(4)  NOT NULL DEFAULT '0' COMMENT 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
+    `ctime`        TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+    `mtime`        TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last updated time',
     PRIMARY KEY (`service_id`),
     KEY `mtime` (`mtime`),
     KEY `rule_id` (`rule_id`)
@@ -354,13 +327,13 @@ CREATE TABLE `circuitbreaker_rule_relation`
 --
 CREATE TABLE `t_ip_config`
 (
-    `Fip`     int(10) unsigned NOT NULL comment 'Machine IP',
-    `FareaId` int(10) unsigned NOT NULL comment 'Area number',
-    `FcityId` int(10) unsigned NOT NULL comment 'City number',
-    `FidcId`  int(10) unsigned NOT NULL comment 'IDC number',
-    `Fflag`   tinyint(4) DEFAULT '0',
-    `Fstamp`  datetime         NOT NULL,
-    `Fflow`   int(10) unsigned NOT NULL,
+    `Fip`     INT(10) UNSIGNED NOT NULL COMMENT 'Machine IP',
+    `FareaId` INT(10) UNSIGNED NOT NULL COMMENT 'Area number',
+    `FcityId` INT(10) UNSIGNED NOT NULL COMMENT 'City number',
+    `FidcId`  INT(10) UNSIGNED NOT NULL COMMENT 'IDC number',
+    `Fflag`   TINYINT(4) DEFAULT '0',
+    `Fstamp`  DATETIME         NOT NULL,
+    `Fflow`   INT(10) UNSIGNED NOT NULL,
     PRIMARY KEY (`Fip`),
     KEY `idx_Fflow` (`Fflow`)
 ) ENGINE = InnoDB;
@@ -371,12 +344,12 @@ CREATE TABLE `t_ip_config`
 --
 CREATE TABLE `t_policy`
 (
-    `FmodId` int(10) unsigned NOT NULL,
-    `Fdiv`   int(10) unsigned NOT NULL,
-    `Fmod`   int(10) unsigned NOT NULL,
-    `Fflag`  tinyint(4) DEFAULT '0',
-    `Fstamp` datetime         NOT NULL,
-    `Fflow`  int(10) unsigned NOT NULL,
+    `FmodId` INT(10) UNSIGNED NOT NULL,
+    `Fdiv`   INT(10) UNSIGNED NOT NULL,
+    `Fmod`   INT(10) UNSIGNED NOT NULL,
+    `Fflag`  TINYINT(4) DEFAULT '0',
+    `Fstamp` DATETIME         NOT NULL,
+    `Fflow`  INT(10) UNSIGNED NOT NULL,
     PRIMARY KEY (`FmodId`)
 ) ENGINE = InnoDB;
 
@@ -386,13 +359,13 @@ CREATE TABLE `t_policy`
 --
 CREATE TABLE `t_route`
 (
-    `Fip`    int(10) unsigned NOT NULL,
-    `FmodId` int(10) unsigned NOT NULL,
-    `FcmdId` int(10) unsigned NOT NULL,
-    `FsetId` varchar(32)      NOT NULL,
-    `Fflag`  tinyint(4) DEFAULT '0',
-    `Fstamp` datetime         NOT NULL,
-    `Fflow`  int(10) unsigned NOT NULL,
+    `Fip`    INT(10) UNSIGNED NOT NULL,
+    `FmodId` INT(10) UNSIGNED NOT NULL,
+    `FcmdId` INT(10) UNSIGNED NOT NULL,
+    `FsetId` VARCHAR(32)      NOT NULL,
+    `Fflag`  TINYINT(4) DEFAULT '0',
+    `Fstamp` DATETIME         NOT NULL,
+    `Fflow`  INT(10) UNSIGNED NOT NULL,
     PRIMARY KEY (`Fip`, `FmodId`, `FcmdId`),
     KEY `Fflow` (`Fflow`),
     KEY `idx1` (`FmodId`, `FcmdId`, `FsetId`)
@@ -404,13 +377,13 @@ CREATE TABLE `t_route`
 --
 CREATE TABLE `t_section`
 (
-    `FmodId` int(10) unsigned NOT NULL,
-    `Ffrom`  int(10) unsigned NOT NULL,
-    `Fto`    int(10) unsigned NOT NULL,
-    `Fxid`   int(10) unsigned NOT NULL,
-    `Fflag`  tinyint(4) DEFAULT '0',
-    `Fstamp` datetime         NOT NULL,
-    `Fflow`  int(10) unsigned NOT NULL,
+    `FmodId` INT(10) UNSIGNED NOT NULL,
+    `Ffrom`  INT(10) UNSIGNED NOT NULL,
+    `Fto`    INT(10) UNSIGNED NOT NULL,
+    `Fxid`   INT(10) UNSIGNED NOT NULL,
+    `Fflag`  TINYINT(4) DEFAULT '0',
+    `Fstamp` DATETIME         NOT NULL,
+    `Fflow`  INT(10) UNSIGNED NOT NULL,
     PRIMARY KEY (`FmodId`, `Ffrom`, `Fto`)
 ) ENGINE = InnoDB;
 
@@ -420,10 +393,10 @@ CREATE TABLE `t_section`
 --
 CREATE TABLE `start_lock`
 (
-    `lock_id`  int(11)     NOT NULL COMMENT '锁序号',
-    `lock_key` varchar(32) NOT NULL COMMENT 'Lock name',
-    `server`   varchar(32) NOT NULL COMMENT 'SERVER holding launch lock',
-    `mtime`    timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Update time',
+    `lock_id`  INT(11)     NOT NULL COMMENT '锁序号',
+    `lock_key` VARCHAR(32) NOT NULL COMMENT 'Lock name',
+    `server`   VARCHAR(32) NOT NULL COMMENT 'SERVER holding launch lock',
+    `mtime`    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Update time',
     PRIMARY KEY (`lock_id`, `lock_key`)
 ) ENGINE = InnoDB;
 
@@ -439,18 +412,18 @@ VALUES (1, 'sz', 'aaa', '2019-12-05 08:35:49');
 --
 CREATE TABLE `cl5_module`
 (
-    `module_id`    int(11)   NOT NULL COMMENT 'Module ID',
-    `interface_id` int(11)   NOT NULL COMMENT 'Interface ID',
-    `range_num`    int(11)   NOT NULL,
-    `mtime`        timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    `module_id`    INT(11)   NOT NULL COMMENT 'Module ID',
+    `interface_id` INT(11)   NOT NULL COMMENT 'Interface ID',
+    `range_num`    INT(11)   NOT NULL,
+    `mtime`        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last updated time',
     PRIMARY KEY (`module_id`)
 ) ENGINE = InnoDB COMMENT = 'To generate SID';
 
 --
 -- Data in the conveyor `cl5_module`
 --
-insert into cl5_module(module_id, interface_id, range_num) values (3000001, 1, 0);
-
+INSERT INTO cl5_module (module_id, interface_id, range_num)
+VALUES (3000001, 1, 0);
 
 -- --------------------------------------------------------
 --
@@ -458,18 +431,18 @@ insert into cl5_module(module_id, interface_id, range_num) values (3000001, 1, 0
 --
 CREATE TABLE `config_file`
 (
-    `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `namespace`   varchar(64)     NOT NULL COMMENT '所属的namespace',
-    `group`       varchar(128)    NOT NULL DEFAULT '' COMMENT '所属的文件组',
-    `name`        varchar(128)    NOT NULL COMMENT '配置文件名',
-    `content`     longtext        NOT NULL COMMENT '文件内容',
-    `format`      varchar(16)              DEFAULT 'text' COMMENT '文件格式，枚举值',
-    `comment`     varchar(512)             DEFAULT NULL COMMENT '备注信息',
-    `flag`        tinyint(4)      NOT NULL DEFAULT '0' COMMENT '软删除标记位',
-    `create_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `create_by`   varchar(32)              DEFAULT NULL COMMENT '创建人',
-    `modify_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
-    `modify_by`   varchar(32)              DEFAULT NULL COMMENT '最后更新人',
+    `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `namespace`   VARCHAR(64)     NOT NULL COMMENT '所属的namespace',
+    `group`       VARCHAR(128)    NOT NULL DEFAULT '' COMMENT '所属的文件组',
+    `name`        VARCHAR(128)    NOT NULL COMMENT '配置文件名',
+    `content`     LONGTEXT        NOT NULL COMMENT '文件内容',
+    `format`      VARCHAR(16)              DEFAULT 'text' COMMENT '文件格式，枚举值',
+    `comment`     VARCHAR(512)             DEFAULT NULL COMMENT '备注信息',
+    `flag`        TINYINT(4)      NOT NULL DEFAULT '0' COMMENT '软删除标记位',
+    `create_time` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `create_by`   VARCHAR(32)              DEFAULT NULL COMMENT '创建人',
+    `modify_time` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    `modify_by`   VARCHAR(32)              DEFAULT NULL COMMENT '最后更新人',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_file` (`namespace`, `group`, `name`)
 ) ENGINE = InnoDB
@@ -481,19 +454,19 @@ CREATE TABLE `config_file`
 --
 CREATE TABLE `config_file_group`
 (
-    `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `name`        varchar(128)    NOT NULL COMMENT '配置文件分组名',
-    `namespace`   varchar(64)     NOT NULL COMMENT '所属的namespace',
-    `comment`     varchar(512)             DEFAULT NULL COMMENT '备注信息',
-    `owner`       varchar(1024)            DEFAULT NULL COMMENT '负责人',
-    `create_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `create_by`   varchar(32)              DEFAULT NULL COMMENT '创建人',
-    `modify_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
-    `modify_by`   varchar(32)              DEFAULT NULL COMMENT '最后更新人',
-    `business`     varchar(64)            DEFAULT NULL comment 'Service business information',
-    `department`   varchar(1024)          DEFAULT NULL comment 'Service department information',
-    `metadata` text             COMMENT '配置分组标签',
-    `flag`        tinyint(4)      NOT NULL DEFAULT '0' COMMENT '是否被删除',
+    `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `name`        VARCHAR(128)    NOT NULL COMMENT '配置文件分组名',
+    `namespace`   VARCHAR(64)     NOT NULL COMMENT '所属的namespace',
+    `comment`     VARCHAR(512)             DEFAULT NULL COMMENT '备注信息',
+    `owner`       VARCHAR(1024)            DEFAULT NULL COMMENT '负责人',
+    `create_time` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `create_by`   VARCHAR(32)              DEFAULT NULL COMMENT '创建人',
+    `modify_time` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    `modify_by`   VARCHAR(32)              DEFAULT NULL COMMENT '最后更新人',
+    `business`    VARCHAR(64)              DEFAULT NULL COMMENT 'Service business information',
+    `department`  VARCHAR(1024)            DEFAULT NULL COMMENT 'Service department information',
+    `metadata`    TEXT COMMENT '配置分组标签',
+    `flag`        TINYINT(4)      NOT NULL DEFAULT '0' COMMENT '是否被删除',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_name` (`namespace`, `name`)
 ) ENGINE = InnoDB
@@ -505,24 +478,24 @@ CREATE TABLE `config_file_group`
 --
 CREATE TABLE `config_file_release`
 (
-    `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `name`        varchar(128)             DEFAULT NULL COMMENT '发布标题',
-    `namespace`   varchar(64)     NOT NULL COMMENT '所属的namespace',
-    `group`       varchar(128)    NOT NULL COMMENT '所属的文件组',
-    `file_name`   varchar(128)    NOT NULL COMMENT '配置文件名',
-    `format`      varchar(16)              DEFAULT 'text' COMMENT '文件格式，枚举值',
-    `content`     longtext        NOT NULL COMMENT '文件内容',
-    `comment`     varchar(512)             DEFAULT NULL COMMENT '备注信息',
-    `md5`         varchar(128)    NOT NULL COMMENT 'content的md5值',
-    `version`     bigint(11)         NOT NULL COMMENT '版本号，每次发布自增1',
-    `flag`        tinyint(4)      NOT NULL DEFAULT '0' COMMENT '是否被删除',
-    `create_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `create_by`   varchar(32)              DEFAULT NULL COMMENT '创建人',
-    `modify_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
-    `modify_by`   varchar(32)              DEFAULT NULL COMMENT '最后更新人',
-    `tags`        text             COMMENT '文件标签',
-    `active`      tinyint(4)      NOT NULL DEFAULT '0' COMMENT '是否处于使用中',
-    `description`  varchar(512)             DEFAULT NULL COMMENT '发布描述',
+    `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `name`        VARCHAR(128)             DEFAULT NULL COMMENT '发布标题',
+    `namespace`   VARCHAR(64)     NOT NULL COMMENT '所属的namespace',
+    `group`       VARCHAR(128)    NOT NULL COMMENT '所属的文件组',
+    `file_name`   VARCHAR(128)    NOT NULL COMMENT '配置文件名',
+    `format`      VARCHAR(16)              DEFAULT 'text' COMMENT '文件格式，枚举值',
+    `content`     LONGTEXT        NOT NULL COMMENT '文件内容',
+    `comment`     VARCHAR(512)             DEFAULT NULL COMMENT '备注信息',
+    `md5`         VARCHAR(128)    NOT NULL COMMENT 'content的md5值',
+    `version`     BIGINT(11)      NOT NULL COMMENT '版本号，每次发布自增1',
+    `flag`        TINYINT(4)      NOT NULL DEFAULT '0' COMMENT '是否被删除',
+    `create_time` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `create_by`   VARCHAR(32)              DEFAULT NULL COMMENT '创建人',
+    `modify_time` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    `modify_by`   VARCHAR(32)              DEFAULT NULL COMMENT '最后更新人',
+    `tags`        TEXT COMMENT '文件标签',
+    `active`      TINYINT(4)      NOT NULL DEFAULT '0' COMMENT '是否处于使用中',
+    `description` VARCHAR(512)             DEFAULT NULL COMMENT '发布描述',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_file` (`namespace`, `group`, `file_name`, `name`),
     KEY `idx_modify_time` (`modify_time`)
@@ -535,25 +508,25 @@ CREATE TABLE `config_file_release`
 --
 CREATE TABLE `config_file_release_history`
 (
-    `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `name`        varchar(64)              DEFAULT '' COMMENT '发布名称',
-    `namespace`   varchar(64)     NOT NULL COMMENT '所属的namespace',
-    `group`       varchar(128)    NOT NULL COMMENT '所属的文件组',
-    `file_name`   varchar(128)    NOT NULL COMMENT '配置文件名',
-    `content`     longtext        NOT NULL COMMENT '文件内容',
-    `format`      varchar(16)              DEFAULT 'text' COMMENT '文件格式',
-    `comment`     varchar(512)             DEFAULT NULL COMMENT '备注信息',
-    `md5`         varchar(128)    NOT NULL COMMENT 'content的md5值',
-    `type`        varchar(32)     NOT NULL COMMENT '发布类型，例如全量发布、灰度发布',
-    `status`      varchar(16)     NOT NULL DEFAULT 'success' COMMENT '发布状态，success表示成功，fail 表示失败',
-    `create_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `create_by`   varchar(32)              DEFAULT NULL COMMENT '创建人',
-    `modify_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
-    `modify_by`   varchar(32)              DEFAULT NULL COMMENT '最后更新人',
-    `tags`        text             COMMENT '文件标签',
-    `version`     bigint(11)        COMMENT '版本号，每次发布自增1',
-    `reason`      varchar(3000)             DEFAULT '' COMMENT '原因',
-    `description`  varchar(512)             DEFAULT NULL COMMENT '发布描述',
+    `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `name`        VARCHAR(64)              DEFAULT '' COMMENT '发布名称',
+    `namespace`   VARCHAR(64)     NOT NULL COMMENT '所属的namespace',
+    `group`       VARCHAR(128)    NOT NULL COMMENT '所属的文件组',
+    `file_name`   VARCHAR(128)    NOT NULL COMMENT '配置文件名',
+    `content`     LONGTEXT        NOT NULL COMMENT '文件内容',
+    `format`      VARCHAR(16)              DEFAULT 'text' COMMENT '文件格式',
+    `comment`     VARCHAR(512)             DEFAULT NULL COMMENT '备注信息',
+    `md5`         VARCHAR(128)    NOT NULL COMMENT 'content的md5值',
+    `type`        VARCHAR(32)     NOT NULL COMMENT '发布类型，例如全量发布、灰度发布',
+    `status`      VARCHAR(16)     NOT NULL DEFAULT 'success' COMMENT '发布状态，success表示成功，fail 表示失败',
+    `create_time` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `create_by`   VARCHAR(32)              DEFAULT NULL COMMENT '创建人',
+    `modify_time` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    `modify_by`   VARCHAR(32)              DEFAULT NULL COMMENT '最后更新人',
+    `tags`        TEXT COMMENT '文件标签',
+    `version`     BIGINT(11) COMMENT '版本号，每次发布自增1',
+    `reason`      VARCHAR(3000)            DEFAULT '' COMMENT '原因',
+    `description` VARCHAR(512)             DEFAULT NULL COMMENT '发布描述',
     PRIMARY KEY (`id`),
     KEY `idx_file` (`namespace`, `group`, `file_name`)
 ) ENGINE = InnoDB
@@ -565,52 +538,37 @@ CREATE TABLE `config_file_release_history`
 --
 CREATE TABLE `config_file_tag`
 (
-    `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `key`         varchar(128)    NOT NULL COMMENT 'tag 的键',
-    `Value`       varchar(128)    NOT NULL COMMENT 'tag 的值',
-    `namespace`   varchar(64)     NOT NULL COMMENT '所属的namespace',
-    `group`       varchar(128)    NOT NULL DEFAULT '' COMMENT '所属的文件组',
-    `file_name`   varchar(128)    NOT NULL COMMENT '配置文件名',
-    `create_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `create_by`   varchar(32)              DEFAULT NULL COMMENT '创建人',
-    `modify_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
-    `modify_by`   varchar(32)              DEFAULT NULL COMMENT '最后更新人',
+    `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `key`         VARCHAR(128)    NOT NULL COMMENT 'tag 的键',
+    `Value`       VARCHAR(128)    NOT NULL COMMENT 'tag 的值',
+    `namespace`   VARCHAR(64)     NOT NULL COMMENT '所属的namespace',
+    `group`       VARCHAR(128)    NOT NULL DEFAULT '' COMMENT '所属的文件组',
+    `file_name`   VARCHAR(128)    NOT NULL COMMENT '配置文件名',
+    `create_time` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `create_by`   VARCHAR(32)              DEFAULT NULL COMMENT '创建人',
+    `modify_time` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    `modify_by`   VARCHAR(32)              DEFAULT NULL COMMENT '最后更新人',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_tag` (
-                         `key`,
-                         `Value`,
-                         `namespace`,
-                         `group`,
-                         `file_name`
-        ),
+    UNIQUE KEY `uk_tag` (`key`, `Value`, `namespace`, `group`, `file_name`),
     KEY `idx_file` (`namespace`, `group`, `file_name`)
 ) ENGINE = InnoDB COMMENT = '配置文件标签表';
 
-/*!40101 SET CHARACTER_SET_CLIENT = @OLD_CHARACTER_SET_CLIENT */
-;
-
-/*!40101 SET CHARACTER_SET_RESULTS = @OLD_CHARACTER_SET_RESULTS */
-;
-
-/*!40101 SET COLLATION_CONNECTION = @OLD_COLLATION_CONNECTION */
-;
-
 CREATE TABLE `user`
 (
-    `id`           VARCHAR(128) NOT NULL comment 'User ID',
-    `name`         VARCHAR(100) NOT NULL comment 'user name',
-    `password`     VARCHAR(100) NOT NULL comment 'user password',
-    `owner`        VARCHAR(128) NOT NULL comment 'Main account ID',
-    `source`       VARCHAR(32)  NOT NULL comment 'Account source',
-    `mobile`       VARCHAR(12)  NOT NULL DEFAULT '' comment 'Account mobile phone number',
-    `email`        VARCHAR(64)  NOT NULL DEFAULT '' comment 'Account mailbox',
-    `token`        VARCHAR(255) NOT NULL comment 'The token information owned by the account can be used for SDK access authentication',
-    `token_enable` tinyint(4)   NOT NULL DEFAULT 1,
-    `user_type`    int          NOT NULL DEFAULT 20 comment 'Account type, 0 is the admin super account, 20 is the primary account, 50 for the child account',
-    `comment`      VARCHAR(255) NOT NULL comment 'describe',
-    `flag`         tinyint(4)   NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
-    `ctime`        timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
-    `mtime`        timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    `id`           VARCHAR(128) NOT NULL COMMENT 'User ID',
+    `name`         VARCHAR(100) NOT NULL COMMENT 'user name',
+    `password`     VARCHAR(100) NOT NULL COMMENT 'user password',
+    `owner`        VARCHAR(128) NOT NULL COMMENT 'Main account ID',
+    `source`       VARCHAR(32)  NOT NULL COMMENT 'Account source',
+    `mobile`       VARCHAR(12)  NOT NULL DEFAULT '' COMMENT 'Account mobile phone number',
+    `email`        VARCHAR(64)  NOT NULL DEFAULT '' COMMENT 'Account mailbox',
+    `token`        VARCHAR(255) NOT NULL COMMENT 'The token information owned by the account can be used for SDK access authentication',
+    `token_enable` TINYINT(4)   NOT NULL DEFAULT 1,
+    `user_type`    INT          NOT NULL DEFAULT 20 COMMENT 'Account type, 0 is the admin super account, 20 is the primary account, 50 for the child account',
+    `comment`      VARCHAR(255) NOT NULL COMMENT 'describe',
+    `flag`         TINYINT(4)   NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
+    `ctime`        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+    `mtime`        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last updated time',
     PRIMARY KEY (`id`),
     UNIQUE KEY (`name`, `owner`),
     KEY `owner` (`owner`),
@@ -619,15 +577,15 @@ CREATE TABLE `user`
 
 CREATE TABLE `user_group`
 (
-    `id`           VARCHAR(128) NOT NULL comment 'User group ID',
-    `name`         VARCHAR(100) NOT NULL comment 'User group name',
-    `owner`        VARCHAR(128) NOT NULL comment 'The main account ID of the user group',
-    `token`        VARCHAR(255) NOT NULL comment 'TOKEN information of this user group',
-    `comment`      VARCHAR(255) NOT NULL comment 'Description',
-    `token_enable` tinyint(4)   NOT NULL DEFAULT 1,
-    `flag`         tinyint(4)   NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
-    `ctime`        timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
-    `mtime`        timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    `id`           VARCHAR(128) NOT NULL COMMENT 'User group ID',
+    `name`         VARCHAR(100) NOT NULL COMMENT 'User group name',
+    `owner`        VARCHAR(128) NOT NULL COMMENT 'The main account ID of the user group',
+    `token`        VARCHAR(255) NOT NULL COMMENT 'TOKEN information of this user group',
+    `comment`      VARCHAR(255) NOT NULL COMMENT 'Description',
+    `token_enable` TINYINT(4)   NOT NULL DEFAULT 1,
+    `flag`         TINYINT(4)   NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
+    `ctime`        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+    `mtime`        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last updated time',
     PRIMARY KEY (`id`),
     UNIQUE KEY (`name`, `owner`),
     KEY `owner` (`owner`),
@@ -636,26 +594,26 @@ CREATE TABLE `user_group`
 
 CREATE TABLE `user_group_relation`
 (
-    `user_id`  VARCHAR(128) NOT NULL comment 'User ID',
-    `group_id` VARCHAR(128) NOT NULL comment 'User group ID',
-    `ctime`    timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
-    `mtime`    timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    `user_id`  VARCHAR(128) NOT NULL COMMENT 'User ID',
+    `group_id` VARCHAR(128) NOT NULL COMMENT 'User group ID',
+    `ctime`    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+    `mtime`    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last updated time',
     PRIMARY KEY (`user_id`, `group_id`),
     KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB;
 
 CREATE TABLE `auth_strategy`
 (
-    `id`       VARCHAR(128) NOT NULL comment 'Strategy ID',
-    `name`     VARCHAR(100) NOT NULL comment 'Policy name',
-    `action`   VARCHAR(32)  NOT NULL comment 'Read and write permission for this policy, only_read = 0, read_write = 1',
-    `owner`    VARCHAR(128) NOT NULL comment 'The account ID to which this policy is',
-    `comment`  VARCHAR(255) NOT NULL comment 'describe',
-    `default`  tinyint(4)   NOT NULL DEFAULT '0',
-    `revision` VARCHAR(128) NOT NULL comment 'Authentication rule version',
-    `flag`     tinyint(4)   NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
-    `ctime`    timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
-    `mtime`    timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    `id`       VARCHAR(128) NOT NULL COMMENT 'Strategy ID',
+    `name`     VARCHAR(100) NOT NULL COMMENT 'Policy name',
+    `action`   VARCHAR(32)  NOT NULL COMMENT 'Read and write permission for this policy, only_read = 0, read_write = 1',
+    `owner`    VARCHAR(128) NOT NULL COMMENT 'The account ID to which this policy is',
+    `comment`  VARCHAR(255) NOT NULL COMMENT 'describe',
+    `default`  TINYINT(4)   NOT NULL DEFAULT '0',
+    `revision` VARCHAR(128) NOT NULL COMMENT 'Authentication rule version',
+    `flag`     TINYINT(4)   NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
+    `ctime`    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+    `mtime`    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last updated time',
     PRIMARY KEY (`id`),
     UNIQUE KEY (`name`, `owner`),
     KEY `owner` (`owner`),
@@ -664,19 +622,19 @@ CREATE TABLE `auth_strategy`
 
 CREATE TABLE `auth_principal`
 (
-    `strategy_id`    VARCHAR(128) NOT NULL comment 'Strategy ID',
-    `principal_id`   VARCHAR(128) NOT NULL comment 'Principal ID',
-    `principal_role` int          NOT NULL comment 'PRINCIPAL type, 1 is User, 2 is Group',
+    `strategy_id`    VARCHAR(128) NOT NULL COMMENT 'Strategy ID',
+    `principal_id`   VARCHAR(128) NOT NULL COMMENT 'Principal ID',
+    `principal_role` INT          NOT NULL COMMENT 'PRINCIPAL type, 1 is User, 2 is Group',
     PRIMARY KEY (`strategy_id`, `principal_id`, `principal_role`)
 ) ENGINE = InnoDB;
 
 CREATE TABLE `auth_strategy_resource`
 (
-    `strategy_id` VARCHAR(128) NOT NULL comment 'Strategy ID',
-    `res_type`    int          NOT NULL comment 'Resource Type, Namespaces = 0, Service = 1, configgroups = 2',
-    `res_id`      VARCHAR(128) NOT NULL comment 'Resource ID',
-    `ctime`       timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'Create time',
-    `mtime`       timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'Last updated time',
+    `strategy_id` VARCHAR(128) NOT NULL COMMENT 'Strategy ID',
+    `res_type`    INT          NOT NULL COMMENT 'Resource Type, Namespaces = 0, Service = 1, configgroups = 2',
+    `res_id`      VARCHAR(128) NOT NULL COMMENT 'Resource ID',
+    `ctime`       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+    `mtime`       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last updated time',
     PRIMARY KEY (`strategy_id`, `res_type`, `res_id`),
     KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB;
@@ -702,20 +660,20 @@ VALUES ('65e4789a6d5b49669adf1e9e8387549c',
         20,
         'default polaris admin account',
         '12345678910',
-                '12345678910',
+        '12345678910',
         '');
 
 -- Permissions policy inserted into Polaris-Admin
-INSERT INTO `auth_strategy`(`id`,
-                            `name`,
-                            `action`,
-                            `owner`,
-                            `comment`,
-                            `default`,
-                            `revision`,
-                            `flag`,
-                            `ctime`,
-                            `mtime`)
+INSERT INTO `auth_strategy` (`id`,
+                             `name`,
+                             `action`,
+                             `owner`,
+                             `comment`,
+                             `default`,
+                             `revision`,
+                             `flag`,
+                             `ctime`,
+                             `mtime`)
 VALUES ('fbca9bfa04ae4ead86e1ecf5811e32a9',
         '(用户) polaris的默认策略',
         'READ_WRITE',
@@ -724,175 +682,236 @@ VALUES ('fbca9bfa04ae4ead86e1ecf5811e32a9',
         1,
         'fbca9bfa04ae4ead86e1ecf5811e32a9',
         0,
-        sysdate(),
-        sysdate());
+        SYSDATE(),
+        SYSDATE());
 
 -- Sport rules inserted into Polaris-Admin to access
-INSERT INTO `auth_strategy_resource`(`strategy_id`,
-                                     `res_type`,
-                                     `res_id`,
-                                     `ctime`,
-                                     `mtime`)
+INSERT INTO `auth_strategy_resource` (`strategy_id`,
+                                      `res_type`,
+                                      `res_id`,
+                                      `ctime`,
+                                      `mtime`)
 VALUES ('fbca9bfa04ae4ead86e1ecf5811e32a9',
         0,
         '*',
-        sysdate(),
-        sysdate()),
+        SYSDATE(),
+        SYSDATE()),
        ('fbca9bfa04ae4ead86e1ecf5811e32a9',
         1,
         '*',
-        sysdate(),
-        sysdate()),
+        SYSDATE(),
+        SYSDATE()),
        ('fbca9bfa04ae4ead86e1ecf5811e32a9',
         2,
         '*',
-        sysdate(),
-        sysdate());
+        SYSDATE(),
+        SYSDATE());
 
 -- Insert permission policies and association relationships for Polaris-Admin accounts
-INSERT INTO auth_principal(`strategy_id`, `principal_id`, `principal_role`) VALUE (
-                                                                                   'fbca9bfa04ae4ead86e1ecf5811e32a9',
-                                                                                   '65e4789a6d5b49669adf1e9e8387549c',
-                                                                                   1
+INSERT INTO auth_principal (`strategy_id`, `principal_id`, `principal_role`) VALUE (
+                                                                                    'fbca9bfa04ae4ead86e1ecf5811e32a9',
+                                                                                    '65e4789a6d5b49669adf1e9e8387549c',
+                                                                                    1
     );
 
 -- v1.8.0, support client info storage
 CREATE TABLE `client`
 (
-    `id`      VARCHAR(128) NOT NULL comment 'client id',
-    `host`    VARCHAR(100) NOT NULL comment 'client host IP',
-    `type`    VARCHAR(100) NOT NULL comment 'client type: polaris-java/polaris-go',
-    `version` VARCHAR(32)  NOT NULL comment 'client SDK version',
-    `region`  varchar(128)          DEFAULT NULL comment 'region info for client',
-    `zone`    varchar(128)          DEFAULT NULL comment 'zone info for client',
-    `campus`  varchar(128)          DEFAULT NULL comment 'campus info for client',
-    `flag`    tinyint(4)   NOT NULL DEFAULT '0' COMMENT '0 is valid, 1 is invalid(deleted)',
-    `ctime`   timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP comment 'create time',
-    `mtime`   timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP comment 'last updated time',
+    `id`      VARCHAR(128) NOT NULL COMMENT 'client id',
+    `host`    VARCHAR(100) NOT NULL COMMENT 'client host IP',
+    `type`    VARCHAR(100) NOT NULL COMMENT 'client type: polaris-java/polaris-go',
+    `version` VARCHAR(32)  NOT NULL COMMENT 'client SDK version',
+    `region`  VARCHAR(128)          DEFAULT NULL COMMENT 'region info for client',
+    `zone`    VARCHAR(128)          DEFAULT NULL COMMENT 'zone info for client',
+    `campus`  VARCHAR(128)          DEFAULT NULL COMMENT 'campus info for client',
+    `flag`    TINYINT(4)   NOT NULL DEFAULT '0' COMMENT '0 is valid, 1 is invalid(deleted)',
+    `ctime`   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'create time',
+    `mtime`   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'last updated time',
     PRIMARY KEY (`id`),
     KEY `mtime` (`mtime`)
 ) ENGINE = InnoDB;
 
 CREATE TABLE `client_stat`
 (
-    `client_id` VARCHAR(128) NOT NULL comment 'client id',
-    `target`    VARCHAR(100) NOT NULL comment 'target stat platform',
-    `port`      int(11)      NOT NULL comment 'client port to get stat information',
-    `protocol`  VARCHAR(100) NOT NULL comment 'stat info transport protocol',
-    `path`      VARCHAR(128) NOT NULL comment 'stat metric path',
+    `client_id` VARCHAR(128) NOT NULL COMMENT 'client id',
+    `target`    VARCHAR(100) NOT NULL COMMENT 'target stat platform',
+    `port`      INT(11)      NOT NULL COMMENT 'client port to get stat information',
+    `protocol`  VARCHAR(100) NOT NULL COMMENT 'stat info transport protocol',
+    `path`      VARCHAR(128) NOT NULL COMMENT 'stat metric path',
     PRIMARY KEY (`client_id`, `target`, `port`)
 ) ENGINE = InnoDB;
 
 -- v1.9.0
-CREATE TABLE `config_file_template` (
-    `id` bigint(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `name` varchar(128) COLLATE utf8_bin NOT NULL COMMENT '配置文件模板名称',
-    `content` longtext COLLATE utf8_bin NOT NULL COMMENT '配置文件模板内容',
-    `format` varchar(16) COLLATE utf8_bin DEFAULT 'text' COMMENT '模板文件格式',
-    `comment` varchar(512) COLLATE utf8_bin DEFAULT NULL COMMENT '模板描述信息',
-    `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `create_by` varchar(32) COLLATE utf8_bin DEFAULT NULL COMMENT '创建人',
-    `modify_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
-    `modify_by` varchar(32) COLLATE utf8_bin DEFAULT NULL COMMENT '最后更新人',
+CREATE TABLE `config_file_template`
+(
+    `id`          BIGINT(10) UNSIGNED           NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `name`        VARCHAR(128) COLLATE utf8_bin NOT NULL COMMENT '配置文件模板名称',
+    `content`     LONGTEXT COLLATE utf8_bin     NOT NULL COMMENT '配置文件模板内容',
+    `format`      VARCHAR(16) COLLATE utf8_bin           DEFAULT 'text' COMMENT '模板文件格式',
+    `comment`     VARCHAR(512) COLLATE utf8_bin          DEFAULT NULL COMMENT '模板描述信息',
+    `create_time` TIMESTAMP                     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `create_by`   VARCHAR(32) COLLATE utf8_bin           DEFAULT NULL COMMENT '创建人',
+    `modify_time` TIMESTAMP                     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    `modify_by`   VARCHAR(32) COLLATE utf8_bin           DEFAULT NULL COMMENT '最后更新人',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_name` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='配置文件模板表';
+) ENGINE = InnoDB
+  AUTO_INCREMENT = 1
+  DEFAULT CHARSET = utf8
+  COLLATE = utf8_bin COMMENT = '配置文件模板表';
 
-INSERT INTO `config_file_template` (`name`, `content`, `format`, `comment`, `create_time`
-	, `create_by`, `modify_time`, `modify_by`)
-VALUES ("spring-cloud-gateway-braining", '{
-    "rules":[
-        {
-            "conditions":[
-                {
-                    "key":"${http.query.uid}",
-                    "values":["10000"],
-                    "operation":"EQUALS"
-                }
-            ],
-            "labels":[
-                {
-                    "key":"env",
-                    "value":"green"
-                }
-            ]
-        }
-    ]
-}', "json", "Spring Cloud Gateway  染色规则", NOW()
-	, "polaris", NOW(), "polaris");
+INSERT INTO `config_file_template` (`name`,
+                                    `content`,
+                                    `format`,
+                                    `comment`,
+                                    `create_time`,
+                                    `create_by`,
+                                    `modify_time`,
+                                    `modify_by`)
+VALUES ('spring-cloud-gateway-braining',
+        '{
+        "rules":[
+            {
+                "conditions":[
+                    {
+                        "key":"${http.query.uid}",
+                        "values":["10000"],
+                        "operation":"EQUALS"
+                    }
+                ],
+                "labels":[
+                    {
+                        "key":"env",
+                        "value":"green"
+                    }
+                ]
+            }
+        ]
+    }',
+        'json',
+        'Spring Cloud Gateway  染色规则',
+        NOW(),
+        'polaris',
+        NOW(),
+        'polaris');
 
 -- v1.12.0
 CREATE TABLE `routing_config_v2`
 (
-    `id`       VARCHAR(128) NOT NULL,
-    `name`     VARCHAR(64) NOT NULL default '',
-    `namespace`     VARCHAR(64) NOT NULL default '',
-    `policy`   VARCHAR(64) NOT NULL,
-    `config`   TEXT,
-    `enable`   INT         NOT NULL DEFAULT 0,
-    `revision` VARCHAR(40) NOT NULL,
+    `id`          VARCHAR(128) NOT NULL,
+    `name`        VARCHAR(64)  NOT NULL DEFAULT '',
+    `namespace`   VARCHAR(64)  NOT NULL DEFAULT '',
+    `policy`      VARCHAR(64)  NOT NULL,
+    `config`      TEXT,
+    `enable`      INT          NOT NULL DEFAULT 0,
+    `revision`    VARCHAR(40)  NOT NULL,
     `description` VARCHAR(500) NOT NULL DEFAULT '',
-    `priority`   smallint(6)    NOT NULL DEFAULT '0' comment 'ratelimit rule priority',
-    `flag`     TINYINT(4)  NOT NULL DEFAULT '0',
-    `ctime`    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime`    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    `etime`    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `extend_info` VARCHAR(1024) DEFAULT '',
+    `priority`    SMALLINT(6)  NOT NULL DEFAULT '0' COMMENT 'ratelimit rule priority',
+    `flag`        TINYINT(4)   NOT NULL DEFAULT '0',
+    `ctime`       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `mtime`       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `etime`       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `extend_info` VARCHAR(1024)         DEFAULT '',
     PRIMARY KEY (`id`),
     KEY `mtime` (`mtime`)
-) engine = innodb;
+) ENGINE = innodb;
 
-CREATE TABLE `leader_election`
+CREATE TABLE
+    `leader_election`
 (
     `elect_key` VARCHAR(128) NOT NULL,
-    `version`   BIGINT NOT NULL DEFAULT 0,
+    `version`   BIGINT       NOT NULL DEFAULT 0,
     `leader`    VARCHAR(128) NOT NULL,
-    `ctime`     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime`     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `ctime`     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `mtime`     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`elect_key`),
-	KEY `version` (`version`)
-) engine = innodb;
+    KEY `version` (`version`)
+) ENGINE = innodb;
 
 -- v1.14.0
 CREATE TABLE `circuitbreaker_rule_v2`
 (
-    `id`                VARCHAR(128) NOT NULL,
-    `name`              VARCHAR(64)  NOT NULL,
-    `namespace`         VARCHAR(64)  NOT NULL default '',
-    `enable`            INT          NOT NULL DEFAULT 0,
-    `revision`          VARCHAR(40)  NOT NULL,
-    `description`       VARCHAR(1024) NOT NULL DEFAULT '',
-    `level`             INT          NOT NULL,
-    `src_service`        VARCHAR(128) NOT NULL,
-    `src_namespace`      VARCHAR(64)  NOT NULL,
-    `dst_service`        VARCHAR(128) NOT NULL,
-    `dst_namespace`      VARCHAR(64)  NOT NULL,
-    `dst_method`         VARCHAR(128) NOT NULL,
-    `config`            TEXT,
-    `flag`              TINYINT(4)   NOT NULL DEFAULT '0',
-    `ctime`             TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime`             TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    `etime`             TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `id`            VARCHAR(128)  NOT NULL,
+    `name`          VARCHAR(64)   NOT NULL,
+    `namespace`     VARCHAR(64)   NOT NULL DEFAULT '',
+    `enable`        INT           NOT NULL DEFAULT 0,
+    `revision`      VARCHAR(40)   NOT NULL,
+    `description`   VARCHAR(1024) NOT NULL DEFAULT '',
+    `level`         INT           NOT NULL,
+    `src_service`   VARCHAR(128)  NOT NULL,
+    `src_namespace` VARCHAR(64)   NOT NULL,
+    `dst_service`   VARCHAR(128)  NOT NULL,
+    `dst_namespace` VARCHAR(64)   NOT NULL,
+    `dst_method`    VARCHAR(128)  NOT NULL,
+    `config`        TEXT,
+    `flag`          TINYINT(4)    NOT NULL DEFAULT '0',
+    `ctime`         TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `mtime`         TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `etime`         TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     KEY `name` (`name`),
     KEY `mtime` (`mtime`)
-) engine = innodb;
+) ENGINE = innodb;
 
 CREATE TABLE `fault_detect_rule`
 (
-    `id`            VARCHAR(128) NOT NULL,
-    `name`          VARCHAR(64)  NOT NULL,
-    `namespace`     VARCHAR(64)  NOT NULL default 'default',
-    `revision`      VARCHAR(40)  NOT NULL,
+    `id`            VARCHAR(128)  NOT NULL,
+    `name`          VARCHAR(64)   NOT NULL,
+    `namespace`     VARCHAR(64)   NOT NULL DEFAULT 'default',
+    `revision`      VARCHAR(40)   NOT NULL,
     `description`   VARCHAR(1024) NOT NULL DEFAULT '',
-    `dst_service`    VARCHAR(128) NOT NULL,
-    `dst_namespace`  VARCHAR(64)  NOT NULL,
-    `dst_method`     VARCHAR(128) NOT NULL,
+    `dst_service`   VARCHAR(128)  NOT NULL,
+    `dst_namespace` VARCHAR(64)   NOT NULL,
+    `dst_method`    VARCHAR(128)  NOT NULL,
     `config`        TEXT,
-    `flag`          TINYINT(4)   NOT NULL DEFAULT '0',
-    `ctime`         TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `mtime`         TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `flag`          TINYINT(4)    NOT NULL DEFAULT '0',
+    `ctime`         TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `mtime`         TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     KEY `name` (`name`),
     KEY `mtime` (`mtime`)
-) engine = innodb;
+) ENGINE = innodb;
+
+/* 服务契约表 */
+CREATE TABLE service_contract
+(
+    `id`        VARCHAR(128) NOT NULL COMMENT '服务契约主键',
+    `name`      VARCHAR(128) NOT NULL COMMENT '服务契约名称',
+    `namespace` VARCHAR(64)  NOT NULL COMMENT '命名空间',
+    `service`   VARCHAR(128) NOT NULL COMMENT '服务名称',
+    `protocol`  VARCHAR(32)  NOT NULL COMMENT '当前契约对应的协议信息 e.g. http/dubbo/grpc/thrift',
+    `version`   VARCHAR(64)  NOT NULL COMMENT '服务契约版本',
+    `revision`  VARCHAR(128) NOT NULL COMMENT '当前服务契约的全部内容版本摘要',
+    `flag`      TINYINT(4)            DEFAULT 0 COMMENT '逻辑删除标志位 ， 0 位有效 ， 1 为逻辑删除',
+    `content`   LONGTEXT COMMENT '描述信息',
+    `ctime`     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `mtime`     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    -- 通过 服务 + 协议信息 + 契约版本 + 名称 进行一次 hash 计算，作为主键
+    PRIMARY KEY (`id`),
+    -- 服务 + 协议信息 + 契约版本 + 辅助标签 必须保证唯一
+    KEY (
+         `namespace`,
+         `service`,
+         `name`,
+         `version`,
+         `protocol`
+        )
+) ENGINE = InnoDB;
+
+/* 服务契约中针对单个接口定义的详细信息描述表 */
+CREATE TABLE service_contract_detail
+(
+    `id`          VARCHAR(128) NOT NULL COMMENT '服务契约单个接口定义记录主键',
+    `contract_id` VARCHAR(128) NOT NULL COMMENT '服务契约 ID',
+    `method`      VARCHAR(32)  NOT NULL COMMENT 'http协议中的 method 字段, eg:POST/GET/PUT/DELETE, 其他 gRPC 可以用来标识 stream 类型',
+    `path`        VARCHAR(128) NOT NULL COMMENT '接口具体全路径描述',
+    `source`      INT COMMENT '该条记录来源, 0:SDK/1:MANUAL',
+    `content`     LONGTEXT COMMENT '描述信息',
+    `revision`    VARCHAR(128) NOT NULL COMMENT '当前接口定义的全部内容版本摘要',
+    `flag`        TINYINT(4)            DEFAULT 0 COMMENT '逻辑删除标志位, 0 位有效, 1 为逻辑删除',
+    `ctime`       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `mtime`       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    -- 服务契约id + method + path + source 需保证唯一
+    KEY (`contract_id`, `path`, `method`)
+) ENGINE = InnoDB;

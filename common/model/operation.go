@@ -67,6 +67,7 @@ const (
 	RConfigFileRelease  Resource = "ConfigFileRelease"
 	RCircuitBreakerRule Resource = "CircuitBreakerRule"
 	RFaultDetectRule    Resource = "FaultDetectRule"
+	RServiceContract    Resource = "ServiceContract"
 )
 
 // RecordEntry Operation records

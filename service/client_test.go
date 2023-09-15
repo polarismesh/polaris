@@ -18,14 +18,21 @@
 package service_test
 
 import (
+	"context"
 	"fmt"
+	"sync"
 	"testing"
 
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
+	apiv1 "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/service"
 )
 
 // 测试discover instances
@@ -55,9 +62,10 @@ func TestDiscoverInstances(t *testing.T) {
 		}
 		t.Run("正常服务发现，返回的数据齐全", func(t *testing.T) {
 			_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
-			out := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, service)
+			out := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, &apiservice.DiscoverFilter{}, service)
 			assert.True(t, respSuccess(out))
 			assert.Equal(t, count, len(out.GetInstances()))
+			assert.True(t, len(out.GetService().GetMetadata()) > 0)
 			for _, resp := range out.GetInstances() {
 				found := false
 				for _, req := range reqInstances {
@@ -75,7 +83,7 @@ func TestDiscoverInstances(t *testing.T) {
 			}
 		})
 		t.Run("service-metadata修改，revision会修改", func(t *testing.T) {
-			out := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, service)
+			out := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, &apiservice.DiscoverFilter{}, service)
 			assert.True(t, respSuccess(out))
 			oldRevision := out.GetService().GetRevision().GetValue()
 
@@ -309,5 +317,121 @@ func TestDiscoverRateLimits2(t *testing.T) {
 			assert.True(t, respSuccess(out))
 			t.Logf("pass: out is %+v", out)
 		})
+	})
+}
+
+func mockReportClients(cnt int) []*apiservice.Client {
+	ret := make([]*apiservice.Client, 0, 4)
+
+	for i := 0; i < cnt; i++ {
+		ret = append(ret, &apiservice.Client{
+			Host:     utils.NewStringValue("127.0.0.1"),
+			Type:     apiservice.Client_SDK,
+			Version:  utils.NewStringValue("v1.0.0"),
+			Location: &apimodel.Location{},
+			Id:       utils.NewStringValue(utils.NewUUID()),
+			Stat: []*apiservice.StatInfo{
+				{
+					Target:   utils.NewStringValue(model.StatReportPrometheus),
+					Port:     utils.NewUInt32Value(uint32(1000 + i)),
+					Path:     utils.NewStringValue("/metrics"),
+					Protocol: utils.NewStringValue("http"),
+				},
+			},
+		})
+	}
+
+	return ret
+}
+
+func TestServer_ReportClient(t *testing.T) {
+	t.Run("正常客户端上报", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.Initialize(); err != nil {
+			t.Fatal(err)
+		}
+		defer discoverSuit.Destroy()
+
+		clients := mockReportClients(1)
+		defer discoverSuit.cleanReportClient()
+
+		for i := range clients {
+			resp := discoverSuit.DiscoverServer().ReportClient(discoverSuit.DefaultCtx, clients[i])
+			assert.True(t, respSuccess(resp), resp.GetInfo().GetValue())
+		}
+	})
+}
+
+func TestServer_GetReportClient(t *testing.T) {
+	t.Run("客户端上报-查询客户端信息", func(t *testing.T) {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.Initialize(); err != nil {
+			t.Fatal(err)
+		}
+		defer discoverSuit.Destroy()
+
+		clients := mockReportClients(5)
+		defer discoverSuit.cleanReportClient()
+
+		wait := sync.WaitGroup{}
+		wait.Add(5)
+		for i := range clients {
+			go func(client *apiservice.Client) {
+				defer wait.Done()
+				resp := discoverSuit.DiscoverServer().ReportClient(discoverSuit.DefaultCtx, client)
+				assert.True(t, respSuccess(resp), resp.GetInfo().GetValue())
+				t.Logf("create one client success : %s", client.GetId().GetValue())
+			}(clients[i])
+		}
+
+		wait.Wait()
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		t.Log("finish sleep to wait cache refresh")
+
+		resp := discoverSuit.DiscoverServer().GetPrometheusTargets(context.Background(), map[string]string{})
+		assert.Equal(t, apiv1.ExecuteSuccess, resp.Code)
+		assert.True(t, len(resp.Response) >= 0 && len(resp.Response) <= 5)
+	})
+}
+
+func TestServer_GetReportClients(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.Initialize(); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("create client", func(t *testing.T) {
+		svr := discoverSuit.OriginDiscoverServer()
+
+		mockClientId := utils.NewUUID()
+		resp := svr.ReportClient(context.Background(), &service_manage.Client{
+			Host:    utils.NewStringValue("127.0.0.1"),
+			Type:    service_manage.Client_SDK,
+			Version: utils.NewStringValue("1.0.0"),
+			Location: &apimodel.Location{
+				Region: utils.NewStringValue("region"),
+				Zone:   utils.NewStringValue("zone"),
+				Campus: utils.NewStringValue("campus"),
+			},
+			Id: utils.NewStringValue(mockClientId),
+			Stat: []*service_manage.StatInfo{
+				{
+					Target:   utils.NewStringValue("prometheus"),
+					Port:     utils.NewUInt32Value(8080),
+					Path:     utils.NewStringValue("/metrics"),
+					Protocol: utils.NewStringValue("http"),
+				},
+			},
+		})
+
+		assert.Equal(t, resp.GetCode().GetValue(), uint32(apimodel.Code_ExecuteSuccess))
+		// 强制刷新到 cache
+		svr.Cache().TestUpdate()
+
+		originSvr := discoverSuit.OriginDiscoverServer().(*service.Server)
+		qresp := originSvr.GetReportClients(discoverSuit.DefaultCtx, map[string]string{})
+		assert.Equal(t, resp.GetCode().GetValue(), uint32(apimodel.Code_ExecuteSuccess))
+		assert.Equal(t, qresp.GetAmount().GetValue(), uint32(1))
+		assert.Equal(t, qresp.GetSize().GetValue(), uint32(1))
 	})
 }

@@ -282,16 +282,13 @@ func (svr *serverAuthAbility) queryServiceAliasResource(
 	svcSet := utils.NewMap[string, *model.Service]()
 
 	for index := range req {
-		aliasSvcName := req[index].GetAlias().GetValue()
-		aliasSvcNamespace := req[index].GetAliasNamespace().GetValue()
+		refSvcName := req[index].GetService().GetValue()
+		refSvcNamespace := req[index].GetNamespace().GetValue()
 		svcNamespace := req[index].GetNamespace().GetValue()
 		names.Add(svcNamespace)
-		alias := svr.Cache().Service().GetServiceByName(aliasSvcName, aliasSvcNamespace)
-		if alias != nil {
-			svc := svr.Cache().Service().GetServiceByID(alias.Reference)
-			if svc != nil {
-				svcSet.Store(svc.ID, svc)
-			}
+		refSvc := svr.Cache().Service().GetServiceByName(refSvcName, refSvcNamespace)
+		if refSvc != nil {
+			svcSet.Store(refSvc.ID, refSvc)
 		}
 	}
 

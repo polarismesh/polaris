@@ -28,6 +28,7 @@ import (
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"go.uber.org/zap"
 
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
@@ -187,7 +188,9 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Servic
 }
 
 // ServiceInstancesCache 根据服务名查询服务实例列表
-func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+func (s *Server) ServiceInstancesCache(ctx context.Context, filter *apiservice.DiscoverFilter,
+	req *apiservice.Service) *apiservice.DiscoverResponse {
+
 	resp := createCommonDiscoverResponse(req, apiservice.DiscoverResponse_INSTANCE)
 	serviceName := req.GetName().GetValue()
 	namespaceName := req.GetNamespace().GetValue()
@@ -204,50 +207,60 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Serv
 	// 数据源都来自Cache，这里拿到的service，已经是源服务
 	aliasFor := s.getServiceCache(serviceName, namespaceName)
 	if aliasFor == nil {
-		log.Debugf("[Server][Service][Instance] not found name(%s) namespace(%s) service",
+		log.Infof("[Server][Service][Instance] not found name(%s) namespace(%s) service",
 			serviceName, namespaceName)
 		return api.NewDiscoverInstanceResponse(apimodel.Code_NotFoundResource, req)
 	}
-	s.RecordDiscoverStatis(aliasFor.Name, aliasFor.Namespace)
-	// 获取revision，如果revision一致，则不返回内容，直接返回一个状态码
-	revision := s.caches.Service().GetRevisionWorker().GetServiceInstanceRevision(aliasFor.ID)
-	if revision == "" {
-		// 不能直接获取，则需要重新计算，大部分情况都可以直接获取的
-		// 获取instance数据，service已经是源服务，可以直接查找cache
-		instances := s.caches.Instance().GetInstancesByServiceID(aliasFor.ID)
-		var revisionErr error
-		revision, revisionErr = s.GetServiceInstanceRevision(aliasFor.ID, instances)
-		if revisionErr != nil {
-			log.Errorf("[Server][Service][Instance] compute revision service(%s) err: %s",
-				aliasFor.ID, revisionErr.Error())
-			return api.NewDiscoverInstanceResponse(apimodel.Code_ExecuteException, req)
+	visibleServices := s.caches.Service().GetVisibleServicesInOtherNamespace(aliasFor.Name, aliasFor.Namespace)
+	visibleServices = append(visibleServices, aliasFor)
+
+	revisions := make([]string, 0, len(visibleServices)+1)
+	finalInstances := make(map[string]*apiservice.Instance, 128)
+	for _, svc := range visibleServices {
+		revision := s.caches.Service().GetRevisionWorker().GetServiceInstanceRevision(svc.ID)
+		if revision == "" {
+			revision = utils.NewUUID()
 		}
+		revisions = append(revisions, revision)
 	}
-	if revision == req.GetRevision().GetValue() {
+	aggregateRevision, err := cachetypes.CompositeComputeRevision(revisions)
+	if err != nil {
+		log.Errorf("[Server][Service][Instance] compute multi revision service(%s) err: %s",
+			aliasFor.ID, err.Error())
+		return api.NewDiscoverInstanceResponse(apimodel.Code_ExecuteException, req)
+	}
+	if aggregateRevision == req.GetRevision().GetValue() {
 		return api.NewDiscoverInstanceResponse(apimodel.Code_DataNoChange, req)
 	}
 
-	// 填充service数据
-	resp.Service = &apiservice.Service{
-		Name:      req.GetName(),
-		Namespace: req.GetNamespace(),
-		Revision:  utils.NewStringValue(revision),
+	for _, svc := range visibleServices {
+		specSvc := &apiservice.Service{
+			Id:        utils.NewStringValue(svc.ID),
+			Name:      utils.NewStringValue(svc.Name),
+			Namespace: utils.NewStringValue(svc.Namespace),
+		}
+		ret := s.caches.Instance().DiscoverServiceInstances(specSvc.GetId().GetValue(), filter.GetOnlyHealthyInstance())
+		for i := range ret {
+			copyIns := s.getInstance(req, ret[i].Proto)
+			// 注意：这里的value是cache的，不修改cache的数据，通过getInstance，浅拷贝一份数据
+			finalInstances[copyIns.GetId().GetValue()] = copyIns
+		}
 	}
-	// 塞入源服务信息数据
-	resp.AliasFor = &apiservice.Service{
-		Namespace: utils.NewStringValue(aliasFor.Namespace),
-		Name:      utils.NewStringValue(aliasFor.Name),
-	}
-	// 填充instance数据
-	resp.Instances = make([]*apiservice.Instance, 0) // TODO
-	_ = s.caches.Instance().
-		IteratorInstancesWithService(aliasFor.ID, // service已经是源服务
-			func(key string, value *model.Instance) (b bool, e error) {
-				// 注意：这里的value是cache的，不修改cache的数据，通过getInstance，浅拷贝一份数据
-				resp.Instances = append(resp.Instances, s.getInstance(req, value.Proto))
-				return true, nil
-			})
 
+	// 填充service数据
+	resp.Service = service2Api(aliasFor)
+	// 这里需要把服务信息改为用户请求的服务名以及命名空间
+	resp.Service.Name = req.GetName()
+	resp.Service.Namespace = req.GetNamespace()
+	resp.Service.Revision = utils.NewStringValue(aggregateRevision)
+	// 塞入源服务信息数据
+	resp.AliasFor = service2Api(aliasFor)
+	// 填充instance数据
+	resp.Instances = make([]*apiservice.Instance, 0, len(finalInstances))
+	for i := range finalInstances {
+		// 注意：这里的value是cache的，不修改cache的数据，通过getInstance，浅拷贝一份数据
+		resp.Instances = append(resp.Instances, finalInstances[i])
+	}
 	return resp
 }
 

@@ -18,12 +18,20 @@
 package model
 
 import (
+	"context"
+	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+
+	commontime "github.com/polarismesh/polaris/common/time"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // Namespace 命名空间结构体
@@ -35,6 +43,16 @@ type Namespace struct {
 	Valid      bool
 	CreateTime time.Time
 	ModifyTime time.Time
+	// ServiceExportTo 服务可见性设置
+	ServiceExportTo map[string]struct{}
+}
+
+func (n *Namespace) ListServiceExportTo() []*wrappers.StringValue {
+	ret := make([]*wrappers.StringValue, 0, len(n.ServiceExportTo))
+	for i := range n.ServiceExportTo {
+		ret = append(ret, &wrappers.StringValue{Value: i})
+	}
+	return ret
 }
 
 type ServicePort struct {
@@ -67,6 +85,26 @@ type Service struct {
 	Mtime        int64
 	Ctime        int64
 	ServicePorts []*ServicePort
+	// ExportTo 服务可见性暴露设置
+	ExportTo    map[string]struct{}
+	OldExportTo map[string]struct{}
+}
+
+func (s *Service) ProtectThreshold() float32 {
+	if len(s.Meta) == 0 {
+		return 0
+	}
+	val := s.Meta[MetadataServiceProtectThreshold]
+	threshold, _ := strconv.ParseFloat(val, 32)
+	return float32(threshold)
+}
+
+func (s *Service) ListExportTo() []*wrappers.StringValue {
+	ret := make([]*wrappers.StringValue, 0, len(s.ExportTo))
+	for i := range s.ExportTo {
+		ret = append(ret, &wrappers.StringValue{Value: i})
+	}
+	return ret
 }
 
 // EnhancedService 服务增强数据
@@ -113,6 +151,7 @@ type ServiceAlias struct {
 	Comment        string
 	CreateTime     time.Time
 	ModifyTime     time.Time
+	ExportTo       map[string]struct{}
 }
 
 // WeightType 服务下实例的权重类型
@@ -359,6 +398,18 @@ type InstanceCount struct {
 	HealthyInstanceCount uint32
 	// TotalInstanceCount 总实例数
 	TotalInstanceCount uint32
+	// VersionCounts 按照实例的版本进行统计计算
+	VersionCounts map[string]*InstanceVersionCount
+}
+
+// InstanceVersionCount instance version metrics count
+type InstanceVersionCount struct {
+	// IsolateInstanceCount 隔离状态的实例
+	IsolateInstanceCount uint32
+	// HealthyInstanceCount 健康实例数
+	HealthyInstanceCount uint32
+	// TotalInstanceCount 总实例数
+	TotalInstanceCount uint32
 }
 
 // NamespaceServiceCount Namespace service data
@@ -417,4 +468,413 @@ type FaultDetectRule struct {
 func (c *FaultDetectRule) IsServiceChange(other *FaultDetectRule) bool {
 	dstSvcEqual := c.DstService == other.DstService && c.DstNamespace == other.DstNamespace
 	return !dstSvcEqual
+}
+
+const (
+	MetadataInstanceLastHeartbeatTime = "internal-lastheartbeat"
+	MetadataServiceProtectThreshold   = "internal-service-protectthreshold"
+)
+
+// Instance 组合了api的Instance对象
+type Instance struct {
+	Proto             *apiservice.Instance
+	ServiceID         string
+	ServicePlatformID string
+	// Valid Whether it is deleted by logic
+	Valid bool
+	// ModifyTime Update time of instance
+	ModifyTime time.Time
+}
+
+// ID get id
+func (i *Instance) ID() string {
+	if i.Proto == nil {
+		return ""
+	}
+	return i.Proto.GetId().GetValue()
+}
+
+// Service get service
+func (i *Instance) Service() string {
+	if i.Proto == nil {
+		return ""
+	}
+	return i.Proto.GetService().GetValue()
+}
+
+// Namespace get namespace
+func (i *Instance) Namespace() string {
+	if i.Proto == nil {
+		return ""
+	}
+	return i.Proto.GetNamespace().GetValue()
+}
+
+// VpcID get vpcid
+func (i *Instance) VpcID() string {
+	if i.Proto == nil {
+		return ""
+	}
+	return i.Proto.GetVpcId().GetValue()
+}
+
+// Host get host
+func (i *Instance) Host() string {
+	if i.Proto == nil {
+		return ""
+	}
+	return i.Proto.GetHost().GetValue()
+}
+
+// Port get port
+func (i *Instance) Port() uint32 {
+	if i.Proto == nil {
+		return 0
+	}
+	return i.Proto.GetPort().GetValue()
+}
+
+// Protocol get protocol
+func (i *Instance) Protocol() string {
+	if i.Proto == nil {
+		return ""
+	}
+	return i.Proto.GetProtocol().GetValue()
+}
+
+// Version get version
+func (i *Instance) Version() string {
+	if i.Proto == nil {
+		return ""
+	}
+	return i.Proto.GetVersion().GetValue()
+}
+
+// Priority gets priority
+func (i *Instance) Priority() uint32 {
+	if i.Proto == nil {
+		return 0
+	}
+	return i.Proto.GetPriority().GetValue()
+}
+
+// Weight get weight
+func (i *Instance) Weight() uint32 {
+	if i.Proto == nil {
+		return 0
+	}
+	return i.Proto.GetWeight().GetValue()
+}
+
+// EnableHealthCheck get enables health check
+func (i *Instance) EnableHealthCheck() bool {
+	if i.Proto == nil {
+		return false
+	}
+	return i.Proto.GetEnableHealthCheck().GetValue()
+}
+
+// HealthCheck get health check
+func (i *Instance) HealthCheck() *apiservice.HealthCheck {
+	if i.Proto == nil {
+		return nil
+	}
+	return i.Proto.GetHealthCheck()
+}
+
+// Healthy get healthy
+func (i *Instance) Healthy() bool {
+	if i.Proto == nil {
+		return false
+	}
+	return i.Proto.GetHealthy().GetValue()
+}
+
+// Isolate get isolate
+func (i *Instance) Isolate() bool {
+	if i.Proto == nil {
+		return false
+	}
+	return i.Proto.GetIsolate().GetValue()
+}
+
+// Location gets location
+func (i *Instance) Location() *apimodel.Location {
+	if i.Proto == nil {
+		return nil
+	}
+	return i.Proto.GetLocation()
+}
+
+// Metadata get metadata
+func (i *Instance) Metadata() map[string]string {
+	if i.Proto == nil {
+		return nil
+	}
+	return i.Proto.GetMetadata()
+}
+
+// LogicSet get logic set
+func (i *Instance) LogicSet() string {
+	if i.Proto == nil {
+		return ""
+	}
+	return i.Proto.GetLogicSet().GetValue()
+}
+
+// Ctime get ctime
+func (i *Instance) Ctime() string {
+	if i.Proto == nil {
+		return ""
+	}
+	return i.Proto.GetCtime().GetValue()
+}
+
+// Mtime get mtime
+func (i *Instance) Mtime() string {
+	if i.Proto == nil {
+		return ""
+	}
+	return i.Proto.GetMtime().GetValue()
+}
+
+// Revision get revision
+func (i *Instance) Revision() string {
+	if i.Proto == nil {
+		return ""
+	}
+	return i.Proto.GetRevision().GetValue()
+}
+
+// ServiceToken get service token
+func (i *Instance) ServiceToken() string {
+	if i.Proto == nil {
+		return ""
+	}
+	return i.Proto.GetServiceToken().GetValue()
+}
+
+// MallocProto malloc proto if proto is null
+func (i *Instance) MallocProto() {
+	if i.Proto == nil {
+		i.Proto = &apiservice.Instance{}
+	}
+}
+
+// InstanceStore 对应store层（database）的对象
+type InstanceStore struct {
+	ID                string
+	ServiceID         string
+	Host              string
+	VpcID             string
+	Port              uint32
+	Protocol          string
+	Version           string
+	HealthStatus      int
+	Isolate           int
+	Weight            uint32
+	EnableHealthCheck int
+	CheckType         int32
+	TTL               uint32
+	Priority          uint32
+	Revision          string
+	LogicSet          string
+	Region            string
+	Zone              string
+	Campus            string
+	Meta              map[string]string
+	Flag              int
+	CreateTime        int64
+	ModifyTime        int64
+}
+
+// ExpandInstanceStore 包含服务名的store信息
+type ExpandInstanceStore struct {
+	ServiceName       string
+	Namespace         string
+	ServiceToken      string
+	ServicePlatformID string
+	ServiceInstance   *InstanceStore
+}
+
+// Store2Instance store的数据转换为组合了api的数据结构
+func Store2Instance(is *InstanceStore) *Instance {
+	ins := &Instance{
+		Proto: &apiservice.Instance{
+			Id:                &wrappers.StringValue{Value: is.ID},
+			VpcId:             &wrappers.StringValue{Value: is.VpcID},
+			Host:              &wrappers.StringValue{Value: is.Host},
+			Port:              &wrappers.UInt32Value{Value: is.Port},
+			Protocol:          &wrappers.StringValue{Value: is.Protocol},
+			Version:           &wrappers.StringValue{Value: is.Version},
+			Priority:          &wrappers.UInt32Value{Value: is.Priority},
+			Weight:            &wrappers.UInt32Value{Value: is.Weight},
+			EnableHealthCheck: &wrappers.BoolValue{Value: Int2bool(is.EnableHealthCheck)},
+			Healthy:           &wrappers.BoolValue{Value: Int2bool(is.HealthStatus)},
+			Location: &apimodel.Location{
+				Region: &wrappers.StringValue{Value: is.Region},
+				Zone:   &wrappers.StringValue{Value: is.Zone},
+				Campus: &wrappers.StringValue{Value: is.Campus},
+			},
+			Isolate:  &wrappers.BoolValue{Value: Int2bool(is.Isolate)},
+			Metadata: is.Meta,
+			LogicSet: &wrappers.StringValue{Value: is.LogicSet},
+			Ctime:    &wrappers.StringValue{Value: commontime.Int64Time2String(is.CreateTime)},
+			Mtime:    &wrappers.StringValue{Value: commontime.Int64Time2String(is.ModifyTime)},
+			Revision: &wrappers.StringValue{Value: is.Revision},
+		},
+		ServiceID:  is.ServiceID,
+		Valid:      flag2valid(is.Flag),
+		ModifyTime: time.Unix(is.ModifyTime, 0),
+	}
+	// 如果不存在checkType，即checkType==-1。HealthCheck置为nil
+	if is.CheckType != -1 {
+		ins.Proto.HealthCheck = &apiservice.HealthCheck{
+			Type: apiservice.HealthCheck_HealthCheckType(is.CheckType),
+			Heartbeat: &apiservice.HeartbeatHealthCheck{
+				Ttl: &wrappers.UInt32Value{Value: is.TTL},
+			},
+		}
+	}
+	// 如果location不为空，那么填充一下location
+	if is.Region != "" {
+		ins.Proto.Location = &apimodel.Location{
+			Region: &wrappers.StringValue{Value: is.Region},
+			Zone:   &wrappers.StringValue{Value: is.Zone},
+			Campus: &wrappers.StringValue{Value: is.Campus},
+		}
+	}
+
+	return ins
+}
+
+// ExpandStore2Instance 扩展store转换
+func ExpandStore2Instance(es *ExpandInstanceStore) *Instance {
+	out := Store2Instance(es.ServiceInstance)
+	out.Proto.Service = &wrappers.StringValue{Value: es.ServiceName}
+	out.Proto.Namespace = &wrappers.StringValue{Value: es.Namespace}
+	if es.ServiceToken != "" {
+		out.Proto.ServiceToken = &wrappers.StringValue{Value: es.ServiceToken}
+	}
+	out.ServicePlatformID = es.ServicePlatformID
+	return out
+}
+
+// CreateInstanceModel 创建存储层服务实例模型
+func CreateInstanceModel(serviceID string, req *apiservice.Instance) *Instance {
+	// 默认为健康的
+	healthy := true
+	if req.GetHealthy() != nil {
+		healthy = req.GetHealthy().GetValue()
+	}
+
+	// 默认为不隔离的
+	isolate := false
+	if req.GetIsolate() != nil {
+		isolate = req.GetIsolate().GetValue()
+	}
+
+	// 权重默认是100
+	var weight uint32 = 100
+	if req.GetWeight() != nil {
+		weight = req.GetWeight().GetValue()
+	}
+
+	instance := &Instance{
+		ServiceID: serviceID,
+	}
+
+	protoIns := &apiservice.Instance{
+		Id:       req.GetId(),
+		Host:     utils.NewStringValue(strings.TrimSpace(req.GetHost().GetValue())),
+		VpcId:    req.GetVpcId(),
+		Port:     req.GetPort(),
+		Protocol: req.GetProtocol(),
+		Version:  req.GetVersion(),
+		Priority: req.GetPriority(),
+		Weight:   utils.NewUInt32Value(weight),
+		Healthy:  utils.NewBoolValue(healthy),
+		Isolate:  utils.NewBoolValue(isolate),
+		Location: req.Location,
+		Metadata: req.Metadata,
+		LogicSet: req.GetLogicSet(),
+		Revision: utils.NewStringValue(utils.NewUUID()), // 更新版本号
+	}
+
+	// health Check，healthCheck不能为空，且没有显示把enable_health_check置为false
+	// 如果create的时候，打开了healthCheck，那么实例模式是unhealthy，必须要一次心跳才会healthy
+	if req.GetHealthCheck().GetHeartbeat() != nil &&
+		(req.GetEnableHealthCheck() == nil || req.GetEnableHealthCheck().GetValue()) {
+		protoIns.EnableHealthCheck = utils.NewBoolValue(true)
+		protoIns.HealthCheck = req.HealthCheck
+		protoIns.HealthCheck.Type = apiservice.HealthCheck_HEARTBEAT
+		// ttl range: (0, 60]
+		ttl := protoIns.GetHealthCheck().GetHeartbeat().GetTtl().GetValue()
+		if ttl == 0 || ttl > 60 {
+			if protoIns.HealthCheck.Heartbeat.Ttl == nil {
+				protoIns.HealthCheck.Heartbeat.Ttl = utils.NewUInt32Value(5)
+			}
+			protoIns.HealthCheck.Heartbeat.Ttl.Value = 5
+		}
+	}
+
+	instance.Proto = protoIns
+	return instance
+}
+
+// InstanceEventType 探测事件类型
+type InstanceEventType string
+
+const (
+	// EventDiscoverNone empty discover event
+	EventDiscoverNone InstanceEventType = "EventDiscoverNone"
+	// EventInstanceOnline instance becoming online
+	EventInstanceOnline InstanceEventType = "InstanceOnline"
+	// EventInstanceTurnUnHealth Instance becomes unhealthy
+	EventInstanceTurnUnHealth InstanceEventType = "InstanceTurnUnHealth"
+	// EventInstanceTurnHealth Instance becomes healthy
+	EventInstanceTurnHealth InstanceEventType = "InstanceTurnHealth"
+	// EventInstanceOpenIsolate Instance is in isolation
+	EventInstanceOpenIsolate InstanceEventType = "InstanceOpenIsolate"
+	// EventInstanceCloseIsolate Instance shutdown isolation state
+	EventInstanceCloseIsolate InstanceEventType = "InstanceCloseIsolate"
+	// EventInstanceOffline Instance offline
+	EventInstanceOffline InstanceEventType = "InstanceOffline"
+	// EventInstanceSendHeartbeat Instance send heartbeat package to server
+	EventInstanceSendHeartbeat InstanceEventType = "InstanceSendHeartbeat"
+	// EventInstanceUpdate Instance metadata and info update event
+	EventInstanceUpdate InstanceEventType = "InstanceUpdate"
+)
+
+// CtxEventKeyMetadata 用于将metadata从Context中传入并取出
+const CtxEventKeyMetadata = "ctx_event_metadata"
+
+// InstanceEvent 服务实例事件
+type InstanceEvent struct {
+	Id         string
+	SvcId      string
+	Namespace  string
+	Service    string
+	Instance   *apiservice.Instance
+	EType      InstanceEventType
+	CreateTime time.Time
+	MetaData   map[string]string
+}
+
+// InjectMetadata 从context中获取metadata并注入到事件对象
+func (i *InstanceEvent) InjectMetadata(ctx context.Context) {
+	value := ctx.Value(CtxEventKeyMetadata)
+	if nil == value {
+		return
+	}
+	i.MetaData = value.(map[string]string)
+}
+
+func (i *InstanceEvent) String() string {
+	if nil == i {
+		return "nil"
+	}
+	hostPortStr := fmt.Sprintf("%s:%d", i.Instance.GetHost().GetValue(), i.Instance.GetPort().GetValue())
+	return fmt.Sprintf("InstanceEvent(id=%s, namespace=%s, svcId=%s, service=%s, type=%v, instance=%s, healthy=%v)",
+		i.Id, i.Namespace, i.SvcId, i.Service, i.EType, hostPortStr, i.Instance.GetHealthy().GetValue())
 }

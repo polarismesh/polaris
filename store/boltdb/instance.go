@@ -230,7 +230,7 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 	}
 
 	fields = []string{SvcFieldID, SvcFieldValid}
-	services, err := i.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
+	services, err := i.handler.LoadValuesByFilter(tblNameService, fields, &Service{},
 		func(m map[string]interface{}) bool {
 			valid, ok := m[insFieldValid]
 			if ok && !valid.(bool) {
@@ -259,7 +259,7 @@ func (i *instanceStore) GetInstancesBrief(ids map[string]bool) (map[string]*mode
 			log.Errorf("[Store][boltdb] can not find instance service , instanceId is %s", tempIns.ID())
 			return nil, errors.New("can not find instance service")
 		}
-		tempService := svc.(*model.Service)
+		tempService := svc.(*Service)
 		instance.ID = tempIns.ID()
 		instance.Host = tempIns.Host()
 		instance.Port = tempIns.Port()
@@ -488,8 +488,7 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 		svcIds[pos] = k
 		pos++
 	}
-	svcRets, err := i.handler.LoadValues(tblNameService, svcIds, &model.Service{})
-	svcRets, err = i.handler.LoadValuesAll(tblNameService, &model.Service{})
+	svcRets, err := i.handler.LoadValuesAll(tblNameService, &Service{})
 	if err != nil {
 		log.Errorf("[Store][boltdb] load service from kv error, %v", err)
 		return 0, nil, err
@@ -502,8 +501,8 @@ func (i *instanceStore) GetExpandInstances(filter, metaFilter map[string]string,
 				"instance-id: %s, service-id: %s", ins.ID(), ins.ServiceID)
 			return 0, nil, errors.New("no found instance relate service")
 		}
-		ins.Proto.Service = wrapperspb.String(service.(*model.Service).Name)
-		ins.Proto.Namespace = wrapperspb.String(service.(*model.Service).Namespace)
+		ins.Proto.Service = wrapperspb.String(service.(*Service).Name)
+		ins.Proto.Namespace = wrapperspb.String(service.(*Service).Namespace)
 	}
 
 	totalCount := uint32(len(instances))

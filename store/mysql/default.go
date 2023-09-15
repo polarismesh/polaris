@@ -47,33 +47,31 @@ func init() {
 // stableStore 实现了Store接口
 type stableStore struct {
 	*namespaceStore
+
+	// 服务治理中心 stores
 	*serviceStore
 	*instanceStore
 	*routingConfigStore
 	*l5Store
 	*rateLimitStore
 	*circuitBreakerStore
-	*toolStore
-	*userStore
-	*groupStore
-	*strategyStore
 	*faultDetectRuleStore
+	*routingConfigStoreV2
+	*serviceContractStore
 
-	// 配置中心stores
+	// 配置中心 stores
 	*configFileGroupStore
 	*configFileStore
 	*configFileReleaseStore
 	*configFileReleaseHistoryStore
 	*configFileTemplateStore
 
-	// client info stores
 	*clientStore
-
-	// v2 存储
-	*routingConfigStoreV2
-
-	// maintain store
 	*adminStore
+	*toolStore
+	*userStore
+	*groupStore
+	*strategyStore
 
 	// 主数据库，可以进行读写
 	master *BaseDB
@@ -259,42 +257,27 @@ func (s *stableStore) newStore() {
 	s.namespaceStore = &namespaceStore{master: s.master, slave: s.slave}
 
 	s.serviceStore = &serviceStore{master: s.master, slave: s.slave}
-
 	s.instanceStore = &instanceStore{master: s.master, slave: s.slave}
-
 	s.routingConfigStore = &routingConfigStore{master: s.master, slave: s.slave}
-
 	s.l5Store = &l5Store{master: s.master, slave: s.slave}
-
 	s.rateLimitStore = &rateLimitStore{master: s.master, slave: s.slave}
-
 	s.circuitBreakerStore = &circuitBreakerStore{master: s.master, slave: s.slave}
-
-	s.toolStore = &toolStore{db: s.master}
-
-	s.userStore = &userStore{master: s.master, slave: s.slave}
-
-	s.groupStore = &groupStore{master: s.master, slave: s.slave}
-
-	s.strategyStore = &strategyStore{master: s.master, slave: s.slave}
-
 	s.faultDetectRuleStore = &faultDetectRuleStore{master: s.master, slave: s.slave}
+	s.routingConfigStoreV2 = &routingConfigStoreV2{master: s.master, slave: s.slave}
+	s.serviceContractStore = &serviceContractStore{master: s.master, slave: s.slave}
 
 	s.configFileGroupStore = &configFileGroupStore{master: s.master, slave: s.slave}
-
 	s.configFileStore = &configFileStore{master: s.master, slave: s.slave}
-
 	s.configFileReleaseStore = &configFileReleaseStore{master: s.master, slave: s.slave}
-
 	s.configFileReleaseHistoryStore = &configFileReleaseHistoryStore{master: s.master, slave: s.slave}
-
 	s.configFileTemplateStore = &configFileTemplateStore{master: s.master, slave: s.slave}
-
 	s.clientStore = &clientStore{master: s.master, slave: s.slave}
 
-	s.routingConfigStoreV2 = &routingConfigStoreV2{master: s.master, slave: s.slave}
-
 	s.adminStore = newAdminStore(s.master)
+	s.toolStore = &toolStore{db: s.master}
+	s.userStore = &userStore{master: s.master, slave: s.slave}
+	s.groupStore = &groupStore{master: s.master, slave: s.slave}
+	s.strategyStore = &strategyStore{master: s.master, slave: s.slave}
 }
 
 func buildEtimeStr(enable bool) string {

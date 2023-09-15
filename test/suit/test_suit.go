@@ -39,7 +39,6 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	_ "github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/cache"
-	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/log"
@@ -377,16 +376,8 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	}
 	healthcheck.SetServer(healthCheckServer)
 	d.healthCheckServer = healthCheckServer
-	cacheProvider, err := healthCheckServer.CacheProvider()
-	if err != nil {
-		panic(err)
-	}
 	healthCheckServer.SetServiceCache(cacheMgn.Service())
 	healthCheckServer.SetInstanceCache(cacheMgn.Instance())
-
-	// 为 instance 的 cache 添加 健康检查的 Listener
-	cacheMgn.AddListener(cachetypes.CacheInstance, []cachetypes.Listener{cacheProvider})
-	cacheMgn.AddListener(cachetypes.CacheClient, []cachetypes.Listener{cacheProvider})
 
 	val, originVal, err := service.TestInitialize(ctx, &d.cfg.Naming, &d.cfg.Cache, bc, cacheMgn, d.Storage, namespaceSvr,
 		healthCheckServer, userMgn, strategyMgn)

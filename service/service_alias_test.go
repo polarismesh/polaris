@@ -558,7 +558,7 @@ func TestServiceAliasRelated(t *testing.T) {
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 		service := &apiservice.Service{Name: resp.Alias.Alias, Namespace: resp.Alias.Namespace}
-		disResp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, service)
+		disResp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, &apiservice.DiscoverFilter{}, service)
 		So(respSuccess(disResp), ShouldEqual, true)
 		So(len(disResp.Instances), ShouldEqual, 1)
 	})

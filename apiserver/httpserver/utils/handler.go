@@ -39,7 +39,7 @@ import (
 
 	"github.com/polarismesh/polaris/apiserver/httpserver/i18n"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/log"
+	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -47,6 +47,7 @@ var (
 	convert          MessageToCache
 	protoCache       Cache
 	enableProtoCache = false
+	accesslog        = commonlog.GetScopeOrDefaultByName(commonlog.APIServerLoggerName)
 )
 
 // Handler HTTP请求/回复处理器
@@ -72,14 +73,14 @@ func (h *Handler) parseArray(createMessage func() proto.Message, jsonDecoder *js
 	// read open bracket
 	_, err := jsonDecoder.Token()
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		accesslog.Error(err.Error(), utils.ZapRequestID(requestID))
 		return nil, err
 	}
 	for jsonDecoder.More() {
 		protoMessage := createMessage()
 		err := jsonpb.UnmarshalNext(jsonDecoder, protoMessage)
 		if err != nil {
-			log.Error(err.Error(), utils.ZapRequestID(requestID))
+			accesslog.Error(err.Error(), utils.ZapRequestID(requestID))
 			return nil, err
 		}
 	}
@@ -122,7 +123,7 @@ func (h *Handler) postParseMessage(requestID string) (context.Context, error) {
 func (h *Handler) Parse(message proto.Message) (context.Context, error) {
 	requestID := h.Request.HeaderParameter("Request-Id")
 	if err := jsonpb.Unmarshal(h.Request.Request.Body, message); err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		accesslog.Error(err.Error(), utils.ZapRequestID(requestID))
 		return nil, err
 	}
 	return h.postParseMessage(requestID)
@@ -171,19 +172,19 @@ func (h *Handler) ParseFile() ([]*apiconfig.ConfigFile, error) {
 
 	file, fileHeader, err := h.Request.Request.FormFile(utils.ConfigFileFormKey)
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		accesslog.Error(err.Error(), utils.ZapRequestID(requestID))
 		return nil, err
 	}
 	defer file.Close()
 
-	log.Info("[Config][Handler] parse upload file.",
+	accesslog.Info("[Config][Handler] parse upload file.",
 		zap.String("filename", fileHeader.Filename),
 		zap.Int64("filesize", fileHeader.Size),
 		zap.String("fileheader", fmt.Sprintf("%v", fileHeader.Header)),
 	)
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, file); err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		accesslog.Error(err.Error(), utils.ZapRequestID(requestID))
 		return nil, err
 	}
 	filename := fileHeader.Filename
@@ -192,7 +193,7 @@ func (h *Handler) ParseFile() ([]*apiconfig.ConfigFile, error) {
 	if contentType == "application/zip" && strings.HasSuffix(filename, ".zip") {
 		return getConfigFilesFromZIP(buf.Bytes())
 	}
-	log.Error("invalid content type",
+	accesslog.Error("invalid content type",
 		utils.ZapRequestID(requestID),
 		zap.String("content-type", contentType),
 		zap.String("filename", filename),
@@ -209,13 +210,13 @@ func getConfigFilesFromZIP(data []byte) ([]*apiconfig.ConfigFile, error) {
 	extractFileContent := func(f *zip.File) ([]byte, error) {
 		rc, err := f.Open()
 		if err != nil {
-			log.Error(err.Error(), zap.String("filename", f.Name))
+			accesslog.Error(err.Error(), zap.String("filename", f.Name))
 			return nil, err
 		}
 		defer rc.Close()
 		var buf bytes.Buffer
 		if _, err := io.Copy(&buf, rc); err != nil {
-			log.Error(err.Error(), zap.String("filename", f.Name))
+			accesslog.Error(err.Error(), zap.String("filename", f.Name))
 			return nil, err
 		}
 		return buf.Bytes(), nil
@@ -232,7 +233,7 @@ func getConfigFilesFromZIP(data []byte) ([]*apiconfig.ConfigFile, error) {
 				return nil, err
 			}
 			if err := json.Unmarshal(content, &metas); err != nil {
-				log.Error(err.Error(), zap.String("filename", file.Name))
+				accesslog.Error(err.Error(), zap.String("filename", file.Name))
 				return nil, err
 			}
 			break
@@ -262,7 +263,7 @@ func getConfigFilesFromZIP(data []byte) ([]*apiconfig.ConfigFile, error) {
 		case 1:
 			name = tokens[0]
 		default:
-			log.Error("invalid config file", zap.String("filename", file.Name))
+			accesslog.Error("invalid config file", zap.String("filename", file.Name))
 			return nil, errors.New("invalid config file")
 		}
 
@@ -316,7 +317,7 @@ func (h *Handler) WriteHeaderAndProto(obj api.ResponseMessage) {
 	status := api.CalcCode(obj)
 
 	if status != http.StatusOK {
-		log.Error(obj.String(), utils.ZapRequestID(requestID))
+		accesslog.Error(obj.String(), utils.ZapRequestID(requestID))
 	}
 	if code := obj.GetCode().GetValue(); code != api.ExecuteSuccess {
 		h.Response.AddHeader(utils.PolarisCode, fmt.Sprintf("%d", code))
@@ -326,7 +327,7 @@ func (h *Handler) WriteHeaderAndProto(obj api.ResponseMessage) {
 	h.Response.WriteHeader(status)
 
 	if err := h.handleResponse(h.i18nAction(obj)); err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		accesslog.Error(err.Error(), utils.ZapRequestID(requestID))
 	}
 }
 
@@ -337,7 +338,7 @@ func (h *Handler) WriteHeaderAndProtoV2(obj api.ResponseMessage) {
 	status := api.CalcCode(obj)
 
 	if status != http.StatusOK {
-		log.Error(obj.String(), utils.ZapRequestID(requestID))
+		accesslog.Error(obj.String(), utils.ZapRequestID(requestID))
 	}
 	if code := obj.GetCode().GetValue(); code != api.ExecuteSuccess {
 		h.Response.AddHeader(utils.PolarisCode, fmt.Sprintf("%d", code))
@@ -350,7 +351,7 @@ func (h *Handler) WriteHeaderAndProtoV2(obj api.ResponseMessage) {
 	m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
 	err := m.Marshal(h.Response, obj)
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		accesslog.Error(err.Error(), utils.ZapRequestID(requestID))
 	}
 }
 
@@ -426,7 +427,7 @@ func (h *Handler) handleResponse(obj api.ResponseMessage) error {
 	}
 
 	if err := cacheVal.Marshal(obj); err != nil {
-		log.Warn("[Api-http][ProtoCache] prepare message fail, direct send msg", zap.String("key", cacheVal.Key),
+		accesslog.Warn("[Api-http][ProtoCache] prepare message fail, direct send msg", zap.String("key", cacheVal.Key),
 			zap.Error(err))
 		m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
 		return m.Marshal(h.Response, obj)
@@ -434,7 +435,7 @@ func (h *Handler) handleResponse(obj api.ResponseMessage) error {
 
 	cacheVal, ok := protoCache.Put(cacheVal)
 	if !ok || cacheVal == nil {
-		log.Warn("[Api-http][ProtoCache] put cache ignore", zap.String("key", cacheVal.Key),
+		accesslog.Warn("[Api-http][ProtoCache] put cache ignore", zap.String("key", cacheVal.Key),
 			zap.String("cacheType", cacheVal.CacheType))
 		m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
 		return m.Marshal(h.Response, obj)
@@ -450,7 +451,7 @@ func InitProtoCache(option map[string]interface{}, cacheTypes []string, discover
 	enableProtoCache = true
 	cache, err := NewCache(option, cacheTypes)
 	if err != nil {
-		log.Warn("[Api-http][Discover] new protobuf cache", zap.Error(err))
+		accesslog.Warn("[Api-http][Discover] new protobuf cache", zap.Error(err))
 	}
 	if cache != nil {
 		protoCache = cache

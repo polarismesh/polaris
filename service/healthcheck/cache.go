@@ -18,10 +18,12 @@
 package healthcheck
 
 import (
+	"context"
 	"runtime"
 
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/hash"
 	commonhash "github.com/polarismesh/polaris/common/hash"
 	"github.com/polarismesh/polaris/common/model"
@@ -69,6 +71,38 @@ func (c *CacheProvider) isSelfServiceInstance(instance *apiservice.Instance) boo
 		return svcName == c.selfService
 	}
 	return false
+}
+
+func (c *CacheProvider) handleInstanceCacheEvent(ctx context.Context, args interface{}) error {
+	event, ok := args.(*eventhub.CacheInstanceEvent)
+	if !ok {
+		return nil
+	}
+	switch event.EventType {
+	case eventhub.EventCreated:
+		c.OnCreated(event.Instance)
+	case eventhub.EventUpdated:
+		c.OnUpdated(event.Instance)
+	case eventhub.EventDeleted:
+		c.OnDeleted(event.Instance)
+	}
+	return nil
+}
+
+func (c *CacheProvider) handleClientCacheEvent(ctx context.Context, args interface{}) error {
+	event, ok := args.(*eventhub.CacheClientEvent)
+	if !ok {
+		return nil
+	}
+	switch event.EventType {
+	case eventhub.EventCreated:
+		c.OnCreated(event.Client)
+	case eventhub.EventUpdated:
+		c.OnUpdated(event.Client)
+	case eventhub.EventDeleted:
+		c.OnDeleted(event.Client)
+	}
+	return nil
 }
 
 // OnCreated callback when cache value created
@@ -186,21 +220,6 @@ func (c *CacheProvider) OnDeleted(value interface{}) {
 		deleteClient(actual.Proto(), c.healthCheckClients)
 		c.sendEvent(CacheEvent{healthCheckClientChanged: true})
 	}
-}
-
-// OnBatchCreated callback when cache value created
-func (c *CacheProvider) OnBatchCreated(value interface{}) {
-
-}
-
-// OnBatchUpdated callback when cache value updated
-func (c *CacheProvider) OnBatchUpdated(value interface{}) {
-
-}
-
-// OnBatchDeleted callback when cache value deleted
-func (c *CacheProvider) OnBatchDeleted(value interface{}) {
-
 }
 
 // RangeHealthCheckInstances range loop values

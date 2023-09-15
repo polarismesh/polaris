@@ -33,11 +33,14 @@ import (
 	"github.com/polarismesh/polaris/apiserver/grpcserver"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	commonlog "github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/metrics"
+	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 var (
-	namingLog = commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName)
+	accesslog = commonlog.GetScopeOrDefaultByName(commonlog.APIServerLoggerName)
 )
 
 // ReportClient 客户端上报
@@ -101,7 +104,7 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 		}
 
 		msg := fmt.Sprintf("receive grpc discover request: %s", in.Service.String())
-		namingLog.Info(msg,
+		accesslog.Info(msg,
 			zap.String("type", apiservice.DiscoverRequest_DiscoverRequestType_name[int32(in.Type)]),
 			zap.String("client-address", clientAddress),
 			zap.String("user-agent", userAgent),
@@ -126,10 +129,21 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 			continue
 		}
 
+		startTime := commontime.CurrentMillisecond()
+		defer func() {
+			plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+				ClientIP:  utils.ParseClientAddress(ctx),
+				Namespace: in.GetService().GetNamespace().GetValue(),
+				Resource:  in.Type.String() + ":" + in.GetService().GetName().GetValue(),
+				Timestamp: startTime,
+				CostTime:  commontime.CurrentMillisecond() - startTime,
+			})
+		}()
+
 		var out *apiservice.DiscoverResponse
 		switch in.Type {
 		case apiservice.DiscoverRequest_INSTANCE:
-			out = g.namingServer.ServiceInstancesCache(ctx, in.Service)
+			out = g.namingServer.ServiceInstancesCache(ctx, &apiservice.DiscoverFilter{}, in.Service)
 		case apiservice.DiscoverRequest_ROUTING:
 			out = g.namingServer.GetRoutingConfigWithCache(ctx, in.Service)
 		case apiservice.DiscoverRequest_RATE_LIMIT:

@@ -60,6 +60,7 @@ var (
 			"namespace":    "namespace",
 			"group":        "group",
 			"file_name":    "file_name",
+			"fileName":     "file_name",
 			"name":         "release_name",
 			"release_name": "release_name",
 			"offset":       "offset",

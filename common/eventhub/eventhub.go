@@ -76,16 +76,21 @@ func (eh *eventHub) Publish(topic string, event Event) error {
 }
 
 // Subscribe subscribe topic
-// @param topic Topic name
-// @param name Subscribe name
-// @param handler Message handler
-// @param opts Subscription options
-// @return error Subscribe failed, return error
 func Subscribe(topic string, handler Handler, opts ...SubOption) (*SubscribtionContext, error) {
 	if globalEventHub == nil {
 		return nil, ErrorEventhubNotInitialize
 	}
 	return globalEventHub.Subscribe(topic, handler, opts...)
+}
+
+// SubscribeWithFunc subscribe topic use func
+func SubscribeWithFunc(topic string, handler HandlerFunc, opts ...SubOption) (*SubscribtionContext, error) {
+	if globalEventHub == nil {
+		return nil, ErrorEventhubNotInitialize
+	}
+	return globalEventHub.Subscribe(topic, &funcSubscriber{
+		handlerFunc: handler,
+	}, opts...)
 }
 
 func (e *eventHub) Subscribe(topic string, handler Handler,

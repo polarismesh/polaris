@@ -19,17 +19,34 @@ package config
 
 import (
 	"context"
+	"fmt"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
 	"github.com/polarismesh/polaris/apiserver/grpcserver"
+	"github.com/polarismesh/polaris/common/metrics"
+	commontime "github.com/polarismesh/polaris/common/time"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 // GetConfigFile 拉取配置
 func (g *ConfigGRPCServer) GetConfigFile(ctx context.Context,
-	configFile *apiconfig.ClientConfigFileInfo) (*apiconfig.ConfigClientResponse, error) {
+	req *apiconfig.ClientConfigFileInfo) (*apiconfig.ConfigClientResponse, error) {
 	ctx = grpcserver.ConvertContext(ctx)
-	response := g.configServer.GetConfigFileForClient(ctx, configFile)
+
+	startTime := commontime.CurrentMillisecond()
+	defer func() {
+		plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+			ClientIP:  utils.ParseClientAddress(ctx),
+			Namespace: req.GetNamespace().GetValue(),
+			Resource: fmt.Sprintf("CONFIG_FILE:%s|%s|%d", req.GetGroup().GetValue(),
+				req.GetFileName().GetValue(), req.GetVersion().GetValue()),
+			Timestamp: startTime,
+			CostTime:  commontime.CurrentMillisecond() - startTime,
+		})
+	}()
+	response := g.configServer.GetConfigFileForClient(ctx, req)
 	return response, nil
 }
 
@@ -72,6 +89,18 @@ func (g *ConfigGRPCServer) WatchConfigFiles(ctx context.Context,
 
 func (g *ConfigGRPCServer) GetConfigFileMetadataList(ctx context.Context,
 	req *apiconfig.ConfigFileGroupRequest) (*apiconfig.ConfigClientListResponse, error) {
+
+	startTime := commontime.CurrentMillisecond()
+	defer func() {
+		plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+			ClientIP:  utils.ParseClientAddress(ctx),
+			Namespace: req.GetConfigFileGroup().GetNamespace().GetValue(),
+			Resource: fmt.Sprintf("CONFIG_FILE_LIST:%s|%s", req.GetConfigFileGroup().GetName().GetValue(),
+				req.GetRevision().GetValue()),
+			Timestamp: startTime,
+			CostTime:  commontime.CurrentMillisecond() - startTime,
+		})
+	}()
 
 	ctx = grpcserver.ConvertContext(ctx)
 	return g.configServer.GetConfigFileNamesWithCache(ctx, req), nil

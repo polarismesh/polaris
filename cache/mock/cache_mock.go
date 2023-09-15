@@ -39,18 +39,6 @@ func (m *MockCache) EXPECT() *MockCacheMockRecorder {
 	return m.recorder
 }
 
-// AddListener mocks base method.
-func (m *MockCache) AddListener(listeners []api.Listener) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddListener", listeners)
-}
-
-// AddListener indicates an expected call of AddListener.
-func (mr *MockCacheMockRecorder) AddListener(listeners interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddListener", reflect.TypeOf((*MockCache)(nil).AddListener), listeners)
-}
-
 // Clear mocks base method.
 func (m *MockCache) Clear() error {
 	m.ctrl.T.Helper()
@@ -63,6 +51,20 @@ func (m *MockCache) Clear() error {
 func (mr *MockCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockCache)(nil).Clear))
+}
+
+// Close mocks base method.
+func (m *MockCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockCache)(nil).Close))
 }
 
 // Initialize mocks base method.
@@ -179,18 +181,6 @@ func (m *MockNamespaceCache) EXPECT() *MockNamespaceCacheMockRecorder {
 	return m.recorder
 }
 
-// AddListener mocks base method.
-func (m *MockNamespaceCache) AddListener(listeners []api.Listener) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddListener", listeners)
-}
-
-// AddListener indicates an expected call of AddListener.
-func (mr *MockNamespaceCacheMockRecorder) AddListener(listeners interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddListener", reflect.TypeOf((*MockNamespaceCache)(nil).AddListener), listeners)
-}
-
 // Clear mocks base method.
 func (m *MockNamespaceCache) Clear() error {
 	m.ctrl.T.Helper()
@@ -203,6 +193,20 @@ func (m *MockNamespaceCache) Clear() error {
 func (mr *MockNamespaceCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockNamespaceCache)(nil).Clear))
+}
+
+// Close mocks base method.
+func (m *MockNamespaceCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockNamespaceCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockNamespaceCache)(nil).Close))
 }
 
 // GetNamespace mocks base method.
@@ -312,18 +316,6 @@ func (m *MockServiceCache) EXPECT() *MockServiceCacheMockRecorder {
 	return m.recorder
 }
 
-// AddListener mocks base method.
-func (m *MockServiceCache) AddListener(listeners []api.Listener) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddListener", listeners)
-}
-
-// AddListener indicates an expected call of AddListener.
-func (mr *MockServiceCacheMockRecorder) AddListener(listeners interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddListener", reflect.TypeOf((*MockServiceCache)(nil).AddListener), listeners)
-}
-
 // CleanNamespace mocks base method.
 func (m *MockServiceCache) CleanNamespace(namespace string) {
 	m.ctrl.T.Helper()
@@ -348,6 +340,20 @@ func (m *MockServiceCache) Clear() error {
 func (mr *MockServiceCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockServiceCache)(nil).Clear))
+}
+
+// Close mocks base method.
+func (m *MockServiceCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockServiceCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockServiceCache)(nil).Close))
 }
 
 // GetAliasFor mocks base method.
@@ -664,18 +670,6 @@ func (m *MockInstanceCache) EXPECT() *MockInstanceCacheMockRecorder {
 	return m.recorder
 }
 
-// AddListener mocks base method.
-func (m *MockInstanceCache) AddListener(listeners []api.Listener) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddListener", listeners)
-}
-
-// AddListener indicates an expected call of AddListener.
-func (mr *MockInstanceCacheMockRecorder) AddListener(listeners interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddListener", reflect.TypeOf((*MockInstanceCache)(nil).AddListener), listeners)
-}
-
 // Clear mocks base method.
 func (m *MockInstanceCache) Clear() error {
 	m.ctrl.T.Helper()
@@ -688,6 +682,20 @@ func (m *MockInstanceCache) Clear() error {
 func (mr *MockInstanceCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockInstanceCache)(nil).Clear))
+}
+
+// Close mocks base method.
+func (m *MockInstanceCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockInstanceCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockInstanceCache)(nil).Close))
 }
 
 // GetInstance mocks base method.
@@ -883,18 +891,6 @@ func (m *MockFaultDetectCache) EXPECT() *MockFaultDetectCacheMockRecorder {
 	return m.recorder
 }
 
-// AddListener mocks base method.
-func (m *MockFaultDetectCache) AddListener(listeners []api.Listener) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddListener", listeners)
-}
-
-// AddListener indicates an expected call of AddListener.
-func (mr *MockFaultDetectCacheMockRecorder) AddListener(listeners interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddListener", reflect.TypeOf((*MockFaultDetectCache)(nil).AddListener), listeners)
-}
-
 // Clear mocks base method.
 func (m *MockFaultDetectCache) Clear() error {
 	m.ctrl.T.Helper()
@@ -907,6 +903,20 @@ func (m *MockFaultDetectCache) Clear() error {
 func (mr *MockFaultDetectCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockFaultDetectCache)(nil).Clear))
+}
+
+// Close mocks base method.
+func (m *MockFaultDetectCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockFaultDetectCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockFaultDetectCache)(nil).Close))
 }
 
 // GetFaultDetectConfig mocks base method.
@@ -988,18 +998,6 @@ func (m *MockRoutingConfigCache) EXPECT() *MockRoutingConfigCacheMockRecorder {
 	return m.recorder
 }
 
-// AddListener mocks base method.
-func (m *MockRoutingConfigCache) AddListener(listeners []api.Listener) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddListener", listeners)
-}
-
-// AddListener indicates an expected call of AddListener.
-func (mr *MockRoutingConfigCacheMockRecorder) AddListener(listeners interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddListener", reflect.TypeOf((*MockRoutingConfigCache)(nil).AddListener), listeners)
-}
-
 // Clear mocks base method.
 func (m *MockRoutingConfigCache) Clear() error {
 	m.ctrl.T.Helper()
@@ -1012,6 +1010,20 @@ func (m *MockRoutingConfigCache) Clear() error {
 func (mr *MockRoutingConfigCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockRoutingConfigCache)(nil).Clear))
+}
+
+// Close mocks base method.
+func (m *MockRoutingConfigCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockRoutingConfigCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockRoutingConfigCache)(nil).Close))
 }
 
 // GetRouterConfig mocks base method.
@@ -1180,18 +1192,6 @@ func (m *MockRateLimitCache) EXPECT() *MockRateLimitCacheMockRecorder {
 	return m.recorder
 }
 
-// AddListener mocks base method.
-func (m *MockRateLimitCache) AddListener(listeners []api.Listener) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddListener", listeners)
-}
-
-// AddListener indicates an expected call of AddListener.
-func (mr *MockRateLimitCacheMockRecorder) AddListener(listeners interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddListener", reflect.TypeOf((*MockRateLimitCache)(nil).AddListener), listeners)
-}
-
 // Clear mocks base method.
 func (m *MockRateLimitCache) Clear() error {
 	m.ctrl.T.Helper()
@@ -1204,6 +1204,20 @@ func (m *MockRateLimitCache) Clear() error {
 func (mr *MockRateLimitCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockRateLimitCache)(nil).Clear))
+}
+
+// Close mocks base method.
+func (m *MockRateLimitCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockRateLimitCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockRateLimitCache)(nil).Close))
 }
 
 // GetRateLimitRules mocks base method.
@@ -1328,18 +1342,6 @@ func (m *MockL5Cache) EXPECT() *MockL5CacheMockRecorder {
 	return m.recorder
 }
 
-// AddListener mocks base method.
-func (m *MockL5Cache) AddListener(listeners []api.Listener) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddListener", listeners)
-}
-
-// AddListener indicates an expected call of AddListener.
-func (mr *MockL5CacheMockRecorder) AddListener(listeners interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddListener", reflect.TypeOf((*MockL5Cache)(nil).AddListener), listeners)
-}
-
 // CheckRouteExisted mocks base method.
 func (m *MockL5Cache) CheckRouteExisted(ip, modID, cmdID uint32) bool {
 	m.ctrl.T.Helper()
@@ -1366,6 +1368,20 @@ func (m *MockL5Cache) Clear() error {
 func (mr *MockL5CacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockL5Cache)(nil).Clear))
+}
+
+// Close mocks base method.
+func (m *MockL5Cache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockL5CacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockL5Cache)(nil).Close))
 }
 
 // GetIPConfig mocks base method.
@@ -1489,18 +1505,6 @@ func (m *MockCircuitBreakerCache) EXPECT() *MockCircuitBreakerCacheMockRecorder 
 	return m.recorder
 }
 
-// AddListener mocks base method.
-func (m *MockCircuitBreakerCache) AddListener(listeners []api.Listener) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddListener", listeners)
-}
-
-// AddListener indicates an expected call of AddListener.
-func (mr *MockCircuitBreakerCacheMockRecorder) AddListener(listeners interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddListener", reflect.TypeOf((*MockCircuitBreakerCache)(nil).AddListener), listeners)
-}
-
 // Clear mocks base method.
 func (m *MockCircuitBreakerCache) Clear() error {
 	m.ctrl.T.Helper()
@@ -1513,6 +1517,20 @@ func (m *MockCircuitBreakerCache) Clear() error {
 func (mr *MockCircuitBreakerCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockCircuitBreakerCache)(nil).Clear))
+}
+
+// Close mocks base method.
+func (m *MockCircuitBreakerCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockCircuitBreakerCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockCircuitBreakerCache)(nil).Close))
 }
 
 // GetCircuitBreakerConfig mocks base method.
@@ -1594,18 +1612,6 @@ func (m *MockConfigGroupCache) EXPECT() *MockConfigGroupCacheMockRecorder {
 	return m.recorder
 }
 
-// AddListener mocks base method.
-func (m *MockConfigGroupCache) AddListener(listeners []api.Listener) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddListener", listeners)
-}
-
-// AddListener indicates an expected call of AddListener.
-func (mr *MockConfigGroupCacheMockRecorder) AddListener(listeners interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddListener", reflect.TypeOf((*MockConfigGroupCache)(nil).AddListener), listeners)
-}
-
 // Clear mocks base method.
 func (m *MockConfigGroupCache) Clear() error {
 	m.ctrl.T.Helper()
@@ -1618,6 +1624,20 @@ func (m *MockConfigGroupCache) Clear() error {
 func (mr *MockConfigGroupCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockConfigGroupCache)(nil).Clear))
+}
+
+// Close mocks base method.
+func (m *MockConfigGroupCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockConfigGroupCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockConfigGroupCache)(nil).Close))
 }
 
 // GetGroupByID mocks base method.
@@ -1729,18 +1749,6 @@ func (m *MockConfigFileCache) EXPECT() *MockConfigFileCacheMockRecorder {
 	return m.recorder
 }
 
-// AddListener mocks base method.
-func (m *MockConfigFileCache) AddListener(listeners []api.Listener) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddListener", listeners)
-}
-
-// AddListener indicates an expected call of AddListener.
-func (mr *MockConfigFileCacheMockRecorder) AddListener(listeners interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddListener", reflect.TypeOf((*MockConfigFileCache)(nil).AddListener), listeners)
-}
-
 // Clear mocks base method.
 func (m *MockConfigFileCache) Clear() error {
 	m.ctrl.T.Helper()
@@ -1753,6 +1761,20 @@ func (m *MockConfigFileCache) Clear() error {
 func (mr *MockConfigFileCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockConfigFileCache)(nil).Clear))
+}
+
+// Close mocks base method.
+func (m *MockConfigFileCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockConfigFileCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockConfigFileCache)(nil).Close))
 }
 
 // GetActiveRelease mocks base method.
@@ -1879,18 +1901,6 @@ func (m *MockUserCache) EXPECT() *MockUserCacheMockRecorder {
 	return m.recorder
 }
 
-// AddListener mocks base method.
-func (m *MockUserCache) AddListener(listeners []api.Listener) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddListener", listeners)
-}
-
-// AddListener indicates an expected call of AddListener.
-func (mr *MockUserCacheMockRecorder) AddListener(listeners interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddListener", reflect.TypeOf((*MockUserCache)(nil).AddListener), listeners)
-}
-
 // Clear mocks base method.
 func (m *MockUserCache) Clear() error {
 	m.ctrl.T.Helper()
@@ -1903,6 +1913,20 @@ func (m *MockUserCache) Clear() error {
 func (mr *MockUserCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockUserCache)(nil).Clear))
+}
+
+// Close mocks base method.
+func (m *MockUserCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockUserCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockUserCache)(nil).Close))
 }
 
 // GetAdmin mocks base method.
@@ -2068,18 +2092,6 @@ func (m *MockStrategyCache) EXPECT() *MockStrategyCacheMockRecorder {
 	return m.recorder
 }
 
-// AddListener mocks base method.
-func (m *MockStrategyCache) AddListener(listeners []api.Listener) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddListener", listeners)
-}
-
-// AddListener indicates an expected call of AddListener.
-func (mr *MockStrategyCacheMockRecorder) AddListener(listeners interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddListener", reflect.TypeOf((*MockStrategyCache)(nil).AddListener), listeners)
-}
-
 // Clear mocks base method.
 func (m *MockStrategyCache) Clear() error {
 	m.ctrl.T.Helper()
@@ -2092,6 +2104,20 @@ func (m *MockStrategyCache) Clear() error {
 func (mr *MockStrategyCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockStrategyCache)(nil).Clear))
+}
+
+// Close mocks base method.
+func (m *MockStrategyCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockStrategyCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockStrategyCache)(nil).Close))
 }
 
 // ForceSync mocks base method.
@@ -2229,18 +2255,6 @@ func (m *MockClientCache) EXPECT() *MockClientCacheMockRecorder {
 	return m.recorder
 }
 
-// AddListener mocks base method.
-func (m *MockClientCache) AddListener(listeners []api.Listener) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddListener", listeners)
-}
-
-// AddListener indicates an expected call of AddListener.
-func (mr *MockClientCacheMockRecorder) AddListener(listeners interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddListener", reflect.TypeOf((*MockClientCache)(nil).AddListener), listeners)
-}
-
 // Clear mocks base method.
 func (m *MockClientCache) Clear() error {
 	m.ctrl.T.Helper()
@@ -2253,6 +2267,20 @@ func (m *MockClientCache) Clear() error {
 func (mr *MockClientCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockClientCache)(nil).Clear))
+}
+
+// Close mocks base method.
+func (m *MockClientCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockClientCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockClientCache)(nil).Close))
 }
 
 // GetClient mocks base method.

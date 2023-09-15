@@ -440,11 +440,11 @@ cache:
     - name: users # Load user and user group data
     - name: strategyRule # Loading the rules of appraisal
     - name: namespace # Load the naming space data
-    # Load Client-SDK instance data
-    - name: client
+    - name: client # Load Client-SDK instance data
     - name: configFile
     - name: configGroup
     - name: faultDetectRule
+    - name: serviceContract
 #    - name: l5 # Load L5 data
 # Maintain configuration
 maintain:
@@ -473,7 +473,6 @@ maintain:
       option:
         # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
         # clientCleanTimeout: 10m
-  
 # Storage configuration
 store:
   # Standalone file storage plugin

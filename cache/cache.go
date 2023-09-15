@@ -149,10 +149,6 @@ func (nc *CacheManager) GetUpdateCacheInterval() time.Duration {
 	return UpdateCacheInterval
 }
 
-func (nc *CacheManager) AddListener(cacheIndex types.CacheIndex, listeners []types.Listener) {
-	nc.caches[cacheIndex].AddListener(listeners)
-}
-
 // Service 获取Service缓存信息
 func (nc *CacheManager) Service() types.ServiceCache {
 	return nc.caches[types.CacheService].(types.ServiceCache)
@@ -186,6 +182,11 @@ func (nc *CacheManager) CircuitBreaker() types.CircuitBreakerCache {
 // FaultDetector 获取探测规则缓存信息
 func (nc *CacheManager) FaultDetector() types.FaultDetectCache {
 	return nc.caches[types.CacheFaultDetector].(types.FaultDetectCache)
+}
+
+// ServiceContract 获取服务契约缓存
+func (nc *CacheManager) ServiceContract() types.ServiceContractCache {
+	return nc.caches[types.CacheServiceContract].(types.ServiceContractCache)
 }
 
 // User Get user information cache information

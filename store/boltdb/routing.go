@@ -292,7 +292,7 @@ func (r *routingStore) GetRoutingConfigs(
 
 	fields = []string{SvcFieldID, SvcFieldName, SvcFieldNamespace, SvcFieldValid}
 
-	services, err := r.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
+	services, err := r.handler.LoadValuesByFilter(tblNameService, fields, &Service{},
 		func(m map[string]interface{}) bool {
 
 			if valid, _ := m[SvcFieldValid].(bool); !valid {
@@ -323,7 +323,7 @@ func (r *routingStore) GetRoutingConfigs(
 
 	for id, r := range routeConf {
 		var temp model.ExtendRoutingConfig
-		svc, ok := services[id].(*model.Service)
+		svc, ok := services[id].(*Service)
 		if ok {
 			temp.ServiceName = svc.Name
 			temp.NamespaceName = svc.Namespace

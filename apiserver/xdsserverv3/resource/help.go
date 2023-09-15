@@ -292,7 +292,8 @@ func BuildRateLimitConf(prefix string) *lrl.LocalRateLimit {
 				Append: wrapperspb.Bool(false),
 			},
 		},
-		LocalRateLimitPerDownstreamConnection: true,
+		// the token bucket must shared across all worker threads
+		LocalRateLimitPerDownstreamConnection: false,
 	}
 	return rateLimitConf
 }
@@ -312,10 +313,12 @@ func BuildRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLimit_Ac
 	}
 	actions = append(actions, &route.RateLimit_Action{
 		ActionSpecifier: &route.RateLimit_Action_HeaderValueMatch_{
-			HeaderValueMatch: BuildRateLimitActionHeaderValueMatch(":path", &apimodel.MatchString{
-				Type:      methodMatchType,
-				Value:     wrapperspb.String(methodName),
-				ValueType: apimodel.MatchString_TEXT,
+			HeaderValueMatch: BuildRateLimitActionHeaderValueMatch(":path", &apitraffic.MatchArgument{
+				Value: &apimodel.MatchString{
+					Type:      methodMatchType,
+					Value:     wrapperspb.String(methodName),
+					ValueType: apimodel.MatchString_TEXT,
+				},
 			}),
 		},
 	})
@@ -330,7 +333,7 @@ func BuildRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLimit_Ac
 		descriptorKey := strings.ToLower(arg.GetType().String()) + "." + arg.Key
 		switch arg.Type {
 		case apitraffic.MatchArgument_HEADER:
-			headerValueMatch := BuildRateLimitActionHeaderValueMatch(descriptorKey, arg.Value)
+			headerValueMatch := BuildRateLimitActionHeaderValueMatch(descriptorKey, arg)
 			actions = append(actions, &route.RateLimit_Action{
 				ActionSpecifier: &route.RateLimit_Action_HeaderValueMatch_{
 					HeaderValueMatch: headerValueMatch,
@@ -430,23 +433,22 @@ func BuildRateLimitActionQueryParameterValueMatch(key string,
 	return queryParameterValueMatch
 }
 
-func BuildRateLimitActionHeaderValueMatch(key string,
-	value *apimodel.MatchString) *route.RateLimit_Action_HeaderValueMatch {
+func BuildRateLimitActionHeaderValueMatch(key string, argument *apitraffic.MatchArgument) *route.RateLimit_Action_HeaderValueMatch {
 	headerValueMatch := &route.RateLimit_Action_HeaderValueMatch{
 		DescriptorKey:   key,
-		DescriptorValue: value.GetValue().GetValue(),
+		DescriptorValue: argument.GetValue().GetValue().GetValue(),
 		Headers:         []*route.HeaderMatcher{},
 	}
-	switch value.GetType() {
+	switch argument.GetValue().GetType() {
 	case apimodel.MatchString_EXACT, apimodel.MatchString_NOT_EQUALS:
 		headerValueMatch.Headers = []*route.HeaderMatcher{
 			{
-				Name:        key,
-				InvertMatch: value.GetType() == apimodel.MatchString_NOT_EQUALS,
+				Name:        argument.GetKey(),
+				InvertMatch: argument.GetValue().GetType() == apimodel.MatchString_NOT_EQUALS,
 				HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
 					StringMatch: &v32.StringMatcher{
 						MatchPattern: &v32.StringMatcher_Exact{
-							Exact: value.GetValue().GetValue(),
+							Exact: argument.GetValue().GetValue().GetValue(),
 						},
 					},
 				},
@@ -455,11 +457,11 @@ func BuildRateLimitActionHeaderValueMatch(key string,
 	case apimodel.MatchString_REGEX:
 		headerValueMatch.Headers = []*route.HeaderMatcher{
 			{
-				Name: key,
+				Name: argument.GetKey(),
 				HeaderMatchSpecifier: &route.HeaderMatcher_SafeRegexMatch{
 					SafeRegexMatch: &v32.RegexMatcher{
 						EngineType: &v32.RegexMatcher_GoogleRe2{},
-						Regex:      value.GetValue().GetValue(),
+						Regex:      argument.GetValue().GetValue().GetValue(),
 					},
 				},
 			},
@@ -468,11 +470,11 @@ func BuildRateLimitActionHeaderValueMatch(key string,
 		// 专门用于 prefix
 		headerValueMatch.Headers = []*route.HeaderMatcher{
 			{
-				Name: key,
+				Name: argument.GetKey(),
 				HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
 					StringMatch: &v32.StringMatcher{
 						MatchPattern: &v32.StringMatcher_Prefix{
-							Prefix: value.GetValue().GetValue(),
+							Prefix: argument.GetValue().GetValue().GetValue(),
 						},
 					},
 				},

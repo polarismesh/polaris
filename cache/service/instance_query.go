@@ -136,7 +136,7 @@ func (ic *instanceCache) forceQueryUpdate() error {
 	// shared == true，表示当前已经有正在 update 执行的任务，这个任务不一定能够读取到最新的数据
 	// 为了避免读取到脏数据，在发起一次 singleUpdate
 	if shared {
-		naminglog.Debug("[Server][Instances][Query] force query update second")
+		naminglog.Debug("[Server][Instances][Query] force query update from store")
 		err, _ = ic.singleUpdate()
 	}
 	return err
@@ -212,6 +212,10 @@ func (ic *instanceCache) QueryInstances(filter, metaFilter map[string]string,
 		return true, nil
 	})
 
+	sort.Slice(tempInstances, func(i, j int) bool {
+		return tempInstances[i].ModifyTime.After(tempInstances[j].ModifyTime)
+	})
+
 	total, ret := ic.doPage(tempInstances, offset, limit)
 	return total, ret, nil
 }
@@ -224,10 +228,5 @@ func (ic *instanceCache) doPage(ins []*model.Instance, offset, limit uint32) (ui
 	if offset+limit > total {
 		return total, ins[offset:]
 	}
-
-	sort.Slice(ins, func(i, j int) bool {
-		return ins[i].ModifyTime.After(ins[j].ModifyTime)
-	})
-
 	return total, ins[offset : offset+limit]
 }

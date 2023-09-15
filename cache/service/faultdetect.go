@@ -60,8 +60,8 @@ func NewFaultDetectCache(s store.Store, cacheMgr types.CacheManager) types.Fault
 		svcSpecificRules: make(map[string]map[string]*model.ServiceWithFaultDetectRules),
 		nsWildcardRules:  make(map[string]*model.ServiceWithFaultDetectRules),
 		allWildcardRules: model.NewServiceWithFaultDetectRules(model.ServiceKey{
-			Namespace: allMatched,
-			Name:      allMatched,
+			Namespace: types.AllMatched,
+			Name:      types.AllMatched,
 		}),
 	}
 }
@@ -185,7 +185,7 @@ func (f *faultDetectCache) deleteFaultDetectRuleFromServiceCache(id string, svcK
 	}
 	svcToReloads := make(map[model.ServiceKey]bool)
 	for svcKey := range svcKeys {
-		if svcKey.Name == allMatched {
+		if svcKey.Name == types.AllMatched {
 			rules, ok := f.nsWildcardRules[svcKey.Namespace]
 			if ok {
 				f.deleteAndReloadFaultDetectRules(rules, id)
@@ -245,7 +245,7 @@ func (f *faultDetectCache) storeFaultDetectRuleToServiceCache(
 	}
 	svcToReloads := make(map[model.ServiceKey]bool)
 	for svcKey := range svcKeys {
-		if svcKey.Name == allMatched {
+		if svcKey.Name == types.AllMatched {
 			var wildcardRules *model.ServiceWithFaultDetectRules
 			var ok bool
 			wildcardRules, ok = f.nsWildcardRules[svcKey.Namespace]
@@ -285,7 +285,7 @@ func (f *faultDetectCache) storeFaultDetectRuleToServiceCache(
 func getServicesInvolveByFaultDetectRule(fdRule *model.FaultDetectRule) map[model.ServiceKey]bool {
 	svcKeys := make(map[model.ServiceKey]bool)
 	addService := func(name string, namespace string) {
-		if name == allMatched && namespace == allMatched {
+		if name == types.AllMatched && namespace == types.AllMatched {
 			return
 		}
 		svcKeys[model.ServiceKey{

@@ -36,7 +36,6 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	boot_config "github.com/polarismesh/polaris/bootstrap/config"
 	"github.com/polarismesh/polaris/cache"
-	types "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/log"
@@ -255,15 +254,8 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 		return err
 	}
 	if cfg.HealthChecks.Open {
-		cacheProvider, err := healthCheckServer.CacheProvider()
-		if err != nil {
-			return err
-		}
 		healthCheckServer.SetServiceCache(cacheMgn.Service())
 		healthCheckServer.SetInstanceCache(cacheMgn.Instance())
-		// 为 instance 的 cache 添加 健康检查的 Listener
-		cacheMgn.AddListener(types.CacheInstance, []types.Listener{cacheProvider})
-		cacheMgn.AddListener(types.CacheClient, []types.Listener{cacheProvider})
 	}
 
 	namespaceSvr, err := namespace.GetServer()
@@ -462,7 +454,7 @@ func acquireLocalhost(ctx context.Context, polarisService *boot_config.PolarisSe
 	}
 	if len(polarisService.SelfAddress) != 0 {
 		utils.LocalHost = polarisService.SelfAddress
-		return utils.WithLocalhost(ctx, polarisService.SelfAddress), nil
+		return utils.WithLocalhost(ctx, utils.LocalHost), nil
 	}
 	if len(polarisService.NetworkInter) != 0 {
 		netInter, err := net.InterfaceByName(polarisService.NetworkInter)
@@ -479,7 +471,7 @@ func acquireLocalhost(ctx context.Context, polarisService *boot_config.PolarisSe
 			if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 				if ipnet.IP.To4() != nil {
 					utils.LocalHost = ipnet.IP.String()
-					return utils.WithLocalhost(ctx, polarisService.SelfAddress), nil
+					return utils.WithLocalhost(ctx, utils.LocalHost), nil
 				}
 			}
 		}
@@ -492,7 +484,7 @@ func acquireLocalhost(ctx context.Context, polarisService *boot_config.PolarisSe
 	}
 	log.Infof("[Bootstrap] get local host: %s", localHost)
 	utils.LocalHost = localHost
-	return utils.WithLocalhost(ctx, localHost), nil
+	return utils.WithLocalhost(ctx, utils.LocalHost), nil
 }
 
 func acquireLocalPort(ctx context.Context, apientries []apiserver.Config) {

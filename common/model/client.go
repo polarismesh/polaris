@@ -116,3 +116,18 @@ func Store2ClientStat(clientStatStore *ClientStatStore) *apiservice.StatInfo {
 	statInfo.Target = &wrappers.StringValue{Value: clientStatStore.Target}
 	return statInfo
 }
+
+const (
+	StatReportPrometheus string = "prometheus"
+)
+
+type PrometheusDiscoveryResponse struct {
+	Code     uint32
+	Response []PrometheusTarget
+}
+
+// PrometheusTarget 用于对接 prometheus service discovery 的数据结构
+type PrometheusTarget struct {
+	Targets []string          `json:"targets"`
+	Labels  map[string]string `json:"labels"`
+}

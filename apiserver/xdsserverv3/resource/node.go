@@ -159,9 +159,9 @@ func (x *XDSNodeManager) ListSidecarNodes() []*XDSClient {
 // ID id 的格式是 ${sidecar|gateway}~namespace/uuid~hostIp
 // case 1: envoy 为 sidecar 模式时，则 NodeID 的格式为以下两种
 //
-//		eg 1. namespace/uuid~hostIp
-//		eg 2. sidecar~namespace/uuid-hostIp
-//	 eg 3. envoy_node_id="${NAMESPACE}/${INSTANCE_IP}~${POD_NAME}"
+//	eg 1. namespace/uuid~hostIp
+//	eg 2. sidecar~namespace/uuid-hostIp
+//	eg 3. envoy_node_id="${NAMESPACE}/${INSTANCE_IP}~${POD_NAME}"
 //
 // case 2: envoy 为 gateway 模式时，则 NodeID 的格式为： gateway~namespace/uuid~hostIp
 func (PolarisNodeHash) ID(node *core.Node) string {

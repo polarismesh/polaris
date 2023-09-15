@@ -19,6 +19,7 @@ package healthcheck
 
 import (
 	"context"
+	"strconv"
 	"sync"
 	"time"
 
@@ -32,6 +33,7 @@ import (
 	"github.com/polarismesh/polaris/common/timewheel"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
+	"github.com/polarismesh/polaris/store"
 )
 
 const (
@@ -605,18 +607,6 @@ func setInsDbStatus(instance *model.Instance, healthStatus bool, lastBeatTime in
 	return code
 }
 
-// asyncSetInsDbStatus 异步新建实例
-// 底层函数会合并delete请求，增加并发创建的吞吐
-// req 原始请求
-// ins 包含了req数据与instanceID，serviceToken
-func asyncSetInsDbStatus(ins *apiservice.Instance, healthStatus bool, lastBeatTime int64) apimodel.Code {
-	future := server.bc.AsyncHeartbeat(ins, healthStatus, lastBeatTime)
-	if err := future.Wait(); err != nil {
-		log.Error(err.Error())
-	}
-	return future.Code()
-}
-
 // asyncDeleteClient 异步软删除客户端
 // 底层函数会合并delete请求，增加并发创建的吞吐
 // req 原始请求
@@ -630,6 +620,18 @@ func asyncDeleteClient(client *apiservice.Client) apimodel.Code {
 	return future.Code()
 }
 
+// asyncSetInsDbStatus 异步新建实例
+// 底层函数会合并delete请求，增加并发创建的吞吐
+// req 原始请求
+// ins 包含了req数据与instanceID，serviceToken
+func asyncSetInsDbStatus(ins *apiservice.Instance, healthStatus bool, lastBeatTime int64) apimodel.Code {
+	future := server.bc.AsyncHeartbeat(ins, healthStatus, lastBeatTime)
+	if err := future.Wait(); err != nil {
+		log.Error(err.Error())
+	}
+	return future.Code()
+}
+
 // serialSetInsDbStatus 同步串行创建实例
 // req为原始的请求体
 // ins包括了req的内容，并且填充了instanceID与serviceToken
@@ -639,6 +641,31 @@ func serialSetInsDbStatus(ins *apiservice.Instance, healthStatus bool, lastBeatT
 	if err != nil {
 		log.Errorf("[Health Check][Check]id: %s set db status err:%s", id, err)
 		return commonstore.StoreCode2APICode(err)
+	}
+	if healthStatus {
+		if err := server.storage.BatchRemoveInstanceMetadata([]*store.InstanceMetadataRequest{
+			{
+				InstanceID: id,
+				Revision:   utils.NewUUID(),
+				Keys:       []string{model.MetadataInstanceLastHeartbeatTime},
+			},
+		}); err != nil {
+			log.Errorf("[Batch] batch healthy check instances remove metadata err: %s", err.Error())
+			return commonstore.StoreCode2APICode(err)
+		}
+	} else {
+		if err := server.storage.BatchAppendInstanceMetadata([]*store.InstanceMetadataRequest{
+			{
+				InstanceID: id,
+				Revision:   utils.NewUUID(),
+				Metadata: map[string]string{
+					model.MetadataInstanceLastHeartbeatTime: strconv.FormatInt(lastBeatTime, 10),
+				},
+			},
+		}); err != nil {
+			log.Errorf("[Batch] batch healthy check instances append metadata err: %s", err.Error())
+			return commonstore.StoreCode2APICode(err)
+		}
 	}
 	return apimodel.Code_ExecuteSuccess
 }

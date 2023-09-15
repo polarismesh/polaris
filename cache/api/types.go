@@ -32,6 +32,10 @@ import (
 )
 
 const (
+	AllMatched = "*"
+)
+
+const (
 	// NamespaceName cache name
 	NamespaceName = "namespace"
 	// ServiceName
@@ -58,6 +62,8 @@ const (
 	UsersName = "users"
 	// StrategyRuleName strategy rule config name
 	StrategyRuleName = "strategyRule"
+	// ServiceContractName service contract config name
+	ServiceContractName = "serviceContract"
 )
 
 type CacheIndex int
@@ -78,6 +84,7 @@ const (
 	CacheConfigFile
 	CacheFaultDetector
 	CacheConfigGroup
+	CacheServiceContract
 
 	CacheLast
 )
@@ -86,8 +93,6 @@ const (
 type Cache interface {
 	// Initialize
 	Initialize(c map[string]interface{}) error
-	// AddListener 添加
-	AddListener(listeners []Listener)
 	// Update .
 	Update() error
 	// Clear .
@@ -110,12 +115,14 @@ type (
 	// NamespaceCache 命名空间的 Cache 接口
 	NamespaceCache interface {
 		Cache
-		// GetNamespace
+		// GetNamespace get target namespace by id
 		GetNamespace(id string) *model.Namespace
-		// GetNamespacesByName
+		// GetNamespacesByName list all namespace by name
 		GetNamespacesByName(names []string) []*model.Namespace
-		// GetNamespaceList
+		// GetNamespaceList list all namespace
 		GetNamespaceList() []*model.Namespace
+		// GetVisibleNamespaces list target namespace can visible other namespaces
+		GetVisibleNamespaces(namespace string) []*model.Namespace
 	}
 )
 
@@ -178,6 +185,8 @@ type (
 		GetAliasFor(name string, namespace string) *model.Service
 		// GetRevisionWorker .
 		GetRevisionWorker() ServiceRevisionWorker
+		// GetVisibleServicesInOtherNamespace get same service in other namespace and it's visible
+		GetVisibleServicesInOtherNamespace(name string, namespace string) []*model.Service
 	}
 
 	// ServiceRevisionWorker
@@ -188,6 +197,13 @@ type (
 		GetServiceRevisionCount() int
 		// GetServiceInstanceRevision
 		GetServiceInstanceRevision(serviceID string) string
+	}
+
+	// ServiceContractCache .
+	ServiceContractCache interface {
+		Cache
+		// Query .
+		Query(filter map[string]string, offset, limit uint32) ([]*model.EnrichServiceContract, uint32, error)
 	}
 )
 
@@ -217,6 +233,8 @@ type (
 		GetInstanceLabels(serviceID string) *apiservice.InstanceLabels
 		// QueryInstances query instance for OSS
 		QueryInstances(filter, metaFilter map[string]string, offset, limit uint32) (uint32, []*model.Instance, error)
+		// DiscoverServiceInstances 服务发现获取实例
+		DiscoverServiceInstances(serviceID string, onlyHealthy bool) []*model.Instance
 	}
 )
 
@@ -496,7 +514,6 @@ type BaseCache struct {
 	s             store.Store
 	lastFetchTime int64
 	lastMtimes    map[string]time.Time
-	Manager       *ListenerManager
 	CacheMgr      CacheManager
 }
 
@@ -516,13 +533,16 @@ func (bc *BaseCache) initialize() {
 
 	bc.lastFetchTime = 1
 	bc.firstUpdate = true
-	bc.Manager = NewListenerManager()
 	bc.lastMtimes = map[string]time.Time{}
 }
 
 var (
 	zeroTime = time.Unix(0, 0)
 )
+
+func (bc *BaseCache) Store() store.Store {
+	return bc.s
+}
 
 func (bc *BaseCache) ResetLastMtime(label string) {
 	bc.lock.Lock()
@@ -620,13 +640,6 @@ func (bc *BaseCache) Clear() {
 	bc.lastMtimes = make(map[string]time.Time)
 	bc.lastFetchTime = 1
 	bc.firstUpdate = true
-}
-
-// AddListener 添加
-func (bc *BaseCache) AddListener(listeners []Listener) {
-	bc.lock.Lock()
-	defer bc.lock.Unlock()
-	bc.Manager.Append(listeners...)
 }
 
 func (bc *BaseCache) Close() error {

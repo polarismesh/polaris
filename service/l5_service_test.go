@@ -35,10 +35,10 @@ func TestComputeNamespace(t *testing.T) {
 		{
 			name: "string",
 			args: args{
-				modID: 192000100,
+				modID: 192002625,
 				cmdID: 65000,
 			},
-			want: []string{DefaultNamespace},
+			want: []string{ProductionNamespace},
 		},
 	}
 	for _, tt := range tests {

@@ -105,7 +105,8 @@ func (cds *CDSBuilder) GenerateByDirection(option *resource.BuildOption,
 			continue
 		}
 		c := cds.makeCluster(svc, direction)
-		if option.TLSMode == resource.TLSModePermissive {
+		switch option.TLSMode {
+		case resource.TLSModePermissive:
 			// In permissive mode, we should use `TLSTransportSocket` to connect to mtls enabled endpoints.
 			// Or we use rawbuffer transport for those endpoints which not enabled mtls.
 			c.TransportSocketMatches = []*cluster.Cluster_TransportSocketMatch{
@@ -128,8 +129,7 @@ func (cds *CDSBuilder) GenerateByDirection(option *resource.BuildOption,
 					},
 				},
 			}
-		}
-		if option.TLSMode == resource.TLSModeStrict {
+		case resource.TLSModeStrict:
 			// In strict mode, we should only use `TLSTransportSocket` to connect to mtls enabled endpoints.
 			c.TransportSocketMatches = []*cluster.Cluster_TransportSocketMatch{
 				{

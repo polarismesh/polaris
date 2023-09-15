@@ -26,6 +26,7 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	types "github.com/polarismesh/polaris/cache/api"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
@@ -156,7 +157,10 @@ func (c *clientCache) setClients(clients map[string]*model.Client) (map[string]t
 			del++
 			c.deleteClient(id)
 			if itemExist {
-				c.Manager.OnEvent(client, types.EventDeleted)
+				_ = eventhub.Publish(eventhub.CacheClientEventTopic, &eventhub.CacheClientEvent{
+					Client:    client,
+					EventType: eventhub.EventDeleted,
+				})
 			}
 			continue
 		}
@@ -165,9 +169,15 @@ func (c *clientCache) setClients(clients map[string]*model.Client) (map[string]t
 		update++
 		c.storeClient(id, client)
 		if !itemExist {
-			c.Manager.OnEvent(client, types.EventCreated)
+			_ = eventhub.Publish(eventhub.CacheClientEventTopic, &eventhub.CacheClientEvent{
+				Client:    client,
+				EventType: eventhub.EventCreated,
+			})
 		} else {
-			c.Manager.OnEvent(client, types.EventUpdated)
+			_ = eventhub.Publish(eventhub.CacheClientEventTopic, &eventhub.CacheClientEvent{
+				Client:    client,
+				EventType: eventhub.EventUpdated,
+			})
 		}
 	}
 
