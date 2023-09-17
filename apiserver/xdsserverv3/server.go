@@ -27,6 +27,7 @@ import (
 	clusterservice "github.com/envoyproxy/go-control-plane/envoy/service/cluster/v3"
 	discoverygrpc "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	endpointservice "github.com/envoyproxy/go-control-plane/envoy/service/endpoint/v3"
+	healthservice "github.com/envoyproxy/go-control-plane/envoy/service/health/v3"
 	listenerservice "github.com/envoyproxy/go-control-plane/envoy/service/listener/v3"
 	routeservice "github.com/envoyproxy/go-control-plane/envoy/service/route/v3"
 	runtimeservice "github.com/envoyproxy/go-control-plane/envoy/service/runtime/v3"
@@ -48,6 +49,7 @@ import (
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/service"
+	"github.com/polarismesh/polaris/service/healthcheck"
 )
 
 type ResourceServer interface {
@@ -63,6 +65,7 @@ type XDSServer struct {
 	restart         bool
 	exitCh          chan struct{}
 	namingServer    service.DiscoverServer
+	healthSvr       *healthcheck.Server
 	cache           cachev3.SnapshotCache
 	versionNum      *atomic.Uint64
 	server          *grpc.Server
@@ -94,6 +97,11 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 	var err error
 
 	x.namingServer, err = service.GetOriginServer()
+	if err != nil {
+		log.Errorf("%v", err)
+		return err
+	}
+	x.healthSvr, err = healthcheck.GetServer()
 	if err != nil {
 		log.Errorf("%v", err)
 		return err
@@ -144,7 +152,7 @@ func (x *XDSServer) Run(errCh chan error) {
 		}
 	}
 
-	registerServer(grpcServer, srv)
+	registerServer(grpcServer, srv, x)
 	log.Infof("management server listening on %d\n", x.listenPort)
 	if err = grpcServer.Serve(listener); err != nil {
 		log.Errorf("%v", err)
@@ -154,7 +162,7 @@ func (x *XDSServer) Run(errCh chan error) {
 	log.Info("xds server stop")
 }
 
-func registerServer(grpcServer *grpc.Server, server serverv3.Server) {
+func registerServer(grpcServer *grpc.Server, server serverv3.Server, x *XDSServer) {
 	// register services
 	discoverygrpc.RegisterAggregatedDiscoveryServiceServer(grpcServer, server)
 	endpointservice.RegisterEndpointDiscoveryServiceServer(grpcServer, server)
@@ -163,6 +171,7 @@ func registerServer(grpcServer *grpc.Server, server serverv3.Server) {
 	listenerservice.RegisterListenerDiscoveryServiceServer(grpcServer, server)
 	secretservice.RegisterSecretDiscoveryServiceServer(grpcServer, server)
 	runtimeservice.RegisterRuntimeDiscoveryServiceServer(grpcServer, server)
+	healthservice.RegisterHealthDiscoveryServiceServer(grpcServer, x)
 }
 
 // Stop 停止服务

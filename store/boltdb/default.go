@@ -115,14 +115,14 @@ func (m *boltStore) Initialize(c *store.Config) error {
 		return err
 	}
 
-	if err = m.initAuthStoreData(); err != nil {
-		_ = handler.Close()
-		return err
-	}
-
-	if err = m.initNamingStoreData(); err != nil {
-		_ = handler.Close()
-		return err
+	if loadFile, ok := c.Option["loadFile"].(string); ok {
+		if err := m.loadByFile(loadFile); err != nil {
+			return err
+		}
+	} else {
+		if err := m.loadByDefault(); err != nil {
+			return err
+		}
 	}
 	m.start = true
 	return nil
@@ -154,6 +154,43 @@ var (
 		Comment:     "default polaris admin account",
 		CreateTime:  time.Now(),
 		ModifyTime:  time.Now(),
+	}
+
+	superDefaultStrategy = &model.StrategyDetail{
+		ID:      "super_user_default_strategy",
+		Name:    "(用户) polarissys@admin的默认策略",
+		Action:  "READ_WRITE",
+		Comment: "default admin",
+		Principals: []model.Principal{
+			{
+				StrategyID:    "super_user_default_strategy",
+				PrincipalID:   "",
+				PrincipalRole: model.PrincipalUser,
+			},
+		},
+		Default: true,
+		Owner:   "",
+		Resources: []model.StrategyResource{
+			{
+				StrategyID: "super_user_default_strategy",
+				ResType:    int32(apisecurity.ResourceType_Namespaces),
+				ResID:      "*",
+			},
+			{
+				StrategyID: "super_user_default_strategy",
+				ResType:    int32(apisecurity.ResourceType_Services),
+				ResID:      "*",
+			},
+			{
+				StrategyID: "super_user_default_strategy",
+				ResType:    int32(apisecurity.ResourceType_ConfigGroups),
+				ResID:      "*",
+			},
+		},
+		Valid:      true,
+		Revision:   "fbca9bfa04ae4ead86e1ecf5811e32a9",
+		CreateTime: time.Now(),
+		ModifyTime: time.Now(),
 	}
 
 	mainDefaultStrategy = &model.StrategyDetail{

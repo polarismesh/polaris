@@ -39,18 +39,20 @@ func newTimeAdjuster(ctx context.Context, storage store.Store) *TimeAdjuster {
 }
 
 func (t *TimeAdjuster) doTimeAdjust(ctx context.Context) {
-	t.calcDiff()
-	ticker := time.NewTicker(adjustInterval)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			log.Infof("[Health Check] time adjuster has been stopped")
-			return
-		case <-ticker.C:
-			t.calcDiff()
+	go func() {
+		t.calcDiff()
+		ticker := time.NewTicker(adjustInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				log.Infof("[Health Check] time adjuster has been stopped")
+				return
+			case <-ticker.C:
+				t.calcDiff()
+			}
 		}
-	}
+	}()
 }
 
 func (t *TimeAdjuster) calcDiff() {

@@ -30,7 +30,6 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 
-	"github.com/polarismesh/polaris/apiserver/grpcserver"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
@@ -45,13 +44,13 @@ var (
 
 // ReportClient 客户端上报
 func (g *DiscoverServer) ReportClient(ctx context.Context, in *apiservice.Client) (*apiservice.Response, error) {
-	return g.namingServer.ReportClient(grpcserver.ConvertContext(ctx), in), nil
+	return g.namingServer.ReportClient(utils.ConvertGRPCContext(ctx), in), nil
 }
 
 // RegisterInstance 注册服务实例
 func (g *DiscoverServer) RegisterInstance(ctx context.Context, in *apiservice.Instance) (*apiservice.Response, error) {
 	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
-	rCtx := grpcserver.ConvertContext(ctx)
+	rCtx := utils.ConvertGRPCContext(ctx)
 	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), ParseGrpcOperator(ctx))
 
 	// 客户端请求中带了 token 的，优先已请求中的为准
@@ -73,7 +72,7 @@ func (g *DiscoverServer) RegisterInstance(ctx context.Context, in *apiservice.In
 func (g *DiscoverServer) DeregisterInstance(
 	ctx context.Context, in *apiservice.Instance) (*apiservice.Response, error) {
 	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
-	rCtx := grpcserver.ConvertContext(ctx)
+	rCtx := utils.ConvertGRPCContext(ctx)
 	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), ParseGrpcOperator(ctx))
 
 	// 客户端请求中带了 token 的，优先已请求中的为准
@@ -87,7 +86,7 @@ func (g *DiscoverServer) DeregisterInstance(
 
 // Discover 统一发现接口
 func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) error {
-	ctx := grpcserver.ConvertContext(server.Context())
+	ctx := utils.ConvertGRPCContext(server.Context())
 	clientIP, _ := ctx.Value(utils.StringContext("client-ip")).(string)
 	clientAddress, _ := ctx.Value(utils.StringContext("client-address")).(string)
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
@@ -167,12 +166,12 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 
 // Heartbeat 上报心跳
 func (g *DiscoverServer) Heartbeat(ctx context.Context, in *apiservice.Instance) (*apiservice.Response, error) {
-	return g.healthCheckServer.Report(grpcserver.ConvertContext(ctx), in), nil
+	return g.healthCheckServer.Report(utils.ConvertGRPCContext(ctx), in), nil
 }
 
 // BatchHeartbeat 批量上报心跳
 func (g *DiscoverServer) BatchHeartbeat(svr apiservice.PolarisHeartbeatGRPC_BatchHeartbeatServer) error {
-	ctx := grpcserver.ConvertContext(svr.Context())
+	ctx := utils.ConvertGRPCContext(svr.Context())
 
 	for {
 		req, err := svr.Recv()

@@ -40,6 +40,11 @@ func (s *Server) allowAutoCreate() bool {
 	return s.cfg.AutoCreate
 }
 
+func AllowAutoCreate(ctx context.Context) context.Context {
+	ctx = context.WithValue(ctx, model.ContextKeyAutoCreateNamespace{}, true)
+	return ctx
+}
+
 // CreateNamespaces 批量创建命名空间
 func (s *Server) CreateNamespaces(ctx context.Context, req []*apimodel.Namespace) *apiservice.BatchWriteResponse {
 	if checkError := checkBatchNamespace(req); checkError != nil {
@@ -56,8 +61,7 @@ func (s *Server) CreateNamespaces(ctx context.Context, req []*apimodel.Namespace
 }
 
 // CreateNamespaceIfAbsent 创建命名空间，如果不存在
-func (s *Server) CreateNamespaceIfAbsent(ctx context.Context,
-	req *apimodel.Namespace) (string, *apiservice.Response) {
+func (s *Server) CreateNamespaceIfAbsent(ctx context.Context, req *apimodel.Namespace) (string, *apiservice.Response) {
 	if resp := checkCreateNamespace(req); resp != nil {
 		return "", resp
 	}
@@ -67,7 +71,10 @@ func (s *Server) CreateNamespaceIfAbsent(ctx context.Context,
 		return name, nil
 	}
 	if val == "" && !s.allowAutoCreate() {
-		return "", api.NewResponse(apimodel.Code_NotFoundNamespace)
+		ctxVal := ctx.Value(model.ContextKeyAutoCreateNamespace{})
+		if ctxVal == nil || ctxVal.(bool) != true {
+			return "", api.NewResponse(apimodel.Code_NotFoundNamespace)
+		}
 	}
 	ret, err, _ := s.createNamespaceSingle.Do(name, func() (interface{}, error) {
 		return s.CreateNamespace(ctx, req), nil

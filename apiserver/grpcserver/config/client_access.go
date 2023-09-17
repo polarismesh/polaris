@@ -23,7 +23,6 @@ import (
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
-	"github.com/polarismesh/polaris/apiserver/grpcserver"
 	"github.com/polarismesh/polaris/common/metrics"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -33,7 +32,7 @@ import (
 // GetConfigFile 拉取配置
 func (g *ConfigGRPCServer) GetConfigFile(ctx context.Context,
 	req *apiconfig.ClientConfigFileInfo) (*apiconfig.ConfigClientResponse, error) {
-	ctx = grpcserver.ConvertContext(ctx)
+	ctx = utils.ConvertGRPCContext(ctx)
 
 	startTime := commontime.CurrentMillisecond()
 	defer func() {
@@ -53,7 +52,7 @@ func (g *ConfigGRPCServer) GetConfigFile(ctx context.Context,
 // CreateConfigFile 创建或更新配置
 func (g *ConfigGRPCServer) CreateConfigFile(ctx context.Context,
 	configFile *apiconfig.ConfigFile) (*apiconfig.ConfigClientResponse, error) {
-	ctx = grpcserver.ConvertContext(ctx)
+	ctx = utils.ConvertGRPCContext(ctx)
 	response := g.configServer.CreateConfigFileFromClient(ctx, configFile)
 	return response, nil
 }
@@ -61,7 +60,7 @@ func (g *ConfigGRPCServer) CreateConfigFile(ctx context.Context,
 // UpdateConfigFile 创建或更新配置
 func (g *ConfigGRPCServer) UpdateConfigFile(ctx context.Context,
 	configFile *apiconfig.ConfigFile) (*apiconfig.ConfigClientResponse, error) {
-	ctx = grpcserver.ConvertContext(ctx)
+	ctx = utils.ConvertGRPCContext(ctx)
 	response := g.configServer.UpdateConfigFileFromClient(ctx, configFile)
 	return response, nil
 }
@@ -69,7 +68,7 @@ func (g *ConfigGRPCServer) UpdateConfigFile(ctx context.Context,
 // PublishConfigFile 发布配置
 func (g *ConfigGRPCServer) PublishConfigFile(ctx context.Context,
 	configFile *apiconfig.ConfigFileRelease) (*apiconfig.ConfigClientResponse, error) {
-	ctx = grpcserver.ConvertContext(ctx)
+	ctx = utils.ConvertGRPCContext(ctx)
 	response := g.configServer.PublishConfigFileFromClient(ctx, configFile)
 	return response, nil
 }
@@ -77,7 +76,7 @@ func (g *ConfigGRPCServer) PublishConfigFile(ctx context.Context,
 // WatchConfigFiles 订阅配置变更
 func (g *ConfigGRPCServer) WatchConfigFiles(ctx context.Context,
 	request *apiconfig.ClientWatchConfigFileRequest) (*apiconfig.ConfigClientResponse, error) {
-	ctx = grpcserver.ConvertContext(ctx)
+	ctx = utils.ConvertGRPCContext(ctx)
 
 	// 阻塞等待响应
 	callback, err := g.configServer.WatchConfigFiles(ctx, request)
@@ -102,6 +101,6 @@ func (g *ConfigGRPCServer) GetConfigFileMetadataList(ctx context.Context,
 		})
 	}()
 
-	ctx = grpcserver.ConvertContext(ctx)
+	ctx = utils.ConvertGRPCContext(ctx)
 	return g.configServer.GetConfigFileNamesWithCache(ctx, req), nil
 }
