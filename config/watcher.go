@@ -36,10 +36,9 @@ const (
 type FileReleaseCallback func(clientId string, rsp *apiconfig.ConfigClientResponse) bool
 
 type watchContext struct {
-	watchConfigFiles []*apiconfig.ClientConfigFileInfo
-	clientId         string
-	fileReleaseCb    FileReleaseCallback
-	ClientVersion    uint64
+	clientId      string
+	fileReleaseCb FileReleaseCallback
+	ClientVersion uint64
 }
 
 // watchCenter 处理客户端订阅配置请求，监听配置文件发布事件通知客户端
@@ -98,10 +97,9 @@ func (wc *watchCenter) AddWatcher(clientId string, watchConfigFiles []*apiconfig
 				return newWatchers
 			})
 		watchers.Store(clientId, &watchContext{
-			clientId:         clientId,
-			fileReleaseCb:    fileReleaseCb,
-			ClientVersion:    file.Version.GetValue(),
-			watchConfigFiles: watchConfigFiles,
+			clientId:      clientId,
+			fileReleaseCb: fileReleaseCb,
+			ClientVersion: file.Version.GetValue(),
 		})
 	}
 }
@@ -134,25 +132,19 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.SimpleConfigFil
 	response := GenConfigFileResponse(publishConfigFile.Namespace, publishConfigFile.Group,
 		publishConfigFile.FileName, "", publishConfigFile.Md5, publishConfigFile.Version)
 
-	needCancel := make(map[string]*watchContext, 32)
-
-	watchers.Range(func(clientId string, watchCtx *watchContext) bool {
+	waitNotifiers := watchers.Values()
+	for _, watchCtx := range waitNotifiers {
+		clientId := watchCtx.clientId
 		if watchCtx.ClientVersion < publishConfigFile.Version {
 			watchCtx.fileReleaseCb(clientId, response)
 			log.Info("[Config][Watcher] notify to client.",
 				zap.String("file", watchFileId), zap.String("clientId", clientId),
 				zap.Uint64("version", publishConfigFile.Version))
-			needCancel[clientId] = watchCtx
 		} else {
 			log.Info("[Config][Watcher] notify to client ignore.",
 				zap.String("file", watchFileId), zap.String("clientId", clientId),
 				zap.Uint64("client-version", watchCtx.ClientVersion),
 				zap.Uint64("version", publishConfigFile.Version))
 		}
-		return true
-	})
-
-	for _, watchCtx := range needCancel {
-		wc.RemoveWatcher(watchCtx.clientId, watchCtx.watchConfigFiles)
 	}
 }
