@@ -75,9 +75,8 @@ func (m *boltStore) loadByFile(loadFile string) error {
 			return err
 		}
 		return nil
-	} else {
-		return m.loadFromData(data)
 	}
+	return m.loadFromData(data)
 }
 
 func (m *boltStore) loadFromData(data *DefaultData) error {

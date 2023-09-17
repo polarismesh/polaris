@@ -325,14 +325,6 @@ func (s *Server) SearchConfigFile(ctx context.Context, filter map[string]string)
 			searchFilters[k] = v
 		}
 	}
-
-	if err := s.fileCache.Update(); err != nil {
-		log.Error("[Config][File] force update release cache when search config files.",
-			utils.RequestID(ctx), zap.Error(err))
-		out := api.NewConfigBatchQueryResponse(commonstore.StoreCode2APICode(err))
-		return out
-	}
-
 	count, files, err := s.storage.QueryConfigFiles(searchFilters, offset, limit)
 	if err != nil {
 		log.Error("[Config][File] search config files.", utils.RequestID(ctx), zap.Error(err))

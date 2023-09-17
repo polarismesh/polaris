@@ -88,7 +88,6 @@ func (c *connManager) AddConn(
 	c.watchCenter.AddWatcher(clientId, files, func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
 		if conn, ok := cm.conns.Get(clientId); ok {
 			conn.reply(rsp)
-			c.removeConn(clientId)
 		}
 		return true
 	})

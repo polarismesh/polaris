@@ -54,11 +54,11 @@ func WithBatchController(ba *batch.Controller) serverOption {
 	}
 }
 
-// WithChecker .
-func WithChecker() serverOption {
+// withChecker .
+func withChecker() serverOption {
 	return func(svr *Server) error {
 		hcOpt := svr.hcOpt
-		if hcOpt.Open && len(hcOpt.Checkers) == 0 {
+		if hcOpt.IsOpen() && len(hcOpt.Checkers) == 0 {
 			return fmt.Errorf("[healthcheck]no checker config")
 		}
 

@@ -36,8 +36,10 @@ const (
 type FileReleaseCallback func(clientId string, rsp *apiconfig.ConfigClientResponse) bool
 
 type watchContext struct {
-	fileReleaseCb FileReleaseCallback
-	ClientVersion uint64
+	watchConfigFiles []*apiconfig.ClientConfigFileInfo
+	clientId         string
+	fileReleaseCb    FileReleaseCallback
+	ClientVersion    uint64
 }
 
 // watchCenter 处理客户端订阅配置请求，监听配置文件发布事件通知客户端
@@ -84,6 +86,7 @@ func (wc *watchCenter) AddWatcher(clientId string, watchConfigFiles []*apiconfig
 	if len(watchConfigFiles) == 0 {
 		return
 	}
+
 	for _, file := range watchConfigFiles {
 		watchFileId := utils.GenFileId(file.Namespace.GetValue(), file.Group.GetValue(), file.FileName.GetValue())
 		log.Info("[Config][Watcher] add watcher.", zap.Any("client-id", clientId),
@@ -95,8 +98,10 @@ func (wc *watchCenter) AddWatcher(clientId string, watchConfigFiles []*apiconfig
 				return newWatchers
 			})
 		watchers.Store(clientId, &watchContext{
-			fileReleaseCb: fileReleaseCb,
-			ClientVersion: file.Version.GetValue(),
+			clientId:         clientId,
+			fileReleaseCb:    fileReleaseCb,
+			ClientVersion:    file.Version.GetValue(),
+			watchConfigFiles: watchConfigFiles,
 		})
 	}
 }
@@ -129,12 +134,15 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.SimpleConfigFil
 	response := GenConfigFileResponse(publishConfigFile.Namespace, publishConfigFile.Group,
 		publishConfigFile.FileName, "", publishConfigFile.Md5, publishConfigFile.Version)
 
+	needCancel := make(map[string]*watchContext, 32)
+
 	watchers.Range(func(clientId string, watchCtx *watchContext) bool {
 		if watchCtx.ClientVersion < publishConfigFile.Version {
 			watchCtx.fileReleaseCb(clientId, response)
 			log.Info("[Config][Watcher] notify to client.",
 				zap.String("file", watchFileId), zap.String("clientId", clientId),
 				zap.Uint64("version", publishConfigFile.Version))
+			needCancel[clientId] = watchCtx
 		} else {
 			log.Info("[Config][Watcher] notify to client ignore.",
 				zap.String("file", watchFileId), zap.String("clientId", clientId),
@@ -143,4 +151,8 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.SimpleConfigFil
 		}
 		return true
 	})
+
+	for _, watchCtx := range needCancel {
+		wc.RemoveWatcher(watchCtx.clientId, watchCtx.watchConfigFiles)
+	}
 }

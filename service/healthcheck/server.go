@@ -74,7 +74,7 @@ func NewHealthServer(ctx context.Context, hcOpt *Config, options ...serverOption
 		hcOpt = &Config{}
 	}
 	hcOpt.SetDefault()
-	options = append(options, withSubscriber(ctx))
+	options = append(options, withSubscriber(ctx), withChecker())
 
 	svr := &Server{
 		hcOpt: hcOpt,
@@ -107,7 +107,6 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 		return fmt.Errorf("[healthcheck]cache not open")
 	}
 	hcOpt.SetDefault()
-
 	storage, err := store.GetStore()
 	if err != nil {
 		return err
@@ -305,7 +304,7 @@ func (s *Server) Checkers() map[int32]plugin.HealthChecker {
 }
 
 func (s *Server) isOpen() bool {
-	return s.hcOpt.Open
+	return s.hcOpt.IsOpen()
 }
 
 func (s *Server) currentTimeSec() int64 {

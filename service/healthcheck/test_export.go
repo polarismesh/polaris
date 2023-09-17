@@ -36,7 +36,7 @@ func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batc
 		return nil, fmt.Errorf("[healthcheck]cache not open")
 	}
 	hcOpt.SetDefault()
-	if hcOpt.Open {
+	if hcOpt.IsOpen() {
 		if len(hcOpt.Checkers) > 0 {
 			testServer.checkers = make(map[int32]plugin.HealthChecker, len(hcOpt.Checkers))
 			for _, entry := range hcOpt.Checkers {

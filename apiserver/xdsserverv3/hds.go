@@ -229,13 +229,15 @@ func toJsonStr(msg proto.Message) string {
 // TODO(htuch): Unlike the gRPC version, there is no stream-based binding of
 // request/response. Should we add an identifier to the HealthCheckSpecifier
 // to bind with the response?
-func (x *XDSServer) FetchHealthCheck(ctx context.Context, req *healthservice.HealthCheckRequestOrEndpointHealthResponse) (*healthservice.HealthCheckSpecifier, error) {
-	//TODO: implement
+func (x *XDSServer) FetchHealthCheck(ctx context.Context,
+	req *healthservice.HealthCheckRequestOrEndpointHealthResponse) (*healthservice.HealthCheckSpecifier, error) {
+
+	// TODO: implement
 	return nil, status.Errorf(codes.Unimplemented, "FetchHealthCheck unimplemented")
 }
 
 const (
-	//默认是5s的心跳间隔
+	// 默认是5s的心跳间隔
 	defaultTTl = 10
 )
 
@@ -325,16 +327,16 @@ func (x *XDSServer) registerService(ctx context.Context, client *resource.XDSCli
 	ctx = service.AllowAutoCreate(ctx)
 
 	for _, instances := range svcInstances {
-		//1. 注册实例
+		// 1. 注册实例
 		resp := x.namingServer.CreateInstances(ctx, instances)
 		code := apimodel.Code(resp.GetCode().GetValue())
-		//2. 注册成功，则返回
+		// 2. 注册成功，则返回
 		if code == apimodel.Code_ExecuteSuccess || code == apimodel.Code_ExistedResource {
 			continue
 		}
-		//3. 如果报服务不存在，对服务进行注册
+		// 3. 如果报服务不存在，对服务进行注册
 		if code == apimodel.Code_NotFoundResource {
-			//4. 继续注册实例
+			// 4. 继续注册实例
 			resp = x.namingServer.CreateInstances(ctx, instances)
 			code = apimodel.Code(resp.GetCode().GetValue())
 			if code == apimodel.Code_ExecuteSuccess || code == apimodel.Code_ExistedResource {
@@ -354,7 +356,7 @@ func (x *XDSServer) processEndpointHealthResponse(
 		return nil
 	}
 	log.Debugf("heartbeat for service(%s) namespace(%s)", client.GetSelfService(), client.GetSelfNamespace())
-	namespace := client.GetSelfNamespace()
+	namespaceName := client.GetSelfNamespace()
 	serviceName := client.GetSelfService()
 	ctx := context.Background()
 	for _, targetEndpoint := range endpoints {
@@ -371,11 +373,11 @@ func (x *XDSServer) processEndpointHealthResponse(
 						port = portValue.PortValue
 					}
 				}
-				if len(namespace) == 0 || len(host) == 0 || port == 0 {
-					log.Errorf("tuple arguments is invalid, namespace %s, host %s, port %d", namespace, host, port)
+				if len(namespaceName) == 0 || len(host) == 0 || port == 0 {
+					log.Errorf("tuple arguments is invalid, namespace %s, host %s, port %d", namespaceName, host, port)
 					return status.Errorf(codes.InvalidArgument,
 						"tuple arguments is invalid, namespace %s, host %s, port %d",
-						namespace, host, port)
+						namespaceName, host, port)
 				}
 
 				ins := &service_manage.Instance{
@@ -391,23 +393,23 @@ func (x *XDSServer) processEndpointHealthResponse(
 					code := apimodel.Code(resp.GetCode().GetValue())
 					if code != apimodel.Code_ExecuteSuccess && code != apimodel.Code_HeartbeatExceedLimit {
 						log.Errorf("[XdsV2Server] fail to do heartbeat, namespace %s, service %s, host %s, port %d, err is %v",
-							namespace, serviceName, host, port, resp.GetInfo().GetValue())
+							namespaceName, serviceName, host, port, resp.GetInfo().GetValue())
 						return status.Errorf(codes.InvalidArgument,
 							"fail to do heartbeat, code is %d, namespace %s, service %s, host %s, port %d",
-							code, namespace, serviceName, host, port)
+							code, namespaceName, serviceName, host, port)
 					}
 				case corev3.HealthStatus_DRAINING:
-					//进行反注册
+					// 进行反注册
 					resp := x.namingServer.DeregisterInstance(ctx, ins)
 					code := apimodel.Code(resp.GetCode().GetValue())
 					if code != apimodel.Code_ExecuteSuccess && code != apimodel.Code_NotFoundResource {
 						log.Errorf("[XdsV2Server] fail to process endpoint health, err is %v", resp.GetInfo().GetValue())
 						return status.Errorf(codes.InvalidArgument,
 							"fail to do deregister, code is %d, namespace %s, service %s, host %s, port %d",
-							code, namespace, serviceName, host, port)
+							code, namespaceName, serviceName, host, port)
 					}
 				default:
-					//直接更新为不健康
+					// 直接更新为不健康
 					// code := x.doUpdateUnhealthy(ctx, namespace, serviceName, host, port)
 					// if code != apimodel.Code_ExecuteSuccess && code != apimodel.Code_NotFoundResource {
 					// 	err := status.Errorf(codes.InvalidArgument,

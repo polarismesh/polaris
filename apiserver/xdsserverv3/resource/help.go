@@ -487,7 +487,9 @@ func BuildRateLimitActionQueryParameterValueMatch(key string,
 	return queryParameterValueMatch
 }
 
-func BuildRateLimitActionHeaderValueMatch(key, value string, arguments ...*apitraffic.MatchArgument) *route.RateLimit_Action_HeaderValueMatch {
+func BuildRateLimitActionHeaderValueMatch(key, value string,
+	arguments ...*apitraffic.MatchArgument) *route.RateLimit_Action_HeaderValueMatch {
+
 	headerValueMatch := &route.RateLimit_Action_HeaderValueMatch{
 		DescriptorKey:   key,
 		DescriptorValue: value,
