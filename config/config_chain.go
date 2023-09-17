@@ -79,6 +79,9 @@ func (chain *CryptoConfigFileChain) BeforeCreateFile(ctx context.Context,
 // AfterCreateFile
 func (chain *CryptoConfigFileChain) AfterGetFile(ctx context.Context,
 	file *model.ConfigFile) (*model.ConfigFile, error) {
+	if file.IsEncrypted() {
+		file.Encrypt = true
+	}
 
 	encryptAlgo := file.GetEncryptAlgo()
 	dataKey := file.GetEncryptDataKey()
