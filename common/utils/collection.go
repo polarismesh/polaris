@@ -276,6 +276,18 @@ func (s *SyncMap[K, V]) Range(f func(key K, val V) bool) {
 	}
 }
 
+// Values
+func (s *SyncMap[K, V]) Values() []V {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	ret := make([]V, 0, len(s.m))
+	for _, v := range s.m {
+		ret = append(ret, v)
+	}
+	return ret
+}
+
 // Delete
 func (s *SyncMap[K, V]) Delete(key K) {
 	s.lock.Lock()
