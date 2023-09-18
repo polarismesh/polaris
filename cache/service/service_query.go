@@ -143,9 +143,8 @@ func (sc *serviceCache) matchInstances(instances []*model.Instance, instanceFilt
 // GetAllNamespaces 返回所有的命名空间
 func (sc *serviceCache) GetAllNamespaces() []string {
 	var res []string
-	sc.names.Range(func(k string, v *utils.SyncMap[string, *model.Service]) bool {
+	sc.names.ReadRange(func(k string, v *utils.SyncMap[string, *model.Service]) {
 		res = append(res, k)
-		return true
 	})
 	return res
 }
@@ -299,9 +298,8 @@ func (sc *serviceCache) getServicesByIteratingCache(
 		if !ok {
 			return 0, nil, nil
 		}
-		spaces.Range(func(key string, value *model.Service) bool {
+		spaces.ReadRange(func(key string, value *model.Service) {
 			process(value)
-			return true
 		})
 	} else {
 		// 直接名字匹配

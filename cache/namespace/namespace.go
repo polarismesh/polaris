@@ -135,17 +135,16 @@ func (nsCache *namespaceCache) GetVisibleNamespaces(namespace string) []*model.N
 
 	// 根据命名空间级别的可见性进行查询
 	// 先看精确的
-	nsCache.exportNamespace.Range(func(exportNs string, viewerNs *utils.SyncSet[string]) bool {
+	nsCache.exportNamespace.Range(func(exportNs string, viewerNs *utils.SyncSet[string]) {
 		exactMatch := viewerNs.Contains(namespace)
 		allMatch := viewerNs.Contains(types.AllMatched)
 		if !exactMatch && !allMatch {
-			return true
+			return
 		}
 		val := nsCache.GetNamespace(exportNs)
 		if val != nil {
 			ret[val.Name] = val
 		}
-		return true
 	})
 
 	values := make([]*model.Namespace, 0, len(ret))
@@ -209,10 +208,8 @@ func (nsCache *namespaceCache) GetNamespacesByName(names []string) []*model.Name
 func (nsCache *namespaceCache) GetNamespaceList() []*model.Namespace {
 	nsArr := make([]*model.Namespace, 0, 8)
 
-	nsCache.ids.Range(func(key string, ns *model.Namespace) bool {
+	nsCache.ids.Range(func(key string, ns *model.Namespace) {
 		nsArr = append(nsArr, ns)
-
-		return true
 	})
 
 	return nsArr

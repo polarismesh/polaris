@@ -112,11 +112,11 @@ func (lc *l5Cache) GetRouteByIP(ip uint32) []*model.Route {
 		return out
 	}
 
-	entry.Range(func(key string, value string) bool {
+	entry.ReadRange(func(key string, value string) {
 		// sidStr -> setID
 		sid, err := model.UnmarshalSid(key)
 		if err != nil {
-			return true
+			return
 		}
 
 		item := &model.Route{
@@ -126,7 +126,6 @@ func (lc *l5Cache) GetRouteByIP(ip uint32) []*model.Route {
 			SetID: value,
 		}
 		out = append(out, item)
-		return true
 	})
 
 	return out
@@ -140,19 +139,17 @@ func (lc *l5Cache) CheckRouteExisted(ip uint32, modID uint32, cmdID uint32) bool
 	}
 
 	found := false
-	entry.Range(func(key string, value string) bool {
+	entry.ReadRange(func(key string, value string) {
 		sid, err := model.UnmarshalSid(key)
 		if err != nil {
 			// continue range
-			return true
+			return
 		}
 
 		if modID == sid.ModID && cmdID == sid.CmdID {
 			found = true
-			// break range
-			return false
+			return
 		}
-		return true
 	})
 
 	return found

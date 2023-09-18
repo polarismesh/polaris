@@ -493,13 +493,7 @@ func (ic *instanceCache) IteratorInstancesWithService(serviceID string, iterProc
 
 // GetInstancesCount 获取实例的个数
 func (ic *instanceCache) GetInstancesCount() int {
-	count := 0
-	ic.ids.Range(func(key string, value *model.Instance) bool {
-		count++
-		return true
-	})
-
-	return count
+	return ic.ids.Len()
 }
 
 // GetInstanceLabels 获取某个服务下实例的所有标签信息集合
@@ -548,17 +542,11 @@ func (ic *instanceCache) GetServicePorts(serviceID string) []*model.ServicePort 
 
 // iteratorInstancesProc 迭代指定的instance数据，id->instance
 func iteratorInstancesProc(data *utils.SyncMap[string, *model.Instance], iterProc types.InstanceIterProc) error {
-	var (
-		cont bool
-		err  error
-	)
-
-	proc := func(k string, v *model.Instance) bool {
-		cont, err = iterProc(k, v)
-		if err != nil {
-			return false
+	var err error
+	proc := func(k string, v *model.Instance) {
+		if _, err = iterProc(k, v); err != nil {
+			return
 		}
-		return cont
 	}
 
 	data.Range(proc)

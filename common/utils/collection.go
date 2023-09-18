@@ -305,6 +305,15 @@ func (s *SyncMap[K, V]) Range(f func(key K, val V)) {
 	}
 }
 
+// ReadRange .
+func (s *SyncMap[K, V]) ReadRange(f func(key K, val V)) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	for k, v := range s.m {
+		f(k, v)
+	}
+}
+
 // Delete
 func (s *SyncMap[K, V]) Delete(key K) {
 	s.lock.Lock()
