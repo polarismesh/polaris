@@ -23,6 +23,7 @@ import (
 	"time"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/eventhub"
@@ -31,7 +32,15 @@ import (
 )
 
 const (
-	QueueSize = 10240
+	defaultLongPollingTimeout = 30000 * time.Millisecond
+	QueueSize                 = 10240
+)
+
+var (
+	notModifiedResponse = &apiconfig.ConfigClientResponse{
+		Code:       utils.NewUInt32Value(uint32(apimodel.Code_DataNoChange)),
+		ConfigFile: nil,
+	}
 )
 
 type FileReleaseCallback func(clientId string, rsp *apiconfig.ConfigClientResponse) bool
@@ -96,8 +105,7 @@ func (wc *watchCenter) OnEvent(ctx context.Context, arg any) error {
 }
 
 // AddWatcher 新增订阅者
-func (wc *watchCenter) AddWatcher(clientId string, watchConfigFiles []*apiconfig.ClientConfigFileInfo,
-	fileReleaseCb FileReleaseCallback) <-chan *apiconfig.ConfigClientResponse {
+func (wc *watchCenter) AddWatcher(clientId string, watchConfigFiles []*apiconfig.ClientConfigFileInfo) <-chan *apiconfig.ConfigClientResponse {
 	if len(watchConfigFiles) == 0 {
 		return nil
 	}
@@ -105,10 +113,15 @@ func (wc *watchCenter) AddWatcher(clientId string, watchConfigFiles []*apiconfig
 	watcheCtx, _ := wc.clients.ComputeIfAbsent(clientId,
 		func(k string) *watchContext {
 			return &watchContext{
-				clientId:      clientId,
-				fileReleaseCb: fileReleaseCb,
-				fileVersions:  map[string]uint64{},
-				finishChan:    make(chan *apiconfig.ConfigClientResponse),
+				clientId: clientId,
+				fileReleaseCb: func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
+					if watchCtx, ok := wc.clients.Load(clientId); ok {
+						watchCtx.reply(rsp)
+					}
+					return true
+				},
+				fileVersions: map[string]uint64{},
+				finishChan:   make(chan *apiconfig.ConfigClientResponse),
 			}
 		})
 
