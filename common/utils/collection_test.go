@@ -92,4 +92,40 @@ func Test_SyncSegmentMap(t *testing.T) {
 			break
 		}
 	}
+
+	for {
+		count := 0
+		segmentMap.Range(func(k string, v *SegmentMap[string, string]) {
+			v.Range(func(k string, _ string) {
+				v.Del(k)
+			})
+			count++
+		})
+		if count == total {
+			break
+		}
+	}
+}
+
+func Test_SyncMap(t *testing.T) {
+	syncMap := NewSyncMap[int, int]()
+
+	for i := 0; i < 10; i++ {
+		syncMap.Store(i, i)
+	}
+
+	assert.Equal(t, 10, syncMap.Len())
+
+	syncMap.Range(func(key, val int) bool {
+		syncMap.Delete(key)
+		syncMap.Store(key+100, key+100)
+		return true
+	})
+
+	assert.Equal(t, 10, syncMap.Len())
+
+	for i := 0; i < 10; i++ {
+		_, ok := syncMap.Load(i)
+		assert.False(t, ok)
+	}
 }

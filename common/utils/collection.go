@@ -95,10 +95,14 @@ func (set *SyncSet[K]) ToSlice() []K {
 }
 
 func (set *SyncSet[K]) Range(fn func(val K)) {
+	snapshot := map[K]struct{}{}
 	set.lock.RLock()
-	defer set.lock.RUnlock()
-
 	for k := range set.container {
+		snapshot[k] = struct{}{}
+	}
+	set.lock.RUnlock()
+
+	for k := range snapshot {
 		fn(k)
 	}
 }
@@ -188,9 +192,14 @@ func (s *SegmentMap[K, V]) Range(f func(k K, v V)) {
 		lock := s.locks[i]
 		solt := s.solts[i]
 		func() {
+			snapshot := map[K]V{}
 			lock.RLock()
-			defer lock.RUnlock()
 			for k, v := range solt {
+				snapshot[k] = v
+			}
+			lock.RUnlock()
+
+			for k, v := range snapshot {
 				f(k, v)
 			}
 		}()
@@ -268,10 +277,14 @@ func (s *SyncMap[K, V]) Store(key K, val V) {
 
 // Range
 func (s *SyncMap[K, V]) Range(f func(key K, val V) bool) {
+	snapshot := map[K]V{}
 	s.lock.RLock()
-	defer s.lock.RUnlock()
-
 	for k, v := range s.m {
+		snapshot[k] = v
+	}
+	s.lock.RUnlock()
+
+	for k, v := range snapshot {
 		_ = f(k, v)
 	}
 }
