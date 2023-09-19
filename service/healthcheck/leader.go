@@ -39,7 +39,6 @@ type LeaderChangeEventHandler struct {
 
 // newLeaderChangeEventHandler
 func newLeaderChangeEventHandler(svr *Server) *LeaderChangeEventHandler {
-
 	return &LeaderChangeEventHandler{
 		svr:              svr,
 		cacheProvider:    svr.cacheProvider,
@@ -84,7 +83,8 @@ func (handler *LeaderChangeEventHandler) startCheckSelfServiceInstances() {
 		for {
 			select {
 			case <-ticker.C:
-				handler.cacheProvider.selfServiceInstances.Range(func(instanceId string, value ItemWithChecker) {
+				cacheProvider := handler.cacheProvider
+				cacheProvider.selfServiceInstances.Range(func(instanceId string, value ItemWithChecker) {
 					handler.doCheckSelfServiceInstance(value.GetInstance())
 				})
 			case <-ctx.Done():

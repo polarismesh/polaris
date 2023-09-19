@@ -91,24 +91,25 @@ func WithPlugins() serverOption {
 	}
 }
 
-// WithCacheProvider .
-func WithCacheProvider() serverOption {
+// withCacheProvider .
+func withCacheProvider() serverOption {
 	return func(svr *Server) error {
 		svr.cacheProvider = newCacheProvider(svr.hcOpt.Service, svr)
 		return nil
 	}
 }
 
-// WithCheckScheduler .
-func WithCheckScheduler(cs *CheckScheduler) serverOption {
+// withCheckScheduler .
+func withCheckScheduler(cs *CheckScheduler) serverOption {
 	return func(svr *Server) error {
 		svr.checkScheduler = cs
+		cs.svr = svr
 		return nil
 	}
 }
 
-// WithDispatcher .
-func WithDispatcher(ctx context.Context) serverOption {
+// withDispatcher .
+func withDispatcher(ctx context.Context) serverOption {
 	return func(svr *Server) error {
 		svr.dispatcher = newDispatcher(ctx, svr)
 		return nil

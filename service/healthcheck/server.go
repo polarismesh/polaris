@@ -74,10 +74,19 @@ func NewHealthServer(ctx context.Context, hcOpt *Config, options ...serverOption
 		hcOpt = &Config{}
 	}
 	hcOpt.SetDefault()
-	options = append(options, withSubscriber(ctx), withChecker())
+	options = append(options,
+		withChecker(),
+		withCacheProvider(),
+		withCheckScheduler(newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval,
+			hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)),
+		withDispatcher(ctx),
+		// 这个必须保证在最后一个 option
+		withSubscriber(ctx),
+	)
 
 	svr := &Server{
-		hcOpt: hcOpt,
+		hcOpt:     hcOpt,
+		localHost: hcOpt.LocalHost,
 	}
 	for i := range options {
 		if err := options[i](svr); err != nil {
@@ -116,11 +125,7 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 		WithPlugins(),
 		WithStore(storage),
 		WithBatchController(bc),
-		WithCheckScheduler(newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval,
-			hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)),
-		WithDispatcher(ctx),
 		WithTimeAdjuster(newTimeAdjuster(ctx, storage)),
-		WithCacheProvider(),
 	)
 	if err != nil {
 		return err
