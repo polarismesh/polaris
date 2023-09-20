@@ -26,7 +26,7 @@ import (
 
 // Config 健康检查配置
 type Config struct {
-	Open                *bool                   `yaml:"open"`
+	Open                *bool                  `yaml:"open"`
 	Service             string                 `yaml:"service"`
 	SlotNum             int                    `yaml:"slotNum"`
 	LocalHost           string                 `yaml:"localHost"`

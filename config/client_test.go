@@ -514,7 +514,7 @@ func TestManyClientWatchConfigFile(t *testing.T) {
 	receivedVerCnt := 0
 	receivedVersion.ReadRange(func(key string, val uint64) {
 		if val == activeRsp.ConfigFileRelease.Version.Value {
-			receivedVerCnt ++
+			receivedVerCnt++
 		}
 	})
 	assert.Equal(t, receivedVersion.Len(), receivedVerCnt)
