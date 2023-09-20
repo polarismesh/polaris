@@ -105,8 +105,9 @@ func (wc *watchCenter) OnEvent(ctx context.Context, arg any) error {
 }
 
 // AddWatcher 新增订阅者
-func (wc *watchCenter) AddWatcher(clientId string, watchConfigFiles []*apiconfig.ClientConfigFileInfo) <-chan *apiconfig.ConfigClientResponse {
-	if len(watchConfigFiles) == 0 {
+func (wc *watchCenter) AddWatcher(clientId string,
+	watchFiles []*apiconfig.ClientConfigFileInfo) <-chan *apiconfig.ConfigClientResponse {
+	if len(watchFiles) == 0 {
 		return nil
 	}
 
@@ -125,7 +126,7 @@ func (wc *watchCenter) AddWatcher(clientId string, watchConfigFiles []*apiconfig
 			}
 		})
 
-	for _, file := range watchConfigFiles {
+	for _, file := range watchFiles {
 		watchFileId := utils.GenFileId(file.Namespace.GetValue(), file.Group.GetValue(), file.FileName.GetValue())
 		log.Info("[Config][Watcher] add watcher.", zap.Any("client-id", clientId),
 			zap.String("watch-file-id", watchFileId), zap.Uint64("client-version", file.Version.GetValue()))
