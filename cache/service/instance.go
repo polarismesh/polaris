@@ -51,7 +51,9 @@ type instanceCache struct {
 	// service id -> [instanceid ->instance]
 	services *utils.SyncMap[string, *ServiceInstances]
 	// service id -> [instanceCount]
-	instanceCounts   *utils.SyncMap[string, *model.InstanceCount]
+	instanceCounts *utils.SyncMap[string, *model.InstanceCount]
+	// service id -> [instanceConsole]
+	instanceConsoles *utils.SyncMap[string, *model.InstanceConsole]
 	instancePorts    *instancePorts
 	disableBusiness  bool
 	needMeta         bool
@@ -77,6 +79,7 @@ func (ic *instanceCache) Initialize(opt map[string]interface{}) error {
 	ic.services = utils.NewSyncMap[string, *ServiceInstances]()
 	ic.instanceCounts = utils.NewSyncMap[string, *model.InstanceCount]()
 	ic.instancePorts = newInstancePorts()
+	ic.instanceConsoles = utils.NewSyncMap[string, *model.InstanceConsole]()
 	if opt == nil {
 		return nil
 	}

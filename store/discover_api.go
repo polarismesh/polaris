@@ -121,6 +121,7 @@ type InstanceStore interface {
 	// GetMoreInstances 根据mtime获取增量instances，返回所有store的变更信息
 	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetMoreInstances(tx Tx, mtime time.Time, firstUpdate, needMeta bool, serviceID []string) (map[string]*model.Instance, error)
+	GetMoreInstanceConsoles(tx Tx, mtime time.Time, firstUpdate, needMeta bool, serviceID []string) (map[string]*instanceConsole, error)
 	// SetInstanceHealthStatus 设置实例的健康状态
 	SetInstanceHealthStatus(instanceID string, flag int, revision string) error
 	// BatchSetInstanceHealthStatus 批量设置实例的健康状态
