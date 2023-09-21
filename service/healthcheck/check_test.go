@@ -29,6 +29,7 @@ import (
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/service/healthcheck"
 	testsuit "github.com/polarismesh/polaris/test/suit"
 )
@@ -57,7 +58,14 @@ func Test_serialSetInsDbStatus(t *testing.T) {
 	})
 
 	testFunc := func(t *testing.T, health bool, predicate func(t *testing.T, saveIns *model.Instance)) {
-		mockSvr, err := healthcheck.NewHealthServer(context.TODO(), nil, healthcheck.WithStore(testSuit.Storage))
+		mockSvr, err := healthcheck.NewHealthServer(context.TODO(), &healthcheck.Config{
+			Open: utils.BoolPtr(true),
+			Checkers: []plugin.ConfigEntry{
+				{
+					Name: "heartbeatMemory",
+				},
+			},
+		}, healthcheck.WithStore(testSuit.Storage))
 		if err != nil {
 			t.Fatal(err)
 		}
