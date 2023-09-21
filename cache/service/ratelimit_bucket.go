@@ -49,7 +49,7 @@ func (r *rateLimitRuleBucket) foreach(proc types.RateLimitIterProc) {
 }
 
 func (r *rateLimitRuleBucket) count() int {
-	return r.rules.Len()
+	return r.ids.Len()
 }
 
 func (r *rateLimitRuleBucket) saveRule(rule *model.RateLimit) {
