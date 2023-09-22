@@ -19,6 +19,7 @@ package sqldb
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -1056,6 +1057,22 @@ func batchAddInstanceCheck(tx *BaseTx, instances []*model.Instance) error {
 		return nil
 	}
 	_, err := tx.Exec(str, args...)
+	return err
+}
+
+// addInstanceConsole
+func addInstanceConsole(tx *BaseTx, instanceConsole *model.InstanceConsole) error {
+
+	str := "insert into instance_console(`id`, `isolate`, `weight`, `metadata`, `ctime`, `mtime`) values "
+	str += "(?, ?, ?, ?, sysdate(), sysdate())"
+	metadata, err := json.Marshal(&instanceConsole.Metadata)
+	if err != nil {
+		log.Errorf("[Store][database] instance_console metadata phrase err: %s", err.Error())
+		return err
+	}
+
+	_, err := tx.Exec(str, instanceConsole.Id, instanceConsole.Isolate, string(metadata), instanceConsole.Weight)
+
 	return err
 }
 

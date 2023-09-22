@@ -78,8 +78,8 @@ func (ic *instanceCache) Initialize(opt map[string]interface{}) error {
 	ic.ids = utils.NewSyncMap[string, *model.Instance]()
 	ic.services = utils.NewSyncMap[string, *ServiceInstances]()
 	ic.instanceCounts = utils.NewSyncMap[string, *model.InstanceCount]()
-	ic.instancePorts = newInstancePorts()
 	ic.instanceConsoles = utils.NewSyncMap[string, *model.InstanceConsole]()
+	ic.instancePorts = newInstancePorts()
 	if opt == nil {
 		return nil
 	}
@@ -218,6 +218,7 @@ func (ic *instanceCache) Clear() error {
 	ic.ids = utils.NewSyncMap[string, *model.Instance]()
 	ic.services = utils.NewSyncMap[string, *ServiceInstances]()
 	ic.instanceCounts = utils.NewSyncMap[string, *model.InstanceCount]()
+	ic.instanceConsoles = utils.NewSyncMap[string, *model.InstanceConsole]()
 	ic.instancePorts.reset()
 	ic.instanceCount = 0
 	return nil
