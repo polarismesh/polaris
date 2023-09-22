@@ -863,10 +863,10 @@ type InstanceEvent struct {
 
 // instance info from console
 type InstanceConsole struct {
-	id       string
-	isolate  bool
-	weight   int8
-	metadata map[string]string
+	Id       string
+	Isolate  bool
+	Weight   int8
+	Metadata map[string]string
 }
 
 // InjectMetadata 从context中获取metadata并注入到事件对象

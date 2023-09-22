@@ -194,6 +194,17 @@ func (ic *instanceCache) handleUpdate(start time.Time, tx store.Tx) ([]*eventhub
 		return nil, nil, -1, err
 	}
 
+	instanceConsoles, err := ic.storage.GetMoreInstanceConsoles(tx, ic.LastFetchTime(), ic.IsFirstUpdate(),
+		ic.needMeta, ic.systemServiceID)
+	if err != nil {
+		log.Error("[Cache][InstanceConsole] update get storage more", zap.Error(err))
+		return nil, nil, -1, err
+	}
+	for _, item := range instanceConsoles {
+		//Todo: check validation
+		ic.instanceConsoles.Store(item.Id, item)
+	}
+
 	events, lastMtimes, update, del := ic.setInstances(instances)
 	log.Info("[Cache][Instance] get more instances",
 		zap.Int("pull-from-store", len(instances)), zap.Int("update", update), zap.Int("delete", del),
