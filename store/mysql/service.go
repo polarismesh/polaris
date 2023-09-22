@@ -1054,11 +1054,12 @@ func callFetchServiceRows(rows *sql.Rows, callback func(entry *model.Service) (b
 		}
 
 		var item model.Service
+		var exportTo string
 		err := rows.Scan(
 			&item.ID, &item.Name, &item.Namespace, &item.Business, &item.Comment,
 			&item.Token, &item.Revision, &item.Owner, &flag, &ctime, &mtime, &item.Ports,
 			&item.Department, &item.CmdbMod1, &item.CmdbMod2, &item.CmdbMod3,
-			&item.Reference, &item.ReferFilter, &item.PlatformID)
+			&item.Reference, &item.ReferFilter, &item.PlatformID, &exportTo)
 
 		if err != nil {
 			log.Errorf("[Store][database] fetch service rows scan err: %s", err.Error())
@@ -1067,6 +1068,8 @@ func callFetchServiceRows(rows *sql.Rows, callback func(entry *model.Service) (b
 
 		item.CreateTime = time.Unix(ctime, 0)
 		item.ModifyTime = time.Unix(mtime, 0)
+		item.ExportTo = map[string]struct{}{}
+		_ = json.Unmarshal([]byte(exportTo), &item.ExportTo)
 		item.Valid = true
 		if flag == 1 {
 			item.Valid = false
