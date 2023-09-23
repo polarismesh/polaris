@@ -1071,7 +1071,7 @@ func addInstanceConsole(tx *BaseTx, instanceConsole *model.InstanceConsole) erro
 		return err
 	}
 
-	_, err := tx.Exec(str, instanceConsole.Id, instanceConsole.Isolate, string(metadata), instanceConsole.Weight)
+	_, err = tx.Exec(str, instanceConsole.Id, instanceConsole.Isolate, string(metadata), instanceConsole.Weight)
 
 	return err
 }
