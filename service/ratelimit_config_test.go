@@ -20,6 +20,7 @@ package service_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sync"
 	"testing"
@@ -422,6 +423,9 @@ func TestUpdateRateLimit(t *testing.T) {
 				resp := discoverSuit.DiscoverServer().GetRateLimits(discoverSuit.DefaultCtx, filters)
 				if !respSuccess(resp) {
 					errs <- fmt.Errorf("error : %v", resp)
+				}
+				if len(resp.GetRateLimits()) == 0 {
+					errs <- errors.New("ratelimit rule count is zero")
 				}
 				checkRateLimit(t, rateLimitResp, resp.GetRateLimits()[0])
 			}(i)
