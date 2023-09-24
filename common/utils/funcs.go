@@ -18,11 +18,14 @@
 package utils
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"strings"
 
 	"github.com/google/uuid"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 )
 
 var emptyVal = struct{}{}
@@ -202,4 +205,50 @@ func IsNotEqualMap(req map[string]string, old map[string]string) bool {
 	}
 
 	return needUpdate
+}
+
+// ConvertGRPCContext 将GRPC上下文转换成内部上下文
+func ConvertGRPCContext(ctx context.Context) context.Context {
+	var (
+		requestID = ""
+		userAgent = ""
+	)
+	meta, exist := metadata.FromIncomingContext(ctx)
+	if exist {
+		ids := meta["request-id"]
+		if len(ids) > 0 {
+			requestID = ids[0]
+		}
+		agents := meta["user-agent"]
+		if len(agents) > 0 {
+			userAgent = agents[0]
+		}
+	} else {
+		meta = metadata.MD{}
+	}
+
+	var (
+		clientIP = ""
+		address  = ""
+	)
+	if pr, ok := peer.FromContext(ctx); ok && pr.Addr != nil {
+		address = pr.Addr.String()
+		addrSlice := strings.Split(address, ":")
+		if len(addrSlice) == 2 {
+			clientIP = addrSlice[0]
+		}
+	}
+
+	ctx = context.Background()
+	ctx = context.WithValue(ctx, ContextGrpcHeader, meta)
+	ctx = context.WithValue(ctx, StringContext("request-id"), requestID)
+	ctx = context.WithValue(ctx, StringContext("client-ip"), clientIP)
+	ctx = context.WithValue(ctx, ContextClientAddress, address)
+	ctx = context.WithValue(ctx, StringContext("user-agent"), userAgent)
+
+	return ctx
+}
+
+func BoolPtr(v bool) *bool {
+	return &v
 }

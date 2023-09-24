@@ -96,9 +96,13 @@ func (set *SyncSet[K]) ToSlice() []K {
 
 func (set *SyncSet[K]) Range(fn func(val K)) {
 	set.lock.RLock()
-	defer set.lock.RUnlock()
-
+	snapshot := map[K]struct{}{}
 	for k := range set.container {
+		snapshot[k] = struct{}{}
+	}
+	set.lock.RUnlock()
+
+	for k := range snapshot {
 		fn(k)
 	}
 }
@@ -275,13 +279,38 @@ func (s *SyncMap[K, V]) Store(key K, val V) {
 	s.m[key] = val
 }
 
-// Range
-func (s *SyncMap[K, V]) Range(f func(key K, val V) bool) {
+// Values
+func (s *SyncMap[K, V]) Values() []V {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
+	ret := make([]V, 0, len(s.m))
+	for _, v := range s.m {
+		ret = append(ret, v)
+	}
+	return ret
+}
+
+// Range
+func (s *SyncMap[K, V]) Range(f func(key K, val V)) {
+	s.lock.RLock()
+	snapshot := map[K]V{}
 	for k, v := range s.m {
-		_ = f(k, v)
+		snapshot[k] = v
+	}
+	s.lock.RUnlock()
+
+	for k, v := range snapshot {
+		f(k, v)
+	}
+}
+
+// ReadRange .
+func (s *SyncMap[K, V]) ReadRange(f func(key K, val V)) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	for k, v := range s.m {
+		f(k, v)
 	}
 }
 

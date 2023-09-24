@@ -109,7 +109,6 @@ type Server struct {
 	groupCache        cachetypes.ConfigGroupCache
 	caches            *cache.CacheManager
 	watchCenter       *watchCenter
-	connManager       *connManager
 	namespaceOperator namespace.NamespaceOperateServer
 	initialized       bool
 
@@ -164,10 +163,6 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 		return err
 	}
 
-	// 初始化连接管理器
-	connMng := NewConfigConnManager(ctx, s.watchCenter)
-	s.connManager = connMng
-
 	// 获取History插件，注意：插件的配置在bootstrap已经设置好
 	s.history = plugin.GetHistory()
 	if s.history == nil {
@@ -214,11 +209,6 @@ func (s *Server) WatchCenter() *watchCenter {
 // Cache 获取配置中心缓存模块
 func (s *Server) Cache() cachetypes.ConfigFileCache {
 	return s.fileCache
-}
-
-// ConnManager 获取配置中心连接管理器
-func (s *Server) ConnManager() *connManager {
-	return s.connManager
 }
 
 // CryptoManager 获取加密管理

@@ -194,32 +194,30 @@ func (fc *configGroupCache) Query(args *types.ConfigGroupArgs) (uint32, []*model
 	}
 
 	values := make([]*model.ConfigFileGroup, 0, 8)
-	fc.name2groups.Range(func(namespce string, groups *utils.SyncMap[string, *model.ConfigFileGroup]) bool {
+	fc.name2groups.ReadRange(func(namespce string, groups *utils.SyncMap[string, *model.ConfigFileGroup]) {
 		if args.Namespace != "" && utils.IsWildNotMatch(namespce, args.Namespace) {
-			return true
+			return
 		}
-		groups.Range(func(name string, group *model.ConfigFileGroup) bool {
+		groups.ReadRange(func(name string, group *model.ConfigFileGroup) {
 			if args.Name != "" && utils.IsWildNotMatch(name, args.Name) {
-				return true
+				return
 			}
 			if args.Business != "" && utils.IsWildNotMatch(group.Business, args.Business) {
-				return true
+				return
 			}
 			if args.Department != "" && utils.IsWildNotMatch(group.Department, args.Department) {
-				return true
+				return
 			}
 			if len(args.Metadata) > 0 {
 				for k, v := range args.Metadata {
 					sv, ok := group.Metadata[k]
 					if !ok || sv != v {
-						return true
+						return
 					}
 				}
 			}
 			values = append(values, group)
-			return true
 		})
-		return true
 	})
 
 	sort.Slice(values, func(i, j int) bool {

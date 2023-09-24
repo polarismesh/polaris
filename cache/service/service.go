@@ -297,18 +297,12 @@ func (sc *serviceCache) CleanNamespace(namespace string) {
 
 // IteratorServices 对缓存中的服务进行迭代
 func (sc *serviceCache) IteratorServices(iterProc types.ServiceIterProc) error {
-	var (
-		cont bool
-		err  error
-	)
-
-	proc := func(k string, svc *model.Service) bool {
+	var err error
+	proc := func(k string, svc *model.Service) {
 		sc.fillServicePorts(svc)
-		cont, err = iterProc(k, svc)
-		if err != nil {
-			return false
+		if _, err = iterProc(k, svc); err != nil {
+			return
 		}
-		return cont
 	}
 	sc.ids.Range(proc)
 	return err
@@ -330,13 +324,7 @@ func (sc *serviceCache) GetNamespaceCntInfo(namespace string) model.NamespaceSer
 
 // GetServicesCount 获取缓存中服务的个数
 func (sc *serviceCache) GetServicesCount() int {
-	count := 0
-	sc.ids.Range(func(key string, value *model.Service) bool {
-		count++
-		return true
-	})
-
-	return count
+	return sc.ids.Len()
 }
 
 // ListServices get service list and revision by namespace
@@ -505,14 +493,13 @@ func (sc *serviceCache) appendServiceCountChangeNamespace(changeNs map[string]st
 	sc.plock.Lock()
 	defer sc.plock.Unlock()
 	waitDel := map[string]struct{}{}
-	sc.pendingServices.Range(func(svcId string, _ struct{}) bool {
+	sc.pendingServices.ReadRange(func(svcId string, _ struct{}) {
 		svc, ok := sc.ids.Load(svcId)
 		if !ok {
-			return true
+			return
 		}
 		changeNs[svc.Namespace] = struct{}{}
 		waitDel[svcId] = struct{}{}
-		return true
 	})
 	for svcId := range waitDel {
 		sc.pendingServices.Delete(svcId)
@@ -563,12 +550,11 @@ func (sc *serviceCache) postProcessUpdatedServices(affect map[string]struct{}) {
 		count.ServiceCount = 0
 		count.InstanceCnt = &model.InstanceCount{}
 
-		value.Range(func(key string, svc *model.Service) bool {
+		value.ReadRange(func(key string, svc *model.Service) {
 			count.ServiceCount++
 			insCnt := sc.instCache.GetInstancesCountByServiceID(svc.ID)
 			count.InstanceCnt.TotalInstanceCount += insCnt.TotalInstanceCount
 			count.InstanceCnt.HealthyInstanceCount += insCnt.HealthyInstanceCount
-			return true
 		})
 	}
 }
@@ -603,32 +589,29 @@ func (sc *serviceCache) updateCl5SidAndNames(service *model.Service) {
 func (sc *serviceCache) GetVisibleServicesInOtherNamespace(svcName, namespace string) []*model.Service {
 	ret := make(map[string]*model.Service)
 	// 根据服务级别的可见性进行查询, 先查询精确匹配
-	sc.exportServices.Range(func(exportToNs string, services *utils.SyncMap[string, *model.Service]) bool {
+	sc.exportServices.ReadRange(func(exportToNs string, services *utils.SyncMap[string, *model.Service]) {
 		if exportToNs != namespace && exportToNs != types.AllMatched {
-			return true
+			return
 		}
-		services.Range(func(_ string, svc *model.Service) bool {
+		services.ReadRange(func(_ string, svc *model.Service) {
 			if svc.Name == svcName && svc.Namespace != namespace {
 				ret[svc.ID] = svc
 			}
-			return true
 		})
-		return true
 	})
 
 	// 根据命名空间级别的可见性进行查询, 先看精确的
-	sc.exportNamespace.Range(func(exportNs string, viewerNs *utils.SyncSet[string]) bool {
+	sc.exportNamespace.ReadRange(func(exportNs string, viewerNs *utils.SyncSet[string]) {
 		exactMatch := viewerNs.Contains(namespace)
 		allMatch := viewerNs.Contains(types.AllMatched)
 		if !exactMatch && !allMatch {
-			return true
+			return
 		}
 		svc := sc.GetServiceByName(svcName, exportNs)
 		if svc == nil {
-			return true
+			return
 		}
 		ret[svc.ID] = svc
-		return true
 	})
 
 	visibleServices := make([]*model.Service, 0, len(ret))

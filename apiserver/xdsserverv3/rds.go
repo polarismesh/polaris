@@ -186,7 +186,7 @@ func (rds *RDSBuilder) makeSidecarOutBoundRoutes(trafficDirection corev3.Traffic
 			if matchAll {
 				break
 			} else {
-				resource.BuildSidecarRouteMatch(routeMatch, source)
+				resource.BuildSidecarRouteMatch(rds.client, routeMatch, source)
 			}
 		}
 
@@ -287,7 +287,7 @@ func (rds *RDSBuilder) makeGatewayRoutes(option *resource.BuildOption,
 					continue
 				}
 				findGatewaySource = true
-				buildGatewayRouteMatch(routeMatch, source)
+				buildGatewayRouteMatch(rds.client, routeMatch, source)
 			}
 
 			if !findGatewaySource {
@@ -328,7 +328,7 @@ func (rds *RDSBuilder) makeGatewayRoutes(option *resource.BuildOption,
 	return routes, nil
 }
 
-func buildGatewayRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.SourceService) {
+func buildGatewayRouteMatch(client *resource.XDSClient, routeMatch *route.RouteMatch, source *traffic_manage.SourceService) {
 	for i := range source.GetArguments() {
 		argument := source.GetArguments()[i]
 		if argument.Type == traffic_manage.SourceMatch_PATH {
@@ -345,7 +345,7 @@ func buildGatewayRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage
 			}
 		}
 	}
-	resource.BuildCommonRouteMatch(routeMatch, source)
+	resource.BuildCommonRouteMatch(client, routeMatch, source)
 }
 
 func isMatchGatewaySource(source *traffic_manage.SourceService, svcName, svcNamespace string) bool {

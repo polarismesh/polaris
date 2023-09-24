@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"
@@ -150,8 +151,8 @@ func (s *serviceContractStore) AddServiceContractInterfaces(contract *model.Enri
 		// 新增批量数据
 		for _, item := range contract.Interfaces {
 			addSql := "REPLACE INTO service_contract_detail(`id`,`contract_id`, `method`, `path` ,`content`,`revision`" +
-				",`flag`,`ctime`, `mtime`" +
-				") VALUES (?,?,?,?,?,?,?,sysdate(),sysdate())"
+				",`flag`,`ctime`, `mtime`, `source`" +
+				") VALUES (?,?,?,?,?,?,?,sysdate(),sysdate(),?)"
 			if _, err := tx.Exec(addSql, []interface{}{
 				item.ID,
 				contract.ID,
@@ -160,6 +161,7 @@ func (s *serviceContractStore) AddServiceContractInterfaces(contract *model.Enri
 				item.Content,
 				item.Revision,
 				0,
+				int(item.Source),
 			}...); err != nil {
 				log.Errorf("[Store][database] add service contract detail err: %s", err.Error())
 				return err
@@ -179,8 +181,8 @@ func (s *serviceContractStore) AppendServiceContractInterfaces(contract *model.E
 		}
 		for _, item := range contract.Interfaces {
 			addSql := "REPLACE INTO service_contract_detail(`id`,`contract_id`, `method`, `path` ,`content`,`revision`" +
-				",`flag`,`ctime`, `mtime`" +
-				") VALUES (?,?,?,?,?,?,?,sysdate(),sysdate())"
+				",`flag`,`ctime`, `mtime`,`source`" +
+				") VALUES (?,?,?,?,?,?,?,sysdate(),sysdate(),?)"
 
 			if _, err := tx.Exec(addSql, []interface{}{
 				item.ID,
@@ -190,6 +192,7 @@ func (s *serviceContractStore) AppendServiceContractInterfaces(contract *model.E
 				item.Content,
 				item.Revision,
 				0,
+				int(item.Source),
 			}...); err != nil {
 				log.Errorf("[Store][database] append service contract detail err: %s", err.Error())
 				return err
@@ -231,9 +234,19 @@ func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime t
 		mtime = time.Unix(0, 1)
 		querySql += " AND flag = 0 "
 	}
-	rows, err := s.master.Query(querySql, mtime)
+
+	tx, err := s.slave.Begin()
 	if err != nil {
-		log.Error("[Store][Contract] list contract ", zap.Error(err))
+		log.Error("[Store][Contract] list contract for cache when begin tx", zap.Error(err))
+		return nil, store.Error(err)
+	}
+	defer func() {
+		_ = tx.Commit()
+	}()
+
+	rows, err := tx.Query(querySql, mtime)
+	if err != nil {
+		log.Error("[Store][Contract] list contract for cache when query", zap.Error(err))
 		return nil, store.Error(err)
 	}
 	defer func() {
@@ -247,7 +260,7 @@ func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime t
 		if scanErr := rows.Scan(&contract.ID, &contract.Name, &contract.Namespace, &contract.Service,
 			&contract.Protocol, &contract.Version, &contract.Revision, &flag,
 			&contract.Content, &ctime, &mtime); scanErr != nil {
-			log.Errorf("[Store][Contract] fetch contract rows scan err: %s", err.Error())
+			log.Error("[Store][Contract] fetch contract rows scan err: %s", zap.Error(err))
 			return nil, store.Error(err)
 		}
 
@@ -267,35 +280,41 @@ func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime t
 
 	contractDetailMap := map[string][]*model.InterfaceDescriptor{}
 	if len(idList) > 0 {
-		queryDetailSql := "SELECT id,contract_id,method,path,content,revision," +
-			"flag,UNIX_TIMESTAMP(ctime),UNIX_TIMESTAMP(mtime)" +
+		queryDetailSql := "SELECT id, contract_id, method, path, content, revision," +
+			"flag, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime), source " +
 			" FROM service_contract_detail WHERE contract_id IN (" + strings.Join(idList, ",") + ")"
-		detailRows, err := s.master.Query(queryDetailSql)
+		detailRows, err := tx.Query(queryDetailSql)
 		if err != nil {
 			log.Error("[Store][Contract] list contract detail",
-				zap.String("query sql", queryDetailSql),
-				zap.Any("args", idList),
-				zap.String("error", err.Error()))
+				zap.String("query sql", queryDetailSql), zap.Any("args", idList), zap.Error(err))
 			return nil, store.Error(err)
 		}
 		defer func() {
 			_ = detailRows.Close()
 		}()
 		for detailRows.Next() {
-			var flag, ctime, mtime int64
+			var flag, ctime, mtime, source int64
 			detailItem := &model.InterfaceDescriptor{}
 			if scanErr := detailRows.Scan(
 				&detailItem.ID, &detailItem.ContractID, &detailItem.Method,
 				&detailItem.Path, &detailItem.Content, &detailItem.Revision,
-				&flag, &ctime, &mtime,
+				&flag, &ctime, &mtime, &source,
 			); scanErr != nil {
-				log.Errorf("[Store][Contract] fetch contract detail rows scan err: %s", scanErr.Error())
+				log.Error("[Store][Contract] fetch contract detail rows scan err: %s", zap.Error(err))
 				return nil, store.Error(err)
 			}
 
 			detailItem.Valid = flag == 0
 			detailItem.CreateTime = time.Unix(0, ctime)
 			detailItem.ModifyTime = time.Unix(0, mtime)
+			switch source {
+			case 1:
+				detailItem.Source = service_manage.InterfaceDescriptor_Manual
+			case 2:
+				detailItem.Source = service_manage.InterfaceDescriptor_Client
+			default:
+				detailItem.Source = service_manage.InterfaceDescriptor_UNKNOWN
+			}
 
 			if _, ok := contractDetailMap[detailItem.ContractID]; !ok {
 				contractDetailMap[detailItem.ContractID] = make([]*model.InterfaceDescriptor, 0, 4)

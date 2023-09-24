@@ -42,6 +42,8 @@ const (
 
 // CheckScheduler schedule and run check actions
 type CheckScheduler struct {
+	svr *Server
+
 	rwMutex            *sync.RWMutex
 	scheduledInstances map[string]*itemValue
 	scheduledClients   map[string]*clientItemValue
@@ -80,16 +82,17 @@ type itemValue struct {
 }
 
 type InstanceEventHealthCheckHandler struct {
+	svr                  *Server
 	ctx                  context.Context
 	instanceEventChannel chan *model.InstanceEvent
 }
 
 // newLeaderChangeEventHandler
-func newInstanceEventHealthCheckHandler(ctx context.Context,
-	eventChannel chan *model.InstanceEvent) *InstanceEventHealthCheckHandler {
+func newInstanceEventHealthCheckHandler(ctx context.Context, svr *Server) *InstanceEventHealthCheckHandler {
 	return &InstanceEventHealthCheckHandler{
+		svr:                  svr,
 		ctx:                  ctx,
-		instanceEventChannel: eventChannel,
+		instanceEventChannel: svr.instanceEventChannel,
 	}
 }
 
@@ -193,7 +196,7 @@ func (c *CheckScheduler) processAdoptEvents(
 		instanceIds = append(instanceIds, id)
 	}
 	log.Debug("[Health Check][Check] adopt event", zap.Any("instances", instanceIds),
-		zap.String("server", server.localHost), zap.Bool("add", add))
+		zap.String("server", c.svr.localHost), zap.Bool("add", add))
 	return instances
 }
 
@@ -338,7 +341,7 @@ func (c *CheckScheduler) addHealthyCallback(instance *itemValue, lastHeartbeatTi
 	delaySec := instance.expireDurationSec
 	var nextDelaySec int64
 	if lastHeartbeatTimeSec > 0 {
-		curTimeSec := currentTimeSec()
+		curTimeSec := c.svr.currentTimeSec()
 		timePassed := curTimeSec - lastHeartbeatTimeSec
 		if timePassed > 0 {
 			nextDelaySec = int64(delaySec) - timePassed
@@ -383,7 +386,7 @@ func (c *CheckScheduler) checkCallbackClient(clientId string) *clientItemValue {
 	defer clientValue.mutex.Unlock()
 	var checkResp *plugin.CheckResponse
 	var err error
-	cachedClient := server.cacheProvider.GetClient(clientId)
+	cachedClient := c.svr.cacheProvider.GetClient(clientId)
 	if cachedClient == nil {
 		log.Infof("[Health Check][Check]client %s has been deleted", clientValue.id)
 		return clientValue
@@ -395,7 +398,7 @@ func (c *CheckScheduler) checkCallbackClient(clientId string) *clientItemValue {
 			Port:       clientValue.port,
 			Healthy:    true,
 		},
-		CurTimeSec:        currentTimeSec,
+		CurTimeSec:        c.svr.currentTimeSec,
 		ExpireDurationSec: clientValue.expireDurationSec,
 	}
 	checkResp, err = clientValue.checker.Check(request)
@@ -409,7 +412,7 @@ func (c *CheckScheduler) checkCallbackClient(clientId string) *clientItemValue {
 			log.Infof(
 				"[Health Check][Check]client change from healthy to unhealthy, id is %s, address is %s",
 				clientValue.id, clientValue.host)
-			code := asyncDeleteClient(cachedClient.Proto())
+			code := asyncDeleteClient(c.svr, cachedClient.Proto())
 			if code != apimodel.Code_ExecuteSuccess {
 				log.Errorf("[Health Check][Check]fail to update client, id is %s, address is %s, code is %d",
 					clientValue.id, clientValue.host, code)
@@ -442,7 +445,7 @@ func (c *CheckScheduler) checkCallbackInstance(value interface{}) {
 		}
 	}()
 
-	cachedInstance := server.cacheProvider.GetInstance(instanceId)
+	cachedInstance := c.svr.cacheProvider.GetInstance(instanceId)
 	if cachedInstance == nil {
 		log.Infof("[Health Check][Check]instance %s has been deleted", instanceValue.id)
 		return
@@ -454,7 +457,7 @@ func (c *CheckScheduler) checkCallbackInstance(value interface{}) {
 			Port:       instanceValue.port,
 			Healthy:    cachedInstance.Healthy(),
 		},
-		CurTimeSec:        currentTimeSec,
+		CurTimeSec:        c.svr.currentTimeSec,
 		ExpireDurationSec: instanceValue.expireDurationSec,
 	}
 	checkResp, err = instanceValue.checker.Check(request)
@@ -464,7 +467,7 @@ func (c *CheckScheduler) checkCallbackInstance(value interface{}) {
 		return
 	}
 	if !checkResp.StayUnchanged {
-		code := setInsDbStatus(cachedInstance, checkResp.Healthy, checkResp.LastHeartbeatTimeSec)
+		code := setInsDbStatus(c.svr, cachedInstance, checkResp.Healthy, checkResp.LastHeartbeatTimeSec)
 		if checkResp.Healthy {
 			// from unhealthy to healthy
 			log.Infof(
@@ -536,7 +539,7 @@ func (c *CheckScheduler) doCheckClient(ctx context.Context) {
 			if len(c.scheduledClients) == 0 {
 				continue
 			}
-			curTimeSec := currentTimeSec()
+			curTimeSec := c.svr.currentTimeSec()
 			c.rwMutex.RLock()
 			for id, value := range c.scheduledClients {
 				if value.lastCheckTimeSec == 0 {
@@ -554,10 +557,10 @@ func (c *CheckScheduler) doCheckClient(ctx context.Context) {
 			for _, id := range itemsToCheck {
 				item := c.checkCallbackClient(id)
 				if nil != item {
-					item.lastCheckTimeSec = currentTimeSec()
+					item.lastCheckTimeSec = c.svr.currentTimeSec()
 				}
 			}
-			timeCost := currentTimeSec() - curTimeSec
+			timeCost := c.svr.currentTimeSec() - curTimeSec
 			log.Infof("[Health Check][Check]client check finished, time cost %d, client count %d",
 				timeCost, len(itemsToCheck))
 		case <-ctx.Done():
@@ -568,17 +571,17 @@ func (c *CheckScheduler) doCheckClient(ctx context.Context) {
 }
 
 // setInsDbStatus 修改实例状态, 需要打印操作记录
-func setInsDbStatus(instance *model.Instance, healthStatus bool, lastBeatTime int64) apimodel.Code {
+func setInsDbStatus(svr *Server, instance *model.Instance, healthStatus bool, lastBeatTime int64) apimodel.Code {
 	id := instance.ID()
 	host := instance.Host()
 	port := instance.Port()
 	log.Infof("[Health Check][Check]addr:%s:%d id:%s set db status %v", host, port, id, healthStatus)
 
 	var code apimodel.Code
-	if server.bc.HeartbeatOpen() {
-		code = asyncSetInsDbStatus(instance.Proto, healthStatus, lastBeatTime)
+	if svr.bc.HeartbeatOpen() {
+		code = asyncSetInsDbStatus(svr, instance.Proto, healthStatus, lastBeatTime)
 	} else {
-		code = serialSetInsDbStatus(instance.Proto, healthStatus, lastBeatTime)
+		code = serialSetInsDbStatus(svr, instance.Proto, healthStatus, lastBeatTime)
 	}
 	if code != apimodel.Code_ExecuteSuccess {
 		return code
@@ -601,7 +604,7 @@ func setInsDbStatus(instance *model.Instance, healthStatus bool, lastBeatTime in
 			event.EType = model.EventInstanceTurnUnHealth
 		}
 
-		server.publishInstanceEvent(instance.ServiceID, event)
+		svr.publishInstanceEvent(instance.ServiceID, event)
 	}
 
 	return code
@@ -611,8 +614,8 @@ func setInsDbStatus(instance *model.Instance, healthStatus bool, lastBeatTime in
 // 底层函数会合并delete请求，增加并发创建的吞吐
 // req 原始请求
 // ins 包含了req数据与instanceID，serviceToken
-func asyncDeleteClient(client *apiservice.Client) apimodel.Code {
-	future := server.bc.AsyncDeregisterClient(client)
+func asyncDeleteClient(svr *Server, client *apiservice.Client) apimodel.Code {
+	future := svr.bc.AsyncDeregisterClient(client)
 	if err := future.Wait(); err != nil {
 		log.Error("[Health Check][Check] async delete client", zap.String("client-id", client.GetId().GetValue()),
 			zap.Error(err))
@@ -624,8 +627,8 @@ func asyncDeleteClient(client *apiservice.Client) apimodel.Code {
 // 底层函数会合并delete请求，增加并发创建的吞吐
 // req 原始请求
 // ins 包含了req数据与instanceID，serviceToken
-func asyncSetInsDbStatus(ins *apiservice.Instance, healthStatus bool, lastBeatTime int64) apimodel.Code {
-	future := server.bc.AsyncHeartbeat(ins, healthStatus, lastBeatTime)
+func asyncSetInsDbStatus(svr *Server, ins *apiservice.Instance, healthStatus bool, lastBeatTime int64) apimodel.Code {
+	future := svr.bc.AsyncHeartbeat(ins, healthStatus, lastBeatTime)
 	if err := future.Wait(); err != nil {
 		log.Error(err.Error())
 	}
@@ -635,15 +638,14 @@ func asyncSetInsDbStatus(ins *apiservice.Instance, healthStatus bool, lastBeatTi
 // serialSetInsDbStatus 同步串行创建实例
 // req为原始的请求体
 // ins包括了req的内容，并且填充了instanceID与serviceToken
-func serialSetInsDbStatus(ins *apiservice.Instance, healthStatus bool, lastBeatTime int64) apimodel.Code {
+func serialSetInsDbStatus(svr *Server, ins *apiservice.Instance, healthStatus bool, lastBeatTime int64) apimodel.Code {
 	id := ins.GetId().GetValue()
-	err := server.storage.SetInstanceHealthStatus(id, model.StatusBoolToInt(healthStatus), utils.NewUUID())
-	if err != nil {
+	if err := svr.storage.SetInstanceHealthStatus(id, model.StatusBoolToInt(healthStatus), utils.NewUUID()); err != nil {
 		log.Errorf("[Health Check][Check]id: %s set db status err:%s", id, err)
 		return commonstore.StoreCode2APICode(err)
 	}
 	if healthStatus {
-		if err := server.storage.BatchRemoveInstanceMetadata([]*store.InstanceMetadataRequest{
+		if err := svr.storage.BatchRemoveInstanceMetadata([]*store.InstanceMetadataRequest{
 			{
 				InstanceID: id,
 				Revision:   utils.NewUUID(),
@@ -654,7 +656,7 @@ func serialSetInsDbStatus(ins *apiservice.Instance, healthStatus bool, lastBeatT
 			return commonstore.StoreCode2APICode(err)
 		}
 	} else {
-		if err := server.storage.BatchAppendInstanceMetadata([]*store.InstanceMetadataRequest{
+		if err := svr.storage.BatchAppendInstanceMetadata([]*store.InstanceMetadataRequest{
 			{
 				InstanceID: id,
 				Revision:   utils.NewUUID(),
@@ -668,4 +670,8 @@ func serialSetInsDbStatus(ins *apiservice.Instance, healthStatus bool, lastBeatT
 		}
 	}
 	return apimodel.Code_ExecuteSuccess
+}
+
+func SerialSetInsDbStatus(svr *Server, ins *apiservice.Instance, healthStatus bool, lastBeatTime int64) apimodel.Code {
+	return serialSetInsDbStatus(svr, ins, healthStatus, lastBeatTime)
 }

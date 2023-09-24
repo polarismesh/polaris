@@ -69,8 +69,8 @@ func (fc *fileCache) reportMetricsInfo() {
 		}
 	}
 
-	fc.metricsReleaseCount.Range(func(namespace string, groups *utils.SyncMap[string, uint64]) bool {
-		groups.Range(func(groupName string, count uint64) bool {
+	fc.metricsReleaseCount.ReadRange(func(namespace string, groups *utils.SyncMap[string, uint64]) {
+		groups.ReadRange(func(groupName string, count uint64) {
 			metricValues = append(metricValues, metrics.ConfigMetrics{
 				Type:  metrics.ReleaseFileMetric,
 				Total: int64(count),
@@ -79,9 +79,7 @@ func (fc *fileCache) reportMetricsInfo() {
 					metrics.LabelGroup:     groupName,
 				},
 			})
-			return true
 		})
-		return true
 	})
 
 	plugin.GetStatis().ReportConfigMetrics(metricValues...)

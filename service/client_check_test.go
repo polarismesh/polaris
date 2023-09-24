@@ -26,11 +26,16 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	testsuit "github.com/polarismesh/polaris/test/suit"
 )
 
 func TestClientCheck(t *testing.T) {
 	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.Initialize(); err != nil {
+	if err := discoverSuit.Initialize(func(cfg *testsuit.TestConfig) {
+		cfg.HealthChecks.ClientCheckTtl = time.Second
+		cfg.HealthChecks.ClientCheckInterval = 5 * time.Second
+	}); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
@@ -48,7 +53,7 @@ func TestClientCheck(t *testing.T) {
 	})
 	time.Sleep(20 * time.Second)
 	clientIds := map[string]bool{clientId1: true, clientId2: true}
-	for i := 0; i < 50; i++ {
+	for i := 0; i < 10; i++ {
 		for clientId := range clientIds {
 			fmt.Printf("%d report client for %s, round 1\n", i, clientId)
 			discoverSuit.DiscoverServer().ReportClient(context.Background(),

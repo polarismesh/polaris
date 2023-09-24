@@ -104,7 +104,7 @@ func (s *Server) WatchConfigFiles(ctx context.Context,
 
 	// 3. 监听配置变更，hold 请求 30s，30s 内如果有配置发布，则响应请求
 	clientId := utils.ParseClientAddress(ctx) + "@" + utils.NewUUID()[0:8]
-	finishChan := s.ConnManager().AddConn(clientId, watchFiles)
+	finishChan := s.WatchCenter().AddWatcher(clientId, watchFiles)
 	return func() *apiconfig.ConfigClientResponse {
 		return <-finishChan
 	}, nil

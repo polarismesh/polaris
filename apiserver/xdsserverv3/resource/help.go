@@ -115,7 +115,7 @@ func FilterInboundRouterRule(svc *ServiceInfo) []*traffic_manage.SubRuleRouting 
 	return ret
 }
 
-func BuildSidecarRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.SourceService) {
+func BuildSidecarRouteMatch(client *XDSClient, routeMatch *route.RouteMatch, source *traffic_manage.SourceService) {
 	for i := range source.GetArguments() {
 		argument := source.GetArguments()[i]
 		if argument.Type == traffic_manage.SourceMatch_PATH {
@@ -128,15 +128,18 @@ func BuildSidecarRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage
 			}
 		}
 	}
-	BuildCommonRouteMatch(routeMatch, source)
+	BuildCommonRouteMatch(client, routeMatch, source)
 }
 
-func BuildCommonRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.SourceService) {
+func BuildCommonRouteMatch(client *XDSClient, routeMatch *route.RouteMatch, source *traffic_manage.SourceService) {
 	for i := range source.GetArguments() {
 		argument := source.GetArguments()[i]
 		switch argument.Type {
-		case traffic_manage.SourceMatch_HEADER:
+		case traffic_manage.SourceMatch_HEADER, traffic_manage.SourceMatch_METHOD:
 			headerSubName := argument.Key
+			if argument.Type == traffic_manage.SourceMatch_METHOD {
+				headerSubName = ":method"
+			}
 			var headerMatch *route.HeaderMatcher
 			if argument.Value.Type == apimodel.MatchString_EXACT {
 				headerMatch = &route.HeaderMatcher{
@@ -313,7 +316,7 @@ func BuildRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLimit_Ac
 	}
 	actions = append(actions, &route.RateLimit_Action{
 		ActionSpecifier: &route.RateLimit_Action_HeaderValueMatch_{
-			HeaderValueMatch: BuildRateLimitActionHeaderValueMatch(":path", &apitraffic.MatchArgument{
+			HeaderValueMatch: BuildRateLimitActionHeaderValueMatch(":path", methodName, &apitraffic.MatchArgument{
 				Value: &apimodel.MatchString{
 					Type:      methodMatchType,
 					Value:     wrapperspb.String(methodName),
@@ -330,10 +333,16 @@ func BuildRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLimit_Ac
 
 	for i := range arguments {
 		arg := arguments[i]
+		// 仅支持文本类型参数
+		if arg.GetValue().GetValueType() != apimodel.MatchString_TEXT {
+			continue
+		}
+
 		descriptorKey := strings.ToLower(arg.GetType().String()) + "." + arg.Key
+		descriptorValue := arg.GetValue().GetValue().GetValue()
 		switch arg.Type {
 		case apitraffic.MatchArgument_HEADER:
-			headerValueMatch := BuildRateLimitActionHeaderValueMatch(descriptorKey, arg)
+			headerValueMatch := BuildRateLimitActionHeaderValueMatch(descriptorKey, descriptorValue, arg)
 			actions = append(actions, &route.RateLimit_Action{
 				ActionSpecifier: &route.RateLimit_Action_HeaderValueMatch_{
 					HeaderValueMatch: headerValueMatch,
@@ -367,11 +376,56 @@ func BuildRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLimit_Ac
 				Key:   descriptorKey,
 				Value: arg.GetValue().GetValue().GetValue(),
 			})
+		case apitraffic.MatchArgument_CALLER_SERVICE:
+			descriptorKey := "source_cluster"
+			descriptorValue := fmt.Sprintf("%s|%s", arg.GetKey(), arg.GetValue().GetValue().GetValue())
+
+			// 如果是匹配来源服务，则 spec 中的 key 为 namespace，value 为 service
+
+			// 只有匹配规则为全匹配时才能新增 envoy 本身的标签支持
+			if arg.GetValue().GetType() == apimodel.MatchString_EXACT {
+				// 支持 envoy 原生的标签属性
+				actions = append(actions, &route.RateLimit_Action{
+					ActionSpecifier: &route.RateLimit_Action_SourceCluster_{
+						SourceCluster: &route.RateLimit_Action_SourceCluster{},
+					},
+				})
+			}
+
+			// 从 header 中获取, 支持 Spring Cloud Tencent 查询标签设置
+			actions = append(actions, &route.RateLimit_Action{
+				ActionSpecifier: &route.RateLimit_Action_HeaderValueMatch_{
+					HeaderValueMatch: BuildRateLimitActionHeaderValueMatch(descriptorKey, descriptorValue, []*apitraffic.MatchArgument{
+						{
+							Key: "source_service_namespace",
+							Value: &apimodel.MatchString{
+								Type:  arg.GetValue().Type,
+								Value: wrapperspb.String(arg.Key),
+							},
+						},
+						{
+							Key: "source_service_name",
+							Value: &apimodel.MatchString{
+								Type:  arg.GetValue().Type,
+								Value: wrapperspb.String(arg.Key),
+							},
+						},
+					}...),
+				},
+			})
+			entries = append(entries, &envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry{
+				Key:   descriptorKey,
+				Value: descriptorValue,
+			})
 		case apitraffic.MatchArgument_CALLER_IP:
 			actions = append(actions, &route.RateLimit_Action{
 				ActionSpecifier: &route.RateLimit_Action_RemoteAddress_{
 					RemoteAddress: &route.RateLimit_Action_RemoteAddress{},
 				},
+			})
+			entries = append(entries, &envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry{
+				Key:   "remote_address",
+				Value: arg.GetValue().GetValue().GetValue(),
 			})
 		}
 	}
@@ -433,16 +487,19 @@ func BuildRateLimitActionQueryParameterValueMatch(key string,
 	return queryParameterValueMatch
 }
 
-func BuildRateLimitActionHeaderValueMatch(key string, argument *apitraffic.MatchArgument) *route.RateLimit_Action_HeaderValueMatch {
+func BuildRateLimitActionHeaderValueMatch(key, value string,
+	arguments ...*apitraffic.MatchArgument) *route.RateLimit_Action_HeaderValueMatch {
+
 	headerValueMatch := &route.RateLimit_Action_HeaderValueMatch{
 		DescriptorKey:   key,
-		DescriptorValue: argument.GetValue().GetValue().GetValue(),
+		DescriptorValue: value,
 		Headers:         []*route.HeaderMatcher{},
 	}
-	switch argument.GetValue().GetType() {
-	case apimodel.MatchString_EXACT, apimodel.MatchString_NOT_EQUALS:
-		headerValueMatch.Headers = []*route.HeaderMatcher{
-			{
+	for i := range arguments {
+		argument := arguments[i]
+		switch argument.GetValue().GetType() {
+		case apimodel.MatchString_EXACT, apimodel.MatchString_NOT_EQUALS:
+			headerValueMatch.Headers = append(headerValueMatch.Headers, &route.HeaderMatcher{
 				Name:        argument.GetKey(),
 				InvertMatch: argument.GetValue().GetType() == apimodel.MatchString_NOT_EQUALS,
 				HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
@@ -452,11 +509,9 @@ func BuildRateLimitActionHeaderValueMatch(key string, argument *apitraffic.Match
 						},
 					},
 				},
-			},
-		}
-	case apimodel.MatchString_REGEX:
-		headerValueMatch.Headers = []*route.HeaderMatcher{
-			{
+			})
+		case apimodel.MatchString_REGEX:
+			headerValueMatch.Headers = append(headerValueMatch.Headers, &route.HeaderMatcher{
 				Name: argument.GetKey(),
 				HeaderMatchSpecifier: &route.HeaderMatcher_SafeRegexMatch{
 					SafeRegexMatch: &v32.RegexMatcher{
@@ -464,12 +519,10 @@ func BuildRateLimitActionHeaderValueMatch(key string, argument *apitraffic.Match
 						Regex:      argument.GetValue().GetValue().GetValue(),
 					},
 				},
-			},
-		}
-	case MatchString_Prefix:
-		// 专门用于 prefix
-		headerValueMatch.Headers = []*route.HeaderMatcher{
-			{
+			})
+		case MatchString_Prefix:
+			// 专门用于 prefix
+			headerValueMatch.Headers = append(headerValueMatch.Headers, &route.HeaderMatcher{
 				Name: argument.GetKey(),
 				HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
 					StringMatch: &v32.StringMatcher{
@@ -478,7 +531,7 @@ func BuildRateLimitActionHeaderValueMatch(key string, argument *apitraffic.Match
 						},
 					},
 				},
-			},
+			})
 		}
 	}
 	return headerValueMatch

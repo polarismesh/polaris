@@ -82,7 +82,7 @@ func (s *Server) getHealthChecker(id string) plugin.HealthChecker {
 }
 
 func (s *Server) doReport(ctx context.Context, instance *apiservice.Instance) *apiservice.Response {
-	if !s.hcOpt.Open || len(s.checkers) == 0 {
+	if !s.hcOpt.IsOpen() || len(s.checkers) == 0 {
 		return api.NewResponse(apimodel.Code_HealthCheckNotOpen)
 	}
 	id, errRsp := checkHeartbeatInstance(instance)
@@ -108,7 +108,7 @@ func (s *Server) doReport(ctx context.Context, instance *apiservice.Instance) *a
 }
 
 func (s *Server) doReports(ctx context.Context, beats []*apiservice.InstanceHeartbeat) *apiservice.Response {
-	if !s.hcOpt.Open || len(s.checkers) == 0 {
+	if !s.hcOpt.IsOpen() || len(s.checkers) == 0 {
 		return api.NewResponse(apimodel.Code_HealthCheckNotOpen)
 	}
 	for i := range beats {
