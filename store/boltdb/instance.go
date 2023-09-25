@@ -572,6 +572,13 @@ func (i *instanceStore) GetMoreInstances(tx store.Tx, mtime time.Time, firstUpda
 	return toInstance(instances), nil
 }
 
+// GetMoreInstancesConsoles 获取增量修改数据
+func (ins *instanceStore) GetMoreInstanceConsoles(tx store.Tx, mtime time.Time, firstUpdate, needMeta bool,
+	serviceID []string) (map[string]*model.InstanceConsole, error) {
+	//Todo: get from boltdb
+	return nil, nil
+}
+
 // BatchSetInstanceHealthStatus 批量设置实例的健康状态
 func (i *instanceStore) BatchSetInstanceHealthStatus(ids []interface{}, healthy int, revision string) error {
 	for _, id := range ids {

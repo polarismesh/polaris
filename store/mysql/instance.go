@@ -510,7 +510,7 @@ func (ins *instanceStore) GetMoreInstances(tx store.Tx, mtime time.Time, firstUp
 }
 
 // GetMoreInstancesConsoles 获取增量修改数据
-func (ins *instanceStore) GetMoreInstancesConsoles(tx store.Tx, mtime time.Time, firstUpdate, needMeta bool,
+func (ins *instanceStore) GetMoreInstanceConsoles(tx store.Tx, mtime time.Time, firstUpdate, needMeta bool,
 	serviceID []string) (map[string]*model.InstanceConsole, error) {
 
 	dbTx, _ := tx.GetDelegateTx().(*BaseTx)
