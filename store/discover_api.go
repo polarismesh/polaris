@@ -97,12 +97,15 @@ type InstanceStore interface {
 	BatchAddInstances(instances []*model.Instance) error
 	// UpdateInstance 更新实例
 	UpdateInstance(instance *model.Instance) error
+	UpdateInstanceConsole(instance *model.InstanceConsole) error
 	// DeleteInstance 删除一个实例，实际是把valid置为false
 	DeleteInstance(instanceID string) error
+	DeleteInstanceConsole(instanceConsoleID string) error
 	// BatchDeleteInstances 批量删除实例，flag=1
 	BatchDeleteInstances(ids []interface{}) error
 	// CleanInstance 清空一个实例，真正删除
 	CleanInstance(instanceID string) error
+	CleanInstanceConsole(instanceConsoleID string) error
 	// BatchGetInstanceIsolate 检查ID是否存在，并且返回存在的ID，以及ID的隔离状态
 	BatchGetInstanceIsolate(ids map[string]bool) (map[string]bool, error)
 	// GetInstancesBrief 获取实例关联的token

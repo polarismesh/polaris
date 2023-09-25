@@ -579,6 +579,24 @@ func (ins *instanceStore) GetMoreInstanceConsoles(tx store.Tx, mtime time.Time, 
 	return nil, nil
 }
 
+// DeleteInstanceConsole 逻辑删除instanceConsole
+func (ins *instanceStore) DeleteInstanceConsole(instanceConsoleID string) error {
+	//Todo: delete from boltdb
+	return nil
+}
+
+// CleanInstanceConsole 物理删除instanceConsole
+func (ins *instanceStore) CleanInstanceConsole(instanceConsoleID string) error {
+	//Todo: clean from boltdb
+	return nil
+}
+
+// UpdateInstanceConsole 更新instanceConsole
+func (ins *instanceStore) UpdateInstanceConsole(instance *model.InstanceConsole) error {
+	//Todo: update from boltdb
+	return nil
+}
+
 // BatchSetInstanceHealthStatus 批量设置实例的健康状态
 func (i *instanceStore) BatchSetInstanceHealthStatus(ids []interface{}, healthy int, revision string) error {
 	for _, id := range ids {
