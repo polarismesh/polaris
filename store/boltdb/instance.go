@@ -592,7 +592,7 @@ func (ins *instanceStore) CleanInstanceConsole(instanceConsoleID string) error {
 }
 
 // UpdateInstanceConsole 更新instanceConsole
-func (ins *instanceStore) UpdateInstanceConsole(instance *model.InstanceConsole) error {
+func (ins *instanceStore) UpdateInstanceConsole(instanceConsole *model.InstanceConsole) error {
 	//Todo: update from boltdb
 	return nil
 }

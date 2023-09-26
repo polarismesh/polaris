@@ -866,7 +866,7 @@ type InstanceConsole struct {
 	Id       string
 	Isolate  bool
 	Weight   int8
-	Metadata map[string]string
+	Metadata string
 }
 
 // InjectMetadata 从context中获取metadata并注入到事件对象

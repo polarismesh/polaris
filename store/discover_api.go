@@ -97,7 +97,7 @@ type InstanceStore interface {
 	BatchAddInstances(instances []*model.Instance) error
 	// UpdateInstance 更新实例
 	UpdateInstance(instance *model.Instance) error
-	UpdateInstanceConsole(instance *model.InstanceConsole) error
+	UpdateInstanceConsole(instanceConsole *model.InstanceConsole) error
 	// DeleteInstance 删除一个实例，实际是把valid置为false
 	DeleteInstance(instanceID string) error
 	DeleteInstanceConsole(instanceConsoleID string) error
