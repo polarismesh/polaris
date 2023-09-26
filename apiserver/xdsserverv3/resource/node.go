@@ -55,6 +55,9 @@ const (
 	SidecarNamespaceName = "sidecar.polarismesh.cn/serviceNamespace"
 	// SidecarBindPort xds metadata key when node is run in sidecar mode
 	SidecarBindPort = "sidecar.polarismesh.cn/bindPorts"
+	// SidecarRegisterService xds metadata key when node what register service from envoy healthcheck
+	// value example: [{"name":"","ports":{"TCP":[8080],"DUBBO":[28080]},"health_check_path":"","health_check_port":8080,"health_check_ttl":5}]
+	SidecarRegisterService = "sidecar.polarismesh.cn/registerServices"
 )
 
 func NewXDSNodeManager() *XDSNodeManager {
@@ -240,6 +243,15 @@ func ParseNodeID(nodeID string) (runType, polarisNamespace, uuid, hostIP string)
 	return
 }
 
+type RegisterService struct {
+	Name            string           `json:"name"`
+	Ports           map[string][]int `json:"ports"`
+	HealthCheckPath string           `json:"health_check_path"`
+	HealthCheckPort int              `json:"health_check_port"`
+	HealthCheckTtl  int              `json:"health_check_ttl"`
+	TracingSampling float64          `json:"tracing_sampling"`
+}
+
 // XDSClient 客户端代码结构体
 type XDSClient struct {
 	RunType   RunType
@@ -266,6 +278,19 @@ func (n *XDSClient) IsGateway() bool {
 	hasNew := service != "" && namespace != ""
 	hasOld := oldSvc != "" && oldSvcNamespace != ""
 	return n.RunType == RunTypeGateway && (hasNew || hasOld)
+}
+
+func (n *XDSClient) GetRegisterServices() []*RegisterService {
+	if n.IsGateway() {
+		return []*RegisterService{}
+	}
+	val, ok := n.Metadata[SidecarRegisterService]
+	if !ok {
+		return []*RegisterService{}
+	}
+	ret := make([]*RegisterService, 0, 4)
+	_ = json.Unmarshal([]byte(val), &ret)
+	return ret
 }
 
 // GetSelfService 获取 envoy 对应的 service 信息
@@ -298,6 +323,11 @@ func (n *XDSClient) GetSelfNamespace() string {
 		return val
 	}
 	return n.Namespace
+}
+
+// ParseXDSClient .
+func ParseXDSClient(node *core.Node) *XDSClient {
+	return parseNodeProxy(node)
 }
 
 func parseNodeProxy(node *core.Node) *XDSClient {

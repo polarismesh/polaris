@@ -20,12 +20,13 @@ package healthcheck
 import (
 	"time"
 
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 )
 
 // Config 健康检查配置
 type Config struct {
-	Open                bool                   `yaml:"open"`
+	Open                *bool                  `yaml:"open"`
 	Service             string                 `yaml:"service"`
 	SlotNum             int                    `yaml:"slotNum"`
 	LocalHost           string                 `yaml:"localHost"`
@@ -45,8 +46,18 @@ const (
 	defaultClientCheckInterval = 120 * time.Second
 )
 
+func (c *Config) IsOpen() bool {
+	if c.Open == nil {
+		return true
+	}
+	return *c.Open
+}
+
 // SetDefault 设置默认值
 func (c *Config) SetDefault() {
+	if c.Open == nil {
+		c.Open = utils.BoolPtr(true)
+	}
 	if len(c.Service) == 0 {
 		c.Service = "polaris.checker"
 	}

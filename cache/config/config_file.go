@@ -353,11 +353,10 @@ func (fc *fileCache) GetGroupActiveReleases(namespace, group string) ([]*model.C
 		return nil, ""
 	}
 	ret := make([]*model.ConfigFileRelease, 0, 8)
-	groupBucket.Range(func(key string, val *model.SimpleConfigFileRelease) bool {
+	groupBucket.ReadRange(func(key string, val *model.SimpleConfigFileRelease) {
 		ret = append(ret, &model.ConfigFileRelease{
 			SimpleConfigFileRelease: val,
 		})
-		return true
 	})
 	groupRevisions, ok := fc.activeReleaseRevisions.Load(namespace)
 	if !ok {
@@ -431,46 +430,42 @@ func (fc *fileCache) QueryReleases(args *types.ConfigReleaseArgs) (uint32, []*mo
 	}
 
 	values := make([]*model.SimpleConfigFileRelease, 0, args.Limit)
-	fc.name2release.Range(func(namespace string, groups *utils.SyncMap[string, *utils.SyncMap[string,
-		*utils.SyncMap[string, *model.SimpleConfigFileRelease]]]) bool {
+	fc.name2release.ReadRange(func(namespace string, groups *utils.SyncMap[string, *utils.SyncMap[string,
+		*utils.SyncMap[string, *model.SimpleConfigFileRelease]]]) {
 
 		if args.Namespace != "" && utils.IsWildNotMatch(namespace, args.Namespace) {
-			return true
+			return
 		}
-		groups.Range(func(group string, files *utils.SyncMap[string, *utils.SyncMap[string,
-			*model.SimpleConfigFileRelease]]) bool {
+		groups.ReadRange(func(group string, files *utils.SyncMap[string, *utils.SyncMap[string,
+			*model.SimpleConfigFileRelease]]) {
 
 			if args.Group != "" && utils.IsWildNotMatch(group, args.Group) {
-				return true
+				return
 			}
-			files.Range(func(fileName string, releases *utils.SyncMap[string, *model.SimpleConfigFileRelease]) bool {
+			files.Range(func(fileName string, releases *utils.SyncMap[string, *model.SimpleConfigFileRelease]) {
 				if args.FileName != "" && utils.IsWildNotMatch(fileName, args.FileName) {
-					return true
+					return
 				}
-				releases.Range(func(releaseName string, item *model.SimpleConfigFileRelease) bool {
+				releases.Range(func(releaseName string, item *model.SimpleConfigFileRelease) {
 					if args.ReleaseName != "" && utils.IsWildNotMatch(item.Name, args.ReleaseName) {
-						return true
+						return
 					}
 					if args.OnlyActive && !item.Active {
-						return true
+						return
 					}
 					if len(args.Metadata) > 0 {
 						for k, v := range args.Metadata {
 							sv := item.Metadata[k]
 							if sv != v {
-								return true
+								return
 							}
 						}
 					}
 
 					values = append(values, item)
-					return true
 				})
-				return true
 			})
-			return true
 		})
-		return true
 	})
 
 	sort.Slice(values, func(i, j int) bool {

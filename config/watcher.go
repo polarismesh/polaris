@@ -20,8 +20,10 @@ package config
 import (
 	"context"
 	"sync"
+	"time"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/eventhub"
@@ -30,28 +32,52 @@ import (
 )
 
 const (
-	QueueSize = 10240
+	defaultLongPollingTimeout = 30000 * time.Millisecond
+	QueueSize                 = 10240
+)
+
+var (
+	notModifiedResponse = &apiconfig.ConfigClientResponse{
+		Code:       utils.NewUInt32Value(uint32(apimodel.Code_DataNoChange)),
+		ConfigFile: nil,
+	}
 )
 
 type FileReleaseCallback func(clientId string, rsp *apiconfig.ConfigClientResponse) bool
 
 type watchContext struct {
+	clientId      string
+	fileVersions  map[string]uint64
 	fileReleaseCb FileReleaseCallback
-	ClientVersion uint64
+	//
+	once             sync.Once
+	finishTime       time.Time
+	finishChan       chan *apiconfig.ConfigClientResponse
+	watchConfigFiles []*apiconfig.ClientConfigFileInfo
+}
+
+func (c *watchContext) reply(rsp *apiconfig.ConfigClientResponse) {
+	c.once.Do(func() {
+		c.finishChan <- rsp
+		close(c.finishChan)
+	})
 }
 
 // watchCenter 处理客户端订阅配置请求，监听配置文件发布事件通知客户端
 type watchCenter struct {
 	subCtx *eventhub.SubscribtionContext
 	lock   sync.Mutex
-	// fileId -> clientId -> watchContext
-	configFileWatchers *utils.SyncMap[string, *utils.SyncMap[string, *watchContext]]
+	// clientId -> watchContext
+	clients *utils.SyncMap[string, *watchContext]
+	// fileId -> []clientId
+	watchers *utils.SyncMap[string, *utils.SyncSet[string]]
 }
 
 // NewWatchCenter 创建一个客户端监听配置发布的处理中心
 func NewWatchCenter() (*watchCenter, error) {
 	wc := &watchCenter{
-		configFileWatchers: utils.NewSyncMap[string, *utils.SyncMap[string, *watchContext]](),
+		clients:  utils.NewSyncMap[string, *watchContext](),
+		watchers: utils.NewSyncMap[string, *utils.SyncSet[string]](),
 	}
 
 	var err error
@@ -79,58 +105,80 @@ func (wc *watchCenter) OnEvent(ctx context.Context, arg any) error {
 }
 
 // AddWatcher 新增订阅者
-func (wc *watchCenter) AddWatcher(clientId string, watchConfigFiles []*apiconfig.ClientConfigFileInfo,
-	fileReleaseCb FileReleaseCallback) {
-	if len(watchConfigFiles) == 0 {
-		return
+func (wc *watchCenter) AddWatcher(clientId string,
+	watchFiles []*apiconfig.ClientConfigFileInfo) <-chan *apiconfig.ConfigClientResponse {
+	if len(watchFiles) == 0 {
+		return nil
 	}
-	for _, file := range watchConfigFiles {
+
+	watcheCtx, _ := wc.clients.ComputeIfAbsent(clientId,
+		func(k string) *watchContext {
+			return &watchContext{
+				clientId: clientId,
+				fileReleaseCb: func(clientId string, rsp *apiconfig.ConfigClientResponse) bool {
+					if watchCtx, ok := wc.clients.Load(clientId); ok {
+						watchCtx.reply(rsp)
+					}
+					return true
+				},
+				fileVersions: map[string]uint64{},
+				finishChan:   make(chan *apiconfig.ConfigClientResponse),
+			}
+		})
+
+	for _, file := range watchFiles {
 		watchFileId := utils.GenFileId(file.Namespace.GetValue(), file.Group.GetValue(), file.FileName.GetValue())
 		log.Info("[Config][Watcher] add watcher.", zap.Any("client-id", clientId),
 			zap.String("watch-file-id", watchFileId), zap.Uint64("client-version", file.Version.GetValue()))
+		watcheCtx.fileVersions[watchFileId] = file.GetVersion().GetValue()
 
-		watchers, _ := wc.configFileWatchers.ComputeIfAbsent(watchFileId,
-			func(k string) *utils.SyncMap[string, *watchContext] {
-				newWatchers := utils.NewSyncMap[string, *watchContext]()
-				return newWatchers
-			})
-		watchers.Store(clientId, &watchContext{
-			fileReleaseCb: fileReleaseCb,
-			ClientVersion: file.Version.GetValue(),
+		clientIds, _ := wc.watchers.ComputeIfAbsent(watchFileId, func(k string) *utils.SyncSet[string] {
+			return utils.NewSyncSet[string]()
 		})
+		clientIds.Add(clientId)
 	}
+
+	return watcheCtx.finishChan
 }
 
 // RemoveWatcher 删除订阅者
 func (wc *watchCenter) RemoveWatcher(clientId string, watchConfigFiles []*apiconfig.ClientConfigFileInfo) {
+	wc.clients.Delete(clientId)
 	if len(watchConfigFiles) == 0 {
 		return
 	}
 
 	for _, file := range watchConfigFiles {
 		watchFileId := utils.GenFileId(file.Namespace.GetValue(), file.Group.GetValue(), file.FileName.GetValue())
-		watchers, ok := wc.configFileWatchers.Load(watchFileId)
+		watchers, ok := wc.watchers.Load(watchFileId)
 		if !ok {
 			continue
 		}
-		watchers.Delete(clientId)
+		watchers.Remove(clientId)
 	}
 }
 
 func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.SimpleConfigFileRelease) {
 	watchFileId := utils.GenFileId(publishConfigFile.Namespace, publishConfigFile.Group, publishConfigFile.FileName)
 
-	log.Info("[Config][Watcher] received config file publish message.", zap.String("file", watchFileId))
-	watchers, ok := wc.configFileWatchers.Load(watchFileId)
+	clientIds, ok := wc.watchers.Load(watchFileId)
 	if !ok {
 		return
 	}
 
+	log.Info("[Config][Watcher] received config file publish message.", zap.String("file", watchFileId))
+
 	response := GenConfigFileResponse(publishConfigFile.Namespace, publishConfigFile.Group,
 		publishConfigFile.FileName, "", publishConfigFile.Md5, publishConfigFile.Version)
 
-	watchers.Range(func(clientId string, watchCtx *watchContext) bool {
-		if watchCtx.ClientVersion < publishConfigFile.Version {
+	clientIds.Range(func(clientId string) {
+		watchCtx, ok := wc.clients.Load(clientId)
+		if !ok {
+			clientIds.Remove(clientId)
+			return
+		}
+		clientVersion := watchCtx.fileVersions[watchFileId]
+		if clientVersion < publishConfigFile.Version {
 			watchCtx.fileReleaseCb(clientId, response)
 			log.Info("[Config][Watcher] notify to client.",
 				zap.String("file", watchFileId), zap.String("clientId", clientId),
@@ -138,9 +186,30 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.SimpleConfigFil
 		} else {
 			log.Info("[Config][Watcher] notify to client ignore.",
 				zap.String("file", watchFileId), zap.String("clientId", clientId),
-				zap.Uint64("client-version", watchCtx.ClientVersion),
+				zap.Uint64("client-version", clientVersion),
 				zap.Uint64("version", publishConfigFile.Version))
 		}
-		return true
 	})
+}
+
+func (wc *watchCenter) startHandleTimeoutRequestWorker(ctx context.Context) {
+	t := time.NewTicker(time.Second)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			if wc.clients.Len() == 0 {
+				continue
+			}
+			tNow := time.Now()
+			wc.clients.Range(func(client string, watchCtx *watchContext) {
+				if tNow.After(watchCtx.finishTime) {
+					watchCtx.reply(notModifiedResponse)
+					wc.RemoveWatcher(client, watchCtx.watchConfigFiles)
+				}
+			})
+		}
+	}
 }

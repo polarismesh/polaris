@@ -156,3 +156,8 @@ func (s *Server) afterServiceResource(ctx context.Context, req *apiservice.Servi
 
 	return nil
 }
+
+func AllowAutoCreate(ctx context.Context) context.Context {
+	ctx = context.WithValue(ctx, model.ContextKeyAutoCreateService{}, true)
+	return ctx
+}

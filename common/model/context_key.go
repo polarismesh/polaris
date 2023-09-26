@@ -15,32 +15,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package healthcheck
+package model
 
-import (
-	"context"
-	"fmt"
-
-	"github.com/polarismesh/polaris/service/batch"
-	"github.com/polarismesh/polaris/store"
+type (
+	// ContextKeyAutoCreateNamespace .
+	ContextKeyAutoCreateNamespace struct{}
+	// ContextKeyAutoCreateService .
+	ContextKeyAutoCreateService struct{}
 )
-
-func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Controller,
-	storage store.Store) (*Server, error) {
-
-	if !cacheOpen {
-		return nil, fmt.Errorf("[healthcheck]cache not open")
-	}
-	hcOpt.SetDefault()
-	testServer, err := NewHealthServer(ctx, hcOpt,
-		WithStore(storage),
-		WithBatchController(bc),
-		WithPlugins(),
-		WithTimeAdjuster(newTimeAdjuster(ctx, storage)),
-	)
-	if err != nil {
-		return nil, err
-	}
-	finishInit = true
-	return testServer, testServer.run(ctx)
-}

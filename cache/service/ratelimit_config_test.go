@@ -197,7 +197,7 @@ func TestRateLimitUpdate(t *testing.T) {
 		if count == totalRateLimits {
 			t.Log("pass")
 		} else {
-			t.Fatalf("actual count is %d", count)
+			t.Fatalf("actual count is %d, expect : %d", count, len(rateLimits))
 		}
 	})
 

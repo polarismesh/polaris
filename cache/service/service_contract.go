@@ -166,45 +166,42 @@ func (sc *serviceContractCache) Query(filter map[string]string, offset, limit ui
 	searchProtocol := filter["protocol"]
 	searchVersion := filter["version"]
 
-	sc.contracts.Range(func(namespace string, services *utils.SyncMap[string, *utils.SyncMap[string, *model.EnrichServiceContract]]) bool {
+	sc.contracts.ReadRange(func(namespace string, services *utils.SyncMap[string, *utils.SyncMap[string, *model.EnrichServiceContract]]) {
 		if searchNamespace != "" {
 			if !utils.IsWildMatch(namespace, searchNamespace) {
-				return true
+				return
 			}
 		}
 
-		services.Range(func(service string, contracts *utils.SyncMap[string, *model.EnrichServiceContract]) bool {
+		services.ReadRange(func(service string, contracts *utils.SyncMap[string, *model.EnrichServiceContract]) {
 			if searchService != "" {
 				if !utils.IsWildMatch(service, searchService) {
-					return true
+					return
 				}
 			}
-			contracts.Range(func(_ string, val *model.EnrichServiceContract) bool {
+			contracts.ReadRange(func(_ string, val *model.EnrichServiceContract) {
 				if searchName != "" {
 					names := strings.Split(searchName, ",")
 					for i := range names {
 						if !utils.IsWildMatch(names[i], searchName) {
-							return true
+							return
 						}
 					}
 				}
 				if searchProtocol != "" {
 					if !utils.IsWildMatch(val.Protocol, searchProtocol) {
-						return true
+						return
 					}
 				}
 				if searchVersion != "" {
 					if !utils.IsWildMatch(val.Version, searchVersion) {
-						return true
+						return
 					}
 				}
 				values = append(values, val)
-				return true
+				return
 			})
-			return true
 		})
-
-		return true
 	})
 
 	sort.Slice(values, func(i, j int) bool {

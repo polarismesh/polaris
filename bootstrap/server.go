@@ -253,7 +253,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 	if err != nil {
 		return err
 	}
-	if cfg.HealthChecks.Open {
+	if cfg.HealthChecks.IsOpen() {
 		healthCheckServer.SetServiceCache(cacheMgn.Service())
 		healthCheckServer.SetInstanceCache(cacheMgn.Instance())
 	}

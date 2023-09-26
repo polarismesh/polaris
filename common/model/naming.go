@@ -471,8 +471,11 @@ func (c *FaultDetectRule) IsServiceChange(other *FaultDetectRule) bool {
 }
 
 const (
-	MetadataInstanceLastHeartbeatTime = "internal-lastheartbeat"
-	MetadataServiceProtectThreshold   = "internal-service-protectthreshold"
+	MetadataInstanceLastHeartbeatTime   = "internal-lastheartbeat"
+	MetadataServiceProtectThreshold     = "internal-service-protectthreshold"
+	MetadataRegisterFrom                = "internal-register-from"
+	MetadataInternalMetaHealthCheckPath = "internal-healthcheck_path"
+	MetadataInternalMetaTraceSampling   = "internal-trace_sampling"
 )
 
 // Instance 组合了api的Instance对象
