@@ -905,6 +905,70 @@ func TestGetService6(t *testing.T) {
 	})
 }
 
+// 隐藏空服务测试
+func TestGetService7(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.Initialize(); err != nil {
+		t.Fatal(err)
+	}
+	defer discoverSuit.Destroy()
+	t.Run("hide_empty_service过滤条件会生效", func(t *testing.T) {
+		total := 60
+		emptyServiceTotal := 30
+		nonEmptyServiceTotal := total - emptyServiceTotal
+
+		discoverSuit.cleanAllService()
+
+		for i := 0; i < total; i++ {
+			_, serviceResp := discoverSuit.createCommonService(t, i+100)
+			defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+			if i < nonEmptyServiceTotal {
+				_, instanceResp := discoverSuit.addInstance(t, &apiservice.Instance{
+					ServiceToken: utils.NewStringValue(serviceResp.GetToken().GetValue()),
+					Service:      utils.NewStringValue(serviceResp.GetName().GetValue()),
+					Namespace:    utils.NewStringValue(serviceResp.GetNamespace().GetValue()),
+					VpcId:        utils.NewStringValue("vpcid-0"),
+					Host:         utils.NewStringValue("9.9.9.0"),
+					Port:         utils.NewUInt32Value(8000),
+					Protocol:     utils.NewStringValue("protocol-0"),
+					Version:      utils.NewStringValue("version-0"),
+					Priority:     utils.NewUInt32Value(1),
+					Weight:       utils.NewUInt32Value(1),
+					HealthCheck:  nil,
+					Healthy:      utils.NewBoolValue(true),
+					Isolate:      utils.NewBoolValue(false),
+					LogicSet:     utils.NewStringValue("logic-set-0"),
+					Metadata:     map[string]string{},
+				})
+				defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
+			}
+		}
+
+		filters := map[string]string{"offset": "0",
+			"limit":              "100",
+			"namespace":          "default",
+			"hide_empty_service": "true"}
+		resp := discoverSuit.DiscoverServer().GetServices(discoverSuit.DefaultCtx, filters)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if len(resp.Services) != nonEmptyServiceTotal {
+			t.Fatalf("error: %d", len(resp.Services))
+		}
+
+		filters = map[string]string{"offset": "0",
+			"limit":     "100",
+			"namespace": "default"}
+		resp = discoverSuit.DiscoverServer().GetServices(discoverSuit.DefaultCtx, filters)
+		if !respSuccess(resp) {
+			t.Fatalf("error: %s", resp.GetInfo().GetValue())
+		}
+		if len(resp.Services) != total {
+			t.Fatalf("error: %d", len(resp.Services))
+		}
+	})
+}
+
 // 测试更新服务
 func TestUpdateService(t *testing.T) {
 
