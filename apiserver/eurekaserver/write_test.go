@@ -109,9 +109,9 @@ func TestEurekaServer_renew(t *testing.T) {
 			disableBeatInsId: disableBeatIns,
 		}, nil)
 	mockStore.EXPECT().
-    	GetMoreInstanceConsoles(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-    	AnyTimes().
-    	Return(nil, nil))
+		GetMoreInstanceConsoles(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		AnyTimes().
+		Return(nil, nil)
 	mockStore.EXPECT().StartReadTx().Return(mockTx, nil).AnyTimes()
 	mockStore.EXPECT().
 		GetMoreServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
