@@ -109,6 +109,14 @@ func initCache(ctrl *gomock.Controller) (*cache.Config, *storemock.MockStore) {
 			Valid: true,
 		},
 	}, nil).AnyTimes()
+	storage.EXPECT().GetMoreInstanceConsoles(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(map[string]*model.InstanceConsole{
+		"123": {
+			Id:       "123",
+			Isolate:  false,
+			Weight:   100,
+			Metadata: "{a: 1}",
+		},
+	}, nil).AnyTimes()
 	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 
 	return cfg, storage
