@@ -476,22 +476,22 @@ maintain:
 # Storage configuration
 store:
   # Standalone file storage plugin
-#  name: boltdbStore
-#  option:
-#    path: ./polaris.bolt
+  name: boltdbStore
+  option:
+    path: ./polaris.bolt
   ## Database storage plugin
-   name: defaultStore
-   option:
-     master:
-       dbType: mysql
-       dbName: polaris_server
-       dbUser: root
-       dbPwd: root
-       dbAddr: 192.168.100.7:3306
-       maxOpenConns: 300
-       maxIdleConns: 50
-       connMaxLifetime: 300 # Unit second
-       txIsolationLevel: 2 #LevelReadCommitted
+  # name: defaultStore
+  # option:
+  #   master:
+  #     dbType: mysql
+  #     dbName: polaris_server
+  #     dbUser: ##DB_USER##
+  #     dbPwd: ##DB_PWD##
+  #     dbAddr: ##DB_ADDR##
+  #     maxOpenConns: 300
+  #     maxIdleConns: 50
+  #     connMaxLifetime: 300 # Unit second
+  #     txIsolationLevel: 2 #LevelReadCommitted
 # polaris-server plugin settings
 plugin:
   crypto:
