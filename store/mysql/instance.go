@@ -514,7 +514,7 @@ func (ins *instanceStore) GetMoreInstanceConsoles(tx store.Tx, mtime time.Time, 
 
 	dbTx, _ := tx.GetDelegateTx().(*BaseTx)
 
-	str := `select id, isolate, weight, metadata from instance where instance.mtime >= FROM_UNIXTIME(?) `
+	str := `select id, isolate, weight, metadata from instance_console where instance_console.mtime >= FROM_UNIXTIME(?) `
 
 	if firstUpdate {
 		str += " and flag != 1"
