@@ -21,8 +21,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -197,4 +199,57 @@ func TestCreateInstance(t *testing.T) {
 	err = json.Unmarshal(deltaMockWriter.body.Bytes(), deltaAppResp)
 	assert.Nil(t, err)
 	checkInstanceAction(t, deltaAppResp.Applications, appId, instanceId, ActionDeleted)
+}
+
+// Test_UpdateStatus 测试更新 Eureka 实例的 Status 属性信息
+func Test_UpdateStatus(t *testing.T) {
+	discoverSuit := &testsuit.DiscoverTestSuit{}
+	if err := discoverSuit.Initialize(); err != nil {
+		t.Fatal(err)
+	}
+	defer discoverSuit.Destroy()
+
+	options := map[string]interface{}{optionRefreshInterval: 5, optionDeltaExpireInterval: 120}
+	eurekaSrv, err := createEurekaServerForTest(discoverSuit, options)
+	assert.Nil(t, err)
+
+	mockIns := genMockEurekaInstance()
+	// pretty output must be created and written explicitly
+	output, err := xml.MarshalIndent(mockIns, " ", " ")
+	assert.NoError(t, err)
+
+	var body bytes.Buffer
+	_, err = body.Write([]byte(xml.Header))
+	assert.NoError(t, err)
+	_, err = body.Write(output)
+	assert.NoError(t, err)
+
+	mockReq := httptest.NewRequest("", fmt.Sprintf("http://127.0.0.1:8761/eureka/v2/apps/%s", mockIns.AppName), &body)
+	mockReq.Header.Add(restful.HEADER_Accept, restful.MIME_XML)
+	mockRsp := newMockResponseWriter()
+
+	eurekaSrv.RegisterApplication(restful.NewRequest(mockReq), restful.NewResponse(mockRsp))
+	assert.Equal(t, 200, mockRsp.statusCode)
+
+	// eurekaSrv.UpdateStatus(restful.NewRequest(mockReq), restful.NewResponse(mockRsp))
+}
+
+func genMockEurekaInstance() *InstanceInfo {
+	mockIns := &InstanceInfo{
+		XMLName:      struct{}{},
+		InstanceId:   "123",
+		AppName:      "MOCK_SERVICE",
+		AppGroupName: "MOCK_SERVICE",
+		IpAddr:       "127.0.0.1",
+		Sid:          "",
+		Port: &PortWrapper{
+			Port:       "8080",
+			RealPort:   8080,
+			Enabled:    "true",
+			RealEnable: true,
+		},
+		Status:           StatusUp,
+		OverriddenStatus: StatusUnknown,
+	}
+	return mockIns
 }

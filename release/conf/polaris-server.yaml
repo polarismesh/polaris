@@ -88,7 +88,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 30
       rotationMaxAge: 7
-      outputLevel: info
+      outputLevel: debug
       compress: true
     # Eureka protocol layer plug -in log
     eureka:
@@ -476,22 +476,22 @@ maintain:
 # Storage configuration
 store:
   # Standalone file storage plugin
-  name: boltdbStore
-  option:
-    path: ./polaris.bolt
-  ## Database storage plugin
-  # name: defaultStore
+  # name: boltdbStore
   # option:
-  #   master:
-  #     dbType: mysql
-  #     dbName: polaris_server
-  #     dbUser: ##DB_USER##
-  #     dbPwd: ##DB_PWD##
-  #     dbAddr: ##DB_ADDR##
-  #     maxOpenConns: 300
-  #     maxIdleConns: 50
-  #     connMaxLifetime: 300 # Unit second
-  #     txIsolationLevel: 2 #LevelReadCommitted
+  #   path: ./polaris.bolt
+  ## Database storage plugin
+  name: defaultStore
+  option:
+    master:
+      dbType: mysql
+      dbName: polaris_server
+      dbUser: root ##DB_USER##
+      dbPwd: 528LcT528 ##DB_PWD##
+      dbAddr: 127.0.0.1:3306 ##DB_ADDR##
+      maxOpenConns: 300
+      maxIdleConns: 50
+      connMaxLifetime: 300 # Unit second
+      txIsolationLevel: 2 #LevelReadCommitted
 # polaris-server plugin settings
 plugin:
   crypto:

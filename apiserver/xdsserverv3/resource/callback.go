@@ -22,8 +22,6 @@ import (
 
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/gogo/protobuf/jsonpb"
-	"google.golang.org/protobuf/proto"
 
 	commonlog "github.com/polarismesh/polaris/common/log"
 )
@@ -45,30 +43,18 @@ func (cb *Callbacks) Report() {
 }
 
 func (cb *Callbacks) OnStreamOpen(_ context.Context, id int64, typ string) error {
-	if cb.log.DebugEnabled() {
-		cb.log.Debugf("stream %d open for %s", id, typ)
-	}
 	return nil
 }
 
 func (cb *Callbacks) OnStreamClosed(id int64, node *corev3.Node) {
-	if cb.log.DebugEnabled() {
-		cb.log.Debugf("stream %d closed", id)
-	}
 	cb.nodeMgr.DelNode(id)
 }
 
 func (cb *Callbacks) OnDeltaStreamOpen(_ context.Context, id int64, typ string) error {
-	if cb.log.DebugEnabled() {
-		cb.log.Debugf("delta stream %d open for %s", id, typ)
-	}
 	return nil
 }
 
 func (cb *Callbacks) OnDeltaStreamClosed(id int64, node *corev3.Node) {
-	if cb.log.DebugEnabled() {
-		cb.log.Debugf("delta stream %d closed", id)
-	}
 }
 
 func (cb *Callbacks) OnStreamRequest(id int64, req *discovery.DiscoveryRequest) error {
@@ -78,14 +64,6 @@ func (cb *Callbacks) OnStreamRequest(id int64, req *discovery.DiscoveryRequest) 
 
 func (cb *Callbacks) OnStreamResponse(_ context.Context, id int64, req *discovery.DiscoveryRequest,
 	resp *discovery.DiscoveryResponse) {
-	if cb.log.DebugEnabled() {
-		cloneReq := proto.Clone(req).(*discovery.DiscoveryRequest)
-		cloneReq.Node = nil
-		marshaler := jsonpb.Marshaler{}
-		reqstr, _ := marshaler.MarshalToString(cloneReq)
-		respstr, _ := marshaler.MarshalToString(resp)
-		cb.log.Debugf("on stream %d type %s request %s response %s", id, req.TypeUrl, reqstr, respstr)
-	}
 }
 
 func (cb *Callbacks) OnStreamDeltaRequest(id int64, req *discovery.DeltaDiscoveryRequest) error {
@@ -95,14 +73,6 @@ func (cb *Callbacks) OnStreamDeltaRequest(id int64, req *discovery.DeltaDiscover
 
 func (cb *Callbacks) OnStreamDeltaResponse(id int64, req *discovery.DeltaDiscoveryRequest,
 	resp *discovery.DeltaDiscoveryResponse) {
-	if cb.log.DebugEnabled() {
-		cloneReq := proto.Clone(req).(*discovery.DeltaDiscoveryRequest)
-		cloneReq.Node = nil
-		marshaler := jsonpb.Marshaler{}
-		reqstr, _ := marshaler.MarshalToString(cloneReq)
-		respstr, _ := marshaler.MarshalToString(resp)
-		cb.log.Debugf("on delta stream %d type %s request %s response %s", id, req.TypeUrl, reqstr, respstr)
-	}
 }
 
 func (cb *Callbacks) OnFetchRequest(_ context.Context, req *discovery.DiscoveryRequest) error {
@@ -110,12 +80,4 @@ func (cb *Callbacks) OnFetchRequest(_ context.Context, req *discovery.DiscoveryR
 }
 
 func (cb *Callbacks) OnFetchResponse(req *discovery.DiscoveryRequest, resp *discovery.DiscoveryResponse) {
-	if cb.log.DebugEnabled() {
-		cloneReq := proto.Clone(req).(*discovery.DiscoveryRequest)
-		cloneReq.Node = nil
-		marshaler := jsonpb.Marshaler{}
-		reqstr, _ := marshaler.MarshalToString(cloneReq)
-		respstr, _ := marshaler.MarshalToString(resp)
-		cb.log.Debugf("on fetch type %s request %s response %s", req.TypeUrl, reqstr, respstr)
-	}
 }

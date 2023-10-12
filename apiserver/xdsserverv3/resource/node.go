@@ -20,12 +20,14 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	_struct "github.com/golang/protobuf/ptypes/struct"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"go.uber.org/zap"
 )
@@ -58,6 +60,12 @@ const (
 	// SidecarRegisterService xds metadata key when node what register service from envoy healthcheck
 	// value example: [{"name":"","ports":{"TCP":[8080],"DUBBO":[28080]},"health_check_path":"","health_check_port":8080,"health_check_ttl":5}]
 	SidecarRegisterService = "sidecar.polarismesh.cn/registerServices"
+	// SidecarOpenOnDemandFeature .
+	SidecarOpenOnDemandFeature = "sidecar.polarismesh.cn/openOnDemand"
+	// SidecarTLSModeTag .
+	SidecarTLSModeTag = "sidecar.polarismesh.cn/tlsMode"
+	// SidecarConnectServerEndpoint report xds server the envoy xds on-demand cds server endpoint info
+	SidecarODCDSServerEndpoint = "sidecar.polarismesh.cn/odcdsServerEndpoint"
 )
 
 func NewXDSNodeManager() *XDSNodeManager {
@@ -137,6 +145,13 @@ func (x *XDSNodeManager) GetNode(id string) *XDSClient {
 	return x.nodes[id]
 }
 
+func (x *XDSNodeManager) HasEnvoyNodes() bool {
+	x.lock.RLock()
+	defer x.lock.RUnlock()
+
+	return len(x.gatewayNodes) != 0 || len(x.sidecarNodes) != 0
+}
+
 func (x *XDSNodeManager) ListGatewayNodes() []*XDSClient {
 	x.lock.RLock()
 	defer x.lock.RUnlock()
@@ -198,8 +213,8 @@ func (PolarisNodeHash) ID(node *core.Node) string {
 
 	// 判断是否存在 sidecar_namespace 以及 sidecar_service
 	if node.Metadata != nil && node.Metadata.Fields != nil {
-		sidecarNamespace := node.Metadata.Fields[SidecarNamespaceName].GetStringValue()
-		sidecarService := node.Metadata.Fields[SidecarServiceName].GetStringValue()
+		sidecarNamespace, _ := getEnvoyMetaField(node.Metadata, SidecarNamespaceName, "")
+		sidecarService, _ := getEnvoyMetaField(node.Metadata, SidecarServiceName, "")
 		// 如果存在, 则表示是由新版本 controller 注入的 envoy, 可以下发 INBOUND 规则
 		if sidecarNamespace != "" && sidecarService != "" {
 			ret = runType + "/" + sidecarNamespace + "/" + sidecarService
@@ -208,7 +223,7 @@ func (PolarisNodeHash) ID(node *core.Node) string {
 		// 在判断是否设置了 TLS 相关参数
 		tlsMode := node.Metadata.Fields[TLSModeTag].GetStringValue()
 		if tlsMode == string(TLSModePermissive) || tlsMode == string(TLSModeStrict) {
-			return ret + "/" + tlsMode
+			ret = ret + "/" + tlsMode
 		}
 	}
 	return ret
@@ -254,15 +269,21 @@ type RegisterService struct {
 
 // XDSClient 客户端代码结构体
 type XDSClient struct {
-	RunType   RunType
-	User      string
-	Namespace string
-	IPAddr    string
-	PodIP     string
-	Metadata  map[string]string
-	Version   string
-	Node      *core.Node
-	TLSMode   TLSMode
+	RunType        RunType
+	User           string
+	Namespace      string
+	IPAddr         string
+	PodIP          string
+	Metadata       map[string]string
+	Version        string
+	Node           *core.Node
+	TLSMode        TLSMode
+	OpenOnDemand   bool
+	OnDemandServer string
+}
+
+func (n *XDSClient) ResourceKey() string {
+	return n.Namespace + "/" + string(n.TLSMode)
 }
 
 func (n *XDSClient) String() string {
@@ -342,9 +363,7 @@ func parseNodeProxy(node *core.Node) *XDSClient {
 	}
 
 	if node.Metadata != nil {
-		fieldVal, ok := node.Metadata.Fields[TLSModeTag]
-		if ok {
-			tlsMode := fieldVal.GetStringValue()
+		if tlsMode, ok := getEnvoyMetaField(node.Metadata, TLSModeTag, ""); ok {
 			if tlsMode == string(TLSModePermissive) {
 				proxy.TLSMode = TLSModePermissive
 			}
@@ -352,10 +371,40 @@ func parseNodeProxy(node *core.Node) *XDSClient {
 				proxy.TLSMode = TLSModeStrict
 			}
 		}
+		if onDemand, ok := getEnvoyMetaField(node.Metadata, SidecarOpenOnDemandFeature, true); ok {
+			proxy.OpenOnDemand = onDemand
+			odcdsSvr, ok := getEnvoyMetaField(node.Metadata, SidecarODCDSServerEndpoint, "")
+			if !ok {
+				proxy.OpenOnDemand = false
+			} else {
+				proxy.OnDemandServer = odcdsSvr
+			}
+		}
 	}
 
 	proxy.Metadata = parseMetadata(node.GetMetadata())
 	return proxy
+}
+
+func GetEnvoyMetaField[T any](meta *_struct.Struct, fileName string, fType T) (T, bool) {
+	return getEnvoyMetaField[T](meta, fileName, fType)
+}
+
+func getEnvoyMetaField[T any](meta *_struct.Struct, fileName string, fType T) (T, bool) {
+	fieldVal, ok := meta.Fields[fileName]
+	if !ok {
+		return fType, false
+	}
+	v := reflect.ValueOf(fType)
+	var ret interface{}
+	switch v.Type().Kind() {
+	case reflect.Bool:
+		ret = fieldVal.GetBoolValue()
+		return ret.(T), true
+	default:
+		ret = fieldVal.GetStringValue()
+		return ret.(T), true
+	}
 }
 
 func parseMetadata(metaValues *structpb.Struct) map[string]string {

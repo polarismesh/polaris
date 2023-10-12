@@ -539,6 +539,10 @@ func (s *Server) UpdateInstanceIsolate(ctx context.Context, req *apiservice.Inst
 				CreateTime: time.Time{},
 			})
 		}
+		instance.Proto.Isolate = utils.NewBoolValue(req.GetIsolate().GetValue())
+	}
+	for i := range s.instancesChain {
+		s.instancesChain[i].AfterUpdateIsolate(ctx, instances...)
 	}
 
 	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
@@ -1304,4 +1308,9 @@ func CheckDbInstanceFieldLen(req *apiservice.Instance) (*apiservice.Response, bo
 		return api.NewInstanceResponse(apimodel.Code_InvalidParameter, req), true
 	}
 	return nil, false
+}
+
+type InstanceChain interface {
+	// AfterUpdateIsolate .
+	AfterUpdateIsolate(ctx context.Context, instances ...*model.Instance)
 }

@@ -134,6 +134,10 @@ func (s *ServiceKey) IsExact() bool {
 	return s.Namespace != "" && s.Namespace != MatchAll && s.Name != "" && s.Name != MatchAll
 }
 
+func (s *ServiceKey) Domain() string {
+	return s.Name + "." + s.Namespace
+}
+
 // IsAlias 便捷函数封装
 func (s *Service) IsAlias() bool {
 	return s.Reference != ""

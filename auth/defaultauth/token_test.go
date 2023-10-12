@@ -34,7 +34,7 @@ func Test_CustomDesignSalt(t *testing.T) {
 	defaultauth.AuthOption.Salt = "polarismesh@2021"
 
 	//  polaris 用户的ID
-	uid := "65e4789a6d5b49669adf1e9e8387549c"
+	uid := "polaris"
 	fmt.Printf("uid=%s\n", uid)
 
 	token, err := defaultauth.TestCreateToken(uid, "")

@@ -28,15 +28,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func DumpSnapShot(snapshot cache.ResourceSnapshot) []byte {
-	return YamlEncode(map[string]interface{}{
-		"endpoints": ToJSONArray(snapshot.GetResources(res.EndpointType)),
-		"clusters":  ToJSONArray(snapshot.GetResources(res.ClusterType)),
-		"routers":   ToJSONArray(snapshot.GetResources(res.RouteType)),
-		"listeners": ToJSONArray(snapshot.GetResources(res.ListenerType)),
-	})
-}
-
 func DumpSnapShotJSON(snapshot cache.ResourceSnapshot) []byte {
 	data, err := json.Marshal(map[string]interface{}{
 		"endpoints": ToJSONArray(snapshot.GetResources(res.EndpointType)),
@@ -69,6 +60,24 @@ func YamlEncode(any interface{}) []byte {
 }
 
 func ToJSONArray(resources map[string]types.Resource) []json.RawMessage {
+	list := make([]resouceWithName, 0, len(resources))
+	for name, x := range resources {
+		list = append(list, resouceWithName{resource: x, name: name})
+	}
+
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].name < list[j].name
+	})
+
+	messages := make([]json.RawMessage, 0, len(resources))
+	for _, x := range list {
+		data, _ := protojson.Marshal(x.resource)
+		messages = append(messages, data)
+	}
+	return messages
+}
+
+func ToYamlArray(resources map[string]types.Resource) []json.RawMessage {
 	list := make([]resouceWithName, 0, len(resources))
 	for name, x := range resources {
 		list = append(list, resouceWithName{resource: x, name: name})

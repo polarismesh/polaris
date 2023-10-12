@@ -98,6 +98,7 @@ func GetOriginServer() (*Server, error) {
 func initialize(ctx context.Context, namingOpt *Config, opts ...InitOption) error {
 	// l5service
 	namingServer.l5service = &l5service{}
+	namingServer.instancesChain = make([]InstanceChain, 0, 4)
 	namingServer.createServiceSingle = &singleflight.Group{}
 	namingServer.subCtxs = make([]*eventhub.SubscribtionContext, 0, 4)
 

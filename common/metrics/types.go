@@ -53,6 +53,8 @@ const (
 	StoreCallMetric CallMetricType = "store"
 	// ProtobufCacheCallMetric PB encode cache call/hit statistics
 	ProtobufCacheCallMetric CallMetricType = "pbCacheCall"
+	// XDSResourceBuildCallMetric
+	XDSResourceBuildCallMetric CallMetricType = "xds"
 )
 
 type TrafficDirection string

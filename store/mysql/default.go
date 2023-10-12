@@ -75,8 +75,6 @@ type stableStore struct {
 
 	// 主数据库，可以进行读写
 	master *BaseDB
-	// 对主数据库的事务操作，可读写
-	masterTx *BaseDB
 	// 备数据库，提供只读
 	slave *BaseDB
 	start bool
@@ -102,12 +100,6 @@ func (s *stableStore) Initialize(conf *store.Config) error {
 		return err
 	}
 	s.master = master
-
-	masterTx, err := NewBaseDB(masterConfig, plugin.GetParsePassword())
-	if err != nil {
-		return err
-	}
-	s.masterTx = masterTx
 
 	if slaveConfig != nil {
 		log.Infof("[Store][database] use slave database config: %+v", slaveConfig)
@@ -202,9 +194,6 @@ func (s *stableStore) Destroy() error {
 	if s.master != nil {
 		_ = s.master.Close()
 	}
-	if s.masterTx != nil {
-		_ = s.masterTx.Close()
-	}
 	if s.slave != nil {
 		_ = s.slave.Close()
 	}
@@ -214,7 +203,6 @@ func (s *stableStore) Destroy() error {
 	}
 
 	s.master = nil
-	s.masterTx = nil
 	s.slave = nil
 
 	return nil
@@ -223,10 +211,10 @@ func (s *stableStore) Destroy() error {
 // CreateTransaction 创建一个事务
 func (s *stableStore) CreateTransaction() (store.Transaction, error) {
 	// 每次创建事务前，还是需要ping一下
-	_ = s.masterTx.Ping()
+	_ = s.master.Ping()
 
 	nt := &transaction{}
-	tx, err := s.masterTx.Begin()
+	tx, err := s.master.Begin()
 	if err != nil {
 		log.Errorf("[Store][database] database begin err: %s", err.Error())
 		return nil, err
@@ -237,7 +225,10 @@ func (s *stableStore) CreateTransaction() (store.Transaction, error) {
 }
 
 func (s *stableStore) StartTx() (store.Tx, error) {
-	tx, err := s.masterTx.Begin()
+	// 每次创建事务前，还是需要ping一下
+	_ = s.master.Ping()
+
+	tx, err := s.master.Begin()
 	if err != nil {
 		return nil, err
 	}
@@ -245,6 +236,9 @@ func (s *stableStore) StartTx() (store.Tx, error) {
 }
 
 func (s *stableStore) StartReadTx() (store.Tx, error) {
+	// 每次创建事务前，还是需要ping一下
+	_ = s.slave.Ping()
+
 	tx, err := s.slave.Begin()
 	if err != nil {
 		return nil, err

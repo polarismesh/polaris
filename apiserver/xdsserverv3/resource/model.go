@@ -18,6 +18,7 @@
 package resource
 
 import (
+	resourcev3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -36,7 +37,52 @@ const (
 	CDS
 	RLS
 	SDS
+	VHDS
 )
+
+func (x XDSType) ResourceType() resourcev3.Type {
+	if x == LDS {
+		return resourcev3.ListenerType
+	}
+	if x == RDS {
+		return resourcev3.RouteType
+	}
+	if x == EDS {
+		return resourcev3.EndpointType
+	}
+	if x == CDS {
+		return resourcev3.ClusterType
+	}
+	if x == RLS {
+		return resourcev3.RateLimitConfigType
+	}
+	if x == VHDS {
+		return resourcev3.VirtualHostType
+	}
+	return resourcev3.AnyType
+}
+
+func (x XDSType) String() string {
+	if x == LDS {
+		return resourcev3.ListenerType
+	}
+	if x == RDS {
+		return resourcev3.RouteType
+	}
+	if x == EDS {
+		return resourcev3.EndpointType
+	}
+	if x == CDS {
+		return resourcev3.ClusterType
+	}
+	if x == RLS {
+		return resourcev3.RateLimitConfigType
+	}
+	if x == VHDS {
+		return resourcev3.VirtualHostType
+	}
+	return resourcev3.AnyType
+}
 
 const (
 	K8sDnsResolveSuffixSvc             = ".svc"

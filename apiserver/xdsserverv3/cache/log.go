@@ -15,34 +15,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package utils
+package cache
 
-import "context"
-
-type (
-	// StringContext is a context key that carries a string.
-	StringContext string
-	// localhostCtx is a context key that carries localhost info.
-	localhostCtx struct{}
-	// ContextAPIServerSlot
-	ContextAPIServerSlot struct{}
+import (
+	commonlog "github.com/polarismesh/polaris/common/log"
 )
 
-// WithLocalhost 存储localhost
-func WithLocalhost(ctx context.Context, localhost string) context.Context {
-	return context.WithValue(ctx, localhostCtx{}, localhost)
-}
-
-// ValueLocalhost 获取localhost
-func ValueLocalhost(ctx context.Context) string {
-	if ctx == nil {
-		return ""
-	}
-
-	value, ok := ctx.Value(localhostCtx{}).(string)
-	if !ok {
-		return ""
-	}
-
-	return value
-}
+var log = commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName)

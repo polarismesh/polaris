@@ -156,7 +156,7 @@ func buildStatus(instance *InstanceInfo, targetInstance *apiservice.Instance) {
 	// eureka实例非UP状态设置isolate为true，进行流量隔离
 	targetInstance.Healthy = &wrappers.BoolValue{Value: true}
 	targetInstance.Isolate = &wrappers.BoolValue{Value: false}
-	if instance.Status != "UP" {
+	if instance.Status != StatusUp {
 		targetInstance.Isolate = &wrappers.BoolValue{Value: true}
 	}
 }

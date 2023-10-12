@@ -350,6 +350,7 @@ func (h *EurekaServer) Run(errCh chan error) {
 		}
 		h.subCtxs = append(h.subCtxs, subCtx)
 	}
+	h.registerInstanceChain()
 	h.workers = NewApplicationsWorkers(h.refreshInterval, h.deltaExpireInterval, h.enableSelfPreservation,
 		h.namingServer, h.healthCheckServer, h.namespace)
 	h.statis = plugin.GetStatis()

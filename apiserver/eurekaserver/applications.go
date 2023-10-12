@@ -185,14 +185,16 @@ func buildHashCode(version string, hashBuilder map[string]int, newApps *Applicat
 }
 
 func parseStatus(instance *apiservice.Instance) string {
-	if instance.GetIsolate().GetValue() {
-		status, ok := instance.Metadata[InternalMetadataStatus]
-		if ok {
-			return status
-		}
+	if !instance.GetIsolate().GetValue() {
+		return StatusUp
+	}
+	status := instance.Metadata[InternalMetadataStatus]
+	switch status {
+	case StatusDown:
+		return StatusDown
+	default:
 		return StatusOutOfService
 	}
-	return StatusUp
 }
 
 func parsePortWrapper(info *InstanceInfo, instance *apiservice.Instance) {

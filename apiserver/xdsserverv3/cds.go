@@ -29,7 +29,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	resourcev3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
@@ -39,12 +39,10 @@ import (
 
 // CDSBuilder .
 type CDSBuilder struct {
-	client *resource.XDSClient
-	svr    service.DiscoverServer
+	svr service.DiscoverServer
 }
 
-func (cds *CDSBuilder) Init(client *resource.XDSClient, svr service.DiscoverServer) {
-	cds.client = client
+func (cds *CDSBuilder) Init(svr service.DiscoverServer) {
 	cds.svr = svr
 }
 
@@ -58,17 +56,20 @@ func (cds *CDSBuilder) Generate(option *resource.BuildOption) (interface{}, erro
 	// 默认 passthrough cluster
 	clusters = append(clusters, resource.PassthroughCluster)
 
-	inBoundClusters, err := cds.GenerateByDirection(option, corev3.TrafficDirection_INBOUND)
-	if err != nil {
-		return nil, err
+	switch option.TrafficDirection {
+	case core.TrafficDirection_INBOUND:
+		inBoundClusters, err := cds.GenerateByDirection(option, corev3.TrafficDirection_INBOUND)
+		if err != nil {
+			return nil, err
+		}
+		clusters = append(clusters, inBoundClusters...)
+	case core.TrafficDirection_OUTBOUND:
+		outBoundClusters, err := cds.GenerateByDirection(option, corev3.TrafficDirection_OUTBOUND)
+		if err != nil {
+			return nil, err
+		}
+		clusters = append(clusters, outBoundClusters...)
 	}
-	outBoundClusters, err := cds.GenerateByDirection(option, corev3.TrafficDirection_OUTBOUND)
-	if err != nil {
-		return nil, err
-	}
-
-	clusters = append(clusters, inBoundClusters...)
-	clusters = append(clusters, outBoundClusters...)
 	return clusters, nil
 }
 
@@ -76,23 +77,21 @@ func (cds *CDSBuilder) GenerateByDirection(option *resource.BuildOption,
 	direction corev3.TrafficDirection) ([]types.Resource, error) {
 	var clusters []types.Resource
 
-	selfServiceKey := model.ServiceKey{
-		Namespace: cds.client.GetSelfNamespace(),
-		Name:      cds.client.GetSelfService(),
-	}
+	selfServiceKey := option.SelfService
 
 	ignore := func(svcKey model.ServiceKey) bool {
 		// 如果是 INBOUND 场景，只需要下发 XDS Sidecar Node 所归属的服务 INBOUND Cluster 规则
+		isGateway := option.RunType == resource.RunTypeGateway
 		if direction == core.TrafficDirection_INBOUND {
-			if cds.client.IsGateway() {
+			if isGateway {
 				return true
 			}
-			if !cds.client.IsGateway() && !selfServiceKey.Equal(&svcKey) {
+			if !isGateway && !selfServiceKey.Equal(&svcKey) {
 				return true
 			}
 		}
 		// 如果是网关，则自己的数据不会下发
-		if cds.client.IsGateway() && selfServiceKey.Equal(&svcKey) {
+		if isGateway && selfServiceKey.Equal(&svcKey) {
 			return true
 		}
 		return false
@@ -104,7 +103,7 @@ func (cds *CDSBuilder) GenerateByDirection(option *resource.BuildOption,
 		if ignore(svcKey) {
 			continue
 		}
-		c := cds.makeCluster(svc, direction)
+		c := cds.makeCluster(svc, direction, option)
 		switch option.TLSMode {
 		case resource.TLSModePermissive:
 			// In permissive mode, we should use `TLSTransportSocket` to connect to mtls enabled endpoints.
@@ -147,13 +146,13 @@ func (cds *CDSBuilder) GenerateByDirection(option *resource.BuildOption,
 }
 
 func (cds *CDSBuilder) makeCluster(svcInfo *resource.ServiceInfo,
-	trafficDirection corev3.TrafficDirection) *cluster.Cluster {
+	trafficDirection corev3.TrafficDirection, opt *resource.BuildOption) *cluster.Cluster {
 
-	name := resource.MakeServiceName(svcInfo.ServiceKey, trafficDirection)
+	name := resource.MakeServiceName(svcInfo.ServiceKey, trafficDirection, opt)
 
 	return &cluster.Cluster{
 		Name:                 name,
-		ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
+		ConnectTimeout:       durationpb.New(5 * time.Second),
 		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_EDS},
 		EdsClusterConfig: &cluster.Cluster_EdsClusterConfig{
 			ServiceName: name,
