@@ -152,7 +152,8 @@ func TestInstanceCache_Update(t *testing.T) {
 		}
 
 		servicesCount, instancesCount := iteratorInstances(ic)
-		if servicesCount == 2 && instancesCount == 10+5 { // gen两次，有两个不同服务
+		instanceConsoleCounts := ic.instanceConsoles.Len()
+		if servicesCount == 2 && instancesCount == 10+5 && instanceConsoleCounts == 3 { // gen两次，有两个不同服务
 			t.Logf("pass")
 		} else {
 			t.Fatalf("error: %d, %d", servicesCount, instancesCount)
@@ -172,7 +173,8 @@ func TestInstanceCache_Update(t *testing.T) {
 		}
 
 		servicesCount, instancesCount := iteratorInstances(ic)
-		if servicesCount != 0 || instancesCount != 0 {
+		instanceConsoleCounts := ic.instanceConsoles.Len()
+		if servicesCount != 0 || instancesCount != 0 || instanceConsoleCounts != 0 {
 			t.Fatalf("error: %d %d", servicesCount, instancesCount)
 		}
 	})
@@ -265,13 +267,9 @@ func TestInstanceCache_Update2(t *testing.T) {
 	t.Run("对账发现缓存数据数量和存储层不一致", func(t *testing.T) {
 		_ = ic.Clear()
 		instances := genModelInstances("service-a", 20)
-		instanceConsoles := genModelInstancesConsole("console", 3)
 
 		queryCount := int32(0)
 		storage.EXPECT().GetInstancesCountTx(gomock.Any()).Return(uint32(0), nil).AnyTimes()
-		storage.EXPECT().
-			GetMoreInstanceConsoles(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
-			Return(instanceConsoles, nil)
 		storage.EXPECT().
 			GetMoreInstances(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
 			DoAndReturn(func(tx store.Tx, mtime time.Time, firstUpdate, needMeta bool, svcIds []string) (map[string]*model.Instance, error) {
@@ -313,6 +311,14 @@ func TestInstanceCache_GetInstance(t *testing.T) {
 		}
 
 		if instance := ic.GetInstance("test-instance-xx"); instance != nil {
+			t.Fatalf("error")
+		}
+
+		if instanceConsole := ic.GetInstanceConsole(instanceConsoles[fmt.Sprintf("InstanceConsole-%s-%d", "console", 2)].Id); instanceConsole == nil {
+			t.Fatalf("error")
+		}
+
+		if instanceConsole := ic.GetInstance("test-instanceConsole-xx"); instanceConsole != nil {
 			t.Fatalf("error")
 		}
 	})

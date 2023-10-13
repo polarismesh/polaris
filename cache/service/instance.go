@@ -445,6 +445,20 @@ func (ic *instanceCache) GetInstance(instanceID string) *model.Instance {
 	return value
 }
 
+// GetInstanceConsole 根据实例ID获取实例数据
+func (ic *instanceCache) GetInstanceConsole(instanceConsoleID string) *model.InstanceConsole {
+	if instanceConsoleID == "" {
+		return nil
+	}
+
+	value, ok := ic.instanceConsoles.Load(instanceConsoleID)
+	if !ok {
+		return nil
+	}
+
+	return value
+}
+
 // GetInstancesByServiceID 根据ServiceID获取实例数据
 func (ic *instanceCache) GetInstancesByServiceID(serviceID string) []*model.Instance {
 	if serviceID == "" {
