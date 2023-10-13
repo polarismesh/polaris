@@ -905,14 +905,14 @@ func TestGetService6(t *testing.T) {
 	})
 }
 
-// 隐藏空服务测试
+// 只返回健康实例的服务测试
 func TestGetService7(t *testing.T) {
 	discoverSuit := &DiscoverTestSuit{}
 	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
-	t.Run("hide_empty_service过滤条件会生效", func(t *testing.T) {
+	t.Run("only_exist_health_instance过滤条件会生效", func(t *testing.T) {
 		total := 60
 		emptyServiceTotal := 30
 		nonEmptyServiceTotal := total - emptyServiceTotal
@@ -945,9 +945,9 @@ func TestGetService7(t *testing.T) {
 		}
 
 		filters := map[string]string{"offset": "0",
-			"limit":              "100",
-			"namespace":          "default",
-			"hide_empty_service": "true"}
+			"limit":                      "100",
+			"namespace":                  "default",
+			"only_exist_health_instance": "true"}
 		resp := discoverSuit.DiscoverServer().GetServices(discoverSuit.DefaultCtx, filters)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())

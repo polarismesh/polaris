@@ -373,14 +373,14 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *apis
 	var (
 		metaKeys, metaValues                   string
 		inputInstMetaKeys, inputInstMetaValues string
-		hideEmptyService                       bool
+		onlyExistHealthInstance                bool
 	)
 
-	if hes, ok := query["hide_empty_service"]; ok {
+	if hes, ok := query["only_exist_health_instance"]; ok {
 		if strings.EqualFold(hes, "true") {
-			hideEmptyService = true
+			onlyExistHealthInstance = true
 		}
-		delete(query, "hide_empty_service")
+		delete(query, "only_exist_health_instance")
 	}
 
 	for key, value := range query {
@@ -455,15 +455,15 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *apis
 		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}
 
-	if hideEmptyService {
-		nonEmptyServices := make([]*model.EnhancedService, 0, len(services))
+	if onlyExistHealthInstance {
+		onlyExistHealthInstanceServices := make([]*model.EnhancedService, 0, len(services))
 		for _, service := range services {
 			if service.HealthyInstanceCount > 0 {
-				nonEmptyServices = append(nonEmptyServices, service)
+				onlyExistHealthInstanceServices = append(onlyExistHealthInstanceServices, service)
 			}
 		}
-		total = uint32(len(nonEmptyServices))
-		services = nonEmptyServices
+		total = uint32(len(onlyExistHealthInstanceServices))
+		services = onlyExistHealthInstanceServices
 	}
 
 	resp := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
