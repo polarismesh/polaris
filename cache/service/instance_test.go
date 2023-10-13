@@ -92,6 +92,21 @@ func genModelInstances(label string, total int) map[string]*model.Instance {
 	return out
 }
 
+func genModelInstancesConsole(label string, total int) map[string]*model.InstanceConsole {
+	out := make(map[string]*model.InstanceConsole)
+	for i := 0; i < total; i++ {
+		entry := &model.InstanceConsole{
+			Id:       fmt.Sprintf("InstanceConsole-%s-%d", label, i),
+			Isolate:  false,
+			Weight:   100,
+			Metadata: "Metadata",
+		}
+		out[entry.Id] = entry
+	}
+
+	return out
+}
+
 // 对instanceCache的缓存数据进行计数统计
 func iteratorInstances(ic *instanceCache) (int, int) {
 	instancesCount := 0
@@ -116,6 +131,7 @@ func TestInstanceCache_Update(t *testing.T) {
 		ret := make(map[string]*model.Instance)
 		instances1 := genModelInstances("service1", 10) // 每次gen为一个服务的
 		instances2 := genModelInstances("service2", 5)
+		instanceConsoles := genModelInstancesConsole("console", 3)
 
 		for id, instance := range instances1 {
 			ret[id] = instance
@@ -129,7 +145,7 @@ func TestInstanceCache_Update(t *testing.T) {
 			Return(ret, nil))
 		gomock.InOrder(storage.EXPECT().
 			GetMoreInstanceConsoles(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
-			Return(nil, nil))
+			Return(instanceConsoles, nil))
 		gomock.InOrder(storage.EXPECT().GetInstancesCountTx(gomock.Any()).Return(uint32(15), nil))
 		if err := ic.Update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -164,6 +180,7 @@ func TestInstanceCache_Update(t *testing.T) {
 	t.Run("lastMtime可以正常更新", func(t *testing.T) {
 		_ = ic.Clear()
 		instances := genModelInstances("services", 10)
+		instanceConsoles := genModelInstancesConsole("console", 3)
 		maxMtime := time.Now()
 		instances[fmt.Sprintf("instanceID-%s-%d", "services", 5)].ModifyTime = maxMtime
 
@@ -173,7 +190,7 @@ func TestInstanceCache_Update(t *testing.T) {
 				Return(instances, nil),
 			storage.EXPECT().
 				GetMoreInstanceConsoles(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
-				Return(nil, nil),
+				Return(instanceConsoles, nil),
 			storage.EXPECT().GetUnixSecond(gomock.Any()).Return(maxMtime.Unix(), nil).AnyTimes(),
 		)
 		if err := ic.Update(); err != nil {
@@ -209,9 +226,13 @@ func TestInstanceCache_Update2(t *testing.T) {
 	t.Run("更新数据，再删除部分数据，缓存正常", func(t *testing.T) {
 		_ = ic.Clear()
 		instances := genModelInstances("service-a", 20)
+		instanceConsoles := genModelInstancesConsole("console", 3)
 		gomock.InOrder(storage.EXPECT().
 			GetMoreInstances(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
 			Return(instances, nil))
+		gomock.InOrder(storage.EXPECT().
+			GetMoreInstanceConsoles(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
+			Return(instanceConsoles, nil))
 		if err := ic.Update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
@@ -230,7 +251,7 @@ func TestInstanceCache_Update2(t *testing.T) {
 			Return(instances, nil))
 		gomock.InOrder(storage.EXPECT().
 			GetMoreInstanceConsoles(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
-			Return(nil, nil))
+			Return(instanceConsoles, nil))
 		if err := ic.Update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
 		}
@@ -244,11 +265,13 @@ func TestInstanceCache_Update2(t *testing.T) {
 	t.Run("对账发现缓存数据数量和存储层不一致", func(t *testing.T) {
 		_ = ic.Clear()
 		instances := genModelInstances("service-a", 20)
+		instanceConsoles := genModelInstancesConsole("console", 3)
+
 		queryCount := int32(0)
 		storage.EXPECT().GetInstancesCountTx(gomock.Any()).Return(uint32(0), nil).AnyTimes()
 		storage.EXPECT().
 			GetMoreInstanceConsoles(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
-			Return(nil, nil)
+			Return(instanceConsoles, nil)
 		storage.EXPECT().
 			GetMoreInstances(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
 			DoAndReturn(func(tx store.Tx, mtime time.Time, firstUpdate, needMeta bool, svcIds []string) (map[string]*model.Instance, error) {
@@ -272,12 +295,14 @@ func TestInstanceCache_GetInstance(t *testing.T) {
 	t.Run("缓存有数据，可以正常获取到数据", func(t *testing.T) {
 		_ = ic.Clear()
 		instances := genModelInstances("my-services", 10)
+		instanceConsoles := genModelInstancesConsole("console", 3)
+
 		gomock.InOrder(storage.EXPECT().
 			GetMoreInstances(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
 			Return(instances, nil))
 		gomock.InOrder(storage.EXPECT().
 			GetMoreInstanceConsoles(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
-			Return(nil, nil))
+			Return(instanceConsoles, nil))
 		gomock.InOrder(storage.EXPECT().GetInstancesCountTx(gomock.Any()).Return(uint32(10), nil))
 		if err := ic.Update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -299,6 +324,7 @@ func TestInstanceCache_GetServicePorts(t *testing.T) {
 	t.Run("缓存有数据，可以正常获取到服务的端口列表", func(t *testing.T) {
 		_ = ic.Clear()
 		instances := genModelInstances("my-services", 10)
+		instanceConsoles := genModelInstancesConsole("console", 3)
 
 		ports := make(map[string][]*model.ServicePort)
 
@@ -332,7 +358,7 @@ func TestInstanceCache_GetServicePorts(t *testing.T) {
 			Return(instances, nil))
 		gomock.InOrder(storage.EXPECT().
 			GetMoreInstanceConsoles(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
-			Return(nil, nil))
+			Return(instanceConsoles, nil))
 		gomock.InOrder(storage.EXPECT().GetInstancesCountTx(gomock.Any()).Return(uint32(10), nil))
 		if err := ic.Update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -355,6 +381,7 @@ func TestInstanceCache_fillIntrnalLabels(t *testing.T) {
 	t.Run("向实例Metadata中自动注入北极星默认label信息", func(t *testing.T) {
 		_ = ic.Clear()
 		instances := genModelInstances("inject-internal-label", 10)
+		instanceConsoles := genModelInstancesConsole("console", 3)
 
 		ports := make(map[string][]string)
 
@@ -386,7 +413,7 @@ func TestInstanceCache_fillIntrnalLabels(t *testing.T) {
 			Return(instances, nil))
 		gomock.InOrder(storage.EXPECT().
 			GetMoreInstanceConsoles(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
-			Return(nil, nil))
+			Return(instanceConsoles, nil))
 		gomock.InOrder(storage.EXPECT().GetInstancesCountTx(gomock.Any()).Return(uint32(10), nil))
 		if err := ic.Update(); err != nil {
 			t.Fatalf("error: %s", err.Error())
@@ -418,6 +445,7 @@ func TestGetInstancesByServiceID(t *testing.T) {
 		instances1 := genModelInstances("my-services", instances1Count)
 		instances2 := genModelInstances("my-services-a", instances2Count)
 		// instances2 = append(instances2, instances1...)
+		instanceConsoles := genModelInstancesConsole("console", 3)
 
 		ret := make(map[string]*model.Instance)
 		for id, instance := range instances1 {
@@ -432,7 +460,7 @@ func TestGetInstancesByServiceID(t *testing.T) {
 			Return(ret, nil))
 		gomock.InOrder(storage.EXPECT().
 			GetMoreInstanceConsoles(gomock.Any(), gomock.Any(), ic.IsFirstUpdate(), ic.needMeta, ic.systemServiceID).
-			Return(nil, nil))
+			Return(instanceConsoles, nil))
 		gomock.InOrder(storage.EXPECT().
 			GetInstancesCountTx(gomock.Any()).
 			Return(uint32(instances1Count+instances2Count), nil))
