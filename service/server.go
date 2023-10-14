@@ -57,6 +57,8 @@ type Server struct {
 
 	hooks   []ResourceHook
 	subCtxs []*eventhub.SubscribtionContext
+
+	instanceChains []InstanceChain
 }
 
 // HealthServer 健康检查Server
@@ -77,6 +79,11 @@ func (s *Server) Namespace() namespace.NamespaceOperateServer {
 // SetResourceHooks 设置资源操作的Hook
 func (s *Server) SetResourceHooks(hooks ...ResourceHook) {
 	s.hooks = hooks
+}
+
+// AddInstanceChain .
+func (s *Server) AddInstanceChain(chains ...InstanceChain) {
+	s.instanceChains = append(s.instanceChains, chains...)
 }
 
 // RecordHistory server对外提供history插件的简单封装
@@ -161,4 +168,9 @@ func (s *Server) afterServiceResource(ctx context.Context, req *apiservice.Servi
 	}
 
 	return nil
+}
+
+type InstanceChain interface {
+	// AfterUpdate .
+	AfterUpdate(ctx context.Context, instances ...*model.Instance)
 }

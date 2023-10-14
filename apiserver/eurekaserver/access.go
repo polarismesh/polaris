@@ -436,15 +436,16 @@ func (h *EurekaServer) UpdateStatus(req *restful.Request, rsp *restful.Response)
 		writeHeader(http.StatusOK, rsp)
 		return
 	}
-	code := h.updateStatus(context.Background(), namespace, appId, instId, status, false)
+	ctx := context.WithValue(context.Background(), sourceFromEureka{}, true)
+	code := h.updateStatus(ctx, namespace, appId, instId, status, false)
 	writePolarisStatusCode(req, code)
 	if code == api.ExecuteSuccess || code == api.NoNeedUpdate {
-		eurekalog.Infof("[EUREKA-SERVER]instance (namespace=%s, instId=%s, appId=%s) has been updated successfully",
+		eurekalog.Infof("[EUREKA-SERVER] instance (namespace=%s, instId=%s, appId=%s) has been updated successfully",
 			namespace, instId, appId)
 		writeHeader(http.StatusOK, rsp)
 		return
 	}
-	eurekalog.Errorf("[EUREKA-SERVER]instance ((namespace=%s, instId=%s, appId=%s) has been updated failed, "+
+	eurekalog.Errorf("[EUREKA-SERVER] instance (namespace=%s, instId=%s, appId=%s) has been updated failed, "+
 		"code is %d",
 		namespace, instId, appId, code)
 	if code == api.NotFoundResource {
@@ -480,7 +481,8 @@ func (h *EurekaServer) DeleteStatus(req *restful.Request, rsp *restful.Response)
 		"client: %s,namespace=%s, instId=%s, appId=%s",
 		remoteAddr, namespace, instId, appId)
 
-	code := h.updateStatus(context.Background(), namespace, appId, instId, StatusUp, false)
+	ctx := context.WithValue(context.Background(), sourceFromEureka{}, true)
+	code := h.updateStatus(ctx, namespace, appId, instId, StatusUp, false)
 	writePolarisStatusCode(req, code)
 	if code == api.ExecuteSuccess {
 		eurekalog.Infof("[EUREKA-SERVER]instance status (namespace=%s, instId=%s, appId=%s) "+
