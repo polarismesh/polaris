@@ -20,11 +20,12 @@ package eurekaserver
 import (
 	"context"
 
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/store"
-	"go.uber.org/zap"
 )
 
 type (
