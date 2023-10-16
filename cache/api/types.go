@@ -401,6 +401,8 @@ type (
 		ReleaseName string
 		// OnlyActive
 		OnlyActive bool
+		// IncludeGray 是否包含灰度文件，默认不包括
+		IncludeGray bool
 		// Metadata
 		Metadata map[string]string
 		// NoPage
@@ -438,8 +440,7 @@ type (
 		Cache
 		// GetActiveRelease
 		GetGroupActiveReleases(namespace, group string) ([]*model.ConfigFileRelease, string)
-		// GetActiveRelease
-		GetActiveRelease(namespace, group, fileName string) *model.ConfigFileRelease
+		GetActiveRelease(namespace, group, fileName string, typ model.ConfigeFileType) *model.ConfigFileRelease
 		// GetRelease
 		GetRelease(key model.ConfigFileReleaseKey) *model.ConfigFileRelease
 		// QueryReleases

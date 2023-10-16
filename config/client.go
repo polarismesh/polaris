@@ -43,13 +43,18 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 	group := client.GetGroup().GetValue()
 	fileName := client.GetFileName().GetValue()
 	clientVersion := client.GetVersion().GetValue()
-
+	tags := client.GetTags()
+	if len(tags) != 0 {
+		log.Info("[Config][Service] get config file to client info", zap.String("tags", tags[0].Value.GetValue()))
+	}
+	
+    
 	if namespace == "" || group == "" || fileName == "" {
 		return api.NewConfigClientResponseWithInfo(
 			apimodel.Code_BadRequest, "namespace & group & fileName can not be empty")
 	}
 	// 从缓存中获取配置内容
-	release := s.fileCache.GetActiveRelease(namespace, group, fileName)
+	release := s.fileCache.GetActiveRelease(namespace, group, fileName, model.ConfigeFileTypeFull)
 	if release == nil {
 		return api.NewConfigClientResponse(apimodel.Code_NotFoundResource, nil)
 	}
@@ -175,7 +180,7 @@ func (s *Server) checkClientConfigFile(ctx context.Context, files []*apiconfig.C
 				"namespace & group & fileName can not be empty"), false
 		}
 		// 从缓存中获取最新的配置文件信息
-		release := s.fileCache.GetActiveRelease(namespace, group, fileName)
+		release := s.fileCache.GetActiveRelease(namespace, group, fileName,model.ConfigeFileTypeFull)
 		if release != nil && compartor(configFile, release) {
 			ret := &apiconfig.ClientConfigFileInfo{
 				Namespace: utils.NewStringValue(namespace),

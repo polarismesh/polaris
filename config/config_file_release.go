@@ -55,6 +55,10 @@ func (s *Server) PublishConfigFile(ctx context.Context, req *apiconfig.ConfigFil
 		return api.NewConfigResponse(apimodel.Code_NotFoundNamespace)
 	}
 
+	if req.GetType().GetValue() != uint32(model.ConfigeFileTypeGray) && req.GetType().GetValue() != uint32(model.ConfigeFileTypeFull) {
+		return api.NewConfigResponse(apimodel.Code_InvalidParameter)
+	}
+
 	tx, err := s.storage.StartTx()
 	if err != nil {
 		log.Error("[Config][Release] publish config file begin tx.", utils.RequestID(ctx), zap.Error(err))
@@ -78,7 +82,12 @@ func (s *Server) PublishConfigFile(ctx context.Context, req *apiconfig.ConfigFil
 		log.Error("[Config][Release] publish config file commit tx.", utils.RequestID(ctx), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
-	s.recordReleaseSuccess(ctx, utils.ReleaseTypeNormal, data)
+	if req.GetType().GetValue() == uint32(model.ConfigeFileTypeFull) {
+		s.recordReleaseSuccess(ctx, utils.ReleaseTypeNormal, data)
+	} else {
+		s.recordReleaseSuccess(ctx, utils.ReleaseTypeGray, data)
+	}
+
 	resp.ConfigFileRelease = req
 	return resp
 }
@@ -118,6 +127,7 @@ func (s *Server) handlePublishConfigFile(ctx context.Context, tx store.Tx,
 				Namespace: namespace,
 				Group:     group,
 				FileName:  fileName,
+				Typ:       model.ConfigeFileType(req.GetType().GetValue()),
 			},
 			Format:             toPublishFile.Format,
 			Metadata:           toPublishFile.Metadata,
@@ -379,6 +389,7 @@ func (s *Server) GetConfigFileReleases(ctx context.Context,
 		FileName:    searchFilters["file_name"],
 		ReleaseName: searchFilters["release_name"],
 		OnlyActive:  strings.Compare(searchFilters["only_active"], "true") == 0,
+		IncludeGray: false,
 	}
 	return s.handleDescribeConfigFileReleases(ctx, args)
 }
@@ -408,6 +419,7 @@ func (s *Server) handleDescribeConfigFileReleases(ctx context.Context,
 			ModifyBy:           utils.NewStringValue(item.ModifyBy),
 			ReleaseDescription: utils.NewStringValue(item.ReleaseDescription),
 			Tags:               model.FromTagMap(item.Metadata),
+			Type:                utils.NewUInt32Value(uint32(item.Typ)),
 		})
 	}
 
@@ -449,6 +461,7 @@ func (s *Server) RollbackConfigFileRelease(ctx context.Context,
 				Namespace: req.GetNamespace().GetValue(),
 				Group:     req.GetGroup().GetValue(),
 				FileName:  req.GetFileName().GetValue(),
+				Typ:       model.ConfigeFileTypeFull,
 			},
 		},
 	}

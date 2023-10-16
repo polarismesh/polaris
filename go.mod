@@ -1,6 +1,6 @@
 module github.com/polarismesh/polaris
 
-go 1.21
+go 1.20
 
 require (
 	github.com/BurntSushi/toml v1.2.0
@@ -83,7 +83,7 @@ require (
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/agiledragon/gomonkey/v2 v2.10.1
-	github.com/polarismesh/specification v1.4.1-alpha
+	github.com/polarismesh/specification v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -93,3 +93,5 @@ require (
 )
 
 replace gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.2
+
+replace github.com/polarismesh/specification => ../specification

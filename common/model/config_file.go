@@ -18,12 +18,22 @@
 package model
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
+)
+
+type ConfigeFileType uint32
+
+const (
+	// ConfigeFileTypeFull 全量类型
+	ConfigeFileTypeFull ConfigeFileType = iota
+	// ConfigeFileTypeGray 灰度类型
+	ConfigeFileTypeGray
 )
 
 /** ----------- DataObject ------------- */
@@ -123,6 +133,7 @@ type ConfigFileReleaseKey struct {
 	Namespace string
 	Group     string
 	FileName  string
+	Typ       ConfigeFileType
 }
 
 func (c ConfigFileReleaseKey) ToFileKey() *ConfigFileKey {
@@ -138,11 +149,11 @@ func (c ConfigFileReleaseKey) OwnerKey() string {
 }
 
 func (c ConfigFileReleaseKey) ActiveKey() string {
-	return c.Namespace + "@" + c.Group + "@" + c.FileName
+	return fmt.Sprintf("%v@%v@%v@%v", c.Namespace, c.Group,  c.FileName, c.Typ)
 }
 
 func (c ConfigFileReleaseKey) ReleaseKey() string {
-	return c.Namespace + "@" + c.Group + "@" + c.FileName + "@" + c.Name
+	return fmt.Sprintf("%v@%v@%v@%v@%v", c.Namespace, c.Group,  c.FileName, c.Typ,c.Name)
 }
 
 // SimpleConfigFileRelease 配置文件发布数据持久化对象

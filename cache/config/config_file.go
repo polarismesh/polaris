@@ -31,8 +31,8 @@ import (
 
 	types "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/eventhub"
-	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -167,7 +167,7 @@ func (fc *fileCache) setReleases(releases []*model.ConfigFileRelease) (map[strin
 		oldVal, _ := fc.releases.Get(item.Id)
 		if !item.Valid {
 			del++
-			if err := fc.handleDeleteRelease(oldVal, item); err != nil {
+			if err := fc.handleDeleteRelease(oldVal); err != nil {
 				return nil, update, del, err
 			}
 		} else {
@@ -199,6 +199,10 @@ func (fc *fileCache) sendEvent(item *model.ConfigFileRelease) {
 
 // handleUpdateRelease
 func (fc *fileCache) handleUpdateRelease(oldVal *model.SimpleConfigFileRelease, item *model.ConfigFileRelease) error {
+	// 如果有旧版本cache， 先删除再保存
+	if err := fc.handleDeleteRelease(oldVal); err != nil {
+		return err
+	}
 	fc.releases.Put(item.Id, item.SimpleConfigFileRelease)
 
 	func() {
@@ -250,48 +254,48 @@ func (fc *fileCache) handleUpdateRelease(oldVal *model.SimpleConfigFileRelease, 
 }
 
 // handleDeleteRelease
-func (fc *fileCache) handleDeleteRelease(oldVal *model.SimpleConfigFileRelease, item *model.ConfigFileRelease) error {
-	fc.releases.Del(item.Id)
+func (fc *fileCache) handleDeleteRelease(release *model.SimpleConfigFileRelease) error {
+	if release == nil {
+		return nil
+	}
+	fc.releases.Del(release.Id)
 
 	func() {
 		// 记录 namespace -> group -> file_name -> []SimpleRelease 信息
-		if _, ok := fc.name2release.Load(item.Namespace); !ok {
+		if _, ok := fc.name2release.Load(release.Namespace); !ok {
 			return
 		}
-		namespace, _ := fc.name2release.Load(item.Namespace)
-		if _, ok := namespace.Load(item.Group); !ok {
+		namespace, _ := fc.name2release.Load(release.Namespace)
+		if _, ok := namespace.Load(release.Group); !ok {
 			return
 		}
-		group, _ := namespace.Load(item.Group)
-		if _, ok := group.Load(item.FileName); !ok {
+		group, _ := namespace.Load(release.Group)
+		if _, ok := group.Load(release.FileName); !ok {
 			return
 		}
 
-		files, _ := group.Load(item.FileName)
-		files.Delete(item.Name)
+		files, _ := group.Load(release.FileName)
+		files.Delete(release.Name)
 
 		if files.Len() == 0 {
-			group.Delete(item.FileName)
+			group.Delete(release.FileName)
 		}
 	}()
 
-	if oldVal == nil {
+	if !release.Active {
 		return nil
 	}
-	if !oldVal.Active {
-		return nil
-	}
-	if namespace, ok := fc.activeReleases.Load(item.Namespace); ok {
-		if group, ok := namespace.Load(item.Group); ok {
-			group.Delete(item.ActiveKey())
+	if namespace, ok := fc.activeReleases.Load(release.Namespace); ok {
+		if group, ok := namespace.Load(release.Group); ok {
+			group.Delete(release.ActiveKey())
 		}
 	}
 	if err := fc.valueCache.Update(func(tx *bbolt.Tx) error {
-		bucket := tx.Bucket([]byte(item.OwnerKey()))
+		bucket := tx.Bucket([]byte(release.OwnerKey()))
 		if bucket == nil {
 			return nil
 		}
-		return bucket.Delete([]byte(item.ActiveKey()))
+		return bucket.Delete([]byte(release.ActiveKey()))
 	}); err != nil {
 		return errors.Join(err, errors.New("remove config_file content fail"))
 	}
@@ -342,7 +346,7 @@ func (fc *fileCache) Name() string {
 	return types.ConfigFileCacheName
 }
 
-// GetActiveRelease
+// GetGroupActiveReleases
 func (fc *fileCache) GetGroupActiveReleases(namespace, group string) ([]*model.ConfigFileRelease, string) {
 	nsBucket, ok := fc.activeReleases.Load(namespace)
 	if !ok {
@@ -367,7 +371,7 @@ func (fc *fileCache) GetGroupActiveReleases(namespace, group string) ([]*model.C
 }
 
 // GetActiveRelease
-func (fc *fileCache) GetActiveRelease(namespace, group, fileName string) *model.ConfigFileRelease {
+func (fc *fileCache) GetActiveRelease(namespace, group, fileName string, typ model.ConfigeFileType) *model.ConfigFileRelease {
 	nsBucket, ok := fc.activeReleases.Load(namespace)
 	if !ok {
 		return nil
@@ -380,6 +384,7 @@ func (fc *fileCache) GetActiveRelease(namespace, group, fileName string) *model.
 		Namespace: namespace,
 		Group:     group,
 		FileName:  fileName,
+		Typ: typ,
 	}
 	simple, ok := groupBucket.Load(searchKey.ActiveKey())
 	if !ok {
@@ -448,6 +453,9 @@ func (fc *fileCache) QueryReleases(args *types.ConfigReleaseArgs) (uint32, []*mo
 				}
 				releases.Range(func(releaseName string, item *model.SimpleConfigFileRelease) {
 					if args.ReleaseName != "" && utils.IsWildNotMatch(item.Name, args.ReleaseName) {
+						return
+					}
+					if !args.IncludeGray && item.Typ == model.ConfigeFileTypeGray {
 						return
 					}
 					if args.OnlyActive && !item.Active {
