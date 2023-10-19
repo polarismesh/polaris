@@ -178,13 +178,13 @@ func (cfr *configFileReleaseStore) GetConfigFileActiveReleaseTx(tx store.Tx,
 
 	dbTx := tx.GetDelegateTx().(*BaseTx)
 	querySql := cfr.baseQuerySql() + "WHERE namespace = ? AND `group` = ? AND " +
-		" file_name = ? AND active = 1 AND TYPE =? AND flag = 0 "
+		" file_name = ? AND active = 1 AND type =? AND flag = 0 "
 	var (
 		rows *sql.Rows
 		err  error
 	)
 
-	rows, err = dbTx.Query(querySql, file.Namespace, file.Group, file.Name, model.ConfigeFileTypeFull)
+	rows, err = dbTx.Query(querySql, file.Namespace, file.Group, file.Name, model.ReleaseTypeFull)
 	if err != nil {
 		return nil, err
 	}

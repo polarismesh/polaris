@@ -496,7 +496,7 @@ CREATE TABLE `config_file_release`
     `tags`        TEXT COMMENT '文件标签',
     `active`      TINYINT(4)      NOT NULL DEFAULT '0' COMMENT '是否处于使用中',
     `description` VARCHAR(512)             DEFAULT NULL COMMENT '发布描述',
-    `type`        TINYINT(4)      NOT NULL DEFAULT '0' COMMENT '文件类型：0：全量 1：灰度',
+    `type`        TINYINT(4)      NOT NULL DEFAULT '1' COMMENT '文件类型：1：全量 2：灰度',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_file` (`namespace`, `group`, `file_name`, `name`),
     KEY `idx_modify_time` (`modify_time`)
@@ -917,31 +917,14 @@ CREATE TABLE service_contract_detail
     KEY (`contract_id`, `path`, `method`)
 ) ENGINE = InnoDB;
 
-/* 灰度规则表 */
-CREATE TABLE `gray_rule`
+/* 灰度资源 */
+CREATE TABLE `gray_resource`
 (
-    `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `namespace`   VARCHAR(64)     NOT NULL COMMENT '所属的namespace',
-    `group`       VARCHAR(128)    NOT NULL DEFAULT '' COMMENT '所属组',
-    `name`        VARCHAR(128)    NOT NULL COMMENT '规则名',
+    `name`        VARCHAR(128)    NOT NULL COMMENT '灰度资源',
     `match_rule`  TEXT            NOT NULL COMMENT '配置规则',
     `create_time` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `create_by`   VARCHAR(32)     DEFAULT "" COMMENT '创建人',
     `modify_time` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
     `modify_by`   VARCHAR(32)     DEFAULT "" COMMENT '最后更新人',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_tag` (`namespace`, `group`, `name`)
-) ENGINE = InnoDB COMMENT = '灰度规则表';
-
-/* 灰度资源 */
-CREATE TABLE `gray_resource`
-(
-    `resource`    VARCHAR(128)        NOT NULL COMMENT '灰度资源',
-    `module`      VARCHAR(64)     NOT NULL COMMENT '所属的模块 config|circuitbreaker|routing|ratelimit',
-    `rule_id`     BIGINT UNSIGNED     NOT NULL COMMENT '灰度规则id',
-    `create_time` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `create_by`   VARCHAR(32)     DEFAULT "" COMMENT '创建人',
-    `modify_time` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
-    `modify_by`   VARCHAR(32)     DEFAULT "" COMMENT '最后更新人',
-    PRIMARY KEY (`appid`),
+    PRIMARY KEY (`name`)
 ) ENGINE = InnoDB COMMENT = '灰度资源表';

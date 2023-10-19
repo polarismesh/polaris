@@ -371,7 +371,7 @@ func (fc *fileCache) GetGroupActiveReleases(namespace, group string) ([]*model.C
 }
 
 // GetActiveRelease
-func (fc *fileCache) GetActiveRelease(namespace, group, fileName string, typ model.ConfigeFileType) *model.ConfigFileRelease {
+func (fc *fileCache) GetActiveRelease(namespace, group, fileName string, typ model.ReleaseType) *model.ConfigFileRelease {
 	nsBucket, ok := fc.activeReleases.Load(namespace)
 	if !ok {
 		return nil
@@ -455,7 +455,7 @@ func (fc *fileCache) QueryReleases(args *types.ConfigReleaseArgs) (uint32, []*mo
 					if args.ReleaseName != "" && utils.IsWildNotMatch(item.Name, args.ReleaseName) {
 						return
 					}
-					if !args.IncludeGray && item.Typ == model.ConfigeFileTypeGray {
+					if !args.IncludeGray && item.Typ == model.ReleaseTypeGray {
 						return
 					}
 					if args.OnlyActive && !item.Active {

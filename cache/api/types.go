@@ -25,6 +25,7 @@ import (
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
@@ -64,6 +65,8 @@ const (
 	StrategyRuleName = "strategyRule"
 	// ServiceContractName service contract config name
 	ServiceContractName = "serviceContract"
+	// GrayName gray config name
+	GrayName = "gray"
 )
 
 type CacheIndex int
@@ -85,6 +88,7 @@ const (
 	CacheFaultDetector
 	CacheConfigGroup
 	CacheServiceContract
+	CacheGray
 
 	CacheLast
 )
@@ -440,7 +444,7 @@ type (
 		Cache
 		// GetActiveRelease
 		GetGroupActiveReleases(namespace, group string) ([]*model.ConfigFileRelease, string)
-		GetActiveRelease(namespace, group, fileName string, typ model.ConfigeFileType) *model.ConfigFileRelease
+		GetActiveRelease(namespace, group, fileName string, typ model.ReleaseType) *model.ConfigFileRelease
 		// GetRelease
 		GetRelease(key model.ConfigFileReleaseKey) *model.ConfigFileRelease
 		// QueryReleases
@@ -646,3 +650,11 @@ func (bc *BaseCache) Clear() {
 func (bc *BaseCache) Close() error {
 	return nil
 }
+
+type (
+	// GrayCache 灰度 Cache 接口
+	GrayCache interface {
+		Cache
+		GetGrayRule(name string) *apimodel.MatchTerm
+	}
+)

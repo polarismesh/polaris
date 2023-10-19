@@ -28,6 +28,7 @@ import (
 	cacheconfig "github.com/polarismesh/polaris/cache/config"
 	cachens "github.com/polarismesh/polaris/cache/namespace"
 	cachesvc "github.com/polarismesh/polaris/cache/service"
+	cachegray "github.com/polarismesh/polaris/cache/gray"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -46,6 +47,7 @@ func init() {
 	RegisterCache(types.StrategyRuleName, types.CacheAuthStrategy)
 	RegisterCache(types.ClientName, types.CacheClient)
 	RegisterCache(types.ServiceContractName, types.CacheServiceContract)
+	RegisterCache(types.GrayName, types.CacheGray)
 }
 
 var (
@@ -106,6 +108,7 @@ func newCacheManager(ctx context.Context, cacheOpt *Config, storage store.Store)
 	mgr.RegisterCacher(types.CacheAuthStrategy, cacheauth.NewStrategyCache(storage, mgr))
 	// 北极星SDK Client
 	mgr.RegisterCacher(types.CacheClient, cacheclient.NewClientCache(storage, mgr))
+	mgr.RegisterCacher(types.CacheGray, cachegray.NewGrayCache(storage, mgr))
 
 	if len(mgr.caches) != int(types.CacheLast) {
 		return nil, errors.New("some Cache implement not loaded into CacheManager")

@@ -107,6 +107,7 @@ type Server struct {
 	storage           store.Store
 	fileCache         cachetypes.ConfigFileCache
 	groupCache        cachetypes.ConfigGroupCache
+	grayCache         cachetypes.GrayCache
 	caches            *cache.CacheManager
 	watchCenter       *watchCenter
 	namespaceOperator namespace.NamespaceOperateServer
@@ -157,6 +158,7 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	s.namespaceOperator = namespaceOperator
 	s.fileCache = cacheMgn.ConfigFile()
 	s.groupCache = cacheMgn.ConfigGroup()
+	s.grayCache = cacheMgn.Gray()
 
 	s.watchCenter, err = NewWatchCenter()
 	if err != nil {

@@ -423,6 +423,7 @@ config:
   # Maximum number of number of file characters
   contentMaxLength: 20000
 # Cache configuration
+
 cache:
   open: true
   resources:
@@ -445,6 +446,7 @@ cache:
     - name: configGroup
     - name: faultDetectRule
     - name: serviceContract
+    - name: gray
 #    - name: l5 # Load L5 data
 # Maintain configuration
 maintain:

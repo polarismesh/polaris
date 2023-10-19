@@ -27,13 +27,14 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-type ConfigeFileType uint32
+type ReleaseType uint32
 
 const (
-	// ConfigeFileTypeFull 全量类型
-	ConfigeFileTypeFull ConfigeFileType = iota
-	// ConfigeFileTypeGray 灰度类型
-	ConfigeFileTypeGray
+	_ ReleaseType = iota
+	// ReleaseTypeFull 全量类型
+	ReleaseTypeFull
+	// ReleaseTypeGray 灰度类型
+	ReleaseTypeGray
 )
 
 /** ----------- DataObject ------------- */
@@ -133,7 +134,7 @@ type ConfigFileReleaseKey struct {
 	Namespace string
 	Group     string
 	FileName  string
-	Typ       ConfigeFileType
+	Typ       ReleaseType
 }
 
 func (c ConfigFileReleaseKey) ToFileKey() *ConfigFileKey {
@@ -149,11 +150,11 @@ func (c ConfigFileReleaseKey) OwnerKey() string {
 }
 
 func (c ConfigFileReleaseKey) ActiveKey() string {
-	return fmt.Sprintf("%v@%v@%v@%v", c.Namespace, c.Group,  c.FileName, c.Typ)
+	return fmt.Sprintf("%v@%v@%v@%v", c.Namespace, c.Group, c.FileName, c.Typ)
 }
 
 func (c ConfigFileReleaseKey) ReleaseKey() string {
-	return fmt.Sprintf("%v@%v@%v@%v@%v", c.Namespace, c.Group,  c.FileName, c.Typ,c.Name)
+	return fmt.Sprintf("%v@%v@%v@%v", c.Namespace, c.Group, c.FileName, c.Name)
 }
 
 // SimpleConfigFileRelease 配置文件发布数据持久化对象
@@ -336,6 +337,7 @@ func ToConfiogFileReleaseApi(release *ConfigFileRelease) *config_manage.ConfigFi
 		ReleaseDescription: utils.NewStringValue(release.ReleaseDescription),
 		Tags:               FromTagMap(release.Metadata),
 		Active:             utils.NewBoolValue(release.Active),
+		Type:               utils.NewUInt32Value(uint32(release.Typ)),
 	}
 }
 

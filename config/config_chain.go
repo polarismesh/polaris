@@ -272,7 +272,7 @@ func (chain *ReleaseConfigFileChain) AfterGetFile(ctx context.Context,
 	group := file.Group
 	name := file.Name
 	// 首先检测灰度版本
-	if grayFile := chain.svr.fileCache.GetActiveRelease(namespace, group, name, model.ConfigeFileTypeGray); grayFile != nil {
+	if grayFile := chain.svr.fileCache.GetActiveRelease(namespace, group, name, model.ReleaseTypeGray); grayFile != nil {
 		if grayFile.Content == file.OriginContent {
 			file.Status = utils.ReleaseTypeGray
 			file.ReleaseBy = grayFile.ModifyBy
@@ -280,7 +280,7 @@ func (chain *ReleaseConfigFileChain) AfterGetFile(ctx context.Context,
 		} else {
 			file.Status = utils.ReleaseStatusToRelease
 		}
-	} else if fullFile := chain.svr.fileCache.GetActiveRelease(namespace, group, name, model.ConfigeFileTypeFull); fullFile != nil {
+	} else if fullFile := chain.svr.fileCache.GetActiveRelease(namespace, group, name, model.ReleaseTypeFull); fullFile != nil {
 		// 如果最后一次发布的内容和当前文件内容一致，则展示最后一次发布状态。否则说明文件有修改，待发布
 		if fullFile.Content == file.OriginContent {
 			file.Status = utils.ReleaseTypeNormal

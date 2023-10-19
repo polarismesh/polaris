@@ -291,16 +291,12 @@ func (h *HTTPServer) PublishConfigFile(req *restful.Request, rsp *restful.Respon
 
 	configFile := &apiconfig.ConfigFileRelease{}
 	ctx, err := handler.Parse(configFile)
-	requestId := ctx.Value(utils.StringContext("request-id"))
-
 	if err != nil {
 		configLog.Error("[Config][HttpServer] parse config file release from request error.",
-			zap.String("requestId", requestId.(string)),
 			zap.String("error", err.Error()))
 		handler.WriteHeaderAndProto(api.NewConfigFileReleaseResponseWithMessage(apimodel.Code_ParseException, err.Error()))
 		return
 	}
-
 	handler.WriteHeaderAndProto(h.configServer.PublishConfigFile(ctx, configFile))
 }
 
