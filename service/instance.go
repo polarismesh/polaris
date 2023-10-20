@@ -452,6 +452,10 @@ func (s *Server) UpdateInstance(ctx context.Context, req *apiservice.Instance) *
 		s.sendDiscoverEvent(*event)
 	}
 
+	for i := range s.instanceChains {
+		s.instanceChains[i].AfterUpdate(ctx, instance)
+	}
+
 	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
@@ -541,8 +545,8 @@ func (s *Server) UpdateInstanceIsolate(ctx context.Context, req *apiservice.Inst
 		}
 		instance.Proto.Isolate = utils.NewBoolValue(req.GetIsolate().GetValue())
 	}
-	for i := range s.instancesChain {
-		s.instancesChain[i].AfterUpdateIsolate(ctx, instances...)
+	for i := range s.instanceChains {
+		s.instanceChains[i].AfterUpdate(ctx, instances...)
 	}
 
 	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
@@ -1311,6 +1315,6 @@ func CheckDbInstanceFieldLen(req *apiservice.Instance) (*apiservice.Response, bo
 }
 
 type InstanceChain interface {
-	// AfterUpdateIsolate .
-	AfterUpdateIsolate(ctx context.Context, instances ...*model.Instance)
+	// AfterUpdate .
+	AfterUpdate(ctx context.Context, instances ...*model.Instance)
 }

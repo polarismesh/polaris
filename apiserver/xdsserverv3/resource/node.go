@@ -282,6 +282,10 @@ type XDSClient struct {
 	OnDemandServer string
 }
 
+func (n *XDSClient) GetNodeID() string {
+	return n.Node.Id
+}
+
 func (n *XDSClient) ResourceKey() string {
 	return n.Namespace + "/" + string(n.TLSMode)
 }

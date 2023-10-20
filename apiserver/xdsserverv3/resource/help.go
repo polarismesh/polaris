@@ -21,7 +21,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -37,7 +36,7 @@ import (
 	envoy_extensions_common_ratelimit_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
 	ratelimitv32 "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
 	lrl "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
-	luav3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/lua/v3"
+	// luav3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/lua/v3"
 	on_demandv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/on_demand/v3"
 	ratelimitfilter "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ratelimit/v3"
 	routerv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
@@ -64,46 +63,6 @@ import (
 	types "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
-)
-
-const (
-	PassthroughClusterName  = "PassthroughCluster"
-	RouteConfigName         = "polaris-router"
-	OutBoundRouteConfigName = "polaris-outbound-router"
-	InBoundRouteConfigName  = "polaris-inbound-cluster"
-	OdcdsRouteConfigName    = "polaris-odcds-router"
-	InternalOdcdsHeader     = "internal-service-cluster"
-)
-
-const (
-	// LocalRateLimitStage envoy local ratelimit stage
-	LocalRateLimitStage = 0
-	// DistributedRateLimitStage envoy remote ratelimit stage
-	DistributedRateLimitStage = 1
-)
-
-var (
-	defaultOdcdsLuaScriptFile string = "./conf/xds/envoy_lua/odcds.lua"
-)
-
-var (
-	odcdsLuaCode string
-)
-
-func Init() {
-	if val := os.Getenv("ENVOY_ODCDS_LUA_SCRIPT"); val != "" {
-		defaultOdcdsLuaScriptFile = val
-	}
-	code, _ := os.ReadFile(defaultOdcdsLuaScriptFile)
-	odcdsLuaCode = string(code)
-	log.Infof("[XDSV3][ODCDS] lua script path :%s content\n%s\n", defaultOdcdsLuaScriptFile, odcdsLuaCode)
-}
-
-var (
-	TrafficBoundRoute = map[corev3.TrafficDirection]string{
-		corev3.TrafficDirection_INBOUND:  InBoundRouteConfigName,
-		corev3.TrafficDirection_OUTBOUND: OutBoundRouteConfigName,
-	}
 )
 
 func MakeServiceGatewayDomains() []string {
@@ -748,19 +707,19 @@ func makeRateLimitHCMFilter(svcKey model.ServiceKey) []*hcm.HttpFilter {
 
 func makeSidecarOnDemandHCMFilter(option *BuildOption) []*hcm.HttpFilter {
 	return []*hcm.HttpFilter{
-		{
-			// 这个插件用于改写所有的 envoy 请求，手动添加一个内置的专门用于 ODCDS 的简单 Lua 脚本
-			Name: wellknown.Lua,
-			ConfigType: &hcm.HttpFilter_TypedConfig{
-				TypedConfig: MustNewAny(&luav3.Lua{
-					DefaultSourceCode: &corev3.DataSource{
-						Specifier: &corev3.DataSource_InlineString{
-							InlineString: odcdsLuaCode,
-						},
-					},
-				}),
-			},
-		},
+		// {
+		// 	// 这个插件用于改写所有的 envoy 请求，手动添加一个内置的专门用于 ODCDS 的简单 Lua 脚本
+		// 	Name: wellknown.Lua,
+		// 	ConfigType: &hcm.HttpFilter_TypedConfig{
+		// 		TypedConfig: MustNewAny(&luav3.Lua{
+		// 			DefaultSourceCode: &corev3.DataSource{
+		// 				Specifier: &corev3.DataSource_InlineString{
+		// 					InlineString: odcdsLuaCode,
+		// 				},
+		// 			},
+		// 		}),
+		// 	},
+		// },
 		{
 			Name: "envoy.filters.http.on_demand",
 			ConfigType: &hcm.HttpFilter_TypedConfig{

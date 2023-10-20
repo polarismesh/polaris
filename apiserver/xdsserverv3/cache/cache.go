@@ -20,12 +20,15 @@ package cache
 import (
 	"context"
 	"errors"
+	"fmt"
 
-	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	resourcev3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/server/stream/v3"
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -67,7 +70,11 @@ func (sc *XDSCache) CreateWatch(request *cachev3.Request, streamState stream.Str
 	if sc.hook != nil {
 		sc.hook.OnCreateWatch(request, streamState, value)
 	}
-	item := sc.loadOrStore(request)
+	item := sc.loadCache(request)
+	if item == nil {
+		value <- nil
+		return func() {}
+	}
 	return item.CreateWatch(request, streamState, value)
 }
 
@@ -77,7 +84,11 @@ func (sc *XDSCache) CreateDeltaWatch(request *cachev3.DeltaRequest, state stream
 	if sc.hook != nil {
 		sc.hook.OnCreateDeltaWatch(request, state, value)
 	}
-	item := sc.loadOrStore(request)
+	item := sc.loadCache(request)
+	if item == nil {
+		value <- nil
+		return func() {}
+	}
 	return item.CreateDeltaWatch(request, state, value)
 }
 
@@ -88,38 +99,106 @@ func (sc *XDSCache) Fetch(ctx context.Context, request *cachev3.Request) (cachev
 }
 
 // DeltaUpdateResource .
-func (sc *XDSCache) DeltaUpdateResource(typeUrl string, current map[string]types.Resource) error {
-	key := typeUrl
+func (sc *XDSCache) DeltaUpdateResource(key, typeUrl string, current map[string]types.Resource) error {
 	val, _ := sc.Caches.ComputeIfAbsent(key, func(_ string) cachev3.Cache {
-		return cache.NewLinearCache(typeUrl, cache.WithLogger(log))
+		return NewLinearCache(typeUrl)
 	})
-	linearCache, _ := val.(*cache.LinearCache)
+	linearCache, _ := val.(*LinearCache)
 	return linearCache.UpdateResources(current, []string{})
 }
 
-func classify(typeUrl string, node *corev3.Node) string {
-	tlsMode, exist := resource.GetEnvoyMetaField(node.GetMetadata(), resource.TLSModeTag, "")
-	if !exist || tlsMode == string(resource.TLSModeNone) {
-		return typeUrl
+func classify(typeUrl string, resources []string, client *resource.XDSClient) []string {
+	isAllowNode := false
+	_, isAllowTls := allowTlsResource[typeUrl]
+	if isAllowNodeFunc, exist := allowEachNodeResource[typeUrl]; exist {
+		isAllowNode = isAllowNodeFunc(typeUrl, resources, client)
 	}
-	return typeUrl + "~" + tlsMode
+	first := typeUrl + "~" + client.Node.GetId()
+	second := typeUrl + "~" + client.GetSelfNamespace()
+	tlsMode, exist := client.Metadata[resource.TLSModeTag]
+
+	// 没有设置 TLS 开关
+	if !exist || tlsMode == string(resource.TLSModeNone) {
+		if isAllowNode {
+			return []string{first, second}
+		}
+		return []string{second}
+	}
+	if isAllowNode {
+		if isAllowTls {
+			return []string{first, second, second + "~" + tlsMode}
+		}
+		return []string{first, second}
+	}
+	if isAllowTls {
+		return []string{first, second, second + "~" + tlsMode}
+	}
+	return []string{second}
 }
 
-func (sc *XDSCache) loadOrStore(req interface{}) cachev3.Cache {
+type PredicateNodeResource func(typeUrl string, resources []string, client *resource.XDSClient) bool
+
+var (
+	allowEachNodeResource = map[string]PredicateNodeResource{
+		resourcev3.ListenerType: func(typeUrl string, resources []string, client *resource.XDSClient) bool {
+			return true
+		},
+		resourcev3.EndpointType: func(typeUrl string, resources []string, client *resource.XDSClient) bool {
+			selfSvc := fmt.Sprintf("INBOUND|%s|%s", client.GetSelfNamespace(), client.GetSelfService())
+			for i := range resources {
+				if resources[i] == selfSvc {
+					return true
+				}
+			}
+			return false
+		},
+		resourcev3.RouteType: func(typeUrl string, resources []string, client *resource.XDSClient) bool {
+			for i := range resources {
+				if resources[i] == resource.InBoundRouteConfigName {
+					return true
+				}
+			}
+			return false
+		},
+	}
+	allowTlsResource = map[string]struct{}{
+		resourcev3.ListenerType: {},
+		resourcev3.ClusterType:  {},
+	}
+)
+
+func (sc *XDSCache) loadCache(req interface{}) cachev3.Cache {
 	var (
-		key     string
-		typeUrl string
+		keys               []string
+		typeUrl            string
+		client             *resource.XDSClient
+		subscribeResources []string
 	)
 	switch args := req.(type) {
 	case *cache.Request:
-		key = classify(args.TypeUrl, args.GetNode())
+		client = resource.ParseXDSClient(args.GetNode())
+		subscribeResources = args.GetResourceNames()
+		keys = classify(args.TypeUrl, subscribeResources, client)
 		typeUrl = args.TypeUrl
 	case *cache.DeltaRequest:
-		key = classify(args.TypeUrl, args.GetNode())
+		client = resource.ParseXDSClient(args.GetNode())
+		subscribeResources = args.GetResourceNamesSubscribe()
+		keys = classify(args.TypeUrl, subscribeResources, client)
 		typeUrl = args.TypeUrl
+	default:
+		log.Error("[XDS][V3] no support client request type", zap.Any("req", args))
+		return nil
 	}
-	val, _ := sc.Caches.ComputeIfAbsent(key, func(_ string) cachev3.Cache {
-		return cache.NewLinearCache(typeUrl, cache.WithLogger(log))
-	})
-	return val
+	for i := range keys {
+		val, ok := sc.Caches.Load(keys[i])
+		if ok {
+			log.Info("[XDS][V3] load cache to handle client request", zap.Strings("keys", keys),
+				zap.String("hit-key", keys[i]), zap.Strings("subscribe", subscribeResources),
+				zap.String("type", typeUrl), zap.String("client", client.Node.GetId()))
+			return val
+		}
+	}
+	log.Error("[XDS][V3] cache not found to handle client request", zap.String("type", typeUrl),
+		zap.String("client", client.Node.GetId()))
+	return nil
 }

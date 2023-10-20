@@ -20,11 +20,16 @@ package eurekaserver
 import (
 	"context"
 
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/store"
-	"go.uber.org/zap"
+)
+
+type (
+	sourceFromEureka struct{}
 )
 
 func (h *EurekaServer) registerInstanceChain() {
@@ -38,7 +43,12 @@ type EurekaInstanceChain struct {
 	s store.Store
 }
 
-func (c *EurekaInstanceChain) AfterUpdateIsolate(ctx context.Context, instances ...*model.Instance) {
+func (c *EurekaInstanceChain) AfterUpdate(ctx context.Context, instances ...*model.Instance) {
+	isFromEureka, _ := ctx.Value(sourceFromEureka{}).(bool)
+	if isFromEureka {
+		return
+	}
+
 	// TODO：这里要注意避免 eureka -> polaris -> notify -> eureka 带来的重复操作，后续会在 context 中携带信息做判断处理
 	for i := range instances {
 		ins := instances[i]

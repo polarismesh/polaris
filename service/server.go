@@ -57,8 +57,8 @@ type Server struct {
 	hooks   []ResourceHook
 	subCtxs []*eventhub.SubscribtionContext
 
-	// instancesChain 实例信息变化回调
-	instancesChain []InstanceChain
+	// instanceChains 实例信息变化回调
+	instanceChains []InstanceChain
 }
 
 // HealthServer 健康检查Server
@@ -102,7 +102,7 @@ func (s *Server) RecordHistory(ctx context.Context, entry *model.RecordEntry) {
 
 // AddInstanceChain not thread safe
 func (s *Server) AddInstanceChain(chain ...InstanceChain) {
-	s.instancesChain = append(s.instancesChain, chain...)
+	s.instanceChains = append(s.instanceChains, chain...)
 }
 
 // GetServiceInstanceRevision 获取服务实例的revision

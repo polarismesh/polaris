@@ -152,6 +152,8 @@ type EurekaServer struct {
 	replicatePeers       map[string][]string
 	generateUniqueInstId bool
 	subCtxs              []*eventhub.SubscribtionContext
+
+	allowAsyncRegis bool
 }
 
 // GetPort 获取端口

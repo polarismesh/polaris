@@ -25,13 +25,19 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/emicklei/go-restful/v3"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/utils"
 	testsuit "github.com/polarismesh/polaris/test/suit"
 )
 
@@ -40,6 +46,8 @@ func createEurekaServerForTest(
 	eurekaSrv := &EurekaServer{
 		namingServer:      discoverSuit.DiscoverServer(),
 		healthCheckServer: discoverSuit.HealthCheckServer(),
+		originDiscoverSvr: discoverSuit.OriginDiscoverServer(),
+		allowAsyncRegis:   false,
 	}
 	err := eurekaSrv.Initialize(context.Background(), options, nil)
 	if err != nil {
@@ -201,8 +209,8 @@ func TestCreateInstance(t *testing.T) {
 	checkInstanceAction(t, deltaAppResp.Applications, appId, instanceId, ActionDeleted)
 }
 
-// Test_UpdateStatus 测试更新 Eureka 实例的 Status 属性信息
-func Test_UpdateStatus(t *testing.T) {
+// Test_EurekaWrite .
+func Test_EurekaWrite(t *testing.T) {
 	discoverSuit := &testsuit.DiscoverTestSuit{}
 	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
@@ -214,24 +222,168 @@ func Test_UpdateStatus(t *testing.T) {
 	assert.Nil(t, err)
 
 	mockIns := genMockEurekaInstance()
-	// pretty output must be created and written explicitly
-	output, err := xml.MarshalIndent(mockIns, " ", " ")
-	assert.NoError(t, err)
 
-	var body bytes.Buffer
-	_, err = body.Write([]byte(xml.Header))
-	assert.NoError(t, err)
-	_, err = body.Write(output)
-	assert.NoError(t, err)
+	t.Run("RegisterInstance", func(t *testing.T) {
+		// pretty output must be created and written explicitly
+		output, err := xml.MarshalIndent(mockIns, " ", " ")
+		assert.NoError(t, err)
 
-	mockReq := httptest.NewRequest("", fmt.Sprintf("http://127.0.0.1:8761/eureka/v2/apps/%s", mockIns.AppName), &body)
-	mockReq.Header.Add(restful.HEADER_Accept, restful.MIME_XML)
-	mockRsp := newMockResponseWriter()
+		var body bytes.Buffer
+		_, err = body.Write([]byte(xml.Header))
+		assert.NoError(t, err)
+		_, err = body.Write(output)
+		assert.NoError(t, err)
 
-	eurekaSrv.RegisterApplication(restful.NewRequest(mockReq), restful.NewResponse(mockRsp))
-	assert.Equal(t, 200, mockRsp.statusCode)
+		mockReq := httptest.NewRequest("", fmt.Sprintf("http://127.0.0.1:8761/eureka/v2/apps/%s", mockIns.AppName), &body)
+		mockReq.Header.Add(restful.HEADER_Accept, restful.MIME_XML)
+		mockReq.Header.Add(restful.HEADER_ContentType, restful.MIME_XML)
+		mockRsp := newMockResponseWriter()
 
-	// eurekaSrv.UpdateStatus(restful.NewRequest(mockReq), restful.NewResponse(mockRsp))
+		restfulReq := restful.NewRequest(mockReq)
+		injectRestfulReqPathParameters(t, restfulReq, map[string]string{
+			ParamAppId: mockIns.AppName,
+		})
+		// 这里是异步注册
+		eurekaSrv.RegisterApplication(restfulReq, restful.NewResponse(mockRsp))
+		assert.Equal(t, http.StatusNoContent, mockRsp.statusCode)
+		assert.Equal(t, restfulReq.Attribute(statusCodeHeader), uint32(apimodel.Code_ExecuteSuccess))
+
+		time.Sleep(5 * time.Second)
+		saveIns, err := eurekaSrv.originDiscoverSvr.Cache().GetStore().GetInstance(mockIns.InstanceId)
+		assert.NoError(t, err)
+		assert.NotNil(t, saveIns)
+	})
+
+	t.Run("UpdateStatus", func(t *testing.T) {
+		t.Run("StatusUnknown", func(t *testing.T) {
+			mockReq := httptest.NewRequest("", fmt.Sprintf("http://127.0.0.1:8761/eureka/v2/apps/%s/%s/status",
+				mockIns.AppName, mockIns.InstanceId), nil)
+			mockReq.PostForm = url.Values{}
+			mockReq.PostForm.Add(ParamValue, StatusUnknown)
+			mockRsp := newMockResponseWriter()
+
+			restfulReq := restful.NewRequest(mockReq)
+			injectRestfulReqPathParameters(t, restfulReq, map[string]string{
+				ParamAppId:  mockIns.AppName,
+				ParamInstId: mockIns.InstanceId,
+			})
+			eurekaSrv.UpdateStatus(restfulReq, restful.NewResponse(mockRsp))
+			assert.Equal(t, http.StatusOK, mockRsp.statusCode)
+			assert.Equal(t, restfulReq.Attribute(statusCodeHeader), uint32(apimodel.Code_ExecuteSuccess))
+
+			//
+			saveIns, err := discoverSuit.Storage.GetInstance(mockIns.InstanceId)
+			assert.NoError(t, err)
+			assert.False(t, saveIns.Isolate())
+		})
+
+		t.Run("StatusDown", func(t *testing.T) {
+			mockReq := httptest.NewRequest("", fmt.Sprintf("http://127.0.0.1:8761/eureka/v2/apps/%s/%s/status",
+				mockIns.AppName, mockIns.InstanceId), nil)
+			mockReq.PostForm = url.Values{}
+			mockReq.PostForm.Add(ParamValue, StatusDown)
+			mockRsp := newMockResponseWriter()
+
+			restfulReq := restful.NewRequest(mockReq)
+			injectRestfulReqPathParameters(t, restfulReq, map[string]string{
+				ParamAppId:  mockIns.AppName,
+				ParamInstId: mockIns.InstanceId,
+			})
+			eurekaSrv.UpdateStatus(restfulReq, restful.NewResponse(mockRsp))
+			assert.Equal(t, http.StatusOK, mockRsp.statusCode)
+			assert.Equal(t, restfulReq.Attribute(statusCodeHeader), uint32(apimodel.Code_ExecuteSuccess), fmt.Sprintf("%d", restfulReq.Attribute(statusCodeHeader)))
+
+			//
+			saveIns, err := discoverSuit.Storage.GetInstance(mockIns.InstanceId)
+			assert.NoError(t, err)
+			assert.True(t, saveIns.Isolate())
+			assert.Equal(t, StatusDown, saveIns.Proto.Metadata[InternalMetadataStatus])
+		})
+
+		t.Run("StatusUp", func(t *testing.T) {
+			mockReq := httptest.NewRequest("", fmt.Sprintf("http://127.0.0.1:8761/eureka/v2/apps/%s/%s/status",
+				mockIns.AppName, mockIns.InstanceId), nil)
+			mockReq.PostForm = url.Values{}
+			mockReq.PostForm.Add(ParamValue, StatusUp)
+			mockRsp := newMockResponseWriter()
+
+			restfulReq := restful.NewRequest(mockReq)
+			injectRestfulReqPathParameters(t, restfulReq, map[string]string{
+				ParamAppId:  mockIns.AppName,
+				ParamInstId: mockIns.InstanceId,
+			})
+			eurekaSrv.UpdateStatus(restfulReq, restful.NewResponse(mockRsp))
+			assert.Equal(t, http.StatusOK, mockRsp.statusCode)
+			assert.Equal(t, restfulReq.Attribute(statusCodeHeader), uint32(apimodel.Code_ExecuteSuccess), fmt.Sprintf("%d", restfulReq.Attribute(statusCodeHeader)))
+
+			//
+			saveIns, err := discoverSuit.Storage.GetInstance(mockIns.InstanceId)
+			assert.NoError(t, err)
+			assert.False(t, saveIns.Isolate())
+			assert.Equal(t, StatusUp, saveIns.Proto.Metadata[InternalMetadataStatus])
+		})
+
+		t.Run("Polaris_UpdateInstances", func(t *testing.T) {
+			defer func() {
+				rsp := discoverSuit.OriginDiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*service_manage.Instance{
+					{
+						Id:      wrapperspb.String(mockIns.InstanceId),
+						Isolate: wrapperspb.Bool(false),
+					},
+				})
+				assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(rsp.GetCode().GetValue()))
+			}()
+			rsp := discoverSuit.OriginDiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*service_manage.Instance{
+				{
+					Id:      wrapperspb.String(mockIns.InstanceId),
+					Isolate: wrapperspb.Bool(true),
+				},
+			})
+			assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(rsp.GetCode().GetValue()))
+
+			// 在获取一次
+			saveIns, err := discoverSuit.Storage.GetInstance(mockIns.InstanceId)
+			assert.NoError(t, err)
+			assert.True(t, saveIns.Isolate())
+			assert.Equal(t, StatusOutOfService, saveIns.Proto.Metadata[InternalMetadataStatus])
+		})
+
+		t.Run("Polaris_UpdateInstancesIsolate", func(t *testing.T) {
+			rsp := discoverSuit.OriginDiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*service_manage.Instance{
+				{
+					Id:      wrapperspb.String(mockIns.InstanceId),
+					Isolate: wrapperspb.Bool(true),
+				},
+			})
+			assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(rsp.GetCode().GetValue()))
+
+			// 在获取一次
+			_, saveInss, err := discoverSuit.Storage.GetExpandInstances(map[string]string{
+				"id": mockIns.InstanceId,
+			}, map[string]string{}, 0, 10)
+			assert.NoError(t, err)
+			assert.Equal(t, 1, len(saveInss))
+			assert.True(t, saveInss[0].Isolate())
+			assert.Equal(t, StatusOutOfService, saveInss[0].Proto.Metadata[InternalMetadataStatus])
+		})
+	})
+}
+
+func injectRestfulReqPathParameters(t *testing.T, req *restful.Request, params map[string]string) {
+	v := reflect.ValueOf(req)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	field := v.FieldByName("pathParameters")
+	fieldVal := utils.GetUnexportedField(field)
+
+	pathParameters, ok := fieldVal.(map[string]string)
+	assert.True(t, ok)
+	for k, v := range params {
+		pathParameters[k] = v
+	}
+	utils.SetUnexportedField(field, params)
 }
 
 func genMockEurekaInstance() *InstanceInfo {

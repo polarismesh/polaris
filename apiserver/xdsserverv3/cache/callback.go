@@ -15,18 +15,20 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package resource
+package cache
 
 import (
 	"context"
 
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"go.uber.org/zap"
 
+	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 	commonlog "github.com/polarismesh/polaris/common/log"
 )
 
-func NewCallback(log *commonlog.Scope, nodeMgr *XDSNodeManager) *Callbacks {
+func NewCallback(log *commonlog.Scope, nodeMgr *resource.XDSNodeManager) *Callbacks {
 	return &Callbacks{
 		log:     log,
 		nodeMgr: nodeMgr,
@@ -35,7 +37,7 @@ func NewCallback(log *commonlog.Scope, nodeMgr *XDSNodeManager) *Callbacks {
 
 type Callbacks struct {
 	log     *commonlog.Scope
-	nodeMgr *XDSNodeManager
+	nodeMgr *resource.XDSNodeManager
 }
 
 func (cb *Callbacks) Report() {
@@ -59,20 +61,36 @@ func (cb *Callbacks) OnDeltaStreamClosed(id int64, node *corev3.Node) {
 
 func (cb *Callbacks) OnStreamRequest(id int64, req *discovery.DiscoveryRequest) error {
 	cb.nodeMgr.AddNodeIfAbsent(id, req.GetNode())
+	node := req.Node
+	req.Node = nil
+	log.Info("[XDSV3][Receive] receive stream request", zap.Int64("stream-id", id), zap.String("node-id", node.Id), zap.Any("req", req))
+	req.Node = node
 	return nil
 }
 
 func (cb *Callbacks) OnStreamResponse(_ context.Context, id int64, req *discovery.DiscoveryRequest,
 	resp *discovery.DiscoveryResponse) {
+	node := req.Node
+	req.Node = nil
+	log.Info("[XDSV3][Receive] send stream response", zap.Int64("stream-id", id), zap.String("node-id", node.Id), zap.Any("req", req))
+	req.Node = node
 }
 
 func (cb *Callbacks) OnStreamDeltaRequest(id int64, req *discovery.DeltaDiscoveryRequest) error {
 	cb.nodeMgr.AddNodeIfAbsent(id, req.GetNode())
+	node := req.Node
+	req.Node = nil
+	log.Info("[XDSV3][Receive] receive delta stream request", zap.Int64("stream-id", id), zap.String("node-id", node.Id), zap.Any("req", req))
+	req.Node = node
 	return nil
 }
 
 func (cb *Callbacks) OnStreamDeltaResponse(id int64, req *discovery.DeltaDiscoveryRequest,
 	resp *discovery.DeltaDiscoveryResponse) {
+	node := req.Node
+	req.Node = nil
+	log.Info("[XDSV3][Receive] send delta stream response", zap.Int64("stream-id", id), zap.String("node-id", node.Id), zap.Any("req", req))
+	req.Node = node
 }
 
 func (cb *Callbacks) OnFetchRequest(_ context.Context, req *discovery.DiscoveryRequest) error {

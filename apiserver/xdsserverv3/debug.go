@@ -20,9 +20,11 @@ package xdsserverv3
 import (
 	"net/http"
 
-	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
-	"github.com/polarismesh/polaris/common/utils"
+	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+
+	"github.com/polarismesh/polaris/apiserver/xdsserverv3/cache"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 func (x *XDSServer) listXDSNodes(resp http.ResponseWriter, req *http.Request) {
@@ -49,15 +51,18 @@ func (x *XDSServer) listXDSNodes(resp http.ResponseWriter, req *http.Request) {
 
 func (x *XDSServer) listXDSResources(resp http.ResponseWriter, req *http.Request) {
 	resources := map[string]interface{}{}
-	x.cache.Caches.ReadRange(func(key string, val cache.Cache) {
+	x.cache.Caches.ReadRange(func(key string, val cachev3.Cache) {
 		linearCache := val.(*cache.LinearCache)
-		resources[key] = linearCache.GetResources()
+		resources[key] = map[string]interface{}{
+			"resources": linearCache.GetResources(),
+		}
 	})
 
 	data := map[string]interface{}{
-		"code": apimodel.Code_ExecuteSuccess,
-		"info": "execute success",
-		"data": resources,
+		"code":  apimodel.Code_ExecuteSuccess,
+		"info":  "execute success",
+		"data":  resources,
+		"count": len(resources),
 	}
 
 	ret := utils.MustJson(data)

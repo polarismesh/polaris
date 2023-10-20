@@ -75,9 +75,11 @@ type XDSServer struct {
 	registryInfo      map[string]map[model.ServiceKey]*resource.ServiceInfo
 	resourceGenerator *XdsResourceGenerator
 
-	active       *atomic.Bool
-	finishCtx    context.Context
-	singleFlight singleflight.Group
+	active         *atomic.Bool
+	finishCtx      context.Context
+	singleFlight   singleflight.Group
+	activeNotifier context.Context
+	activeFinish   context.CancelFunc
 }
 
 // Initialize 初始化
@@ -91,7 +93,7 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 	x.active = atomic.NewBool(false)
 	x.versionNum = atomic.NewUint64(0)
 	x.ctx = ctx
-
+	x.activeNotifier, x.activeFinish = context.WithCancel(context.Background())
 	var err error
 
 	x.namingServer, err = service.GetOriginServer()
@@ -126,7 +128,7 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 func (x *XDSServer) Run(errCh chan error) {
 	// 启动 grpc server
 	ctx := context.Background()
-	cb := resource.NewCallback(commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName), x.nodeMgr)
+	cb := xdscache.NewCallback(commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName), x.nodeMgr)
 	srv := serverv3.NewServer(ctx, x.cache, cb)
 	var grpcOptions []grpc.ServerOption
 	grpcOptions = append(grpcOptions, grpc.MaxConcurrentStreams(1000))
@@ -238,6 +240,7 @@ func (x *XDSServer) activeUpdateTask() {
 func (x *XDSServer) startSynTask(ctx context.Context) {
 	// 读取 polaris 缓存数据
 	synXdsConfFunc := func() {
+
 		registryInfo := make(map[string]map[model.ServiceKey]*resource.ServiceInfo)
 
 		err := x.getRegistryInfoWithCache(ctx, registryInfo)
@@ -413,6 +416,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 }
 
 func (x *XDSServer) Generate(needPush map[string]map[model.ServiceKey]*resource.ServiceInfo) {
+	defer x.activeFinish()
 	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
 	x.resourceGenerator.Generate(versionLocal, needPush)
 }
@@ -458,7 +462,7 @@ func (x *XDSServer) DebugHandlers() []apiserver.DebugHandler {
 			Handler: x.listXDSNodes,
 		},
 		{
-			Path: "/debug/apiserver/xds/resources",
+			Path:    "/debug/apiserver/xds/resources",
 			Handler: x.listXDSResources,
 		},
 	}

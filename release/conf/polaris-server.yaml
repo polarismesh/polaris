@@ -88,7 +88,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 30
       rotationMaxAge: 7
-      outputLevel: debug
+      outputLevel: info
       compress: true
     # Eureka protocol layer plug -in log
     eureka:
