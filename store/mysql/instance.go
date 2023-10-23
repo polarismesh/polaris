@@ -508,6 +508,51 @@ func (ins *instanceStore) GetMoreInstances(tx store.Tx, mtime time.Time, firstUp
 	return instances, nil
 }
 
+// GetMoreInstancesConsoles 获取增量修改数据
+func (ins *instanceStore) GetMoreInstanceConsoles(tx store.Tx, mtime time.Time, firstUpdate, needMeta bool,
+	serviceID []string) (map[string]*model.InstanceConsole, error) {
+
+	dbTx, _ := tx.GetDelegateTx().(*BaseTx)
+
+	str := `select id, isolate, weight, metadata from instance_console where instance_console.mtime >= FROM_UNIXTIME(?) `
+
+	if firstUpdate {
+		str += " and flag != 1"
+	}
+
+	rows, err := dbTx.Query(str, timeToTimestamp(mtime))
+	if err != nil {
+		log.Errorf("[Store][database] get more instanceConsoles query err: %s", err.Error())
+		return nil, err
+	}
+
+	out := make(map[string]*model.InstanceConsole)
+
+	if rows == nil {
+		return out, err
+	}
+
+	defer rows.Close()
+	var item model.InstanceConsole
+
+	for rows.Next() {
+		err := rows.Scan(&item.Id, &item.Isolate, &item.Metadata, &item.Weight)
+		if err != nil {
+			log.Errorf("[Store][database] fetch instanceConsole rows err: %s", err.Error())
+			return out, err
+		}
+
+		out[item.Id] = &item
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Errorf("[Store][database] instanceConsole rows catch err: %s", err.Error())
+		return out, err
+	}
+
+	return out, err
+}
+
 // GetInstanceMeta 根据实例ID获取实例的metadata
 func (ins *instanceStore) GetInstanceMeta(instanceID string) (map[string]string, error) {
 	str := "select `mkey`, `mvalue` from instance_metadata where id = ?"
@@ -1012,6 +1057,82 @@ func batchAddInstanceCheck(tx *BaseTx, instances []*model.Instance) error {
 	}
 	_, err := tx.Exec(str, args...)
 	return err
+}
+
+// addInstanceConsole
+func addInstanceConsole(tx *BaseTx, instanceConsole *model.InstanceConsole) error {
+
+	str := "insert into instance_console(`id`, `isolate`, `weight`, `metadata`, `ctime`, `mtime`) values "
+	str += "(?, ?, ?, ?, sysdate(), sysdate())"
+
+	_, err := tx.Exec(str, instanceConsole.Id, instanceConsole.Isolate, instanceConsole.Metadata, instanceConsole.Weight)
+
+	return err
+}
+
+// DeleteInstanceConsole 逻辑删除instanceConsole
+func (ins *instanceStore) DeleteInstanceConsole(instanceConsoleID string) error {
+	if instanceConsoleID == "" {
+		return errors.New("delete InstanceConsole Missing instanceConsole id")
+	}
+	return RetryTransaction("deleteInstanceConsole", func() error {
+		return ins.master.processWithTransaction("deleteInstance", func(tx *BaseTx) error {
+			str := "update instance_console set flag = 1, mtime = sysdate() where `id` = ?"
+			if _, err := tx.Exec(str, instanceConsoleID); err != nil {
+				return store.Error(err)
+			}
+
+			if err := tx.Commit(); err != nil {
+				log.Errorf("[Store][database] delete instanceConsole commit tx err: %s", err.Error())
+				return err
+			}
+
+			return nil
+		})
+	})
+}
+
+// CleanInstanceConsole 物理删除instanceConsole
+func (ins *instanceStore) CleanInstanceConsole(instanceConsoleID string) error {
+	if instanceConsoleID == "" {
+		return errors.New("clean InstanceConsole Missing instanceConsole id")
+	}
+	return RetryTransaction("cleanInstanceConsole", func() error {
+		return ins.master.processWithTransaction("cleanInstanceConsole", func(tx *BaseTx) error {
+			str := "delete from instance_console where id = ? and flag = 1"
+			if _, err := tx.Exec(str, instanceConsoleID); err != nil {
+				return store.Error(err)
+			}
+
+			if err := tx.Commit(); err != nil {
+				log.Errorf("[Store][database] clean instanceConsole commit tx err: %s", err.Error())
+				return err
+			}
+
+			return nil
+		})
+	})
+}
+
+// UpdateInstanceConsole 更新instanceConsole
+func (ins *instanceStore) UpdateInstanceConsole(instanceConsole *model.InstanceConsole) error {
+
+	return RetryTransaction("UpdateInstanceConsole", func() error {
+		return ins.master.processWithTransaction("UpdateInstanceConsole", func(tx *BaseTx) error {
+			str := `update instance_console set isolate = ?, weight = ?, metadata = ?, mtime = sysdate() where id = ?`
+
+			if _, err := tx.Exec(str, instanceConsole.Isolate, instanceConsole.Weight, instanceConsole.Metadata, instanceConsole.Id); err != nil {
+				return store.Error(err)
+			}
+
+			if err := tx.Commit(); err != nil {
+				log.Errorf("[Store][database] update instanceConsole commit tx err: %s", err.Error())
+				return err
+			}
+
+			return nil
+		})
+	})
 }
 
 // addInstanceMeta 往表中加入instance meta数据
