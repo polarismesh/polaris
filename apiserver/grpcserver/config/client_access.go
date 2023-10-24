@@ -79,7 +79,7 @@ func (g *ConfigGRPCServer) WatchConfigFiles(ctx context.Context,
 	ctx = utils.ConvertGRPCContext(ctx)
 
 	// 阻塞等待响应
-	callback, err := g.configServer.WatchConfigFiles(ctx, request)
+	callback, err := g.configServer.LongPullWatchFile(ctx, request)
 	if err != nil {
 		return nil, err
 	}

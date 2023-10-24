@@ -27,6 +27,21 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
+// UpsertAndReleaseConfigFileFromClient 创建/更新配置文件并发布
+func (s *serverAuthability) UpsertAndReleaseConfigFileFromClient(ctx context.Context,
+	req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
+	authCtx := s.collectConfigFilePublishAuthContext(ctx, []*apiconfig.ConfigFilePublishInfo{req},
+		model.Modify, "UpsertAndReleaseConfigFileFromClient")
+	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+		return api.NewConfigFileResponse(convertToErrCode(err), nil)
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return s.targetServer.UpsertAndReleaseConfigFileFromClient(ctx, req)
+}
+
 // CreateConfigFileFromClient 调用config_file的方法创建配置文件
 func (s *serverAuthability) CreateConfigFileFromClient(ctx context.Context,
 	fileInfo *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse {
@@ -99,9 +114,9 @@ func (s *serverAuthability) GetConfigFileForClient(ctx context.Context,
 }
 
 // WatchConfigFiles 监听配置文件变化
-func (s *serverAuthability) WatchConfigFiles(ctx context.Context,
+func (s *serverAuthability) LongPullWatchFile(ctx context.Context,
 	request *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error) {
-	authCtx := s.collectClientWatchConfigFiles(ctx, request, model.Read, "WatchConfigFiles")
+	authCtx := s.collectClientWatchConfigFiles(ctx, request, model.Read, "LongPullWatchFile")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
 		return func() *apiconfig.ConfigClientResponse {
 			return api.NewConfigClientResponseWithInfo(convertToErrCode(err), err.Error())
@@ -111,7 +126,7 @@ func (s *serverAuthability) WatchConfigFiles(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.WatchConfigFiles(ctx, request)
+	return s.targetServer.LongPullWatchFile(ctx, request)
 }
 
 // GetConfigFileNamesWithCache 获取某个配置分组下的配置文件

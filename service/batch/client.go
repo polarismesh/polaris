@@ -147,7 +147,7 @@ func (ctrl *ClientCtrl) mainLoop(ctx context.Context) {
 			case <-ticker.C:
 				triggerConsume(futures[0:idx])
 			case <-ctx.Done():
-				log.Infof("[Batch] %s main loop exited", ctrl.label)
+				log.Debugf("[Batch] %s main loop exited", ctrl.label)
 				return
 			}
 		}
@@ -158,7 +158,7 @@ func (ctrl *ClientCtrl) mainLoop(ctx context.Context) {
 // 从chan中获取数据，直接写数据库
 // 每次写完，设置协程为空闲
 func (ctrl *ClientCtrl) storeWorker(ctx context.Context, index int) {
-	log.Infof("[Batch][Client] %s worker(%d) running in main loop", ctrl.label, index)
+	log.Debugf("[Batch][Client] %s worker(%d) running in main loop", ctrl.label, index)
 	// store协程启动，先把自己注册到idle中
 	ctrl.idleStoreThread <- index
 	// 主循环

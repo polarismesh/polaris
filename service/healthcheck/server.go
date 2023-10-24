@@ -147,6 +147,11 @@ func (s *Server) run(ctx context.Context) error {
 	return nil
 }
 
+// SelfService .
+func (s *Server) SelfService() string {
+	return s.cacheProvider.selfService
+}
+
 // Report heartbeat request
 func (s *Server) Report(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	return s.doReport(ctx, req)

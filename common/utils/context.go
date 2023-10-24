@@ -26,6 +26,8 @@ type (
 	localhostCtx struct{}
 	// ContextAPIServerSlot
 	ContextAPIServerSlot struct{}
+	// WatchTimeoutCtx .
+	WatchTimeoutCtx struct{}
 )
 
 // WithLocalhost 存储localhost

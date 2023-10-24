@@ -228,10 +228,10 @@ func (bc *BatchController) mainLoop(ctx context.Context) {
 				log.Debugf("[Batch] %s do reply stop msg to future count: %d", bc.label, stopped)
 			}
 			<-bc.allWorkersStop
-			log.Infof("[Batch] %s main loop exited", bc.label)
+			log.Debugf("[Batch] %s main loop exited", bc.label)
 		}
 
-		log.Infof("[Batch] %s running main loop", bc.label)
+		log.Debugf("[Batch] %s running main loop", bc.label)
 		ticker := time.NewTicker(bc.conf.WaitTime)
 		defer ticker.Stop()
 		for {
