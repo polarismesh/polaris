@@ -83,7 +83,7 @@ require (
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/agiledragon/gomonkey/v2 v2.10.1
-	github.com/polarismesh/specification v1.4.0
+	github.com/polarismesh/specification v1.4.1
 )
 
 require (
