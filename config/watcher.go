@@ -204,8 +204,8 @@ func (wc *watchCenter) OnEvent(ctx context.Context, arg any) error {
 	return nil
 }
 
-func (wc *watchCenter) checkQuickResponseClient(watcheCtx WatchContext) *apiconfig.ConfigClientResponse {
-	watchFiles := watcheCtx.ListWatchFiles()
+func (wc *watchCenter) checkQuickResponseClient(watchCtx WatchContext) *apiconfig.ConfigClientResponse {
+	watchFiles := watchCtx.ListWatchFiles()
 	if len(watchFiles) == 0 {
 		return api.NewConfigClientResponse0(apimodel.Code_InvalidWatchConfigFileFormat)
 	}
@@ -219,8 +219,7 @@ func (wc *watchCenter) checkQuickResponseClient(watcheCtx WatchContext) *apiconf
 				"namespace & group & fileName can not be empty")
 		}
 		// 从缓存中获取最新的配置文件信息
-		release := wc.fileCache.GetActiveRelease(namespace, group, fileName)
-		if release != nil {
+		if release := wc.fileCache.GetActiveRelease(namespace, group, fileName); release != nil {
 			ret := &apiconfig.ClientConfigFileInfo{
 				Namespace: utils.NewStringValue(namespace),
 				Group:     utils.NewStringValue(group),
@@ -229,7 +228,7 @@ func (wc *watchCenter) checkQuickResponseClient(watcheCtx WatchContext) *apiconf
 				Md5:       utils.NewStringValue(release.Md5),
 				Name:      utils.NewStringValue(release.Name),
 			}
-			if watcheCtx.ShouldNotify(ret) {
+			if watchCtx.ShouldNotify(ret) {
 				return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, ret)
 			}
 		}
@@ -305,13 +304,14 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.SimpleConfigFil
 			clientIds.Remove(clientId)
 			return
 		}
-		if watchCtx.IsOnce() {
-			wc.clients.Delete(clientId)
-			clientIds.Remove(clientId)
-		}
 
 		if watchCtx.ShouldNotify(response.ConfigFile) {
 			watchCtx.Reply(response)
+		}
+		// 只能用一次，通知完就要立马清理掉这个 WatchContext
+		if watchCtx.IsOnce() {
+			wc.clients.Delete(clientId)
+			wc.RemoveWatcher(watchCtx.ClientID(), watchCtx.ListWatchFiles())
 		}
 	})
 }
@@ -345,7 +345,6 @@ func (wc *watchCenter) startHandleTimeoutRequestWorker(ctx context.Context) {
 				watchCtx := waitRemove[i]
 				watchCtx.Reply(notModifiedResponse)
 				wc.RemoveWatcher(watchCtx.ClientID(), watchCtx.ListWatchFiles())
-				_ = watchCtx.Close()
 			}
 		}
 	}

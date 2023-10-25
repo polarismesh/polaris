@@ -97,6 +97,8 @@ type ConfigFileClientOperate interface {
 	CreateConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse
 	// UpdateConfigFileFromClient 调用config_file的方法更新配置文件
 	UpdateConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse
+	// DeleteConfigFileFromClient 调用config_file的方法更新配置文件
+	DeleteConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse
 	// PublishConfigFileFromClient 调用config_file_release的方法发布配置文件
 	PublishConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFileRelease) *apiconfig.ConfigClientResponse
 	// UpsertAndReleaseConfigFile 创建/更新配置文件并发布

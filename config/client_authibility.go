@@ -76,6 +76,22 @@ func (s *serverAuthability) UpdateConfigFileFromClient(ctx context.Context,
 	return s.targetServer.UpdateConfigFileFromClient(ctx, fileInfo)
 }
 
+// DeleteConfigFileFromClient 删除配置文件，删除配置文件同时会通知客户端 Not_Found
+func (s *serverAuthability) DeleteConfigFileFromClient(ctx context.Context,
+	req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+
+	authCtx := s.collectConfigFileAuthContext(ctx,
+		[]*apiconfig.ConfigFile{req}, model.Delete, "DeleteConfigFileFromClient")
+	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+		return api.NewConfigResponseWithInfo(convertToErrCode(err), err.Error())
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return s.targetServer.DeleteConfigFileFromClient(ctx, req)
+}
+
 // PublishConfigFileFromClient 调用config_file_release的方法发布配置文件
 func (s *serverAuthability) PublishConfigFileFromClient(ctx context.Context,
 	fileInfo *apiconfig.ConfigFileRelease) *apiconfig.ConfigClientResponse {

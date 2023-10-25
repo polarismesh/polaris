@@ -54,6 +54,7 @@ const (
 
 const (
 	DefaultNacosNamespace       = "public"
+	DefaultNacosConfigNamespace = ""
 	DefaultServiceGroup         = "DEFAULT_GROUP"
 	DefaultServiceClusterName   = "DEFAULT"
 	DefaultNacosGroupConnectStr = "@@"
@@ -128,6 +129,14 @@ func ToPolarisNamespace(ns string) string {
 func ToNacosNamespace(ns string) string {
 	if ns == ConvertPolarisNamespaceVal {
 		return "public"
+	}
+	return ns
+}
+
+// ToNacosConfigNamespace 替换 polaris namespace 为 nacos 的 namespace 信息，恢复下发 nacos 的数据包信息
+func ToNacosConfigNamespace(ns string) string {
+	if ns == ConvertPolarisNamespaceVal {
+		return ""
 	}
 	return ns
 }

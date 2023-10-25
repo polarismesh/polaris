@@ -21,6 +21,7 @@ import (
 	"net/http"
 
 	"github.com/emicklei/go-restful/v3"
+	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/apiserver/nacosserver/model"
 	nacoshttp "github.com/polarismesh/polaris/apiserver/nacosserver/v1/http"
@@ -112,6 +113,7 @@ func (n *ConfigServer) WatchConfigs(req *restful.Request, rsp *restful.Response)
 		nacoshttp.WrirteNacosResponseWithCode(http.StatusBadRequest, "invalid probeModify", rsp)
 		return
 	}
+	nacoslog.Info("[NACOS-V1][Config] receive client watch request.", zap.Any("listenCtx", probeModify))
 	listenCtx, err := model.ParseConfigListenContext(req, probeModify)
 	if err != nil {
 		nacoshttp.WrirteNacosErrorResponse(err, rsp)
@@ -122,7 +124,7 @@ func (n *ConfigServer) WatchConfigs(req *restful.Request, rsp *restful.Response)
 }
 
 func parseConfigFileBase(req *restful.Request) (*model.ConfigFileBase, error) {
-	namespace := model.ToPolarisNamespace(nacoshttp.Optional(req, model.ParamTenant, model.DefaultNacosNamespace))
+	namespace := nacoshttp.Optional(req, model.ParamTenant, model.DefaultNacosConfigNamespace)
 	dataId, err := nacoshttp.Required(req, "dataId")
 	if err != nil {
 		return nil, err

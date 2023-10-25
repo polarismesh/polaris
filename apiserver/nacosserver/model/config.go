@@ -50,9 +50,17 @@ type ConfigFile struct {
 	EncryptedDataKey string `param:"encryptedDataKey"`
 }
 
+func (i *ConfigFile) ToDeleteSpec() *config_manage.ConfigFile {
+	return &config_manage.ConfigFile{
+		Namespace: wrapperspb.String(ToPolarisNamespace(i.Namespace)),
+		Group:     wrapperspb.String(i.Group),
+		Name:      wrapperspb.String(i.DataId),
+	}
+}
+
 func (i *ConfigFile) ToQuerySpec() *config_manage.ClientConfigFileInfo {
 	return &config_manage.ClientConfigFileInfo{
-		Namespace: wrapperspb.String(i.Namespace),
+		Namespace: wrapperspb.String(ToPolarisNamespace(i.Namespace)),
 		Group:     wrapperspb.String(i.Group),
 		FileName:  wrapperspb.String(i.DataId),
 	}
@@ -61,7 +69,7 @@ func (i *ConfigFile) ToQuerySpec() *config_manage.ClientConfigFileInfo {
 func (i *ConfigFile) ToSpecConfigFile() *config_manage.ConfigFilePublishInfo {
 	specFile := &config_manage.ConfigFilePublishInfo{
 		Tags:               make([]*config_manage.ConfigFileTag, 0, 4),
-		Namespace:          wrapperspb.String(i.Namespace),
+		Namespace:          wrapperspb.String(ToPolarisNamespace(i.Namespace)),
 		Group:              wrapperspb.String(i.Group),
 		FileName:           wrapperspb.String(i.DataId),
 		Content:            wrapperspb.String(i.Content),
@@ -112,7 +120,7 @@ func (cw *ConfigWatchContext) ToSpecWatch() *config_manage.ClientWatchConfigFile
 	for i := range cw.Items {
 		item := cw.Items[i]
 		specWatch.WatchFiles = append(specWatch.WatchFiles, &config_manage.ClientConfigFileInfo{
-			Namespace: wrapperspb.String(item.Tenant),
+			Namespace: wrapperspb.String(ToPolarisNamespace(item.Tenant)),
 			Group:     wrapperspb.String(item.Group),
 			FileName:  wrapperspb.String(item.DataId),
 			Md5:       wrapperspb.String(item.Md5),
@@ -191,11 +199,10 @@ func ParseConfigListenContext(req *restful.Request, configKeysString string) (*C
 					Group:  tmpList[1],
 					DataId: tmpList[0],
 					Md5:    endValue,
-					Tenant: ToPolarisNamespace(""),
 				})
 			} else {
 				watchCtx.Items = append(watchCtx.Items, &ConfigListenItem{
-					Tenant: ToPolarisNamespace(endValue),
+					Tenant: endValue,
 					Group:  tmpList[1],
 					DataId: tmpList[0],
 					Md5:    tmpList[2],

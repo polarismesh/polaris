@@ -84,7 +84,7 @@ func (c *StreamWatchContext) Close() error {
 func (c *StreamWatchContext) Reply(event *apiconfig.ConfigClientResponse) {
 	viewConfig := event.GetConfigFile()
 	notifyRequest := nacospb.NewConfigChangeNotifyRequest()
-	notifyRequest.Tenant = nacosmodel.ToNacosNamespace(viewConfig.GetNamespace().GetValue())
+	notifyRequest.Tenant = nacosmodel.ToNacosConfigNamespace(viewConfig.GetNamespace().GetValue())
 	notifyRequest.Group = viewConfig.GetGroup().GetValue()
 	notifyRequest.DataId = viewConfig.GetFileName().GetValue()
 

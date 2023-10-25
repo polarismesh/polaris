@@ -60,6 +60,7 @@ func (h *ConfigServer) Initialize(opt *ServerOption) error {
 	h.originConfigSvr = opt.OriginConfigSvr
 	h.cacheSvr = opt.Store.Cache()
 	h.handleRegistry = make(map[string]*remote.RequestHandlerWarrper)
+	h.initGRPCHandlers()
 	return nil
 }
 

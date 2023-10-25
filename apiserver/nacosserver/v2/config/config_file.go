@@ -111,7 +111,7 @@ func (h *ConfigServer) handleDeleteConfigRequest(ctx context.Context, req nacosp
 	if !ok {
 		return nil, remote.ErrorInvalidRequestBodyType
 	}
-	delResp := h.configSvr.DeleteConfigFile(ctx, configReq.ToSpec())
+	delResp := h.configSvr.DeleteConfigFileFromClient(ctx, configReq.ToSpec())
 	if delResp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 		nacoslog.Error("[NACOS-V2][Config] delete config file fail",
 			zap.Uint32("code", delResp.GetCode().GetValue()), zap.String("msg", delResp.GetInfo().GetValue()))
@@ -155,7 +155,7 @@ func (h *ConfigServer) handleWatchConfigRequest(ctx context.Context, req nacospb
 			active := h.cacheSvr.ConfigFile().GetActiveRelease(namespace, group, dataId)
 			if active == nil || active.Md5 != item.GetMd5().GetValue() {
 				listenResp.ChangedConfigs = append(listenResp.ChangedConfigs, nacospb.ConfigContext{
-					Tenant: nacosmodel.ToNacosNamespace(namespace),
+					Tenant: nacosmodel.ToNacosConfigNamespace(namespace),
 					Group:  group,
 					DataId: dataId,
 				})

@@ -43,6 +43,11 @@ func (s *Server) UpsertAndReleaseConfigFileFromClient(ctx context.Context,
 	return s.UpsertAndReleaseConfigFile(ctx, req)
 }
 
+// DeleteConfigFileFromClient 调用config_file的方法更新配置文件
+func (s *Server) DeleteConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+	return s.DeleteConfigFile(ctx, req)
+}
+
 // GetConfigFileForClient 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
 func (s *Server) GetConfigFileForClient(ctx context.Context,
 	client *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {

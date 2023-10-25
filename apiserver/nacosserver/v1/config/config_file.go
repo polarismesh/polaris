@@ -50,7 +50,7 @@ func (n *ConfigServer) handlePublishConfig(ctx context.Context, req *model.Confi
 }
 
 func (n *ConfigServer) handleDeleteConfig(ctx context.Context, req *model.ConfigFile) (bool, error) {
-	resp := n.configSvr.UpsertAndReleaseConfigFile(ctx, req.ToSpecConfigFile())
+	resp := n.configSvr.DeleteConfigFileFromClient(ctx, req.ToDeleteSpec())
 	if resp.GetCode().GetValue() == uint32(apimodel.Code_ExecuteSuccess) {
 		return true, nil
 	}
@@ -91,11 +91,11 @@ func (n *ConfigServer) handleGetConfig(ctx context.Context, req *model.ConfigFil
 
 func (n *ConfigServer) handleWatch(ctx context.Context, listenCtx *model.ConfigWatchContext,
 	rsp *restful.Response) {
-	nacoslog.Info("[NACOS-V1][Config] receive client watch request.", zap.Any("listenCtx", listenCtx.Items))
 
+	specWatchReq := listenCtx.ToSpecWatch()
 	timeout, ok := listenCtx.IsSupportLongPolling()
 	if !ok {
-		changeKeys := n.diffChangeFiles(listenCtx)
+		changeKeys := n.diffChangeFiles(specWatchReq)
 		oldResult := md5OldResult(changeKeys)
 		newResult := md5ResultString(changeKeys)
 
@@ -106,10 +106,9 @@ func (n *ConfigServer) handleWatch(ctx context.Context, listenCtx *model.ConfigW
 		listenCtx.Request.SetAttribute(model.HeaderContent, newResult)
 		return
 	}
-	start := time.Now()
 	clientId := utils.ParseClientAddress(ctx) + "@" + utils.NewUUID()[0:8]
 	configSvr := n.originConfigSvr.(*config.Server)
-	watchCtx, checkResp := configSvr.WatchCenter().AddWatcher(clientId, listenCtx.ToSpecWatch().GetWatchFiles(),
+	watchCtx, checkResp := configSvr.WatchCenter().AddWatcher(clientId, specWatchReq.GetWatchFiles(),
 		BuildTimeoutWatchCtx(timeout))
 	if checkResp != nil {
 		// 存在配置文件变化
@@ -118,7 +117,7 @@ func (n *ConfigServer) handleWatch(ctx context.Context, listenCtx *model.ConfigW
 			nacoshttp.WrirteNacosResponseWithCode(int(api.CalcCode(checkResp)), checkResp.GetInfo().GetValue(), rsp)
 			return
 		}
-		if changeKeys := n.diffChangeFiles(listenCtx); len(changeKeys) > 0 {
+		if changeKeys := n.diffChangeFiles(specWatchReq); len(changeKeys) > 0 {
 			newResult := md5ResultString(changeKeys)
 			nacoslog.Info("[NACOS-V1][Config] client quick compare file result.", zap.String("result", newResult))
 			rsp.WriteHeader(http.StatusOK)
@@ -133,6 +132,7 @@ func (n *ConfigServer) handleWatch(ctx context.Context, listenCtx *model.ConfigW
 			return
 		}
 	}
+	nacoslog.Info("[NACOS-V1][Config] client start waitting server send notify message")
 	notifyRet := (watchCtx.(*LongPollWatchContext)).GetNotifieResult()
 	notifyCode := notifyRet.GetCode().GetValue()
 	if notifyCode != uint32(apimodel.Code_ExecuteSuccess) && notifyCode != uint32(apimodel.Code_DataNoChange) {
@@ -143,25 +143,47 @@ func (n *ConfigServer) handleWatch(ctx context.Context, listenCtx *model.ConfigW
 		return
 	}
 
-	changeKeys := n.diffChangeFiles(listenCtx)
+	var changeKeys []*model.ConfigListenItem
+	if notifyCode == uint32(apimodel.Code_DataNoChange) {
+		// 按照 Nacos 原本的设计，只有 WatchClient 超时后才会再次全部 diff 比较
+		changeKeys = n.diffChangeFiles(specWatchReq)
+	} else {
+		// 如果收到一个事件变化，就立即通知这个文件的变化信息
+		changeKeys = []*model.ConfigListenItem{
+			{
+				Tenant: notifyRet.GetConfigFile().GetNamespace().GetValue(),
+				Group:  notifyRet.GetConfigFile().GetGroup().GetValue(),
+				DataId: notifyRet.GetConfigFile().GetFileName().GetValue(),
+			},
+		}
+	}
 	if len(changeKeys) == 0 {
+		nacoslog.Info("[NACOS-V1][Config] client receive empty watch result.", zap.Any("ret", notifyRet))
+		rsp.WriteHeader(http.StatusOK)
 		return
 	}
 	newResult := md5ResultString(changeKeys)
-	nacoslog.Info("[NACOS-V1][Config] client receive watch result.", zap.String("result", newResult), zap.Duration("cost", time.Since(start)))
+	nacoslog.Info("[NACOS-V1][Config] client receive watch result.", zap.String("result", newResult))
 	rsp.WriteHeader(http.StatusOK)
 	disableCache(rsp)
 	rsp.Write([]byte(newResult))
 	return
 }
 
-func (n *ConfigServer) diffChangeFiles(listenCtx *model.ConfigWatchContext) []*model.ConfigListenItem {
+func (n *ConfigServer) diffChangeFiles(listenCtx *config_manage.ClientWatchConfigFileRequest) []*model.ConfigListenItem {
 	changeKeys := make([]*model.ConfigListenItem, 0, 4)
 	// quick get file and compare
-	for _, item := range listenCtx.Items {
-		active := n.cacheSvr.ConfigFile().GetActiveRelease(item.Tenant, item.Group, item.DataId)
-		if active != nil && active.Md5 != item.Md5 {
-			changeKeys = append(changeKeys, item)
+	for _, item := range listenCtx.WatchFiles {
+		active := n.cacheSvr.ConfigFile().GetActiveRelease(
+			item.GetNamespace().GetValue(),
+			item.GetGroup().GetValue(),
+			item.GetFileName().GetValue())
+		if active != nil && active.Md5 != item.GetMd5().GetValue() {
+			changeKeys = append(changeKeys, &model.ConfigListenItem{
+				Tenant: model.ToNacosConfigNamespace(item.GetNamespace().GetValue()),
+				Group:  item.GetGroup().GetValue(),
+				DataId: item.GetFileName().GetValue(),
+			})
 		}
 	}
 	return changeKeys
@@ -204,9 +226,10 @@ func md5ResultString(items []*model.ConfigListenItem) string {
 		sb.WriteString(item.DataId)
 		sb.WriteRune(model.WordSeparatorRune)
 		sb.WriteString(item.Group)
-		if len(item.Tenant) != 0 {
+		tenant := model.ToNacosConfigNamespace(item.Tenant)
+		if len(tenant) != 0 {
 			sb.WriteRune(model.WordSeparatorRune)
-			sb.WriteString(item.Tenant)
+			sb.WriteString(model.ToNacosConfigNamespace(tenant))
 		}
 		sb.WriteRune(model.LineSeparatorRune)
 	}

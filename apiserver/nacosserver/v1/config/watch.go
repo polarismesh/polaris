@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	"go.uber.org/zap"
 )
 
 type LongPollWatchContext struct {
@@ -57,6 +58,8 @@ func (c *LongPollWatchContext) ShouldNotify(resp *config_manage.ClientConfigFile
 		return false
 	}
 	isChange := watchFile.GetMd5().GetValue() != resp.GetMd5().GetValue()
+	nacoslog.Info("watch ctx is change", zap.String("client", c.ClientID()), zap.String("file", key),
+		zap.String("clientMd5", resp.GetMd5().GetValue()), zap.String("serverMd5", resp.GetMd5().GetValue()))
 	return isChange
 }
 
@@ -96,5 +99,9 @@ func (c *LongPollWatchContext) Reply(rsp *config_manage.ConfigClientResponse) {
 	c.once.Do(func() {
 		c.finishChan <- rsp
 		close(c.finishChan)
+		key := rsp.GetConfigFile().GetNamespace().GetValue() + "@" +
+			rsp.GetConfigFile().GetGroup().GetValue() + "@" + rsp.GetConfigFile().GetFileName().GetValue()
+		nacoslog.Info("watch ctx do reply", zap.String("client", c.ClientID()), zap.String("file", key),
+			zap.Uint32("code", rsp.GetCode().GetValue()))
 	})
 }

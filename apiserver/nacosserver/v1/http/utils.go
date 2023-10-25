@@ -83,6 +83,9 @@ func (h *Handler) ParseHeaderContext() context.Context {
 	requestID := h.Request.HeaderParameter("Request-Id")
 
 	ctx := context.Background()
+	if requestID == "" {
+		requestID = utils.NewUUID()
+	}
 	ctx = context.WithValue(ctx, utils.StringContext("request-id"), requestID)
 
 	var operator string
