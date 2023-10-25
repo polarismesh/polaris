@@ -29,7 +29,7 @@ require (
 	go.uber.org/automaxprocs v1.4.0
 	go.uber.org/zap v1.23.0
 	golang.org/x/crypto v0.1.0
-	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/net v0.10.0
 	golang.org/x/sync v0.1.0
 	golang.org/x/text v0.9.0
 	golang.org/x/time v0.1.1-0.20221020023724-80b9fac54d29
@@ -83,7 +83,7 @@ require (
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/agiledragon/gomonkey/v2 v2.10.1
-	github.com/polarismesh/specification v1.4.1-alpha
+	github.com/polarismesh/specification v1.4.1
 )
 
 require (

@@ -20,6 +20,7 @@ package apiserver
 import (
 	"context"
 	"fmt"
+	"net/http"
 )
 
 const (
@@ -56,6 +57,16 @@ type Apiserver interface {
 	Stop()
 	// Restart 重启API
 	Restart(option map[string]interface{}, api map[string]APIConfig, errCh chan error) error
+}
+
+type EnrichApiserver interface {
+	Apiserver
+	DebugHandlers() []DebugHandler
+}
+
+type DebugHandler struct {
+	Path    string
+	Handler http.HandlerFunc
 }
 
 var (

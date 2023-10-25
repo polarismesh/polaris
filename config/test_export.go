@@ -42,16 +42,16 @@ func TestInitialize(ctx context.Context, config Config, s store.Store, cacheMgn 
 }
 
 func (s *Server) TestCheckClientConfigFile(ctx context.Context, files []*apiconfig.ClientConfigFileInfo,
-	compartor compareFunction) (*apiconfig.ConfigClientResponse, bool) {
+	compartor CompareFunction) (*apiconfig.ConfigClientResponse, bool) {
 	return s.checkClientConfigFile(ctx, files, compartor)
 }
 
 func TestCompareByVersion(clientInfo *apiconfig.ClientConfigFileInfo, file *model.ConfigFileRelease) bool {
-	return compareByVersion(clientInfo, file)
+	return CompareByVersion(clientInfo, file)
 }
 
 func TestCompareByMD5(clientInfo *apiconfig.ClientConfigFileInfo, file *model.ConfigFileRelease) bool {
-	return compareByMD5(clientInfo, file)
+	return CompareByMD5(clientInfo, file)
 }
 
 // TestDecryptConfigFile 解密配置文件

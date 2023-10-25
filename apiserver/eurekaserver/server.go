@@ -152,6 +152,8 @@ type EurekaServer struct {
 	replicatePeers       map[string][]string
 	generateUniqueInstId bool
 	subCtxs              []*eventhub.SubscribtionContext
+
+	allowAsyncRegis bool
 }
 
 // GetPort 获取端口
@@ -350,6 +352,7 @@ func (h *EurekaServer) Run(errCh chan error) {
 		}
 		h.subCtxs = append(h.subCtxs, subCtx)
 	}
+	h.registerInstanceChain()
 	h.workers = NewApplicationsWorkers(h.refreshInterval, h.deltaExpireInterval, h.enableSelfPreservation,
 		h.namingServer, h.healthCheckServer, h.namespace)
 	h.statis = plugin.GetStatis()

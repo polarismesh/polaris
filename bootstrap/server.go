@@ -315,6 +315,10 @@ func StartServers(ctx context.Context, cfg *boot_config.Config, errCh chan error
 			log.Warn("[ERROR] apiserver slot not exists", zap.String("name", protocol.Name))
 			continue
 		}
+		// 如果是 http server, 注入所有的 apiserver 实例
+		if protocol.Name == "api-http" {
+			ctx = context.WithValue(ctx, utils.ContextAPIServerSlot{}, apiserver.Slots)
+		}
 
 		err := slot.Initialize(ctx, protocol.Option, protocol.API)
 		if err != nil {

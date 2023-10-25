@@ -402,7 +402,10 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 			testSuit.OriginConfigServer().WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
 		}()
 
-		notifyCh := testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles)
+		watchCtx, checkResp := testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles,
+			config.BuildTimeoutWatchCtx(30*time.Second))
+		assert.Nil(t, checkResp)
+		assert.NotNil(t, watchCtx)
 
 		rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
 		t.Log("create config file success")
@@ -420,14 +423,13 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, configFile.GetContent().GetValue(), saveData.Content)
 
-		select {
-		case notifyRsp := <-notifyCh:
-			t.Logf("clientId=[%s] receive config publish msg", clientId)
-			receivedVersion := notifyRsp.ConfigFile.Version.GetValue()
-			assert.Equal(t, uint64(1), receivedVersion)
-		case <-time.After(10 * time.Second):
-			t.Fatal("time out")
+		notifyRsp, err := (watchCtx.(*config.LongPollWatchContext)).GetNotifieResultWithTime(10 * time.Second)
+		if err != nil {
+			t.Fatal(err)
 		}
+		t.Logf("clientId=[%s] receive config publish msg", clientId)
+		receivedVersion := notifyRsp.ConfigFile.Version.GetValue()
+		assert.Equal(t, uint64(1), receivedVersion)
 	})
 
 	t.Run("第二次订阅发布", func(t *testing.T) {
@@ -436,20 +438,22 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 
 		clientId := "TestWatchConfigFileAtFirstPublish-second"
 
-		notifyCh := testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles)
+		watchCtx, checkResp := testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles,
+			config.BuildTimeoutWatchCtx(30*time.Second))
+		assert.Nil(t, checkResp)
+		assert.NotNil(t, watchCtx)
 
 		rsp3 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, assembleConfigFileRelease(configFile))
 		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 
 		// 等待回调
-		select {
-		case notifyRsp := <-notifyCh:
-			t.Logf("clientId=[%s] receive config publish msg", clientId)
-			receivedVersion := notifyRsp.ConfigFile.Version.GetValue()
-			assert.Equal(t, uint64(2), receivedVersion)
-		case <-time.After(10 * time.Second):
-			t.Fatal("time out")
+		notifyRsp, err := (watchCtx.(*config.LongPollWatchContext)).GetNotifieResultWithTime(10 * time.Second)
+		if err != nil {
+			t.Fatal(err)
 		}
+		t.Logf("clientId=[%s] receive config publish msg", clientId)
+		receivedVersion := notifyRsp.ConfigFile.Version.GetValue()
+		assert.Equal(t, uint64(2), receivedVersion)
 
 		// 为了避免影响其它 case，删除订阅
 		testSuit.OriginConfigServer().WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
@@ -478,9 +482,12 @@ func TestManyClientWatchConfigFile(t *testing.T) {
 		clientId := fmt.Sprintf("Test10000ClientWatchConfigFile-client-id=%d", i)
 		received.Store(clientId, false)
 		receivedVersion.Store(clientId, uint64(0))
-		notifyCh := testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles)
+		watchCtx, checkResp := testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles,
+			config.BuildTimeoutWatchCtx(30*time.Second))
+		assert.Nil(t, checkResp)
+		assert.NotNil(t, watchCtx)
 		go func() {
-			notifyRsp := <-notifyCh
+			notifyRsp := (watchCtx.(*config.LongPollWatchContext)).GetNotifieResult()
 			received.Store(clientId, true)
 			receivedVersion.Store(clientId, notifyRsp.ConfigFile.Version.GetValue())
 		}()
@@ -554,7 +561,10 @@ func TestDeleteConfigFile(t *testing.T) {
 
 	t.Log("add config watcher")
 
-	notifyCh := testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles)
+	watchCtx, checkResp := testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles,
+		config.BuildTimeoutWatchCtx(30*time.Second))
+	assert.Nil(t, checkResp)
+	assert.NotNil(t, watchCtx)
 
 	// 删除配置文件
 	t.Log("remove config file")
@@ -567,11 +577,9 @@ func TestDeleteConfigFile(t *testing.T) {
 
 	// 客户端收到推送通知
 	t.Log("wait receive config change msg")
-	select {
-	case notifyRsp := <-notifyCh:
-		assert.Equal(t, uint64(2), notifyRsp.ConfigFile.Version.Value)
-	case <-time.After(10 * time.Second):
-		t.Fatal("time out")
+	_, err := (watchCtx.(*config.LongPollWatchContext)).GetNotifieResultWithTime(10 * time.Second)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	fileInfo := &apiconfig.ClientConfigFileInfo{

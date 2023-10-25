@@ -33,7 +33,6 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
-	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/service"
 )
 
@@ -73,19 +72,17 @@ var (
 
 // LDSBuilder .
 type LDSBuilder struct {
-	client *resource.XDSClient
-	svr    service.DiscoverServer
+	svr service.DiscoverServer
 }
 
-func (lds *LDSBuilder) Init(clien *resource.XDSClient, svr service.DiscoverServer) {
-	lds.client = clien
+func (lds *LDSBuilder) Init(svr service.DiscoverServer) {
 	lds.svr = svr
 }
 
 func (lds *LDSBuilder) Generate(option *resource.BuildOption) (interface{}, error) {
 	var resources []types.Resource
 
-	switch lds.client.RunType {
+	switch option.RunType {
 	case resource.RunTypeGateway:
 		ret, err := lds.makeListener(option, core.TrafficDirection_OUTBOUND)
 		if err != nil {
@@ -93,35 +90,52 @@ func (lds *LDSBuilder) Generate(option *resource.BuildOption) (interface{}, erro
 		}
 		resources = ret
 	case resource.RunTypeSidecar:
-		inBoundListener, err := lds.makeListener(option, corev3.TrafficDirection_INBOUND)
-		if err != nil {
-			return nil, err
+		switch option.TrafficDirection {
+		case core.TrafficDirection_UNSPECIFIED:
+			inBoundListener, err := lds.makeListener(option, corev3.TrafficDirection_INBOUND)
+			if err != nil {
+				return nil, err
+			}
+			resources = append(resources, inBoundListener...)
+			outBoundListener, err := lds.makeListener(option, corev3.TrafficDirection_OUTBOUND)
+			if err != nil {
+				return nil, err
+			}
+			resources = append(resources, outBoundListener...)
+		case core.TrafficDirection_INBOUND:
+			inBoundListener, err := lds.makeListener(option, corev3.TrafficDirection_INBOUND)
+			if err != nil {
+				return nil, err
+			}
+			resources = append(resources, inBoundListener...)
+		case core.TrafficDirection_OUTBOUND:
+			outBoundListener, err := lds.makeListener(option, corev3.TrafficDirection_OUTBOUND)
+			if err != nil {
+				return nil, err
+			}
+			resources = append(resources, outBoundListener...)
 		}
-		outBoundListener, err := lds.makeListener(option, corev3.TrafficDirection_OUTBOUND)
-		if err != nil {
-			return nil, err
-		}
-		resources = append(resources, inBoundListener...)
-		resources = append(resources, outBoundListener...)
 	}
 	return resources, nil
 }
 
 func (lds *LDSBuilder) makeListener(option *resource.BuildOption,
 	direction corev3.TrafficDirection) ([]types.Resource, error) {
+	isGateway := option.RunType == resource.RunTypeGateway
 
 	var boundHCM *hcm.HttpConnectionManager
-	if lds.client.IsGateway() {
-		boundHCM = resource.MakeGatewayBoundHCM()
+	selfService := option.SelfService
+	if isGateway {
+		boundHCM = resource.MakeGatewayBoundHCM(selfService)
 	} else {
-		selfService := model.ServiceKey{
-			Namespace: lds.client.GetSelfNamespace(),
-			Name:      lds.client.GetSelfService(),
+		if option.OpenOnDemand && direction == core.TrafficDirection_OUTBOUND {
+			boundHCM = resource.MakeSidecarOnDemandOutBoundHCM(selfService, option)
+		} else {
+			boundHCM = resource.MakeSidecarBoundHCM(selfService, direction)
 		}
-		boundHCM = resource.MakeSidecarBoundHCM(selfService, direction)
 	}
 
-	listener := makeDefaultListener(direction, boundHCM)
+	listener := makeDefaultListener(direction, boundHCM, option)
 	listener.ListenerFilters = append(listener.ListenerFilters, defaultListenerFilters...)
 
 	if option.TLSMode != resource.TLSModeNone {
@@ -159,12 +173,17 @@ func (lds *LDSBuilder) makeListener(option *resource.BuildOption,
 }
 
 func makeDefaultListener(trafficDirection corev3.TrafficDirection,
-	boundHCM *hcm.HttpConnectionManager) *listenerv3.Listener {
+	boundHCM *hcm.HttpConnectionManager, option *resource.BuildOption) *listenerv3.Listener {
 
 	bindPort := boundBindPort[trafficDirection]
 	trafficDirectionName := corev3.TrafficDirection_name[int32(trafficDirection)]
+	ldsName := fmt.Sprintf("%s_%d", trafficDirectionName, bindPort)
+	if trafficDirection == core.TrafficDirection_INBOUND {
+		ldsName = fmt.Sprintf("%s_%s_%d", option.SelfService.Domain(), trafficDirectionName, bindPort)
+	}
+
 	listener := &listenerv3.Listener{
-		Name:             fmt.Sprintf("%s_%d", trafficDirectionName, bindPort),
+		Name:             ldsName,
 		TrafficDirection: trafficDirection,
 		Address: &core.Address{
 			Address: &core.Address_SocketAddress{
@@ -189,8 +208,8 @@ func makeDefaultListener(trafficDirection corev3.TrafficDirection,
 				},
 			},
 		},
-		DefaultFilterChain: resource.MakeDefaultFilterChain(),
-		ListenerFilters:    []*listenerv3.ListenerFilter{},
+		ListenerFilters: []*listenerv3.ListenerFilter{},
 	}
+	listener.DefaultFilterChain = resource.MakeDefaultFilterChain()
 	return listener
 }

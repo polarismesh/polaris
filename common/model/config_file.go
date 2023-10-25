@@ -51,6 +51,10 @@ type ConfigFileKey struct {
 	Group     string
 }
 
+func (c ConfigFileKey) String() string {
+	return c.Namespace + "@" + c.Group + "@" + c.Name
+}
+
 // ConfigFile 配置文件数据持久化对象
 type ConfigFile struct {
 	Id        uint64

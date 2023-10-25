@@ -235,6 +235,7 @@ func (c *LeaderHealthChecker) becomeFollower(e store.LeaderChangeEvent, leaderVe
 	remoteLeader := NewRemotePeerFunc()
 	remoteLeader.Initialize(*c.conf)
 	if err := remoteLeader.Serve(context.Background(), c, e.LeaderHost, uint32(utils.LocalPort)); err != nil {
+		_ = remoteLeader.Close()
 		plog.Error("[HealthCheck][Leader] follower run serve, do retry", zap.Error(err))
 		go func(e store.LeaderChangeEvent, leaderVersion int64) {
 			time.Sleep(time.Second)
@@ -267,7 +268,8 @@ func (c *LeaderHealthChecker) Type() plugin.HealthCheckType {
 
 // Report process heartbeat info report
 func (c *LeaderHealthChecker) Report(ctx context.Context, request *plugin.ReportRequest) error {
-	if isSendFromPeer(ctx) {
+	if !c.isLeader() && isSendFromPeer(ctx) {
+		plog.Error("[Health Check][Leader] follower checker receive other follower request")
 		return ErrorRedirectOnlyOnce
 	}
 

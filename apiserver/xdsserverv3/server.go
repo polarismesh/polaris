@@ -32,7 +32,6 @@ import (
 	routeservice "github.com/envoyproxy/go-control-plane/envoy/service/route/v3"
 	runtimeservice "github.com/envoyproxy/go-control-plane/envoy/service/runtime/v3"
 	secretservice "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
-	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	serverv3 "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/atomic"
@@ -41,6 +40,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/polarismesh/polaris/apiserver"
+	xdscache "github.com/polarismesh/polaris/apiserver/xdsserverv3/cache"
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -66,7 +66,7 @@ type XDSServer struct {
 	exitCh          chan struct{}
 	namingServer    service.DiscoverServer
 	healthSvr       *healthcheck.Server
-	cache           cachev3.SnapshotCache
+	cache           *xdscache.XDSCache
 	versionNum      *atomic.Uint64
 	server          *grpc.Server
 	connLimitConfig *connlimit.Config
@@ -75,9 +75,11 @@ type XDSServer struct {
 	registryInfo      map[string]map[model.ServiceKey]*resource.ServiceInfo
 	resourceGenerator *XdsResourceGenerator
 
-	active       *atomic.Bool
-	finishCtx    context.Context
-	singleFlight singleflight.Group
+	active         *atomic.Bool
+	finishCtx      context.Context
+	singleFlight   singleflight.Group
+	activeNotifier context.Context
+	activeFinish   context.CancelFunc
 }
 
 // Initialize 初始化
@@ -87,13 +89,11 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 	x.listenPort = uint32(option["listenPort"].(int))
 	x.listenIP = option["listenIP"].(string)
 	x.nodeMgr = resource.NewXDSNodeManager()
-	x.cache = NewSnapshotCache(cachev3.NewSnapshotCache(false, resource.PolarisNodeHash{
-		NodeMgr: x.nodeMgr,
-	}, commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName)), x)
+	x.cache = xdscache.NewCache(x)
 	x.active = atomic.NewBool(false)
 	x.versionNum = atomic.NewUint64(0)
 	x.ctx = ctx
-
+	x.activeNotifier, x.activeFinish = context.WithCancel(context.Background())
 	var err error
 
 	x.namingServer, err = service.GetOriginServer()
@@ -120,6 +120,7 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 		versionNum:   x.versionNum,
 		xdsNodesMgr:  x.nodeMgr,
 	}
+	resource.Init()
 	return nil
 }
 
@@ -127,7 +128,7 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 func (x *XDSServer) Run(errCh chan error) {
 	// 启动 grpc server
 	ctx := context.Background()
-	cb := resource.NewCallback(commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName), x.nodeMgr)
+	cb := xdscache.NewCallback(commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName), x.nodeMgr)
 	srv := serverv3.NewServer(ctx, x.cache, cb)
 	var grpcOptions []grpc.ServerOption
 	grpcOptions = append(grpcOptions, grpc.MaxConcurrentStreams(1000))
@@ -168,6 +169,7 @@ func registerServer(grpcServer *grpc.Server, server serverv3.Server, x *XDSServe
 	endpointservice.RegisterEndpointDiscoveryServiceServer(grpcServer, server)
 	clusterservice.RegisterClusterDiscoveryServiceServer(grpcServer, server)
 	routeservice.RegisterRouteDiscoveryServiceServer(grpcServer, server)
+	routeservice.RegisterVirtualHostDiscoveryServiceServer(grpcServer, server)
 	listenerservice.RegisterListenerDiscoveryServiceServer(grpcServer, server)
 	secretservice.RegisterSecretDiscoveryServiceServer(grpcServer, server)
 	runtimeservice.RegisterRuntimeDiscoveryServiceServer(grpcServer, server)
@@ -238,6 +240,7 @@ func (x *XDSServer) activeUpdateTask() {
 func (x *XDSServer) startSynTask(ctx context.Context) {
 	// 读取 polaris 缓存数据
 	synXdsConfFunc := func() {
+
 		registryInfo := make(map[string]map[model.ServiceKey]*resource.ServiceInfo)
 
 		err := x.getRegistryInfoWithCache(ctx, registryInfo)
@@ -413,6 +416,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 }
 
 func (x *XDSServer) Generate(needPush map[string]map[model.ServiceKey]*resource.ServiceInfo) {
+	defer x.activeFinish()
 	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
 	x.resourceGenerator.Generate(versionLocal, needPush)
 }
@@ -449,4 +453,17 @@ func (x *XDSServer) checkUpdate(curServiceInfo, cacheServiceInfo map[model.Servi
 		}
 	}
 	return false
+}
+
+func (x *XDSServer) DebugHandlers() []apiserver.DebugHandler {
+	return []apiserver.DebugHandler{
+		{
+			Path:    "/debug/apiserver/xds/envoy_nodes",
+			Handler: x.listXDSNodes,
+		},
+		{
+			Path:    "/debug/apiserver/xds/resources",
+			Handler: x.listXDSResources,
+		},
+	}
 }

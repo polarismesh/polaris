@@ -20,11 +20,12 @@ package xdsserverv3
 import (
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	on_demandv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/on_demand/v3"
 	v32 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
@@ -35,87 +36,141 @@ import (
 
 // RDSBuilder .
 type RDSBuilder struct {
-	client *resource.XDSClient
-	svr    service.DiscoverServer
+	VHDSBuilder
+	svr service.DiscoverServer
 }
 
-func (rds *RDSBuilder) Init(client *resource.XDSClient, svr service.DiscoverServer) {
-	rds.client = client
+func (rds *RDSBuilder) Init(svr service.DiscoverServer) {
+	rds.VHDSBuilder = VHDSBuilder{
+		svr: svr,
+	}
 	rds.svr = svr
 }
 
 func (rds *RDSBuilder) Generate(option *resource.BuildOption) (interface{}, error) {
 	var resources []types.Resource
 
-	switch rds.client.RunType {
+	switch option.RunType {
 	case resource.RunTypeGateway:
 		// Envoy Gateway 场景只需要支持入流量场景处理即可
-		ret, err := rds.makeGatewayVirtualHosts(option)
+		ret, err := rds.makeGatewayRouteConfiguration(option)
 		if err != nil {
 			return nil, err
 		}
 		resources = ret
 	case resource.RunTypeSidecar:
-		resources = rds.makeSidecarVirtualHosts(option)
+		switch option.TrafficDirection {
+		case corev3.TrafficDirection_INBOUND:
+			resources = append(resources, rds.makeSidecarInBoundRouteConfiguration(option)...)
+		case corev3.TrafficDirection_OUTBOUND:
+			resources = append(resources, rds.makeSidecarOutBoundRouteConfiguration(option)...)
+		}
 	}
 	return resources, nil
 }
 
-func (rds *RDSBuilder) makeSidecarVirtualHosts(option *resource.BuildOption) []types.Resource {
+func (rds *RDSBuilder) makeSidecarInBoundRouteConfiguration(option *resource.BuildOption) []types.Resource {
+	selfService := option.SelfService
+	// step 2: 生成 sidecar 所属服务的 INBOUND 规则
+	// 服务信息不存在或者不精确，不下发 InBound RDS 规则信息
+	if !selfService.IsExact() {
+		return []types.Resource{}
+	}
+	return []types.Resource{
+		&route.RouteConfiguration{
+			Name:             resource.MakeInBoundRouteConfigName(selfService),
+			ValidateClusters: wrapperspb.Bool(false),
+			VirtualHosts: []*route.VirtualHost{
+				{
+					Name:    resource.MakeServiceName(selfService, corev3.TrafficDirection_INBOUND, option),
+					Domains: []string{"*"},
+					Routes:  rds.makeSidecarInBoundRoutes(selfService, corev3.TrafficDirection_INBOUND, option),
+				},
+			},
+		},
+	}
+}
+
+func (rds *RDSBuilder) makeSidecarOutBoundRouteConfiguration(option *resource.BuildOption) []types.Resource {
 	// 每个 polaris serviceInfo 对应一个 virtualHost
 	var (
 		routeConfs []types.Resource
 		hosts      []*route.VirtualHost
 	)
 
-	selfService := model.ServiceKey{
-		Namespace: rds.client.GetSelfNamespace(),
-		Name:      rds.client.GetSelfService(),
-	}
-
-	// step 1: 生成服务的 OUTBOUND 规则
-	services := option.Services
-	for svcKey, serviceInfo := range services {
-		vHost := &route.VirtualHost{
-			Name:    resource.MakeServiceName(svcKey, corev3.TrafficDirection_OUTBOUND),
-			Domains: resource.GenerateServiceDomains(serviceInfo),
-			Routes:  rds.makeSidecarOutBoundRoutes(corev3.TrafficDirection_OUTBOUND, serviceInfo),
-		}
-		hosts = append(hosts, vHost)
-	}
-
 	routeConfiguration := &route.RouteConfiguration{
-		Name: resource.OutBoundRouteConfigName,
-		ValidateClusters: &wrappers.BoolValue{
-			Value: false,
-		},
-		VirtualHosts: append(hosts, resource.BuildAllowAnyVHost()),
+		Name:             resource.OutBoundRouteConfigName,
+		ValidateClusters: wrapperspb.Bool(false),
+	}
+	if !option.OpenOnDemand {
+		// step 1: 生成服务的 OUTBOUND 规则
+		services := option.Services
+		for svcKey, serviceInfo := range services {
+			vHost := &route.VirtualHost{
+				Name:    resource.MakeServiceName(svcKey, corev3.TrafficDirection_OUTBOUND, option),
+				Domains: resource.GenerateServiceDomains(serviceInfo),
+				Routes:  rds.makeSidecarOutBoundRoutes(corev3.TrafficDirection_OUTBOUND, serviceInfo, option),
+			}
+			hosts = append(hosts, vHost)
+		}
+		hosts = append(hosts, resource.BuildAllowAnyVHost())
+		routeConfiguration.VirtualHosts = hosts
+	}
+
+	if option.OpenOnDemand {
+		routeConfiguration.TypedPerFilterConfig = map[string]*anypb.Any{
+			"envoy.filters.http.on_demand": resource.MustNewAny(&on_demandv3.PerRouteConfig{
+				Odcds: &on_demandv3.OnDemandCds{
+					Source: &corev3.ConfigSource{
+						ConfigSourceSpecifier: &corev3.ConfigSource_ApiConfigSource{
+							ApiConfigSource: &corev3.ApiConfigSource{
+								ApiType:             corev3.ApiConfigSource_DELTA_GRPC,
+								TransportApiVersion: corev3.ApiVersion_V3,
+								GrpcServices: []*corev3.GrpcService{
+									{
+										TargetSpecifier: &corev3.GrpcService_GoogleGrpc_{
+											GoogleGrpc: &corev3.GrpcService_GoogleGrpc{
+												TargetUri:  option.OnDemandServer,
+												StatPrefix: "polaris_odcds",
+											},
+										},
+									},
+								},
+							},
+						},
+						ResourceApiVersion: corev3.ApiVersion_V3,
+					},
+				},
+			}),
+		}
+		routeConfiguration.Vhds = &route.Vhds{
+			ConfigSource: &corev3.ConfigSource{
+				ConfigSourceSpecifier: &corev3.ConfigSource_ApiConfigSource{
+					ApiConfigSource: &corev3.ApiConfigSource{
+						ApiType:             corev3.ApiConfigSource_DELTA_GRPC,
+						TransportApiVersion: corev3.ApiVersion_V3,
+						GrpcServices: []*corev3.GrpcService{
+							{
+								TargetSpecifier: &corev3.GrpcService_GoogleGrpc_{
+									GoogleGrpc: &corev3.GrpcService_GoogleGrpc{
+										TargetUri:  option.OnDemandServer,
+										StatPrefix: "polaris_vhds",
+									},
+								},
+							},
+						},
+					},
+				},
+				ResourceApiVersion: corev3.ApiVersion_V3,
+			},
+		}
 	}
 	routeConfs = append(routeConfs, routeConfiguration)
-
-	// step 2: 生成 sidecar 所属服务的 INBOUND 规则
-	// 服务信息不存在或者不精确，不下发 InBound RDS 规则信息
-	if selfService.IsExact() {
-		routeConfs = append(routeConfs, &route.RouteConfiguration{
-			Name: resource.InBoundRouteConfigName,
-			ValidateClusters: &wrappers.BoolValue{
-				Value: false,
-			},
-			VirtualHosts: []*route.VirtualHost{
-				{
-					Name:    resource.MakeServiceName(selfService, corev3.TrafficDirection_INBOUND),
-					Domains: []string{"*"},
-					Routes:  rds.makeSidecarInBoundRoutes(selfService, corev3.TrafficDirection_INBOUND),
-				},
-			},
-		})
-	}
-
 	return routeConfs
 }
 
 func (rds *RDSBuilder) makeSidecarInBoundRoutes(selfService model.ServiceKey,
-	trafficDirection corev3.TrafficDirection) []*route.Route {
+	trafficDirection corev3.TrafficDirection, opt *resource.BuildOption) []*route.Route {
 	currentRoute := &route.Route{
 		Match: &route.RouteMatch{
 			PathSpecifier: &route.RouteMatch_Prefix{Prefix: "/"},
@@ -126,7 +181,7 @@ func (rds *RDSBuilder) makeSidecarInBoundRoutes(selfService model.ServiceKey,
 					WeightedClusters: &route.WeightedCluster{
 						Clusters: []*route.WeightedCluster_ClusterWeight{
 							{
-								Name:   resource.MakeServiceName(selfService, trafficDirection),
+								Name:   resource.MakeServiceName(selfService, trafficDirection, opt),
 								Weight: wrapperspb.UInt32(100),
 							},
 						},
@@ -147,74 +202,15 @@ func (rds *RDSBuilder) makeSidecarInBoundRoutes(selfService model.ServiceKey,
 	}
 }
 
-// makeSidecarOutBoundRoutes .
-func (rds *RDSBuilder) makeSidecarOutBoundRoutes(trafficDirection corev3.TrafficDirection,
-	serviceInfo *resource.ServiceInfo) []*route.Route {
-	var (
-		routes        []*route.Route
-		matchAllRoute *route.Route
-	)
-	// 路由目前只处理 inbounds, 由于目前 envoy 获取不到自身服务数据，因此获取所有服务的被调规则
-	rules := resource.FilterInboundRouterRule(serviceInfo)
-	for _, rule := range rules {
-		var (
-			matchAll     bool
-			destinations []*traffic_manage.DestinationGroup
-		)
-		for _, dest := range rule.GetDestinations() {
-			if !serviceInfo.MatchService(dest.GetNamespace(), dest.GetService()) {
-				continue
-			}
-			destinations = append(destinations, dest)
-		}
-
-		routeMatch := &route.RouteMatch{
-			PathSpecifier: &route.RouteMatch_Prefix{Prefix: "/"},
-		}
-		// 使用 sources 生成 routeMatch
-		for _, source := range rule.GetSources() {
-			if len(source.GetArguments()) == 0 {
-				matchAll = true
-				break
-			}
-			for _, arg := range source.GetArguments() {
-				if arg.Key == utils.MatchAll {
-					matchAll = true
-					break
-				}
-			}
-			if matchAll {
-				break
-			} else {
-				resource.BuildSidecarRouteMatch(rds.client, routeMatch, source)
-			}
-		}
-
-		currentRoute := resource.MakeSidecarRoute(trafficDirection, routeMatch, serviceInfo, destinations)
-		if matchAll {
-			matchAllRoute = currentRoute
-		} else {
-			routes = append(routes, currentRoute)
-		}
-	}
-	if matchAllRoute == nil {
-		// 如果没有路由，会进入最后的默认处理
-		routes = append(routes, resource.MakeDefaultRoute(trafficDirection, serviceInfo.ServiceKey))
-	} else {
-		routes = append(routes, matchAllRoute)
-	}
-	return routes
-}
-
 // ---------------------- Envoy Gateway ---------------------- //
-func (rds *RDSBuilder) makeGatewayVirtualHosts(option *resource.BuildOption) ([]types.Resource, error) {
+func (rds *RDSBuilder) makeGatewayRouteConfiguration(option *resource.BuildOption) ([]types.Resource, error) {
 	// 每个 polaris serviceInfo 对应一个 virtualHost
 	var (
 		routeConfs []types.Resource
 		hosts      []*route.VirtualHost
 	)
 
-	routes, err := rds.makeGatewayRoutes(option, rds.client)
+	routes, err := rds.makeGatewayRoutes(option)
 	if err != nil {
 		return nil, err
 	}
@@ -241,16 +237,12 @@ func (rds *RDSBuilder) makeGatewayVirtualHosts(option *resource.BuildOption) ([]
 // require 1: The calling service must match the GatewayService & GatewayNamespace in NodeProxy Metadata
 // require 2: The $path parameter must be set in the request tag
 // require 3: The information of the called service must be accurate, that is, a clear namespace and service
-func (rds *RDSBuilder) makeGatewayRoutes(option *resource.BuildOption,
-	xdsNode *resource.XDSClient) ([]*route.Route, error) {
+func (rds *RDSBuilder) makeGatewayRoutes(option *resource.BuildOption) ([]*route.Route, error) {
 
 	routes := make([]*route.Route, 0, 16)
-	callerService := xdsNode.GetSelfService()
-	callerNamespace := xdsNode.GetSelfNamespace()
-	selfService := model.ServiceKey{
-		Namespace: callerNamespace,
-		Name:      callerService,
-	}
+	selfService := option.SelfService
+	callerService := selfService.Name
+	callerNamespace := selfService.Namespace
 	if !selfService.IsExact() {
 		return nil, nil
 	}
@@ -287,7 +279,7 @@ func (rds *RDSBuilder) makeGatewayRoutes(option *resource.BuildOption,
 					continue
 				}
 				findGatewaySource = true
-				buildGatewayRouteMatch(rds.client, routeMatch, source)
+				buildGatewayRouteMatch(routeMatch, source)
 			}
 
 			if !findGatewaySource {
@@ -295,7 +287,7 @@ func (rds *RDSBuilder) makeGatewayRoutes(option *resource.BuildOption,
 			}
 
 			gatewayRoute := resource.MakeGatewayRoute(corev3.TrafficDirection_OUTBOUND, routeMatch,
-				subRule.GetDestinations())
+				subRule.GetDestinations(), option)
 			pathInfo := gatewayRoute.GetMatch().GetPath()
 			if pathInfo == "" {
 				pathInfo = gatewayRoute.GetMatch().GetSafeRegex().GetRegex()
@@ -328,7 +320,7 @@ func (rds *RDSBuilder) makeGatewayRoutes(option *resource.BuildOption,
 	return routes, nil
 }
 
-func buildGatewayRouteMatch(client *resource.XDSClient, routeMatch *route.RouteMatch, source *traffic_manage.SourceService) {
+func buildGatewayRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.SourceService) {
 	for i := range source.GetArguments() {
 		argument := source.GetArguments()[i]
 		if argument.Type == traffic_manage.SourceMatch_PATH {
@@ -345,7 +337,7 @@ func buildGatewayRouteMatch(client *resource.XDSClient, routeMatch *route.RouteM
 			}
 		}
 	}
-	resource.BuildCommonRouteMatch(client, routeMatch, source)
+	resource.BuildCommonRouteMatch(routeMatch, source)
 }
 
 func isMatchGatewaySource(source *traffic_manage.SourceService, svcName, svcNamespace string) bool {
