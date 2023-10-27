@@ -98,7 +98,7 @@ func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(filter 
 	var (
 		namespace = filter["namespace"]
 		group     = filter["group"]
-		fileName  = filter["name"]
+		fileName  = filter["file_name"]
 		endId, _  = strconv.ParseUint(filter["endId"], 10, 64)
 		fields    = []string{FileHistoryFieldNamespace, FileHistoryFieldGroup,
 			FileHistoryFieldFileName, FileHistoryFieldId}
