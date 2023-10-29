@@ -19,6 +19,7 @@ package discover
 
 import (
 	"context"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -33,6 +34,7 @@ import (
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/healthcheck"
 	"github.com/polarismesh/polaris/store"
@@ -54,6 +56,7 @@ type Checker struct {
 
 	leader int32
 
+	syncCtx   context.Context
 	cancel    context.CancelFunc
 	watchCtxs []*eventhub.SubscribtionContext
 }
@@ -70,6 +73,7 @@ func newChecker(
 	clientMgr *ConnectionClientManager) (*Checker, error) {
 
 	ctx, cancel := context.WithCancel(context.Background())
+	syncCtx, cancel := context.WithCancel(context.Background())
 
 	checker := &Checker{
 		discoverSvr:   discoverSvr,
@@ -79,24 +83,39 @@ func newChecker(
 		clientMgr:     clientMgr,
 		selfInstances: make(map[string]*service_manage.Instance),
 		instances:     make(map[string]*service_manage.Instance),
+		syncCtx:       syncCtx,
 		cancel:        cancel,
 		watchCtxs:     make([]*eventhub.SubscribtionContext, 0, 2),
 	}
 
-	go checker.runCheck(ctx)
+	checker.syncCacheData(cancel)
 	subCtx, err := eventhub.Subscribe(eventhub.CacheInstanceEventTopic, checker)
 	if err != nil {
 		return nil, err
 	}
 	checker.watchCtxs = append(checker.watchCtxs, subCtx)
 	// 注册 leader 变化事件
-	subscriber := &CheckerLeaderSubscriber{checker: checker}
-	subCtx, err = eventhub.Subscribe(eventhub.LeaderChangeEventTopic, subscriber)
+	subCtx, err = eventhub.Subscribe(eventhub.LeaderChangeEventTopic, &CheckerLeaderSubscriber{checker: checker})
 	if err != nil {
 		return nil, err
 	}
 	checker.watchCtxs = append(checker.watchCtxs, subCtx)
+	// 最后启动实例健康检查任务
+	go checker.runCheck(ctx)
 	return checker, nil
+}
+
+func (c *Checker) syncCacheData(cancel context.CancelFunc) {
+	defer cancel()
+
+	handle := func(key string, val *model.Instance) {
+		c.OnUpsert(val)
+	}
+
+	c.cacheMgr.Instance().IteratorInstances(func(key string, value *model.Instance) (bool, error) {
+		handle(key, value)
+		return true, nil
+	})
 }
 
 func (c *Checker) isLeader() bool {
@@ -108,64 +127,56 @@ func (c *Checker) PreProcess(ctx context.Context, value any) any {
 }
 
 func (c *Checker) OnEvent(ctx context.Context, value any) error {
+	// 需要等待前面的 sync 任务完成，才可以开始处理增量的 event 事件
+	<-c.syncCtx.Done()
+
 	event, ok := value.(*eventhub.CacheInstanceEvent)
 	if !ok {
 		return nil
 	}
 	switch event.EventType {
-	case eventhub.EventCreated:
-		c.OnCreated(event.Instance)
-	case eventhub.EventUpdated:
-		c.OnUpdated(event.Instance)
+	case eventhub.EventCreated, eventhub.EventUpdated:
+		c.OnUpsert(event.Instance)
 	case eventhub.EventDeleted:
 		c.OnDeleted(event.Instance)
 	}
 	return nil
 }
 
-// OnCreated callback when cache value created
-func (c *Checker) OnCreated(value interface{}) {
+// OnUpsert callback when cache value upsert
+func (c *Checker) OnUpsert(value interface{}) {
 	ins, _ := value.(*model.Instance)
-
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
 	if c.isSelfServiceInstance(ins.Proto) {
-		c.selfInstances[ins.Proto.GetId().GetValue()] = ins.Proto
+		c.selfInstances[ins.ID()] = ins.Proto
 		return
 	}
 
 	if _, ok := ins.Proto.GetMetadata()[nacosmodel.InternalNacosClientConnectionID]; ok {
-		c.instances[ins.Proto.GetId().GetValue()] = ins.Proto
-	}
-}
-
-// OnUpdated callback when cache value updated
-func (c *Checker) OnUpdated(value interface{}) {
-	ins, _ := value.(*model.Instance)
-	_, ok := ins.Proto.GetMetadata()[nacosmodel.InternalNacosClientConnectionID]
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
-	if ok {
-		c.instances[ins.Proto.GetId().GetValue()] = ins.Proto
+		c.instances[ins.ID()] = ins.Proto
 	}
 }
 
 // OnDeleted callback when cache value deleted
 func (c *Checker) OnDeleted(value interface{}) {
 	ins, _ := value.(*model.Instance)
-	_, ok := ins.Proto.GetMetadata()[nacosmodel.InternalNacosClientConnectionID]
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	if ok {
-		delete(c.instances, ins.Proto.GetId().GetValue())
+	if c.isSelfServiceInstance(ins.Proto) {
+		c.selfInstances[ins.ID()] = ins.Proto
+		return
+	}
+
+	if _, ok := ins.Proto.GetMetadata()[nacosmodel.InternalNacosClientConnectionID]; ok {
+		delete(c.instances, ins.ID())
 	}
 }
 
 func (c *Checker) runCheck(ctx context.Context) {
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(3 * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
@@ -181,10 +192,17 @@ func (c *Checker) runCheck(ctx context.Context) {
 // BUT: 一个实例 T1 时刻对应长连接为 Conn-1，T2 时刻对应的长连接为 Conn-2，但是在 T1 ～ T2 之间的某个时刻检测发现长连接不存在
 // 此时发起一个反注册请求，该请求在 T3 时刻发起，是否会影响 T2 时刻注册上来的实例？
 func (c *Checker) realCheck() {
-	copyMap := make(map[string]*service_manage.Instance, len(c.instances))
+	defer func() {
+		if err := recover(); err != nil {
+			var buf [4086]byte
+			n := runtime.Stack(buf[:], false)
+			nacoslog.Errorf("panic recovered: %v, STACK: %s", err, buf[0:n])
+		}
+	}()
 
 	// 减少锁的耗时
 	c.lock.RLock()
+	copyMap := make(map[string]*service_manage.Instance, len(c.instances))
 	for k, v := range c.instances {
 		copyMap[k] = v
 	}
@@ -195,54 +213,79 @@ func (c *Checker) realCheck() {
 
 	for instanceID, instance := range copyMap {
 		connID := instance.Metadata[nacosmodel.InternalNacosClientConnectionID]
+		// 如果不是 ConnID 的负责 server
 		if !strings.HasSuffix(connID, utils.LocalHost) {
-			if c.isLeader() {
-				// 看下所属的 server 是否健康
-				found := false
-				for i := range c.selfInstances {
-					selfIns := c.selfInstances[i]
-					if strings.HasSuffix(connID, selfIns.GetHost().GetValue()) && selfIns.GetHealthy().GetValue() {
-						found = true
-						break
-					}
-				}
-				if !found {
-					// connID 的负责 server 不存在，直接变为不健康
-					turnUnhealth[instanceID] = struct{}{}
-				}
+			if !c.isLeader() {
 				continue
 			}
-		}
-		_, exist := c.connMgr.GetClient(connID)
-		if !exist {
-			// 如果实例对应的连接ID不存在，设置为不健康
-			turnUnhealth[instanceID] = struct{}{}
+			// 看下 ConnID 对应的负责 Server 是否健康
+			found := false
+			for i := range c.selfInstances {
+				selfIns := c.selfInstances[i]
+				if strings.HasSuffix(connID, selfIns.GetHost().GetValue()) && selfIns.GetHealthy().GetValue() {
+					found = true
+					break
+				}
+			}
+			if !found {
+				// connID 的负责 server 不存在，直接变为不健康
+				turnUnhealth[instanceID] = struct{}{}
+			}
 			continue
 		}
-		if !instance.GetHealthy().GetValue() && exist {
+		_, exist := c.clientMgr.getClient(connID)
+		isHealth := instance.GetHealthy().GetValue()
+		if !exist && isHealth {
+			// 如果实例对应的连接ID不存在，设置为不健康
+			turnUnhealth[instanceID] = struct{}{}
+			plugin.GetDiscoverEvent().PublishEvent(model.InstanceEvent{
+				Id:        instanceID,
+				Namespace: instance.GetNamespace().GetValue(),
+				Service:   instance.GetService().GetValue(),
+				Instance:  instance,
+				EType:     model.EventInstanceTurnUnHealth,
+			})
+			continue
+		}
+		if !isHealth && exist {
 			turnHealth[instanceID] = struct{}{}
+			plugin.GetDiscoverEvent().PublishEvent(model.InstanceEvent{
+				Id:        instanceID,
+				SvcId:     instance.GetService().GetValue(),
+				Namespace: instance.GetNamespace().GetValue(),
+				Service:   instance.GetService().GetValue(),
+				Instance:  instance,
+				EType:     model.EventInstanceTurnHealth,
+			})
 		}
 	}
 
 	ids := make([]interface{}, 0, len(turnUnhealth))
-	for id := range turnUnhealth {
-		ids = append(ids, id)
-	}
-
-	if err := c.discoverSvr.Cache().GetStore().
-		BatchSetInstanceHealthStatus(ids, model.StatusBoolToInt(false), utils.NewUUID()); err != nil {
-		nacoslog.Error("[NACOS-V2][Checker] batch set instance health_status to unhealthy",
-			zap.Any("instance-ids", ids), zap.Error(err))
+	if len(turnUnhealth) > 0 {
+		for id := range turnUnhealth {
+			ids = append(ids, id)
+		}
+		nacoslog.Info("[NACOS-V2][Checker] batch set instance health_status to unhealthy",
+			zap.Any("instance-ids", ids))
+		if err := c.discoverSvr.Cache().GetStore().
+			BatchSetInstanceHealthStatus(ids, model.StatusBoolToInt(false), utils.NewUUID()); err != nil {
+			nacoslog.Error("[NACOS-V2][Checker] batch set instance health_status to unhealthy",
+				zap.Any("instance-ids", ids), zap.Error(err))
+		}
 	}
 
 	ids = make([]interface{}, 0, len(turnUnhealth))
-	for id := range turnHealth {
-		ids = append(ids, id)
-	}
-	if err := c.discoverSvr.Cache().GetStore().
-		BatchSetInstanceHealthStatus(ids, model.StatusBoolToInt(false), utils.NewUUID()); err != nil {
-		nacoslog.Error("[NACOS-V2][Checker] batch set instance health_status to healty",
-			zap.Any("instance-ids", ids), zap.Error(err))
+	if len(turnHealth) > 0 {
+		for id := range turnHealth {
+			ids = append(ids, id)
+		}
+		nacoslog.Info("[NACOS-V2][Checker] batch set instance health_status to healty",
+			zap.Any("instance-ids", ids))
+		if err := c.discoverSvr.Cache().GetStore().
+			BatchSetInstanceHealthStatus(ids, model.StatusBoolToInt(true), utils.NewUUID()); err != nil {
+			nacoslog.Error("[NACOS-V2][Checker] batch set instance health_status to healty",
+				zap.Any("instance-ids", ids), zap.Error(err))
+		}
 	}
 }
 

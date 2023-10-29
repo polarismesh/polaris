@@ -80,7 +80,7 @@ func (s *Server) createCircuitBreakerRule(
 	exists, err := s.storage.HasCircuitBreakerRuleByName(data.Name, data.Namespace)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return storeError2Response(err)
+		return api.NewResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 	if exists {
 		return api.NewResponse(apimodel.Code_ServiceExistedCircuitBreakers)
@@ -90,7 +90,7 @@ func (s *Server) createCircuitBreakerRule(
 	// 存储层操作
 	if err := s.storage.CreateCircuitBreakerRule(data); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return storeError2Response(err)
+		return api.NewResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 
 	msg := fmt.Sprintf("create circuitBreaker rule: id=%v, name=%v, namespace=%v",
@@ -305,7 +305,7 @@ func (s *Server) updateCircuitBreakerRule(
 	exists, err := s.storage.HasCircuitBreakerRuleByNameExcludeId(cbRule.Name, cbRule.Namespace, cbRule.ID)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return storeError2Response(err)
+		return api.NewResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 	if exists {
 		return api.NewResponse(apimodel.Code_ServiceExistedCircuitBreakers)

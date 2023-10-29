@@ -48,7 +48,7 @@ var (
 type (
 	FileReleaseCallback func(clientId string, rsp *apiconfig.ConfigClientResponse) bool
 
-	WatchContextFactory func(clientId string, watchFiles []*apiconfig.ClientConfigFileInfo) WatchContext
+	WatchContextFactory func(clientId string) WatchContext
 
 	WatchContext interface {
 		// ClientID .
@@ -58,7 +58,7 @@ type (
 		// RemoveInterest .
 		RemoveInterest(item *apiconfig.ClientConfigFileInfo)
 		// ShouldNotify .
-		ShouldNotify(key *apiconfig.ClientConfigFileInfo) bool
+		ShouldNotify(event *model.SimpleConfigFileRelease) bool
 		// Reply .
 		Reply(rsp *apiconfig.ConfigClientResponse)
 		// Close .
@@ -109,14 +109,13 @@ func (c *LongPollWatchContext) ClientID() string {
 	return c.clientId
 }
 
-func (c *LongPollWatchContext) ShouldNotify(resp *apiconfig.ClientConfigFileInfo) bool {
-	key := resp.GetNamespace().GetValue() + "@" +
-		resp.GetGroup().GetValue() + "@" + resp.GetFileName().GetValue()
+func (c *LongPollWatchContext) ShouldNotify(event *model.SimpleConfigFileRelease) bool {
+	key := event.ActiveKey()
 	watchFile, ok := c.watchConfigFiles[key]
 	if !ok {
 		return false
 	}
-	return watchFile.GetVersion().GetValue() < resp.GetVersion().GetValue()
+	return watchFile.GetVersion().GetValue() < event.Version
 }
 
 func (c *LongPollWatchContext) ListWatchFiles() []*apiconfig.ClientConfigFileInfo {
@@ -129,17 +128,13 @@ func (c *LongPollWatchContext) ListWatchFiles() []*apiconfig.ClientConfigFileInf
 
 // AppendInterest .
 func (c *LongPollWatchContext) AppendInterest(item *apiconfig.ClientConfigFileInfo) {
-	key := item.GetNamespace().GetValue() + "@" +
-		item.GetGroup().GetValue() + "@" + item.GetFileName().GetValue()
-
+	key := model.BuildKeyForClientConfigFileInfo(item)
 	c.watchConfigFiles[key] = item
 }
 
 // RemoveInterest .
 func (c *LongPollWatchContext) RemoveInterest(item *apiconfig.ClientConfigFileInfo) {
-	key := item.GetNamespace().GetValue() + "@" +
-		item.GetGroup().GetValue() + "@" + item.GetFileName().GetValue()
-
+	key := model.BuildKeyForClientConfigFileInfo(item)
 	delete(c.watchConfigFiles, key)
 }
 
@@ -220,15 +215,15 @@ func (wc *watchCenter) checkQuickResponseClient(watchCtx WatchContext) *apiconfi
 		}
 		// 从缓存中获取最新的配置文件信息
 		if release := wc.fileCache.GetActiveRelease(namespace, group, fileName); release != nil {
-			ret := &apiconfig.ClientConfigFileInfo{
-				Namespace: utils.NewStringValue(namespace),
-				Group:     utils.NewStringValue(group),
-				FileName:  utils.NewStringValue(fileName),
-				Version:   utils.NewUInt64Value(release.Version),
-				Md5:       utils.NewStringValue(release.Md5),
-				Name:      utils.NewStringValue(release.Name),
-			}
-			if watchCtx.ShouldNotify(ret) {
+			if watchCtx.ShouldNotify(release.SimpleConfigFileRelease) {
+				ret := &apiconfig.ClientConfigFileInfo{
+					Namespace: utils.NewStringValue(namespace),
+					Group:     utils.NewStringValue(group),
+					FileName:  utils.NewStringValue(fileName),
+					Version:   utils.NewUInt64Value(release.Version),
+					Md5:       utils.NewStringValue(release.Md5),
+					Name:      utils.NewStringValue(release.Name),
+				}
 				return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, ret)
 			}
 		}
@@ -236,16 +231,22 @@ func (wc *watchCenter) checkQuickResponseClient(watchCtx WatchContext) *apiconfi
 	return nil
 }
 
+// GetWatchContext .
+func (wc *watchCenter) GetWatchContext(clientId string) (WatchContext, bool) {
+	return wc.clients.Load(clientId)
+}
+
+// DelWatchContext .
+func (wc *watchCenter) DelWatchContext(clientId string) (WatchContext, bool) {
+	return wc.clients.Delete(clientId)
+}
+
 // AddWatcher 新增订阅者
 func (wc *watchCenter) AddWatcher(clientId string,
-	watchFiles []*apiconfig.ClientConfigFileInfo, factory WatchContextFactory) (WatchContext, *apiconfig.ConfigClientResponse) {
-
-	watchCtx := factory(clientId, watchFiles)
-	if quickResp := wc.checkQuickResponseClient(watchCtx); quickResp != nil {
-		_ = watchCtx.Close()
-		return nil, quickResp
-	}
-	watchCtx, _ = wc.clients.ComputeIfAbsent(clientId, func(k string) WatchContext { return watchCtx })
+	watchFiles []*apiconfig.ClientConfigFileInfo, factory WatchContextFactory) WatchContext {
+	watchCtx, _ := wc.clients.ComputeIfAbsent(clientId, func(k string) WatchContext {
+		return factory(clientId)
+	})
 
 	for _, file := range watchFiles {
 		fileKey := utils.GenFileId(file.Namespace.GetValue(), file.Group.GetValue(), file.FileName.GetValue())
@@ -256,10 +257,24 @@ func (wc *watchCenter) AddWatcher(clientId string,
 		})
 		clientIds.Add(clientId)
 	}
-	wc.watchers.Range(func(key string, val *utils.SyncSet[string]) {
-		log.Info("[Config][Watcher] file watcher client", zap.String("fileKey", key), zap.Strings("clientIds", val.ToSlice()))
-	})
-	return watchCtx, nil
+	return watchCtx
+}
+
+// RemoveAllWatcher 删除订阅者
+func (wc *watchCenter) RemoveAllWatcher(clientId string) {
+	oldVal, exist := wc.clients.Delete(clientId)
+	if !exist {
+		return
+	}
+	_ = oldVal.Close()
+	for _, file := range oldVal.ListWatchFiles() {
+		watchFileId := utils.GenFileId(file.Namespace.GetValue(), file.Group.GetValue(), file.FileName.GetValue())
+		watchers, ok := wc.watchers.Load(watchFileId)
+		if !ok {
+			continue
+		}
+		watchers.Remove(clientId)
+	}
 }
 
 // RemoveWatcher 删除订阅者
@@ -284,17 +299,15 @@ func (wc *watchCenter) RemoveWatcher(clientId string, watchConfigFiles []*apicon
 
 func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.SimpleConfigFileRelease) {
 	watchFileId := utils.GenFileId(publishConfigFile.Namespace, publishConfigFile.Group, publishConfigFile.FileName)
-
 	clientIds, ok := wc.watchers.Load(watchFileId)
 	if !ok {
 		return
 	}
 
-	log.Info("[Config][Watcher] received config file publish message.", zap.String("file", watchFileId),
-		zap.Any("clientIds", clientIds))
+	log.Info("[Config][Watcher] received config file publish message.", zap.String("file", watchFileId))
 
-	response := GenConfigFileResponse(publishConfigFile.Namespace, publishConfigFile.Group,
-		publishConfigFile.FileName, "", publishConfigFile.Md5, publishConfigFile.Version)
+	changeNotifyRequest := publishConfigFile.ToSpecNotifyClientRequest()
+	response := api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, changeNotifyRequest)
 
 	clientIds.Range(func(clientId string) {
 		watchCtx, ok := wc.clients.Load(clientId)
@@ -305,13 +318,13 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.SimpleConfigFil
 			return
 		}
 
-		if watchCtx.ShouldNotify(response.ConfigFile) {
+		if watchCtx.ShouldNotify(publishConfigFile) {
 			watchCtx.Reply(response)
 		}
 		// 只能用一次，通知完就要立马清理掉这个 WatchContext
 		if watchCtx.IsOnce() {
 			wc.clients.Delete(clientId)
-			wc.RemoveWatcher(watchCtx.ClientID(), watchCtx.ListWatchFiles())
+			wc.RemoveAllWatcher(watchCtx.ClientID())
 		}
 	})
 }
@@ -344,7 +357,7 @@ func (wc *watchCenter) startHandleTimeoutRequestWorker(ctx context.Context) {
 			for i := range waitRemove {
 				watchCtx := waitRemove[i]
 				watchCtx.Reply(notModifiedResponse)
-				wc.RemoveWatcher(watchCtx.ClientID(), watchCtx.ListWatchFiles())
+				wc.RemoveAllWatcher(watchCtx.ClientID())
 			}
 		}
 	}

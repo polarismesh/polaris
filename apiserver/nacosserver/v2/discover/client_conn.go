@@ -25,6 +25,7 @@ import (
 	"github.com/polarismesh/polaris/apiserver/nacosserver/v2/remote"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
+	"go.uber.org/zap"
 )
 
 type (
@@ -40,9 +41,9 @@ type (
 	// ClientConnectionInterceptor
 	ClientConnectionInterceptor interface {
 		// HandleClientConnect .
-		HandleClientConnect(ctx context.Context, client *ConnectionClient)
+		HandleClientConnect(ctx context.Context, client *remote.Client)
 		// HandleClientDisConnect .
-		HandleClientDisConnect(ctx context.Context, client *ConnectionClient)
+		HandleClientDisConnect(ctx context.Context, client *remote.Client)
 	}
 
 	// ConnectionClient .
@@ -58,7 +59,8 @@ type (
 
 func NewConnectionClientManager(inteceptors []ClientConnectionInterceptor) (*ConnectionClientManager, error) {
 	mgr := &ConnectionClientManager{
-		clients: map[string]*ConnectionClient{},
+		clients:     map[string]*ConnectionClient{},
+		inteceptors: inteceptors,
 	}
 	subCtx, err := eventhub.Subscribe(remote.ClientConnectionEvent, mgr)
 	if err != nil {
@@ -81,28 +83,33 @@ func (c *ConnectionClientManager) OnEvent(ctx context.Context, a any) error {
 	}
 	switch event.EventType {
 	case remote.EventClientConnected:
-		c.addConnectionClientIfAbsent(event.ConnID)
-		c.lock.RLock()
-		defer c.lock.RUnlock()
-		client := c.clients[event.ConnID]
+		nacoslog.Info("[NACOS-V2][Naming] receive client connected event", zap.String("clientId", event.ConnID))
 		for i := range c.inteceptors {
-			c.inteceptors[i].HandleClientConnect(ctx, client)
+			c.inteceptors[i].HandleClientConnect(ctx, event.Client)
 		}
 	case remote.EventClientDisConnected:
-		c.lock.Lock()
-		defer c.lock.Unlock()
-
-		client, ok := c.clients[event.ConnID]
-		if ok {
-			for i := range c.inteceptors {
-				c.inteceptors[i].HandleClientDisConnect(ctx, client)
-			}
-			client.Destroy()
-			delete(c.clients, event.ConnID)
+		nacoslog.Info("[NACOS-V2][Naming] receive client disconnected event", zap.String("clientId", event.ConnID))
+		for i := range c.inteceptors {
+			c.inteceptors[i].HandleClientDisConnect(ctx, event.Client)
 		}
 	}
 
 	return nil
+}
+
+func (c *ConnectionClientManager) getClient(connID string) (*ConnectionClient, bool) {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	client, ok := c.clients[connID]
+	return client, ok
+}
+
+func (c *ConnectionClientManager) delClient(connID string) (*ConnectionClient, bool) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	client, ok := c.clients[connID]
+	delete(c.clients, connID)
+	return client, ok
 }
 
 func (c *ConnectionClientManager) addServiceInstance(connID string, svc model.ServiceKey, instanceIDS ...string) {

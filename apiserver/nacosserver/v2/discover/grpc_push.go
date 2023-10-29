@@ -23,7 +23,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/apiserver/nacosserver/core"
-	"github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/eventhub"
 	commontime "github.com/polarismesh/polaris/common/time"
 )
 
@@ -32,6 +32,7 @@ type Sender func(sub core.Subscriber, data *core.PushData) error
 type GrpcPushCenter struct {
 	*core.BasePushCenter
 	sender Sender
+	subCtx *eventhub.SubscribtionContext
 }
 
 func NewGrpcPushCenter(store *core.NacosDataStorage, sender Sender) (core.PushCenter, error) {
@@ -54,8 +55,8 @@ func (p *GrpcPushCenter) AddSubscriber(s core.Subscriber) {
 		_ = notifier.Close()
 		return
 	}
-	log.Info("[NACOS-V2][PushCenter] add subscriber", zap.String("type", string(p.Type())),
-		zap.String("conn-id", s.ConnID))
+	nacoslog.Info("[NACOS-V2][PushCenter] add subscriber", zap.String("conn-id", s.Key),
+		zap.String("resource", s.ResourceInfo()))
 	client := p.BasePushCenter.GetSubscriber(s)
 	if client != nil {
 		client.RefreshLastTime()
@@ -63,8 +64,8 @@ func (p *GrpcPushCenter) AddSubscriber(s core.Subscriber) {
 }
 
 func (p *GrpcPushCenter) RemoveSubscriber(s core.Subscriber) {
-	log.Info("[NACOS-V2][PushCenter] remove subscriber", zap.String("type", string(p.Type())),
-		zap.String("conn-id", s.ConnID))
+	nacoslog.Info("[NACOS-V2][PushCenter] remove subscriber", zap.String("conn-id", s.Key),
+		zap.String("resource", s.ResourceInfo()))
 	p.BasePushCenter.RemoveSubscriber(s)
 }
 

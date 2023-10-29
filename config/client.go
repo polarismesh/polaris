@@ -37,17 +37,6 @@ type (
 	CompareFunction func(clientInfo *apiconfig.ClientConfigFileInfo, file *model.ConfigFileRelease) bool
 )
 
-// UpsertAndReleaseConfigFile 创建/更新配置文件并发布
-func (s *Server) UpsertAndReleaseConfigFileFromClient(ctx context.Context,
-	req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
-	return s.UpsertAndReleaseConfigFile(ctx, req)
-}
-
-// DeleteConfigFileFromClient 调用config_file的方法更新配置文件
-func (s *Server) DeleteConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-	return s.DeleteConfigFile(ctx, req)
-}
-
 // GetConfigFileForClient 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
 func (s *Server) GetConfigFileForClient(ctx context.Context,
 	client *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
@@ -75,10 +64,18 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 		log.Error("[Config][Service] get config file to client info", utils.RequestID(ctx), zap.Error(err))
 		return api.NewConfigClientResponseWithInfo(apimodel.Code_ExecuteException, err.Error())
 	}
-	log.Info("[Config][Client] client get config file success.", utils.RequestID(ctx),
-		zap.String("client", utils.ParseClientAddress(ctx)), zap.String("file", fileName),
-		zap.Uint64("version", release.Version))
 	return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, configFile)
+}
+
+// UpsertAndReleaseConfigFile 创建/更新配置文件并发布
+func (s *Server) UpsertAndReleaseConfigFileFromClient(ctx context.Context,
+	req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
+	return s.UpsertAndReleaseConfigFile(ctx, req)
+}
+
+// DeleteConfigFileFromClient 调用config_file的方法更新配置文件
+func (s *Server) DeleteConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+	return s.DeleteConfigFile(ctx, req)
 }
 
 // CreateConfigFileFromClient 调用config_file接口获取配置文件
@@ -106,6 +103,18 @@ func (s *Server) PublishConfigFileFromClient(ctx context.Context,
 func (s *Server) LongPullWatchFile(ctx context.Context,
 	req *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error) {
 	watchFiles := req.GetWatchFiles()
+
+	tmpWatchCtx := BuildTimeoutWatchCtx(0)("")
+	for _, file := range watchFiles {
+		tmpWatchCtx.AppendInterest(file)
+	}
+	if quickResp := s.watchCenter.checkQuickResponseClient(tmpWatchCtx); quickResp != nil {
+		_ = tmpWatchCtx.Close()
+		return func() *apiconfig.ConfigClientResponse {
+			return quickResp
+		}, nil
+	}
+
 	watchTimeOut := defaultLongPollingTimeout
 	if timeoutVal, ok := ctx.Value(utils.WatchTimeoutCtx{}).(time.Duration); ok {
 		watchTimeOut = timeoutVal
@@ -113,32 +122,19 @@ func (s *Server) LongPullWatchFile(ctx context.Context,
 
 	// 3. 监听配置变更，hold 请求 30s，30s 内如果有配置发布，则响应请求
 	clientId := utils.ParseClientAddress(ctx) + "@" + utils.NewUUID()[0:8]
-	watchCtx, checkResp := s.WatchCenter().AddWatcher(clientId, watchFiles, BuildTimeoutWatchCtx(watchTimeOut))
-	if checkResp != nil {
-		return func() *apiconfig.ConfigClientResponse {
-			return checkResp
-		}, nil
-	}
-	if watchCtx == nil {
-		return func() *apiconfig.ConfigClientResponse {
-			return api.NewConfigClientResponse0(apimodel.Code_InvalidWatchConfigFileFormat)
-		}, nil
-	}
+	watchCtx := s.WatchCenter().AddWatcher(clientId, watchFiles, BuildTimeoutWatchCtx(watchTimeOut))
 	return func() *apiconfig.ConfigClientResponse {
 		return (watchCtx.(*LongPollWatchContext)).GetNotifieResult()
 	}, nil
 }
 
 func BuildTimeoutWatchCtx(watchTimeOut time.Duration) WatchContextFactory {
-	return func(clientId string, watchFiles []*apiconfig.ClientConfigFileInfo) WatchContext {
+	return func(clientId string) WatchContext {
 		watchCtx := &LongPollWatchContext{
 			clientId:         clientId,
 			finishTime:       time.Now().Add(watchTimeOut),
 			finishChan:       make(chan *apiconfig.ConfigClientResponse),
 			watchConfigFiles: map[string]*apiconfig.ClientConfigFileInfo{},
-		}
-		for i := range watchFiles {
-			watchCtx.AppendInterest(watchFiles[i])
 		}
 		return watchCtx
 	}

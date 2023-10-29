@@ -106,20 +106,17 @@ func TestClientSetupAndFileExisted(t *testing.T) {
 	assert.NotNil(t, rsp3.ConfigFile)
 	assert.Equal(t, uint64(1), rsp3.ConfigFile.Version.GetValue())
 	assert.Equal(t, configFile.Content.GetValue(), rsp3.ConfigFile.Content.GetValue())
-	assert.Equal(t, config.CalMd5(configFile.Content.GetValue()), rsp3.ConfigFile.Md5.GetValue())
 
 	// 比较客户端配置是否落后
 	originSvr := testSuit.OriginConfigServer()
 	rsp4, _ := originSvr.TestCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByVersion)
 	assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue(), rsp4.GetInfo().GetValue())
 	assert.NotNil(t, rsp4.ConfigFile)
-	assert.Equal(t, config.CalMd5(configFile.Content.GetValue()), rsp4.ConfigFile.Md5.GetValue())
 
 	rsp5, _ := originSvr.TestCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(0), config.TestCompareByMD5)
 	assert.Equal(t, api.ExecuteSuccess, rsp5.Code.GetValue(), rsp5.GetInfo().GetValue())
 	assert.NotNil(t, rsp5.ConfigFile)
 	assert.Equal(t, uint64(1), rsp5.ConfigFile.Version.GetValue())
-	assert.Equal(t, config.CalMd5(configFile.Content.GetValue()), rsp5.ConfigFile.Md5.GetValue())
 }
 
 // TestClientSetupAndCreateNewFile 测试客户端启动时（version=0），并且配置不存在的情况下创建新的配置
@@ -357,20 +354,17 @@ func TestClientVersionBehindServer(t *testing.T) {
 	assert.NotNil(t, rsp4.ConfigFile)
 	assert.Equal(t, uint64(5), rsp4.ConfigFile.Version.GetValue())
 	assert.Equal(t, latestContent, rsp4.ConfigFile.Content.GetValue())
-	assert.Equal(t, config.CalMd5(latestContent), rsp4.ConfigFile.Md5.GetValue())
 
 	svr := testSuit.OriginConfigServer()
 	// 比较客户端配置是否落后
 	rsp5, _ := svr.TestCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(clientVersion), config.TestCompareByVersion)
 	assert.Equal(t, api.ExecuteSuccess, rsp5.Code.GetValue())
 	assert.NotNil(t, rsp5.ConfigFile)
-	assert.Equal(t, config.CalMd5(latestContent), rsp5.ConfigFile.Md5.GetValue())
 
 	rsp6, _ := svr.TestCheckClientConfigFile(testSuit.DefaultCtx, assembleDefaultClientConfigFile(clientVersion), config.TestCompareByMD5)
 	assert.Equal(t, api.ExecuteSuccess, rsp6.Code.GetValue())
 	assert.NotNil(t, rsp6.ConfigFile)
 	assert.Equal(t, uint64(5), rsp6.ConfigFile.Version.GetValue())
-	assert.Equal(t, config.CalMd5(latestContent), rsp6.ConfigFile.Md5.GetValue())
 }
 
 // TestWatchConfigFileAtFirstPublish 测试监听配置，并且第一次发布配置
@@ -402,9 +396,8 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 			testSuit.OriginConfigServer().WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
 		}()
 
-		watchCtx, checkResp := testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles,
+		watchCtx := testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles,
 			config.BuildTimeoutWatchCtx(30*time.Second))
-		assert.Nil(t, checkResp)
 		assert.NotNil(t, watchCtx)
 
 		rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
@@ -438,9 +431,8 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 
 		clientId := "TestWatchConfigFileAtFirstPublish-second"
 
-		watchCtx, checkResp := testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles,
+		watchCtx := testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles,
 			config.BuildTimeoutWatchCtx(30*time.Second))
-		assert.Nil(t, checkResp)
 		assert.NotNil(t, watchCtx)
 
 		rsp3 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, assembleConfigFileRelease(configFile))
@@ -482,9 +474,8 @@ func TestManyClientWatchConfigFile(t *testing.T) {
 		clientId := fmt.Sprintf("Test10000ClientWatchConfigFile-client-id=%d", i)
 		received.Store(clientId, false)
 		receivedVersion.Store(clientId, uint64(0))
-		watchCtx, checkResp := testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles,
+		watchCtx := testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles,
 			config.BuildTimeoutWatchCtx(30*time.Second))
-		assert.Nil(t, checkResp)
 		assert.NotNil(t, watchCtx)
 		go func() {
 			notifyRsp := (watchCtx.(*config.LongPollWatchContext)).GetNotifieResult()
@@ -561,9 +552,8 @@ func TestDeleteConfigFile(t *testing.T) {
 
 	t.Log("add config watcher")
 
-	watchCtx, checkResp := testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles,
+	watchCtx := testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles,
 		config.BuildTimeoutWatchCtx(30*time.Second))
-	assert.Nil(t, checkResp)
 	assert.NotNil(t, watchCtx)
 
 	// 删除配置文件

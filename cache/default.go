@@ -28,6 +28,7 @@ import (
 	cacheconfig "github.com/polarismesh/polaris/cache/config"
 	cachens "github.com/polarismesh/polaris/cache/namespace"
 	cachesvc "github.com/polarismesh/polaris/cache/service"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -71,10 +72,6 @@ func Initialize(ctx context.Context, cacheOpt *Config, storage store.Store) erro
 
 // initialize cache 初始化
 func initialize(ctx context.Context, cacheOpt *Config, storage store.Store) error {
-	if !cacheOpt.Open {
-		return nil
-	}
-
 	var err error
 	cacheMgn, err = newCacheManager(ctx, cacheOpt, storage)
 	return err
@@ -83,8 +80,9 @@ func initialize(ctx context.Context, cacheOpt *Config, storage store.Store) erro
 func newCacheManager(ctx context.Context, cacheOpt *Config, storage store.Store) (*CacheManager, error) {
 	SetCacheConfig(cacheOpt)
 	mgr := &CacheManager{
-		storage: storage,
-		caches:  make([]types.Cache, types.CacheLast),
+		storage:  storage,
+		caches:   make([]types.Cache, types.CacheLast),
+		needLoad: utils.NewSyncSet[string](),
 	}
 
 	// 命名空间缓存

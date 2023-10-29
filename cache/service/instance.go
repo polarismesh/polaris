@@ -251,6 +251,9 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) ([]*eventh
 		serviceInstances, _ := ic.services.Load(item.ServiceID)
 		svc := ic.BaseCache.CacheMgr.GetCacher(types.CacheService).(types.ServiceCache).GetServiceByID(item.ServiceID)
 		if svc != nil {
+			// 填充实例的服务名称数据信息
+			item.Proto.Namespace = utils.NewStringValue(svc.Namespace)
+			item.Proto.Service = utils.NewStringValue(svc.Name)
 			serviceInstances.updateProtectThreshold(svc.ProtectThreshold())
 		}
 

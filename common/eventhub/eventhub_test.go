@@ -203,9 +203,9 @@ func TestEventHub_createTopic(t *testing.T) {
 	eh := createEventhub()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := eh.createTopic(tt.args.name)
+			got := eh.createTopic(tt.args.name, PublishOption{})
 			assert.Equal(t, tt.want.name, got.name)
-			got = eh.createTopic(tt.args.name)
+			got = eh.createTopic(tt.args.name, PublishOption{})
 			assert.Equal(t, tt.want.name, got.name)
 		})
 	}
@@ -244,7 +244,7 @@ func TestEventHub_getTopic(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			eh := createEventhub()
-			got := eh.getTopic(tt.args.name)
+			got := eh.loadOrStoreTopic(tt.args.name)
 			assert.Equal(t, tt.want.name, got.name)
 		})
 	}

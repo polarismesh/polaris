@@ -129,10 +129,12 @@ func (n *NacosDataStorage) ListInstances(filterCtx *FilterContext, filter Instan
 		CacheMillis:              1000,
 		Name:                     svc.Name,
 		GroupName:                svc.Group,
-		Clusters:                 strings.Join(clusters, ","),
 		Checksum:                 svcInfo.reversion,
 		LastRefTime:              commontime.CurrentMillisecond(),
 		ReachProtectionThreshold: false,
+	}
+	if len(clusters) == 0 {
+		resultInfo.Clusters = strings.Join(clusters, ",")
 	}
 
 	healthCount := int32(0)
@@ -202,22 +204,21 @@ func (n *NacosDataStorage) syncTask() {
 			revision := n.cacheMgr.Service().GetRevisionWorker().GetServiceInstanceRevision(svc.ID)
 			oldRevision, ok := n.revisions[svc.ID]
 			if !ok || revision != oldRevision {
-				if nacoslog.DebugEnabled() {
-					nacoslog.Debug("[NACOS-V2][Cache] service reversion update",
-						zap.String("namespace", svc.Namespace), zap.String("service", svc.Name),
-						zap.String("old-reversion", oldRevision), zap.String("reversion", revision))
-				}
+				nacoslog.Info("[NACOS-V2][Cache] service reversion update",
+					zap.String("namespace", svc.Namespace), zap.String("service", svc.Name),
+					zap.String("old-reversion", oldRevision), zap.String("reversion", revision))
 				svcData := n.loadNacosService(revision, svc)
 				svcInfos = append(svcInfos, svcData.specService)
 				instances := n.cacheMgr.Instance().GetInstancesByServiceID(svc.ID)
 				svcData.loadInstances(instances)
-				// nacoslog.Info("[NACOS-V2][Cache] run data sync task", zap.String("namespace", svc.Namespace),
-				// 	zap.String("service", svc.Name), zap.Int("instance-count", len(instances)))
 			}
 			n.revisions[svc.ID] = revision
 		}
 	}
 
+	if len(svcInfos) == 0 {
+		return
+	}
 	// 发布服务信息变更事件
 	eventhub.Publish(nacosmodel.NacosServicesChangeEventTopic, &nacosmodel.NacosServicesChangeEvent{
 		Services: svcInfos,

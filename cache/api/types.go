@@ -204,6 +204,8 @@ type (
 		Cache
 		// Query .
 		Query(filter map[string]string, offset, limit uint32) ([]*model.EnrichServiceContract, uint32, error)
+		// ListVersions .
+		ListVersions(service, namespace string) []*model.EnrichServiceContract
 	}
 )
 

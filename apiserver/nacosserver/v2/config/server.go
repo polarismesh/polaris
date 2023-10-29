@@ -41,7 +41,8 @@ type ServerOption struct {
 }
 
 type ConfigServer struct {
-	connectionManager *remote.ConnectionManager
+	connMgr             *remote.ConnectionManager
+	connectionClientMgr *ConnectionClientManager
 
 	userSvr         auth.UserServer
 	checkerSvr      auth.StrategyServer
@@ -53,6 +54,7 @@ type ConfigServer struct {
 }
 
 func (h *ConfigServer) Initialize(opt *ServerOption) error {
+	var err error
 	h.userSvr = opt.UserSvr
 	h.checkerSvr = opt.CheckerSvr
 	h.namespaceSvr = opt.NamespaceSvr
@@ -60,6 +62,11 @@ func (h *ConfigServer) Initialize(opt *ServerOption) error {
 	h.originConfigSvr = opt.OriginConfigSvr
 	h.cacheSvr = opt.Store.Cache()
 	h.handleRegistry = make(map[string]*remote.RequestHandlerWarrper)
+	h.connMgr = opt.ConnectionManager
+	h.connectionClientMgr, err = NewConnectionClientManager(h.originConfigSvr.(*config.Server))
+	if err != nil {
+		return err
+	}
 	h.initGRPCHandlers()
 	return nil
 }

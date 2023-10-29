@@ -46,22 +46,24 @@ func (h *ConfigServer) handlePublishConfigRequest(ctx context.Context, req nacos
 
 	resp := h.configSvr.UpsertAndReleaseConfigFileFromClient(ctx, configReq.ToSpec())
 	if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
-		nacoslog.Error("[NACOS-V2][Config] publish config file fail",
+		nacoslog.Error("[NACOS-V2][Config] publish config file fail", zap.String("tenant", configReq.Tenant),
+			utils.ZapGroup(configReq.Group), utils.ZapFileName(configReq.DataId),
 			zap.Uint32("code", resp.GetCode().GetValue()), zap.String("msg", resp.GetInfo().GetValue()))
 		return &nacospb.ConfigPublishResponse{
-			&nacospb.Response{
-				Success:   false,
-				ErrorCode: int(nacosmodel.Response_Fail.Code),
-				Message:   resp.GetInfo().GetValue(),
+			Response: &nacospb.Response{
+				Success:    false,
+				ResultCode: int(nacosmodel.Response_Fail.Code),
+				ErrorCode:  int(resp.GetCode().GetValue()),
+				Message:    resp.GetInfo().GetValue(),
 			},
 		}, nil
 	}
 
 	return &nacospb.ConfigPublishResponse{
-		&nacospb.Response{
-			Success:   true,
-			ErrorCode: int(nacosmodel.Response_Success.Code),
-			Message:   nacosmodel.Response_Success.Desc,
+		Response: &nacospb.Response{
+			Success:    true,
+			ResultCode: int(nacosmodel.Response_Success.Code),
+			Message:    nacosmodel.Response_Success.Desc,
 		},
 	}, nil
 }
@@ -73,21 +75,30 @@ func (h *ConfigServer) handleGetConfigRequest(ctx context.Context, req nacospb.B
 		return nil, remote.ErrorInvalidRequestBodyType
 	}
 
-	queryResp := h.configSvr.GetConfigFileForClient(ctx, configReq.ToQuerySpec())
+	queryReq := configReq.ToQuerySpec()
+	queryResp := h.configSvr.GetConfigFileForClient(ctx, queryReq)
 	if queryResp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
-		nacoslog.Error("[NACOS-V2][Config] query config file fail",
-			zap.Uint32("code", queryResp.GetCode().GetValue()), zap.String("msg", queryResp.GetInfo().GetValue()))
+		nacoslog.Error("[NACOS-V2][Config] query config file fail", zap.String("tenant", configReq.Tenant),
+			utils.ZapNamespace(queryReq.GetNamespace().GetValue()), utils.ZapGroup(configReq.Group),
+			utils.ZapFileName(configReq.DataId), zap.Uint32("code", queryResp.GetCode().GetValue()),
+			zap.String("msg", queryResp.GetInfo().GetValue()))
 		switch queryResp.GetCode().GetValue() {
 		case uint32(apimodel.Code_NotFoundResource):
-			return nil, &nacosmodel.NacosError{
-				ErrCode: ErrorConfigNotFound,
-				ErrMsg:  "config data not exist",
-			}
+			return &nacospb.ConfigQueryResponse{
+				Response: &nacospb.Response{
+					ResultCode: int(nacosmodel.Response_Fail.Code),
+					ErrorCode:  ErrorConfigNotFound,
+					Message:    "config data not exist",
+				},
+			}, nil
 		default:
-			return nil, &nacosmodel.NacosError{
-				ErrCode: int32(nacosmodel.ExceptionCode_ServerError),
-				ErrMsg:  queryResp.GetInfo().GetValue(),
-			}
+			return &nacospb.ConfigQueryResponse{
+				Response: &nacospb.Response{
+					ResultCode: int(nacosmodel.Response_Fail.Code),
+					ErrorCode:  int(queryResp.GetCode().GetValue()),
+					Message:    queryResp.GetInfo().GetValue(),
+				},
+			}, nil
 		}
 	}
 
@@ -113,22 +124,24 @@ func (h *ConfigServer) handleDeleteConfigRequest(ctx context.Context, req nacosp
 	}
 	delResp := h.configSvr.DeleteConfigFileFromClient(ctx, configReq.ToSpec())
 	if delResp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
-		nacoslog.Error("[NACOS-V2][Config] delete config file fail",
+		nacoslog.Error("[NACOS-V2][Config] delete config file fail", zap.String("tenant", configReq.Tenant),
+			utils.ZapGroup(configReq.Group), utils.ZapFileName(configReq.DataId),
 			zap.Uint32("code", delResp.GetCode().GetValue()), zap.String("msg", delResp.GetInfo().GetValue()))
 		return &nacospb.ConfigRemoveResponse{
 			Response: &nacospb.Response{
-				Success:   false,
-				ErrorCode: int(nacosmodel.Response_Fail.Code),
-				Message:   delResp.GetInfo().GetValue(),
+				Success:    false,
+				ResultCode: int(nacosmodel.Response_Fail.Code),
+				ErrorCode:  int(delResp.GetCode().GetValue()),
+				Message:    delResp.GetInfo().GetValue(),
 			},
 		}, nil
 	}
 
 	return &nacospb.ConfigRemoveResponse{
 		Response: &nacospb.Response{
-			Success:   true,
-			ErrorCode: int(nacosmodel.Response_Success.Code),
-			Message:   nacosmodel.Response_Success.Desc,
+			Success:    true,
+			ResultCode: int(nacosmodel.Response_Success.Code),
+			Message:    nacosmodel.Response_Success.Desc,
 		},
 	}, nil
 }
@@ -145,15 +158,17 @@ func (h *ConfigServer) handleWatchConfigRequest(ctx context.Context, req nacospb
 	clientId := meta.ConnectionID
 	specReq := watchReq.ToSpec()
 	if watchReq.Listen {
+		_ = configSvr.WatchCenter().AddWatcher(clientId, specReq.GetWatchFiles(), h.BuildGrpcWatchCtx())
 		for i := range specReq.GetWatchFiles() {
 			item := specReq.GetWatchFiles()[i]
-
 			namespace := item.GetNamespace().GetValue()
 			group := item.GetGroup().GetValue()
 			dataId := item.GetFileName().GetValue()
+			mdval := item.GetMd5().GetValue()
 
 			active := h.cacheSvr.ConfigFile().GetActiveRelease(namespace, group, dataId)
-			if active == nil || active.Md5 != item.GetMd5().GetValue() {
+			// 如果 client 过来的 MD5 是一个空字符串
+			if (active == nil && mdval != "") || (active != nil && active.Md5 != mdval) {
 				listenResp.ChangedConfigs = append(listenResp.ChangedConfigs, nacospb.ConfigContext{
 					Tenant: nacosmodel.ToNacosConfigNamespace(namespace),
 					Group:  group,
@@ -161,28 +176,31 @@ func (h *ConfigServer) handleWatchConfigRequest(ctx context.Context, req nacospb
 				})
 			}
 		}
-		configSvr.WatchCenter().AddWatcher(clientId, specReq.GetWatchFiles(), h.BuildGrpcWatchCtx())
 	} else {
-		configSvr.WatchCenter().RemoveWatcher(clientId, specReq.GetWatchFiles())
+		watchCtx, ok := configSvr.WatchCenter().GetWatchContext(clientId)
+		if ok {
+			for i := range specReq.GetWatchFiles() {
+				item := specReq.GetWatchFiles()[i]
+				watchCtx.RemoveInterest(item)
+			}
+		}
 	}
 	return listenResp, nil
 }
 
+// BuildGrpcWatchCtx .
 func (h *ConfigServer) BuildGrpcWatchCtx() config.WatchContextFactory {
-	return func(clientId string, watchFiles []*config_manage.ClientConfigFileInfo) config.WatchContext {
+	return func(clientId string) config.WatchContext {
 		watchCtx := &StreamWatchContext{
-			clientId:          clientId,
-			connectionManager: h.connectionManager,
-			watchConfigFiles:  utils.NewSyncMap[string, *config_manage.ClientConfigFileInfo](),
-		}
-		for i := range watchFiles {
-			watchCtx.AppendInterest(watchFiles[i])
+			clientId:         clientId,
+			connMgr:          h.connMgr,
+			watchConfigFiles: utils.NewSyncMap[string, *config_manage.ClientConfigFileInfo](),
 		}
 		return watchCtx
 	}
 }
 
-// Time2String Convert time.Time to string time
+// stringToTimestamp Convert string to timestamp
 func stringToTimestamp(val string) int64 {
 	lastModified, _ := time.Parse("2006-01-02 15:04:05", val)
 	return lastModified.UnixMilli()

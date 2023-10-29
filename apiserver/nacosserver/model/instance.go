@@ -120,6 +120,8 @@ func (i *Instance) DeepClone() *Instance {
 
 func (i *Instance) ToSpecInstance() *apiservice.Instance {
 	ret := &apiservice.Instance{
+		// 这里不用使用 Nacos 过来的实例 ID，因为 Nacos Client 不能保证每一笔请求都带上实例ID，并且实例 ID 的生成方式和
+		// Polaris 不相同以及实例 ID 的生成方式允许用户 SPI 扩展，因此这里统一使用 Polaris InstanceID
 		// Id:                wrapperspb.String(i.Id),
 		Service:           wrapperspb.String(i.ServiceName),
 		Host:              wrapperspb.String(i.IP),
@@ -168,7 +170,7 @@ func PrepareSpecInstance(namespace, service string, ins *Instance) *apiservice.I
 	specIns.Namespace = utils.NewStringValue(namespace)
 
 	specIns.Metadata[InternalNacosCluster] = ins.ClusterName
-	specIns.Metadata[InternalNacosServiceName] = ins.ServiceName
+	specIns.Metadata[InternalNacosServiceName] = service
 
 	return specIns
 }

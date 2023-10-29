@@ -30,7 +30,7 @@ type ServiceKey struct {
 }
 
 func (s ServiceKey) String() string {
-	return s.Namespace + "@" + s.Group + "@" + s.Name
+	return s.Namespace + "/" + s.Group + "/" + s.Name
 }
 
 type ServiceMetadata struct {

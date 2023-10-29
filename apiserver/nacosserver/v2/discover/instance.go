@@ -26,6 +26,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/polarismesh/polaris/apiserver/nacosserver/core"
 	nacosmodel "github.com/polarismesh/polaris/apiserver/nacosserver/model"
 	nacospb "github.com/polarismesh/polaris/apiserver/nacosserver/v2/pb"
 	"github.com/polarismesh/polaris/apiserver/nacosserver/v2/remote"
@@ -51,14 +52,16 @@ func (h *DiscoverServer) handleInstanceRequest(ctx context.Context, req nacospb.
 	// 设置连接 ID 作为实例的 metadata 属性信息
 	ins.Metadata[nacosmodel.InternalNacosClientConnectionID] = remote.ValueConnID(ctx)
 
-	// 显示关闭实例的健康检查能力
+	// Nacos2.x 显示关闭实例的健康检查能力，实例的健康状态和 Grpc Connection 绑定在一起
 	ins.EnableHealthCheck = wrapperspb.Bool(false)
 	ins.HealthCheck = nil
 
 	var resp *service_manage.Response
+	var respType string
 
 	switch insReq.Type {
 	case "registerInstance":
+		respType = "registerInstance"
 		resp = h.discoverSvr.RegisterInstance(ctx, ins)
 		insID := resp.GetInstance().GetId().GetValue()
 		h.clientManager.addServiceInstance(meta.ConnectionID, model.ServiceKey{
@@ -66,8 +69,16 @@ func (h *DiscoverServer) handleInstanceRequest(ctx context.Context, req nacospb.
 			Name:      ins.GetService().GetValue(),
 		}, insID)
 	case "deregisterInstance":
+		respType = "deregisterInstance"
+		insID, errRsp := utils.CheckInstanceTetrad(ins)
+		if errRsp != nil {
+			return nil, &nacosmodel.NacosError{
+				ErrCode: int32(errRsp.GetCode().GetValue()),
+				ErrMsg:  errRsp.GetInfo().GetValue(),
+			}
+		}
+		ins.Id = utils.NewStringValue(insID)
 		resp = h.discoverSvr.DeregisterInstance(ctx, ins)
-		insID := ins.GetId().GetValue()
 		h.clientManager.delServiceInstance(meta.ConnectionID, model.ServiceKey{
 			Namespace: ins.GetNamespace().GetValue(),
 			Name:      ins.GetService().GetValue(),
@@ -96,6 +107,7 @@ func (h *DiscoverServer) handleInstanceRequest(ctx context.Context, req nacospb.
 			Success:    success,
 			Message:    resp.GetInfo().GetValue(),
 		},
+		Type: respType,
 	}, nil
 }
 
@@ -164,31 +176,49 @@ func (h *DiscoverServer) handleBatchInstanceRequest(ctx context.Context, req nac
 			Success:    success,
 			Message:    batchResp.GetInfo().GetValue(),
 		},
+		Type: "batchRegisterInstance",
 	}, nil
 }
 
-func (h *DiscoverServer) HandleClientConnect(ctx context.Context, client *ConnectionClient) {
-	// do nothing
+func (h *DiscoverServer) HandleClientConnect(ctx context.Context, client *remote.Client) {
+	h.clientManager.addConnectionClientIfAbsent(client.ID)
 }
 
-func (h *DiscoverServer) HandleClientDisConnect(ctx context.Context, client *ConnectionClient) {
-	client.RangePublishInstance(func(svc model.ServiceKey, ids []string) {
+func (h *DiscoverServer) HandleClientDisConnect(ctx context.Context, client *remote.Client) {
+	nacoslog.Info("[NACOS-CORE][PushCenter] remove WatchClient", zap.String("id", client.ID))
+	grpcPushSvr := h.pushCenter.(*GrpcPushCenter)
+	grpcPushSvr.RemoveClientIf(func(s string, wc *core.WatchClient) bool {
+		return wc.ID() == client.ID
+	})
+
+	connClient, ok := h.clientManager.delClient(client.ID)
+	if !ok {
+		nacoslog.Info("[NACOS-V2][Connection] not found target ConnectionClient, skip dis-connect event")
+		return
+	}
+
+	connClient.RangePublishInstance(func(svc model.ServiceKey, ids []string) {
 		req := make([]*service_manage.Instance, 0, len(ids))
 		for i := range ids {
 			req = append(req, &service_manage.Instance{
 				Id: utils.NewStringValue(ids[i]),
 			})
 		}
+		if len(req) == 0 {
+			return
+		}
 		nacoslog.Info("[NACOS-V2][Connection] receive client disconnect event, do deregist all publish instance",
-			zap.String("conn-id", client.ConnID), zap.Any("svc", svc), zap.Strings("instance-ids", ids))
-		h.clientManager.delServiceInstance(client.ConnID, model.ServiceKey{
+			zap.String("conn-id", connClient.ConnID), zap.Any("svc", svc), zap.Strings("instance-ids", ids))
+		h.clientManager.delServiceInstance(connClient.ConnID, model.ServiceKey{
 			Namespace: svc.Namespace,
 			Name:      svc.Name,
 		}, ids...)
 		resp := h.originDiscoverSvr.DeleteInstances(ctx, req)
 		if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
-			nacoslog.Error("[NACOS-V2][Connection] deregister all instance fail", zap.String("conn-id", client.ConnID),
+			nacoslog.Error("[NACOS-V2][Connection] deregister all instance fail", zap.String("conn-id", connClient.ConnID),
 				zap.Any("svc", svc), zap.String("msg", resp.GetInfo().GetValue()))
 		}
 	})
+
+	connClient.Destroy()
 }

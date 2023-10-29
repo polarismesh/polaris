@@ -1187,3 +1187,119 @@ func (h *HTTPServerV1) GetFaultDetectRules(req *restful.Request, rsp *restful.Re
 	ret := h.namingServer.GetFaultDetectRules(handler.ParseHeaderContext(), queryParams)
 	handler.WriteHeaderAndProto(ret)
 }
+
+// GetServiceContracts 查询服务契约
+func (h *HTTPServerV1) GetServiceContracts(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+	queryParams := httpcommon.ParseQueryParams(req)
+	ctx := handler.ParseHeaderContext()
+	ret := h.namingServer.GetServiceContracts(ctx, queryParams)
+	handler.WriteHeaderAndProto(ret)
+}
+
+// GetServiceContractVersions 查询服务契约
+func (h *HTTPServerV1) GetServiceContractVersions(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+	queryParams := httpcommon.ParseQueryParams(req)
+	ctx := handler.ParseHeaderContext()
+	ret := h.namingServer.GetServiceContractVersions(ctx, queryParams)
+	handler.WriteHeaderAndProto(ret)
+}
+
+// DeleteServiceContracts 删除服务契约
+func (h *HTTPServerV1) DeleteServiceContracts(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+	contracts := make([]*apiservice.ServiceContract, 0)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &apiservice.ServiceContract{}
+		contracts = append(contracts, msg)
+		return msg
+	})
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+
+	ret := h.namingServer.DeleteServiceContracts(ctx, contracts)
+	handler.WriteHeaderAndProto(ret)
+}
+
+// CreateServiceContract 创建服务契约
+func (h *HTTPServerV1) CreateServiceContract(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+	contracts := make([]*apiservice.ServiceContract, 0)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &apiservice.ServiceContract{}
+		contracts = append(contracts, msg)
+		return msg
+	})
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+
+	ret := h.namingServer.CreateServiceContracts(ctx, contracts)
+	handler.WriteHeaderAndProto(ret)
+}
+
+// CreateServiceContractInterfaces 创建服务契约详情
+func (h *HTTPServerV1) CreateServiceContractInterfaces(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+	msg := &apiservice.ServiceContract{}
+	ctx, err := handler.Parse(msg)
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+	ret := h.namingServer.CreateServiceContractInterfaces(ctx, msg, apiservice.InterfaceDescriptor_Manual)
+	handler.WriteHeaderAndProto(ret)
+}
+
+// AppendServiceContractInterfaces 追加服务契约详情
+func (h *HTTPServerV1) AppendServiceContractInterfaces(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+	msg := &apiservice.ServiceContract{}
+	ctx, err := handler.Parse(msg)
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+
+	ret := h.namingServer.AppendServiceContractInterfaces(ctx, msg, apiservice.InterfaceDescriptor_Manual)
+	handler.WriteHeaderAndProto(ret)
+}
+
+// DeleteServiceContractInterfaces 删除服务契约详情
+func (h *HTTPServerV1) DeleteServiceContractInterfaces(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+	msg := &apiservice.ServiceContract{}
+	ctx, err := handler.Parse(msg)
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+
+	ret := h.namingServer.DeleteServiceContractInterfaces(ctx, msg)
+	handler.WriteHeaderAndProto(ret)
+}

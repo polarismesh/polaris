@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/specification/source/go/api/v1/config_manage"
-	"go.uber.org/zap"
 )
 
 type LongPollWatchContext struct {
@@ -50,16 +50,17 @@ func (c *LongPollWatchContext) ClientID() string {
 }
 
 // ShouldNotify .
-func (c *LongPollWatchContext) ShouldNotify(resp *config_manage.ClientConfigFileInfo) bool {
-	key := resp.GetNamespace().GetValue() + "@" +
-		resp.GetGroup().GetValue() + "@" + resp.GetFileName().GetValue()
+func (c *LongPollWatchContext) ShouldNotify(event *model.SimpleConfigFileRelease) bool {
+	key := event.ActiveKey()
 	watchFile, ok := c.watchConfigFiles[key]
 	if !ok {
 		return false
 	}
-	isChange := watchFile.GetMd5().GetValue() != resp.GetMd5().GetValue()
-	nacoslog.Info("watch ctx is change", zap.String("client", c.ClientID()), zap.String("file", key),
-		zap.String("clientMd5", resp.GetMd5().GetValue()), zap.String("serverMd5", resp.GetMd5().GetValue()))
+	// 删除操作，直接通知
+	if !event.Valid {
+		return true
+	}
+	isChange := watchFile.GetMd5().GetValue() != event.Md5
 	return isChange
 }
 
@@ -73,17 +74,13 @@ func (c *LongPollWatchContext) ListWatchFiles() []*config_manage.ClientConfigFil
 
 // AppendInterest .
 func (c *LongPollWatchContext) AppendInterest(item *config_manage.ClientConfigFileInfo) {
-	key := item.GetNamespace().GetValue() + "@" +
-		item.GetGroup().GetValue() + "@" + item.GetFileName().GetValue()
-
+	key := model.BuildKeyForClientConfigFileInfo(item)
 	c.watchConfigFiles[key] = item
 }
 
 // RemoveInterest .
 func (c *LongPollWatchContext) RemoveInterest(item *config_manage.ClientConfigFileInfo) {
-	key := item.GetNamespace().GetValue() + "@" +
-		item.GetGroup().GetValue() + "@" + item.GetFileName().GetValue()
-
+	key := model.BuildKeyForClientConfigFileInfo(item)
 	delete(c.watchConfigFiles, key)
 }
 
@@ -99,9 +96,5 @@ func (c *LongPollWatchContext) Reply(rsp *config_manage.ConfigClientResponse) {
 	c.once.Do(func() {
 		c.finishChan <- rsp
 		close(c.finishChan)
-		key := rsp.GetConfigFile().GetNamespace().GetValue() + "@" +
-			rsp.GetConfigFile().GetGroup().GetValue() + "@" + rsp.GetConfigFile().GetFileName().GetValue()
-		nacoslog.Info("watch ctx do reply", zap.String("client", c.ClientID()), zap.String("file", key),
-			zap.Uint32("code", rsp.GetCode().GetValue()))
 	})
 }

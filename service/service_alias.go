@@ -311,21 +311,21 @@ func preCheckAlias(req *apiservice.ServiceAlias) (*apiservice.Response, bool) {
 		return api.NewServiceAliasResponse(apimodel.Code_EmptyRequest, req), true
 	}
 
-	if err := checkResourceName(req.GetService()); err != nil {
+	if err := utils.CheckResourceName(req.GetService()); err != nil {
 		return api.NewServiceAliasResponse(apimodel.Code_InvalidServiceName, req), true
 	}
 
-	if err := checkResourceName(req.GetNamespace()); err != nil {
+	if err := utils.CheckResourceName(req.GetNamespace()); err != nil {
 		return api.NewServiceAliasResponse(apimodel.Code_InvalidNamespaceName, req), true
 	}
 
-	if err := checkResourceName(req.GetAliasNamespace()); err != nil {
+	if err := utils.CheckResourceName(req.GetAliasNamespace()); err != nil {
 		return api.NewServiceAliasResponse(apimodel.Code_InvalidNamespaceWithAlias, req), true
 	}
 
 	// 默认类型，需要检查alias是否为空
 	if req.GetType() == apiservice.AliasType_DEFAULT {
-		if err := checkResourceName(req.GetAlias()); err != nil {
+		if err := utils.CheckResourceName(req.GetAlias()); err != nil {
 			return api.NewServiceAliasResponse(apimodel.Code_InvalidServiceAlias, req), true
 		}
 	}
@@ -339,12 +339,12 @@ func checkReviseServiceAliasReq(ctx context.Context, req *apiservice.ServiceAlia
 		return resp
 	}
 	// 检查服务名
-	if err := checkResourceName(req.GetService()); err != nil {
+	if err := utils.CheckResourceName(req.GetService()); err != nil {
 		return api.NewServiceAliasResponse(apimodel.Code_InvalidServiceName, req)
 	}
 
 	// 检查命名空间
-	if err := checkResourceName(req.GetNamespace()); err != nil {
+	if err := utils.CheckResourceName(req.GetNamespace()); err != nil {
 		return api.NewServiceAliasResponse(apimodel.Code_InvalidNamespaceName, req)
 	}
 	return nil
@@ -357,12 +357,12 @@ func checkDeleteServiceAliasReq(ctx context.Context, req *apiservice.ServiceAlia
 	}
 
 	// 检查服务别名
-	if err := checkResourceName(req.GetAlias()); err != nil {
+	if err := utils.CheckResourceName(req.GetAlias()); err != nil {
 		return api.NewServiceAliasResponse(apimodel.Code_InvalidServiceAlias, req)
 	}
 
 	// 检查服务别名命名空间
-	if err := checkResourceName(req.GetAliasNamespace()); err != nil {
+	if err := utils.CheckResourceName(req.GetAliasNamespace()); err != nil {
 		return api.NewServiceAliasResponse(apimodel.Code_InvalidNamespaceWithAlias, req)
 	}
 
@@ -447,11 +447,10 @@ func (s *Server) createServiceAliasModel(req *apiservice.ServiceAlias, svcId str
 
 // wrapperServiceAliasResponse wrapper service alias error
 func wrapperServiceAliasResponse(alias *apiservice.ServiceAlias, err error) *apiservice.Response {
-	resp := storeError2Response(err)
-	if resp == nil {
+	if err == nil {
 		return nil
 	}
-
+	resp := api.NewResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	resp.Alias = alias
 	return resp
 }

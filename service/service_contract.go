@@ -25,6 +25,7 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
@@ -239,6 +240,40 @@ func (s *Server) DeleteServiceContract(ctx context.Context,
 		ServiceContract: deleteData,
 	}, model.ODelete))
 	return api.NewAnyDataResponse(apimodel.Code_ExecuteSuccess, nil)
+}
+
+func (s *Server) GetServiceContractVersions(ctx context.Context, filter map[string]string) *apiservice.BatchQueryResponse {
+	serviceName := filter["service"]
+	namespace := filter["namespace"]
+	if namespace == "" {
+		return api.NewBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, "namespace is empty")
+	}
+	if serviceName == "" {
+		return api.NewBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, "service is empty")
+	}
+
+	ret := s.caches.ServiceContract().ListVersions(serviceName, namespace)
+	resp := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
+	resp.Data = make([]*anypb.Any, 0, len(ret))
+	for i := range ret {
+		item := ret[i]
+		if err := api.AddAnyDataIntoBatchQuery(resp, &apiservice.ServiceContract{
+			Id:        item.ID,
+			Name:      item.Name,
+			Namespace: item.Namespace,
+			Service:   item.Service,
+			Version:   item.Version,
+			Protocol:  item.Protocol,
+			Ctime:     commontime.Time2String(item.CreateTime),
+			Mtime:     commontime.Time2String(item.ModifyTime),
+		}); err != nil {
+			log.Errorf("[Service][Contract] list all versions fail", utils.RequestID(ctx), zap.String("namespace", namespace),
+				zap.String("service", serviceName), zap.Error(err))
+			return api.NewBatchQueryResponse(apimodel.Code_ExecuteException)
+		}
+	}
+	resp.Amount = utils.NewUInt32Value(uint32(len(ret)))
+	return resp
 }
 
 // CreateServiceContractInterfaces 添加服务契约详情

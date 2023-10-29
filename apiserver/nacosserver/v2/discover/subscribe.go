@@ -20,6 +20,7 @@ package discover
 import (
 	"context"
 	"strings"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -36,15 +37,11 @@ func (h *DiscoverServer) handleSubscribeServiceReques(ctx context.Context, req n
 	if !ok {
 		return nil, remote.ErrorInvalidRequestBodyType
 	}
-	namespace := nacosmodel.ToPolarisNamespace(subReq.Namespace)
+	namespace := subReq.Namespace
 	service := subReq.ServiceName
 	group := subReq.GroupName
-	nacoslog.Info("[NACOS-V2][Instance] subscribe service request", zap.String("namespace", namespace),
-		zap.String("service", service), zap.String("group", group))
-
 	subscriber := core.Subscriber{
 		Key:         remote.ValueConnID(ctx),
-		ConnID:      remote.ValueConnID(ctx),
 		AddrStr:     meta.ClientIP,
 		Agent:       meta.ClientVersion,
 		App:         nacosmodel.DefaultString(req.GetHeaders()["app"], "unknown"),
@@ -63,9 +60,11 @@ func (h *DiscoverServer) handleSubscribeServiceReques(ctx context.Context, req n
 
 	filterCtx := &core.FilterContext{
 		Service:     core.ToNacosService(h.discoverSvr.Cache(), namespace, service, group),
-		Clusters:    strings.Split(subReq.Clusters, ","),
 		EnableOnly:  true,
-		HealthyOnly: true,
+		HealthyOnly: false,
+	}
+	if len(subReq.Clusters) == 0 {
+		filterCtx.Clusters = strings.Split(subReq.Clusters, ",")
 	}
 	// 默认只下发 enable 的实例
 	result := h.store.ListInstances(filterCtx, core.SelectInstancesWithHealthyProtection)
@@ -80,15 +79,15 @@ func (h *DiscoverServer) handleSubscribeServiceReques(ctx context.Context, req n
 }
 
 func (h *DiscoverServer) sendPushData(sub core.Subscriber, data *core.PushData) error {
-	client, ok := h.connMgr.GetClient(sub.ConnID)
+	client, ok := h.connMgr.GetClient(sub.Key)
 	if !ok {
-		nacoslog.Error("[NACOS-V2][PushCenter] notify subscriber client not found", zap.String("conn-id", sub.ConnID))
+		nacoslog.Error("[NACOS-V2][PushCenter] notify subscriber client not found", zap.String("conn-id", sub.Key))
 		return nil
 	}
 	stream, ok := client.LoadStream()
 	if !ok {
 		nacoslog.Error("[NACOS-V2][PushCenter] notify subscriber not register gRPC stream",
-			zap.String("conn-id", sub.ConnID))
+			zap.String("conn-id", sub.Key))
 		return nil
 	}
 	namespace := nacosmodel.ToNacosNamespace(data.ServiceInfo.Namespace)
@@ -99,11 +98,8 @@ func (h *DiscoverServer) sendPushData(sub core.Subscriber, data *core.PushData) 
 			data.ServiceInfo.GroupName),
 		ServiceInfo: data.ServiceInfo,
 	}
-	nacoslog.Info("[NACOS-V2][PushCenter] notify subscriber new service info", zap.String("conn-id", watcher.ConnID),
-		zap.String("req-id", req.RequestId),
-		zap.String("namespace", data.Service.Namespace), zap.String("svc", data.Service.Name))
 
-	connCtx := context.WithValue(context.TODO(), remote.ConnIDKey{}, watcher.ConnID)
+	connCtx := context.WithValue(context.TODO(), remote.ConnIDKey{}, watcher.Key)
 	callback := func(resp nacospb.BaseResponse, err error) {
 		if err != nil {
 			nacoslog.Error("[NACOS-V2][PushCenter] receive client push error",
@@ -120,12 +116,13 @@ func (h *DiscoverServer) sendPushData(sub core.Subscriber, data *core.PushData) 
 
 	// add inflight first
 	err := h.connMgr.InFlights().AddInFlight(&remote.InFlight{
-		ConnID:    watcher.ConnID,
-		RequestID: req.RequestId,
-		Callback:  callback,
+		ConnID:     watcher.Key,
+		RequestID:  req.RequestId,
+		Callback:   callback,
+		ExpireTime: time.Now().Add(5 * time.Second),
 	})
 	if err != nil {
-		nacoslog.Error("[NACOS-V2][PushCenter] add inflight client error", zap.String("conn-id", watcher.ConnID),
+		nacoslog.Error("[NACOS-V2][PushCenter] add inflight client error", zap.String("conn-id", watcher.Key),
 			zap.String("req-id", req.RequestId),
 			zap.String("namespace", data.Service.Namespace), zap.String("svc", data.Service.Name),
 			zap.Error(err))

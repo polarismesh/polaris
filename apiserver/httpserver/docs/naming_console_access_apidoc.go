@@ -38,6 +38,7 @@ var (
 	circuitBreakersApiTags     = []string{"CircuitBreakers"}
 	circuitBreakerRulesApiTags = []string{"CircuitBreakerRules"}
 	faultDetectsApiTags        = []string{"FaultDetects"}
+	serviceContractApiTags     = []string{"ServiceContract"}
 )
 
 const (
@@ -723,4 +724,33 @@ func EnrichEnableRouterRuleApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 				BaseResponse
 			} `json:"responses"`
 		}{})
+}
+
+func EnrichCreateServiceContractsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("创建服务契约").
+		Metadata(restfulspec.KeyOpenAPITags, serviceContractApiTags)
+}
+
+func EnrichDeleteServiceContractsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("删除服务契约").
+		Metadata(restfulspec.KeyOpenAPITags, serviceContractApiTags)
+}
+
+func EnrichGetServiceContractsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("获取服务契约").
+		Metadata(restfulspec.KeyOpenAPITags, serviceContractApiTags)
+}
+
+func EnrichAddServiceContractInterfacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("添加/覆盖服务契约接口描述").
+		Metadata(restfulspec.KeyOpenAPITags, serviceContractApiTags)
+}
+
+func EnrichAppendServiceContractInterfacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("追加服务契约接口描述").
+		Metadata(restfulspec.KeyOpenAPITags, serviceContractApiTags)
+}
+func EnrichDeleteServiceContractInterfacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.Doc("删除服务契约接口描述").
+		Metadata(restfulspec.KeyOpenAPITags, serviceContractApiTags)
 }

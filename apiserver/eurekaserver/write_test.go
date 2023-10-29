@@ -135,17 +135,7 @@ func TestEurekaServer_renew(t *testing.T) {
 		return mockStore
 	})
 	eurekaSuit.Initialize(func(conf *testsuit.TestConfig) {
-		conf.Cache = cache.Config{
-			Open: true,
-			Resources: []cache.ConfigEntry{
-				{
-					Name: "service",
-				},
-				{
-					Name: "instance",
-				},
-			},
-		}
+		conf.Cache = cache.Config{}
 		store.TestInjectConfig(store.Config{
 			Name: "eureka_store_test",
 		})

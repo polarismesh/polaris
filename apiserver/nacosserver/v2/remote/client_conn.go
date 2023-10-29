@@ -144,10 +144,10 @@ func NewConnectionManager() *ConnectionManager {
 		connections: map[string]*Client{},
 		clients:     map[string]*Client{},
 		tcpConns:    make(map[string]net.Conn),
-		inFlights:   &InFlights{inFlights: map[string]*ClientInFlights{}},
+		inFlights:   NewInFlights(ctx),
 		cancel:      cancel,
 	}
-	go mgr.connectionActiveCheck(ctx)
+	go mgr.doEject(ctx)
 	return mgr
 }
 
@@ -350,85 +350,92 @@ func (h *ConnectionManager) listConnections() map[string]*Client {
 	return ret
 }
 
-func (h *ConnectionManager) connectionActiveCheck(ctx context.Context) {
+func (h *ConnectionManager) doEject(ctx context.Context) {
 	delay := time.NewTimer(1000 * time.Millisecond)
 	defer delay.Stop()
 
-	keepAliveTime := 4 * 5 * time.Second
-
-	handler := func() {
-		defer func() {
-			delay.Reset(3000 * time.Millisecond)
-		}()
-		now := time.Now()
-		connections := h.listConnections()
-		outDatedConnections := map[string]*Client{}
-		connIds := make([]string, 0, 4)
-		for connID, conn := range connections {
-			if now.Sub(conn.loadRefreshTime()) >= keepAliveTime {
-				outDatedConnections[connID] = conn
-				connIds = append(connIds, connID)
-			}
-		}
-
-		if len(outDatedConnections) != 0 {
-			nacoslog.Info("[NACOS-V2][ConnectionManager] out dated connection",
-				zap.Int("size", len(outDatedConnections)), zap.Strings("conn-ids", connIds))
-		}
-
-		successConnections := new(sync.Map)
-		wait := &sync.WaitGroup{}
-		wait.Add(len(outDatedConnections))
-		for connID := range outDatedConnections {
-			req := nacospb.NewClientDetectionRequest()
-			req.RequestId = utils.NewUUID()
-
-			outDateConnectionId := connID
-			outDateConnection := outDatedConnections[outDateConnectionId]
-			// add inflight first
-			_ = h.inFlights.AddInFlight(&InFlight{
-				ConnID:    ValueConnID(ctx),
-				RequestID: req.RequestId,
-				Callback: func(resp nacospb.BaseResponse, err error) {
-					defer wait.Done()
-
-					select {
-					case <-ctx.Done():
-						// 已经结束不作处理
-						return
-					default:
-						if resp != nil && resp.IsSuccess() {
-							outDateConnection.refreshTimeRef.Store(time.Now())
-							successConnections.Store(outDateConnectionId, struct{}{})
-						}
-					}
-				},
-			})
-		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		go func() {
-			defer cancel()
-			wait.Wait()
-		}()
-
-		<-ctx.Done()
-		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-			// TODO log
-		}
-		for connID := range outDatedConnections {
-			if _, ok := successConnections.Load(connID); !ok {
-				h.UnRegisterConnection(connID)
-			}
-		}
+	ejectFunc := func() {
+		defer delay.Reset(3000 * time.Millisecond)
+		h.ejectOutdateConnection()
+		h.ejectOverLimitConnection()
 	}
 
 	for {
 		select {
 		case <-delay.C:
-			handler()
+			ejectFunc()
 		case <-ctx.Done():
 			return
+		}
+	}
+}
+
+func (h *ConnectionManager) ejectOverLimitConnection() {
+	// TODO: it need impl ?
+}
+
+func (h *ConnectionManager) ejectOutdateConnection() {
+
+	keepAliveTime := 4 * 5 * time.Second
+	now := time.Now()
+	connections := h.listConnections()
+	outDatedConnections := map[string]*Client{}
+	connIds := make([]string, 0, 4)
+	for connID, conn := range connections {
+		if now.Sub(conn.loadRefreshTime()) >= keepAliveTime {
+			outDatedConnections[connID] = conn
+			connIds = append(connIds, connID)
+		}
+	}
+
+	if len(outDatedConnections) != 0 {
+		nacoslog.Info("[NACOS-V2][ConnectionManager] out dated connection",
+			zap.Int("size", len(outDatedConnections)), zap.Strings("conn-ids", connIds))
+	}
+
+	successConnections := new(sync.Map)
+	wait := &sync.WaitGroup{}
+	wait.Add(len(outDatedConnections))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	for connID := range outDatedConnections {
+		req := nacospb.NewClientDetectionRequest()
+		req.RequestId = utils.NewUUID()
+
+		outDateConnectionId := connID
+		outDateConnection := outDatedConnections[outDateConnectionId]
+		// add inflight first
+		_ = h.inFlights.AddInFlight(&InFlight{
+			ConnID:     connID,
+			RequestID:  req.RequestId,
+			ExpireTime: time.Now().Add(5 * time.Second),
+			Callback: func(resp nacospb.BaseResponse, err error) {
+				defer wait.Done()
+				select {
+				case <-ctx.Done():
+					// 已经结束不作处理
+					return
+				default:
+					if resp != nil && resp.IsSuccess() {
+						outDateConnection.refreshTimeRef.Store(time.Now())
+						successConnections.Store(outDateConnectionId, struct{}{})
+					}
+				}
+			},
+		})
+	}
+	go func() {
+		defer cancel()
+		wait.Wait()
+	}()
+	<-ctx.Done()
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		// TODO log
+		wait.Done()
+	}
+	for connID := range outDatedConnections {
+		if _, ok := successConnections.Load(connID); !ok {
+			h.UnRegisterConnection(connID)
 		}
 	}
 }

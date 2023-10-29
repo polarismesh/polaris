@@ -73,7 +73,6 @@ const (
 	InternalNacosCluster                 = "internal-nacos-cluster"
 	InternalNacosServiceName             = "internal-nacos-service"
 	InternalNacosServiceProtectThreshold = "internal-nacos-protectThreshold"
-	InternalNacosServiceType             = "internal-nacos-service"
 	InternalNacosClientConnectionID      = "internal-nacos-clientconnId"
 )
 
