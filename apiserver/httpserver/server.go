@@ -555,7 +555,7 @@ func (h *HTTPServer) postProcess(req *restful.Request, rsp *restful.Response) {
 	recordApiCall := true
 	if !ok {
 		code = uint32(rsp.StatusCode())
-		recordApiCall = code != http.StatusNotFound
+		recordApiCall = code != http.StatusNotFound && code != http.StatusMethodNotAllowed
 	}
 
 	diff := now.Sub(startTime)
