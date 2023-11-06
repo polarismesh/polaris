@@ -132,10 +132,6 @@ type RemotePeer struct {
 	port uint32
 	// Conn grpc connection
 	conns []*grpc.ClientConn
-	// putBatchCtrl 批任务执行器
-	putBatchCtrl *batchjob.BatchController
-	// getBatchCtrl 批任务执行器
-	getBatchCtrl *batchjob.BatchController
 	// Puters 批量心跳发送, 由于一个 stream 对于 server 是一个 goroutine，为了加快 follower 发往 leader 的效率
 	// 这里采用多个 Putter Client 创建多个 Stream
 	puters []*beatSender
@@ -185,12 +181,8 @@ func (p *RemotePeer) Serve(_ context.Context, checker *LeaderHealthChecker,
 			_ = p.Close()
 			return err
 		}
-		p.puters = append(p.puters, &beatSender{
-			sender: puter,
-		})
+		p.puters = append(p.puters, newBeatSender(ctx, p, puter))
 	}
-	p.getBatchCtrl = checker.getBatchCtrl
-	p.putBatchCtrl = checker.putBatchCtrl
 	p.Cache = newRemoteBeatRecordCache(p.GetFunc, p.PutFunc, p.DelFunc)
 	return nil
 }
@@ -201,26 +193,14 @@ func (p *RemotePeer) Host() string {
 
 // Get get records
 func (p *RemotePeer) Get(key string) (*ReadBeatRecord, error) {
-	future := p.getBatchCtrl.SubmitWithTimeout(&PeerTask{
-		Key:  key,
-		Peer: p,
-	}, time.Second)
-	resp, err := future.DoneTimeout(time.Second)
-	if err != nil {
-		return nil, err
-	}
-	ret := resp.(map[string]*ReadBeatRecord)
+	ret := p.Cache.Get(key)
 	return ret[key], nil
 }
 
 // Put put records
 func (p *RemotePeer) Put(record WriteBeatRecord) error {
-	future := p.putBatchCtrl.SubmitWithTimeout(&PeerTask{
-		Record: &record,
-		Peer:   p,
-	}, time.Second)
-	_, err := future.DoneTimeout(time.Second)
-	return err
+	p.Cache.Put(record)
+	return nil
 }
 
 // Del del records
@@ -341,6 +321,28 @@ type PeerReadTask struct {
 type beatSender struct {
 	lock   sync.RWMutex
 	sender apiservice.PolarisHeartbeatGRPC_BatchHeartbeatClient
+}
+
+func newBeatSender(ctx context.Context, p *RemotePeer, sender apiservice.PolarisHeartbeatGRPC_BatchHeartbeatClient) *beatSender {
+	go func(ctx context.Context) {
+		for {
+			select {
+			case <-ctx.Done():
+				plog.Info("[HealthCheck][Leader] cancel receive put record result", zap.String("host", p.Host()),
+					zap.Uint32("port", p.port))
+				return
+			default:
+				if _, err := sender.Recv(); err != nil {
+					plog.Error("[HealthCheck][Leader] receive put record result", zap.String("host", p.Host()),
+						zap.Uint32("port", p.port), zap.Error(err))
+				}
+			}
+		}
+	}(ctx)
+
+	return &beatSender{
+		sender: sender,
+	}
 }
 
 func (s *beatSender) Send(req *apiservice.HeartbeatsRequest) error {

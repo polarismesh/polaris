@@ -105,10 +105,6 @@ type LeaderHealthChecker struct {
 	self Peer
 	// s store.Store
 	s store.Store
-	// putBatchCtrl 批任务执行器
-	putBatchCtrl *batchjob.BatchController
-	// getBatchCtrl 批任务执行器
-	getBatchCtrl *batchjob.BatchController
 	// subCtx
 	subCtx *eventhub.SubscribtionContext
 }
@@ -146,22 +142,6 @@ func (c *LeaderHealthChecker) Initialize(entry *plugin.ConfigEntry) error {
 	if err := c.s.StartLeaderElection(electionKey); err != nil {
 		return err
 	}
-	c.getBatchCtrl = batchjob.NewBatchController(context.Background(), batchjob.CtrlConfig{
-		Label:         "RecordGetter",
-		QueueSize:     conf.Batch.QueueSize,
-		WaitTime:      conf.Batch.WaitTime,
-		MaxBatchCount: conf.Batch.MaxBatchCount,
-		Concurrency:   conf.Batch.Concurrency,
-		Handler:       c.handleSendGetRecords,
-	})
-	c.putBatchCtrl = batchjob.NewBatchController(context.Background(), batchjob.CtrlConfig{
-		Label:         "RecordPutter",
-		QueueSize:     conf.Batch.QueueSize,
-		WaitTime:      conf.Batch.WaitTime,
-		MaxBatchCount: conf.Batch.MaxBatchCount,
-		Concurrency:   conf.Batch.Concurrency,
-		Handler:       c.handleSendPutRecords,
-	})
 	registerMetrics()
 	return nil
 }
