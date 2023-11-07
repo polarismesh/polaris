@@ -88,7 +88,7 @@ func (p *UdpPushCenter) cleanZombieClient() {
 			if !client.IsZombie() {
 				return false
 			}
-			sub := client.GetSubscriber()
+			sub := client.GetSubscribers()
 			log.Info("[NACOS-V2][PushCenter] remove zombie udp subscriber", zap.Any("info", sub))
 			return true
 		})

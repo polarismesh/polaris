@@ -59,6 +59,15 @@ func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Conf
 	cacheMgr *cache.CacheManager, storage store.Store, namespaceSvr namespace.NamespaceOperateServer,
 	healthSvr *healthcheck.Server,
 	userMgn auth.UserServer, strategyMgn auth.StrategyServer) (DiscoverServer, DiscoverServer, error) {
+	cacheMgr.OpenResourceCache([]cache.ConfigEntry{
+		{
+			Name: "service",
+		}, {
+			Name: "instance",
+		}, {
+			Name: "serviceContract",
+		},
+	}...)
 	namingServer.healthServer = healthSvr
 	namingServer.storage = storage
 	// 注入命名空间管理模块
@@ -66,11 +75,8 @@ func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Conf
 
 	// cache模块，可以不开启
 	// 对于控制台集群，只访问控制台接口的，可以不开启cache
-	if cacheOpt.Open {
-		log.Infof("[Naming][Server] cache is open, can access the client api function")
-		namingServer.caches = cacheMgr
-	}
-
+	log.Infof("[Naming][Server] cache is open, can access the client api function")
+	namingServer.caches = cacheMgr
 	namingServer.bc = bc
 	// l5service
 	namingServer.l5service = &l5service{}

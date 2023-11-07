@@ -37,6 +37,8 @@ import (
 
 // Server 对接API层的server层，用以处理业务逻辑
 type Server struct {
+	config Config
+
 	storage store.Store
 
 	namespaceSvr namespace.NamespaceOperateServer
@@ -59,6 +61,10 @@ type Server struct {
 
 	// instanceChains 实例信息变化回调
 	instanceChains []InstanceChain
+}
+
+func (s *Server) isSupportL5() bool {
+	return s.config.L5Open
 }
 
 // HealthServer 健康检查Server

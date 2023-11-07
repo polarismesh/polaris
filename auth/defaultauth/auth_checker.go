@@ -129,19 +129,19 @@ func (d *DefaultAuthChecker) IsOpenAuth() bool {
 
 // CheckClientPermission 执行检查客户端动作判断是否有权限，并且对 RequestContext 注入操作者数据
 func (d *DefaultAuthChecker) CheckClientPermission(preCtx *model.AcquireContext) (bool, error) {
+	preCtx.SetFromClient()
 	if !d.IsOpenClientAuth() {
 		return true, nil
 	}
-	preCtx.SetFromClient()
 	return d.CheckPermission(preCtx)
 }
 
 // CheckConsolePermission 执行检查控制台动作判断是否有权限，并且对 RequestContext 注入操作者数据
 func (d *DefaultAuthChecker) CheckConsolePermission(preCtx *model.AcquireContext) (bool, error) {
+	preCtx.SetFromConsole()
 	if !d.IsOpenConsoleAuth() {
 		return true, nil
 	}
-	preCtx.SetFromConsole()
 	if preCtx.GetModule() == model.MaintainModule {
 		return d.checkMaintainPermission(preCtx)
 	}

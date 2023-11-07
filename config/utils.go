@@ -32,35 +32,14 @@ import (
 	"unicode/utf8"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
 var (
-	regSourceName = regexp.MustCompile(`^[\dA-Za-z-.:_]+$`)
-	regFileName   = regexp.MustCompile(`^[\dA-Za-z-./:_]+$`)
+	regFileName = regexp.MustCompile(`^[\dA-Za-z-./:_]+$`)
 )
-
-// CheckResourceName 检查资源名称
-func CheckResourceName(name *wrappers.StringValue) error {
-	if name == nil {
-		return errors.New(utils.NilErrString)
-	}
-
-	if name.GetValue() == "" {
-		return errors.New(utils.EmptyErrString)
-	}
-
-	if ok := regSourceName.MatchString(name.GetValue()); !ok {
-		return errors.New("name contains invalid character")
-	}
-
-	return nil
-}
 
 // CheckFileName 校验文件名
 func CheckFileName(name *wrappers.StringValue) error {
@@ -93,68 +72,6 @@ func CheckContentLength(content string, max int) error {
 	}
 
 	return nil
-}
-
-// GenConfigFileResponse 为客户端生成响应对象
-func GenConfigFileResponse(namespace, group, fileName, content, md5str string,
-	version uint64) *apiconfig.ConfigClientResponse {
-	configFile := &apiconfig.ClientConfigFileInfo{
-		Namespace: utils.NewStringValue(namespace),
-		Group:     utils.NewStringValue(group),
-		FileName:  utils.NewStringValue(fileName),
-		Content:   utils.NewStringValue(content),
-		Version:   utils.NewUInt64Value(version),
-		Md5:       utils.NewStringValue(md5str),
-	}
-	return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, configFile)
-}
-
-type kv struct {
-	Key   string
-	Value string
-}
-
-// ToTagJsonStr 把 Tags 转化成 Json 字符串
-func ToTagJsonStr(tags []*apiconfig.ConfigFileTag) string {
-	if len(tags) == 0 {
-		return "[]"
-	}
-	kvs := make([]kv, 0, len(tags))
-	for _, tag := range tags {
-		kvs = append(kvs, kv{
-			Key:   tag.Key.GetValue(),
-			Value: tag.Value.GetValue(),
-		})
-	}
-
-	ret, err := json.Marshal(kvs)
-	if err != nil {
-		return "[]"
-	}
-	return string(ret)
-}
-
-// FromTagJson 从 Tags Json 字符串里反序列化出 Tags
-func FromTagJson(tagStr string) []*apiconfig.ConfigFileTag {
-	if tagStr == "" {
-		return nil
-	}
-
-	kvs := make([]kv, 0, 10)
-	err := json.Unmarshal([]byte(tagStr), &kvs)
-	if err != nil {
-		return nil
-	}
-
-	tags := make([]*apiconfig.ConfigFileTag, 0, len(kvs))
-	for _, val := range kvs {
-		tags = append(tags, &apiconfig.ConfigFileTag{
-			Key:   utils.NewStringValue(val.Key),
-			Value: utils.NewStringValue(val.Value),
-		})
-	}
-
-	return tags
 }
 
 // GenReleaseName 生成发布名称，规则是 filename-${三位自增长序列}

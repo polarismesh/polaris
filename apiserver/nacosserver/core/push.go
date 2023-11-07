@@ -31,9 +31,8 @@ import (
 
 	nacosmodel "github.com/polarismesh/polaris/apiserver/nacosserver/model"
 	"github.com/polarismesh/polaris/common/eventhub"
-	"github.com/polarismesh/polaris/common/log"
-	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 type PushType string
@@ -45,15 +44,20 @@ const (
 	AssemblyPush PushType = "assembly"
 )
 
+// PushCenter
 type PushCenter interface {
+	// AddSubscriber
 	AddSubscriber(s Subscriber)
+	// RemoveSubscriber
 	RemoveSubscriber(s Subscriber)
+	// EnablePush
 	EnablePush(s Subscriber) bool
+	// Type
 	Type() PushType
 }
 
 type PushData struct {
-	Service          *model.Service
+	Service          *nacosmodel.ServiceMetadata
 	ServiceInfo      *nacosmodel.ServiceInfo
 	UDPData          interface{}
 	CompressUDPData  []byte
@@ -71,7 +75,7 @@ func WarpGRPCPushData(p *PushData) {
 			"checksum":        p.ServiceInfo.Checksum,
 			"useSpecifiedURL": false,
 			"hosts":           p.ServiceInfo.Hosts,
-			"metadata":        p.Service.Meta,
+			"metadata":        p.Service.ExtendData,
 		},
 		"lastRefTime": time.Now().Nanosecond(),
 	}
@@ -91,7 +95,7 @@ func WarpUDPPushData(p *PushData) {
 			"checksum":        p.ServiceInfo.Checksum,
 			"useSpecifiedURL": false,
 			"hosts":           p.ServiceInfo.Hosts,
-			"metadata":        p.Service.Meta,
+			"metadata":        p.Service.ExtendData,
 		},
 		"lastRefTime": time.Now().Nanosecond(),
 	}
@@ -121,7 +125,6 @@ func CompressIfNecessary(data []byte) []byte {
 
 type Subscriber struct {
 	Key         string
-	ConnID      string
 	AddrStr     string
 	Agent       string
 	App         string
@@ -134,6 +137,10 @@ type Subscriber struct {
 	Type        PushType
 }
 
+func (s Subscriber) ResourceInfo() string {
+	return s.NamespaceId + "/" + s.Service
+}
+
 type (
 	Notifier interface {
 		io.Closer
@@ -142,12 +149,17 @@ type (
 	}
 
 	WatchClient struct {
-		subscriber         Subscriber
+		id                 string
+		subscribers        *utils.SyncMap[string, Subscriber]
 		notifier           Notifier
 		lastRefreshTimeRef atomic.Int64
 		lastCheclksum      string
 	}
 )
+
+func (w *WatchClient) ID() string {
+	return w.id
+}
 
 func (w *WatchClient) RefreshLastTime() {
 	w.lastRefreshTimeRef.Store(commontime.CurrentMillisecond())
@@ -157,8 +169,12 @@ func (w *WatchClient) IsZombie() bool {
 	return w.notifier.IsZombie()
 }
 
-func (w *WatchClient) GetSubscriber() Subscriber {
-	return w.subscriber
+func (w *WatchClient) Notify(d *PushData) error {
+	return w.notifier.Notify(d)
+}
+
+func (w *WatchClient) GetSubscribers() []Subscriber {
+	return w.subscribers.Values()
 }
 
 type BasePushCenter struct {
@@ -195,7 +211,9 @@ func (pc *BasePushCenter) RemoveClientIf(test func(string, *WatchClient) bool) {
 	for i := range pc.clients {
 		client := pc.clients[i]
 		if test(i, client) {
-			pc.removeSubscriber0(client.subscriber)
+			for _, subscribe := range client.GetSubscribers() {
+				pc.removeSubscriber0(subscribe)
+			}
 		}
 	}
 }
@@ -209,7 +227,7 @@ func (pc *BasePushCenter) PreProcess(_ context.Context, any any) any {
 func (pc *BasePushCenter) OnEvent(ctx context.Context, any2 any) error {
 	event, ok := any2.(*nacosmodel.NacosServicesChangeEvent)
 	if !ok {
-		log.Error("[NACOS-CORE][PushCenter] receive event type not NacosServicesChangeEvent")
+		nacoslog.Error("[NACOS-CORE][PushCenter] receive event type not NacosServicesChangeEvent")
 		return nil
 	}
 	for i := range event.Services {
@@ -222,23 +240,26 @@ func (pc *BasePushCenter) OnEvent(ctx context.Context, any2 any) error {
 		}
 		svcInfo := pc.store.ListInstances(filterCtx, NoopSelectInstances)
 		pushData := &PushData{
-			Service: &model.Service{
-				ID:        svc.ServiceID,
-				Name:      svc.Name,
-				Namespace: svc.Namespace,
-				Meta:      svc.ExtendData,
+			Service: &nacosmodel.ServiceMetadata{
+				ServiceKey: nacosmodel.ServiceKey{
+					Name:      svc.Name,
+					Namespace: svc.Namespace,
+				},
+				ServiceID:  svc.ServiceID,
+				ExtendData: svc.ExtendData,
 			},
 			ServiceInfo: svcInfo,
 		}
-		log.Info("[NACOS-CORE][PushCenter] notify subscriber data", zap.Any("pushData", pushData))
 		// WarpGRPCPushData(pushData) // 目前根本不会使用这个数据
 		WarpUDPPushData(pushData)
 		svcKey := nacosmodel.ServiceKey{Namespace: svc.Namespace, Group: groupName, Name: svcName}
 		pc.NotifyClients(svcKey, func(client *WatchClient) {
-			if err := client.notifier.Notify(pushData); err != nil {
-				log.Error("[NACOS-CORE][PushCenter] notify client fail", zap.String("ip", client.subscriber.Ip),
-					zap.String("conn-id", client.subscriber.ConnID),
-					zap.String("type", string(client.subscriber.Type)), zap.Error(err))
+			nacoslog.Info("[NACOS-CORE][PushCenter] notify subscriber data", zap.String("client-id", client.ID()),
+				zap.String("resource", pushData.Service.String()),
+				zap.Bool("ReachProtectionThreshold", pushData.ServiceInfo.ReachProtectionThreshold))
+			if err := client.Notify(pushData); err != nil {
+				nacoslog.Error("[NACOS-CORE][PushCenter] notify subscriber fail", zap.String("conn-id", client.ID()),
+					zap.Error(err))
 			}
 		})
 	}
@@ -259,21 +280,21 @@ func (pc *BasePushCenter) AddSubscriber(s Subscriber, notifier Notifier) bool {
 	defer pc.lock.Unlock()
 
 	id := s.Key
-	if _, ok := pc.clients[id]; ok {
-		return false
-	}
-
 	key := nacosmodel.ServiceKey{
 		Namespace: s.NamespaceId,
 		Group:     s.Group,
 		Name:      s.Service,
 	}
 
-	client := &WatchClient{
-		subscriber: s,
-		notifier:   notifier,
+	if _, ok := pc.clients[id]; !ok {
+		pc.clients[id] = &WatchClient{
+			id:          id,
+			subscribers: utils.NewSyncMap[string, Subscriber](),
+			notifier:    notifier,
+		}
 	}
-	pc.clients[id] = client
+	client := pc.clients[id]
+	client.subscribers.Store(key.String(), s)
 
 	if _, ok := pc.notifiers[s.NamespaceId]; !ok {
 		pc.notifiers[s.NamespaceId] = map[nacosmodel.ServiceKey]map[string]*WatchClient{}
@@ -335,8 +356,6 @@ func (pc *BasePushCenter) NotifyClients(key nacosmodel.ServiceKey, notify func(c
 		return
 	}
 
-	log.Info("[NACOS-CORE][PushCenter] receive nacos services change", zap.String("namespace", key.Namespace),
-		zap.String("group", key.Group), zap.String("service", key.Name), zap.Int("client-count", len(clients)))
 	for i := range clients {
 		notify(clients[i])
 	}

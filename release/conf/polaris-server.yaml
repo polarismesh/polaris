@@ -415,25 +415,6 @@ healthcheck:
     #       maxBatchCount: 64 
     #       # Number of workers
     #       concurrency: 512  
-    # - name: heartbeatRedis  # Heartbeat examination plugin based on redis implementation
-    #   option:
-    #     # Redis connection address, EG: 127.0.0.1:6379
-    #     kvAddr: ##REDIS_ADDR##
-    #     # ACL user from redis v6.0, remove it if ACL is not available
-    #     kvUser: ##REDIS_USER#
-    #     # Redis connection password
-    #     kvPasswd: ##REDIS_PWD## 
-    #     # Redis connecting pool
-    #     poolSize: 200   
-    #     # Redis free connection to minimum quantity  
-    #     minIdleConns: 30
-    #     # Redis connect to the maximum free time
-    #     idleTimeout: 120s
-    #     # Redis connection timeout time
-    #     connectTimeout: 200ms
-    #     msgTimeout: 200ms # redis Single request timeout time
-    #     concurrency: 200  # redis Working Council Pool size
-    #     withTLS: false # Whether to turn on TLS, close the default
 # Configuration center module start configuration
 config:
   # Whether to start the configuration module
@@ -442,28 +423,8 @@ config:
   contentMaxLength: 20000
 # Cache configuration
 cache:
-  open: true
-  resources:
-    - name: service # Load service data
-      option:
-        disableBusiness: false # Do not load business services
-        needMeta: true # Load service metadata
-    - name: instance # Load instance data
-      option:
-        disableBusiness: false # Do not load business service examples
-        needMeta: true # Load instance metadata
-    - name: routingConfig # Load route data
-    - name: rateLimitConfig # Load current limit data
-    - name: circuitBreakerConfig # Load the fuse data
-    - name: users # Load user and user group data
-    - name: strategyRule # Loading the rules of appraisal
-    - name: namespace # Load the naming space data
-    - name: client # Load Client-SDK instance data
-    - name: configFile
-    - name: configGroup
-    - name: faultDetectRule
-    - name: serviceContract
-#    - name: l5 # Load L5 data
+  # 缓存增量同步数据时，相较于当前时刻需要往回倒退多少秒, 即在 T 时刻的增量同步，实际增量数据时间范围为 [T - abs(DiffTime), ∞)
+  diffTime: 5s
 # Maintain configuration
 maintain:
   jobs:
@@ -494,22 +455,22 @@ maintain:
 # Storage configuration
 store:
   # Standalone file storage plugin
-  # name: boltdbStore
-  # option:
-  #   path: ./polaris.bolt
-  ## Database storage plugin
-  name: defaultStore
+  name: boltdbStore
   option:
-    master:
-      dbType: mysql
-      dbName: polaris_server
-      dbUser: root ##DB_USER##
-      dbPwd: 528LcT528 ##DB_PWD##
-      dbAddr: 127.0.0.1:3306 ##DB_ADDR##
-      maxOpenConns: 300
-      maxIdleConns: 50
-      connMaxLifetime: 300 # Unit second
-      txIsolationLevel: 2 #LevelReadCommitted
+    path: ./polaris.bolt
+  ## Database storage plugin
+  # name: defaultStore
+  # option:
+  #   master:
+  #     dbType: mysql
+  #     dbName: polaris_server
+  #     dbUser: ##DB_USER##
+  #     dbPwd: ##DB_PWD##
+  #     dbAddr: ##DB_ADDR##
+  #     maxOpenConns: 300
+  #     maxIdleConns: 50
+  #     connMaxLifetime: 300 # Unit second
+  #     txIsolationLevel: 2 #LevelReadCommitted
 # polaris-server plugin settings
 plugin:
   crypto:

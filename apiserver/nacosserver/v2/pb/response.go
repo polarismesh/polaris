@@ -133,6 +133,7 @@ func (c *ServerCheckResponse) GetResponseType() string {
 // InstanceResponse
 type InstanceResponse struct {
 	*Response
+	Type string `json:"type"`
 }
 
 func (c *InstanceResponse) GetResponseType() string {
@@ -142,6 +143,7 @@ func (c *InstanceResponse) GetResponseType() string {
 // BatchInstanceResponse
 type BatchInstanceResponse struct {
 	*Response
+	Type string `json:"type"`
 }
 
 func (c *BatchInstanceResponse) GetResponseType() string {

@@ -78,18 +78,10 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.server_version }}
 
-      # - name: Upload asset
-      #   uses: actions/upload-release-asset@v1
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     upload_url: ${{ steps.get_release_by_tag.outputs.upload_url }}
-      #     asset_path: ./${{ steps.build.outputs.name }}
-      #     asset_name: ${{ steps.build.outputs.name }}
-      #     asset_content_type: application/gzip
       - name: Upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SERVER_VERSION: ${{ github.event.inputs.server_version }}
         run: |
+          sudo apt-get update && sudo apt-get install -y hub
           hub release edit $(find . -type f -name "polaris-*.zip" -printf "-a %p ") -m "" "${SERVER_VERSION}"

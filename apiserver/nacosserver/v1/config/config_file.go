@@ -30,7 +30,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/apiserver/nacosserver/model"
-	nacoshttp "github.com/polarismesh/polaris/apiserver/nacosserver/v1/http"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/config"
@@ -106,32 +105,24 @@ func (n *ConfigServer) handleWatch(ctx context.Context, listenCtx *model.ConfigW
 		listenCtx.Request.SetAttribute(model.HeaderContent, newResult)
 		return
 	}
+	if changeKeys := n.diffChangeFiles(specWatchReq); len(changeKeys) > 0 {
+		newResult := md5ResultString(changeKeys)
+		nacoslog.Info("[NACOS-V1][Config] client quick compare file result.", zap.String("result", newResult))
+		rsp.WriteHeader(http.StatusOK)
+		disableCache(rsp)
+		rsp.Write([]byte(newResult))
+		return
+	}
+	if listenCtx.IsNoHangUp() {
+		// 该场景只会在 nacos-client 第一次发起订阅任务的时候
+		// /com/alibaba/nacos/nacos-client/1.4.6/nacos-client-1.4.6-sources.jar!/com/alibaba/nacos/client/config/impl/ClientWorker.java:368
+		nacoslog.Info("[NACOS-V1][Config] client set listen no hangup, quick return")
+		return
+	}
 	clientId := utils.ParseClientAddress(ctx) + "@" + utils.NewUUID()[0:8]
 	configSvr := n.originConfigSvr.(*config.Server)
-	watchCtx, checkResp := configSvr.WatchCenter().AddWatcher(clientId, specWatchReq.GetWatchFiles(),
+	watchCtx := configSvr.WatchCenter().AddWatcher(clientId, specWatchReq.GetWatchFiles(),
 		BuildTimeoutWatchCtx(timeout))
-	if checkResp != nil {
-		// 存在配置文件变化
-		if checkResp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
-			nacoslog.Error("[NACOS-V1][Config] watch config file fail", zap.String("msg", checkResp.GetInfo().GetValue()))
-			nacoshttp.WrirteNacosResponseWithCode(int(api.CalcCode(checkResp)), checkResp.GetInfo().GetValue(), rsp)
-			return
-		}
-		if changeKeys := n.diffChangeFiles(specWatchReq); len(changeKeys) > 0 {
-			newResult := md5ResultString(changeKeys)
-			nacoslog.Info("[NACOS-V1][Config] client quick compare file result.", zap.String("result", newResult))
-			rsp.WriteHeader(http.StatusOK)
-			disableCache(rsp)
-			rsp.Write([]byte(newResult))
-			return
-		}
-		if listenCtx.IsNoHangUp() {
-			// 该场景只会在 nacos-client 第一次发起订阅任务的时候
-			// /com/alibaba/nacos/nacos-client/1.4.6/nacos-client-1.4.6-sources.jar!/com/alibaba/nacos/client/config/impl/ClientWorker.java:368
-			nacoslog.Info("[NACOS-V1][Config] client set listen no hangup, quick return")
-			return
-		}
-	}
 	nacoslog.Info("[NACOS-V1][Config] client start waitting server send notify message")
 	notifyRet := (watchCtx.(*LongPollWatchContext)).GetNotifieResult()
 	notifyCode := notifyRet.GetCode().GetValue()
@@ -174,15 +165,17 @@ func (n *ConfigServer) diffChangeFiles(listenCtx *config_manage.ClientWatchConfi
 	changeKeys := make([]*model.ConfigListenItem, 0, 4)
 	// quick get file and compare
 	for _, item := range listenCtx.WatchFiles {
-		active := n.cacheSvr.ConfigFile().GetActiveRelease(
-			item.GetNamespace().GetValue(),
-			item.GetGroup().GetValue(),
-			item.GetFileName().GetValue())
-		if active != nil && active.Md5 != item.GetMd5().GetValue() {
+		namespace := item.GetNamespace().GetValue()
+		group := item.GetGroup().GetValue()
+		dataId := item.GetFileName().GetValue()
+		mdval := item.GetMd5().GetValue()
+
+		active := n.cacheSvr.ConfigFile().GetActiveRelease(namespace, group, dataId)
+		if (active == nil && mdval != "") || (active != nil && active.Md5 != mdval) {
 			changeKeys = append(changeKeys, &model.ConfigListenItem{
-				Tenant: model.ToNacosConfigNamespace(item.GetNamespace().GetValue()),
-				Group:  item.GetGroup().GetValue(),
-				DataId: item.GetFileName().GetValue(),
+				Tenant: model.ToNacosConfigNamespace(namespace),
+				Group:  group,
+				DataId: dataId,
 			})
 		}
 	}
@@ -190,15 +183,12 @@ func (n *ConfigServer) diffChangeFiles(listenCtx *config_manage.ClientWatchConfi
 }
 
 func BuildTimeoutWatchCtx(watchTimeOut time.Duration) config.WatchContextFactory {
-	return func(clientId string, watchFiles []*config_manage.ClientConfigFileInfo) config.WatchContext {
+	return func(clientId string) config.WatchContext {
 		watchCtx := &LongPollWatchContext{
 			clientId:         clientId,
 			finishTime:       time.Now().Add(watchTimeOut),
 			finishChan:       make(chan *config_manage.ConfigClientResponse),
 			watchConfigFiles: map[string]*config_manage.ClientConfigFileInfo{},
-		}
-		for i := range watchFiles {
-			watchCtx.AppendInterest(watchFiles[i])
 		}
 		return watchCtx
 	}

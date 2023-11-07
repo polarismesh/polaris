@@ -212,7 +212,6 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 	if err := cache.Run(cacheMgn, ctx); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -246,7 +245,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 	if len(cfg.HealthChecks.LocalHost) == 0 {
 		cfg.HealthChecks.LocalHost = utils.LocalHost // 补充healthCheck的配置
 	}
-	if err = healthcheck.Initialize(ctx, &cfg.HealthChecks, cfg.Cache.Open, bc); err != nil {
+	if err = healthcheck.Initialize(ctx, &cfg.HealthChecks, bc); err != nil {
 		return err
 	}
 	healthCheckServer, err := healthcheck.GetServer()

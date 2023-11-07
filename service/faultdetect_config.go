@@ -160,7 +160,7 @@ func (s *Server) createFaultDetectRule(ctx context.Context, request *apifault.Fa
 	exists, err := s.storage.HasFaultDetectRuleByName(data.Name, data.Namespace)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return storeError2Response(err)
+		return api.NewResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 	if exists {
 		return api.NewResponse(apimodel.Code_FaultDetectRuleExisted)
@@ -170,7 +170,7 @@ func (s *Server) createFaultDetectRule(ctx context.Context, request *apifault.Fa
 	// 存储层操作
 	if err := s.storage.CreateFaultDetectRule(data); err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return storeError2Response(err)
+		return api.NewResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 
 	msg := fmt.Sprintf("create fault detect rule: id=%v, name=%v, namespace=%v",
@@ -203,7 +203,7 @@ func (s *Server) updateFaultDetectRule(ctx context.Context, request *apifault.Fa
 	exists, err := s.storage.HasFaultDetectRuleByNameExcludeId(fdRule.Name, fdRule.Namespace, fdRule.ID)
 	if err != nil {
 		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return storeError2Response(err)
+		return api.NewResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 	if exists {
 		return api.NewAnyDataResponse(apimodel.Code_FaultDetectRuleExisted, fdRuleId)

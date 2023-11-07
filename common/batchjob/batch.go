@@ -137,7 +137,7 @@ func (bc *BatchController) runWorkers(ctx context.Context) {
 		index := i
 		bc.workers = append(bc.workers, make(chan []Future))
 		go func(index uint32) {
-			log.Infof("[Batch] %s worker(%d) running in main loop", bc.label, index)
+			log.Debugf("[Batch] %s worker(%d) running in main loop", bc.label, index)
 			bc.workerLoop(ctx, int(index), wait)
 		}(index)
 	}

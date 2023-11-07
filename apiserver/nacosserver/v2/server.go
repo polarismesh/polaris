@@ -51,6 +51,7 @@ import (
 func NewNacosV2Server(v1Svr *v1.NacosV1Server, store *core.NacosDataStorage, options ...option) (*NacosV2Server, error) {
 	connMgr := remote.NewConnectionManager()
 	svr := &NacosV2Server{
+		connectionManager: connMgr,
 		discoverOpt: &discover.ServerOption{
 			Store:             store,
 			ConnectionManager: connMgr,
@@ -117,7 +118,6 @@ func (h *NacosV2Server) Initialize(ctx context.Context, option map[string]interf
 	h.openAPI = apiConf
 	h.listenIP = option["listenIP"].(string)
 	h.listenPort = port
-
 	if raw, _ := option["connLimit"].(map[interface{}]interface{}); raw != nil {
 		connConfig, err := connlimit.ParseConnLimitConfig(raw)
 		if err != nil {

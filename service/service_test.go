@@ -1375,14 +1375,7 @@ func TestConcurrencyCreateSameService(t *testing.T) {
 			},
 		}, nil)
 		mockStore.EXPECT().GetUnixSecond(gomock.Any()).Return(time.Now().Unix(), nil).AnyTimes()
-		cacheMgr, err = cache.TestCacheInitialize(ctx, &cache.Config{
-			Open: true,
-			Resources: []cache.ConfigEntry{
-				{
-					Name: "namespace",
-				},
-			},
-		}, mockStore)
+		cacheMgr, err = cache.TestCacheInitialize(ctx, &cache.Config{}, mockStore)
 		assert.NoError(t, err)
 
 		userMgn, strategyMgn, err := auth.TestInitialize(ctx, &auth.Config{}, mockStore, cacheMgr)
@@ -1393,6 +1386,11 @@ func TestConcurrencyCreateSameService(t *testing.T) {
 		}, mockStore, cacheMgr, userMgn, strategyMgn)
 		assert.NoError(t, err)
 
+		cacheMgr.OpenResourceCache([]cache.ConfigEntry{
+			{
+				Name: "namespace",
+			},
+		}...)
 		svr := service.TestNewServer(mockStore, nsSvr, cacheMgr)
 		return svr, mockStore
 	}

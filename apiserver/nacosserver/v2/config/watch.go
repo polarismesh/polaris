@@ -18,20 +18,63 @@
 package config
 
 import (
+	"context"
 	"time"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	"go.uber.org/zap"
 
 	nacosmodel "github.com/polarismesh/polaris/apiserver/nacosserver/model"
 	nacospb "github.com/polarismesh/polaris/apiserver/nacosserver/v2/pb"
 	"github.com/polarismesh/polaris/apiserver/nacosserver/v2/remote"
+	"github.com/polarismesh/polaris/common/eventhub"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/config"
 )
 
+type ConnectionClientManager struct {
+	configSvr *config.Server
+	watchCtx  *eventhub.SubscribtionContext
+}
+
+func NewConnectionClientManager(configSvr *config.Server) (*ConnectionClientManager, error) {
+	mgr := &ConnectionClientManager{
+		configSvr: configSvr,
+	}
+	subCtx, err := eventhub.Subscribe(remote.ClientConnectionEvent, mgr)
+	if err != nil {
+		return nil, err
+	}
+	mgr.watchCtx = subCtx
+	return mgr, nil
+}
+
+// PreProcess do preprocess logic for event
+func (cm *ConnectionClientManager) PreProcess(_ context.Context, a any) any {
+	return a
+}
+
+// OnEvent event process logic
+func (c *ConnectionClientManager) OnEvent(ctx context.Context, a any) error {
+	event, ok := a.(*remote.ConnectionEvent)
+	if !ok {
+		return nil
+	}
+	switch event.EventType {
+	case remote.EventClientConnected:
+		// do nothing
+	case remote.EventClientDisConnected:
+		c.configSvr.WatchCenter().RemoveAllWatcher(event.ConnID)
+	}
+
+	return nil
+}
+
 type StreamWatchContext struct {
-	clientId          string
-	connectionManager *remote.ConnectionManager
-	watchConfigFiles  *utils.SyncMap[string, *apiconfig.ClientConfigFileInfo]
+	clientId         string
+	connMgr          *remote.ConnectionManager
+	watchConfigFiles *utils.SyncMap[string, *apiconfig.ClientConfigFileInfo]
 }
 
 // IsOnce
@@ -48,31 +91,35 @@ func (c *StreamWatchContext) ClientID() string {
 	return c.clientId
 }
 
-func (c *StreamWatchContext) ShouldNotify(resp *apiconfig.ClientConfigFileInfo) bool {
-	key := resp.GetNamespace().GetValue() + "@" +
-		resp.GetGroup().GetValue() + "@" + resp.GetName().GetValue()
+// ShouldNotify .
+func (c *StreamWatchContext) ShouldNotify(event *model.SimpleConfigFileRelease) bool {
+	key := event.ActiveKey()
 	watchFile, ok := c.watchConfigFiles.Load(key)
 	if !ok {
 		return false
 	}
-	return watchFile.GetMd5().GetValue() != resp.GetMd5().GetValue()
+	// 删除操作，直接通知
+	if !event.Valid {
+		return true
+	}
+	isChange := watchFile.GetMd5().GetValue() != event.Md5
+	return isChange
 }
 
+// ListWatchFiles .
 func (c *StreamWatchContext) ListWatchFiles() []*apiconfig.ClientConfigFileInfo {
 	return c.watchConfigFiles.Values()
 }
 
 // AppendInterest .
 func (c *StreamWatchContext) AppendInterest(item *apiconfig.ClientConfigFileInfo) {
-	key := item.GetNamespace().GetValue() + "@" +
-		item.GetGroup().GetValue() + "@" + item.GetFileName().GetValue()
+	key := model.BuildKeyForClientConfigFileInfo(item)
 	c.watchConfigFiles.Store(key, item)
 }
 
 // RemoveInterest .
 func (c *StreamWatchContext) RemoveInterest(item *apiconfig.ClientConfigFileInfo) {
-	key := item.GetNamespace().GetValue() + "@" +
-		item.GetGroup().GetValue() + "@" + item.GetFileName().GetValue()
+	key := model.BuildKeyForClientConfigFileInfo(item)
 	c.watchConfigFiles.Delete(key)
 }
 
@@ -81,6 +128,7 @@ func (c *StreamWatchContext) Close() error {
 	return nil
 }
 
+// Reply .
 func (c *StreamWatchContext) Reply(event *apiconfig.ConfigClientResponse) {
 	viewConfig := event.GetConfigFile()
 	notifyRequest := nacospb.NewConfigChangeNotifyRequest()
@@ -88,15 +136,26 @@ func (c *StreamWatchContext) Reply(event *apiconfig.ConfigClientResponse) {
 	notifyRequest.Group = viewConfig.GetGroup().GetValue()
 	notifyRequest.DataId = viewConfig.GetFileName().GetValue()
 
-	watchClient, ok := c.connectionManager.GetClient(c.clientId)
+	remoteClient, ok := c.connMgr.GetClient(c.clientId)
 	if !ok {
+		nacoslog.Error("[NACOS-V2][Config][Push] send ConfigChangeNotifyRequest not found remoteClient",
+			zap.String("clientId", c.ClientID()))
 		return
 	}
-	stream, ok := watchClient.LoadStream()
+	stream, ok := remoteClient.LoadStream()
 	if !ok {
+		nacoslog.Error("[NACOS-V2][Config][Push] send ConfigChangeNotifyRequest not stream",
+			zap.String("clientId", c.ClientID()))
 		return
 	}
-	if err := stream.SendMsg(notifyRequest); err != nil {
-		// TODO need print log
+	clientResp, err := remote.MarshalPayload(notifyRequest)
+	if err != nil {
+		nacoslog.Error("[NACOS-V2][Config][Push] send ConfigChangeNotifyRequest marshal payload",
+			zap.String("clientId", c.ClientID()), zap.Error(err))
+		return
+	}
+	if err := stream.SendMsg(clientResp); err != nil {
+		nacoslog.Error("[NACOS-V2][Config][Push] send ConfigChangeNotifyRequest fail",
+			zap.String("clientId", c.ClientID()), zap.Error(err))
 	}
 }

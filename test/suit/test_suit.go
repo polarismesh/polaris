@@ -25,12 +25,10 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/google/uuid"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	bolt "go.etcd.io/bbolt"
@@ -227,19 +225,6 @@ func (d *DiscoverTestSuit) loadConfig() error {
 		fmt.Printf("[ERROR] %v\n", err)
 		return err
 	}
-
-	resources := d.cfg.Cache.Resources
-	for i := range resources {
-		item := resources[i]
-		if item.Name == "configFile" {
-			item.Option = map[string]interface{}{
-				"cachePath": filepath.Join("/tmp/polaris/cache/", uuid.NewString()),
-			}
-		}
-		resources[i] = item
-	}
-	d.cfg.Cache.Resources = resources
-
 	return err
 }
 
@@ -370,7 +355,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	if len(d.cfg.HealthChecks.LocalHost) == 0 {
 		d.cfg.HealthChecks.LocalHost = utils.LocalHost // 补充healthCheck的配置
 	}
-	healthCheckServer, err := healthcheck.TestInitialize(ctx, &d.cfg.HealthChecks, d.cfg.Cache.Open, bc, d.Storage)
+	healthCheckServer, err := healthcheck.TestInitialize(ctx, &d.cfg.HealthChecks, bc, d.Storage)
 	if err != nil {
 		panic(err)
 	}

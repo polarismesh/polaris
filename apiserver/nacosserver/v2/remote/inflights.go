@@ -18,47 +18,54 @@
 package remote
 
 import (
+	"context"
 	"sync"
+	"time"
 
 	nacosmodel "github.com/polarismesh/polaris/apiserver/nacosserver/model"
 	nacospb "github.com/polarismesh/polaris/apiserver/nacosserver/v2/pb"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 type (
 	// InFlights
 	InFlights struct {
-		lock      sync.RWMutex
-		inFlights map[string]*ClientInFlights
+		inFlights *utils.SyncMap[string, *ClientInFlights]
 	}
 
 	// ClientInFlights
 	ClientInFlights struct {
-		lock      sync.RWMutex
-		inFlights map[string]*InFlight
+		inFlights *utils.SyncMap[string, *InFlight]
 	}
 
 	// InFlight
 	InFlight struct {
-		ConnID    string
-		RequestID string
-		Callback  func(nacospb.BaseResponse, error)
+		once       sync.Once
+		ConnID     string
+		RequestID  string
+		Callback   func(nacospb.BaseResponse, error)
+		ExpireTime time.Time
 	}
 )
 
-func (i *InFlights) NotifyInFlight(connID string, resp nacospb.BaseResponse) {
-	i.lock.RLock()
-	clientInflight, ok := i.inFlights[connID]
-	i.lock.RUnlock()
+func (i *InFlight) IsExpire(now time.Time) bool {
+	return i.ExpireTime.Before(now)
+}
 
+func NewInFlights(ctx context.Context) *InFlights {
+	inFlights := &InFlights{inFlights: utils.NewSyncMap[string, *ClientInFlights]()}
+	go inFlights.notifyOutDateInFlight(ctx)
+	return inFlights
+}
+
+func (i *InFlights) NotifyInFlight(connID string, resp nacospb.BaseResponse) {
+	clientInflight, ok := i.inFlights.Load(connID)
 	if !ok {
 		nacoslog.Warnf("[NACOS-V2][InFlight] not found client(%s) inflights", connID)
 		return
 	}
 
-	clientInflight.lock.Lock()
-	defer clientInflight.lock.Unlock()
-
-	inflight, ok := clientInflight.inFlights[resp.GetRequestId()]
+	inflight, ok := clientInflight.inFlights.Delete(resp.GetRequestId())
 	if !ok {
 		nacoslog.Warnf("[NACOS-V2][InFlight] not found client(%s) req(%s) inflights", connID, resp.GetRequestId())
 		return
@@ -71,31 +78,53 @@ func (i *InFlights) NotifyInFlight(connID string, resp nacospb.BaseResponse) {
 		})
 		return
 	}
-	inflight.Callback(resp, nil)
+	inflight.once.Do(func() {
+		inflight.Callback(resp, nil)
+	})
 }
 
 // AddInFlight 添加一个待回调通知的 InFligjt
 func (i *InFlights) AddInFlight(inflight *InFlight) error {
-	i.lock.Lock()
 	connID := inflight.ConnID
-	if _, ok := i.inFlights[connID]; !ok {
-		i.inFlights[connID] = &ClientInFlights{
-			inFlights: map[string]*InFlight{},
+	clientInFlights, _ := i.inFlights.ComputeIfAbsent(connID, func(k string) *ClientInFlights {
+		return &ClientInFlights{
+			inFlights: utils.NewSyncMap[string, *InFlight](),
 		}
-	}
-	clientInFlights := i.inFlights[connID]
-	i.lock.Unlock()
+	})
 
-	clientInFlights.lock.Lock()
-	defer clientInFlights.lock.Unlock()
-
-	if _, ok := clientInFlights.inFlights[inflight.RequestID]; ok {
+	_, isAdd := clientInFlights.inFlights.ComputeIfAbsent(inflight.RequestID, func(k string) *InFlight {
+		return inflight
+	})
+	if !isAdd {
 		return &nacosmodel.NacosError{
 			ErrCode: int32(nacosmodel.ExceptionCode_ClientInvalidParam),
 			ErrMsg:  "InFlight request id conflict",
 		}
 	}
-
-	clientInFlights.inFlights[inflight.RequestID] = inflight
 	return nil
+}
+
+func (i *InFlights) notifyOutDateInFlight(ctx context.Context) {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			now := time.Now()
+			i.inFlights.ReadRange(func(connID string, val *ClientInFlights) {
+				val.inFlights.ReadRange(func(reqId string, inFlight *InFlight) {
+					if !inFlight.IsExpire(now) {
+						return
+					}
+					val.inFlights.Delete(reqId)
+					inFlight.once.Do(func() {
+						inFlight.Callback(nil, context.DeadlineExceeded)
+					})
+				})
+			})
+		}
+	}
 }

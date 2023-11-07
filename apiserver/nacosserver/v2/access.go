@@ -80,8 +80,6 @@ func (h *NacosV2Server) Request(ctx context.Context, payload *nacospb.Payload) (
 	connMeta := remote.ValueConnMeta(ctx)
 
 	startTime := time.Now()
-	// TODO 前置鉴权检查拦截
-
 	resp, err := handle(ctx, msg, nacospb.RequestMeta{
 		ConnectionID:  remote.ValueConnID(ctx),
 		ClientIP:      payload.GetMetadata().GetClientIp(),
@@ -171,9 +169,13 @@ func (h *NacosV2Server) RequestBiStream(svr nacospb.BiRequestStream_RequestBiStr
 				utils.ZapRequestID(msg.GetRequestId()),
 				zap.String("resp-type", msg.GetResponseType()),
 			)
+			// 刷新链接的最近一次更新时间
+			h.connectionManager.RefreshClient(ctx)
+			if _, ok := msg.(*nacospb.NotifySubscriberResponse); !ok {
+				continue
+			}
 			// notify ack msg to callback
 			h.connectionManager.InFlights().NotifyInFlight(connID, msg)
-			h.connectionManager.RefreshClient(ctx)
 		}
 	}
 }

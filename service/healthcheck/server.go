@@ -20,7 +20,6 @@ package healthcheck
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -97,10 +96,10 @@ func NewHealthServer(ctx context.Context, hcOpt *Config, options ...serverOption
 }
 
 // Initialize 初始化
-func Initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Controller) error {
+func Initialize(ctx context.Context, hcOpt *Config, bc *batch.Controller) error {
 	var err error
 	once.Do(func() {
-		err = initialize(ctx, hcOpt, cacheOpen, bc)
+		err = initialize(ctx, hcOpt, bc)
 	})
 
 	if err != nil {
@@ -111,10 +110,7 @@ func Initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 	return nil
 }
 
-func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Controller) error {
-	if !cacheOpen {
-		return fmt.Errorf("[healthcheck]cache not open")
-	}
+func initialize(ctx context.Context, hcOpt *Config, bc *batch.Controller) error {
 	hcOpt.SetDefault()
 	storage, err := store.GetStore()
 	if err != nil {

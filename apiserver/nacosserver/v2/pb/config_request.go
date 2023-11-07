@@ -165,6 +165,10 @@ func (c *ConfigPublishRequest) ToSpec() *config_manage.ConfigFilePublishInfo {
 		FileName:  wrapperspb.String(c.DataId),
 		Content:   wrapperspb.String(c.Content),
 		Tags:      make([]*config_manage.ConfigFileTag, 0, len(c.AdditionMap)),
+		Format:    utils.NewStringValue(utils.FileFormatText),
+	}
+	if val, ok := c.AdditionMap["type"]; ok {
+		ret.Format = utils.NewStringValue(val)
 	}
 
 	for k, v := range c.AdditionMap {
@@ -198,9 +202,9 @@ type ConfigRemoveRequest struct {
 
 func (c *ConfigRemoveRequest) ToSpec() *config_manage.ConfigFile {
 	return &config_manage.ConfigFile{
-		Name:      wrapperspb.String(model.ToPolarisNamespace(c.Tenant)),
+		Namespace: wrapperspb.String(model.ToPolarisNamespace(c.Tenant)),
 		Group:     wrapperspb.String(c.Group),
-		Namespace: wrapperspb.String(c.DataId),
+		Name:      wrapperspb.String(c.DataId),
 	}
 }
 

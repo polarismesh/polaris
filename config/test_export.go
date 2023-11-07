@@ -35,6 +35,8 @@ func TestInitialize(ctx context.Context, config Config, s store.Store, cacheMgn 
 	namespaceOperator namespace.NamespaceOperateServer, userMgn auth.UserServer,
 	strategyMgn auth.StrategyServer) (ConfigCenterServer, ConfigCenterServer, error) {
 	mockServer := &Server{}
+
+	cacheMgn.OpenResourceCache(testConfigCacheEntries...)
 	if err := mockServer.initialize(ctx, config, s, namespaceOperator, cacheMgn); err != nil {
 		return nil, nil, err
 	}

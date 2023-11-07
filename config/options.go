@@ -15,4 +15,36 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package config
+
+import (
+	"path/filepath"
+
+	"github.com/polarismesh/polaris/cache"
+	"github.com/polarismesh/polaris/common/utils"
+)
+
+var (
+	configCacheEntries = []cache.ConfigEntry{
+		{
+			Name: "configFile",
+		},
+		{
+			Name: "configGroup",
+		},
+	}
+)
+
+var (
+	testConfigCacheEntries = []cache.ConfigEntry{
+		{
+			Name: "configFile",
+			Option: map[string]interface{}{
+				"cachePath": filepath.Join("/tmp/polaris/cache/", utils.NewUUID()),
+			},
+		},
+		{
+			Name: "configGroup",
+		},
+	}
+)

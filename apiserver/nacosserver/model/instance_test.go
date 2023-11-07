@@ -15,11 +15,46 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package config
+package model
 
-import "github.com/polarismesh/polaris/apiserver/nacosserver/v2/remote"
+import "testing"
 
-type ConnectionBalancer struct {
-	// nacos
-	connMgr *remote.ConnectionManager
+func TestReplaceNacosService(t *testing.T) {
+	type args struct {
+		service string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "01",
+			args: args{
+				service: "DEFAULT_GROUP@@service-a",
+			},
+			want: "service-a",
+		},
+		{
+			name: "02",
+			args: args{
+				service: "DEFAULT_GROUP11@@service-a",
+			},
+			want: "DEFAULT_GROUP11__service-a",
+		},
+		{
+			name: "03",
+			args: args{
+				service: "service-a",
+			},
+			want: "service-a",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ReplaceNacosService(tt.args.service); got != tt.want {
+				t.Errorf("ReplaceNacosService() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

@@ -64,31 +64,7 @@ func initCache(ctrl *gomock.Controller) (*cache.Config, *storemock.MockStore) {
 		- name: strategyRule
 		- name: namespace
 	*/
-	cfg := &cache.Config{
-		Open: true,
-		Resources: []cache.ConfigEntry{
-			{
-				Name: "service",
-				Option: map[string]interface{}{
-					"disableBusiness": false,
-					"needMeta":        true,
-				},
-			},
-			{
-				Name: "instance",
-			},
-			{
-				Name: "users",
-			},
-			{
-				Name: "strategyRule",
-			},
-			{
-				Name: "namespace",
-			},
-		},
-	}
-
+	cfg := &cache.Config{}
 	storage := storemock.NewMockStore(ctrl)
 
 	mockTx := storemock.NewMockTx(ctrl)

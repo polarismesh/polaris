@@ -559,10 +559,10 @@ func checkInstanceByHost(req *apiservice.Instance) *apiservice.Response {
 	if req == nil {
 		return api.NewInstanceResponse(apimodel.Code_EmptyRequest, req)
 	}
-	if err := checkResourceName(req.GetService()); err != nil {
+	if err := utils.CheckResourceName(req.GetService()); err != nil {
 		return api.NewInstanceResponse(apimodel.Code_InvalidServiceName, req)
 	}
-	if err := checkResourceName(req.GetNamespace()); err != nil {
+	if err := utils.CheckResourceName(req.GetNamespace()); err != nil {
 		return api.NewInstanceResponse(apimodel.Code_InvalidNamespaceName, req)
 	}
 	if err := checkInstanceHost(req.GetHost()); err != nil {
@@ -1252,11 +1252,10 @@ func batchOperateInstances(ctx context.Context, reqs []*apiservice.Instance,
 
 // wrapper instance store response
 func wrapperInstanceStoreResponse(instance *apiservice.Instance, err error) *apiservice.Response {
-	resp := storeError2Response(err)
-	if resp == nil {
+	if err == nil {
 		return nil
 	}
-
+	resp := api.NewResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	resp.Instance = instance
 	return resp
 }

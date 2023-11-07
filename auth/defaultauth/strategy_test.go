@@ -97,6 +97,27 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 	if err != nil {
 		t.Fatal(err)
 	}
+	cacheMgn.OpenResourceCache([]cache.ConfigEntry{
+		{
+			Name: "service",
+			Option: map[string]interface{}{
+				"disableBusiness": false,
+				"needMeta":        true,
+			},
+		},
+		{
+			Name: "instance",
+		},
+		{
+			Name: "users",
+		},
+		{
+			Name: "strategyRule",
+		},
+		{
+			Name: "namespace",
+		},
+	}...)
 
 	checker := &defaultauth.DefaultAuthChecker{}
 	checker.Initialize(&auth.Config{
