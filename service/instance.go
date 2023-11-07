@@ -1024,6 +1024,10 @@ func (s *Server) createServiceIfAbsent(
 	if svc != nil {
 		return svc.ID, nil
 	}
+	// if auto_create_service config is false, return service not found
+	if !s.allowAutoCreate() {
+		return "", api.NewResponse(apimodel.Code_NotFoundService)
+	}
 	simpleService := &apiservice.Service{
 		Name:      utils.NewStringValue(svcName),
 		Namespace: utils.NewStringValue(namespace),
