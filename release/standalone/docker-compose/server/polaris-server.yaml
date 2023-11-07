@@ -307,6 +307,8 @@ naming:
       waitTime: 32ms
       maxBatchCount: 32
       concurrency: 64
+  # Whether to allow automatic creation of service
+  autoCreate: true
 # 健康检查的配置
 healthcheck:
   open: true
