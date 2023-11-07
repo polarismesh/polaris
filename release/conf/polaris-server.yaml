@@ -415,25 +415,6 @@ healthcheck:
     #       maxBatchCount: 64 
     #       # Number of workers
     #       concurrency: 512  
-    # - name: heartbeatRedis  # Heartbeat examination plugin based on redis implementation
-    #   option:
-    #     # Redis connection address, EG: 127.0.0.1:6379
-    #     kvAddr: ##REDIS_ADDR##
-    #     # ACL user from redis v6.0, remove it if ACL is not available
-    #     kvUser: ##REDIS_USER#
-    #     # Redis connection password
-    #     kvPasswd: ##REDIS_PWD## 
-    #     # Redis connecting pool
-    #     poolSize: 200   
-    #     # Redis free connection to minimum quantity  
-    #     minIdleConns: 30
-    #     # Redis connect to the maximum free time
-    #     idleTimeout: 120s
-    #     # Redis connection timeout time
-    #     connectTimeout: 200ms
-    #     msgTimeout: 200ms # redis Single request timeout time
-    #     concurrency: 200  # redis Working Council Pool size
-    #     withTLS: false # Whether to turn on TLS, close the default
 # Configuration center module start configuration
 config:
   # Whether to start the configuration module
