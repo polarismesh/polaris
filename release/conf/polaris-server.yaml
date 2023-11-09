@@ -184,7 +184,7 @@ bootstrap:
   polaris_service:
     ## level: self_address > network_inter > probe_address
     ## Obtain the IP of the VM or POD where Polaris is located by making a TCP connection with the probe_adreess address
-    probe_address: ##DB_ADDR##
+    # probe_address: ##DB_ADDR##
     ## Set the name of the gateway to get your own IP
     # network_inter: eth0
     ## Show the setting node itself IP information
@@ -408,15 +408,6 @@ healthcheck:
     #     soltNum: 128
     #     # The number of GRPC connections used to process heartbeat forward request processing between leader and follower, default value is runtime.GOMAXPROCS(0)
     #     streamNum: 128
-    #     batch:
-    #       # Heartbeat forwarding processing task cache queue
-    #       queueSize: 16384
-    #       # The maximum waiting time for task batch
-    #       waitTime: 32ms
-    #       # The maximum number of heartbeat forwarding tasks of single -batch tasks
-    #       maxBatchCount: 64 
-    #       # Number of workers
-    #       concurrency: 512  
 # Configuration center module start configuration
 config:
   # Whether to start the configuration module
