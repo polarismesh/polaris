@@ -26,6 +26,7 @@ import (
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
@@ -47,6 +48,9 @@ type UserAuthAbility struct {
 // Initialize 执行初始化动作
 func (svr *UserAuthAbility) Initialize(authOpt *auth.Config, storage store.Store,
 	cacheMgn *cache.CacheManager) error {
+	cacheMgn.OpenResourceCache(cache.ConfigEntry{
+		Name: cachetypes.UsersName,
+	})
 	var (
 		history = plugin.GetHistory()
 		authMgn = &DefaultAuthChecker{}

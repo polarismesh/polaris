@@ -511,22 +511,26 @@ func (s *Server) getServiceCache(name string, namespace string) *model.Service {
 func (s *Server) commonCheckDiscoverRequest(req *apiservice.Service, resp *apiservice.DiscoverResponse) bool {
 	if s.caches == nil {
 		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_ClientAPINotOpen))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
 		resp.Service = req
 		return false
 	}
 	if req == nil {
 		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_EmptyRequest))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
 		resp.Service = req
 		return false
 	}
 
 	if req.GetName().GetValue() == "" {
 		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidServiceName))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
 		resp.Service = req
 		return false
 	}
 	if req.GetNamespace().GetValue() == "" {
 		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidNamespaceName))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
 		resp.Service = req
 		return false
 	}

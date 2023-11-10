@@ -452,6 +452,10 @@ func (s *Server) UpdateInstance(ctx context.Context, req *apiservice.Instance) *
 		s.sendDiscoverEvent(*event)
 	}
 
+	for i := range s.instanceChains {
+		s.instanceChains[i].AfterUpdate(ctx, instance)
+	}
+
 	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
@@ -539,6 +543,10 @@ func (s *Server) UpdateInstanceIsolate(ctx context.Context, req *apiservice.Inst
 				CreateTime: time.Time{},
 			})
 		}
+		instance.Proto.Isolate = utils.NewBoolValue(req.GetIsolate().GetValue())
+	}
+	for i := range s.instanceChains {
+		s.instanceChains[i].AfterUpdate(ctx, instances...)
 	}
 
 	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
@@ -551,10 +559,10 @@ func checkInstanceByHost(req *apiservice.Instance) *apiservice.Response {
 	if req == nil {
 		return api.NewInstanceResponse(apimodel.Code_EmptyRequest, req)
 	}
-	if err := checkResourceName(req.GetService()); err != nil {
+	if err := utils.CheckResourceName(req.GetService()); err != nil {
 		return api.NewInstanceResponse(apimodel.Code_InvalidServiceName, req)
 	}
-	if err := checkResourceName(req.GetNamespace()); err != nil {
+	if err := utils.CheckResourceName(req.GetNamespace()); err != nil {
 		return api.NewInstanceResponse(apimodel.Code_InvalidNamespaceName, req)
 	}
 	if err := checkInstanceHost(req.GetHost()); err != nil {
@@ -1016,6 +1024,10 @@ func (s *Server) createServiceIfAbsent(
 	if svc != nil {
 		return svc.ID, nil
 	}
+	// if auto_create_service config is false, return service not found
+	if !s.allowAutoCreate() {
+		return "", api.NewResponse(apimodel.Code_NotFoundService)
+	}
 	simpleService := &apiservice.Service{
 		Name:      utils.NewStringValue(svcName),
 		Namespace: utils.NewStringValue(namespace),
@@ -1244,11 +1256,10 @@ func batchOperateInstances(ctx context.Context, reqs []*apiservice.Instance,
 
 // wrapper instance store response
 func wrapperInstanceStoreResponse(instance *apiservice.Instance, err error) *apiservice.Response {
-	resp := storeError2Response(err)
-	if resp == nil {
+	if err == nil {
 		return nil
 	}
-
+	resp := api.NewResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	resp.Instance = instance
 	return resp
 }
@@ -1304,4 +1315,9 @@ func CheckDbInstanceFieldLen(req *apiservice.Instance) (*apiservice.Response, bo
 		return api.NewInstanceResponse(apimodel.Code_InvalidParameter, req), true
 	}
 	return nil, false
+}
+
+type InstanceChain interface {
+	// AfterUpdate .
+	AfterUpdate(ctx context.Context, instances ...*model.Instance)
 }

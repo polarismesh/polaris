@@ -212,7 +212,6 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 	if err := cache.Run(cacheMgn, ctx); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -246,7 +245,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 	if len(cfg.HealthChecks.LocalHost) == 0 {
 		cfg.HealthChecks.LocalHost = utils.LocalHost // 补充healthCheck的配置
 	}
-	if err = healthcheck.Initialize(ctx, &cfg.HealthChecks, cfg.Cache.Open, bc); err != nil {
+	if err = healthcheck.Initialize(ctx, &cfg.HealthChecks, bc); err != nil {
 		return err
 	}
 	healthCheckServer, err := healthcheck.GetServer()
@@ -314,6 +313,10 @@ func StartServers(ctx context.Context, cfg *boot_config.Config, errCh chan error
 		if !exist {
 			log.Warn("[ERROR] apiserver slot not exists", zap.String("name", protocol.Name))
 			continue
+		}
+		// 如果是 http server, 注入所有的 apiserver 实例
+		if protocol.Name == "api-http" {
+			ctx = context.WithValue(ctx, utils.ContextAPIServerSlot{}, apiserver.Slots)
 		}
 
 		err := slot.Initialize(ctx, protocol.Option, protocol.API)

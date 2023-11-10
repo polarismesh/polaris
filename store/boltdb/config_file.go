@@ -140,7 +140,6 @@ func (cf *configFileStore) getConfigFile(tx *bolt.Tx, namespace, group, name str
 	if data.Valid {
 		return data, nil
 	}
-
 	return nil, nil
 }
 

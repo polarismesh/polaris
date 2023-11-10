@@ -105,10 +105,6 @@ type LeaderHealthChecker struct {
 	self Peer
 	// s store.Store
 	s store.Store
-	// putBatchCtrl 批任务执行器
-	putBatchCtrl *batchjob.BatchController
-	// getBatchCtrl 批任务执行器
-	getBatchCtrl *batchjob.BatchController
 	// subCtx
 	subCtx *eventhub.SubscribtionContext
 }
@@ -146,22 +142,6 @@ func (c *LeaderHealthChecker) Initialize(entry *plugin.ConfigEntry) error {
 	if err := c.s.StartLeaderElection(electionKey); err != nil {
 		return err
 	}
-	c.getBatchCtrl = batchjob.NewBatchController(context.Background(), batchjob.CtrlConfig{
-		Label:         "RecordGetter",
-		QueueSize:     conf.Batch.QueueSize,
-		WaitTime:      conf.Batch.WaitTime,
-		MaxBatchCount: conf.Batch.MaxBatchCount,
-		Concurrency:   conf.Batch.Concurrency,
-		Handler:       c.handleSendGetRecords,
-	})
-	c.putBatchCtrl = batchjob.NewBatchController(context.Background(), batchjob.CtrlConfig{
-		Label:         "RecordPutter",
-		QueueSize:     conf.Batch.QueueSize,
-		WaitTime:      conf.Batch.WaitTime,
-		MaxBatchCount: conf.Batch.MaxBatchCount,
-		Concurrency:   conf.Batch.Concurrency,
-		Handler:       c.handleSendPutRecords,
-	})
 	registerMetrics()
 	return nil
 }
@@ -235,6 +215,7 @@ func (c *LeaderHealthChecker) becomeFollower(e store.LeaderChangeEvent, leaderVe
 	remoteLeader := NewRemotePeerFunc()
 	remoteLeader.Initialize(*c.conf)
 	if err := remoteLeader.Serve(context.Background(), c, e.LeaderHost, uint32(utils.LocalPort)); err != nil {
+		_ = remoteLeader.Close()
 		plog.Error("[HealthCheck][Leader] follower run serve, do retry", zap.Error(err))
 		go func(e store.LeaderChangeEvent, leaderVersion int64) {
 			time.Sleep(time.Second)
@@ -267,7 +248,8 @@ func (c *LeaderHealthChecker) Type() plugin.HealthCheckType {
 
 // Report process heartbeat info report
 func (c *LeaderHealthChecker) Report(ctx context.Context, request *plugin.ReportRequest) error {
-	if isSendFromPeer(ctx) {
+	if !c.isLeader() && isSendFromPeer(ctx) {
+		plog.Error("[Health Check][Leader] follower checker receive other follower request")
 		return ErrorRedirectOnlyOnce
 	}
 

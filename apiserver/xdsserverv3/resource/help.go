@@ -36,6 +36,7 @@ import (
 	envoy_extensions_common_ratelimit_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
 	ratelimitv32 "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
 	lrl "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
+	on_demandv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/on_demand/v3"
 	ratelimitfilter "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ratelimit/v3"
 	routerv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
@@ -61,27 +62,6 @@ import (
 	types "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
-)
-
-const (
-	PassthroughClusterName  = "PassthroughCluster"
-	RouteConfigName         = "polaris-router"
-	OutBoundRouteConfigName = "polaris-outbound-router"
-	InBoundRouteConfigName  = "polaris-inbound-cluster"
-)
-
-const (
-	// LocalRateLimitStage envoy local ratelimit stage
-	LocalRateLimitStage = 0
-	// DistributedRateLimitStage envoy remote ratelimit stage
-	DistributedRateLimitStage = 1
-)
-
-var (
-	TrafficBoundRoute = map[corev3.TrafficDirection]string{
-		corev3.TrafficDirection_INBOUND:  InBoundRouteConfigName,
-		corev3.TrafficDirection_OUTBOUND: OutBoundRouteConfigName,
-	}
 )
 
 func MakeServiceGatewayDomains() []string {
@@ -115,7 +95,7 @@ func FilterInboundRouterRule(svc *ServiceInfo) []*traffic_manage.SubRuleRouting 
 	return ret
 }
 
-func BuildSidecarRouteMatch(client *XDSClient, routeMatch *route.RouteMatch, source *traffic_manage.SourceService) {
+func BuildSidecarRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.SourceService) {
 	for i := range source.GetArguments() {
 		argument := source.GetArguments()[i]
 		if argument.Type == traffic_manage.SourceMatch_PATH {
@@ -128,10 +108,10 @@ func BuildSidecarRouteMatch(client *XDSClient, routeMatch *route.RouteMatch, sou
 			}
 		}
 	}
-	BuildCommonRouteMatch(client, routeMatch, source)
+	BuildCommonRouteMatch(routeMatch, source)
 }
 
-func BuildCommonRouteMatch(client *XDSClient, routeMatch *route.RouteMatch, source *traffic_manage.SourceService) {
+func BuildCommonRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.SourceService) {
 	for i := range source.GetArguments() {
 		argument := source.GetArguments()[i]
 		switch argument.Type {
@@ -211,7 +191,7 @@ func BuildCommonRouteMatch(client *XDSClient, routeMatch *route.RouteMatch, sour
 }
 
 func BuildWeightClustersV2(trafficDirection corev3.TrafficDirection,
-	destinations []*traffic_manage.DestinationGroup) *route.WeightedCluster {
+	destinations []*traffic_manage.DestinationGroup, opt *BuildOption) *route.WeightedCluster {
 	var (
 		weightedClusters []*route.WeightedCluster_ClusterWeight
 		totalWeight      uint32
@@ -239,7 +219,7 @@ func BuildWeightClustersV2(trafficDirection corev3.TrafficDirection,
 			Name: MakeServiceName(model.ServiceKey{
 				Namespace: destination.Namespace,
 				Name:      destination.Service,
-			}, trafficDirection),
+			}, trafficDirection, opt),
 			Weight: utils.NewUInt32Value(destination.GetWeight()),
 			MetadataMatch: &core.Metadata{
 				FilterMetadata: map[string]*_struct.Struct{
@@ -538,7 +518,7 @@ func BuildRateLimitActionHeaderValueMatch(key, value string,
 }
 
 // 默认路由
-func MakeDefaultRoute(trafficDirection corev3.TrafficDirection, svcKey model.ServiceKey) *route.Route {
+func MakeDefaultRoute(trafficDirection corev3.TrafficDirection, svcKey model.ServiceKey, opt *BuildOption) *route.Route {
 	return &route.Route{
 		Match: &route.RouteMatch{
 			PathSpecifier: &route.RouteMatch_Prefix{
@@ -548,7 +528,7 @@ func MakeDefaultRoute(trafficDirection corev3.TrafficDirection, svcKey model.Ser
 		Action: &route.Route_Route{
 			Route: &route.RouteAction{
 				ClusterSpecifier: &route.RouteAction_Cluster{
-					Cluster: MakeServiceName(svcKey, trafficDirection),
+					Cluster: MakeServiceName(svcKey, trafficDirection, opt),
 				},
 			},
 		},
@@ -599,13 +579,13 @@ func BuildAllowAnyVHost() *route.VirtualHost {
 }
 
 func MakeGatewayRoute(trafficDirection corev3.TrafficDirection, routeMatch *route.RouteMatch,
-	destinations []*traffic_manage.DestinationGroup) *route.Route {
+	destinations []*traffic_manage.DestinationGroup, opt *BuildOption) *route.Route {
 	sidecarRoute := &route.Route{
 		Match: routeMatch,
 		Action: &route.Route_Route{
 			Route: &route.RouteAction{
 				ClusterSpecifier: &route.RouteAction_WeightedClusters{
-					WeightedClusters: BuildWeightClustersV2(trafficDirection, destinations),
+					WeightedClusters: BuildWeightClustersV2(trafficDirection, destinations, opt),
 				},
 			},
 		},
@@ -614,10 +594,10 @@ func MakeGatewayRoute(trafficDirection corev3.TrafficDirection, routeMatch *rout
 }
 
 func MakeSidecarRoute(trafficDirection corev3.TrafficDirection, routeMatch *route.RouteMatch,
-	svcInfo *ServiceInfo, destinations []*traffic_manage.DestinationGroup) *route.Route {
-	weightClusters := BuildWeightClustersV2(trafficDirection, destinations)
+	svcInfo *ServiceInfo, destinations []*traffic_manage.DestinationGroup, opt *BuildOption) *route.Route {
+	weightClusters := BuildWeightClustersV2(trafficDirection, destinations, opt)
 	for i := range weightClusters.Clusters {
-		weightClusters.Clusters[i].Name = MakeServiceName(svcInfo.ServiceKey, trafficDirection)
+		weightClusters.Clusters[i].Name = MakeServiceName(svcInfo.ServiceKey, trafficDirection, opt)
 	}
 	currentRoute := &route.Route{
 		Match: routeMatch,
@@ -649,9 +629,24 @@ var PassthroughCluster = &cluster.Cluster{
 	},
 }
 
-func MakeServiceName(svcKey model.ServiceKey, trafficDirection corev3.TrafficDirection) string {
-	return fmt.Sprintf("%s|%s|%s", corev3.TrafficDirection_name[int32(trafficDirection)],
-		svcKey.Namespace, svcKey.Name)
+// MakeInBoundRouteConfigName .
+func MakeInBoundRouteConfigName(svcKey model.ServiceKey) string {
+	return InBoundRouteConfigName + "/" + svcKey.Domain()
+}
+
+// MakeServiceName .
+func MakeServiceName(svcKey model.ServiceKey, trafficDirection corev3.TrafficDirection,
+	opt *BuildOption) string {
+	if trafficDirection == core.TrafficDirection_INBOUND || !opt.OpenOnDemand {
+		return fmt.Sprintf("%s|%s|%s", corev3.TrafficDirection_name[int32(trafficDirection)],
+			svcKey.Namespace, svcKey.Name)
+	}
+	return svcKey.Name + "." + svcKey.Namespace
+}
+
+// MakeVHDSServiceName .
+func MakeVHDSServiceName(prefix string, svcKey model.ServiceKey) string {
+	return prefix + svcKey.Name + "." + svcKey.Namespace
 }
 
 func MakeDefaultFilterChain() *listenerv3.FilterChain {
@@ -673,72 +668,61 @@ func MakeDefaultFilterChain() *listenerv3.FilterChain {
 	}
 }
 
-func MakeSidecarBoundHCM(svcKey model.ServiceKey,
-	trafficDirection corev3.TrafficDirection) *hcm.HttpConnectionManager {
-	routerFilter := &hcm.HttpFilter{
-		Name: wellknown.Router,
-		ConfigType: &hcm.HttpFilter_TypedConfig{
-			TypedConfig: MustNewAny(&routerv3.Router{}),
-		},
-	}
-
-	hcmFilters := []*hcm.HttpFilter{routerFilter}
-	if trafficDirection == corev3.TrafficDirection_INBOUND {
-		hcmFilters = append([]*hcm.HttpFilter{
-			{
-				Name: "envoy.filters.http.local_ratelimit",
-				ConfigType: &hcm.HttpFilter_TypedConfig{
-					TypedConfig: MustNewAny(&lrl.LocalRateLimit{
-						StatPrefix: "http_local_rate_limiter",
-						Stage:      LocalRateLimitStage,
-					}),
-				},
-			},
-			{
-				Name: "envoy.filters.http.ratelimit",
-				ConfigType: &hcm.HttpFilter_TypedConfig{
-					TypedConfig: MustNewAny(&ratelimitfilter.RateLimit{
-						Domain:      fmt.Sprintf("%s.%s", svcKey.Name, svcKey.Namespace),
-						Stage:       DistributedRateLimitStage,
-						RequestType: "external",
-						Timeout:     durationpb.New(2 * time.Second),
-						RateLimitService: &ratelimitconfv3.RateLimitServiceConfig{
-							GrpcService: &corev3.GrpcService{
-								TargetSpecifier: &corev3.GrpcService_EnvoyGrpc_{
-									EnvoyGrpc: &corev3.GrpcService_EnvoyGrpc{
-										ClusterName: "polaris_ratelimit",
-									},
-								},
-								Timeout: durationpb.New(time.Second),
-							},
-							TransportApiVersion: core.ApiVersion_V3,
-						},
-					}),
-				},
-			},
-		}, hcmFilters...)
-	}
-
-	trafficDirectionName := corev3.TrafficDirection_name[int32(trafficDirection)]
-	manager := &hcm.HttpConnectionManager{
-		CodecType:           hcm.HttpConnectionManager_AUTO,
-		StatPrefix:          trafficDirectionName + "_HTTP",
-		RouteSpecifier:      routeSpecifier(trafficDirection),
-		AccessLog:           accessLog(),
-		HttpFilters:         hcmFilters,
-		HttpProtocolOptions: &core.Http1ProtocolOptions{AcceptHttp_10: true},
-	}
-	return manager
-}
-
-func MakeGatewayBoundHCM() *hcm.HttpConnectionManager {
-	hcmFilters := []*hcm.HttpFilter{
+func makeRateLimitHCMFilter(svcKey model.ServiceKey) []*hcm.HttpFilter {
+	return []*hcm.HttpFilter{
 		{
 			Name: "envoy.filters.http.local_ratelimit",
 			ConfigType: &hcm.HttpFilter_TypedConfig{
 				TypedConfig: MustNewAny(&lrl.LocalRateLimit{
 					StatPrefix: "http_local_rate_limiter",
+					Stage:      LocalRateLimitStage,
 				}),
+			},
+		},
+		{
+			Name: "envoy.filters.http.ratelimit",
+			ConfigType: &hcm.HttpFilter_TypedConfig{
+				TypedConfig: MustNewAny(&ratelimitfilter.RateLimit{
+					Domain:      fmt.Sprintf("%s.%s", svcKey.Name, svcKey.Namespace),
+					Stage:       DistributedRateLimitStage,
+					RequestType: "external",
+					Timeout:     durationpb.New(2 * time.Second),
+					RateLimitService: &ratelimitconfv3.RateLimitServiceConfig{
+						GrpcService: &corev3.GrpcService{
+							TargetSpecifier: &corev3.GrpcService_EnvoyGrpc_{
+								EnvoyGrpc: &corev3.GrpcService_EnvoyGrpc{
+									ClusterName: "polaris_ratelimit",
+								},
+							},
+							Timeout: durationpb.New(time.Second),
+						},
+						TransportApiVersion: core.ApiVersion_V3,
+					},
+				}),
+			},
+		},
+	}
+}
+
+func makeSidecarOnDemandHCMFilter(option *BuildOption) []*hcm.HttpFilter {
+	return []*hcm.HttpFilter{
+		// {
+		// 	// 这个插件用于改写所有的 envoy 请求，手动添加一个内置的专门用于 ODCDS 的简单 Lua 脚本
+		// 	Name: wellknown.Lua,
+		// 	ConfigType: &hcm.HttpFilter_TypedConfig{
+		// 		TypedConfig: MustNewAny(&luav3.Lua{
+		// 			DefaultSourceCode: &corev3.DataSource{
+		// 				Specifier: &corev3.DataSource_InlineString{
+		// 					InlineString: odcdsLuaCode,
+		// 				},
+		// 			},
+		// 		}),
+		// 	},
+		// },
+		{
+			Name: "envoy.filters.http.on_demand",
+			ConfigType: &hcm.HttpFilter_TypedConfig{
+				TypedConfig: MustNewAny(&on_demandv3.OnDemand{}),
 			},
 		},
 		{
@@ -748,6 +732,63 @@ func MakeGatewayBoundHCM() *hcm.HttpConnectionManager {
 			},
 		},
 	}
+}
+
+func MakeSidecarOnDemandOutBoundHCM(svcKey model.ServiceKey, option *BuildOption) *hcm.HttpConnectionManager {
+
+	hcmFilters := makeSidecarOnDemandHCMFilter(option)
+
+	manager := &hcm.HttpConnectionManager{
+		CodecType:           hcm.HttpConnectionManager_AUTO,
+		StatPrefix:          corev3.TrafficDirection_name[int32(corev3.TrafficDirection_OUTBOUND)] + "_HTTP",
+		RouteSpecifier:      routeSpecifier(core.TrafficDirection_OUTBOUND),
+		AccessLog:           accessLog(),
+		HttpFilters:         hcmFilters,
+		HttpProtocolOptions: &core.Http1ProtocolOptions{AcceptHttp_10: true},
+	}
+	return manager
+}
+
+func MakeSidecarBoundHCM(svcKey model.ServiceKey, trafficDirection corev3.TrafficDirection) *hcm.HttpConnectionManager {
+	hcmFilters := []*hcm.HttpFilter{}
+	hcmFilters = append(hcmFilters, &hcm.HttpFilter{
+		Name: wellknown.Router,
+		ConfigType: &hcm.HttpFilter_TypedConfig{
+			TypedConfig: MustNewAny(&routerv3.Router{}),
+		},
+	})
+	if trafficDirection == corev3.TrafficDirection_INBOUND {
+		hcmFilters = append(makeRateLimitHCMFilter(svcKey), hcmFilters...)
+	}
+
+	trafficDirectionName := corev3.TrafficDirection_name[int32(trafficDirection)]
+	manager := &hcm.HttpConnectionManager{
+		CodecType:            hcm.HttpConnectionManager_AUTO,
+		StatPrefix:           trafficDirectionName + "_HTTP",
+		RouteSpecifier:       routeSpecifier(trafficDirection),
+		AccessLog:            accessLog(),
+		HttpFilters:          hcmFilters,
+		HttpProtocolOptions:  &core.Http1ProtocolOptions{AcceptHttp_10: true},
+		Http2ProtocolOptions: &corev3.Http2ProtocolOptions{},
+		Http3ProtocolOptions: &corev3.Http3ProtocolOptions{},
+	}
+
+	// 重写 RouteSpecifier 的路由规则数据信息
+	if trafficDirection == core.TrafficDirection_INBOUND {
+		manager.GetRds().RouteConfigName = MakeInBoundRouteConfigName(svcKey)
+	}
+
+	return manager
+}
+
+func MakeGatewayBoundHCM(svcKey model.ServiceKey) *hcm.HttpConnectionManager {
+	hcmFilters := makeRateLimitHCMFilter(svcKey)
+	hcmFilters = append(hcmFilters, &hcm.HttpFilter{
+		Name: wellknown.Router,
+		ConfigType: &hcm.HttpFilter_TypedConfig{
+			TypedConfig: MustNewAny(&routerv3.Router{}),
+		},
+	})
 	trafficDirectionName := corev3.TrafficDirection_name[int32(corev3.TrafficDirection_INBOUND)]
 	manager := &hcm.HttpConnectionManager{
 		CodecType:           hcm.HttpConnectionManager_AUTO,
@@ -866,14 +907,12 @@ func MakeSidecarLocalRateLimit(rateLimitCache types.RateLimitCache,
 
 // Translate the circuit breaker configuration of Polaris into OutlierDetection
 func MakeOutlierDetection(serviceInfo *ServiceInfo) *cluster.OutlierDetection {
-	log.Infof("XDS][Sidecar] makeOutlierDetection service: %v enter", serviceInfo.Name)
 	circuitBreaker := serviceInfo.CircuitBreaker
 	if circuitBreaker == nil || len(circuitBreaker.Rules) == 0 {
 		return nil
 	}
 	var rule *apifault.CircuitBreakerRule
 	for _, item := range circuitBreaker.Rules {
-		log.Infof("[XDS][Sidecar] makeOutlierDetection rule: %+v", item)
 		if item.Level == apifault.Level_INSTANCE {
 			rule = item
 			break
@@ -902,13 +941,11 @@ func MakeOutlierDetection(serviceInfo *ServiceInfo) *cluster.OutlierDetection {
 
 // Translate the FaultDetector configuration of Polaris into HealthCheck
 func MakeHealthCheck(serviceInfo *ServiceInfo) []*core.HealthCheck {
-	log.Infof("XDS][Sidecar] makeHealthCheck service: %v enter", serviceInfo.Name)
 	if serviceInfo.FaultDetect == nil || len(serviceInfo.FaultDetect.Rules) == 0 {
 		return nil
 	}
 	var healthChecks []*core.HealthCheck
 	for _, rule := range serviceInfo.FaultDetect.Rules {
-		log.Infof("[XDS][Sidecar] makeHealthCheck name: %v,  rule: %+v", rule.Name, rule)
 		healthCheck := &core.HealthCheck{
 			Timeout:            durationpb.New(time.Duration(rule.GetTimeout()) * time.Second),
 			Interval:           durationpb.New(time.Duration(rule.GetInterval()) * time.Second),

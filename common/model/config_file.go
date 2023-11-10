@@ -62,6 +62,10 @@ type ConfigFileKey struct {
 	Group     string
 }
 
+func (c ConfigFileKey) String() string {
+	return c.Namespace + "@" + c.Group + "@" + c.Name
+}
+
 // ConfigFile 配置文件数据持久化对象
 type ConfigFile struct {
 	Id        uint64
@@ -145,7 +149,7 @@ func (c ConfigFileReleaseKey) ToFileKey() *ConfigFileKey {
 	}
 }
 
-func (c ConfigFileReleaseKey) OwnerKey() string {
+func (c *ConfigFileReleaseKey) OwnerKey() string {
 	return c.Namespace + "@" + c.Group
 }
 
@@ -155,6 +159,13 @@ func (c ConfigFileReleaseKey) ActiveKey() string {
 
 func (c ConfigFileReleaseKey) ReleaseKey() string {
 	return fmt.Sprintf("%v@%v@%v@%v", c.Namespace, c.Group, c.FileName, c.Name)
+}
+
+// BuildKeyForClientConfigFileInfo 必须保证和 ConfigFileReleaseKey 是一样的生成规则
+func BuildKeyForClientConfigFileInfo(info *config_manage.ClientConfigFileInfo) string {
+	key := info.GetNamespace().GetValue() + "@" +
+		info.GetGroup().GetValue() + "@" + info.GetFileName().GetValue()
+	return key
 }
 
 // SimpleConfigFileRelease 配置文件发布数据持久化对象
@@ -175,16 +186,27 @@ type SimpleConfigFileRelease struct {
 	ReleaseDescription string
 }
 
-func (s SimpleConfigFileRelease) GetEncryptDataKey() string {
+func (s *SimpleConfigFileRelease) GetEncryptDataKey() string {
 	return s.Metadata[utils.ConfigFileTagKeyDataKey]
 }
 
-func (s SimpleConfigFileRelease) GetEncryptAlgo() string {
+func (s *SimpleConfigFileRelease) GetEncryptAlgo() string {
 	return s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
 }
 
-func (s SimpleConfigFileRelease) IsEncrypted() bool {
+func (s *SimpleConfigFileRelease) IsEncrypted() bool {
 	return s.GetEncryptDataKey() != ""
+}
+
+func (s *SimpleConfigFileRelease) ToSpecNotifyClientRequest() *config_manage.ClientConfigFileInfo {
+	return &config_manage.ClientConfigFileInfo{
+		Namespace: utils.NewStringValue(s.Namespace),
+		Group:     utils.NewStringValue(s.Group),
+		FileName:  utils.NewStringValue(s.FileName),
+		Name:      utils.NewStringValue(s.Name),
+		Md5:       utils.NewStringValue(s.Md5),
+		Version:   utils.NewUInt64Value(s.Version),
+	}
 }
 
 // ConfigFileReleaseHistory 配置文件发布历史记录数据持久化对象
@@ -440,7 +462,7 @@ func FromTagMap(kvs map[string]string) []*config_manage.ConfigFileTag {
 func ToTagMap(tags []*config_manage.ConfigFileTag) map[string]string {
 	kvs := map[string]string{}
 	for i := range tags {
-		kvs[tags[i].GetKey().GetValue()] = tags[i].GetKey().GetValue()
+		kvs[tags[i].GetKey().GetValue()] = tags[i].GetValue().GetValue()
 	}
 
 	return kvs

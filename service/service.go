@@ -952,11 +952,11 @@ func checkCreateService(req *apiservice.Service) *apiservice.Response {
 		return api.NewServiceResponse(apimodel.Code_EmptyRequest, req)
 	}
 
-	if err := checkResourceName(req.GetName()); err != nil {
+	if err := utils.CheckResourceName(req.GetName()); err != nil {
 		return api.NewServiceResponse(apimodel.Code_InvalidServiceName, req)
 	}
 
-	if err := checkResourceName(req.GetNamespace()); err != nil {
+	if err := utils.CheckResourceName(req.GetNamespace()); err != nil {
 		return api.NewServiceResponse(apimodel.Code_InvalidNamespaceName, req)
 	}
 
@@ -979,11 +979,11 @@ func checkReviseService(req *apiservice.Service) *apiservice.Response {
 		return api.NewServiceResponse(apimodel.Code_EmptyRequest, req)
 	}
 
-	if err := checkResourceName(req.GetName()); err != nil {
+	if err := utils.CheckResourceName(req.GetName()); err != nil {
 		return api.NewServiceResponse(apimodel.Code_InvalidServiceName, req)
 	}
 
-	if err := checkResourceName(req.GetNamespace()); err != nil {
+	if err := utils.CheckResourceName(req.GetNamespace()); err != nil {
 		return api.NewServiceResponse(apimodel.Code_InvalidNamespaceName, req)
 	}
 
@@ -998,11 +998,10 @@ func checkReviseService(req *apiservice.Service) *apiservice.Response {
 
 // wrapperServiceStoreResponse wrapper service error
 func wrapperServiceStoreResponse(service *apiservice.Service, err error) *apiservice.Response {
-	resp := storeError2Response(err)
-	if resp == nil {
+	if err == nil {
 		return nil
 	}
-
+	resp := api.NewResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	resp.Service = service
 	return resp
 }

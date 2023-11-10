@@ -235,7 +235,7 @@ func (ctrl *InstanceCtrl) mainLoop(ctx context.Context) {
 // 从chan中获取数据，直接写数据库
 // 每次写完，设置协程为空闲
 func (ctrl *InstanceCtrl) storeWorker(ctx context.Context, index int) {
-	log.Infof("[Batch] %s worker(%d) running in main loop", ctrl.label, index)
+	log.Debugf("[Batch] %s worker(%d) running in main loop", ctrl.label, index)
 	// store协程启动，先把自己注册到idle中
 	ctrl.idleStoreThread <- index
 	// 主循环

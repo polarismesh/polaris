@@ -24,6 +24,7 @@ import (
 	"time"
 
 	types "github.com/polarismesh/polaris/cache/api"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -38,8 +39,9 @@ const (
 
 // CacheManager 名字服务缓存
 type CacheManager struct {
-	storage store.Store
-	caches  []types.Cache
+	storage  store.Store
+	caches   []types.Cache
+	needLoad *utils.SyncSet[string]
 }
 
 // Initialize 缓存对象初始化
@@ -50,10 +52,14 @@ func (nc *CacheManager) Initialize() error {
 	if types.DefaultTimeDiff > 0 {
 		return fmt.Errorf("cache diff time to pull store must negative number: %+v", types.DefaultTimeDiff)
 	}
+	return nil
+}
 
+// OpenResourceCache 开启资源缓存
+func (nc *CacheManager) OpenResourceCache(entries ...ConfigEntry) error {
 	for _, obj := range nc.caches {
 		var entryItem *ConfigEntry
-		for _, entry := range config.Resources {
+		for _, entry := range entries {
 			if obj.Name() == entry.Name {
 				entryItem = &entry
 				break
@@ -65,18 +71,20 @@ func (nc *CacheManager) Initialize() error {
 		if err := obj.Initialize(entryItem.Option); err != nil {
 			return err
 		}
+		nc.needLoad.Add(entryItem.Name)
 	}
-
 	return nil
 }
 
 // update 缓存更新
 func (nc *CacheManager) update() error {
 	var wg sync.WaitGroup
-	for _, entry := range config.Resources {
-		index, exist := cacheSet[entry.Name]
+	entries := nc.needLoad.ToSlice()
+	for i := range entries {
+		name := entries[i]
+		index, exist := cacheSet[name]
 		if !exist {
-			return fmt.Errorf("cache resource %s not exists", entry.Name)
+			return fmt.Errorf("cache resource %s not exists", name)
 		}
 		wg.Add(1)
 		go func(c types.Cache) {

@@ -46,10 +46,10 @@ func (s *Server) PublishConfigFile(ctx context.Context, req *apiconfig.ConfigFil
 	if err := CheckFileName(req.GetFileName()); err != nil {
 		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileName)
 	}
-	if err := CheckResourceName(req.GetNamespace()); err != nil {
+	if err := utils.CheckResourceName(req.GetNamespace()); err != nil {
 		return api.NewConfigResponse(apimodel.Code_InvalidNamespaceName)
 	}
-	if err := CheckResourceName(req.GetGroup()); err != nil {
+	if err := utils.CheckResourceName(req.GetGroup()); err != nil {
 		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileGroupName)
 	}
 	if !s.checkNamespaceExisted(req.GetNamespace().GetValue()) {

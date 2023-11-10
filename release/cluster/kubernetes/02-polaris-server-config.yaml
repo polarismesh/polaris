@@ -340,29 +340,6 @@ data:
         #     msgTimeout: 200ms
         #     concurrency: 200
         #     withTLS: false
-    # 缓存配置
-    cache:
-      open: true
-      resources:
-        - name: service # Load service data
-          option:
-            disableBusiness: false # Do not load business services
-            needMeta: true # Load service metadata
-        - name: instance # Load instance data
-          option:
-            disableBusiness: false # Do not load business service examples
-            needMeta: true # Load instance metadata
-        - name: routingConfig # Load route data
-        - name: rateLimitConfig # Load current limit data
-        - name: circuitBreakerConfig # Load the fuse data
-        - name: users # Load user and user group data
-        - name: strategyRule # Loading the rules of appraisal
-        - name: namespace # Load the naming space data
-        - name: client # Load Client-SDK instance data
-        - name: configFile
-        - name: configGroup
-        - name: faultDetectRule
-    #    - name: l5 # 加载l5数据
     # Maintain configuration
     maintain:
       jobs:

@@ -77,20 +77,34 @@ func newGroupTest(t *testing.T) *GroupTest {
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(append(users, newUsers...), nil)
 	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(allGroups, nil)
 
-	cfg := &cache.Config{
-		Open: true,
-		Resources: []cache.ConfigEntry{
-			{
-				Name: "users",
-			},
-		},
-	}
+	cfg := &cache.Config{}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cacheMgn, err := cache.TestCacheInitialize(ctx, cfg, storage)
 	if err != nil {
 		t.Error(err)
 	}
+	cacheMgn.OpenResourceCache([]cache.ConfigEntry{
+		{
+			Name: "service",
+			Option: map[string]interface{}{
+				"disableBusiness": false,
+				"needMeta":        true,
+			},
+		},
+		{
+			Name: "instance",
+		},
+		{
+			Name: "users",
+		},
+		{
+			Name: "strategyRule",
+		},
+		{
+			Name: "namespace",
+		},
+	}...)
 	t.Cleanup(func() {
 		_ = cacheMgn.Close()
 	})

@@ -135,6 +135,7 @@ func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cac
 		return nil
 	}
 
+	cacheMgn.OpenResourceCache(configCacheEntries...)
 	err := originServer.initialize(ctx, config, s, namespaceOperator, cacheMgn)
 	if err != nil {
 		return err
@@ -147,9 +148,7 @@ func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cac
 
 func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	namespaceOperator namespace.NamespaceOperateServer, cacheMgn *cache.CacheManager) error {
-
 	var err error
-
 	s.cfg = &config
 	if s.cfg.ContentMaxLength <= 0 {
 		s.cfg.ContentMaxLength = fileContentMaxLength
@@ -160,7 +159,7 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	s.groupCache = cacheMgn.ConfigGroup()
 	s.grayCache = cacheMgn.Gray()
 
-	s.watchCenter, err = NewWatchCenter()
+	s.watchCenter, err = NewWatchCenter(cacheMgn.ConfigFile())
 	if err != nil {
 		return err
 	}

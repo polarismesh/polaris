@@ -114,6 +114,9 @@ func (h *HTTPServerV1) addDefaultReadAccess(ws *restful.WebService) {
 	ws.Route(docs.EnrichGetCircuitBreakerRulesApiDocs(ws.GET("/circuitbreaker/rules").To(h.GetCircuitBreakerRules)))
 	ws.Route(docs.EnrichGetFaultDetectRulesApiDocs(ws.GET("/faultdetectors").To(h.GetFaultDetectRules)))
 
+	ws.Route(docs.EnrichGetServiceContractsApiDocs(ws.GET("/service/contracts").To(h.GetServiceContracts)))
+	ws.Route(docs.EnrichGetServiceContractsApiDocs(ws.GET("/service/contract/versions").To(h.GetServiceContractVersions)))
+
 	// Deprecate -- start
 	ws.Route(ws.GET("/namespace/token").To(h.GetNamespaceToken))
 	ws.Route(ws.GET("/service/token").To(h.GetServiceToken))
@@ -169,6 +172,15 @@ func (h *HTTPServerV1) addServiceAccess(ws *restful.WebService) {
 	ws.Route(docs.EnrichGetInstancesApiDocs(ws.GET("/instances").To(h.GetInstances)))
 	ws.Route(docs.EnrichGetInstancesCountApiDocs(ws.GET("/instances/count").To(h.GetInstancesCount)))
 	ws.Route(docs.EnrichGetInstanceLabelsApiDocs(ws.GET("/instances/labels").To(h.GetInstanceLabels)))
+
+	// 服务契约相关
+	ws.Route(docs.EnrichCreateServiceContractsApiDocs(ws.POST("/service/contracts").To(h.CreateServiceContract)))
+	ws.Route(docs.EnrichGetServiceContractsApiDocs(ws.GET("/service/contracts").To(h.GetServiceContracts)))
+	ws.Route(docs.EnrichDeleteServiceContractsApiDocs(ws.POST("/service/contracts/delete").To(h.DeleteServiceContracts)))
+	ws.Route(docs.EnrichGetServiceContractsApiDocs(ws.GET("/service/contract/versions").To(h.GetServiceContractVersions)))
+	ws.Route(docs.EnrichAddServiceContractInterfacesApiDocs(ws.POST("/service/contract/methods").To(h.CreateServiceContractInterfaces)))
+	ws.Route(docs.EnrichAppendServiceContractInterfacesApiDocs(ws.PUT("/service/contract/methods/append").To(h.AppendServiceContractInterfaces)))
+	ws.Route(docs.EnrichDeleteServiceContractsApiDocs(ws.POST("/service/contract/methods/delete").To(h.DeleteServiceContractInterfaces)))
 
 	ws.Route(ws.POST("/service/owner").To(h.GetServiceOwner))
 }

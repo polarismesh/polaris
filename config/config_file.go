@@ -253,6 +253,8 @@ func (s *Server) DeleteConfigFile(ctx context.Context, req *apiconfig.ConfigFile
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 	if file == nil {
+		log.Info("[Config][File] delete config file not found, so skip.", utils.RequestID(ctx),
+			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
 		return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
 	}
 	// 1. 删除配置文件发布内容
@@ -367,7 +369,7 @@ func (s *Server) ExportConfigFile(ctx context.Context,
 		names = append(names, name.GetValue())
 	}
 	// 检查参数
-	if err := CheckResourceName(configFileExport.Namespace); err != nil {
+	if err := utils.CheckResourceName(configFileExport.Namespace); err != nil {
 		return api.NewConfigFileExportResponse(apimodel.Code_InvalidNamespaceName, nil)
 	}
 	var (
@@ -529,7 +531,7 @@ func (s *Server) checkConfigFileParams(configFile *apiconfig.ConfigFile) *apicon
 	if err := CheckFileName(configFile.Name); err != nil {
 		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileName, configFile)
 	}
-	if err := CheckResourceName(configFile.Namespace); err != nil {
+	if err := utils.CheckResourceName(configFile.Namespace); err != nil {
 		return api.NewConfigFileResponse(apimodel.Code_InvalidNamespaceName, configFile)
 	}
 	if err := CheckContentLength(configFile.Content.GetValue(), int(s.cfg.ContentMaxLength)); err != nil {

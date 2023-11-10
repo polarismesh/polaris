@@ -18,12 +18,56 @@
 package resource
 
 import (
+	"os"
+
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	resourcev3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
 	"github.com/polarismesh/polaris/common/model"
+)
+
+const (
+	PassthroughClusterName  = "PassthroughCluster"
+	RouteConfigName         = "polaris-router"
+	OutBoundRouteConfigName = "polaris-outbound-router"
+	InBoundRouteConfigName  = "polaris-inbound-cluster"
+	OdcdsRouteConfigName    = "polaris-odcds-router"
+	InternalOdcdsHeader     = "internal-service-cluster"
+)
+
+const (
+	// LocalRateLimitStage envoy local ratelimit stage
+	LocalRateLimitStage = 0
+	// DistributedRateLimitStage envoy remote ratelimit stage
+	DistributedRateLimitStage = 1
+)
+
+var (
+	defaultOdcdsLuaScriptFile string = "./conf/xds/envoy_lua/odcds.lua"
+)
+
+var (
+	odcdsLuaCode string
+)
+
+func Init() {
+	if val := os.Getenv("ENVOY_ODCDS_LUA_SCRIPT"); val != "" {
+		defaultOdcdsLuaScriptFile = val
+	}
+	code, _ := os.ReadFile(defaultOdcdsLuaScriptFile)
+	odcdsLuaCode = string(code)
+	log.Infof("[XDSV3][ODCDS] lua script path :%s content\n%s\n", defaultOdcdsLuaScriptFile, odcdsLuaCode)
+}
+
+var (
+	TrafficBoundRoute = map[corev3.TrafficDirection]string{
+		corev3.TrafficDirection_INBOUND:  InBoundRouteConfigName,
+		corev3.TrafficDirection_OUTBOUND: OutBoundRouteConfigName,
+	}
 )
 
 type XDSType int16
@@ -36,7 +80,52 @@ const (
 	CDS
 	RLS
 	SDS
+	VHDS
 )
+
+func (x XDSType) ResourceType() resourcev3.Type {
+	if x == LDS {
+		return resourcev3.ListenerType
+	}
+	if x == RDS {
+		return resourcev3.RouteType
+	}
+	if x == EDS {
+		return resourcev3.EndpointType
+	}
+	if x == CDS {
+		return resourcev3.ClusterType
+	}
+	if x == RLS {
+		return resourcev3.RateLimitConfigType
+	}
+	if x == VHDS {
+		return resourcev3.VirtualHostType
+	}
+	return resourcev3.AnyType
+}
+
+func (x XDSType) String() string {
+	if x == LDS {
+		return resourcev3.ListenerType
+	}
+	if x == RDS {
+		return resourcev3.RouteType
+	}
+	if x == EDS {
+		return resourcev3.EndpointType
+	}
+	if x == CDS {
+		return resourcev3.ClusterType
+	}
+	if x == RLS {
+		return resourcev3.RateLimitConfigType
+	}
+	if x == VHDS {
+		return resourcev3.VirtualHostType
+	}
+	return resourcev3.AnyType
+}
 
 const (
 	K8sDnsResolveSuffixSvc             = ".svc"

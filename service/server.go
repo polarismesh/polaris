@@ -37,6 +37,8 @@ import (
 
 // Server 对接API层的server层，用以处理业务逻辑
 type Server struct {
+	config Config
+
 	storage store.Store
 
 	namespaceSvr namespace.NamespaceOperateServer
@@ -56,6 +58,17 @@ type Server struct {
 
 	hooks   []ResourceHook
 	subCtxs []*eventhub.SubscribtionContext
+
+	// instanceChains 实例信息变化回调
+	instanceChains []InstanceChain
+}
+
+func (s *Server) isSupportL5() bool {
+	return s.config.L5Open
+}
+
+func (s *Server) allowAutoCreate() bool {
+	return s.config.AutoCreate
 }
 
 // HealthServer 健康检查Server
@@ -95,6 +108,11 @@ func (s *Server) RecordHistory(ctx context.Context, entry *model.RecordEntry) {
 	}
 	// 调用插件记录history
 	s.history.Record(entry)
+}
+
+// AddInstanceChain not thread safe
+func (s *Server) AddInstanceChain(chain ...InstanceChain) {
+	s.instanceChains = append(s.instanceChains, chain...)
 }
 
 // GetServiceInstanceRevision 获取服务实例的revision

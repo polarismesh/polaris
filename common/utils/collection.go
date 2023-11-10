@@ -18,7 +18,10 @@
 // Package utils contains common utility functions
 package utils
 
-import "sync"
+import (
+	"encoding/json"
+	"sync"
+)
 
 // NewSet returns a new Set
 func NewSet[K comparable]() *Set[K] {
@@ -121,6 +124,12 @@ func (set *SyncSet[K]) Contains(val K) bool {
 
 	_, exist := set.container[val]
 	return exist
+}
+
+func (set *SyncSet[K]) String() string {
+	ret := set.ToSlice()
+	data, _ := json.Marshal(ret)
+	return string(data)
 }
 
 func NewSegmentMap[K comparable, V any](soltNum int, hashFunc func(k K) int) *SegmentMap[K, V] {
@@ -315,11 +324,13 @@ func (s *SyncMap[K, V]) ReadRange(f func(key K, val V)) {
 }
 
 // Delete
-func (s *SyncMap[K, V]) Delete(key K) {
+func (s *SyncMap[K, V]) Delete(key K) (V, bool) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
+	v, exist := s.m[key]
 	delete(s.m, key)
+	return v, exist
 }
 
 // Len
@@ -328,6 +339,17 @@ func (s *SyncMap[K, V]) Len() int {
 	defer s.lock.RUnlock()
 
 	return len(s.m)
+}
+
+func (s *SyncMap[K, V]) ToMap() map[K]V {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	m := map[K]V{}
+	for k, v := range s.m {
+		m[k] = v
+	}
+	return m
 }
 
 // NewMap
@@ -368,4 +390,13 @@ func (s *Map[K, V]) Delete(key K) {
 // Len
 func (s *Map[K, V]) Len() int {
 	return len(s.m)
+}
+
+// Values .
+func (s *Map[K, V]) Values() []V {
+	ret := make([]V, 0, s.Len())
+	for _, v := range s.m {
+		ret = append(ret, v)
+	}
+	return ret
 }

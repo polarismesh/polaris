@@ -144,3 +144,8 @@ func WithQueueSize(size int) SubOption {
 		s.QueueSize = size
 	}
 }
+
+// PublishOption .
+type PublishOption struct {
+	WaitHaveSub bool
+}

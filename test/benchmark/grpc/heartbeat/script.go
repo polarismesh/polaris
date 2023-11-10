@@ -47,7 +47,7 @@ var (
 	GRPCPort, _ = strconv.ParseInt(os.Getenv("SERVER_PORT"), 10, 64)
 	// HttpPort 北极星服务端接入地址 HTTP 协议端口，默认为 8090
 	HttpPort, _ = strconv.ParseInt(os.Getenv("SERVER_PORT"), 10, 64)
-	// RunMode 运行模式，内容为 VERIFY(验证模式)/BENCHMARK(压测模式)
+	// RunMode 运行模式，内容为 VERIFY(验证模式)/BENCHMARK(压测模式)/ALL(同时执行验证模式+压测模式)
 	RunMode = os.Getenv("RUN_MODE")
 	// Service 服务名
 	Service = os.Getenv("SERVICE")
@@ -82,6 +82,7 @@ const (
 	defaultNamesapce     = "benchmark"
 	metricsPort          = 9090
 	defaultCheckInterval = time.Minute
+	defaultPorIP         = "172.0.0.1"
 )
 
 func setDefault() {
@@ -109,6 +110,12 @@ func setDefault() {
 	if CheckInterval == 0 {
 		CheckInterval = defaultCheckInterval
 	}
+	if PodIP == "" {
+		PodIP = defaultPorIP
+	}
+	if BeatInterval == 0 {
+		BeatInterval = 1
+	}
 	log.Printf("run_mode(%s)", RunMode)
 	log.Printf("server_addr(%s)", ServerAddr)
 	log.Printf("grpc_port(%d)", GRPCPort)
@@ -116,7 +123,9 @@ func setDefault() {
 	log.Printf("namespace(%s)", Namespace)
 	log.Printf("service(%s)", Service)
 	log.Printf("base_port(%d)", BasePort)
+	log.Printf("pod_ip(%s)", PodIP)
 	log.Printf("port_num(%d)", PortNum)
+	log.Printf("beat_interval(%+v)", BeatInterval)
 	log.Printf("check_interval(%v)", CheckInterval)
 }
 
@@ -125,6 +134,11 @@ func setMetrics() {
 }
 
 func main() {
+	f, err := os.Create("./health_check.log")
+	if err != nil {
+		panic(err)
+	}
+	log.SetOutput(f)
 	setDefault()
 	setMetrics()
 	switch strings.ToLower(RunMode) {
@@ -132,8 +146,11 @@ func main() {
 		go runVerifyMode()
 	case "benchmark":
 		go runBenchmarkMode()
+	case "all":
+		go runVerifyMode()
+		go runBenchmarkMode()
 	default:
-		panic("unknown run mode, please export RUN_MODE=verify or RUN_MODE=benchmark")
+		panic("unknown run mode, please export RUN_MODE=verify or RUN_MODE=benchmark or RUN_MODE=all")
 	}
 	go func() {
 		_ = http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", metricsPort),
@@ -143,6 +160,7 @@ func main() {
 }
 
 func runVerifyMode() {
+	log.Printf("[INFO] start run verify task")
 	ticker := time.NewTicker(CheckInterval)
 
 	checkInstanceHealth := func() {
@@ -175,35 +193,45 @@ func runVerifyMode() {
 			log.Printf("[ERROR] receive discover resp fail: %s", discoverRsp.GetInfo().GetValue())
 			return
 		}
+		unHealthCount := 0
 		// 检查实例健康状态
-	}
-
-	checkInstanceBeatTimestamp := func() {
-
+		instances := discoverRsp.GetInstances()
+		for i := range instances {
+			isHealth := instances[i].GetHealthy().GetValue()
+			if !isHealth {
+				unHealthCount++
+			}
+		}
+		if unHealthCount > 0 {
+			log.Printf("[ERROR] total instance unhealthy: %d", unHealthCount)
+		} else {
+			log.Printf("[INFO] all instance is healthy, you are luckly")
+		}
 	}
 
 	for {
 		select {
 		case <-ticker.C:
 			checkInstanceHealth()
-			checkInstanceBeatTimestamp()
 		}
 	}
 }
 
 func runBenchmarkMode() {
-	conn, err := grpc.DialContext(context.Background(), fmt.Sprintf("%s:%d", ServerAddr, GRPCPort),
-		grpc.WithBlock(),
-		grpc.WithInsecure(),
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	client := service_manage.NewPolarisGRPCClient(conn)
-
+	log.Printf("[INFO] start run benchmark task")
 	// 先注册
 	for i := 0; i < int(PortNum); i++ {
+		// 每个 Port 对应一个 Grpc Connection
+		conn, err := grpc.DialContext(context.Background(), fmt.Sprintf("%s:%d", ServerAddr, GRPCPort),
+			grpc.WithBlock(),
+			grpc.WithInsecure(),
+		)
+		if err != nil {
+			panic(err)
+		}
+
+		client := service_manage.NewPolarisGRPCClient(conn)
+
 		instance := &service_manage.Instance{
 			Namespace:         wrapperspb.String(Namespace),
 			Service:           wrapperspb.String(Service),
@@ -225,7 +253,7 @@ func runBenchmarkMode() {
 		if resp.GetCode().GetValue() != uint32(model.Code_ExecuteSuccess) {
 			panic(resp.GetInfo().GetValue())
 		}
-		log.Printf("[INFO] instance register success id: %s", instance.GetId().GetValue())
+		log.Printf("[INFO] instance register success id: %s", resp.GetInstance().GetId().GetValue())
 		instance.Id = resp.GetInstance().GetId()
 		go func(instance *service_manage.Instance) {
 			ticker := time.NewTicker(time.Duration(BeatInterval) * time.Second)

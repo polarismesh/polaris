@@ -57,8 +57,9 @@ var (
 
 // Config 核心逻辑层配置
 type Config struct {
-	Auth  map[string]interface{} `yaml:"auth"`
-	Batch map[string]interface{} `yaml:"batch"`
+	L5Open     bool                   `yaml:"l5Open"`
+	AutoCreate bool                   `yaml:"autoCreate"`
+	Batch      map[string]interface{} `yaml:"batch"`
 }
 
 // Initialize 初始化
@@ -97,7 +98,9 @@ func GetOriginServer() (*Server, error) {
 // 内部初始化函数
 func initialize(ctx context.Context, namingOpt *Config, opts ...InitOption) error {
 	// l5service
+	namingServer.config = *namingOpt
 	namingServer.l5service = &l5service{}
+	namingServer.instanceChains = make([]InstanceChain, 0, 4)
 	namingServer.createServiceSingle = &singleflight.Group{}
 	namingServer.subCtxs = make([]*eventhub.SubscribtionContext, 0, 4)
 
@@ -118,7 +121,6 @@ func initialize(ctx context.Context, namingOpt *Config, opts ...InitOption) erro
 	}
 
 	server = newServerAuthAbility(namingServer, userMgn, strategyMgn)
-
 	return nil
 }
 

@@ -37,35 +37,36 @@ func TestCacheManager_Start(t *testing.T) {
 	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 	defer ctl.Finish()
 
-	conf := &cache.Config{
-		Open: true,
-		Resources: []cache.ConfigEntry{
-			{
-				Name: "service",
-			},
-			{
-				Name: "instance",
-			},
-			{
-				Name: "routingConfig",
-			},
-			{
-				Name: "rateLimitConfig",
-			},
-			{
-				Name: "circuitBreakerConfig",
-			},
-			{
-				Name: "l5",
-			},
+	conf := &cache.Config{}
+	entries := []cache.ConfigEntry{
+		{
+			Name: "service",
+		},
+		{
+			Name: "instance",
+		},
+		{
+			Name: "routingConfig",
+		},
+		{
+			Name: "rateLimitConfig",
+		},
+		{
+			Name: "circuitBreakerConfig",
+		},
+		{
+			Name: "l5",
 		},
 	}
 	cache.SetCacheConfig(conf)
 
 	t.Run("测试正常的更新缓存逻辑", func(t *testing.T) {
-		c, err := cache.TestCacheInitialize(context.Background(), &cache.Config{Open: true}, storage)
+		c, err := cache.TestCacheInitialize(context.Background(), &cache.Config{}, storage)
 		assert.Nil(t, err)
 		assert.NotNil(t, c)
+		err = c.OpenResourceCache(entries...)
+		assert.NotNil(t, c)
+		time.Sleep(time.Second)
 		beg := time.Unix(0, 0).Add(types.DefaultTimeDiff)
 		storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 		storage.EXPECT().GetMoreInstances(gomock.Any(), beg, true, false, nil).Return(nil, nil).MaxTimes(1)

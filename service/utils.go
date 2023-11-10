@@ -20,7 +20,6 @@ package service
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -98,26 +97,6 @@ const (
 	ParamKeyInstanceId = "instanceId"
 )
 
-// checkResourceName 检查资源Name
-var resourceNameRE = regexp.MustCompile("^[0-9A-Za-z-./:_]+$")
-
-func checkResourceName(name *wrappers.StringValue) error {
-	if name == nil {
-		return errors.New(utils.NilErrString)
-	}
-
-	if len(name.GetValue()) == 0 {
-		return errors.New(utils.EmptyErrString)
-	}
-
-	ok := resourceNameRE.MatchString(name.GetValue())
-	if !ok {
-		return errors.New("name contains invalid character")
-	}
-
-	return nil
-}
-
 // checkInstanceHost 检查服务实例Host
 func checkInstanceHost(host *wrappers.StringValue) error {
 	if host == nil {
@@ -168,14 +147,6 @@ func checkMetadata(meta map[string]string) error {
 	  }*/
 
 	return nil
-}
-
-// storeError2Response store code
-func storeError2Response(err error) *apiservice.Response {
-	if err == nil {
-		return nil
-	}
-	return api.NewResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 }
 
 // storeError2AnyResponse store code

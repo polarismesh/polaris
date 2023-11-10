@@ -211,6 +211,44 @@ func (sc *serviceContractCache) Query(filter map[string]string, offset, limit ui
 	return retVal, total, nil
 }
 
+// ListVersions .
+func (sc *serviceContractCache) ListVersions(searchService, searchNamespace string) []*model.EnrichServiceContract {
+	values := make([]*model.EnrichServiceContract, 0, 64)
+	sc.contracts.Range(func(namespace string, services *utils.SyncMap[string, *utils.SyncMap[string, *model.EnrichServiceContract]]) {
+		if searchNamespace != namespace {
+			return
+		}
+
+		services.Range(func(service string, contracts *utils.SyncMap[string, *model.EnrichServiceContract]) {
+			if searchService != service {
+				return
+			}
+			contracts.Range(func(_ string, val *model.EnrichServiceContract) {
+				values = append(values, &model.EnrichServiceContract{
+					ServiceContract: &model.ServiceContract{
+						ID:         val.ID,
+						Namespace:  val.Namespace,
+						Service:    val.Service,
+						Name:       val.Name,
+						Protocol:   val.Protocol,
+						Version:    val.Version,
+						Revision:   val.Revision,
+						CreateTime: val.CreateTime,
+						ModifyTime: val.ModifyTime,
+					},
+				})
+				return
+			})
+			return
+		})
+		return
+	})
+	sort.Slice(values, func(i, j int) bool {
+		return values[j].ModifyTime.Before(values[i].ModifyTime)
+	})
+	return values
+}
+
 func (sc *serviceContractCache) toPage(values []*model.EnrichServiceContract, offset,
 	limit uint32) ([]*model.EnrichServiceContract, uint32) {
 

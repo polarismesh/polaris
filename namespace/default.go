@@ -26,6 +26,7 @@ import (
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
 )
@@ -57,6 +58,9 @@ func Initialize(ctx context.Context, nsOpt *Config, storage store.Store, cacheMg
 }
 
 func initialize(_ context.Context, nsOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error {
+	cacheMgn.OpenResourceCache(cache.ConfigEntry{
+		Name: cachetypes.NamespaceName,
+	})
 	namespaceServer.caches = cacheMgn
 	namespaceServer.storage = storage
 	namespaceServer.cfg = *nsOpt

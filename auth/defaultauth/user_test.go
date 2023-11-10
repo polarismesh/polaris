@@ -88,21 +88,20 @@ func newUserTest(t *testing.T) *UserTest {
 	storage.EXPECT().UpdateUser(gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().DeleteUser(gomock.Any()).AnyTimes().Return(nil)
 
-	cfg := &cache.Config{
-		Open: true,
-		Resources: []cache.ConfigEntry{
-			{
-				Name: "users",
-			},
-		},
-	}
-
+	cfg := &cache.Config{}
 	ctx, cancel := context.WithCancel(context.Background())
 	cacheMgn, err := cache.TestCacheInitialize(ctx, cfg, storage)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	cacheMgn.OpenResourceCache(
+		[]cache.ConfigEntry{
+			{
+				Name: "users",
+			},
+		}...,
+	)
 	time.Sleep(5 * time.Second)
 
 	checker := &defaultauth.DefaultAuthChecker{}

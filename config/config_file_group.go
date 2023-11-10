@@ -173,10 +173,10 @@ func (s *Server) createConfigFileGroupIfAbsent(ctx context.Context,
 
 // DeleteConfigFileGroup 删除配置文件组
 func (s *Server) DeleteConfigFileGroup(ctx context.Context, namespace, name string) *apiconfig.ConfigResponse {
-	if err := CheckResourceName(utils.NewStringValue(namespace)); err != nil {
+	if err := utils.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
 		return api.NewConfigResponse(apimodel.Code_InvalidNamespaceName)
 	}
-	if err := CheckResourceName(utils.NewStringValue(name)); err != nil {
+	if err := utils.CheckResourceName(utils.NewStringValue(name)); err != nil {
 		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileGroupName)
 	}
 
@@ -297,10 +297,10 @@ func checkConfigFileGroupParams(configFileGroup *apiconfig.ConfigFileGroup) *api
 	if configFileGroup == nil {
 		return api.NewConfigResponse(apimodel.Code_InvalidParameter)
 	}
-	if err := CheckResourceName(configFileGroup.Name); err != nil {
+	if err := utils.CheckResourceName(configFileGroup.Name); err != nil {
 		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileGroupName)
 	}
-	if err := CheckResourceName(configFileGroup.Namespace); err != nil {
+	if err := utils.CheckResourceName(configFileGroup.Namespace); err != nil {
 		return api.NewConfigResponse(apimodel.Code_InvalidNamespaceName)
 	}
 	if len(configFileGroup.GetMetadata()) > utils.MaxMetadataLength {

@@ -164,31 +164,6 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 	}
 }
 
-// Heartbeat 上报心跳
-func (g *DiscoverServer) Heartbeat(ctx context.Context, in *apiservice.Instance) (*apiservice.Response, error) {
-	return g.healthCheckServer.Report(utils.ConvertGRPCContext(ctx), in), nil
-}
-
-// BatchHeartbeat 批量上报心跳
-func (g *DiscoverServer) BatchHeartbeat(svr apiservice.PolarisHeartbeatGRPC_BatchHeartbeatServer) error {
-	ctx := utils.ConvertGRPCContext(svr.Context())
-
-	for {
-		req, err := svr.Recv()
-		if err != nil {
-			if io.EOF == err {
-				return nil
-			}
-			return err
-		}
-
-		_ = g.healthCheckServer.Reports(ctx, req.GetHeartbeats())
-		if err = svr.Send(&apiservice.HeartbeatsResponse{}); err != nil {
-			return err
-		}
-	}
-}
-
 // ParseGrpcOperator 构造请求源
 func ParseGrpcOperator(ctx context.Context) string {
 	// 获取请求源

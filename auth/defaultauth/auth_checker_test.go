@@ -65,18 +65,15 @@ func Test_DefaultAuthChecker_VerifyCredential(t *testing.T) {
 	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return([]*model.UserGroupDetail{}, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	cacheMgn, err := cache.TestCacheInitialize(ctx, &cache.Config{
-		Open: true,
-		Resources: []cache.ConfigEntry{
-			{
-				Name: "users",
-			},
-		},
-	}, storage)
-
+	cacheMgn, err := cache.TestCacheInitialize(ctx, &cache.Config{}, storage)
 	if err != nil {
 		t.Fatal(err)
 	}
+	cacheMgn.OpenResourceCache([]cache.ConfigEntry{
+		{
+			Name: "users",
+		},
+	}...)
 
 	t.Cleanup(func() {
 		cancel()
@@ -1088,19 +1085,16 @@ func Test_DefaultAuthChecker_Initialize(t *testing.T) {
 	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return([]*model.UserGroupDetail{}, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	cacheMgn, err := cache.TestCacheInitialize(ctx, &cache.Config{
-		Open: true,
-		Resources: []cache.ConfigEntry{
-			{
-				Name: "users",
-			},
-		},
-	}, storage)
-
+	cacheMgn, err := cache.TestCacheInitialize(ctx, &cache.Config{}, storage)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	cacheMgn.OpenResourceCache([]cache.ConfigEntry{
+		{
+			Name: "users",
+		},
+	}...)
 	t.Cleanup(func() {
 		cancel()
 		cacheMgn.Close()
