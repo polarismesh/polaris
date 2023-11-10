@@ -30,6 +30,7 @@ import (
 	"github.com/polarismesh/polaris/apiserver/nacosserver/v2/remote"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/config"
+	commonmodel "github.com/polarismesh/polaris/common/model"
 )
 
 const (
@@ -166,7 +167,7 @@ func (h *ConfigServer) handleWatchConfigRequest(ctx context.Context, req nacospb
 			dataId := item.GetFileName().GetValue()
 			mdval := item.GetMd5().GetValue()
 
-			active := h.cacheSvr.ConfigFile().GetActiveRelease(namespace, group, dataId)
+			active := h.cacheSvr.ConfigFile().GetActiveRelease(namespace, group, dataId, commonmodel.ReleaseTypeFull)
 			// 如果 client 过来的 MD5 是一个空字符串
 			if (active == nil && mdval != "") || (active != nil && active.Md5 != mdval) {
 				listenResp.ChangedConfigs = append(listenResp.ChangedConfigs, nacospb.ConfigContext{

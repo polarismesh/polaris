@@ -214,7 +214,7 @@ func (wc *watchCenter) checkQuickResponseClient(watchCtx WatchContext) *apiconfi
 				"namespace & group & fileName can not be empty")
 		}
 		// 从缓存中获取最新的配置文件信息
-		if release := wc.fileCache.GetActiveRelease(namespace, group, fileName); release != nil {
+		if release := wc.fileCache.GetActiveRelease(namespace, group, fileName, model.ReleaseTypeFull); release != nil {
 			if watchCtx.ShouldNotify(release.SimpleConfigFileRelease) {
 				ret := &apiconfig.ClientConfigFileInfo{
 					Namespace: utils.NewStringValue(namespace),
