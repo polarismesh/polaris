@@ -59,7 +59,7 @@ func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Conf
 	cacheMgr *cache.CacheManager, storage store.Store, namespaceSvr namespace.NamespaceOperateServer,
 	healthSvr *healthcheck.Server,
 	userMgn auth.UserServer, strategyMgn auth.StrategyServer) (DiscoverServer, DiscoverServer, error) {
-	cacheMgr.OpenResourceCache([]cache.ConfigEntry{
+	_ = cacheMgr.OpenResourceCache([]cache.ConfigEntry{
 		{
 			Name: "service",
 		}, {

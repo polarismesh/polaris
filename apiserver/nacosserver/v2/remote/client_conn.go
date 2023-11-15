@@ -212,7 +212,7 @@ func (h *ConnectionManager) RegisterConnection(ctx context.Context, payload *nac
 func (h *ConnectionManager) UnRegisterConnection(connID string) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-	eventhub.Publish(ClientConnectionEvent, &ConnectionEvent{
+	_ = eventhub.Publish(ClientConnectionEvent, &ConnectionEvent{
 		EventType: EventClientDisConnected,
 		ConnID:    connID,
 		Client:    h.clients[connID],
@@ -299,7 +299,7 @@ func (h *ConnectionManager) HandleConn(ctx context.Context, s stats.ConnStats) {
 		defer h.lock.RUnlock()
 		connID, _ := ctx.Value(ConnIDKey{}).(string)
 		nacoslog.Info("[NACOS-V2][ConnMgr] grpc conn begin", zap.String("conn-id", connID))
-		eventhub.Publish(ClientConnectionEvent, &ConnectionEvent{
+		_ = eventhub.Publish(ClientConnectionEvent, &ConnectionEvent{
 			EventType: EventClientConnected,
 			ConnID:    connID,
 			Client:    h.clients[connID],

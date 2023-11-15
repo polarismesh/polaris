@@ -58,6 +58,7 @@ header: # `header` section is configurations for source codes license header.
     - "deploy"
     - "release"
     - "test/data/xds"
+    - "apiserver/nacosserver/v2/pb"
 
     # single file
     - "LICENSE"
@@ -74,6 +75,7 @@ header: # `header` section is configurations for source codes license header.
     - "**/*.md"
     - "**/go.mod"
     - "**/go.sum"
+    - "apiserver/xdsserverv3/cache/linear.go"
   comment: on-failure # on what condition license-eye will comment on the pull request, `on-failure`, `always`, `never`.
 
   # license-location-threshold specifies the index threshold where the license header can be located,

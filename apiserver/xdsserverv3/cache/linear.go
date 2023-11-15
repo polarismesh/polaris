@@ -92,15 +92,15 @@ func (cache *LinearCache) respond(value chan<- cachev3.Response, staleResources 
 	// TODO: optimize the resources slice creations across different clients
 	if len(staleResources) == 0 {
 		resources = make([]types.ResourceWithTTL, 0, len(cache.resources))
-		for _, resource := range cache.resources {
-			resources = append(resources, types.ResourceWithTTL{Resource: resource})
+		for _, resItem := range cache.resources {
+			resources = append(resources, types.ResourceWithTTL{Resource: resItem})
 		}
 	} else {
 		resources = make([]types.ResourceWithTTL, 0, len(staleResources))
 		for _, name := range staleResources {
-			resource := cache.resources[name]
-			if resource != nil {
-				resources = append(resources, types.ResourceWithTTL{Resource: resource})
+			resItem := cache.resources[name]
+			if resItem != nil {
+				resources = append(resources, types.ResourceWithTTL{Resource: resItem})
 			}
 		}
 	}
@@ -255,9 +255,9 @@ func (cache *LinearCache) UpdateResources(toUpdate map[string]types.Resource, to
 	cache.version++
 
 	modified := make(map[string]struct{}, len(toUpdate)+len(toDelete))
-	for name, resource := range toUpdate {
+	for name, resItem := range toUpdate {
 		cache.versionVector[name] = cache.version
-		cache.resources[name] = resource
+		cache.resources[name] = resItem
 		modified[name] = struct{}{}
 	}
 	for _, name := range toDelete {
@@ -682,7 +682,7 @@ func (info *watchClient) addResourcesWatch(resources []string, resp chan<- cache
 	}
 }
 
-func (info *watchClient) popResourceWatchChans(resource string) []chan<- cachev3.Response {
+func (info *watchClient) popResourceWatchChans(resourceName string) []chan<- cachev3.Response {
 	return nil
 }
 

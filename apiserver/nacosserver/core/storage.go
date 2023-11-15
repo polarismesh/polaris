@@ -220,7 +220,7 @@ func (n *NacosDataStorage) syncTask() {
 		return
 	}
 	// 发布服务信息变更事件
-	eventhub.Publish(nacosmodel.NacosServicesChangeEventTopic, &nacosmodel.NacosServicesChangeEvent{
+	_ = eventhub.Publish(nacosmodel.NacosServicesChangeEventTopic, &nacosmodel.NacosServicesChangeEvent{
 		Services: svcInfos,
 	})
 }

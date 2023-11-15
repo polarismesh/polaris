@@ -42,14 +42,14 @@ var (
 			Name: cachetypes.ServiceName,
 			Option: map[string]interface{}{
 				"disableBusiness": false,
-				"needMeta": true,
+				"needMeta":        true,
 			},
 		},
 		{
 			Name: cachetypes.InstanceName,
 			Option: map[string]interface{}{
 				"disableBusiness": false,
-				"needMeta": true,
+				"needMeta":        true,
 			},
 		},
 		{
@@ -95,10 +95,10 @@ func WithStorage(storage store.Store) InitOption {
 func WithCacheManager(cacheOpt *cache.Config, c *cache.CacheManager) InitOption {
 	return func(s *Server) {
 		log.Infof("[Naming][Server] cache is open, can access the client api function")
-		c.OpenResourceCache(namingCacheEntries...)
-		c.OpenResourceCache(governanceCacheEntries...)
+		_ = c.OpenResourceCache(namingCacheEntries...)
+		_ = c.OpenResourceCache(governanceCacheEntries...)
 		if s.isSupportL5() {
-			c.OpenResourceCache(l5CacheEntry)
+			_ = c.OpenResourceCache(l5CacheEntry)
 		}
 		s.caches = c
 	}

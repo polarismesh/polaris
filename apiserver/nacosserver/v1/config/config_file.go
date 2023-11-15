@@ -111,7 +111,7 @@ func (n *ConfigServer) handleWatch(ctx context.Context, listenCtx *model.ConfigW
 		nacoslog.Info("[NACOS-V1][Config] client quick compare file result.", zap.String("result", newResult))
 		rsp.WriteHeader(http.StatusOK)
 		disableCache(rsp)
-		rsp.Write([]byte(newResult))
+		_, _ = rsp.Write([]byte(newResult))
 		return
 	}
 	if listenCtx.IsNoHangUp() {
@@ -158,7 +158,7 @@ func (n *ConfigServer) handleWatch(ctx context.Context, listenCtx *model.ConfigW
 	nacoslog.Info("[NACOS-V1][Config] client receive watch result.", zap.String("result", newResult))
 	rsp.WriteHeader(http.StatusOK)
 	disableCache(rsp)
-	rsp.Write([]byte(newResult))
+	_, _ = rsp.Write([]byte(newResult))
 	return
 }
 

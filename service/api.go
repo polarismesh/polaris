@@ -38,7 +38,6 @@ type DiscoverServer interface {
 	Cache() *cache.CacheManager
 	// L5OperateServer L5 related operations
 	L5OperateServer
-	// 
 	// GetServiceInstanceRevision Get the version of the service
 	GetServiceInstanceRevision(serviceID string, instances []*model.Instance) (string, error)
 }

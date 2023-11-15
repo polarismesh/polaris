@@ -48,7 +48,7 @@ type StrategyAuthAbility struct {
 // Initialize 执行初始化动作
 func (svr *StrategyAuthAbility) Initialize(authOpt *auth.Config, storage store.Store,
 	cacheMgn *cache.CacheManager) error {
-	cacheMgn.OpenResourceCache(cache.ConfigEntry{
+	_ = cacheMgn.OpenResourceCache(cache.ConfigEntry{
 		Name: cachetypes.StrategyRuleName,
 	})
 	var (

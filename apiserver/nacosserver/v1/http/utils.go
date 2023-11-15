@@ -52,7 +52,7 @@ func WrirteNacosResponseWithCode(code int, data interface{}, resp *restful.Respo
 func WrirteNacosErrorResponse(data error, resp *restful.Response) {
 	if nerr, ok := data.(*model.NacosError); ok {
 		resp.WriteHeader(int(nerr.ErrCode))
-		resp.Write([]byte(nerr.Error()))
+		_, _ = resp.Write([]byte(nerr.Error()))
 		return
 	}
 	_ = resp.WriteError(http.StatusInternalServerError, data)
