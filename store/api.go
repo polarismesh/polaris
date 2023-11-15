@@ -47,6 +47,8 @@ type Store interface {
 	ClientStore
 	// AdminStore Maintain inteface
 	AdminStore
+	// GrayStore mgr gray resource
+	GrayStore
 }
 
 // NamespaceStore Namespace storage interface
@@ -64,6 +66,12 @@ type NamespaceStore interface {
 	// GetMoreNamespaces Get incremental data
 	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetMoreNamespaces(mtime time.Time) ([]*model.Namespace, error)
+}
+
+// GrayStore Gray storage interface
+type GrayStore interface {
+	CreateGrayResourceTx(tx Tx, data *model.GrayResource) error
+	GetMoreGrayResouces(firstUpdate bool, mtime time.Time) ([]*model.GrayResource, error)
 }
 
 // Transaction Transaction interface, does not support multi-level concurrency operation,

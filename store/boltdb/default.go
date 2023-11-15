@@ -88,6 +88,7 @@ type boltStore struct {
 	*userStore
 	*groupStore
 	*strategyStore
+	*grayStore
 
 	handler BoltHandler
 	start   bool
@@ -312,7 +313,7 @@ func (m *boltStore) newStore() error {
 		return err
 	}
 	m.clientStore = &clientStore{handler: m.handler}
-
+	m.grayStore = &grayStore{handler: m.handler}
 	m.newDiscoverModuleStore()
 	m.newAuthModuleStore()
 	m.newConfigModuleStore()

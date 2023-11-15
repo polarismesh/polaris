@@ -424,6 +424,7 @@ config:
   # Maximum number of number of file characters
   contentMaxLength: 20000
 # Cache configuration
+
 cache:
   # 缓存增量同步数据时，相较于当前时刻需要往回倒退多少秒, 即在 T 时刻的增量同步，实际增量数据时间范围为 [T - abs(DiffTime), ∞)
   diffTime: 5s

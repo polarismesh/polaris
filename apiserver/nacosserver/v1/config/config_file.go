@@ -33,6 +33,7 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/config"
+	commonmodel "github.com/polarismesh/polaris/common/model"
 )
 
 func (n *ConfigServer) handlePublishConfig(ctx context.Context, req *model.ConfigFile) (bool, error) {
@@ -170,7 +171,7 @@ func (n *ConfigServer) diffChangeFiles(listenCtx *config_manage.ClientWatchConfi
 		dataId := item.GetFileName().GetValue()
 		mdval := item.GetMd5().GetValue()
 
-		active := n.cacheSvr.ConfigFile().GetActiveRelease(namespace, group, dataId)
+		active := n.cacheSvr.ConfigFile().GetActiveRelease(namespace, group, dataId, commonmodel.ReleaseTypeFull)
 		if (active == nil && mdval != "") || (active != nil && active.Md5 != mdval) {
 			changeKeys = append(changeKeys, &model.ConfigListenItem{
 				Tenant: model.ToNacosConfigNamespace(namespace),

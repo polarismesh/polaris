@@ -72,6 +72,7 @@ type stableStore struct {
 	*userStore
 	*groupStore
 	*strategyStore
+	*grayStore
 
 	// 主数据库，可以进行读写
 	master *BaseDB
@@ -272,6 +273,7 @@ func (s *stableStore) newStore() {
 	s.userStore = &userStore{master: s.master, slave: s.slave}
 	s.groupStore = &groupStore{master: s.master, slave: s.slave}
 	s.strategyStore = &strategyStore{master: s.master, slave: s.slave}
+	s.grayStore = &grayStore{master: s.master, slave: s.slave}
 }
 
 func buildEtimeStr(enable bool) string {

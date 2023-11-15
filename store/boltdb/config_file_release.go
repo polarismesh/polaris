@@ -50,6 +50,7 @@ const (
 	FileReleaseFieldValid      string = "Valid"
 	FileReleaseFieldActive     string = "Active"
 	FileReleaseFieldMetadata   string = "Metadata"
+	FileReleaseFieldType       string = "Typ"
 )
 
 var (
@@ -297,6 +298,7 @@ func (cfr *configFileReleaseStore) ActiveConfigFileReleaseTx(tx store.Tx, releas
 	properties[FileReleaseFieldVersion] = maxVersion + 1
 	properties[FileReleaseFieldActive] = true
 	properties[FileReleaseFieldModifyTime] = time.Now()
+	properties[FileReleaseFieldType] = uint32(release.Typ)
 	return updateValue(dbTx, tblConfigFileRelease, release.ReleaseKey(), properties)
 }
 
@@ -387,6 +389,7 @@ type ConfigFileRelease struct {
 	ModifyTime time.Time
 	ModifyBy   string
 	Content    string
+	Typ        uint32
 }
 
 func (cfr *configFileReleaseStore) toModelData(data *ConfigFileRelease) *model.ConfigFileRelease {
@@ -398,6 +401,7 @@ func (cfr *configFileReleaseStore) toModelData(data *ConfigFileRelease) *model.C
 				Namespace: data.Namespace,
 				Group:     data.Group,
 				FileName:  data.FileName,
+				Typ:       model.ReleaseType(data.Typ),
 			},
 			Comment:    data.Comment,
 			Md5:        data.Md5,
@@ -436,5 +440,6 @@ func (cfr *configFileReleaseStore) toStoreData(data *model.ConfigFileRelease) *C
 		ModifyTime: data.ModifyTime,
 		ModifyBy:   data.ModifyBy,
 		Content:    data.Content,
+		Typ:        uint32(data.Typ),
 	}
 }

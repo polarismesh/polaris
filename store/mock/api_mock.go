@@ -2874,3 +2874,32 @@ func (mr *MockToolStoreMockRecorder) GetUnixSecond(maxWait interface{}) *gomock.
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnixSecond", reflect.TypeOf((*MockToolStore)(nil).GetUnixSecond), maxWait)
 }
+
+// CreateGrayResourceTx mocks base method.
+func (m *MockStore) CreateGrayResourceTx(tx store.Tx, grayResource *model.GrayResource) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateGrayResourceTx", tx, grayResource)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateGrayResourceTx indicates an expected call of CreategrayResourceTx.
+func (mr *MockStoreMockRecorder) CreateGrayResourceTx(tx, grayResource interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateGrayResourceTx", reflect.TypeOf((*MockStore)(nil).CreateGrayResourceTx), tx, grayResource)
+}
+
+// GetMoreGrayResouces mocks base method.
+func (m *MockStore) GetMoreGrayResouces(firstUpdate bool, modifyTime time.Time) ([]*model.GrayResource, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMoreGrayResouces", firstUpdate, modifyTime)
+	ret0, _ := ret[0].([]*model.GrayResource)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMoreGrayResouces indicates an expected call of GetMoreGrayResouces.
+func (mr *MockStoreMockRecorder) GetMoreGrayResouces(firstUpdate, modifyTime interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreGrayResouces", reflect.TypeOf((*MockStore)(nil).GetMoreGrayResouces), firstUpdate, modifyTime)
+}

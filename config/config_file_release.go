@@ -18,6 +18,7 @@
 package config
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -25,7 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gogo/protobuf/jsonpb"
+	"github.com/golang/protobuf/jsonpb"
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
@@ -55,6 +56,13 @@ func (s *Server) PublishConfigFile(ctx context.Context, req *apiconfig.ConfigFil
 		return api.NewConfigResponse(apimodel.Code_NotFoundNamespace)
 	}
 
+	if req.GetType().GetValue() != uint32(model.ReleaseTypeGray) && req.GetType().GetValue() != uint32(model.ReleaseTypeFull) {
+		return api.NewConfigResponse(apimodel.Code_InvalidParameter)
+	}
+	if req.GetType().GetValue() == uint32(model.ReleaseTypeGray) && req.GetGrayRule() == nil {
+		return api.NewConfigResponse(apimodel.Code_InvalidMatchRule)
+	}
+
 	tx, err := s.storage.StartTx()
 	if err != nil {
 		log.Error("[Config][Release] publish config file begin tx.", utils.RequestID(ctx), zap.Error(err))
@@ -78,7 +86,12 @@ func (s *Server) PublishConfigFile(ctx context.Context, req *apiconfig.ConfigFil
 		log.Error("[Config][Release] publish config file commit tx.", utils.RequestID(ctx), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
-	s.recordReleaseSuccess(ctx, utils.ReleaseTypeNormal, data)
+	if req.GetType().GetValue() == uint32(model.ReleaseTypeFull) {
+		s.recordReleaseSuccess(ctx, utils.ReleaseTypeNormal, data)
+	} else {
+		s.recordReleaseSuccess(ctx, utils.ReleaseTypeGray, data)
+	}
+
 	resp.ConfigFileRelease = req
 	return resp
 }
@@ -118,6 +131,7 @@ func (s *Server) handlePublishConfigFile(ctx context.Context, tx store.Tx,
 				Namespace: namespace,
 				Group:     group,
 				FileName:  fileName,
+				Typ:       model.ReleaseType(req.GetType().GetValue()),
 			},
 			Format:             toPublishFile.Format,
 			Metadata:           toPublishFile.Metadata,
@@ -152,6 +166,32 @@ func (s *Server) handlePublishConfigFile(ctx context.Context, tx store.Tx,
 			return fileRelease, api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 		}
 	}
+	if req.GetType().GetValue() == uint32(model.ReleaseTypeGray) {
+		grayRule := req.GetGrayRule()
+		var buffer bytes.Buffer
+		marshaler := jsonpb.Marshaler{}
+		err := marshaler.Marshal(&buffer, grayRule)
+		if err != nil {
+			if err != nil {
+				log.Error("[Config][Release] marshal gary rule error.",
+					utils.RequestID(ctx), utils.ZapNamespace(namespace), utils.ZapGroup(group),
+					utils.ZapFileName(fileName), zap.Error(err))
+				return fileRelease, api.NewConfigResponse(apimodel.Code_InvalidMatchRule)
+			}
+		}
+		grayResource := &model.GrayResource{
+			Name:      model.GetGrayConfigRealseKey(fileRelease.SimpleConfigFileRelease),
+			MatchRule: buffer.String(),
+			CreateBy:  utils.ParseUserName(ctx),
+			ModifyBy:  utils.ParseUserName(ctx),
+		}
+		if err := s.storage.CreateGrayResourceTx(tx, grayResource); err != nil {
+			log.Error("[Config][Release] create gray resource error.",
+				utils.RequestID(ctx), utils.ZapNamespace(namespace), utils.ZapGroup(group),
+				utils.ZapFileName(fileName), zap.Error(err))
+			return fileRelease, api.NewConfigFileResponse(commonstore.StoreCode2APICode(err), nil)
+		}
+	}
 
 	s.RecordHistory(ctx, configFileReleaseRecordEntry(ctx, req, fileRelease, model.OCreate))
 	return fileRelease, api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
@@ -167,7 +207,6 @@ func (s *Server) GetConfigFileRelease(ctx context.Context, req *apiconfig.Config
 	if errCode, errMsg := checkBaseReleaseParam(req, false); errCode != apimodel.Code_ExecuteSuccess {
 		return api.NewConfigResponseWithInfo(errCode, errMsg)
 	}
-
 	var (
 		ret *model.ConfigFileRelease
 		err error
@@ -197,6 +236,7 @@ func (s *Server) GetConfigFileRelease(ctx context.Context, req *apiconfig.Config
 	if ret == nil {
 		return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
 	}
+
 	ret, err = s.chains.AfterGetFileRelease(ctx, ret)
 	if err != nil {
 		log.Error("[Config][Release] get config file release run chain.", utils.RequestID(ctx),
@@ -204,7 +244,16 @@ func (s *Server) GetConfigFileRelease(ctx context.Context, req *apiconfig.Config
 		out := api.NewConfigResponse(apimodel.Code_ExecuteException)
 		return out
 	}
+
 	release := model.ToConfiogFileReleaseApi(ret)
+	if ret.Typ == model.ReleaseTypeGray {
+		key := model.GetGrayConfigRealseKey(ret.SimpleConfigFileRelease)
+		if grayRule := s.grayCache.GetGrayRule(key); grayRule == nil {
+			return api.NewConfigResponse(apimodel.Code_InvalidMatchRule)
+		} else {
+			release.GrayRule = grayRule
+		}
+	}
 	return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, release)
 }
 
@@ -241,6 +290,7 @@ func (s *Server) handleDeleteConfigFileRelease(ctx context.Context,
 				Namespace: req.GetNamespace().GetValue(),
 				Group:     req.GetGroup().GetValue(),
 				FileName:  req.GetFileName().GetValue(),
+				Typ:       model.ReleaseType(req.GetType().GetValue()),
 			},
 		},
 	}
@@ -379,6 +429,7 @@ func (s *Server) GetConfigFileReleases(ctx context.Context,
 		FileName:    searchFilters["file_name"],
 		ReleaseName: searchFilters["release_name"],
 		OnlyActive:  strings.Compare(searchFilters["only_active"], "true") == 0,
+		IncludeGray: false,
 	}
 	return s.handleDescribeConfigFileReleases(ctx, args)
 }
@@ -408,6 +459,7 @@ func (s *Server) handleDescribeConfigFileReleases(ctx context.Context,
 			ModifyBy:           utils.NewStringValue(item.ModifyBy),
 			ReleaseDescription: utils.NewStringValue(item.ReleaseDescription),
 			Tags:               model.FromTagMap(item.Metadata),
+			Type:               utils.NewUInt32Value(uint32(item.Typ)),
 		})
 	}
 
@@ -449,6 +501,7 @@ func (s *Server) RollbackConfigFileRelease(ctx context.Context,
 				Namespace: req.GetNamespace().GetValue(),
 				Group:     req.GetGroup().GetValue(),
 				FileName:  req.GetFileName().GetValue(),
+				Typ:       model.ReleaseTypeFull,
 			},
 		},
 	}

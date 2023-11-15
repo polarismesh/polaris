@@ -227,6 +227,11 @@ func (nc *CacheManager) ConfigGroup() types.ConfigGroupCache {
 	return nc.caches[types.CacheConfigGroup].(types.ConfigGroupCache)
 }
 
+// Gray get Gray cache information
+func (nc *CacheManager) Gray() types.GrayCache {
+	return nc.caches[types.CacheGray].(types.GrayCache)
+}
+
 // GetCacher get types.Cache impl
 func (nc *CacheManager) GetCacher(cacheIndex types.CacheIndex) types.Cache {
 	return nc.caches[cacheIndex]

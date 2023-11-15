@@ -62,13 +62,13 @@ func (cfr *configFileReleaseStore) CreateConfigFileReleaseTx(tx store.Tx, data *
 	}
 
 	s := "INSERT INTO config_file_release(name, namespace, `group`, file_name, content , comment, md5, " +
-		" version, create_time, create_by , modify_time, modify_by, active, tags, description) " +
-		" VALUES (?, ?, ?, ?, ? , ?, ?, ?, sysdate(), ? , sysdate(), ?, 1, ?, ?)"
+		" version, create_time, create_by , modify_time, modify_by, active, tags, description, type) " +
+		" VALUES (?, ?, ?, ?, ? , ?, ?, ?, sysdate(), ? , sysdate(), ?, 1, ?, ?, ?)"
 
 	args = []interface{}{
 		data.Name, data.Namespace, data.Group,
 		data.FileName, data.Content, data.Comment, data.Md5, maxVersion + 1,
-		data.CreateBy, data.ModifyBy, utils.MustJson(data.Metadata), data.ReleaseDescription,
+		data.CreateBy, data.ModifyBy, utils.MustJson(data.Metadata), data.ReleaseDescription, data.Typ,
 	}
 	if _, err = dbTx.Exec(s, args...); err != nil {
 		return store.Error(err)
@@ -178,13 +178,13 @@ func (cfr *configFileReleaseStore) GetConfigFileActiveReleaseTx(tx store.Tx,
 
 	dbTx := tx.GetDelegateTx().(*BaseTx)
 	querySql := cfr.baseQuerySql() + "WHERE namespace = ? AND `group` = ? AND " +
-		" file_name = ? AND active = 1 AND flag = 0 "
+		" file_name = ? AND active = 1 AND type =? AND flag = 0 "
 	var (
 		rows *sql.Rows
 		err  error
 	)
 
-	rows, err = dbTx.Query(querySql, file.Namespace, file.Group, file.Name)
+	rows, err = dbTx.Query(querySql, file.Namespace, file.Group, file.Name, model.ReleaseTypeFull)
 	if err != nil {
 		return nil, err
 	}
@@ -212,10 +212,10 @@ func (cfr *configFileReleaseStore) ActiveConfigFileReleaseTx(tx store.Tx, releas
 	if err != nil {
 		return err
 	}
-	args := []interface{}{maxVersion + 1, release.Namespace, release.Group,
+	args := []interface{}{maxVersion + 1, release.Typ, release.Namespace, release.Group,
 		release.FileName, release.Name}
 	//	update 指定的 release 记录，设置其 active、version 以及 mtime
-	updateSql := "UPDATE config_file_release SET active = 1, version = ?, modify_time = sysdate() " +
+	updateSql := "UPDATE config_file_release SET active = 1, version = ?, modify_time = sysdate(), type=? " +
 		" WHERE namespace = ? AND `group` = ? AND file_name = ? AND name = ?"
 	if _, err := dbTx.Exec(updateSql, args...); err != nil {
 		return store.Error(err)
@@ -229,16 +229,16 @@ func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *BaseTx,
 		return 0, ErrTxIsNil
 	}
 
-	args := []interface{}{release.Namespace, release.Group, release.FileName}
+	args := []interface{}{release.Namespace, release.Group, release.FileName, release.Typ}
 	//	先取消所有 active == true 的记录
 	if _, err := tx.Exec("UPDATE config_file_release SET active = 0, modify_time = sysdate() "+
-		" WHERE namespace = ? AND `group` = ? AND file_name = ? AND active = 1", args...); err != nil {
+		" WHERE namespace = ? AND `group` = ? AND file_name = ? AND active = 1 AND type=?", args...); err != nil {
 		return 0, err
 	}
 
 	//	生成最新的 version 版本信息
 	row := tx.QueryRow("SELECT IFNULL(MAX(`version`), 0) FROM config_file_release WHERE namespace = ? AND "+
-		" `group` = ? AND file_name = ?", args...)
+		" `group` = ? AND file_name = ?", args[:3]...)
 	var maxVersion uint64
 	if err := row.Scan(&maxVersion); err != nil {
 		return 0, err
@@ -285,7 +285,7 @@ func (cfr *configFileReleaseStore) CountConfigReleases(namespace, group string, 
 func (cfr *configFileReleaseStore) baseQuerySql() string {
 	return "SELECT id, name, namespace, `group`, file_name, content, IFNULL(comment, ''), " +
 		" md5, version, UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), UNIX_TIMESTAMP(modify_time), " +
-		" IFNULL(modify_by, ''), flag, IFNULL(tags, ''), active, IFNULL(description, '') FROM config_file_release "
+		" IFNULL(modify_by, ''), flag, IFNULL(tags, ''), active, IFNULL(description, ''), type FROM config_file_release "
 }
 
 func (cfr *configFileReleaseStore) transferRows(rows *sql.Rows) ([]*model.ConfigFileRelease, error) {
@@ -307,7 +307,8 @@ func (cfr *configFileReleaseStore) transferRows(rows *sql.Rows) ([]*model.Config
 		err := rows.Scan(&fileRelease.Id, &fileRelease.Name, &fileRelease.Namespace, &fileRelease.Group,
 			&fileRelease.FileName, &fileRelease.Content,
 			&fileRelease.Comment, &fileRelease.Md5, &fileRelease.Version, &ctime, &fileRelease.CreateBy,
-			&mtime, &fileRelease.ModifyBy, &fileRelease.Flag, &tags, &active, &fileRelease.ReleaseDescription)
+			&mtime, &fileRelease.ModifyBy, &fileRelease.Flag, &tags, &active, &fileRelease.ReleaseDescription,
+			&fileRelease.Typ)
 		if err != nil {
 			return nil, err
 		}

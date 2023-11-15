@@ -18,12 +18,23 @@
 package model
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
+)
+
+type ReleaseType uint32
+
+const (
+	_ ReleaseType = iota
+	// ReleaseTypeFull 全量类型
+	ReleaseTypeFull
+	// ReleaseTypeGray 灰度类型
+	ReleaseTypeGray
 )
 
 /** ----------- DataObject ------------- */
@@ -127,6 +138,7 @@ type ConfigFileReleaseKey struct {
 	Namespace string
 	Group     string
 	FileName  string
+	Typ       ReleaseType
 }
 
 func (c ConfigFileReleaseKey) ToFileKey() *ConfigFileKey {
@@ -141,12 +153,12 @@ func (c *ConfigFileReleaseKey) OwnerKey() string {
 	return c.Namespace + "@" + c.Group
 }
 
-func (c *ConfigFileReleaseKey) ActiveKey() string {
-	return c.Namespace + "@" + c.Group + "@" + c.FileName
+func (c ConfigFileReleaseKey) ActiveKey() string {
+	return fmt.Sprintf("%v@%v@%v@%v", c.Namespace, c.Group, c.FileName, c.Typ)
 }
 
-func (c *ConfigFileReleaseKey) ReleaseKey() string {
-	return c.Namespace + "@" + c.Group + "@" + c.FileName + "@" + c.Name
+func (c ConfigFileReleaseKey) ReleaseKey() string {
+	return fmt.Sprintf("%v@%v@%v@%v", c.Namespace, c.Group, c.FileName, c.Name)
 }
 
 // BuildKeyForClientConfigFileInfo 必须保证和 ConfigFileReleaseKey 是一样的生成规则
@@ -347,6 +359,7 @@ func ToConfiogFileReleaseApi(release *ConfigFileRelease) *config_manage.ConfigFi
 		ReleaseDescription: utils.NewStringValue(release.ReleaseDescription),
 		Tags:               FromTagMap(release.Metadata),
 		Active:             utils.NewBoolValue(release.Active),
+		Type:               utils.NewUInt32Value(uint32(release.Typ)),
 	}
 }
 
