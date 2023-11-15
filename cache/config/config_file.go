@@ -34,8 +34,8 @@ import (
 
 	types "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/eventhub"
-	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -204,10 +204,13 @@ func (fc *fileCache) sendEvent(item *model.ConfigFileRelease) {
 
 // handleUpdateRelease
 func (fc *fileCache) handleUpdateRelease(oldVal *model.SimpleConfigFileRelease, item *model.ConfigFileRelease) error {
-	// 如果有旧版本cache， 先删除再保存
-	if err := fc.handleDeleteRelease(oldVal); err != nil {
-		return err
+	// 如果ReleaseType类型变更， 先删除再保存
+	if oldVal != nil && oldVal.Typ != item.Typ {
+		if err := fc.handleDeleteRelease(oldVal); err != nil {
+			return err
+		}
 	}
+
 	fc.releases.Put(item.Id, item.SimpleConfigFileRelease)
 	func() {
 		// 记录 namespace -> group -> file_name -> []SimpleRelease 信息
@@ -413,7 +416,7 @@ func (fc *fileCache) GetActiveRelease(namespace, group, fileName string, typ mod
 		Namespace: namespace,
 		Group:     group,
 		FileName:  fileName,
-		Typ: typ,
+		Typ:       typ,
 	}
 	simple, ok := groupBucket.Load(searchKey.ActiveKey())
 	if !ok {
