@@ -55,11 +55,7 @@ func (s *Server) PublishConfigFile(ctx context.Context, req *apiconfig.ConfigFil
 	if !s.checkNamespaceExisted(req.GetNamespace().GetValue()) {
 		return api.NewConfigResponse(apimodel.Code_NotFoundNamespace)
 	}
-
-	if req.GetType().GetValue() != uint32(model.ReleaseTypeGray) && req.GetType().GetValue() != uint32(model.ReleaseTypeFull) {
-		return api.NewConfigResponse(apimodel.Code_InvalidParameter)
-	}
-	if req.GetType().GetValue() == uint32(model.ReleaseTypeGray) && req.GetGrayRule() == nil {
+	if req.GetType().GetValue() == uint32(model.ReleaseTypeGray) && len(req.GetBetaLabels()) == 0 {
 		return api.NewConfigResponse(apimodel.Code_InvalidMatchRule)
 	}
 
@@ -86,10 +82,10 @@ func (s *Server) PublishConfigFile(ctx context.Context, req *apiconfig.ConfigFil
 		log.Error("[Config][Release] publish config file commit tx.", utils.RequestID(ctx), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
-	if req.GetType().GetValue() == uint32(model.ReleaseTypeFull) {
-		s.recordReleaseSuccess(ctx, utils.ReleaseTypeNormal, data)
-	} else {
+	if req.GetType().GetValue() == uint32(model.ReleaseTypeGray) {
 		s.recordReleaseSuccess(ctx, utils.ReleaseTypeGray, data)
+	} else {
+		s.recordReleaseSuccess(ctx, utils.ReleaseTypeNormal, data)
 	}
 
 	resp.ConfigFileRelease = req
@@ -127,11 +123,11 @@ func (s *Server) handlePublishConfigFile(ctx context.Context, tx store.Tx,
 	fileRelease := &model.ConfigFileRelease{
 		SimpleConfigFileRelease: &model.SimpleConfigFileRelease{
 			ConfigFileReleaseKey: &model.ConfigFileReleaseKey{
-				Name:      req.GetName().GetValue(),
-				Namespace: namespace,
-				Group:     group,
-				FileName:  fileName,
-				Typ:       model.ReleaseType(req.GetType().GetValue()),
+				Name:        req.GetName().GetValue(),
+				Namespace:   namespace,
+				Group:       group,
+				FileName:    fileName,
+				ReleaseType: model.ReleaseType(req.GetType().GetValue()),
 			},
 			Format:             toPublishFile.Format,
 			Metadata:           toPublishFile.Metadata,
@@ -167,12 +163,11 @@ func (s *Server) handlePublishConfigFile(ctx context.Context, tx store.Tx,
 		}
 	}
 	if req.GetType().GetValue() == uint32(model.ReleaseTypeGray) {
-		grayRule := req.GetGrayRule()
+		clientLabels := req.GetBetaLabels()
 		var buffer bytes.Buffer
 		marshaler := jsonpb.Marshaler{}
-		err := marshaler.Marshal(&buffer, grayRule)
-		if err != nil {
-			if err != nil {
+		for i := range clientLabels {
+			if err := marshaler.Marshal(&buffer, clientLabels[i]); err != nil {
 				log.Error("[Config][Release] marshal gary rule error.",
 					utils.RequestID(ctx), utils.ZapNamespace(namespace), utils.ZapGroup(group),
 					utils.ZapFileName(fileName), zap.Error(err))
@@ -246,12 +241,12 @@ func (s *Server) GetConfigFileRelease(ctx context.Context, req *apiconfig.Config
 	}
 
 	release := model.ToConfiogFileReleaseApi(ret)
-	if ret.Typ == model.ReleaseTypeGray {
+	if ret.ReleaseType == model.ReleaseTypeGray {
 		key := model.GetGrayConfigRealseKey(ret.SimpleConfigFileRelease)
 		if grayRule := s.grayCache.GetGrayRule(key); grayRule == nil {
 			return api.NewConfigResponse(apimodel.Code_InvalidMatchRule)
 		} else {
-			release.GrayRule = grayRule
+			release.BetaLabels = grayRule
 		}
 	}
 	return api.NewConfigFileReleaseResponse(apimodel.Code_ExecuteSuccess, release)
@@ -286,11 +281,11 @@ func (s *Server) handleDeleteConfigFileRelease(ctx context.Context,
 	release := &model.ConfigFileRelease{
 		SimpleConfigFileRelease: &model.SimpleConfigFileRelease{
 			ConfigFileReleaseKey: &model.ConfigFileReleaseKey{
-				Name:      req.GetName().GetValue(),
-				Namespace: req.GetNamespace().GetValue(),
-				Group:     req.GetGroup().GetValue(),
-				FileName:  req.GetFileName().GetValue(),
-				Typ:       model.ReleaseType(req.GetType().GetValue()),
+				Name:        req.GetName().GetValue(),
+				Namespace:   req.GetNamespace().GetValue(),
+				Group:       req.GetGroup().GetValue(),
+				FileName:    req.GetFileName().GetValue(),
+				ReleaseType: model.ReleaseType(req.GetType().GetValue()),
 			},
 		},
 	}
@@ -459,7 +454,7 @@ func (s *Server) handleDescribeConfigFileReleases(ctx context.Context,
 			ModifyBy:           utils.NewStringValue(item.ModifyBy),
 			ReleaseDescription: utils.NewStringValue(item.ReleaseDescription),
 			Tags:               model.FromTagMap(item.Metadata),
-			Type:               utils.NewUInt32Value(uint32(item.Typ)),
+			Type:               utils.NewUInt32Value(uint32(item.ReleaseType)),
 		})
 	}
 
@@ -497,11 +492,11 @@ func (s *Server) RollbackConfigFileRelease(ctx context.Context,
 	data := &model.ConfigFileRelease{
 		SimpleConfigFileRelease: &model.SimpleConfigFileRelease{
 			ConfigFileReleaseKey: &model.ConfigFileReleaseKey{
-				Name:      req.GetName().GetValue(),
-				Namespace: req.GetNamespace().GetValue(),
-				Group:     req.GetGroup().GetValue(),
-				FileName:  req.GetFileName().GetValue(),
-				Typ:       model.ReleaseTypeFull,
+				Name:        req.GetName().GetValue(),
+				Namespace:   req.GetNamespace().GetValue(),
+				Group:       req.GetGroup().GetValue(),
+				FileName:    req.GetFileName().GetValue(),
+				ReleaseType: model.ReleaseTypeFull,
 			},
 		},
 	}

@@ -29,10 +29,15 @@ import (
 
 type LongPollWatchContext struct {
 	clientId         string
+	labels           map[string]string
 	once             sync.Once
 	finishTime       time.Time
 	finishChan       chan *config_manage.ConfigClientResponse
 	watchConfigFiles map[string]*config_manage.ClientConfigFileInfo
+}
+
+func (c *LongPollWatchContext) ClientLabels() map[string]string {
+	return c.labels
 }
 
 // GetNotifieResult .

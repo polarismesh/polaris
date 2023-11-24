@@ -68,7 +68,7 @@ func (cfr *configFileReleaseStore) CreateConfigFileReleaseTx(tx store.Tx, data *
 	args = []interface{}{
 		data.Name, data.Namespace, data.Group,
 		data.FileName, data.Content, data.Comment, data.Md5, maxVersion + 1,
-		data.CreateBy, data.ModifyBy, utils.MustJson(data.Metadata), data.ReleaseDescription, data.Typ,
+		data.CreateBy, data.ModifyBy, utils.MustJson(data.Metadata), data.ReleaseDescription, data.ReleaseType,
 	}
 	if _, err = dbTx.Exec(s, args...); err != nil {
 		return store.Error(err)
@@ -212,7 +212,7 @@ func (cfr *configFileReleaseStore) ActiveConfigFileReleaseTx(tx store.Tx, releas
 	if err != nil {
 		return err
 	}
-	args := []interface{}{maxVersion + 1, release.Typ, release.Namespace, release.Group,
+	args := []interface{}{maxVersion + 1, release.ReleaseType, release.Namespace, release.Group,
 		release.FileName, release.Name}
 	//	update 指定的 release 记录，设置其 active、version 以及 mtime
 	updateSql := "UPDATE config_file_release SET active = 1, version = ?, modify_time = sysdate(), type=? " +
@@ -229,7 +229,7 @@ func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *BaseTx,
 		return 0, ErrTxIsNil
 	}
 
-	args := []interface{}{release.Namespace, release.Group, release.FileName, release.Typ}
+	args := []interface{}{release.Namespace, release.Group, release.FileName, release.ReleaseType}
 	//	先取消所有 active == true 的记录
 	if _, err := tx.Exec("UPDATE config_file_release SET active = 0, modify_time = sysdate() "+
 		" WHERE namespace = ? AND `group` = ? AND file_name = ? AND active = 1 AND type=?", args...); err != nil {
@@ -308,7 +308,7 @@ func (cfr *configFileReleaseStore) transferRows(rows *sql.Rows) ([]*model.Config
 			&fileRelease.FileName, &fileRelease.Content,
 			&fileRelease.Comment, &fileRelease.Md5, &fileRelease.Version, &ctime, &fileRelease.CreateBy,
 			&mtime, &fileRelease.ModifyBy, &fileRelease.Flag, &tags, &active, &fileRelease.ReleaseDescription,
-			&fileRelease.Typ)
+			&fileRelease.ReleaseType)
 		if err != nil {
 			return nil, err
 		}

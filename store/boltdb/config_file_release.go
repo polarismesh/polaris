@@ -267,7 +267,7 @@ func (cfr *configFileReleaseStore) GetMoreReleaseFile(firstUpdate bool,
 	modifyTime time.Time) ([]*model.ConfigFileRelease, error) {
 
 	if firstUpdate {
-		modifyTime = time.Time{}
+		modifyTime = time.Unix(0, 0)
 	}
 
 	fields := []string{FileReleaseFieldModifyTime}
@@ -298,7 +298,7 @@ func (cfr *configFileReleaseStore) ActiveConfigFileReleaseTx(tx store.Tx, releas
 	properties[FileReleaseFieldVersion] = maxVersion + 1
 	properties[FileReleaseFieldActive] = true
 	properties[FileReleaseFieldModifyTime] = time.Now()
-	properties[FileReleaseFieldType] = uint32(release.Typ)
+	properties[FileReleaseFieldType] = uint32(release.ReleaseType)
 	return updateValue(dbTx, tblConfigFileRelease, release.ReleaseKey(), properties)
 }
 
@@ -396,12 +396,12 @@ func (cfr *configFileReleaseStore) toModelData(data *ConfigFileRelease) *model.C
 	return &model.ConfigFileRelease{
 		SimpleConfigFileRelease: &model.SimpleConfigFileRelease{
 			ConfigFileReleaseKey: &model.ConfigFileReleaseKey{
-				Id:        data.Id,
-				Name:      data.Name,
-				Namespace: data.Namespace,
-				Group:     data.Group,
-				FileName:  data.FileName,
-				Typ:       model.ReleaseType(data.Typ),
+				Id:          data.Id,
+				Name:        data.Name,
+				Namespace:   data.Namespace,
+				Group:       data.Group,
+				FileName:    data.FileName,
+				ReleaseType: model.ReleaseType(data.Typ),
 			},
 			Comment:    data.Comment,
 			Md5:        data.Md5,
@@ -440,6 +440,6 @@ func (cfr *configFileReleaseStore) toStoreData(data *model.ConfigFileRelease) *C
 		ModifyTime: data.ModifyTime,
 		ModifyBy:   data.ModifyBy,
 		Content:    data.Content,
-		Typ:        uint32(data.Typ),
+		Typ:        uint32(data.ReleaseType),
 	}
 }

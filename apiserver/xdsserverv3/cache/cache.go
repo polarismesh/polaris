@@ -107,6 +107,20 @@ func (sc *XDSCache) DeltaUpdateResource(key, typeUrl string, current map[string]
 	return linearCache.UpdateResources(current, []string{})
 }
 
+// DeltaRemoveResource .
+func (sc *XDSCache) DeltaRemoveResource(key, typeUrl string, current map[string]types.Resource) error {
+	val, _ := sc.Caches.ComputeIfAbsent(key, func(_ string) cachev3.Cache {
+		return NewLinearCache(typeUrl)
+	})
+	linearCache, _ := val.(*LinearCache)
+
+	waitRemove := make([]string, 0, len(current))
+	for k := range current {
+		waitRemove = append(waitRemove, k)
+	}
+	return linearCache.UpdateResources(nil, waitRemove)
+}
+
 func classify(typeUrl string, resources []string, client *resource.XDSClient) []string {
 	isAllowNode := false
 	_, isAllowTls := allowTlsResource[typeUrl]

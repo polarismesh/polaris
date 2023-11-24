@@ -124,6 +124,8 @@ func TestEurekaServer_renew(t *testing.T) {
 	mockStore.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 	mockStore.EXPECT().GetServicesCount().Return(uint32(1), nil).AnyTimes()
 	mockStore.EXPECT().StartLeaderElection(gomock.Any()).AnyTimes()
+	mockStore.EXPECT().GetMoreServiceContracts(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+	mockStore.EXPECT().GetMoreNamespaces(gomock.Any()).Return(nil, nil).AnyTimes()
 	mockStore.EXPECT().Destroy().Return(nil)
 	mockStore.EXPECT().Initialize(gomock.Any()).Return(nil).AnyTimes()
 	mockStore.EXPECT().Name().Return("eureka_store_test").AnyTimes()
@@ -135,7 +137,9 @@ func TestEurekaServer_renew(t *testing.T) {
 		return mockStore
 	})
 	eurekaSuit.Initialize(func(conf *testsuit.TestConfig) {
+		conf.DisableAuth = true
 		conf.Cache = cache.Config{}
+		conf.DisableConfig = true
 		store.TestInjectConfig(store.Config{
 			Name: "eureka_store_test",
 		})

@@ -31,7 +31,6 @@ polaris:
       cpu: "500m"
       memory: "1000Mi"
   healthChecker:
-    type: heartbeatRedis
     type: heartbeatLeader
   replicaCount: 1
   limiterReplicaCount: 1

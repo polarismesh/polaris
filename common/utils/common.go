@@ -329,6 +329,18 @@ func ParseClientAddress(ctx context.Context) string {
 	return rid
 }
 
+// ParseClientIP .
+func ParseClientIP(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	rid, _ := ctx.Value(ContextClientAddress).(string)
+	if strings.Contains(rid, ":") {
+		return strings.Split(rid, ":")[0]
+	}
+	return rid
+}
+
 // ParseAuthToken 从ctx中获取token
 func ParseAuthToken(ctx context.Context) string {
 	if ctx == nil {

@@ -31,7 +31,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	"github.com/polarismesh/polaris/common/batchjob"
 	commonhash "github.com/polarismesh/polaris/common/hash"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -304,19 +303,6 @@ var (
 	ErrorRecordNotFound = errors.New("beat record not found")
 	ErrorPeerClosed     = errors.New("peer alrady closed")
 )
-
-// PeerWriteTask peer write task
-type PeerWriteTask struct {
-	Peer    *RemotePeer
-	Records []WriteBeatRecord
-}
-
-// PeerReadTask peer read task
-type PeerReadTask struct {
-	Peer    *RemotePeer
-	Keys    []string
-	Futures map[string][]batchjob.Future
-}
 
 type beatSender struct {
 	lock   sync.RWMutex

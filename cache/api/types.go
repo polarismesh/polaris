@@ -22,10 +22,10 @@ import (
 	"sync"
 	"time"
 
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
@@ -225,6 +225,8 @@ type (
 		GetInstance(instanceID string) *model.Instance
 		// GetInstancesByServiceID 根据服务名获取实例，先查找服务名对应的服务ID，再找实例列表
 		GetInstancesByServiceID(serviceID string) []*model.Instance
+		// GetInstances 根据服务名获取实例，先查找服务名对应的服务ID，再找实例列表
+		GetInstances(serviceID string) *model.ServiceInstances
 		// IteratorInstances 迭代
 		IteratorInstances(iterProc InstanceIterProc) error
 		// IteratorInstancesWithService 根据服务ID进行迭代
@@ -446,7 +448,10 @@ type (
 		Cache
 		// GetActiveRelease
 		GetGroupActiveReleases(namespace, group string) ([]*model.ConfigFileRelease, string)
-		GetActiveRelease(namespace, group, fileName string, typ model.ReleaseType) *model.ConfigFileRelease
+		// GetActiveRelease
+		GetActiveRelease(namespace, group, fileName string) *model.ConfigFileRelease
+		// GetGrayRelease
+		GetGrayRelease(namespace, group, fileName string) *model.ConfigFileRelease
 		// GetRelease
 		GetRelease(key model.ConfigFileReleaseKey) *model.ConfigFileRelease
 		// QueryReleases
@@ -657,6 +662,8 @@ type (
 	// GrayCache 灰度 Cache 接口
 	GrayCache interface {
 		Cache
-		GetGrayRule(name string) *apimodel.MatchTerm
+		GetGrayRule(name string) []*apimodel.ClientLabel
+		// HitGrayRule .
+		HitGrayRule(name string, labels map[string]string) bool
 	}
 )

@@ -88,7 +88,7 @@ func TestClientSetupAndFileExisted(t *testing.T) {
 	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue(), rsp.GetInfo().GetValue())
 
 	rsp2 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, assembleConfigFileRelease(configFile))
-	assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue(), rsp.GetInfo().GetValue())
+	assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue(), rsp2.GetInfo().GetValue())
 
 	fileInfo := &apiconfig.ClientConfigFileInfo{
 		Namespace: &wrapperspb.StringValue{Value: testNamespace},

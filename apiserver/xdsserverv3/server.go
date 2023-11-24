@@ -233,7 +233,8 @@ func (x *XDSServer) activeUpdateTask() {
 		log.Errorf("getRegistryInfoWithCache %v", err)
 		return
 	}
-	x.Generate(x.registryInfo)
+	// 首次更新没有需要移除的 XDS 资源信息
+	x.Generate(x.registryInfo, nil)
 	go x.startSynTask(x.ctx)
 }
 
@@ -250,6 +251,7 @@ func (x *XDSServer) startSynTask(ctx context.Context) {
 		}
 
 		needPush := make(map[string]map[model.ServiceKey]*resource.ServiceInfo)
+		needRemove := make(map[string]map[model.ServiceKey]*resource.ServiceInfo)
 
 		// 处理删除 ns 中最后一个 service
 		for ns, infos := range x.registryInfo {
@@ -258,6 +260,21 @@ func (x *XDSServer) startSynTask(ctx context.Context) {
 				// 这一次轮询时，该命名空间下的最后一个服务已经被删除了，此时，当前的命名空间需要处理
 				needPush[ns] = map[model.ServiceKey]*resource.ServiceInfo{}
 				x.registryInfo[ns] = map[model.ServiceKey]*resource.ServiceInfo{}
+			}
+		}
+
+		for ns, infos := range x.registryInfo {
+			if _, exist := registryInfo[ns]; !exist {
+				needRemove[ns] = infos
+				continue
+			}
+
+			for _, info := range infos {
+				cacheServiceInfos := registryInfo[ns]
+				if _, ok := cacheServiceInfos[info.ServiceKey]; !ok {
+					needRemove[ns][info.ServiceKey] = info
+					continue
+				}
 			}
 		}
 
@@ -279,9 +296,10 @@ func (x *XDSServer) startSynTask(ctx context.Context) {
 			}
 		}
 
-		if len(needPush) > 0 {
-			log.Info("start update xds resource snapshot ticker task", zap.Int("need-push", len(needPush)))
-			x.Generate(needPush)
+		if len(needPush) > 0 || len(needRemove) > 0 {
+			log.Info("start update xds resource snapshot ticker task", zap.Int("need-push", len(needPush)),
+				zap.Int("need-remove", len(needRemove)))
+			x.Generate(needPush, needRemove)
 		}
 	}
 
@@ -415,10 +433,10 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 	return nil
 }
 
-func (x *XDSServer) Generate(needPush map[string]map[model.ServiceKey]*resource.ServiceInfo) {
+func (x *XDSServer) Generate(needPush, needRemove map[string]map[model.ServiceKey]*resource.ServiceInfo) {
 	defer x.activeFinish()
 	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
-	x.resourceGenerator.Generate(versionLocal, needPush)
+	x.resourceGenerator.Generate(versionLocal, needPush, needRemove)
 }
 
 func (x *XDSServer) checkUpdate(curServiceInfo, cacheServiceInfo map[model.ServiceKey]*resource.ServiceInfo) bool {

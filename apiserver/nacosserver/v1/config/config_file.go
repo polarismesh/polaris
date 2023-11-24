@@ -31,9 +31,9 @@ import (
 
 	"github.com/polarismesh/polaris/apiserver/nacosserver/model"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	commonmodel "github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/config"
-	commonmodel "github.com/polarismesh/polaris/common/model"
 )
 
 func (n *ConfigServer) handlePublishConfig(ctx context.Context, req *model.ConfigFile) (bool, error) {
@@ -95,7 +95,7 @@ func (n *ConfigServer) handleWatch(ctx context.Context, listenCtx *model.ConfigW
 	specWatchReq := listenCtx.ToSpecWatch()
 	timeout, ok := listenCtx.IsSupportLongPolling()
 	if !ok {
-		changeKeys := n.diffChangeFiles(specWatchReq)
+		changeKeys := n.diffChangeFiles(ctx, specWatchReq)
 		oldResult := md5OldResult(changeKeys)
 		newResult := md5ResultString(changeKeys)
 
@@ -106,7 +106,7 @@ func (n *ConfigServer) handleWatch(ctx context.Context, listenCtx *model.ConfigW
 		listenCtx.Request.SetAttribute(model.HeaderContent, newResult)
 		return
 	}
-	if changeKeys := n.diffChangeFiles(specWatchReq); len(changeKeys) > 0 {
+	if changeKeys := n.diffChangeFiles(ctx, specWatchReq); len(changeKeys) > 0 {
 		newResult := md5ResultString(changeKeys)
 		nacoslog.Info("[NACOS-V1][Config] client quick compare file result.", zap.String("result", newResult))
 		rsp.WriteHeader(http.StatusOK)
@@ -123,7 +123,7 @@ func (n *ConfigServer) handleWatch(ctx context.Context, listenCtx *model.ConfigW
 	clientId := utils.ParseClientAddress(ctx) + "@" + utils.NewUUID()[0:8]
 	configSvr := n.originConfigSvr.(*config.Server)
 	watchCtx := configSvr.WatchCenter().AddWatcher(clientId, specWatchReq.GetWatchFiles(),
-		BuildTimeoutWatchCtx(timeout))
+		BuildTimeoutWatchCtx(ctx, timeout))
 	nacoslog.Info("[NACOS-V1][Config] client start waitting server send notify message")
 	notifyRet := (watchCtx.(*LongPollWatchContext)).GetNotifieResult()
 	notifyCode := notifyRet.GetCode().GetValue()
@@ -138,7 +138,7 @@ func (n *ConfigServer) handleWatch(ctx context.Context, listenCtx *model.ConfigW
 	var changeKeys []*model.ConfigListenItem
 	if notifyCode == uint32(apimodel.Code_DataNoChange) {
 		// 按照 Nacos 原本的设计，只有 WatchClient 超时后才会再次全部 diff 比较
-		changeKeys = n.diffChangeFiles(specWatchReq)
+		changeKeys = n.diffChangeFiles(ctx, specWatchReq)
 	} else {
 		// 如果收到一个事件变化，就立即通知这个文件的变化信息
 		changeKeys = []*model.ConfigListenItem{
@@ -150,7 +150,7 @@ func (n *ConfigServer) handleWatch(ctx context.Context, listenCtx *model.ConfigW
 		}
 	}
 	if len(changeKeys) == 0 {
-		nacoslog.Info("[NACOS-V1][Config] client receive empty watch result.", zap.Any("ret", notifyRet))
+		nacoslog.Debug("[NACOS-V1][Config] client receive empty watch result.", zap.Any("ret", notifyRet))
 		rsp.WriteHeader(http.StatusOK)
 		return
 	}
@@ -162,7 +162,10 @@ func (n *ConfigServer) handleWatch(ctx context.Context, listenCtx *model.ConfigW
 	return
 }
 
-func (n *ConfigServer) diffChangeFiles(listenCtx *config_manage.ClientWatchConfigFileRequest) []*model.ConfigListenItem {
+func (n *ConfigServer) diffChangeFiles(ctx context.Context, listenCtx *config_manage.ClientWatchConfigFileRequest) []*model.ConfigListenItem {
+	clientLabels := map[string]string{
+		commonmodel.ClientLabel_IP: utils.ParseClientIP(ctx),
+	}
 	changeKeys := make([]*model.ConfigListenItem, 0, 4)
 	// quick get file and compare
 	for _, item := range listenCtx.WatchFiles {
@@ -171,7 +174,18 @@ func (n *ConfigServer) diffChangeFiles(listenCtx *config_manage.ClientWatchConfi
 		dataId := item.GetFileName().GetValue()
 		mdval := item.GetMd5().GetValue()
 
-		active := n.cacheSvr.ConfigFile().GetActiveRelease(namespace, group, dataId, commonmodel.ReleaseTypeFull)
+		if beta := n.cacheSvr.ConfigFile().GetGrayRelease(namespace, group, dataId); beta != nil {
+			if n.cacheSvr.Gray().HitGrayRule(beta.ActiveKey(), clientLabels) {
+				changeKeys = append(changeKeys, &model.ConfigListenItem{
+					Tenant: model.ToNacosConfigNamespace(beta.Namespace),
+					Group:  beta.Group,
+					DataId: dataId,
+				})
+				continue
+			}
+		}
+
+		active := n.cacheSvr.ConfigFile().GetActiveRelease(namespace, group, dataId)
 		if (active == nil && mdval != "") || (active != nil && active.Md5 != mdval) {
 			changeKeys = append(changeKeys, &model.ConfigListenItem{
 				Tenant: model.ToNacosConfigNamespace(namespace),
@@ -183,10 +197,14 @@ func (n *ConfigServer) diffChangeFiles(listenCtx *config_manage.ClientWatchConfi
 	return changeKeys
 }
 
-func BuildTimeoutWatchCtx(watchTimeOut time.Duration) config.WatchContextFactory {
+func BuildTimeoutWatchCtx(ctx context.Context, watchTimeOut time.Duration) config.WatchContextFactory {
+	labels := map[string]string{}
+	labels["ip"] = utils.ParseClientIP(ctx)
+
 	return func(clientId string) config.WatchContext {
 		watchCtx := &LongPollWatchContext{
 			clientId:         clientId,
+			labels:           labels,
 			finishTime:       time.Now().Add(watchTimeOut),
 			finishChan:       make(chan *config_manage.ConfigClientResponse),
 			watchConfigFiles: map[string]*config_manage.ClientConfigFileInfo{},

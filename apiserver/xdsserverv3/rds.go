@@ -20,12 +20,10 @@ package xdsserverv3
 import (
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	on_demandv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/on_demand/v3"
 	v32 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
-	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
@@ -118,52 +116,64 @@ func (rds *RDSBuilder) makeSidecarOutBoundRouteConfiguration(option *resource.Bu
 	}
 
 	if option.OpenOnDemand {
-		routeConfiguration.TypedPerFilterConfig = map[string]*anypb.Any{
-			"envoy.filters.http.on_demand": resource.MustNewAny(&on_demandv3.PerRouteConfig{
-				Odcds: &on_demandv3.OnDemandCds{
-					Source: &corev3.ConfigSource{
-						ConfigSourceSpecifier: &corev3.ConfigSource_ApiConfigSource{
-							ApiConfigSource: &corev3.ApiConfigSource{
-								ApiType:             corev3.ApiConfigSource_DELTA_GRPC,
-								TransportApiVersion: corev3.ApiVersion_V3,
-								GrpcServices: []*corev3.GrpcService{
-									{
-										TargetSpecifier: &corev3.GrpcService_GoogleGrpc_{
-											GoogleGrpc: &corev3.GrpcService_GoogleGrpc{
-												TargetUri:  option.OnDemandServer,
-												StatPrefix: "polaris_odcds",
-											},
-										},
-									},
-								},
-							},
-						},
-						ResourceApiVersion: corev3.ApiVersion_V3,
-					},
-				},
-			}),
+		// step 1: 生成服务的 OUTBOUND 规则
+		services := option.Services
+		for svcKey, serviceInfo := range services {
+			vHost := &route.VirtualHost{
+				Name:    resource.MakeServiceName(svcKey, corev3.TrafficDirection_OUTBOUND, option),
+				Domains: resource.GenerateServiceDomains(serviceInfo),
+				Routes:  rds.makeSidecarOutBoundRoutes(corev3.TrafficDirection_OUTBOUND, serviceInfo, option),
+			}
+			hosts = append(hosts, vHost)
 		}
-		routeConfiguration.Vhds = &route.Vhds{
-			ConfigSource: &corev3.ConfigSource{
-				ConfigSourceSpecifier: &corev3.ConfigSource_ApiConfigSource{
-					ApiConfigSource: &corev3.ApiConfigSource{
-						ApiType:             corev3.ApiConfigSource_DELTA_GRPC,
-						TransportApiVersion: corev3.ApiVersion_V3,
-						GrpcServices: []*corev3.GrpcService{
-							{
-								TargetSpecifier: &corev3.GrpcService_GoogleGrpc_{
-									GoogleGrpc: &corev3.GrpcService_GoogleGrpc{
-										TargetUri:  option.OnDemandServer,
-										StatPrefix: "polaris_vhds",
-									},
-								},
-							},
-						},
-					},
-				},
-				ResourceApiVersion: corev3.ApiVersion_V3,
-			},
-		}
+		hosts = append(hosts, resource.BuildAllowAnyVHost())
+		routeConfiguration.VirtualHosts = hosts
+		// routeConfiguration.TypedPerFilterConfig = map[string]*anypb.Any{
+		// 	"envoy.filters.http.on_demand": resource.MustNewAny(&on_demandv3.PerRouteConfig{
+		// 		Odcds: &on_demandv3.OnDemandCds{
+		// 			Source: &corev3.ConfigSource{
+		// 				ConfigSourceSpecifier: &corev3.ConfigSource_ApiConfigSource{
+		// 					ApiConfigSource: &corev3.ApiConfigSource{
+		// 						ApiType:             corev3.ApiConfigSource_DELTA_GRPC,
+		// 						TransportApiVersion: corev3.ApiVersion_V3,
+		// 						GrpcServices: []*corev3.GrpcService{
+		// 							{
+		// 								TargetSpecifier: &corev3.GrpcService_GoogleGrpc_{
+		// 									GoogleGrpc: &corev3.GrpcService_GoogleGrpc{
+		// 										TargetUri:  option.OnDemandServer,
+		// 										StatPrefix: "polaris_odcds",
+		// 									},
+		// 								},
+		// 							},
+		// 						},
+		// 					},
+		// 				},
+		// 				ResourceApiVersion: corev3.ApiVersion_V3,
+		// 			},
+		// 		},
+		// 	}),
+		// }
+		// routeConfiguration.Vhds = &route.Vhds{
+		// 	ConfigSource: &corev3.ConfigSource{
+		// 		ConfigSourceSpecifier: &corev3.ConfigSource_ApiConfigSource{
+		// 			ApiConfigSource: &corev3.ApiConfigSource{
+		// 				ApiType:             corev3.ApiConfigSource_DELTA_GRPC,
+		// 				TransportApiVersion: corev3.ApiVersion_V3,
+		// 				GrpcServices: []*corev3.GrpcService{
+		// 					{
+		// 						TargetSpecifier: &corev3.GrpcService_GoogleGrpc_{
+		// 							GoogleGrpc: &corev3.GrpcService_GoogleGrpc{
+		// 								TargetUri:  option.OnDemandServer,
+		// 								StatPrefix: "polaris_vhds",
+		// 							},
+		// 						},
+		// 					},
+		// 				},
+		// 			},
+		// 		},
+		// 		ResourceApiVersion: corev3.ApiVersion_V3,
+		// 	},
+		// }
 	}
 	routeConfs = append(routeConfs, routeConfiguration)
 	return routeConfs

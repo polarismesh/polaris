@@ -43,8 +43,6 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 	namespace := client.GetNamespace().GetValue()
 	group := client.GetGroup().GetValue()
 	fileName := client.GetFileName().GetValue()
-	clientVersion := client.GetVersion().GetValue()
-	configFileTags := client.GetTags()
 
 	if namespace == "" || group == "" || fileName == "" {
 		return api.NewConfigClientResponseWithInfo(
@@ -52,37 +50,20 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 	}
 	// 从缓存中获取灰度文件
 	var release *model.ConfigFileRelease
-	var match bool
-	if len(configFileTags) > 0 {
-		release = s.fileCache.GetActiveRelease(namespace, group, fileName, model.ReleaseTypeGray)
-		if release != nil {
+	var match = false
+	if len(client.GetTags()) > 0 {
+		if release = s.fileCache.GetGrayRelease(namespace, group, fileName); release != nil {
 			key := model.GetGrayConfigRealseKey(release.SimpleConfigFileRelease)
-			if grayRule := s.grayCache.GetGrayRule(key); grayRule == nil {
-				log.Error("[Config][Service] get config file not find gray rule",
-					utils.RequestID(ctx), zap.String("file", fileName))
-			} else {
-				tags := make([]*apimodel.Tag, 0, len(configFileTags))
-				for _, item := range configFileTags {
-					tag := &apimodel.Tag{
-						Key:   item.Key,
-						Value: item.Value,
-					}
-					tags = append(tags, tag)
-				}
-				if ok := utils.Match(grayRule, tags); ok {
-					match = true
-				}
-			}
+			match = s.grayCache.HitGrayRule(key, model.ToTagMap(client.GetTags()))
 		}
 	}
 	if !match {
-		release = s.fileCache.GetActiveRelease(namespace, group, fileName, model.ReleaseTypeFull)
-		if release == nil {
+		if release = s.fileCache.GetActiveRelease(namespace, group, fileName); release == nil {
 			return api.NewConfigClientResponse(apimodel.Code_NotFoundResource, nil)
 		}
 	}
 	// 客户端版本号大于服务端版本号，服务端不返回变更 todo: 结合灰度和全量版本 判断
-	if clientVersion > release.Version {
+	if client.GetVersion().GetValue() > release.Version {
 		return api.NewConfigClientResponse(apimodel.Code_DataNoChange, nil)
 	}
 	configFile, err := toClientInfo(client, release)
@@ -231,7 +212,7 @@ func (s *Server) checkClientConfigFile(ctx context.Context, files []*apiconfig.C
 				"namespace & group & fileName can not be empty"), false
 		}
 		// 从缓存中获取最新的配置文件信息
-		release := s.fileCache.GetActiveRelease(namespace, group, fileName, model.ReleaseTypeFull)
+		release := s.fileCache.GetActiveRelease(namespace, group, fileName)
 		if release != nil && compartor(configFile, release) {
 			ret := &apiconfig.ClientConfigFileInfo{
 				Namespace: utils.NewStringValue(namespace),

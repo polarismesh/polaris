@@ -30,6 +30,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	storemock "github.com/polarismesh/polaris/store/mock"
@@ -71,9 +72,11 @@ func Test_DefaultAuthChecker_VerifyCredential(t *testing.T) {
 	}
 	cacheMgn.OpenResourceCache([]cache.ConfigEntry{
 		{
-			Name: "users",
+			Name: cachetypes.UsersName,
 		},
 	}...)
+
+	_ = cacheMgn.TestUpdate()
 
 	t.Cleanup(func() {
 		cancel()
@@ -231,13 +234,20 @@ func Test_DefaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	cacheMgn.OpenResourceCache([]cache.ConfigEntry{
+		{
+			Name: cachetypes.UsersName,
+		},
+		{
+			Name: cachetypes.StrategyRuleName,
+		},
+	}...)
+	_ = cacheMgn.TestUpdate()
 
 	t.Cleanup(func() {
 		cancel()
 		cacheMgn.Close()
 	})
-
-	time.Sleep(time.Second)
 
 	checker := &defaultauth.DefaultAuthChecker{}
 	checker.SetCacheMgr(cacheMgn)
@@ -476,7 +486,15 @@ func Test_DefaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 		cacheMgn.Close()
 	})
 
-	time.Sleep(time.Second)
+	cacheMgn.OpenResourceCache([]cache.ConfigEntry{
+		{
+			Name: cachetypes.UsersName,
+		},
+		{
+			Name: cachetypes.StrategyRuleName,
+		},
+	}...)
+	_ = cacheMgn.TestUpdate()
 
 	checker := &defaultauth.DefaultAuthChecker{}
 	checker.SetCacheMgr(cacheMgn)
@@ -670,8 +688,15 @@ func Test_DefaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 		cancel()
 		cacheMgn.Close()
 	})
-
-	time.Sleep(time.Second)
+	cacheMgn.OpenResourceCache([]cache.ConfigEntry{
+		{
+			Name: cachetypes.UsersName,
+		},
+		{
+			Name: cachetypes.StrategyRuleName,
+		},
+	}...)
+	_ = cacheMgn.TestUpdate()
 
 	checker := &defaultauth.DefaultAuthChecker{}
 	checker.SetCacheMgr(cacheMgn)
@@ -886,8 +911,15 @@ func Test_DefaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 		cancel()
 		cacheMgn.Close()
 	})
-
-	time.Sleep(time.Second)
+	cacheMgn.OpenResourceCache([]cache.ConfigEntry{
+		{
+			Name: cachetypes.UsersName,
+		},
+		{
+			Name: cachetypes.StrategyRuleName,
+		},
+	}...)
+	_ = cacheMgn.TestUpdate()
 
 	checker := &defaultauth.DefaultAuthChecker{}
 	checker.SetCacheMgr(cacheMgn)

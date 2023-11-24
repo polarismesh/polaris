@@ -30,7 +30,6 @@ import (
 	"github.com/polarismesh/polaris/apiserver/nacosserver/v2/remote"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/config"
-	commonmodel "github.com/polarismesh/polaris/common/model"
 )
 
 const (
@@ -159,7 +158,7 @@ func (h *ConfigServer) handleWatchConfigRequest(ctx context.Context, req nacospb
 	clientId := meta.ConnectionID
 	specReq := watchReq.ToSpec()
 	if watchReq.Listen {
-		_ = configSvr.WatchCenter().AddWatcher(clientId, specReq.GetWatchFiles(), h.BuildGrpcWatchCtx())
+		_ = configSvr.WatchCenter().AddWatcher(clientId, specReq.GetWatchFiles(), h.BuildGrpcWatchCtx(ctx))
 		for i := range specReq.GetWatchFiles() {
 			item := specReq.GetWatchFiles()[i]
 			namespace := item.GetNamespace().GetValue()
@@ -167,7 +166,7 @@ func (h *ConfigServer) handleWatchConfigRequest(ctx context.Context, req nacospb
 			dataId := item.GetFileName().GetValue()
 			mdval := item.GetMd5().GetValue()
 
-			active := h.cacheSvr.ConfigFile().GetActiveRelease(namespace, group, dataId, commonmodel.ReleaseTypeFull)
+			active := h.cacheSvr.ConfigFile().GetActiveRelease(namespace, group, dataId)
 			// 如果 client 过来的 MD5 是一个空字符串
 			if (active == nil && mdval != "") || (active != nil && active.Md5 != mdval) {
 				listenResp.ChangedConfigs = append(listenResp.ChangedConfigs, nacospb.ConfigContext{
@@ -190,11 +189,15 @@ func (h *ConfigServer) handleWatchConfigRequest(ctx context.Context, req nacospb
 }
 
 // BuildGrpcWatchCtx .
-func (h *ConfigServer) BuildGrpcWatchCtx() config.WatchContextFactory {
+func (h *ConfigServer) BuildGrpcWatchCtx(ctx context.Context) config.WatchContextFactory {
+	labels := map[string]string{}
+	labels["ip"] = utils.ParseClientIP(ctx)
+
 	return func(clientId string) config.WatchContext {
 		watchCtx := &StreamWatchContext{
 			clientId:         clientId,
 			connMgr:          h.connMgr,
+			labels:           labels,
 			watchConfigFiles: utils.NewSyncMap[string, *config_manage.ClientConfigFileInfo](),
 		}
 		return watchCtx

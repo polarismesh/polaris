@@ -58,7 +58,7 @@ var (
 // Config 核心逻辑层配置
 type Config struct {
 	L5Open     bool                   `yaml:"l5Open"`
-	AutoCreate bool                   `yaml:"autoCreate"`
+	AutoCreate *bool                  `yaml:"autoCreate"`
 	Batch      map[string]interface{} `yaml:"batch"`
 }
 

@@ -152,6 +152,20 @@ func (x *XDSNodeManager) HasEnvoyNodes() bool {
 	return len(x.gatewayNodes) != 0 || len(x.sidecarNodes) != 0
 }
 
+func (x *XDSNodeManager) ListEnvoyNodes() []*XDSClient {
+	x.lock.RLock()
+	defer x.lock.RUnlock()
+
+	ret := make([]*XDSClient, 0, len(x.sidecarNodes))
+	for i := range x.sidecarNodes {
+		ret = append(ret, x.sidecarNodes[i])
+	}
+	for i := range x.gatewayNodes {
+		ret = append(ret, x.gatewayNodes[i])
+	}
+	return ret
+}
+
 func (x *XDSNodeManager) ListGatewayNodes() []*XDSClient {
 	x.lock.RLock()
 	defer x.lock.RUnlock()

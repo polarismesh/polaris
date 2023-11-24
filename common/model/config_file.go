@@ -133,12 +133,12 @@ type ConfigFileRelease struct {
 }
 
 type ConfigFileReleaseKey struct {
-	Id        uint64
-	Name      string
-	Namespace string
-	Group     string
-	FileName  string
-	Typ       ReleaseType
+	Id          uint64
+	Name        string
+	Namespace   string
+	Group       string
+	FileName    string
+	ReleaseType ReleaseType
 }
 
 func (c ConfigFileReleaseKey) ToFileKey() *ConfigFileKey {
@@ -154,7 +154,7 @@ func (c *ConfigFileReleaseKey) OwnerKey() string {
 }
 
 func (c ConfigFileReleaseKey) ActiveKey() string {
-	return fmt.Sprintf("%v@%v@%v@%v", c.Namespace, c.Group, c.FileName, c.Typ)
+	return fmt.Sprintf("%v@%v@%v@%v", c.Namespace, c.Group, c.FileName, c.ReleaseType)
 }
 
 func (c ConfigFileReleaseKey) ReleaseKey() string {
@@ -184,6 +184,7 @@ type SimpleConfigFileRelease struct {
 	ModifyTime         time.Time
 	ModifyBy           string
 	ReleaseDescription string
+	ReleaseType        ReleaseType
 }
 
 func (s *SimpleConfigFileRelease) GetEncryptDataKey() string {
@@ -359,7 +360,7 @@ func ToConfiogFileReleaseApi(release *ConfigFileRelease) *config_manage.ConfigFi
 		ReleaseDescription: utils.NewStringValue(release.ReleaseDescription),
 		Tags:               FromTagMap(release.Metadata),
 		Active:             utils.NewBoolValue(release.Active),
-		Type:               utils.NewUInt32Value(uint32(release.Typ)),
+		Type:               utils.NewUInt32Value(uint32(release.ReleaseType)),
 	}
 }
 

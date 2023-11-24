@@ -521,6 +521,20 @@ func (mr *MockStoreMockRecorder) CreateFaultDetectRule(conf interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateFaultDetectRule", reflect.TypeOf((*MockStore)(nil).CreateFaultDetectRule), conf)
 }
 
+// CreateGrayResourceTx mocks base method.
+func (m *MockStore) CreateGrayResourceTx(tx store.Tx, data *model.GrayResource) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateGrayResourceTx", tx, data)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateGrayResourceTx indicates an expected call of CreateGrayResourceTx.
+func (mr *MockStoreMockRecorder) CreateGrayResourceTx(tx, data interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateGrayResourceTx", reflect.TypeOf((*MockStore)(nil).CreateGrayResourceTx), tx, data)
+}
+
 // CreateRateLimit mocks base method.
 func (m *MockStore) CreateRateLimit(limiting *model.RateLimit) error {
 	m.ctrl.T.Helper()
@@ -1323,6 +1337,21 @@ func (m *MockStore) GetMoreConfigGroup(firstUpdate bool, mtime time.Time) ([]*mo
 func (mr *MockStoreMockRecorder) GetMoreConfigGroup(firstUpdate, mtime interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreConfigGroup", reflect.TypeOf((*MockStore)(nil).GetMoreConfigGroup), firstUpdate, mtime)
+}
+
+// GetMoreGrayResouces mocks base method.
+func (m *MockStore) GetMoreGrayResouces(firstUpdate bool, mtime time.Time) ([]*model.GrayResource, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMoreGrayResouces", firstUpdate, mtime)
+	ret0, _ := ret[0].([]*model.GrayResource)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMoreGrayResouces indicates an expected call of GetMoreGrayResouces.
+func (mr *MockStoreMockRecorder) GetMoreGrayResouces(firstUpdate, mtime interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreGrayResouces", reflect.TypeOf((*MockStore)(nil).GetMoreGrayResouces), firstUpdate, mtime)
 }
 
 // GetMoreInstances mocks base method.
@@ -2648,6 +2677,58 @@ func (mr *MockNamespaceStoreMockRecorder) UpdateNamespaceToken(name, token inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNamespaceToken", reflect.TypeOf((*MockNamespaceStore)(nil).UpdateNamespaceToken), name, token)
 }
 
+// MockGrayStore is a mock of GrayStore interface.
+type MockGrayStore struct {
+	ctrl     *gomock.Controller
+	recorder *MockGrayStoreMockRecorder
+}
+
+// MockGrayStoreMockRecorder is the mock recorder for MockGrayStore.
+type MockGrayStoreMockRecorder struct {
+	mock *MockGrayStore
+}
+
+// NewMockGrayStore creates a new mock instance.
+func NewMockGrayStore(ctrl *gomock.Controller) *MockGrayStore {
+	mock := &MockGrayStore{ctrl: ctrl}
+	mock.recorder = &MockGrayStoreMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockGrayStore) EXPECT() *MockGrayStoreMockRecorder {
+	return m.recorder
+}
+
+// CreateGrayResourceTx mocks base method.
+func (m *MockGrayStore) CreateGrayResourceTx(tx store.Tx, data *model.GrayResource) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateGrayResourceTx", tx, data)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateGrayResourceTx indicates an expected call of CreateGrayResourceTx.
+func (mr *MockGrayStoreMockRecorder) CreateGrayResourceTx(tx, data interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateGrayResourceTx", reflect.TypeOf((*MockGrayStore)(nil).CreateGrayResourceTx), tx, data)
+}
+
+// GetMoreGrayResouces mocks base method.
+func (m *MockGrayStore) GetMoreGrayResouces(firstUpdate bool, mtime time.Time) ([]*model.GrayResource, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMoreGrayResouces", firstUpdate, mtime)
+	ret0, _ := ret[0].([]*model.GrayResource)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMoreGrayResouces indicates an expected call of GetMoreGrayResouces.
+func (mr *MockGrayStoreMockRecorder) GetMoreGrayResouces(firstUpdate, mtime interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreGrayResouces", reflect.TypeOf((*MockGrayStore)(nil).GetMoreGrayResouces), firstUpdate, mtime)
+}
+
 // MockTransaction is a mock of Transaction interface.
 type MockTransaction struct {
 	ctrl     *gomock.Controller
@@ -2873,33 +2954,4 @@ func (m *MockToolStore) GetUnixSecond(maxWait time.Duration) (int64, error) {
 func (mr *MockToolStoreMockRecorder) GetUnixSecond(maxWait interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnixSecond", reflect.TypeOf((*MockToolStore)(nil).GetUnixSecond), maxWait)
-}
-
-// CreateGrayResourceTx mocks base method.
-func (m *MockStore) CreateGrayResourceTx(tx store.Tx, grayResource *model.GrayResource) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateGrayResourceTx", tx, grayResource)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreateGrayResourceTx indicates an expected call of CreategrayResourceTx.
-func (mr *MockStoreMockRecorder) CreateGrayResourceTx(tx, grayResource interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateGrayResourceTx", reflect.TypeOf((*MockStore)(nil).CreateGrayResourceTx), tx, grayResource)
-}
-
-// GetMoreGrayResouces mocks base method.
-func (m *MockStore) GetMoreGrayResouces(firstUpdate bool, modifyTime time.Time) ([]*model.GrayResource, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMoreGrayResouces", firstUpdate, modifyTime)
-	ret0, _ := ret[0].([]*model.GrayResource)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMoreGrayResouces indicates an expected call of GetMoreGrayResouces.
-func (mr *MockStoreMockRecorder) GetMoreGrayResouces(firstUpdate, modifyTime interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreGrayResouces", reflect.TypeOf((*MockStore)(nil).GetMoreGrayResouces), firstUpdate, modifyTime)
 }

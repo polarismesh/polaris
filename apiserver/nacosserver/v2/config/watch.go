@@ -73,8 +73,13 @@ func (c *ConnectionClientManager) OnEvent(ctx context.Context, a any) error {
 
 type StreamWatchContext struct {
 	clientId         string
+	labels           map[string]string
 	connMgr          *remote.ConnectionManager
 	watchConfigFiles *utils.SyncMap[string, *apiconfig.ClientConfigFileInfo]
+}
+
+func (c *StreamWatchContext) ClientLabels() map[string]string {
+	return c.labels
 }
 
 // IsOnce

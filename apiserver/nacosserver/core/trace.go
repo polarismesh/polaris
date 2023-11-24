@@ -15,21 +15,22 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package logger
+package core
 
-import (
-	commonlog "github.com/polarismesh/polaris/common/log"
-)
+import "github.com/polarismesh/polaris/apiserver/nacosserver/logger"
 
-var (
-	nacoslog = commonlog.RegisterScope("nacos-apiserver", "nacos apiserver plugin", 0)
-	tracelog = commonlog.RegisterScope("nacos-trace", "nacos trace", 0)
-)
+type EventType string
 
-func GetNacosLog() *commonlog.Scope {
-	return nacoslog
+const ()
+
+func EventTrace(i Event) {
+	logger.GetTraceLog().Infof("%s|%s|%s|%s|%s", i.Namespace, i.Group, i.Resource, i.EventType, i.Result)
 }
 
-func GetTraceLog() *commonlog.Scope {
-	return tracelog
+type Event struct {
+	Namespace string
+	Group     string
+	Resource  string
+	EventType EventType
+	Result    string
 }

@@ -53,6 +53,8 @@ type (
 	WatchContext interface {
 		// ClientID .
 		ClientID() string
+		// ClientLabels .
+		ClientLabels() map[string]string
 		// AppendInterest .
 		AppendInterest(item *apiconfig.ClientConfigFileInfo)
 		// RemoveInterest .
@@ -74,10 +76,15 @@ type (
 
 type LongPollWatchContext struct {
 	clientId         string
+	labels           map[string]string
 	once             sync.Once
 	finishTime       time.Time
 	finishChan       chan *apiconfig.ConfigClientResponse
 	watchConfigFiles map[string]*apiconfig.ClientConfigFileInfo
+}
+
+func (c *LongPollWatchContext) ClientLabels() map[string]string {
+	return c.labels
 }
 
 // IsOnce
@@ -214,7 +221,7 @@ func (wc *watchCenter) checkQuickResponseClient(watchCtx WatchContext) *apiconfi
 				"namespace & group & fileName can not be empty")
 		}
 		// 从缓存中获取最新的配置文件信息
-		if release := wc.fileCache.GetActiveRelease(namespace, group, fileName, model.ReleaseTypeFull); release != nil {
+		if release := wc.fileCache.GetActiveRelease(namespace, group, fileName); release != nil {
 			if watchCtx.ShouldNotify(release.SimpleConfigFileRelease) {
 				ret := &apiconfig.ClientConfigFileInfo{
 					Namespace: utils.NewStringValue(namespace),
