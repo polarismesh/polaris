@@ -108,7 +108,7 @@ func (c *LongPollWatchContext) GetNotifieResultWithTime(timeout time.Duration) (
 }
 
 func (c *LongPollWatchContext) ShouldExpire(now time.Time) bool {
-	return true
+	return now.After(c.finishTime)
 }
 
 // ClientID .
@@ -117,7 +117,7 @@ func (c *LongPollWatchContext) ClientID() string {
 }
 
 func (c *LongPollWatchContext) ShouldNotify(event *model.SimpleConfigFileRelease) bool {
-	key := event.ActiveKey()
+	key := event.FileKey()
 	watchFile, ok := c.watchConfigFiles[key]
 	if !ok {
 		return false
@@ -256,7 +256,7 @@ func (wc *watchCenter) AddWatcher(clientId string,
 	})
 
 	for _, file := range watchFiles {
-		fileKey := utils.GenFileId(file.Namespace.GetValue(), file.Group.GetValue(), file.FileName.GetValue())
+		fileKey := utils.GenFileId(file.GetNamespace().GetValue(), file.GetGroup().GetValue(), file.GetFileName().GetValue())
 
 		watchCtx.AppendInterest(file)
 		clientIds, _ := wc.watchers.ComputeIfAbsent(fileKey, func(k string) *utils.SyncSet[string] {
@@ -311,7 +311,8 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.SimpleConfigFil
 		return
 	}
 
-	log.Info("[Config][Watcher] received config file publish message.", zap.String("file", watchFileId))
+	log.Info("[Config][Watcher] received config file publish message.", zap.String("file", watchFileId),
+		zap.Int("clients", clientIds.Len()))
 
 	changeNotifyRequest := publishConfigFile.ToSpecNotifyClientRequest()
 	response := api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, changeNotifyRequest)
@@ -355,10 +356,9 @@ func (wc *watchCenter) startHandleTimeoutRequestWorker(ctx context.Context) {
 			tNow := time.Now()
 			waitRemove := make([]WatchContext, 0, 32)
 			wc.clients.Range(func(client string, watchCtx WatchContext) {
-				if !watchCtx.ShouldExpire(tNow) {
-					return
+				if watchCtx.ShouldExpire(tNow) {
+					waitRemove = append(waitRemove, watchCtx)
 				}
-				waitRemove = append(waitRemove, watchCtx)
 			})
 
 			for i := range waitRemove {

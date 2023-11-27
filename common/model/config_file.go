@@ -27,14 +27,13 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-type ReleaseType uint32
+type ReleaseType string
 
 const (
-	_ ReleaseType = iota
 	// ReleaseTypeFull 全量类型
-	ReleaseTypeFull
+	ReleaseTypeFull = ""
 	// ReleaseTypeGray 灰度类型
-	ReleaseTypeGray
+	ReleaseTypeGray = "gray"
 )
 
 /** ----------- DataObject ------------- */
@@ -153,6 +152,10 @@ func (c *ConfigFileReleaseKey) OwnerKey() string {
 	return c.Namespace + "@" + c.Group
 }
 
+func (c ConfigFileReleaseKey) FileKey() string {
+	return fmt.Sprintf("%v@%v@%v", c.Namespace, c.Group, c.FileName)
+}
+
 func (c ConfigFileReleaseKey) ActiveKey() string {
 	return fmt.Sprintf("%v@%v@%v@%v", c.Namespace, c.Group, c.FileName, c.ReleaseType)
 }
@@ -161,7 +164,7 @@ func (c ConfigFileReleaseKey) ReleaseKey() string {
 	return fmt.Sprintf("%v@%v@%v@%v", c.Namespace, c.Group, c.FileName, c.Name)
 }
 
-// BuildKeyForClientConfigFileInfo 必须保证和 ConfigFileReleaseKey 是一样的生成规则
+// BuildKeyForClientConfigFileInfo 必须保证和 ConfigFileReleaseKey.FileKey 是一样的生成规则
 func BuildKeyForClientConfigFileInfo(info *config_manage.ClientConfigFileInfo) string {
 	key := info.GetNamespace().GetValue() + "@" +
 		info.GetGroup().GetValue() + "@" + info.GetFileName().GetValue()
@@ -184,7 +187,7 @@ type SimpleConfigFileRelease struct {
 	ModifyTime         time.Time
 	ModifyBy           string
 	ReleaseDescription string
-	ReleaseType        ReleaseType
+	ReleaseType        string
 }
 
 func (s *SimpleConfigFileRelease) GetEncryptDataKey() string {
@@ -360,7 +363,7 @@ func ToConfiogFileReleaseApi(release *ConfigFileRelease) *config_manage.ConfigFi
 		ReleaseDescription: utils.NewStringValue(release.ReleaseDescription),
 		Tags:               FromTagMap(release.Metadata),
 		Active:             utils.NewBoolValue(release.Active),
-		Type:               utils.NewUInt32Value(uint32(release.ReleaseType)),
+		Type:               utils.NewStringValue(string(release.ReleaseType)),
 	}
 }
 

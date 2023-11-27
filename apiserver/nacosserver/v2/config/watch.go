@@ -98,7 +98,7 @@ func (c *StreamWatchContext) ClientID() string {
 
 // ShouldNotify .
 func (c *StreamWatchContext) ShouldNotify(event *model.SimpleConfigFileRelease) bool {
-	key := event.ActiveKey()
+	key := event.FileKey()
 	watchFile, ok := c.watchConfigFiles.Load(key)
 	if !ok {
 		return false

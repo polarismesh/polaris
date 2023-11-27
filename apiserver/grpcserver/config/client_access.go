@@ -104,3 +104,7 @@ func (g *ConfigGRPCServer) GetConfigFileMetadataList(ctx context.Context,
 	ctx = utils.ConvertGRPCContext(ctx)
 	return g.configServer.GetConfigFileNamesWithCache(ctx, req), nil
 }
+
+func (g *ConfigGRPCServer) Discover(svr apiconfig.PolarisConfigGRPC_DiscoverServer) error {
+	return nil
+}

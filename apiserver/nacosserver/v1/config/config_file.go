@@ -175,7 +175,7 @@ func (n *ConfigServer) diffChangeFiles(ctx context.Context, listenCtx *config_ma
 		mdval := item.GetMd5().GetValue()
 
 		if beta := n.cacheSvr.ConfigFile().GetGrayRelease(namespace, group, dataId); beta != nil {
-			if n.cacheSvr.Gray().HitGrayRule(beta.ActiveKey(), clientLabels) {
+			if n.cacheSvr.Gray().HitGrayRule(beta.FileKey(), clientLabels) {
 				changeKeys = append(changeKeys, &model.ConfigListenItem{
 					Tenant: model.ToNacosConfigNamespace(beta.Namespace),
 					Group:  beta.Group,

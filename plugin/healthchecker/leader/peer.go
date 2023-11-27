@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"net"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -64,8 +65,10 @@ type Peer interface {
 	Close() error
 	// Host .
 	Host() string
-	// Storage
+	// Storage .
 	Storage() BeatRecordCache
+	// IsAlive .
+	IsAlive() bool
 }
 
 // LocalPeer Heartbeat data storage node
@@ -85,6 +88,10 @@ func (p *LocalPeer) Serve(ctx context.Context, checker *LeaderHealthChecker,
 	listenIP string, listenPort uint32) error {
 	log.Info("[HealthCheck][Leader] local peer serve")
 	return nil
+}
+
+func (p *LocalPeer) IsAlive() bool {
+	return true
 }
 
 // Get get records
@@ -188,6 +195,20 @@ func (p *RemotePeer) Serve(_ context.Context, checker *LeaderHealthChecker,
 
 func (p *RemotePeer) Host() string {
 	return p.host
+}
+
+func (p *RemotePeer) IsAlive() bool {
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%v", p.Host(), p.port), time.Second)
+	defer func() {
+		if conn != nil {
+			_ = conn.Close()
+		}
+	}()
+
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 // Get get records

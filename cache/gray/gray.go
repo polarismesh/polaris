@@ -22,17 +22,17 @@ import (
 	"encoding/json"
 	"time"
 
+	regexp "github.com/dlclark/regexp2"
+	"github.com/golang/protobuf/jsonpb"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	regexp "github.com/dlclark/regexp2"
-	"github.com/golang/protobuf/jsonpb"
 	types "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 )
 
 var (

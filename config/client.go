@@ -140,7 +140,7 @@ func BuildTimeoutWatchCtx(watchTimeOut time.Duration) WatchContextFactory {
 		watchCtx := &LongPollWatchContext{
 			clientId:         clientId,
 			finishTime:       time.Now().Add(watchTimeOut),
-			finishChan:       make(chan *apiconfig.ConfigClientResponse),
+			finishChan:       make(chan *apiconfig.ConfigClientResponse, 1),
 			watchConfigFiles: map[string]*apiconfig.ClientConfigFileInfo{},
 		}
 		return watchCtx

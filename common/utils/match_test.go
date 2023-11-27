@@ -17,7 +17,6 @@
 
 package utils
 
-
 import (
 	"testing"
 

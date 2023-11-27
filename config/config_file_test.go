@@ -23,10 +23,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"reflect"
 	"testing"
 
-	. "github.com/agiledragon/gomonkey/v2"
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
@@ -767,12 +765,6 @@ func Test_GetConfigFileRichInfo(t *testing.T) {
 	defer ctrl.Finish()
 
 	t.Run("获取配置文件基本信息-解密配置文件-返回error", func(t *testing.T) {
-		crypto := &aes.AESCrypto{}
-		encryptFunc := ApplyMethod(reflect.TypeOf(crypto), "Decrypt", func(_ *aes.AESCrypto, plaintext string, key []byte) (string, error) {
-			return "", errors.New("mock encrypt error")
-		})
-		defer encryptFunc.Reset()
-
 		configFile := assembleConfigFile()
 
 		storage := storemock.NewMockStore(ctrl)
@@ -787,7 +779,11 @@ func Test_GetConfigFileRichInfo(t *testing.T) {
 		svr.TestMockStore(storage)
 		svr.TestMockCryptoManager(&MockCryptoManager{
 			repos: map[string]plugin.Crypto{
-				crypto.Name(): crypto,
+				(&aes.AESCrypto{}).Name(): &MockCrypto{
+					mockDecrypt: func(cryptotext string, key []byte) (string, error) {
+						return "", errors.New("mock encrypt error")
+					},
+				},
 			},
 		})
 		got := testSuit.ConfigServer().GetConfigFileRichInfo(testSuit.DefaultCtx, configFile)
@@ -824,6 +820,7 @@ func (m *MockCryptoManager) GetCrypto(algo string) (plugin.Crypto, error) {
 }
 
 type MockCrypto struct {
+	mockDecrypt func(cryptotext string, key []byte) (string, error)
 }
 
 func (m *MockCrypto) Name() string {

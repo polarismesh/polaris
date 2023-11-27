@@ -55,7 +55,7 @@ func (s *Server) PublishConfigFile(ctx context.Context, req *apiconfig.ConfigFil
 	if !s.checkNamespaceExisted(req.GetNamespace().GetValue()) {
 		return api.NewConfigResponse(apimodel.Code_NotFoundNamespace)
 	}
-	if req.GetType().GetValue() == uint32(model.ReleaseTypeGray) && len(req.GetBetaLabels()) == 0 {
+	if req.GetType().GetValue() == model.ReleaseTypeGray && len(req.GetBetaLabels()) == 0 {
 		return api.NewConfigResponse(apimodel.Code_InvalidMatchRule)
 	}
 
@@ -82,7 +82,7 @@ func (s *Server) PublishConfigFile(ctx context.Context, req *apiconfig.ConfigFil
 		log.Error("[Config][Release] publish config file commit tx.", utils.RequestID(ctx), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
-	if req.GetType().GetValue() == uint32(model.ReleaseTypeGray) {
+	if req.GetType().GetValue() == model.ReleaseTypeGray {
 		s.recordReleaseSuccess(ctx, utils.ReleaseTypeGray, data)
 	} else {
 		s.recordReleaseSuccess(ctx, utils.ReleaseTypeNormal, data)
@@ -162,7 +162,7 @@ func (s *Server) handlePublishConfigFile(ctx context.Context, tx store.Tx,
 			return fileRelease, api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 		}
 	}
-	if req.GetType().GetValue() == uint32(model.ReleaseTypeGray) {
+	if req.GetType().GetValue() == model.ReleaseTypeGray {
 		clientLabels := req.GetBetaLabels()
 		var buffer bytes.Buffer
 		marshaler := jsonpb.Marshaler{}
@@ -454,7 +454,7 @@ func (s *Server) handleDescribeConfigFileReleases(ctx context.Context,
 			ModifyBy:           utils.NewStringValue(item.ModifyBy),
 			ReleaseDescription: utils.NewStringValue(item.ReleaseDescription),
 			Tags:               model.FromTagMap(item.Metadata),
-			Type:               utils.NewUInt32Value(uint32(item.ReleaseType)),
+			Type:               utils.NewStringValue(string(item.ReleaseType)),
 		})
 	}
 

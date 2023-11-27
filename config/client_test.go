@@ -402,11 +402,11 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 
 		rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
 		t.Log("create config file success")
-		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
+		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue(), rsp.GetInfo().GetValue())
 
 		rsp2 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, assembleConfigFileRelease(configFile))
 		t.Log("publish config file success")
-		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
+		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue(), rsp2.GetInfo().GetValue())
 
 		saveData, err := testSuit.Storage.GetConfigFileActiveRelease(&model.ConfigFileKey{
 			Name:      configFile.GetName().GetValue(),
@@ -414,6 +414,7 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 			Group:     configFile.GetGroup().GetValue(),
 		})
 		assert.NoError(t, err)
+		assert.Equal(t, uint64(1), saveData.Version)
 		assert.Equal(t, configFile.GetContent().GetValue(), saveData.Content)
 
 		notifyRsp, err := (watchCtx.(*config.LongPollWatchContext)).GetNotifieResultWithTime(10 * time.Second)
@@ -421,7 +422,7 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 			t.Fatal(err)
 		}
 		t.Logf("clientId=[%s] receive config publish msg", clientId)
-		receivedVersion := notifyRsp.ConfigFile.Version.GetValue()
+		receivedVersion := notifyRsp.GetConfigFile().GetVersion().GetValue()
 		assert.Equal(t, uint64(1), receivedVersion)
 	})
 

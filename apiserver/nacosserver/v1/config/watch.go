@@ -74,7 +74,7 @@ func (c *LongPollWatchContext) ClientID() string {
 
 // ShouldNotify .
 func (c *LongPollWatchContext) ShouldNotify(event *model.SimpleConfigFileRelease) bool {
-	key := event.ActiveKey()
+	key := event.FileKey()
 	watchFile, ok := c.watchConfigFiles[key]
 	if !ok {
 		return false
