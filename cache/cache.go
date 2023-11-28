@@ -56,9 +56,9 @@ func (nc *CacheManager) Initialize() error {
 }
 
 // OpenResourceCache 开启资源缓存
-func (nc *CacheManager) OpenResourceCache(entries ...ConfigEntry) error {
+func (nc *CacheManager) OpenResourceCache(entries ...types.ConfigEntry) error {
 	for _, obj := range nc.caches {
-		var entryItem *ConfigEntry
+		var entryItem *types.ConfigEntry
 		for _, entry := range entries {
 			if obj.Name() == entry.Name {
 				entryItem = &entry

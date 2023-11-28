@@ -36,6 +36,7 @@ import (
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -1373,7 +1374,7 @@ func TestConcurrencyCreateSameService(t *testing.T) {
 			&model.Namespace{
 				Name: "mock_ns",
 			},
-		}, nil)
+		}, nil).AnyTimes()
 		mockStore.EXPECT().GetUnixSecond(gomock.Any()).Return(time.Now().Unix(), nil).AnyTimes()
 		cacheMgr, err = cache.TestCacheInitialize(ctx, &cache.Config{}, mockStore)
 		assert.NoError(t, err)
@@ -1386,7 +1387,7 @@ func TestConcurrencyCreateSameService(t *testing.T) {
 		}, mockStore, cacheMgr, userMgn, strategyMgn)
 		assert.NoError(t, err)
 
-		cacheMgr.OpenResourceCache([]cache.ConfigEntry{
+		cacheMgr.OpenResourceCache([]cachetypes.ConfigEntry{
 			{
 				Name: "namespace",
 			},

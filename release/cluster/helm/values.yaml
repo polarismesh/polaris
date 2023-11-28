@@ -39,11 +39,10 @@ polaris:
     clientOpen: false
   storage:
     db:
-      server:
-        address: localhost:3306
-        name: polaris_server
-        user: root
-        password: polaris@123456
+      address: localhost:3306
+      name: polaris_server
+      user: root
+      password: polaris@123456
     redis:
       address: localhost:6379
       # ACL user from redis v6.0, remove it if ACL is not available

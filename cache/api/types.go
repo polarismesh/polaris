@@ -107,12 +107,50 @@ type Cache interface {
 	Close() error
 }
 
+// ConfigEntry 单个缓存资源配置
+type ConfigEntry struct {
+	Name   string                 `yaml:"name"`
+	Option map[string]interface{} `yaml:"option"`
+}
+
 // CacheManager
 type CacheManager interface {
 	// GetCacher
 	GetCacher(cacheIndex CacheIndex) Cache
 	// RegisterCacher
 	RegisterCacher(cacheIndex CacheIndex, item Cache)
+	//
+	OpenResourceCache(entries ...ConfigEntry) error
+	// Service 获取Service缓存信息
+	Service() ServiceCache
+	// Instance 获取Instance缓存信息
+	Instance() InstanceCache
+	// RoutingConfig 获取路由配置的缓存信息
+	RoutingConfig() RoutingConfigCache
+	// CL5 获取l5缓存信息
+	CL5() L5Cache
+	// RateLimit 获取限流规则缓存信息
+	RateLimit() RateLimitCache
+	// CircuitBreaker 获取熔断规则缓存信息
+	CircuitBreaker() CircuitBreakerCache
+	// FaultDetector 获取探测规则缓存信息
+	FaultDetector() FaultDetectCache
+	// ServiceContract 获取服务契约缓存
+	ServiceContract() ServiceContractCache
+	// User Get user information cache information
+	User() UserCache
+	// AuthStrategy Get authentication cache information
+	AuthStrategy() StrategyCache
+	// Namespace Get namespace cache information
+	Namespace() NamespaceCache
+	// Client Get client cache information
+	Client() ClientCache
+	// ConfigFile get config file cache information
+	ConfigFile() ConfigFileCache
+	// ConfigGroup get config group cache information
+	ConfigGroup() ConfigGroupCache
+	// Gray get Gray cache information
+	Gray() GrayCache
 }
 
 type (

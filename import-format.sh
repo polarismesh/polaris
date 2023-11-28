@@ -25,7 +25,7 @@ mkdir -p style_tool
 
 cd style_tool
 
-is_arm=$(/usr/bin/uname -m | grep "arm|aarch64" | wc -l)
+is_arm=$(/usr/bin/uname -m | grep -E "arm|aarch64" | wc -l)
 goimports_target_file="goimports-reviser_3.3.1_linux_amd64.tar.gz"
 
 if [ "$(uname)" == "Darwin" ]; then

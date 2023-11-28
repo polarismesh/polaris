@@ -85,7 +85,7 @@ func newGroupTest(t *testing.T) *GroupTest {
 	if err != nil {
 		t.Error(err)
 	}
-	cacheMgn.OpenResourceCache([]cache.ConfigEntry{
+	cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
 		{
 			Name: cachetypes.UsersName,
 		},

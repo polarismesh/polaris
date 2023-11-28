@@ -27,6 +27,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -49,7 +50,7 @@ func NewServer(storage store.Store,
 type Server struct {
 	storage  store.Store
 	history  plugin.History
-	cacheMgn *cache.CacheManager
+	cacheMgn cachetypes.CacheManager
 	authMgn  *DefaultAuthChecker
 }
 

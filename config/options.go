@@ -20,12 +20,12 @@ package config
 import (
 	"path/filepath"
 
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
 var (
-	configCacheEntries = []cache.ConfigEntry{
+	configCacheEntries = []cachetypes.ConfigEntry{
 		{
 			Name: "configFile",
 		},
@@ -36,7 +36,7 @@ var (
 )
 
 var (
-	testConfigCacheEntries = []cache.ConfigEntry{
+	testConfigCacheEntries = []cachetypes.ConfigEntry{
 		{
 			Name: "configFile",
 			Option: map[string]interface{}{

@@ -26,6 +26,7 @@ import (
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/service/batch"
@@ -59,15 +60,11 @@ func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Conf
 	cacheMgr *cache.CacheManager, storage store.Store, namespaceSvr namespace.NamespaceOperateServer,
 	healthSvr *healthcheck.Server,
 	userMgn auth.UserServer, strategyMgn auth.StrategyServer) (DiscoverServer, DiscoverServer, error) {
-	_ = cacheMgr.OpenResourceCache([]cache.ConfigEntry{
-		{
-			Name: "service",
-		}, {
-			Name: "instance",
-		}, {
-			Name: "serviceContract",
-		},
-	}...)
+	entrites := []cachetypes.ConfigEntry{}
+	entrites = append(entrites, l5CacheEntry)
+	entrites = append(entrites, namingCacheEntries...)
+	entrites = append(entrites, governanceCacheEntries...)
+	_ = cacheMgr.OpenResourceCache(entrites...)
 	namingServer.healthServer = healthSvr
 	namingServer.storage = storage
 	// 注入命名空间管理模块

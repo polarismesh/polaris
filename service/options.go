@@ -34,10 +34,10 @@ import (
 */
 
 var (
-	l5CacheEntry = cache.ConfigEntry{
+	l5CacheEntry = cachetypes.ConfigEntry{
 		Name: cachetypes.L5Name,
 	}
-	namingCacheEntries = []cache.ConfigEntry{
+	namingCacheEntries = []cachetypes.ConfigEntry{
 		{
 			Name: cachetypes.ServiceName,
 			Option: map[string]interface{}{
@@ -55,8 +55,11 @@ var (
 		{
 			Name: cachetypes.ServiceContractName,
 		},
+		{
+			Name: cachetypes.ClientName,
+		},
 	}
-	governanceCacheEntries = []cache.ConfigEntry{
+	governanceCacheEntries = []cachetypes.ConfigEntry{
 		{
 			Name: cachetypes.RoutingConfigName,
 		},

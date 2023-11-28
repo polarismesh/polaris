@@ -30,6 +30,10 @@ const (
 )
 
 const (
+	NacosClientAuthHeader = "accessToken"
+)
+
+const (
 	ParamCode              = "code"
 	ParamServiceName       = "serviceName"
 	ParamClusterList       = "clusters"

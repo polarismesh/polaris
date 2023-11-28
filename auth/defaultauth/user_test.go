@@ -30,6 +30,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
@@ -96,7 +97,7 @@ func newUserTest(t *testing.T) *UserTest {
 	}
 
 	cacheMgn.OpenResourceCache(
-		[]cache.ConfigEntry{
+		[]cachetypes.ConfigEntry{
 			{
 				Name: "users",
 			},

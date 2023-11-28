@@ -25,6 +25,7 @@ import (
 	"sync"
 
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -143,7 +144,7 @@ func Initialize(ctx context.Context, authOpt *Config, storage store.Store, cache
 
 // initialize 包裹了初始化函数，在 Initialize 的时候会在自动调用，全局初始化一次
 func initialize(_ context.Context, authOpt *Config, storage store.Store,
-	cacheMgn *cache.CacheManager) (UserServer, StrategyServer, error) {
+	cacheMgr cachetypes.CacheManager) (UserServer, StrategyServer, error) {
 	authOpt.SetDefault()
 	name := authOpt.User.Name
 	if name == "" {
@@ -154,7 +155,7 @@ func initialize(_ context.Context, authOpt *Config, storage store.Store,
 	if !ok {
 		return nil, nil, fmt.Errorf("no such UserServer plugin. name(%s)", name)
 	}
-	if err := namedUserMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
+	if err := namedUserMgn.Initialize(authOpt, storage, cacheMgr); err != nil {
 		log.Printf("UserServer do initialize err: %s", err.Error())
 		return nil, nil, err
 	}
@@ -168,7 +169,7 @@ func initialize(_ context.Context, authOpt *Config, storage store.Store,
 	if !ok {
 		return nil, nil, fmt.Errorf("no such StrategyServer plugin. name(%s)", name)
 	}
-	if err := namedStrategyMgn.Initialize(authOpt, storage, cacheMgn); err != nil {
+	if err := namedStrategyMgn.Initialize(authOpt, storage, cacheMgr); err != nil {
 		log.Printf("StrategyServer do initialize err: %s", err.Error())
 		return nil, nil, err
 	}
