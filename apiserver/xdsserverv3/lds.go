@@ -31,6 +31,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 	"github.com/polarismesh/polaris/service"
@@ -135,7 +136,8 @@ func (lds *LDSBuilder) makeListener(option *resource.BuildOption,
 		}
 	}
 
-	listener := makeDefaultListener(direction, boundHCM, option)
+	dst_ports := makeListenersMatchDestinationPorts(option)
+	listener := makeDefaultListener(direction, boundHCM, option, dst_ports)
 	listener.ListenerFilters = append(listener.ListenerFilters, defaultListenerFilters...)
 
 	if option.TLSMode != resource.TLSModeNone {
@@ -173,11 +175,15 @@ func (lds *LDSBuilder) makeListener(option *resource.BuildOption,
 }
 
 func makeDefaultListener(trafficDirection corev3.TrafficDirection,
-	boundHCM *hcm.HttpConnectionManager, option *resource.BuildOption) *listenerv3.Listener {
+	boundHCM *hcm.HttpConnectionManager, option *resource.BuildOption, dst_ports []uint32) *listenerv3.Listener {
 
 	bindPort := boundBindPort[trafficDirection]
 	trafficDirectionName := corev3.TrafficDirection_name[int32(trafficDirection)]
 	ldsName := fmt.Sprintf("%s_%d", trafficDirectionName, bindPort)
+
+	filterChain := makeDefaultListenerFilterChain(trafficDirection,
+		boundHCM, dst_ports)
+
 	if trafficDirection == core.TrafficDirection_INBOUND {
 		ldsName = fmt.Sprintf("%s_%s_%d", option.SelfService.Domain(), trafficDirectionName, bindPort)
 	}
@@ -196,20 +202,58 @@ func makeDefaultListener(trafficDirection corev3.TrafficDirection,
 				},
 			},
 		},
-		FilterChains: []*listenerv3.FilterChain{
-			{
-				Filters: []*listenerv3.Filter{
-					{
-						Name: wellknown.HTTPConnectionManager,
-						ConfigType: &listenerv3.Filter_TypedConfig{
-							TypedConfig: resource.MustNewAny(boundHCM),
-						},
-					},
-				},
-			},
-		},
+		FilterChains:    filterChain,
 		ListenerFilters: []*listenerv3.ListenerFilter{},
 	}
 	listener.DefaultFilterChain = resource.MakeDefaultFilterChain()
 	return listener
+}
+
+func makeListenersMatchDestinationPorts(option *resource.BuildOption) []uint32 {
+	var destination_ports []uint32
+	selfService := option.SelfService
+
+	selfServiceInfo, ok := option.Services[selfService]
+	if ok && len(selfServiceInfo.Ports) > 0 {
+		for _, i := range selfServiceInfo.Ports {
+			destination_ports = append(destination_ports, i.Port)
+		}
+	}
+	return destination_ports
+
+}
+
+func makeDefaultListenerFilterChain(trafficDirection corev3.TrafficDirection,
+	boundHCM *hcm.HttpConnectionManager, dst_ports []uint32) []*listenerv3.FilterChain {
+
+	filterChain := make([]*listenerv3.FilterChain, 0)
+
+	defaultHttpFilter := []*listenerv3.Filter{
+		{
+			Name: wellknown.HTTPConnectionManager,
+			ConfigType: &listenerv3.Filter_TypedConfig{
+				TypedConfig: resource.MustNewAny(boundHCM),
+			},
+		},
+	}
+
+	if trafficDirection == core.TrafficDirection_INBOUND {
+		for _, i := range dst_ports {
+			filterChain = append(filterChain, &listenerv3.FilterChain{
+				Filters: defaultHttpFilter,
+				FilterChainMatch: &listenerv3.FilterChainMatch{
+					DestinationPort: &wrapperspb.UInt32Value{
+						Value: i,
+					},
+					TransportProtocol: "raw_buffer",
+				},
+			})
+		}
+	} else {
+		filterChain = append(filterChain, &listenerv3.FilterChain{
+			Filters: defaultHttpFilter,
+		})
+	}
+
+	return filterChain
 }
