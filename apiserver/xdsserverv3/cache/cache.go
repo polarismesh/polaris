@@ -86,7 +86,7 @@ func (sc *XDSCache) CreateDeltaWatch(request *cachev3.DeltaRequest, state stream
 	}
 	item := sc.loadCache(request)
 	if item == nil {
-		value <- nil
+		value <- &NoReadyXdsResponse{}
 		return func() {}
 	}
 	return item.CreateDeltaWatch(request, state, value)
