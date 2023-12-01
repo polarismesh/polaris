@@ -136,8 +136,8 @@ func (lds *LDSBuilder) makeListener(option *resource.BuildOption,
 		}
 	}
 
-	dst_ports := makeListenersMatchDestinationPorts(option)
-	listener := makeDefaultListener(direction, boundHCM, option, dst_ports)
+	dstPorts := makeListenersMatchDestinationPorts(option)
+	listener := makeDefaultListener(direction, boundHCM, option, dstPorts)
 	listener.ListenerFilters = append(listener.ListenerFilters, defaultListenerFilters...)
 
 	if option.TLSMode != resource.TLSModeNone {
@@ -175,14 +175,14 @@ func (lds *LDSBuilder) makeListener(option *resource.BuildOption,
 }
 
 func makeDefaultListener(trafficDirection corev3.TrafficDirection,
-	boundHCM *hcm.HttpConnectionManager, option *resource.BuildOption, dst_ports []uint32) *listenerv3.Listener {
+	boundHCM *hcm.HttpConnectionManager, option *resource.BuildOption, dstPorts []uint32) *listenerv3.Listener {
 
 	bindPort := boundBindPort[trafficDirection]
 	trafficDirectionName := corev3.TrafficDirection_name[int32(trafficDirection)]
 	ldsName := fmt.Sprintf("%s_%d", trafficDirectionName, bindPort)
 
 	filterChain := makeDefaultListenerFilterChain(trafficDirection,
-		boundHCM, dst_ports)
+		boundHCM, dstPorts)
 
 	if trafficDirection == core.TrafficDirection_INBOUND {
 		ldsName = fmt.Sprintf("%s_%s_%d", option.SelfService.Domain(), trafficDirectionName, bindPort)
@@ -224,7 +224,7 @@ func makeListenersMatchDestinationPorts(option *resource.BuildOption) []uint32 {
 }
 
 func makeDefaultListenerFilterChain(trafficDirection corev3.TrafficDirection,
-	boundHCM *hcm.HttpConnectionManager, dst_ports []uint32) []*listenerv3.FilterChain {
+	boundHCM *hcm.HttpConnectionManager, dstPorts []uint32) []*listenerv3.FilterChain {
 
 	filterChain := make([]*listenerv3.FilterChain, 0)
 
@@ -238,7 +238,7 @@ func makeDefaultListenerFilterChain(trafficDirection corev3.TrafficDirection,
 	}
 
 	if trafficDirection == core.TrafficDirection_INBOUND {
-		for _, i := range dst_ports {
+		for _, i := range dstPorts {
 			filterChain = append(filterChain, &listenerv3.FilterChain{
 				Filters: defaultHttpFilter,
 				FilterChainMatch: &listenerv3.FilterChainMatch{
