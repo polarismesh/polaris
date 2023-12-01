@@ -210,16 +210,16 @@ func makeDefaultListener(trafficDirection corev3.TrafficDirection,
 }
 
 func makeListenersMatchDestinationPorts(option *resource.BuildOption) []uint32 {
-	var destination_ports []uint32
+	var destinationPorts []uint32
 	selfService := option.SelfService
 
 	selfServiceInfo, ok := option.Services[selfService]
 	if ok && len(selfServiceInfo.Ports) > 0 {
 		for _, i := range selfServiceInfo.Ports {
-			destination_ports = append(destination_ports, i.Port)
+			destinationPorts = append(destinationPorts, i.Port)
 		}
 	}
-	return destination_ports
+	return destinationPorts
 
 }
 
