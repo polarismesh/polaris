@@ -245,7 +245,6 @@ func makeDefaultListenerFilterChain(trafficDirection corev3.TrafficDirection,
 					DestinationPort: &wrapperspb.UInt32Value{
 						Value: i,
 					},
-					TransportProtocol: "raw_buffer",
 				},
 			})
 		}
