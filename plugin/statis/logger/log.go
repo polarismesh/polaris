@@ -21,5 +21,5 @@ import commonlog "github.com/polarismesh/polaris/common/log"
 
 var (
 	log         = commonlog.RegisterScope(PluginName, "", 0)
-	discoverlog = commonlog.RegisterScope("discoverstatis", "", 0)
+	discoverlog = commonlog.RegisterScope("discoverstat", "", 0)
 )

@@ -25,6 +25,7 @@ import (
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
@@ -37,8 +38,8 @@ type (
 	CompareFunction func(clientInfo *apiconfig.ClientConfigFileInfo, file *model.ConfigFileRelease) bool
 )
 
-// GetConfigFileForClient 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
-func (s *Server) GetConfigFileForClient(ctx context.Context,
+// GetConfigFileWithCache 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
+func (s *Server) GetConfigFileWithCache(ctx context.Context,
 	client *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
 	namespace := client.GetNamespace().GetValue()
 	group := client.GetGroup().GetValue()
@@ -74,44 +75,12 @@ func (s *Server) GetConfigFileForClient(ctx context.Context,
 	return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, configFile)
 }
 
-// UpsertAndReleaseConfigFile 创建/更新配置文件并发布
-func (s *Server) UpsertAndReleaseConfigFileFromClient(ctx context.Context,
-	req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
-	return s.UpsertAndReleaseConfigFile(ctx, req)
-}
-
-// DeleteConfigFileFromClient 调用config_file的方法更新配置文件
-func (s *Server) DeleteConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-	return s.DeleteConfigFile(ctx, req)
-}
-
-// CreateConfigFileFromClient 调用config_file接口获取配置文件
-func (s *Server) CreateConfigFileFromClient(ctx context.Context,
-	client *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse {
-	configResponse := s.CreateConfigFile(ctx, client)
-	return api.NewConfigClientResponseFromConfigResponse(configResponse)
-}
-
-// UpdateConfigFileFromClient 调用config_file接口更新配置文件
-func (s *Server) UpdateConfigFileFromClient(ctx context.Context,
-	client *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse {
-	configResponse := s.UpdateConfigFile(ctx, client)
-	return api.NewConfigClientResponseFromConfigResponse(configResponse)
-}
-
-// PublishConfigFileFromClient 调用config_file_release接口发布配置文件
-func (s *Server) PublishConfigFileFromClient(ctx context.Context,
-	client *apiconfig.ConfigFileRelease) *apiconfig.ConfigClientResponse {
-	configResponse := s.PublishConfigFile(ctx, client)
-	return api.NewConfigClientResponseFromConfigResponse(configResponse)
-}
-
 // LongPullWatchFile .
 func (s *Server) LongPullWatchFile(ctx context.Context,
 	req *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error) {
 	watchFiles := req.GetWatchFiles()
 
-	tmpWatchCtx := BuildTimeoutWatchCtx(0)("")
+	tmpWatchCtx := BuildTimeoutWatchCtx(0)("", s.watchCenter.MatchBetaReleaseFile)
 	for _, file := range watchFiles {
 		tmpWatchCtx.AppendInterest(file)
 	}
@@ -136,12 +105,13 @@ func (s *Server) LongPullWatchFile(ctx context.Context,
 }
 
 func BuildTimeoutWatchCtx(watchTimeOut time.Duration) WatchContextFactory {
-	return func(clientId string) WatchContext {
+	return func(clientId string, matcher BetaReleaseMatcher) WatchContext {
 		watchCtx := &LongPollWatchContext{
 			clientId:         clientId,
 			finishTime:       time.Now().Add(watchTimeOut),
 			finishChan:       make(chan *apiconfig.ConfigClientResponse, 1),
 			watchConfigFiles: map[string]*apiconfig.ClientConfigFileInfo{},
+			betaMatcher:      matcher,
 		}
 		return watchCtx
 	}
@@ -176,6 +146,7 @@ func (s *Server) GetConfigFileNamesWithCache(ctx context.Context,
 			Name:        utils.NewStringValue(releases[i].Name),
 			Version:     utils.NewUInt64Value(releases[i].Version),
 			ReleaseTime: utils.NewStringValue(commontime.Time2String(releases[i].ModifyTime)),
+			Tags:        model.FromTagMap(releases[i].Metadata),
 		})
 	}
 
@@ -187,6 +158,38 @@ func (s *Server) GetConfigFileNamesWithCache(ctx context.Context,
 		Group:           group,
 		ConfigFileInfos: ret,
 	}
+}
+
+func (s *Server) GetConfigGroupsWithCache(ctx context.Context, req *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigDiscoverResponse {
+	namespace := req.GetNamespace().GetValue()
+	out := api.NewConfigDiscoverResponse(apimodel.Code_ExecuteSuccess)
+	if namespace == "" {
+		out.Code = uint32(apimodel.Code_BadRequest)
+		out.Info = "invalid namespace"
+		return out
+	}
+
+	groups, revision := s.groupCache.ListGroups(namespace)
+	if revision == req.GetMd5().GetValue() {
+		out = api.NewConfigDiscoverResponse(apimodel.Code_DataNoChange)
+		out.Type = apiconfig.ConfigDiscoverResponse_CONFIG_FILE_GROUPS
+		return out
+	}
+
+	ret := make([]*apiconfig.ConfigFileGroup, 0, len(groups))
+	for i := range groups {
+		item := groups[i]
+		ret = append(ret, &apiconfig.ConfigFileGroup{
+			Namespace: wrapperspb.String(item.Namespace),
+			Name:      wrapperspb.String(item.Name),
+		})
+	}
+
+	out.Type = apiconfig.ConfigDiscoverResponse_CONFIG_FILE_GROUPS
+	out.ConfigFile = &apiconfig.ClientConfigFileInfo{Namespace: wrapperspb.String(namespace)}
+	out.Revision = revision
+	out.ConfigFileGroups = ret
+	return out
 }
 
 func CompareByVersion(clientInfo *apiconfig.ClientConfigFileInfo, file *model.ConfigFileRelease) bool {
@@ -280,4 +283,41 @@ func toClientInfo(client *apiconfig.ClientConfigFileInfo,
 		)
 	}
 	return configFile, nil
+}
+
+// UpsertAndReleaseConfigFile 创建/更新配置文件并发布
+func (s *Server) UpsertAndReleaseConfigFileFromClient(ctx context.Context,
+	req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
+	return s.UpsertAndReleaseConfigFile(ctx, req)
+}
+
+// DeleteConfigFileFromClient 调用config_file的方法更新配置文件
+func (s *Server) DeleteConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+	return s.DeleteConfigFile(ctx, req)
+}
+
+// CreateConfigFileFromClient 调用config_file接口获取配置文件
+func (s *Server) CreateConfigFileFromClient(ctx context.Context,
+	client *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse {
+	configResponse := s.CreateConfigFile(ctx, client)
+	return api.NewConfigClientResponseFromConfigResponse(configResponse)
+}
+
+// UpdateConfigFileFromClient 调用config_file接口更新配置文件
+func (s *Server) UpdateConfigFileFromClient(ctx context.Context,
+	client *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse {
+	configResponse := s.UpdateConfigFile(ctx, client)
+	return api.NewConfigClientResponseFromConfigResponse(configResponse)
+}
+
+// PublishConfigFileFromClient 调用config_file_release接口发布配置文件
+func (s *Server) PublishConfigFileFromClient(ctx context.Context,
+	client *apiconfig.ConfigFileRelease) *apiconfig.ConfigClientResponse {
+	configResponse := s.PublishConfigFile(ctx, client)
+	return api.NewConfigClientResponseFromConfigResponse(configResponse)
+}
+
+// CasUpsertAndReleaseConfigFileFromClient 创建/更新配置文件并发布
+func (s *Server) CasUpsertAndReleaseConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
+	return s.CasUpsertAndReleaseConfigFile(ctx, req)
 }

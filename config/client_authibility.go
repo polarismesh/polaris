@@ -111,8 +111,8 @@ func (s *serverAuthability) PublishConfigFileFromClient(ctx context.Context,
 	return s.targetServer.PublishConfigFileFromClient(ctx, fileInfo)
 }
 
-// GetConfigFileForClient 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
-func (s *serverAuthability) GetConfigFileForClient(ctx context.Context,
+// GetConfigFileWithCache 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
+func (s *serverAuthability) GetConfigFileWithCache(ctx context.Context,
 	fileInfo *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
 	authCtx := s.collectClientConfigFileAuthContext(ctx,
 		[]*apiconfig.ConfigFile{{
@@ -126,7 +126,7 @@ func (s *serverAuthability) GetConfigFileForClient(ctx context.Context,
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return s.targetServer.GetConfigFileForClient(ctx, fileInfo)
+	return s.targetServer.GetConfigFileWithCache(ctx, fileInfo)
 }
 
 // WatchConfigFiles 监听配置文件变化
@@ -163,4 +163,34 @@ func (s *serverAuthability) GetConfigFileNamesWithCache(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return s.targetServer.GetConfigFileNamesWithCache(ctx, req)
+}
+
+func (s *serverAuthability) GetConfigGroupsWithCache(ctx context.Context, req *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigDiscoverResponse {
+	authCtx := s.collectClientConfigFileReleaseAuthContext(ctx, []*apiconfig.ConfigFileRelease{
+		{
+			Namespace: req.GetNamespace(),
+		},
+	}, model.Read, "GetConfigGroupsWithCache")
+	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+		out := api.NewConfigDiscoverResponse(convertToErrCode(err))
+		return out
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+	return s.targetServer.GetConfigGroupsWithCache(ctx, req)
+}
+
+// CasUpsertAndReleaseConfigFileFromClient 创建/更新配置文件并发布
+func (s *serverAuthability) CasUpsertAndReleaseConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
+	authCtx := s.collectConfigFilePublishAuthContext(ctx, []*apiconfig.ConfigFilePublishInfo{req},
+		model.Modify, "CasUpsertAndReleaseConfigFileFromClient")
+	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+		return api.NewConfigFileResponse(convertToErrCode(err), nil)
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return s.targetServer.CasUpsertAndReleaseConfigFileFromClient(ctx, req)
 }

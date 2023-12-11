@@ -70,7 +70,11 @@ type NamespaceStore interface {
 
 // GrayStore Gray storage interface
 type GrayStore interface {
+	// CleanGrayResource .
+	CleanGrayResource(tx Tx, data *model.GrayResource) error
+	// CreateGrayResourceTx .
 	CreateGrayResourceTx(tx Tx, data *model.GrayResource) error
+	// GetMoreGrayResouces .
 	GetMoreGrayResouces(firstUpdate bool, mtime time.Time) ([]*model.GrayResource, error)
 }
 

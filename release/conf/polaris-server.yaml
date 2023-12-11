@@ -125,7 +125,7 @@ bootstrap:
       rotationMaxAge: 7
       outputLevel: info
       compress: true
-    discoverLocal:
+    discoverstat:
       rotateOutputPath: log/statis/polaris-discoverstat.log
       errorRotateOutputPath: log/statis/polaris-discoverstat-error.log
       rotationMaxSize: 100
@@ -133,6 +133,7 @@ bootstrap:
       rotationMaxAge: 7
       outputLevel: info
       compress: true
+      onlyContent: true
     local:
       rotateOutputPath: log/statis/polaris-statis.log
       errorRotateOutputPath: log/statis/polaris-statis-error.log
@@ -406,7 +407,8 @@ healthcheck:
     #   option:
     #     # Heartbeat Record MAP number of shards
     #     soltNum: 128
-    #     # The number of GRPC connections used to process heartbeat forward request processing between leader and follower, default value is runtime.GOMAXPROCS(0)
+    #     # The number of GRPC connections used to process heartbeat forward request processing between leader and follower, 
+    #     # default value is runtime.GOMAXPROCS(0)
     #     streamNum: 128
 # Configuration center module start configuration
 config:
@@ -415,9 +417,10 @@ config:
   # Maximum number of number of file characters
   contentMaxLength: 20000
 # Cache configuration
-
 cache:
-  # 缓存增量同步数据时，相较于当前时刻需要往回倒退多少秒, 即在 T 时刻的增量同步，实际增量数据时间范围为 [T - abs(DiffTime), ∞)
+  # When the incremental synchronization data is cached, the actual incremental data time range is as follows: 
+  # How many seconds need to be backtracked from the current time, that is, 
+  # the incremental synchronization at time T [T - abs(DiffTime), ∞)
   diffTime: 5s
 # Maintain configuration
 maintain:
@@ -485,11 +488,6 @@ plugin:
   discoverEvent:
     entries:
       - name: discoverEventLocal
-  discoverStatis:
-    name: discoverLocal
-    option:
-      # Statistical interval, the unit is second
-      interval: 60
   statis:
     entries:
       - name: local

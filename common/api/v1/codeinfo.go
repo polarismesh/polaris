@@ -166,6 +166,7 @@ const (
 	InvalidWatchConfigFileFormat   = uint32(apimodel.Code_InvalidWatchConfigFileFormat)
 	NotFoundResourceConfigFile     = uint32(apimodel.Code_NotFoundResourceConfigFile)
 	InvalidConfigFileTemplateName  = uint32(apimodel.Code_InvalidConfigFileTemplateName)
+	InvalidMatchRule               = uint32(apimodel.Code_InvalidMatchRule)
 
 	// 鉴权相关错误码
 	InvalidUserOwners         = uint32(apimodel.Code_InvalidUserOwners)
@@ -329,6 +330,7 @@ var code2info = map[uint32]string{
 	InvalidWatchConfigFileFormat:  "invalid watch config file format",
 	NotFoundResourceConfigFile:    "config file not existed",
 	InvalidConfigFileTemplateName: "invalid config file template name",
+	InvalidMatchRule:              "invalid gray config beta labels",
 
 	// 鉴权错误
 	NotFoundUser:             "not found user",

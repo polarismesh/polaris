@@ -36,6 +36,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	boot_config "github.com/polarismesh/polaris/bootstrap/config"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/log"
@@ -163,6 +164,11 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 	if err != nil {
 		return err
 	}
+
+	// 开启灰度规则缓存
+	_ = cacheMgn.OpenResourceCache(cachetypes.ConfigEntry{
+		Name: cachetypes.GrayName,
+	})
 
 	// 初始化鉴权层
 	if err = auth.Initialize(ctx, &cfg.Auth, s, cacheMgn); err != nil {

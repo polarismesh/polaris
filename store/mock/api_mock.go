@@ -347,6 +347,20 @@ func (mr *MockStoreMockRecorder) CleanConfigFileReleasesTx(tx, namespace, group,
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanConfigFileReleasesTx", reflect.TypeOf((*MockStore)(nil).CleanConfigFileReleasesTx), tx, namespace, group, fileName)
 }
 
+// CleanGrayResource mocks base method.
+func (m *MockStore) CleanGrayResource(tx store.Tx, data *model.GrayResource) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CleanGrayResource", tx, data)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CleanGrayResource indicates an expected call of CleanGrayResource.
+func (mr *MockStoreMockRecorder) CleanGrayResource(tx, data interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanGrayResource", reflect.TypeOf((*MockStore)(nil).CleanGrayResource), tx, data)
+}
+
 // CleanInstance mocks base method.
 func (m *MockStore) CleanInstance(instanceID string) error {
 	m.ctrl.T.Helper()
@@ -1003,6 +1017,21 @@ func (m *MockStore) GetConfigFileActiveReleaseTx(tx store.Tx, file *model.Config
 func (mr *MockStoreMockRecorder) GetConfigFileActiveReleaseTx(tx, file interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigFileActiveReleaseTx", reflect.TypeOf((*MockStore)(nil).GetConfigFileActiveReleaseTx), tx, file)
+}
+
+// GetConfigFileBetaReleaseTx mocks base method.
+func (m *MockStore) GetConfigFileBetaReleaseTx(tx store.Tx, file *model.ConfigFileKey) (*model.ConfigFileRelease, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConfigFileBetaReleaseTx", tx, file)
+	ret0, _ := ret[0].(*model.ConfigFileRelease)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetConfigFileBetaReleaseTx indicates an expected call of GetConfigFileBetaReleaseTx.
+func (mr *MockStoreMockRecorder) GetConfigFileBetaReleaseTx(tx, file interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigFileBetaReleaseTx", reflect.TypeOf((*MockStore)(nil).GetConfigFileBetaReleaseTx), tx, file)
 }
 
 // GetConfigFileGroup mocks base method.
@@ -2698,6 +2727,20 @@ func NewMockGrayStore(ctrl *gomock.Controller) *MockGrayStore {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockGrayStore) EXPECT() *MockGrayStoreMockRecorder {
 	return m.recorder
+}
+
+// CleanGrayResource mocks base method.
+func (m *MockGrayStore) CleanGrayResource(tx store.Tx, data *model.GrayResource) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CleanGrayResource", tx, data)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CleanGrayResource indicates an expected call of CleanGrayResource.
+func (mr *MockGrayStoreMockRecorder) CleanGrayResource(tx, data interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanGrayResource", reflect.TypeOf((*MockGrayStore)(nil).CleanGrayResource), tx, data)
 }
 
 // CreateGrayResourceTx mocks base method.

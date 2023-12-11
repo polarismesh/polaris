@@ -31,9 +31,12 @@ import (
 
 	"github.com/polarismesh/polaris/apiserver/nacosserver/model"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/metrics"
 	commonmodel "github.com/polarismesh/polaris/common/model"
+	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/config"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 func (n *ConfigServer) handlePublishConfig(ctx context.Context, req *model.ConfigFile) (bool, error) {
@@ -63,7 +66,22 @@ func (n *ConfigServer) handleDeleteConfig(ctx context.Context, req *model.Config
 }
 
 func (n *ConfigServer) handleGetConfig(ctx context.Context, req *model.ConfigFile, rsp *restful.Response) (string, error) {
-	queryResp := n.configSvr.GetConfigFileForClient(ctx, req.ToQuerySpec())
+	var queryResp *config_manage.ConfigClientResponse
+	startTime := commontime.CurrentMillisecond()
+	defer func() {
+		plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+			Action:    model.ActionGetConfigFile,
+			ClientIP:  utils.ParseClientAddress(ctx),
+			Namespace: req.Namespace,
+			Resource:  metrics.ResourceOfConfigFile(req.Group, req.DataId),
+			Timestamp: startTime,
+			CostTime:  commontime.CurrentMillisecond() - startTime,
+			Revision:  queryResp.GetConfigFile().GetMd5().GetValue(),
+			Success:   queryResp.GetCode().GetValue() > uint32(apimodel.Code_DataNoChange),
+		})
+	}()
+
+	queryResp = n.configSvr.GetConfigFileWithCache(ctx, req.ToQuerySpec())
 	if queryResp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 		nacoslog.Error("[NACOS-V1][Config] query config file fail",
 			zap.Uint32("code", queryResp.GetCode().GetValue()), zap.String("msg", queryResp.GetInfo().GetValue()))
@@ -201,7 +219,7 @@ func BuildTimeoutWatchCtx(ctx context.Context, watchTimeOut time.Duration) confi
 	labels := map[string]string{}
 	labels["ip"] = utils.ParseClientIP(ctx)
 
-	return func(clientId string) config.WatchContext {
+	return func(clientId string, matcher config.BetaReleaseMatcher) config.WatchContext {
 		watchCtx := &LongPollWatchContext{
 			clientId:         clientId,
 			labels:           labels,

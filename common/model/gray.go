@@ -39,6 +39,7 @@ type GrayResource struct {
 	ModifyTime time.Time
 	CreateBy   string
 	ModifyBy   string
+	Valid      bool
 }
 
 // GetGrayConfigRealseKey 获取灰度资源key

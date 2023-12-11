@@ -20,13 +20,25 @@ package config
 import (
 	"context"
 	"fmt"
+	"io"
+	"strconv"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	api "github.com/polarismesh/polaris/common/api/v1"
+	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
+)
+
+var (
+	accesslog = commonlog.GetScopeOrDefaultByName(commonlog.APIServerLoggerName)
 )
 
 // GetConfigFile 拉取配置
@@ -35,18 +47,21 @@ func (g *ConfigGRPCServer) GetConfigFile(ctx context.Context,
 	ctx = utils.ConvertGRPCContext(ctx)
 
 	startTime := commontime.CurrentMillisecond()
+	var ret *apiconfig.ConfigClientResponse
 	defer func() {
 		plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+			Action:    metrics.ActionGetConfigFile,
 			ClientIP:  utils.ParseClientAddress(ctx),
 			Namespace: req.GetNamespace().GetValue(),
-			Resource: fmt.Sprintf("CONFIG_FILE:%s|%s|%d", req.GetGroup().GetValue(),
-				req.GetFileName().GetValue(), req.GetVersion().GetValue()),
+			Resource:  metrics.ResourceOfConfigFile(req.GetGroup().GetValue(), req.GetFileName().GetValue()),
 			Timestamp: startTime,
 			CostTime:  commontime.CurrentMillisecond() - startTime,
+			Revision:  strconv.FormatUint(ret.GetConfigFile().GetVersion().GetValue(), 10),
+			Success:   ret.GetCode().GetValue() > uint32(apimodel.Code_DataNoChange),
 		})
 	}()
-	response := g.configServer.GetConfigFileForClient(ctx, req)
-	return response, nil
+	ret = g.configServer.GetConfigFileWithCache(ctx, req)
+	return ret, nil
 }
 
 // CreateConfigFile 创建或更新配置
@@ -90,21 +105,116 @@ func (g *ConfigGRPCServer) GetConfigFileMetadataList(ctx context.Context,
 	req *apiconfig.ConfigFileGroupRequest) (*apiconfig.ConfigClientListResponse, error) {
 
 	startTime := commontime.CurrentMillisecond()
+	var ret *apiconfig.ConfigClientListResponse
 	defer func() {
 		plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+			Action:    metrics.ActionListConfigFiles,
 			ClientIP:  utils.ParseClientAddress(ctx),
 			Namespace: req.GetConfigFileGroup().GetNamespace().GetValue(),
-			Resource: fmt.Sprintf("CONFIG_FILE_LIST:%s|%s", req.GetConfigFileGroup().GetName().GetValue(),
-				req.GetRevision().GetValue()),
+			Resource:  metrics.ResourceOfConfigFileList(req.GetConfigFileGroup().GetName().GetValue()),
 			Timestamp: startTime,
 			CostTime:  commontime.CurrentMillisecond() - startTime,
+			Revision:  ret.GetRevision().GetValue(),
+			Success:   ret.GetCode().GetValue() > uint32(apimodel.Code_DataNoChange),
 		})
 	}()
 
 	ctx = utils.ConvertGRPCContext(ctx)
-	return g.configServer.GetConfigFileNamesWithCache(ctx, req), nil
+	ret = g.configServer.GetConfigFileNamesWithCache(ctx, req)
+	return ret, nil
 }
 
 func (g *ConfigGRPCServer) Discover(svr apiconfig.PolarisConfigGRPC_DiscoverServer) error {
-	return nil
+	ctx := utils.ConvertGRPCContext(svr.Context())
+	clientIP, _ := ctx.Value(utils.StringContext("client-ip")).(string)
+	clientAddress, _ := ctx.Value(utils.StringContext("client-address")).(string)
+	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
+	userAgent, _ := ctx.Value(utils.StringContext("user-agent")).(string)
+	method, _ := grpc.MethodFromServerStream(svr)
+
+	for {
+		in, err := svr.Recv()
+		if err != nil {
+			if io.EOF == err {
+				return nil
+			}
+			return err
+		}
+
+		msg := fmt.Sprintf("receive grpc discover request: %s", in.String())
+		accesslog.Info(msg,
+			zap.String("type", apiconfig.ConfigDiscoverRequest_ConfigDiscoverRequestType_name[int32(in.Type)]),
+			zap.String("client-address", clientAddress),
+			zap.String("user-agent", userAgent),
+			utils.ZapRequestID(requestID),
+		)
+
+		// 是否允许访问
+		if ok := g.allowAccess(method); !ok {
+			resp := api.NewConfigDiscoverResponse(apimodel.Code_ClientAPINotOpen)
+			if sendErr := svr.Send(resp); sendErr != nil {
+				return sendErr
+			}
+			continue
+		}
+
+		// stream模式，需要对每个包进行检测
+		if code := g.enterRateLimit(clientIP, method); code != uint32(apimodel.Code_ExecuteSuccess) {
+			resp := api.NewConfigDiscoverResponse(apimodel.Code(code))
+			if err = svr.Send(resp); err != nil {
+				return err
+			}
+			continue
+		}
+
+		var out *apiconfig.ConfigDiscoverResponse
+		var action string
+		startTime := commontime.CurrentMillisecond()
+		defer func() {
+			plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+				Action:    action,
+				ClientIP:  utils.ParseClientAddress(ctx),
+				Namespace: in.GetConfigFile().GetNamespace().GetValue(),
+				Resource:  metrics.ResourceOfConfigFile(in.GetConfigFile().GetGroup().GetValue(), in.GetConfigFile().GetFileName().GetValue()),
+				Timestamp: startTime,
+				CostTime:  commontime.CurrentMillisecond() - startTime,
+				Revision:  out.GetRevision(),
+				Success:   out.GetCode() > uint32(apimodel.Code_DataNoChange),
+			})
+		}()
+
+		switch in.Type {
+		case apiconfig.ConfigDiscoverRequest_CONFIG_FILE:
+			action = metrics.ActionGetConfigFile
+			ret := g.configServer.GetConfigFileWithCache(ctx, &apiconfig.ClientConfigFileInfo{})
+			out = api.NewConfigDiscoverResponse(apimodel.Code(ret.GetCode().GetValue()))
+			out.ConfigFile = ret.GetConfigFile()
+			out.Type = apiconfig.ConfigDiscoverResponse_CONFIG_FILE
+			out.Revision = strconv.Itoa(int(out.GetConfigFile().GetVersion().GetValue()))
+		case apiconfig.ConfigDiscoverRequest_CONFIG_FILE_Names:
+			action = metrics.ActionListConfigFiles
+			ret := g.configServer.GetConfigFileNamesWithCache(ctx, &apiconfig.ConfigFileGroupRequest{
+				Revision: wrapperspb.String(in.GetRevision()),
+				ConfigFileGroup: &apiconfig.ConfigFileGroup{
+					Namespace: in.GetConfigFile().GetNamespace(),
+					Name:      in.GetConfigFile().GetGroup(),
+				},
+			})
+			out = api.NewConfigDiscoverResponse(apimodel.Code(ret.GetCode().GetValue()))
+			out.ConfigFileNames = ret.GetConfigFileInfos()
+			out.Type = apiconfig.ConfigDiscoverResponse_CONFIG_FILE_Names
+			out.Revision = ret.GetRevision().GetValue()
+		case apiconfig.ConfigDiscoverRequest_CONFIG_FILE_GROUPS:
+			action = metrics.ActionListConfigGroups
+			req := in.GetConfigFile()
+			req.Md5 = wrapperspb.String(in.GetRevision())
+			out = g.configServer.GetConfigGroupsWithCache(ctx, req)
+		default:
+			out = api.NewConfigDiscoverResponse(apimodel.Code_InvalidDiscoverResource)
+		}
+
+		if err := svr.Send(out); err != nil {
+			return err
+		}
+	}
 }

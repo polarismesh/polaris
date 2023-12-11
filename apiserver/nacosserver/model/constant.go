@@ -143,3 +143,7 @@ func ToNacosConfigNamespace(ns string) string {
 	}
 	return ns
 }
+
+const (
+	ActionGetConfigFile = "NACOS_GET_CONFIG"
+)

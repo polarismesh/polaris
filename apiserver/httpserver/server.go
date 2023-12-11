@@ -380,13 +380,13 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 			}
 		case "console":
 			if apiConfig.Enable {
-				namingServiceV1, err := h.discoverV1.GetNamingConsoleAccessServer(apiConfig.Include)
+				namingServiceV1, err := h.discoverV1.GetConsoleAccessServer(apiConfig.Include)
 				if err != nil {
 					return nil, err
 				}
 				wsContainer.Add(namingServiceV1)
 
-				namingServiceV2, err := h.discoverV2.GetNamingConsoleAccessServer(apiConfig.Include)
+				namingServiceV2, err := h.discoverV2.GetConsoleAccessServer(apiConfig.Include)
 				if err != nil {
 					return nil, err
 				}

@@ -156,7 +156,7 @@ func (cfr *configFileReleaseStore) GetConfigFileActiveReleaseTx(tx store.Tx,
 	dbTx := tx.GetDelegateTx().(*bolt.Tx)
 
 	fields := []string{FileReleaseFieldActive, FileReleaseFieldNamespace, FileReleaseFieldGroup,
-		FileReleaseFieldFileName, FileReleaseFieldValid}
+		FileReleaseFieldFileName, FileReleaseFieldValid, FileReleaseFieldType}
 	values := make(map[string]interface{}, 1)
 	err := loadValuesByFilter(dbTx, tblConfigFileRelease, fields, &ConfigFileRelease{},
 		func(m map[string]interface{}) bool {
@@ -167,6 +167,50 @@ func (cfr *configFileReleaseStore) GetConfigFileActiveReleaseTx(tx store.Tx,
 			}
 			active, _ := m[FileReleaseFieldActive].(bool)
 			if !active {
+				return false
+			}
+			if relType, _ := m[FileReleaseFieldType].(string); relType != model.ReleaseTypeFull {
+				return false
+			}
+			saveNs, _ := m[FileReleaseFieldNamespace].(string)
+			saveGroup, _ := m[FileReleaseFieldGroup].(string)
+			saveFileName, _ := m[FileReleaseFieldFileName].(string)
+
+			expect := saveNs == file.Namespace && saveGroup == file.Group && saveFileName == file.Name
+			return expect
+		}, values)
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range values {
+		return cfr.toModelData(v.(*ConfigFileRelease)), nil
+	}
+	return nil, nil
+}
+
+func (cfr *configFileReleaseStore) HasGrayConfigFileReleaseTx(tx store.Tx, req *model.ConfigFileReleaseKey) (*model.ConfigFileRelease, error) {
+	return nil, nil
+}
+
+func (cfr *configFileReleaseStore) GetConfigFileBetaReleaseTx(tx store.Tx,
+	file *model.ConfigFileKey) (*model.ConfigFileRelease, error) {
+	dbTx := tx.GetDelegateTx().(*bolt.Tx)
+
+	fields := []string{FileReleaseFieldActive, FileReleaseFieldNamespace, FileReleaseFieldGroup,
+		FileReleaseFieldFileName, FileReleaseFieldValid, FileReleaseFieldType}
+	values := make(map[string]interface{}, 1)
+	err := loadValuesByFilter(dbTx, tblConfigFileRelease, fields, &ConfigFileRelease{},
+		func(m map[string]interface{}) bool {
+			valid, _ := m[FileReleaseFieldValid].(bool)
+			// 已经删除的不管
+			if !valid {
+				return false
+			}
+			active, _ := m[FileReleaseFieldActive].(bool)
+			if !active {
+				return false
+			}
+			if relType, _ := m[FileReleaseFieldType].(string); relType != model.ReleaseTypeGray {
 				return false
 			}
 			saveNs, _ := m[FileReleaseFieldNamespace].(string)
@@ -298,7 +342,7 @@ func (cfr *configFileReleaseStore) ActiveConfigFileReleaseTx(tx store.Tx, releas
 	properties[FileReleaseFieldVersion] = maxVersion + 1
 	properties[FileReleaseFieldActive] = true
 	properties[FileReleaseFieldModifyTime] = time.Now()
-	properties[FileReleaseFieldType] = release.ReleaseType
+	properties[FileReleaseFieldType] = string(release.ReleaseType)
 	return updateValue(dbTx, tblConfigFileRelease, release.ReleaseKey(), properties)
 }
 
@@ -440,6 +484,6 @@ func (cfr *configFileReleaseStore) toStoreData(data *model.ConfigFileRelease) *C
 		ModifyTime: data.ModifyTime,
 		ModifyBy:   data.ModifyBy,
 		Content:    data.Content,
-		Typ:        data.ReleaseType,
+		Typ:        string(data.ConfigFileReleaseKey.ReleaseType),
 	}
 }

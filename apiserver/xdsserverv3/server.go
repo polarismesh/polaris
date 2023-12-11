@@ -220,6 +220,7 @@ func (x *XDSServer) GetPort() uint32 {
 
 func (x *XDSServer) activeUpdateTask() {
 	if !x.active.CompareAndSwap(false, true) {
+		<-x.activeNotifier.Done()
 		return
 	}
 	log.Info("active update xds resource snapshot task")
@@ -235,6 +236,7 @@ func (x *XDSServer) activeUpdateTask() {
 	}
 	// 首次更新没有需要移除的 XDS 资源信息
 	x.Generate(x.registryInfo, nil)
+	x.activeFinish()
 	go x.startSynTask(x.ctx)
 }
 

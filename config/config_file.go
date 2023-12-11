@@ -340,6 +340,7 @@ func (s *Server) SearchConfigFile(ctx context.Context, filter map[string]string)
 		return out
 	}
 
+	_ = s.caches.ConfigFile().Update()
 	ret := make([]*apiconfig.ConfigFile, 0, len(files))
 	for _, file := range files {
 		file, err := s.chains.AfterGetFile(ctx, file)

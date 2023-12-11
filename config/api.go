@@ -87,12 +87,12 @@ type ConfigFileReleaseOperate interface {
 	GetConfigFileReleaseHistories(ctx context.Context, filter map[string]string) *apiconfig.ConfigBatchQueryResponse
 	// UpsertAndReleaseConfigFile 创建/更新配置文件并发布
 	UpsertAndReleaseConfigFile(ctx context.Context, req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse
+	// StopGrayConfigFileReleases 停止所有的灰度发布配置
+	StopGrayConfigFileReleases(ctx context.Context, reqs []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse
 }
 
 // ConfigFileClientOperate 给客户端提供服务接口，不同的上层协议抽象的公共服务逻辑
 type ConfigFileClientOperate interface {
-	// GetConfigFileForClient 获取配置文件
-	GetConfigFileForClient(ctx context.Context, req *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse
 	// CreateConfigFileFromClient 调用config_file的方法创建配置文件
 	CreateConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse
 	// UpdateConfigFileFromClient 调用config_file的方法更新配置文件
@@ -103,11 +103,17 @@ type ConfigFileClientOperate interface {
 	PublishConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFileRelease) *apiconfig.ConfigClientResponse
 	// UpsertAndReleaseConfigFile 创建/更新配置文件并发布
 	UpsertAndReleaseConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse
+	// CasUpsertAndReleaseConfigFileFromClient 创建/更新配置文件并发布
+	CasUpsertAndReleaseConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse
 	// LongPullWatchFile 客户端监听配置文件
 	LongPullWatchFile(ctx context.Context, req *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error)
 	// GetConfigFileNamesWithCache 获取某个配置分组下的配置文件
 	GetConfigFileNamesWithCache(ctx context.Context,
 		req *apiconfig.ConfigFileGroupRequest) *apiconfig.ConfigClientListResponse
+	// GetConfigFileWithCache 获取配置文件
+	GetConfigFileWithCache(ctx context.Context, req *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse
+	// GetConfigGroupsWithCache 获取某个命名空间下的配置分组列表
+	GetConfigGroupsWithCache(ctx context.Context, req *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigDiscoverResponse
 }
 
 // ConfigFileTemplateOperate config file template operate

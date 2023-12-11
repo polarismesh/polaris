@@ -54,7 +54,7 @@ func (h *HTTPServerV2) CreateRoutings(req *restful.Request, rsp *restful.Respons
 
 	requestText, err := h.replaceV2TypeUrl(req)
 	if err != nil {
-		handler.WriteHeaderAndProtoV2(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		handler.WriteHeaderAndProto(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 	var routings v1.RouterArr
@@ -64,12 +64,12 @@ func (h *HTTPServerV2) CreateRoutings(req *restful.Request, rsp *restful.Respons
 		return msg
 	}, requestText)
 	if err != nil {
-		handler.WriteHeaderAndProtoV2(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		handler.WriteHeaderAndProto(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
 	ret := h.namingServer.CreateRoutingConfigsV2(ctx, routings)
-	handler.WriteHeaderAndProtoV2(ret)
+	handler.WriteHeaderAndProto(ret)
 }
 
 // DeleteRoutings 删除规则路由
@@ -80,7 +80,7 @@ func (h *HTTPServerV2) DeleteRoutings(req *restful.Request, rsp *restful.Respons
 	}
 	requestText, err := h.replaceV2TypeUrl(req)
 	if err != nil {
-		handler.WriteHeaderAndProtoV2(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		handler.WriteHeaderAndProto(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 	var routings v1.RouterArr
@@ -90,12 +90,12 @@ func (h *HTTPServerV2) DeleteRoutings(req *restful.Request, rsp *restful.Respons
 		return msg
 	}, requestText)
 	if err != nil {
-		handler.WriteHeaderAndProtoV2(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		handler.WriteHeaderAndProto(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
 	ret := h.namingServer.DeleteRoutingConfigsV2(ctx, routings)
-	handler.WriteHeaderAndProtoV2(ret)
+	handler.WriteHeaderAndProto(ret)
 }
 
 // UpdateRoutings 修改规则路由
@@ -106,7 +106,7 @@ func (h *HTTPServerV2) UpdateRoutings(req *restful.Request, rsp *restful.Respons
 	}
 	requestText, err := h.replaceV2TypeUrl(req)
 	if err != nil {
-		handler.WriteHeaderAndProtoV2(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		handler.WriteHeaderAndProto(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 	var routings v1.RouterArr
@@ -116,12 +116,12 @@ func (h *HTTPServerV2) UpdateRoutings(req *restful.Request, rsp *restful.Respons
 		return msg
 	}, requestText)
 	if err != nil {
-		handler.WriteHeaderAndProtoV2(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		handler.WriteHeaderAndProto(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
 	ret := h.namingServer.UpdateRoutingConfigsV2(ctx, routings)
-	handler.WriteHeaderAndProtoV2(ret)
+	handler.WriteHeaderAndProto(ret)
 }
 
 // GetRoutings 查询规则路由
@@ -133,7 +133,7 @@ func (h *HTTPServerV2) GetRoutings(req *restful.Request, rsp *restful.Response) 
 
 	queryParams := httpcommon.ParseQueryParams(req)
 	ret := h.namingServer.QueryRoutingConfigsV2(handler.ParseHeaderContext(), queryParams)
-	handler.WriteHeaderAndProtoV2(ret)
+	handler.WriteHeaderAndProto(ret)
 }
 
 // EnableRoutings 启用规则路由
@@ -144,7 +144,7 @@ func (h *HTTPServerV2) EnableRoutings(req *restful.Request, rsp *restful.Respons
 	}
 	requestText, err := h.replaceV2TypeUrl(req)
 	if err != nil {
-		handler.WriteHeaderAndProtoV2(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		handler.WriteHeaderAndProto(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 	var routings v1.RouterArr
@@ -154,10 +154,10 @@ func (h *HTTPServerV2) EnableRoutings(req *restful.Request, rsp *restful.Respons
 		return msg
 	}, requestText)
 	if err != nil {
-		handler.WriteHeaderAndProtoV2(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		handler.WriteHeaderAndProto(apiv1.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
 		return
 	}
 
 	ret := h.namingServer.EnableRoutings(ctx, routings)
-	handler.WriteHeaderAndProtoV2(ret)
+	handler.WriteHeaderAndProto(ret)
 }

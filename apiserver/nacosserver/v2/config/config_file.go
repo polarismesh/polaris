@@ -28,8 +28,11 @@ import (
 	nacosmodel "github.com/polarismesh/polaris/apiserver/nacosserver/model"
 	nacospb "github.com/polarismesh/polaris/apiserver/nacosserver/v2/pb"
 	"github.com/polarismesh/polaris/apiserver/nacosserver/v2/remote"
+	"github.com/polarismesh/polaris/common/metrics"
+	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/config"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 const (
@@ -44,7 +47,7 @@ func (h *ConfigServer) handlePublishConfigRequest(ctx context.Context, req nacos
 		return nil, remote.ErrorInvalidRequestBodyType
 	}
 
-	resp := h.configSvr.UpsertAndReleaseConfigFileFromClient(ctx, configReq.ToSpec())
+	resp := h.configSvr.CasUpsertAndReleaseConfigFileFromClient(ctx, configReq.ToSpec())
 	if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 		nacoslog.Error("[NACOS-V2][Config] publish config file fail", zap.String("tenant", configReq.Tenant),
 			utils.ZapGroup(configReq.Group), utils.ZapFileName(configReq.DataId),
@@ -74,9 +77,24 @@ func (h *ConfigServer) handleGetConfigRequest(ctx context.Context, req nacospb.B
 	if !ok {
 		return nil, remote.ErrorInvalidRequestBodyType
 	}
+	var rsp *nacospb.ConfigQueryResponse
+
+	startTime := commontime.CurrentMillisecond()
+	defer func() {
+		plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+			Action:    nacosmodel.ActionGetConfigFile,
+			ClientIP:  utils.ParseClientAddress(ctx),
+			Namespace: configReq.Tenant,
+			Resource:  metrics.ResourceOfConfigFile(configReq.Group, configReq.DataId),
+			Timestamp: startTime,
+			CostTime:  commontime.CurrentMillisecond() - startTime,
+			Revision:  rsp.Md5,
+			Success:   rsp.Success,
+		})
+	}()
 
 	queryReq := configReq.ToQuerySpec()
-	queryResp := h.configSvr.GetConfigFileForClient(ctx, queryReq)
+	queryResp := h.configSvr.GetConfigFileWithCache(ctx, queryReq)
 	if queryResp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 		nacoslog.Error("[NACOS-V2][Config] query config file fail", zap.String("tenant", configReq.Tenant),
 			utils.ZapNamespace(queryReq.GetNamespace().GetValue()), utils.ZapGroup(configReq.Group),
@@ -84,27 +102,29 @@ func (h *ConfigServer) handleGetConfigRequest(ctx context.Context, req nacospb.B
 			zap.String("msg", queryResp.GetInfo().GetValue()))
 		switch queryResp.GetCode().GetValue() {
 		case uint32(apimodel.Code_NotFoundResource):
-			return &nacospb.ConfigQueryResponse{
+			rsp = &nacospb.ConfigQueryResponse{
 				Response: &nacospb.Response{
 					ResultCode: int(nacosmodel.Response_Fail.Code),
 					ErrorCode:  ErrorConfigNotFound,
 					Message:    "config data not exist",
 				},
-			}, nil
+			}
+			return rsp, nil
 		default:
-			return &nacospb.ConfigQueryResponse{
+			rsp = &nacospb.ConfigQueryResponse{
 				Response: &nacospb.Response{
 					ResultCode: int(nacosmodel.Response_Fail.Code),
 					ErrorCode:  int(queryResp.GetCode().GetValue()),
 					Message:    queryResp.GetInfo().GetValue(),
 				},
-			}, nil
+			}
+			return rsp, nil
 		}
 	}
 
 	viewRelease := queryResp.GetConfigFile()
 
-	ret := &nacospb.ConfigQueryResponse{
+	rsp = &nacospb.ConfigQueryResponse{
 		Response: &nacospb.Response{
 			ResultCode: int(nacosmodel.Response_Success.Code),
 			Success:    true,
@@ -113,7 +133,7 @@ func (h *ConfigServer) handleGetConfigRequest(ctx context.Context, req nacospb.B
 		Md5:          viewRelease.GetMd5().GetValue(),
 		LastModified: stringToTimestamp(viewRelease.GetReleaseTime().GetValue()),
 	}
-	return ret, nil
+	return rsp, nil
 }
 
 func (h *ConfigServer) handleDeleteConfigRequest(ctx context.Context, req nacospb.BaseRequest,
@@ -193,7 +213,7 @@ func (h *ConfigServer) BuildGrpcWatchCtx(ctx context.Context) config.WatchContex
 	labels := map[string]string{}
 	labels["ip"] = utils.ParseClientIP(ctx)
 
-	return func(clientId string) config.WatchContext {
+	return func(clientId string, matcher config.BetaReleaseMatcher) config.WatchContext {
 		watchCtx := &StreamWatchContext{
 			clientId:         clientId,
 			connMgr:          h.connMgr,

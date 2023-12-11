@@ -478,30 +478,31 @@ CREATE TABLE `config_file_group`
 --
 CREATE TABLE `config_file_release`
 (
-    `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `name`        VARCHAR(128)             DEFAULT NULL COMMENT '发布标题',
-    `namespace`   VARCHAR(64)     NOT NULL COMMENT '所属的namespace',
-    `group`       VARCHAR(128)    NOT NULL COMMENT '所属的文件组',
-    `file_name`   VARCHAR(128)    NOT NULL COMMENT '配置文件名',
-    `format`      VARCHAR(16)              DEFAULT 'text' COMMENT '文件格式，枚举值',
-    `content`     LONGTEXT        NOT NULL COMMENT '文件内容',
-    `comment`     VARCHAR(512)             DEFAULT NULL COMMENT '备注信息',
-    `md5`         VARCHAR(128)    NOT NULL COMMENT 'content的md5值',
-    `version`     BIGINT(11)      NOT NULL COMMENT '版本号，每次发布自增1',
-    `flag`        TINYINT(4)      NOT NULL DEFAULT '0' COMMENT '是否被删除',
-    `create_time` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `create_by`   VARCHAR(32)              DEFAULT NULL COMMENT '创建人',
-    `modify_time` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
-    `modify_by`   VARCHAR(32)              DEFAULT NULL COMMENT '最后更新人',
-    `tags`        TEXT COMMENT '文件标签',
-    `active`      TINYINT(4)      NOT NULL DEFAULT '0' COMMENT '是否处于使用中',
-    `description` VARCHAR(512)             DEFAULT NULL COMMENT '发布描述',
-    `type`        TINYINT(4)      NOT NULL DEFAULT '1' COMMENT '文件类型：1：全量 2：灰度',
+    `id`           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `name`         VARCHAR(128)             DEFAULT NULL COMMENT '发布标题',
+    `namespace`    VARCHAR(64)     NOT NULL COMMENT '所属的namespace',
+    `group`        VARCHAR(128)    NOT NULL COMMENT '所属的文件组',
+    `file_name`    VARCHAR(128)    NOT NULL COMMENT '配置文件名',
+    `format`       VARCHAR(16)              DEFAULT 'text' COMMENT '文件格式，枚举值',
+    `content`      LONGTEXT        NOT NULL COMMENT '文件内容',
+    `comment`      VARCHAR(512)             DEFAULT NULL COMMENT '备注信息',
+    `md5`          VARCHAR(128)    NOT NULL COMMENT 'content的md5值',
+    `version`      BIGINT(11)      NOT NULL COMMENT '版本号，每次发布自增1',
+    `flag`         TINYINT(4)      NOT NULL DEFAULT '0' COMMENT '是否被删除',
+    `create_time`  TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `create_by`    VARCHAR(32)              DEFAULT NULL COMMENT '创建人',
+    `modify_time`  TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    `modify_by`    VARCHAR(32)              DEFAULT NULL COMMENT '最后更新人',
+    `tags`         TEXT COMMENT '文件标签',
+    `active`       TINYINT(4)      NOT NULL DEFAULT '0' COMMENT '是否处于使用中',
+    `description`  VARCHAR(512)             DEFAULT NULL COMMENT '发布描述',
+    `release_type` VARCHAR(25)     NOT NULL DEFAULT '' COMMENT '文件类型：""：全量 gray：灰度',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_file` (`namespace`, `group`, `file_name`, `name`),
     KEY `idx_modify_time` (`modify_time`)
 ) ENGINE = InnoDB
   AUTO_INCREMENT = 1 COMMENT = '配置文件发布表';
+
 
 -- --------------------------------------------------------
 --
@@ -926,5 +927,6 @@ CREATE TABLE `gray_resource`
     `create_by`   VARCHAR(32)     DEFAULT "" COMMENT '创建人',
     `modify_time` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
     `modify_by`   VARCHAR(32)     DEFAULT "" COMMENT '最后更新人',
+    `flag`        TINYINT(4)            DEFAULT 0 COMMENT '逻辑删除标志位, 0 位有效, 1 为逻辑删除',
     PRIMARY KEY (`name`)
 ) ENGINE = InnoDB COMMENT = '灰度资源表';

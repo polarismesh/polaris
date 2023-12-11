@@ -531,10 +531,23 @@ func createDeltaResponse(ctx context.Context, req *cachev3.DeltaRequest, state s
 			}
 		}
 
+		for name, r := range resources.nodeResourceMap {
+			// Since we've already precomputed the version hashes of the new snapshot,
+			// we can just set it here to be used for comparison later
+			version := resources.nodeVersionMap[name]
+			nextVersionMap[name] = version
+			prevVersion, found := state.GetResourceVersions()[name]
+			if !found || (prevVersion != version) {
+				filtered = append(filtered, r)
+			}
+		}
+
 		// Compute resources for removal
 		// The resource version can be set to "" here to trigger a removal even if never returned before
 		for name := range state.GetResourceVersions() {
-			if _, ok := resources.resourceMap[name]; !ok {
+			_, commonOk := resources.resourceMap[name]
+			_, nodeOk := resources.nodeResourceMap[name]
+			if !commonOk && !nodeOk {
 				toRemove = append(toRemove, name)
 			}
 		}
@@ -544,13 +557,24 @@ func createDeltaResponse(ctx context.Context, req *cachev3.DeltaRequest, state s
 		// In the current code this gets silently cleaned when updating the version map
 		for name := range state.GetSubscribedResourceNames() {
 			prevVersion, found := state.GetResourceVersions()[name]
+			var commonOk, nodeOk bool
 			if r, ok := resources.resourceMap[name]; ok {
+				commonOk = true
 				nextVersion := resources.versionMap[name]
 				if prevVersion != nextVersion {
 					filtered = append(filtered, r)
 				}
 				nextVersionMap[name] = nextVersion
-			} else if found {
+			}
+			if r, ok := resources.nodeResourceMap[name]; ok {
+				nodeOk = true
+				nextVersion := resources.nodeVersionMap[name]
+				if prevVersion != nextVersion {
+					filtered = append(filtered, r)
+				}
+				nextVersionMap[name] = nextVersion
+			}
+			if found && (!commonOk && !nodeOk) {
 				toRemove = append(toRemove, name)
 			}
 		}

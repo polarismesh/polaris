@@ -20,6 +20,7 @@ package config
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
@@ -304,8 +305,16 @@ func (chain *ReleaseConfigFileChain) BeforeUpdateFile(ctx context.Context,
 
 // AfterGetFileRelease
 func (chain *ReleaseConfigFileChain) AfterGetFileRelease(ctx context.Context,
-	release *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
-	return release, nil
+	ret *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
+
+	if ret.ReleaseType == model.ReleaseTypeGray {
+		if rule := chain.svr.caches.Gray().GetGrayRule(model.GetGrayConfigRealseKey(ret.SimpleConfigFileRelease)); rule == nil {
+			return nil, fmt.Errorf("gray rule not found")
+		} else {
+			ret.BetaLabels = rule
+		}
+	}
+	return ret, nil
 }
 
 // AfterGetFileHistory

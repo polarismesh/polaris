@@ -23,7 +23,7 @@ const (
 	// ReleaseTypeNormal 发布类型，全量发布
 	ReleaseTypeNormal = "normal"
 	// ReleaseTypeGray 灰度发布
-	ReleaseTypeGray = "gray"
+	ReleaseTypeGray = "betaing"
 	// ReleaseTypeCancelGray 取消灰度发布
 	ReleaseTypeCancelGray = "cancel-gray"
 	// ReleaseTypeDelete 发布类型，删除配置发布

@@ -92,6 +92,8 @@ type ConfigFileReleaseStore interface {
 	GetMoreReleaseFile(firstUpdate bool, modifyTime time.Time) ([]*model.ConfigFileRelease, error)
 	// CountConfigReleases 获取一个配置文件组下的文件数量
 	CountConfigReleases(namespace, group string, onlyActive bool) (uint64, error)
+	// GetConfigFileBetaReleaseTx 获取灰度发布的配置文件信息
+	GetConfigFileBetaReleaseTx(tx Tx, file *model.ConfigFileKey) (*model.ConfigFileRelease, error)
 }
 
 // ConfigFileReleaseHistoryStore 配置文件发布历史存储接口

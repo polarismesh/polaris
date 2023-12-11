@@ -475,3 +475,25 @@ func (h *HTTPServer) UpsertAndReleaseConfigFile(req *restful.Request, rsp *restf
 
 	handler.WriteHeaderAndProto(h.configServer.UpsertAndReleaseConfigFile(ctx, configFile))
 }
+
+// StopGrayConfigFileReleases .
+func (h *HTTPServer) StopGrayConfigFileReleases(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	var releases []*apiconfig.ConfigFileRelease
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &apiconfig.ConfigFileRelease{}
+		releases = append(releases, msg)
+		return msg
+	})
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+
+	response := h.configServer.StopGrayConfigFileReleases(ctx, releases)
+	handler.WriteHeaderAndProto(response)
+}

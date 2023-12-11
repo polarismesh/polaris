@@ -37,6 +37,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	_ "github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/log"
@@ -312,6 +313,9 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 		panic(err)
 	}
 	d.cacheMgr = cacheMgn
+	_ = d.cacheMgr.OpenResourceCache(cachetypes.ConfigEntry{
+		Name: cachetypes.GrayName,
+	})
 
 	if !d.cfg.DisableAuth {
 		// 初始化鉴权层
@@ -389,7 +393,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	d.updateCacheInterval = d.server.Cache().GetUpdateCacheInterval() + time.Millisecond*500
 
 	time.Sleep(5 * time.Second)
-	return nil
+	return cache.TestRun(ctx, d.cacheMgr)
 }
 
 func (d *DiscoverTestSuit) Destroy() {

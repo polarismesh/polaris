@@ -62,7 +62,7 @@ func (cfr *configFileReleaseStore) CreateConfigFileReleaseTx(tx store.Tx, data *
 	}
 
 	s := "INSERT INTO config_file_release(name, namespace, `group`, file_name, content , comment, md5, " +
-		" version, create_time, create_by , modify_time, modify_by, active, tags, description, type) " +
+		" version, create_time, create_by , modify_time, modify_by, active, tags, description, release_type) " +
 		" VALUES (?, ?, ?, ?, ? , ?, ?, ?, sysdate(), ? , sysdate(), ?, 1, ?, ?, ?)"
 
 	args = []interface{}{
@@ -178,13 +178,45 @@ func (cfr *configFileReleaseStore) GetConfigFileActiveReleaseTx(tx store.Tx,
 
 	dbTx := tx.GetDelegateTx().(*BaseTx)
 	querySql := cfr.baseQuerySql() + "WHERE namespace = ? AND `group` = ? AND " +
-		" file_name = ? AND active = 1 AND type =? AND flag = 0 "
+		" file_name = ? AND active = 1 AND release_type = ? AND flag = 0 "
 	var (
 		rows *sql.Rows
 		err  error
 	)
 
 	rows, err = dbTx.Query(querySql, file.Namespace, file.Group, file.Name, model.ReleaseTypeFull)
+	if err != nil {
+		return nil, err
+	}
+	fileRelease, err := cfr.transferRows(rows)
+	if err != nil {
+		return nil, err
+	}
+	if len(fileRelease) > 1 {
+		return nil, errors.New("multi active file release found")
+	}
+	if len(fileRelease) > 0 {
+		return fileRelease[0], nil
+	}
+	return nil, nil
+}
+
+// GetConfigFileBetaReleaseTx .
+func (cfr *configFileReleaseStore) GetConfigFileBetaReleaseTx(tx store.Tx,
+	file *model.ConfigFileKey) (*model.ConfigFileRelease, error) {
+	if tx == nil {
+		return nil, ErrTxIsNil
+	}
+
+	dbTx := tx.GetDelegateTx().(*BaseTx)
+	querySql := cfr.baseQuerySql() + "WHERE namespace = ? AND `group` = ? AND " +
+		" file_name = ? AND active = 1 AND release_type = ? AND flag = 0 "
+	var (
+		rows *sql.Rows
+		err  error
+	)
+
+	rows, err = dbTx.Query(querySql, file.Namespace, file.Group, file.Name, model.ReleaseTypeGray)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +247,7 @@ func (cfr *configFileReleaseStore) ActiveConfigFileReleaseTx(tx store.Tx, releas
 	args := []interface{}{maxVersion + 1, release.ReleaseType, release.Namespace, release.Group,
 		release.FileName, release.Name}
 	//	update 指定的 release 记录，设置其 active、version 以及 mtime
-	updateSql := "UPDATE config_file_release SET active = 1, version = ?, modify_time = sysdate(), type=? " +
+	updateSql := "UPDATE config_file_release SET active = 1, version = ?, modify_time = sysdate(), release_type = ? " +
 		" WHERE namespace = ? AND `group` = ? AND file_name = ? AND name = ?"
 	if _, err := dbTx.Exec(updateSql, args...); err != nil {
 		return store.Error(err)
@@ -232,10 +264,18 @@ func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *BaseTx,
 	args := []interface{}{release.Namespace, release.Group, release.FileName, release.ReleaseType}
 	//	先取消所有 active == true 的记录
 	if _, err := tx.Exec("UPDATE config_file_release SET active = 0, modify_time = sysdate() "+
-		" WHERE namespace = ? AND `group` = ? AND file_name = ? AND active = 1 AND type=?", args...); err != nil {
+		" WHERE namespace = ? AND `group` = ? AND file_name = ? AND active = 1 AND release_type = ?", args...); err != nil {
 		return 0, err
 	}
+	return cfr.selectMaxVersion(tx, release)
+}
 
+func (cfr *configFileReleaseStore) selectMaxVersion(tx *BaseTx, release *model.ConfigFileRelease) (uint64, error) {
+	if tx == nil {
+		return 0, ErrTxIsNil
+	}
+
+	args := []interface{}{release.Namespace, release.Group, release.FileName, release.ReleaseType}
 	//	生成最新的 version 版本信息
 	row := tx.QueryRow("SELECT IFNULL(MAX(`version`), 0) FROM config_file_release WHERE namespace = ? AND "+
 		" `group` = ? AND file_name = ?", args[:3]...)
@@ -285,7 +325,7 @@ func (cfr *configFileReleaseStore) CountConfigReleases(namespace, group string, 
 func (cfr *configFileReleaseStore) baseQuerySql() string {
 	return "SELECT id, name, namespace, `group`, file_name, content, IFNULL(comment, ''), " +
 		" md5, version, UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), UNIX_TIMESTAMP(modify_time), " +
-		" IFNULL(modify_by, ''), flag, IFNULL(tags, ''), active, IFNULL(description, ''), type FROM config_file_release "
+		" IFNULL(modify_by, ''), flag, IFNULL(tags, ''), active, IFNULL(description, ''), IFNULL(release_type, '') FROM config_file_release "
 }
 
 func (cfr *configFileReleaseStore) transferRows(rows *sql.Rows) ([]*model.ConfigFileRelease, error) {

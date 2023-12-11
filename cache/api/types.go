@@ -477,6 +477,8 @@ type (
 		GetGroupByName(namespace, name string) *model.ConfigFileGroup
 		// GetGroupByID
 		GetGroupByID(id uint64) *model.ConfigFileGroup
+		// ListGroups
+		ListGroups(namespace string) ([]*model.ConfigFileGroup, string)
 		// Query
 		Query(args *ConfigGroupArgs) (uint32, []*model.ConfigFileGroup, error)
 	}

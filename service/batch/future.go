@@ -31,6 +31,7 @@ import (
 
 // InstanceFuture 创建实例的异步结构体
 type InstanceFuture struct {
+	isRegis bool
 	// 任务开始时间
 	begin time.Time
 	// 服务的id
@@ -53,7 +54,9 @@ type InstanceFuture struct {
 
 // Reply future的应答
 func (future *InstanceFuture) Reply(cur time.Time, code apimodel.Code, result error) {
-	reportRegisInstanceCost(future.begin, cur, code)
+	if future.isRegis {
+		reportRegisInstanceCost(future.begin, cur, code)
+	}
 	if code == apimodel.Code_InstanceRegisTimeout {
 		metrics.ReportDropInstanceRegisTask()
 	}

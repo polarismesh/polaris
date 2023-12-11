@@ -53,8 +53,8 @@ const (
 	rateLimitAccess      string = "ratelimit"
 )
 
-// GetNamingConsoleAccessServer 注册管理端接口
-func (h *HTTPServerV1) GetNamingConsoleAccessServer(include []string) (*restful.WebService, error) {
+// GetConsoleAccessServer 注册管理端接口
+func (h *HTTPServerV1) GetConsoleAccessServer(include []string) (*restful.WebService, error) {
 	consoleAccess := []string{defaultAccess}
 
 	ws := new(restful.WebService)

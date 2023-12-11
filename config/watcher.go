@@ -46,9 +46,11 @@ var (
 )
 
 type (
+	BetaReleaseMatcher func(clientLabels map[string]string, event *model.SimpleConfigFileRelease) bool
+
 	FileReleaseCallback func(clientId string, rsp *apiconfig.ConfigClientResponse) bool
 
-	WatchContextFactory func(clientId string) WatchContext
+	WatchContextFactory func(clientId string, matcher BetaReleaseMatcher) WatchContext
 
 	WatchContext interface {
 		// ClientID .
@@ -81,6 +83,7 @@ type LongPollWatchContext struct {
 	finishTime       time.Time
 	finishChan       chan *apiconfig.ConfigClientResponse
 	watchConfigFiles map[string]*apiconfig.ClientConfigFileInfo
+	betaMatcher      BetaReleaseMatcher
 }
 
 func (c *LongPollWatchContext) ClientLabels() map[string]string {
@@ -117,6 +120,10 @@ func (c *LongPollWatchContext) ClientID() string {
 }
 
 func (c *LongPollWatchContext) ShouldNotify(event *model.SimpleConfigFileRelease) bool {
+	if event.ReleaseType == model.ReleaseTypeGray && !c.betaMatcher(c.ClientLabels(), event) {
+		return false
+	}
+
 	key := event.FileKey()
 	watchFile, ok := c.watchConfigFiles[key]
 	if !ok {
@@ -167,17 +174,19 @@ type watchCenter struct {
 	watchers *utils.SyncMap[string, *utils.SyncSet[string]]
 	// fileCache
 	fileCache cachetypes.ConfigFileCache
+	cacheMgr  cachetypes.CacheManager
 	cancel    context.CancelFunc
 }
 
 // NewWatchCenter 创建一个客户端监听配置发布的处理中心
-func NewWatchCenter(fileCache cachetypes.ConfigFileCache) (*watchCenter, error) {
+func NewWatchCenter(cacheMgr cachetypes.CacheManager) (*watchCenter, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	wc := &watchCenter{
 		clients:   utils.NewSyncMap[string, WatchContext](),
 		watchers:  utils.NewSyncMap[string, *utils.SyncSet[string]](),
-		fileCache: fileCache,
+		fileCache: cacheMgr.ConfigFile(),
+		cacheMgr:  cacheMgr,
 		cancel:    cancel,
 	}
 
@@ -220,19 +229,29 @@ func (wc *watchCenter) checkQuickResponseClient(watchCtx WatchContext) *apiconfi
 			return api.NewConfigClientResponseWithInfo(apimodel.Code_BadRequest,
 				"namespace & group & fileName can not be empty")
 		}
-		// 从缓存中获取最新的配置文件信息
-		if release := wc.fileCache.GetActiveRelease(namespace, group, fileName); release != nil {
-			if watchCtx.ShouldNotify(release.SimpleConfigFileRelease) {
-				ret := &apiconfig.ClientConfigFileInfo{
-					Namespace: utils.NewStringValue(namespace),
-					Group:     utils.NewStringValue(group),
-					FileName:  utils.NewStringValue(fileName),
-					Version:   utils.NewUInt64Value(release.Version),
-					Md5:       utils.NewStringValue(release.Md5),
-					Name:      utils.NewStringValue(release.Name),
-				}
-				return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, ret)
+		// 从缓存中获取灰度文件
+		var release *model.ConfigFileRelease
+		var match = false
+		if len(watchCtx.ClientLabels()) > 0 {
+			if release = wc.fileCache.GetGrayRelease(namespace, group, fileName); release != nil {
+				key := model.GetGrayConfigRealseKey(release.SimpleConfigFileRelease)
+				match = wc.cacheMgr.Gray().HitGrayRule(key, watchCtx.ClientLabels())
 			}
+		}
+		if !match {
+			release = wc.fileCache.GetActiveRelease(namespace, group, fileName)
+		}
+		// 从缓存中获取最新的配置文件信息
+		if release != nil && watchCtx.ShouldNotify(release.SimpleConfigFileRelease) {
+			ret := &apiconfig.ClientConfigFileInfo{
+				Namespace: utils.NewStringValue(namespace),
+				Group:     utils.NewStringValue(group),
+				FileName:  utils.NewStringValue(fileName),
+				Version:   utils.NewUInt64Value(release.Version),
+				Md5:       utils.NewStringValue(release.Md5),
+				Name:      utils.NewStringValue(release.Name),
+			}
+			return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, ret)
 		}
 	}
 	return nil
@@ -252,7 +271,7 @@ func (wc *watchCenter) DelWatchContext(clientId string) (WatchContext, bool) {
 func (wc *watchCenter) AddWatcher(clientId string,
 	watchFiles []*apiconfig.ClientConfigFileInfo, factory WatchContextFactory) WatchContext {
 	watchCtx, _ := wc.clients.ComputeIfAbsent(clientId, func(k string) WatchContext {
-		return factory(clientId)
+		return factory(clientId, wc.MatchBetaReleaseFile)
 	})
 
 	for _, file := range watchFiles {
@@ -335,6 +354,10 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.SimpleConfigFil
 			wc.RemoveAllWatcher(watchCtx.ClientID())
 		}
 	})
+}
+
+func (wc *watchCenter) MatchBetaReleaseFile(clientLabels map[string]string, event *model.SimpleConfigFileRelease) bool {
+	return wc.cacheMgr.Gray().HitGrayRule(model.GetGrayConfigRealseKey(event), clientLabels)
 }
 
 func (wc *watchCenter) Close() {

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -53,6 +54,7 @@ type ConfigFileGroup struct {
 	CreateBy   string
 	ModifyBy   string
 	Valid      bool
+	Revision   string
 }
 
 type ConfigFileKey struct {
@@ -187,7 +189,7 @@ type SimpleConfigFileRelease struct {
 	ModifyTime         time.Time
 	ModifyBy           string
 	ReleaseDescription string
-	ReleaseType        string
+	BetaLabels         []*apimodel.ClientLabel
 }
 
 func (s *SimpleConfigFileRelease) GetEncryptDataKey() string {
@@ -363,7 +365,7 @@ func ToConfiogFileReleaseApi(release *ConfigFileRelease) *config_manage.ConfigFi
 		ReleaseDescription: utils.NewStringValue(release.ReleaseDescription),
 		Tags:               FromTagMap(release.Metadata),
 		Active:             utils.NewBoolValue(release.Active),
-		Type:               utils.NewStringValue(string(release.ReleaseType)),
+		ReleaseType:        utils.NewStringValue(string(release.ReleaseType)),
 	}
 }
 
