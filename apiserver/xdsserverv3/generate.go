@@ -167,64 +167,35 @@ func (x *XdsResourceGenerator) buildEnvoyXDSCache(needUpdate, needRemove map[str
 		return nil
 	}
 
-	for i := range nodes {
-		node := nodes[i]
-		xdsNode := node
-		opt := &resource.BuildOption{
-			RunType:        resource.RunTypeSidecar,
-			Client:         xdsNode,
-			TLSMode:        node.TLSMode,
-			Namespace:      xdsNode.GetSelfNamespace(),
-			OpenOnDemand:   xdsNode.OpenOnDemand,
-			OnDemandServer: xdsNode.OnDemandServer,
-			SelfService: model.ServiceKey{
-				Namespace: xdsNode.GetSelfNamespace(),
-				Name:      xdsNode.GetSelfService(),
-			},
-		}
-		if services,ok:=registryInfo[xdsNode.GetSelfNamespace()];ok{
-			opt.Services=services
-		}
-		
-		opt.TrafficDirection = corev3.TrafficDirection_OUTBOUND
-		// 构建 OUTBOUND LDS 资源
-		x.buildAndDeltaUpdate(resource.LDS, opt)
-		// 构建 OUTBOUND RDS 资源
-		x.buildAndDeltaUpdate(resource.RDS, opt)
-		opt.TrafficDirection = corev3.TrafficDirection_INBOUND
-		// 构建 INBOUND LDS 资源
-		x.buildAndDeltaUpdate(resource.LDS, opt)
-		// 构建 INBOUND EDS 资源
-		x.buildAndDeltaUpdate(resource.EDS, opt)
-		// 构建 INBOUND RDS 资源
-		x.buildAndDeltaUpdate(resource.RDS, opt)
-	}
-	return nil
-}
+	deltaOp := func(infos map[string]map[model.ServiceKey]*resource.ServiceInfo, f func(xdsType resource.XDSType, opt *resource.BuildOption)) {
+		for i := range nodes {
+			node := nodes[i]
+			opt := &resource.BuildOption{
+				RunType:        node.RunType,
+				Client:         node,
+				TLSMode:        node.TLSMode,
+				Namespace:      node.GetSelfNamespace(),
+				Services:       infos[node.GetSelfNamespace()],
+				OpenOnDemand:   node.OpenOnDemand,
+				OnDemandServer: node.OnDemandServer,
+				SelfService: model.ServiceKey{
+					Namespace: node.GetSelfNamespace(),
+					Name:      node.GetSelfService(),
+				},
+			}
 
-// buildGatewayXDSCache 网关场景是允许跨命名空间直接进行访问
-func (x *XdsResourceGenerator) buildGatewayXDSCache(versionLocal string,
-	registryInfo map[string]map[model.ServiceKey]*resource.ServiceInfo) error {
-
-	nodes := x.xdsNodesMgr.ListGatewayNodes()
-	if len(nodes) == 0 || len(registryInfo) == 0 {
-		// 如果没有任何一个 XDS Gateway Node 客户端，不做任何操作
-		log.Info("[XDS][Gateway][V2] xds nodes or registryInfo is empty", zap.Int("nodes", len(nodes)),
-			zap.Int("registr", len(registryInfo)))
-		return nil
-	}
-
-	alreadyMakeCache := map[string]struct{}{}
-	for i := range nodes {
-		node := nodes[i]
-		cacheKey := (resource.PolarisNodeHash{}).ID(node.Node)
-		if _, exist := alreadyMakeCache[cacheKey]; exist {
-			continue
-		}
-		alreadyMakeCache[cacheKey] = struct{}{}
-		if err := x.makeGatewaySnapshot(node, node.TLSMode, versionLocal, registryInfo); err != nil {
-			log.Error("[XDS][Gateway][V2] make snapshot fail", zap.String("cacheKey", cacheKey),
-				zap.Error(err))
+			opt.TrafficDirection = corev3.TrafficDirection_OUTBOUND
+			// 构建 OUTBOUND LDS 资源
+			f(resource.LDS, opt)
+			// 构建 OUTBOUND RDS 资源
+			f(resource.RDS, opt)
+			opt.TrafficDirection = corev3.TrafficDirection_INBOUND
+			// 构建 INBOUND LDS 资源
+			f(resource.LDS, opt)
+			// 构建 INBOUND EDS 资源
+			f(resource.EDS, opt)
+			// 构建 INBOUND RDS 资源
+			f(resource.RDS, opt)
 		}
 	}
 
