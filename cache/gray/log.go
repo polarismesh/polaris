@@ -15,37 +15,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package config
+package gray
 
-import (
-	"os"
-	"path/filepath"
-
-	cachetypes "github.com/polarismesh/polaris/cache/api"
-	"github.com/polarismesh/polaris/common/utils"
-)
+import commonlog "github.com/polarismesh/polaris/common/log"
 
 var (
-	configCacheEntries = []cachetypes.ConfigEntry{
-		{
-			Name: "configFile",
-		},
-		{
-			Name: "configGroup",
-		},
-	}
-)
-
-var (
-	testConfigCacheEntries = []cachetypes.ConfigEntry{
-		{
-			Name: "configFile",
-			Option: map[string]interface{}{
-				"cachePath": filepath.Join(os.TempDir(), "/polaris/cache/", utils.NewUUID()),
-			},
-		},
-		{
-			Name: "configGroup",
-		},
-	}
+	log = commonlog.GetScopeOrDefaultByName(commonlog.CacheLoggerName)
 )

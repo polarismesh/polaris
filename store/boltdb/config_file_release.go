@@ -188,10 +188,6 @@ func (cfr *configFileReleaseStore) GetConfigFileActiveReleaseTx(tx store.Tx,
 	return nil, nil
 }
 
-func (cfr *configFileReleaseStore) HasGrayConfigFileReleaseTx(tx store.Tx, req *model.ConfigFileReleaseKey) (*model.ConfigFileRelease, error) {
-	return nil, nil
-}
-
 func (cfr *configFileReleaseStore) GetConfigFileBetaReleaseTx(tx store.Tx,
 	file *model.ConfigFileKey) (*model.ConfigFileRelease, error) {
 	dbTx := tx.GetDelegateTx().(*bolt.Tx)
@@ -350,7 +346,7 @@ func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *bolt.Tx,
 	release *model.ConfigFileRelease) (uint64, error) {
 
 	fields := []string{FileReleaseFieldNamespace, FileReleaseFieldGroup, FileReleaseFieldFileName,
-		FileReleaseFieldVersion, FileReleaseFieldFlag, FileReleaseFieldActive}
+		FileReleaseFieldVersion, FileReleaseFieldFlag, FileReleaseFieldActive, FileReleaseFieldType}
 
 	values := map[string]interface{}{}
 	var maxVersion uint64
@@ -369,6 +365,10 @@ func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *bolt.Tx,
 			saveNs, _ := m[FileReleaseFieldNamespace].(string)
 			saveGroup, _ := m[FileReleaseFieldGroup].(string)
 			saveFileName, _ := m[FileReleaseFieldFileName].(string)
+			releaseType, _ := m[FileReleaseFieldType].(string)
+			if releaseType != string(release.ReleaseType) {
+				return false
+			}
 
 			expect := saveNs == release.Namespace && saveGroup == release.Group &&
 				saveFileName == release.FileName

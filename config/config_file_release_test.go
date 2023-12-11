@@ -293,26 +293,28 @@ func Test_GrayConfigFileRelease(t *testing.T) {
 		mockClientIP        = "1.1.1.1"
 	)
 
-	resp := testSuit.ConfigServer().UpsertAndReleaseConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
-		Namespace:   utils.NewStringValue(mockNamespace),
-		Group:       utils.NewStringValue(mockGroup),
-		FileName:    utils.NewStringValue(mockFileName),
-		ReleaseName: utils.NewStringValue(mockReleaseName),
-		Content:     utils.NewStringValue(mockContent),
-	})
-	// 正常发布成功
-	assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue(), resp.GetInfo().GetValue())
+	t.Run("first publish", func(t *testing.T) {
+		resp := testSuit.ConfigServer().UpsertAndReleaseConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
+			Namespace:   utils.NewStringValue(mockNamespace),
+			Group:       utils.NewStringValue(mockGroup),
+			FileName:    utils.NewStringValue(mockFileName),
+			ReleaseName: utils.NewStringValue(mockReleaseName),
+			Content:     utils.NewStringValue(mockContent),
+		})
+		// 正常发布成功
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue(), resp.GetInfo().GetValue())
 
-	resp = testSuit.ConfigServer().GetConfigFileRelease(testSuit.DefaultCtx, &config_manage.ConfigFileRelease{
-		Namespace: utils.NewStringValue(mockNamespace),
-		Group:     utils.NewStringValue(mockGroup),
-		FileName:  utils.NewStringValue(mockFileName),
-		Name:      utils.NewStringValue(mockReleaseName),
+		resp = testSuit.ConfigServer().GetConfigFileRelease(testSuit.DefaultCtx, &config_manage.ConfigFileRelease{
+			Namespace: utils.NewStringValue(mockNamespace),
+			Group:     utils.NewStringValue(mockGroup),
+			FileName:  utils.NewStringValue(mockFileName),
+			Name:      utils.NewStringValue(mockReleaseName),
+		})
+		// 正常发布成功
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue(), resp.GetInfo().GetValue())
+		// 正常发布成功
+		assert.Equal(t, mockContent, resp.GetConfigFileRelease().GetContent().GetValue())
 	})
-	// 正常发布成功
-	assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue(), resp.GetInfo().GetValue())
-	// 正常发布成功
-	assert.Equal(t, mockContent, resp.GetConfigFileRelease().GetContent().GetValue())
 
 	t.Run("gray_publish", func(t *testing.T) {
 		resp := testSuit.ConfigServer().UpdateConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFile{
@@ -396,5 +398,68 @@ func Test_GrayConfigFileRelease(t *testing.T) {
 		})
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue(), resp.GetInfo().GetValue())
 		assert.Equal(t, mockContent, clientRsp.GetConfigFile().GetContent().GetValue())
+	})
+
+	// 测试存在灰度发布配置时, 不得发布新的配置文件
+	t.Run("normal_publish_when_exist_gray", func(t *testing.T) {
+		resp := testSuit.ConfigServer().UpsertAndReleaseConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
+			Namespace:   utils.NewStringValue(mockNamespace),
+			Group:       utils.NewStringValue(mockGroup),
+			FileName:    utils.NewStringValue(mockFileName),
+			ReleaseName: utils.NewStringValue(mockReleaseName),
+			Content:     utils.NewStringValue(mockContent),
+		})
+		// 正常发布成功
+		assert.Equal(t, uint32(apimodel.Code_DataConflict), resp.GetCode().GetValue(), resp.GetInfo().GetValue())
+	})
+
+	// 删除已发布的灰度配置，获取不到
+	t.Run("delete_gray_release", func(t *testing.T) {
+		resp := testSuit.ConfigServer().StopGrayConfigFileReleases(testSuit.DefaultCtx, []*config_manage.ConfigFileRelease{
+			&config_manage.ConfigFileRelease{
+				Namespace: utils.NewStringValue(mockNamespace),
+				Group:     utils.NewStringValue(mockGroup),
+				FileName:  utils.NewStringValue(mockFileName),
+			},
+		})
+		// 正常发布成功
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue(), resp.GetInfo().GetValue())
+
+		_ = testSuit.CacheMgr().TestUpdate()
+
+		// 不带配置标签查询, 查不到处于灰度发布的配置
+		clientRsp := testSuit.ConfigServer().GetConfigFileWithCache(testSuit.DefaultCtx, &config_manage.ClientConfigFileInfo{
+			Namespace: utils.NewStringValue(mockNamespace),
+			Group:     utils.NewStringValue(mockGroup),
+			FileName:  utils.NewStringValue(mockFileName),
+		})
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue(), resp.GetInfo().GetValue())
+		assert.Equal(t, mockContent, clientRsp.GetConfigFile().GetContent().GetValue())
+
+		// 携带正确配置标签查询, 查到处于灰度发布的配置
+		clientRsp = testSuit.ConfigServer().GetConfigFileWithCache(testSuit.DefaultCtx, &config_manage.ClientConfigFileInfo{
+			Namespace: utils.NewStringValue(mockNamespace),
+			Group:     utils.NewStringValue(mockGroup),
+			FileName:  utils.NewStringValue(mockFileName),
+			Tags: []*config_manage.ConfigFileTag{
+				{
+					Key:   utils.NewStringValue(model.ClientLabel_IP),
+					Value: utils.NewStringValue(mockClientIP),
+				},
+			},
+		})
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue(), resp.GetInfo().GetValue())
+		assert.Equal(t, mockContent, clientRsp.GetConfigFile().GetContent().GetValue())
+
+		// 配置发布成功
+		pubResp := testSuit.ConfigServer().UpsertAndReleaseConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
+			Namespace:   utils.NewStringValue(mockNamespace),
+			Group:       utils.NewStringValue(mockGroup),
+			FileName:    utils.NewStringValue(mockFileName),
+			ReleaseName: utils.NewStringValue(mockReleaseName),
+			Content:     utils.NewStringValue(mockContent),
+		})
+		// 正常发布成功
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
 	})
 }

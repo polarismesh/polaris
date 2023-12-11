@@ -76,6 +76,7 @@ type StreamWatchContext struct {
 	labels           map[string]string
 	connMgr          *remote.ConnectionManager
 	watchConfigFiles *utils.SyncMap[string, *apiconfig.ClientConfigFileInfo]
+	betaMatcher      config.BetaReleaseMatcher
 }
 
 func (c *StreamWatchContext) ClientLabels() map[string]string {

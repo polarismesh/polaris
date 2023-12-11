@@ -29,6 +29,7 @@ import (
 	nacospb "github.com/polarismesh/polaris/apiserver/nacosserver/v2/pb"
 	"github.com/polarismesh/polaris/apiserver/nacosserver/v2/remote"
 	"github.com/polarismesh/polaris/common/metrics"
+	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/config"
@@ -178,7 +179,7 @@ func (h *ConfigServer) handleWatchConfigRequest(ctx context.Context, req nacospb
 	clientId := meta.ConnectionID
 	specReq := watchReq.ToSpec()
 	if watchReq.Listen {
-		_ = configSvr.WatchCenter().AddWatcher(clientId, specReq.GetWatchFiles(), h.BuildGrpcWatchCtx(ctx))
+		watchCtx := configSvr.WatchCenter().AddWatcher(clientId, specReq.GetWatchFiles(), h.BuildGrpcWatchCtx(ctx))
 		for i := range specReq.GetWatchFiles() {
 			item := specReq.GetWatchFiles()[i]
 			namespace := item.GetNamespace().GetValue()
@@ -186,7 +187,16 @@ func (h *ConfigServer) handleWatchConfigRequest(ctx context.Context, req nacospb
 			dataId := item.GetFileName().GetValue()
 			mdval := item.GetMd5().GetValue()
 
-			active := h.cacheSvr.ConfigFile().GetActiveRelease(namespace, group, dataId)
+			var active *model.ConfigFileRelease
+			var match bool
+			if betaActive := h.cacheSvr.ConfigFile().GetGrayRelease(namespace, group, dataId); betaActive != nil {
+				match = h.cacheSvr.Gray().HitGrayRule(model.GetGrayConfigRealseKey(betaActive.SimpleConfigFileRelease), watchCtx.ClientLabels())
+				active = betaActive
+			}
+			if !match {
+				active = h.cacheSvr.ConfigFile().GetActiveRelease(namespace, group, dataId)
+			}
+
 			// 如果 client 过来的 MD5 是一个空字符串
 			if (active == nil && mdval != "") || (active != nil && active.Md5 != mdval) {
 				listenResp.ChangedConfigs = append(listenResp.ChangedConfigs, nacospb.ConfigContext{
@@ -211,7 +221,7 @@ func (h *ConfigServer) handleWatchConfigRequest(ctx context.Context, req nacospb
 // BuildGrpcWatchCtx .
 func (h *ConfigServer) BuildGrpcWatchCtx(ctx context.Context) config.WatchContextFactory {
 	labels := map[string]string{}
-	labels["ip"] = utils.ParseClientIP(ctx)
+	labels[model.ClientLabel_IP] = utils.ParseClientIP(ctx)
 
 	return func(clientId string, matcher config.BetaReleaseMatcher) config.WatchContext {
 		watchCtx := &StreamWatchContext{
@@ -219,6 +229,9 @@ func (h *ConfigServer) BuildGrpcWatchCtx(ctx context.Context) config.WatchContex
 			connMgr:          h.connMgr,
 			labels:           labels,
 			watchConfigFiles: utils.NewSyncMap[string, *config_manage.ClientConfigFileInfo](),
+			betaMatcher: func(clientLabels map[string]string, event *model.SimpleConfigFileRelease) bool {
+				return h.cacheSvr.Gray().HitGrayRule(model.GetGrayConfigRealseKey(event), clientLabels)
+			},
 		}
 		return watchCtx
 	}

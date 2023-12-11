@@ -25,6 +25,7 @@ import (
 	"github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/config"
 )
 
 type LongPollWatchContext struct {
@@ -34,6 +35,7 @@ type LongPollWatchContext struct {
 	finishTime       time.Time
 	finishChan       chan *config_manage.ConfigClientResponse
 	watchConfigFiles map[string]*config_manage.ClientConfigFileInfo
+	betaMatcher      config.BetaReleaseMatcher
 }
 
 func (c *LongPollWatchContext) ClientLabels() map[string]string {

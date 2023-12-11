@@ -21,6 +21,7 @@ import (
 	"context"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
@@ -36,6 +37,7 @@ func TestInitialize(ctx context.Context, config Config, s store.Store, cacheMgn 
 	strategyMgn auth.StrategyServer) (ConfigCenterServer, ConfigCenterServer, error) {
 	mockServer := &Server{}
 
+	log.Info("Config.TestInitialize", zap.Any("entries", testConfigCacheEntries))
 	cacheMgn.OpenResourceCache(testConfigCacheEntries...)
 	if err := mockServer.initialize(ctx, config, s, namespaceOperator, cacheMgn); err != nil {
 		return nil, nil, err

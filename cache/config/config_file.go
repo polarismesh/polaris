@@ -182,8 +182,9 @@ func (fc *fileCache) setReleases(releases []*model.ConfigFileRelease) (map[strin
 
 		if item.Active {
 			configLog.Info("[Config][Release][Cache] notify config release change",
-				zap.String("namespace", item.Namespace), zap.String("group", item.Group),
-				zap.String("file", item.FileName), zap.Uint64("version", item.Version), zap.Bool("valid", item.Valid))
+				zap.String("namespace", item.Namespace), zap.String("group", item.Group),zap.String("release", item.Name), 
+				zap.String("file", item.FileName), zap.Uint64("version", item.Version), zap.Bool("valid", item.Valid),
+				zap.String("type", string(item.ReleaseType)))
 			fc.sendEvent(item)
 		}
 	}
@@ -198,7 +199,8 @@ func (fc *fileCache) sendEvent(item *model.ConfigFileRelease) {
 	if err != nil {
 		configLog.Error("[Config][Release][Cache] notify config release change",
 			zap.String("namespace", item.Namespace), zap.String("group", item.Group),
-			zap.String("file", item.FileName), zap.Uint64("version", item.Version), zap.Error(err))
+			zap.String("file", item.FileName), zap.Uint64("version", item.Version), zap.String("type", string(item.ReleaseType)),
+			zap.Error(err))
 	}
 }
 

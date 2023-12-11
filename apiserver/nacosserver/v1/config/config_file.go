@@ -141,7 +141,7 @@ func (n *ConfigServer) handleWatch(ctx context.Context, listenCtx *model.ConfigW
 	clientId := utils.ParseClientAddress(ctx) + "@" + utils.NewUUID()[0:8]
 	configSvr := n.originConfigSvr.(*config.Server)
 	watchCtx := configSvr.WatchCenter().AddWatcher(clientId, specWatchReq.GetWatchFiles(),
-		BuildTimeoutWatchCtx(ctx, timeout))
+		n.BuildTimeoutWatchCtx(ctx, timeout))
 	nacoslog.Info("[NACOS-V1][Config] client start waitting server send notify message")
 	notifyRet := (watchCtx.(*LongPollWatchContext)).GetNotifieResult()
 	notifyCode := notifyRet.GetCode().GetValue()
@@ -215,9 +215,9 @@ func (n *ConfigServer) diffChangeFiles(ctx context.Context, listenCtx *config_ma
 	return changeKeys
 }
 
-func BuildTimeoutWatchCtx(ctx context.Context, watchTimeOut time.Duration) config.WatchContextFactory {
+func (n *ConfigServer) BuildTimeoutWatchCtx(ctx context.Context, watchTimeOut time.Duration) config.WatchContextFactory {
 	labels := map[string]string{}
-	labels["ip"] = utils.ParseClientIP(ctx)
+	labels[commonmodel.ClientLabel_IP] = utils.ParseClientIP(ctx)
 
 	return func(clientId string, matcher config.BetaReleaseMatcher) config.WatchContext {
 		watchCtx := &LongPollWatchContext{
@@ -226,6 +226,9 @@ func BuildTimeoutWatchCtx(ctx context.Context, watchTimeOut time.Duration) confi
 			finishTime:       time.Now().Add(watchTimeOut),
 			finishChan:       make(chan *config_manage.ConfigClientResponse),
 			watchConfigFiles: map[string]*config_manage.ClientConfigFileInfo{},
+			betaMatcher: func(clientLabels map[string]string, event *commonmodel.SimpleConfigFileRelease) bool {
+				return n.cacheSvr.Gray().HitGrayRule(commonmodel.GetGrayConfigRealseKey(event), clientLabels)
+			},
 		}
 		return watchCtx
 	}
