@@ -127,11 +127,14 @@ func (x *XdsResourceGenerator) buildSidecarXDSCache(registryInfo map[string]map[
 				Name:      xdsNode.GetSelfService(),
 			},
 		}
-
+		if services,ok:=registryInfo[xdsNode.GetSelfNamespace()];ok{
+			opt.Services=services
+		}
+		
 		opt.TrafficDirection = corev3.TrafficDirection_OUTBOUND
-		// 构建 INBOUND LDS 资源
+		// 构建 OUTBOUND LDS 资源
 		x.buildAndDeltaUpdate(resource.LDS, opt)
-		// 构建 INBOUND RDS 资源
+		// 构建 OUTBOUND RDS 资源
 		x.buildAndDeltaUpdate(resource.RDS, opt)
 		opt.TrafficDirection = corev3.TrafficDirection_INBOUND
 		// 构建 INBOUND LDS 资源
