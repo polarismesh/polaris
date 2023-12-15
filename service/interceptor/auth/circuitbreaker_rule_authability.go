@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package service_auth
 
 import (
 	"context"
@@ -28,7 +28,7 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-func (svr *serverAuthAbility) CreateCircuitBreakerRules(
+func (svr *ServerAuthAbility) CreateCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
 	// TODO not support CircuitBreaker resource auth, so we set op is read
 	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, model.Read, "CreateCircuitBreakerRules")
@@ -43,7 +43,7 @@ func (svr *serverAuthAbility) CreateCircuitBreakerRules(
 	return svr.targetServer.CreateCircuitBreakerRules(ctx, request)
 }
 
-func (svr *serverAuthAbility) DeleteCircuitBreakerRules(
+func (svr *ServerAuthAbility) DeleteCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, model.Read, "DeleteCircuitBreakerRules")
 	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
@@ -56,7 +56,7 @@ func (svr *serverAuthAbility) DeleteCircuitBreakerRules(
 	return svr.targetServer.DeleteCircuitBreakerRules(ctx, request)
 }
 
-func (svr *serverAuthAbility) EnableCircuitBreakerRules(
+func (svr *ServerAuthAbility) EnableCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, model.Read, "EnableCircuitBreakerRules")
 	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
@@ -69,7 +69,7 @@ func (svr *serverAuthAbility) EnableCircuitBreakerRules(
 	return svr.targetServer.EnableCircuitBreakerRules(ctx, request)
 }
 
-func (svr *serverAuthAbility) UpdateCircuitBreakerRules(
+func (svr *ServerAuthAbility) UpdateCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, model.Read, "UpdateCircuitBreakerRules")
 	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
@@ -82,7 +82,7 @@ func (svr *serverAuthAbility) UpdateCircuitBreakerRules(
 	return svr.targetServer.UpdateCircuitBreakerRules(ctx, request)
 }
 
-func (svr *serverAuthAbility) GetCircuitBreakerRules(
+func (svr *ServerAuthAbility) GetCircuitBreakerRules(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, nil, model.Read, "GetCircuitBreakerRules")
 	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)

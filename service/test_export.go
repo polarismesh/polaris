@@ -19,6 +19,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -80,7 +81,24 @@ func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Conf
 	namingServer.createServiceSingle = &singleflight.Group{}
 	// 插件初始化
 	pluginInitialize()
-	return newServerAuthAbility(namingServer, userMgn, strategyMgn), namingServer, nil
+
+	var proxySvr DiscoverServer
+	var err error
+	// 需要返回包装代理的 DiscoverServer
+	order := GetChainOrder()
+	for i := range order {
+		factory, exist := serverProxyFactories[order[i]]
+		if !exist {
+			return nil, nil, fmt.Errorf("name(%s) not exist in serverProxyFactories", order[i])
+		}
+
+		proxySvr, err = factory(namingServer, proxySvr)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return proxySvr, namingServer, nil
 }
 
 // TestSerialCreateInstance .

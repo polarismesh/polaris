@@ -15,17 +15,25 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package model
+package config_chain
 
-import "net/http"
+import (
+	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/config"
+	config_auth "github.com/polarismesh/polaris/config/interceptor/auth"
+)
 
-type DebugHandlerGroup struct {
-	Name     string
-	Handlers []DebugHandler
-}
+func init() {
+	config.RegisterServerProxy("auth", func(svr *config.Server, pre config.ConfigCenterServer) (config.ConfigCenterServer, error) {
+		userMgn, err := auth.GetUserServer()
+		if err != nil {
+			return nil, err
+		}
+		strategyMgn, err := auth.GetStrategyServer()
+		if err != nil {
+			return nil, err
+		}
 
-type DebugHandler struct {
-	Desc    string
-	Path    string
-	Handler http.HandlerFunc
+		return config_auth.New(svr, userMgn, strategyMgn), nil
+	})
 }

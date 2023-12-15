@@ -15,62 +15,75 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package service_auth
 
 import (
 	"context"
 
-	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-func (svr *serverAuthAbility) CreateFaultDetectRules(
-	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
+// CreateRoutingConfigsV2 批量创建路由配置
+func (svr *ServerAuthAbility) CreateRoutingConfigsV2(ctx context.Context,
+	req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
 
-	authCtx := svr.collectFaultDetectAuthContext(ctx, request, model.Read, "CreateFaultDetectRules")
+	// TODO not support RouteRuleV2 resource auth, so we set op is read
+	authCtx := svr.collectRouteRuleV2AuthContext(ctx, req, model.Read, "CreateRoutingConfigsV2")
 	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.CreateFaultDetectRules(ctx, request)
+	return svr.targetServer.CreateRoutingConfigsV2(ctx, req)
 }
 
-func (svr *serverAuthAbility) DeleteFaultDetectRules(
-	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
+// DeleteRoutingConfigsV2 批量删除路由配置
+func (svr *ServerAuthAbility) DeleteRoutingConfigsV2(ctx context.Context,
+	req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
 
-	authCtx := svr.collectFaultDetectAuthContext(ctx, request, model.Read, "DeleteFaultDetectRules")
+	authCtx := svr.collectRouteRuleV2AuthContext(ctx, req, model.Read, "DeleteRoutingConfigsV2")
 	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.DeleteFaultDetectRules(ctx, request)
+	return svr.targetServer.DeleteRoutingConfigsV2(ctx, req)
 }
 
-func (svr *serverAuthAbility) UpdateFaultDetectRules(
-	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
+// UpdateRoutingConfigsV2 批量更新路由配置
+func (svr *ServerAuthAbility) UpdateRoutingConfigsV2(ctx context.Context,
+	req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
 
-	authCtx := svr.collectFaultDetectAuthContext(ctx, request, model.Read, "UpdateFaultDetectRules")
+	authCtx := svr.collectRouteRuleV2AuthContext(ctx, req, model.Read, "UpdateRoutingConfigsV2")
 	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.UpdateFaultDetectRules(ctx, request)
+	return svr.targetServer.UpdateRoutingConfigsV2(ctx, req)
 }
 
-func (svr *serverAuthAbility) GetFaultDetectRules(
-	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
-	authCtx := svr.collectFaultDetectAuthContext(ctx, nil, model.Read, "GetFaultDetectRules")
+// EnableRoutings batch enable routing rules
+func (svr *ServerAuthAbility) EnableRoutings(ctx context.Context,
+	req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
+
+	authCtx := svr.collectRouteRuleV2AuthContext(ctx, req, model.Read, "EnableRoutings")
 	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchQueryResponse(convertToErrCode(err))
+		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.GetFaultDetectRules(ctx, query)
+	return svr.targetServer.EnableRoutings(ctx, req)
+}
+
+// QueryRoutingConfigsV2 提供给OSS的查询路由配置的接口
+func (svr *ServerAuthAbility) QueryRoutingConfigsV2(ctx context.Context,
+	query map[string]string) *apiservice.BatchQueryResponse {
+
+	return svr.targetServer.QueryRoutingConfigsV2(ctx, query)
 }

@@ -27,7 +27,6 @@ import (
 	rawbuffer "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/raw_buffer/v3"
 	tlstrans "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
-	resourcev3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -157,7 +156,6 @@ func (cds *CDSBuilder) makeCluster(svcInfo *resource.ServiceInfo,
 		EdsClusterConfig: &cluster.Cluster_EdsClusterConfig{
 			ServiceName: name,
 			EdsConfig: &core.ConfigSource{
-				ResourceApiVersion: resourcev3.DefaultAPIVersion,
 				ConfigSourceSpecifier: &core.ConfigSource_Ads{
 					Ads: &core.AggregatedConfigSource{},
 				},

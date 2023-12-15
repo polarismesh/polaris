@@ -22,8 +22,6 @@ networks:
 volumes:
   vlm_data_mysql:
     external: true
-  vlm_data_redis:
-    external: true
 
 services:
   polaris-server:
@@ -49,9 +47,7 @@ services:
       - backend
     links:
       - mysql
-      - redis
     depends_on:
-      - redis
       - mysql
   polaris-console:
     container_name: polaris-console
@@ -115,17 +111,6 @@ services:
       - 3306
     networks:
       - backend
-  redis:
-    image: 'bitnami/redis:latest'
-    restart: always
-    environment:
-      - REDIS_PASSWORD=polaris
-    volumes:
-      - vlm_data_redis:/data
-    networks:
-      - backend
-    expose:
-      - 6379
   prometheus:
     container_name: prometheus
     hostname: polaris-prometheus

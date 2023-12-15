@@ -21,6 +21,8 @@ import (
 	"context"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+
+	"github.com/polarismesh/polaris/common/model"
 )
 
 type (
@@ -133,4 +135,17 @@ type ConfigCenterServer interface {
 	ConfigFileReleaseOperate
 	ConfigFileClientOperate
 	ConfigFileTemplateOperate
+}
+
+// ResourceHook The listener is placed before and after the resource operation, only normal flow
+type ResourceHook interface {
+	// Before
+	Before(ctx context.Context, resourceType model.Resource)
+	// After
+	After(ctx context.Context, resourceType model.Resource, res *ResourceEvent) error
+}
+
+// ResourceEvent 资源事件
+type ResourceEvent struct {
+	ConfigGroup *apiconfig.ConfigFileGroup
 }

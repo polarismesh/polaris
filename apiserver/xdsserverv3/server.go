@@ -369,7 +369,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 			}
 
 			// 获取routing配置
-			routerRule, err := x.namingServer.Cache().RoutingConfig().GetRouterConfig("", svc.Name, svc.Namespace)
+			routerRule, err := x.namingServer.Cache().RoutingConfig().GetRouterConfigV2("", svc.Name, svc.Namespace)
 			if err != nil {
 				log.Errorf("error sync routing for namespace(%s) service(%s), info : %s", svc.Namespace,
 					svc.Name, err.Error())
@@ -432,6 +432,13 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 			}
 		}
 	}
+
+	// 清理 namespace 下没有数据的记录
+	for k, v := range registryInfo {
+		if len(v) == 0 {
+			delete(registryInfo, k)
+		}
+	}
 	return nil
 }
 
@@ -475,15 +482,22 @@ func (x *XDSServer) checkUpdate(curServiceInfo, cacheServiceInfo map[model.Servi
 	return false
 }
 
-func (x *XDSServer) DebugHandlers() []apiserver.DebugHandler {
-	return []apiserver.DebugHandler{
+func (x *XDSServer) DebugHandlers() []model.DebugHandler {
+	return []model.DebugHandler{
 		{
 			Path:    "/debug/apiserver/xds/envoy_nodes",
+			Desc:    "Query the list of Envoy nodes, query parameter name is 'type', value is [sidecar, gateway]",
 			Handler: x.listXDSNodes,
 		},
 		{
 			Path:    "/debug/apiserver/xds/resources",
+			Desc:    "Query XDS Resource List, query parameter name is 'type', value is [node, common]",
 			Handler: x.listXDSResources,
+		},
+		{
+			Path:    "/debug/apiserver/xds/cache_names",
+			Desc:    "Query XDS cache name list",
+			Handler: x.listXDSCaches,
 		},
 	}
 }

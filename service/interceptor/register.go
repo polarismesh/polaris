@@ -15,17 +15,25 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package model
+package service_chain
 
-import "net/http"
+import (
+	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/service"
+	service_auth "github.com/polarismesh/polaris/service/interceptor/auth"
+)
 
-type DebugHandlerGroup struct {
-	Name     string
-	Handlers []DebugHandler
-}
+func init() {
+	service.RegisterServerProxy("auth", func(svr *service.Server, pre service.DiscoverServer) (service.DiscoverServer, error) {
+		userMgn, err := auth.GetUserServer()
+		if err != nil {
+			return nil, err
+		}
+		strategyMgn, err := auth.GetStrategyServer()
+		if err != nil {
+			return nil, err
+		}
 
-type DebugHandler struct {
-	Desc    string
-	Path    string
-	Handler http.HandlerFunc
+		return service_auth.NewServerAuthAbility(svr, userMgn, strategyMgn), nil
+	})
 }

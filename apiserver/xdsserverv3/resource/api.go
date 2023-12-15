@@ -43,6 +43,8 @@ type BuildOption struct {
 	// 不是比带，只有在 EDS 生成，并且是处理 INBOUND 的时候才会设置
 	Client           *XDSClient
 	TrafficDirection corev3.TrafficDirection
+	// ForceDelete 如果设置了该字段值为 true, 则不会真正执行 XDS 的构建工作, 仅仅生成对应资源的 Name 名称用于清理
+	ForceDelete bool
 }
 
 func (opt *BuildOption) Clone() *BuildOption {

@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package service_auth
 
 import (
 	"context"
@@ -28,7 +28,7 @@ import (
 )
 
 // RegisterInstance create one instance
-func (svr *serverAuthAbility) RegisterInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
+func (svr *ServerAuthAbility) RegisterInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	authCtx := svr.collectClientInstanceAuthContext(
 		ctx, []*apiservice.Instance{req}, model.Create, "RegisterInstance")
 
@@ -45,7 +45,7 @@ func (svr *serverAuthAbility) RegisterInstance(ctx context.Context, req *apiserv
 }
 
 // DeregisterInstance delete onr instance
-func (svr *serverAuthAbility) DeregisterInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
+func (svr *ServerAuthAbility) DeregisterInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	authCtx := svr.collectClientInstanceAuthContext(
 		ctx, []*apiservice.Instance{req}, model.Create, "DeregisterInstance")
 
@@ -62,19 +62,19 @@ func (svr *serverAuthAbility) DeregisterInstance(ctx context.Context, req *apise
 }
 
 // ReportClient is the interface for reporting client authability
-func (svr *serverAuthAbility) ReportClient(ctx context.Context, req *apiservice.Client) *apiservice.Response {
+func (svr *ServerAuthAbility) ReportClient(ctx context.Context, req *apiservice.Client) *apiservice.Response {
 	return svr.targetServer.ReportClient(ctx, req)
 }
 
 // GetPrometheusTargets Used for client acquisition service information
-func (svr *serverAuthAbility) GetPrometheusTargets(ctx context.Context,
+func (svr *ServerAuthAbility) GetPrometheusTargets(ctx context.Context,
 	query map[string]string) *model.PrometheusDiscoveryResponse {
 
 	return svr.targetServer.GetPrometheusTargets(ctx, query)
 }
 
 // GetServiceWithCache is the interface for getting service with cache
-func (svr *serverAuthAbility) GetServiceWithCache(
+func (svr *ServerAuthAbility) GetServiceWithCache(
 	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 
 	authCtx := svr.collectServiceAuthContext(
@@ -92,7 +92,7 @@ func (svr *serverAuthAbility) GetServiceWithCache(
 }
 
 // ServiceInstancesCache is the interface for getting service instances cache
-func (svr *serverAuthAbility) ServiceInstancesCache(
+func (svr *ServerAuthAbility) ServiceInstancesCache(
 	ctx context.Context, filter *apiservice.DiscoverFilter, req *apiservice.Service) *apiservice.DiscoverResponse {
 
 	authCtx := svr.collectServiceAuthContext(
@@ -110,7 +110,7 @@ func (svr *serverAuthAbility) ServiceInstancesCache(
 }
 
 // GetRoutingConfigWithCache is the interface for getting routing config with cache
-func (svr *serverAuthAbility) GetRoutingConfigWithCache(
+func (svr *ServerAuthAbility) GetRoutingConfigWithCache(
 	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 
 	authCtx := svr.collectServiceAuthContext(
@@ -128,7 +128,7 @@ func (svr *serverAuthAbility) GetRoutingConfigWithCache(
 }
 
 // GetRateLimitWithCache is the interface for getting rate limit with cache
-func (svr *serverAuthAbility) GetRateLimitWithCache(
+func (svr *ServerAuthAbility) GetRateLimitWithCache(
 	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 
 	authCtx := svr.collectServiceAuthContext(
@@ -146,7 +146,7 @@ func (svr *serverAuthAbility) GetRateLimitWithCache(
 }
 
 // GetCircuitBreakerWithCache is the interface for getting a circuit breaker with cache
-func (svr *serverAuthAbility) GetCircuitBreakerWithCache(
+func (svr *ServerAuthAbility) GetCircuitBreakerWithCache(
 	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 
 	authCtx := svr.collectServiceAuthContext(
@@ -163,7 +163,7 @@ func (svr *serverAuthAbility) GetCircuitBreakerWithCache(
 	return svr.targetServer.GetCircuitBreakerWithCache(ctx, req)
 }
 
-func (svr *serverAuthAbility) GetFaultDetectWithCache(
+func (svr *ServerAuthAbility) GetFaultDetectWithCache(
 	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 
 	authCtx := svr.collectServiceAuthContext(
@@ -181,7 +181,7 @@ func (svr *serverAuthAbility) GetFaultDetectWithCache(
 }
 
 // UpdateInstance update single instance
-func (svr *serverAuthAbility) UpdateInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
+func (svr *ServerAuthAbility) UpdateInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	authCtx := svr.collectClientInstanceAuthContext(
 		ctx, []*apiservice.Instance{req}, model.Modify, "UpdateInstance")
 

@@ -21,6 +21,8 @@ import (
 	"context"
 	"os"
 	"sync"
+
+	"github.com/polarismesh/polaris/common/model"
 )
 
 // ReportRequest report heartbeat request
@@ -97,7 +99,7 @@ type HealthChecker interface {
 	// Delete delete the id
 	Delete(ctx context.Context, id string) error
 	// DebugHandlers return debug handlers
-	DebugHandlers() []DebugHandler
+	DebugHandlers() []model.DebugHandler
 }
 
 // GetHealthChecker get the health checker by name

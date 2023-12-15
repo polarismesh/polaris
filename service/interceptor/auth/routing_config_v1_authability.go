@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package service_auth
 
 import (
 	"context"
@@ -30,7 +30,7 @@ import (
 )
 
 // CreateRoutingConfigs creates routing configs
-func (svr *serverAuthAbility) CreateRoutingConfigs(
+func (svr *ServerAuthAbility) CreateRoutingConfigs(
 	ctx context.Context, reqs []*apitraffic.Routing) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, model.Create, "CreateRoutingConfigs")
 
@@ -46,7 +46,7 @@ func (svr *serverAuthAbility) CreateRoutingConfigs(
 }
 
 // DeleteRoutingConfigs deletes routing configs
-func (svr *serverAuthAbility) DeleteRoutingConfigs(
+func (svr *ServerAuthAbility) DeleteRoutingConfigs(
 	ctx context.Context, reqs []*apitraffic.Routing) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, model.Delete, "DeleteRoutingConfigs")
 
@@ -62,7 +62,7 @@ func (svr *serverAuthAbility) DeleteRoutingConfigs(
 }
 
 // UpdateRoutingConfigs updates routing configs
-func (svr *serverAuthAbility) UpdateRoutingConfigs(
+func (svr *ServerAuthAbility) UpdateRoutingConfigs(
 	ctx context.Context, reqs []*apitraffic.Routing) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, model.Modify, "UpdateRoutingConfigs")
 
@@ -78,7 +78,7 @@ func (svr *serverAuthAbility) UpdateRoutingConfigs(
 }
 
 // GetRoutingConfigs gets routing configs
-func (svr *serverAuthAbility) GetRoutingConfigs(
+func (svr *ServerAuthAbility) GetRoutingConfigs(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, nil, model.Read, "GetRoutingConfigs")
 

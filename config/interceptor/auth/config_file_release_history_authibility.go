@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package config
+package config_auth
 
 import (
 	"context"
@@ -28,13 +28,13 @@ import (
 )
 
 // GetConfigFileReleaseHistory 获取配置文件发布历史记录
-func (s *serverAuthability) GetConfigFileReleaseHistories(ctx context.Context,
+func (s *ServerAuthability) GetConfigFileReleaseHistories(ctx context.Context,
 	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
 
 	authCtx := s.collectConfigFileReleaseHistoryAuthContext(ctx, nil, model.Read, "GetConfigFileReleaseHistories")
 
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigBatchQueryResponseWithInfo(convertToErrCode(err), err.Error())
+		return api.NewConfigBatchQueryResponseWithInfo(model.ConvertToErrCode(err), err.Error())
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)

@@ -18,6 +18,10 @@
 package service
 
 import (
+	"context"
+
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+
 	"github.com/polarismesh/polaris/cache"
 	"github.com/polarismesh/polaris/common/model"
 )
@@ -40,4 +44,26 @@ type DiscoverServer interface {
 	L5OperateServer
 	// GetServiceInstanceRevision Get the version of the service
 	GetServiceInstanceRevision(serviceID string, instances []*model.Instance) (string, error)
+}
+
+// ResourceHook The listener is placed before and after the resource operation, only normal flow
+type ResourceHook interface {
+
+	// Before
+	//  @param ctx
+	//  @param resourceType
+	Before(ctx context.Context, resourceType model.Resource)
+
+	// After
+	//  @param ctx
+	//  @param resourceType
+	//  @param res
+	After(ctx context.Context, resourceType model.Resource, res *ResourceEvent) error
+}
+
+// ResourceEvent 资源事件
+type ResourceEvent struct {
+	ReqService *apiservice.Service
+	Service    *model.Service
+	IsRemove   bool
 }

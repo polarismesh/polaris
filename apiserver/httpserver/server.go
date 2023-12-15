@@ -468,6 +468,35 @@ func (h *HTTPServer) enablePrometheusAccess(wsContainer *restful.Container) {
 // enablePluginDebugAccess .
 func (h *HTTPServer) enablePluginDebugAccess(wsContainer *restful.Container) {
 	log.Infof("open http access for plugin")
+
+	wsContainer.Handle("/debug/endpoints", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		endpints := make([]map[string]string, 0, 8)
+		for _, checker := range h.healthCheckServer.Checkers() {
+			handlers := checker.DebugHandlers()
+			for i := range handlers {
+				endpints = append(endpints, map[string]string{
+					"path": handlers[i].Path,
+					"desc": handlers[i].Desc,
+				})
+			}
+		}
+
+		for _, item := range h.apiserverSlots {
+			if val, ok := item.(apiserver.EnrichApiserver); ok {
+				handlers := val.DebugHandlers()
+				for i := range handlers {
+					endpints = append(endpints, map[string]string{
+						"path": handlers[i].Path,
+						"desc": handlers[i].Desc,
+					})
+				}
+			}
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(utils.MustJson(endpints)))
+	}))
+
 	for _, checker := range h.healthCheckServer.Checkers() {
 		handlers := checker.DebugHandlers()
 		for i := range handlers {

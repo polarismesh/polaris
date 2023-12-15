@@ -29,6 +29,7 @@ import (
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	structpb "github.com/golang/protobuf/ptypes/struct"
+	"github.com/polarismesh/polaris/common/model"
 	"go.uber.org/zap"
 )
 
@@ -85,6 +86,8 @@ type XDSNodeManager struct {
 	sidecarNodes map[string]*XDSClient
 	// gatewayNodes The XDS client is the node list of the Gateway run mode
 	gatewayNodes map[string]*XDSClient
+	// demandConfs .
+	demandConfs map[RunType]map[string]map[string]struct{}
 }
 
 func (x *XDSNodeManager) AddNodeIfAbsent(streamId int64, node *core.Node) {
@@ -186,6 +189,10 @@ func (x *XDSNodeManager) ListSidecarNodes() []*XDSClient {
 		ret = append(ret, x.sidecarNodes[i])
 	}
 	return ret
+}
+
+func (x *XDSNodeManager) ListDemandConfs() map[RunType]map[string]map[string]struct{} {
+	return x.demandConfs
 }
 
 // ID id 的格式是 ${sidecar|gateway}~namespace/uuid~hostIp
@@ -330,6 +337,14 @@ func (n *XDSClient) GetRegisterServices() []*RegisterService {
 	ret := make([]*RegisterService, 0, 4)
 	_ = json.Unmarshal([]byte(val), &ret)
 	return ret
+}
+
+// GetSelfServiceKey 获取 envoy 对应的 service 信息
+func (n *XDSClient) GetSelfServiceKey() model.ServiceKey {
+	return model.ServiceKey{
+		Namespace: n.GetSelfNamespace(),
+		Name:      n.GetSelfService(),
+	}
 }
 
 // GetSelfService 获取 envoy 对应的 service 信息

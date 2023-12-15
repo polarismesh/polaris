@@ -29,6 +29,7 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	"github.com/polarismesh/polaris/common/eventhub"
+	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
@@ -428,14 +429,16 @@ func (c *LeaderHealthChecker) isLeader() bool {
 	return atomic.LoadInt32(&c.leader) == 1
 }
 
-func (c *LeaderHealthChecker) DebugHandlers() []plugin.DebugHandler {
-	return []plugin.DebugHandler{
+func (c *LeaderHealthChecker) DebugHandlers() []model.DebugHandler {
+	return []model.DebugHandler{
 		{
 			Path:    "/debug/checker/leader/info",
+			Desc:    "Query Leader Node Information",
 			Handler: handleDescribeLeaderInfo(c),
 		},
 		{
 			Path:    "/debug/checker/leader/cache",
+			Desc:    "Query heart rate data information, only Leader node processing",
 			Handler: handleDescribeBeatCache(c),
 		},
 	}

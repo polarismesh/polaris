@@ -15,17 +15,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package model
+package service_auth
 
-import "net/http"
+import (
+	commonlog "github.com/polarismesh/polaris/common/log"
+)
 
-type DebugHandlerGroup struct {
-	Name     string
-	Handlers []DebugHandler
-}
-
-type DebugHandler struct {
-	Desc    string
-	Path    string
-	Handler http.HandlerFunc
-}
+var (
+	log     = commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName)
+	authLog = commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName)
+)

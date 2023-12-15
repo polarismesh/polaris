@@ -15,17 +15,25 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package model
+package service_auth
 
-import "net/http"
+import (
+	"context"
 
-type DebugHandlerGroup struct {
-	Name     string
-	Handlers []DebugHandler
+	"github.com/polarismesh/polaris/common/api/l5"
+)
+
+// SyncByAgentCmd 根据sid获取路由信息
+// 老函数：
+// Stat::instance()->inc_sync_req_cnt();
+// 保存client的IP，该函数只是存储到本地的缓存中
+// Stat::instance()->add_agent(sbac.agent_ip());
+func (svr *ServerAuthAbility) SyncByAgentCmd(ctx context.Context, sbac *l5.Cl5SyncByAgentCmd) (
+	*l5.Cl5SyncByAgentAckCmd, error) {
+	return svr.targetServer.SyncByAgentCmd(ctx, sbac)
 }
 
-type DebugHandler struct {
-	Desc    string
-	Path    string
-	Handler http.HandlerFunc
+// RegisterByNameCmd 根据名字获取sid信息
+func (svr *ServerAuthAbility) RegisterByNameCmd(rbnc *l5.Cl5RegisterByNameCmd) (*l5.Cl5RegisterByNameAckCmd, error) {
+	return svr.targetServer.RegisterByNameCmd(rbnc)
 }

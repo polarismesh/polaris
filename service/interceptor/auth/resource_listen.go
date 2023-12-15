@@ -15,65 +15,52 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package config
+package service_auth
 
 import (
 	"context"
-	"strconv"
 
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/service"
 )
 
-// ResourceHook The listener is placed before and after the resource operation, only normal flow
-type ResourceHook interface {
-	// Before
-	Before(ctx context.Context, resourceType model.Resource)
-	// After
-	After(ctx context.Context, resourceType model.Resource, res *ResourceEvent) error
-}
-
-// ResourceEvent 资源事件
-type ResourceEvent struct {
-	ConfigGroup *apiconfig.ConfigFileGroup
-}
-
 // Before this function is called before the resource operation
-func (s *serverAuthability) Before(ctx context.Context, resourceType model.Resource) {
+func (svr *ServerAuthAbility) Before(ctx context.Context, resourceType model.Resource) {
 	// do nothing
 }
 
 // After this function is called after the resource operation
-func (s *serverAuthability) After(ctx context.Context, resourceType model.Resource, res *ResourceEvent) error {
+func (svr *ServerAuthAbility) After(ctx context.Context, resourceType model.Resource, res *service.ResourceEvent) error {
 	switch resourceType {
-	case model.RConfigGroup:
-		return s.onConfigGroupResource(ctx, res)
+	case model.RService:
+		return svr.onServiceResource(ctx, res)
 	default:
 		return nil
 	}
 }
 
-// onConfigGroupResource
-func (s *serverAuthability) onConfigGroupResource(ctx context.Context, res *ResourceEvent) error {
+// onServiceResource 服务资源的处理，只处理服务，namespace 只由 namespace 相关的进行处理，
+func (svr *ServerAuthAbility) onServiceResource(ctx context.Context, res *service.ResourceEvent) error {
 	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
+	ownerId := utils.ParseOwnerID(ctx)
 
 	authCtx.SetAttachment(model.ResourceAttachmentKey, map[apisecurity.ResourceType][]model.ResourceEntry{
-		apisecurity.ResourceType_ConfigGroups: {
+		apisecurity.ResourceType_Services: {
 			{
-				ID:    strconv.FormatUint(res.ConfigGroup.Id.GetValue(), 10),
-				Owner: utils.ParseOwnerID(ctx),
+				ID:    res.Service.ID,
+				Owner: ownerId,
 			},
 		},
 	})
 
-	users := utils.ConvertStringValuesToSlice(res.ConfigGroup.UserIds)
-	removeUses := utils.ConvertStringValuesToSlice(res.ConfigGroup.RemoveUserIds)
+	users := utils.ConvertStringValuesToSlice(res.ReqService.UserIds)
+	removeUses := utils.ConvertStringValuesToSlice(res.ReqService.RemoveUserIds)
 
-	groups := utils.ConvertStringValuesToSlice(res.ConfigGroup.GroupIds)
-	removeGroups := utils.ConvertStringValuesToSlice(res.ConfigGroup.RemoveGroupIds)
+	groups := utils.ConvertStringValuesToSlice(res.ReqService.GroupIds)
+	removeGroups := utils.ConvertStringValuesToSlice(res.ReqService.RemoveGroupIds)
 
 	authCtx.SetAttachment(model.LinkUsersKey, utils.StringSliceDeDuplication(users))
 	authCtx.SetAttachment(model.RemoveLinkUsersKey, utils.StringSliceDeDuplication(removeUses))
@@ -81,5 +68,5 @@ func (s *serverAuthability) onConfigGroupResource(ctx context.Context, res *Reso
 	authCtx.SetAttachment(model.LinkGroupsKey, utils.StringSliceDeDuplication(groups))
 	authCtx.SetAttachment(model.RemoveLinkGroupsKey, utils.StringSliceDeDuplication(removeGroups))
 
-	return s.strategyMgn.AfterResourceOperation(authCtx)
+	return svr.strategyMgn.AfterResourceOperation(authCtx)
 }
