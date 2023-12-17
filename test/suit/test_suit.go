@@ -231,6 +231,8 @@ func (d *DiscoverTestSuit) loadConfig() error {
 		fmt.Printf("[ERROR] %v\n", err)
 		return err
 	}
+	d.cfg.Naming.Interceptors = service.GetChainOrder()
+	d.cfg.Config.Interceptors = config.GetChainOrder()
 	return err
 }
 
