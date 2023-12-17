@@ -69,9 +69,10 @@ func RegisterServerProxy(name string, factor ServerProxyFactory) error {
 
 // Config 核心逻辑层配置
 type Config struct {
-	L5Open     bool                   `yaml:"l5Open"`
-	AutoCreate *bool                  `yaml:"autoCreate"`
-	Batch      map[string]interface{} `yaml:"batch"`
+	L5Open       bool                   `yaml:"l5Open"`
+	AutoCreate   *bool                  `yaml:"autoCreate"`
+	Batch        map[string]interface{} `yaml:"batch"`
+	Interceptors []string               `yaml:"-"`
 }
 
 // Initialize 初始化
@@ -124,7 +125,7 @@ func initialize(ctx context.Context, namingOpt *Config, opts ...InitOption) erro
 	pluginInitialize()
 
 	// 需要返回包装代理的 DiscoverServer
-	order := GetChainOrder()
+	order := namingOpt.Interceptors
 	for i := range order {
 		factory, exist := serverProxyFactories[order[i]]
 		if !exist {

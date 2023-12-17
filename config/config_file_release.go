@@ -182,10 +182,9 @@ func (s *Server) handlePublishConfigFile(ctx context.Context, tx store.Tx,
 			}
 			raw = append(raw, json.RawMessage(data))
 		}
-		data, _ := json.Marshal(raw)
 		grayResource := &model.GrayResource{
 			Name:      model.GetGrayConfigRealseKey(fileRelease.SimpleConfigFileRelease),
-			MatchRule: string(data),
+			MatchRule: string(utils.MustJson(raw)),
 			CreateBy:  utils.ParseUserName(ctx),
 			ModifyBy:  utils.ParseUserName(ctx),
 		}

@@ -24,7 +24,7 @@ import (
 )
 
 func init() {
-	service.RegisterServerProxy("auth", func(svr *service.Server, pre service.DiscoverServer) (service.DiscoverServer, error) {
+	err := service.RegisterServerProxy("auth", func(svr *service.Server, pre service.DiscoverServer) (service.DiscoverServer, error) {
 		userMgn, err := auth.GetUserServer()
 		if err != nil {
 			return nil, err
@@ -36,4 +36,7 @@ func init() {
 
 		return service_auth.NewServerAuthAbility(svr, userMgn, strategyMgn), nil
 	})
+	if err != nil {
+		panic(err)
+	}
 }

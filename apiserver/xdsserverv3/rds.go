@@ -25,7 +25,6 @@ import (
 	v32 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-
 	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 

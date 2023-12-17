@@ -98,7 +98,7 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
+	_ = cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
 		{
 			Name: cachetypes.ServiceName,
 			Option: map[string]interface{}{

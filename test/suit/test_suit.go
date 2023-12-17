@@ -110,18 +110,19 @@ type Bootstrap struct {
 }
 
 type TestConfig struct {
-	Bootstrap     Bootstrap      `yaml:"bootstrap"`
-	Cache         cache.Config   `yaml:"cache"`
-	Namespace     ns.Config      `yaml:"namespace"`
-	Naming        service.Config `yaml:"naming"`
-	DisableConfig bool
-	Config        config.Config      `yaml:"config"`
-	HealthChecks  healthcheck.Config `yaml:"healthcheck"`
-	Store         store.Config       `yaml:"store"`
-	DisableAuth   bool
-	Auth          auth.Config   `yaml:"auth"`
-	Plugin        plugin.Config `yaml:"plugin"`
-	ReplaceStore  store.Store
+	Bootstrap           Bootstrap      `yaml:"bootstrap"`
+	Cache               cache.Config   `yaml:"cache"`
+	Namespace           ns.Config      `yaml:"namespace"`
+	Naming              service.Config `yaml:"naming"`
+	DisableConfig       bool
+	Config              config.Config      `yaml:"config"`
+	HealthChecks        healthcheck.Config `yaml:"healthcheck"`
+	Store               store.Config       `yaml:"store"`
+	DisableAuth         bool
+	Auth                auth.Config   `yaml:"auth"`
+	Plugin              plugin.Config `yaml:"plugin"`
+	ReplaceStore        store.Store
+	ServiceCacheEntries []cachetypes.ConfigEntry
 }
 
 var InjectTestDataClean func() TestDataClean
@@ -374,8 +375,8 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	healthCheckServer.SetServiceCache(cacheMgn.Service())
 	healthCheckServer.SetInstanceCache(cacheMgn.Instance())
 
-	val, originVal, err := service.TestInitialize(ctx, &d.cfg.Naming, &d.cfg.Cache, bc, cacheMgn, d.Storage, namespaceSvr,
-		healthCheckServer, d.userMgn, d.strategyMgn)
+	val, originVal, err := service.TestInitialize(ctx, &d.cfg.Naming, &d.cfg.Cache, d.cfg.ServiceCacheEntries,
+		bc, cacheMgn, d.Storage, namespaceSvr, healthCheckServer, d.userMgn, d.strategyMgn)
 	if err != nil {
 		panic(err)
 	}
@@ -392,10 +393,12 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	}
 
 	// 多等待一会
-	d.updateCacheInterval = d.server.Cache().GetUpdateCacheInterval() + time.Millisecond*500
-
+	d.updateCacheInterval = d.cacheMgr.GetUpdateCacheInterval() + time.Millisecond*500
+	if err := cache.TestRun(ctx, d.cacheMgr); err != nil {
+		return err
+	}
 	time.Sleep(5 * time.Second)
-	return cache.TestRun(ctx, d.cacheMgr)
+	return nil
 }
 
 func (d *DiscoverTestSuit) Destroy() {

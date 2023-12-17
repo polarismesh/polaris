@@ -166,7 +166,9 @@ func (s *ServerAuthability) GetConfigFileNamesWithCache(ctx context.Context,
 	return s.targetServer.GetConfigFileNamesWithCache(ctx, req)
 }
 
-func (s *ServerAuthability) GetConfigGroupsWithCache(ctx context.Context, req *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigDiscoverResponse {
+func (s *ServerAuthability) GetConfigGroupsWithCache(ctx context.Context,
+	req *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigDiscoverResponse {
+
 	authCtx := s.collectClientConfigFileReleaseAuthContext(ctx, []*apiconfig.ConfigFileRelease{
 		{
 			Namespace: req.GetNamespace(),
@@ -183,7 +185,9 @@ func (s *ServerAuthability) GetConfigGroupsWithCache(ctx context.Context, req *a
 }
 
 // CasUpsertAndReleaseConfigFileFromClient 创建/更新配置文件并发布
-func (s *ServerAuthability) CasUpsertAndReleaseConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
+func (s *ServerAuthability) CasUpsertAndReleaseConfigFileFromClient(ctx context.Context,
+	req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
+
 	authCtx := s.collectConfigFilePublishAuthContext(ctx, []*apiconfig.ConfigFilePublishInfo{req},
 		model.Modify, "CasUpsertAndReleaseConfigFileFromClient")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx); err != nil {

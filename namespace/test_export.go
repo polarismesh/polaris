@@ -31,7 +31,7 @@ import (
 
 func TestInitialize(_ context.Context, nsOpt *Config, storage store.Store, cacheMgn *cache.CacheManager,
 	userMgn auth.UserServer, strategyMgn auth.StrategyServer) (NamespaceOperateServer, error) {
-	cacheMgn.OpenResourceCache(cachetypes.ConfigEntry{
+	_ = cacheMgn.OpenResourceCache(cachetypes.ConfigEntry{
 		Name: cachetypes.NamespaceName,
 	})
 	nsOpt.AutoCreate = true

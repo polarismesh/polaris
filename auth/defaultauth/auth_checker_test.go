@@ -70,7 +70,7 @@ func Test_DefaultAuthChecker_VerifyCredential(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
+	_ = cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
 		{
 			Name: cachetypes.UsersName,
 		},
@@ -234,7 +234,7 @@ func Test_DefaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
+	_ = cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
 		{
 			Name: cachetypes.UsersName,
 		},
@@ -486,7 +486,7 @@ func Test_DefaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 		cacheMgn.Close()
 	})
 
-	cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
+	_ = cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
 		{
 			Name: cachetypes.UsersName,
 		},
@@ -688,7 +688,7 @@ func Test_DefaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 		cancel()
 		cacheMgn.Close()
 	})
-	cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
+	_ = cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
 		{
 			Name: cachetypes.UsersName,
 		},
@@ -911,7 +911,7 @@ func Test_DefaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 		cancel()
 		cacheMgn.Close()
 	})
-	cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
+	_ = cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
 		{
 			Name: cachetypes.UsersName,
 		},
@@ -1122,9 +1122,9 @@ func Test_DefaultAuthChecker_Initialize(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
+	_ = cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
 		{
-			Name: "users",
+			Name: cachetypes.UsersName,
 		},
 	}...)
 	t.Cleanup(func() {

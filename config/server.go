@@ -60,8 +60,9 @@ func RegisterServerProxy(name string, factor ServerProxyFactory) error {
 
 // Config 配置中心模块启动参数
 type Config struct {
-	Open             bool  `yaml:"open"`
-	ContentMaxLength int64 `yaml:"contentMaxLength"`
+	Open             bool     `yaml:"open"`
+	ContentMaxLength int64    `yaml:"contentMaxLength"`
+	Interceptors     []string `yaml:"-"`
 }
 
 // Server 配置中心核心服务
@@ -99,14 +100,16 @@ func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cac
 		return nil
 	}
 
-	cacheMgn.OpenResourceCache(configCacheEntries...)
+	if err := cacheMgn.OpenResourceCache(configCacheEntries...); err != nil {
+		return err
+	}
 	err := originServer.initialize(ctx, config, s, namespaceOperator, cacheMgn)
 	if err != nil {
 		return err
 	}
 
 	// 需要返回包装代理的 DiscoverServer
-	order := GetChainOrder()
+	order := config.Interceptors
 	for i := range order {
 		factory, exist := serverProxyFactories[order[i]]
 		if !exist {

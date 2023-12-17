@@ -130,7 +130,9 @@ func (s *ServerAuthability) UpsertAndReleaseConfigFile(ctx context.Context,
 	return s.targetServer.UpsertAndReleaseConfigFile(ctx, req)
 }
 
-func (s *ServerAuthability) StopGrayConfigFileReleases(ctx context.Context, reqs []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse {
+func (s *ServerAuthability) StopGrayConfigFileReleases(ctx context.Context,
+	reqs []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse {
+
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx, reqs,
 		model.Modify, "StopGrayConfigFileReleases")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {

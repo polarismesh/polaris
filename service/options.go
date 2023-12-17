@@ -33,6 +33,21 @@ import (
    - name: client # Load Client-SDK instance data
 */
 
+func GetRegisterCaches() []cachetypes.ConfigEntry {
+	ret := []cachetypes.ConfigEntry{}
+	// ret = append(ret, l5CacheEntry)
+	ret = append(ret, namingCacheEntries...)
+	return ret
+}
+
+func GetAllCaches() []cachetypes.ConfigEntry {
+	ret := []cachetypes.ConfigEntry{}
+	ret = append(ret, l5CacheEntry)
+	ret = append(ret, namingCacheEntries...)
+	ret = append(ret, governanceCacheEntries...)
+	return ret
+}
+
 var (
 	l5CacheEntry = cachetypes.ConfigEntry{
 		Name: cachetypes.L5Name,

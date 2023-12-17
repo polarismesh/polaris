@@ -276,6 +276,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 		service.WithNamespaceSvr(namespaceSvr),
 	}
 
+	cfg.Naming.Interceptors = service.GetChainOrder()
 	// 初始化服务模块
 	if err = service.Initialize(ctx, &cfg.Naming, opts...); err != nil {
 		return err
@@ -303,7 +304,7 @@ func StartConfigCenterComponents(ctx context.Context, cfg *boot_config.Config, s
 	if err != nil {
 		return err
 	}
-
+	cfg.Config.Interceptors = config_center.GetChainOrder()
 	return config_center.Initialize(ctx, cfg.Config, s, cacheMgn, namespaceOperator, userMgn, strategyMgn)
 }
 

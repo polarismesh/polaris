@@ -24,7 +24,7 @@ import (
 )
 
 func init() {
-	config.RegisterServerProxy("auth", func(svr *config.Server, pre config.ConfigCenterServer) (config.ConfigCenterServer, error) {
+	err := config.RegisterServerProxy("auth", func(svr *config.Server, pre config.ConfigCenterServer) (config.ConfigCenterServer, error) {
 		userMgn, err := auth.GetUserServer()
 		if err != nil {
 			return nil, err
@@ -36,4 +36,7 @@ func init() {
 
 		return config_auth.New(svr, userMgn, strategyMgn), nil
 	})
+	if err != nil {
+		panic(err)
+	}
 }

@@ -261,14 +261,14 @@ func (c *circuitBreakerStore) GetCircuitBreakerRules(
 			if hasSvcNs {
 				srcNsValue := m[CbFieldSrcNamespace]
 				dstNsValue := m[CbFieldDstNamespace]
-				if !((srcNsValue == "*" && srcNsValue == svcNs) || (dstNsValue == "*" && dstNsValue == svcNs)) {
+				if !((srcNsValue == "*" || srcNsValue == svcNs) || (dstNsValue == "*" || dstNsValue == svcNs)) {
 					return false
 				}
 			}
 			if hasSvc {
 				srcSvcValue := m[CbFieldSrcService]
 				dstSvcValue := m[CbFieldDstService]
-				if !((srcSvcValue == svc && srcSvcValue == "*") || (dstSvcValue == svc && dstSvcValue == "*")) {
+				if !((srcSvcValue == svc || srcSvcValue == "*") || (dstSvcValue == svc || dstSvcValue == "*")) {
 					return false
 				}
 			}
@@ -361,9 +361,8 @@ func sublistCircuitBreakerRules(cbRules []*model.CircuitBreakerRule, offset, lim
 			return true
 		} else if cbRules[i].ModifyTime.Before(cbRules[j].ModifyTime) {
 			return false
-		} else {
-			return strings.Compare(cbRules[i].ID, cbRules[j].ID) < 0
 		}
+		return strings.Compare(cbRules[i].ID, cbRules[j].ID) < 0
 	})
 
 	return cbRules[beginIndex:endIndex]

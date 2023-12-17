@@ -318,6 +318,7 @@ func (s *Server) PublishConfigFileFromClient(ctx context.Context,
 }
 
 // CasUpsertAndReleaseConfigFileFromClient 创建/更新配置文件并发布
-func (s *Server) CasUpsertAndReleaseConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
+func (s *Server) CasUpsertAndReleaseConfigFileFromClient(ctx context.Context,
+	req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
 	return s.CasUpsertAndReleaseConfigFile(ctx, req)
 }

@@ -29,8 +29,9 @@ import (
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/polarismesh/polaris/common/model"
 	"go.uber.org/zap"
+
+	"github.com/polarismesh/polaris/common/model"
 )
 
 type RunType string

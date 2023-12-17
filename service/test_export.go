@@ -57,14 +57,18 @@ func TestNewServer(mockStore store.Store, nsSvr namespace.NamespaceOperateServer
 }
 
 // TestInitialize 初始化
-func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, bc *batch.Controller,
+func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, cacheEntries []cachetypes.ConfigEntry, bc *batch.Controller,
 	cacheMgr *cache.CacheManager, storage store.Store, namespaceSvr namespace.NamespaceOperateServer,
 	healthSvr *healthcheck.Server,
 	userMgn auth.UserServer, strategyMgn auth.StrategyServer) (DiscoverServer, DiscoverServer, error) {
 	entrites := []cachetypes.ConfigEntry{}
-	entrites = append(entrites, l5CacheEntry)
-	entrites = append(entrites, namingCacheEntries...)
-	entrites = append(entrites, governanceCacheEntries...)
+	if len(cacheEntries) != 0 {
+		entrites = cacheEntries
+	} else {
+		entrites = append(entrites, l5CacheEntry)
+		entrites = append(entrites, namingCacheEntries...)
+		entrites = append(entrites, governanceCacheEntries...)
+	}
 	_ = cacheMgr.OpenResourceCache(entrites...)
 	namingServer.healthServer = healthSvr
 	namingServer.storage = storage
@@ -85,7 +89,7 @@ func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Conf
 	var proxySvr DiscoverServer
 	var err error
 	// 需要返回包装代理的 DiscoverServer
-	order := GetChainOrder()
+	order := namingOpt.Interceptors
 	for i := range order {
 		factory, exist := serverProxyFactories[order[i]]
 		if !exist {

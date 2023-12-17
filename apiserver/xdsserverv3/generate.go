@@ -217,7 +217,9 @@ func (x *XdsResourceGenerator) buildMoreEnvoyXDSCache(needUpdate, needRemove Ser
 	}
 
 	for i := range nodes {
-		x.buildOneEnvoyXDSCache(nodes[i], needUpdate, needRemove)
+		if err := x.buildOneEnvoyXDSCache(nodes[i], needUpdate, needRemove); err != nil {
+			return err
+		}
 	}
 	return nil
 }

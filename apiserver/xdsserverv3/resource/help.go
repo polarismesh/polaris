@@ -576,7 +576,7 @@ func MakeGatewayRoute(trafficDirection corev3.TrafficDirection, routeMatch *rout
 
 // 默认路由
 func MakeDefaultRoute(trafficDirection corev3.TrafficDirection, svcKey model.ServiceKey, opt *BuildOption) *route.Route {
-	route := &route.Route{
+	routeConf := &route.Route{
 		Match: &route.RouteMatch{
 			PathSpecifier: &route.RouteMatch_Prefix{
 				Prefix: "/",
@@ -591,7 +591,7 @@ func MakeDefaultRoute(trafficDirection corev3.TrafficDirection, svcKey model.Ser
 		},
 	}
 	if opt.OpenOnDemand {
-		route.TypedPerFilterConfig = map[string]*anypb.Any{
+		routeConf.TypedPerFilterConfig = map[string]*anypb.Any{
 			"envoy.filters.http.on_demand": MustNewAny(&on_demandv3.PerRouteConfig{
 				Odcds: &on_demandv3.OnDemandCds{
 					Source: &corev3.ConfigSource{
@@ -616,7 +616,7 @@ func MakeDefaultRoute(trafficDirection corev3.TrafficDirection, svcKey model.Ser
 			}),
 		}
 	}
-	return route
+	return routeConf
 }
 
 func MakeSidecarRoute(trafficDirection corev3.TrafficDirection, routeMatch *route.RouteMatch,

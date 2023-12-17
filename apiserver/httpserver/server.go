@@ -494,7 +494,7 @@ func (h *HTTPServer) enablePluginDebugAccess(wsContainer *restful.Container) {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(utils.MustJson(endpints)))
+		_, _ = w.Write([]byte(utils.MustJson(endpints)))
 	}))
 
 	for _, checker := range h.healthCheckServer.Checkers() {

@@ -953,10 +953,9 @@ func getRealServicesList(originServices map[string]*model.Service, offset, limit
 			return true
 		} else if services[i].ModifyTime.Before(services[j].ModifyTime) {
 			return false
-		} else {
-			// compare id if modifyTime is the same
-			return services[i].ID < services[j].ID
 		}
+		// compare id if modifyTime is the same
+		return services[i].ID < services[j].ID
 	})
 
 	return services[beginIndex:endIndex]
@@ -988,10 +987,9 @@ func doPageAliasServices(originServices []*model.ServiceAlias, offset, limit uin
 			return true
 		} else if services[i].ModifyTime.Before(services[j].ModifyTime) {
 			return false
-		} else {
-			// compare id if modifyTime is the same
-			return services[i].ID < services[j].ID
 		}
+		// compare id if modifyTime is the same
+		return services[i].ID < services[j].ID
 	})
 
 	return services[beginIndex:endIndex]

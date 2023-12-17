@@ -308,11 +308,11 @@ func (chain *ReleaseConfigFileChain) AfterGetFileRelease(ctx context.Context,
 	ret *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
 
 	if ret.ReleaseType == model.ReleaseTypeGray {
-		if rule := chain.svr.caches.Gray().GetGrayRule(model.GetGrayConfigRealseKey(ret.SimpleConfigFileRelease)); rule == nil {
+		rule := chain.svr.caches.Gray().GetGrayRule(model.GetGrayConfigRealseKey(ret.SimpleConfigFileRelease))
+		if rule == nil {
 			return nil, fmt.Errorf("gray rule not found")
-		} else {
-			ret.BetaLabels = rule
 		}
+		ret.BetaLabels = rule
 	}
 	return ret, nil
 }

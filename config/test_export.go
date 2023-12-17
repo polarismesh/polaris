@@ -39,7 +39,7 @@ func TestInitialize(ctx context.Context, config Config, s store.Store, cacheMgn 
 	mockServer := &Server{}
 
 	log.Info("Config.TestInitialize", zap.Any("entries", testConfigCacheEntries))
-	cacheMgn.OpenResourceCache(testConfigCacheEntries...)
+	_ = cacheMgn.OpenResourceCache(testConfigCacheEntries...)
 	if err := mockServer.initialize(ctx, config, s, namespaceOperator, cacheMgn); err != nil {
 		return nil, nil, err
 	}
@@ -47,7 +47,7 @@ func TestInitialize(ctx context.Context, config Config, s store.Store, cacheMgn 
 	var proxySvr ConfigCenterServer
 	var err error
 	// 需要返回包装代理的 ConfigCenterServer
-	order := GetChainOrder()
+	order := config.Interceptors
 	for i := range order {
 		factory, exist := serverProxyFactories[order[i]]
 		if !exist {

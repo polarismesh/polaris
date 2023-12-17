@@ -27,7 +27,8 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/server/stream/v3"
 )
 
-func createDeltaResponse(ctx context.Context, req *cachev3.DeltaRequest, state stream.StreamState, resources resourceContainer) *cachev3.RawDeltaResponse {
+func createDeltaResponse(ctx context.Context, req *cachev3.DeltaRequest, state stream.StreamState,
+	resources resourceContainer) *cachev3.RawDeltaResponse {
 	// variables to build our response with
 	var nextVersionMap map[string]string
 	var filtered []types.Resource

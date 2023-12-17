@@ -33,7 +33,7 @@ func (x *XDSServer) OnCreateWatch(request *cachev3.Request, streamState stream.S
 	if client == nil {
 		return
 	}
-	x.resourceGenerator.buildOneEnvoyXDSCache(client, x.registryInfo, nil)
+	_ = x.resourceGenerator.buildOneEnvoyXDSCache(client, x.registryInfo, nil)
 }
 
 // OnCreateDeltaWatch before call cachev3.SnapshotCache OnCreateDeltaWatch
@@ -44,7 +44,7 @@ func (x *XDSServer) OnCreateDeltaWatch(request *cachev3.DeltaRequest, state stre
 	if client == nil {
 		return
 	}
-	x.resourceGenerator.buildOneEnvoyXDSCache(client, x.registryInfo, nil)
+	_ = x.resourceGenerator.buildOneEnvoyXDSCache(client, x.registryInfo, nil)
 }
 
 // OnFetch before call cachev3.SnapshotCache OnFetch
@@ -54,5 +54,5 @@ func (x *XDSServer) OnFetch(ctx context.Context, request *cachev3.Request) {
 	if client == nil {
 		return
 	}
-	x.resourceGenerator.buildOneEnvoyXDSCache(client, x.registryInfo, nil)
+	_ = x.resourceGenerator.buildOneEnvoyXDSCache(client, x.registryInfo, nil)
 }
