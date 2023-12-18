@@ -598,13 +598,13 @@ func Test_encryptConfigFile(t *testing.T) {
 			hasDataKeyTag := false
 			hasAlgoTag := false
 			for tagKey, tagVal := range tt.args.configFile.Metadata {
-				if tagKey == utils.ConfigFileTagKeyDataKey {
+				if tagKey == model.MetaKeyConfigFileDataKey {
 					hasDataKeyTag = true
 					if tt.args.dataKey != "" {
 						assert.Equal(t, tt.args.dataKey, tagVal)
 					}
 				}
-				if tagKey == utils.ConfigFileTagKeyEncryptAlgo {
+				if tagKey == model.MetaKeyConfigFileEncryptAlgo {
 					hasAlgoTag = true
 					assert.Equal(t, tt.args.algorithm, tagVal)
 				}
@@ -648,8 +648,8 @@ func Test_decryptConfigFile(t *testing.T) {
 				configFile: &model.ConfigFile{
 					Content: "YnLZ0SYuujFBHjYHAZVN5A==",
 					Metadata: map[string]string{
-						utils.ConfigFileTagKeyDataKey:     base64.StdEncoding.EncodeToString(dataKey),
-						utils.ConfigFileTagKeyEncryptAlgo: "AES",
+						model.MetaKeyConfigFileDataKey:     base64.StdEncoding.EncodeToString(dataKey),
+						model.MetaKeyConfigFileEncryptAlgo: "AES",
 					},
 					CreateBy: "polaris",
 				},
@@ -664,8 +664,8 @@ func Test_decryptConfigFile(t *testing.T) {
 				configFile: &model.ConfigFile{
 					Content: "YnLZ0SYuujFBHjYHAZVN5A==",
 					Metadata: map[string]string{
-						utils.ConfigFileTagKeyDataKey:     base64.StdEncoding.EncodeToString(dataKey),
-						utils.ConfigFileTagKeyEncryptAlgo: "AES",
+						model.MetaKeyConfigFileDataKey:     base64.StdEncoding.EncodeToString(dataKey),
+						model.MetaKeyConfigFileEncryptAlgo: "AES",
 					},
 					CreateBy: "polaris",
 				},
@@ -681,7 +681,7 @@ func Test_decryptConfigFile(t *testing.T) {
 			assert.Equal(t, tt.wantErr, err, tt.name)
 			assert.Equal(t, tt.want, tt.args.configFile.Content, tt.name)
 			for tagKey := range tt.args.configFile.Metadata {
-				if tagKey == utils.ConfigFileTagKeyDataKey {
+				if tagKey == model.MetaKeyConfigFileDataKey {
 					t.Fatal("config tags has data key")
 				}
 			}

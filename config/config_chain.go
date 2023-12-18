@@ -99,7 +99,7 @@ func (chain *CryptoConfigFileChain) AfterGetFile(ctx context.Context,
 			utils.ZapNamespace(file.Namespace), utils.ZapGroup(file.Group),
 			utils.ZapFileName(file.Name), zap.Error(err))
 	}
-	delete(file.Metadata, utils.ConfigFileTagKeyDataKey)
+	delete(file.Metadata, model.MetaKeyConfigFileDataKey)
 	return file, nil
 }
 
@@ -201,9 +201,9 @@ func (chain *CryptoConfigFileChain) decryptConfigFileContent(dataKey, algorithm,
 
 // cleanEncryptConfigFileInfo 清理配置加密文件的内容信息
 func (chain *CryptoConfigFileChain) cleanEncryptConfigFileInfo(ctx context.Context, configFile *model.ConfigFile) {
-	delete(configFile.Metadata, utils.ConfigFileTagKeyDataKey)
-	delete(configFile.Metadata, utils.ConfigFileTagKeyEncryptAlgo)
-	delete(configFile.Metadata, utils.ConfigFileTagKeyUseEncrypted)
+	delete(configFile.Metadata, model.MetaKeyConfigFileDataKey)
+	delete(configFile.Metadata, model.MetaKeyConfigFileEncryptAlgo)
+	delete(configFile.Metadata, model.MetaKeyConfigFileUseEncrypted)
 }
 
 // encryptConfigFile 加密配置文件
@@ -240,9 +240,9 @@ func (chain *CryptoConfigFileChain) encryptConfigFile(ctx context.Context, confi
 	if len(configFile.Metadata) == 0 {
 		configFile.Metadata = map[string]string{}
 	}
-	configFile.Metadata[utils.ConfigFileTagKeyDataKey] = base64.StdEncoding.EncodeToString(dateKeyBytes)
-	configFile.Metadata[utils.ConfigFileTagKeyEncryptAlgo] = algorithm
-	configFile.Metadata[utils.ConfigFileTagKeyUseEncrypted] = "true"
+	configFile.Metadata[model.MetaKeyConfigFileDataKey] = base64.StdEncoding.EncodeToString(dateKeyBytes)
+	configFile.Metadata[model.MetaKeyConfigFileEncryptAlgo] = algorithm
+	configFile.Metadata[model.MetaKeyConfigFileUseEncrypted] = "true"
 
 	return nil
 }

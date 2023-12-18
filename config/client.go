@@ -243,7 +243,7 @@ func toClientInfo(client *apiconfig.ClientConfigFileInfo,
 		for k, v := range release.Metadata {
 			ret[k] = v
 		}
-		delete(ret, utils.ConfigFileTagKeyDataKey)
+		delete(ret, model.MetaKeyConfigFileDataKey)
 		return ret
 	}()
 
@@ -277,7 +277,7 @@ func toClientInfo(client *apiconfig.ClientConfigFileInfo,
 		}
 		configFile.Tags = append(configFile.Tags,
 			&apiconfig.ConfigFileTag{
-				Key:   utils.NewStringValue(utils.ConfigFileTagKeyDataKey),
+				Key:   utils.NewStringValue(model.MetaKeyConfigFileDataKey),
 				Value: utils.NewStringValue(dataKey),
 			},
 		)

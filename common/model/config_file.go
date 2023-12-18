@@ -105,14 +105,14 @@ func (s *ConfigFile) KeyString() string {
 }
 
 func (s *ConfigFile) GetEncryptDataKey() string {
-	return s.Metadata[utils.ConfigFileTagKeyDataKey]
+	return s.Metadata[MetaKeyConfigFileDataKey]
 }
 
 func (s *ConfigFile) GetEncryptAlgo() string {
 	if s.EncryptAlgo != "" {
 		return s.EncryptAlgo
 	}
-	return s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
+	return s.Metadata[MetaKeyConfigFileEncryptAlgo]
 }
 
 func (s *ConfigFile) IsEncrypted() bool {
@@ -193,11 +193,11 @@ type SimpleConfigFileRelease struct {
 }
 
 func (s *SimpleConfigFileRelease) GetEncryptDataKey() string {
-	return s.Metadata[utils.ConfigFileTagKeyDataKey]
+	return s.Metadata[MetaKeyConfigFileDataKey]
 }
 
 func (s *SimpleConfigFileRelease) GetEncryptAlgo() string {
-	return s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
+	return s.Metadata[MetaKeyConfigFileEncryptAlgo]
 }
 
 func (s *SimpleConfigFileRelease) IsEncrypted() bool {
@@ -240,11 +240,11 @@ type ConfigFileReleaseHistory struct {
 }
 
 func (s ConfigFileReleaseHistory) GetEncryptDataKey() string {
-	return s.Metadata[utils.ConfigFileTagKeyDataKey]
+	return s.Metadata[MetaKeyConfigFileDataKey]
 }
 
 func (s ConfigFileReleaseHistory) GetEncryptAlgo() string {
-	return s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
+	return s.Metadata[MetaKeyConfigFileEncryptAlgo]
 }
 
 func (s ConfigFileReleaseHistory) IsEncrypted() bool {
@@ -299,7 +299,7 @@ func ToConfigFileStore(file *config_manage.ConfigFile) *ConfigFile {
 
 	metadata := ToTagMap(file.GetTags())
 	if file.GetEncryptAlgo().GetValue() != "" {
-		metadata[utils.ConfigFileTagKeyEncryptAlgo] = file.GetEncryptAlgo().GetValue()
+		metadata[MetaKeyConfigFileEncryptAlgo] = file.GetEncryptAlgo().GetValue()
 	}
 
 	return &ConfigFile{

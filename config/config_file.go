@@ -184,8 +184,8 @@ func (s *Server) updateConfigFileAttribute(saveData, updateData *model.ConfigFil
 		if len(saveData.Metadata) == 0 {
 			saveData.Metadata = map[string]string{}
 		}
-		saveData.Metadata[utils.ConfigFileTagKeyDataKey] = oldMetadata[utils.ConfigFileTagKeyDataKey]
-		saveData.Metadata[utils.ConfigFileTagKeyEncryptAlgo] = oldMetadata[utils.ConfigFileTagKeyEncryptAlgo]
+		saveData.Metadata[model.MetaKeyConfigFileDataKey] = oldMetadata[model.MetaKeyConfigFileDataKey]
+		saveData.Metadata[model.MetaKeyConfigFileEncryptAlgo] = oldMetadata[model.MetaKeyConfigFileEncryptAlgo]
 	}
 
 	return saveData, needUpdate

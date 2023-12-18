@@ -60,12 +60,6 @@ const (
 	ConfigFileImportConflictSkip = "skip"
 	// ConfigFileImportConflictOverwrite 导入配置文件发生冲突覆盖原配置文件
 	ConfigFileImportConflictOverwrite = "overwrite"
-	// ConfigFileTagKeyUseEncrypted 配置加密开关标识，value 为 boolean
-	ConfigFileTagKeyUseEncrypted = "internal-encrypted"
-	// ConfigFileTagKeyDataKey 加密密钥 tag key
-	ConfigFileTagKeyDataKey = "internal-datakey"
-	// ConfigFileTagKeyEncryptAlgo 加密算法 tag key
-	ConfigFileTagKeyEncryptAlgo = "internal-encryptalgo"
 )
 
 // GenFileId 生成文件 Id
