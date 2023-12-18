@@ -57,8 +57,9 @@ func TestNewServer(mockStore store.Store, nsSvr namespace.NamespaceOperateServer
 }
 
 // TestInitialize 初始化
-func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, cacheEntries []cachetypes.ConfigEntry, bc *batch.Controller,
-	cacheMgr *cache.CacheManager, storage store.Store, namespaceSvr namespace.NamespaceOperateServer,
+func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config,
+	cacheEntries []cachetypes.ConfigEntry, bc *batch.Controller, cacheMgr *cache.CacheManager,
+	storage store.Store, namespaceSvr namespace.NamespaceOperateServer,
 	healthSvr *healthcheck.Server,
 	userMgn auth.UserServer, strategyMgn auth.StrategyServer) (DiscoverServer, DiscoverServer, error) {
 	entrites := []cachetypes.ConfigEntry{}
