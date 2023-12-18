@@ -18,8 +18,6 @@
 package resource
 
 import (
-	"os"
-
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	resourcev3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
@@ -55,12 +53,12 @@ var (
 )
 
 func Init() {
-	if val := os.Getenv("ENVOY_ODCDS_LUA_SCRIPT"); val != "" {
-		defaultOdcdsLuaScriptFile = val
-	}
-	code, _ := os.ReadFile(defaultOdcdsLuaScriptFile)
-	odcdsLuaCode = string(code)
-	log.Infof("[XDSV3][ODCDS] lua script path :%s content\n%s\n", defaultOdcdsLuaScriptFile, odcdsLuaCode)
+	// if val := os.Getenv("ENVOY_ODCDS_LUA_SCRIPT"); val != "" {
+	// 	defaultOdcdsLuaScriptFile = val
+	// }
+	// code, _ := os.ReadFile(defaultOdcdsLuaScriptFile)
+	// odcdsLuaCode = string(code)
+	// log.Infof("[XDSV3][ODCDS] lua script path :%s content\n%s\n", defaultOdcdsLuaScriptFile, odcdsLuaCode)
 }
 
 var (

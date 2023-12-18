@@ -30,6 +30,7 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 
 	commonhash "github.com/polarismesh/polaris/common/hash"
@@ -170,7 +171,7 @@ func (p *RemotePeer) Serve(_ context.Context, checker *LeaderHealthChecker,
 	for i := 0; i < streamNum; i++ {
 		conn, err := grpc.DialContext(ctx, fmt.Sprintf("%s:%d", listenIP, listenPort),
 			grpc.WithBlock(),
-			grpc.WithInsecure(),
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
 		)
 		if err != nil {
 			_ = p.Close()
