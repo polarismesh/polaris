@@ -46,7 +46,9 @@ func Test_Initialize(t *testing.T) {
 	}, s, cacheMgr)
 	assert.NoError(t, err)
 
-	err = Initialize(context.Background(), &Config{})
+	err = Initialize(context.Background(), &Config{
+		Interceptors: GetChainOrder(),
+	})
 	assert.NoError(t, err)
 
 	svr, err := GetOriginServer()
