@@ -25,6 +25,7 @@ type DebugHandlerGroup struct {
 }
 
 type DebugHandler struct {
+	Desc    string
 	Path    string
 	Handler http.HandlerFunc
 }

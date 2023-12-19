@@ -20,6 +20,7 @@ package v1
 import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -36,12 +37,26 @@ type ResponseMessage interface {
 	GetInfo() *wrappers.StringValue
 }
 
+type ResponseMessageV2 interface {
+	proto.Message
+	GetCode() uint32
+	GetInfo() string
+}
+
 /**
  * @brief 获取返回码前三位
  * @note 返回码前三位和HTTP返回码定义一致
  */
 func CalcCode(rm ResponseMessage) int {
 	return int(rm.GetCode().GetValue() / 1000)
+}
+
+/**
+ * @brief 获取返回码前三位
+ * @note 返回码前三位和HTTP返回码定义一致
+ */
+func CalcCodeV2(rm ResponseMessageV2) int {
+	return int(rm.GetCode() / 1000)
 }
 
 /**
@@ -317,6 +332,14 @@ func NewDiscoverFaultDetectorResponse(code apimodel.Code, service *apiservice.Se
 		Info:    &wrappers.StringValue{Value: code2info[uint32(code)]},
 		Type:    apiservice.DiscoverResponse_FAULT_DETECTOR,
 		Service: service,
+	}
+}
+
+// 创建一个空白的 ConfigDiscoverResponse
+func NewConfigDiscoverResponse(code apimodel.Code) *apiconfig.ConfigDiscoverResponse {
+	return &apiconfig.ConfigDiscoverResponse{
+		Code: uint32(code),
+		Info: code2info[uint32(code)],
 	}
 }
 

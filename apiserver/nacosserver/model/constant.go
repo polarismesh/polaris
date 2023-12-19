@@ -30,6 +30,10 @@ const (
 )
 
 const (
+	NacosClientAuthHeader = "accessToken"
+)
+
+const (
 	ParamCode              = "code"
 	ParamServiceName       = "serviceName"
 	ParamClusterList       = "clusters"
@@ -139,3 +143,7 @@ func ToNacosConfigNamespace(ns string) string {
 	}
 	return ns
 }
+
+const (
+	ActionGetConfigFile = "NACOS_GET_CONFIG"
+)

@@ -50,12 +50,40 @@ func (x *XDSServer) listXDSNodes(resp http.ResponseWriter, req *http.Request) {
 }
 
 func (x *XDSServer) listXDSResources(resp http.ResponseWriter, req *http.Request) {
+	cType := req.URL.Query().Get("type")
+
 	resources := map[string]interface{}{}
 	x.cache.Caches.ReadRange(func(key string, val cachev3.Cache) {
 		linearCache := val.(*cache.LinearCache)
-		resources[key] = map[string]interface{}{
-			"resources": linearCache.GetResources(),
+
+		var retVal interface{}
+		if cType == "node" {
+			retVal = linearCache.GetNodeResources()
+		} else {
+			retVal = linearCache.GetResources()
 		}
+
+		resources[key] = map[string]interface{}{
+			"resources": retVal,
+		}
+	})
+
+	data := map[string]interface{}{
+		"code":  apimodel.Code_ExecuteSuccess,
+		"info":  "execute success",
+		"data":  resources,
+		"count": len(resources),
+	}
+
+	ret := utils.MustJson(data)
+	resp.WriteHeader(http.StatusOK)
+	_, _ = resp.Write([]byte(ret))
+}
+
+func (x *XDSServer) listXDSCaches(resp http.ResponseWriter, req *http.Request) {
+	resources := []string{}
+	x.cache.Caches.ReadRange(func(key string, val cachev3.Cache) {
+		resources = append(resources, key)
 	})
 
 	data := map[string]interface{}{

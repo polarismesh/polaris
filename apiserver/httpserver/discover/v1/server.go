@@ -53,8 +53,8 @@ const (
 	rateLimitAccess      string = "ratelimit"
 )
 
-// GetNamingConsoleAccessServer 注册管理端接口
-func (h *HTTPServerV1) GetNamingConsoleAccessServer(include []string) (*restful.WebService, error) {
+// GetConsoleAccessServer 注册管理端接口
+func (h *HTTPServerV1) GetConsoleAccessServer(include []string) (*restful.WebService, error) {
 	consoleAccess := []string{defaultAccess}
 
 	ws := new(restful.WebService)
@@ -111,11 +111,14 @@ func (h *HTTPServerV1) addDefaultReadAccess(ws *restful.WebService) {
 	ws.Route(docs.EnrichGetInstancesApiDocs(ws.GET("/instances").To(h.GetInstances)))
 	ws.Route(docs.EnrichGetInstancesCountApiDocs(ws.GET("/instances/count").To(h.GetInstancesCount)))
 	ws.Route(docs.EnrichGetRateLimitsApiDocs(ws.GET("/ratelimits").To(h.GetRateLimits)))
-	ws.Route(docs.EnrichGetCircuitBreakerRulesApiDocs(ws.GET("/circuitbreaker/rules").To(h.GetCircuitBreakerRules)))
+	ws.Route(docs.EnrichGetCircuitBreakerRulesApiDocs(
+		ws.GET("/circuitbreaker/rules").To(h.GetCircuitBreakerRules)))
 	ws.Route(docs.EnrichGetFaultDetectRulesApiDocs(ws.GET("/faultdetectors").To(h.GetFaultDetectRules)))
 
-	ws.Route(docs.EnrichGetServiceContractsApiDocs(ws.GET("/service/contracts").To(h.GetServiceContracts)))
-	ws.Route(docs.EnrichGetServiceContractsApiDocs(ws.GET("/service/contract/versions").To(h.GetServiceContractVersions)))
+	ws.Route(docs.EnrichGetServiceContractsApiDocs(
+		ws.GET("/service/contracts").To(h.GetServiceContracts)))
+	ws.Route(docs.EnrichGetServiceContractsApiDocs(
+		ws.GET("/service/contract/versions").To(h.GetServiceContractVersions)))
 
 	// Deprecate -- start
 	ws.Route(ws.GET("/namespace/token").To(h.GetNamespaceToken))
@@ -147,7 +150,8 @@ func (h *HTTPServerV1) addServiceAccess(ws *restful.WebService) {
 	ws.Route(docs.EnrichUpdateNamespacesApiDocsOld(ws.PUT("/namespaces").To(h.UpdateNamespaces)))
 	ws.Route(docs.EnrichGetNamespacesApiDocsOld(ws.GET("/namespaces").To(h.GetNamespaces)))
 	ws.Route(docs.EnrichGetNamespaceTokenApiDocsOld(ws.GET("/namespace/token").To(h.GetNamespaceToken)))
-	ws.Route(docs.EnrichUpdateNamespaceTokenApiDocsOld(ws.PUT("/namespace/token").To(h.UpdateNamespaceToken)))
+	ws.Route(docs.EnrichUpdateNamespaceTokenApiDocsOld(
+		ws.PUT("/namespace/token").To(h.UpdateNamespaceToken)))
 
 	ws.Route(docs.EnrichCreateServicesApiDocs(ws.POST("/services").To(h.CreateServices)))
 	ws.Route(docs.EnrichDeleteServicesApiDocs(ws.POST("/services/delete").To(h.DeleteServices)))
@@ -160,7 +164,8 @@ func (h *HTTPServerV1) addServiceAccess(ws *restful.WebService) {
 	ws.Route(docs.EnrichCreateServiceAliasApiDocs(ws.POST("/service/alias").To(h.CreateServiceAlias)))
 	ws.Route(docs.EnrichUpdateServiceAliasApiDocs(ws.PUT("/service/alias").To(h.UpdateServiceAlias)))
 	ws.Route(docs.EnrichGetServiceAliasesApiDocs(ws.GET("/service/aliases").To(h.GetServiceAliases)))
-	ws.Route(docs.EnrichDeleteServiceAliasesApiDocs(ws.POST("/service/aliases/delete").To(h.DeleteServiceAliases)))
+	ws.Route(docs.EnrichDeleteServiceAliasesApiDocs(
+		ws.POST("/service/aliases/delete").To(h.DeleteServiceAliases)))
 
 	ws.Route(docs.EnrichCreateInstancesApiDocs(ws.POST("/instances").To(h.CreateInstances)))
 	ws.Route(docs.EnrichDeleteInstancesApiDocs(ws.POST("/instances/delete").To(h.DeleteInstances)))
@@ -174,13 +179,20 @@ func (h *HTTPServerV1) addServiceAccess(ws *restful.WebService) {
 	ws.Route(docs.EnrichGetInstanceLabelsApiDocs(ws.GET("/instances/labels").To(h.GetInstanceLabels)))
 
 	// 服务契约相关
-	ws.Route(docs.EnrichCreateServiceContractsApiDocs(ws.POST("/service/contracts").To(h.CreateServiceContract)))
-	ws.Route(docs.EnrichGetServiceContractsApiDocs(ws.GET("/service/contracts").To(h.GetServiceContracts)))
-	ws.Route(docs.EnrichDeleteServiceContractsApiDocs(ws.POST("/service/contracts/delete").To(h.DeleteServiceContracts)))
-	ws.Route(docs.EnrichGetServiceContractsApiDocs(ws.GET("/service/contract/versions").To(h.GetServiceContractVersions)))
-	ws.Route(docs.EnrichAddServiceContractInterfacesApiDocs(ws.POST("/service/contract/methods").To(h.CreateServiceContractInterfaces)))
-	ws.Route(docs.EnrichAppendServiceContractInterfacesApiDocs(ws.PUT("/service/contract/methods/append").To(h.AppendServiceContractInterfaces)))
-	ws.Route(docs.EnrichDeleteServiceContractsApiDocs(ws.POST("/service/contract/methods/delete").To(h.DeleteServiceContractInterfaces)))
+	ws.Route(docs.EnrichCreateServiceContractsApiDocs(
+		ws.POST("/service/contracts").To(h.CreateServiceContract)))
+	ws.Route(docs.EnrichGetServiceContractsApiDocs(
+		ws.GET("/service/contracts").To(h.GetServiceContracts)))
+	ws.Route(docs.EnrichDeleteServiceContractsApiDocs(
+		ws.POST("/service/contracts/delete").To(h.DeleteServiceContracts)))
+	ws.Route(docs.EnrichGetServiceContractsApiDocs(
+		ws.GET("/service/contract/versions").To(h.GetServiceContractVersions)))
+	ws.Route(docs.EnrichAddServiceContractInterfacesApiDocs(
+		ws.POST("/service/contract/methods").To(h.CreateServiceContractInterfaces)))
+	ws.Route(docs.EnrichAppendServiceContractInterfacesApiDocs(
+		ws.PUT("/service/contract/methods/append").To(h.AppendServiceContractInterfaces)))
+	ws.Route(docs.EnrichDeleteServiceContractsApiDocs(
+		ws.POST("/service/contract/methods/delete").To(h.DeleteServiceContractInterfaces)))
 
 	ws.Route(ws.POST("/service/owner").To(h.GetServiceOwner))
 }
@@ -228,9 +240,12 @@ func (h *HTTPServerV1) addCircuitBreakerRuleAccess(ws *restful.WebService) {
 		ws.POST("/circuitbreaker/rules/delete").To(h.DeleteCircuitBreakerRules)))
 	ws.Route(docs.EnrichEnableCircuitBreakerRulesApiDocs(
 		ws.PUT("/circuitbreaker/rules/enable").To(h.EnableCircuitBreakerRules)))
-	ws.Route(docs.EnrichGetFaultDetectRulesApiDocs(ws.GET("/faultdetectors").To(h.GetFaultDetectRules)))
-	ws.Route(docs.EnrichCreateFaultDetectRulesApiDocs(ws.POST("/faultdetectors").To(h.CreateFaultDetectRules)))
-	ws.Route(docs.EnrichUpdateFaultDetectRulesApiDocs(ws.PUT("/faultdetectors").To(h.UpdateFaultDetectRules)))
+	ws.Route(docs.EnrichGetFaultDetectRulesApiDocs(
+		ws.GET("/faultdetectors").To(h.GetFaultDetectRules)))
+	ws.Route(docs.EnrichCreateFaultDetectRulesApiDocs(
+		ws.POST("/faultdetectors").To(h.CreateFaultDetectRules)))
+	ws.Route(docs.EnrichUpdateFaultDetectRulesApiDocs(
+		ws.PUT("/faultdetectors").To(h.UpdateFaultDetectRules)))
 	ws.Route(docs.EnrichDeleteFaultDetectRulesApiDocs(
 		ws.POST("/faultdetectors/delete").To(h.DeleteFaultDetectRules)))
 }

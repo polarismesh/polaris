@@ -273,6 +273,7 @@ func (ctrl *InstanceCtrl) registerHandler(futures []*InstanceFuture) error {
 	remains := make(map[string]*InstanceFuture, len(futures))
 	for i := range futures {
 		entry := futures[i]
+		entry.isRegis = true
 
 		if _, ok := remains[entry.request.GetId().GetValue()]; ok {
 			entry.Reply(cur, apimodel.Code_SameInstanceRequest, ErrorSameRegIsInstanceRequest)

@@ -30,6 +30,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
@@ -95,10 +96,10 @@ func newUserTest(t *testing.T) *UserTest {
 		t.Fatal(err)
 	}
 
-	cacheMgn.OpenResourceCache(
-		[]cache.ConfigEntry{
+	_ = cacheMgn.OpenResourceCache(
+		[]cachetypes.ConfigEntry{
 			{
-				Name: "users",
+				Name: cachetypes.UsersName,
 			},
 		}...,
 	)
@@ -107,6 +108,7 @@ func newUserTest(t *testing.T) *UserTest {
 	checker := &defaultauth.DefaultAuthChecker{}
 	checker.SetCacheMgr(cacheMgn)
 
+	_ = cache.TestRun(ctx, cacheMgn)
 	svr := defaultauth.NewUserAuthAbility(
 		checker,
 		defaultauth.NewServer(storage, nil, cacheMgn, checker),
@@ -201,7 +203,7 @@ func Test_server_CreateUsers(t *testing.T) {
 			},
 		}
 
-		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.ownerOne.ID)).Return(userTest.ownerOne, nil)
+		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.ownerOne.ID)).Return(userTest.ownerOne, nil).AnyTimes()
 
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.users[0].Token)
 		resp := userTest.svr.CreateUsers(reqCtx, createUsersReq)
@@ -219,7 +221,7 @@ func Test_server_CreateUsers(t *testing.T) {
 			},
 		}
 
-		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.ownerOne.ID)).Return(userTest.ownerOne, nil)
+		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.ownerOne.ID)).Return(userTest.ownerOne, nil).AnyTimes()
 
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.ownerOne.Token)
 		resp := userTest.svr.CreateUsers(reqCtx, createUsersReq)
@@ -567,10 +569,12 @@ func Test_server_UpdateUserPassword(t *testing.T) {
 }
 
 func Test_server_DeleteUser(t *testing.T) {
-	userTest := newUserTest(t)
-	defer userTest.Clean()
-
 	t.Run("主账户删除自己", func(t *testing.T) {
+		userTest := newUserTest(t)
+		t.Cleanup(func() {
+			userTest.Clean()
+		})
+
 		userTest.storage.EXPECT().GetUser(gomock.Any()).Return(userTest.users[0], nil)
 
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.users[0].Token)
@@ -582,6 +586,11 @@ func Test_server_DeleteUser(t *testing.T) {
 	})
 
 	t.Run("主账户删除另外一个主账户", func(t *testing.T) {
+		userTest := newUserTest(t)
+		t.Cleanup(func() {
+			userTest.Clean()
+		})
+
 		uid := utils.NewUUID()
 		userTest.storage.EXPECT().GetUser(gomock.Any()).Return(&model.User{
 			ID:    uid,
@@ -598,7 +607,12 @@ func Test_server_DeleteUser(t *testing.T) {
 	})
 
 	t.Run("主账户删除自己的子账户", func(t *testing.T) {
-		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.users[1].ID)).Return(userTest.users[1], nil)
+		userTest := newUserTest(t)
+		t.Cleanup(func() {
+			userTest.Clean()
+		})
+
+		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.users[1].ID)).Return(userTest.users[1], nil).AnyTimes()
 
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.users[0].Token)
 		resp := userTest.svr.DeleteUser(reqCtx, &apisecurity.User{
@@ -609,13 +623,18 @@ func Test_server_DeleteUser(t *testing.T) {
 	})
 
 	t.Run("主账户删除不是自己的子账户", func(t *testing.T) {
+		userTest := newUserTest(t)
+		t.Cleanup(func() {
+			userTest.Clean()
+		})
+
 		uid := utils.NewUUID()
 		oid := utils.NewUUID()
 		userTest.storage.EXPECT().GetUser(gomock.Any()).Return(&model.User{
 			ID:    uid,
 			Type:  model.OwnerUserRole,
 			Owner: oid,
-		}, nil)
+		}, nil).AnyTimes()
 
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.users[0].Token)
 		resp := userTest.svr.DeleteUser(reqCtx, &apisecurity.User{
@@ -626,8 +645,13 @@ func Test_server_DeleteUser(t *testing.T) {
 	})
 
 	t.Run("管理员删除主账户-主账户下没有子账户", func(t *testing.T) {
-		userTest.storage.EXPECT().GetUser(gomock.Any()).Return(userTest.users[0], nil)
-		userTest.storage.EXPECT().GetSubCount(gomock.Any()).Return(uint32(0), nil)
+		userTest := newUserTest(t)
+		t.Cleanup(func() {
+			userTest.Clean()
+		})
+
+		userTest.storage.EXPECT().GetUser(gomock.Any()).Return(userTest.users[0], nil).AnyTimes()
+		userTest.storage.EXPECT().GetSubCount(gomock.Any()).Return(uint32(0), nil).AnyTimes()
 
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.admin.Token)
 		resp := userTest.svr.DeleteUser(reqCtx, &apisecurity.User{
@@ -638,8 +662,13 @@ func Test_server_DeleteUser(t *testing.T) {
 	})
 
 	t.Run("管理员删除主账户-主账户下还有子账户", func(t *testing.T) {
-		userTest.storage.EXPECT().GetUser(gomock.Any()).Return(userTest.users[0], nil)
-		userTest.storage.EXPECT().GetSubCount(gomock.Any()).Return(uint32(1), nil)
+		userTest := newUserTest(t)
+		t.Cleanup(func() {
+			userTest.Clean()
+		})
+
+		userTest.storage.EXPECT().GetUser(gomock.Any()).Return(userTest.ownerOne, nil).AnyTimes()
+		userTest.storage.EXPECT().GetSubCount(gomock.Any()).Return(uint32(1), nil).AnyTimes()
 
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.admin.Token)
 		resp := userTest.svr.DeleteUser(reqCtx, &apisecurity.User{
@@ -650,6 +679,11 @@ func Test_server_DeleteUser(t *testing.T) {
 	})
 
 	t.Run("子账户删除用户", func(t *testing.T) {
+		userTest := newUserTest(t)
+		t.Cleanup(func() {
+			userTest.Clean()
+		})
+
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.users[1].Token)
 		resp := userTest.svr.DeleteUser(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.users[0].ID),
@@ -781,7 +815,7 @@ func Test_server_UpdateUserToken(t *testing.T) {
 	t.Run("主账户刷新自己的Token状态", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.ownerOne.Token)
 
-		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.users[0].ID)).Return(userTest.users[0], nil)
+		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.users[0].ID)).Return(userTest.users[0], nil).AnyTimes()
 
 		resp := userTest.svr.UpdateUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.users[0].ID),

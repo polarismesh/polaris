@@ -21,21 +21,22 @@ import (
 )
 
 const (
-	TypeConnectionSetupRequest   = "ConnectionSetupRequest"
-	TypeConnectResetRequest      = "ConnectResetRequest"
-	TypeClientDetectionRequest   = "ClientDetectionRequest"
-	TypeHealthCheckRequest       = "HealthCheckRequest"
-	TypeServerCheckRequest       = "ServerCheckRequest"
-	TypeInstanceRequest          = "InstanceRequest"
-	TypeBatchInstanceRequest     = "BatchInstanceRequest"
-	TypeNotifySubscriberRequest  = "NotifySubscriberRequest"
-	TypeSubscribeServiceRequest  = "SubscribeServiceRequest"
-	TypeServiceListRequest       = "ServiceListRequest"
-	TypeServiceQueryRequest      = "ServiceQueryRequest"
-	TypeConfigPublishRequest     = "ConfigPublishRequest"
-	TypeConfigQueryRequest       = "ConfigQueryRequest"
-	TypeConfigRemoveRequest      = "ConfigRemoveRequest"
-	TypeConfigBatchListenRequest = "ConfigBatchListenRequest"
+	TypeConnectionSetupRequest    = "ConnectionSetupRequest"
+	TypeConnectResetRequest       = "ConnectResetRequest"
+	TypeClientDetectionRequest    = "ClientDetectionRequest"
+	TypeHealthCheckRequest        = "HealthCheckRequest"
+	TypeServerCheckRequest        = "ServerCheckRequest"
+	TypeInstanceRequest           = "InstanceRequest"
+	TypePersistentInstanceRequest = "PersistentInstanceRequest"
+	TypeBatchInstanceRequest      = "BatchInstanceRequest"
+	TypeNotifySubscriberRequest   = "NotifySubscriberRequest"
+	TypeSubscribeServiceRequest   = "SubscribeServiceRequest"
+	TypeServiceListRequest        = "ServiceListRequest"
+	TypeServiceQueryRequest       = "ServiceQueryRequest"
+	TypeConfigPublishRequest      = "ConfigPublishRequest"
+	TypeConfigQueryRequest        = "ConfigQueryRequest"
+	TypeConfigRemoveRequest       = "ConfigRemoveRequest"
+	TypeConfigBatchListenRequest  = "ConfigBatchListenRequest"
 )
 
 // CustomerPayload

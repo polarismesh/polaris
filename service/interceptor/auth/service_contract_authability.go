@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package service_auth
 
 import (
 	"context"
@@ -28,7 +28,7 @@ import (
 )
 
 // CreateServiceContracts .
-func (svr *serverAuthAbility) CreateServiceContracts(ctx context.Context,
+func (svr *ServerAuthAbility) CreateServiceContracts(ctx context.Context,
 	req []*apiservice.ServiceContract) *apiservice.BatchWriteResponse {
 	services := make([]*apiservice.Service, 0, len(req))
 	for i := range req {
@@ -49,7 +49,7 @@ func (svr *serverAuthAbility) CreateServiceContracts(ctx context.Context,
 }
 
 // GetServiceContracts .
-func (svr *serverAuthAbility) GetServiceContracts(ctx context.Context,
+func (svr *ServerAuthAbility) GetServiceContracts(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServiceContract")
 	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
@@ -62,7 +62,7 @@ func (svr *serverAuthAbility) GetServiceContracts(ctx context.Context,
 }
 
 // GetServiceContractVersions .
-func (svr *serverAuthAbility) GetServiceContractVersions(ctx context.Context,
+func (svr *ServerAuthAbility) GetServiceContractVersions(ctx context.Context,
 	filter map[string]string) *apiservice.BatchQueryResponse {
 
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServiceContractVersions")
@@ -76,7 +76,7 @@ func (svr *serverAuthAbility) GetServiceContractVersions(ctx context.Context,
 }
 
 // DeleteServiceContracts .
-func (svr *serverAuthAbility) DeleteServiceContracts(ctx context.Context,
+func (svr *ServerAuthAbility) DeleteServiceContracts(ctx context.Context,
 	req []*apiservice.ServiceContract) *apiservice.BatchWriteResponse {
 	services := make([]*apiservice.Service, 0, len(req))
 	for i := range req {
@@ -97,7 +97,7 @@ func (svr *serverAuthAbility) DeleteServiceContracts(ctx context.Context,
 }
 
 // CreateServiceContractInterfaces .
-func (svr *serverAuthAbility) CreateServiceContractInterfaces(ctx context.Context, contract *apiservice.ServiceContract,
+func (svr *ServerAuthAbility) CreateServiceContractInterfaces(ctx context.Context, contract *apiservice.ServiceContract,
 	source apiservice.InterfaceDescriptor_Source) *apiservice.Response {
 	authCtx := svr.collectServiceAuthContext(ctx, []*apiservice.Service{
 		{
@@ -115,7 +115,7 @@ func (svr *serverAuthAbility) CreateServiceContractInterfaces(ctx context.Contex
 }
 
 // AppendServiceContractInterfaces .
-func (svr *serverAuthAbility) AppendServiceContractInterfaces(ctx context.Context,
+func (svr *ServerAuthAbility) AppendServiceContractInterfaces(ctx context.Context,
 	contract *apiservice.ServiceContract, source apiservice.InterfaceDescriptor_Source) *apiservice.Response {
 	authCtx := svr.collectServiceAuthContext(ctx, []*apiservice.Service{
 		{
@@ -133,7 +133,7 @@ func (svr *serverAuthAbility) AppendServiceContractInterfaces(ctx context.Contex
 }
 
 // DeleteServiceContractInterfaces .
-func (svr *serverAuthAbility) DeleteServiceContractInterfaces(ctx context.Context,
+func (svr *ServerAuthAbility) DeleteServiceContractInterfaces(ctx context.Context,
 	contract *apiservice.ServiceContract) *apiservice.Response {
 	authCtx := svr.collectServiceAuthContext(ctx, []*apiservice.Service{
 		{

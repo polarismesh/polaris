@@ -426,6 +426,7 @@ func TestUpdateRateLimit(t *testing.T) {
 				}
 				if len(resp.GetRateLimits()) == 0 {
 					errs <- errors.New("ratelimit rule count is zero")
+					return
 				}
 				checkRateLimit(t, rateLimitResp, resp.GetRateLimits()[0])
 			}(i)

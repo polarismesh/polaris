@@ -64,6 +64,7 @@ func WithConfigSvr(configSvr config.ConfigCenterServer, originSvr config.ConfigC
 	}
 }
 
+// WithAuthSvr 设置鉴权 Server
 func WithAuthSvr(userSvr auth.UserServer, checkerSvr auth.StrategyServer) option {
 	return func(svr *NacosV2Server) {
 		svr.discoverOpt.UserSvr = userSvr

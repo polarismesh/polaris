@@ -332,15 +332,15 @@ func (h *Handler) WriteHeaderAndProto(obj api.ResponseMessage) {
 }
 
 // WriteHeaderAndProtoV2 返回Code和Proto
-func (h *Handler) WriteHeaderAndProtoV2(obj api.ResponseMessage) {
+func (h *Handler) WriteHeaderAndProtoV2(obj api.ResponseMessageV2) {
 	requestID := h.Request.HeaderParameter(utils.PolarisRequestID)
 	h.Request.SetAttribute(utils.PolarisCode, obj.GetCode())
-	status := api.CalcCode(obj)
+	status := api.CalcCodeV2(obj)
 
 	if status != http.StatusOK {
 		accesslog.Error(obj.String(), utils.ZapRequestID(requestID))
 	}
-	if code := obj.GetCode().GetValue(); code != api.ExecuteSuccess {
+	if code := obj.GetCode(); code != api.ExecuteSuccess {
 		h.Response.AddHeader(utils.PolarisCode, fmt.Sprintf("%d", code))
 		h.Response.AddHeader(utils.PolarisMessage, api.Code2Info(code))
 	}

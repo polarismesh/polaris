@@ -91,6 +91,13 @@ func (h *DiscoverServer) initGRPCHandlers() {
 				return nacospb.NewInstanceRequest()
 			},
 		},
+		// Request
+		nacospb.TypePersistentInstanceRequest: {
+			Handler: h.handleInstanceRequest,
+			PayloadBuilder: func() nacospb.CustomerPayload {
+				return nacospb.NewPersistentInstanceRequest()
+			},
+		},
 		nacospb.TypeBatchInstanceRequest: {
 			Handler: h.handleBatchInstanceRequest,
 			PayloadBuilder: func() nacospb.CustomerPayload {

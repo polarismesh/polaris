@@ -123,8 +123,7 @@ func (x *XDSServer) StreamHealthCheck(checksvr healthservice.HealthDiscoveryServ
 				return err
 			}
 		}
-		endpointHealthResponse := req.GetEndpointHealthResponse()
-		if nil != endpointHealthResponse {
+		if endpointHealthResponse := req.GetEndpointHealthResponse(); nil != endpointHealthResponse {
 			// 处理心跳上报
 			if client == nil {
 				return status.Errorf(codes.NotFound, "xds node info not found")
@@ -409,14 +408,6 @@ func (x *XDSServer) processEndpointHealthResponse(
 							code, namespaceName, serviceName, host, port)
 					}
 				default:
-					// 直接更新为不健康
-					// code := x.doUpdateUnhealthy(ctx, namespace, serviceName, host, port)
-					// if code != apimodel.Code_ExecuteSuccess && code != apimodel.Code_NotFoundResource {
-					// 	err := status.Errorf(codes.InvalidArgument,
-					// 		"fail to do update unhealthy, code is %d, namespace %s, service %s, host %s, port %d",
-					// 		code, namespace, serviceName, host, port)
-					// 	log.Errorf("[XdsV2Server] fail to process endpoint health, err is %v", err)
-					// }
 				}
 			}
 		}

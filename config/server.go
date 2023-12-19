@@ -20,6 +20,7 @@ package config
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
@@ -43,61 +44,25 @@ const (
 var (
 	server       ConfigCenterServer
 	originServer = &Server{}
+	// serverProxyFactories Service Server API 代理工厂
+	serverProxyFactories = map[string]ServerProxyFactory{}
 )
 
-var (
-	availableSearch = map[string]map[string]string{
-		"config_file": {
-			"namespace":   "namespace",
-			"group":       "group",
-			"name":        "name",
-			"offset":      "offset",
-			"limit":       "limit",
-			"order_type":  "order_type",
-			"order_field": "order_field",
-		},
-		"config_file_release": {
-			"namespace":    "namespace",
-			"group":        "group",
-			"file_name":    "file_name",
-			"fileName":     "file_name",
-			"name":         "release_name",
-			"release_name": "release_name",
-			"offset":       "offset",
-			"limit":        "limit",
-			"order_type":   "order_type",
-			"order_field":  "order_field",
-			"only_active":  "only_active",
-		},
-		"config_file_group": {
-			"namespace":   "namespace",
-			"group":       "name",
-			"name":        "name",
-			"business":    "business",
-			"department":  "department",
-			"offset":      "offset",
-			"limit":       "limit",
-			"order_type":  "order_type",
-			"order_field": "order_field",
-		},
-		"config_file_release_history": {
-			"namespace":   "namespace",
-			"group":       "group",
-			"name":        "file_name",
-			"offset":      "offset",
-			"limit":       "limit",
-			"endId":       "endId",
-			"end_id":      "endId",
-			"order_type":  "order_type",
-			"order_field": "order_field",
-		},
+type ServerProxyFactory func(svr *Server, pre ConfigCenterServer) (ConfigCenterServer, error)
+
+func RegisterServerProxy(name string, factor ServerProxyFactory) error {
+	if _, ok := serverProxyFactories[name]; ok {
+		return fmt.Errorf("duplicate ServerProxyFactory, name(%s)", name)
 	}
-)
+	serverProxyFactories[name] = factor
+	return nil
+}
 
 // Config 配置中心模块启动参数
 type Config struct {
-	Open             bool  `yaml:"open"`
-	ContentMaxLength int64 `yaml:"contentMaxLength"`
+	Open             bool     `yaml:"open"`
+	ContentMaxLength int64    `yaml:"contentMaxLength"`
+	Interceptors     []string `yaml:"-"`
 }
 
 // Server 配置中心核心服务
@@ -135,13 +100,29 @@ func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cac
 		return nil
 	}
 
-	cacheMgn.OpenResourceCache(configCacheEntries...)
+	if err := cacheMgn.OpenResourceCache(configCacheEntries...); err != nil {
+		return err
+	}
 	err := originServer.initialize(ctx, config, s, namespaceOperator, cacheMgn)
 	if err != nil {
 		return err
 	}
 
-	server = newServerAuthAbility(originServer, userMgn, strategyMgn)
+	// 需要返回包装代理的 DiscoverServer
+	order := config.Interceptors
+	for i := range order {
+		factory, exist := serverProxyFactories[order[i]]
+		if !exist {
+			return fmt.Errorf("name(%s) not exist in serverProxyFactories", order[i])
+		}
+
+		proxySvr, err := factory(originServer, server)
+		if err != nil {
+			return err
+		}
+		server = proxySvr
+	}
+
 	originServer.initialized = true
 	return nil
 }
@@ -159,7 +140,7 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	s.groupCache = cacheMgn.ConfigGroup()
 	s.grayCache = cacheMgn.Gray()
 
-	s.watchCenter, err = NewWatchCenter(cacheMgn.ConfigFile())
+	s.watchCenter, err = NewWatchCenter(cacheMgn)
 	if err != nil {
 		return err
 	}
@@ -207,9 +188,18 @@ func (s *Server) WatchCenter() *watchCenter {
 	return s.watchCenter
 }
 
+func (s *Server) CacheManager() cachetypes.CacheManager {
+	return s.caches
+}
+
 // Cache 获取配置中心缓存模块
-func (s *Server) Cache() cachetypes.ConfigFileCache {
+func (s *Server) FileCache() cachetypes.ConfigFileCache {
 	return s.fileCache
+}
+
+// Cache 获取配置中心缓存模块
+func (s *Server) GroupCache() cachetypes.ConfigGroupCache {
+	return s.groupCache
 }
 
 // CryptoManager 获取加密管理
@@ -323,4 +313,10 @@ func (cc *ConfigChains) AfterGetFileHistory(ctx context.Context,
 		history = _history
 	}
 	return history, nil
+}
+
+func GetChainOrder() []string {
+	return []string{
+		"auth",
+	}
 }

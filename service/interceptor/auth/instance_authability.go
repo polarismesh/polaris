@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package service_auth
 
 import (
 	"context"
@@ -30,7 +30,7 @@ import (
 )
 
 // CreateInstances create instances
-func (svr *serverAuthAbility) CreateInstances(ctx context.Context,
+func (svr *ServerAuthAbility) CreateInstances(ctx context.Context,
 	reqs []*apiservice.Instance) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Create, "CreateInstances")
 
@@ -49,7 +49,7 @@ func (svr *serverAuthAbility) CreateInstances(ctx context.Context,
 }
 
 // DeleteInstances delete instances
-func (svr *serverAuthAbility) DeleteInstances(ctx context.Context,
+func (svr *ServerAuthAbility) DeleteInstances(ctx context.Context,
 	reqs []*apiservice.Instance) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Delete, "DeleteInstances")
 
@@ -68,7 +68,7 @@ func (svr *serverAuthAbility) DeleteInstances(ctx context.Context,
 }
 
 // DeleteInstancesByHost 目前只允许 super account 进行数据删除
-func (svr *serverAuthAbility) DeleteInstancesByHost(ctx context.Context,
+func (svr *ServerAuthAbility) DeleteInstancesByHost(ctx context.Context,
 	reqs []*apiservice.Instance) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Delete, "DeleteInstancesByHost")
 
@@ -87,7 +87,7 @@ func (svr *serverAuthAbility) DeleteInstancesByHost(ctx context.Context,
 }
 
 // UpdateInstances update instances
-func (svr *serverAuthAbility) UpdateInstances(ctx context.Context,
+func (svr *ServerAuthAbility) UpdateInstances(ctx context.Context,
 	reqs []*apiservice.Instance) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Modify, "UpdateInstances")
 
@@ -103,7 +103,7 @@ func (svr *serverAuthAbility) UpdateInstances(ctx context.Context,
 }
 
 // UpdateInstancesIsolate update instances
-func (svr *serverAuthAbility) UpdateInstancesIsolate(ctx context.Context,
+func (svr *ServerAuthAbility) UpdateInstancesIsolate(ctx context.Context,
 	reqs []*apiservice.Instance) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, model.Modify, "UpdateInstancesIsolate")
 
@@ -119,7 +119,7 @@ func (svr *serverAuthAbility) UpdateInstancesIsolate(ctx context.Context,
 }
 
 // GetInstances get instances
-func (svr *serverAuthAbility) GetInstances(ctx context.Context,
+func (svr *ServerAuthAbility) GetInstances(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Read, "GetInstances")
 	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
@@ -134,7 +134,7 @@ func (svr *serverAuthAbility) GetInstances(ctx context.Context,
 }
 
 // GetInstancesCount get instances to count
-func (svr *serverAuthAbility) GetInstancesCount(ctx context.Context) *apiservice.BatchQueryResponse {
+func (svr *ServerAuthAbility) GetInstancesCount(ctx context.Context) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Read, "GetInstancesCount")
 	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
@@ -146,7 +146,7 @@ func (svr *serverAuthAbility) GetInstancesCount(ctx context.Context) *apiservice
 	return svr.targetServer.GetInstancesCount(ctx)
 }
 
-func (svr *serverAuthAbility) GetInstanceLabels(ctx context.Context,
+func (svr *ServerAuthAbility) GetInstanceLabels(ctx context.Context,
 	query map[string]string) *apiservice.Response {
 
 	authCtx := svr.collectInstanceAuthContext(ctx, nil, model.Read, "GetInstanceLabels")

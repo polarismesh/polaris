@@ -305,6 +305,7 @@ func fetchRateLimitCacheRows(rows *sql.Rows) ([]*model.RateLimit, error) {
 		}
 		rateLimit.CreateTime = time.Unix(ctime, 0)
 		rateLimit.ModifyTime = time.Unix(mtime, 0)
+		rateLimit.EnableTime = time.Unix(etime, 0)
 		rateLimit.Valid = true
 		if flag == 1 {
 			rateLimit.Valid = false

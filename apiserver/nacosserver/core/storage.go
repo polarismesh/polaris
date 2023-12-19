@@ -36,7 +36,7 @@ import (
 )
 
 type (
-	// FilterContext
+	// FilterContext nacos 实例列表过滤上下文
 	FilterContext struct {
 		Service      *nacosmodel.ServiceMetadata
 		Clusters     []string
@@ -45,7 +45,7 @@ type (
 		SubscriberIP string
 	}
 
-	// InstanceFilter
+	// InstanceFilter 实例过滤器
 	InstanceFilter func(ctx *FilterContext, svcInfo *nacosmodel.ServiceInfo,
 		ins []*nacosmodel.Instance, healthyCount int32) *nacosmodel.ServiceInfo
 )
@@ -209,7 +209,7 @@ func (n *NacosDataStorage) syncTask() {
 					zap.String("old-reversion", oldRevision), zap.String("reversion", revision))
 				svcData := n.loadNacosService(revision, svc)
 				svcInfos = append(svcInfos, svcData.specService)
-				instances := n.cacheMgr.Instance().GetInstancesByServiceID(svc.ID)
+				instances := n.cacheMgr.Instance().GetInstances(svc.ID)
 				svcData.loadInstances(instances)
 			}
 			n.revisions[svc.ID] = revision
@@ -220,7 +220,7 @@ func (n *NacosDataStorage) syncTask() {
 		return
 	}
 	// 发布服务信息变更事件
-	eventhub.Publish(nacosmodel.NacosServicesChangeEventTopic, &nacosmodel.NacosServicesChangeEvent{
+	_ = eventhub.Publish(nacosmodel.NacosServicesChangeEventTopic, &nacosmodel.NacosServicesChangeEvent{
 		Services: svcInfos,
 	})
 }
@@ -272,19 +272,21 @@ func (n *NacosDataStorage) loadNacosService(reversion string, svc *model.Service
 
 // ServiceData nacos 的服务数据模型
 type ServiceData struct {
-	specService *nacosmodel.ServiceMetadata
-	name        string
-	group       string
-	lock        sync.RWMutex
-	reversion   string
-	instances   map[string]*nacosmodel.Instance
+	reachProtectionThreshold bool
+	specService              *nacosmodel.ServiceMetadata
+	name                     string
+	group                    string
+	lock                     sync.RWMutex
+	reversion                string
+	instances                map[string]*nacosmodel.Instance
 }
 
-func (s *ServiceData) loadInstances(instances []*model.Instance) {
+func (s *ServiceData) loadInstances(svcIns *model.ServiceInstances) {
 	var (
 		finalInstances = map[string]*nacosmodel.Instance{}
 	)
 
+	instances := svcIns.GetInstances(false)
 	healthCount := 0
 	for i := range instances {
 		ins := &nacosmodel.Instance{}

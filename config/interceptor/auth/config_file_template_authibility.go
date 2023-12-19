@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package config
+package config_auth
 
 import (
 	"context"
@@ -28,11 +28,11 @@ import (
 )
 
 // GetAllConfigFileTemplates get all config file templates
-func (s *serverAuthability) GetAllConfigFileTemplates(ctx context.Context) *apiconfig.ConfigBatchQueryResponse {
+func (s *ServerAuthability) GetAllConfigFileTemplates(ctx context.Context) *apiconfig.ConfigBatchQueryResponse {
 	authCtx := s.collectConfigFileTemplateAuthContext(ctx,
 		[]*apiconfig.ConfigFileTemplate{}, model.Read, "GetAllConfigFileTemplates")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileBatchQueryResponseWithMessage(convertToErrCode(err), err.Error())
+		return api.NewConfigFileBatchQueryResponseWithMessage(model.ConvertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -41,11 +41,11 @@ func (s *serverAuthability) GetAllConfigFileTemplates(ctx context.Context) *apic
 }
 
 // GetConfigFileTemplate get config file template
-func (s *serverAuthability) GetConfigFileTemplate(ctx context.Context, name string) *apiconfig.ConfigResponse {
+func (s *ServerAuthability) GetConfigFileTemplate(ctx context.Context, name string) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigFileTemplateAuthContext(ctx,
 		[]*apiconfig.ConfigFileTemplate{}, model.Read, "GetAllConfigFileTemplates")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponseWithInfo(convertToErrCode(err), err.Error())
+		return api.NewConfigResponseWithInfo(model.ConvertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -54,13 +54,13 @@ func (s *serverAuthability) GetConfigFileTemplate(ctx context.Context, name stri
 }
 
 // CreateConfigFileTemplate create config file template
-func (s *serverAuthability) CreateConfigFileTemplate(ctx context.Context,
+func (s *ServerAuthability) CreateConfigFileTemplate(ctx context.Context,
 	template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
 
 	authCtx := s.collectConfigFileTemplateAuthContext(ctx,
 		[]*apiconfig.ConfigFileTemplate{template}, model.Create, "CreateConfigFileTemplate")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponseWithInfo(convertToErrCode(err), err.Error())
+		return api.NewConfigResponseWithInfo(model.ConvertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()

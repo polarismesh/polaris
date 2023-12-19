@@ -37,6 +37,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	_ "github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/log"
@@ -44,6 +45,7 @@ import (
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/config"
+	_ "github.com/polarismesh/polaris/config/interceptor"
 	ns "github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
 	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
@@ -61,6 +63,7 @@ import (
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/batch"
 	"github.com/polarismesh/polaris/service/healthcheck"
+	_ "github.com/polarismesh/polaris/service/interceptor"
 	"github.com/polarismesh/polaris/store"
 	"github.com/polarismesh/polaris/store/boltdb"
 	_ "github.com/polarismesh/polaris/store/boltdb"
@@ -107,16 +110,19 @@ type Bootstrap struct {
 }
 
 type TestConfig struct {
-	Bootstrap    Bootstrap          `yaml:"bootstrap"`
-	Cache        cache.Config       `yaml:"cache"`
-	Namespace    ns.Config          `yaml:"namespace"`
-	Naming       service.Config     `yaml:"naming"`
-	Config       config.Config      `yaml:"config"`
-	HealthChecks healthcheck.Config `yaml:"healthcheck"`
-	Store        store.Config       `yaml:"store"`
-	Auth         auth.Config        `yaml:"auth"`
-	Plugin       plugin.Config      `yaml:"plugin"`
-	ReplaceStore store.Store
+	Bootstrap           Bootstrap      `yaml:"bootstrap"`
+	Cache               cache.Config   `yaml:"cache"`
+	Namespace           ns.Config      `yaml:"namespace"`
+	Naming              service.Config `yaml:"naming"`
+	DisableConfig       bool
+	Config              config.Config      `yaml:"config"`
+	HealthChecks        healthcheck.Config `yaml:"healthcheck"`
+	Store               store.Config       `yaml:"store"`
+	DisableAuth         bool
+	Auth                auth.Config   `yaml:"auth"`
+	Plugin              plugin.Config `yaml:"plugin"`
+	ReplaceStore        store.Store
+	ServiceCacheEntries []cachetypes.ConfigEntry
 }
 
 var InjectTestDataClean func() TestDataClean
@@ -225,6 +231,8 @@ func (d *DiscoverTestSuit) loadConfig() error {
 		fmt.Printf("[ERROR] %v\n", err)
 		return err
 	}
+	d.cfg.Naming.Interceptors = service.GetChainOrder()
+	d.cfg.Config.Interceptors = config.GetChainOrder()
 	return err
 }
 
@@ -310,17 +318,22 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 		panic(err)
 	}
 	d.cacheMgr = cacheMgn
+	_ = d.cacheMgr.OpenResourceCache(cachetypes.ConfigEntry{
+		Name: cachetypes.GrayName,
+	})
 
-	// 初始化鉴权层
-	userMgn, strategyMgn, err := auth.TestInitialize(ctx, &d.cfg.Auth, d.Storage, cacheMgn)
-	if err != nil {
-		panic(err)
+	if !d.cfg.DisableAuth {
+		// 初始化鉴权层
+		userMgn, strategyMgn, err := auth.TestInitialize(ctx, &d.cfg.Auth, d.Storage, cacheMgn)
+		if err != nil {
+			panic(err)
+		}
+		d.userMgn = userMgn
+		d.strategyMgn = strategyMgn
 	}
-	d.userMgn = userMgn
-	d.strategyMgn = strategyMgn
 
 	// 初始化命名空间模块
-	namespaceSvr, err := ns.TestInitialize(ctx, &d.cfg.Namespace, d.Storage, cacheMgn, userMgn, strategyMgn)
+	namespaceSvr, err := ns.TestInitialize(ctx, &d.cfg.Namespace, d.Storage, cacheMgn, d.userMgn, d.strategyMgn)
 	if err != nil {
 		panic(err)
 	}
@@ -364,24 +377,28 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	healthCheckServer.SetServiceCache(cacheMgn.Service())
 	healthCheckServer.SetInstanceCache(cacheMgn.Instance())
 
-	val, originVal, err := service.TestInitialize(ctx, &d.cfg.Naming, &d.cfg.Cache, bc, cacheMgn, d.Storage, namespaceSvr,
-		healthCheckServer, userMgn, strategyMgn)
+	val, originVal, err := service.TestInitialize(ctx, &d.cfg.Naming, &d.cfg.Cache, d.cfg.ServiceCacheEntries,
+		bc, cacheMgn, d.Storage, namespaceSvr, healthCheckServer, d.userMgn, d.strategyMgn)
 	if err != nil {
 		panic(err)
 	}
 	d.server = val
 	d.originSvr = originVal
 
-	confVal, confOriginVal, err := config.TestInitialize(ctx, d.cfg.Config, d.Storage, cacheMgn, namespaceSvr, userMgn, strategyMgn)
-	if err != nil {
-		panic(err)
+	if !d.cfg.DisableConfig {
+		confVal, confOriginVal, err := config.TestInitialize(ctx, d.cfg.Config, d.Storage, cacheMgn, namespaceSvr, d.userMgn, d.strategyMgn)
+		if err != nil {
+			panic(err)
+		}
+		d.configServer = confVal
+		d.configOriginSvr = confOriginVal
 	}
-	d.configServer = confVal
-	d.configOriginSvr = confOriginVal
 
 	// 多等待一会
-	d.updateCacheInterval = d.server.Cache().GetUpdateCacheInterval() + time.Millisecond*500
-
+	d.updateCacheInterval = d.cacheMgr.GetUpdateCacheInterval() + time.Millisecond*500
+	if err := cache.TestRun(ctx, d.cacheMgr); err != nil {
+		return err
+	}
 	time.Sleep(5 * time.Second)
 	return nil
 }

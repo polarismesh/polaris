@@ -15,35 +15,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package batchjob
+package service_auth
 
 import (
-	"errors"
-	"time"
+	commonlog "github.com/polarismesh/polaris/common/log"
 )
 
-// CtrlConfig CtrlConfig .
-type CtrlConfig struct {
-	// Label 批任务执行器标签
-	Label string `json:"label"`
-	// QueueSize 注册请求队列的长度
-	QueueSize uint32 `json:"queueSize"`
-	// WaitTime 最长多久一次批量操作
-	WaitTime time.Duration `json:"waitTime"`
-	// MaxBatchCount 每次操作最大的批量数
-	MaxBatchCount uint32 `json:"maxBatchCount"`
-	// Concurrency 任务工作协程数量
-	Concurrency uint32 `json:"concurrency"`
-	// Handler 任务处理函数
-	Handler func(tasks []Future)
-}
-
-func (c CtrlConfig) Verify() error {
-	if c.Handler == nil {
-		return errors.New("Handler is nil")
-	}
-	if c.Label == "" {
-		return errors.New("Label is empty")
-	}
-	return nil
-}
+var (
+	log     = commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName)
+	authLog = commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName)
+)

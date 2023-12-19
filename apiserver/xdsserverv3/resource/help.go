@@ -44,7 +44,6 @@ import (
 	v32 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	typev3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
-	resourcev3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 	_struct "github.com/golang/protobuf/ptypes/struct"
@@ -517,24 +516,6 @@ func BuildRateLimitActionHeaderValueMatch(key, value string,
 	return headerValueMatch
 }
 
-// 默认路由
-func MakeDefaultRoute(trafficDirection corev3.TrafficDirection, svcKey model.ServiceKey, opt *BuildOption) *route.Route {
-	return &route.Route{
-		Match: &route.RouteMatch{
-			PathSpecifier: &route.RouteMatch_Prefix{
-				Prefix: "/",
-			},
-		},
-		Action: &route.Route_Route{
-			Route: &route.RouteAction{
-				ClusterSpecifier: &route.RouteAction_Cluster{
-					Cluster: MakeServiceName(svcKey, trafficDirection, opt),
-				},
-			},
-		},
-	}
-}
-
 func GenerateServiceDomains(serviceInfo *ServiceInfo) []string {
 	// k8s dns 可解析的服务名
 	domain := serviceInfo.Name + "." + serviceInfo.Namespace
@@ -593,6 +574,51 @@ func MakeGatewayRoute(trafficDirection corev3.TrafficDirection, routeMatch *rout
 	return sidecarRoute
 }
 
+// 默认路由
+func MakeDefaultRoute(trafficDirection corev3.TrafficDirection, svcKey model.ServiceKey, opt *BuildOption) *route.Route {
+	routeConf := &route.Route{
+		Match: &route.RouteMatch{
+			PathSpecifier: &route.RouteMatch_Prefix{
+				Prefix: "/",
+			},
+		},
+		Action: &route.Route_Route{
+			Route: &route.RouteAction{
+				ClusterSpecifier: &route.RouteAction_Cluster{
+					Cluster: MakeServiceName(svcKey, trafficDirection, opt),
+				},
+			},
+		},
+	}
+	if opt.OpenOnDemand {
+		routeConf.TypedPerFilterConfig = map[string]*anypb.Any{
+			"envoy.filters.http.on_demand": MustNewAny(&on_demandv3.PerRouteConfig{
+				Odcds: &on_demandv3.OnDemandCds{
+					Source: &corev3.ConfigSource{
+						ConfigSourceSpecifier: &corev3.ConfigSource_ApiConfigSource{
+							ApiConfigSource: &corev3.ApiConfigSource{
+								ApiType:             corev3.ApiConfigSource_DELTA_GRPC,
+								TransportApiVersion: corev3.ApiVersion_V3,
+								GrpcServices: []*corev3.GrpcService{
+									{
+										TargetSpecifier: &corev3.GrpcService_GoogleGrpc_{
+											GoogleGrpc: &corev3.GrpcService_GoogleGrpc{
+												TargetUri:  opt.OnDemandServer,
+												StatPrefix: "polaris_odcds",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}),
+		}
+	}
+	return routeConf
+}
+
 func MakeSidecarRoute(trafficDirection corev3.TrafficDirection, routeMatch *route.RouteMatch,
 	svcInfo *ServiceInfo, destinations []*traffic_manage.DestinationGroup, opt *BuildOption) *route.Route {
 	weightClusters := BuildWeightClustersV2(trafficDirection, destinations, opt)
@@ -608,6 +634,32 @@ func MakeSidecarRoute(trafficDirection corev3.TrafficDirection, routeMatch *rout
 				},
 			},
 		},
+	}
+	if opt.OpenOnDemand {
+		currentRoute.TypedPerFilterConfig = map[string]*anypb.Any{
+			"envoy.filters.http.on_demand": MustNewAny(&on_demandv3.PerRouteConfig{
+				Odcds: &on_demandv3.OnDemandCds{
+					Source: &corev3.ConfigSource{
+						ConfigSourceSpecifier: &corev3.ConfigSource_ApiConfigSource{
+							ApiConfigSource: &corev3.ApiConfigSource{
+								ApiType:             corev3.ApiConfigSource_DELTA_GRPC,
+								TransportApiVersion: corev3.ApiVersion_V3,
+								GrpcServices: []*corev3.GrpcService{
+									{
+										TargetSpecifier: &corev3.GrpcService_GoogleGrpc_{
+											GoogleGrpc: &corev3.GrpcService_GoogleGrpc{
+												TargetUri:  opt.OnDemandServer,
+												StatPrefix: "polaris_odcds",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}),
+		}
 	}
 	return currentRoute
 }
@@ -641,7 +693,9 @@ func MakeServiceName(svcKey model.ServiceKey, trafficDirection corev3.TrafficDir
 		return fmt.Sprintf("%s|%s|%s", corev3.TrafficDirection_name[int32(trafficDirection)],
 			svcKey.Namespace, svcKey.Name)
 	}
-	return svcKey.Name + "." + svcKey.Namespace
+	// return svcKey.Name + "." + svcKey.Namespace
+	return fmt.Sprintf("%s|%s|%s", corev3.TrafficDirection_name[int32(trafficDirection)],
+		svcKey.Namespace, svcKey.Name)
 }
 
 // MakeVHDSServiceName .
@@ -741,7 +795,7 @@ func MakeSidecarOnDemandOutBoundHCM(svcKey model.ServiceKey, option *BuildOption
 	manager := &hcm.HttpConnectionManager{
 		CodecType:           hcm.HttpConnectionManager_AUTO,
 		StatPrefix:          corev3.TrafficDirection_name[int32(corev3.TrafficDirection_OUTBOUND)] + "_HTTP",
-		RouteSpecifier:      routeSpecifier(core.TrafficDirection_OUTBOUND),
+		RouteSpecifier:      routeSpecifier(core.TrafficDirection_OUTBOUND, option),
 		AccessLog:           accessLog(),
 		HttpFilters:         hcmFilters,
 		HttpProtocolOptions: &core.Http1ProtocolOptions{AcceptHttp_10: true},
@@ -749,7 +803,7 @@ func MakeSidecarOnDemandOutBoundHCM(svcKey model.ServiceKey, option *BuildOption
 	return manager
 }
 
-func MakeSidecarBoundHCM(svcKey model.ServiceKey, trafficDirection corev3.TrafficDirection) *hcm.HttpConnectionManager {
+func MakeSidecarBoundHCM(svcKey model.ServiceKey, trafficDirection corev3.TrafficDirection, opt *BuildOption) *hcm.HttpConnectionManager {
 	hcmFilters := []*hcm.HttpFilter{}
 	hcmFilters = append(hcmFilters, &hcm.HttpFilter{
 		Name: wellknown.Router,
@@ -765,7 +819,7 @@ func MakeSidecarBoundHCM(svcKey model.ServiceKey, trafficDirection corev3.Traffi
 	manager := &hcm.HttpConnectionManager{
 		CodecType:            hcm.HttpConnectionManager_AUTO,
 		StatPrefix:           trafficDirectionName + "_HTTP",
-		RouteSpecifier:       routeSpecifier(trafficDirection),
+		RouteSpecifier:       routeSpecifier(trafficDirection, opt),
 		AccessLog:            accessLog(),
 		HttpFilters:          hcmFilters,
 		HttpProtocolOptions:  &core.Http1ProtocolOptions{AcceptHttp_10: true},
@@ -781,7 +835,7 @@ func MakeSidecarBoundHCM(svcKey model.ServiceKey, trafficDirection corev3.Traffi
 	return manager
 }
 
-func MakeGatewayBoundHCM(svcKey model.ServiceKey) *hcm.HttpConnectionManager {
+func MakeGatewayBoundHCM(svcKey model.ServiceKey, opt *BuildOption) *hcm.HttpConnectionManager {
 	hcmFilters := makeRateLimitHCMFilter(svcKey)
 	hcmFilters = append(hcmFilters, &hcm.HttpFilter{
 		Name: wellknown.Router,
@@ -793,7 +847,7 @@ func MakeGatewayBoundHCM(svcKey model.ServiceKey) *hcm.HttpConnectionManager {
 	manager := &hcm.HttpConnectionManager{
 		CodecType:           hcm.HttpConnectionManager_AUTO,
 		StatPrefix:          trafficDirectionName + "_HTTP",
-		RouteSpecifier:      routeSpecifier(corev3.TrafficDirection_OUTBOUND),
+		RouteSpecifier:      routeSpecifier(corev3.TrafficDirection_OUTBOUND, opt),
 		AccessLog:           accessLog(),
 		HttpFilters:         hcmFilters,
 		HttpProtocolOptions: &core.Http1ProtocolOptions{AcceptHttp_10: true},
@@ -801,16 +855,19 @@ func MakeGatewayBoundHCM(svcKey model.ServiceKey) *hcm.HttpConnectionManager {
 	return manager
 }
 
-func routeSpecifier(trafficDirection corev3.TrafficDirection) *hcm.HttpConnectionManager_Rds {
+func routeSpecifier(trafficDirection corev3.TrafficDirection, opt *BuildOption) *hcm.HttpConnectionManager_Rds {
+	baseRouteName := TrafficBoundRoute[trafficDirection]
+	if opt.OpenOnDemand {
+		baseRouteName = fmt.Sprintf("%s|%s|Demand|%s", TrafficBoundRoute[trafficDirection], opt.Namespace, opt.OnDemandServer)
+	}
 	return &hcm.HttpConnectionManager_Rds{
 		Rds: &hcm.Rds{
 			ConfigSource: &core.ConfigSource{
-				ResourceApiVersion: resourcev3.DefaultAPIVersion,
 				ConfigSourceSpecifier: &core.ConfigSource_Ads{
 					Ads: &core.AggregatedConfigSource{},
 				},
 			},
-			RouteConfigName: TrafficBoundRoute[trafficDirection],
+			RouteConfigName: baseRouteName,
 		},
 	}
 }

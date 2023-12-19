@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package service_auth
 
 import (
 	"context"
@@ -29,7 +29,7 @@ import (
 )
 
 // CreateServiceAlias creates a service alias
-func (svr *serverAuthAbility) CreateServiceAlias(
+func (svr *ServerAuthAbility) CreateServiceAlias(
 	ctx context.Context, req *apiservice.ServiceAlias) *apiservice.Response {
 	authCtx := svr.collectServiceAliasAuthContext(
 		ctx, []*apiservice.ServiceAlias{req}, model.Create, "CreateServiceAlias")
@@ -51,7 +51,7 @@ func (svr *serverAuthAbility) CreateServiceAlias(
 }
 
 // DeleteServiceAliases deletes service aliases
-func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context,
+func (svr *ServerAuthAbility) DeleteServiceAliases(ctx context.Context,
 	reqs []*apiservice.ServiceAlias) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, reqs, model.Delete, "DeleteServiceAliases")
 
@@ -66,7 +66,7 @@ func (svr *serverAuthAbility) DeleteServiceAliases(ctx context.Context,
 }
 
 // UpdateServiceAlias updates service alias
-func (svr *serverAuthAbility) UpdateServiceAlias(
+func (svr *ServerAuthAbility) UpdateServiceAlias(
 	ctx context.Context, req *apiservice.ServiceAlias) *apiservice.Response {
 	authCtx := svr.collectServiceAliasAuthContext(
 		ctx, []*apiservice.ServiceAlias{req}, model.Modify, "UpdateServiceAlias")
@@ -82,7 +82,7 @@ func (svr *serverAuthAbility) UpdateServiceAlias(
 }
 
 // GetServiceAliases gets service aliases
-func (svr *serverAuthAbility) GetServiceAliases(ctx context.Context,
+func (svr *ServerAuthAbility) GetServiceAliases(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, nil, model.Read, "GetServiceAliases")
 

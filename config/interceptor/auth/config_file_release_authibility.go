@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package config
+package config_auth
 
 import (
 	"context"
@@ -28,14 +28,14 @@ import (
 )
 
 // PublishConfigFile 发布配置文件
-func (s *serverAuthability) PublishConfigFile(ctx context.Context,
+func (s *ServerAuthability) PublishConfigFile(ctx context.Context,
 	configFileRelease *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
 
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx,
 		[]*apiconfig.ConfigFileRelease{configFileRelease}, model.Modify, "PublishConfigFile")
 
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponseWithInfo(convertToErrCode(err), err.Error())
+		return api.NewConfigResponseWithInfo(model.ConvertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -45,14 +45,14 @@ func (s *serverAuthability) PublishConfigFile(ctx context.Context,
 }
 
 // GetConfigFileRelease 获取配置文件发布内容
-func (s *serverAuthability) GetConfigFileRelease(ctx context.Context,
+func (s *ServerAuthability) GetConfigFileRelease(ctx context.Context,
 	req *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
 
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx,
 		[]*apiconfig.ConfigFileRelease{req}, model.Read, "GetConfigFileRelease")
 
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponseWithInfo(convertToErrCode(err), err.Error())
+		return api.NewConfigResponseWithInfo(model.ConvertToErrCode(err), err.Error())
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
@@ -60,13 +60,13 @@ func (s *serverAuthability) GetConfigFileRelease(ctx context.Context,
 }
 
 // DeleteConfigFileReleases implements ConfigCenterServer.
-func (s *serverAuthability) DeleteConfigFileReleases(ctx context.Context,
+func (s *ServerAuthability) DeleteConfigFileReleases(ctx context.Context,
 	reqs []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse {
 
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx, reqs, model.Delete, "DeleteConfigFileReleases")
 
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigBatchWriteResponseWithInfo(convertToErrCode(err), err.Error())
+		return api.NewConfigBatchWriteResponseWithInfo(model.ConvertToErrCode(err), err.Error())
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
@@ -74,13 +74,13 @@ func (s *serverAuthability) DeleteConfigFileReleases(ctx context.Context,
 }
 
 // GetConfigFileReleaseVersions implements ConfigCenterServer.
-func (s *serverAuthability) GetConfigFileReleaseVersions(ctx context.Context,
+func (s *ServerAuthability) GetConfigFileReleaseVersions(ctx context.Context,
 	filters map[string]string) *apiconfig.ConfigBatchQueryResponse {
 
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx, nil, model.Read, "GetConfigFileReleaseVersions")
 
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigBatchQueryResponseWithInfo(convertToErrCode(err), err.Error())
+		return api.NewConfigBatchQueryResponseWithInfo(model.ConvertToErrCode(err), err.Error())
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
@@ -88,13 +88,13 @@ func (s *serverAuthability) GetConfigFileReleaseVersions(ctx context.Context,
 }
 
 // GetConfigFileReleases implements ConfigCenterServer.
-func (s *serverAuthability) GetConfigFileReleases(ctx context.Context,
+func (s *ServerAuthability) GetConfigFileReleases(ctx context.Context,
 	filters map[string]string) *apiconfig.ConfigBatchQueryResponse {
 
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx, nil, model.Read, "GetConfigFileReleases")
 
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigBatchQueryResponseWithInfo(convertToErrCode(err), err.Error())
+		return api.NewConfigBatchQueryResponseWithInfo(model.ConvertToErrCode(err), err.Error())
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
@@ -102,13 +102,13 @@ func (s *serverAuthability) GetConfigFileReleases(ctx context.Context,
 }
 
 // RollbackConfigFileReleases implements ConfigCenterServer.
-func (s *serverAuthability) RollbackConfigFileReleases(ctx context.Context,
+func (s *ServerAuthability) RollbackConfigFileReleases(ctx context.Context,
 	reqs []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse {
 
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx, reqs, model.Modify, "RollbackConfigFileReleases")
 
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigBatchWriteResponseWithInfo(convertToErrCode(err), err.Error())
+		return api.NewConfigBatchWriteResponseWithInfo(model.ConvertToErrCode(err), err.Error())
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
@@ -116,16 +116,31 @@ func (s *serverAuthability) RollbackConfigFileReleases(ctx context.Context,
 }
 
 // UpsertAndReleaseConfigFile .
-func (s *serverAuthability) UpsertAndReleaseConfigFile(ctx context.Context,
+func (s *ServerAuthability) UpsertAndReleaseConfigFile(ctx context.Context,
 	req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigFilePublishAuthContext(ctx, []*apiconfig.ConfigFilePublishInfo{req},
 		model.Modify, "UpsertAndReleaseConfigFile")
 	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileResponse(convertToErrCode(err), nil)
+		return api.NewConfigFileResponse(model.ConvertToErrCode(err), nil)
 	}
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	return s.targetServer.UpsertAndReleaseConfigFile(ctx, req)
+}
+
+func (s *ServerAuthability) StopGrayConfigFileReleases(ctx context.Context,
+	reqs []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse {
+
+	authCtx := s.collectConfigFileReleaseAuthContext(ctx, reqs,
+		model.Modify, "StopGrayConfigFileReleases")
+	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewConfigBatchWriteResponse(model.ConvertToErrCode(err))
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return s.targetServer.StopGrayConfigFileReleases(ctx, reqs)
 }

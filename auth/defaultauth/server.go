@@ -19,6 +19,8 @@ package defaultauth
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
@@ -27,6 +29,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -49,7 +52,7 @@ func NewServer(storage store.Store,
 type Server struct {
 	storage  store.Store
 	history  plugin.History
-	cacheMgn *cache.CacheManager
+	cacheMgn cachetypes.CacheManager
 	authMgn  *DefaultAuthChecker
 }
 
@@ -228,7 +231,6 @@ func (svr *Server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 			zap.String("owner", ownerId), zap.String("id", id), zap.Error(err))
 		return err
 	}
-
 	if strategy == nil {
 		return errors.New("not found default strategy rule")
 	}
@@ -256,6 +258,14 @@ func (svr *Server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 		}
 	}
 
+	entry := &model.RecordEntry{
+		ResourceType: model.RAuthStrategy,
+		ResourceName: fmt.Sprintf("%s(%s)", strategy.Name, strategy.ID),
+		Operator:     utils.ParseOperator(afterCtx.GetRequestContext()),
+		Detail:       utils.MustJson(strategyResource),
+		HappenTime:   time.Now(),
+	}
+
 	if afterCtx.GetOperation() == model.Delete || cleanRealtion {
 		if err = svr.storage.RemoveStrategyResources(strategyResource); err != nil {
 			log.Error("[Auth][Server] remove default strategy resource",
@@ -263,7 +273,8 @@ func (svr *Server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 				zap.String("type", model.PrincipalNames[uType]), zap.Error(err))
 			return err
 		}
-
+		entry.OperationType = model.ODelete
+		plugin.GetHistory().Record(entry)
 		return nil
 	}
 	// 如果是写操作，那么采用松添加操作进行新增资源的添加操作(仅忽略主键冲突的错误)
@@ -273,7 +284,8 @@ func (svr *Server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 			zap.String("type", model.PrincipalNames[uType]), zap.Error(err))
 		return err
 	}
-
+	entry.OperationType = model.OUpdate
+	plugin.GetHistory().Record(entry)
 	return nil
 }
 
@@ -283,6 +295,5 @@ func checkHasPassAll(rule *model.StrategyDetail) bool {
 			return true
 		}
 	}
-
 	return false
 }

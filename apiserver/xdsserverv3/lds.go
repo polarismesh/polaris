@@ -127,12 +127,12 @@ func (lds *LDSBuilder) makeListener(option *resource.BuildOption,
 	var boundHCM *hcm.HttpConnectionManager
 	selfService := option.SelfService
 	if isGateway {
-		boundHCM = resource.MakeGatewayBoundHCM(selfService)
+		boundHCM = resource.MakeGatewayBoundHCM(selfService, option)
 	} else {
 		if option.OpenOnDemand && direction == core.TrafficDirection_OUTBOUND {
 			boundHCM = resource.MakeSidecarOnDemandOutBoundHCM(selfService, option)
 		} else {
-			boundHCM = resource.MakeSidecarBoundHCM(selfService, direction)
+			boundHCM = resource.MakeSidecarBoundHCM(selfService, direction, option)
 		}
 	}
 

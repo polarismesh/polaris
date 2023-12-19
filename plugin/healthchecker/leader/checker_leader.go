@@ -28,8 +28,8 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc/metadata"
 
-	"github.com/polarismesh/polaris/common/batchjob"
 	"github.com/polarismesh/polaris/common/eventhub"
+	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
@@ -429,88 +429,18 @@ func (c *LeaderHealthChecker) isLeader() bool {
 	return atomic.LoadInt32(&c.leader) == 1
 }
 
-func (c *LeaderHealthChecker) DebugHandlers() []plugin.DebugHandler {
-	return []plugin.DebugHandler{
+func (c *LeaderHealthChecker) DebugHandlers() []model.DebugHandler {
+	return []model.DebugHandler{
 		{
 			Path:    "/debug/checker/leader/info",
+			Desc:    "Query Leader Node Information",
 			Handler: handleDescribeLeaderInfo(c),
 		},
 		{
 			Path:    "/debug/checker/leader/cache",
+			Desc:    "Query heart rate data information, only Leader node processing",
 			Handler: handleDescribeBeatCache(c),
 		},
-	}
-}
-
-func (c *LeaderHealthChecker) handleSendGetRecords(futures []batchjob.Future) {
-	peers := make(map[string]*PeerReadTask)
-	for i := range futures {
-		taskInfo := futures[i].Param()
-		task := taskInfo.(*PeerTask)
-		peer := task.Peer
-		if peer.isClose() {
-			_ = futures[i].Reply(nil, ErrorPeerClosed)
-			continue
-		}
-		if _, ok := peers[peer.Host()]; !ok {
-			peers[peer.Host()] = &PeerReadTask{
-				Peer:    peer,
-				Keys:    make([]string, 0, 16),
-				Futures: make(map[string][]batchjob.Future),
-			}
-		}
-		key := task.Key
-		peers[peer.Host()].Keys = append(peers[peer.Host()].Keys, key)
-		if _, ok := peers[peer.Host()].Futures[key]; !ok {
-			peers[peer.Host()].Futures[key] = make([]batchjob.Future, 0, 4)
-		}
-		peers[peer.Host()].Futures[key] = append(peers[peer.Host()].Futures[key], futures[i])
-	}
-
-	for i := range peers {
-		peer := peers[i].Peer
-		keys := peers[i].Keys
-		peerfutures := peers[i].Futures
-		resp := peer.Cache.Get(keys...)
-		for key := range resp {
-			fs := peerfutures[key]
-			for index := range fs {
-				_ = fs[index].Reply(map[string]*ReadBeatRecord{
-					key: resp[key],
-				}, nil)
-			}
-		}
-	}
-	for i := range futures {
-		_ = futures[i].Reply(nil, ErrorRecordNotFound)
-	}
-}
-
-func (c *LeaderHealthChecker) handleSendPutRecords(futures []batchjob.Future) {
-	peers := make(map[string]*PeerWriteTask)
-	for i := range futures {
-		taskInfo := futures[i].Param()
-		task := taskInfo.(*PeerTask)
-		peer := task.Peer
-		if peer.isClose() {
-			_ = futures[i].Reply(nil, ErrorPeerClosed)
-			continue
-		}
-		if _, ok := peers[peer.Host()]; !ok {
-			peers[peer.Host()] = &PeerWriteTask{
-				Peer:    peer,
-				Records: make([]WriteBeatRecord, 0, 16),
-			}
-		}
-		peers[peer.Host()].Records = append(peers[peer.Host()].Records, *task.Record)
-	}
-
-	for i := range peers {
-		peer := peers[i].Peer
-		peer.Cache.Put(peers[i].Records...)
-	}
-	for i := range futures {
-		_ = futures[i].Reply(struct{}{}, nil)
 	}
 }
 
@@ -521,10 +451,4 @@ func isSendFromPeer(ctx context.Context) bool {
 		}
 	}
 	return false
-}
-
-type PeerTask struct {
-	Peer   *RemotePeer
-	Key    string
-	Record *WriteBeatRecord
 }

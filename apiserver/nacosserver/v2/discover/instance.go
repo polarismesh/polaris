@@ -111,6 +111,63 @@ func (h *DiscoverServer) handleInstanceRequest(ctx context.Context, req nacospb.
 	}, nil
 }
 
+func (h *DiscoverServer) handlePersistentInstanceRequest(ctx context.Context, req nacospb.BaseRequest,
+	meta nacospb.RequestMeta) (nacospb.BaseResponse, error) {
+	insReq, ok := req.(*nacospb.PersistentInstanceRequest)
+	if !ok {
+		return nil, remote.ErrorInvalidRequestBodyType
+	}
+
+	namespace := nacosmodel.DefaultNacosNamespace
+	if len(insReq.Namespace) != 0 {
+		namespace = insReq.Namespace
+	}
+	namespace = nacosmodel.ToPolarisNamespace(namespace)
+	svcName := nacosmodel.BuildServiceName(insReq.ServiceName, insReq.GroupName)
+	ins := nacosmodel.PrepareSpecInstance(namespace, svcName, &insReq.Instance)
+	ins.EnableHealthCheck = wrapperspb.Bool(false)
+	ins.HealthCheck = nil
+
+	var resp *service_manage.Response
+	var respType string
+
+	errCode := int(nacosmodel.ErrorCode_Success.Code)
+	resultCode := int(nacosmodel.Response_Success.Code)
+	success := true
+
+	switch insReq.Type {
+	case "registerInstance":
+		respType = "registerInstance"
+		resp = h.discoverSvr.RegisterInstance(ctx, ins)
+	case "deregisterInstance":
+		respType = "deregisterInstance"
+		insID, errRsp := utils.CheckInstanceTetrad(ins)
+		if errRsp != nil {
+			return nil, &nacosmodel.NacosError{
+				ErrCode: int32(errRsp.GetCode().GetValue()),
+				ErrMsg:  errRsp.GetInfo().GetValue(),
+			}
+		}
+		ins.Id = utils.NewStringValue(insID)
+		resp = h.discoverSvr.DeregisterInstance(ctx, ins)
+	default:
+		return nil, &nacosmodel.NacosError{
+			ErrCode: int32(nacosmodel.ExceptionCode_InvalidParam),
+			ErrMsg:  fmt.Sprintf("Unsupported request type %s", insReq.Type),
+		}
+	}
+
+	return &nacospb.InstanceResponse{
+		Response: &nacospb.Response{
+			ResultCode: resultCode,
+			ErrorCode:  errCode,
+			Success:    success,
+			Message:    resp.GetInfo().GetValue(),
+		},
+		Type: respType,
+	}, nil
+}
+
 func (h *DiscoverServer) handleBatchInstanceRequest(ctx context.Context, req nacospb.BaseRequest,
 	meta nacospb.RequestMeta) (nacospb.BaseResponse, error) {
 	batchInsReq, ok := req.(*nacospb.BatchInstanceRequest)

@@ -19,8 +19,10 @@ package config
 
 import (
 	"context"
+	"fmt"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
@@ -36,11 +38,28 @@ func TestInitialize(ctx context.Context, config Config, s store.Store, cacheMgn 
 	strategyMgn auth.StrategyServer) (ConfigCenterServer, ConfigCenterServer, error) {
 	mockServer := &Server{}
 
-	cacheMgn.OpenResourceCache(testConfigCacheEntries...)
+	log.Info("Config.TestInitialize", zap.Any("entries", testConfigCacheEntries))
+	_ = cacheMgn.OpenResourceCache(testConfigCacheEntries...)
 	if err := mockServer.initialize(ctx, config, s, namespaceOperator, cacheMgn); err != nil {
 		return nil, nil, err
 	}
-	return newServerAuthAbility(mockServer, userMgn, strategyMgn), mockServer, nil
+
+	var proxySvr ConfigCenterServer
+	var err error
+	// 需要返回包装代理的 ConfigCenterServer
+	order := config.Interceptors
+	for i := range order {
+		factory, exist := serverProxyFactories[order[i]]
+		if !exist {
+			return nil, nil, fmt.Errorf("name(%s) not exist in serverProxyFactories", order[i])
+		}
+
+		proxySvr, err = factory(mockServer, proxySvr)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	return proxySvr, mockServer, nil
 }
 
 func (s *Server) TestCheckClientConfigFile(ctx context.Context, files []*apiconfig.ClientConfigFileInfo,

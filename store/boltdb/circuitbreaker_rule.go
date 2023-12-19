@@ -125,6 +125,11 @@ func (c *circuitBreakerStore) UpdateCircuitBreakerRule(cbRule *model.CircuitBrea
 		CbFieldDstMethod:       cbRule.DstMethod,
 		CbFieldRule:            cbRule.Rule,
 	}
+	if cbRule.Enable {
+		properties[CommonFieldEnableTime] = time.Now()
+	} else {
+		properties[CommonFieldEnableTime] = time.Unix(0, 0)
+	}
 	if err := dbOp.UpdateValue(tblCircuitBreakerRule, cbRule.ID, properties); err != nil {
 		log.Errorf("[Store][CircuitBreaker] update rule(%s) exec err: %s", cbRule.ID, err.Error())
 		return store.Error(err)
@@ -253,12 +258,17 @@ func (c *circuitBreakerStore) GetCircuitBreakerRules(
 			if ok && !validVal.(bool) {
 				return false
 			}
-			if hasSvc && hasSvcNs {
-				srcSvcValue := m[CbFieldSrcService]
+			if hasSvcNs {
 				srcNsValue := m[CbFieldSrcNamespace]
-				dstSvcValue := m[CbFieldDstService]
 				dstNsValue := m[CbFieldDstNamespace]
-				if !((srcSvcValue == svc && srcNsValue == svcNs) || (dstSvcValue == svc && dstNsValue == svcNs)) {
+				if !((srcNsValue == "*" || srcNsValue == svcNs) || (dstNsValue == "*" || dstNsValue == svcNs)) {
+					return false
+				}
+			}
+			if hasSvc {
+				srcSvcValue := m[CbFieldSrcService]
+				dstSvcValue := m[CbFieldDstService]
+				if !((srcSvcValue == svc || srcSvcValue == "*") || (dstSvcValue == svc || dstSvcValue == "*")) {
 					return false
 				}
 			}
@@ -351,9 +361,8 @@ func sublistCircuitBreakerRules(cbRules []*model.CircuitBreakerRule, offset, lim
 			return true
 		} else if cbRules[i].ModifyTime.Before(cbRules[j].ModifyTime) {
 			return false
-		} else {
-			return strings.Compare(cbRules[i].ID, cbRules[j].ID) < 0
 		}
+		return strings.Compare(cbRules[i].ID, cbRules[j].ID) < 0
 	})
 
 	return cbRules[beginIndex:endIndex]

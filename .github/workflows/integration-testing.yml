@@ -100,7 +100,6 @@ jobs:
 
           sleep 120s
           ls -alR
-          cat ./log/stdout 2>&1
 
           cd ..
           ls -lstrh

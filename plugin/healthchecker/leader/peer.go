@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"net"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -29,9 +30,9 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 
-	"github.com/polarismesh/polaris/common/batchjob"
 	commonhash "github.com/polarismesh/polaris/common/hash"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -65,8 +66,10 @@ type Peer interface {
 	Close() error
 	// Host .
 	Host() string
-	// Storage
+	// Storage .
 	Storage() BeatRecordCache
+	// IsAlive .
+	IsAlive() bool
 }
 
 // LocalPeer Heartbeat data storage node
@@ -86,6 +89,10 @@ func (p *LocalPeer) Serve(ctx context.Context, checker *LeaderHealthChecker,
 	listenIP string, listenPort uint32) error {
 	log.Info("[HealthCheck][Leader] local peer serve")
 	return nil
+}
+
+func (p *LocalPeer) IsAlive() bool {
+	return true
 }
 
 // Get get records
@@ -164,7 +171,7 @@ func (p *RemotePeer) Serve(_ context.Context, checker *LeaderHealthChecker,
 	for i := 0; i < streamNum; i++ {
 		conn, err := grpc.DialContext(ctx, fmt.Sprintf("%s:%d", listenIP, listenPort),
 			grpc.WithBlock(),
-			grpc.WithInsecure(),
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
 		)
 		if err != nil {
 			_ = p.Close()
@@ -189,6 +196,20 @@ func (p *RemotePeer) Serve(_ context.Context, checker *LeaderHealthChecker,
 
 func (p *RemotePeer) Host() string {
 	return p.host
+}
+
+func (p *RemotePeer) IsAlive() bool {
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%v", p.Host(), p.port), time.Second)
+	defer func() {
+		if conn != nil {
+			_ = conn.Close()
+		}
+	}()
+
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 // Get get records
@@ -304,19 +325,6 @@ var (
 	ErrorRecordNotFound = errors.New("beat record not found")
 	ErrorPeerClosed     = errors.New("peer alrady closed")
 )
-
-// PeerWriteTask peer write task
-type PeerWriteTask struct {
-	Peer    *RemotePeer
-	Records []WriteBeatRecord
-}
-
-// PeerReadTask peer read task
-type PeerReadTask struct {
-	Peer    *RemotePeer
-	Keys    []string
-	Futures map[string][]batchjob.Future
-}
 
 type beatSender struct {
 	lock   sync.RWMutex

@@ -19,7 +19,6 @@ package plugin
 
 import (
 	"fmt"
-	"net/http"
 	"sync"
 )
 
@@ -75,9 +74,4 @@ type PluginChanConfig struct {
 	Name    string                 `yaml:"name"`
 	Option  map[string]interface{} `yaml:"option"`
 	Entries []ConfigEntry          `yaml:"entries"`
-}
-
-type DebugHandler struct {
-	Path    string
-	Handler http.HandlerFunc
 }

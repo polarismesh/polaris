@@ -373,9 +373,8 @@ func getRealRouteConfList(routeConf []*model.ExtendRoutingConfig, offset, limit 
 			return true
 		} else if routeConf[i].Config.ModifyTime.Before(routeConf[j].Config.ModifyTime) {
 			return false
-		} else {
-			return strings.Compare(routeConf[i].Config.ID, routeConf[j].Config.ID) < 0
 		}
+		return strings.Compare(routeConf[i].Config.ID, routeConf[j].Config.ID) < 0
 	})
 
 	return routeConf[beginIndex:endIndex]

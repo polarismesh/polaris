@@ -156,7 +156,7 @@ func (cfr *configFileReleaseStore) GetConfigFileActiveReleaseTx(tx store.Tx,
 	dbTx := tx.GetDelegateTx().(*bolt.Tx)
 
 	fields := []string{FileReleaseFieldActive, FileReleaseFieldNamespace, FileReleaseFieldGroup,
-		FileReleaseFieldFileName, FileReleaseFieldValid}
+		FileReleaseFieldFileName, FileReleaseFieldValid, FileReleaseFieldType}
 	values := make(map[string]interface{}, 1)
 	err := loadValuesByFilter(dbTx, tblConfigFileRelease, fields, &ConfigFileRelease{},
 		func(m map[string]interface{}) bool {
@@ -167,6 +167,46 @@ func (cfr *configFileReleaseStore) GetConfigFileActiveReleaseTx(tx store.Tx,
 			}
 			active, _ := m[FileReleaseFieldActive].(bool)
 			if !active {
+				return false
+			}
+			if relType, _ := m[FileReleaseFieldType].(string); relType != model.ReleaseTypeFull {
+				return false
+			}
+			saveNs, _ := m[FileReleaseFieldNamespace].(string)
+			saveGroup, _ := m[FileReleaseFieldGroup].(string)
+			saveFileName, _ := m[FileReleaseFieldFileName].(string)
+
+			expect := saveNs == file.Namespace && saveGroup == file.Group && saveFileName == file.Name
+			return expect
+		}, values)
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range values {
+		return cfr.toModelData(v.(*ConfigFileRelease)), nil
+	}
+	return nil, nil
+}
+
+func (cfr *configFileReleaseStore) GetConfigFileBetaReleaseTx(tx store.Tx,
+	file *model.ConfigFileKey) (*model.ConfigFileRelease, error) {
+	dbTx := tx.GetDelegateTx().(*bolt.Tx)
+
+	fields := []string{FileReleaseFieldActive, FileReleaseFieldNamespace, FileReleaseFieldGroup,
+		FileReleaseFieldFileName, FileReleaseFieldValid, FileReleaseFieldType}
+	values := make(map[string]interface{}, 1)
+	err := loadValuesByFilter(dbTx, tblConfigFileRelease, fields, &ConfigFileRelease{},
+		func(m map[string]interface{}) bool {
+			valid, _ := m[FileReleaseFieldValid].(bool)
+			// 已经删除的不管
+			if !valid {
+				return false
+			}
+			active, _ := m[FileReleaseFieldActive].(bool)
+			if !active {
+				return false
+			}
+			if relType, _ := m[FileReleaseFieldType].(string); relType != model.ReleaseTypeGray {
 				return false
 			}
 			saveNs, _ := m[FileReleaseFieldNamespace].(string)
@@ -267,7 +307,7 @@ func (cfr *configFileReleaseStore) GetMoreReleaseFile(firstUpdate bool,
 	modifyTime time.Time) ([]*model.ConfigFileRelease, error) {
 
 	if firstUpdate {
-		modifyTime = time.Time{}
+		modifyTime = time.Unix(0, 0)
 	}
 
 	fields := []string{FileReleaseFieldModifyTime}
@@ -298,7 +338,7 @@ func (cfr *configFileReleaseStore) ActiveConfigFileReleaseTx(tx store.Tx, releas
 	properties[FileReleaseFieldVersion] = maxVersion + 1
 	properties[FileReleaseFieldActive] = true
 	properties[FileReleaseFieldModifyTime] = time.Now()
-	properties[FileReleaseFieldType] = uint32(release.Typ)
+	properties[FileReleaseFieldType] = string(release.ReleaseType)
 	return updateValue(dbTx, tblConfigFileRelease, release.ReleaseKey(), properties)
 }
 
@@ -306,7 +346,7 @@ func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *bolt.Tx,
 	release *model.ConfigFileRelease) (uint64, error) {
 
 	fields := []string{FileReleaseFieldNamespace, FileReleaseFieldGroup, FileReleaseFieldFileName,
-		FileReleaseFieldVersion, FileReleaseFieldFlag, FileReleaseFieldActive}
+		FileReleaseFieldVersion, FileReleaseFieldFlag, FileReleaseFieldActive, FileReleaseFieldType}
 
 	values := map[string]interface{}{}
 	var maxVersion uint64
@@ -325,6 +365,10 @@ func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *bolt.Tx,
 			saveNs, _ := m[FileReleaseFieldNamespace].(string)
 			saveGroup, _ := m[FileReleaseFieldGroup].(string)
 			saveFileName, _ := m[FileReleaseFieldFileName].(string)
+			releaseType, _ := m[FileReleaseFieldType].(string)
+			if releaseType != string(release.ReleaseType) {
+				return false
+			}
 
 			expect := saveNs == release.Namespace && saveGroup == release.Group &&
 				saveFileName == release.FileName
@@ -389,19 +433,19 @@ type ConfigFileRelease struct {
 	ModifyTime time.Time
 	ModifyBy   string
 	Content    string
-	Typ        uint32
+	Typ        string
 }
 
 func (cfr *configFileReleaseStore) toModelData(data *ConfigFileRelease) *model.ConfigFileRelease {
 	return &model.ConfigFileRelease{
 		SimpleConfigFileRelease: &model.SimpleConfigFileRelease{
 			ConfigFileReleaseKey: &model.ConfigFileReleaseKey{
-				Id:        data.Id,
-				Name:      data.Name,
-				Namespace: data.Namespace,
-				Group:     data.Group,
-				FileName:  data.FileName,
-				Typ:       model.ReleaseType(data.Typ),
+				Id:          data.Id,
+				Name:        data.Name,
+				Namespace:   data.Namespace,
+				Group:       data.Group,
+				FileName:    data.FileName,
+				ReleaseType: model.ReleaseType(data.Typ),
 			},
 			Comment:    data.Comment,
 			Md5:        data.Md5,
@@ -440,6 +484,6 @@ func (cfr *configFileReleaseStore) toStoreData(data *model.ConfigFileRelease) *C
 		ModifyTime: data.ModifyTime,
 		ModifyBy:   data.ModifyBy,
 		Content:    data.Content,
-		Typ:        uint32(data.Typ),
+		Typ:        string(data.ConfigFileReleaseKey.ReleaseType),
 	}
 }

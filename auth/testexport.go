@@ -20,13 +20,13 @@ package auth
 import (
 	"context"
 
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/store"
 )
 
 // TestInitialize 包裹了初始化函数，在 Initialize 的时候会在自动调用，全局初始化一次
 func TestInitialize(ctx context.Context, authOpt *Config, storage store.Store,
-	cacheMgn *cache.CacheManager) (UserServer, StrategyServer, error) {
+	cacheMgn cachetypes.CacheManager) (UserServer, StrategyServer, error) {
 	userSvr, strategySvr, err := initialize(ctx, authOpt, storage, cacheMgn)
 	if err != nil {
 		return nil, nil, err

@@ -125,7 +125,7 @@ bootstrap:
       rotationMaxAge: 7
       outputLevel: info
       compress: true
-    discoverLocal:
+    discoverstat:
       rotateOutputPath: log/statis/polaris-discoverstat.log
       errorRotateOutputPath: log/statis/polaris-discoverstat-error.log
       rotationMaxSize: 100
@@ -133,6 +133,7 @@ bootstrap:
       rotationMaxAge: 7
       outputLevel: info
       compress: true
+      onlyContent: true
     local:
       rotateOutputPath: log/statis/polaris-statis.log
       errorRotateOutputPath: log/statis/polaris-statis-error.log
@@ -184,7 +185,7 @@ bootstrap:
   polaris_service:
     ## level: self_address > network_inter > probe_address
     ## Obtain the IP of the VM or POD where Polaris is located by making a TCP connection with the probe_adreess address
-    probe_address: ##DB_ADDR##
+    # probe_address: ##DB_ADDR##
     ## Set the name of the gateway to get your own IP
     # network_inter: eth0
     ## Show the setting node itself IP information
@@ -406,17 +407,9 @@ healthcheck:
     #   option:
     #     # Heartbeat Record MAP number of shards
     #     soltNum: 128
-    #     # The number of GRPC connections used to process heartbeat forward request processing between leader and follower, default value is runtime.GOMAXPROCS(0)
+    #     # The number of GRPC connections used to process heartbeat forward request processing between leader and follower, 
+    #     # default value is runtime.GOMAXPROCS(0)
     #     streamNum: 128
-    #     batch:
-    #       # Heartbeat forwarding processing task cache queue
-    #       queueSize: 16384
-    #       # The maximum waiting time for task batch
-    #       waitTime: 32ms
-    #       # The maximum number of heartbeat forwarding tasks of single -batch tasks
-    #       maxBatchCount: 64 
-    #       # Number of workers
-    #       concurrency: 512  
 # Configuration center module start configuration
 config:
   # Whether to start the configuration module
@@ -424,9 +417,10 @@ config:
   # Maximum number of number of file characters
   contentMaxLength: 20000
 # Cache configuration
-
 cache:
-  # 缓存增量同步数据时，相较于当前时刻需要往回倒退多少秒, 即在 T 时刻的增量同步，实际增量数据时间范围为 [T - abs(DiffTime), ∞)
+  # When the incremental synchronization data is cached, the actual incremental data time range is as follows: 
+  # How many seconds need to be backtracked from the current time, that is, 
+  # the incremental synchronization at time T [T - abs(DiffTime), ∞)
   diffTime: 5s
 # Maintain configuration
 maintain:
@@ -494,11 +488,6 @@ plugin:
   discoverEvent:
     entries:
       - name: discoverEventLocal
-  discoverStatis:
-    name: discoverLocal
-    option:
-      # Statistical interval, the unit is second
-      interval: 60
   statis:
     entries:
       - name: local

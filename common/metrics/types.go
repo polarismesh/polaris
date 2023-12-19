@@ -18,6 +18,7 @@
 package metrics
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
@@ -106,12 +107,41 @@ type DiscoveryMetric struct {
 	Labels   map[string]string
 }
 
+func ResourceOfConfigFileList(group string) string {
+	return "CONFIG_FILE_LIST:" + group
+}
+
+func ResourceOfConfigFile(group, name string) string {
+	return "CONFIG_FILE:" + group + "/" + name
+}
+
+const (
+	ActionGetConfigFile          = "GET_CONFIG_FILE"
+	ActionListConfigFiles        = "LIST_CONFIG_FILES"
+	ActionListConfigGroups       = "LIST_CONFIG_GROUPS"
+	ActionPublishConfigFile      = "PUBLISH_CONFIG_FILE"
+	ActionDiscoverInstance       = "DISCOVER_INSTANCE"
+	ActionDiscoverServices       = "DISCOVER_SERVICES"
+	ActionDiscoverRouterRule     = "DISCOVER_ROUTER_RULE"
+	ActionDiscoverRateLimit      = "DISCOVER_RATE_LIMIT"
+	ActionDiscoverCircuitBreaker = "DISCOVER_CIRCUIT_BREAKER"
+	ActionDiscoverFaultDetect    = "DISCOVER_FAULT_DETECT"
+)
+
 type ClientDiscoverMetric struct {
 	ClientIP  string
+	Action    string
 	Namespace string
 	Resource  string
+	Revision  string
 	Timestamp int64
 	CostTime  int64
+	Success   bool
+}
+
+func (c ClientDiscoverMetric) String() string {
+	return fmt.Sprintf("%s|%s|%s|%s|%s|%s|%d|%+v", c.ClientIP, c.Action, c.Namespace, c.Resource,
+		c.Revision, time.Unix(c.Timestamp, 0).Format("2006-01-02 15:04:05"), c.CostTime, c.Success)
 }
 
 type ConfigMetricType string

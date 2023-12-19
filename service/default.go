@@ -20,11 +20,11 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/plugin"
@@ -48,18 +48,31 @@ const (
 	DefaultTLL = 5
 )
 
+type ServerProxyFactory func(svr *Server, pre DiscoverServer) (DiscoverServer, error)
+
 var (
 	server       DiscoverServer
 	namingServer *Server = new(Server)
 	once                 = sync.Once{}
 	finishInit           = false
+	// serverProxyFactories Service Server API 代理工厂
+	serverProxyFactories = map[string]ServerProxyFactory{}
 )
+
+func RegisterServerProxy(name string, factor ServerProxyFactory) error {
+	if _, ok := serverProxyFactories[name]; ok {
+		return fmt.Errorf("duplicate ServerProxyFactory, name(%s)", name)
+	}
+	serverProxyFactories[name] = factor
+	return nil
+}
 
 // Config 核心逻辑层配置
 type Config struct {
-	L5Open     bool                   `yaml:"l5Open"`
-	AutoCreate bool                   `yaml:"autoCreate"`
-	Batch      map[string]interface{} `yaml:"batch"`
+	L5Open       bool                   `yaml:"l5Open"`
+	AutoCreate   *bool                  `yaml:"autoCreate"`
+	Batch        map[string]interface{} `yaml:"batch"`
+	Interceptors []string               `yaml:"-"`
 }
 
 // Initialize 初始化
@@ -111,16 +124,20 @@ func initialize(ctx context.Context, namingOpt *Config, opts ...InitOption) erro
 	// 插件初始化
 	pluginInitialize()
 
-	userMgn, err := auth.GetUserServer()
-	if err != nil {
-		return err
-	}
-	strategyMgn, err := auth.GetStrategyServer()
-	if err != nil {
-		return err
-	}
+	// 需要返回包装代理的 DiscoverServer
+	order := namingOpt.Interceptors
+	for i := range order {
+		factory, exist := serverProxyFactories[order[i]]
+		if !exist {
+			return fmt.Errorf("name(%s) not exist in serverProxyFactories", order[i])
+		}
 
-	server = newServerAuthAbility(namingServer, userMgn, strategyMgn)
+		proxySvr, err := factory(namingServer, server)
+		if err != nil {
+			return err
+		}
+		server = proxySvr
+	}
 	return nil
 }
 
@@ -170,4 +187,10 @@ func pluginInitialize() {
 		log.Warnf("register DiscoverEvent into eventhub:%s %v", subscriber.Name(), err)
 	}
 	namingServer.subCtxs = append(namingServer.subCtxs, subCtx)
+}
+
+func GetChainOrder() []string {
+	return []string{
+		"auth",
+	}
 }

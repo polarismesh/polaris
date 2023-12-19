@@ -848,9 +848,8 @@ func getRealInstancesList(originServices map[string]interface{}, offset, limit u
 			return true
 		} else if instances[i].ModifyTime.Before(instances[j].ModifyTime) {
 			return false
-		} else {
-			return strings.Compare(instances[i].ID(), instances[j].ID()) < 0
 		}
+		return strings.Compare(instances[i].ID(), instances[j].ID()) < 0
 	})
 
 	return instances[beginIndex:endIndex]

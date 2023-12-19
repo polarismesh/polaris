@@ -55,6 +55,7 @@ var (
 
 func (h *NacosV2Server) Request(ctx context.Context, payload *nacospb.Payload) (*nacospb.Payload, error) {
 	h.connectionManager.RefreshClient(ctx)
+	ctx = injectPayloadHeader(ctx, payload)
 	handle, val, err := h.UnmarshalPayload(payload)
 	if err != nil {
 		return nil, err
@@ -150,7 +151,7 @@ func (h *NacosV2Server) RequestBiStream(svr nacospb.BiRequestStream_RequestBiStr
 			}
 			return err
 		}
-
+		ctx = injectPayloadHeader(ctx, req)
 		_, val, err := h.UnmarshalPayload(req)
 		if err != nil {
 			return err
@@ -193,4 +194,22 @@ func (h *NacosV2Server) UnmarshalPayload(payload *nacospb.Payload) (remote.Reque
 		return nil, nil, err
 	}
 	return handler.Handler, msg, nil
+}
+
+func injectPayloadHeader(ctx context.Context, payload *nacospb.Payload) context.Context {
+	metadata := payload.GetMetadata()
+	if metadata == nil {
+		return ctx
+	}
+	if len(metadata.Headers) == 0 {
+		return ctx
+	}
+	token, exist := metadata.Headers[nacosmodel.NacosClientAuthHeader]
+	if exist {
+		ctx = context.WithValue(ctx, utils.ContextAuthTokenKey, token)
+	}
+	for k, v := range metadata.Headers {
+		ctx = context.WithValue(ctx, utils.StringContext(k), v)
+	}
+	return ctx
 }

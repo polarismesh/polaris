@@ -58,9 +58,11 @@ func Initialize(ctx context.Context, nsOpt *Config, storage store.Store, cacheMg
 }
 
 func initialize(_ context.Context, nsOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error {
-	cacheMgn.OpenResourceCache(cache.ConfigEntry{
+	if err := cacheMgn.OpenResourceCache(cachetypes.ConfigEntry{
 		Name: cachetypes.NamespaceName,
-	})
+	}); err != nil {
+		return err
+	}
 	namespaceServer.caches = cacheMgn
 	namespaceServer.storage = storage
 	namespaceServer.cfg = *nsOpt

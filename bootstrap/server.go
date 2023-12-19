@@ -36,6 +36,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	boot_config "github.com/polarismesh/polaris/bootstrap/config"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/log"
@@ -164,6 +165,11 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 		return err
 	}
 
+	// 开启灰度规则缓存
+	_ = cacheMgn.OpenResourceCache(cachetypes.ConfigEntry{
+		Name: cachetypes.GrayName,
+	})
+
 	// 初始化鉴权层
 	if err = auth.Initialize(ctx, &cfg.Auth, s, cacheMgn); err != nil {
 		return err
@@ -270,6 +276,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 		service.WithNamespaceSvr(namespaceSvr),
 	}
 
+	cfg.Naming.Interceptors = service.GetChainOrder()
 	// 初始化服务模块
 	if err = service.Initialize(ctx, &cfg.Naming, opts...); err != nil {
 		return err
@@ -297,7 +304,7 @@ func StartConfigCenterComponents(ctx context.Context, cfg *boot_config.Config, s
 	if err != nil {
 		return err
 	}
-
+	cfg.Config.Interceptors = config_center.GetChainOrder()
 	return config_center.Initialize(ctx, cfg.Config, s, cacheMgn, namespaceOperator, userMgn, strategyMgn)
 }
 
