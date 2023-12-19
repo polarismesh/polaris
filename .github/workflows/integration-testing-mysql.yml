@@ -145,8 +145,6 @@ jobs:
 
           sleep 120s
           ls -alR
-          cat ./log/stdout 2>&1
-
           cd ..
           ls -lstrh
           # 先测试普通的集成测试

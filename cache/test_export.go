@@ -31,10 +31,14 @@ var (
 		if err != nil {
 			return nil, err
 		}
-		if err := Run(mgr, ctx); err != nil {
-			return nil, err
-		}
 		return mgr, err
+	}
+
+	TestRun = func(ctx context.Context, mgr *CacheManager) error {
+		if err := Run(mgr, ctx); err != nil {
+			return err
+		}
+		return nil
 	}
 )
 

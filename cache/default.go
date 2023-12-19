@@ -26,9 +26,9 @@ import (
 	cacheauth "github.com/polarismesh/polaris/cache/auth"
 	cacheclient "github.com/polarismesh/polaris/cache/client"
 	cacheconfig "github.com/polarismesh/polaris/cache/config"
+	cachegray "github.com/polarismesh/polaris/cache/gray"
 	cachens "github.com/polarismesh/polaris/cache/namespace"
 	cachesvc "github.com/polarismesh/polaris/cache/service"
-	cachegray "github.com/polarismesh/polaris/cache/gray"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )

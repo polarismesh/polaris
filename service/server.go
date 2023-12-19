@@ -68,7 +68,10 @@ func (s *Server) isSupportL5() bool {
 }
 
 func (s *Server) allowAutoCreate() bool {
-	return s.config.AutoCreate
+	if s.config.AutoCreate == nil {
+		return true
+	}
+	return *s.config.AutoCreate
 }
 
 // HealthServer 健康检查Server

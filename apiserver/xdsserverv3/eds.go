@@ -75,32 +75,34 @@ func (eds *EDSBuilder) makeBoundEndpoints(option *resource.BuildOption,
 		}
 
 		var lbEndpoints []*endpoint.LbEndpoint
-		for _, instance := range serviceInfo.Instances {
-			// 处于隔离状态或者权重为0的实例不进行下发
-			if !resource.IsNormalEndpoint(instance) {
-				continue
-			}
-			ep := &endpoint.LbEndpoint{
-				HostIdentifier: &endpoint.LbEndpoint_Endpoint{
-					Endpoint: &endpoint.Endpoint{
-						Address: &core.Address{
-							Address: &core.Address_SocketAddress{
-								SocketAddress: &core.SocketAddress{
-									Protocol: core.SocketAddress_TCP,
-									Address:  instance.Host.Value,
-									PortSpecifier: &core.SocketAddress_PortValue{
-										PortValue: instance.Port.Value,
+		if !option.ForceDelete {
+			for _, instance := range serviceInfo.Instances {
+				// 处于隔离状态或者权重为0的实例不进行下发
+				if !resource.IsNormalEndpoint(instance) {
+					continue
+				}
+				ep := &endpoint.LbEndpoint{
+					HostIdentifier: &endpoint.LbEndpoint_Endpoint{
+						Endpoint: &endpoint.Endpoint{
+							Address: &core.Address{
+								Address: &core.Address_SocketAddress{
+									SocketAddress: &core.SocketAddress{
+										Protocol: core.SocketAddress_TCP,
+										Address:  instance.Host.Value,
+										PortSpecifier: &core.SocketAddress_PortValue{
+											PortValue: instance.Port.Value,
+										},
 									},
 								},
 							},
 						},
 					},
-				},
-				HealthStatus:        resource.FormatEndpointHealth(instance),
-				LoadBalancingWeight: utils.NewUInt32Value(instance.GetWeight().GetValue()),
-				Metadata:            resource.GenEndpointMetaFromPolarisIns(instance),
+					HealthStatus:        resource.FormatEndpointHealth(instance),
+					LoadBalancingWeight: utils.NewUInt32Value(instance.GetWeight().GetValue()),
+					Metadata:            resource.GenEndpointMetaFromPolarisIns(instance),
+				}
+				lbEndpoints = append(lbEndpoints, ep)
 			}
-			lbEndpoints = append(lbEndpoints, ep)
 		}
 
 		cla := &endpoint.ClusterLoadAssignment{

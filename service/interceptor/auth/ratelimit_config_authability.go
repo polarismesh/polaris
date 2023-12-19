@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package service_auth
 
 import (
 	"context"
@@ -30,7 +30,7 @@ import (
 )
 
 // CreateRateLimits creates rate limits for a namespace.
-func (svr *serverAuthAbility) CreateRateLimits(
+func (svr *ServerAuthAbility) CreateRateLimits(
 	ctx context.Context, reqs []*apitraffic.Rule) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Create, "CreateRateLimits")
 
@@ -46,7 +46,7 @@ func (svr *serverAuthAbility) CreateRateLimits(
 }
 
 // DeleteRateLimits deletes rate limits for a namespace.
-func (svr *serverAuthAbility) DeleteRateLimits(
+func (svr *ServerAuthAbility) DeleteRateLimits(
 	ctx context.Context, reqs []*apitraffic.Rule) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Delete, "DeleteRateLimits")
 
@@ -62,7 +62,7 @@ func (svr *serverAuthAbility) DeleteRateLimits(
 }
 
 // UpdateRateLimits updates rate limits for a namespace.
-func (svr *serverAuthAbility) UpdateRateLimits(
+func (svr *ServerAuthAbility) UpdateRateLimits(
 	ctx context.Context, reqs []*apitraffic.Rule) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Modify, "UpdateRateLimits")
 
@@ -78,7 +78,7 @@ func (svr *serverAuthAbility) UpdateRateLimits(
 }
 
 // EnableRateLimits 启用限流规则
-func (svr *serverAuthAbility) EnableRateLimits(
+func (svr *ServerAuthAbility) EnableRateLimits(
 	ctx context.Context, reqs []*apitraffic.Rule) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, nil, model.Read, "EnableRateLimits")
 
@@ -94,7 +94,7 @@ func (svr *serverAuthAbility) EnableRateLimits(
 }
 
 // GetRateLimits gets rate limits for a namespace.
-func (svr *serverAuthAbility) GetRateLimits(
+func (svr *ServerAuthAbility) GetRateLimits(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, nil, model.Read, "GetRateLimits")
 

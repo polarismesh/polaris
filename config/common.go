@@ -25,6 +25,55 @@ import (
 	"github.com/polarismesh/polaris/common/model"
 )
 
+var (
+	availableSearch = map[string]map[string]string{
+		"config_file": {
+			"namespace":   "namespace",
+			"group":       "group",
+			"name":        "name",
+			"offset":      "offset",
+			"limit":       "limit",
+			"order_type":  "order_type",
+			"order_field": "order_field",
+		},
+		"config_file_release": {
+			"namespace":    "namespace",
+			"group":        "group",
+			"file_name":    "file_name",
+			"fileName":     "file_name",
+			"name":         "release_name",
+			"release_name": "release_name",
+			"offset":       "offset",
+			"limit":        "limit",
+			"order_type":   "order_type",
+			"order_field":  "order_field",
+			"only_active":  "only_active",
+		},
+		"config_file_group": {
+			"namespace":   "namespace",
+			"group":       "name",
+			"name":        "name",
+			"business":    "business",
+			"department":  "department",
+			"offset":      "offset",
+			"limit":       "limit",
+			"order_type":  "order_type",
+			"order_field": "order_field",
+		},
+		"config_file_release_history": {
+			"namespace":   "namespace",
+			"group":       "group",
+			"name":        "file_name",
+			"offset":      "offset",
+			"limit":       "limit",
+			"endId":       "endId",
+			"end_id":      "endId",
+			"order_type":  "order_type",
+			"order_field": "order_field",
+		},
+	}
+)
+
 func (s *Server) checkNamespaceExisted(namespaceName string) bool {
 	if val := s.caches.Namespace().GetNamespace(namespaceName); val != nil {
 		return true

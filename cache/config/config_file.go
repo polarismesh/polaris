@@ -182,8 +182,9 @@ func (fc *fileCache) setReleases(releases []*model.ConfigFileRelease) (map[strin
 
 		if item.Active {
 			configLog.Info("[Config][Release][Cache] notify config release change",
-				zap.String("namespace", item.Namespace), zap.String("group", item.Group),
-				zap.String("file", item.FileName), zap.Uint64("version", item.Version), zap.Bool("valid", item.Valid))
+				zap.String("namespace", item.Namespace), zap.String("group", item.Group), zap.String("release", item.Name),
+				zap.String("file", item.FileName), zap.Uint64("version", item.Version), zap.Bool("valid", item.Valid),
+				zap.String("type", string(item.ReleaseType)))
 			fc.sendEvent(item)
 		}
 	}
@@ -198,14 +199,15 @@ func (fc *fileCache) sendEvent(item *model.ConfigFileRelease) {
 	if err != nil {
 		configLog.Error("[Config][Release][Cache] notify config release change",
 			zap.String("namespace", item.Namespace), zap.String("group", item.Group),
-			zap.String("file", item.FileName), zap.Uint64("version", item.Version), zap.Error(err))
+			zap.String("file", item.FileName), zap.Uint64("version", item.Version), zap.String("type", string(item.ReleaseType)),
+			zap.Error(err))
 	}
 }
 
 // handleUpdateRelease
 func (fc *fileCache) handleUpdateRelease(oldVal *model.SimpleConfigFileRelease, item *model.ConfigFileRelease) error {
 	// 如果ReleaseType类型变更， 先删除再保存
-	if oldVal != nil && oldVal.Typ != item.Typ {
+	if oldVal != nil && oldVal.ReleaseType != item.ReleaseType {
 		if err := fc.handleDeleteRelease(oldVal); err != nil {
 			return err
 		}
@@ -403,7 +405,16 @@ func (fc *fileCache) GetGroupActiveReleases(namespace, group string) ([]*model.C
 }
 
 // GetActiveRelease
-func (fc *fileCache) GetActiveRelease(namespace, group, fileName string, typ model.ReleaseType) *model.ConfigFileRelease {
+func (fc *fileCache) GetActiveRelease(namespace, group, fileName string) *model.ConfigFileRelease {
+	return fc.handleGetActiveRelease(namespace, group, fileName, model.ReleaseTypeFull)
+}
+
+// GetGrayRelease
+func (fc *fileCache) GetGrayRelease(namespace, group, fileName string) *model.ConfigFileRelease {
+	return fc.handleGetActiveRelease(namespace, group, fileName, model.ReleaseTypeGray)
+}
+
+func (fc *fileCache) handleGetActiveRelease(namespace, group, fileName string, typ model.ReleaseType) *model.ConfigFileRelease {
 	nsBucket, ok := fc.activeReleases.Load(namespace)
 	if !ok {
 		return nil
@@ -413,10 +424,10 @@ func (fc *fileCache) GetActiveRelease(namespace, group, fileName string, typ mod
 		return nil
 	}
 	searchKey := &model.ConfigFileReleaseKey{
-		Namespace: namespace,
-		Group:     group,
-		FileName:  fileName,
-		Typ:       typ,
+		Namespace:   namespace,
+		Group:       group,
+		FileName:    fileName,
+		ReleaseType: typ,
 	}
 	simple, ok := groupBucket.Load(searchKey.ActiveKey())
 	if !ok {
@@ -487,7 +498,7 @@ func (fc *fileCache) QueryReleases(args *types.ConfigReleaseArgs) (uint32, []*mo
 					if args.ReleaseName != "" && utils.IsWildNotMatch(item.Name, args.ReleaseName) {
 						return
 					}
-					if !args.IncludeGray && item.Typ == model.ReleaseTypeGray {
+					if !args.IncludeGray && item.ReleaseType == model.ReleaseTypeGray {
 						return
 					}
 					if args.OnlyActive && !item.Active {

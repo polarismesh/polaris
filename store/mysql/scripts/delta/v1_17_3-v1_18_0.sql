@@ -29,6 +29,9 @@ ADD COLUMN `service_export_to` TEXT COMMENT 'namespace metadata';
 ALTER TABLE namespace
 ADD COLUMN `metadata` TEXT COMMENT 'namespace metadata';
 
+ALTER TABLE config_file_release
+ADD COLUMN `release_type` VARCHAR(25) NOT NULL DEFAULT '' COMMENT '文件类型：""：全量 gray：灰度';
+
 /* 服务契约表 */
 CREATE TABLE service_contract (
         `id` VARCHAR(128) NOT NULL COMMENT '服务契约主键',
@@ -70,3 +73,16 @@ CREATE TABLE service_contract_detail (
         -- 服务契约id + method + path + source 需保证唯一
         KEY (`contract_id`, `path`, `method`)
     ) ENGINE = InnoDB;
+
+/* 灰度资源 */
+CREATE TABLE `gray_resource`
+(
+    `name`        VARCHAR(128)    NOT NULL COMMENT '灰度资源',
+    `match_rule`  TEXT            NOT NULL COMMENT '配置规则',
+    `create_time` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `create_by`   VARCHAR(32)     DEFAULT "" COMMENT '创建人',
+    `modify_time` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    `modify_by`   VARCHAR(32)     DEFAULT "" COMMENT '最后更新人',
+    `flag`        TINYINT(4)            DEFAULT 0 COMMENT '逻辑删除标志位, 0 位有效, 1 为逻辑删除',
+    PRIMARY KEY (`name`)
+) ENGINE = InnoDB COMMENT = '灰度资源表';

@@ -14,7 +14,7 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
- 
+
 package model
 
 import (
@@ -39,6 +39,7 @@ type GrayResource struct {
 	ModifyTime time.Time
 	CreateBy   string
 	ModifyBy   string
+	Valid      bool
 }
 
 // GetGrayConfigRealseKey 获取灰度资源key

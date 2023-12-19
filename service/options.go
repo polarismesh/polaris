@@ -33,30 +33,48 @@ import (
    - name: client # Load Client-SDK instance data
 */
 
+func GetRegisterCaches() []cachetypes.ConfigEntry {
+	ret := []cachetypes.ConfigEntry{}
+	// ret = append(ret, l5CacheEntry)
+	ret = append(ret, namingCacheEntries...)
+	return ret
+}
+
+func GetAllCaches() []cachetypes.ConfigEntry {
+	ret := []cachetypes.ConfigEntry{}
+	ret = append(ret, l5CacheEntry)
+	ret = append(ret, namingCacheEntries...)
+	ret = append(ret, governanceCacheEntries...)
+	return ret
+}
+
 var (
-	l5CacheEntry = cache.ConfigEntry{
+	l5CacheEntry = cachetypes.ConfigEntry{
 		Name: cachetypes.L5Name,
 	}
-	namingCacheEntries = []cache.ConfigEntry{
+	namingCacheEntries = []cachetypes.ConfigEntry{
 		{
 			Name: cachetypes.ServiceName,
 			Option: map[string]interface{}{
 				"disableBusiness": false,
-				"needMeta": true,
+				"needMeta":        true,
 			},
 		},
 		{
 			Name: cachetypes.InstanceName,
 			Option: map[string]interface{}{
 				"disableBusiness": false,
-				"needMeta": true,
+				"needMeta":        true,
 			},
 		},
 		{
 			Name: cachetypes.ServiceContractName,
 		},
+		{
+			Name: cachetypes.ClientName,
+		},
 	}
-	governanceCacheEntries = []cache.ConfigEntry{
+	governanceCacheEntries = []cachetypes.ConfigEntry{
 		{
 			Name: cachetypes.RoutingConfigName,
 		},
@@ -95,10 +113,10 @@ func WithStorage(storage store.Store) InitOption {
 func WithCacheManager(cacheOpt *cache.Config, c *cache.CacheManager) InitOption {
 	return func(s *Server) {
 		log.Infof("[Naming][Server] cache is open, can access the client api function")
-		c.OpenResourceCache(namingCacheEntries...)
-		c.OpenResourceCache(governanceCacheEntries...)
+		_ = c.OpenResourceCache(namingCacheEntries...)
+		_ = c.OpenResourceCache(governanceCacheEntries...)
 		if s.isSupportL5() {
-			c.OpenResourceCache(l5CacheEntry)
+			_ = c.OpenResourceCache(l5CacheEntry)
 		}
 		s.caches = c
 	}

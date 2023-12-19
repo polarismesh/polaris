@@ -24,12 +24,17 @@ import (
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
 )
 
 func TestInitialize(_ context.Context, nsOpt *Config, storage store.Store, cacheMgn *cache.CacheManager,
 	userMgn auth.UserServer, strategyMgn auth.StrategyServer) (NamespaceOperateServer, error) {
+	_ = cacheMgn.OpenResourceCache(cachetypes.ConfigEntry{
+		Name: cachetypes.NamespaceName,
+	})
+	nsOpt.AutoCreate = true
 	namespaceServer := &Server{}
 	namespaceServer.caches = cacheMgn
 	namespaceServer.storage = storage

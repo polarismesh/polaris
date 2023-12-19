@@ -5,7 +5,6 @@
 - polaris-server 北极星核心服务
 - polaris-console 北极星控制台
 - mysql 替换默认的boltdb存储
-- redis 替换默认的基于内存的心跳检查
 - polaris-prometheus
 - polaris-pushgateway
 - grafana
@@ -16,7 +15,6 @@
 
 ```shell
 docker volume create --name=vlm_data_mysql
-docker volume create --name=vlm_data_redis
 ```
 
 ### 启动服务
@@ -52,7 +50,6 @@ docker-compose down
 
 ```shell
 docker volume rm vlm_data_mysql
-docker volume rm vlm_data_redis
 ```
 
 ### 访问

@@ -82,15 +82,14 @@ require (
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
-	github.com/agiledragon/gomonkey/v2 v2.10.1
-	github.com/polarismesh/specification v1.4.2-alpha
+	github.com/polarismesh/specification v1.4.2-alpha.6
 )
 
 require (
+	github.com/dlclark/regexp2 v1.10.0
 	go.etcd.io/bbolt v1.3.7
 	google.golang.org/genproto/googleapis/api v0.0.0-20230526203410-71b5a4ffd15e // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230526203410-71b5a4ffd15e // indirect
 )
 
 replace gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.2
-

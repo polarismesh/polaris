@@ -750,6 +750,7 @@ func EnrichAppendServiceContractInterfacesApiDocs(r *restful.RouteBuilder) *rest
 	return r.Doc("追加服务契约接口描述").
 		Metadata(restfulspec.KeyOpenAPITags, serviceContractApiTags)
 }
+
 func EnrichDeleteServiceContractInterfacesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.Doc("删除服务契约接口描述").
 		Metadata(restfulspec.KeyOpenAPITags, serviceContractApiTags)

@@ -25,12 +25,6 @@ type Config struct {
 	DiffTime time.Duration `yaml:"diffTime"`
 }
 
-// ConfigEntry 单个缓存资源配置
-type ConfigEntry struct {
-	Name   string                 `yaml:"name"`
-	Option map[string]interface{} `yaml:"option"`
-}
-
 var (
 	config *Config
 )

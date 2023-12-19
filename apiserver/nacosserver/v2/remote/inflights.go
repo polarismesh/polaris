@@ -43,8 +43,9 @@ type (
 		once       sync.Once
 		ConnID     string
 		RequestID  string
-		Callback   func(nacospb.BaseResponse, error)
+		Callback   func(map[string]interface{}, nacospb.BaseResponse, error)
 		ExpireTime time.Time
+		Attachment map[string]interface{}
 	}
 )
 
@@ -72,14 +73,14 @@ func (i *InFlights) NotifyInFlight(connID string, resp nacospb.BaseResponse) {
 	}
 
 	if resp.GetResultCode() != int(nacosmodel.Response_Success.Code) {
-		inflight.Callback(resp, &nacosmodel.NacosError{
+		inflight.Callback(inflight.Attachment, resp, &nacosmodel.NacosError{
 			ErrCode: int32(resp.GetErrorCode()),
 			ErrMsg:  resp.GetMessage(),
 		})
 		return
 	}
 	inflight.once.Do(func() {
-		inflight.Callback(resp, nil)
+		inflight.Callback(inflight.Attachment, resp, nil)
 	})
 }
 
@@ -121,7 +122,7 @@ func (i *InFlights) notifyOutDateInFlight(ctx context.Context) {
 					}
 					val.inFlights.Delete(reqId)
 					inFlight.once.Do(func() {
-						inFlight.Callback(nil, context.DeadlineExceeded)
+						inFlight.Callback(inFlight.Attachment, nil, context.DeadlineExceeded)
 					})
 				})
 			})

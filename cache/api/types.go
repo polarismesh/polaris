@@ -22,10 +22,10 @@ import (
 	"sync"
 	"time"
 
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
@@ -107,12 +107,50 @@ type Cache interface {
 	Close() error
 }
 
+// ConfigEntry 单个缓存资源配置
+type ConfigEntry struct {
+	Name   string                 `yaml:"name"`
+	Option map[string]interface{} `yaml:"option"`
+}
+
 // CacheManager
 type CacheManager interface {
 	// GetCacher
 	GetCacher(cacheIndex CacheIndex) Cache
 	// RegisterCacher
 	RegisterCacher(cacheIndex CacheIndex, item Cache)
+	//
+	OpenResourceCache(entries ...ConfigEntry) error
+	// Service 获取Service缓存信息
+	Service() ServiceCache
+	// Instance 获取Instance缓存信息
+	Instance() InstanceCache
+	// RoutingConfig 获取路由配置的缓存信息
+	RoutingConfig() RoutingConfigCache
+	// CL5 获取l5缓存信息
+	CL5() L5Cache
+	// RateLimit 获取限流规则缓存信息
+	RateLimit() RateLimitCache
+	// CircuitBreaker 获取熔断规则缓存信息
+	CircuitBreaker() CircuitBreakerCache
+	// FaultDetector 获取探测规则缓存信息
+	FaultDetector() FaultDetectCache
+	// ServiceContract 获取服务契约缓存
+	ServiceContract() ServiceContractCache
+	// User Get user information cache information
+	User() UserCache
+	// AuthStrategy Get authentication cache information
+	AuthStrategy() StrategyCache
+	// Namespace Get namespace cache information
+	Namespace() NamespaceCache
+	// Client Get client cache information
+	Client() ClientCache
+	// ConfigFile get config file cache information
+	ConfigFile() ConfigFileCache
+	// ConfigGroup get config group cache information
+	ConfigGroup() ConfigGroupCache
+	// Gray get Gray cache information
+	Gray() GrayCache
 }
 
 type (
@@ -225,6 +263,8 @@ type (
 		GetInstance(instanceID string) *model.Instance
 		// GetInstancesByServiceID 根据服务名获取实例，先查找服务名对应的服务ID，再找实例列表
 		GetInstancesByServiceID(serviceID string) []*model.Instance
+		// GetInstances 根据服务名获取实例，先查找服务名对应的服务ID，再找实例列表
+		GetInstances(serviceID string) *model.ServiceInstances
 		// IteratorInstances 迭代
 		IteratorInstances(iterProc InstanceIterProc) error
 		// IteratorInstancesWithService 根据服务ID进行迭代
@@ -437,6 +477,8 @@ type (
 		GetGroupByName(namespace, name string) *model.ConfigFileGroup
 		// GetGroupByID
 		GetGroupByID(id uint64) *model.ConfigFileGroup
+		// ListGroups
+		ListGroups(namespace string) ([]*model.ConfigFileGroup, string)
 		// Query
 		Query(args *ConfigGroupArgs) (uint32, []*model.ConfigFileGroup, error)
 	}
@@ -446,7 +488,10 @@ type (
 		Cache
 		// GetActiveRelease
 		GetGroupActiveReleases(namespace, group string) ([]*model.ConfigFileRelease, string)
-		GetActiveRelease(namespace, group, fileName string, typ model.ReleaseType) *model.ConfigFileRelease
+		// GetActiveRelease
+		GetActiveRelease(namespace, group, fileName string) *model.ConfigFileRelease
+		// GetGrayRelease
+		GetGrayRelease(namespace, group, fileName string) *model.ConfigFileRelease
 		// GetRelease
 		GetRelease(key model.ConfigFileReleaseKey) *model.ConfigFileRelease
 		// QueryReleases
@@ -657,6 +702,8 @@ type (
 	// GrayCache 灰度 Cache 接口
 	GrayCache interface {
 		Cache
-		GetGrayRule(name string) *apimodel.MatchTerm
+		GetGrayRule(name string) []*apimodel.ClientLabel
+		// HitGrayRule .
+		HitGrayRule(name string, labels map[string]string) bool
 	}
 )

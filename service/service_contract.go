@@ -267,7 +267,7 @@ func (s *Server) GetServiceContractVersions(ctx context.Context, filter map[stri
 			Ctime:     commontime.Time2String(item.CreateTime),
 			Mtime:     commontime.Time2String(item.ModifyTime),
 		}); err != nil {
-			log.Errorf("[Service][Contract] list all versions fail", utils.RequestID(ctx), zap.String("namespace", namespace),
+			log.Error("[Service][Contract] list all versions fail", utils.RequestID(ctx), zap.String("namespace", namespace),
 				zap.String("service", serviceName), zap.Error(err))
 			return api.NewBatchQueryResponse(apimodel.Code_ExecuteException)
 		}

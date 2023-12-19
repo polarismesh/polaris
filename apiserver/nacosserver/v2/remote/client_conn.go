@@ -212,7 +212,7 @@ func (h *ConnectionManager) RegisterConnection(ctx context.Context, payload *nac
 func (h *ConnectionManager) UnRegisterConnection(connID string) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-	eventhub.Publish(ClientConnectionEvent, &ConnectionEvent{
+	_ = eventhub.Publish(ClientConnectionEvent, &ConnectionEvent{
 		EventType: EventClientDisConnected,
 		ConnID:    connID,
 		Client:    h.clients[connID],
@@ -299,7 +299,7 @@ func (h *ConnectionManager) HandleConn(ctx context.Context, s stats.ConnStats) {
 		defer h.lock.RUnlock()
 		connID, _ := ctx.Value(ConnIDKey{}).(string)
 		nacoslog.Info("[NACOS-V2][ConnMgr] grpc conn begin", zap.String("conn-id", connID))
-		eventhub.Publish(ClientConnectionEvent, &ConnectionEvent{
+		_ = eventhub.Publish(ClientConnectionEvent, &ConnectionEvent{
 			EventType: EventClientConnected,
 			ConnID:    connID,
 			Client:    h.clients[connID],
@@ -409,7 +409,7 @@ func (h *ConnectionManager) ejectOutdateConnection() {
 			ConnID:     connID,
 			RequestID:  req.RequestId,
 			ExpireTime: time.Now().Add(5 * time.Second),
-			Callback: func(resp nacospb.BaseResponse, err error) {
+			Callback: func(attachment map[string]interface{}, resp nacospb.BaseResponse, err error) {
 				defer wait.Done()
 				select {
 				case <-ctx.Done():
@@ -431,7 +431,6 @@ func (h *ConnectionManager) ejectOutdateConnection() {
 	<-ctx.Done()
 	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 		// TODO log
-		wait.Done()
 	}
 	for connID := range outDatedConnections {
 		if _, ok := successConnections.Load(connID); !ok {

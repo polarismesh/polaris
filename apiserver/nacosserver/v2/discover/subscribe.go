@@ -28,7 +28,10 @@ import (
 	nacosmodel "github.com/polarismesh/polaris/apiserver/nacosserver/model"
 	nacospb "github.com/polarismesh/polaris/apiserver/nacosserver/v2/pb"
 	"github.com/polarismesh/polaris/apiserver/nacosserver/v2/remote"
+	"github.com/polarismesh/polaris/common/metrics"
+	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 func (h *DiscoverServer) handleSubscribeServiceReques(ctx context.Context, req nacospb.BaseRequest,
@@ -100,37 +103,62 @@ func (h *DiscoverServer) sendPushData(sub core.Subscriber, data *core.PushData) 
 	}
 
 	connCtx := context.WithValue(context.TODO(), remote.ConnIDKey{}, watcher.Key)
-	callback := func(resp nacospb.BaseResponse, err error) {
+	callback := func(attachment map[string]interface{}, resp nacospb.BaseResponse, err error) {
 		if err != nil {
 			nacoslog.Error("[NACOS-V2][PushCenter] receive client push error",
 				zap.String("req-id", req.RequestId),
 				zap.String("namespace", data.Service.Namespace), zap.String("svc", data.Service.Name),
 				zap.Error(err))
 		} else {
+			// 刷新连接的存活时间
 			h.connMgr.RefreshClient(connCtx)
 			nacoslog.Info("[NACOS-V2][PushCenter] receive client push ack", zap.String("req-id", req.RequestId),
 				zap.String("namespace", data.Service.Namespace), zap.String("svc", data.Service.Name),
 				zap.Any("resp", resp))
 		}
+		plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+			ClientIP:  client.Addr.String(),
+			Action:    attachment["action"].(string),
+			Namespace: attachment["namespace"].(string),
+			Resource:  attachment["resource"].(string),
+			Revision:  attachment["revision"].(string),
+			Timestamp: commontime.CurrentMillisecond(),
+			CostTime:  commontime.CurrentMillisecond() - attachment["start"].(int64),
+			Success:   err == nil,
+		})
 	}
-
+	clientResp, err := remote.MarshalPayload(req)
+	if err != nil {
+		return err
+	}
 	// add inflight first
-	err := h.connMgr.InFlights().AddInFlight(&remote.InFlight{
+	if err := h.connMgr.InFlights().AddInFlight(&remote.InFlight{
 		ConnID:     watcher.Key,
 		RequestID:  req.RequestId,
 		Callback:   callback,
 		ExpireTime: time.Now().Add(5 * time.Second),
-	})
-	if err != nil {
+		Attachment: map[string]interface{}{
+			"start":     commontime.CurrentMillisecond(),
+			"action":    "NACOS_SERVICE_PUSH",
+			"namespace": namespace,
+			"resource":  "INSTANCE:" + data.Service.Group + "/" + data.Service.Name,
+			"revision":  data.ServiceInfo.Checksum,
+		},
+	}); err != nil {
 		nacoslog.Error("[NACOS-V2][PushCenter] add inflight client error", zap.String("conn-id", watcher.Key),
 			zap.String("req-id", req.RequestId),
 			zap.String("namespace", data.Service.Namespace), zap.String("svc", data.Service.Name),
 			zap.Error(err))
 	}
-
-	clientResp, err := remote.MarshalPayload(req)
-	if err != nil {
-		return err
+	// 发送通知失败，直接触发 Inflight 结束
+	if err = svr.SendMsg(clientResp); err != nil {
+		h.connMgr.InFlights().NotifyInFlight(client.ID, &nacospb.NotifySubscriberResponse{
+			Response: &nacospb.Response{
+				ResultCode: int(nacosmodel.Response_Fail.Code),
+				Message:    err.Error(),
+				RequestId:  req.RequestId,
+			},
+		})
 	}
-	return svr.SendMsg(clientResp)
+	return err
 }

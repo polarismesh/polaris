@@ -329,6 +329,18 @@ func ParseClientAddress(ctx context.Context) string {
 	return rid
 }
 
+// ParseClientIP .
+func ParseClientIP(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	rid, _ := ctx.Value(ContextClientAddress).(string)
+	if strings.Contains(rid, ":") {
+		return strings.Split(rid, ":")[0]
+	}
+	return rid
+}
+
 // ParseAuthToken 从ctx中获取token
 func ParseAuthToken(ctx context.Context) string {
 	if ctx == nil {
@@ -592,6 +604,9 @@ func CheckContractInterfaceTetrad(contractId string, source apiservice.Interface
 
 	if contractId == "" {
 		return "", api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract id")
+	}
+	if req.GetId() != "" {
+		return req.GetId(), nil
 	}
 	if req.GetMethod() == "" {
 		return "", api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract interface method")

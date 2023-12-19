@@ -35,7 +35,7 @@ func TestComputeNamespace(t *testing.T) {
 		{
 			name: "string",
 			args: args{
-				modID: 192002625,
+				modID: 192000065,
 				cmdID: 65000,
 			},
 			want: []string{ProductionNamespace},

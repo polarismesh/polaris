@@ -184,8 +184,8 @@ func (s *Server) updateConfigFileAttribute(saveData, updateData *model.ConfigFil
 		if len(saveData.Metadata) == 0 {
 			saveData.Metadata = map[string]string{}
 		}
-		saveData.Metadata[utils.ConfigFileTagKeyDataKey] = oldMetadata[utils.ConfigFileTagKeyDataKey]
-		saveData.Metadata[utils.ConfigFileTagKeyEncryptAlgo] = oldMetadata[utils.ConfigFileTagKeyEncryptAlgo]
+		saveData.Metadata[model.MetaKeyConfigFileDataKey] = oldMetadata[model.MetaKeyConfigFileDataKey]
+		saveData.Metadata[model.MetaKeyConfigFileEncryptAlgo] = oldMetadata[model.MetaKeyConfigFileEncryptAlgo]
 	}
 
 	return saveData, needUpdate
@@ -340,6 +340,7 @@ func (s *Server) SearchConfigFile(ctx context.Context, filter map[string]string)
 		return out
 	}
 
+	_ = s.caches.ConfigFile().Update()
 	ret := make([]*apiconfig.ConfigFile, 0, len(files))
 	for _, file := range files {
 		file, err := s.chains.AfterGetFile(ctx, file)

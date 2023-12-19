@@ -53,6 +53,8 @@ func createEurekaServerForTest(
 	if err != nil {
 		return nil, err
 	}
+	// 注册实例信息修改 chain 数据
+	eurekaSrv.registerInstanceChain()
 	return eurekaSrv, nil
 }
 
@@ -88,7 +90,7 @@ func batchBuildInstances(appId string, host string, port int, lease *LeaseInfo, 
 func batchCreateInstance(t *testing.T, eurekaSvr *EurekaServer, namespace string, instances []*InstanceInfo) {
 	for _, instance := range instances {
 		code := eurekaSvr.registerInstances(context.Background(), namespace, instance.AppName, instance, false)
-		assert.Equal(t, api.ExecuteSuccess, code)
+		assert.Equal(t, api.ExecuteSuccess, code, fmt.Sprintf("%+v", code))
 	}
 }
 
@@ -223,36 +225,34 @@ func Test_EurekaWrite(t *testing.T) {
 
 	mockIns := genMockEurekaInstance()
 
-	t.Run("RegisterInstance", func(t *testing.T) {
-		// pretty output must be created and written explicitly
-		output, err := xml.MarshalIndent(mockIns, " ", " ")
-		assert.NoError(t, err)
+	// pretty output must be created and written explicitly
+	output, err := xml.MarshalIndent(mockIns, " ", " ")
+	assert.NoError(t, err)
 
-		var body bytes.Buffer
-		_, err = body.Write([]byte(xml.Header))
-		assert.NoError(t, err)
-		_, err = body.Write(output)
-		assert.NoError(t, err)
+	var body bytes.Buffer
+	_, err = body.Write([]byte(xml.Header))
+	assert.NoError(t, err)
+	_, err = body.Write(output)
+	assert.NoError(t, err)
 
-		mockReq := httptest.NewRequest("", fmt.Sprintf("http://127.0.0.1:8761/eureka/v2/apps/%s", mockIns.AppName), &body)
-		mockReq.Header.Add(restful.HEADER_Accept, restful.MIME_XML)
-		mockReq.Header.Add(restful.HEADER_ContentType, restful.MIME_XML)
-		mockRsp := newMockResponseWriter()
+	mockReq := httptest.NewRequest("", fmt.Sprintf("http://127.0.0.1:8761/eureka/v2/apps/%s", mockIns.AppName), &body)
+	mockReq.Header.Add(restful.HEADER_Accept, restful.MIME_XML)
+	mockReq.Header.Add(restful.HEADER_ContentType, restful.MIME_XML)
+	mockRsp := newMockResponseWriter()
 
-		restfulReq := restful.NewRequest(mockReq)
-		injectRestfulReqPathParameters(t, restfulReq, map[string]string{
-			ParamAppId: mockIns.AppName,
-		})
-		// 这里是异步注册
-		eurekaSrv.RegisterApplication(restfulReq, restful.NewResponse(mockRsp))
-		assert.Equal(t, http.StatusNoContent, mockRsp.statusCode)
-		assert.Equal(t, restfulReq.Attribute(statusCodeHeader), uint32(apimodel.Code_ExecuteSuccess))
-
-		time.Sleep(5 * time.Second)
-		saveIns, err := eurekaSrv.originDiscoverSvr.Cache().GetStore().GetInstance(mockIns.InstanceId)
-		assert.NoError(t, err)
-		assert.NotNil(t, saveIns)
+	restfulReq := restful.NewRequest(mockReq)
+	injectRestfulReqPathParameters(t, restfulReq, map[string]string{
+		ParamAppId: mockIns.AppName,
 	})
+	// 这里是异步注册
+	eurekaSrv.RegisterApplication(restfulReq, restful.NewResponse(mockRsp))
+	assert.Equal(t, http.StatusNoContent, mockRsp.statusCode)
+	assert.Equal(t, restfulReq.Attribute(statusCodeHeader), uint32(apimodel.Code_ExecuteSuccess))
+
+	time.Sleep(5 * time.Second)
+	saveIns, err := eurekaSrv.originDiscoverSvr.Cache().GetStore().GetInstance(mockIns.InstanceId)
+	assert.NoError(t, err)
+	assert.NotNil(t, saveIns)
 
 	t.Run("UpdateStatus", func(t *testing.T) {
 		t.Run("StatusUnknown", func(t *testing.T) {
@@ -274,6 +274,7 @@ func Test_EurekaWrite(t *testing.T) {
 			//
 			saveIns, err := discoverSuit.Storage.GetInstance(mockIns.InstanceId)
 			assert.NoError(t, err)
+			assert.NotNil(t, saveIns)
 			assert.False(t, saveIns.Isolate())
 		})
 

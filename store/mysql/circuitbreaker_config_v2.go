@@ -332,12 +332,12 @@ func genCircuitBreakerRuleSQL(query map[string]string) (string, []interface{}) {
 		}
 	}
 	if len(svcQueryValue) > 0 {
-		str += " and (dst_service = ? or dst_service = '*')"
-		args = append(args, svcQueryValue)
+		str += " and (dst_service = ? or dst_service = '*' or src_service = ? or src_service = '*')"
+		args = append(args, svcQueryValue, svcQueryValue)
 	}
 	if len(svcNamespaceQueryValue) > 0 {
-		str += " and (dst_namespace = ? or dst_namespace = '*')"
-		args = append(args, svcNamespaceQueryValue)
+		str += " and (dst_namespace = ? or dst_namespace = '*' or dst_namespace = ? or dst_namespace = '*')"
+		args = append(args, svcNamespaceQueryValue, svcNamespaceQueryValue)
 	}
 	return str, args
 }

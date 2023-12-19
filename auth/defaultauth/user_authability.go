@@ -25,7 +25,6 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	"github.com/polarismesh/polaris/auth"
-	"github.com/polarismesh/polaris/cache"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/plugin"
@@ -47,8 +46,8 @@ type UserAuthAbility struct {
 
 // Initialize 执行初始化动作
 func (svr *UserAuthAbility) Initialize(authOpt *auth.Config, storage store.Store,
-	cacheMgn *cache.CacheManager) error {
-	cacheMgn.OpenResourceCache(cache.ConfigEntry{
+	cacheMgn cachetypes.CacheManager) error {
+	_ = cacheMgn.OpenResourceCache(cachetypes.ConfigEntry{
 		Name: cachetypes.UsersName,
 	})
 	var (

@@ -17,10 +17,11 @@
 package nacos_grpc_service
 
 import (
-	"github.com/polarismesh/polaris/apiserver/nacosserver/model"
-	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	"github.com/polarismesh/polaris/apiserver/nacosserver/model"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 type ConfigListenContext struct {

@@ -73,8 +73,14 @@ func (c *ConnectionClientManager) OnEvent(ctx context.Context, a any) error {
 
 type StreamWatchContext struct {
 	clientId         string
+	labels           map[string]string
 	connMgr          *remote.ConnectionManager
 	watchConfigFiles *utils.SyncMap[string, *apiconfig.ClientConfigFileInfo]
+	betaMatcher      config.BetaReleaseMatcher
+}
+
+func (c *StreamWatchContext) ClientLabels() map[string]string {
+	return c.labels
 }
 
 // IsOnce
@@ -93,7 +99,7 @@ func (c *StreamWatchContext) ClientID() string {
 
 // ShouldNotify .
 func (c *StreamWatchContext) ShouldNotify(event *model.SimpleConfigFileRelease) bool {
-	key := event.ActiveKey()
+	key := event.FileKey()
 	watchFile, ok := c.watchConfigFiles.Load(key)
 	if !ok {
 		return false

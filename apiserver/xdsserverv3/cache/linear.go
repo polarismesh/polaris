@@ -77,12 +77,16 @@ var _ cachev3.Cache = &LinearCache{}
 // NewLinearCache creates a new cache. See the comments on the struct definition.
 func NewLinearCache(typeURL string) *LinearCache {
 	out := &LinearCache{
-		typeURL:       typeURL,
-		resources:     make(map[string]types.Resource),
-		watchClients:  make(map[string]*watchClient),
-		versionMap:    nil,
-		version:       0,
-		versionVector: make(map[string]uint64),
+		typeURL:           typeURL,
+		resources:         make(map[string]types.Resource),
+		watchClients:      make(map[string]*watchClient),
+		versionMap:        nil,
+		version:           0,
+		versionVector:     make(map[string]uint64),
+		nodeResources:     map[string]map[string]types.Resource{},
+		nodeVersionMap:    map[string]map[string]string{},
+		nodeVersion:       map[string]uint64{},
+		nodeVersionVector: map[string]map[string]uint64{},
 	}
 	return out
 }
@@ -92,15 +96,15 @@ func (cache *LinearCache) respond(value chan<- cachev3.Response, staleResources 
 	// TODO: optimize the resources slice creations across different clients
 	if len(staleResources) == 0 {
 		resources = make([]types.ResourceWithTTL, 0, len(cache.resources))
-		for _, resource := range cache.resources {
-			resources = append(resources, types.ResourceWithTTL{Resource: resource})
+		for _, resItem := range cache.resources {
+			resources = append(resources, types.ResourceWithTTL{Resource: resItem})
 		}
 	} else {
 		resources = make([]types.ResourceWithTTL, 0, len(staleResources))
 		for _, name := range staleResources {
-			resource := cache.resources[name]
-			if resource != nil {
-				resources = append(resources, types.ResourceWithTTL{Resource: resource})
+			resItem := cache.resources[name]
+			if resItem != nil {
+				resources = append(resources, types.ResourceWithTTL{Resource: resItem})
 			}
 		}
 	}
@@ -138,9 +142,18 @@ func (cache *LinearCache) notifyAll(watchClients map[string]*watchClient, modifi
 
 	// Building the version map has a very high cost when using SetResources to do full updates.
 	// As it is only used with delta watches, it is only maintained when applicable.
-	if cache.versionMap != nil {
-		if err := cache.updateVersionMap(modified); err != nil {
-			log.Errorf("failed to update version map: %v", err)
+	if cache.versionMap != nil || len(cache.nodeVersionMap) > 0 {
+		if cache.versionMap != nil {
+			if err := cache.updateVersionMap(modified); err != nil {
+				log.Errorf("failed to update version map: %v", err)
+			}
+		}
+		if len(cache.nodeVersionMap) > 0 {
+			for _, client := range watchClients {
+				if err := cache.updateNodeVersionMap(client.client.GetNodeID(), modified); err != nil {
+					log.Errorf("failed to update node version map: %v", err)
+				}
+			}
 		}
 
 		for _, client := range watchClients {
@@ -204,30 +217,33 @@ func (cache *LinearCache) DeleteNodeResources(client *resource.XDSClient) error 
 }
 
 // UpdateResource updates a resource in the collection.
-func (cache *LinearCache) UpdateNodeResource(client *resource.XDSClient, name string, res types.Resource) error {
-	if res == nil {
-		return errors.New("nil resource")
-	}
-	cache.mu.Lock()
-	defer cache.mu.Unlock()
+func (cache *LinearCache) UpdateNodeResource(client *resource.XDSClient, toUpdate map[string]types.Resource) error {
+	waitNotify := map[string]struct{}{}
+	for name, res := range toUpdate {
+		if res == nil {
+			return errors.New("nil resource")
+		}
+		cache.mu.Lock()
+		defer cache.mu.Unlock()
 
-	if _, ok := cache.nodeVersion[client.GetNodeID()]; !ok {
-		cache.nodeVersion[client.GetNodeID()] = 0
-	}
-	cache.nodeVersion[client.GetNodeID()] = cache.nodeVersion[client.GetNodeID()] + 1
+		if _, ok := cache.nodeVersion[client.GetNodeID()]; !ok {
+			cache.nodeVersion[client.GetNodeID()] = 0
+		}
+		cache.nodeVersion[client.GetNodeID()] = cache.nodeVersion[client.GetNodeID()] + 1
 
-	if _, ok := cache.nodeVersionVector[client.GetNodeID()]; !ok {
-		cache.nodeVersionVector[client.GetNodeID()] = map[string]uint64{}
-	}
-	cache.nodeVersionVector[client.GetNodeID()][name] = cache.nodeVersion[client.GetNodeID()]
+		if _, ok := cache.nodeVersionVector[client.GetNodeID()]; !ok {
+			cache.nodeVersionVector[client.GetNodeID()] = map[string]uint64{}
+		}
+		cache.nodeVersionVector[client.GetNodeID()][name] = cache.nodeVersion[client.GetNodeID()]
 
-	if _, ok := cache.nodeResources[client.GetNodeID()]; !ok {
-		cache.nodeResources[client.GetNodeID()] = map[string]types.Resource{}
+		if _, ok := cache.nodeResources[client.GetNodeID()]; !ok {
+			cache.nodeResources[client.GetNodeID()] = map[string]types.Resource{}
+		}
+		cache.nodeResources[client.GetNodeID()][name] = res
+		waitNotify[name] = struct{}{}
 	}
-	cache.nodeResources[client.GetNodeID()][name] = res
-
 	// TODO: batch watch closures to prevent rapid updates
-	cache.notifyClient(client, map[string]struct{}{name: {}})
+	cache.notifyClient(client, waitNotify)
 	return nil
 }
 
@@ -255,9 +271,9 @@ func (cache *LinearCache) UpdateResources(toUpdate map[string]types.Resource, to
 	cache.version++
 
 	modified := make(map[string]struct{}, len(toUpdate)+len(toDelete))
-	for name, resource := range toUpdate {
+	for name, resItem := range toUpdate {
 		cache.versionVector[name] = cache.version
-		cache.resources[name] = resource
+		cache.resources[name] = resItem
 		modified[name] = struct{}{}
 	}
 	for _, name := range toDelete {
@@ -270,37 +286,6 @@ func (cache *LinearCache) UpdateResources(toUpdate map[string]types.Resource, to
 	return nil
 }
 
-// SetResources replaces current resources with a new set of resources.
-// This function is useful for wildcard xDS subscriptions.
-// This way watches that are subscribed to all resources are triggered only once regardless of how many resources are changed.
-func (cache *LinearCache) SetResources(resources map[string]types.Resource) {
-	cache.mu.Lock()
-	defer cache.mu.Unlock()
-
-	cache.version++
-
-	modified := map[string]struct{}{}
-	// Collect deleted resource names.
-	for name := range cache.resources {
-		if _, found := resources[name]; !found {
-			delete(cache.versionVector, name)
-			modified[name] = struct{}{}
-		}
-	}
-
-	cache.resources = resources
-
-	// Collect changed resource names.
-	// We assume all resources passed to SetResources are changed.
-	// Otherwise we would have to do proto.Equal on resources which is pretty expensive operation
-	for name := range resources {
-		cache.versionVector[name] = cache.version
-		modified[name] = struct{}{}
-	}
-
-	cache.notifyAll(cache.watchClients, modified)
-}
-
 // GetResources returns current resources stored in the cache
 func (cache *LinearCache) GetResources() map[string]types.Resource {
 	cache.mu.RLock()
@@ -311,6 +296,23 @@ func (cache *LinearCache) GetResources() map[string]types.Resource {
 	resources := make(map[string]types.Resource, len(cache.resources))
 	for k, v := range cache.resources {
 		resources[k] = v
+	}
+	return resources
+}
+
+// GetResources returns current resources stored in the cache
+func (cache *LinearCache) GetNodeResources() map[string]map[string]types.Resource {
+	cache.mu.RLock()
+	defer cache.mu.RUnlock()
+
+	// create a copy of our internal storage to avoid data races
+	// involving mutations of our backing map
+	resources := make(map[string]map[string]types.Resource, len(cache.resources))
+	for k, v := range cache.nodeResources {
+		resources[k] = make(map[string]types.Resource)
+		for n, r := range v {
+			resources[k][n] = r
+		}
 	}
 	return resources
 }
@@ -364,17 +366,22 @@ func (cache *LinearCache) CreateWatch(request *cachev3.Request, _ stream.StreamS
 	} else if len(request.ResourceNames) == 0 {
 		stale = lastVersion != cache.version
 	} else {
+		exist := map[string]struct{}{}
 		for _, name := range request.ResourceNames {
-			if saveVer, ok := cache.versionVector[name]; ok {
+			if saveVer, ok := cache.nodeVersionVector[nodeId][name]; ok {
+				exist[name] = struct{}{}
 				// When a resource is removed, its version defaults 0 and it is not considered stale.
-				if lastVersion < saveVer {
+				if lastNodeVersion < saveVer {
 					stale = true
 					staleResources = append(staleResources, name)
 				}
 			}
-			if saveVer, ok := cache.nodeVersionVector[nodeId][name]; ok {
+			if _, ok := exist[name]; ok {
+				continue
+			}
+			if saveVer, ok := cache.versionVector[name]; ok {
 				// When a resource is removed, its version defaults 0 and it is not considered stale.
-				if lastNodeVersion < saveVer {
+				if lastVersion < saveVer {
 					stale = true
 					staleResources = append(staleResources, name)
 				}
@@ -424,6 +431,19 @@ func (cache *LinearCache) CreateDeltaWatch(request *cachev3.DeltaRequest, state 
 			log.Errorf("failed to update version map: %v", err)
 		}
 	}
+	if len(cache.nodeVersionMap[nodeId]) == 0 {
+		// If we had no previously open delta watches, we need to build the version map for the first time.
+		// The version map will not be destroyed when the last delta watch is removed.
+		// This avoids constantly rebuilding when only a few delta watches are open.
+		modified := map[string]struct{}{}
+		for name := range cache.nodeResources[nodeId] {
+			modified[name] = struct{}{}
+		}
+		err := cache.updateNodeVersionMap(nodeId, modified)
+		if err != nil {
+			log.Errorf("failed to update node version map: %v", err)
+		}
+	}
 	response := cache.respondDelta(request, value, state)
 
 	// if respondDelta returns nil this means that there is no change in any resource version
@@ -461,6 +481,32 @@ func (cache *LinearCache) updateVersionMap(modified map[string]struct{}) error {
 		}
 
 		cache.versionMap[name] = v
+	}
+	return nil
+}
+
+func (cache *LinearCache) updateNodeVersionMap(id string, modified map[string]struct{}) error {
+	if _, ok := cache.nodeVersionMap[id]; !ok {
+		cache.nodeVersionMap[id] = make(map[string]string, len(modified))
+	}
+	for name := range modified {
+		r, ok := cache.nodeResources[id][name]
+		if !ok {
+			// The resource was deleted
+			delete(cache.nodeVersionMap[id], name)
+			continue
+		}
+		// hash our version in here and build the version map
+		marshaledResource, err := cachev3.MarshalResource(r)
+		if err != nil {
+			return err
+		}
+		v := cachev3.HashResource(marshaledResource)
+		if v == "" {
+			return errors.New("failed to build resource version")
+		}
+
+		cache.nodeVersionMap[id][name] = v
 	}
 	return nil
 }
@@ -505,65 +551,6 @@ type resourceContainer struct {
 	versionMap      map[string]string
 	nodeVersionMap  map[string]string
 	systemVersion   string
-}
-
-func createDeltaResponse(ctx context.Context, req *cachev3.DeltaRequest, state stream.StreamState, resources resourceContainer) *cachev3.RawDeltaResponse {
-	// variables to build our response with
-	var nextVersionMap map[string]string
-	var filtered []types.Resource
-	var toRemove []string
-
-	// If we are handling a wildcard request, we want to respond with all resources
-	switch {
-	case state.IsWildcard():
-		if len(state.GetResourceVersions()) == 0 {
-			filtered = make([]types.Resource, 0, len(resources.resourceMap))
-		}
-		nextVersionMap = make(map[string]string, len(resources.resourceMap))
-		for name, r := range resources.resourceMap {
-			// Since we've already precomputed the version hashes of the new snapshot,
-			// we can just set it here to be used for comparison later
-			version := resources.versionMap[name]
-			nextVersionMap[name] = version
-			prevVersion, found := state.GetResourceVersions()[name]
-			if !found || (prevVersion != version) {
-				filtered = append(filtered, r)
-			}
-		}
-
-		// Compute resources for removal
-		// The resource version can be set to "" here to trigger a removal even if never returned before
-		for name := range state.GetResourceVersions() {
-			if _, ok := resources.resourceMap[name]; !ok {
-				toRemove = append(toRemove, name)
-			}
-		}
-	default:
-		nextVersionMap = make(map[string]string, len(state.GetSubscribedResourceNames()))
-		// state.GetResourceVersions() may include resources no longer subscribed
-		// In the current code this gets silently cleaned when updating the version map
-		for name := range state.GetSubscribedResourceNames() {
-			prevVersion, found := state.GetResourceVersions()[name]
-			if r, ok := resources.resourceMap[name]; ok {
-				nextVersion := resources.versionMap[name]
-				if prevVersion != nextVersion {
-					filtered = append(filtered, r)
-				}
-				nextVersionMap[name] = nextVersion
-			} else if found {
-				toRemove = append(toRemove, name)
-			}
-		}
-	}
-
-	return &cachev3.RawDeltaResponse{
-		DeltaRequest:      req,
-		Resources:         filtered,
-		RemovedResources:  toRemove,
-		NextVersionMap:    nextVersionMap,
-		SystemVersionInfo: resources.systemVersion,
-		Ctx:               ctx,
-	}
 }
 
 // newWatchClient initializes a status info data structure.
@@ -682,8 +669,19 @@ func (info *watchClient) addResourcesWatch(resources []string, resp chan<- cache
 	}
 }
 
-func (info *watchClient) popResourceWatchChans(resource string) []chan<- cachev3.Response {
-	return nil
+func (info *watchClient) popResourceWatchChans(resourceName string) []chan<- cachev3.Response {
+	info.mu.Lock()
+	defer info.mu.Unlock()
+
+	ret := make([]chan<- cachev3.Response, 0, 4)
+	resps, ok := info.watches[resourceName]
+	if !ok {
+		return ret
+	}
+	for r := range resps {
+		ret = append(ret, r)
+	}
+	return ret
 }
 
 func (info *watchClient) removeResourcesWatch(resources []string, resp chan<- cachev3.Response) {

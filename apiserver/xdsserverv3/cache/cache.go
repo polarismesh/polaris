@@ -98,6 +98,15 @@ func (sc *XDSCache) Fetch(ctx context.Context, request *cachev3.Request) (cachev
 	return nil, errors.New("not implemented")
 }
 
+// DeltaUpdateNodeResource .
+func (sc *XDSCache) DeltaUpdateNodeResource(client *resource.XDSClient, key, typeUrl string, current map[string]types.Resource) error {
+	val, _ := sc.Caches.ComputeIfAbsent(key, func(_ string) cachev3.Cache {
+		return NewLinearCache(typeUrl)
+	})
+	linearCache, _ := val.(*LinearCache)
+	return linearCache.UpdateNodeResource(client, current)
+}
+
 // DeltaUpdateResource .
 func (sc *XDSCache) DeltaUpdateResource(key, typeUrl string, current map[string]types.Resource) error {
 	val, _ := sc.Caches.ComputeIfAbsent(key, func(_ string) cachev3.Cache {
@@ -105,6 +114,20 @@ func (sc *XDSCache) DeltaUpdateResource(key, typeUrl string, current map[string]
 	})
 	linearCache, _ := val.(*LinearCache)
 	return linearCache.UpdateResources(current, []string{})
+}
+
+// DeltaRemoveResource .
+func (sc *XDSCache) DeltaRemoveResource(key, typeUrl string, current map[string]types.Resource) error {
+	val, _ := sc.Caches.ComputeIfAbsent(key, func(_ string) cachev3.Cache {
+		return NewLinearCache(typeUrl)
+	})
+	linearCache, _ := val.(*LinearCache)
+
+	waitRemove := make([]string, 0, len(current))
+	for k := range current {
+		waitRemove = append(waitRemove, k)
+	}
+	return linearCache.UpdateResources(nil, waitRemove)
 }
 
 func classify(typeUrl string, resources []string, client *resource.XDSClient) []string {
@@ -153,8 +176,9 @@ var (
 			return false
 		},
 		resourcev3.RouteType: func(typeUrl string, resources []string, client *resource.XDSClient) bool {
+			selfSvc := resource.MakeInBoundRouteConfigName(client.GetSelfServiceKey())
 			for i := range resources {
-				if resources[i] == resource.InBoundRouteConfigName {
+				if resources[i] == selfSvc {
 					return true
 				}
 			}

@@ -104,29 +104,39 @@ func (h *HTTPServerV1) Discover(req *restful.Request, rsp *restful.Response) {
 	}
 
 	startTime := commontime.CurrentMillisecond()
+	var ret *apiservice.DiscoverResponse
+	var action string
 	defer func() {
 		plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+			Action:    action,
 			ClientIP:  utils.ParseClientAddress(ctx),
 			Namespace: discoverRequest.GetService().GetNamespace().GetValue(),
-			Resource:  discoverRequest.Type.String() + ":" + discoverRequest.GetService().GetName().GetValue(),
+			Resource:  discoverRequest.GetType().String() + ":" + discoverRequest.GetService().GetName().GetValue(),
 			Timestamp: startTime,
 			CostTime:  commontime.CurrentMillisecond() - startTime,
+			Revision:  ret.GetService().GetRevision().GetValue(),
+			Success:   ret.GetCode().GetValue() > uint32(apimodel.Code_DataNoChange),
 		})
 	}()
 
-	var ret *apiservice.DiscoverResponse
 	switch discoverRequest.Type {
 	case apiservice.DiscoverRequest_INSTANCE:
+		action = metrics.ActionDiscoverInstance
 		ret = h.namingServer.ServiceInstancesCache(ctx, discoverRequest.Filter, discoverRequest.Service)
 	case apiservice.DiscoverRequest_ROUTING:
+		action = metrics.ActionDiscoverRouterRule
 		ret = h.namingServer.GetRoutingConfigWithCache(ctx, discoverRequest.Service)
 	case apiservice.DiscoverRequest_RATE_LIMIT:
+		action = metrics.ActionDiscoverRateLimit
 		ret = h.namingServer.GetRateLimitWithCache(ctx, discoverRequest.Service)
 	case apiservice.DiscoverRequest_CIRCUIT_BREAKER:
+		action = metrics.ActionDiscoverCircuitBreaker
 		ret = h.namingServer.GetCircuitBreakerWithCache(ctx, discoverRequest.Service)
 	case apiservice.DiscoverRequest_SERVICES:
+		action = metrics.ActionDiscoverServices
 		ret = h.namingServer.GetServiceWithCache(ctx, discoverRequest.Service)
 	case apiservice.DiscoverRequest_FAULT_DETECTOR:
+		action = metrics.ActionDiscoverFaultDetect
 		ret = h.namingServer.GetFaultDetectWithCache(ctx, discoverRequest.Service)
 	default:
 		ret = api.NewDiscoverRoutingResponse(apimodel.Code_InvalidDiscoverResource, discoverRequest.Service)

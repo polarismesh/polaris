@@ -30,6 +30,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	v1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -84,32 +85,16 @@ func newGroupTest(t *testing.T) *GroupTest {
 	if err != nil {
 		t.Error(err)
 	}
-	cacheMgn.OpenResourceCache([]cache.ConfigEntry{
+	_ = cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
 		{
-			Name: "service",
-			Option: map[string]interface{}{
-				"disableBusiness": false,
-				"needMeta":        true,
-			},
-		},
-		{
-			Name: "instance",
-		},
-		{
-			Name: "users",
-		},
-		{
-			Name: "strategyRule",
-		},
-		{
-			Name: "namespace",
+			Name: cachetypes.UsersName,
 		},
 	}...)
 	t.Cleanup(func() {
 		_ = cacheMgn.Close()
 	})
 
-	time.Sleep(time.Second)
+	_ = cacheMgn.TestUpdate()
 
 	checker := &defaultauth.DefaultAuthChecker{}
 	checker.SetCacheMgr(cacheMgn)

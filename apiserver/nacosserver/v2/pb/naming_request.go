@@ -98,6 +98,29 @@ func (r *InstanceRequest) GetRequestType() string {
 	return TypeInstanceRequest
 }
 
+type PersistentInstanceRequest struct {
+	*NamingRequest
+	Type     string         `json:"type"`
+	Instance model.Instance `json:"instance"`
+}
+
+func (n *PersistentInstanceRequest) RequestMeta() interface{} {
+	return n.NamingRequest
+}
+
+// NewInstanceRequest
+func NewPersistentInstanceRequest() *PersistentInstanceRequest {
+	return &PersistentInstanceRequest{
+		NamingRequest: NewNamingRequest(),
+		Type:          TypePersistentInstanceRequest,
+		Instance:      model.Instance{},
+	}
+}
+
+func (r *PersistentInstanceRequest) GetRequestType() string {
+	return TypePersistentInstanceRequest
+}
+
 // BatchInstanceRequest .
 type BatchInstanceRequest struct {
 	*NamingRequest

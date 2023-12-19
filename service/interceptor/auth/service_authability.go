@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package service_auth
 
 import (
 	"context"
@@ -29,7 +29,7 @@ import (
 )
 
 // CreateServices 批量创建服务
-func (svr *serverAuthAbility) CreateServices(
+func (svr *ServerAuthAbility) CreateServices(
 	ctx context.Context, reqs []*apiservice.Service) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, reqs, model.Create, "CreateServices")
 
@@ -55,7 +55,7 @@ func (svr *serverAuthAbility) CreateServices(
 }
 
 // DeleteServices 批量删除服务
-func (svr *serverAuthAbility) DeleteServices(
+func (svr *ServerAuthAbility) DeleteServices(
 	ctx context.Context, reqs []*apiservice.Service) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, reqs, model.Delete, "DeleteServices")
 
@@ -74,7 +74,7 @@ func (svr *serverAuthAbility) DeleteServices(
 }
 
 // UpdateServices 对于服务修改来说，只针对服务本身，而不需要检查命名空间
-func (svr *serverAuthAbility) UpdateServices(
+func (svr *ServerAuthAbility) UpdateServices(
 	ctx context.Context, reqs []*apiservice.Service) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, reqs, model.Modify, "UpdateServices")
 
@@ -93,7 +93,7 @@ func (svr *serverAuthAbility) UpdateServices(
 }
 
 // UpdateServiceToken 更新服务的 token
-func (svr *serverAuthAbility) UpdateServiceToken(
+func (svr *ServerAuthAbility) UpdateServiceToken(
 	ctx context.Context, req *apiservice.Service) *apiservice.Response {
 	authCtx := svr.collectServiceAuthContext(
 		ctx, []*apiservice.Service{req}, model.Modify, "UpdateServiceToken")
@@ -111,7 +111,7 @@ func (svr *serverAuthAbility) UpdateServiceToken(
 	return svr.targetServer.UpdateServiceToken(ctx, req)
 }
 
-func (svr *serverAuthAbility) GetAllServices(ctx context.Context,
+func (svr *ServerAuthAbility) GetAllServices(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetAllServices")
 
@@ -126,7 +126,7 @@ func (svr *serverAuthAbility) GetAllServices(ctx context.Context,
 }
 
 // GetServices 批量获取服务
-func (svr *serverAuthAbility) GetServices(
+func (svr *ServerAuthAbility) GetServices(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServices")
 
@@ -158,7 +158,7 @@ func (svr *serverAuthAbility) GetServices(
 }
 
 // GetServicesCount 批量获取服务数量
-func (svr *serverAuthAbility) GetServicesCount(ctx context.Context) *apiservice.BatchQueryResponse {
+func (svr *ServerAuthAbility) GetServicesCount(ctx context.Context) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServicesCount")
 
 	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
@@ -171,7 +171,7 @@ func (svr *serverAuthAbility) GetServicesCount(ctx context.Context) *apiservice.
 }
 
 // GetServiceToken 获取服务的 token
-func (svr *serverAuthAbility) GetServiceToken(ctx context.Context, req *apiservice.Service) *apiservice.Response {
+func (svr *ServerAuthAbility) GetServiceToken(ctx context.Context, req *apiservice.Service) *apiservice.Response {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServiceToken")
 
 	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
@@ -184,7 +184,7 @@ func (svr *serverAuthAbility) GetServiceToken(ctx context.Context, req *apiservi
 }
 
 // GetServiceOwner 获取服务的 owner
-func (svr *serverAuthAbility) GetServiceOwner(
+func (svr *ServerAuthAbility) GetServiceOwner(
 	ctx context.Context, req []*apiservice.Service) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServiceOwner")
 

@@ -128,30 +128,40 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 			continue
 		}
 
+		var out *apiservice.DiscoverResponse
+		var action string
 		startTime := commontime.CurrentMillisecond()
 		defer func() {
 			plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+				Action:    action,
 				ClientIP:  utils.ParseClientAddress(ctx),
 				Namespace: in.GetService().GetNamespace().GetValue(),
-				Resource:  in.Type.String() + ":" + in.GetService().GetName().GetValue(),
+				Resource:  in.GetType().String() + ":" + in.GetService().GetName().GetValue(),
 				Timestamp: startTime,
 				CostTime:  commontime.CurrentMillisecond() - startTime,
+				Revision:  out.GetService().GetRevision().GetValue(),
+				Success:   out.GetCode().GetValue() > uint32(apimodel.Code_DataNoChange),
 			})
 		}()
 
-		var out *apiservice.DiscoverResponse
 		switch in.Type {
 		case apiservice.DiscoverRequest_INSTANCE:
+			action = metrics.ActionDiscoverInstance
 			out = g.namingServer.ServiceInstancesCache(ctx, &apiservice.DiscoverFilter{}, in.Service)
 		case apiservice.DiscoverRequest_ROUTING:
+			action = metrics.ActionDiscoverRouterRule
 			out = g.namingServer.GetRoutingConfigWithCache(ctx, in.Service)
 		case apiservice.DiscoverRequest_RATE_LIMIT:
+			action = metrics.ActionDiscoverRateLimit
 			out = g.namingServer.GetRateLimitWithCache(ctx, in.Service)
 		case apiservice.DiscoverRequest_CIRCUIT_BREAKER:
+			action = metrics.ActionDiscoverCircuitBreaker
 			out = g.namingServer.GetCircuitBreakerWithCache(ctx, in.Service)
 		case apiservice.DiscoverRequest_SERVICES:
+			action = metrics.ActionDiscoverServices
 			out = g.namingServer.GetServiceWithCache(ctx, in.Service)
 		case apiservice.DiscoverRequest_FAULT_DETECTOR:
+			action = metrics.ActionDiscoverFaultDetect
 			out = g.namingServer.GetFaultDetectWithCache(ctx, in.Service)
 		default:
 			out = api.NewDiscoverRoutingResponse(apimodel.Code_InvalidDiscoverResource, in.Service)

@@ -284,9 +284,8 @@ func sublistFaultDetectRules(cbRules []*model.FaultDetectRule, offset, limit uin
 			return true
 		} else if cbRules[i].ModifyTime.Before(cbRules[j].ModifyTime) {
 			return false
-		} else {
-			return strings.Compare(cbRules[i].ID, cbRules[j].ID) < 0
 		}
+		return strings.Compare(cbRules[i].ID, cbRules[j].ID) < 0
 	})
 
 	return cbRules[beginIndex:endIndex]

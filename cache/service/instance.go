@@ -49,7 +49,7 @@ type instanceCache struct {
 	// instanceid -> instance
 	ids *utils.SyncMap[string, *model.Instance]
 	// service id -> [instanceid ->instance]
-	services *utils.SyncMap[string, *ServiceInstances]
+	services *utils.SyncMap[string, *model.ServiceInstances]
 	// service id -> [instanceCount]
 	instanceCounts   *utils.SyncMap[string, *model.InstanceCount]
 	instancePorts    *instancePorts
@@ -74,7 +74,7 @@ func NewInstanceCache(storage store.Store, cacheMgr types.CacheManager) types.In
 func (ic *instanceCache) Initialize(opt map[string]interface{}) error {
 	ic.svcCache = ic.BaseCache.CacheMgr.GetCacher(types.CacheService).(*serviceCache)
 	ic.ids = utils.NewSyncMap[string, *model.Instance]()
-	ic.services = utils.NewSyncMap[string, *ServiceInstances]()
+	ic.services = utils.NewSyncMap[string, *model.ServiceInstances]()
 	ic.instanceCounts = utils.NewSyncMap[string, *model.InstanceCount]()
 	ic.instancePorts = newInstancePorts()
 	if opt == nil {
@@ -202,7 +202,7 @@ func (ic *instanceCache) handleUpdate(start time.Time, tx store.Tx) ([]*eventhub
 func (ic *instanceCache) Clear() error {
 	ic.BaseCache.Clear()
 	ic.ids = utils.NewSyncMap[string, *model.Instance]()
-	ic.services = utils.NewSyncMap[string, *ServiceInstances]()
+	ic.services = utils.NewSyncMap[string, *model.ServiceInstances]()
 	ic.instanceCounts = utils.NewSyncMap[string, *model.InstanceCount]()
 	ic.instancePorts.reset()
 	ic.instanceCount = 0
@@ -246,7 +246,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) ([]*eventh
 
 	for _, item := range ins {
 		if _, ok := ic.services.Load(item.ServiceID); !ok {
-			ic.services.Store(item.ServiceID, newServiceInstances(0))
+			ic.services.Store(item.ServiceID, model.NewServiceInstances(0))
 		}
 		serviceInstances, _ := ic.services.Load(item.ServiceID)
 		svc := ic.BaseCache.CacheMgr.GetCacher(types.CacheService).(types.ServiceCache).GetServiceByID(item.ServiceID)
@@ -254,7 +254,7 @@ func (ic *instanceCache) setInstances(ins map[string]*model.Instance) ([]*eventh
 			// 填充实例的服务名称数据信息
 			item.Proto.Namespace = utils.NewStringValue(svc.Namespace)
 			item.Proto.Service = utils.NewStringValue(svc.Name)
-			serviceInstances.updateProtectThreshold(svc.ProtectThreshold())
+			serviceInstances.UpdateProtectThreshold(svc.ProtectThreshold())
 		}
 
 		progress++
@@ -376,7 +376,7 @@ func (ic *instanceCache) postProcessUpdatedServices(affect map[string]bool) {
 func (ic *instanceCache) runHealthyProtect(affect map[string]bool) {
 	for serviceID := range affect {
 		if serviceInstances, ok := ic.services.Load(serviceID); ok {
-			serviceInstances.runHealthyProtect()
+			serviceInstances.RunHealthyProtect()
 		}
 	}
 }
@@ -433,6 +433,19 @@ func (ic *instanceCache) GetInstance(instanceID string) *model.Instance {
 	return value
 }
 
+// GetInstances 根据服务名获取实例，先查找服务名对应的服务ID，再找实例列表
+func (ic *instanceCache) GetInstances(serviceID string) *model.ServiceInstances {
+	if serviceID == "" {
+		return nil
+	}
+
+	value, ok := ic.services.Load(serviceID)
+	if !ok {
+		return nil
+	}
+	return value
+}
+
 // GetInstancesByServiceID 根据ServiceID获取实例数据
 func (ic *instanceCache) GetInstancesByServiceID(serviceID string) []*model.Instance {
 	if serviceID == "" {
@@ -444,7 +457,7 @@ func (ic *instanceCache) GetInstancesByServiceID(serviceID string) []*model.Inst
 		return nil
 	}
 
-	out := make([]*model.Instance, 0, value.totalCount())
+	out := make([]*model.Instance, 0, value.TotalCount())
 	value.Range(func(k string, v *model.Instance) {
 		out = append(out, v)
 	})
@@ -617,143 +630,3 @@ func (b *instancePorts) listPort(serviceID string) []*model.ServicePort {
 const (
 	MetadataInstanceLastHeartbeatTime = "internal-lastheartbeat"
 )
-
-func newServiceInstances(protectThreshold float32) *ServiceInstances {
-	return &ServiceInstances{
-		instances:          make(map[string]*model.Instance, 128),
-		healthyInstances:   make(map[string]*model.Instance, 128),
-		unhealthyInstances: make(map[string]*model.Instance, 128),
-		protectInstances:   make(map[string]*model.Instance, 128),
-	}
-}
-
-type ServiceInstances struct {
-	lock               sync.RWMutex
-	instances          map[string]*model.Instance
-	healthyInstances   map[string]*model.Instance
-	unhealthyInstances map[string]*model.Instance
-	protectInstances   map[string]*model.Instance
-	protectThreshold   float32
-}
-
-func (si *ServiceInstances) totalCount() int {
-	si.lock.RLock()
-	defer si.lock.RUnlock()
-
-	return len(si.instances)
-}
-
-func (si *ServiceInstances) updateProtectThreshold(protectThreshold float32) {
-	si.lock.Lock()
-	defer si.lock.Unlock()
-
-	si.protectThreshold = protectThreshold
-}
-
-func (si *ServiceInstances) UpsertInstance(ins *model.Instance) {
-	si.lock.Lock()
-	defer si.lock.Unlock()
-
-	si.instances[ins.ID()] = ins
-	if ins.Healthy() {
-		si.healthyInstances[ins.ID()] = ins
-	} else {
-		si.unhealthyInstances[ins.ID()] = ins
-	}
-}
-
-func (si *ServiceInstances) RemoveInstance(ins *model.Instance) {
-	si.lock.Lock()
-	defer si.lock.Unlock()
-
-	delete(si.instances, ins.ID())
-	delete(si.healthyInstances, ins.ID())
-	delete(si.unhealthyInstances, ins.ID())
-	delete(si.protectInstances, ins.ID())
-}
-
-func (si *ServiceInstances) Range(iterator func(id string, ins *model.Instance)) {
-	si.lock.RLock()
-	defer si.lock.RUnlock()
-
-	for k, v := range si.instances {
-		iterator(k, v)
-	}
-}
-
-func (si *ServiceInstances) GetInstances(onlyHealthy bool) []*model.Instance {
-	si.lock.RLock()
-	defer si.lock.RUnlock()
-
-	ret := make([]*model.Instance, 0, len(si.healthyInstances)+len(si.protectInstances))
-	if !onlyHealthy {
-		for k, v := range si.instances {
-			protectIns, ok := si.protectInstances[k]
-			if ok {
-				ret = append(ret, protectIns)
-			} else {
-				ret = append(ret, v)
-			}
-		}
-	} else {
-		for _, v := range si.healthyInstances {
-			ret = append(ret, v)
-		}
-		for _, v := range si.protectInstances {
-			ret = append(ret, v)
-		}
-	}
-	return ret
-}
-
-func (si *ServiceInstances) runHealthyProtect() {
-	si.lock.Lock()
-	defer si.lock.Unlock()
-
-	lastBeat := int64(-1)
-
-	curProportion := float32(len(si.healthyInstances)) / float32(len(si.instances))
-	if curProportion > si.protectThreshold {
-		// 不会触发, 并且清空当前保护状态的实例
-		si.protectInstances = make(map[string]*model.Instance, 128)
-		return
-	}
-	instanceLastBeatTimes := map[string]int64{}
-	instances := si.unhealthyInstances
-	for i := range instances {
-		ins := instances[i]
-		metadata := ins.Metadata()
-		if len(metadata) == 0 {
-			continue
-		}
-		val, ok := metadata[MetadataInstanceLastHeartbeatTime]
-		if !ok {
-			continue
-		}
-		beatTime, _ := strconv.ParseInt(val, 10, 64)
-		if beatTime >= lastBeat {
-			lastBeat = beatTime
-		}
-		instanceLastBeatTimes[ins.ID()] = beatTime
-	}
-	if lastBeat == -1 {
-		return
-	}
-	for i := range instances {
-		ins := instances[i]
-		beatTime, ok := instanceLastBeatTimes[ins.ID()]
-		if !ok {
-			continue
-		}
-		needProtect := needZeroProtect(lastBeat, beatTime, int64(ins.HealthCheck().GetHeartbeat().GetTtl().GetValue()))
-		if !needProtect {
-			continue
-		}
-		si.protectInstances[ins.ID()] = ins
-	}
-}
-
-// needZeroProtect .
-func needZeroProtect(lastBeat, beatTime, ttl int64) bool {
-	return lastBeat-3*ttl > beatTime
-}
