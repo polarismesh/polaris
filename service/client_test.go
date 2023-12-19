@@ -350,10 +350,12 @@ func TestServer_ReportClient(t *testing.T) {
 		if err := discoverSuit.Initialize(); err != nil {
 			t.Fatal(err)
 		}
-		defer discoverSuit.Destroy()
+		t.Cleanup(func() {
+			discoverSuit.cleanReportClient()
+			discoverSuit.Destroy()
+		})
 
 		clients := mockReportClients(1)
-		defer discoverSuit.cleanReportClient()
 
 		for i := range clients {
 			resp := discoverSuit.DiscoverServer().ReportClient(discoverSuit.DefaultCtx, clients[i])
@@ -368,10 +370,12 @@ func TestServer_GetReportClient(t *testing.T) {
 		if err := discoverSuit.Initialize(); err != nil {
 			t.Fatal(err)
 		}
-		defer discoverSuit.Destroy()
+		t.Cleanup(func ()  {
+			discoverSuit.cleanReportClient()
+			discoverSuit.Destroy()
+		})
 
 		clients := mockReportClients(5)
-		defer discoverSuit.cleanReportClient()
 
 		wait := sync.WaitGroup{}
 		wait.Add(5)
