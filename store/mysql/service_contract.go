@@ -228,7 +228,7 @@ func (s *serviceContractStore) DeleteServiceContractInterfaces(contract *model.E
 
 // GetMoreServiceContracts 查询服务契约数据
 func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime time.Time) ([]*model.EnrichServiceContract, error) {
-	querySql := "SELECT id, name, namespace, service, protocol, version, revision, flag,content, " +
+	querySql := "SELECT id, name, namespace, service, protocol, version, revision, flag, content, " +
 		" UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM service_contract WHERE mtime >= ? "
 	if firstUpdate {
 		mtime = time.Unix(0, 1)
@@ -281,7 +281,7 @@ func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime t
 	contractDetailMap := map[string][]*model.InterfaceDescriptor{}
 	if len(idList) > 0 {
 		queryDetailSql := "SELECT id, contract_id, method, path, content, revision," +
-			"flag, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime), source " +
+			"flag, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime), IFNULL(source, 1) " +
 			" FROM service_contract_detail WHERE contract_id IN (" + strings.Join(idList, ",") + ")"
 		detailRows, err := tx.Query(queryDetailSql)
 		if err != nil {

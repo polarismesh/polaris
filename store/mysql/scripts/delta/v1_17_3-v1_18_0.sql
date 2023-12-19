@@ -30,7 +30,7 @@ ALTER TABLE namespace
 ADD COLUMN `metadata` TEXT COMMENT 'namespace metadata';
 
 ALTER TABLE config_file_release
-ADD COLUMN `release_type` VARCHAR(25) NOT NULL DEFAULT '' COMMENT '文件类型：""：全量 gray：灰度',
+ADD COLUMN `release_type` VARCHAR(25) NOT NULL DEFAULT '' COMMENT '文件类型：""：全量 gray：灰度';
 
 /* 服务契约表 */
 CREATE TABLE service_contract (
