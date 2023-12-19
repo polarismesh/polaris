@@ -370,7 +370,13 @@ func TestServer_GetReportClient(t *testing.T) {
 		if err := discoverSuit.Initialize(); err != nil {
 			t.Fatal(err)
 		}
-		t.Cleanup(func ()  {
+		// 主动触发清理之前的 ReportClient 数据
+		discoverSuit.cleanReportClient()
+		// 强制触发缓存更新
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		t.Log("finish sleep to wait cache refresh")
+
+		t.Cleanup(func() {
 			discoverSuit.cleanReportClient()
 			discoverSuit.Destroy()
 		})
