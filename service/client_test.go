@@ -393,6 +393,7 @@ func TestServer_GetReportClient(t *testing.T) {
 		t.Log("finish sleep to wait cache refresh")
 
 		resp := discoverSuit.DiscoverServer().GetPrometheusTargets(context.Background(), map[string]string{})
+		t.Logf("get report clients result: %#v", resp)
 		assert.Equal(t, apiv1.ExecuteSuccess, resp.Code)
 		assert.True(t, len(resp.Response) >= 0 && len(resp.Response) <= 5)
 	})

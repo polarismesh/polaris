@@ -605,6 +605,9 @@ func CheckContractInterfaceTetrad(contractId string, source apiservice.Interface
 	if contractId == "" {
 		return "", api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract id")
 	}
+	if req.GetId() != "" {
+		return req.GetId(), nil
+	}
 	if req.GetMethod() == "" {
 		return "", api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract interface method")
 	}
