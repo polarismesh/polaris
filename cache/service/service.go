@@ -120,6 +120,19 @@ func (sc *serviceCache) Initialize(opt map[string]interface{}) error {
 	return nil
 }
 
+func (sc *serviceCache) initResource() {
+	sc.instCache = sc.BaseCache.CacheMgr.GetCacher(types.CacheInstance).(*instanceCache)
+	sc.singleFlight = new(singleflight.Group)
+	sc.ids = utils.NewSyncMap[string, *model.Service]()
+	sc.names = utils.NewSyncMap[string, *utils.SyncMap[string, *model.Service]]()
+	sc.cl5Sid2Name = utils.NewSyncMap[string, string]()
+	sc.cl5Names = utils.NewSyncMap[string, *model.Service]()
+	sc.pendingServices = utils.NewSyncMap[string, struct{}]()
+	sc.namespaceServiceCnt = utils.NewSyncMap[string, *model.NamespaceServiceCount]()
+	sc.exportNamespace = utils.NewSyncMap[string, *utils.SyncSet[string]]()
+	sc.exportServices = utils.NewSyncMap[string, *utils.SyncMap[string, *model.Service]]()
+}
+
 // LastMtime 最后一次更新时间
 func (sc *serviceCache) Close() error {
 	if err := sc.BaseCache.Close(); err != nil {
