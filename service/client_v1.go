@@ -205,14 +205,12 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, filter *apiservice.D
 	}
 
 	// 数据源都来自Cache，这里拿到的service，已经是源服务
-	aliasFor := s.getServiceCache(serviceName, namespaceName)
-	if aliasFor == nil {
+	aliasFor, visibleServices := s.findVisibleServices(serviceName, namespaceName, req)
+	if len(visibleServices) == 0 {
 		log.Infof("[Server][Service][Instance] not found name(%s) namespace(%s) service",
 			serviceName, namespaceName)
 		return api.NewDiscoverInstanceResponse(apimodel.Code_NotFoundResource, req)
 	}
-	visibleServices := s.caches.Service().GetVisibleServicesInOtherNamespace(aliasFor.Name, aliasFor.Namespace)
-	visibleServices = append(visibleServices, aliasFor)
 
 	revisions := make([]string, 0, len(visibleServices)+1)
 	finalInstances := make(map[string]*apiservice.Instance, 128)
@@ -262,6 +260,27 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, filter *apiservice.D
 		resp.Instances = append(resp.Instances, finalInstances[i])
 	}
 	return resp
+}
+
+func (s *Server) findVisibleServices(serviceName, namespaceName string, req *apiservice.Service) (*model.Service, []*model.Service) {
+	visibleServices := make([]*model.Service, 0, 4)
+	// 数据源都来自Cache，这里拿到的service，已经是源服务
+	aliasFor := s.getServiceCache(serviceName, namespaceName)
+	if aliasFor == nil {
+		aliasFor = &model.Service{
+			Name:      serviceName,
+			Namespace: namespaceName,
+		}
+		ret := s.caches.Service().GetVisibleServicesInOtherNamespace(serviceName, namespaceName)
+		if len(ret) == 0 {
+			return nil, nil
+		}
+		visibleServices = append(visibleServices, ret...)
+	} else {
+		visibleServices = append(visibleServices, aliasFor)
+	}
+
+	return aliasFor, visibleServices
 }
 
 // GetRoutingConfigWithCache 获取缓存中的路由配置信息
