@@ -131,6 +131,22 @@ func (sc *serviceCache) initResource() {
 	sc.namespaceServiceCnt = utils.NewSyncMap[string, *model.NamespaceServiceCount]()
 	sc.exportNamespace = utils.NewSyncMap[string, *utils.SyncSet[string]]()
 	sc.exportServices = utils.NewSyncMap[string, *utils.SyncMap[string, *model.Service]]()
+	ctx, cancel := context.WithCancel(context.Background())
+	sc.cancel = cancel
+	sc.revisionWorker = newRevisionWorker(sc, sc.instCache.(*instanceCache), opt)
+	// 先启动revision计算协程
+	go sc.revisionWorker.revisionWorker(ctx)
+	subCtx, err := eventhub.SubscribeWithFunc(eventhub.CacheNamespaceEventTopic, sc.handleNamespaceChange)
+	if err != nil {
+		return err
+	}
+	sc.subCtx = subCtx
+	if opt == nil {
+		return nil
+	}
+	sc.disableBusiness, _ = opt["disableBusiness"].(bool)
+	sc.needMeta, _ = opt["needMeta"].(bool)
+	return nil
 }
 
 // LastMtime 最后一次更新时间
