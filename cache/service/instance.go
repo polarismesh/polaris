@@ -363,7 +363,7 @@ func fillInternalLabels(item *model.Instance) *model.Instance {
 func (ic *instanceCache) postProcessUpdatedServices(affect map[string]bool) {
 	progress := 0
 	for serviceID := range affect {
-		ic.svcCache.GetRevisionWorker().Notify(serviceID, true)
+		ic.svcCache.notifyRevisionWorker(serviceID, true)
 		progress++
 		if progress%10000 == 0 {
 			log.Infof("[Cache][Instance] revision notify progress(%d / %d)", progress, len(affect))

@@ -76,6 +76,8 @@ type serviceCache struct {
 	exportNamespace *utils.SyncMap[string, *utils.SyncSet[string]]
 	// exportServices 某个服务对部分命名空间全部可见 exportNamespace -> svcName -> model.Service
 	exportServices *utils.SyncMap[string, *utils.SyncMap[string, *model.Service]]
+
+	subCtx *eventhub.SubscribtionContext
 }
 
 // NewServiceCache 返回一个serviceCache
@@ -98,14 +100,18 @@ func (sc *serviceCache) Initialize(opt map[string]interface{}) error {
 	sc.cl5Names = utils.NewSyncMap[string, *model.Service]()
 	sc.pendingServices = utils.NewSyncMap[string, struct{}]()
 	sc.namespaceServiceCnt = utils.NewSyncMap[string, *model.NamespaceServiceCount]()
-	sc.revisionWorker = newRevisionWorker(sc, sc.instCache.(*instanceCache), opt)
 	sc.exportNamespace = utils.NewSyncMap[string, *utils.SyncSet[string]]()
 	sc.exportServices = utils.NewSyncMap[string, *utils.SyncMap[string, *model.Service]]()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	sc.cancel = cancel
+	sc.revisionWorker = newRevisionWorker(sc, sc.instCache.(*instanceCache), opt)
 	// 先启动revision计算协程
 	go sc.revisionWorker.revisionWorker(ctx)
+	subCtx, err := eventhub.SubscribeWithFunc(eventhub.CacheNamespaceEventTopic, sc.handleNamespaceChange)
+	if err != nil {
+		return err
+	}
+	sc.subCtx = subCtx
 	if opt == nil {
 		return nil
 	}
@@ -118,6 +124,9 @@ func (sc *serviceCache) Initialize(opt map[string]interface{}) error {
 func (sc *serviceCache) Close() error {
 	if err := sc.BaseCache.Close(); err != nil {
 		return err
+	}
+	if sc.subCtx != nil {
+		sc.subCtx.Cancel()
 	}
 	if sc.cancel != nil {
 		sc.cancel()
@@ -413,27 +422,30 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 		if service.IsAlias() {
 			aliases = append(aliases, service)
 		}
+		oldVal, exist := sc.ids.Load(service.ID)
+		if oldVal != nil {
+			service.OldExportTo = oldVal.ExportTo
+		}
 
 		spaceName := service.Namespace
 		changeNs[spaceName] = struct{}{}
 		// 发现有删除操作
 		if !service.Valid {
 			sc.removeServices(service)
-			sc.revisionWorker.Notify(service.ID, false)
+			sc.notifyRevisionWorker(service.ID, false)
 			del++
 			svcCount--
 			continue
 		}
 
 		update++
-		_, exist := sc.ids.Load(service.ID)
 		if !exist {
 			svcCount++
 		}
 
 		sc.ids.Store(service.ID, service)
 		sc.serviceList.addService(service)
-		sc.revisionWorker.Notify(service.ID, true)
+		sc.notifyRevisionWorker(service.ID, true)
 
 		spaces, ok := sc.names.Load(spaceName)
 		if !ok {
@@ -455,6 +467,7 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 
 	sc.postProcessServiceAlias(aliases)
 	sc.postProcessUpdatedServices(changeNs)
+	sc.postProcessServiceExports(services)
 	sc.serviceList.reloadRevision()
 	return map[string]time.Time{
 		sc.Name(): time.Unix(lastMtime, 0),
@@ -633,7 +646,7 @@ func (sc *serviceCache) GetVisibleServicesInOtherNamespace(svcName, namespace st
 	return visibleServices
 }
 
-func (sc *serviceCache) postProcessServiceExports(services []*model.Service) {
+func (sc *serviceCache) postProcessServiceExports(services map[string]*model.Service) {
 
 	for i := range services {
 		svc := services[i]
@@ -678,6 +691,14 @@ func (sc *serviceCache) handleNamespaceChange(ctx context.Context, args interfac
 		sc.exportNamespace.Delete(event.Item.Name)
 	}
 	return nil
+}
+
+func (sc *serviceCache) notifyRevisionWorker(serviceID string, valid bool) {
+	revisionWorker := sc.revisionWorker
+	if revisionWorker == nil {
+		return
+	}
+	revisionWorker.Notify(serviceID, valid)
 }
 
 // GetRevisionWorker

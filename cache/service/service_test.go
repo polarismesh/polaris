@@ -18,6 +18,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -30,6 +31,7 @@ import (
 
 	types "github.com/polarismesh/polaris/cache/api"
 	cachemock "github.com/polarismesh/polaris/cache/mock"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -592,4 +594,122 @@ func TestComputeRevision(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEqual(t, lhs, rhs)
 	})
+}
+
+func Test_serviceCache_GetVisibleServicesInOtherNamespace(t *testing.T) {
+	ctl := gomock.NewController(t)
+	storage := mock.NewMockStore(ctl)
+	mockCacheMgr := cachemock.NewMockCacheManager(ctl)
+	defer ctl.Finish()
+
+	t.Run("服务可见性查询判断", func(t *testing.T) {
+		serviceList := map[string]*model.Service{
+			"service-1": {
+				ID:        "service-1",
+				Name:      "service-1",
+				Namespace: "ns-1",
+				ExportTo: map[string]struct{}{
+					"ns-2": {},
+				},
+				Valid: true,
+			},
+			"service-2": {
+				ID:        "service-2",
+				Name:      "service-2",
+				Namespace: "ns-2",
+				ExportTo:  map[string]struct{}{},
+				Valid:     true,
+			},
+			"service-3": {
+				ID:        "service-3",
+				Name:      "service-3",
+				Namespace: "ns-3",
+				ExportTo: map[string]struct{}{
+					"ns-2": {},
+				},
+				Valid: true,
+			},
+		}
+
+		svcCache := NewServiceCache(storage, mockCacheMgr).(*serviceCache)
+		mockInstCache := NewInstanceCache(storage, mockCacheMgr)
+		mockCacheMgr.EXPECT().GetCacher(types.CacheInstance).Return(mockInstCache).AnyTimes()
+		mockCacheMgr.EXPECT().GetCacher(types.CacheService).Return(svcCache).AnyTimes()
+		_ = svcCache.Initialize(map[string]interface{}{})
+		_ = mockInstCache.Initialize(map[string]interface{}{})
+		t.Cleanup(func() {
+			_ = svcCache.Close()
+			_ = mockInstCache.Close()
+		})
+
+		_, _, _ = svcCache.setServices(serviceList)
+		visibles := svcCache.GetVisibleServicesInOtherNamespace("service-1", "ns-2")
+		assert.Equal(t, 1, len(visibles))
+		assert.Equal(t, "ns-1", visibles[0].Namespace)
+	})
+
+	t.Run("服务可见性查询判断", func(t *testing.T) {
+		serviceList := map[string]*model.Service{
+			"service-1": {
+				ID:        "service-1",
+				Name:      "service-1",
+				Namespace: "ns-1",
+				Valid:     true,
+			},
+			"service-2": {
+				ID:        "service-2",
+				Name:      "service-2",
+				Namespace: "ns-2",
+				Valid:     true,
+			},
+			"service-3": {
+				ID:        "service-3",
+				Name:      "service-3",
+				Namespace: "ns-3",
+				Valid:     true,
+			},
+			"service-4": {
+				ID:        "service-4",
+				Name:      "service-4",
+				Namespace: "ns-4",
+				Valid:     true,
+			},
+		}
+
+		svcCache := NewServiceCache(storage, mockCacheMgr).(*serviceCache)
+		mockInstCache := NewInstanceCache(storage, mockCacheMgr)
+		mockCacheMgr.EXPECT().GetCacher(types.CacheInstance).Return(mockInstCache).AnyTimes()
+		mockCacheMgr.EXPECT().GetCacher(types.CacheService).Return(svcCache).AnyTimes()
+		_ = svcCache.Initialize(map[string]interface{}{})
+		_ = mockInstCache.Initialize(map[string]interface{}{})
+		t.Cleanup(func() {
+			_ = svcCache.Close()
+			_ = mockInstCache.Close()
+		})
+
+		_, _, _ = svcCache.setServices(serviceList)
+
+		svcCache.handleNamespaceChange(context.Background(), &eventhub.CacheNamespaceEvent{
+			EventType: eventhub.EventCreated,
+			Item: &model.Namespace{
+				Name: "ns-1",
+				ServiceExportTo: map[string]struct{}{
+					"ns-2": {},
+					"ns-3": {},
+				},
+			},
+		})
+
+		visibles := svcCache.GetVisibleServicesInOtherNamespace("service-1", "ns-2")
+		assert.Equal(t, 1, len(visibles))
+		assert.Equal(t, "ns-1", visibles[0].Namespace)
+
+		visibles = svcCache.GetVisibleServicesInOtherNamespace("service-1", "ns-3")
+		assert.Equal(t, 1, len(visibles))
+		assert.Equal(t, "ns-1", visibles[0].Namespace)
+
+		visibles = svcCache.GetVisibleServicesInOtherNamespace("service-1", "ns-4")
+		assert.Equal(t, 0, len(visibles))
+	})
+
 }

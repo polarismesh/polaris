@@ -34,6 +34,14 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
+func ExportToMap(exportTo []*wrappers.StringValue) map[string]struct{} {
+	ret := make(map[string]struct{})
+	for _, v := range exportTo {
+		ret[v.Value] = struct{}{}
+	}
+	return ret
+}
+
 // Namespace 命名空间结构体
 type Namespace struct {
 	Name       string
