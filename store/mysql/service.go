@@ -944,7 +944,7 @@ func addServiceMain(tx *BaseTx, s *model.Service) error {
 
 	_, err := tx.Exec(insertStmt, s.ID, s.Name, s.Namespace, s.Ports, s.Business, s.Department,
 		s.CmdbMod1, s.CmdbMod2, s.CmdbMod3, s.Comment, s.Token,
-		s.Reference, s.PlatformID, utils.MustJson(s.ExportTo), s.Revision, s.Owner)
+		s.Reference, s.PlatformID, s.Revision, s.Owner, utils.MustJson(s.ExportTo))
 	return err
 }
 
@@ -1035,7 +1035,7 @@ func genServiceSelectSQL() string {
 			UNIX_TIMESTAMP(service.ctime), UNIX_TIMESTAMP(service.mtime),
 			IFNULL(ports, ""), IFNULL(department, ""), IFNULL(cmdb_mod1, ""), IFNULL(cmdb_mod2, ""), 
 			IFNULL(cmdb_mod3, ""), IFNULL(reference, ""), IFNULL(refer_filter, ""), IFNULL(platform_id, ""),
-			IFNULL(export_to, "") `
+			IFNULL(export_to, "{}") `
 }
 
 // callFetchServiceRows call fetch service rows

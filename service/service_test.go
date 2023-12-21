@@ -1471,12 +1471,15 @@ func Test_ServiceVisible(t *testing.T) {
 	if err := discoverSuit.Initialize(); err != nil {
 		t.Fatal(err)
 	}
+
+	service := genMainService(int(time.Now().Unix()))
+
 	t.Cleanup(func() {
+		discoverSuit.cleanNamespace(service.GetNamespace().GetValue())
 		discoverSuit.cleanAllService()
 		discoverSuit.Destroy()
 	})
 
-	service := genMainService(int(time.Now().Unix()))
 	t.Run("创建服务时指定可见性", func(t *testing.T) {
 		service.ExportTo = []*wrapperspb.StringValue{wrapperspb.String("mock_namespace")}
 		resp := discoverSuit.DiscoverServer().CreateServices(discoverSuit.DefaultCtx, []*apiservice.Service{service})
@@ -1491,8 +1494,8 @@ func Test_ServiceVisible(t *testing.T) {
 		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
 		assert.True(t, len(rsp.GetServices()) == 1)
 		assert.True(t, len(rsp.GetServices()[0].GetExportTo()) == 1)
-		assert.Equal(t, model.ExportToMap(rsp.GetServices()[0].GetExportTo()),
-			model.ExportToMap([]*wrappers.StringValue{wrapperspb.String("mock_namespace")}))
+		assert.Equal(t, model.ExportToMap([]*wrappers.StringValue{wrapperspb.String("mock_namespace")}),
+			model.ExportToMap(rsp.GetServices()[0].GetExportTo()))
 	})
 
 	t.Run("修改服务时指定可见性", func(t *testing.T) {
@@ -1509,8 +1512,8 @@ func Test_ServiceVisible(t *testing.T) {
 		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
 		assert.True(t, len(rsp.GetServices()) == 1)
 		assert.True(t, len(rsp.GetServices()[0].GetExportTo()) == 2)
-		assert.Equal(t, model.ExportToMap(rsp.GetServices()[0].GetExportTo()),
-			model.ExportToMap([]*wrapperspb.StringValue{wrapperspb.String("mock_ns_1"), wrapperspb.String("mock_ns_2")}))
+		assert.Equal(t, model.ExportToMap([]*wrapperspb.StringValue{wrapperspb.String("mock_ns_1"), wrapperspb.String("mock_ns_2")}),
+			model.ExportToMap(rsp.GetServices()[0].GetExportTo()))
 	})
 
 	t.Run("清空服务可见性", func(t *testing.T) {
@@ -1553,13 +1556,13 @@ func Test_NamespaceVisible(t *testing.T) {
 		_ = discoverSuit.CacheMgr().TestUpdate()
 
 		rsp := discoverSuit.NamespaceServer().GetNamespaces(discoverSuit.DefaultCtx, map[string][]string{
-			"name": []string{nsVal.GetName().GetValue()},
+			"name": {nsVal.GetName().GetValue()},
 		})
 		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
 		assert.True(t, len(rsp.GetNamespaces()) == 1)
 		assert.True(t, len(rsp.GetNamespaces()[0].GetServiceExportTo()) == 1)
-		assert.Equal(t, model.ExportToMap(rsp.GetNamespaces()[0].GetServiceExportTo()),
-			model.ExportToMap([]*wrappers.StringValue{wrapperspb.String("mock_namespace")}))
+		assert.Equal(t, model.ExportToMap([]*wrappers.StringValue{wrapperspb.String("mock_namespace")}),
+			model.ExportToMap(rsp.GetNamespaces()[0].GetServiceExportTo()))
 	})
 
 	t.Run("修改命名空间时指定可见性", func(t *testing.T) {
@@ -1570,13 +1573,13 @@ func Test_NamespaceVisible(t *testing.T) {
 		_ = discoverSuit.CacheMgr().TestUpdate()
 
 		rsp := discoverSuit.NamespaceServer().GetNamespaces(discoverSuit.DefaultCtx, map[string][]string{
-			"name": []string{nsVal.GetName().GetValue()},
+			"name": {nsVal.GetName().GetValue()},
 		})
 		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
 		assert.True(t, len(rsp.GetNamespaces()) == 1)
 		assert.True(t, len(rsp.GetNamespaces()[0].GetServiceExportTo()) == 2)
-		assert.Equal(t, model.ExportToMap(rsp.GetNamespaces()[0].GetServiceExportTo()),
-			model.ExportToMap([]*wrapperspb.StringValue{wrapperspb.String("mock_ns_1"), wrapperspb.String("mock_ns_2")}))
+		assert.Equal(t, model.ExportToMap([]*wrapperspb.StringValue{wrapperspb.String("mock_ns_1"), wrapperspb.String("mock_ns_2")}),
+			model.ExportToMap(rsp.GetNamespaces()[0].GetServiceExportTo()))
 	})
 
 	t.Run("清空命名空间可见性", func(t *testing.T) {
