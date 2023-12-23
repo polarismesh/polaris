@@ -18,8 +18,6 @@
 package sqldb
 
 import (
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -273,20 +271,15 @@ func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime t
 		})
 	}
 
-	idList := make([]string, 0)
-	for _, item := range list {
-		idList = append(idList, fmt.Sprintf(`"%s"`, item.ID))
-	}
-
 	contractDetailMap := map[string][]*model.InterfaceDescriptor{}
-	if len(idList) > 0 {
-		queryDetailSql := "SELECT id, contract_id, method, path, content, revision," +
-			"flag, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime), IFNULL(source, 1) " +
-			" FROM service_contract_detail WHERE contract_id IN (" + strings.Join(idList, ",") + ")"
-		detailRows, err := tx.Query(queryDetailSql)
+	if len(list) > 0 {
+		queryDetailSql := "SELECT sd.id, sd.contract_id, sd.method, sd.path, sd.content, sd.revision, " +
+			" UNIX_TIMESTAMP(sd.ctime), UNIX_TIMESTAMP(sd.mtime), IFNULL(sd.source, 1) " +
+			" FROM service_contract_detail sd  LEFT JOIN service_contract sc ON sd.contract_id = sc.id " +
+			" WHERE sc.mtime >= ?"
+		detailRows, err := tx.Query(queryDetailSql, mtime)
 		if err != nil {
-			log.Error("[Store][Contract] list contract detail",
-				zap.String("query sql", queryDetailSql), zap.Any("args", idList), zap.Error(err))
+			log.Error("[Store][Contract] list contract detail", zap.String("query sql", queryDetailSql), zap.Error(err))
 			return nil, store.Error(err)
 		}
 		defer func() {
@@ -308,12 +301,10 @@ func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime t
 			detailItem.CreateTime = time.Unix(0, ctime)
 			detailItem.ModifyTime = time.Unix(0, mtime)
 			switch source {
-			case 1:
-				detailItem.Source = service_manage.InterfaceDescriptor_Manual
 			case 2:
 				detailItem.Source = service_manage.InterfaceDescriptor_Client
 			default:
-				detailItem.Source = service_manage.InterfaceDescriptor_UNKNOWN
+				detailItem.Source = service_manage.InterfaceDescriptor_Manual
 			}
 
 			if _, ok := contractDetailMap[detailItem.ContractID]; !ok {
@@ -325,6 +316,7 @@ func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime t
 		for _, item := range list {
 			methods := contractDetailMap[item.ID]
 			item.Interfaces = methods
+			item.Format()
 		}
 	}
 	return list, nil

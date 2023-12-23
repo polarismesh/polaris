@@ -38,24 +38,22 @@ const (
 func NewServiceContractCache(storage store.Store, cacheMgr types.CacheManager) types.ServiceContractCache {
 	return &serviceContractCache{
 		BaseCache: types.NewBaseCache(storage, cacheMgr),
-		storage:   storage,
 	}
 }
 
 type serviceContractCache struct {
 	*types.BaseCache
 
-	storage store.Store
-
 	lastMtimeLogged int64
 
 	// contracts 服务契约缓存，namespace -> service -> []*model.EnrichServiceContract
 	contracts   *utils.SyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *model.EnrichServiceContract]]]
-	singleGroup singleflight.Group
+	singleGroup *singleflight.Group
 }
 
 // Initialize
 func (sc *serviceContractCache) Initialize(c map[string]interface{}) error {
+	sc.singleGroup = &singleflight.Group{}
 	sc.contracts = utils.NewSyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *model.EnrichServiceContract]]]()
 	return nil
 }
@@ -79,7 +77,7 @@ func (sc *serviceContractCache) singleUpdate() (error, bool) {
 
 func (sc *serviceContractCache) realUpdate() (map[string]time.Time, int64, error) {
 	start := time.Now()
-	values, err := sc.storage.GetMoreServiceContracts(sc.IsFirstUpdate(), sc.LastFetchTime())
+	values, err := sc.Store().GetMoreServiceContracts(sc.IsFirstUpdate(), sc.LastFetchTime())
 	if err != nil {
 		log.Errorf("[Cache][ServiceContract] update service_contract err: %s", err.Error())
 		return nil, 0, err
@@ -183,7 +181,7 @@ func (sc *serviceContractCache) Query(filter map[string]string, offset, limit ui
 				if searchName != "" {
 					names := strings.Split(searchName, ",")
 					for i := range names {
-						if !utils.IsWildMatch(names[i], searchName) {
+						if !utils.IsWildMatch(val.Name, names[i]) {
 							return
 						}
 					}
@@ -198,7 +196,20 @@ func (sc *serviceContractCache) Query(filter map[string]string, offset, limit ui
 						return
 					}
 				}
-				values = append(values, val)
+				values = append(values, &model.EnrichServiceContract{
+					ServiceContract: &model.ServiceContract{
+						ID:         val.ID,
+						Namespace:  val.Namespace,
+						Service:    val.Service,
+						Name:       val.Name,
+						Protocol:   val.Protocol,
+						Version:    val.Version,
+						Revision:   val.Revision,
+						CreateTime: val.CreateTime,
+						ModifyTime: val.ModifyTime,
+					},
+					Interfaces: val.Interfaces,
+				})
 				return
 			})
 		})
@@ -237,11 +248,8 @@ func (sc *serviceContractCache) ListVersions(searchService, searchNamespace stri
 						ModifyTime: val.ModifyTime,
 					},
 				})
-				return
 			})
-			return
 		})
-		return
 	})
 	sort.Slice(values, func(i, j int) bool {
 		return values[j].ModifyTime.Before(values[i].ModifyTime)

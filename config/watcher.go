@@ -221,6 +221,18 @@ func (wc *watchCenter) checkQuickResponseClient(watchCtx WatchContext) *apiconfi
 		return api.NewConfigClientResponse0(apimodel.Code_InvalidWatchConfigFileFormat)
 	}
 
+	buildRet := func(release *model.ConfigFileRelease) *apiconfig.ConfigClientResponse {
+		ret := &apiconfig.ClientConfigFileInfo{
+			Namespace: utils.NewStringValue(release.Namespace),
+			Group:     utils.NewStringValue(release.Group),
+			FileName:  utils.NewStringValue(release.FileName),
+			Version:   utils.NewUInt64Value(release.Version),
+			Md5:       utils.NewStringValue(release.Md5),
+			Name:      utils.NewStringValue(release.Name),
+		}
+		return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, ret)
+	}
+
 	for _, configFile := range watchFiles {
 		namespace := configFile.GetNamespace().GetValue()
 		group := configFile.GetGroup().GetValue()
@@ -230,28 +242,17 @@ func (wc *watchCenter) checkQuickResponseClient(watchCtx WatchContext) *apiconfi
 				"namespace & group & fileName can not be empty")
 		}
 		// 从缓存中获取灰度文件
-		var release *model.ConfigFileRelease
-		var match = false
 		if len(watchCtx.ClientLabels()) > 0 {
-			if release = wc.fileCache.GetGrayRelease(namespace, group, fileName); release != nil {
-				key := model.GetGrayConfigRealseKey(release.SimpleConfigFileRelease)
-				match = wc.cacheMgr.Gray().HitGrayRule(key, watchCtx.ClientLabels())
+			if release := wc.fileCache.GetGrayRelease(namespace, group, fileName); release != nil {
+				if watchCtx.ShouldNotify(release.SimpleConfigFileRelease) {
+					return buildRet(release)
+				}
 			}
 		}
-		if !match {
-			release = wc.fileCache.GetActiveRelease(namespace, group, fileName)
-		}
+		release := wc.fileCache.GetActiveRelease(namespace, group, fileName)
 		// 从缓存中获取最新的配置文件信息
 		if release != nil && watchCtx.ShouldNotify(release.SimpleConfigFileRelease) {
-			ret := &apiconfig.ClientConfigFileInfo{
-				Namespace: utils.NewStringValue(namespace),
-				Group:     utils.NewStringValue(group),
-				FileName:  utils.NewStringValue(fileName),
-				Version:   utils.NewUInt64Value(release.Version),
-				Md5:       utils.NewStringValue(release.Md5),
-				Name:      utils.NewStringValue(release.Name),
-			}
-			return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, ret)
+			return buildRet(release)
 		}
 	}
 	return nil

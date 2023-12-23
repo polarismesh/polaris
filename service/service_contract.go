@@ -324,6 +324,14 @@ func (s *Server) AppendServiceContractInterfaces(ctx context.Context,
 	if errRsp := checkOperationServiceContractInterface(contract); errRsp != nil {
 		return errRsp
 	}
+	saveData, err := s.storage.GetServiceContract(contract.Id)
+	if err != nil {
+		log.Error("[Service][Contract] get save service_contract when append interfaces", utils.RequestID(ctx), zap.Error(err))
+		return api.NewAnyDataResponse(store.StoreCode2APICode(err), nil)
+	}
+	if saveData == nil {
+		return api.NewResponse(apimodel.Code_NotFoundResource)
+	}
 
 	appendData := &model.EnrichServiceContract{
 		ServiceContract: &model.ServiceContract{
@@ -334,7 +342,7 @@ func (s *Server) AppendServiceContractInterfaces(ctx context.Context,
 	}
 
 	for _, item := range contract.Interfaces {
-		interfaceId, errRsp := utils.CheckContractInterfaceTetrad(appendData.ID, apiservice.InterfaceDescriptor_Manual, item)
+		interfaceId, errRsp := utils.CheckContractInterfaceTetrad(appendData.ID, source, item)
 		if errRsp != nil {
 			log.Error("[Service][Contract] check service_contract interface id", utils.RequestID(ctx),
 				zap.String("err", errRsp.GetInfo().GetValue()))
@@ -366,9 +374,18 @@ func (s *Server) DeleteServiceContractInterfaces(ctx context.Context,
 		return errRsp
 	}
 
+	saveData, err := s.storage.GetServiceContract(contract.Id)
+	if err != nil {
+		log.Error("[Service][Contract] get save service_contract when delete interfaces", utils.RequestID(ctx), zap.Error(err))
+		return api.NewAnyDataResponse(store.StoreCode2APICode(err), nil)
+	}
+	if saveData == nil {
+		return api.NewResponse(apimodel.Code_NotFoundResource)
+	}
+
 	deleteData := &model.EnrichServiceContract{
 		ServiceContract: &model.ServiceContract{
-			ID:       contract.Id,
+			ID:       saveData.ID,
 			Revision: utils.NewUUID(),
 		},
 		Interfaces: make([]*model.InterfaceDescriptor, 0, len(contract.Interfaces)),
@@ -397,13 +414,14 @@ func (s *Server) DeleteServiceContractInterfaces(ctx context.Context,
 }
 
 func checkOperationServiceContractInterface(contract *apiservice.ServiceContract) *apiservice.Response {
-	if contract.Id == "" {
-		id, errRsp := utils.CheckContractTetrad(contract)
-		if errRsp != nil {
-			return errRsp
-		}
-		contract.Id = id
+	if contract.Id != "" {
+		return nil
 	}
+	id, errRsp := utils.CheckContractTetrad(contract)
+	if errRsp != nil {
+		return errRsp
+	}
+	contract.Id = id
 	return nil
 }
 
