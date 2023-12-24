@@ -49,6 +49,7 @@ func (s *Server) GetConfigFileWithCache(ctx context.Context,
 		return api.NewConfigClientResponseWithInfo(
 			apimodel.Code_BadRequest, "namespace & group & fileName can not be empty")
 	}
+	client = formatClientRequest(ctx, client)
 	// 从缓存中获取灰度文件
 	var release *model.ConfigFileRelease
 	var match = false
@@ -75,12 +76,25 @@ func (s *Server) GetConfigFileWithCache(ctx context.Context,
 	return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, configFile)
 }
 
+func formatClientRequest(ctx context.Context, client *apiconfig.ClientConfigFileInfo) *apiconfig.ClientConfigFileInfo {
+	if len(client.Tags) > 0 {
+		return client
+	}
+	client.Tags = []*apiconfig.ConfigFileTag{
+		{
+			Key:   wrapperspb.String(model.ClientLabel_IP),
+			Value: wrapperspb.String(utils.ParseClientIP(ctx)),
+		},
+	}
+	return client
+}
+
 // LongPullWatchFile .
 func (s *Server) LongPullWatchFile(ctx context.Context,
 	req *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error) {
 	watchFiles := req.GetWatchFiles()
 
-	tmpWatchCtx := BuildTimeoutWatchCtx(0)("", s.watchCenter.MatchBetaReleaseFile)
+	tmpWatchCtx := BuildTimeoutWatchCtx(ctx, 0)("", s.watchCenter.MatchBetaReleaseFile)
 	for _, file := range watchFiles {
 		tmpWatchCtx.AppendInterest(file)
 	}
@@ -98,16 +112,20 @@ func (s *Server) LongPullWatchFile(ctx context.Context,
 
 	// 3. 监听配置变更，hold 请求 30s，30s 内如果有配置发布，则响应请求
 	clientId := utils.ParseClientAddress(ctx) + "@" + utils.NewUUID()[0:8]
-	watchCtx := s.WatchCenter().AddWatcher(clientId, watchFiles, BuildTimeoutWatchCtx(watchTimeOut))
+	watchCtx := s.WatchCenter().AddWatcher(clientId, watchFiles, BuildTimeoutWatchCtx(ctx, watchTimeOut))
 	return func() *apiconfig.ConfigClientResponse {
 		return (watchCtx.(*LongPollWatchContext)).GetNotifieResult()
 	}, nil
 }
 
-func BuildTimeoutWatchCtx(watchTimeOut time.Duration) WatchContextFactory {
+func BuildTimeoutWatchCtx(ctx context.Context, watchTimeOut time.Duration) WatchContextFactory {
+	labels := map[string]string{
+		model.ClientLabel_IP: utils.ParseClientIP(ctx),
+	}
 	return func(clientId string, matcher BetaReleaseMatcher) WatchContext {
 		watchCtx := &LongPollWatchContext{
 			clientId:         clientId,
+			labels:           labels,
 			finishTime:       time.Now().Add(watchTimeOut),
 			finishChan:       make(chan *apiconfig.ConfigClientResponse, 1),
 			watchConfigFiles: map[string]*apiconfig.ClientConfigFileInfo{},
@@ -124,18 +142,13 @@ func (s *Server) GetConfigFileNamesWithCache(ctx context.Context,
 	namespace := req.GetConfigFileGroup().GetNamespace().GetValue()
 	group := req.GetConfigFileGroup().GetName().GetValue()
 
-	out := api.NewConfigClientListResponse(apimodel.Code_ExecuteSuccess)
-
 	if namespace == "" || group == "" {
-		out.Code = utils.NewUInt32Value(uint32(apimodel.Code_BadRequest))
-		out.Info = utils.NewStringValue("invalid namespace or group")
-		return out
+		return api.NewConfigClientListResponse(apimodel.Code_BadRequest)
 	}
 
 	releases, revision := s.fileCache.GetGroupActiveReleases(namespace, group)
 	if revision == req.GetRevision().GetValue() {
-		out.Code = utils.NewUInt32Value(uint32(apimodel.Code_DataNoChange))
-		return out
+		return api.NewConfigClientListResponse(apimodel.Code_DataNoChange)
 	}
 	ret := make([]*apiconfig.ClientConfigFileInfo, 0, len(releases))
 	for i := range releases {
@@ -194,10 +207,6 @@ func (s *Server) GetConfigGroupsWithCache(ctx context.Context, req *apiconfig.Cl
 
 func CompareByVersion(clientInfo *apiconfig.ClientConfigFileInfo, file *model.ConfigFileRelease) bool {
 	return clientInfo.GetVersion().GetValue() < file.Version
-}
-
-func CompareByMD5(clientInfo *apiconfig.ClientConfigFileInfo, file *model.ConfigFileRelease) bool {
-	return clientInfo.Md5.GetValue() != file.Md5
 }
 
 func (s *Server) checkClientConfigFile(ctx context.Context, files []*apiconfig.ClientConfigFileInfo,

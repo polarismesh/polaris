@@ -50,8 +50,51 @@ type ServiceContract struct {
 
 type EnrichServiceContract struct {
 	*ServiceContract
+	isFormated bool
 	// 接口描述信息
-	Interfaces []*InterfaceDescriptor
+	Interfaces       []*InterfaceDescriptor
+	ClientInterfaces map[string]*InterfaceDescriptor
+	ManualInterfaces map[string]*InterfaceDescriptor
+}
+
+func (e *EnrichServiceContract) Format() {
+	if e.isFormated {
+		return
+	}
+	e.isFormated = true
+
+	e.ClientInterfaces = map[string]*InterfaceDescriptor{}
+	e.ManualInterfaces = map[string]*InterfaceDescriptor{}
+
+	copyInterfaces := e.Interfaces
+	for i := range copyInterfaces {
+		item := copyInterfaces[i]
+		switch item.Source {
+		case apiservice.InterfaceDescriptor_Client:
+			e.ClientInterfaces[item.Path+"/"+item.Method] = item
+		case apiservice.InterfaceDescriptor_Manual:
+			e.ManualInterfaces[item.Path+"/"+item.Method] = item
+		}
+	}
+
+	e.Interfaces = make([]*InterfaceDescriptor, 0, len(e.ClientInterfaces))
+	for k := range e.ManualInterfaces {
+		e.Interfaces = append(e.Interfaces, e.ManualInterfaces[k])
+	}
+	for k := range e.ClientInterfaces {
+		if _, ok := e.ManualInterfaces[k]; ok {
+			continue
+		}
+		e.Interfaces = append(e.Interfaces, e.ClientInterfaces[k])
+	}
+}
+
+type ServiceContractView struct {
+	*ServiceContract
+	// 接口描述信息
+	Interfaces       []*InterfaceDescriptor
+	ClientInterfaces map[string]*InterfaceDescriptor
+	ManualInterfaces map[string]*InterfaceDescriptor
 }
 
 func (s *ServiceContract) GetKey() string {

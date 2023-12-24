@@ -1010,6 +1010,53 @@ func (d *DiscoverTestSuit) CleanCircuitBreaker(id, version string) {
 func (d *DiscoverTestSuit) CleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
 }
 
+// 彻底删除熔断规则发布记录
+func (d *DiscoverTestSuit) CleanServiceContract() error {
+	if d.Storage.Name() == boltdb.STORENAME {
+		proxyTx, err := d.Storage.StartTx()
+		if err != nil {
+			return err
+		}
+
+		tx := proxyTx.GetDelegateTx().(*bolt.Tx)
+
+		bucketName := []string{
+			"service_contract",
+		}
+
+		defer tx.Rollback()
+
+		for i := range bucketName {
+			if err := tx.DeleteBucket([]byte(bucketName[i])); err != nil {
+				if !errors.Is(err, bolt.ErrBucketNotFound) {
+					return err
+				}
+			}
+		}
+		return tx.Commit()
+	}
+	if d.Storage.Name() == sqldb.STORENAME {
+		proxyTx, err := d.Storage.StartTx()
+		if err != nil {
+			return err
+		}
+
+		tx := proxyTx.GetDelegateTx().(*sqldb.BaseTx)
+
+		defer tx.Rollback()
+		_, err = tx.Exec("delete from service_contract")
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec("delete from service_contract_detail")
+		if err != nil {
+			return err
+		}
+		return tx.Commit()
+	}
+	return nil
+}
+
 func (d *DiscoverTestSuit) ClearTestDataWhenUseRDS() error {
 	if d.Storage.Name() == boltdb.STORENAME {
 		proxyTx, err := d.Storage.StartTx()
@@ -1031,6 +1078,7 @@ func (d *DiscoverTestSuit) ClearTestDataWhenUseRDS() error {
 			"ConfigFileTag",
 			"ConfigFileTagID",
 			"namespace",
+			"service_contract",
 		}
 
 		defer tx.Rollback()
@@ -1079,6 +1127,14 @@ func (d *DiscoverTestSuit) ClearTestDataWhenUseRDS() error {
 			return err
 		}
 		_, err = tx.Exec("delete from config_file_template where name in (?,?) ", templateName1, templateName2)
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec("delete from service_contract")
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec("delete from service_contract_detail")
 		if err != nil {
 			return err
 		}

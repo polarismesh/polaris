@@ -71,10 +71,6 @@ func TestCompareByVersion(clientInfo *apiconfig.ClientConfigFileInfo, file *mode
 	return CompareByVersion(clientInfo, file)
 }
 
-func TestCompareByMD5(clientInfo *apiconfig.ClientConfigFileInfo, file *model.ConfigFileRelease) bool {
-	return CompareByMD5(clientInfo, file)
-}
-
 // TestDecryptConfigFile 解密配置文件
 func (s *Server) TestDecryptConfigFile(ctx context.Context, configFile *model.ConfigFile) (err error) {
 	for i := range s.chains.chains {

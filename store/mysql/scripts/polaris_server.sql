@@ -915,7 +915,7 @@ CREATE TABLE service_contract_detail
     `mtime`       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     -- 服务契约id + method + path + source 需保证唯一
-    KEY (`contract_id`, `path`, `method`)
+    KEY (`contract_id`, `path`, `method`, `source`)
 ) ENGINE = InnoDB;
 
 /* 灰度资源 */
