@@ -291,10 +291,10 @@ func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime t
 			if scanErr := detailRows.Scan(
 				&detailItem.ID, &detailItem.ContractID, &detailItem.Method,
 				&detailItem.Path, &detailItem.Content, &detailItem.Revision,
-				&flag, &ctime, &mtime, &source,
+				&ctime, &mtime, &source,
 			); scanErr != nil {
-				log.Error("[Store][Contract] fetch contract detail rows scan err: %s", zap.Error(err))
-				return nil, store.Error(err)
+				log.Error("[Store][Contract] fetch contract detail rows scan", zap.Error(scanErr))
+				return nil, store.Error(scanErr)
 			}
 
 			detailItem.Valid = flag == 0

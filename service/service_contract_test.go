@@ -34,6 +34,7 @@ func TestServer_CreateServiceContracts(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	discoverSuit.CleanServiceContract()
 	t.Cleanup(func() {
 		discoverSuit.CleanServiceContract()
 		discoverSuit.Destroy()
