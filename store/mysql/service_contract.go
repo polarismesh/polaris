@@ -64,7 +64,7 @@ func (s *serviceContractStore) CreateServiceContract(contract *model.ServiceCont
 
 // UpdateServiceContract 更新服务契约信息
 func (s *serviceContractStore) UpdateServiceContract(contract *model.ServiceContract) error {
-	updateSql := "UPDATE service_contract SET content = ? , revision = ?, modify_time = sysdate() WHERE id = ?"
+	updateSql := "UPDATE service_contract SET content = ?, revision = ?, mtime = sysdate() WHERE id = ?"
 	_, err := s.master.Exec(updateSql, contract.Content, contract.Revision, contract.ID)
 	if err != nil {
 		return err
@@ -75,7 +75,7 @@ func (s *serviceContractStore) UpdateServiceContract(contract *model.ServiceCont
 // DeleteServiceContract 删除服务契约 删除该版本的全部数据
 func (s *serviceContractStore) DeleteServiceContract(contract *model.ServiceContract) error {
 	return s.master.processWithTransaction("DeleteServiceContract", func(tx *BaseTx) error {
-		deleteSql := "UPDATE service_contract SET flag = 1, modify_time = sysdate() WHERE id = ?"
+		deleteSql := "UPDATE service_contract SET flag = 1, mtime = sysdate() WHERE id = ?"
 		if _, err := tx.Exec(deleteSql, []interface{}{
 			contract.ID,
 		}...); err != nil {
