@@ -51,7 +51,7 @@ func (svr *ServerAuthAbility) CreateServiceContracts(ctx context.Context,
 // GetServiceContracts .
 func (svr *ServerAuthAbility) GetServiceContracts(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
-	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServiceContract")
+	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServiceContracts")
 	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchQueryResponse(convertToErrCode(err))
 	}
@@ -93,7 +93,7 @@ func (svr *ServerAuthAbility) DeleteServiceContracts(ctx context.Context,
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.CreateServiceContracts(ctx, req)
+	return svr.targetServer.DeleteServiceContracts(ctx, req)
 }
 
 // CreateServiceContractInterfaces .

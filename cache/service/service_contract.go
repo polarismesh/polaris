@@ -85,11 +85,9 @@ func (sc *serviceContractCache) realUpdate() (map[string]time.Time, int64, error
 
 	lastMtimes, update, del := sc.setContracts(values)
 	costTime := time.Since(start)
-	if costTime > time.Second {
-		log.Info(
-			"[Cache][ServiceContract] get more service_contract", zap.Int("upsert", update), zap.Int("delete", del),
-			zap.Time("last", sc.LastMtime(sc.Name())), zap.Duration("used", costTime))
-	}
+	log.Info(
+		"[Cache][ServiceContract] get more service_contract", zap.Int("upsert", update), zap.Int("delete", del),
+		zap.Time("last", sc.LastMtime(sc.Name())), zap.Duration("used", costTime))
 	return lastMtimes, int64(len(values)), err
 }
 
@@ -113,14 +111,14 @@ func (sc *serviceContractCache) setContracts(values []*model.EnrichServiceContra
 		}
 
 		serviceVal, _ := namespaceVal.Load(service)
-		id := item.GetKey()
 		if !item.Valid {
 			del++
-			serviceVal.Delete(id)
+			serviceVal.Delete(item.ID)
+			continue
 		}
 
 		upsert++
-		serviceVal.Store(id, item)
+		serviceVal.Store(item.ID, item)
 	}
 	return map[string]time.Time{
 		sc.Name(): lastMtime,
@@ -196,20 +194,7 @@ func (sc *serviceContractCache) Query(filter map[string]string, offset, limit ui
 						return
 					}
 				}
-				values = append(values, &model.EnrichServiceContract{
-					ServiceContract: &model.ServiceContract{
-						ID:         val.ID,
-						Namespace:  val.Namespace,
-						Service:    val.Service,
-						Name:       val.Name,
-						Protocol:   val.Protocol,
-						Version:    val.Version,
-						Revision:   val.Revision,
-						CreateTime: val.CreateTime,
-						ModifyTime: val.ModifyTime,
-					},
-					Interfaces: val.Interfaces,
-				})
+				values = append(values, val)
 				return
 			})
 		})
