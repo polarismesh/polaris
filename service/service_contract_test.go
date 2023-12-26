@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/ptypes"
+	"github.com/polarismesh/polaris/common/utils"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
@@ -48,6 +49,38 @@ func TestServer_CreateServiceContracts(t *testing.T) {
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue(), resp.String())
 
 		_ = discoverSuit.CacheMgr().TestUpdate()
+
+		t.Run("该接口不会保存Interfaces信息", func(t *testing.T) {
+			queryRsp := discoverSuit.DiscoverServer().GetServiceContracts(discoverSuit.DefaultCtx, map[string]string{
+				"name": "mock-name*",
+			})
+			assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), queryRsp.GetCode().GetValue(), queryRsp.String())
+			assert.Equal(t, expectTotal, len(queryRsp.GetData()))
+			specData, err := unmarshalServiceContratcs(queryRsp.GetData())
+			assert.Nil(t, err)
+			for i := range specData {
+				assert.Equal(t, 0, len(specData[i].GetInterfaces()))
+			}
+		})
+
+		t.Run("更新Content", func(t *testing.T) {
+			mockData[0].Content = "new content"
+			uRsp := discoverSuit.DiscoverServer().CreateServiceContracts(discoverSuit.DefaultCtx, []*service_manage.ServiceContract{mockData[0]})
+			assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), uRsp.GetCode().GetValue(), uRsp.String())
+
+			mockId, _ := utils.CheckContractTetrad(mockData[0])
+			discoverSuit.Storage.GetServiceContract(mockId)
+
+			_ = discoverSuit.CacheMgr().TestUpdate()
+			queryRsp := discoverSuit.DiscoverServer().GetServiceContracts(discoverSuit.DefaultCtx, map[string]string{
+				"name": mockData[0].Name,
+			})
+			assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), queryRsp.GetCode().GetValue(), queryRsp.String())
+			assert.Equal(t, 1, len(queryRsp.GetData()))
+			specData, err := unmarshalServiceContratcs(queryRsp.GetData())
+			assert.Nil(t, err)
+			assert.Equal(t, mockData[0].Content, specData[0].Content)
+		})
 
 		t.Run("测试模糊匹配", func(t *testing.T) {
 			queryRsp := discoverSuit.DiscoverServer().GetServiceContracts(discoverSuit.DefaultCtx, map[string]string{
@@ -206,6 +239,19 @@ func TestServer_CreateServiceContracts(t *testing.T) {
 			assert.Equal(t, 4, clientCount)
 			assert.Equal(t, 4, manualCount)
 		})
+	})
+
+	t.Run("删除服务契约", func(t *testing.T) {
+		resp := discoverSuit.DiscoverServer().DeleteServiceContracts(discoverSuit.DefaultCtx, mockData)
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue(), resp.String())
+		assert.Equal(t, expectTotal, len(resp.GetResponses()), resp.String())
+		_ = discoverSuit.CacheMgr().TestUpdate()
+
+		queryRsp := discoverSuit.DiscoverServer().GetServiceContracts(discoverSuit.DefaultCtx, map[string]string{
+			"name": "mock-name*",
+		})
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), queryRsp.GetCode().GetValue(), queryRsp.String())
+		assert.Equal(t, 0, len(queryRsp.GetData()))
 	})
 }
 
