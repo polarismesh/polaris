@@ -22,11 +22,12 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/ptypes"
-	"github.com/polarismesh/polaris/common/utils"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/anypb"
+
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 func TestServer_CreateServiceContracts(t *testing.T) {

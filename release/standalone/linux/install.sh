@@ -60,6 +60,7 @@ xdsv3_port=$(getProperties polaris_xdsv3_port)
 service_grpc_port=$(getProperties polaris_service_grpc_port)
 config_grpc_port=$(getProperties polaris_config_grpc_port)
 api_http_port=$(getProperties polaris_open_api_port)
+nacos_port=$(getProperties nacos_http_port)
 
 prometheus_port=$(getProperties prometheus_port)
 pushgateway_port=$(getProperties pushgateway_port)
@@ -78,6 +79,7 @@ echo "xdsv3_port=${xdsv3_port}"
 echo "service_grpc_port=${service_grpc_port}"
 echo "config_grpc_port=${config_grpc_port}"
 echo "api_http_port=${api_http_port}"
+echo "nacos_port=${nacos_port}"
 echo ""
 echo "polaris-limiter-server listen port info"
 echo "polaris_limiter_http_port=${limiter_http_port}"
@@ -126,6 +128,8 @@ function installPolarisServer() {
   sed -i "s/listenPort: 8093/listenPort: ${config_grpc_port}/g" conf/polaris-server.yaml
   # 修改 polaris-server http-api 端口信息
   sed -i "s/listenPort: 8090/listenPort: ${api_http_port}/g" conf/polaris-server.yaml
+  # 修改 polaris-server nacos 端口信息
+  sed -i "s/listenPort: 8848/listenPort: ${nacos_port}/g" conf/polaris-server.yaml
 
   /bin/bash ./tool/start.sh
   echo -e "install polaris server success"

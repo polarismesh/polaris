@@ -71,7 +71,7 @@ func (svr *ServerAuthAbility) ReportClient(ctx context.Context, req *apiservice.
 func (svr *ServerAuthAbility) ReportServiceContract(ctx context.Context, req *apiservice.ServiceContract) *apiservice.Response {
 	authCtx := svr.collectServiceAuthContext(
 		ctx, []*apiservice.Service{{
-			Name: wrapperspb.String(req.GetService()),
+			Name:      wrapperspb.String(req.GetService()),
 			Namespace: wrapperspb.String(req.GetNamespace()),
 		}}, model.Create, "ReportServiceContract")
 
