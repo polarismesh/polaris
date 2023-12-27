@@ -21,6 +21,7 @@ import (
 	"context"
 
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
@@ -64,6 +65,25 @@ func (svr *ServerAuthAbility) DeregisterInstance(ctx context.Context, req *apise
 // ReportClient is the interface for reporting client authability
 func (svr *ServerAuthAbility) ReportClient(ctx context.Context, req *apiservice.Client) *apiservice.Response {
 	return svr.targetServer.ReportClient(ctx, req)
+}
+
+// ReportServiceContract .
+func (svr *ServerAuthAbility) ReportServiceContract(ctx context.Context, req *apiservice.ServiceContract) *apiservice.Response {
+	authCtx := svr.collectServiceAuthContext(
+		ctx, []*apiservice.Service{{
+			Name: wrapperspb.String(req.GetService()),
+			Namespace: wrapperspb.String(req.GetNamespace()),
+		}}, model.Create, "ReportServiceContract")
+
+	_, err := svr.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx)
+	if err != nil {
+		resp := api.NewResponseWithMsg(convertToErrCode(err), err.Error())
+		return resp
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+	return svr.targetServer.ReportServiceContract(ctx, req)
 }
 
 // GetPrometheusTargets Used for client acquisition service information

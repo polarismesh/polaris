@@ -97,7 +97,11 @@ type ServiceContractView struct {
 	ManualInterfaces map[string]*InterfaceDescriptor
 }
 
-func (s *ServiceContract) GetKey() string {
+func (s *ServiceContract) GetResourceName() string {
+	return fmt.Sprintf("%s/%s/%s/%s", s.Service, s.Name, s.Protocol, s.Version)
+}
+
+func (s *ServiceContract) GetCacheKey() string {
 	return fmt.Sprintf("%s/%s/%s/%s", s.Service, s.Name, s.Protocol, s.Version)
 }
 

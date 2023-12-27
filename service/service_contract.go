@@ -431,7 +431,7 @@ func serviceContractRecordEntry(ctx context.Context, req *apiservice.ServiceCont
 
 	entry := &model.RecordEntry{
 		ResourceType:  model.RServiceContract,
-		ResourceName:  data.GetKey(),
+		ResourceName:  data.GetResourceName(),
 		Namespace:     req.GetNamespace(),
 		OperationType: operationType,
 		Operator:      utils.ParseOperator(ctx),

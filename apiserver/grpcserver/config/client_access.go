@@ -209,6 +209,7 @@ func (g *ConfigGRPCServer) Discover(svr apiconfig.PolarisConfigGRPC_DiscoverServ
 			req := in.GetConfigFile()
 			req.Md5 = wrapperspb.String(in.GetRevision())
 			out = g.configServer.GetConfigGroupsWithCache(ctx, req)
+			out.Type = apiconfig.ConfigDiscoverResponse_CONFIG_FILE_GROUPS
 		default:
 			out = api.NewConfigDiscoverResponse(apimodel.Code_InvalidDiscoverResource)
 		}
