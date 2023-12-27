@@ -47,6 +47,28 @@ func (s *Server) DeregisterInstance(ctx context.Context, req *apiservice.Instanc
 	return s.DeleteInstance(ctx, req)
 }
 
+// ReportServiceContract report client service interface info
+func (s *Server) ReportServiceContract(ctx context.Context, req *apiservice.ServiceContract) *apiservice.Response {
+	ctx = context.WithValue(ctx, utils.ContextIsFromClient, true)
+	cacheData := s.caches.ServiceContract().Get(&model.ServiceContract{
+		Namespace: req.GetNamespace(),
+		Service:   req.GetService(),
+		Name:      req.GetName(),
+		Version:   req.GetVersion(),
+		Protocol:  req.GetProtocol(),
+	})
+	// 通过 Cache 模块减少无意义的 CreateServiceContract 逻辑
+	if cacheData == nil || cacheData.Content != req.GetContent() {
+		rsp := s.CreateServiceContract(ctx, req)
+		if rsp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
+			return rsp
+		}
+	}
+
+	rsp := s.CreateServiceContractInterfaces(ctx, req, apiservice.InterfaceDescriptor_Client)
+	return rsp
+}
+
 // ReportClient 客户端上报信息
 func (s *Server) ReportClient(ctx context.Context, req *apiservice.Client) *apiservice.Response {
 	if s.caches == nil {

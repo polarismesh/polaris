@@ -174,6 +174,15 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 	}
 }
 
+func (g *DiscoverServer) ReportServiceContract(ctx context.Context, in *apiservice.ServiceContract) (*apiservice.Response, error) {
+	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
+	rCtx := utils.ConvertGRPCContext(ctx)
+	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), ParseGrpcOperator(ctx))
+
+	out := g.namingServer.ReportServiceContract(rCtx, in)
+	return out, nil
+}
+
 // ParseGrpcOperator 构造请求源
 func ParseGrpcOperator(ctx context.Context) string {
 	// 获取请求源

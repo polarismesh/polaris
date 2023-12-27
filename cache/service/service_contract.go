@@ -46,6 +46,8 @@ type serviceContractCache struct {
 
 	lastMtimeLogged int64
 
+	// data namespace/service/name/protocol/version -> *model.EnrichServiceContract
+	data *utils.SyncMap[string, *model.EnrichServiceContract]
 	// contracts 服务契约缓存，namespace -> service -> []*model.EnrichServiceContract
 	contracts   *utils.SyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *model.EnrichServiceContract]]]
 	singleGroup *singleflight.Group
@@ -54,6 +56,7 @@ type serviceContractCache struct {
 // Initialize
 func (sc *serviceContractCache) Initialize(c map[string]interface{}) error {
 	sc.singleGroup = &singleflight.Group{}
+	sc.data = utils.NewSyncMap[string, *model.EnrichServiceContract]()
 	sc.contracts = utils.NewSyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *model.EnrichServiceContract]]]()
 	return nil
 }
@@ -113,11 +116,13 @@ func (sc *serviceContractCache) setContracts(values []*model.EnrichServiceContra
 		serviceVal, _ := namespaceVal.Load(service)
 		if !item.Valid {
 			del++
+			sc.data.Delete(item.GetCacheKey())
 			serviceVal.Delete(item.ID)
 			continue
 		}
 
 		upsert++
+		sc.data.Store(item.GetCacheKey(), item)
 		serviceVal.Store(item.ID, item)
 	}
 	return map[string]time.Time{
@@ -127,6 +132,7 @@ func (sc *serviceContractCache) setContracts(values []*model.EnrichServiceContra
 
 // Clear
 func (sc *serviceContractCache) Clear() error {
+	sc.data = utils.NewSyncMap[string, *model.EnrichServiceContract]()
 	sc.contracts = utils.NewSyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *model.EnrichServiceContract]]]()
 	return nil
 }
@@ -146,6 +152,11 @@ func (sc *serviceContractCache) forceQueryUpdate() error {
 		err, _ = sc.singleUpdate()
 	}
 	return err
+}
+
+func (sc *serviceContractCache) Get(req *model.ServiceContract) *model.EnrichServiceContract {
+	ret, _ := sc.data.Load(req.GetCacheKey())
+	return ret
 }
 
 // Query .

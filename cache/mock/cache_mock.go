@@ -955,6 +955,20 @@ func (mr *MockServiceContractCacheMockRecorder) Close() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockServiceContractCache)(nil).Close))
 }
 
+// Get mocks base method.
+func (m *MockServiceContractCache) Get(req *model.ServiceContract) *model.EnrichServiceContract {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Get", req)
+	ret0, _ := ret[0].(*model.EnrichServiceContract)
+	return ret0
+}
+
+// Get indicates an expected call of Get.
+func (mr *MockServiceContractCacheMockRecorder) Get(req interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockServiceContractCache)(nil).Get), req)
+}
+
 // Initialize mocks base method.
 func (m *MockServiceContractCache) Initialize(c map[string]interface{}) error {
 	m.ctrl.T.Helper()
@@ -2088,6 +2102,21 @@ func (m *MockConfigGroupCache) Initialize(c map[string]interface{}) error {
 func (mr *MockConfigGroupCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockConfigGroupCache)(nil).Initialize), c)
+}
+
+// ListGroups mocks base method.
+func (m *MockConfigGroupCache) ListGroups(namespace string) ([]*model.ConfigFileGroup, string) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListGroups", namespace)
+	ret0, _ := ret[0].([]*model.ConfigFileGroup)
+	ret1, _ := ret[1].(string)
+	return ret0, ret1
+}
+
+// ListGroups indicates an expected call of ListGroups.
+func (mr *MockConfigGroupCacheMockRecorder) ListGroups(namespace interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListGroups", reflect.TypeOf((*MockConfigGroupCache)(nil).ListGroups), namespace)
 }
 
 // Name mocks base method.

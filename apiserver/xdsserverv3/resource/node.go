@@ -62,10 +62,10 @@ const (
 	// SidecarRegisterService xds metadata key when node what register service from envoy healthcheck
 	// value example: [{"name":"","ports":{"TCP":[8080],"DUBBO":[28080]},"health_check_path":"","health_check_port":8080,"health_check_ttl":5}]
 	SidecarRegisterService = "sidecar.polarismesh.cn/registerServices"
-	// SidecarOpenOnDemandFeature .
-	SidecarOpenOnDemandFeature = "sidecar.polarismesh.cn/openOnDemand"
 	// SidecarTLSModeTag .
 	SidecarTLSModeTag = "sidecar.polarismesh.cn/tlsMode"
+	// SidecarOpenOnDemandFeature .
+	SidecarOpenOnDemandFeature = "sidecar.polarismesh.cn/openOnDemand"
 	// SidecarConnectServerEndpoint report xds server the envoy xds on-demand cds server endpoint info
 	SidecarODCDSServerEndpoint = "sidecar.polarismesh.cn/odcdsServerEndpoint"
 )
