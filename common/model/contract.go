@@ -102,7 +102,7 @@ func (s *ServiceContract) GetResourceName() string {
 }
 
 func (s *ServiceContract) GetCacheKey() string {
-	return fmt.Sprintf("%s/%s/%s/%s", s.Service, s.Name, s.Protocol, s.Version)
+	return fmt.Sprintf("%s/%s/%s/%s/%s", s.Namespace, s.Service, s.Name, s.Protocol, s.Version)
 }
 
 type InterfaceDescriptor struct {
