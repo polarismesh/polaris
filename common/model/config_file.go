@@ -366,6 +366,7 @@ func ToConfiogFileReleaseApi(release *ConfigFileRelease) *config_manage.ConfigFi
 		Tags:               FromTagMap(release.Metadata),
 		Active:             utils.NewBoolValue(release.Active),
 		ReleaseType:        utils.NewStringValue(string(release.ReleaseType)),
+		BetaLabels:         release.BetaLabels,
 	}
 }
 

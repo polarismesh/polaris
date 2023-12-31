@@ -2228,18 +2228,18 @@ func (mr *MockConfigFileCacheMockRecorder) GetActiveRelease(namespace, group, fi
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActiveRelease", reflect.TypeOf((*MockConfigFileCache)(nil).GetActiveRelease), namespace, group, fileName)
 }
 
-// GetGrayRelease mocks base method.
-func (m *MockConfigFileCache) GetGrayRelease(namespace, group, fileName string) *model.ConfigFileRelease {
+// GetActiveGrayRelease mocks base method.
+func (m *MockConfigFileCache) GetActiveGrayRelease(namespace, group, fileName string) *model.ConfigFileRelease {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetGrayRelease", namespace, group, fileName)
+	ret := m.ctrl.Call(m, "GetActiveGrayRelease", namespace, group, fileName)
 	ret0, _ := ret[0].(*model.ConfigFileRelease)
 	return ret0
 }
 
-// GetGrayRelease indicates an expected call of GetGrayRelease.
-func (mr *MockConfigFileCacheMockRecorder) GetGrayRelease(namespace, group, fileName interface{}) *gomock.Call {
+// GetActiveGrayRelease indicates an expected call of GetActiveGrayRelease.
+func (mr *MockConfigFileCacheMockRecorder) GetActiveGrayRelease(namespace, group, fileName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGrayRelease", reflect.TypeOf((*MockConfigFileCache)(nil).GetGrayRelease), namespace, group, fileName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActiveGrayRelease", reflect.TypeOf((*MockConfigFileCache)(nil).GetActiveGrayRelease), namespace, group, fileName)
 }
 
 // GetGroupActiveReleases mocks base method.

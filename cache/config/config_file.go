@@ -409,8 +409,8 @@ func (fc *fileCache) GetActiveRelease(namespace, group, fileName string) *model.
 	return fc.handleGetActiveRelease(namespace, group, fileName, model.ReleaseTypeFull)
 }
 
-// GetGrayRelease
-func (fc *fileCache) GetGrayRelease(namespace, group, fileName string) *model.ConfigFileRelease {
+// GetActiveGrayRelease
+func (fc *fileCache) GetActiveGrayRelease(namespace, group, fileName string) *model.ConfigFileRelease {
 	return fc.handleGetActiveRelease(namespace, group, fileName, model.ReleaseTypeGray)
 }
 

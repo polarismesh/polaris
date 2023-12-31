@@ -273,7 +273,7 @@ func (chain *ReleaseConfigFileChain) AfterGetFile(ctx context.Context,
 	group := file.Group
 	name := file.Name
 	// 首先检测灰度版本
-	if grayFile := chain.svr.fileCache.GetGrayRelease(namespace, group, name); grayFile != nil {
+	if grayFile := chain.svr.fileCache.GetActiveGrayRelease(namespace, group, name); grayFile != nil {
 		if grayFile.Content == file.OriginContent {
 			file.Status = utils.ReleaseTypeGray
 			file.ReleaseBy = grayFile.ModifyBy

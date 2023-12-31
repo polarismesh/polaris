@@ -766,7 +766,7 @@ func (s *Server) StopGrayConfigFileRelease(ctx context.Context, req *apiconfig.C
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 
-	if err = s.storage.DeleteConfigFileReleaseTx(tx, betaRelease.ConfigFileReleaseKey); err != nil {
+	if err = s.storage.InactiveConfigFileReleaseTx(tx, betaRelease); err != nil {
 		log.Error("[Config][File] stop beta config file release.", utils.RequestID(ctx), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}

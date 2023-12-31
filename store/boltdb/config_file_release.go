@@ -342,6 +342,15 @@ func (cfr *configFileReleaseStore) ActiveConfigFileReleaseTx(tx store.Tx, releas
 	return updateValue(dbTx, tblConfigFileRelease, release.ReleaseKey(), properties)
 }
 
+func (cfr *configFileReleaseStore) InactiveConfigFileReleaseTx(tx store.Tx, release *model.ConfigFileRelease) error {
+	dbTx := tx.GetDelegateTx().(*bolt.Tx)
+	properties := make(map[string]interface{})
+	properties[FileReleaseFieldActive] = false
+	properties[FileReleaseFieldModifyTime] = time.Now()
+	properties[FileReleaseFieldType] = string(release.ReleaseType)
+	return updateValue(dbTx, tblConfigFileRelease, release.ReleaseKey(), properties)
+}
+
 func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *bolt.Tx,
 	release *model.ConfigFileRelease) (uint64, error) {
 
