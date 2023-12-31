@@ -20,14 +20,74 @@ package config_test
 import (
 	"testing"
 
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/config"
 	"github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-
-	"github.com/polarismesh/polaris/common/model"
-	"github.com/polarismesh/polaris/common/utils"
 )
+
+// Test_PublishConfigFile 测试配置文件发布
+func Test_PublishConfigFile_Check(t *testing.T) {
+	testSuit := newConfigCenterTestSuit(t)
+
+	var (
+		mockNamespace   = "mock_namespace"
+		mockGroup       = "mock_group"
+		mockFileName    = "mock_filename"
+		mockReleaseName = "mock_release"
+	)
+
+	t.Run("参数检查", func(t *testing.T) {
+		testSuit.NamespaceServer().CreateNamespace(testSuit.DefaultCtx, &apimodel.Namespace{
+			Name: utils.NewStringValue(mockNamespace),
+		})
+
+		t.Run("invalid_file_name", func(t *testing.T) {
+			pubResp := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFileRelease{
+				Name:      utils.NewStringValue(mockReleaseName),
+				Namespace: utils.NewStringValue(mockNamespace),
+				Group:     utils.NewStringValue(mockGroup),
+				// FileName:  utils.NewStringValue(mockFileName),
+			})
+			// 发布失败
+			assert.Equal(t, uint32(apimodel.Code_InvalidConfigFileName), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
+		})
+		t.Run("invalid_namespace", func(t *testing.T) {
+			pubResp := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFileRelease{
+				Name: utils.NewStringValue(mockReleaseName),
+				// Namespace: utils.NewStringValue(mockNamespace),
+				Group:    utils.NewStringValue(mockGroup),
+				FileName: utils.NewStringValue(mockFileName),
+			})
+			// 发布失败
+			assert.Equal(t, uint32(apimodel.Code_InvalidNamespaceName), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
+		})
+		t.Run("invalid_group", func(t *testing.T) {
+			pubResp := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFileRelease{
+				Name:      utils.NewStringValue(mockReleaseName),
+				Namespace: utils.NewStringValue(mockNamespace),
+				// Group:     utils.NewStringValue(mockGroup),
+				FileName: utils.NewStringValue(mockFileName),
+			})
+			// 发布失败
+			assert.Equal(t, uint32(apimodel.Code_InvalidConfigFileGroupName), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
+		})
+		t.Run("invalid_gray_publish", func(t *testing.T) {
+			pubResp := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFileRelease{
+				Name:        utils.NewStringValue(mockReleaseName),
+				Namespace:   utils.NewStringValue(mockNamespace),
+				Group:       utils.NewStringValue(mockGroup),
+				FileName:    utils.NewStringValue(mockFileName),
+				ReleaseType: wrapperspb.String(model.ReleaseTypeGray),
+			})
+			// 发布失败
+			assert.Equal(t, uint32(apimodel.Code_InvalidMatchRule), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
+		})
+	})
+}
 
 // Test_PublishConfigFile 测试配置文件发布
 func Test_PublishConfigFile(t *testing.T) {
@@ -89,6 +149,66 @@ func Test_PublishConfigFile(t *testing.T) {
 
 		// 正常发布成功
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
+	})
+
+	// 重新发布
+	t.Run("normal_republish", func(t *testing.T) {
+		pubResp := testSuit.ConfigServer().UpsertAndReleaseConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
+			ReleaseName:        utils.NewStringValue(mockReleaseName),
+			Namespace:          utils.NewStringValue(mockNamespace),
+			Group:              utils.NewStringValue(mockGroup),
+			FileName:           utils.NewStringValue(mockFileName),
+			Content:            utils.NewStringValue(mockContent),
+			Comment:            utils.NewStringValue("mock_comment"),
+			Format:             utils.NewStringValue("yaml"),
+			ReleaseDescription: utils.NewStringValue("mock_releaseDescription"),
+			Tags: []*config_manage.ConfigFileTag{
+				{
+					Key:   utils.NewStringValue("mock_key"),
+					Value: utils.NewStringValue("mock_value"),
+				},
+			},
+		})
+
+		// 正常发布成功
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
+	})
+
+	t.Run("list_release_version", func(t *testing.T) {
+		t.Run("invalid_namespace", func(t *testing.T) {
+			queryRsp := testSuit.ConfigServer().GetConfigFileReleaseVersions(testSuit.DefaultCtx, map[string]string{
+				"group":     mockGroup,
+				"file_name": mockFileName,
+			})
+			assert.Equal(t, uint32(apimodel.Code_BadRequest), queryRsp.GetCode().GetValue())
+			assert.Equal(t, "invalid namespace", queryRsp.GetInfo().GetValue())
+		})
+		t.Run("invalid_group", func(t *testing.T) {
+			queryRsp := testSuit.ConfigServer().GetConfigFileReleaseVersions(testSuit.DefaultCtx, map[string]string{
+				"namespace": mockNamespace,
+				"file_name": mockFileName,
+			})
+			assert.Equal(t, uint32(apimodel.Code_BadRequest), queryRsp.GetCode().GetValue())
+			assert.Equal(t, "invalid config group", queryRsp.GetInfo().GetValue())
+		})
+		t.Run("invalid_file_name", func(t *testing.T) {
+			queryRsp := testSuit.ConfigServer().GetConfigFileReleaseVersions(testSuit.DefaultCtx, map[string]string{
+				"group":     mockGroup,
+				"namespace": mockNamespace,
+			})
+			assert.Equal(t, uint32(apimodel.Code_BadRequest), queryRsp.GetCode().GetValue())
+			assert.Equal(t, "invalid config file name", queryRsp.GetInfo().GetValue())
+		})
+		t.Run("normal", func(t *testing.T) {
+			queryRsp := testSuit.ConfigServer().GetConfigFileReleaseVersions(testSuit.DefaultCtx, map[string]string{
+				"namespace": mockNamespace,
+				"group":     mockGroup,
+				"file_name": mockFileName,
+			})
+			assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), queryRsp.GetCode().GetValue(), queryRsp.GetInfo().GetValue())
+			assert.Equal(t, 1, len(queryRsp.ConfigFileReleases))
+			assert.Equal(t, 1, int(queryRsp.GetTotal().GetValue()))
+		})
 	})
 
 	t.Run("get_config_file_release", func(t *testing.T) {
@@ -160,6 +280,48 @@ func Test_PublishConfigFile(t *testing.T) {
 		// 获取配置发布成功
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), clientResp.GetCode().GetValue(), clientResp.GetInfo().GetValue())
 		assert.Equal(t, mockContent+"Second", clientResp.GetConfigFile().GetContent().GetValue())
+	})
+
+	t.Run("normal_publish_fordelete", func(t *testing.T) {
+		releaseName := mockReleaseName + "_delete"
+		pubResp := testSuit.ConfigServer().UpsertAndReleaseConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
+			ReleaseName:        utils.NewStringValue(releaseName),
+			Namespace:          utils.NewStringValue(mockNamespace),
+			Group:              utils.NewStringValue(mockGroup),
+			FileName:           utils.NewStringValue(mockFileName),
+			Content:            utils.NewStringValue(mockContent),
+			Comment:            utils.NewStringValue("mock_comment"),
+			Format:             utils.NewStringValue("yaml"),
+			ReleaseDescription: utils.NewStringValue("mock_releaseDescription"),
+			Tags: []*config_manage.ConfigFileTag{
+				{
+					Key:   utils.NewStringValue("mock_key"),
+					Value: utils.NewStringValue("mock_value"),
+				},
+			},
+		})
+
+		// 正常发布成功
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
+
+		delResp := testSuit.ConfigServer().DeleteConfigFileReleases(testSuit.DefaultCtx, []*config_manage.ConfigFileRelease{
+			{
+				Name:      utils.NewStringValue(releaseName),
+				Namespace: utils.NewStringValue(mockNamespace),
+				Group:     utils.NewStringValue(mockGroup),
+				FileName:  utils.NewStringValue(mockFileName),
+			},
+		})
+		// 删除成功
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), delResp.GetCode().GetValue(), delResp.GetInfo().GetValue())
+
+		// 查询不到
+		queryRsp := testSuit.ConfigServer().GetConfigFileReleases(testSuit.DefaultCtx, map[string]string{
+			"name": releaseName,
+		})
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), queryRsp.GetCode().GetValue(), queryRsp.GetInfo().GetValue())
+		assert.Equal(t, 0, len(queryRsp.ConfigFileReleases))
+		assert.Equal(t, 0, int(queryRsp.GetTotal().GetValue()))
 	})
 }
 
@@ -416,7 +578,7 @@ func Test_GrayConfigFileRelease(t *testing.T) {
 	// 删除已发布的灰度配置，获取不到
 	t.Run("delete_gray_release", func(t *testing.T) {
 		resp := testSuit.ConfigServer().StopGrayConfigFileReleases(testSuit.DefaultCtx, []*config_manage.ConfigFileRelease{
-			&config_manage.ConfigFileRelease{
+			{
 				Namespace: utils.NewStringValue(mockNamespace),
 				Group:     utils.NewStringValue(mockGroup),
 				FileName:  utils.NewStringValue(mockFileName),
@@ -461,5 +623,112 @@ func Test_GrayConfigFileRelease(t *testing.T) {
 		})
 		// 正常发布成功
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
+	})
+}
+
+func TestServer_CasUpsertAndReleaseConfigFile(t *testing.T) {
+	testSuit := newConfigCenterTestSuit(t)
+	_ = testSuit
+
+	var (
+		mockNamespace   = "mock_namespace"
+		mockGroup       = "mock_group"
+		mockFileName    = "mock_filename"
+		mockReleaseName = "mock_release"
+		mockContent     = "mock_content"
+	)
+
+	nsRsp := testSuit.NamespaceServer().CreateNamespace(testSuit.DefaultCtx, &apimodel.Namespace{
+		Name: utils.NewStringValue(mockNamespace),
+	})
+	assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), nsRsp.GetCode().GetValue(), nsRsp.GetInfo().GetValue())
+
+	t.Run("param_check", func(t *testing.T) {
+		t.Run("invalid_namespace", func(t *testing.T) {
+			queryRsp := testSuit.ConfigServer().GetConfigFileReleaseVersions(testSuit.DefaultCtx, map[string]string{
+				"group":     mockGroup,
+				"file_name": mockFileName,
+			})
+			assert.Equal(t, uint32(apimodel.Code_BadRequest), queryRsp.GetCode().GetValue())
+			assert.Equal(t, "invalid namespace", queryRsp.GetInfo().GetValue())
+		})
+		t.Run("invalid_group", func(t *testing.T) {
+			queryRsp := testSuit.ConfigServer().GetConfigFileReleaseVersions(testSuit.DefaultCtx, map[string]string{
+				"namespace": mockNamespace,
+				"file_name": mockFileName,
+			})
+			assert.Equal(t, uint32(apimodel.Code_BadRequest), queryRsp.GetCode().GetValue())
+			assert.Equal(t, "invalid config group", queryRsp.GetInfo().GetValue())
+		})
+		t.Run("invalid_file_name", func(t *testing.T) {
+			queryRsp := testSuit.ConfigServer().GetConfigFileReleaseVersions(testSuit.DefaultCtx, map[string]string{
+				"group":     mockGroup,
+				"namespace": mockNamespace,
+			})
+			assert.Equal(t, uint32(apimodel.Code_BadRequest), queryRsp.GetCode().GetValue())
+			assert.Equal(t, "invalid config file name", queryRsp.GetInfo().GetValue())
+		})
+	})
+
+	t.Run("publish_cas", func(t *testing.T) {
+		// 发布灰度配置
+		pubResp := testSuit.ConfigServer().CasUpsertAndReleaseConfigFileFromClient(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
+			Namespace:   utils.NewStringValue(mockNamespace),
+			Group:       utils.NewStringValue(mockGroup),
+			FileName:    utils.NewStringValue(mockFileName),
+			ReleaseName: utils.NewStringValue(mockReleaseName),
+			Content:     utils.NewStringValue(mockContent),
+			Md5:         wrapperspb.String(config.CalMd5(mockContent)),
+		})
+		// 正常发布失败，数据冲突无法处理
+		assert.Equal(t, uint32(apimodel.Code_DataConflict), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
+
+		// 正常发布一个配置
+		pubResp = testSuit.ConfigServer().UpsertAndReleaseConfigFileFromClient(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
+			Namespace:   utils.NewStringValue(mockNamespace),
+			Group:       utils.NewStringValue(mockGroup),
+			FileName:    utils.NewStringValue(mockFileName),
+			ReleaseName: utils.NewStringValue(mockReleaseName),
+			Content:     utils.NewStringValue(mockContent),
+			Md5:         wrapperspb.String(config.CalMd5(mockContent)),
+		})
+		// 正常发布成功
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
+
+		// 获取下当前配置的 Release
+		queryRsp := testSuit.ConfigServer().GetConfigFileRelease(testSuit.DefaultCtx, &config_manage.ConfigFileRelease{
+			Namespace: utils.NewStringValue(mockNamespace),
+			Group:     utils.NewStringValue(mockGroup),
+			FileName:  utils.NewStringValue(mockFileName),
+			Name:      wrapperspb.String(mockReleaseName),
+		})
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), queryRsp.GetCode().GetValue(), queryRsp.GetInfo().GetValue())
+		assert.NotNil(t, queryRsp.GetConfigFileRelease())
+		assert.Equal(t, config.CalMd5(mockContent), queryRsp.GetConfigFileRelease().GetMd5().GetValue())
+
+		t.Run("md5_不匹配", func(t *testing.T) {
+			pubResp := testSuit.ConfigServer().CasUpsertAndReleaseConfigFileFromClient(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
+				Namespace:   utils.NewStringValue(mockNamespace),
+				Group:       utils.NewStringValue(mockGroup),
+				FileName:    utils.NewStringValue(mockFileName),
+				ReleaseName: utils.NewStringValue(mockReleaseName),
+				Content:     utils.NewStringValue(mockContent),
+				Md5:         wrapperspb.String(utils.NewUUID()),
+			})
+			// 正常发布失败，数据冲突无法处理
+			assert.Equal(t, uint32(apimodel.Code_DataConflict), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
+		})
+
+		t.Run("md5_匹配", func(t *testing.T) {
+			pubResp := testSuit.ConfigServer().CasUpsertAndReleaseConfigFileFromClient(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
+				Namespace: utils.NewStringValue(mockNamespace),
+				Group:     utils.NewStringValue(mockGroup),
+				FileName:  utils.NewStringValue(mockFileName),
+				Content:   utils.NewStringValue(mockContent),
+				Md5:       wrapperspb.String(queryRsp.GetConfigFileRelease().GetMd5().GetValue()),
+			})
+			// 正常发布失败，数据冲突无法处理
+			assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
+		})
 	})
 }

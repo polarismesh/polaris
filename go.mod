@@ -1,6 +1,6 @@
 module github.com/polarismesh/polaris
 
-go 1.21
+go 1.21.5
 
 require (
 	github.com/BurntSushi/toml v1.2.0

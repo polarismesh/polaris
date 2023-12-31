@@ -40,10 +40,6 @@ type Callbacks struct {
 	nodeMgr *resource.XDSNodeManager
 }
 
-func (cb *Callbacks) Report() {
-
-}
-
 func (cb *Callbacks) OnStreamOpen(_ context.Context, id int64, typ string) error {
 	return nil
 }
@@ -57,6 +53,7 @@ func (cb *Callbacks) OnDeltaStreamOpen(_ context.Context, id int64, typ string) 
 }
 
 func (cb *Callbacks) OnDeltaStreamClosed(id int64, node *corev3.Node) {
+	cb.nodeMgr.DelNode(id)
 }
 
 func (cb *Callbacks) OnStreamRequest(id int64, req *discovery.DiscoveryRequest) error {

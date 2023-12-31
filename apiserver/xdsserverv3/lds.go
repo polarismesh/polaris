@@ -92,17 +92,6 @@ func (lds *LDSBuilder) Generate(option *resource.BuildOption) (interface{}, erro
 		resources = ret
 	case resource.RunTypeSidecar:
 		switch option.TrafficDirection {
-		case core.TrafficDirection_UNSPECIFIED:
-			inBoundListener, err := lds.makeListener(option, corev3.TrafficDirection_INBOUND)
-			if err != nil {
-				return nil, err
-			}
-			resources = append(resources, inBoundListener...)
-			outBoundListener, err := lds.makeListener(option, corev3.TrafficDirection_OUTBOUND)
-			if err != nil {
-				return nil, err
-			}
-			resources = append(resources, outBoundListener...)
 		case core.TrafficDirection_INBOUND:
 			inBoundListener, err := lds.makeListener(option, corev3.TrafficDirection_INBOUND)
 			if err != nil {
@@ -140,7 +129,7 @@ func (lds *LDSBuilder) makeListener(option *resource.BuildOption,
 	listener := makeDefaultListener(direction, boundHCM, option, dstPorts)
 	listener.ListenerFilters = append(listener.ListenerFilters, defaultListenerFilters...)
 
-	if option.TLSMode != resource.TLSModeNone {
+	if resource.EnableTLS(option.TLSMode) {
 		listener.FilterChains = []*listenerv3.FilterChain{
 			{
 				FilterChainMatch: &listenerv3.FilterChainMatch{
@@ -248,11 +237,9 @@ func makeDefaultListenerFilterChain(trafficDirection corev3.TrafficDirection,
 				},
 			})
 		}
-	} else {
-		filterChain = append(filterChain, &listenerv3.FilterChain{
-			Filters: defaultHttpFilter,
-		})
 	}
-
+	filterChain = append(filterChain, &listenerv3.FilterChain{
+		Filters: defaultHttpFilter,
+	})
 	return filterChain
 }

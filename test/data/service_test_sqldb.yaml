@@ -241,6 +241,7 @@ naming:
 config:
   # 是否启动配置模块
   open: true
+  contentMaxLength: 20000
 # 健康检查的配置
 healthcheck:
   open: true

@@ -223,6 +223,7 @@ func (x *XDSServer) activeUpdateTask() {
 		<-x.activeNotifier.Done()
 		return
 	}
+	defer x.activeFinish()
 	log.Info("active update xds resource snapshot task")
 
 	if err := x.initRegistryInfo(); err != nil {
@@ -236,7 +237,6 @@ func (x *XDSServer) activeUpdateTask() {
 	}
 	// 首次更新没有需要移除的 XDS 资源信息
 	x.Generate(x.registryInfo, nil)
-	x.activeFinish()
 	go x.startSynTask(x.ctx)
 }
 
@@ -443,7 +443,6 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 }
 
 func (x *XDSServer) Generate(needPush, needRemove map[string]map[model.ServiceKey]*resource.ServiceInfo) {
-	defer x.activeFinish()
 	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
 	x.resourceGenerator.Generate(versionLocal, needPush, needRemove)
 }

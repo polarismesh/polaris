@@ -601,7 +601,6 @@ func (s *Server) CasUpsertAndReleaseConfigFile(ctx context.Context,
 		if req.GetMd5().GetValue() != CalMd5(saveFile.Content) {
 			return api.NewConfigResponse(apimodel.Code_DataConflict)
 		}
-		// 补充针对 Version、MD5 的比对逻辑，如果不满足，快速结束
 		upsertResp = s.handleUpdateConfigFile(ctx, tx, upsertFileReq)
 	}
 	if upsertResp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
