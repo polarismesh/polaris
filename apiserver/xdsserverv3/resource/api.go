@@ -33,12 +33,12 @@ type XDSBuilder interface {
 }
 
 type BuildOption struct {
-	RunType        RunType
-	Namespace      string
-	TLSMode        TLSMode
-	Services       map[model.ServiceKey]*ServiceInfo
-	OpenOnDemand   bool
-	SelfService    model.ServiceKey
+	RunType      RunType
+	Namespace    string
+	TLSMode      TLSMode
+	Services     map[model.ServiceKey]*ServiceInfo
+	OpenOnDemand bool
+	SelfService  model.ServiceKey
 	// 不是比带，只有在 EDS 生成，并且是处理 INBOUND 的时候才会设置
 	Client           *XDSClient
 	TrafficDirection corev3.TrafficDirection

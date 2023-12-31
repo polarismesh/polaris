@@ -21,12 +21,12 @@ import (
 	"fmt"
 	"testing"
 
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 )
 
 var (
