@@ -45,7 +45,6 @@ import (
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	connlimit "github.com/polarismesh/polaris/common/conn/limit"
-	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/service"
@@ -128,7 +127,7 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 func (x *XDSServer) Run(errCh chan error) {
 	// 启动 grpc server
 	ctx := context.Background()
-	cb := xdscache.NewCallback(commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName), x.nodeMgr)
+	cb := xdscache.NewCallback(x.cache, x.nodeMgr)
 	srv := serverv3.NewServer(ctx, x.cache, cb)
 	var grpcOptions []grpc.ServerOption
 	grpcOptions = append(grpcOptions, grpc.MaxConcurrentStreams(1000))

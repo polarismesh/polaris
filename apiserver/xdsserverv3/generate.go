@@ -132,23 +132,6 @@ func (x *XdsResourceGenerator) Generate(versionLocal string,
 	wg.Wait()
 }
 
-func (x *XdsResourceGenerator) buildMoreEnvoyXDSCache(needUpdate, needRemove ServiceInfos) error {
-	nodes := x.xdsNodesMgr.ListEnvoyNodes()
-	if len(nodes) == 0 || len(needUpdate) == 0 {
-		// 如果没有任何一个 XDS Sidecar Node 客户端，不做任何操作
-		log.Info("[XDS][Envoy] xds nodes or update info is empty", zap.Int("nodes", len(nodes)),
-			zap.Int("need-update", len(needUpdate)))
-		return nil
-	}
-
-	for i := range nodes {
-		if err := x.buildOneEnvoyXDSCache(nodes[i]); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (x *XdsResourceGenerator) buildOneEnvoyXDSCache(node *resource.XDSClient) error {
 	opt := &resource.BuildOption{
 		RunType:      node.RunType,

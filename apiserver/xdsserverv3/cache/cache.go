@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/server/stream/v3"
@@ -59,6 +60,12 @@ func NewCache(hook CacheHook) *XDSCache {
 		Caches: utils.NewSyncMap[string, cachev3.Cache](),
 	}
 	return sc
+}
+
+// CleanEnvoyNodeCache 清理和 Envoy Node 强相关的缓存数据
+func (sc *XDSCache) CleanEnvoyNodeCache(node *corev3.Node) {
+	cacheKey := resource.LDS.ResourceType() + "~" + node.Id
+	sc.Caches.Delete(cacheKey)
 }
 
 // CreateWatch returns a watch for an xDS request.
