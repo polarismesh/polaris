@@ -238,6 +238,7 @@ func Test_PublishConfigFile(t *testing.T) {
 		})
 		// 获取配置发布成功
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue(), resp.GetInfo().GetValue())
+		_ = testSuit.CacheMgr().TestUpdate()
 	})
 
 	t.Run("reget_config_file_release", func(t *testing.T) {
@@ -271,7 +272,6 @@ func Test_PublishConfigFile(t *testing.T) {
 
 	t.Run("client_get_configfile", func(t *testing.T) {
 		// 客户端获取符合预期, 这里强制触发一次缓存数据同步
-		_ = testSuit.CacheMgr().TestUpdate()
 		clientResp := testSuit.ConfigServer().GetConfigFileWithCache(testSuit.DefaultCtx, &config_manage.ClientConfigFileInfo{
 			Namespace: utils.NewStringValue(mockNamespace),
 			Group:     utils.NewStringValue(mockGroup),
@@ -599,7 +599,7 @@ func Test_GrayConfigFileRelease(t *testing.T) {
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue(), resp.GetInfo().GetValue())
 		assert.Equal(t, mockContent, clientRsp.GetConfigFile().GetContent().GetValue())
 
-		// 携带正确配置标签查询, 查到处于灰度发布的配置
+		// 携带正确配置标签查询, 查不到处于灰度发布的配置
 		clientRsp = testSuit.ConfigServer().GetConfigFileWithCache(testSuit.DefaultCtx, &config_manage.ClientConfigFileInfo{
 			Namespace: utils.NewStringValue(mockNamespace),
 			Group:     utils.NewStringValue(mockGroup),

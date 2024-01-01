@@ -233,31 +233,13 @@ func (fc *fileCache) handleUpdateRelease(oldVal *model.SimpleConfigFileRelease, 
 	}()
 
 	if !item.Active {
+		if oldVal != nil && oldVal.Active {
+			return fc.cleanActiveRelease(oldVal)
+		}
 		return nil
 	}
 
-	// 保存 active 状态的所有发布 release 信息
-	if _, ok := fc.activeReleases.Load(item.Namespace); !ok {
-		fc.activeReleases.Store(item.Namespace, utils.NewSyncMap[string,
-			*utils.SyncMap[string, *model.SimpleConfigFileRelease]]())
-	}
-	namespace, _ := fc.activeReleases.Load(item.Namespace)
-	if _, ok := namespace.Load(item.Group); !ok {
-		namespace.Store(item.Group, utils.NewSyncMap[string, *model.SimpleConfigFileRelease]())
-	}
-	group, _ := namespace.Load(item.Group)
-	group.Store(item.ActiveKey(), item.SimpleConfigFileRelease)
-
-	if err := fc.valueCache.Update(func(tx *bbolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists([]byte(item.OwnerKey()))
-		if err != nil {
-			return err
-		}
-		return bucket.Put([]byte(item.ActiveKey()), []byte(item.Content))
-	}); err != nil {
-		return errors.Join(err, errors.New("persistent config_file content fail"))
-	}
-	return nil
+	return fc.saveActiveRelease(item)
 }
 
 // handleDeleteRelease
@@ -291,6 +273,35 @@ func (fc *fileCache) handleDeleteRelease(release *model.SimpleConfigFileRelease)
 	if !release.Active {
 		return nil
 	}
+	return fc.cleanActiveRelease(release)
+}
+
+func (fc *fileCache) saveActiveRelease(item *model.ConfigFileRelease) error {
+	// 保存 active 状态的所有发布 release 信息
+	if _, ok := fc.activeReleases.Load(item.Namespace); !ok {
+		fc.activeReleases.Store(item.Namespace, utils.NewSyncMap[string,
+			*utils.SyncMap[string, *model.SimpleConfigFileRelease]]())
+	}
+	namespace, _ := fc.activeReleases.Load(item.Namespace)
+	if _, ok := namespace.Load(item.Group); !ok {
+		namespace.Store(item.Group, utils.NewSyncMap[string, *model.SimpleConfigFileRelease]())
+	}
+	group, _ := namespace.Load(item.Group)
+	group.Store(item.ActiveKey(), item.SimpleConfigFileRelease)
+
+	if err := fc.valueCache.Update(func(tx *bbolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists([]byte(item.OwnerKey()))
+		if err != nil {
+			return err
+		}
+		return bucket.Put([]byte(item.ActiveKey()), []byte(item.Content))
+	}); err != nil {
+		return errors.Join(err, errors.New("persistent active config_file content fail"))
+	}
+	return nil
+}
+
+func (fc *fileCache) cleanActiveRelease(release *model.SimpleConfigFileRelease) error {
 	if namespace, ok := fc.activeReleases.Load(release.Namespace); ok {
 		if group, ok := namespace.Load(release.Group); ok {
 			group.Delete(release.ActiveKey())
@@ -303,7 +314,7 @@ func (fc *fileCache) handleDeleteRelease(release *model.SimpleConfigFileRelease)
 		}
 		return bucket.Delete([]byte(release.ActiveKey()))
 	}); err != nil {
-		return errors.Join(err, errors.New("remove config_file content fail"))
+		return errors.Join(err, errors.New("remove active config_file content fail"))
 	}
 	return nil
 }
