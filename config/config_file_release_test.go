@@ -95,7 +95,7 @@ func Test_PublishConfigFile(t *testing.T) {
 	testSuit := newConfigCenterTestSuit(t)
 
 	var (
-		mockNamespace   = "mock_namespace"
+		mockNamespace   = "mock_namespace_pub"
 		mockGroup       = "mock_group"
 		mockFileName    = "mock_filename"
 		mockReleaseName = "mock_release"
@@ -632,7 +632,7 @@ func TestServer_CasUpsertAndReleaseConfigFile(t *testing.T) {
 	_ = testSuit
 
 	var (
-		mockNamespace   = "mock_namespace"
+		mockNamespace   = "mock_namespace_cas"
 		mockGroup       = "mock_group"
 		mockFileName    = "mock_filename"
 		mockReleaseName = "mock_release"

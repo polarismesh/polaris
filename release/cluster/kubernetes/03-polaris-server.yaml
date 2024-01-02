@@ -27,6 +27,12 @@ spec:
     - port: 15010
       name: xds-v3
       targetPort: 15010
+    - port: 8848
+      name: nacos-http
+      targetPort: 8848
+    - port: 9848
+      name: nacos-grpc
+      targetPort: 9848
   selector:
     app: polaris
 ---

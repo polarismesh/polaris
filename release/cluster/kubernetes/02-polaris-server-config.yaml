@@ -287,10 +287,14 @@ data:
       strategy:
         name: defaultStrategy
         option:
-          # Console power switch, open default
+          # Console auth switch, default true
           consoleOpen: true
-          # Customer inspection ability switch, default close
+          # Console Strict Model, default true
+          consoleStrict: true
+          # Customer auth switch, default false
           clientOpen: false
+          # Customer Strict Model, default close
+          clientStrict: false
     namespace:
       autoCreate: true
     naming:
