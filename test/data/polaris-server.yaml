@@ -369,6 +369,7 @@ healthcheck:
 config:
   # 是否启动配置模块
   open: true
+  contentMaxLength: 20000
 # 缓存配置
 cache:
   open: true

@@ -189,7 +189,7 @@ func (h *ConfigServer) handleWatchConfigRequest(ctx context.Context, req nacospb
 
 			var active *model.ConfigFileRelease
 			var match bool
-			if betaActive := h.cacheSvr.ConfigFile().GetGrayRelease(namespace, group, dataId); betaActive != nil {
+			if betaActive := h.cacheSvr.ConfigFile().GetActiveGrayRelease(namespace, group, dataId); betaActive != nil {
 				match = h.cacheSvr.Gray().HitGrayRule(model.GetGrayConfigRealseKey(betaActive.SimpleConfigFileRelease), watchCtx.ClientLabels())
 				active = betaActive
 			}

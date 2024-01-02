@@ -54,7 +54,7 @@ func (s *Server) GetConfigFileWithCache(ctx context.Context,
 	var release *model.ConfigFileRelease
 	var match = false
 	if len(client.GetTags()) > 0 {
-		if release = s.fileCache.GetGrayRelease(namespace, group, fileName); release != nil {
+		if release = s.fileCache.GetActiveGrayRelease(namespace, group, fileName); release != nil {
 			key := model.GetGrayConfigRealseKey(release.SimpleConfigFileRelease)
 			match = s.grayCache.HitGrayRule(key, model.ToTagMap(client.GetTags()))
 		}

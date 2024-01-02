@@ -70,6 +70,19 @@ const (
 	SidecarODCDSServerEndpoint = "sidecar.polarismesh.cn/odcdsServerEndpoint"
 )
 
+type EnvoyNodeView struct {
+	ID           string
+	RunType      RunType
+	User         string
+	Namespace    string
+	IPAddr       string
+	PodIP        string
+	Metadata     map[string]string
+	Version      string
+	TLSMode      TLSMode
+	OpenOnDemand bool
+}
+
 func NewXDSNodeManager() *XDSNodeManager {
 	return &XDSNodeManager{
 		nodes:         map[string]*XDSClient{},
@@ -87,8 +100,6 @@ type XDSNodeManager struct {
 	sidecarNodes map[string]*XDSClient
 	// gatewayNodes The XDS client is the node list of the Gateway run mode
 	gatewayNodes map[string]*XDSClient
-	// demandConfs .
-	demandConfs map[RunType]map[string]map[string]struct{}
 }
 
 func (x *XDSNodeManager) AddNodeIfAbsent(streamId int64, node *core.Node) {
@@ -192,8 +203,22 @@ func (x *XDSNodeManager) ListSidecarNodes() []*XDSClient {
 	return ret
 }
 
-func (x *XDSNodeManager) ListDemandConfs() map[RunType]map[string]map[string]struct{} {
-	return x.demandConfs
+func (x *XDSNodeManager) ListEnvoyNodesView(run RunType) []*EnvoyNodeView {
+	x.lock.RLock()
+	defer x.lock.RUnlock()
+
+	if run == RunTypeSidecar {
+		ret := make([]*EnvoyNodeView, 0, len(x.sidecarNodes))
+		for i := range x.sidecarNodes {
+			ret = append(ret, x.sidecarNodes[i].toView())
+		}
+		return ret
+	}
+	ret := make([]*EnvoyNodeView, 0, len(x.gatewayNodes))
+	for i := range x.gatewayNodes {
+		ret = append(ret, x.gatewayNodes[i].toView())
+	}
+	return ret
 }
 
 // ID id 的格式是 ${sidecar|gateway}~namespace/uuid~hostIp
@@ -291,21 +316,36 @@ type RegisterService struct {
 
 // XDSClient 客户端代码结构体
 type XDSClient struct {
-	RunType        RunType
-	User           string
-	Namespace      string
-	IPAddr         string
-	PodIP          string
-	Metadata       map[string]string
-	Version        string
-	Node           *core.Node
-	TLSMode        TLSMode
-	OpenOnDemand   bool
-	OnDemandServer string
+	ID           string
+	RunType      RunType
+	User         string
+	Namespace    string
+	IPAddr       string
+	PodIP        string
+	Metadata     map[string]string
+	Version      string
+	Node         *core.Node
+	TLSMode      TLSMode
+	OpenOnDemand bool
+}
+
+func (n *XDSClient) toView() *EnvoyNodeView {
+	return &EnvoyNodeView{
+		ID:           n.ID,
+		RunType:      n.RunType,
+		User:         n.User,
+		Namespace:    n.Namespace,
+		IPAddr:       n.IPAddr,
+		PodIP:        n.PodIP,
+		Metadata:     n.Metadata,
+		Version:      n.Version,
+		TLSMode:      n.TLSMode,
+		OpenOnDemand: n.OpenOnDemand,
+	}
 }
 
 func (n *XDSClient) GetNodeID() string {
-	return n.Node.Id
+	return n.ID
 }
 
 func (n *XDSClient) ResourceKey() string {
@@ -388,6 +428,7 @@ func ParseXDSClient(node *core.Node) *XDSClient {
 func parseNodeProxy(node *core.Node) *XDSClient {
 	runType, polarisNamespace, _, hostIP := ParseNodeID(node.Id)
 	proxy := &XDSClient{
+		ID:        node.Id,
 		IPAddr:    hostIP,
 		PodIP:     hostIP,
 		RunType:   RunType(runType),
@@ -405,14 +446,8 @@ func parseNodeProxy(node *core.Node) *XDSClient {
 				proxy.TLSMode = TLSModeStrict
 			}
 		}
-		if onDemand, ok := getEnvoyMetaField(node.Metadata, SidecarOpenOnDemandFeature, true); ok {
-			proxy.OpenOnDemand = onDemand
-			odcdsSvr, ok := getEnvoyMetaField(node.Metadata, SidecarODCDSServerEndpoint, "")
-			if !ok {
-				proxy.OpenOnDemand = false
-			} else {
-				proxy.OnDemandServer = odcdsSvr
-			}
+		if onDemand, ok := getEnvoyMetaField(node.Metadata, SidecarOpenOnDemandFeature, ""); ok {
+			proxy.OpenOnDemand = onDemand == "true"
 		}
 	}
 

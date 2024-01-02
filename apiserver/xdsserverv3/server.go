@@ -45,7 +45,6 @@ import (
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	connlimit "github.com/polarismesh/polaris/common/conn/limit"
-	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/service"
@@ -128,7 +127,7 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 func (x *XDSServer) Run(errCh chan error) {
 	// 启动 grpc server
 	ctx := context.Background()
-	cb := xdscache.NewCallback(commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName), x.nodeMgr)
+	cb := xdscache.NewCallback(x.cache, x.nodeMgr)
 	srv := serverv3.NewServer(ctx, x.cache, cb)
 	var grpcOptions []grpc.ServerOption
 	grpcOptions = append(grpcOptions, grpc.MaxConcurrentStreams(1000))
@@ -223,6 +222,7 @@ func (x *XDSServer) activeUpdateTask() {
 		<-x.activeNotifier.Done()
 		return
 	}
+	defer x.activeFinish()
 	log.Info("active update xds resource snapshot task")
 
 	if err := x.initRegistryInfo(); err != nil {
@@ -236,7 +236,6 @@ func (x *XDSServer) activeUpdateTask() {
 	}
 	// 首次更新没有需要移除的 XDS 资源信息
 	x.Generate(x.registryInfo, nil)
-	x.activeFinish()
 	go x.startSynTask(x.ctx)
 }
 
@@ -443,7 +442,6 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 }
 
 func (x *XDSServer) Generate(needPush, needRemove map[string]map[model.ServiceKey]*resource.ServiceInfo) {
-	defer x.activeFinish()
 	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
 	x.resourceGenerator.Generate(versionLocal, needPush, needRemove)
 }

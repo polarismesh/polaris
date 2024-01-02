@@ -25,38 +25,38 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
-	commonlog "github.com/polarismesh/polaris/common/log"
 )
 
-func NewCallback(log *commonlog.Scope, nodeMgr *resource.XDSNodeManager) *Callbacks {
+func NewCallback(cacheMgr *XDSCache, nodeMgr *resource.XDSNodeManager) *Callbacks {
 	return &Callbacks{
-		log:     log,
-		nodeMgr: nodeMgr,
+		cacheMgr: cacheMgr,
+		nodeMgr:  nodeMgr,
 	}
 }
 
 type Callbacks struct {
-	log     *commonlog.Scope
-	nodeMgr *resource.XDSNodeManager
-}
-
-func (cb *Callbacks) Report() {
-
+	cacheMgr *XDSCache
+	nodeMgr  *resource.XDSNodeManager
 }
 
 func (cb *Callbacks) OnStreamOpen(_ context.Context, id int64, typ string) error {
 	return nil
 }
 
-func (cb *Callbacks) OnStreamClosed(id int64, node *corev3.Node) {
-	cb.nodeMgr.DelNode(id)
-}
-
 func (cb *Callbacks) OnDeltaStreamOpen(_ context.Context, id int64, typ string) error {
 	return nil
 }
 
+func (cb *Callbacks) OnStreamClosed(id int64, node *corev3.Node) {
+	cb.nodeMgr.DelNode(id)
+	// 清理 cache
+	cb.cacheMgr.CleanEnvoyNodeCache(node)
+}
+
 func (cb *Callbacks) OnDeltaStreamClosed(id int64, node *corev3.Node) {
+	cb.nodeMgr.DelNode(id)
+	// 清理 cache
+	cb.cacheMgr.CleanEnvoyNodeCache(node)
 }
 
 func (cb *Callbacks) OnStreamRequest(id int64, req *discovery.DiscoveryRequest) error {

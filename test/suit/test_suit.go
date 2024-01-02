@@ -156,6 +156,10 @@ func (d *DiscoverTestSuit) InjectSuit(*DiscoverTestSuit) {
 
 }
 
+func (d *DiscoverTestSuit) GetBootstrapConfig() *TestConfig {
+	return d.cfg
+}
+
 func (d *DiscoverTestSuit) CacheMgr() *cache.CacheManager {
 	return d.cacheMgr
 }

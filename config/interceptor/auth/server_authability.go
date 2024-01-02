@@ -162,6 +162,9 @@ func (s *ServerAuthability) queryConfigGroupResource(ctx context.Context,
 	names := utils.NewSet[string]()
 	namespace := req[0].GetNamespace().GetValue()
 	for index := range req {
+		if req[index] == nil {
+			continue
+		}
 		names.Add(req[index].GetName().GetValue())
 	}
 	entries, err := s.queryConfigGroupRsEntryByNames(ctx, namespace, names.ToSlice())

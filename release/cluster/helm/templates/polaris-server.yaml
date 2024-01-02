@@ -27,6 +27,12 @@ spec:
     - port: {{ .Values.service.eurekaPort }}
       name: service-eureka
       targetPort: {{ .Values.service.eurekaPort }}
+    - port: {{ .Values.service.eurekaPort }}
+      name: service-nacos-http
+      targetPort: {{ .Values.service.nacosPort }}
+    - port: {{ .Values.service.nacosPort + 1000 }}
+      name: service-nacos-grpc
+      targetPort: {{ .Values.service.nacosPort + 1000 }}
   selector:
     app: polaris
 ---

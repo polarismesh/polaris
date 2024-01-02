@@ -492,8 +492,8 @@ type (
 		GetGroupActiveReleases(namespace, group string) ([]*model.ConfigFileRelease, string)
 		// GetActiveRelease
 		GetActiveRelease(namespace, group, fileName string) *model.ConfigFileRelease
-		// GetGrayRelease
-		GetGrayRelease(namespace, group, fileName string) *model.ConfigFileRelease
+		// GetActiveGrayRelease
+		GetActiveGrayRelease(namespace, group, fileName string) *model.ConfigFileRelease
 		// GetRelease
 		GetRelease(key model.ConfigFileReleaseKey) *model.ConfigFileRelease
 		// QueryReleases

@@ -255,6 +255,21 @@ func (cfr *configFileReleaseStore) ActiveConfigFileReleaseTx(tx store.Tx, releas
 	return nil
 }
 
+func (cfr *configFileReleaseStore) InactiveConfigFileReleaseTx(tx store.Tx, release *model.ConfigFileRelease) error {
+	if tx == nil {
+		return ErrTxIsNil
+	}
+	dbTx := tx.GetDelegateTx().(*BaseTx)
+
+	args := []interface{}{release.Namespace, release.Group, release.FileName, release.Name, release.ReleaseType}
+	//	取消对应发布版本的 active 状态
+	if _, err := dbTx.Exec("UPDATE config_file_release SET active = 0, modify_time = sysdate() "+
+		" WHERE namespace = ? AND `group` = ? AND file_name = ? AND name = ? AND release_type = ?", args...); err != nil {
+		return store.Error(err)
+	}
+	return nil
+}
+
 func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *BaseTx,
 	release *model.ConfigFileRelease) (uint64, error) {
 	if tx == nil {

@@ -77,7 +77,7 @@ func (rds *RDSBuilder) makeSidecarInBoundRouteConfiguration(option *resource.Bui
 		return []types.Resource{}
 	}
 	routeConf := &route.RouteConfiguration{
-		Name:             resource.MakeInBoundRouteConfigName(selfService),
+		Name:             resource.MakeInBoundRouteConfigName(selfService, option.OpenOnDemand),
 		ValidateClusters: wrapperspb.Bool(false),
 	}
 
@@ -116,7 +116,7 @@ func (rds *RDSBuilder) makeSidecarOutBoundRouteConfiguration(option *resource.Bu
 	}
 	hosts = append(hosts, resource.BuildAllowAnyVHost())
 	if option.OpenOnDemand {
-		baseRouteName = fmt.Sprintf("%s|%s|Demand|%s", resource.OutBoundRouteConfigName, option.Namespace, option.OnDemandServer)
+		baseRouteName = fmt.Sprintf("%s|%s|DEMAND", resource.OutBoundRouteConfigName, option.Namespace)
 		// routeConfiguration.Vhds = &route.Vhds{
 		// 	ConfigSource: &corev3.ConfigSource{
 		// 		ConfigSourceSpecifier: &corev3.ConfigSource_ApiConfigSource{
@@ -174,6 +174,8 @@ func (rds *RDSBuilder) makeSidecarInBoundRoutes(selfService model.ServiceKey,
 	limits, typedPerFilterConfig, err := resource.MakeSidecarLocalRateLimit(seacher, selfService)
 	if err == nil {
 		currentRoute.TypedPerFilterConfig = typedPerFilterConfig
+		currentRoute.TypedPerFilterConfig[resource.EnvoyHttpFilter_OnDemand] =
+			resource.BuildOnDemandRouteTypedPerFilterConfig()
 		currentRoute.GetRoute().RateLimits = limits
 	}
 	return []*route.Route{

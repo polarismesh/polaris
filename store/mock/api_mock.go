@@ -2109,6 +2109,20 @@ func (mr *MockStoreMockRecorder) HasFaultDetectRuleByNameExcludeId(name, namespa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasFaultDetectRuleByNameExcludeId", reflect.TypeOf((*MockStore)(nil).HasFaultDetectRuleByNameExcludeId), name, namespace, id)
 }
 
+// InactiveConfigFileReleaseTx mocks base method.
+func (m *MockStore) InactiveConfigFileReleaseTx(tx store.Tx, release *model.ConfigFileRelease) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InactiveConfigFileReleaseTx", tx, release)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// InactiveConfigFileReleaseTx indicates an expected call of InactiveConfigFileReleaseTx.
+func (mr *MockStoreMockRecorder) InactiveConfigFileReleaseTx(tx, release interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InactiveConfigFileReleaseTx", reflect.TypeOf((*MockStore)(nil).InactiveConfigFileReleaseTx), tx, release)
+}
+
 // Initialize mocks base method.
 func (m *MockStore) Initialize(c *store.Config) error {
 	m.ctrl.T.Helper()
