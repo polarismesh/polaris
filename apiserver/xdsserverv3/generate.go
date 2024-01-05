@@ -89,6 +89,7 @@ func (x *XdsResourceGenerator) Generate(versionLocal string,
 
 			if runType == resource.RunTypeSidecar {
 				for svcKey := range services {
+					opt.OpenOnDemand = false
 					// 换成 INBOUND 构建 CDS、EDS、RDS
 					opt.SelfService = svcKey
 					opt.TrafficDirection = corev3.TrafficDirection_INBOUND

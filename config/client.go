@@ -64,8 +64,8 @@ func (s *Server) GetConfigFileWithCache(ctx context.Context,
 			return api.NewConfigClientResponse(apimodel.Code_NotFoundResource, nil)
 		}
 	}
-	// 客户端版本号大于服务端版本号，服务端不返回变更 todo: 结合灰度和全量版本 判断
-	if client.GetVersion().GetValue() > release.Version {
+	// 客户端版本号大于等于服务端版本号，服务端不返回变更
+	if client.GetVersion().GetValue() >= release.Version {
 		return api.NewConfigClientResponse(apimodel.Code_DataNoChange, nil)
 	}
 	configFile, err := toClientInfo(client, release)
@@ -147,6 +147,9 @@ func (s *Server) GetConfigFileNamesWithCache(ctx context.Context,
 	}
 
 	releases, revision := s.fileCache.GetGroupActiveReleases(namespace, group)
+	if revision == "" {
+		return api.NewConfigClientListResponse(apimodel.Code_ExecuteSuccess)
+	}
 	if revision == req.GetRevision().GetValue() {
 		return api.NewConfigClientListResponse(apimodel.Code_DataNoChange)
 	}
@@ -183,6 +186,11 @@ func (s *Server) GetConfigGroupsWithCache(ctx context.Context, req *apiconfig.Cl
 	}
 
 	groups, revision := s.groupCache.ListGroups(namespace)
+	if revision == "" {
+		out = api.NewConfigDiscoverResponse(apimodel.Code_ExecuteSuccess)
+		out.Type = apiconfig.ConfigDiscoverResponse_CONFIG_FILE_GROUPS
+		return out
+	}
 	if revision == req.GetMd5().GetValue() {
 		out = api.NewConfigDiscoverResponse(apimodel.Code_DataNoChange)
 		out.Type = apiconfig.ConfigDiscoverResponse_CONFIG_FILE_GROUPS

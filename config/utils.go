@@ -27,8 +27,6 @@ import (
 	"fmt"
 	"path"
 	"regexp"
-	"strconv"
-	"strings"
 	"unicode/utf8"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -72,29 +70,6 @@ func CheckContentLength(content string, max int) error {
 	}
 
 	return nil
-}
-
-// GenReleaseName 生成发布名称，规则是 filename-${三位自增长序列}
-func GenReleaseName(oldReleaseName, fileName string) string {
-	if oldReleaseName == "" {
-		return fileName + "-001"
-	}
-
-	nameInfo := strings.Split(oldReleaseName, "-")
-	if len(nameInfo) != 2 {
-		return oldReleaseName
-	}
-
-	if fileName != nameInfo[0] {
-		return oldReleaseName
-	}
-
-	num, err := strconv.ParseInt(nameInfo[1], 10, 64)
-	if err != nil {
-		return oldReleaseName
-	}
-
-	return fileName + "-" + strings.ReplaceAll(fmt.Sprintf("%3d", num+1), " ", "0")
 }
 
 func CompressConfigFiles(files []*model.ConfigFile,

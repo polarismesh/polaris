@@ -66,8 +66,6 @@ const (
 	SidecarTLSModeTag = "sidecar.polarismesh.cn/tlsMode"
 	// SidecarOpenOnDemandFeature .
 	SidecarOpenOnDemandFeature = "sidecar.polarismesh.cn/openOnDemand"
-	// SidecarConnectServerEndpoint report xds server the envoy xds on-demand cds server endpoint info
-	SidecarODCDSServerEndpoint = "sidecar.polarismesh.cn/odcdsServerEndpoint"
 )
 
 type EnvoyNodeView struct {
