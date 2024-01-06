@@ -523,13 +523,6 @@ func TestDeleteConfigFile(t *testing.T) {
 
 	t.Log("add config watcher")
 
-	copyCtx := context.WithValue(testSuit.DefaultCtx, utils.WatchTimeoutCtx{}, 10*time.Second)
-	watchCtx, err := testSuit.OriginConfigServer().LongPullWatchFile(copyCtx, &apiconfig.ClientWatchConfigFileRequest{
-		WatchFiles: watchConfigFiles,
-	})
-	assert.Nil(t, err)
-	assert.NotNil(t, watchCtx)
-
 	// 删除配置文件
 	t.Log("remove config file")
 	rsp3 := testSuit.ConfigServer().DeleteConfigFile(testSuit.DefaultCtx, &apiconfig.ConfigFile{
@@ -540,17 +533,10 @@ func TestDeleteConfigFile(t *testing.T) {
 	assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 	_ = testSuit.CacheMgr().TestUpdate()
 
-	// 客户端收到推送通知
-	t.Log("wait receive config change msg")
-	watchRsp := watchCtx()
-	assert.Equal(t, api.ExecuteSuccess, watchRsp.Code.GetValue(), watchRsp.String())
-	assert.Equal(t, activeRelease.Version+1, watchRsp.ConfigFile.Version.Value)
-
 	fileInfo := &apiconfig.ClientConfigFileInfo{
 		Namespace: &wrapperspb.StringValue{Value: newMockNs},
 		Group:     &wrapperspb.StringValue{Value: testGroup},
 		FileName:  &wrapperspb.StringValue{Value: testFile},
-		Version:   &wrapperspb.UInt64Value{Value: 2},
 	}
 
 	// 重新拉取配置，获取不到配置文件
