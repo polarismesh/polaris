@@ -691,6 +691,13 @@ func TestServer_GetConfigGroupsWithCache(t *testing.T) {
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), rsp.Code, rsp.Info)
 		assert.True(t, len(rsp.ConfigFileGroups) == groupTotal)
 
+		// 同一个 revision 查询
+		rsp = testSuit.ConfigServer().GetConfigGroupsWithCache(testSuit.DefaultCtx, &apiconfig.ClientConfigFileInfo{
+			Namespace: wrapperspb.String("ns-0"),
+			Md5: wrapperspb.String(rsp.GetRevision()),
+		})
+		assert.Equal(t, uint32(apimodel.Code_DataNoChange), rsp.Code, rsp.Info)
+
 		// 删除其中一个配置分组后查询
 		groups := mockFiles["ns-0"]
 		for i := 0; i < 2; i++ {
