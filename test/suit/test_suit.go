@@ -409,8 +409,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 
 func (d *DiscoverTestSuit) Destroy() {
 	d.cancel()
-	if d.configOriginSvr != nil {
-		svr := d.configOriginSvr.(*config.Server)
+	if svr, ok := d.configOriginSvr.(*config.Server); ok {
 		svr.WatchCenter().Close()
 	}
 	d.healthCheckServer.Destroy()
