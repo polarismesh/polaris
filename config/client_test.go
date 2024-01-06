@@ -24,16 +24,17 @@ import (
 	"testing"
 	"time"
 
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	api "github.com/polarismesh/polaris/common/api/v1"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/config"
 	testsuit "github.com/polarismesh/polaris/test/suit"
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	"github.com/stretchr/testify/assert"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // TestClientSetupAndFileNotExisted 测试客户端启动时（version=0），并且配置不存在的情况下拉取配置
