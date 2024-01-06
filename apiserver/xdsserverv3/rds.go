@@ -174,8 +174,10 @@ func (rds *RDSBuilder) makeSidecarInBoundRoutes(selfService model.ServiceKey,
 	limits, typedPerFilterConfig, err := resource.MakeSidecarLocalRateLimit(seacher, selfService)
 	if err == nil {
 		currentRoute.TypedPerFilterConfig = typedPerFilterConfig
-		currentRoute.TypedPerFilterConfig[resource.EnvoyHttpFilter_OnDemand] =
-			resource.BuildOnDemandRouteTypedPerFilterConfig()
+		if opt.OpenOnDemand {
+			currentRoute.TypedPerFilterConfig[resource.EnvoyHttpFilter_OnDemand] =
+				resource.BuildOnDemandRouteTypedPerFilterConfig()
+		}
 		currentRoute.GetRoute().RateLimits = limits
 	}
 	return []*route.Route{

@@ -434,16 +434,7 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 
 // Test10000ClientWatchConfigFile 测试 10000 个客户端同时监听配置变更，配置发布所有客户端都收到通知
 func TestManyClientWatchConfigFile(t *testing.T) {
-	testSuit := &ConfigCenterTest{}
-	if err := testSuit.Initialize(); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if err := testSuit.clearTestData(); err != nil {
-			t.Fatal(err)
-		}
-		testSuit.Destroy()
-	})
+	testSuit := newConfigCenterTestSuit(t)
 
 	clientSize := 100
 	received := utils.NewSyncMap[string, bool]()
@@ -505,61 +496,221 @@ func TestManyClientWatchConfigFile(t *testing.T) {
 
 // TestDeleteConfigFile 测试删除配置，删除配置会通知客户端，并且重新拉取配置会返回 NotFoundResourceConfigFile 状态码
 func TestDeleteConfigFile(t *testing.T) {
-	testSuit := &ConfigCenterTest{}
-	if err := testSuit.Initialize(); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if err := testSuit.clearTestData(); err != nil {
-			t.Fatal(err)
-		}
-		testSuit.Destroy()
-	})
+	testSuit := newConfigCenterTestSuit(t)
+
+	newMockNs := "TestDeleteConfigFile"
 
 	// 创建并发布一个配置文件
 	configFile := assembleConfigFile()
+	configFile.Namespace = wrapperspb.String(newMockNs)
+
 	rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
 	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 
 	rsp2 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, assembleConfigFileRelease(configFile))
 	assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
+	_ = testSuit.CacheMgr().TestUpdate()
 
-	time.Sleep(1200 * time.Millisecond)
+	activeRelease := testSuit.CacheMgr().ConfigFile().GetActiveRelease(configFile.Namespace.Value,
+		configFile.Group.Value, configFile.Name.Value)
+	assert.NotNil(t, activeRelease)
 
 	// 客户端订阅
-	clientId := randomStr()
-	watchConfigFiles := assembleDefaultClientConfigFile(0)
+	watchConfigFiles := assembleDefaultClientConfigFile(activeRelease.Version)
+	for i := range watchConfigFiles {
+		watchConfigFiles[i].Namespace = wrapperspb.String(newMockNs)
+	}
 
 	t.Log("add config watcher")
-
-	watchCtx := testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles,
-		config.BuildTimeoutWatchCtx(context.Background(), 30*time.Second))
-	assert.NotNil(t, watchCtx)
 
 	// 删除配置文件
 	t.Log("remove config file")
 	rsp3 := testSuit.ConfigServer().DeleteConfigFile(testSuit.DefaultCtx, &apiconfig.ConfigFile{
-		Namespace: utils.NewStringValue(testNamespace),
+		Namespace: utils.NewStringValue(newMockNs),
 		Group:     utils.NewStringValue(testGroup),
 		Name:      utils.NewStringValue(testFile),
 	})
 	assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
-
-	// 客户端收到推送通知
-	t.Log("wait receive config change msg")
-	_, err := (watchCtx.(*config.LongPollWatchContext)).GetNotifieResultWithTime(10 * time.Second)
-	if err != nil {
-		t.Fatal(err)
-	}
+	_ = testSuit.CacheMgr().TestUpdate()
 
 	fileInfo := &apiconfig.ClientConfigFileInfo{
-		Namespace: &wrapperspb.StringValue{Value: testNamespace},
+		Namespace: &wrapperspb.StringValue{Value: newMockNs},
 		Group:     &wrapperspb.StringValue{Value: testGroup},
 		FileName:  &wrapperspb.StringValue{Value: testFile},
-		Version:   &wrapperspb.UInt64Value{Value: 2},
 	}
 
 	// 重新拉取配置，获取不到配置文件
 	rsp4 := testSuit.ConfigServer().GetConfigFileWithCache(testSuit.DefaultCtx, fileInfo)
 	assert.Equal(t, uint32(api.NotFoundResource), rsp4.Code.GetValue())
+}
+
+// TestServer_GetConfigFileNamesWithCache
+func TestServer_GetConfigFileNamesWithCache(t *testing.T) {
+	testSuit := newConfigCenterTestSuit(t)
+
+	mockFiles := make(map[string][]*apiconfig.ConfigFile)
+	groupTotal := 2
+	fileTotal := 10
+	for i := 0; i < groupTotal; i++ {
+		groupName := fmt.Sprintf("group-%d", i)
+		mockFiles[groupName] = make([]*apiconfig.ConfigFile, 0, fileTotal)
+		for j := 0; j < fileTotal; j++ {
+			item := &apiconfig.ConfigFile{
+				Namespace: wrapperspb.String(testNamespace),
+				Group:     wrapperspb.String(groupName),
+				Name:      wrapperspb.String(fmt.Sprintf("file-%d", j)),
+				Content:   wrapperspb.String(fmt.Sprintf("%d-%d", i, j)),
+			}
+			mockFiles[groupName] = append(mockFiles[groupName], item)
+			rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, item)
+			assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), rsp.Code.GetValue())
+		}
+	}
+	t.Cleanup(func() {
+		for k := range mockFiles {
+			items := mockFiles[k]
+			for _, item := range items {
+				testSuit.ConfigServer().DeleteConfigFile(testSuit.DefaultCtx, item)
+			}
+		}
+	})
+
+	t.Run("bad-request", func(t *testing.T) {
+		rsp := testSuit.ConfigServer().GetConfigFileNamesWithCache(testSuit.DefaultCtx, &apiconfig.ConfigFileGroupRequest{
+			ConfigFileGroup: &apiconfig.ConfigFileGroup{
+				Namespace: utils.NewStringValue(""),
+				Name:      utils.NewStringValue("group-0"),
+			},
+		})
+		assert.Equal(t, uint32(apimodel.Code_BadRequest), rsp.Code.GetValue())
+
+		rsp = testSuit.ConfigServer().GetConfigFileNamesWithCache(testSuit.DefaultCtx, &apiconfig.ConfigFileGroupRequest{
+			ConfigFileGroup: &apiconfig.ConfigFileGroup{
+				Namespace: utils.NewStringValue(""),
+				Name:      utils.NewStringValue(""),
+			},
+		})
+		assert.Equal(t, uint32(apimodel.Code_BadRequest), rsp.Code.GetValue())
+
+		rsp = testSuit.ConfigServer().GetConfigFileNamesWithCache(testSuit.DefaultCtx, &apiconfig.ConfigFileGroupRequest{
+			ConfigFileGroup: &apiconfig.ConfigFileGroup{
+				Namespace: utils.NewStringValue("mock-ns"),
+				Name:      utils.NewStringValue(""),
+			},
+		})
+		assert.Equal(t, uint32(apimodel.Code_BadRequest), rsp.Code.GetValue())
+	})
+
+	t.Run("no-publish-file", func(t *testing.T) {
+		rsp := testSuit.ConfigServer().GetConfigFileNamesWithCache(testSuit.DefaultCtx, &apiconfig.ConfigFileGroupRequest{
+			ConfigFileGroup: &apiconfig.ConfigFileGroup{
+				Namespace: utils.NewStringValue(testNamespace),
+				Name:      utils.NewStringValue("group-0"),
+			},
+		})
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), rsp.Code.GetValue(), rsp.Info.Value)
+		assert.True(t, len(rsp.ConfigFileInfos) == 0)
+	})
+
+	t.Run("publish-file", func(t *testing.T) {
+		for _, item := range mockFiles["group-0"] {
+			rsp := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, &apiconfig.ConfigFileRelease{
+				Namespace: item.Namespace,
+				Group:     item.Group,
+				FileName:  item.Name,
+			})
+			assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), rsp.Code.GetValue())
+		}
+
+		_ = testSuit.CacheMgr().TestUpdate()
+
+		t.Run("revision-fetch", func(t *testing.T) {
+			rsp := testSuit.ConfigServer().GetConfigFileNamesWithCache(testSuit.DefaultCtx, &apiconfig.ConfigFileGroupRequest{
+				ConfigFileGroup: &apiconfig.ConfigFileGroup{
+					Namespace: utils.NewStringValue(testNamespace),
+					Name:      utils.NewStringValue("group-0"),
+				},
+			})
+
+			assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), rsp.Code.GetValue(), rsp.String())
+			assert.True(t, len(rsp.ConfigFileInfos) == fileTotal, rsp.String())
+
+			secondRsp := testSuit.ConfigServer().GetConfigFileNamesWithCache(testSuit.DefaultCtx, &apiconfig.ConfigFileGroupRequest{
+				Revision: wrapperspb.String(rsp.GetRevision().GetValue()),
+				ConfigFileGroup: &apiconfig.ConfigFileGroup{
+					Namespace: utils.NewStringValue(testNamespace),
+					Name:      utils.NewStringValue("group-0"),
+				},
+			})
+
+			assert.Equal(t, uint32(apimodel.Code_DataNoChange), secondRsp.Code.GetValue())
+			assert.True(t, len(secondRsp.ConfigFileInfos) == 0)
+		})
+
+	})
+}
+
+// TestServer_GetConfigGroupsWithCache
+func TestServer_GetConfigGroupsWithCache(t *testing.T) {
+	testSuit := newConfigCenterTestSuit(t)
+
+	mockFiles := make(map[string][]*apiconfig.ConfigFileGroup)
+	nsTotal := 2
+	groupTotal := 10
+	for i := 0; i < nsTotal; i++ {
+		nsName := fmt.Sprintf("ns-%d", i)
+		mockFiles[nsName] = make([]*apiconfig.ConfigFileGroup, 0, groupTotal)
+		for j := 0; j < groupTotal; j++ {
+			item := &apiconfig.ConfigFileGroup{
+				Namespace: wrapperspb.String(nsName),
+				Name:      wrapperspb.String(fmt.Sprintf("group-%d", j)),
+			}
+			mockFiles[nsName] = append(mockFiles[nsName], item)
+			rsp := testSuit.ConfigServer().CreateConfigFileGroup(testSuit.DefaultCtx, item)
+			assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), rsp.Code.GetValue(), rsp.GetInfo().GetValue())
+		}
+	}
+	t.Cleanup(func() {
+		for k := range mockFiles {
+			testSuit.NamespaceServer().DeleteNamespace(testSuit.DefaultCtx, &apimodel.Namespace{
+				Name: wrapperspb.String(k),
+			})
+			items := mockFiles[k]
+			for _, item := range items {
+				testSuit.ConfigServer().DeleteConfigFileGroup(testSuit.DefaultCtx, item.GetNamespace().Value, item.GetName().Value)
+			}
+		}
+	})
+
+	_ = testSuit.CacheMgr().TestUpdate()
+
+	t.Run("case-1", func(t *testing.T) {
+		rsp := testSuit.ConfigServer().GetConfigGroupsWithCache(testSuit.DefaultCtx, &apiconfig.ClientConfigFileInfo{
+			Namespace: wrapperspb.String("ns-0"),
+		})
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), rsp.Code, rsp.Info)
+		assert.True(t, len(rsp.ConfigFileGroups) == groupTotal)
+
+		// 同一个 revision 查询
+		rsp = testSuit.ConfigServer().GetConfigGroupsWithCache(testSuit.DefaultCtx, &apiconfig.ClientConfigFileInfo{
+			Namespace: wrapperspb.String("ns-0"),
+			Md5: wrapperspb.String(rsp.GetRevision()),
+		})
+		assert.Equal(t, uint32(apimodel.Code_DataNoChange), rsp.Code, rsp.Info)
+
+		// 删除其中一个配置分组后查询
+		groups := mockFiles["ns-0"]
+		for i := 0; i < 2; i++ {
+			delRsp := testSuit.ConfigServer().DeleteConfigFileGroup(testSuit.DefaultCtx, "ns-0", groups[i].Name.Value)
+			assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), delRsp.Code.Value, delRsp.Info.Value)
+		}
+
+		_ = testSuit.CacheMgr().TestUpdate()
+
+		rsp = testSuit.ConfigServer().GetConfigGroupsWithCache(testSuit.DefaultCtx, &apiconfig.ClientConfigFileInfo{
+			Namespace: wrapperspb.String("ns-0"),
+		})
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), rsp.Code, rsp.Info)
+		assert.True(t, len(rsp.ConfigFileGroups) == groupTotal-2)
+	})
 }

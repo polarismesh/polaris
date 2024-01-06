@@ -273,6 +273,9 @@ func (x *XDSServer) startSynTask(ctx context.Context) {
 			for _, info := range infos {
 				cacheServiceInfos := registryInfo[ns]
 				if _, ok := cacheServiceInfos[info.ServiceKey]; !ok {
+					if _, ok := needRemove[ns]; !ok {
+						needRemove[ns] = make(map[model.ServiceKey]*resource.ServiceInfo)
+					}
 					needRemove[ns][info.ServiceKey] = info
 					continue
 				}

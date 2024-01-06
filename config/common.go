@@ -17,14 +17,6 @@
 
 package config
 
-import (
-	"errors"
-
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-
-	"github.com/polarismesh/polaris/common/model"
-)
-
 var (
 	availableSearch = map[string]map[string]string{
 		"config_file": {
@@ -80,14 +72,4 @@ func (s *Server) checkNamespaceExisted(namespaceName string) bool {
 	}
 	namespace, _ := s.storage.GetNamespace(namespaceName)
 	return namespace != nil
-}
-
-func convertToErrCode(err error) apimodel.Code {
-	if errors.Is(err, model.ErrorTokenNotExist) {
-		return apimodel.Code_TokenNotExisted
-	}
-	if errors.Is(err, model.ErrorTokenDisabled) {
-		return apimodel.Code_TokenDisabled
-	}
-	return apimodel.Code_NotAllowedAccess
 }

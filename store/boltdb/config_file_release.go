@@ -286,7 +286,9 @@ func (cfr *configFileReleaseStore) CleanConfigFileReleasesTx(tx store.Tx, namesp
 			expect := saveNs == namespace && saveGroup == group && saveFileName == fileName
 			return expect
 		}, values)
-
+	if err != nil {
+		return err
+	}
 	properties := map[string]interface{}{
 		FileReleaseFieldFlag:       1,
 		FileReleaseFieldValid:      false,
@@ -294,11 +296,10 @@ func (cfr *configFileReleaseStore) CleanConfigFileReleasesTx(tx store.Tx, namesp
 	}
 	for key := range values {
 		if err := updateValue(dbTx, tblConfigFileRelease, key, properties); err != nil {
-			return nil
+			return err
 		}
 	}
-
-	return err
+	return nil
 }
 
 // GetMoreReleaseFile Get the last update time more than a certain time point
