@@ -271,6 +271,7 @@ func Test_PublishConfigFile(t *testing.T) {
 	})
 
 	t.Run("client_get_configfile", func(t *testing.T) {
+		_ = testSuit.CacheMgr().TestUpdate()
 		// 客户端获取符合预期, 这里强制触发一次缓存数据同步
 		clientResp := testSuit.ConfigServer().GetConfigFileWithCache(testSuit.DefaultCtx, &config_manage.ClientConfigFileInfo{
 			Namespace: utils.NewStringValue(mockNamespace),

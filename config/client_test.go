@@ -24,16 +24,17 @@ import (
 	"testing"
 	"time"
 
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	api "github.com/polarismesh/polaris/common/api/v1"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/config"
 	testsuit "github.com/polarismesh/polaris/test/suit"
-	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	"github.com/stretchr/testify/assert"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // TestClientSetupAndFileNotExisted 测试客户端启动时（version=0），并且配置不存在的情况下拉取配置
@@ -497,8 +498,12 @@ func TestManyClientWatchConfigFile(t *testing.T) {
 func TestDeleteConfigFile(t *testing.T) {
 	testSuit := newConfigCenterTestSuit(t)
 
+	newMockNs := "TestDeleteConfigFile"
+
 	// 创建并发布一个配置文件
 	configFile := assembleConfigFile()
+	configFile.Namespace = wrapperspb.String(newMockNs)
+
 	rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
 	assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue())
 
@@ -512,6 +517,9 @@ func TestDeleteConfigFile(t *testing.T) {
 
 	// 客户端订阅
 	watchConfigFiles := assembleDefaultClientConfigFile(activeRelease.Version)
+	for i := range watchConfigFiles {
+		watchConfigFiles[i].Namespace = wrapperspb.String(newMockNs)
+	}
 
 	t.Log("add config watcher")
 
@@ -525,7 +533,7 @@ func TestDeleteConfigFile(t *testing.T) {
 	// 删除配置文件
 	t.Log("remove config file")
 	rsp3 := testSuit.ConfigServer().DeleteConfigFile(testSuit.DefaultCtx, &apiconfig.ConfigFile{
-		Namespace: utils.NewStringValue(testNamespace),
+		Namespace: utils.NewStringValue(newMockNs),
 		Group:     utils.NewStringValue(testGroup),
 		Name:      utils.NewStringValue(testFile),
 	})
@@ -535,10 +543,11 @@ func TestDeleteConfigFile(t *testing.T) {
 	// 客户端收到推送通知
 	t.Log("wait receive config change msg")
 	watchRsp := watchCtx()
-	assert.Equal(t, api.ExecuteSuccess, watchRsp.Code.GetValue())
+	assert.Equal(t, api.ExecuteSuccess, watchRsp.Code.GetValue(), watchRsp.String())
+	assert.Equal(t, activeRelease.Version+1, watchRsp.ConfigFile.Version.Value)
 
 	fileInfo := &apiconfig.ClientConfigFileInfo{
-		Namespace: &wrapperspb.StringValue{Value: testNamespace},
+		Namespace: &wrapperspb.StringValue{Value: newMockNs},
 		Group:     &wrapperspb.StringValue{Value: testGroup},
 		FileName:  &wrapperspb.StringValue{Value: testFile},
 		Version:   &wrapperspb.UInt64Value{Value: 2},
@@ -698,7 +707,7 @@ func TestServer_GetConfigGroupsWithCache(t *testing.T) {
 
 		// 删除其中一个配置分组后查询
 		groups := mockFiles["ns-0"]
-		for i := 0; i < 2; i ++ {
+		for i := 0; i < 2; i++ {
 			delRsp := testSuit.ConfigServer().DeleteConfigFileGroup(testSuit.DefaultCtx, "ns-0", groups[i].Name.Value)
 			assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), delRsp.Code.Value, delRsp.Info.Value)
 		}
@@ -709,6 +718,6 @@ func TestServer_GetConfigGroupsWithCache(t *testing.T) {
 			Namespace: wrapperspb.String("ns-0"),
 		})
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), rsp.Code, rsp.Info)
-		assert.True(t, len(rsp.ConfigFileGroups) == groupTotal - 2)
+		assert.True(t, len(rsp.ConfigFileGroups) == groupTotal-2)
 	})
 }
