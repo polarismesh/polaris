@@ -119,7 +119,7 @@ type CacheManager interface {
 	GetCacher(cacheIndex CacheIndex) Cache
 	// RegisterCacher
 	RegisterCacher(cacheIndex CacheIndex, item Cache)
-	//
+	// OpenResourceCache
 	OpenResourceCache(entries ...ConfigEntry) error
 	// Service 获取Service缓存信息
 	Service() ServiceCache
