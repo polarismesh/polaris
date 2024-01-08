@@ -116,16 +116,17 @@ func ResourceOfConfigFile(group, name string) string {
 }
 
 const (
-	ActionGetConfigFile          = "GET_CONFIG_FILE"
-	ActionListConfigFiles        = "LIST_CONFIG_FILES"
-	ActionListConfigGroups       = "LIST_CONFIG_GROUPS"
-	ActionPublishConfigFile      = "PUBLISH_CONFIG_FILE"
-	ActionDiscoverInstance       = "DISCOVER_INSTANCE"
-	ActionDiscoverServices       = "DISCOVER_SERVICES"
-	ActionDiscoverRouterRule     = "DISCOVER_ROUTER_RULE"
-	ActionDiscoverRateLimit      = "DISCOVER_RATE_LIMIT"
-	ActionDiscoverCircuitBreaker = "DISCOVER_CIRCUIT_BREAKER"
-	ActionDiscoverFaultDetect    = "DISCOVER_FAULT_DETECT"
+	ActionGetConfigFile           = "GET_CONFIG_FILE"
+	ActionListConfigFiles         = "LIST_CONFIG_FILES"
+	ActionListConfigGroups        = "LIST_CONFIG_GROUPS"
+	ActionPublishConfigFile       = "PUBLISH_CONFIG_FILE"
+	ActionDiscoverInstance        = "DISCOVER_INSTANCE"
+	ActionDiscoverServices        = "DISCOVER_SERVICES"
+	ActionDiscoverRouterRule      = "DISCOVER_ROUTER_RULE"
+	ActionDiscoverRateLimit       = "DISCOVER_RATE_LIMIT"
+	ActionDiscoverCircuitBreaker  = "DISCOVER_CIRCUIT_BREAKER"
+	ActionDiscoverFaultDetect     = "DISCOVER_FAULT_DETECT"
+	ActionDiscoverServiceContract = "DISCOVER_SERVICE_CONTRACT"
 )
 
 type ClientDiscoverMetric struct {

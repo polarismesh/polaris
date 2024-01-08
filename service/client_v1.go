@@ -27,6 +27,7 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -493,6 +494,62 @@ func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *apiservice
 	return resp
 }
 
+// GetServiceContractWithCache User Client Get ServiceContract Rule Information
+func (s *Server) GetServiceContractWithCache(ctx context.Context,
+	req *apiservice.ServiceContract) *apiservice.DiscoverResponse {
+	resp := &apiservice.DiscoverResponse{
+		Code: &wrappers.UInt32Value{Value: uint32(apimodel.Code_ExecuteSuccess)},
+		Info: &wrappers.StringValue{Value: api.Code2Info(uint32(apimodel.Code_ExecuteSuccess))},
+		Type: apiservice.DiscoverResponse_SERVICE_CONTRACT,
+		Service: &apiservice.Service{
+			Name:      wrapperspb.String(req.GetService()),
+			Namespace: wrapperspb.String(req.GetNamespace()),
+		},
+	}
+	if !s.serviceContractCheckDiscoverRequest(req, resp) {
+		return resp
+	}
+
+	// 服务名和request保持一致
+	resp.Service = &apiservice.Service{
+		Name:      wrapperspb.String(req.GetService()),
+		Namespace: wrapperspb.String(req.GetNamespace()),
+	}
+
+	// 获取源服务
+	aliasFor := s.getServiceCache(req.GetService(), req.GetNamespace())
+	if aliasFor == nil {
+		aliasFor = &model.Service{
+			Namespace: req.GetNamespace(),
+			Name:      req.GetService(),
+		}
+	}
+
+	out := s.caches.ServiceContract().Get(&model.ServiceContract{
+		Namespace: aliasFor.Namespace,
+		Service:   aliasFor.Name,
+		Version:   req.Version,
+		Name:      req.Name,
+		Protocol:  req.Protocol,
+	})
+	if out == nil {
+		resp.Code = wrapperspb.UInt32(uint32(apimodel.Code_NotFoundResource))
+		resp.Info = wrapperspb.String(api.Code2Info(uint32(apimodel.Code_NotFoundResource)))
+		return resp
+	}
+
+	// 获取熔断规则数据，并对比revision
+	if len(req.GetRevision()) > 0 && req.GetRevision() == out.Revision {
+		resp.Code = wrapperspb.UInt32(uint32(apimodel.Code_DataNoChange))
+		resp.Info = wrapperspb.String(api.Code2Info(uint32(apimodel.Code_DataNoChange)))
+		return resp
+	}
+
+	resp.Service.Revision = wrapperspb.String(out.Revision)
+	resp.ServiceContract = out.ToSpec()
+	return resp
+}
+
 func createCommonDiscoverResponse(req *apiservice.Service,
 	dT apiservice.DiscoverResponse_DiscoverResponseType) *apiservice.DiscoverResponse {
 	return &apiservice.DiscoverResponse{
@@ -576,5 +633,64 @@ func (s *Server) commonCheckDiscoverRequest(req *apiservice.Service, resp *apise
 		return false
 	}
 
+	return true
+}
+
+func (s *Server) serviceContractCheckDiscoverRequest(req *apiservice.ServiceContract, resp *apiservice.DiscoverResponse) bool {
+	svc := &apiservice.Service{
+		Name:      wrapperspb.String(req.GetService()),
+		Namespace: wrapperspb.String(req.GetNamespace()),
+	}
+
+	if s.caches == nil {
+		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_ClientAPINotOpen))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
+		resp.Service = svc
+		resp.ServiceContract = req
+		return false
+	}
+	if req == nil {
+		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_EmptyRequest))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
+		resp.Service = svc
+		resp.ServiceContract = req
+		return false
+	}
+
+	if req.GetName() == "" {
+		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidParameter))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
+		resp.Service = svc
+		resp.ServiceContract = req
+		return false
+	}
+	if req.GetNamespace() == "" {
+		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidNamespaceName))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
+		resp.Service = svc
+		resp.ServiceContract = req
+		return false
+	}
+	if req.GetService() == "" {
+		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidServiceName))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
+		resp.Service = svc
+		resp.ServiceContract = req
+		return false
+	}
+	if req.GetProtocol() == "" {
+		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidParameter))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
+		resp.Service = svc
+		resp.ServiceContract = req
+		return false
+	}
+	if req.GetVersion() == "" {
+		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidParameter))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
+		resp.Service = svc
+		resp.ServiceContract = req
+		return false
+	}
 	return true
 }

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	commontime "github.com/polarismesh/polaris/common/time"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
@@ -89,12 +90,34 @@ func (e *EnrichServiceContract) Format() {
 	}
 }
 
-type ServiceContractView struct {
-	*ServiceContract
-	// 接口描述信息
-	Interfaces       []*InterfaceDescriptor
-	ClientInterfaces map[string]*InterfaceDescriptor
-	ManualInterfaces map[string]*InterfaceDescriptor
+func (e *EnrichServiceContract) ToSpec() *apiservice.ServiceContract {
+	interfaces := make([]*apiservice.InterfaceDescriptor, 0, len(e.Interfaces))
+	for i := range e.Interfaces {
+		item := e.Interfaces[i]
+		interfaces = append(interfaces, &apiservice.InterfaceDescriptor{
+			Id:       item.ID,
+			Path:     item.Path,
+			Method:   item.Method,
+			Source:   item.Source,
+			Content:  item.Content,
+			Revision: item.Revision,
+			Ctime:    commontime.Time2String(item.CreateTime),
+			Mtime:    commontime.Time2String(item.ModifyTime),
+		})
+	}
+	return &apiservice.ServiceContract{
+		Id:         e.ID,
+		Name:       e.Name,
+		Namespace:  e.Namespace,
+		Service:    e.Service,
+		Protocol:   e.Protocol,
+		Version:    e.Version,
+		Revision:   e.Revision,
+		Content:    e.Content,
+		Ctime:      commontime.Time2String(e.CreateTime),
+		Mtime:      commontime.Time2String(e.ModifyTime),
+		Interfaces: interfaces,
+	}
 }
 
 func (s *ServiceContract) GetResourceName() string {

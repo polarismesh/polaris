@@ -333,7 +333,7 @@ func BuildRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLimit_Ac
 				Value: arg.GetValue().GetValue().GetValue(),
 			})
 		case apitraffic.MatchArgument_QUERY:
-			queryParameterValueMatch := BuildRateLimitActionQueryParameterValueMatch(descriptorKey, arg.Value)
+			queryParameterValueMatch := BuildRateLimitActionQueryParameterValueMatch(descriptorKey, arg)
 			actions = append(actions, &route.RateLimit_Action{
 				ActionSpecifier: &route.RateLimit_Action_QueryParameterValueMatch_{
 					QueryParameterValueMatch: queryParameterValueMatch,
@@ -425,22 +425,22 @@ func BuildRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLimit_Ac
 }
 
 func BuildRateLimitActionQueryParameterValueMatch(key string,
-	value *apimodel.MatchString) *route.RateLimit_Action_QueryParameterValueMatch {
+	arg *apitraffic.MatchArgument) *route.RateLimit_Action_QueryParameterValueMatch {
 	queryParameterValueMatch := &route.RateLimit_Action_QueryParameterValueMatch{
 		DescriptorKey:   key,
-		DescriptorValue: value.GetValue().GetValue(),
+		DescriptorValue: arg.GetValue().GetValue().GetValue(),
 		ExpectMatch:     wrapperspb.Bool(true),
 		QueryParameters: []*route.QueryParameterMatcher{},
 	}
-	switch value.GetType() {
+	switch arg.GetValue().GetType() {
 	case apimodel.MatchString_EXACT:
 		queryParameterValueMatch.QueryParameters = []*route.QueryParameterMatcher{
 			{
-				Name: key,
+				Name: arg.GetKey(),
 				QueryParameterMatchSpecifier: &route.QueryParameterMatcher_StringMatch{
 					StringMatch: &v32.StringMatcher{
 						MatchPattern: &v32.StringMatcher_Exact{
-							Exact: value.GetValue().GetValue(),
+							Exact: arg.GetValue().GetValue().GetValue(),
 						},
 					},
 				},
@@ -449,13 +449,13 @@ func BuildRateLimitActionQueryParameterValueMatch(key string,
 	case apimodel.MatchString_REGEX:
 		queryParameterValueMatch.QueryParameters = []*route.QueryParameterMatcher{
 			{
-				Name: key,
+				Name: arg.GetKey(),
 				QueryParameterMatchSpecifier: &route.QueryParameterMatcher_StringMatch{
 					StringMatch: &v32.StringMatcher{
 						MatchPattern: &v32.StringMatcher_SafeRegex{
 							SafeRegex: &v32.RegexMatcher{
 								EngineType: &v32.RegexMatcher_GoogleRe2{},
-								Regex:      value.GetValue().GetValue(),
+								Regex:      arg.GetValue().GetValue().GetValue(),
 							},
 						},
 					},
