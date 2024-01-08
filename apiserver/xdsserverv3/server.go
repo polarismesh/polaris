@@ -337,7 +337,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 			}
 
 			// 获取routing配置
-			routerRule, err := x.namingServer.Cache().RoutingConfig().GetRouterConfig("", svc.Name, svc.Namespace)
+			routerRule, err := x.namingServer.Cache().RoutingConfig().GetRouterConfigV2("", svc.Name, svc.Namespace)
 			if err != nil {
 				log.Errorf("error sync routing for namespace(%s) service(%s), info : %s", svc.Namespace,
 					svc.Name, err.Error())
