@@ -37,10 +37,6 @@ func Test_Initialize(t *testing.T) {
 
 	t.Cleanup(func() {
 		ctrl.Finish()
-		originServer.watchCenter.Close()
-		originServer.initialized = false
-		originServer = nil
-		server = nil
 	})
 
 	cacheMgr.EXPECT().OpenResourceCache(gomock.Any()).Return(nil).AnyTimes()
@@ -48,9 +44,12 @@ func Test_Initialize(t *testing.T) {
 	cacheMgr.EXPECT().Gray().Return(nil).AnyTimes()
 	cacheMgr.EXPECT().ConfigGroup().Return(nil).AnyTimes()
 
-	err := Initialize(context.Background(), Config{
+	proxySvr, originSvr, err := doInitialize(context.Background(), Config{
 		Open: true,
 	}, mockStore, cacheMgr, nil)
 	assert.NoError(t, err)
-	assert.NotNil(t, originServer)
+	assert.NotNil(t, originSvr)
+	assert.NotNil(t, proxySvr)
+
+	originSvr.watchCenter.Close()
 }
