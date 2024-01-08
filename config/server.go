@@ -89,21 +89,34 @@ type Server struct {
 // Initialize 初始化配置中心模块
 func Initialize(ctx context.Context, config Config, s store.Store, cacheMgr cachetypes.CacheManager,
 	namespaceOperator namespace.NamespaceOperateServer) error {
-	if !config.Open {
-		originServer.initialized = true
-		return nil
-	}
-
 	if originServer.initialized {
 		return nil
 	}
+	proxySvr, originSvr, err := doInitialize(ctx, config, s, cacheMgr, namespaceOperator)
+	if err != nil {
+		return err
+	}
+	originServer = originSvr
+	server = proxySvr
+	return nil
+}
+
+func doInitialize(ctx context.Context, config Config, s store.Store, cacheMgr cachetypes.CacheManager,
+	namespaceOperator namespace.NamespaceOperateServer) (ConfigCenterServer, *Server, error) {
+	if !config.Open {
+		originServer.initialized = true
+		return nil, nil, nil
+	}
+
+	var proxySvr ConfigCenterServer
+	originSvr := &Server{}
 
 	if err := cacheMgr.OpenResourceCache(configCacheEntries...); err != nil {
-		return err
+		return nil, nil, err
 	}
 	err := originServer.initialize(ctx, config, s, namespaceOperator, cacheMgr)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	// 需要返回包装代理的 DiscoverServer
@@ -111,18 +124,18 @@ func Initialize(ctx context.Context, config Config, s store.Store, cacheMgr cach
 	for i := range order {
 		factory, exist := serverProxyFactories[order[i]]
 		if !exist {
-			return fmt.Errorf("name(%s) not exist in serverProxyFactories", order[i])
+			return nil, nil, fmt.Errorf("name(%s) not exist in serverProxyFactories", order[i])
 		}
 
-		proxySvr, err := factory(originServer, server)
+		tmpSvr, err := factory(originServer, server)
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
-		server = proxySvr
+		proxySvr = tmpSvr
 	}
 
-	originServer.initialized = true
-	return nil
+	originSvr.initialized = true
+	return proxySvr, originSvr, nil
 }
 
 func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,

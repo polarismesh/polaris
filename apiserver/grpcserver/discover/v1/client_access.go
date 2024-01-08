@@ -163,6 +163,9 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 		case apiservice.DiscoverRequest_FAULT_DETECTOR:
 			action = metrics.ActionDiscoverFaultDetect
 			out = g.namingServer.GetFaultDetectWithCache(ctx, in.Service)
+		case apiservice.DiscoverRequest_SERVICE_CONTRACT:
+			action = metrics.ActionDiscoverServiceContract
+			out = g.namingServer.GetServiceContractWithCache(ctx, in.ServiceContract)
 		default:
 			out = api.NewDiscoverRoutingResponse(apimodel.Code_InvalidDiscoverResource, in.Service)
 		}
