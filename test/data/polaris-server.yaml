@@ -415,10 +415,9 @@ store:
       txIsolationLevel: 2 #LevelReadCommitted
 # 插件配置
 plugin:
-  # whitelist:
-  #   name: whitelist
-  #   option:
-  #     ip: [127.0.0.1]
+  crypto:
+    entries:
+      - name: AES
   cmdb:
     name: memory
     option:

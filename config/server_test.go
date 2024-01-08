@@ -30,14 +30,17 @@ import (
 
 func Test_Initialize(t *testing.T) {
 	eventhub.InitEventHub()
-	t.Cleanup(func() {
-		eventhub.Shutdown()
-		originServer.watchCenter.Close()
-	})
-
 	ctrl := gomock.NewController(t)
 	mockStore := mockstore.NewMockStore(ctrl)
 	cacheMgr := mockcache.NewMockCacheManager(ctrl)
+
+	t.Cleanup(func() {
+		ctrl.Finish()
+		eventhub.Shutdown()
+		originServer.watchCenter.Close()
+		originServer.initialized = false
+	})
+
 	cacheMgr.EXPECT().OpenResourceCache(gomock.Any()).Return(nil).AnyTimes()
 	cacheMgr.EXPECT().ConfigFile().Return(nil).AnyTimes()
 	cacheMgr.EXPECT().Gray().Return(nil).AnyTimes()
