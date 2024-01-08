@@ -694,7 +694,7 @@ func TestServer_GetConfigGroupsWithCache(t *testing.T) {
 		// 同一个 revision 查询
 		rsp = testSuit.ConfigServer().GetConfigGroupsWithCache(testSuit.DefaultCtx, &apiconfig.ClientConfigFileInfo{
 			Namespace: wrapperspb.String("ns-0"),
-			Md5: wrapperspb.String(rsp.GetRevision()),
+			Md5:       wrapperspb.String(rsp.GetRevision()),
 		})
 		assert.Equal(t, uint32(apimodel.Code_DataNoChange), rsp.Code, rsp.Info)
 

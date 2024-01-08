@@ -21,8 +21,9 @@ import (
 	"fmt"
 	"time"
 
-	commontime "github.com/polarismesh/polaris/common/time"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+
+	commontime "github.com/polarismesh/polaris/common/time"
 )
 
 type ServiceContract struct {
