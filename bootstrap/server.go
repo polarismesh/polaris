@@ -305,7 +305,7 @@ func StartConfigCenterComponents(ctx context.Context, cfg *boot_config.Config, s
 		return err
 	}
 	cfg.Config.Interceptors = config_center.GetChainOrder()
-	return config_center.Initialize(ctx, cfg.Config, s, cacheMgn, namespaceOperator, userMgn, strategyMgn)
+	return config_center.Initialize(ctx, cfg.Config, s, cacheMgn, namespaceOperator)
 }
 
 // StartServers 启动server

@@ -40,37 +40,37 @@ type (
 
 // GetConfigFileWithCache 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
 func (s *Server) GetConfigFileWithCache(ctx context.Context,
-	client *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
-	namespace := client.GetNamespace().GetValue()
-	group := client.GetGroup().GetValue()
-	fileName := client.GetFileName().GetValue()
+	req *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse {
+	namespace := req.GetNamespace().GetValue()
+	group := req.GetGroup().GetValue()
+	fileName := req.GetFileName().GetValue()
 
 	if namespace == "" || group == "" || fileName == "" {
 		return api.NewConfigClientResponseWithInfo(
 			apimodel.Code_BadRequest, "namespace & group & fileName can not be empty")
 	}
-	client = formatClientRequest(ctx, client)
+	req = formatClientRequest(ctx, req)
 	// 从缓存中获取灰度文件
 	var release *model.ConfigFileRelease
 	var match = false
-	if len(client.GetTags()) > 0 {
+	if len(req.GetTags()) > 0 {
 		if release = s.fileCache.GetActiveGrayRelease(namespace, group, fileName); release != nil {
 			key := model.GetGrayConfigRealseKey(release.SimpleConfigFileRelease)
-			match = s.grayCache.HitGrayRule(key, model.ToTagMap(client.GetTags()))
+			match = s.grayCache.HitGrayRule(key, model.ToTagMap(req.GetTags()))
 		}
 	}
 	if !match {
 		if release = s.fileCache.GetActiveRelease(namespace, group, fileName); release == nil {
-			return api.NewConfigClientResponse(apimodel.Code_NotFoundResource, nil)
+			return api.NewConfigClientResponse(apimodel.Code_NotFoundResource, req)
 		}
 	}
 	// 客户端版本号大于等于服务端版本号，服务端不返回变更
-	if client.GetVersion().GetValue() >= release.Version {
-		return api.NewConfigClientResponse(apimodel.Code_DataNoChange, nil)
+	if req.GetVersion().GetValue() >= release.Version {
+		return api.NewConfigClientResponse(apimodel.Code_DataNoChange, req)
 	}
-	configFile, err := toClientInfo(client, release)
+	configFile, err := toClientInfo(req, release)
 	if err != nil {
-		log.Error("[Config][Service] get config file to client info", utils.RequestID(ctx), zap.Error(err))
+		log.Error("[Config][Service] get config file to client", utils.RequestID(ctx), zap.Error(err))
 		return api.NewConfigClientResponseWithInfo(apimodel.Code_ExecuteException, err.Error())
 	}
 	return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, configFile)

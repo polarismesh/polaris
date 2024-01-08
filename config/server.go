@@ -24,8 +24,6 @@ import (
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
-	"github.com/polarismesh/polaris/auth"
-	"github.com/polarismesh/polaris/cache"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -73,7 +71,7 @@ type Server struct {
 	fileCache         cachetypes.ConfigFileCache
 	groupCache        cachetypes.ConfigGroupCache
 	grayCache         cachetypes.GrayCache
-	caches            *cache.CacheManager
+	caches            cachetypes.CacheManager
 	watchCenter       *watchCenter
 	namespaceOperator namespace.NamespaceOperateServer
 	initialized       bool
@@ -89,8 +87,8 @@ type Server struct {
 }
 
 // Initialize 初始化配置中心模块
-func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cache.CacheManager,
-	namespaceOperator namespace.NamespaceOperateServer, userMgn auth.UserServer, strategyMgn auth.StrategyServer) error {
+func Initialize(ctx context.Context, config Config, s store.Store, cacheMgr cachetypes.CacheManager,
+	namespaceOperator namespace.NamespaceOperateServer) error {
 	if !config.Open {
 		originServer.initialized = true
 		return nil
@@ -100,10 +98,10 @@ func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cac
 		return nil
 	}
 
-	if err := cacheMgn.OpenResourceCache(configCacheEntries...); err != nil {
+	if err := cacheMgr.OpenResourceCache(configCacheEntries...); err != nil {
 		return err
 	}
-	err := originServer.initialize(ctx, config, s, namespaceOperator, cacheMgn)
+	err := originServer.initialize(ctx, config, s, namespaceOperator, cacheMgr)
 	if err != nil {
 		return err
 	}
@@ -128,7 +126,7 @@ func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cac
 }
 
 func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
-	namespaceOperator namespace.NamespaceOperateServer, cacheMgn *cache.CacheManager) error {
+	namespaceOperator namespace.NamespaceOperateServer, cacheMgr cachetypes.CacheManager) error {
 	var err error
 	s.cfg = &config
 	if s.cfg.ContentMaxLength <= 0 {
@@ -136,11 +134,11 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	}
 	s.storage = ss
 	s.namespaceOperator = namespaceOperator
-	s.fileCache = cacheMgn.ConfigFile()
-	s.groupCache = cacheMgn.ConfigGroup()
-	s.grayCache = cacheMgn.Gray()
+	s.fileCache = cacheMgr.ConfigFile()
+	s.groupCache = cacheMgr.ConfigGroup()
+	s.grayCache = cacheMgr.Gray()
 
-	s.watchCenter, err = NewWatchCenter(cacheMgn)
+	s.watchCenter, err = NewWatchCenter(cacheMgr)
 	if err != nil {
 		return err
 	}
@@ -156,7 +154,7 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 		log.Warnf("Not Found Crypto Plugin")
 	}
 
-	s.caches = cacheMgn
+	s.caches = cacheMgr
 	s.chains = newConfigChains(s, []ConfigFileChain{
 		&CryptoConfigFileChain{},
 		&ReleaseConfigFileChain{},
