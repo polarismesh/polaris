@@ -25,7 +25,8 @@ import (
 )
 
 func init() {
-	err := config.RegisterServerProxy("auth", func(cacheMgr cachetypes.CacheManager, pre config.ConfigCenterServer) (config.ConfigCenterServer, error) {
+	err := config.RegisterServerProxy("auth", func(cacheMgr cachetypes.CacheManager,
+		pre config.ConfigCenterServer) (config.ConfigCenterServer, error) {
 		userMgr, err := auth.GetUserServer()
 		if err != nil {
 			return nil, err
