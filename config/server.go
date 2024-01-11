@@ -103,18 +103,18 @@ func Initialize(ctx context.Context, config Config, s store.Store, cacheMgr cach
 
 func doInitialize(ctx context.Context, config Config, s store.Store, cacheMgr cachetypes.CacheManager,
 	namespaceOperator namespace.NamespaceOperateServer) (ConfigCenterServer, *Server, error) {
-	if !config.Open {
-		originServer.initialized = true
-		return nil, nil, nil
-	}
-
 	var proxySvr ConfigCenterServer
 	originSvr := &Server{}
+
+	if !config.Open {
+		originSvr.initialized = true
+		return nil, nil, nil
+	}
 
 	if err := cacheMgr.OpenResourceCache(configCacheEntries...); err != nil {
 		return nil, nil, err
 	}
-	err := originServer.initialize(ctx, config, s, namespaceOperator, cacheMgr)
+	err := originSvr.initialize(ctx, config, s, namespaceOperator, cacheMgr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -127,7 +127,7 @@ func doInitialize(ctx context.Context, config Config, s store.Store, cacheMgr ca
 			return nil, nil, fmt.Errorf("name(%s) not exist in serverProxyFactories", order[i])
 		}
 
-		tmpSvr, err := factory(originServer, server)
+		tmpSvr, err := factory(originSvr, server)
 		if err != nil {
 			return nil, nil, err
 		}

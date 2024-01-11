@@ -136,6 +136,7 @@ func (s *Server) handlePublishConfigFile(ctx context.Context, tx store.Tx,
 		req.Name = utils.NewStringValue(fmt.Sprintf("%s-%d-%d", fileName, time.Now().Unix(), s.nextSequence()))
 	}
 
+	fileRelease.Name = req.GetName().GetValue()
 	fileRelease.Format = toPublishFile.Format
 	fileRelease.Metadata = toPublishFile.Metadata
 	fileRelease.Comment = req.GetComment().GetValue()
@@ -591,17 +592,25 @@ func (s *Server) CasUpsertAndReleaseConfigFile(ctx context.Context,
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 
+	historyRecords := []func(){}
+
 	var upsertResp *apiconfig.ConfigResponse
 	if saveFile == nil {
 		if req.GetMd5().GetValue() != "" {
 			return api.NewConfigResponse(apimodel.Code_DataConflict)
 		}
 		upsertResp = s.handleCreateConfigFile(ctx, tx, upsertFileReq)
+		historyRecords = append(historyRecords, func() {
+			s.RecordHistory(ctx, configFileRecordEntry(ctx, upsertFileReq, model.OCreate))
+		})
 	} else {
 		if req.GetMd5().GetValue() != CalMd5(saveFile.Content) {
 			return api.NewConfigResponse(apimodel.Code_DataConflict)
 		}
 		upsertResp = s.handleUpdateConfigFile(ctx, tx, upsertFileReq)
+		historyRecords = append(historyRecords, func() {
+			s.RecordHistory(ctx, configFileRecordEntry(ctx, upsertFileReq, model.OUpdate))
+		})
 	}
 	if upsertResp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 		return upsertResp
@@ -624,6 +633,9 @@ func (s *Server) CasUpsertAndReleaseConfigFile(ctx context.Context,
 	if err := tx.Commit(); err != nil {
 		log.Error("[Config][File] upsert config file when commit tx.", utils.RequestID(ctx), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
+	}
+	for i := range historyRecords {
+		historyRecords[i]()
 	}
 	s.recordReleaseHistory(ctx, data, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess, "")
 	return releaseResp
@@ -667,9 +679,18 @@ func (s *Server) UpsertAndReleaseConfigFile(ctx context.Context,
 	defer func() {
 		_ = tx.Rollback()
 	}()
+
+	historyRecords := []func(){}
 	upsertResp := s.handleCreateConfigFile(ctx, tx, upsertFileReq)
 	if upsertResp.GetCode().GetValue() == uint32(apimodel.Code_ExistedResource) {
 		upsertResp = s.handleUpdateConfigFile(ctx, tx, upsertFileReq)
+		historyRecords = append(historyRecords, func() {
+			s.RecordHistory(ctx, configFileRecordEntry(ctx, upsertFileReq, model.OUpdate))
+		})
+	} else {
+		historyRecords = append(historyRecords, func() {
+			s.RecordHistory(ctx, configFileRecordEntry(ctx, upsertFileReq, model.OCreate))
+		})
 	}
 	if upsertResp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 		return upsertResp
@@ -692,6 +713,9 @@ func (s *Server) UpsertAndReleaseConfigFile(ctx context.Context,
 	if err := tx.Commit(); err != nil {
 		log.Error("[Config][File] upsert config file when commit tx.", utils.RequestID(ctx), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
+	}
+	for i := range historyRecords {
+		historyRecords[i]()
 	}
 	s.recordReleaseHistory(ctx, data, utils.ReleaseTypeNormal, utils.ReleaseStatusSuccess, "")
 	return releaseResp

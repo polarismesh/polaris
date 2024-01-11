@@ -330,24 +330,21 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.SimpleConfigFil
 	if !ok {
 		return
 	}
-
-	log.Info("[Config][Watcher] received config file publish message.", zap.String("file", watchFileId),
-		zap.Int("clients", clientIds.Len()))
-
 	changeNotifyRequest := publishConfigFile.ToSpecNotifyClientRequest()
 	response := api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, changeNotifyRequest)
 
+	notifyCnt := 0
 	clientIds.Range(func(clientId string) {
 		watchCtx, ok := wc.clients.Load(clientId)
 		if !ok {
-			log.Info("[Config][Watcher] not found client when do notify.", zap.String("clientId", clientId),
+			log.Warn("[Config][Watcher] not found client when do notify.", zap.String("clientId", clientId),
 				zap.String("file", watchFileId))
-			clientIds.Remove(clientId)
 			return
 		}
 
 		if watchCtx.ShouldNotify(publishConfigFile) {
 			watchCtx.Reply(response)
+			notifyCnt++
 		}
 		// 只能用一次，通知完就要立马清理掉这个 WatchContext
 		if watchCtx.IsOnce() {
@@ -355,6 +352,10 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.SimpleConfigFil
 			wc.RemoveAllWatcher(watchCtx.ClientID())
 		}
 	})
+
+	log.Info("[Config][Watcher] received config file release event.", zap.String("file", watchFileId),
+		zap.Uint64("version", publishConfigFile.Version), zap.Int("clients", clientIds.Len()),
+		zap.Int("notify", notifyCnt))
 }
 
 func (wc *watchCenter) MatchBetaReleaseFile(clientLabels map[string]string, event *model.SimpleConfigFileRelease) bool {

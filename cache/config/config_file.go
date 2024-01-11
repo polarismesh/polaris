@@ -181,10 +181,6 @@ func (fc *fileCache) setReleases(releases []*model.ConfigFileRelease) (map[strin
 		}
 
 		if item.Active {
-			configLog.Info("[Config][Release][Cache] notify config release change",
-				zap.String("namespace", item.Namespace), zap.String("group", item.Group), zap.String("release", item.Name),
-				zap.String("file", item.FileName), zap.Uint64("version", item.Version), zap.Bool("valid", item.Valid),
-				zap.String("type", string(item.ReleaseType)))
 			fc.sendEvent(item)
 		}
 	}

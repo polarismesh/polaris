@@ -141,8 +141,12 @@ type ClientDiscoverMetric struct {
 }
 
 func (c ClientDiscoverMetric) String() string {
-	return fmt.Sprintf("%s|%s|%s|%s|%s|%s|%d|%+v", c.ClientIP, c.Action, c.Namespace, c.Resource,
-		c.Revision, time.Unix(c.Timestamp, 0).Format("2006-01-02 15:04:05"), c.CostTime, c.Success)
+	revision := c.Revision
+	if revision == "" {
+		revision = "-"
+	}
+	return fmt.Sprintf("%s|%s|%s|%s|%s|%s|%dms|%+v", c.ClientIP, c.Action, c.Namespace, c.Resource,
+		revision, time.Unix(c.Timestamp/1000, 0).Format(time.DateTime), c.CostTime, c.Success)
 }
 
 type ConfigMetricType string

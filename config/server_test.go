@@ -30,7 +30,6 @@ import (
 )
 
 func Test_Initialize(t *testing.T) {
-	t.SkipNow()
 	eventhub.InitEventHub()
 	ctrl := gomock.NewController(t)
 	mockStore := mockstore.NewMockStore(ctrl)

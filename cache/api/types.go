@@ -382,7 +382,7 @@ type (
 	// RateLimitCache rateLimit的cache接口
 	RateLimitCache interface {
 		Cache
-		// GetRateLimit 根据serviceID进行迭代回调
+		// IteratorRateLimit 遍历所有的限流规则
 		IteratorRateLimit(rateLimitIterProc RateLimitIterProc)
 		// GetRateLimitRules 根据serviceID获取限流数据
 		GetRateLimitRules(serviceKey model.ServiceKey) ([]*model.RateLimit, string)

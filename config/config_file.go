@@ -58,6 +58,7 @@ func (s *Server) CreateConfigFile(ctx context.Context, req *apiconfig.ConfigFile
 		log.Error("[Config][File] create config file commit tx.", utils.RequestID(ctx), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
+	s.RecordHistory(ctx, configFileRecordEntry(ctx, req, model.OCreate))
 	resp.ConfigFile = req
 	return resp
 }
@@ -88,7 +89,6 @@ func (s *Server) handleCreateConfigFile(ctx context.Context, tx store.Tx,
 			utils.ZapFileName(req.GetName().GetValue()), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
-	s.RecordHistory(ctx, configFileRecordEntry(ctx, req, model.OCreate))
 	return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
 }
 
