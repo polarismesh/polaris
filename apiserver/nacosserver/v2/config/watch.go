@@ -114,6 +114,7 @@ func (c *StreamWatchContext) ShouldNotify(event *model.SimpleConfigFileRelease) 
 	if !event.Valid {
 		return true
 	}
+	nacoslog.Info("should notify", zap.String("client", c.ClientID()), zap.String("save-md5", watchFile.GetMd5().GetValue()), zap.String("recv-md5", event.Md5))
 	isChange := watchFile.GetMd5().GetValue() != event.Md5
 	return isChange
 }
