@@ -41,7 +41,7 @@ func (s *ServerAuthability) PublishConfigFile(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.PublishConfigFile(ctx, configFileRelease)
+	return s.nextServer.PublishConfigFile(ctx, configFileRelease)
 }
 
 // GetConfigFileRelease 获取配置文件发布内容
@@ -56,7 +56,7 @@ func (s *ServerAuthability) GetConfigFileRelease(ctx context.Context,
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return s.targetServer.GetConfigFileRelease(ctx, req)
+	return s.nextServer.GetConfigFileRelease(ctx, req)
 }
 
 // DeleteConfigFileReleases implements ConfigCenterServer.
@@ -70,7 +70,7 @@ func (s *ServerAuthability) DeleteConfigFileReleases(ctx context.Context,
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return s.targetServer.DeleteConfigFileReleases(ctx, reqs)
+	return s.nextServer.DeleteConfigFileReleases(ctx, reqs)
 }
 
 // GetConfigFileReleaseVersions implements ConfigCenterServer.
@@ -84,7 +84,7 @@ func (s *ServerAuthability) GetConfigFileReleaseVersions(ctx context.Context,
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return s.targetServer.GetConfigFileReleaseVersions(ctx, filters)
+	return s.nextServer.GetConfigFileReleaseVersions(ctx, filters)
 }
 
 // GetConfigFileReleases implements ConfigCenterServer.
@@ -98,7 +98,7 @@ func (s *ServerAuthability) GetConfigFileReleases(ctx context.Context,
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return s.targetServer.GetConfigFileReleases(ctx, filters)
+	return s.nextServer.GetConfigFileReleases(ctx, filters)
 }
 
 // RollbackConfigFileReleases implements ConfigCenterServer.
@@ -112,7 +112,7 @@ func (s *ServerAuthability) RollbackConfigFileReleases(ctx context.Context,
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return s.targetServer.RollbackConfigFileReleases(ctx, reqs)
+	return s.nextServer.RollbackConfigFileReleases(ctx, reqs)
 }
 
 // UpsertAndReleaseConfigFile .
@@ -127,7 +127,7 @@ func (s *ServerAuthability) UpsertAndReleaseConfigFile(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.UpsertAndReleaseConfigFile(ctx, req)
+	return s.nextServer.UpsertAndReleaseConfigFile(ctx, req)
 }
 
 func (s *ServerAuthability) StopGrayConfigFileReleases(ctx context.Context,
@@ -142,5 +142,5 @@ func (s *ServerAuthability) StopGrayConfigFileReleases(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.StopGrayConfigFileReleases(ctx, reqs)
+	return s.nextServer.StopGrayConfigFileReleases(ctx, reqs)
 }

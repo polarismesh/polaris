@@ -38,5 +38,5 @@ func (s *ServerAuthability) GetConfigFileReleaseHistories(ctx context.Context,
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return s.targetServer.GetConfigFileReleaseHistories(ctx, filter)
+	return s.nextServer.GetConfigFileReleaseHistories(ctx, filter)
 }

@@ -35,8 +35,10 @@ import (
 // Initialize 初始化配置中心模块
 func TestInitialize(ctx context.Context, config Config, s store.Store, cacheMgn *cache.CacheManager,
 	namespaceOperator namespace.NamespaceOperateServer, userMgn auth.UserServer,
-	strategyMgn auth.StrategyServer) (ConfigCenterServer, ConfigCenterServer, error) {
-	mockServer := &Server{}
+	strategyMgn auth.StrategyServer) (ConfigCenterServer, *Server, error) {
+	mockServer := &Server{
+		initialized: true,
+	}
 
 	log.Info("Config.TestInitialize", zap.Any("entries", testConfigCacheEntries))
 	_ = cacheMgn.OpenResourceCache(testConfigCacheEntries...)
@@ -45,7 +47,7 @@ func TestInitialize(ctx context.Context, config Config, s store.Store, cacheMgn 
 	}
 
 	var proxySvr ConfigCenterServer
-	var err error
+	proxySvr = mockServer
 	// 需要返回包装代理的 ConfigCenterServer
 	order := config.Interceptors
 	for i := range order {
@@ -54,10 +56,11 @@ func TestInitialize(ctx context.Context, config Config, s store.Store, cacheMgn 
 			return nil, nil, fmt.Errorf("name(%s) not exist in serverProxyFactories", order[i])
 		}
 
-		proxySvr, err = factory(mockServer, proxySvr)
+		tmpSvr, err := factory(cacheMgn, proxySvr)
 		if err != nil {
 			return nil, nil, err
 		}
+		proxySvr = tmpSvr
 	}
 	return proxySvr, mockServer, nil
 }

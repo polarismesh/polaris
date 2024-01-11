@@ -24,8 +24,10 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/polarismesh/polaris/auth"
 	mockcache "github.com/polarismesh/polaris/cache/mock"
 	"github.com/polarismesh/polaris/common/eventhub"
+	"github.com/polarismesh/polaris/plugin"
 	mockstore "github.com/polarismesh/polaris/store/mock"
 )
 
@@ -36,6 +38,8 @@ func Test_Initialize(t *testing.T) {
 	cacheMgr := mockcache.NewMockCacheManager(ctrl)
 
 	t.Cleanup(func() {
+		plugin.TestCleanCryptoPlugin()
+		auth.TestClean()
 		ctrl.Finish()
 	})
 
@@ -44,8 +48,12 @@ func Test_Initialize(t *testing.T) {
 	cacheMgr.EXPECT().Gray().Return(nil).AnyTimes()
 	cacheMgr.EXPECT().ConfigGroup().Return(nil).AnyTimes()
 
+	_, _, err := auth.TestInitialize(context.Background(), &auth.Config{}, mockStore, cacheMgr)
+	assert.NoError(t, err)
+
 	proxySvr, originSvr, err := doInitialize(context.Background(), Config{
-		Open: true,
+		Open:         true,
+		Interceptors: GetChainOrder(),
 	}, mockStore, cacheMgr, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, originSvr)

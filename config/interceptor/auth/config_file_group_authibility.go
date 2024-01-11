@@ -43,7 +43,7 @@ func (s *ServerAuthability) CreateConfigFileGroup(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.CreateConfigFileGroup(ctx, configFileGroup)
+	return s.nextServer.CreateConfigFileGroup(ctx, configFileGroup)
 }
 
 // QueryConfigFileGroups 查询配置文件组
@@ -59,7 +59,7 @@ func (s *ServerAuthability) QueryConfigFileGroups(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	resp := s.targetServer.QueryConfigFileGroups(ctx, filter)
+	resp := s.nextServer.QueryConfigFileGroups(ctx, filter)
 	if len(resp.ConfigFileGroups) != 0 {
 		principal := model.Principal{
 			PrincipalID:   utils.ParseUserID(ctx),
@@ -70,7 +70,7 @@ func (s *ServerAuthability) QueryConfigFileGroups(ctx context.Context,
 			editable := true
 			// 如果鉴权能力没有开启，那就默认都可以进行编辑
 			if s.strategyMgn.GetAuthChecker().IsOpenConsoleAuth() {
-				editable = s.targetServer.CacheManager().AuthStrategy().IsResourceEditable(principal,
+				editable = s.cacheMgr.AuthStrategy().IsResourceEditable(principal,
 					apisecurity.ResourceType_ConfigGroups, fmt.Sprintf("%d", group.GetId().GetValue()))
 			}
 			group.Editable = utils.NewBoolValue(editable)
@@ -93,7 +93,7 @@ func (s *ServerAuthability) DeleteConfigFileGroup(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.DeleteConfigFileGroup(ctx, namespace, name)
+	return s.nextServer.DeleteConfigFileGroup(ctx, namespace, name)
 }
 
 // UpdateConfigFileGroup 更新配置文件组
@@ -108,5 +108,5 @@ func (s *ServerAuthability) UpdateConfigFileGroup(ctx context.Context,
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return s.targetServer.UpdateConfigFileGroup(ctx, configFileGroup)
+	return s.nextServer.UpdateConfigFileGroup(ctx, configFileGroup)
 }

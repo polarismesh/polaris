@@ -26,6 +26,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/config"
@@ -35,19 +36,23 @@ var _ config.ConfigCenterServer = (*ServerAuthability)(nil)
 
 // Server 配置中心核心服务
 type ServerAuthability struct {
-	targetServer *config.Server
-	userMgn      auth.UserServer
-	strategyMgn  auth.StrategyServer
+	cacheMgr    cachetypes.CacheManager
+	nextServer  config.ConfigCenterServer
+	userMgn     auth.UserServer
+	strategyMgn auth.StrategyServer
 }
 
-func New(targetServer *config.Server,
-	userMgn auth.UserServer, strategyMgn auth.StrategyServer) config.ConfigCenterServer {
+func New(nextServer config.ConfigCenterServer, cacheMgr cachetypes.CacheManager,
+	userMgr auth.UserServer, strategyMgr auth.StrategyServer) config.ConfigCenterServer {
 	proxy := &ServerAuthability{
-		targetServer: targetServer,
-		userMgn:      userMgn,
-		strategyMgn:  strategyMgn,
+		nextServer:  nextServer,
+		cacheMgr:    cacheMgr,
+		userMgn:     userMgr,
+		strategyMgn: strategyMgr,
 	}
-	targetServer.SetResourceHooks(proxy)
+	if val, ok := nextServer.(*config.Server); !ok {
+		val.SetResourceHooks(proxy)
+	}
 	return proxy
 }
 
@@ -289,7 +294,7 @@ func (s *ServerAuthability) queryConfigGroupRsEntryByNames(ctx context.Context, 
 
 	configFileGroups := make([]*model.ConfigFileGroup, 0, len(names))
 	for i := range names {
-		data := s.targetServer.GroupCache().GetGroupByName(namespace, names[i])
+		data := s.cacheMgr.ConfigGroup().GetGroupByName(namespace, names[i])
 		if data == nil {
 			continue
 		}
@@ -325,7 +330,7 @@ func (s *ServerAuthability) queryWatchConfigFilesResource(ctx context.Context,
 			continue
 		}
 		temp[key] = struct{}{}
-		data := s.targetServer.GroupCache().GetGroupByName(namespace, groupName)
+		data := s.cacheMgr.ConfigGroup().GetGroupByName(namespace, groupName)
 		if data == nil {
 			continue
 		}

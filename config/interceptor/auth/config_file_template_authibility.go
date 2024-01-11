@@ -37,7 +37,7 @@ func (s *ServerAuthability) GetAllConfigFileTemplates(ctx context.Context) *apic
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return s.targetServer.GetAllConfigFileTemplates(ctx)
+	return s.nextServer.GetAllConfigFileTemplates(ctx)
 }
 
 // GetConfigFileTemplate get config file template
@@ -50,7 +50,7 @@ func (s *ServerAuthability) GetConfigFileTemplate(ctx context.Context, name stri
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return s.targetServer.GetConfigFileTemplate(ctx, name)
+	return s.nextServer.GetConfigFileTemplate(ctx, name)
 }
 
 // CreateConfigFileTemplate create config file template
@@ -65,5 +65,5 @@ func (s *ServerAuthability) CreateConfigFileTemplate(ctx context.Context,
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return s.targetServer.CreateConfigFileTemplate(ctx, template)
+	return s.nextServer.CreateConfigFileTemplate(ctx, template)
 }
