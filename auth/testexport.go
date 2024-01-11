@@ -35,3 +35,8 @@ func TestInitialize(ctx context.Context, authOpt *Config, storage store.Store,
 	strategyMgn = strategySvr
 	return userSvr, strategySvr, nil
 }
+
+func TestClean() {
+	userMgn = nil
+	strategyMgn = nil
+}

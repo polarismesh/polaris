@@ -48,7 +48,25 @@ func (h *ConfigServer) handlePublishConfigRequest(ctx context.Context, req nacos
 		return nil, remote.ErrorInvalidRequestBodyType
 	}
 
-	resp := h.configSvr.CasUpsertAndReleaseConfigFileFromClient(ctx, configReq.ToSpec())
+	var resp *config_manage.ConfigResponse
+	startTime := commontime.CurrentMillisecond()
+	defer func() {
+		plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+			Action:    nacosmodel.ActionGrpcPublishConfigFile,
+			ClientIP:  meta.ConnectionID,
+			Namespace: configReq.Tenant,
+			Resource:  metrics.ResourceOfConfigFile(configReq.Group, configReq.DataId),
+			Timestamp: startTime,
+			CostTime:  commontime.CurrentMillisecond() - startTime,
+			Success:   resp.GetCode().GetValue() == uint32(apimodel.Code_ExecuteSuccess),
+		})
+	}()
+
+	if configReq.CasMd5 != "" {
+		resp = h.configSvr.CasUpsertAndReleaseConfigFileFromClient(ctx, configReq.ToSpec())
+	} else {
+		resp = h.configSvr.UpsertAndReleaseConfigFileFromClient(ctx, configReq.ToSpec())
+	}
 	if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 		nacoslog.Error("[NACOS-V2][Config] publish config file fail", zap.String("tenant", configReq.Tenant),
 			utils.ZapGroup(configReq.Group), utils.ZapFileName(configReq.DataId),
@@ -83,8 +101,8 @@ func (h *ConfigServer) handleGetConfigRequest(ctx context.Context, req nacospb.B
 	startTime := commontime.CurrentMillisecond()
 	defer func() {
 		plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
-			Action:    nacosmodel.ActionGetConfigFile,
-			ClientIP:  utils.ParseClientAddress(ctx),
+			Action:    nacosmodel.ActionGrpcGetConfigFile,
+			ClientIP:  meta.ConnectionID,
 			Namespace: configReq.Tenant,
 			Resource:  metrics.ResourceOfConfigFile(configReq.Group, configReq.DataId),
 			Timestamp: startTime,

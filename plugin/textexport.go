@@ -15,30 +15,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package config_chain
+package plugin
 
-import (
-	"github.com/polarismesh/polaris/auth"
-	cachetypes "github.com/polarismesh/polaris/cache/api"
-	"github.com/polarismesh/polaris/config"
-	config_auth "github.com/polarismesh/polaris/config/interceptor/auth"
-)
+import "sync"
 
-func init() {
-	err := config.RegisterServerProxy("auth", func(cacheMgr cachetypes.CacheManager,
-		pre config.ConfigCenterServer) (config.ConfigCenterServer, error) {
-		userMgr, err := auth.GetUserServer()
-		if err != nil {
-			return nil, err
-		}
-		strategyMgr, err := auth.GetStrategyServer()
-		if err != nil {
-			return nil, err
-		}
-
-		return config_auth.New(pre, cacheMgr, userMgr, strategyMgr), nil
-	})
-	if err != nil {
-		panic(err)
-	}
+func TestCleanCryptoPlugin() {
+	cryptoManagerOnce = sync.Once{}
+	cryptoManager = nil
 }

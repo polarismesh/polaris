@@ -145,5 +145,9 @@ func ToNacosConfigNamespace(ns string) string {
 }
 
 const (
-	ActionGetConfigFile = "NACOS_GET_CONFIG"
+	ActionGetConfigFile         = "NACOS_GET_CONFIG"
+	ActionPublishConfigFile     = "NACOS_PUBLISH_CONFIG"
+	ActionGrpcGetConfigFile     = "NACOS_GRPC_GET_CONFIG"
+	ActionGrpcPublishConfigFile = "NACOS_GRPC_PUBLISH_CONFIG"
+	ActionGrpcPushConfigFile    = "NACOS_GRPC_PUSH_CONFIG"
 )

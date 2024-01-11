@@ -46,7 +46,7 @@ var (
 	serverProxyFactories = map[string]ServerProxyFactory{}
 )
 
-type ServerProxyFactory func(svr *Server, pre ConfigCenterServer) (ConfigCenterServer, error)
+type ServerProxyFactory func(cacheMgr cachetypes.CacheManager, pre ConfigCenterServer) (ConfigCenterServer, error)
 
 func RegisterServerProxy(name string, factor ServerProxyFactory) error {
 	if _, ok := serverProxyFactories[name]; ok {
@@ -103,22 +103,23 @@ func Initialize(ctx context.Context, config Config, s store.Store, cacheMgr cach
 
 func doInitialize(ctx context.Context, config Config, s store.Store, cacheMgr cachetypes.CacheManager,
 	namespaceOperator namespace.NamespaceOperateServer) (ConfigCenterServer, *Server, error) {
-	if !config.Open {
-		originServer.initialized = true
-		return nil, nil, nil
-	}
-
 	var proxySvr ConfigCenterServer
 	originSvr := &Server{}
+
+	if !config.Open {
+		originSvr.initialized = true
+		return nil, nil, nil
+	}
 
 	if err := cacheMgr.OpenResourceCache(configCacheEntries...); err != nil {
 		return nil, nil, err
 	}
-	err := originServer.initialize(ctx, config, s, namespaceOperator, cacheMgr)
+	err := originSvr.initialize(ctx, config, s, namespaceOperator, cacheMgr)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	proxySvr = originSvr
 	// 需要返回包装代理的 DiscoverServer
 	order := config.Interceptors
 	for i := range order {
@@ -127,7 +128,7 @@ func doInitialize(ctx context.Context, config Config, s store.Store, cacheMgr ca
 			return nil, nil, fmt.Errorf("name(%s) not exist in serverProxyFactories", order[i])
 		}
 
-		tmpSvr, err := factory(originServer, server)
+		tmpSvr, err := factory(cacheMgr, proxySvr)
 		if err != nil {
 			return nil, nil, err
 		}

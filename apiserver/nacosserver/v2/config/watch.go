@@ -28,9 +28,12 @@ import (
 	nacospb "github.com/polarismesh/polaris/apiserver/nacosserver/v2/pb"
 	"github.com/polarismesh/polaris/apiserver/nacosserver/v2/remote"
 	"github.com/polarismesh/polaris/common/eventhub"
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
+	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/config"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 type ConnectionClientManager struct {
@@ -99,6 +102,9 @@ func (c *StreamWatchContext) ClientID() string {
 
 // ShouldNotify .
 func (c *StreamWatchContext) ShouldNotify(event *model.SimpleConfigFileRelease) bool {
+	if event.ReleaseType == model.ReleaseTypeGray && !c.betaMatcher(c.ClientLabels(), event) {
+		return false
+	}
 	key := event.FileKey()
 	watchFile, ok := c.watchConfigFiles.Load(key)
 	if !ok {
@@ -142,6 +148,21 @@ func (c *StreamWatchContext) Reply(event *apiconfig.ConfigClientResponse) {
 	notifyRequest.Group = viewConfig.GetGroup().GetValue()
 	notifyRequest.DataId = viewConfig.GetFileName().GetValue()
 
+	success := false
+	startTime := commontime.CurrentMillisecond()
+	defer func() {
+		plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+			Action:    nacosmodel.ActionGrpcPushConfigFile,
+			ClientIP:  c.ClientID(),
+			Namespace: notifyRequest.Tenant,
+			Resource:  metrics.ResourceOfConfigFile(notifyRequest.Group, notifyRequest.DataId),
+			Timestamp: startTime,
+			CostTime:  commontime.CurrentMillisecond() - startTime,
+			Revision:  viewConfig.GetMd5().GetValue(),
+			Success:   success,
+		})
+	}()
+
 	remoteClient, ok := c.connMgr.GetClient(c.clientId)
 	if !ok {
 		nacoslog.Error("[NACOS-V2][Config][Push] send ConfigChangeNotifyRequest not found remoteClient",
@@ -164,4 +185,5 @@ func (c *StreamWatchContext) Reply(event *apiconfig.ConfigClientResponse) {
 		nacoslog.Error("[NACOS-V2][Config][Push] send ConfigChangeNotifyRequest fail",
 			zap.String("clientId", c.ClientID()), zap.Error(err))
 	}
+	success = true
 }

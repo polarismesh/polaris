@@ -40,7 +40,13 @@ import (
 )
 
 func (n *ConfigServer) handlePublishConfig(ctx context.Context, req *model.ConfigFile) (bool, error) {
-	resp := n.configSvr.UpsertAndReleaseConfigFileFromClient(ctx, req.ToSpecConfigFile())
+	var resp *config_manage.ConfigResponse
+	if req.CasMd5 != "" {
+		resp = n.configSvr.CasUpsertAndReleaseConfigFileFromClient(ctx, req.ToSpecConfigFile())
+	} else {
+		resp = n.configSvr.UpsertAndReleaseConfigFileFromClient(ctx, req.ToSpecConfigFile())
+	}
+
 	if resp.GetCode().GetValue() == uint32(apimodel.Code_ExecuteSuccess) {
 		return true, nil
 	}

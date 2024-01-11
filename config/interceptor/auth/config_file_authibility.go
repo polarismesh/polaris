@@ -39,7 +39,7 @@ func (s *ServerAuthability) CreateConfigFile(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.CreateConfigFile(ctx, configFile)
+	return s.nextServer.CreateConfigFile(ctx, configFile)
 }
 
 // GetConfigFileRichInfo 获取单个配置文件基础信息，包含发布状态等信息
@@ -53,7 +53,7 @@ func (s *ServerAuthability) GetConfigFileRichInfo(ctx context.Context,
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return s.targetServer.GetConfigFileRichInfo(ctx, req)
+	return s.nextServer.GetConfigFileRichInfo(ctx, req)
 }
 
 // SearchConfigFile 查询配置文件
@@ -67,7 +67,7 @@ func (s *ServerAuthability) SearchConfigFile(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.SearchConfigFile(ctx, filter)
+	return s.nextServer.SearchConfigFile(ctx, filter)
 }
 
 // UpdateConfigFile 更新配置文件
@@ -82,7 +82,7 @@ func (s *ServerAuthability) UpdateConfigFile(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.UpdateConfigFile(ctx, configFile)
+	return s.nextServer.UpdateConfigFile(ctx, configFile)
 }
 
 // DeleteConfigFile 删除配置文件，删除配置文件同时会通知客户端 Not_Found
@@ -98,7 +98,7 @@ func (s *ServerAuthability) DeleteConfigFile(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.DeleteConfigFile(ctx, req)
+	return s.nextServer.DeleteConfigFile(ctx, req)
 }
 
 // BatchDeleteConfigFile 批量删除配置文件
@@ -113,7 +113,7 @@ func (s *ServerAuthability) BatchDeleteConfigFile(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.BatchDeleteConfigFile(ctx, req)
+	return s.nextServer.BatchDeleteConfigFile(ctx, req)
 }
 
 func (s *ServerAuthability) ExportConfigFile(ctx context.Context,
@@ -133,7 +133,7 @@ func (s *ServerAuthability) ExportConfigFile(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.ExportConfigFile(ctx, configFileExport)
+	return s.nextServer.ExportConfigFile(ctx, configFileExport)
 }
 
 func (s *ServerAuthability) ImportConfigFile(ctx context.Context,
@@ -145,10 +145,10 @@ func (s *ServerAuthability) ImportConfigFile(ctx context.Context,
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return s.targetServer.ImportConfigFile(ctx, configFiles, conflictHandling)
+	return s.nextServer.ImportConfigFile(ctx, configFiles, conflictHandling)
 }
 
 func (s *ServerAuthability) GetAllConfigEncryptAlgorithms(
 	ctx context.Context) *apiconfig.ConfigEncryptAlgorithmResponse {
-	return s.targetServer.GetAllConfigEncryptAlgorithms(ctx)
+	return s.nextServer.GetAllConfigEncryptAlgorithms(ctx)
 }

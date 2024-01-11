@@ -117,7 +117,9 @@ func (a *StatisWorker) metricsHandle(mt metrics.CallMetricType, start time.Time,
 	var prefixMax int
 	for i := range statics {
 		prefixMax = int(math.Max(float64(prefixMax), float64(len(statics[i].API))))
-		msg += formatAPICallStatisItem(mt, statics[i])
+	}
+	for i := range statics {
+		msg += formatAPICallStatisItem(prefixMax, mt, statics[i])
 	}
 	if len(msg) == 0 {
 		log.Info(fmt.Sprintf("Statis %s: No API Call\n", startStr))
@@ -133,12 +135,12 @@ func (a *StatisWorker) metricsHandle(mt metrics.CallMetricType, start time.Time,
 	log.Info(header + msg)
 }
 
-func formatAPICallStatisItem(mt metrics.CallMetricType, item *base.APICallStatisItem) string {
+func formatAPICallStatisItem(prefixMax int, mt metrics.CallMetricType, item *base.APICallStatisItem) string {
 	if item.Count == 0 {
 		return ""
 	}
-	return fmt.Sprintf("%-48v|%12v|%17v|%12v|%12v|%12.3f|%12.3f|%12.3f|\n",
-		item.API, mt, item.TrafficDirection, item.Code, item.Count,
+	return fmt.Sprintf("%-"+strconv.Itoa(prefixMax)+"v|%12v|%17v|%12v|%12v|%12.3f|%12.3f|%12.3f|\n",
+		item.API, item.Protocol, item.TrafficDirection, item.Code, item.Count,
 		float64(item.MinTime)/1e6,
 		float64(item.MaxTime)/1e6,
 		float64(item.AccTime)/float64(item.Count)/1e6,

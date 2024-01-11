@@ -40,7 +40,7 @@ func (s *ServerAuthability) UpsertAndReleaseConfigFileFromClient(ctx context.Con
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.UpsertAndReleaseConfigFileFromClient(ctx, req)
+	return s.nextServer.UpsertAndReleaseConfigFileFromClient(ctx, req)
 }
 
 // CreateConfigFileFromClient 调用config_file的方法创建配置文件
@@ -59,7 +59,7 @@ func (s *ServerAuthability) CreateConfigFileFromClient(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.CreateConfigFileFromClient(ctx, fileInfo)
+	return s.nextServer.CreateConfigFileFromClient(ctx, fileInfo)
 }
 
 // UpdateConfigFileFromClient 调用config_file的方法更新配置文件
@@ -74,7 +74,7 @@ func (s *ServerAuthability) UpdateConfigFileFromClient(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.UpdateConfigFileFromClient(ctx, fileInfo)
+	return s.nextServer.UpdateConfigFileFromClient(ctx, fileInfo)
 }
 
 // DeleteConfigFileFromClient 删除配置文件，删除配置文件同时会通知客户端 Not_Found
@@ -90,7 +90,7 @@ func (s *ServerAuthability) DeleteConfigFileFromClient(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.DeleteConfigFileFromClient(ctx, req)
+	return s.nextServer.DeleteConfigFileFromClient(ctx, req)
 }
 
 // PublishConfigFileFromClient 调用config_file_release的方法发布配置文件
@@ -109,7 +109,7 @@ func (s *ServerAuthability) PublishConfigFileFromClient(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.PublishConfigFileFromClient(ctx, fileInfo)
+	return s.nextServer.PublishConfigFileFromClient(ctx, fileInfo)
 }
 
 // GetConfigFileWithCache 从缓存中获取配置文件，如果客户端的版本号大于服务端，则服务端重新加载缓存
@@ -127,7 +127,7 @@ func (s *ServerAuthability) GetConfigFileWithCache(ctx context.Context,
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return s.targetServer.GetConfigFileWithCache(ctx, fileInfo)
+	return s.nextServer.GetConfigFileWithCache(ctx, fileInfo)
 }
 
 // WatchConfigFiles 监听配置文件变化
@@ -143,7 +143,7 @@ func (s *ServerAuthability) LongPullWatchFile(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.LongPullWatchFile(ctx, request)
+	return s.nextServer.LongPullWatchFile(ctx, request)
 }
 
 // GetConfigFileNamesWithCache 获取某个配置分组下的配置文件
@@ -163,7 +163,7 @@ func (s *ServerAuthability) GetConfigFileNamesWithCache(ctx context.Context,
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return s.targetServer.GetConfigFileNamesWithCache(ctx, req)
+	return s.nextServer.GetConfigFileNamesWithCache(ctx, req)
 }
 
 func (s *ServerAuthability) GetConfigGroupsWithCache(ctx context.Context,
@@ -181,7 +181,7 @@ func (s *ServerAuthability) GetConfigGroupsWithCache(ctx context.Context,
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return s.targetServer.GetConfigGroupsWithCache(ctx, req)
+	return s.nextServer.GetConfigGroupsWithCache(ctx, req)
 }
 
 // CasUpsertAndReleaseConfigFileFromClient 创建/更新配置文件并发布
@@ -197,5 +197,5 @@ func (s *ServerAuthability) CasUpsertAndReleaseConfigFileFromClient(ctx context.
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return s.targetServer.CasUpsertAndReleaseConfigFileFromClient(ctx, req)
+	return s.nextServer.CasUpsertAndReleaseConfigFileFromClient(ctx, req)
 }
