@@ -116,7 +116,7 @@ func TestConvertContext(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ConvertContext(tt.args.ctx); !reflect.DeepEqual(got, tt.want) {
+			if got := utils.ConvertGRPCContext(tt.args.ctx); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ConvertContext() = %v, \n want %v", got, tt.want)
 			}
 		})
@@ -149,7 +149,7 @@ func TestGetClientOpenMethod(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "case=1",
+			name: "case=2",
 			args: args{
 				include: []string{
 					apiserver.DiscoverAccess,
@@ -157,8 +157,9 @@ func TestGetClientOpenMethod(t *testing.T) {
 				protocol: "grpc",
 			},
 			want: map[string]bool{
-				"/v1.PolarisGRPC/Discover":     true,
-				"/v1.PolarisGRPC/ReportClient": true,
+				"/v1.PolarisGRPC/Discover":                             true,
+				"/v1.PolarisGRPC/ReportClient":                         true,
+				"/v1.PolarisServiceContractGRPC/ReportServiceContract": true,
 			},
 			wantErr: false,
 		},

@@ -43,19 +43,13 @@ type rateLimitRuleBucket struct {
 }
 
 func (r *rateLimitRuleBucket) foreach(proc types.RateLimitIterProc) {
-	r.rules.Range(func(key string, val *subRateLimitRuleBucket) bool {
+	r.rules.Range(func(key string, val *subRateLimitRuleBucket) {
 		val.foreach(proc)
-		return true
 	})
 }
 
 func (r *rateLimitRuleBucket) count() int {
-	count := 0
-	r.rules.Range(func(key string, val *subRateLimitRuleBucket) bool {
-		count += val.count()
-		return true
-	})
-	return count
+	return r.ids.Len()
 }
 
 func (r *rateLimitRuleBucket) saveRule(rule *model.RateLimit) {

@@ -30,25 +30,27 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 
-	"github.com/polarismesh/polaris/apiserver/grpcserver"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	commonlog "github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/metrics"
+	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 var (
-	namingLog = commonlog.GetScopeOrDefaultByName(commonlog.NamingLoggerName)
+	accesslog = commonlog.GetScopeOrDefaultByName(commonlog.APIServerLoggerName)
 )
 
 // ReportClient 客户端上报
 func (g *DiscoverServer) ReportClient(ctx context.Context, in *apiservice.Client) (*apiservice.Response, error) {
-	return g.namingServer.ReportClient(grpcserver.ConvertContext(ctx), in), nil
+	return g.namingServer.ReportClient(utils.ConvertGRPCContext(ctx), in), nil
 }
 
 // RegisterInstance 注册服务实例
 func (g *DiscoverServer) RegisterInstance(ctx context.Context, in *apiservice.Instance) (*apiservice.Response, error) {
 	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
-	rCtx := grpcserver.ConvertContext(ctx)
+	rCtx := utils.ConvertGRPCContext(ctx)
 	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), ParseGrpcOperator(ctx))
 
 	// 客户端请求中带了 token 的，优先已请求中的为准
@@ -70,7 +72,7 @@ func (g *DiscoverServer) RegisterInstance(ctx context.Context, in *apiservice.In
 func (g *DiscoverServer) DeregisterInstance(
 	ctx context.Context, in *apiservice.Instance) (*apiservice.Response, error) {
 	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
-	rCtx := grpcserver.ConvertContext(ctx)
+	rCtx := utils.ConvertGRPCContext(ctx)
 	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), ParseGrpcOperator(ctx))
 
 	// 客户端请求中带了 token 的，优先已请求中的为准
@@ -84,7 +86,7 @@ func (g *DiscoverServer) DeregisterInstance(
 
 // Discover 统一发现接口
 func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) error {
-	ctx := grpcserver.ConvertContext(server.Context())
+	ctx := utils.ConvertGRPCContext(server.Context())
 	clientIP, _ := ctx.Value(utils.StringContext("client-ip")).(string)
 	clientAddress, _ := ctx.Value(utils.StringContext("client-address")).(string)
 	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
@@ -101,7 +103,7 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 		}
 
 		msg := fmt.Sprintf("receive grpc discover request: %s", in.Service.String())
-		namingLog.Info(msg,
+		accesslog.Info(msg,
 			zap.String("type", apiservice.DiscoverRequest_DiscoverRequestType_name[int32(in.Type)]),
 			zap.String("client-address", clientAddress),
 			zap.String("user-agent", userAgent),
@@ -127,19 +129,43 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 		}
 
 		var out *apiservice.DiscoverResponse
+		var action string
+		startTime := commontime.CurrentMillisecond()
+		defer func() {
+			plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+				Action:    action,
+				ClientIP:  utils.ParseClientAddress(ctx),
+				Namespace: in.GetService().GetNamespace().GetValue(),
+				Resource:  in.GetType().String() + ":" + in.GetService().GetName().GetValue(),
+				Timestamp: startTime,
+				CostTime:  commontime.CurrentMillisecond() - startTime,
+				Revision:  out.GetService().GetRevision().GetValue(),
+				Success:   out.GetCode().GetValue() > uint32(apimodel.Code_DataNoChange),
+			})
+		}()
+
 		switch in.Type {
 		case apiservice.DiscoverRequest_INSTANCE:
-			out = g.namingServer.ServiceInstancesCache(ctx, in.Service)
+			action = metrics.ActionDiscoverInstance
+			out = g.namingServer.ServiceInstancesCache(ctx, &apiservice.DiscoverFilter{}, in.Service)
 		case apiservice.DiscoverRequest_ROUTING:
+			action = metrics.ActionDiscoverRouterRule
 			out = g.namingServer.GetRoutingConfigWithCache(ctx, in.Service)
 		case apiservice.DiscoverRequest_RATE_LIMIT:
+			action = metrics.ActionDiscoverRateLimit
 			out = g.namingServer.GetRateLimitWithCache(ctx, in.Service)
 		case apiservice.DiscoverRequest_CIRCUIT_BREAKER:
+			action = metrics.ActionDiscoverCircuitBreaker
 			out = g.namingServer.GetCircuitBreakerWithCache(ctx, in.Service)
 		case apiservice.DiscoverRequest_SERVICES:
+			action = metrics.ActionDiscoverServices
 			out = g.namingServer.GetServiceWithCache(ctx, in.Service)
 		case apiservice.DiscoverRequest_FAULT_DETECTOR:
+			action = metrics.ActionDiscoverFaultDetect
 			out = g.namingServer.GetFaultDetectWithCache(ctx, in.Service)
+		case apiservice.DiscoverRequest_SERVICE_CONTRACT:
+			action = metrics.ActionDiscoverServiceContract
+			out = g.namingServer.GetServiceContractWithCache(ctx, in.ServiceContract)
 		default:
 			out = api.NewDiscoverRoutingResponse(apimodel.Code_InvalidDiscoverResource, in.Service)
 		}
@@ -151,29 +177,13 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 	}
 }
 
-// Heartbeat 上报心跳
-func (g *DiscoverServer) Heartbeat(ctx context.Context, in *apiservice.Instance) (*apiservice.Response, error) {
-	return g.healthCheckServer.Report(grpcserver.ConvertContext(ctx), in), nil
-}
+func (g *DiscoverServer) ReportServiceContract(ctx context.Context, in *apiservice.ServiceContract) (*apiservice.Response, error) {
+	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
+	rCtx := utils.ConvertGRPCContext(ctx)
+	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), ParseGrpcOperator(ctx))
 
-// BatchHeartbeat 批量上报心跳
-func (g *DiscoverServer) BatchHeartbeat(svr apiservice.PolarisHeartbeatGRPC_BatchHeartbeatServer) error {
-	ctx := grpcserver.ConvertContext(svr.Context())
-
-	for {
-		req, err := svr.Recv()
-		if err != nil {
-			if io.EOF == err {
-				return nil
-			}
-			return err
-		}
-
-		_ = g.healthCheckServer.Reports(ctx, req.GetHeartbeats())
-		if err = svr.Send(&apiservice.HeartbeatsResponse{}); err != nil {
-			return err
-		}
-	}
+	out := g.namingServer.ReportServiceContract(rCtx, in)
+	return out, nil
 }
 
 // ParseGrpcOperator 构造请求源

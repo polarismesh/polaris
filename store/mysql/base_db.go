@@ -24,7 +24,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/plugin"
+	"github.com/polarismesh/polaris/store"
 )
 
 // db抛出的异常，需要重试的字符串组
@@ -110,8 +112,13 @@ func (b *BaseDB) openDatabase() error {
 
 // Exec 重写db.Exec函数 提供重试功能
 func (b *BaseDB) Exec(query string, args ...interface{}) (sql.Result, error) {
-	var result sql.Result
-	var err error
+	var (
+		result sql.Result
+		err    error
+		start  = time.Now()
+	)
+	defer reportCallMetrics("Exec", start, err)
+
 	Retry("exec "+query, func() error {
 		result, err = b.DB.Exec(query, args...)
 		return err
@@ -122,8 +129,13 @@ func (b *BaseDB) Exec(query string, args ...interface{}) (sql.Result, error) {
 
 // Query 重写db.Query函数
 func (b *BaseDB) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	var rows *sql.Rows
-	var err error
+	var (
+		rows  *sql.Rows
+		err   error
+		start = time.Now()
+	)
+	defer reportCallMetrics("Query", start, err)
+
 	Retry("query "+query, func() error {
 		rows, err = b.DB.Query(query, args...)
 		return err
@@ -132,14 +144,38 @@ func (b *BaseDB) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return rows, err
 }
 
+// QueryRow 重写db.Query函数
+func (b *BaseDB) QueryRow(query string, args ...interface{}) *sql.Row {
+	var (
+		row   *sql.Row
+		err   error
+		start = time.Now()
+	)
+	defer reportCallMetrics("QueryRow", start, err)
+
+	Retry("query "+query, func() error {
+		row = b.DB.QueryRow(query, args...)
+		err = row.Err()
+		return row.Err()
+	})
+
+	return row
+}
+
 // Begin 重写db.Begin
 func (b *BaseDB) Begin() (*BaseTx, error) {
-	var tx *sql.Tx
-	var err error
-	var option *sql.TxOptions
+	var (
+		tx     *sql.Tx
+		err    error
+		option *sql.TxOptions
+		start  = time.Now()
+	)
 	if b.isolationLevel > 0 {
 		option = &sql.TxOptions{Isolation: sql.IsolationLevel(b.isolationLevel)}
 	}
+
+	defer reportCallMetrics("Begin", start, err)
+
 	Retry("begin", func() error {
 		tx, err = b.DB.BeginTx(context.Background(), option)
 		return err
@@ -148,9 +184,49 @@ func (b *BaseDB) Begin() (*BaseTx, error) {
 	return &BaseTx{Tx: tx}, err
 }
 
+func reportCallMetrics(label string, start time.Time, err error) {
+	plugin.GetStatis().ReportCallMetrics(metrics.CallMetric{
+		Type:     metrics.StoreCallMetric,
+		API:      label,
+		Protocol: "MySQL",
+		Code: func() int {
+			if err == nil {
+				return 0
+			}
+			return int(store.Code(store.Error(err)))
+		}(),
+		Times:            1,
+		Success:          err == nil,
+		Duration:         time.Since(start),
+		TrafficDirection: metrics.TrafficDirectionOutBound,
+	})
+}
+
 // BaseTx 对sql.Tx的封装
 type BaseTx struct {
 	*sql.Tx
+}
+
+// Commit .
+func (b *BaseTx) Commit() error {
+	var (
+		start = time.Now()
+		err   error
+	)
+	defer reportCallMetrics("Commit", start, err)
+	err = b.Tx.Commit()
+	return err
+}
+
+// Rollback .
+func (b *BaseTx) Rollback() error {
+	var (
+		start = time.Now()
+		err   error
+	)
+	defer reportCallMetrics("Rollback", start, err)
+	err = b.Tx.Rollback()
+	return err
 }
 
 // Retry 重试主函数

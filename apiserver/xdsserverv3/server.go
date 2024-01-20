@@ -27,11 +27,11 @@ import (
 	clusterservice "github.com/envoyproxy/go-control-plane/envoy/service/cluster/v3"
 	discoverygrpc "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	endpointservice "github.com/envoyproxy/go-control-plane/envoy/service/endpoint/v3"
+	healthservice "github.com/envoyproxy/go-control-plane/envoy/service/health/v3"
 	listenerservice "github.com/envoyproxy/go-control-plane/envoy/service/listener/v3"
 	routeservice "github.com/envoyproxy/go-control-plane/envoy/service/route/v3"
 	runtimeservice "github.com/envoyproxy/go-control-plane/envoy/service/runtime/v3"
 	secretservice "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
-	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	serverv3 "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/atomic"
@@ -40,15 +40,15 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/polarismesh/polaris/apiserver"
+	xdscache "github.com/polarismesh/polaris/apiserver/xdsserverv3/cache"
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	connlimit "github.com/polarismesh/polaris/common/conn/limit"
-	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
-	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/service"
+	"github.com/polarismesh/polaris/service/healthcheck"
 )
 
 type ResourceServer interface {
@@ -64,7 +64,8 @@ type XDSServer struct {
 	restart         bool
 	exitCh          chan struct{}
 	namingServer    service.DiscoverServer
-	cache           cachev3.SnapshotCache
+	healthSvr       *healthcheck.Server
+	cache           *xdscache.XDSCache
 	versionNum      *atomic.Uint64
 	server          *grpc.Server
 	connLimitConfig *connlimit.Config
@@ -73,9 +74,11 @@ type XDSServer struct {
 	registryInfo      map[string]map[model.ServiceKey]*resource.ServiceInfo
 	resourceGenerator *XdsResourceGenerator
 
-	active       *atomic.Bool
-	finishCtx    context.Context
-	singleFlight singleflight.Group
+	active         *atomic.Bool
+	finishCtx      context.Context
+	singleFlight   singleflight.Group
+	activeNotifier context.Context
+	activeFinish   context.CancelFunc
 }
 
 // Initialize 初始化
@@ -85,16 +88,19 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 	x.listenPort = uint32(option["listenPort"].(int))
 	x.listenIP = option["listenIP"].(string)
 	x.nodeMgr = resource.NewXDSNodeManager()
-	x.cache = NewSnapshotCache(cachev3.NewSnapshotCache(false, resource.PolarisNodeHash{
-		NodeMgr: x.nodeMgr,
-	}, commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName)), x)
+	x.cache = xdscache.NewCache(x)
 	x.active = atomic.NewBool(false)
 	x.versionNum = atomic.NewUint64(0)
 	x.ctx = ctx
-
+	x.activeNotifier, x.activeFinish = context.WithCancel(context.Background())
 	var err error
 
 	x.namingServer, err = service.GetOriginServer()
+	if err != nil {
+		log.Errorf("%v", err)
+		return err
+	}
+	x.healthSvr, err = healthcheck.GetServer()
 	if err != nil {
 		log.Errorf("%v", err)
 		return err
@@ -107,13 +113,13 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 		}
 		x.connLimitConfig = connConfig
 	}
-	registerXDSBuilder()
 	x.resourceGenerator = &XdsResourceGenerator{
 		namingServer: x.namingServer,
 		cache:        x.cache,
 		versionNum:   x.versionNum,
 		xdsNodesMgr:  x.nodeMgr,
 	}
+	resource.Init()
 	return nil
 }
 
@@ -121,7 +127,7 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 func (x *XDSServer) Run(errCh chan error) {
 	// 启动 grpc server
 	ctx := context.Background()
-	cb := resource.NewCallback(commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName), x.nodeMgr)
+	cb := xdscache.NewCallback(x.cache, x.nodeMgr)
 	srv := serverv3.NewServer(ctx, x.cache, cb)
 	var grpcOptions []grpc.ServerOption
 	grpcOptions = append(grpcOptions, grpc.MaxConcurrentStreams(1000))
@@ -146,7 +152,7 @@ func (x *XDSServer) Run(errCh chan error) {
 		}
 	}
 
-	registerServer(grpcServer, srv)
+	registerServer(grpcServer, srv, x)
 	log.Infof("management server listening on %d\n", x.listenPort)
 	if err = grpcServer.Serve(listener); err != nil {
 		log.Errorf("%v", err)
@@ -156,15 +162,17 @@ func (x *XDSServer) Run(errCh chan error) {
 	log.Info("xds server stop")
 }
 
-func registerServer(grpcServer *grpc.Server, server serverv3.Server) {
+func registerServer(grpcServer *grpc.Server, server serverv3.Server, x *XDSServer) {
 	// register services
 	discoverygrpc.RegisterAggregatedDiscoveryServiceServer(grpcServer, server)
 	endpointservice.RegisterEndpointDiscoveryServiceServer(grpcServer, server)
 	clusterservice.RegisterClusterDiscoveryServiceServer(grpcServer, server)
 	routeservice.RegisterRouteDiscoveryServiceServer(grpcServer, server)
+	routeservice.RegisterVirtualHostDiscoveryServiceServer(grpcServer, server)
 	listenerservice.RegisterListenerDiscoveryServiceServer(grpcServer, server)
 	secretservice.RegisterSecretDiscoveryServiceServer(grpcServer, server)
 	runtimeservice.RegisterRuntimeDiscoveryServiceServer(grpcServer, server)
+	healthservice.RegisterHealthDiscoveryServiceServer(grpcServer, x)
 }
 
 // Stop 停止服务
@@ -211,8 +219,10 @@ func (x *XDSServer) GetPort() uint32 {
 
 func (x *XDSServer) activeUpdateTask() {
 	if !x.active.CompareAndSwap(false, true) {
+		<-x.activeNotifier.Done()
 		return
 	}
+	defer x.activeFinish()
 	log.Info("active update xds resource snapshot task")
 
 	if err := x.initRegistryInfo(); err != nil {
@@ -224,13 +234,15 @@ func (x *XDSServer) activeUpdateTask() {
 		log.Errorf("getRegistryInfoWithCache %v", err)
 		return
 	}
-	x.Generate(x.registryInfo)
+	// 首次更新没有需要移除的 XDS 资源信息
+	x.Generate(x.registryInfo, nil)
 	go x.startSynTask(x.ctx)
 }
 
 func (x *XDSServer) startSynTask(ctx context.Context) {
 	// 读取 polaris 缓存数据
 	synXdsConfFunc := func() {
+
 		registryInfo := make(map[string]map[model.ServiceKey]*resource.ServiceInfo)
 
 		err := x.getRegistryInfoWithCache(ctx, registryInfo)
@@ -240,6 +252,7 @@ func (x *XDSServer) startSynTask(ctx context.Context) {
 		}
 
 		needPush := make(map[string]map[model.ServiceKey]*resource.ServiceInfo)
+		needRemove := make(map[string]map[model.ServiceKey]*resource.ServiceInfo)
 
 		// 处理删除 ns 中最后一个 service
 		for ns, infos := range x.registryInfo {
@@ -248,6 +261,24 @@ func (x *XDSServer) startSynTask(ctx context.Context) {
 				// 这一次轮询时，该命名空间下的最后一个服务已经被删除了，此时，当前的命名空间需要处理
 				needPush[ns] = map[model.ServiceKey]*resource.ServiceInfo{}
 				x.registryInfo[ns] = map[model.ServiceKey]*resource.ServiceInfo{}
+			}
+		}
+
+		for ns, infos := range x.registryInfo {
+			if _, exist := registryInfo[ns]; !exist {
+				needRemove[ns] = infos
+				continue
+			}
+
+			for _, info := range infos {
+				cacheServiceInfos := registryInfo[ns]
+				if _, ok := cacheServiceInfos[info.ServiceKey]; !ok {
+					if _, ok := needRemove[ns]; !ok {
+						needRemove[ns] = make(map[model.ServiceKey]*resource.ServiceInfo)
+					}
+					needRemove[ns][info.ServiceKey] = info
+					continue
+				}
 			}
 		}
 
@@ -269,9 +300,10 @@ func (x *XDSServer) startSynTask(ctx context.Context) {
 			}
 		}
 
-		if len(needPush) > 0 {
-			log.Info("start update xds resource snapshot ticker task", zap.Int("need-push", len(needPush)))
-			x.Generate(needPush)
+		if len(needPush) > 0 || len(needRemove) > 0 {
+			log.Info("start update xds resource snapshot ticker task", zap.Int("need-push", len(needPush)),
+				zap.Int("need-remove", len(needRemove)))
+			x.Generate(needPush, needRemove)
 		}
 	}
 
@@ -289,19 +321,10 @@ func (x *XDSServer) startSynTask(ctx context.Context) {
 }
 
 func (x *XDSServer) initRegistryInfo() error {
-	namespaceServer, err := namespace.GetOriginServer()
-	if err != nil {
-		return err
-	}
-
-	resp := namespaceServer.GetNamespaces(context.Background(), make(map[string][]string))
-	if resp.Code.Value != api.ExecuteSuccess {
-		return fmt.Errorf("error to init registry info %s", resp.Code)
-	}
-	namespaces := resp.Namespaces
+	namespaces := x.namingServer.Cache().Namespace().GetNamespaceList()
 	// 启动时，获取全量的 namespace 信息，用来推送空配置
 	for _, n := range namespaces {
-		x.registryInfo[n.Name.Value] = map[model.ServiceKey]*resource.ServiceInfo{}
+		x.registryInfo[n.Name] = map[model.ServiceKey]*resource.ServiceInfo{}
 	}
 	return nil
 }
@@ -348,7 +371,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 			}
 
 			// 获取routing配置
-			routerRule, err := x.namingServer.Cache().RoutingConfig().GetRouterConfig("", svc.Name, svc.Namespace)
+			routerRule, err := x.namingServer.Cache().RoutingConfig().GetRouterConfigV2("", svc.Name, svc.Namespace)
 			if err != nil {
 				log.Errorf("error sync routing for namespace(%s) service(%s), info : %s", svc.Namespace,
 					svc.Name, err.Error())
@@ -359,7 +382,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 			svc.Routing = routerRule
 
 			// 获取instance配置
-			resp := x.namingServer.ServiceInstancesCache(ctx, s)
+			resp := x.namingServer.ServiceInstancesCache(ctx, &apiservice.DiscoverFilter{}, s)
 			if resp.GetCode().Value != api.ExecuteSuccess {
 				log.Errorf("[XDSV3] error sync instances for namespace(%s) service(%s), info : %s",
 					svc.Namespace, svc.Name, resp.Info.GetValue())
@@ -412,12 +435,18 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 		}
 	}
 
+	// 清理 namespace 下没有数据的记录
+	for k, v := range registryInfo {
+		if len(v) == 0 {
+			delete(registryInfo, k)
+		}
+	}
 	return nil
 }
 
-func (x *XDSServer) Generate(needPush map[string]map[model.ServiceKey]*resource.ServiceInfo) {
+func (x *XDSServer) Generate(needPush, needRemove map[string]map[model.ServiceKey]*resource.ServiceInfo) {
 	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
-	x.resourceGenerator.Generate(versionLocal, needPush)
+	x.resourceGenerator.Generate(versionLocal, needPush, needRemove)
 }
 
 func (x *XDSServer) checkUpdate(curServiceInfo, cacheServiceInfo map[model.ServiceKey]*resource.ServiceInfo) bool {
@@ -452,4 +481,24 @@ func (x *XDSServer) checkUpdate(curServiceInfo, cacheServiceInfo map[model.Servi
 		}
 	}
 	return false
+}
+
+func (x *XDSServer) DebugHandlers() []model.DebugHandler {
+	return []model.DebugHandler{
+		{
+			Path:    "/debug/apiserver/xds/envoy_nodes",
+			Desc:    "Query the list of Envoy nodes, query parameter name is 'type', value is [sidecar, gateway]",
+			Handler: x.listXDSNodes,
+		},
+		{
+			Path:    "/debug/apiserver/xds/resources",
+			Desc:    "Query XDS Resource List, query parameter name is 'type', value is [node, common]",
+			Handler: x.listXDSResources,
+		},
+		{
+			Path:    "/debug/apiserver/xds/cache_names",
+			Desc:    "Query XDS cache name list",
+			Handler: x.listXDSCaches,
+		},
+	}
 }

@@ -49,54 +49,42 @@ type NamingModuleStore interface {
 	RoutingConfigStoreV2
 	// FaultDetectRuleStore fault detect rule interface
 	FaultDetectRuleStore
+	// ServiceContractStore 服务契约操作接口
+	ServiceContractStore
 }
 
 // ServiceStore 服务存储接口
 type ServiceStore interface {
 	// AddService 保存一个服务
 	AddService(service *model.Service) error
-
 	// DeleteService 删除服务
 	DeleteService(id, serviceName, namespaceName string) error
-
 	// DeleteServiceAlias 删除服务别名
 	DeleteServiceAlias(name string, namespace string) error
-
 	// UpdateServiceAlias 修改服务别名
 	UpdateServiceAlias(alias *model.Service, needUpdateOwner bool) error
-
 	// UpdateService 更新服务
 	UpdateService(service *model.Service, needUpdateOwner bool) error
-
 	// UpdateServiceToken 更新服务token
 	UpdateServiceToken(serviceID string, token string, revision string) error
-
 	// GetSourceServiceToken 获取源服务的token信息
 	GetSourceServiceToken(name string, namespace string) (*model.Service, error)
-
 	// GetService 根据服务名和命名空间获取服务的详情
 	GetService(name string, namespace string) (*model.Service, error)
-
 	// GetServiceByID 根据服务ID查询服务详情
 	GetServiceByID(id string) (*model.Service, error)
-
 	// GetServices 根据相关条件查询对应服务及数目
 	GetServices(serviceFilters, serviceMetas map[string]string, instanceFilters *InstanceArgs, offset, limit uint32) (
 		uint32, []*model.Service, error)
-
 	// GetServicesCount 获取所有服务总数
 	GetServicesCount() (uint32, error)
-
 	// GetMoreServices 获取增量services
 	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetMoreServices(mtime time.Time, firstUpdate, disableBusiness, needMeta bool) (map[string]*model.Service, error)
-
 	// GetServiceAliases 获取服务别名列表
 	GetServiceAliases(filter map[string]string, offset uint32, limit uint32) (uint32, []*model.ServiceAlias, error)
-
 	// GetSystemServices 获取系统服务
 	GetSystemServices() ([]*model.Service, error)
-
 	// GetServicesBatch 批量获取服务id、负责人等信息
 	GetServicesBatch(services []*model.Service) ([]*model.Service, error)
 }
@@ -105,60 +93,42 @@ type ServiceStore interface {
 type InstanceStore interface {
 	// AddInstance 增加一个实例
 	AddInstance(instance *model.Instance) error
-
 	// BatchAddInstances 增加多个实例
 	BatchAddInstances(instances []*model.Instance) error
-
 	// UpdateInstance 更新实例
 	UpdateInstance(instance *model.Instance) error
-
 	// DeleteInstance 删除一个实例，实际是把valid置为false
 	DeleteInstance(instanceID string) error
-
 	// BatchDeleteInstances 批量删除实例，flag=1
 	BatchDeleteInstances(ids []interface{}) error
-
 	// CleanInstance 清空一个实例，真正删除
 	CleanInstance(instanceID string) error
-
 	// BatchGetInstanceIsolate 检查ID是否存在，并且返回存在的ID，以及ID的隔离状态
 	BatchGetInstanceIsolate(ids map[string]bool) (map[string]bool, error)
-
 	// GetInstancesBrief 获取实例关联的token
 	GetInstancesBrief(ids map[string]bool) (map[string]*model.Instance, error)
-
 	// GetInstance 查询一个实例的详情，只返回有效的数据
 	GetInstance(instanceID string) (*model.Instance, error)
-
 	// GetInstancesCount 获取有效的实例总数
 	GetInstancesCount() (uint32, error)
-
 	// GetInstancesCountTx 获取有效的实例总数
 	GetInstancesCountTx(tx Tx) (uint32, error)
-
 	// GetInstancesMainByService 根据服务和Host获取实例（不包括metadata）
 	GetInstancesMainByService(serviceID, host string) ([]*model.Instance, error)
-
 	// GetExpandInstances 根据过滤条件查看实例详情及对应数目
 	GetExpandInstances(
 		filter, metaFilter map[string]string, offset uint32, limit uint32) (uint32, []*model.Instance, error)
-
 	// GetMoreInstances 根据mtime获取增量instances，返回所有store的变更信息
 	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetMoreInstances(tx Tx, mtime time.Time, firstUpdate, needMeta bool, serviceID []string) (map[string]*model.Instance, error)
-
 	// SetInstanceHealthStatus 设置实例的健康状态
 	SetInstanceHealthStatus(instanceID string, flag int, revision string) error
-
 	// BatchSetInstanceHealthStatus 批量设置实例的健康状态
 	BatchSetInstanceHealthStatus(ids []interface{}, healthy int, revision string) error
-
 	// BatchSetInstanceIsolate 批量修改实例的隔离状态
 	BatchSetInstanceIsolate(ids []interface{}, isolate int, revision string) error
-
 	// AppendInstanceMetadata 追加实例 metadata
 	BatchAppendInstanceMetadata(requests []*InstanceMetadataRequest) error
-
 	// RemoveInstanceMetadata 删除实例指定的 metadata
 	BatchRemoveInstanceMetadata(requests []*InstanceMetadataRequest) error
 }
@@ -167,25 +137,18 @@ type InstanceStore interface {
 type L5Store interface {
 	// GetL5Extend 获取扩展数据
 	GetL5Extend(serviceID string) (map[string]interface{}, error)
-
 	// SetL5Extend 设置meta里保存的扩展数据，并返回剩余的meta
 	SetL5Extend(serviceID string, meta map[string]interface{}) (map[string]interface{}, error)
-
 	// GenNextL5Sid 获取module
 	GenNextL5Sid(layoutID uint32) (string, error)
-
 	// GetMoreL5Extend 获取增量数据
 	GetMoreL5Extend(mtime time.Time) (map[string]map[string]interface{}, error)
-
 	// GetMoreL5Routes 获取Route增量数据
 	GetMoreL5Routes(flow uint32) ([]*model.Route, error)
-
 	// GetMoreL5Policies 获取Policy增量数据
 	GetMoreL5Policies(flow uint32) ([]*model.Policy, error)
-
 	// GetMoreL5Sections 获取Section增量数据
 	GetMoreL5Sections(flow uint32) ([]*model.Section, error)
-
 	// GetMoreL5IPConfigs 获取IP Config增量数据
 	GetMoreL5IPConfigs(flow uint32) ([]*model.IPConfig, error)
 }
@@ -215,22 +178,16 @@ type RoutingConfigStore interface {
 type RateLimitStore interface {
 	// CreateRateLimit 新增限流规则
 	CreateRateLimit(limiting *model.RateLimit) error
-
 	// UpdateRateLimit 更新限流规则
 	UpdateRateLimit(limiting *model.RateLimit) error
-
 	// EnableRateLimit 启用限流规则
 	EnableRateLimit(limit *model.RateLimit) error
-
 	// DeleteRateLimit 删除限流规则
 	DeleteRateLimit(limiting *model.RateLimit) error
-
 	// GetExtendRateLimits 根据过滤条件拉取限流规则
 	GetExtendRateLimits(query map[string]string, offset uint32, limit uint32) (uint32, []*model.ExtendRateLimit, error)
-
 	// GetRateLimitWithID 根据限流ID拉取限流规则
 	GetRateLimitWithID(id string) (*model.RateLimit, error)
-
 	// GetRateLimitsForCache 根据修改时间拉取增量限流规则及最新版本号
 	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]*model.RateLimit, error)
@@ -297,25 +254,37 @@ type RoutingConfigStoreV2 interface {
 type FaultDetectRuleStore interface {
 	// CreateFaultDetectRule create fault detect rule
 	CreateFaultDetectRule(conf *model.FaultDetectRule) error
-
 	// UpdateFaultDetectRule update fault detect rule
 	UpdateFaultDetectRule(conf *model.FaultDetectRule) error
-
 	// DeleteFaultDetectRule delete fault detect rule
 	DeleteFaultDetectRule(id string) error
-
 	// HasFaultDetectRule check fault detect rule exists
 	HasFaultDetectRule(id string) (bool, error)
-
 	// HasFaultDetectRuleByName check fault detect rule exists by name
 	HasFaultDetectRuleByName(name string, namespace string) (bool, error)
-
 	// HasFaultDetectRuleByNameExcludeId check fault detect rule exists by name not this id
 	HasFaultDetectRuleByNameExcludeId(name string, namespace string, id string) (bool, error)
-
 	// GetFaultDetectRules get all fault detect rules by query and limit
 	GetFaultDetectRules(filter map[string]string, offset uint32, limit uint32) (uint32, []*model.FaultDetectRule, error)
-
 	// GetFaultDetectRulesForCache get increment fault detect rules
 	GetFaultDetectRulesForCache(mtime time.Time, firstUpdate bool) ([]*model.FaultDetectRule, error)
+}
+
+type ServiceContractStore interface {
+	// CreateServiceContract 创建服务契约
+	CreateServiceContract(contract *model.ServiceContract) error
+	// UpdateServiceContract 更新服务契约
+	UpdateServiceContract(contract *model.ServiceContract) error
+	// DeleteServiceContract 删除服务契约
+	DeleteServiceContract(contract *model.ServiceContract) error
+	// GetMoreServiceContracts 用于缓存加载数据
+	GetMoreServiceContracts(firstUpdate bool, mtime time.Time) ([]*model.EnrichServiceContract, error)
+	// GetServiceContract 查询服务契约数据
+	GetServiceContract(id string) (data *model.EnrichServiceContract, err error)
+	// AddServiceContractInterfaces 创建服务契约API接口
+	AddServiceContractInterfaces(contract *model.EnrichServiceContract) error
+	// AppendServiceContractInterfaces 追加服务契约API接口
+	AppendServiceContractInterfaces(contract *model.EnrichServiceContract) error
+	// DeleteServiceContractInterfaces 批量删除服务契约API接口
+	DeleteServiceContractInterfaces(contract *model.EnrichServiceContract) error
 }

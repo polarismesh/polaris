@@ -24,6 +24,7 @@ import (
 	"time"
 
 	types "github.com/polarismesh/polaris/cache/api"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -38,8 +39,9 @@ const (
 
 // CacheManager 名字服务缓存
 type CacheManager struct {
-	storage store.Store
-	caches  []types.Cache
+	storage  store.Store
+	caches   []types.Cache
+	needLoad *utils.SyncSet[string]
 }
 
 // Initialize 缓存对象初始化
@@ -50,10 +52,14 @@ func (nc *CacheManager) Initialize() error {
 	if types.DefaultTimeDiff > 0 {
 		return fmt.Errorf("cache diff time to pull store must negative number: %+v", types.DefaultTimeDiff)
 	}
+	return nil
+}
 
+// OpenResourceCache 开启资源缓存
+func (nc *CacheManager) OpenResourceCache(entries ...types.ConfigEntry) error {
 	for _, obj := range nc.caches {
-		var entryItem *ConfigEntry
-		for _, entry := range config.Resources {
+		var entryItem *types.ConfigEntry
+		for _, entry := range entries {
 			if obj.Name() == entry.Name {
 				entryItem = &entry
 				break
@@ -65,18 +71,20 @@ func (nc *CacheManager) Initialize() error {
 		if err := obj.Initialize(entryItem.Option); err != nil {
 			return err
 		}
+		nc.needLoad.Add(entryItem.Name)
 	}
-
 	return nil
 }
 
 // update 缓存更新
 func (nc *CacheManager) update() error {
 	var wg sync.WaitGroup
-	for _, entry := range config.Resources {
-		index, exist := cacheSet[entry.Name]
+	entries := nc.needLoad.ToSlice()
+	for i := range entries {
+		name := entries[i]
+		index, exist := cacheSet[name]
 		if !exist {
-			return fmt.Errorf("cache resource %s not exists", entry.Name)
+			return fmt.Errorf("cache resource %s not exists", name)
 		}
 		wg.Add(1)
 		go func(c types.Cache) {
@@ -149,10 +157,6 @@ func (nc *CacheManager) GetUpdateCacheInterval() time.Duration {
 	return UpdateCacheInterval
 }
 
-func (nc *CacheManager) AddListener(cacheIndex types.CacheIndex, listeners []types.Listener) {
-	nc.caches[cacheIndex].AddListener(listeners)
-}
-
 // Service 获取Service缓存信息
 func (nc *CacheManager) Service() types.ServiceCache {
 	return nc.caches[types.CacheService].(types.ServiceCache)
@@ -188,6 +192,11 @@ func (nc *CacheManager) FaultDetector() types.FaultDetectCache {
 	return nc.caches[types.CacheFaultDetector].(types.FaultDetectCache)
 }
 
+// ServiceContract 获取服务契约缓存
+func (nc *CacheManager) ServiceContract() types.ServiceContractCache {
+	return nc.caches[types.CacheServiceContract].(types.ServiceContractCache)
+}
+
 // User Get user information cache information
 func (nc *CacheManager) User() types.UserCache {
 	return nc.caches[types.CacheUser].(types.UserCache)
@@ -216,6 +225,11 @@ func (nc *CacheManager) ConfigFile() types.ConfigFileCache {
 // ConfigGroup get config group cache information
 func (nc *CacheManager) ConfigGroup() types.ConfigGroupCache {
 	return nc.caches[types.CacheConfigGroup].(types.ConfigGroupCache)
+}
+
+// Gray get Gray cache information
+func (nc *CacheManager) Gray() types.GrayCache {
+	return nc.caches[types.CacheGray].(types.GrayCache)
 }
 
 // GetCacher get types.Cache impl

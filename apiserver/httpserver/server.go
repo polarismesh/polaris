@@ -97,6 +97,9 @@ type HTTPServer struct {
 
 	userMgn     auth.UserServer
 	strategyMgn auth.StrategyServer
+
+	// apiserverSlots
+	apiserverSlots map[string]apiserver.Apiserver
 }
 
 const (
@@ -116,7 +119,7 @@ func (h *HTTPServer) GetProtocol() string {
 }
 
 // Initialize 初始化HTTP API服务器
-func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{},
+func (h *HTTPServer) Initialize(ctx context.Context, option map[string]interface{},
 	apiConf map[string]apiserver.APIConfig) error {
 	h.option = option
 	h.openAPI = apiConf
@@ -124,6 +127,7 @@ func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{}
 	h.listenPort = uint32(option["listenPort"].(int))
 	h.enablePprof, _ = option["enablePprof"].(bool)
 	h.enableSwagger, _ = option["enableSwagger"].(bool)
+	h.apiserverSlots, _ = ctx.Value(utils.ContextAPIServerSlot{}).(map[string]apiserver.Apiserver)
 	// 连接数限制的配置
 	if raw, _ := option["connLimit"].(map[interface{}]interface{}); raw != nil {
 		connLimitConfig, err := connlimit.ParseConnLimitConfig(raw)
@@ -376,13 +380,13 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 			}
 		case "console":
 			if apiConfig.Enable {
-				namingServiceV1, err := h.discoverV1.GetNamingConsoleAccessServer(apiConfig.Include)
+				namingServiceV1, err := h.discoverV1.GetConsoleAccessServer(apiConfig.Include)
 				if err != nil {
 					return nil, err
 				}
 				wsContainer.Add(namingServiceV1)
 
-				namingServiceV2, err := h.discoverV2.GetNamingConsoleAccessServer(apiConfig.Include)
+				namingServiceV2, err := h.discoverV2.GetConsoleAccessServer(apiConfig.Include)
 				if err != nil {
 					return nil, err
 				}
@@ -464,10 +468,48 @@ func (h *HTTPServer) enablePrometheusAccess(wsContainer *restful.Container) {
 // enablePluginDebugAccess .
 func (h *HTTPServer) enablePluginDebugAccess(wsContainer *restful.Container) {
 	log.Infof("open http access for plugin")
+
+	wsContainer.Handle("/debug/endpoints", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		endpints := make([]map[string]string, 0, 8)
+		for _, checker := range h.healthCheckServer.Checkers() {
+			handlers := checker.DebugHandlers()
+			for i := range handlers {
+				endpints = append(endpints, map[string]string{
+					"path": handlers[i].Path,
+					"desc": handlers[i].Desc,
+				})
+			}
+		}
+
+		for _, item := range h.apiserverSlots {
+			if val, ok := item.(apiserver.EnrichApiserver); ok {
+				handlers := val.DebugHandlers()
+				for i := range handlers {
+					endpints = append(endpints, map[string]string{
+						"path": handlers[i].Path,
+						"desc": handlers[i].Desc,
+					})
+				}
+			}
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(utils.MustJson(endpints)))
+	}))
+
 	for _, checker := range h.healthCheckServer.Checkers() {
 		handlers := checker.DebugHandlers()
 		for i := range handlers {
 			wsContainer.Handle(handlers[i].Path, handlers[i].Handler)
+		}
+	}
+
+	for _, item := range h.apiserverSlots {
+		if val, ok := item.(apiserver.EnrichApiserver); ok {
+			handlers := val.DebugHandlers()
+			for i := range handlers {
+				wsContainer.Handle(handlers[i].Path, handlers[i].Handler)
+			}
 		}
 	}
 }
@@ -542,7 +584,7 @@ func (h *HTTPServer) postProcess(req *restful.Request, rsp *restful.Response) {
 	recordApiCall := true
 	if !ok {
 		code = uint32(rsp.StatusCode())
-		recordApiCall = code != http.StatusNotFound
+		recordApiCall = code != http.StatusNotFound && code != http.StatusMethodNotAllowed
 	}
 
 	diff := now.Sub(startTime)

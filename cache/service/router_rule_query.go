@@ -123,8 +123,10 @@ func (rc *routingConfigCache) QueryRoutingConfigsV2(args *types.RoutingArgs) (ui
 	if err := rc.forceUpdate(); err != nil {
 		return 0, nil, err
 	}
+	hasSvcQuery := len(args.Service) != 0 || len(args.Namespace) != 0
 	hasSourceQuery := len(args.SourceService) != 0 || len(args.SourceNamespace) != 0
 	hasDestQuery := len(args.DestinationService) != 0 || len(args.DestinationNamespace) != 0
+	needBoth := hasSourceQuery && hasDestQuery
 
 	res := make([]*model.ExtendRouterConfig, 0, 8)
 
@@ -134,16 +136,27 @@ func (rc *routingConfigCache) QueryRoutingConfigsV2(args *types.RoutingArgs) (ui
 		}
 
 		if routeRule.GetRoutingPolicy() == apitraffic.RoutingPolicy_RulePolicy {
-			if args.Namespace != "" && args.Service != "" {
-				if !queryRoutingRuleV2ByService(routeRule, args.Namespace, args.Service,
-					args.Namespace, args.Service, false) {
-					return
+			if args.Namespace != "" {
+				if args.SourceNamespace == "" {
+					args.SourceNamespace = args.Namespace
+				}
+				if args.DestinationNamespace == "" {
+					args.DestinationNamespace = args.Namespace
 				}
 			}
-
-			if hasSourceQuery || hasDestQuery {
-				if !queryRoutingRuleV2ByService(routeRule, args.SourceNamespace, args.SourceService, args.DestinationNamespace,
-					args.DestinationService, hasSourceQuery && hasDestQuery) {
+			if args.Service != "" {
+				if args.SourceService == "" {
+					args.SourceService = args.Service
+				}
+				if args.DestinationService == "" {
+					args.DestinationService = args.Service
+				}
+			}
+			if hasSvcQuery || hasSourceQuery || hasDestQuery {
+				if !queryRoutingRuleV2ByService(routeRule,
+					args.SourceNamespace, args.SourceService,
+					args.DestinationNamespace, args.DestinationService,
+					needBoth) {
 					return
 				}
 			}

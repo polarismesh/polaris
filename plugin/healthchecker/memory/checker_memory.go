@@ -22,6 +22,7 @@ import (
 	"sync/atomic"
 
 	commonLog "github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
@@ -169,8 +170,8 @@ func (r *MemoryHealthChecker) SuspendTimeSec() int64 {
 	return atomic.LoadInt64(&r.suspendTimeSec)
 }
 
-func (r *MemoryHealthChecker) DebugHandlers() []plugin.DebugHandler {
-	return []plugin.DebugHandler{}
+func (r *MemoryHealthChecker) DebugHandlers() []model.DebugHandler {
+	return []model.DebugHandler{}
 }
 
 func init() {

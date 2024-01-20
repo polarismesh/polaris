@@ -18,6 +18,7 @@
 package metrics
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
@@ -44,26 +45,38 @@ type CallMetricType string
 
 const (
 	// SystemCallMetric Time consuming statistics of some asynchronous tasks inside
-	SystemCallMetric CallMetricType = "innerCall"
+	SystemCallMetric CallMetricType = "system"
 	// ServerCallMetric Apiserver-layer interface call consumption statistics
-	ServerCallMetric CallMetricType = "serverCall"
+	ServerCallMetric CallMetricType = "api"
 	// RedisCallMetric Redis call time consumption statistics
-	RedisCallMetric CallMetricType = "redisCall"
+	RedisCallMetric CallMetricType = "redis"
 	// StoreCallMetric Store call time consumption statistics
-	StoreCallMetric CallMetricType = "storeCall"
+	StoreCallMetric CallMetricType = "store"
 	// ProtobufCacheCallMetric PB encode cache call/hit statistics
 	ProtobufCacheCallMetric CallMetricType = "pbCacheCall"
+	// XDSResourceBuildCallMetric
+	XDSResourceBuildCallMetric CallMetricType = "xds"
+)
+
+type TrafficDirection string
+
+const (
+	// TrafficDirectionInBound .
+	TrafficDirectionInBound TrafficDirection = "INBOUND"
+	// TrafficDirectionOutBound .
+	TrafficDirectionOutBound TrafficDirection = "OUTBOUND"
 )
 
 type CallMetric struct {
-	Type     CallMetricType
-	API      string
-	Protocol string
-	Code     int
-	Times    int
-	Success  bool
-	Duration time.Duration
-	Labels   map[string]string
+	Type             CallMetricType
+	API              string
+	Protocol         string
+	Code             int
+	Times            int
+	Success          bool
+	Duration         time.Duration
+	Labels           map[string]string
+	TrafficDirection TrafficDirection
 }
 
 func (m CallMetric) GetLabels() map[string]string {
@@ -92,6 +105,48 @@ type DiscoveryMetric struct {
 	Online   int64
 	Isolate  int64
 	Labels   map[string]string
+}
+
+func ResourceOfConfigFileList(group string) string {
+	return "CONFIG_FILE_LIST:" + group
+}
+
+func ResourceOfConfigFile(group, name string) string {
+	return "CONFIG_FILE:" + group + "/" + name
+}
+
+const (
+	ActionGetConfigFile           = "GET_CONFIG_FILE"
+	ActionListConfigFiles         = "LIST_CONFIG_FILES"
+	ActionListConfigGroups        = "LIST_CONFIG_GROUPS"
+	ActionPublishConfigFile       = "PUBLISH_CONFIG_FILE"
+	ActionDiscoverInstance        = "DISCOVER_INSTANCE"
+	ActionDiscoverServices        = "DISCOVER_SERVICES"
+	ActionDiscoverRouterRule      = "DISCOVER_ROUTER_RULE"
+	ActionDiscoverRateLimit       = "DISCOVER_RATE_LIMIT"
+	ActionDiscoverCircuitBreaker  = "DISCOVER_CIRCUIT_BREAKER"
+	ActionDiscoverFaultDetect     = "DISCOVER_FAULT_DETECT"
+	ActionDiscoverServiceContract = "DISCOVER_SERVICE_CONTRACT"
+)
+
+type ClientDiscoverMetric struct {
+	ClientIP  string
+	Action    string
+	Namespace string
+	Resource  string
+	Revision  string
+	Timestamp int64
+	CostTime  int64
+	Success   bool
+}
+
+func (c ClientDiscoverMetric) String() string {
+	revision := c.Revision
+	if revision == "" {
+		revision = "-"
+	}
+	return fmt.Sprintf("%s|%s|%s|%s|%s|%s|%dms|%+v", c.ClientIP, c.Action, c.Namespace, c.Resource,
+		revision, time.Unix(c.Timestamp/1000, 0).Format(time.DateTime), c.CostTime, c.Success)
 }
 
 type ConfigMetricType string

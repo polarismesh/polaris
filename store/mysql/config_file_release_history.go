@@ -61,7 +61,7 @@ func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(filter 
 
 	namespace := filter["namespace"]
 	group := filter["group"]
-	fileName := filter["name"]
+	fileName := filter["file_name"]
 	endId, _ := strconv.ParseUint(filter["endId"], 10, 64)
 
 	var queryParams []interface{}
@@ -113,7 +113,7 @@ func (rh *configFileReleaseHistoryStore) genSelectSql() string {
 	return "SELECT id, name, namespace, `group`, file_name, content, IFNULL(comment, ''), " +
 		" md5, format, tags, type, status, UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''), " +
 		" UNIX_TIMESTAMP(modify_time), IFNULL(modify_by, ''), IFNULL(reason, ''), " +
-		" IFNULL(description, ''), version FROM config_file_release_history "
+		" IFNULL(description, ''), IFNULL(version, 0) FROM config_file_release_history "
 }
 
 func (rh *configFileReleaseHistoryStore) transferRows(rows *sql.Rows) ([]*model.ConfigFileReleaseHistory, error) {

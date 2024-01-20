@@ -70,14 +70,8 @@ type boltStore struct {
 	*rateLimitStore
 	*circuitBreakerStore
 	*faultDetectStore
-
-	// 工具
-	*toolStore
-
-	// 鉴权模块相关
-	*userStore
-	*groupStore
-	*strategyStore
+	*routingStoreV2
+	*serviceContractStore
 
 	// 配置中心stores
 	*configFileGroupStore
@@ -86,11 +80,15 @@ type boltStore struct {
 	*configFileReleaseHistoryStore
 	*configFileTemplateStore
 
-	// v2 存储
-	*routingStoreV2
-
 	// adminStore store
 	*adminStore
+	// 工具
+	*toolStore
+	// 鉴权模块相关
+	*userStore
+	*groupStore
+	*strategyStore
+	*grayStore
 
 	handler BoltHandler
 	start   bool
@@ -118,14 +116,14 @@ func (m *boltStore) Initialize(c *store.Config) error {
 		return err
 	}
 
-	if err = m.initAuthStoreData(); err != nil {
-		_ = handler.Close()
-		return err
-	}
-
-	if err = m.initNamingStoreData(); err != nil {
-		_ = handler.Close()
-		return err
+	if loadFile, ok := c.Option["loadFile"].(string); ok {
+		if err := m.loadByFile(loadFile); err != nil {
+			return err
+		}
+	} else {
+		if err := m.loadByDefault(); err != nil {
+			return err
+		}
 	}
 	m.start = true
 	return nil
@@ -157,6 +155,43 @@ var (
 		Comment:     "default polaris admin account",
 		CreateTime:  time.Now(),
 		ModifyTime:  time.Now(),
+	}
+
+	superDefaultStrategy = &model.StrategyDetail{
+		ID:      "super_user_default_strategy",
+		Name:    "(用户) polarissys@admin的默认策略",
+		Action:  "READ_WRITE",
+		Comment: "default admin",
+		Principals: []model.Principal{
+			{
+				StrategyID:    "super_user_default_strategy",
+				PrincipalID:   "",
+				PrincipalRole: model.PrincipalUser,
+			},
+		},
+		Default: true,
+		Owner:   "",
+		Resources: []model.StrategyResource{
+			{
+				StrategyID: "super_user_default_strategy",
+				ResType:    int32(apisecurity.ResourceType_Namespaces),
+				ResID:      "*",
+			},
+			{
+				StrategyID: "super_user_default_strategy",
+				ResType:    int32(apisecurity.ResourceType_Services),
+				ResID:      "*",
+			},
+			{
+				StrategyID: "super_user_default_strategy",
+				ResType:    int32(apisecurity.ResourceType_ConfigGroups),
+				ResID:      "*",
+			},
+		},
+		Valid:      true,
+		Revision:   "fbca9bfa04ae4ead86e1ecf5811e32a9",
+		CreateTime: time.Now(),
+		ModifyTime: time.Now(),
 	}
 
 	mainDefaultStrategy = &model.StrategyDetail{
@@ -278,7 +313,7 @@ func (m *boltStore) newStore() error {
 		return err
 	}
 	m.clientStore = &clientStore{handler: m.handler}
-
+	m.grayStore = &grayStore{handler: m.handler}
 	m.newDiscoverModuleStore()
 	m.newAuthModuleStore()
 	m.newConfigModuleStore()
@@ -294,6 +329,7 @@ func (m *boltStore) newDiscoverModuleStore() {
 	m.circuitBreakerStore = &circuitBreakerStore{handler: m.handler}
 	m.faultDetectStore = &faultDetectStore{handler: m.handler}
 	m.routingStoreV2 = &routingStoreV2{handler: m.handler}
+	m.serviceContractStore = &serviceContractStore{handler: m.handler}
 }
 
 func (m *boltStore) newAuthModuleStore() {

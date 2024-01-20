@@ -51,4 +51,6 @@ type TestDataClean interface {
 	CleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string)
 	// ClearTestDataWhenUseRDS
 	ClearTestDataWhenUseRDS() error
+	// CleanServiceContract
+	CleanServiceContract() error
 }

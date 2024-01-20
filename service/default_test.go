@@ -26,6 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris/auth"
+	cachemock "github.com/polarismesh/polaris/cache/mock"
 	"github.com/polarismesh/polaris/store/mock"
 )
 
@@ -37,13 +38,17 @@ func Test_Initialize(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	s := mock.NewMockStore(ctrl)
+	cacheMgr := cachemock.NewMockCacheManager(ctrl)
+	cacheMgr.EXPECT().OpenResourceCache(gomock.Any()).Return(nil).AnyTimes()
 
 	_, _, err := auth.TestInitialize(context.Background(), &auth.Config{
 		Option: map[string]interface{}{},
-	}, s, nil)
+	}, s, cacheMgr)
 	assert.NoError(t, err)
 
-	err = Initialize(context.Background(), &Config{})
+	err = Initialize(context.Background(), &Config{
+		Interceptors: GetChainOrder(),
+	})
 	assert.NoError(t, err)
 
 	svr, err := GetOriginServer()

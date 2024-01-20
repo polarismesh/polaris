@@ -74,12 +74,3 @@ const (
 	// ContextOperator operator info
 	ContextOperator = StringContext("operator")
 )
-
-const (
-	// EmptyErrString empty error string
-	EmptyErrString = "empty"
-	// NilErrString null pointer error string
-	NilErrString = "nil"
-	// MatchAll rule match all service or namespace value
-	MatchAll = "*"
-)

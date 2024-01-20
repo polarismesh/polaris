@@ -36,7 +36,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	boot_config "github.com/polarismesh/polaris/bootstrap/config"
 	"github.com/polarismesh/polaris/cache"
-	types "github.com/polarismesh/polaris/cache/api"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/log"
@@ -165,6 +165,11 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 		return err
 	}
 
+	// 开启灰度规则缓存
+	_ = cacheMgn.OpenResourceCache(cachetypes.ConfigEntry{
+		Name: cachetypes.GrayName,
+	})
+
 	// 初始化鉴权层
 	if err = auth.Initialize(ctx, &cfg.Auth, s, cacheMgn); err != nil {
 		return err
@@ -213,7 +218,6 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 	if err := cache.Run(cacheMgn, ctx); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -247,23 +251,16 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 	if len(cfg.HealthChecks.LocalHost) == 0 {
 		cfg.HealthChecks.LocalHost = utils.LocalHost // 补充healthCheck的配置
 	}
-	if err = healthcheck.Initialize(ctx, &cfg.HealthChecks, cfg.Cache.Open, bc); err != nil {
+	if err = healthcheck.Initialize(ctx, &cfg.HealthChecks, bc); err != nil {
 		return err
 	}
 	healthCheckServer, err := healthcheck.GetServer()
 	if err != nil {
 		return err
 	}
-	if cfg.HealthChecks.Open {
-		cacheProvider, err := healthCheckServer.CacheProvider()
-		if err != nil {
-			return err
-		}
+	if cfg.HealthChecks.IsOpen() {
 		healthCheckServer.SetServiceCache(cacheMgn.Service())
 		healthCheckServer.SetInstanceCache(cacheMgn.Instance())
-		// 为 instance 的 cache 添加 健康检查的 Listener
-		cacheMgn.AddListener(types.CacheInstance, []types.Listener{cacheProvider})
-		cacheMgn.AddListener(types.CacheClient, []types.Listener{cacheProvider})
 	}
 
 	namespaceSvr, err := namespace.GetServer()
@@ -279,6 +276,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 		service.WithNamespaceSvr(namespaceSvr),
 	}
 
+	cfg.Naming.Interceptors = service.GetChainOrder()
 	// 初始化服务模块
 	if err = service.Initialize(ctx, &cfg.Naming, opts...); err != nil {
 		return err
@@ -306,8 +304,8 @@ func StartConfigCenterComponents(ctx context.Context, cfg *boot_config.Config, s
 	if err != nil {
 		return err
 	}
-
-	return config_center.Initialize(ctx, cfg.Config, s, cacheMgn, namespaceOperator, userMgn, strategyMgn)
+	cfg.Config.Interceptors = config_center.GetChainOrder()
+	return config_center.Initialize(ctx, cfg.Config, s, cacheMgn, namespaceOperator)
 }
 
 // StartServers 启动server
@@ -322,6 +320,10 @@ func StartServers(ctx context.Context, cfg *boot_config.Config, errCh chan error
 		if !exist {
 			log.Warn("[ERROR] apiserver slot not exists", zap.String("name", protocol.Name))
 			continue
+		}
+		// 如果是 http server, 注入所有的 apiserver 实例
+		if protocol.Name == "api-http" {
+			ctx = context.WithValue(ctx, utils.ContextAPIServerSlot{}, apiserver.Slots)
 		}
 
 		err := slot.Initialize(ctx, protocol.Option, protocol.API)
@@ -462,7 +464,7 @@ func acquireLocalhost(ctx context.Context, polarisService *boot_config.PolarisSe
 	}
 	if len(polarisService.SelfAddress) != 0 {
 		utils.LocalHost = polarisService.SelfAddress
-		return utils.WithLocalhost(ctx, polarisService.SelfAddress), nil
+		return utils.WithLocalhost(ctx, utils.LocalHost), nil
 	}
 	if len(polarisService.NetworkInter) != 0 {
 		netInter, err := net.InterfaceByName(polarisService.NetworkInter)
@@ -479,7 +481,7 @@ func acquireLocalhost(ctx context.Context, polarisService *boot_config.PolarisSe
 			if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 				if ipnet.IP.To4() != nil {
 					utils.LocalHost = ipnet.IP.String()
-					return utils.WithLocalhost(ctx, polarisService.SelfAddress), nil
+					return utils.WithLocalhost(ctx, utils.LocalHost), nil
 				}
 			}
 		}
@@ -492,7 +494,7 @@ func acquireLocalhost(ctx context.Context, polarisService *boot_config.PolarisSe
 	}
 	log.Infof("[Bootstrap] get local host: %s", localHost)
 	utils.LocalHost = localHost
-	return utils.WithLocalhost(ctx, localHost), nil
+	return utils.WithLocalhost(ctx, utils.LocalHost), nil
 }
 
 func acquireLocalPort(ctx context.Context, apientries []apiserver.Config) {

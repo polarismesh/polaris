@@ -30,6 +30,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	v1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -77,25 +78,23 @@ func newGroupTest(t *testing.T) *GroupTest {
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(append(users, newUsers...), nil)
 	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(allGroups, nil)
 
-	cfg := &cache.Config{
-		Open: true,
-		Resources: []cache.ConfigEntry{
-			{
-				Name: "users",
-			},
-		},
-	}
+	cfg := &cache.Config{}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cacheMgn, err := cache.TestCacheInitialize(ctx, cfg, storage)
 	if err != nil {
 		t.Error(err)
 	}
+	_ = cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
+		{
+			Name: cachetypes.UsersName,
+		},
+	}...)
 	t.Cleanup(func() {
 		_ = cacheMgn.Close()
 	})
 
-	time.Sleep(time.Second)
+	_ = cacheMgn.TestUpdate()
 
 	checker := &defaultauth.DefaultAuthChecker{}
 	checker.SetCacheMgr(cacheMgn)

@@ -44,7 +44,6 @@ var DefaultSdsConfig = &core.ConfigSource{
 		},
 	},
 	InitialFetchTimeout: &duration.Duration{},
-	ResourceApiVersion:  core.ApiVersion_V3,
 }
 
 var MTLSTransportSocketMatch = &structpb.Struct{

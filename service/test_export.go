@@ -19,6 +19,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -26,6 +27,7 @@ import (
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/service/batch"
@@ -55,10 +57,20 @@ func TestNewServer(mockStore store.Store, nsSvr namespace.NamespaceOperateServer
 }
 
 // TestInitialize 初始化
-func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, bc *batch.Controller,
-	cacheMgr *cache.CacheManager, storage store.Store, namespaceSvr namespace.NamespaceOperateServer,
+func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config,
+	cacheEntries []cachetypes.ConfigEntry, bc *batch.Controller, cacheMgr *cache.CacheManager,
+	storage store.Store, namespaceSvr namespace.NamespaceOperateServer,
 	healthSvr *healthcheck.Server,
 	userMgn auth.UserServer, strategyMgn auth.StrategyServer) (DiscoverServer, DiscoverServer, error) {
+	entrites := []cachetypes.ConfigEntry{}
+	if len(cacheEntries) != 0 {
+		entrites = cacheEntries
+	} else {
+		entrites = append(entrites, l5CacheEntry)
+		entrites = append(entrites, namingCacheEntries...)
+		entrites = append(entrites, governanceCacheEntries...)
+	}
+	_ = cacheMgr.OpenResourceCache(entrites...)
 	namingServer.healthServer = healthSvr
 	namingServer.storage = storage
 	// 注入命名空间管理模块
@@ -66,18 +78,32 @@ func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Conf
 
 	// cache模块，可以不开启
 	// 对于控制台集群，只访问控制台接口的，可以不开启cache
-	if cacheOpt.Open {
-		log.Infof("[Naming][Server] cache is open, can access the client api function")
-		namingServer.caches = cacheMgr
-	}
-
+	log.Infof("[Naming][Server] cache is open, can access the client api function")
+	namingServer.caches = cacheMgr
 	namingServer.bc = bc
 	// l5service
 	namingServer.l5service = &l5service{}
 	namingServer.createServiceSingle = &singleflight.Group{}
 	// 插件初始化
 	pluginInitialize()
-	return newServerAuthAbility(namingServer, userMgn, strategyMgn), namingServer, nil
+
+	var proxySvr DiscoverServer
+	var err error
+	// 需要返回包装代理的 DiscoverServer
+	order := namingOpt.Interceptors
+	for i := range order {
+		factory, exist := serverProxyFactories[order[i]]
+		if !exist {
+			return nil, nil, fmt.Errorf("name(%s) not exist in serverProxyFactories", order[i])
+		}
+
+		proxySvr, err = factory(namingServer, proxySvr)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return proxySvr, namingServer, nil
 }
 
 // TestSerialCreateInstance .

@@ -19,11 +19,38 @@ package v1
 
 import (
 	"context"
+	"io"
 
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 )
+
+// Heartbeat 上报心跳
+func (g *DiscoverServer) Heartbeat(ctx context.Context, in *apiservice.Instance) (*apiservice.Response, error) {
+	return g.healthCheckServer.Report(utils.ConvertGRPCContext(ctx), in), nil
+}
+
+// BatchHeartbeat 批量上报心跳
+func (g *DiscoverServer) BatchHeartbeat(svr apiservice.PolarisHeartbeatGRPC_BatchHeartbeatServer) error {
+	ctx := utils.ConvertGRPCContext(svr.Context())
+
+	for {
+		req, err := svr.Recv()
+		if err != nil {
+			if io.EOF == err {
+				return nil
+			}
+			return err
+		}
+
+		_ = g.healthCheckServer.Reports(ctx, req.GetHeartbeats())
+		if err = svr.Send(&apiservice.HeartbeatsResponse{}); err != nil {
+			return err
+		}
+	}
+}
 
 // BatchGetHeartbeat 批量获取心跳记录
 func (g *DiscoverServer) BatchGetHeartbeat(ctx context.Context,

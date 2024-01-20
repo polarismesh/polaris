@@ -19,6 +19,7 @@ package sqldb
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -782,15 +783,18 @@ func fetchServiceWithMetaRows(rows *sql.Rows) (map[string]*model.Service, error)
 		}
 
 		var item model.Service
+		var exportTo string
 		if err := rows.Scan(&item.ID, &item.Name, &item.Namespace, &item.Business, &item.Comment,
 			&item.Token, &item.Revision, &item.Owner, &flag, &item.Ctime, &item.Mtime, &item.Ports,
 			&item.Department, &item.CmdbMod1, &item.CmdbMod2, &item.CmdbMod3,
-			&item.Reference, &item.ReferFilter, &item.PlatformID, &id, &mKey, &mValue); err != nil {
+			&item.Reference, &item.ReferFilter, &item.PlatformID, &exportTo, &id, &mKey, &mValue); err != nil {
 			log.Errorf("[Store][database] fetch service+meta rows scan err: %s", err.Error())
 			return nil, err
 		}
 		item.CreateTime = time.Unix(item.Ctime, 0)
 		item.ModifyTime = time.Unix(item.Mtime, 0)
+		item.ExportTo = map[string]struct{}{}
+		_ = json.Unmarshal([]byte(exportTo), &item.ExportTo)
 		item.Valid = true
 		if flag == 1 {
 			item.Valid = false
@@ -934,13 +938,13 @@ func addServiceMain(tx *BaseTx, s *model.Service) error {
 	insertStmt := `
 		insert into service
 			(id, name, namespace, ports, business, department, cmdb_mod1, cmdb_mod2,
-			cmdb_mod3, comment, token, reference,  platform_id, revision, owner, ctime, mtime)
+			cmdb_mod3, comment, token, reference,  platform_id, revision, owner, export_to, ctime, mtime)
 		values
-			(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, sysdate(), sysdate())`
+			(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, sysdate(), sysdate())`
 
 	_, err := tx.Exec(insertStmt, s.ID, s.Name, s.Namespace, s.Ports, s.Business, s.Department,
 		s.CmdbMod1, s.CmdbMod2, s.CmdbMod3, s.Comment, s.Token,
-		s.Reference, s.PlatformID, s.Revision, s.Owner)
+		s.Reference, s.PlatformID, s.Revision, s.Owner, utils.MustJson(s.ExportTo))
 	return err
 }
 
@@ -974,11 +978,12 @@ func addServiceMeta(tx *BaseTx, id string, meta map[string]string) error {
 func updateServiceMain(tx *BaseTx, service *model.Service) error {
 	str := `update service set name = ?, namespace = ?, ports = ?, business = ?,
 	department = ?, cmdb_mod1 = ?, cmdb_mod2 = ?, cmdb_mod3 = ?, comment = ?, token = ?, platform_id = ?,
-	revision = ?, owner = ?, mtime = sysdate() where id = ?`
+	revision = ?, owner = ?, mtime = sysdate(), export_to = ? where id = ?`
 
 	_, err := tx.Exec(str, service.Name, service.Namespace, service.Ports, service.Business,
 		service.Department, service.CmdbMod1, service.CmdbMod2, service.CmdbMod3,
-		service.Comment, service.Token, service.PlatformID, service.Revision, service.Owner, service.ID)
+		service.Comment, service.Token, service.PlatformID, service.Revision, service.Owner,
+		utils.MustJson(service.ExportTo), service.ID)
 	return err
 }
 
@@ -1029,7 +1034,8 @@ func genServiceSelectSQL() string {
 			token, service.revision, owner, service.flag, 
 			UNIX_TIMESTAMP(service.ctime), UNIX_TIMESTAMP(service.mtime),
 			IFNULL(ports, ""), IFNULL(department, ""), IFNULL(cmdb_mod1, ""), IFNULL(cmdb_mod2, ""), 
-			IFNULL(cmdb_mod3, ""), IFNULL(reference, ""), IFNULL(refer_filter, ""), IFNULL(platform_id, "") `
+			IFNULL(cmdb_mod3, ""), IFNULL(reference, ""), IFNULL(refer_filter, ""), IFNULL(platform_id, ""),
+			IFNULL(export_to, "{}") `
 }
 
 // callFetchServiceRows call fetch service rows
@@ -1049,11 +1055,12 @@ func callFetchServiceRows(rows *sql.Rows, callback func(entry *model.Service) (b
 		}
 
 		var item model.Service
+		var exportTo string
 		err := rows.Scan(
 			&item.ID, &item.Name, &item.Namespace, &item.Business, &item.Comment,
 			&item.Token, &item.Revision, &item.Owner, &flag, &ctime, &mtime, &item.Ports,
 			&item.Department, &item.CmdbMod1, &item.CmdbMod2, &item.CmdbMod3,
-			&item.Reference, &item.ReferFilter, &item.PlatformID)
+			&item.Reference, &item.ReferFilter, &item.PlatformID, &exportTo)
 
 		if err != nil {
 			log.Errorf("[Store][database] fetch service rows scan err: %s", err.Error())
@@ -1062,6 +1069,8 @@ func callFetchServiceRows(rows *sql.Rows, callback func(entry *model.Service) (b
 
 		item.CreateTime = time.Unix(ctime, 0)
 		item.ModifyTime = time.Unix(mtime, 0)
+		item.ExportTo = map[string]struct{}{}
+		_ = json.Unmarshal([]byte(exportTo), &item.ExportTo)
 		item.Valid = true
 		if flag == 1 {
 			item.Valid = false

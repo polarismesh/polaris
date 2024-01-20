@@ -27,7 +27,9 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
@@ -44,6 +46,28 @@ func (s *Server) RegisterInstance(ctx context.Context, req *apiservice.Instance)
 func (s *Server) DeregisterInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	ctx = context.WithValue(ctx, utils.ContextIsFromClient, true)
 	return s.DeleteInstance(ctx, req)
+}
+
+// ReportServiceContract report client service interface info
+func (s *Server) ReportServiceContract(ctx context.Context, req *apiservice.ServiceContract) *apiservice.Response {
+	ctx = context.WithValue(ctx, utils.ContextIsFromClient, true)
+	cacheData := s.caches.ServiceContract().Get(&model.ServiceContract{
+		Namespace: req.GetNamespace(),
+		Service:   req.GetService(),
+		Name:      req.GetName(),
+		Version:   req.GetVersion(),
+		Protocol:  req.GetProtocol(),
+	})
+	// 通过 Cache 模块减少无意义的 CreateServiceContract 逻辑
+	if cacheData == nil || cacheData.Content != req.GetContent() {
+		rsp := s.CreateServiceContract(ctx, req)
+		if rsp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
+			return rsp
+		}
+	}
+
+	rsp := s.CreateServiceContractInterfaces(ctx, req, apiservice.InterfaceDescriptor_Client)
+	return rsp
 }
 
 // ReportClient 客户端上报信息
@@ -187,7 +211,9 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Servic
 }
 
 // ServiceInstancesCache 根据服务名查询服务实例列表
-func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+func (s *Server) ServiceInstancesCache(ctx context.Context, filter *apiservice.DiscoverFilter,
+	req *apiservice.Service) *apiservice.DiscoverResponse {
+
 	resp := createCommonDiscoverResponse(req, apiservice.DiscoverResponse_INSTANCE)
 	serviceName := req.GetName().GetValue()
 	namespaceName := req.GetNamespace().GetValue()
@@ -202,53 +228,82 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, req *apiservice.Serv
 	}
 
 	// 数据源都来自Cache，这里拿到的service，已经是源服务
-	aliasFor := s.getServiceCache(serviceName, namespaceName)
-	if aliasFor == nil {
-		log.Debugf("[Server][Service][Instance] not found name(%s) namespace(%s) service",
+	aliasFor, visibleServices := s.findVisibleServices(serviceName, namespaceName, req)
+	if len(visibleServices) == 0 {
+		log.Infof("[Server][Service][Instance] not found name(%s) namespace(%s) service",
 			serviceName, namespaceName)
 		return api.NewDiscoverInstanceResponse(apimodel.Code_NotFoundResource, req)
 	}
-	s.RecordDiscoverStatis(aliasFor.Name, aliasFor.Namespace)
-	// 获取revision，如果revision一致，则不返回内容，直接返回一个状态码
-	revision := s.caches.Service().GetRevisionWorker().GetServiceInstanceRevision(aliasFor.ID)
-	if revision == "" {
-		// 不能直接获取，则需要重新计算，大部分情况都可以直接获取的
-		// 获取instance数据，service已经是源服务，可以直接查找cache
-		instances := s.caches.Instance().GetInstancesByServiceID(aliasFor.ID)
-		var revisionErr error
-		revision, revisionErr = s.GetServiceInstanceRevision(aliasFor.ID, instances)
-		if revisionErr != nil {
-			log.Errorf("[Server][Service][Instance] compute revision service(%s) err: %s",
-				aliasFor.ID, revisionErr.Error())
-			return api.NewDiscoverInstanceResponse(apimodel.Code_ExecuteException, req)
+
+	revisions := make([]string, 0, len(visibleServices)+1)
+	finalInstances := make(map[string]*apiservice.Instance, 128)
+	for _, svc := range visibleServices {
+		revision := s.caches.Service().GetRevisionWorker().GetServiceInstanceRevision(svc.ID)
+		if revision == "" {
+			revision = utils.NewUUID()
 		}
+		revisions = append(revisions, revision)
 	}
-	if revision == req.GetRevision().GetValue() {
+	aggregateRevision, err := cachetypes.CompositeComputeRevision(revisions)
+	if err != nil {
+		log.Errorf("[Server][Service][Instance] compute multi revision service(%s) err: %s",
+			aliasFor.ID, err.Error())
+		return api.NewDiscoverInstanceResponse(apimodel.Code_ExecuteException, req)
+	}
+	if aggregateRevision == req.GetRevision().GetValue() {
 		return api.NewDiscoverInstanceResponse(apimodel.Code_DataNoChange, req)
 	}
 
-	// 填充service数据
-	resp.Service = &apiservice.Service{
-		Name:      req.GetName(),
-		Namespace: req.GetNamespace(),
-		Revision:  utils.NewStringValue(revision),
+	for _, svc := range visibleServices {
+		specSvc := &apiservice.Service{
+			Id:        utils.NewStringValue(svc.ID),
+			Name:      utils.NewStringValue(svc.Name),
+			Namespace: utils.NewStringValue(svc.Namespace),
+		}
+		ret := s.caches.Instance().DiscoverServiceInstances(specSvc.GetId().GetValue(), filter.GetOnlyHealthyInstance())
+		for i := range ret {
+			copyIns := s.getInstance(req, ret[i].Proto)
+			// 注意：这里的value是cache的，不修改cache的数据，通过getInstance，浅拷贝一份数据
+			finalInstances[copyIns.GetId().GetValue()] = copyIns
+		}
 	}
-	// 塞入源服务信息数据
-	resp.AliasFor = &apiservice.Service{
-		Namespace: utils.NewStringValue(aliasFor.Namespace),
-		Name:      utils.NewStringValue(aliasFor.Name),
-	}
-	// 填充instance数据
-	resp.Instances = make([]*apiservice.Instance, 0) // TODO
-	_ = s.caches.Instance().
-		IteratorInstancesWithService(aliasFor.ID, // service已经是源服务
-			func(key string, value *model.Instance) (b bool, e error) {
-				// 注意：这里的value是cache的，不修改cache的数据，通过getInstance，浅拷贝一份数据
-				resp.Instances = append(resp.Instances, s.getInstance(req, value.Proto))
-				return true, nil
-			})
 
+	// 填充service数据
+	resp.Service = service2Api(aliasFor)
+	// 这里需要把服务信息改为用户请求的服务名以及命名空间
+	resp.Service.Name = req.GetName()
+	resp.Service.Namespace = req.GetNamespace()
+	resp.Service.Revision = utils.NewStringValue(aggregateRevision)
+	// 塞入源服务信息数据
+	resp.AliasFor = service2Api(aliasFor)
+	// 填充instance数据
+	resp.Instances = make([]*apiservice.Instance, 0, len(finalInstances))
+	for i := range finalInstances {
+		// 注意：这里的value是cache的，不修改cache的数据，通过getInstance，浅拷贝一份数据
+		resp.Instances = append(resp.Instances, finalInstances[i])
+	}
 	return resp
+}
+
+func (s *Server) findVisibleServices(serviceName, namespaceName string, req *apiservice.Service) (*model.Service, []*model.Service) {
+	visibleServices := make([]*model.Service, 0, 4)
+	// 数据源都来自Cache，这里拿到的service，已经是源服务
+	aliasFor := s.getServiceCache(serviceName, namespaceName)
+	if aliasFor == nil {
+		aliasFor = &model.Service{
+			Name:      serviceName,
+			Namespace: namespaceName,
+		}
+		ret := s.caches.Service().GetVisibleServicesInOtherNamespace(serviceName, namespaceName)
+		if len(ret) == 0 {
+			return nil, nil
+		}
+		visibleServices = append(visibleServices, ret...)
+	} else {
+		visibleServices = append(visibleServices, aliasFor)
+	}
+
+	return aliasFor, visibleServices
 }
 
 // GetRoutingConfigWithCache 获取缓存中的路由配置信息
@@ -439,6 +494,62 @@ func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *apiservice
 	return resp
 }
 
+// GetServiceContractWithCache User Client Get ServiceContract Rule Information
+func (s *Server) GetServiceContractWithCache(ctx context.Context,
+	req *apiservice.ServiceContract) *apiservice.DiscoverResponse {
+	resp := &apiservice.DiscoverResponse{
+		Code: &wrappers.UInt32Value{Value: uint32(apimodel.Code_ExecuteSuccess)},
+		Info: &wrappers.StringValue{Value: api.Code2Info(uint32(apimodel.Code_ExecuteSuccess))},
+		Type: apiservice.DiscoverResponse_SERVICE_CONTRACT,
+		Service: &apiservice.Service{
+			Name:      wrapperspb.String(req.GetService()),
+			Namespace: wrapperspb.String(req.GetNamespace()),
+		},
+	}
+	if !s.serviceContractCheckDiscoverRequest(req, resp) {
+		return resp
+	}
+
+	// 服务名和request保持一致
+	resp.Service = &apiservice.Service{
+		Name:      wrapperspb.String(req.GetService()),
+		Namespace: wrapperspb.String(req.GetNamespace()),
+	}
+
+	// 获取源服务
+	aliasFor := s.getServiceCache(req.GetService(), req.GetNamespace())
+	if aliasFor == nil {
+		aliasFor = &model.Service{
+			Namespace: req.GetNamespace(),
+			Name:      req.GetService(),
+		}
+	}
+
+	out := s.caches.ServiceContract().Get(&model.ServiceContract{
+		Namespace: aliasFor.Namespace,
+		Service:   aliasFor.Name,
+		Version:   req.Version,
+		Name:      req.Name,
+		Protocol:  req.Protocol,
+	})
+	if out == nil {
+		resp.Code = wrapperspb.UInt32(uint32(apimodel.Code_NotFoundResource))
+		resp.Info = wrapperspb.String(api.Code2Info(uint32(apimodel.Code_NotFoundResource)))
+		return resp
+	}
+
+	// 获取熔断规则数据，并对比revision
+	if len(req.GetRevision()) > 0 && req.GetRevision() == out.Revision {
+		resp.Code = wrapperspb.UInt32(uint32(apimodel.Code_DataNoChange))
+		resp.Info = wrapperspb.String(api.Code2Info(uint32(apimodel.Code_DataNoChange)))
+		return resp
+	}
+
+	resp.Service.Revision = wrapperspb.String(out.Revision)
+	resp.ServiceContract = out.ToSpec()
+	return resp
+}
+
 func createCommonDiscoverResponse(req *apiservice.Service,
 	dT apiservice.DiscoverResponse_DiscoverResponseType) *apiservice.DiscoverResponse {
 	return &apiservice.DiscoverResponse{
@@ -498,25 +609,88 @@ func (s *Server) getServiceCache(name string, namespace string) *model.Service {
 func (s *Server) commonCheckDiscoverRequest(req *apiservice.Service, resp *apiservice.DiscoverResponse) bool {
 	if s.caches == nil {
 		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_ClientAPINotOpen))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
 		resp.Service = req
 		return false
 	}
 	if req == nil {
 		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_EmptyRequest))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
 		resp.Service = req
 		return false
 	}
 
 	if req.GetName().GetValue() == "" {
 		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidServiceName))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
 		resp.Service = req
 		return false
 	}
 	if req.GetNamespace().GetValue() == "" {
 		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidNamespaceName))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
 		resp.Service = req
 		return false
 	}
 
+	return true
+}
+
+func (s *Server) serviceContractCheckDiscoverRequest(req *apiservice.ServiceContract, resp *apiservice.DiscoverResponse) bool {
+	svc := &apiservice.Service{
+		Name:      wrapperspb.String(req.GetService()),
+		Namespace: wrapperspb.String(req.GetNamespace()),
+	}
+
+	if s.caches == nil {
+		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_ClientAPINotOpen))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
+		resp.Service = svc
+		resp.ServiceContract = req
+		return false
+	}
+	if req == nil {
+		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_EmptyRequest))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
+		resp.Service = svc
+		resp.ServiceContract = req
+		return false
+	}
+
+	if req.GetName() == "" {
+		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidParameter))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
+		resp.Service = svc
+		resp.ServiceContract = req
+		return false
+	}
+	if req.GetNamespace() == "" {
+		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidNamespaceName))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
+		resp.Service = svc
+		resp.ServiceContract = req
+		return false
+	}
+	if req.GetService() == "" {
+		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidServiceName))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
+		resp.Service = svc
+		resp.ServiceContract = req
+		return false
+	}
+	if req.GetProtocol() == "" {
+		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidParameter))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
+		resp.Service = svc
+		resp.ServiceContract = req
+		return false
+	}
+	if req.GetVersion() == "" {
+		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidParameter))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
+		resp.Service = svc
+		resp.ServiceContract = req
+		return false
+	}
 	return true
 }

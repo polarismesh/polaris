@@ -18,7 +18,9 @@
 // Package utils contains common utility functions
 package utils
 
-import "sync"
+import (
+	"sync"
+)
 
 // NewSet returns a new Set
 func NewSet[K comparable]() *Set[K] {
@@ -96,9 +98,13 @@ func (set *SyncSet[K]) ToSlice() []K {
 
 func (set *SyncSet[K]) Range(fn func(val K)) {
 	set.lock.RLock()
-	defer set.lock.RUnlock()
-
+	snapshot := map[K]struct{}{}
 	for k := range set.container {
+		snapshot[k] = struct{}{}
+	}
+	set.lock.RUnlock()
+
+	for k := range snapshot {
 		fn(k)
 	}
 }
@@ -108,6 +114,20 @@ func (set *SyncSet[K]) Len() int {
 	defer set.lock.RUnlock()
 
 	return len(set.container)
+}
+
+// Contains contains target value
+func (set *SyncSet[K]) Contains(val K) bool {
+	set.lock.Lock()
+	defer set.lock.Unlock()
+
+	_, exist := set.container[val]
+	return exist
+}
+
+func (set *SyncSet[K]) String() string {
+	ret := set.ToSlice()
+	return MustJson(ret)
 }
 
 func NewSegmentMap[K comparable, V any](soltNum int, hashFunc func(k K) int) *SegmentMap[K, V] {
@@ -221,27 +241,38 @@ func (s *SegmentMap[K, V]) caulIndex(k K) (*sync.RWMutex, map[K]V) {
 // NewSyncMap
 func NewSyncMap[K comparable, V any]() *SyncMap[K, V] {
 	return &SyncMap[K, V]{
-		m: &sync.Map{},
+		m: make(map[K]V, 16),
 	}
 }
 
 // SyncMap
 type SyncMap[K comparable, V any] struct {
-	m *sync.Map
+	lock sync.RWMutex
+	m    map[K]V
 }
 
 // ComputeIfAbsent
 func (s *SyncMap[K, V]) ComputeIfAbsent(k K, supplier func(k K) V) (V, bool) {
-	actual, loaded := s.m.LoadOrStore(k, supplier(k))
-	ret, _ := actual.(V)
-	return ret, loaded
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	actual, exist := s.m[k]
+	if exist {
+		return actual, false
+	}
+	val := supplier(k)
+	s.m[k] = val
+	return val, true
 }
 
 // Load
 func (s *SyncMap[K, V]) Load(key K) (V, bool) {
-	v, ok := s.m.Load(key)
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	v, ok := s.m[key]
 	if ok {
-		return v.(V), ok
+		return v, ok
 	}
 	var empty V
 	return empty, false
@@ -249,36 +280,74 @@ func (s *SyncMap[K, V]) Load(key K) (V, bool) {
 
 // Store
 func (s *SyncMap[K, V]) Store(key K, val V) {
-	s.m.Store(key, val)
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	s.m[key] = val
+}
+
+// Values
+func (s *SyncMap[K, V]) Values() []V {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	ret := make([]V, 0, len(s.m))
+	for _, v := range s.m {
+		ret = append(ret, v)
+	}
+	return ret
 }
 
 // Range
-func (s *SyncMap[K, V]) Range(f func(key K, val V) bool) {
-	s.m.Range(func(key, value any) bool {
-		return f(key.(K), value.(V))
-	})
+func (s *SyncMap[K, V]) Range(f func(key K, val V)) {
+	s.lock.RLock()
+	snapshot := map[K]V{}
+	for k, v := range s.m {
+		snapshot[k] = v
+	}
+	s.lock.RUnlock()
+
+	for k, v := range snapshot {
+		f(k, v)
+	}
+}
+
+// ReadRange .
+func (s *SyncMap[K, V]) ReadRange(f func(key K, val V)) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	for k, v := range s.m {
+		f(k, v)
+	}
 }
 
 // Delete
-func (s *SyncMap[K, V]) Delete(key K) {
-	s.m.Delete(key)
-}
+func (s *SyncMap[K, V]) Delete(key K) (V, bool) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 
-// LoadOrStore
-func (s *SyncMap[K, V]) LoadOrStore(key K, val V) (V, bool) {
-	actual, loaded := s.m.LoadOrStore(key, val)
-	ret, _ := actual.(V)
-	return ret, loaded
+	v, exist := s.m[key]
+	delete(s.m, key)
+	return v, exist
 }
 
 // Len
 func (s *SyncMap[K, V]) Len() int {
-	var ret int
-	s.m.Range(func(_, _ any) bool {
-		ret++
-		return true
-	})
-	return ret
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	return len(s.m)
+}
+
+func (s *SyncMap[K, V]) ToMap() map[K]V {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	m := map[K]V{}
+	for k, v := range s.m {
+		m[k] = v
+	}
+	return m
 }
 
 // NewMap
@@ -319,4 +388,13 @@ func (s *Map[K, V]) Delete(key K) {
 // Len
 func (s *Map[K, V]) Len() int {
 	return len(s.m)
+}
+
+// Values .
+func (s *Map[K, V]) Values() []V {
+	ret := make([]V, 0, s.Len())
+	for _, v := range s.m {
+		ret = append(ret, v)
+	}
+	return ret
 }

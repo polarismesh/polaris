@@ -59,6 +59,18 @@ type eventHub struct {
 	mu     sync.RWMutex
 }
 
+func RegisterPublisher(topic string, opt PublishOption) error {
+	if globalEventHub == nil {
+		return ErrorEventhubNotInitialize
+	}
+	return globalEventHub.RegisterPublisher(topic, opt)
+}
+
+func (eh *eventHub) RegisterPublisher(topic string, opt PublishOption) error {
+	_ = eh.createTopic(topic, opt)
+	return nil
+}
+
 // Publish pushlish event to topic
 // @param topic Topic name
 // @param event Event object
@@ -70,17 +82,12 @@ func Publish(topic string, event Event) error {
 }
 
 func (eh *eventHub) Publish(topic string, event Event) error {
-	t := eh.getTopic(topic)
+	t := eh.loadOrStoreTopic(topic)
 	t.publish(eh.ctx, event)
 	return nil
 }
 
 // Subscribe subscribe topic
-// @param topic Topic name
-// @param name Subscribe name
-// @param handler Message handler
-// @param opts Subscription options
-// @return error Subscribe failed, return error
 func Subscribe(topic string, handler Handler, opts ...SubOption) (*SubscribtionContext, error) {
 	if globalEventHub == nil {
 		return nil, ErrorEventhubNotInitialize
@@ -88,9 +95,19 @@ func Subscribe(topic string, handler Handler, opts ...SubOption) (*SubscribtionC
 	return globalEventHub.Subscribe(topic, handler, opts...)
 }
 
+// SubscribeWithFunc subscribe topic use func
+func SubscribeWithFunc(topic string, handler HandlerFunc, opts ...SubOption) (*SubscribtionContext, error) {
+	if globalEventHub == nil {
+		return nil, ErrorEventhubNotInitialize
+	}
+	return globalEventHub.Subscribe(topic, &funcSubscriber{
+		handlerFunc: handler,
+	}, opts...)
+}
+
 func (e *eventHub) Subscribe(topic string, handler Handler,
 	opts ...SubOption) (*SubscribtionContext, error) {
-	t := e.getTopic(topic)
+	t := e.loadOrStoreTopic(topic)
 	return t.subscribe(e.ctx, handler, opts...)
 }
 
@@ -113,7 +130,7 @@ func (e *eventHub) shutdown() {
 	}
 }
 
-func (e *eventHub) createTopic(name string) *topic {
+func (e *eventHub) createTopic(name string, opt PublishOption) *topic {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	if t, ok := e.topics[name]; ok {
@@ -125,12 +142,12 @@ func (e *eventHub) createTopic(name string) *topic {
 	return t
 }
 
-func (e *eventHub) getTopic(name string) *topic {
+func (e *eventHub) loadOrStoreTopic(name string) *topic {
 	e.mu.RLock()
 	if t, ok := e.topics[name]; ok {
 		e.mu.RUnlock()
 		return t
 	}
 	e.mu.RUnlock()
-	return e.createTopic(name)
+	return e.createTopic(name, PublishOption{})
 }

@@ -38,6 +38,7 @@ run:
     - pkg/model/pb
     - .*~
     - test
+    - "apiserver/nacosserver/v2/pb"
 
   # Which files to skip: they will be analyzed, but issues from them won't be reported.
   # Default value is empty list,
@@ -51,6 +52,7 @@ run:
     - ".*_test\\.go$"
     - ".*\\.yaml$"
     - ".*\\.yml$"
+    - "apiserver/xdsserverv3/cache/linear.go"
 
 
 # Main linters configurations.

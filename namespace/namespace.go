@@ -40,6 +40,11 @@ func (s *Server) allowAutoCreate() bool {
 	return s.cfg.AutoCreate
 }
 
+func AllowAutoCreate(ctx context.Context) context.Context {
+	ctx = context.WithValue(ctx, model.ContextKeyAutoCreateNamespace{}, true)
+	return ctx
+}
+
 // CreateNamespaces 批量创建命名空间
 func (s *Server) CreateNamespaces(ctx context.Context, req []*apimodel.Namespace) *apiservice.BatchWriteResponse {
 	if checkError := checkBatchNamespace(req); checkError != nil {
@@ -56,8 +61,7 @@ func (s *Server) CreateNamespaces(ctx context.Context, req []*apimodel.Namespace
 }
 
 // CreateNamespaceIfAbsent 创建命名空间，如果不存在
-func (s *Server) CreateNamespaceIfAbsent(ctx context.Context,
-	req *apimodel.Namespace) (string, *apiservice.Response) {
+func (s *Server) CreateNamespaceIfAbsent(ctx context.Context, req *apimodel.Namespace) (string, *apiservice.Response) {
 	if resp := checkCreateNamespace(req); resp != nil {
 		return "", resp
 	}
@@ -67,7 +71,10 @@ func (s *Server) CreateNamespaceIfAbsent(ctx context.Context,
 		return name, nil
 	}
 	if val == "" && !s.allowAutoCreate() {
-		return "", api.NewResponse(apimodel.Code_NotFoundNamespace)
+		ctxVal := ctx.Value(model.ContextKeyAutoCreateNamespace{})
+		if ctxVal == nil || ctxVal.(bool) != true {
+			return "", api.NewResponse(apimodel.Code_NotFoundNamespace)
+		}
 	}
 	ret, err, _ := s.createNamespaceSingle.Do(name, func() (interface{}, error) {
 		return s.CreateNamespace(ctx, req), nil
@@ -133,12 +140,12 @@ func (s *Server) CreateNamespace(ctx context.Context, req *apimodel.Namespace) *
  */
 func (s *Server) createNamespaceModel(req *apimodel.Namespace) *model.Namespace {
 	namespace := &model.Namespace{
-		Name:    req.GetName().GetValue(),
-		Comment: req.GetComment().GetValue(),
-		Owner:   req.GetOwners().GetValue(),
-		Token:   utils.NewUUID(),
+		Name:            req.GetName().GetValue(),
+		Comment:         req.GetComment().GetValue(),
+		Owner:           req.GetOwners().GetValue(),
+		Token:           utils.NewUUID(),
+		ServiceExportTo: model.ExportToMap(req.GetServiceExportTo()),
 	}
-
 	return namespace
 }
 
@@ -291,6 +298,13 @@ func (s *Server) updateNamespaceAttribute(req *apimodel.Namespace, namespace *mo
 	if req.GetOwners() != nil {
 		namespace.Owner = req.GetOwners().GetValue()
 	}
+
+	exportTo := map[string]struct{}{}
+	for i := range req.GetServiceExportTo() {
+		exportTo[req.GetServiceExportTo()[i].GetValue()] = struct{}{}
+	}
+
+	namespace.ServiceExportTo = exportTo
 }
 
 // UpdateNamespaceToken 更新命名空间token
@@ -353,6 +367,7 @@ func (s *Server) GetNamespaces(ctx context.Context, query map[string][]string) *
 			TotalServiceCount:        utils.NewUInt32Value(nsCntInfo.ServiceCount),
 			TotalInstanceCount:       utils.NewUInt32Value(nsCntInfo.InstanceCnt.TotalInstanceCount),
 			TotalHealthInstanceCount: utils.NewUInt32Value(nsCntInfo.InstanceCnt.HealthyInstanceCount),
+			ServiceExportTo:          namespace.ListServiceExportTo(),
 		})
 		totalServiceCount += nsCntInfo.ServiceCount
 		totalInstanceCount += nsCntInfo.InstanceCnt.TotalInstanceCount

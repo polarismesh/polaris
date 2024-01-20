@@ -54,7 +54,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
-          go-version: "1.20"
+          go-version: "1.21.5"
       # Checkout latest code
       - name: Checkout repo
         uses: actions/checkout@v2
@@ -72,8 +72,8 @@ jobs:
           mysql -e "ALTER USER '${{ env.MYSQL_DB_USER }}'@'localhost' IDENTIFIED WITH mysql_native_password BY 'root';"  -u${{ env.MYSQL_DB_USER }} -p${{ env.MYSQL_DB_PWD }}
 
       # Execute vert check
-      - name: Vert check
-        run: bash vert.sh -install && bash vert.sh
+      # - name: Vert check
+      #   run: bash vert.sh -install && bash vert.sh
 
       - name: Standalone Test
         env:

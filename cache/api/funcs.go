@@ -48,8 +48,11 @@ func ComputeRevisionBySlice(h hash.Hash, slice []string) (string, error) {
 
 // CompositeComputeRevision 将多个 revision 合并计算为一个
 func CompositeComputeRevision(revisions []string) (string, error) {
-	h := sha1.New()
+	if len(revisions) == 1 {
+		return revisions[0], nil
+	}
 
+	h := sha1.New()
 	sort.Strings(revisions)
 
 	for i := range revisions {

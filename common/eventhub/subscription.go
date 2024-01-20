@@ -27,6 +27,22 @@ const (
 	defaultQueueSize = 16384
 )
 
+type funcSubscriber struct {
+	handlerFunc HandlerFunc
+}
+
+// PreProcess do preprocess logic for event
+func (s *funcSubscriber) PreProcess(_ context.Context, a any) any {
+	return a
+}
+
+// OnEvent event process logic
+func (s *funcSubscriber) OnEvent(ctx context.Context, event any) error {
+	return s.handlerFunc(ctx, event)
+}
+
+type HandlerFunc func(ctx context.Context, any2 any) error
+
 // Handler event handler
 type Handler interface {
 	// PreProcess do preprocess logic for event
@@ -127,4 +143,9 @@ func WithQueueSize(size int) SubOption {
 	return func(s *SubOptions) {
 		s.QueueSize = size
 	}
+}
+
+// PublishOption .
+type PublishOption struct {
+	WaitHaveSub bool
 }

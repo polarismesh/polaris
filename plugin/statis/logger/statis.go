@@ -20,6 +20,8 @@ package logger
 import (
 	"context"
 	"fmt"
+	"math"
+	"strconv"
 	"time"
 
 	commonlog "github.com/polarismesh/polaris/common/log"
@@ -94,8 +96,8 @@ func (s *StatisWorker) ReportConfigMetrics(metric ...metrics.ConfigMetrics) {
 }
 
 // ReportDiscoverCall report discover service times
-func (s *StatisWorker) ReportDiscoverCall(service, namespace string, ttMill int64) {
-
+func (s *StatisWorker) ReportDiscoverCall(metric metrics.ClientDiscoverMetric) {
+	discoverlog.Infof(metric.String())
 }
 
 func (a *StatisWorker) metricsHandle(mt metrics.CallMetricType, start time.Time,
@@ -111,19 +113,37 @@ func (a *StatisWorker) metricsHandle(mt metrics.CallMetricType, start time.Time,
 		scope = log
 	}
 
-	header := fmt.Sprintf("Statis %s:\n", startStr)
-
-	header += fmt.Sprintf(
-		"%-48v|%12v|%12v|%12v|%12v|%12v|\n", "", "Code", "Count", "Min(ms)", "Max(ms)", "Avg(ms)")
-
 	var msg string
+	var prefixMax int
 	for i := range statics {
-		msg += statics[i].String()
+		prefixMax = int(math.Max(float64(prefixMax), float64(len(statics[i].API))))
+	}
+	for i := range statics {
+		msg += formatAPICallStatisItem(prefixMax, mt, statics[i])
 	}
 	if len(msg) == 0 {
 		log.Info(fmt.Sprintf("Statis %s: No API Call\n", startStr))
 		return
 	}
 
+	header := fmt.Sprintf("Statis %s:\n", startStr)
+
+	header += fmt.Sprintf(
+		"%-"+strconv.Itoa(prefixMax)+"v|%12v|%17v|%12v|%12v|%12v|%12v|%12v|\n", "", "Protocol", "TrafficDirection", "Code", "Count",
+		"Min(ms)", "Max(ms)", "Avg(ms)")
+
 	log.Info(header + msg)
+}
+
+func formatAPICallStatisItem(prefixMax int, mt metrics.CallMetricType, item *base.APICallStatisItem) string {
+	if item.Count == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%-"+strconv.Itoa(prefixMax)+"v|%12v|%17v|%12v|%12v|%12.3f|%12.3f|%12.3f|\n",
+		item.API, item.Protocol, item.TrafficDirection, item.Code, item.Count,
+		float64(item.MinTime)/1e6,
+		float64(item.MaxTime)/1e6,
+		float64(item.AccTime)/float64(item.Count)/1e6,
+	)
+
 }

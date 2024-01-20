@@ -30,6 +30,7 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	types "github.com/polarismesh/polaris/cache/api"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
@@ -70,6 +71,13 @@ type serviceCache struct {
 	revisionWorker *ServiceRevisionWorker
 
 	cancel context.CancelFunc
+
+	// exportNamespace 某个命名空间下的所有服务的可见性
+	exportNamespace *utils.SyncMap[string, *utils.SyncSet[string]]
+	// exportServices 某个服务对部分命名空间全部可见 exportNamespace -> svcName -> model.Service
+	exportServices *utils.SyncMap[string, *utils.SyncMap[string, *model.Service]]
+
+	subCtx *eventhub.SubscribtionContext
 }
 
 // NewServiceCache 返回一个serviceCache
@@ -92,12 +100,18 @@ func (sc *serviceCache) Initialize(opt map[string]interface{}) error {
 	sc.cl5Names = utils.NewSyncMap[string, *model.Service]()
 	sc.pendingServices = utils.NewSyncMap[string, struct{}]()
 	sc.namespaceServiceCnt = utils.NewSyncMap[string, *model.NamespaceServiceCount]()
-	sc.revisionWorker = newRevisionWorker(sc, sc.instCache.(*instanceCache))
-
+	sc.exportNamespace = utils.NewSyncMap[string, *utils.SyncSet[string]]()
+	sc.exportServices = utils.NewSyncMap[string, *utils.SyncMap[string, *model.Service]]()
 	ctx, cancel := context.WithCancel(context.Background())
 	sc.cancel = cancel
+	sc.revisionWorker = newRevisionWorker(sc, sc.instCache.(*instanceCache), opt)
 	// 先启动revision计算协程
 	go sc.revisionWorker.revisionWorker(ctx)
+	subCtx, err := eventhub.SubscribeWithFunc(eventhub.CacheNamespaceEventTopic, sc.handleNamespaceChange)
+	if err != nil {
+		return err
+	}
+	sc.subCtx = subCtx
 	if opt == nil {
 		return nil
 	}
@@ -110,6 +124,9 @@ func (sc *serviceCache) Initialize(opt map[string]interface{}) error {
 func (sc *serviceCache) Close() error {
 	if err := sc.BaseCache.Close(); err != nil {
 		return err
+	}
+	if sc.subCtx != nil {
+		sc.subCtx.Cancel()
 	}
 	if sc.cancel != nil {
 		sc.cancel()
@@ -185,6 +202,8 @@ func (sc *serviceCache) Clear() error {
 	sc.namespaceServiceCnt = utils.NewSyncMap[string, *model.NamespaceServiceCount]()
 	sc.alias = newServiceAliasBucket()
 	sc.serviceList = newServiceNamespaceBucket()
+	sc.exportNamespace = utils.NewSyncMap[string, *utils.SyncSet[string]]()
+	sc.exportServices = utils.NewSyncMap[string, *utils.SyncMap[string, *model.Service]]()
 	return nil
 }
 
@@ -287,18 +306,12 @@ func (sc *serviceCache) CleanNamespace(namespace string) {
 
 // IteratorServices 对缓存中的服务进行迭代
 func (sc *serviceCache) IteratorServices(iterProc types.ServiceIterProc) error {
-	var (
-		cont bool
-		err  error
-	)
-
-	proc := func(k string, svc *model.Service) bool {
+	var err error
+	proc := func(k string, svc *model.Service) {
 		sc.fillServicePorts(svc)
-		cont, err = iterProc(k, svc)
-		if err != nil {
-			return false
+		if _, err = iterProc(k, svc); err != nil {
+			return
 		}
-		return cont
 	}
 	sc.ids.Range(proc)
 	return err
@@ -320,13 +333,7 @@ func (sc *serviceCache) GetNamespaceCntInfo(namespace string) model.NamespaceSer
 
 // GetServicesCount 获取缓存中服务的个数
 func (sc *serviceCache) GetServicesCount() int {
-	count := 0
-	sc.ids.Range(func(key string, value *model.Service) bool {
-		count++
-		return true
-	})
-
-	return count
+	return sc.ids.Len()
 }
 
 // ListServices get service list and revision by namespace
@@ -415,27 +422,30 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 		if service.IsAlias() {
 			aliases = append(aliases, service)
 		}
+		oldVal, exist := sc.ids.Load(service.ID)
+		if oldVal != nil {
+			service.OldExportTo = oldVal.ExportTo
+		}
 
 		spaceName := service.Namespace
 		changeNs[spaceName] = struct{}{}
 		// 发现有删除操作
 		if !service.Valid {
 			sc.removeServices(service)
-			sc.revisionWorker.Notify(service.ID, false)
+			sc.notifyRevisionWorker(service.ID, false)
 			del++
 			svcCount--
 			continue
 		}
 
 		update++
-		_, exist := sc.ids.Load(service.ID)
 		if !exist {
 			svcCount++
 		}
 
 		sc.ids.Store(service.ID, service)
 		sc.serviceList.addService(service)
-		sc.revisionWorker.Notify(service.ID, true)
+		sc.notifyRevisionWorker(service.ID, true)
 
 		spaces, ok := sc.names.Load(spaceName)
 		if !ok {
@@ -457,6 +467,7 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 
 	sc.postProcessServiceAlias(aliases)
 	sc.postProcessUpdatedServices(changeNs)
+	sc.postProcessServiceExports(services)
 	sc.serviceList.reloadRevision()
 	return map[string]time.Time{
 		sc.Name(): time.Unix(lastMtime, 0),
@@ -495,14 +506,13 @@ func (sc *serviceCache) appendServiceCountChangeNamespace(changeNs map[string]st
 	sc.plock.Lock()
 	defer sc.plock.Unlock()
 	waitDel := map[string]struct{}{}
-	sc.pendingServices.Range(func(svcId string, _ struct{}) bool {
+	sc.pendingServices.ReadRange(func(svcId string, _ struct{}) {
 		svc, ok := sc.ids.Load(svcId)
 		if !ok {
-			return true
+			return
 		}
 		changeNs[svc.Namespace] = struct{}{}
 		waitDel[svcId] = struct{}{}
-		return true
 	})
 	for svcId := range waitDel {
 		sc.pendingServices.Delete(svcId)
@@ -545,18 +555,19 @@ func (sc *serviceCache) postProcessUpdatedServices(affect map[string]struct{}) {
 			continue
 		}
 
-		count, _ := sc.namespaceServiceCnt.LoadOrStore(namespace, &model.NamespaceServiceCount{})
+		count, _ := sc.namespaceServiceCnt.ComputeIfAbsent(namespace, func(_ string) *model.NamespaceServiceCount {
+			return &model.NamespaceServiceCount{}
+		})
 
 		// For count information under the Namespace involved in the change, it is necessary to re-come over.
 		count.ServiceCount = 0
 		count.InstanceCnt = &model.InstanceCount{}
 
-		value.Range(func(key string, svc *model.Service) bool {
+		value.ReadRange(func(key string, svc *model.Service) {
 			count.ServiceCount++
 			insCnt := sc.instCache.GetInstancesCountByServiceID(svc.ID)
 			count.InstanceCnt.TotalInstanceCount += insCnt.TotalInstanceCount
 			count.InstanceCnt.HealthyInstanceCount += insCnt.HealthyInstanceCount
-			return true
 		})
 	}
 }
@@ -585,6 +596,109 @@ func (sc *serviceCache) updateCl5SidAndNames(service *model.Service) {
 	cl5Name := genCl5Name(cl5NameMeta)
 	sc.cl5Sid2Name.Store(sid, cl5Name)
 	sc.cl5Names.Store(cl5Name, service)
+}
+
+// GetVisibleServicesInOtherNamespace 查询是否存在别的命名空间下存在名称相同且可见的服务
+func (sc *serviceCache) GetVisibleServicesInOtherNamespace(svcName, namespace string) []*model.Service {
+	ret := make(map[string]*model.Service)
+	// 根据服务级别的可见性进行查询, 先查询精确匹配
+	sc.exportServices.ReadRange(func(exportToNs string, services *utils.SyncMap[string, *model.Service]) {
+		if exportToNs != namespace && exportToNs != types.AllMatched {
+			return
+		}
+		services.ReadRange(func(_ string, svc *model.Service) {
+			if svc.Name == svcName && svc.Namespace != namespace {
+				ret[svc.ID] = svc
+			}
+		})
+	})
+
+	// 根据命名空间级别的可见性进行查询, 先看精确的
+	sc.exportNamespace.ReadRange(func(exportNs string, viewerNs *utils.SyncSet[string]) {
+		exactMatch := viewerNs.Contains(namespace)
+		allMatch := viewerNs.Contains(types.AllMatched)
+		if !exactMatch && !allMatch {
+			return
+		}
+		svc := sc.GetServiceByName(svcName, exportNs)
+		if svc == nil {
+			return
+		}
+		ret[svc.ID] = svc
+	})
+
+	visibleServices := make([]*model.Service, 0, len(ret))
+	for _, svc := range ret {
+		if svc.IsAlias() {
+			// 如果是别名，那就看下指向的别名是不是已经在待返回列表，存在，跳过
+			if _, ok := ret[svc.Reference]; ok {
+				continue
+			}
+			// 如果不存在，那就找真实服务信息，进行返回
+			svc = sc.GetServiceByID(svc.Reference)
+			if svc == nil {
+				continue
+			}
+		}
+		visibleServices = append(visibleServices, svc)
+	}
+
+	return visibleServices
+}
+
+func (sc *serviceCache) postProcessServiceExports(services map[string]*model.Service) {
+
+	for i := range services {
+		svc := services[i]
+		for exportNs := range svc.OldExportTo {
+			if _, ok := svc.ExportTo[exportNs]; ok {
+				continue
+			}
+			// 取消可见性
+			if services, ok := sc.exportServices.Load(exportNs); ok {
+				services.Delete(svc.ID)
+			}
+		}
+
+		for exportNs := range svc.ExportTo {
+			services, _ := sc.exportServices.ComputeIfAbsent(exportNs, func(k string) *utils.SyncMap[string, *model.Service] {
+				return utils.NewSyncMap[string, *model.Service]()
+			})
+			services.Store(svc.ID, svc)
+		}
+	}
+}
+
+func (sc *serviceCache) handleNamespaceChange(ctx context.Context, args interface{}) error {
+	event, ok := args.(*eventhub.CacheNamespaceEvent)
+	if !ok {
+		return nil
+	}
+
+	switch event.EventType {
+	case eventhub.EventUpdated, eventhub.EventCreated:
+		exportTo := event.Item.ServiceExportTo
+		if len(exportTo) == 0 {
+			sc.exportNamespace.Delete(event.Item.Name)
+			return nil
+		}
+		viewers := utils.NewSyncSet[string]()
+		sc.exportNamespace.Store(event.Item.Name, viewers)
+		for viewerNs := range exportTo {
+			viewers.Add(viewerNs)
+		}
+	case eventhub.EventDeleted:
+		sc.exportNamespace.Delete(event.Item.Name)
+	}
+	return nil
+}
+
+func (sc *serviceCache) notifyRevisionWorker(serviceID string, valid bool) {
+	revisionWorker := sc.revisionWorker
+	if revisionWorker == nil {
+		return
+	}
+	revisionWorker.Notify(serviceID, valid)
 }
 
 // GetRevisionWorker
@@ -636,11 +750,21 @@ func newRevisionNotify(serviceID string, valid bool) *revisionNotify {
 	}
 }
 
-func newRevisionWorker(svcCache *serviceCache, instCache *instanceCache) *ServiceRevisionWorker {
+func newRevisionWorker(svcCache *serviceCache, instCache *instanceCache, opt map[string]interface{}) *ServiceRevisionWorker {
+	revisionWorkerCnt, _ := opt["revisionWorkerCnt"].(int)
+	revisionTaskChain, _ := opt["revisionTaskChain"].(int)
+	if revisionWorkerCnt == 0 {
+		revisionWorkerCnt = RevisionConcurrenceCount
+	}
+	if revisionTaskChain == 0 {
+		revisionTaskChain = RevisionChanCount
+	}
+
 	return &ServiceRevisionWorker{
 		svcCache:      svcCache,
 		instCache:     instCache,
-		comRevisionCh: make(chan *revisionNotify, RevisionChanCount),
+		workerCnt:     revisionWorkerCnt,
+		comRevisionCh: make(chan *revisionNotify, revisionTaskChain),
 		revisions:     map[string]string{},
 	}
 }
@@ -649,6 +773,7 @@ type ServiceRevisionWorker struct {
 	svcCache  *serviceCache
 	instCache *instanceCache
 
+	workerCnt     int
 	comRevisionCh chan *revisionNotify
 	revisions     map[string]string // service id -> reversion (所有instance reversion 的累计计算值)
 	lock          sync.RWMutex      // for revisions rw lock
@@ -681,7 +806,7 @@ func (sc *ServiceRevisionWorker) revisionWorker(ctx context.Context) {
 	defer log.Infof("[Cache] compute revision worker done")
 
 	// 启动多个协程来计算revision，后续可以通过启动参数控制
-	for i := 0; i < RevisionConcurrenceCount; i++ {
+	for i := 0; i < sc.workerCnt; i++ {
 		go func() {
 			for {
 				select {

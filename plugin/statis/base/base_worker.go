@@ -28,8 +28,6 @@ import (
 
 type BaseWorker struct {
 	apiStatis   *ComponentStatics
-	redisStatis *ComponentStatics
-	innerStatis *ComponentStatics
 	cacheStatis *CacheCallStatis
 }
 
@@ -40,8 +38,6 @@ func NewBaseWorker(ctx context.Context, handler MetricsHandler) (*BaseWorker, er
 	}
 	return &BaseWorker{
 		apiStatis:   NewComponentStatics(ctx, metrics.ServerCallMetric, handler),
-		redisStatis: NewComponentStatics(ctx, metrics.RedisCallMetric, handler),
-		innerStatis: NewComponentStatics(ctx, metrics.SystemCallMetric, handler),
 		cacheStatis: cacheStatis,
 	}, nil
 }
@@ -49,33 +45,20 @@ func NewBaseWorker(ctx context.Context, handler MetricsHandler) (*BaseWorker, er
 // ReportCallMetrics report call metrics info
 func (s *BaseWorker) ReportCallMetrics(metric metrics.CallMetric) {
 	switch metric.Type {
-	case metrics.ServerCallMetric:
+	default:
 		item := &APICall{
-			Api:       metric.API,
-			Protocol:  metric.Protocol,
-			Code:      metric.Code,
-			Duration:  int64(metric.Duration.Nanoseconds()),
-			Component: metric.Type,
+			Count:            metric.Times,
+			Api:              metric.API,
+			Protocol:         metric.Protocol,
+			Code:             metric.Code,
+			Duration:         int64(metric.Duration.Nanoseconds()),
+			Component:        metric.Type,
+			TrafficDirection: string(metrics.TrafficDirectionInBound),
+		}
+		if metric.TrafficDirection != "" {
+			item.TrafficDirection = string(metric.TrafficDirection)
 		}
 		s.apiStatis.Add(item)
-	case metrics.SystemCallMetric:
-		item := &APICall{
-			Api:       metric.API,
-			Protocol:  metric.Protocol,
-			Code:      metric.Code,
-			Duration:  int64(metric.Duration.Nanoseconds()),
-			Component: metric.Type,
-		}
-		s.innerStatis.Add(item)
-	case metrics.RedisCallMetric:
-		item := &APICall{
-			Api:       metric.API,
-			Protocol:  metric.Protocol,
-			Code:      metric.Code,
-			Duration:  int64(metric.Duration.Nanoseconds()),
-			Component: metric.Type,
-		}
-		s.redisStatis.Add(item)
 	case metrics.ProtobufCacheCallMetric:
 		s.cacheStatis.Add(metric)
 	}
@@ -114,8 +97,6 @@ func (s *BaseWorker) Run(ctx context.Context, interval time.Duration) {
 			return
 		case <-ticker.C:
 			s.apiStatis.deal()
-			s.redisStatis.deal()
-			s.innerStatis.deal()
 			s.cacheStatis.deal()
 		}
 	}

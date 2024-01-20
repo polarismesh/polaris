@@ -20,7 +20,6 @@ package healthcheck
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -40,7 +39,7 @@ import (
 )
 
 var (
-	server     = new(Server)
+	_server    = new(Server)
 	once       = sync.Once{}
 	finishInit = false
 )
@@ -66,11 +65,41 @@ type Server struct {
 	subCtxs []*eventhub.SubscribtionContext
 }
 
+func NewHealthServer(ctx context.Context, hcOpt *Config, options ...serverOption) (*Server, error) {
+	if len(options) == 0 {
+		options = make([]serverOption, 0, 4)
+	}
+	if hcOpt == nil {
+		hcOpt = &Config{}
+	}
+	hcOpt.SetDefault()
+	options = append(options,
+		withChecker(),
+		withCacheProvider(),
+		withCheckScheduler(newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval,
+			hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)),
+		withDispatcher(ctx),
+		// 这个必须保证在最后一个 option
+		withSubscriber(ctx),
+	)
+
+	svr := &Server{
+		hcOpt:     hcOpt,
+		localHost: hcOpt.LocalHost,
+	}
+	for i := range options {
+		if err := options[i](svr); err != nil {
+			return nil, err
+		}
+	}
+	return svr, nil
+}
+
 // Initialize 初始化
-func Initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Controller) error {
+func Initialize(ctx context.Context, hcOpt *Config, bc *batch.Controller) error {
 	var err error
 	once.Do(func() {
-		err = initialize(ctx, hcOpt, cacheOpen, bc)
+		err = initialize(ctx, hcOpt, bc)
 	})
 
 	if err != nil {
@@ -81,51 +110,26 @@ func Initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 	return nil
 }
 
-func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Controller) error {
-	server.hcOpt = hcOpt
-	if !cacheOpen {
-		return fmt.Errorf("[healthcheck]cache not open")
-	}
+func initialize(ctx context.Context, hcOpt *Config, bc *batch.Controller) error {
 	hcOpt.SetDefault()
-	if hcOpt.Open {
-		if len(hcOpt.Checkers) > 0 {
-			server.checkers = make(map[int32]plugin.HealthChecker, len(hcOpt.Checkers))
-			for _, entry := range hcOpt.Checkers {
-				checker := plugin.GetHealthChecker(entry.Name, &entry)
-				if checker == nil {
-					return fmt.Errorf("[healthcheck]unknown healthchecker %s", entry.Name)
-				}
-				// The same health type check plugin can only exist in one
-				_, exist := server.checkers[int32(checker.Type())]
-				if exist {
-					return fmt.Errorf("[healthcheck]duplicate healthchecker %s, checkType %d", entry.Name, checker.Type())
-				}
-				server.checkers[int32(checker.Type())] = checker
-				if nil == server.defaultChecker {
-					server.defaultChecker = checker
-				}
-			}
-		} else {
-			return fmt.Errorf("[healthcheck]no checker config")
-		}
-	}
-	var err error
-	if server.storage, err = store.GetStore(); err != nil {
+	storage, err := store.GetStore()
+	if err != nil {
 		return err
 	}
 
-	server.bc = bc
-	server.subCtxs = make([]*eventhub.SubscribtionContext, 0, 4)
-	server.localHost = hcOpt.LocalHost
-	server.history = plugin.GetHistory()
-	server.discoverEvent = plugin.GetDiscoverEvent()
+	svr, err := NewHealthServer(ctx, hcOpt,
+		WithPlugins(),
+		WithStore(storage),
+		WithBatchController(bc),
+		WithTimeAdjuster(newTimeAdjuster(ctx, storage)),
+	)
+	if err != nil {
+		return err
+	}
 
-	server.cacheProvider = newCacheProvider(hcOpt.Service, server)
-	server.timeAdjuster = newTimeAdjuster(ctx, server.storage)
-	server.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval,
-		hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)
-	server.dispatcher = newDispatcher(ctx, server)
-	return server.run(ctx)
+	_server = svr
+
+	return svr.run(ctx)
 }
 
 func (s *Server) run(ctx context.Context) error {
@@ -134,30 +138,14 @@ func (s *Server) run(ctx context.Context) error {
 	}
 
 	s.checkScheduler.run(ctx)
-	go s.timeAdjuster.doTimeAdjust(ctx)
+	s.timeAdjuster.doTimeAdjust(ctx)
 	s.dispatcher.startDispatchingJob(ctx)
-
-	s.instanceEventChannel = make(chan *model.InstanceEvent, 1000)
-	go s.handleInstanceEventWorker(ctx)
-
-	leaderChangeEventHandler := newLeaderChangeEventHandler(s.cacheProvider, s.hcOpt.MinCheckInterval)
-	subCtx, err := eventhub.Subscribe(eventhub.LeaderChangeEventTopic, leaderChangeEventHandler)
-	if err != nil {
-		return err
-	}
-	s.subCtxs = append(s.subCtxs, subCtx)
-
-	instanceEventHandler := newInstanceEventHealthCheckHandler(ctx, s.instanceEventChannel)
-	subCtx, err = eventhub.Subscribe(eventhub.InstanceEventTopic, instanceEventHandler)
-	if err != nil {
-		return err
-	}
-	s.subCtxs = append(s.subCtxs, subCtx)
-
-	if err := s.storage.StartLeaderElection(store.ElectionKeySelfServiceChecker); err != nil {
-		return err
-	}
 	return nil
+}
+
+// SelfService .
+func (s *Server) SelfService() string {
+	return s.cacheProvider.selfService
 }
 
 // Report heartbeat request
@@ -187,12 +175,12 @@ func GetServer() (*Server, error) {
 		return nil, errors.New("server has not done InitializeServer")
 	}
 
-	return server, nil
+	return _server, nil
 }
 
 // SetServer for test only
 func SetServer(srv *Server) {
-	server = srv
+	_server = srv
 }
 
 // SetServiceCache 设置服务缓存
@@ -281,7 +269,7 @@ func (s *Server) GetLastHeartbeat(req *apiservice.Instance) *apiservice.Response
 	req.Metadata = make(map[string]string, 3)
 	req.Metadata["last-heartbeat-timestamp"] = strconv.Itoa(int(queryResp.LastHeartbeatSec))
 	req.Metadata["last-heartbeat-time"] = commontime.Time2String(time.Unix(queryResp.LastHeartbeatSec, 0))
-	req.Metadata["system-time"] = commontime.Time2String(time.Unix(currentTimeSec(), 0))
+	req.Metadata["system-time"] = commontime.Time2String(time.Unix(s.currentTimeSec(), 0))
 	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
@@ -322,9 +310,9 @@ func (s *Server) Checkers() map[int32]plugin.HealthChecker {
 }
 
 func (s *Server) isOpen() bool {
-	return s.hcOpt.Open
+	return s.hcOpt.IsOpen()
 }
 
-func currentTimeSec() int64 {
-	return time.Now().Unix() - server.timeAdjuster.GetDiff()
+func (s *Server) currentTimeSec() int64 {
+	return time.Now().Unix() - s.timeAdjuster.GetDiff()
 }

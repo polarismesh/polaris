@@ -25,12 +25,10 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/google/uuid"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	bolt "go.etcd.io/bbolt"
@@ -47,6 +45,7 @@ import (
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/config"
+	_ "github.com/polarismesh/polaris/config/interceptor"
 	ns "github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
 	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
@@ -64,6 +63,7 @@ import (
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/batch"
 	"github.com/polarismesh/polaris/service/healthcheck"
+	_ "github.com/polarismesh/polaris/service/interceptor"
 	"github.com/polarismesh/polaris/store"
 	"github.com/polarismesh/polaris/store/boltdb"
 	_ "github.com/polarismesh/polaris/store/boltdb"
@@ -110,16 +110,19 @@ type Bootstrap struct {
 }
 
 type TestConfig struct {
-	Bootstrap    Bootstrap          `yaml:"bootstrap"`
-	Cache        cache.Config       `yaml:"cache"`
-	Namespace    ns.Config          `yaml:"namespace"`
-	Naming       service.Config     `yaml:"naming"`
-	Config       config.Config      `yaml:"config"`
-	HealthChecks healthcheck.Config `yaml:"healthcheck"`
-	Store        store.Config       `yaml:"store"`
-	Auth         auth.Config        `yaml:"auth"`
-	Plugin       plugin.Config      `yaml:"plugin"`
-	ReplaceStore store.Store
+	Bootstrap           Bootstrap      `yaml:"bootstrap"`
+	Cache               cache.Config   `yaml:"cache"`
+	Namespace           ns.Config      `yaml:"namespace"`
+	Naming              service.Config `yaml:"naming"`
+	DisableConfig       bool
+	Config              config.Config      `yaml:"config"`
+	HealthChecks        healthcheck.Config `yaml:"healthcheck"`
+	Store               store.Config       `yaml:"store"`
+	DisableAuth         bool
+	Auth                auth.Config   `yaml:"auth"`
+	Plugin              plugin.Config `yaml:"plugin"`
+	ReplaceStore        store.Store
+	ServiceCacheEntries []cachetypes.ConfigEntry
 }
 
 var InjectTestDataClean func() TestDataClean
@@ -151,6 +154,10 @@ type DiscoverTestSuit struct {
 
 func (d *DiscoverTestSuit) InjectSuit(*DiscoverTestSuit) {
 
+}
+
+func (d *DiscoverTestSuit) GetBootstrapConfig() *TestConfig {
+	return d.cfg
 }
 
 func (d *DiscoverTestSuit) CacheMgr() *cache.CacheManager {
@@ -228,19 +235,8 @@ func (d *DiscoverTestSuit) loadConfig() error {
 		fmt.Printf("[ERROR] %v\n", err)
 		return err
 	}
-
-	resources := d.cfg.Cache.Resources
-	for i := range resources {
-		item := resources[i]
-		if item.Name == "configFile" {
-			item.Option = map[string]interface{}{
-				"cachePath": filepath.Join("/tmp/polaris/cache/", uuid.NewString()),
-			}
-		}
-		resources[i] = item
-	}
-	d.cfg.Cache.Resources = resources
-
+	d.cfg.Naming.Interceptors = service.GetChainOrder()
+	d.cfg.Config.Interceptors = config.GetChainOrder()
 	return err
 }
 
@@ -326,17 +322,22 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 		panic(err)
 	}
 	d.cacheMgr = cacheMgn
+	_ = d.cacheMgr.OpenResourceCache(cachetypes.ConfigEntry{
+		Name: cachetypes.GrayName,
+	})
 
-	// 初始化鉴权层
-	userMgn, strategyMgn, err := auth.TestInitialize(ctx, &d.cfg.Auth, d.Storage, cacheMgn)
-	if err != nil {
-		panic(err)
+	if !d.cfg.DisableAuth {
+		// 初始化鉴权层
+		userMgn, strategyMgn, err := auth.TestInitialize(ctx, &d.cfg.Auth, d.Storage, cacheMgn)
+		if err != nil {
+			panic(err)
+		}
+		d.userMgn = userMgn
+		d.strategyMgn = strategyMgn
 	}
-	d.userMgn = userMgn
-	d.strategyMgn = strategyMgn
 
 	// 初始化命名空间模块
-	namespaceSvr, err := ns.TestInitialize(ctx, &d.cfg.Namespace, d.Storage, cacheMgn, userMgn, strategyMgn)
+	namespaceSvr, err := ns.TestInitialize(ctx, &d.cfg.Namespace, d.Storage, cacheMgn, d.userMgn, d.strategyMgn)
 	if err != nil {
 		panic(err)
 	}
@@ -371,47 +372,46 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	if len(d.cfg.HealthChecks.LocalHost) == 0 {
 		d.cfg.HealthChecks.LocalHost = utils.LocalHost // 补充healthCheck的配置
 	}
-	healthCheckServer, err := healthcheck.TestInitialize(ctx, &d.cfg.HealthChecks, d.cfg.Cache.Open, bc, d.Storage)
+	healthCheckServer, err := healthcheck.TestInitialize(ctx, &d.cfg.HealthChecks, bc, d.Storage)
 	if err != nil {
 		panic(err)
 	}
 	healthcheck.SetServer(healthCheckServer)
 	d.healthCheckServer = healthCheckServer
-	cacheProvider, err := healthCheckServer.CacheProvider()
-	if err != nil {
-		panic(err)
-	}
 	healthCheckServer.SetServiceCache(cacheMgn.Service())
 	healthCheckServer.SetInstanceCache(cacheMgn.Instance())
 
-	// 为 instance 的 cache 添加 健康检查的 Listener
-	cacheMgn.AddListener(cachetypes.CacheInstance, []cachetypes.Listener{cacheProvider})
-	cacheMgn.AddListener(cachetypes.CacheClient, []cachetypes.Listener{cacheProvider})
-
-	val, originVal, err := service.TestInitialize(ctx, &d.cfg.Naming, &d.cfg.Cache, bc, cacheMgn, d.Storage, namespaceSvr,
-		healthCheckServer, userMgn, strategyMgn)
+	val, originVal, err := service.TestInitialize(ctx, &d.cfg.Naming, &d.cfg.Cache, d.cfg.ServiceCacheEntries,
+		bc, cacheMgn, d.Storage, namespaceSvr, healthCheckServer, d.userMgn, d.strategyMgn)
 	if err != nil {
 		panic(err)
 	}
 	d.server = val
 	d.originSvr = originVal
 
-	confVal, confOriginVal, err := config.TestInitialize(ctx, d.cfg.Config, d.Storage, cacheMgn, namespaceSvr, userMgn, strategyMgn)
-	if err != nil {
-		panic(err)
+	if !d.cfg.DisableConfig {
+		confVal, confOriginVal, err := config.TestInitialize(ctx, d.cfg.Config, d.Storage, cacheMgn, namespaceSvr, d.userMgn, d.strategyMgn)
+		if err != nil {
+			panic(err)
+		}
+		d.configServer = confVal
+		d.configOriginSvr = confOriginVal
 	}
-	d.configServer = confVal
-	d.configOriginSvr = confOriginVal
 
 	// 多等待一会
-	d.updateCacheInterval = d.server.Cache().GetUpdateCacheInterval() + time.Millisecond*500
-
+	d.updateCacheInterval = d.cacheMgr.GetUpdateCacheInterval() + time.Millisecond*500
+	if err := cache.TestRun(ctx, d.cacheMgr); err != nil {
+		return err
+	}
 	time.Sleep(5 * time.Second)
 	return nil
 }
 
 func (d *DiscoverTestSuit) Destroy() {
 	d.cancel()
+	if svr, ok := d.configOriginSvr.(*config.Server); ok {
+		svr.WatchCenter().Close()
+	}
 	d.healthCheckServer.Destroy()
 	_ = d.cacheMgr.Close()
 	_ = d.Storage.Destroy()
@@ -1017,6 +1017,53 @@ func (d *DiscoverTestSuit) CleanCircuitBreaker(id, version string) {
 func (d *DiscoverTestSuit) CleanCircuitBreakerRelation(name, namespace, ruleID, ruleVersion string) {
 }
 
+// 彻底删除熔断规则发布记录
+func (d *DiscoverTestSuit) CleanServiceContract() error {
+	if d.Storage.Name() == boltdb.STORENAME {
+		proxyTx, err := d.Storage.StartTx()
+		if err != nil {
+			return err
+		}
+
+		tx := proxyTx.GetDelegateTx().(*bolt.Tx)
+
+		bucketName := []string{
+			"service_contract",
+		}
+
+		defer tx.Rollback()
+
+		for i := range bucketName {
+			if err := tx.DeleteBucket([]byte(bucketName[i])); err != nil {
+				if !errors.Is(err, bolt.ErrBucketNotFound) {
+					return err
+				}
+			}
+		}
+		return tx.Commit()
+	}
+	if d.Storage.Name() == sqldb.STORENAME {
+		proxyTx, err := d.Storage.StartTx()
+		if err != nil {
+			return err
+		}
+
+		tx := proxyTx.GetDelegateTx().(*sqldb.BaseTx)
+
+		defer tx.Rollback()
+		_, err = tx.Exec("delete from service_contract")
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec("delete from service_contract_detail")
+		if err != nil {
+			return err
+		}
+		return tx.Commit()
+	}
+	return nil
+}
+
 func (d *DiscoverTestSuit) ClearTestDataWhenUseRDS() error {
 	if d.Storage.Name() == boltdb.STORENAME {
 		proxyTx, err := d.Storage.StartTx()
@@ -1038,6 +1085,7 @@ func (d *DiscoverTestSuit) ClearTestDataWhenUseRDS() error {
 			"ConfigFileTag",
 			"ConfigFileTagID",
 			"namespace",
+			"service_contract",
 		}
 
 		defer tx.Rollback()
@@ -1086,6 +1134,14 @@ func (d *DiscoverTestSuit) ClearTestDataWhenUseRDS() error {
 			return err
 		}
 		_, err = tx.Exec("delete from config_file_template where name in (?,?) ", templateName1, templateName2)
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec("delete from service_contract")
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec("delete from service_contract_detail")
 		if err != nil {
 			return err
 		}

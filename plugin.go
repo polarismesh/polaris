@@ -23,6 +23,7 @@ import (
 	_ "github.com/polarismesh/polaris/apiserver/grpcserver/discover"
 	_ "github.com/polarismesh/polaris/apiserver/httpserver"
 	_ "github.com/polarismesh/polaris/apiserver/l5pbserver"
+	_ "github.com/polarismesh/polaris/apiserver/nacosserver"
 	_ "github.com/polarismesh/polaris/apiserver/xdsserverv3"
 	_ "github.com/polarismesh/polaris/auth/defaultauth"
 	_ "github.com/polarismesh/polaris/cache"
@@ -31,6 +32,7 @@ import (
 	_ "github.com/polarismesh/polaris/cache/config"
 	_ "github.com/polarismesh/polaris/cache/namespace"
 	_ "github.com/polarismesh/polaris/cache/service"
+	_ "github.com/polarismesh/polaris/config/interceptor"
 	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
 	_ "github.com/polarismesh/polaris/plugin/crypto/aes"
 	_ "github.com/polarismesh/polaris/plugin/discoverevent/local"
@@ -44,6 +46,7 @@ import (
 	_ "github.com/polarismesh/polaris/plugin/statis/logger"
 	_ "github.com/polarismesh/polaris/plugin/statis/prometheus"
 	_ "github.com/polarismesh/polaris/plugin/whitelist"
+	_ "github.com/polarismesh/polaris/service/interceptor"
 	_ "github.com/polarismesh/polaris/store/boltdb"
 	_ "github.com/polarismesh/polaris/store/mysql"
 )

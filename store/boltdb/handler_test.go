@@ -19,7 +19,6 @@ package boltdb
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -33,17 +32,19 @@ import (
 )
 
 func CreateTableDBHandlerAndRun(t *testing.T, tableName string, tf func(t *testing.T, handler BoltHandler)) {
-	tempDir, _ := ioutil.TempDir("", tableName)
+	tempDir := filepath.Join(os.TempDir(), tableName)
 	t.Logf("temp dir : %s", tempDir)
-	_ = os.Remove(filepath.Join(tempDir, fmt.Sprintf("%s.bolt", tableName)))
-	handler, err := NewBoltHandler(&BoltConfig{FileName: filepath.Join(tempDir, fmt.Sprintf("%s.bolt", tableName))})
+	_ = os.MkdirAll(tempDir, os.ModePerm)
+	boltFile := filepath.Join(tempDir, fmt.Sprintf("%s.bolt", tableName))
+	_ = os.Remove(boltFile)
+	handler, err := NewBoltHandler(&BoltConfig{FileName: boltFile})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	defer func() {
 		_ = handler.Close()
-		_ = os.Remove(filepath.Join(tempDir, fmt.Sprintf("%s.bolt", tableName)))
+		_ = os.Remove(boltFile)
 	}()
 	tf(t, handler)
 }
@@ -84,12 +85,12 @@ func TestBoltHandler_LoadNamespace(t *testing.T) {
 		CreateTime: time.Now(),
 		ModifyTime: time.Now(),
 	}
-	nsValues, err := handler.LoadValues(tblNameNamespace, []string{nsValue.Name}, &model.Namespace{})
+	nsValues, err := handler.LoadValues(tblNameNamespace, []string{nsValue.Name}, &Namespace{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	targetNsValue := nsValues[nsValue.Name]
-	targetNs := targetNsValue.(*model.Namespace)
+	targetNs := targetNsValue.(*Namespace)
 	fmt.Printf("loaded ns is %+v\n", targetNs)
 	if nsValue.Name != targetNs.Name {
 		fmt.Printf("name not equals\n")
@@ -133,19 +134,19 @@ func TestBoltHandler_Service(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nsValues, err := handler.LoadValues("service", []string{svcValue.ID}, &model.Service{})
+	nsValues, err := handler.LoadValues("service", []string{svcValue.ID}, &Service{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	targetSvcValue := nsValues[svcValue.ID]
-	targetSvc := targetSvcValue.(*model.Service)
+	targetSvc := targetSvcValue.(*Service)
 	fmt.Printf("loaded svc is %+v\n", targetSvc)
 	if svcValue.Name != targetSvc.Name || len(svcValue.Meta) != len(targetSvc.Meta) {
 		fmt.Printf("name not equals\n")
 	}
 	fmt.Printf("trget meta is %v\n", targetSvc.Meta)
 
-	_, _ = handler.LoadValuesByFilter("service", []string{"Meta"}, &model.Service{}, func(m map[string]interface{}) bool {
+	_, _ = handler.LoadValuesByFilter("service", []string{"Meta"}, &Service{}, func(m map[string]interface{}) bool {
 		values := m["Meta"]
 		fmt.Printf("values are %v\n", values)
 		return true
@@ -234,7 +235,7 @@ func TestBoltHandler_CountValues(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	services, err := handler.LoadValues(tblService, ids, &model.Service{})
+	services, err := handler.LoadValues(tblService, ids, &Service{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -306,7 +307,7 @@ func TestBoltHandler_LoadValuesByFilter(t *testing.T) {
 		}
 	}
 	values, err := handler.LoadValuesByFilter(tblService, []string{"Owner"},
-		&model.Service{}, func(props map[string]interface{}) bool {
+		&Service{}, func(props map[string]interface{}) bool {
 			owner := props["Owner"].(string)
 			return owner == "user1" || owner == "user2"
 		})
@@ -415,7 +416,7 @@ func TestBoltHandler_UpdateValue(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	values, err := handler.LoadValues(tblService, []string{targetId}, &model.Service{})
+	values, err := handler.LoadValues(tblService, []string{targetId}, &Service{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -424,7 +425,7 @@ func TestBoltHandler_UpdateValue(t *testing.T) {
 		t.Fatalf("not exists %s", targetId)
 	}
 
-	if value.(*model.Service).Comment != afterComment {
+	if value.(*Service).Comment != afterComment {
 		t.Fatalf("after comment not match")
 	}
 

@@ -18,29 +18,18 @@
 package leader
 
 import (
-	"time"
-
 	"github.com/mitchellh/mapstructure"
-
-	"github.com/polarismesh/polaris/common/batchjob"
 )
 
 type Config struct {
-	SoltNum   int32               `json:"soltNum"`
-	StreamNum int32               `json:"streamNum"`
-	Batch     batchjob.CtrlConfig `json:"batch,omitempty"`
+	SoltNum   int32 `json:"soltNum"`
+	StreamNum int32 `json:"streamNum"`
 }
 
 func unmarshal(options map[string]interface{}) (*Config, error) {
 	config := &Config{
 		SoltNum:   DefaultSoltNum,
 		StreamNum: int32(streamNum),
-		Batch: batchjob.CtrlConfig{
-			QueueSize:     16384,
-			WaitTime:      32 * time.Millisecond,
-			MaxBatchCount: 64,
-			Concurrency:   512,
-		},
 	}
 	decodeConfig := &mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),

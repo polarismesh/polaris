@@ -62,8 +62,8 @@ func NewCircuitBreakerCache(s store.Store, cacheMgr types.CacheManager) types.Ci
 		circuitBreakers: make(map[string]map[string]*model.ServiceWithCircuitBreakerRules),
 		nsWildcardRules: make(map[string]*model.ServiceWithCircuitBreakerRules),
 		allWildcardRules: model.NewServiceWithCircuitBreakerRules(model.ServiceKey{
-			Namespace: allMatched,
-			Name:      allMatched,
+			Namespace: types.AllMatched,
+			Name:      types.AllMatched,
 		}),
 	}
 }
@@ -190,7 +190,7 @@ func (c *circuitBreakerCache) deleteCircuitBreakerFromServiceCache(id string, sv
 	}
 	svcToReloads := make(map[model.ServiceKey]bool)
 	for svcKey := range svcKeys {
-		if svcKey.Name == allMatched {
+		if svcKey.Name == types.AllMatched {
 			rules, ok := c.nsWildcardRules[svcKey.Namespace]
 			if ok {
 				c.deleteAndReloadCircuitBreakerRules(rules, id)
@@ -251,7 +251,7 @@ func (c *circuitBreakerCache) storeCircuitBreakerToServiceCache(
 	}
 	svcToReloads := make(map[model.ServiceKey]bool)
 	for svcKey := range svcKeys {
-		if svcKey.Name == allMatched {
+		if svcKey.Name == types.AllMatched {
 			var wildcardRules *model.ServiceWithCircuitBreakerRules
 			var ok bool
 			wildcardRules, ok = c.nsWildcardRules[svcKey.Namespace]
@@ -303,15 +303,13 @@ func (c *circuitBreakerCache) storeCircuitBreakerToServiceCache(
 	}
 }
 
-const allMatched = "*"
-
 func getServicesInvolveByCircuitBreakerRule(cbRule *model.CircuitBreakerRule) map[model.ServiceKey]bool {
 	svcKeys := make(map[model.ServiceKey]bool)
 	addService := func(name string, namespace string) {
 		if len(name) == 0 && len(namespace) == 0 {
 			return
 		}
-		if name == allMatched && namespace == allMatched {
+		if name == types.AllMatched && namespace == types.AllMatched {
 			return
 		}
 		svcKeys[model.ServiceKey{

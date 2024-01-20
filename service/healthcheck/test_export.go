@@ -19,58 +19,23 @@ package healthcheck
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/service/batch"
 	"github.com/polarismesh/polaris/store"
 )
 
-func TestInitialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Controller,
+func TestInitialize(ctx context.Context, hcOpt *Config, bc *batch.Controller,
 	storage store.Store) (*Server, error) {
-
-	testServer := new(Server)
-	testServer.hcOpt = hcOpt
-
-	if !cacheOpen {
-		return nil, fmt.Errorf("[healthcheck]cache not open")
-	}
 	hcOpt.SetDefault()
-	if hcOpt.Open {
-		if len(hcOpt.Checkers) > 0 {
-			testServer.checkers = make(map[int32]plugin.HealthChecker, len(hcOpt.Checkers))
-			for _, entry := range hcOpt.Checkers {
-				checker := plugin.GetHealthChecker(entry.Name, &entry)
-				if checker == nil {
-					return nil, fmt.Errorf("[healthcheck]unknown healthchecker %s", entry.Name)
-				}
-				// The same health type check plugin can only exist in one
-				_, exist := testServer.checkers[int32(checker.Type())]
-				if exist {
-					return nil, fmt.Errorf("[healthcheck]duplicate healthchecker %s, checkType %d",
-						entry.Name, checker.Type())
-				}
-				testServer.checkers[int32(checker.Type())] = checker
-				if nil == testServer.defaultChecker {
-					testServer.defaultChecker = checker
-				}
-			}
-		} else {
-			return nil, fmt.Errorf("[healthcheck]no checker config")
-		}
+	testServer, err := NewHealthServer(ctx, hcOpt,
+		WithStore(storage),
+		WithBatchController(bc),
+		WithPlugins(),
+		WithTimeAdjuster(newTimeAdjuster(ctx, storage)),
+	)
+	if err != nil {
+		return nil, err
 	}
-	testServer.storage = storage
-	testServer.bc = bc
-
-	testServer.localHost = hcOpt.LocalHost
-	testServer.history = plugin.GetHistory()
-	testServer.discoverEvent = plugin.GetDiscoverEvent()
-
-	testServer.cacheProvider = newCacheProvider(hcOpt.Service, testServer)
-	testServer.timeAdjuster = newTimeAdjuster(ctx, testServer.storage)
-	testServer.checkScheduler = newCheckScheduler(ctx, hcOpt.SlotNum, hcOpt.MinCheckInterval,
-		hcOpt.MaxCheckInterval, hcOpt.ClientCheckInterval, hcOpt.ClientCheckTtl)
-	testServer.dispatcher = newDispatcher(ctx, testServer)
 	finishInit = true
 	return testServer, testServer.run(ctx)
 }

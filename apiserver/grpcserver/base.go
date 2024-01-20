@@ -23,7 +23,6 @@ import (
 	"net"
 	"net/http"
 	"runtime"
-	"strings"
 	"time"
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
@@ -31,8 +30,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -262,8 +259,10 @@ func (b *BaseGrpcServer) streamInterceptor(srv interface{}, ss grpc.ServerStream
 	)
 
 	defer func() {
-		if panicInfo := recover(); err != nil {
-			b.log.Errorf("panic %+v", panicInfo)
+		if panicInfo := recover(); panicInfo != nil {
+			var buf [4086]byte
+			n := runtime.Stack(buf[:], false)
+			b.log.Errorf("panic recovered: %v, STACK: %s", panicInfo, buf[0:n])
 		}
 	}()
 
@@ -434,48 +433,6 @@ func (b *BaseGrpcServer) AllowAccess(method string) bool {
 	}
 	_, ok := b.OpenMethod[method]
 	return ok
-}
-
-// ConvertContext 将GRPC上下文转换成内部上下文
-func ConvertContext(ctx context.Context) context.Context {
-	var (
-		requestID = ""
-		userAgent = ""
-	)
-	meta, exist := metadata.FromIncomingContext(ctx)
-	if exist {
-		ids := meta["request-id"]
-		if len(ids) > 0 {
-			requestID = ids[0]
-		}
-		agents := meta["user-agent"]
-		if len(agents) > 0 {
-			userAgent = agents[0]
-		}
-	} else {
-		meta = metadata.MD{}
-	}
-
-	var (
-		clientIP = ""
-		address  = ""
-	)
-	if pr, ok := peer.FromContext(ctx); ok && pr.Addr != nil {
-		address = pr.Addr.String()
-		addrSlice := strings.Split(address, ":")
-		if len(addrSlice) == 2 {
-			clientIP = addrSlice[0]
-		}
-	}
-
-	ctx = context.Background()
-	ctx = context.WithValue(ctx, utils.ContextGrpcHeader, meta)
-	ctx = context.WithValue(ctx, utils.StringContext("request-id"), requestID)
-	ctx = context.WithValue(ctx, utils.StringContext("client-ip"), clientIP)
-	ctx = context.WithValue(ctx, utils.ContextClientAddress, address)
-	ctx = context.WithValue(ctx, utils.StringContext("user-agent"), userAgent)
-
-	return ctx
 }
 
 type connCounterHook struct {

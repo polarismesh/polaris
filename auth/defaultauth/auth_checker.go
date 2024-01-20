@@ -27,7 +27,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -45,15 +45,15 @@ var (
 
 // DefaultAuthChecker 北极星自带的默认鉴权中心
 type DefaultAuthChecker struct {
-	cacheMgn *cache.CacheManager
+	cacheMgn cachetypes.CacheManager
 }
 
-func (d *DefaultAuthChecker) SetCacheMgr(mgr *cache.CacheManager) {
+func (d *DefaultAuthChecker) SetCacheMgr(mgr cachetypes.CacheManager) {
 	d.cacheMgn = mgr
 }
 
 // Initialize 执行初始化动作
-func (d *DefaultAuthChecker) Initialize(options *auth.Config, s store.Store, cacheMgn *cache.CacheManager) error {
+func (d *DefaultAuthChecker) Initialize(options *auth.Config, s store.Store, cacheMgr cachetypes.CacheManager) error {
 	// 新版本鉴权策略配置均从auth.Option中迁移至auth.user.option及auth.strategy.option中
 	var (
 		strategyContentBytes []byte
@@ -103,12 +103,12 @@ func (d *DefaultAuthChecker) Initialize(options *auth.Config, s store.Store, cac
 		cfg.ConsoleOpen = cfg.Strict
 	}
 	AuthOption = cfg
-	d.cacheMgn = cacheMgn
+	d.cacheMgn = cacheMgr
 	return nil
 }
 
 // Cache 获取缓存统一管理
-func (d *DefaultAuthChecker) Cache() *cache.CacheManager {
+func (d *DefaultAuthChecker) Cache() cachetypes.CacheManager {
 	return d.cacheMgn
 }
 
@@ -129,19 +129,19 @@ func (d *DefaultAuthChecker) IsOpenAuth() bool {
 
 // CheckClientPermission 执行检查客户端动作判断是否有权限，并且对 RequestContext 注入操作者数据
 func (d *DefaultAuthChecker) CheckClientPermission(preCtx *model.AcquireContext) (bool, error) {
+	preCtx.SetFromClient()
 	if !d.IsOpenClientAuth() {
 		return true, nil
 	}
-	preCtx.SetFromClient()
 	return d.CheckPermission(preCtx)
 }
 
 // CheckConsolePermission 执行检查控制台动作判断是否有权限，并且对 RequestContext 注入操作者数据
 func (d *DefaultAuthChecker) CheckConsolePermission(preCtx *model.AcquireContext) (bool, error) {
+	preCtx.SetFromConsole()
 	if !d.IsOpenConsoleAuth() {
 		return true, nil
 	}
-	preCtx.SetFromConsole()
 	if preCtx.GetModule() == model.MaintainModule {
 		return d.checkMaintainPermission(preCtx)
 	}

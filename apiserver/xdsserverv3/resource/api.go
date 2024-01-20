@@ -18,37 +18,36 @@
 package resource
 
 import (
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/service"
 )
 
-var (
-	builderFactory = map[XDSType]func() XDSBuilder{}
-)
-
-// RegisterFactory
-func RegisterFactory(xdsType XDSType, factory func() XDSBuilder) {
-	builderFactory[xdsType] = factory
-}
-
-// GetBuilder .
-func GetBuilder(xdsType XDSType) XDSBuilder {
-	return builderFactory[xdsType]()
-}
-
 // XDSBuilder .
 type XDSBuilder interface {
 	// Init
-	Init(*XDSClient, service.DiscoverServer)
+	Init(service.DiscoverServer)
 	// Generate
 	Generate(option *BuildOption) (interface{}, error)
 }
 
 type BuildOption struct {
+	RunType      RunType
 	Namespace    string
 	TLSMode      TLSMode
 	Services     map[model.ServiceKey]*ServiceInfo
-	VersionLocal string
+	OpenOnDemand bool
+	SelfService  model.ServiceKey
+	// 不是比带，只有在 EDS 生成，并且是处理 INBOUND 的时候才会设置
+	Client           *XDSClient
+	TrafficDirection corev3.TrafficDirection
+	// ForceDelete 如果设置了该字段值为 true, 则不会真正执行 XDS 的构建工作, 仅仅生成对应资源的 Name 名称用于清理
+	ForceDelete bool
+}
+
+func (opt *BuildOption) HasTls() bool {
+	return opt.TLSMode == TLSModeStrict || opt.TLSMode == TLSModePermissive
 }
 
 func (opt *BuildOption) Clone() *BuildOption {

@@ -20,6 +20,8 @@ package apiserver
 import (
 	"context"
 	"fmt"
+
+	"github.com/polarismesh/polaris/common/model"
 )
 
 const (
@@ -56,6 +58,11 @@ type Apiserver interface {
 	Stop()
 	// Restart 重启API
 	Restart(option map[string]interface{}, api map[string]APIConfig, errCh chan error) error
+}
+
+type EnrichApiserver interface {
+	Apiserver
+	DebugHandlers() []model.DebugHandler
 }
 
 var (

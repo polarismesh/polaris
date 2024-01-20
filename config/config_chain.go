@@ -20,6 +20,7 @@ package config
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
@@ -79,9 +80,12 @@ func (chain *CryptoConfigFileChain) BeforeCreateFile(ctx context.Context,
 // AfterCreateFile
 func (chain *CryptoConfigFileChain) AfterGetFile(ctx context.Context,
 	file *model.ConfigFile) (*model.ConfigFile, error) {
-
 	encryptAlgo := file.GetEncryptAlgo()
 	dataKey := file.GetEncryptDataKey()
+	if file.IsEncrypted() {
+		file.Encrypt = true
+	}
+
 	plainContent, err := chain.decryptConfigFileContent(dataKey, encryptAlgo, file.Content)
 
 	// TODO: 这个逻辑需要优化，在1.17.3处理
@@ -95,7 +99,7 @@ func (chain *CryptoConfigFileChain) AfterGetFile(ctx context.Context,
 			utils.ZapNamespace(file.Namespace), utils.ZapGroup(file.Group),
 			utils.ZapFileName(file.Name), zap.Error(err))
 	}
-	delete(file.Metadata, utils.ConfigFileTagKeyDataKey)
+	delete(file.Metadata, model.MetaKeyConfigFileDataKey)
 	return file, nil
 }
 
@@ -197,9 +201,9 @@ func (chain *CryptoConfigFileChain) decryptConfigFileContent(dataKey, algorithm,
 
 // cleanEncryptConfigFileInfo 清理配置加密文件的内容信息
 func (chain *CryptoConfigFileChain) cleanEncryptConfigFileInfo(ctx context.Context, configFile *model.ConfigFile) {
-	delete(configFile.Metadata, utils.ConfigFileTagKeyDataKey)
-	delete(configFile.Metadata, utils.ConfigFileTagKeyEncryptAlgo)
-	delete(configFile.Metadata, utils.ConfigFileTagKeyUseEncrypted)
+	delete(configFile.Metadata, model.MetaKeyConfigFileDataKey)
+	delete(configFile.Metadata, model.MetaKeyConfigFileEncryptAlgo)
+	delete(configFile.Metadata, model.MetaKeyConfigFileUseEncrypted)
 }
 
 // encryptConfigFile 加密配置文件
@@ -236,9 +240,9 @@ func (chain *CryptoConfigFileChain) encryptConfigFile(ctx context.Context, confi
 	if len(configFile.Metadata) == 0 {
 		configFile.Metadata = map[string]string{}
 	}
-	configFile.Metadata[utils.ConfigFileTagKeyDataKey] = base64.StdEncoding.EncodeToString(dateKeyBytes)
-	configFile.Metadata[utils.ConfigFileTagKeyEncryptAlgo] = algorithm
-	configFile.Metadata[utils.ConfigFileTagKeyUseEncrypted] = "true"
+	configFile.Metadata[model.MetaKeyConfigFileDataKey] = base64.StdEncoding.EncodeToString(dateKeyBytes)
+	configFile.Metadata[model.MetaKeyConfigFileEncryptAlgo] = algorithm
+	configFile.Metadata[model.MetaKeyConfigFileUseEncrypted] = "true"
 
 	return nil
 }
@@ -268,15 +272,21 @@ func (chain *ReleaseConfigFileChain) AfterGetFile(ctx context.Context,
 	namespace := file.Namespace
 	group := file.Group
 	name := file.Name
-
-	// 填充发布信息
-	activeFile := chain.svr.fileCache.GetActiveRelease(namespace, group, name)
-	if activeFile != nil {
+	// 首先检测灰度版本
+	if grayFile := chain.svr.fileCache.GetActiveGrayRelease(namespace, group, name); grayFile != nil {
+		if grayFile.Content == file.OriginContent {
+			file.Status = utils.ReleaseTypeGray
+			file.ReleaseBy = grayFile.ModifyBy
+			file.ReleaseTime = grayFile.ModifyTime
+		} else {
+			file.Status = utils.ReleaseStatusToRelease
+		}
+	} else if fullFile := chain.svr.fileCache.GetActiveRelease(namespace, group, name); fullFile != nil {
 		// 如果最后一次发布的内容和当前文件内容一致，则展示最后一次发布状态。否则说明文件有修改，待发布
-		if activeFile.Content == file.OriginContent {
+		if fullFile.Content == file.OriginContent {
 			file.Status = utils.ReleaseTypeNormal
-			file.ReleaseBy = activeFile.ModifyBy
-			file.ReleaseTime = activeFile.ModifyTime
+			file.ReleaseBy = fullFile.ModifyBy
+			file.ReleaseTime = fullFile.ModifyTime
 		} else {
 			file.Status = utils.ReleaseStatusToRelease
 		}
@@ -295,8 +305,16 @@ func (chain *ReleaseConfigFileChain) BeforeUpdateFile(ctx context.Context,
 
 // AfterGetFileRelease
 func (chain *ReleaseConfigFileChain) AfterGetFileRelease(ctx context.Context,
-	release *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
-	return release, nil
+	ret *model.ConfigFileRelease) (*model.ConfigFileRelease, error) {
+
+	if ret.ReleaseType == model.ReleaseTypeGray {
+		rule := chain.svr.caches.Gray().GetGrayRule(model.GetGrayConfigRealseKey(ret.SimpleConfigFileRelease))
+		if rule == nil {
+			return nil, fmt.Errorf("gray rule not found")
+		}
+		ret.BetaLabels = rule
+	}
+	return ret, nil
 }
 
 // AfterGetFileHistory

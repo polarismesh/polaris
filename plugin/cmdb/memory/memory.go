@@ -61,6 +61,9 @@ func (m *Memory) Initialize(c *plugin.ConfigEntry) error {
 	url, _ := c.Option["url"].(string)
 	token, _ := c.Option["token"].(string)
 	interval, _ := c.Option["interval"].(string)
+	if len(url) == 0 {
+		return nil
+	}
 
 	tick, err := time.ParseDuration(interval)
 	if err != nil {
@@ -75,7 +78,6 @@ func (m *Memory) Initialize(c *plugin.ConfigEntry) error {
 	m.cancel = cancel
 
 	go m.doFetch(ctx, tick)
-
 	return nil
 }
 

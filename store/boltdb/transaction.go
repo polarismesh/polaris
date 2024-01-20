@@ -41,7 +41,7 @@ func (t *transaction) LockNamespace(name string) (*model.Namespace, error) {
 }
 
 func (t *transaction) loadNamespace(name string) (*model.Namespace, error) {
-	values, err := t.handler.LoadValues(tblNameNamespace, []string{name}, &model.Namespace{})
+	values, err := t.handler.LoadValues(tblNameNamespace, []string{name}, &Namespace{})
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (t *transaction) loadNamespace(name string) (*model.Namespace, error) {
 	if !ok {
 		return nil, nil
 	}
-	return value.(*model.Namespace), nil
+	return toModelNamespace(value.(*Namespace)), nil
 }
 
 // RLockNamespace 共享锁namespace
@@ -85,13 +85,13 @@ func (t *transaction) loadService(name string, namespace string) (*model.Service
 		return nameValue.(string) == name && namespaceValue.(string) == namespace
 	}
 	values, err := t.handler.LoadValuesByFilter(
-		tblNameService, []string{svcFieldName, svcFieldNamespace, svcFieldValid}, &model.Service{}, filter)
+		tblNameService, []string{svcFieldName, svcFieldNamespace, svcFieldValid}, &Service{}, filter)
 	if err != nil {
 		return nil, err
 	}
 	var svc *model.Service
 	for _, svcValue := range values {
-		svc = svcValue.(*model.Service)
+		svc = toModelService(svcValue.(*Service))
 		break
 	}
 	return svc, nil

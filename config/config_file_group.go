@@ -25,6 +25,7 @@ import (
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -172,10 +173,10 @@ func (s *Server) createConfigFileGroupIfAbsent(ctx context.Context,
 
 // DeleteConfigFileGroup 删除配置文件组
 func (s *Server) DeleteConfigFileGroup(ctx context.Context, namespace, name string) *apiconfig.ConfigResponse {
-	if err := CheckResourceName(utils.NewStringValue(namespace)); err != nil {
+	if err := utils.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
 		return api.NewConfigResponse(apimodel.Code_InvalidNamespaceName)
 	}
-	if err := CheckResourceName(utils.NewStringValue(name)); err != nil {
+	if err := utils.CheckResourceName(utils.NewStringValue(name)); err != nil {
 		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileGroupName)
 	}
 
@@ -276,7 +277,14 @@ func (s *Server) QueryConfigFileGroups(ctx context.Context,
 	}
 	values := make([]*apiconfig.ConfigFileGroup, 0, len(ret))
 	for i := range ret {
-		values = append(values, model.ToConfigGroupAPI(ret[i]))
+		item := model.ToConfigGroupAPI(ret[i])
+		fileCount, err := s.storage.CountConfigFiles(ret[i].Namespace, ret[i].Name)
+		if err != nil {
+			log.Error("[Config][Service] get config file count for group error.", utils.RequestID(ctx),
+				utils.ZapNamespace(ret[i].Namespace), utils.ZapGroup(ret[i].Name), zap.Error(err))
+		}
+		item.FileCount = wrapperspb.UInt64(fileCount)
+		values = append(values, item)
 	}
 
 	resp := api.NewConfigBatchQueryResponse(apimodel.Code_ExecuteSuccess)
@@ -289,10 +297,10 @@ func checkConfigFileGroupParams(configFileGroup *apiconfig.ConfigFileGroup) *api
 	if configFileGroup == nil {
 		return api.NewConfigResponse(apimodel.Code_InvalidParameter)
 	}
-	if err := CheckResourceName(configFileGroup.Name); err != nil {
+	if err := utils.CheckResourceName(configFileGroup.Name); err != nil {
 		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileGroupName)
 	}
-	if err := CheckResourceName(configFileGroup.Namespace); err != nil {
+	if err := utils.CheckResourceName(configFileGroup.Namespace); err != nil {
 		return api.NewConfigResponse(apimodel.Code_InvalidNamespaceName)
 	}
 	if len(configFileGroup.GetMetadata()) > utils.MaxMetadataLength {

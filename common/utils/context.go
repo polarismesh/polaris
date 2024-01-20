@@ -19,11 +19,16 @@ package utils
 
 import "context"
 
-// StringContext is a context key that carries a string.
-type StringContext string
-
-// localhostCtx is a context key that carries localhost info.
-type localhostCtx struct{}
+type (
+	// StringContext is a context key that carries a string.
+	StringContext string
+	// localhostCtx is a context key that carries localhost info.
+	localhostCtx struct{}
+	// ContextAPIServerSlot
+	ContextAPIServerSlot struct{}
+	// WatchTimeoutCtx .
+	WatchTimeoutCtx struct{}
+)
 
 // WithLocalhost 存储localhost
 func WithLocalhost(ctx context.Context, localhost string) context.Context {

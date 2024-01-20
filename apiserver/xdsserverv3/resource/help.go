@@ -36,6 +36,7 @@ import (
 	envoy_extensions_common_ratelimit_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
 	ratelimitv32 "github.com/envoyproxy/go-control-plane/envoy/extensions/common/ratelimit/v3"
 	lrl "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
+	on_demandv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/on_demand/v3"
 	ratelimitfilter "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ratelimit/v3"
 	routerv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
@@ -43,7 +44,6 @@ import (
 	v32 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	typev3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
-	resourcev3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 	_struct "github.com/golang/protobuf/ptypes/struct"
@@ -61,27 +61,6 @@ import (
 	types "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
-)
-
-const (
-	PassthroughClusterName  = "PassthroughCluster"
-	RouteConfigName         = "polaris-router"
-	OutBoundRouteConfigName = "polaris-outbound-router"
-	InBoundRouteConfigName  = "polaris-inbound-cluster"
-)
-
-const (
-	// LocalRateLimitStage envoy local ratelimit stage
-	LocalRateLimitStage = 0
-	// DistributedRateLimitStage envoy remote ratelimit stage
-	DistributedRateLimitStage = 1
-)
-
-var (
-	TrafficBoundRoute = map[corev3.TrafficDirection]string{
-		corev3.TrafficDirection_INBOUND:  InBoundRouteConfigName,
-		corev3.TrafficDirection_OUTBOUND: OutBoundRouteConfigName,
-	}
 )
 
 func MakeServiceGatewayDomains() []string {
@@ -135,8 +114,11 @@ func BuildCommonRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.
 	for i := range source.GetArguments() {
 		argument := source.GetArguments()[i]
 		switch argument.Type {
-		case traffic_manage.SourceMatch_HEADER:
+		case traffic_manage.SourceMatch_HEADER, traffic_manage.SourceMatch_METHOD:
 			headerSubName := argument.Key
+			if argument.Type == traffic_manage.SourceMatch_METHOD {
+				headerSubName = ":method"
+			}
 			var headerMatch *route.HeaderMatcher
 			if argument.Value.Type == apimodel.MatchString_EXACT {
 				headerMatch = &route.HeaderMatcher{
@@ -208,7 +190,7 @@ func BuildCommonRouteMatch(routeMatch *route.RouteMatch, source *traffic_manage.
 }
 
 func BuildWeightClustersV2(trafficDirection corev3.TrafficDirection,
-	destinations []*traffic_manage.DestinationGroup) *route.WeightedCluster {
+	destinations []*traffic_manage.DestinationGroup, opt *BuildOption) *route.WeightedCluster {
 	var (
 		weightedClusters []*route.WeightedCluster_ClusterWeight
 		totalWeight      uint32
@@ -236,7 +218,7 @@ func BuildWeightClustersV2(trafficDirection corev3.TrafficDirection,
 			Name: MakeServiceName(model.ServiceKey{
 				Namespace: destination.Namespace,
 				Name:      destination.Service,
-			}, trafficDirection),
+			}, trafficDirection, opt),
 			Weight: utils.NewUInt32Value(destination.GetWeight()),
 			MetadataMatch: &core.Metadata{
 				FilterMetadata: map[string]*_struct.Struct{
@@ -292,7 +274,8 @@ func BuildRateLimitConf(prefix string) *lrl.LocalRateLimit {
 				Append: wrapperspb.Bool(false),
 			},
 		},
-		LocalRateLimitPerDownstreamConnection: true,
+		// the token bucket must shared across all worker threads
+		LocalRateLimitPerDownstreamConnection: false,
 	}
 	return rateLimitConf
 }
@@ -312,10 +295,13 @@ func BuildRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLimit_Ac
 	}
 	actions = append(actions, &route.RateLimit_Action{
 		ActionSpecifier: &route.RateLimit_Action_HeaderValueMatch_{
-			HeaderValueMatch: BuildRateLimitActionHeaderValueMatch(":path", &apimodel.MatchString{
-				Type:      methodMatchType,
-				Value:     wrapperspb.String(methodName),
-				ValueType: apimodel.MatchString_TEXT,
+			HeaderValueMatch: BuildRateLimitActionHeaderValueMatch(":path", methodName, &apitraffic.MatchArgument{
+				Key: ":path",
+				Value: &apimodel.MatchString{
+					Type:      methodMatchType,
+					Value:     wrapperspb.String(methodName),
+					ValueType: apimodel.MatchString_TEXT,
+				},
 			}),
 		},
 	})
@@ -327,10 +313,16 @@ func BuildRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLimit_Ac
 
 	for i := range arguments {
 		arg := arguments[i]
+		// 仅支持文本类型参数
+		if arg.GetValue().GetValueType() != apimodel.MatchString_TEXT {
+			continue
+		}
+
 		descriptorKey := strings.ToLower(arg.GetType().String()) + "." + arg.Key
+		descriptorValue := arg.GetValue().GetValue().GetValue()
 		switch arg.Type {
 		case apitraffic.MatchArgument_HEADER:
-			headerValueMatch := BuildRateLimitActionHeaderValueMatch(descriptorKey, arg.Value)
+			headerValueMatch := BuildRateLimitActionHeaderValueMatch(descriptorKey, descriptorValue, arg)
 			actions = append(actions, &route.RateLimit_Action{
 				ActionSpecifier: &route.RateLimit_Action_HeaderValueMatch_{
 					HeaderValueMatch: headerValueMatch,
@@ -341,7 +333,7 @@ func BuildRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLimit_Ac
 				Value: arg.GetValue().GetValue().GetValue(),
 			})
 		case apitraffic.MatchArgument_QUERY:
-			queryParameterValueMatch := BuildRateLimitActionQueryParameterValueMatch(descriptorKey, arg.Value)
+			queryParameterValueMatch := BuildRateLimitActionQueryParameterValueMatch(descriptorKey, arg)
 			actions = append(actions, &route.RateLimit_Action{
 				ActionSpecifier: &route.RateLimit_Action_QueryParameterValueMatch_{
 					QueryParameterValueMatch: queryParameterValueMatch,
@@ -364,11 +356,56 @@ func BuildRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLimit_Ac
 				Key:   descriptorKey,
 				Value: arg.GetValue().GetValue().GetValue(),
 			})
+		case apitraffic.MatchArgument_CALLER_SERVICE:
+			descriptorKey := "source_cluster"
+			descriptorValue := fmt.Sprintf("%s|%s", arg.GetKey(), arg.GetValue().GetValue().GetValue())
+
+			// 如果是匹配来源服务，则 spec 中的 key 为 namespace，value 为 service
+
+			// 只有匹配规则为全匹配时才能新增 envoy 本身的标签支持
+			if arg.GetValue().GetType() == apimodel.MatchString_EXACT {
+				// 支持 envoy 原生的标签属性
+				actions = append(actions, &route.RateLimit_Action{
+					ActionSpecifier: &route.RateLimit_Action_SourceCluster_{
+						SourceCluster: &route.RateLimit_Action_SourceCluster{},
+					},
+				})
+			}
+
+			// 从 header 中获取, 支持 Spring Cloud Tencent 查询标签设置
+			actions = append(actions, &route.RateLimit_Action{
+				ActionSpecifier: &route.RateLimit_Action_HeaderValueMatch_{
+					HeaderValueMatch: BuildRateLimitActionHeaderValueMatch(descriptorKey, descriptorValue, []*apitraffic.MatchArgument{
+						{
+							Key: "source_service_namespace",
+							Value: &apimodel.MatchString{
+								Type:  arg.GetValue().Type,
+								Value: wrapperspb.String(arg.Key),
+							},
+						},
+						{
+							Key: "source_service_name",
+							Value: &apimodel.MatchString{
+								Type:  arg.GetValue().Type,
+								Value: wrapperspb.String(arg.Key),
+							},
+						},
+					}...),
+				},
+			})
+			entries = append(entries, &envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry{
+				Key:   descriptorKey,
+				Value: descriptorValue,
+			})
 		case apitraffic.MatchArgument_CALLER_IP:
 			actions = append(actions, &route.RateLimit_Action{
 				ActionSpecifier: &route.RateLimit_Action_RemoteAddress_{
 					RemoteAddress: &route.RateLimit_Action_RemoteAddress{},
 				},
+			})
+			entries = append(entries, &envoy_extensions_common_ratelimit_v3.RateLimitDescriptor_Entry{
+				Key:   "remote_address",
+				Value: arg.GetValue().GetValue().GetValue(),
 			})
 		}
 	}
@@ -388,22 +425,22 @@ func BuildRateLimitDescriptors(rule *traffic_manage.Rule) ([]*route.RateLimit_Ac
 }
 
 func BuildRateLimitActionQueryParameterValueMatch(key string,
-	value *apimodel.MatchString) *route.RateLimit_Action_QueryParameterValueMatch {
+	arg *apitraffic.MatchArgument) *route.RateLimit_Action_QueryParameterValueMatch {
 	queryParameterValueMatch := &route.RateLimit_Action_QueryParameterValueMatch{
 		DescriptorKey:   key,
-		DescriptorValue: value.GetValue().GetValue(),
+		DescriptorValue: arg.GetValue().GetValue().GetValue(),
 		ExpectMatch:     wrapperspb.Bool(true),
 		QueryParameters: []*route.QueryParameterMatcher{},
 	}
-	switch value.GetType() {
+	switch arg.GetValue().GetType() {
 	case apimodel.MatchString_EXACT:
 		queryParameterValueMatch.QueryParameters = []*route.QueryParameterMatcher{
 			{
-				Name: key,
+				Name: arg.GetKey(),
 				QueryParameterMatchSpecifier: &route.QueryParameterMatcher_StringMatch{
 					StringMatch: &v32.StringMatcher{
 						MatchPattern: &v32.StringMatcher_Exact{
-							Exact: value.GetValue().GetValue(),
+							Exact: arg.GetValue().GetValue().GetValue(),
 						},
 					},
 				},
@@ -412,13 +449,13 @@ func BuildRateLimitActionQueryParameterValueMatch(key string,
 	case apimodel.MatchString_REGEX:
 		queryParameterValueMatch.QueryParameters = []*route.QueryParameterMatcher{
 			{
-				Name: key,
+				Name: arg.GetKey(),
 				QueryParameterMatchSpecifier: &route.QueryParameterMatcher_StringMatch{
 					StringMatch: &v32.StringMatcher{
 						MatchPattern: &v32.StringMatcher_SafeRegex{
 							SafeRegex: &v32.RegexMatcher{
 								EngineType: &v32.RegexMatcher_GoogleRe2{},
-								Regex:      value.GetValue().GetValue(),
+								Regex:      arg.GetValue().GetValue().GetValue(),
 							},
 						},
 					},
@@ -430,74 +467,54 @@ func BuildRateLimitActionQueryParameterValueMatch(key string,
 	return queryParameterValueMatch
 }
 
-func BuildRateLimitActionHeaderValueMatch(key string,
-	value *apimodel.MatchString) *route.RateLimit_Action_HeaderValueMatch {
+func BuildRateLimitActionHeaderValueMatch(key, value string,
+	arguments ...*apitraffic.MatchArgument) *route.RateLimit_Action_HeaderValueMatch {
+
 	headerValueMatch := &route.RateLimit_Action_HeaderValueMatch{
 		DescriptorKey:   key,
-		DescriptorValue: value.GetValue().GetValue(),
+		DescriptorValue: value,
 		Headers:         []*route.HeaderMatcher{},
 	}
-	switch value.GetType() {
-	case apimodel.MatchString_EXACT, apimodel.MatchString_NOT_EQUALS:
-		headerValueMatch.Headers = []*route.HeaderMatcher{
-			{
-				Name:        key,
-				InvertMatch: value.GetType() == apimodel.MatchString_NOT_EQUALS,
+	for i := range arguments {
+		argument := arguments[i]
+		switch argument.GetValue().GetType() {
+		case apimodel.MatchString_EXACT, apimodel.MatchString_NOT_EQUALS:
+			headerValueMatch.Headers = append(headerValueMatch.Headers, &route.HeaderMatcher{
+				Name:        argument.GetKey(),
+				InvertMatch: argument.GetValue().GetType() == apimodel.MatchString_NOT_EQUALS,
 				HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
 					StringMatch: &v32.StringMatcher{
 						MatchPattern: &v32.StringMatcher_Exact{
-							Exact: value.GetValue().GetValue(),
+							Exact: argument.GetValue().GetValue().GetValue(),
 						},
 					},
 				},
-			},
-		}
-	case apimodel.MatchString_REGEX:
-		headerValueMatch.Headers = []*route.HeaderMatcher{
-			{
-				Name: key,
+			})
+		case apimodel.MatchString_REGEX:
+			headerValueMatch.Headers = append(headerValueMatch.Headers, &route.HeaderMatcher{
+				Name: argument.GetKey(),
 				HeaderMatchSpecifier: &route.HeaderMatcher_SafeRegexMatch{
 					SafeRegexMatch: &v32.RegexMatcher{
 						EngineType: &v32.RegexMatcher_GoogleRe2{},
-						Regex:      value.GetValue().GetValue(),
+						Regex:      argument.GetValue().GetValue().GetValue(),
 					},
 				},
-			},
-		}
-	case MatchString_Prefix:
-		// 专门用于 prefix
-		headerValueMatch.Headers = []*route.HeaderMatcher{
-			{
-				Name: key,
+			})
+		case MatchString_Prefix:
+			// 专门用于 prefix
+			headerValueMatch.Headers = append(headerValueMatch.Headers, &route.HeaderMatcher{
+				Name: argument.GetKey(),
 				HeaderMatchSpecifier: &route.HeaderMatcher_StringMatch{
 					StringMatch: &v32.StringMatcher{
 						MatchPattern: &v32.StringMatcher_Prefix{
-							Prefix: value.GetValue().GetValue(),
+							Prefix: argument.GetValue().GetValue().GetValue(),
 						},
 					},
 				},
-			},
+			})
 		}
 	}
 	return headerValueMatch
-}
-
-// 默认路由
-func MakeDefaultRoute(trafficDirection corev3.TrafficDirection, svcKey model.ServiceKey) *route.Route {
-	return &route.Route{
-		Match: &route.RouteMatch{
-			PathSpecifier: &route.RouteMatch_Prefix{
-				Prefix: "/",
-			},
-		},
-		Action: &route.Route_Route{
-			Route: &route.RouteAction{
-				ClusterSpecifier: &route.RouteAction_Cluster{
-					Cluster: MakeServiceName(svcKey, trafficDirection),
-				},
-			},
-		},
-	}
 }
 
 func GenerateServiceDomains(serviceInfo *ServiceInfo) []string {
@@ -544,13 +561,13 @@ func BuildAllowAnyVHost() *route.VirtualHost {
 }
 
 func MakeGatewayRoute(trafficDirection corev3.TrafficDirection, routeMatch *route.RouteMatch,
-	destinations []*traffic_manage.DestinationGroup) *route.Route {
+	destinations []*traffic_manage.DestinationGroup, opt *BuildOption) *route.Route {
 	sidecarRoute := &route.Route{
 		Match: routeMatch,
 		Action: &route.Route_Route{
 			Route: &route.RouteAction{
 				ClusterSpecifier: &route.RouteAction_WeightedClusters{
-					WeightedClusters: BuildWeightClustersV2(trafficDirection, destinations),
+					WeightedClusters: BuildWeightClustersV2(trafficDirection, destinations, opt),
 				},
 			},
 		},
@@ -558,11 +575,35 @@ func MakeGatewayRoute(trafficDirection corev3.TrafficDirection, routeMatch *rout
 	return sidecarRoute
 }
 
+// 默认路由
+func MakeDefaultRoute(trafficDirection corev3.TrafficDirection, svcKey model.ServiceKey, opt *BuildOption) *route.Route {
+	routeConf := &route.Route{
+		Match: &route.RouteMatch{
+			PathSpecifier: &route.RouteMatch_Prefix{
+				Prefix: "/",
+			},
+		},
+		Action: &route.Route_Route{
+			Route: &route.RouteAction{
+				ClusterSpecifier: &route.RouteAction_Cluster{
+					Cluster: MakeServiceName(svcKey, trafficDirection, opt),
+				},
+			},
+		},
+	}
+	if opt.OpenOnDemand {
+		routeConf.TypedPerFilterConfig = map[string]*anypb.Any{
+			EnvoyHttpFilter_OnDemand: BuildOnDemandRouteTypedPerFilterConfig(),
+		}
+	}
+	return routeConf
+}
+
 func MakeSidecarRoute(trafficDirection corev3.TrafficDirection, routeMatch *route.RouteMatch,
-	svcInfo *ServiceInfo, destinations []*traffic_manage.DestinationGroup) *route.Route {
-	weightClusters := BuildWeightClustersV2(trafficDirection, destinations)
+	svcInfo *ServiceInfo, destinations []*traffic_manage.DestinationGroup, opt *BuildOption) *route.Route {
+	weightClusters := BuildWeightClustersV2(trafficDirection, destinations, opt)
 	for i := range weightClusters.Clusters {
-		weightClusters.Clusters[i].Name = MakeServiceName(svcInfo.ServiceKey, trafficDirection)
+		weightClusters.Clusters[i].Name = MakeServiceName(svcInfo.ServiceKey, trafficDirection, opt)
 	}
 	currentRoute := &route.Route{
 		Match: routeMatch,
@@ -574,7 +615,36 @@ func MakeSidecarRoute(trafficDirection corev3.TrafficDirection, routeMatch *rout
 			},
 		},
 	}
+	if opt.OpenOnDemand {
+		currentRoute.TypedPerFilterConfig = map[string]*anypb.Any{
+			EnvoyHttpFilter_OnDemand: BuildOnDemandRouteTypedPerFilterConfig(),
+		}
+	}
 	return currentRoute
+}
+
+func BuildOnDemandRouteTypedPerFilterConfig() *anypb.Any {
+	return MustNewAny(&on_demandv3.PerRouteConfig{
+		Odcds: &on_demandv3.OnDemandCds{
+			Source: &corev3.ConfigSource{
+				ConfigSourceSpecifier: &corev3.ConfigSource_ApiConfigSource{
+					ApiConfigSource: &corev3.ApiConfigSource{
+						ApiType:             corev3.ApiConfigSource_DELTA_GRPC,
+						TransportApiVersion: corev3.ApiVersion_V3,
+						GrpcServices: []*corev3.GrpcService{
+							{
+								TargetSpecifier: &corev3.GrpcService_EnvoyGrpc_{
+									EnvoyGrpc: &corev3.GrpcService_EnvoyGrpc{
+										ClusterName: "polaris_xds_server",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
 }
 
 var PassthroughCluster = &cluster.Cluster{
@@ -594,9 +664,29 @@ var PassthroughCluster = &cluster.Cluster{
 	},
 }
 
-func MakeServiceName(svcKey model.ServiceKey, trafficDirection corev3.TrafficDirection) string {
+// MakeInBoundRouteConfigName .
+func MakeInBoundRouteConfigName(svcKey model.ServiceKey, demand bool) string {
+	if demand {
+		return InBoundRouteConfigName + "|" + svcKey.Domain() + "|DEMAND"
+	}
+	return InBoundRouteConfigName + "|" + svcKey.Domain()
+}
+
+// MakeServiceName .
+func MakeServiceName(svcKey model.ServiceKey, trafficDirection corev3.TrafficDirection,
+	opt *BuildOption) string {
+	if trafficDirection == core.TrafficDirection_INBOUND || !opt.OpenOnDemand {
+		return fmt.Sprintf("%s|%s|%s", corev3.TrafficDirection_name[int32(trafficDirection)],
+			svcKey.Namespace, svcKey.Name)
+	}
+	// return svcKey.Name + "." + svcKey.Namespace
 	return fmt.Sprintf("%s|%s|%s", corev3.TrafficDirection_name[int32(trafficDirection)],
 		svcKey.Namespace, svcKey.Name)
+}
+
+// MakeVHDSServiceName .
+func MakeVHDSServiceName(prefix string, svcKey model.ServiceKey) string {
+	return prefix + svcKey.Name + "." + svcKey.Namespace
 }
 
 func MakeDefaultFilterChain() *listenerv3.FilterChain {
@@ -618,72 +708,48 @@ func MakeDefaultFilterChain() *listenerv3.FilterChain {
 	}
 }
 
-func MakeSidecarBoundHCM(svcKey model.ServiceKey,
-	trafficDirection corev3.TrafficDirection) *hcm.HttpConnectionManager {
-	routerFilter := &hcm.HttpFilter{
-		Name: wellknown.Router,
-		ConfigType: &hcm.HttpFilter_TypedConfig{
-			TypedConfig: MustNewAny(&routerv3.Router{}),
-		},
-	}
-
-	hcmFilters := []*hcm.HttpFilter{routerFilter}
-	if trafficDirection == corev3.TrafficDirection_INBOUND {
-		hcmFilters = append([]*hcm.HttpFilter{
-			{
-				Name: "envoy.filters.http.local_ratelimit",
-				ConfigType: &hcm.HttpFilter_TypedConfig{
-					TypedConfig: MustNewAny(&lrl.LocalRateLimit{
-						StatPrefix: "http_local_rate_limiter",
-						Stage:      LocalRateLimitStage,
-					}),
-				},
-			},
-			{
-				Name: "envoy.filters.http.ratelimit",
-				ConfigType: &hcm.HttpFilter_TypedConfig{
-					TypedConfig: MustNewAny(&ratelimitfilter.RateLimit{
-						Domain:      fmt.Sprintf("%s.%s", svcKey.Name, svcKey.Namespace),
-						Stage:       DistributedRateLimitStage,
-						RequestType: "external",
-						Timeout:     durationpb.New(2 * time.Second),
-						RateLimitService: &ratelimitconfv3.RateLimitServiceConfig{
-							GrpcService: &corev3.GrpcService{
-								TargetSpecifier: &corev3.GrpcService_EnvoyGrpc_{
-									EnvoyGrpc: &corev3.GrpcService_EnvoyGrpc{
-										ClusterName: "polaris_ratelimit",
-									},
-								},
-								Timeout: durationpb.New(time.Second),
-							},
-							TransportApiVersion: core.ApiVersion_V3,
-						},
-					}),
-				},
-			},
-		}, hcmFilters...)
-	}
-
-	trafficDirectionName := corev3.TrafficDirection_name[int32(trafficDirection)]
-	manager := &hcm.HttpConnectionManager{
-		CodecType:           hcm.HttpConnectionManager_AUTO,
-		StatPrefix:          trafficDirectionName + "_HTTP",
-		RouteSpecifier:      routeSpecifier(trafficDirection),
-		AccessLog:           accessLog(),
-		HttpFilters:         hcmFilters,
-		HttpProtocolOptions: &core.Http1ProtocolOptions{AcceptHttp_10: true},
-	}
-	return manager
-}
-
-func MakeGatewayBoundHCM() *hcm.HttpConnectionManager {
-	hcmFilters := []*hcm.HttpFilter{
+func makeRateLimitHCMFilter(svcKey model.ServiceKey) []*hcm.HttpFilter {
+	return []*hcm.HttpFilter{
 		{
 			Name: "envoy.filters.http.local_ratelimit",
 			ConfigType: &hcm.HttpFilter_TypedConfig{
 				TypedConfig: MustNewAny(&lrl.LocalRateLimit{
 					StatPrefix: "http_local_rate_limiter",
+					Stage:      LocalRateLimitStage,
 				}),
+			},
+		},
+		{
+			Name: "envoy.filters.http.ratelimit",
+			ConfigType: &hcm.HttpFilter_TypedConfig{
+				TypedConfig: MustNewAny(&ratelimitfilter.RateLimit{
+					Domain:      fmt.Sprintf("%s.%s", svcKey.Name, svcKey.Namespace),
+					Stage:       DistributedRateLimitStage,
+					RequestType: "external",
+					Timeout:     durationpb.New(2 * time.Second),
+					RateLimitService: &ratelimitconfv3.RateLimitServiceConfig{
+						GrpcService: &corev3.GrpcService{
+							TargetSpecifier: &corev3.GrpcService_EnvoyGrpc_{
+								EnvoyGrpc: &corev3.GrpcService_EnvoyGrpc{
+									ClusterName: "polaris_ratelimit",
+								},
+							},
+							Timeout: durationpb.New(time.Second),
+						},
+						TransportApiVersion: core.ApiVersion_V3,
+					},
+				}),
+			},
+		},
+	}
+}
+
+func makeSidecarOnDemandHCMFilter(option *BuildOption) []*hcm.HttpFilter {
+	return []*hcm.HttpFilter{
+		{
+			Name: EnvoyHttpFilter_OnDemand,
+			ConfigType: &hcm.HttpFilter_TypedConfig{
+				TypedConfig: MustNewAny(&on_demandv3.OnDemand{}),
 			},
 		},
 		{
@@ -693,11 +759,16 @@ func MakeGatewayBoundHCM() *hcm.HttpConnectionManager {
 			},
 		},
 	}
-	trafficDirectionName := corev3.TrafficDirection_name[int32(corev3.TrafficDirection_INBOUND)]
+}
+
+func MakeSidecarOnDemandOutBoundHCM(svcKey model.ServiceKey, option *BuildOption) *hcm.HttpConnectionManager {
+
+	hcmFilters := makeSidecarOnDemandHCMFilter(option)
+
 	manager := &hcm.HttpConnectionManager{
 		CodecType:           hcm.HttpConnectionManager_AUTO,
-		StatPrefix:          trafficDirectionName + "_HTTP",
-		RouteSpecifier:      routeSpecifier(corev3.TrafficDirection_OUTBOUND),
+		StatPrefix:          corev3.TrafficDirection_name[int32(corev3.TrafficDirection_OUTBOUND)] + "_HTTP",
+		RouteSpecifier:      routeSpecifier(core.TrafficDirection_OUTBOUND, option),
 		AccessLog:           accessLog(),
 		HttpFilters:         hcmFilters,
 		HttpProtocolOptions: &core.Http1ProtocolOptions{AcceptHttp_10: true},
@@ -705,16 +776,81 @@ func MakeGatewayBoundHCM() *hcm.HttpConnectionManager {
 	return manager
 }
 
-func routeSpecifier(trafficDirection corev3.TrafficDirection) *hcm.HttpConnectionManager_Rds {
+func MakeSidecarBoundHCM(svcKey model.ServiceKey, trafficDirection corev3.TrafficDirection, opt *BuildOption) *hcm.HttpConnectionManager {
+	hcmFilters := []*hcm.HttpFilter{
+		{
+			Name: wellknown.Router,
+			ConfigType: &hcm.HttpFilter_TypedConfig{
+				TypedConfig: MustNewAny(&routerv3.Router{}),
+			},
+		},
+	}
+	if trafficDirection == corev3.TrafficDirection_INBOUND {
+		hcmFilters = append(makeRateLimitHCMFilter(svcKey), hcmFilters...)
+	}
+	if opt.OpenOnDemand {
+		hcmFilters = append([]*hcm.HttpFilter{
+			{
+				Name: EnvoyHttpFilter_OnDemand,
+				ConfigType: &hcm.HttpFilter_TypedConfig{
+					TypedConfig: MustNewAny(&on_demandv3.OnDemand{}),
+				},
+			},
+		}, hcmFilters...)
+	}
+
+	manager := &hcm.HttpConnectionManager{
+		CodecType:            hcm.HttpConnectionManager_AUTO,
+		StatPrefix:           corev3.TrafficDirection_name[int32(trafficDirection)] + "_HTTP",
+		RouteSpecifier:       routeSpecifier(trafficDirection, opt),
+		AccessLog:            accessLog(),
+		HttpFilters:          hcmFilters,
+		HttpProtocolOptions:  &core.Http1ProtocolOptions{AcceptHttp_10: true},
+		Http2ProtocolOptions: &corev3.Http2ProtocolOptions{},
+		Http3ProtocolOptions: &corev3.Http3ProtocolOptions{},
+	}
+
+	// 重写 RouteSpecifier 的路由规则数据信息
+	if trafficDirection == core.TrafficDirection_INBOUND {
+		manager.GetRds().RouteConfigName = MakeInBoundRouteConfigName(svcKey, opt.OpenOnDemand)
+	}
+
+	return manager
+}
+
+func MakeGatewayBoundHCM(svcKey model.ServiceKey, opt *BuildOption) *hcm.HttpConnectionManager {
+	hcmFilters := makeRateLimitHCMFilter(svcKey)
+	hcmFilters = append(hcmFilters, &hcm.HttpFilter{
+		Name: wellknown.Router,
+		ConfigType: &hcm.HttpFilter_TypedConfig{
+			TypedConfig: MustNewAny(&routerv3.Router{}),
+		},
+	})
+	trafficDirectionName := corev3.TrafficDirection_name[int32(corev3.TrafficDirection_INBOUND)]
+	manager := &hcm.HttpConnectionManager{
+		CodecType:           hcm.HttpConnectionManager_AUTO,
+		StatPrefix:          trafficDirectionName + "_HTTP",
+		RouteSpecifier:      routeSpecifier(corev3.TrafficDirection_OUTBOUND, opt),
+		AccessLog:           accessLog(),
+		HttpFilters:         hcmFilters,
+		HttpProtocolOptions: &core.Http1ProtocolOptions{AcceptHttp_10: true},
+	}
+	return manager
+}
+
+func routeSpecifier(trafficDirection corev3.TrafficDirection, opt *BuildOption) *hcm.HttpConnectionManager_Rds {
+	baseRouteName := TrafficBoundRoute[trafficDirection]
+	if opt.OpenOnDemand {
+		baseRouteName = fmt.Sprintf("%s|%s|DEMAND", TrafficBoundRoute[trafficDirection], opt.Namespace)
+	}
 	return &hcm.HttpConnectionManager_Rds{
 		Rds: &hcm.Rds{
 			ConfigSource: &core.ConfigSource{
-				ResourceApiVersion: resourcev3.DefaultAPIVersion,
 				ConfigSourceSpecifier: &core.ConfigSource_Ads{
 					Ads: &core.AggregatedConfigSource{},
 				},
 			},
-			RouteConfigName: TrafficBoundRoute[trafficDirection],
+			RouteConfigName: baseRouteName,
 		},
 	}
 }
@@ -780,7 +916,7 @@ func MakeSidecarLocalRateLimit(rateLimitCache types.RateLimitCache,
 	svcKey model.ServiceKey) ([]*route.RateLimit, map[string]*anypb.Any, error) {
 	conf, _ := rateLimitCache.GetRateLimitRules(svcKey)
 	if conf == nil {
-		return nil, nil, nil
+		return nil, map[string]*anypb.Any{}, nil
 	}
 	confKey := fmt.Sprintf("INBOUND|SIDECAR|%s|%s", svcKey.Namespace, svcKey.Name)
 	rateLimitConf := BuildRateLimitConf(confKey)
@@ -811,14 +947,12 @@ func MakeSidecarLocalRateLimit(rateLimitCache types.RateLimitCache,
 
 // Translate the circuit breaker configuration of Polaris into OutlierDetection
 func MakeOutlierDetection(serviceInfo *ServiceInfo) *cluster.OutlierDetection {
-	log.Infof("XDS][Sidecar] makeOutlierDetection service: %v enter", serviceInfo.Name)
 	circuitBreaker := serviceInfo.CircuitBreaker
 	if circuitBreaker == nil || len(circuitBreaker.Rules) == 0 {
 		return nil
 	}
 	var rule *apifault.CircuitBreakerRule
 	for _, item := range circuitBreaker.Rules {
-		log.Infof("[XDS][Sidecar] makeOutlierDetection rule: %+v", item)
 		if item.Level == apifault.Level_INSTANCE {
 			rule = item
 			break
@@ -847,13 +981,11 @@ func MakeOutlierDetection(serviceInfo *ServiceInfo) *cluster.OutlierDetection {
 
 // Translate the FaultDetector configuration of Polaris into HealthCheck
 func MakeHealthCheck(serviceInfo *ServiceInfo) []*core.HealthCheck {
-	log.Infof("XDS][Sidecar] makeHealthCheck service: %v enter", serviceInfo.Name)
 	if serviceInfo.FaultDetect == nil || len(serviceInfo.FaultDetect.Rules) == 0 {
 		return nil
 	}
 	var healthChecks []*core.HealthCheck
 	for _, rule := range serviceInfo.FaultDetect.Rules {
-		log.Infof("[XDS][Sidecar] makeHealthCheck name: %v,  rule: %+v", rule.Name, rule)
 		healthCheck := &core.HealthCheck{
 			Timeout:            durationpb.New(time.Duration(rule.GetTimeout()) * time.Second),
 			Interval:           durationpb.New(time.Duration(rule.GetInterval()) * time.Second),
@@ -971,4 +1103,13 @@ func FormatEndpointHealth(ins *apiservice.Instance) core.HealthStatus {
 		return core.HealthStatus_HEALTHY
 	}
 	return core.HealthStatus_UNHEALTHY
+}
+
+func SupportTLS(x XDSType) bool {
+	switch x {
+	case CDS, LDS:
+		return true
+	default:
+		return false
+	}
 }

@@ -159,8 +159,8 @@ func (l *Listener) GetHostConnCount(host string) int32 {
 
 // Range 遍历当前持有连接的host
 func (l *Listener) Range(fn func(host string, count int32) bool) {
-	l.conns.Range(func(host string, value *counter) bool {
-		return fn(host, l.GetHostConnCount(host))
+	l.conns.Range(func(host string, value *counter) {
+		_ = fn(host, l.GetHostConnCount(host))
 	})
 }
 
@@ -171,12 +171,7 @@ func (l *Listener) GetListenerConnCount() int32 {
 
 // GetDistinctHostCount 获取当前缓存的host的个数
 func (l *Listener) GetDistinctHostCount() int32 {
-	var count int32
-	l.conns.Range(func(key string, value *counter) bool {
-		count++
-		return true
-	})
-	return count
+	return int32(l.conns.Len())
 }
 
 // GetHostActiveConns 获取指定host的活跃的连接
@@ -224,9 +219,8 @@ func (l *Listener) GetHostConnStats(host string) []*HostConnStat {
 	}
 
 	// 全量扫描，比较耗时
-	l.conns.Range(func(key string, value *counter) bool {
+	l.conns.ReadRange(func(key string, value *counter) {
 		out = append(out, loadStat(key, value))
-		return true
 	})
 	return out
 }
@@ -385,17 +379,21 @@ func (l *Listener) purgeExpireCounterHandler() {
 	start := time.Now()
 	scanCount := 0
 	purgeCount := 0
-	l.conns.Range(func(key string, ct *counter) bool {
+	waitDel := []string{}
+	l.conns.ReadRange(func(key string, ct *counter) {
 		scanCount++
 		ct.mu.RLock()
 		if ct.size == 0 && time.Now().Unix()-ct.lastAccess > l.purgeCounterExpire {
-			// log.Infof("[Listener][%s] purge expire counter: %s", l.protocol, key.(string))
-			l.conns.Delete(key)
+			waitDel = append(waitDel, key)
 			purgeCount++
 		}
 		ct.mu.RUnlock()
-		return true
 	})
+
+	for i := range waitDel {
+		// log.Infof("[Listener][%s] purge expire counter: %s", l.protocol, waitDel[i])
+		l.conns.Delete(waitDel[i])
+	}
 
 	spendTime := time.Since(start)
 	log.Infof("[Listener][%s] purge expire counter total(%d), use time: %+v, scan total(%d), scan qps: %.2f",

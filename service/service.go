@@ -577,6 +577,7 @@ func (s *Server) createServiceModel(req *apiservice.Service) *model.Service {
 		PlatformID: req.GetPlatformId().GetValue(),
 		Token:      utils.NewUUID(),
 		Revision:   utils.NewUUID(),
+		ExportTo:   model.ExportToMap(req.GetExportTo()),
 	}
 }
 
@@ -604,6 +605,10 @@ func (s *Server) updateServiceAttribute(
 	if !needUpdate {
 		// 不需要更新metadata
 		service.Meta = nil
+	}
+	if eq, newVal := isEqualServiceExport(req.ExportTo, service.ExportTo); !eq {
+		needUpdate = true
+		service.ExportTo = newVal
 	}
 
 	if req.GetPorts() != nil && req.GetPorts().GetValue() != service.Ports {
@@ -655,6 +660,20 @@ func (s *Server) updateServiceAttribute(
 	}
 
 	return nil, needUpdate, needUpdateOwner
+}
+
+func isEqualServiceExport(raw []*wrappers.StringValue, save map[string]struct{}) (bool, map[string]struct{}) {
+	cur := model.ExportToMap(raw)
+	if len(cur) != len(save) {
+		return false, cur
+	}
+	for k := range cur {
+		if _, ok := save[k]; !ok {
+			return false, cur
+		}
+	}
+
+	return true, map[string]struct{}{}
 }
 
 // getServiceAliasCountWithService 获取服务下别名的总数
@@ -808,6 +827,7 @@ func service2Api(service *model.Service) *apiservice.Service {
 		PlatformId: utils.NewStringValue(service.PlatformID),
 		Ctime:      utils.NewStringValue(commontime.Time2String(service.CreateTime)),
 		Mtime:      utils.NewStringValue(commontime.Time2String(service.ModifyTime)),
+		ExportTo:   service.ListExportTo(),
 	}
 
 	return out
@@ -952,11 +972,11 @@ func checkCreateService(req *apiservice.Service) *apiservice.Response {
 		return api.NewServiceResponse(apimodel.Code_EmptyRequest, req)
 	}
 
-	if err := checkResourceName(req.GetName()); err != nil {
+	if err := utils.CheckResourceName(req.GetName()); err != nil {
 		return api.NewServiceResponse(apimodel.Code_InvalidServiceName, req)
 	}
 
-	if err := checkResourceName(req.GetNamespace()); err != nil {
+	if err := utils.CheckResourceName(req.GetNamespace()); err != nil {
 		return api.NewServiceResponse(apimodel.Code_InvalidNamespaceName, req)
 	}
 
@@ -979,11 +999,11 @@ func checkReviseService(req *apiservice.Service) *apiservice.Response {
 		return api.NewServiceResponse(apimodel.Code_EmptyRequest, req)
 	}
 
-	if err := checkResourceName(req.GetName()); err != nil {
+	if err := utils.CheckResourceName(req.GetName()); err != nil {
 		return api.NewServiceResponse(apimodel.Code_InvalidServiceName, req)
 	}
 
-	if err := checkResourceName(req.GetNamespace()); err != nil {
+	if err := utils.CheckResourceName(req.GetNamespace()); err != nil {
 		return api.NewServiceResponse(apimodel.Code_InvalidNamespaceName, req)
 	}
 
@@ -998,11 +1018,10 @@ func checkReviseService(req *apiservice.Service) *apiservice.Response {
 
 // wrapperServiceStoreResponse wrapper service error
 func wrapperServiceStoreResponse(service *apiservice.Service, err error) *apiservice.Response {
-	resp := storeError2Response(err)
-	if resp == nil {
+	if err == nil {
 		return nil
 	}
-
+	resp := api.NewResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	resp.Service = service
 	return resp
 }

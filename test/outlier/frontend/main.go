@@ -38,7 +38,7 @@ func main() {
 		if interval == 0 {
 			interval = 500
 		}
-		w.Write(data)
+		_, _ = w.Write(data)
 	})
 	go func() {
 		for {

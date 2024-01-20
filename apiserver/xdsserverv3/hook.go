@@ -28,15 +28,31 @@ import (
 func (x *XDSServer) OnCreateWatch(request *cachev3.Request, streamState stream.StreamState,
 	value chan cachev3.Response) {
 	x.activeUpdateTask()
+
+	client := x.nodeMgr.GetNode(request.GetNode().Id)
+	if client == nil {
+		return
+	}
+	_ = x.resourceGenerator.buildOneEnvoyXDSCache(client)
 }
 
 // OnCreateDeltaWatch before call cachev3.SnapshotCache OnCreateDeltaWatch
 func (x *XDSServer) OnCreateDeltaWatch(request *cachev3.DeltaRequest, state stream.StreamState,
 	value chan cachev3.DeltaResponse) {
 	x.activeUpdateTask()
+	client := x.nodeMgr.GetNode(request.GetNode().Id)
+	if client == nil {
+		return
+	}
+	_ = x.resourceGenerator.buildOneEnvoyXDSCache(client)
 }
 
 // OnFetch before call cachev3.SnapshotCache OnFetch
 func (x *XDSServer) OnFetch(ctx context.Context, request *cachev3.Request) {
 	x.activeUpdateTask()
+	client := x.nodeMgr.GetNode(request.GetNode().Id)
+	if client == nil {
+		return
+	}
+	_ = x.resourceGenerator.buildOneEnvoyXDSCache(client)
 }

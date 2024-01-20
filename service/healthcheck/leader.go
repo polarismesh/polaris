@@ -30,6 +30,7 @@ import (
 
 // LeaderChangeEventHandler process the event when server act as leader
 type LeaderChangeEventHandler struct {
+	svr              *Server
 	cacheProvider    *CacheProvider
 	ctx              context.Context
 	cancel           context.CancelFunc
@@ -37,12 +38,11 @@ type LeaderChangeEventHandler struct {
 }
 
 // newLeaderChangeEventHandler
-func newLeaderChangeEventHandler(cacheProvider *CacheProvider,
-	minCheckInterval time.Duration) *LeaderChangeEventHandler {
-
+func newLeaderChangeEventHandler(svr *Server) *LeaderChangeEventHandler {
 	return &LeaderChangeEventHandler{
-		cacheProvider:    cacheProvider,
-		minCheckInterval: minCheckInterval,
+		svr:              svr,
+		cacheProvider:    svr.cacheProvider,
+		minCheckInterval: svr.hcOpt.MinCheckInterval,
 	}
 }
 
@@ -83,7 +83,8 @@ func (handler *LeaderChangeEventHandler) startCheckSelfServiceInstances() {
 		for {
 			select {
 			case <-ticker.C:
-				handler.cacheProvider.selfServiceInstances.Range(func(instanceId string, value ItemWithChecker) {
+				cacheProvider := handler.cacheProvider
+				cacheProvider.selfServiceInstances.Range(func(instanceId string, value ItemWithChecker) {
 					handler.doCheckSelfServiceInstance(value.GetInstance())
 				})
 			case <-ctx.Done():
@@ -120,7 +121,7 @@ func (handler *LeaderChangeEventHandler) doCheckSelfServiceInstance(cachedInstan
 			Port:       cachedInstance.Port(),
 			Healthy:    cachedInstance.Healthy(),
 		},
-		CurTimeSec:        currentTimeSec,
+		CurTimeSec:        handler.svr.currentTimeSec,
 		ExpireDurationSec: getExpireDurationSec(cachedInstance.Proto),
 	}
 	checkResp, err := checker.Check(request)
@@ -130,7 +131,7 @@ func (handler *LeaderChangeEventHandler) doCheckSelfServiceInstance(cachedInstan
 		return
 	}
 	if !checkResp.StayUnchanged {
-		code := setInsDbStatus(cachedInstance, checkResp.Healthy, checkResp.LastHeartbeatTimeSec)
+		code := setInsDbStatus(handler.svr, cachedInstance, checkResp.Healthy, checkResp.LastHeartbeatTimeSec)
 		if checkResp.Healthy {
 			// from unhealthy to healthy
 			log.Infof(

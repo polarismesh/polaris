@@ -27,6 +27,7 @@ import (
 	"time"
 
 	commonlog "github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/redispool"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -311,8 +312,8 @@ func (r *RedisHealthChecker) SuspendTimeSec() int64 {
 	return atomic.LoadInt64(&r.suspendTimeSec)
 }
 
-func (r *RedisHealthChecker) DebugHandlers() []plugin.DebugHandler {
-	return []plugin.DebugHandler{}
+func (r *RedisHealthChecker) DebugHandlers() []model.DebugHandler {
+	return []model.DebugHandler{}
 }
 
 func init() {

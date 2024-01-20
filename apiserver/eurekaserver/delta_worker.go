@@ -376,8 +376,13 @@ func (a *ApplicationsWorker) buildDeltaApps(
 		Application:    make([]*Application, 0),
 		ApplicationMap: make(map[string]*Application, 0),
 	}
-	// 4. 拷贝lease对象
+	// 4. 拷贝lease对象，对同一实例的事件去重，最新事件会覆盖之前的事件
+	leaseMap := make(map[string]*Lease, len(a.leases))
 	for _, lease := range a.leases {
+		leaseMap[lease.instance.AppName+lease.instance.InstanceId] = lease
+	}
+	// 5.两次遍历，将delete事件放到最后，避免客户端hash code与服务端不一致
+	for _, lease := range leaseMap {
 		instance := lease.instance
 		appName := instance.AppName
 		var app *Application
@@ -389,8 +394,19 @@ func (a *ApplicationsWorker) buildDeltaApps(
 			newDeltaApps.Application = append(newDeltaApps.Application, app)
 			newDeltaApps.ApplicationMap[appName] = app
 		}
-		app.Instance = append(app.Instance, instance)
-		instCount++
+		if instance.ActionType != ActionDeleted {
+			app.Instance = append(app.Instance, instance)
+			instCount++
+		}
+	}
+	for _, lease := range leaseMap {
+		instance := lease.instance
+		appName := instance.AppName
+		app := newDeltaApps.ApplicationMap[appName]
+		if instance.ActionType == ActionDeleted {
+			app.Instance = append(app.Instance, instance)
+			instCount++
+		}
 	}
 	return constructResponseCache(newDeltaApps, instCount, true)
 }

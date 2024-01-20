@@ -58,6 +58,7 @@ func (s *Server) CreateConfigFile(ctx context.Context, req *apiconfig.ConfigFile
 		log.Error("[Config][File] create config file commit tx.", utils.RequestID(ctx), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
+	s.RecordHistory(ctx, configFileRecordEntry(ctx, req, model.OCreate))
 	resp.ConfigFile = req
 	return resp
 }
@@ -88,7 +89,6 @@ func (s *Server) handleCreateConfigFile(ctx context.Context, tx store.Tx,
 			utils.ZapFileName(req.GetName().GetValue()), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
-	s.RecordHistory(ctx, configFileRecordEntry(ctx, req, model.OCreate))
 	return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
 }
 
@@ -184,8 +184,8 @@ func (s *Server) updateConfigFileAttribute(saveData, updateData *model.ConfigFil
 		if len(saveData.Metadata) == 0 {
 			saveData.Metadata = map[string]string{}
 		}
-		saveData.Metadata[utils.ConfigFileTagKeyDataKey] = oldMetadata[utils.ConfigFileTagKeyDataKey]
-		saveData.Metadata[utils.ConfigFileTagKeyEncryptAlgo] = oldMetadata[utils.ConfigFileTagKeyEncryptAlgo]
+		saveData.Metadata[model.MetaKeyConfigFileDataKey] = oldMetadata[model.MetaKeyConfigFileDataKey]
+		saveData.Metadata[model.MetaKeyConfigFileEncryptAlgo] = oldMetadata[model.MetaKeyConfigFileEncryptAlgo]
 	}
 
 	return saveData, needUpdate
@@ -253,6 +253,8 @@ func (s *Server) DeleteConfigFile(ctx context.Context, req *apiconfig.ConfigFile
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 	if file == nil {
+		log.Info("[Config][File] delete config file not found, so skip.", utils.RequestID(ctx),
+			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
 		return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
 	}
 	// 1. 删除配置文件发布内容
@@ -325,14 +327,6 @@ func (s *Server) SearchConfigFile(ctx context.Context, filter map[string]string)
 			searchFilters[k] = v
 		}
 	}
-
-	if err := s.fileCache.Update(); err != nil {
-		log.Error("[Config][File] force update release cache when search config files.",
-			utils.RequestID(ctx), zap.Error(err))
-		out := api.NewConfigBatchQueryResponse(commonstore.StoreCode2APICode(err))
-		return out
-	}
-
 	count, files, err := s.storage.QueryConfigFiles(searchFilters, offset, limit)
 	if err != nil {
 		log.Error("[Config][File] search config files.", utils.RequestID(ctx), zap.Error(err))
@@ -346,6 +340,8 @@ func (s *Server) SearchConfigFile(ctx context.Context, filter map[string]string)
 		return out
 	}
 
+	_ = s.caches.ConfigFile().Update()
+	_ = s.caches.Gray().Update()
 	ret := make([]*apiconfig.ConfigFile, 0, len(files))
 	for _, file := range files {
 		file, err := s.chains.AfterGetFile(ctx, file)
@@ -375,7 +371,7 @@ func (s *Server) ExportConfigFile(ctx context.Context,
 		names = append(names, name.GetValue())
 	}
 	// 检查参数
-	if err := CheckResourceName(configFileExport.Namespace); err != nil {
+	if err := utils.CheckResourceName(configFileExport.Namespace); err != nil {
 		return api.NewConfigFileExportResponse(apimodel.Code_InvalidNamespaceName, nil)
 	}
 	var (
@@ -537,7 +533,7 @@ func (s *Server) checkConfigFileParams(configFile *apiconfig.ConfigFile) *apicon
 	if err := CheckFileName(configFile.Name); err != nil {
 		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileName, configFile)
 	}
-	if err := CheckResourceName(configFile.Namespace); err != nil {
+	if err := utils.CheckResourceName(configFile.Namespace); err != nil {
 		return api.NewConfigFileResponse(apimodel.Code_InvalidNamespaceName, configFile)
 	}
 	if err := CheckContentLength(configFile.Content.GetValue(), int(s.cfg.ContentMaxLength)); err != nil {
