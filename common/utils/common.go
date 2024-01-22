@@ -566,26 +566,6 @@ func CalculateContractID(namespace, service, name, protocol, version string) (st
 
 // CheckContractTetrad 根据服务实例四元组计算ID
 func CheckContractTetrad(req *apiservice.ServiceContract) (string, *apiservice.Response) {
-	if err := CheckResourceName(NewStringValue(req.GetService())); err != nil {
-		return "", api.NewResponse(apimodel.Code_InvalidServiceName)
-	}
-
-	if err := CheckResourceName(NewStringValue(req.GetNamespace())); err != nil {
-		return "", api.NewResponse(apimodel.Code_InvalidNamespaceName)
-	}
-
-	if err := CheckResourceName(NewStringValue(req.GetName())); err != nil {
-		return "", api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract name")
-	}
-
-	if req.GetProtocol() == "" {
-		return "", api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract protocol")
-	}
-
-	if req.GetVersion() == "" {
-		return "", api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract version")
-	}
-
 	id, err := CalculateContractID(
 		req.GetNamespace(),
 		req.GetService(),
@@ -607,9 +587,6 @@ func CheckContractInterfaceTetrad(contractId string, source apiservice.Interface
 	}
 	if req.GetId() != "" {
 		return req.GetId(), nil
-	}
-	if req.GetMethod() == "" {
-		return "", api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract interface method")
 	}
 	if req.GetPath() == "" {
 		return "", api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract interface path")

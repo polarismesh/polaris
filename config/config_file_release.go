@@ -575,7 +575,9 @@ func (s *Server) CasUpsertAndReleaseConfigFile(ctx context.Context,
 
 	tx, err := s.storage.StartTx()
 	if err != nil {
-		log.Error("[Config][File] upsert config file when begin tx.", utils.RequestID(ctx), zap.Error(err))
+		log.Error("[Config][File] upsert config file when begin tx.", utils.RequestID(ctx),
+			zap.String("namespace", req.GetNamespace().GetValue()), zap.String("group", req.GetGroup().GetValue()),
+			zap.String("fileName", req.GetFileName().GetValue()), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 
@@ -588,7 +590,9 @@ func (s *Server) CasUpsertAndReleaseConfigFile(ctx context.Context,
 		Name:      req.GetFileName().GetValue(),
 	})
 	if err != nil {
-		log.Error("[Config][File] lock config file when begin tx.", utils.RequestID(ctx), zap.Error(err))
+		log.Error("[Config][File] lock config file when begin tx.", utils.RequestID(ctx),
+			zap.String("namespace", req.GetNamespace().GetValue()), zap.String("group", req.GetGroup().GetValue()),
+			zap.String("fileName", req.GetFileName().GetValue()), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 
@@ -596,15 +600,17 @@ func (s *Server) CasUpsertAndReleaseConfigFile(ctx context.Context,
 
 	var upsertResp *apiconfig.ConfigResponse
 	if saveFile == nil {
-		if req.GetMd5().GetValue() != "" {
-			return api.NewConfigResponse(apimodel.Code_DataConflict)
-		}
 		upsertResp = s.handleCreateConfigFile(ctx, tx, upsertFileReq)
 		historyRecords = append(historyRecords, func() {
 			s.RecordHistory(ctx, configFileRecordEntry(ctx, upsertFileReq, model.OCreate))
 		})
 	} else {
-		if req.GetMd5().GetValue() != CalMd5(saveFile.Content) {
+		actualMd5 := CalMd5(saveFile.Content)
+		if req.GetMd5().GetValue() != actualMd5 {
+			log.Error("[Config][File] cas compare config file.", utils.RequestID(ctx),
+				zap.String("namespace", req.GetNamespace().GetValue()), zap.String("group", req.GetGroup().GetValue()),
+				zap.String("fileName", req.GetFileName().GetValue()),
+				zap.String("expect", req.GetMd5().GetValue()), zap.String("actual", actualMd5))
 			return api.NewConfigResponse(apimodel.Code_DataConflict)
 		}
 		upsertResp = s.handleUpdateConfigFile(ctx, tx, upsertFileReq)

@@ -282,6 +282,9 @@ type ServiceData struct {
 }
 
 func (s *ServiceData) loadInstances(svcIns *model.ServiceInstances) {
+	if svcIns == nil {
+		return
+	}
 	var (
 		finalInstances = map[string]*nacosmodel.Instance{}
 	)

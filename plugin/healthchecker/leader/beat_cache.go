@@ -56,19 +56,19 @@ type (
 	// HashFunction hash function to caul record id need locate in SegmentMap
 	HashFunction func(string) int
 	// RecordSaver beat record saver
-	RecordSaver func(req *apiservice.HeartbeatsRequest)
+	RecordSaver func(req *apiservice.HeartbeatsRequest) error
 	// RecordDelter beat record delter
-	RecordDelter func(req *apiservice.DelHeartbeatsRequest)
+	RecordDelter func(req *apiservice.DelHeartbeatsRequest) error
 	// RecordGetter beat record getter
-	RecordGetter func(req *apiservice.GetHeartbeatsRequest) *apiservice.GetHeartbeatsResponse
+	RecordGetter func(req *apiservice.GetHeartbeatsRequest) (*apiservice.GetHeartbeatsResponse, error)
 	// BeatRecordCache Heartbeat data cache
 	BeatRecordCache interface {
 		// Get get records
-		Get(keys ...string) map[string]*ReadBeatRecord
+		Get(keys ...string) (map[string]*ReadBeatRecord, error)
 		// Put put records
-		Put(records ...WriteBeatRecord)
+		Put(records ...WriteBeatRecord) error
 		// Del del records
-		Del(keys ...string)
+		Del(keys ...string) error
 		// Clean .
 		Clean()
 		// Snapshot
@@ -98,7 +98,7 @@ type LocalBeatRecordCache struct {
 	beatCache *utils.SegmentMap[string, RecordValue]
 }
 
-func (lc *LocalBeatRecordCache) Get(keys ...string) map[string]*ReadBeatRecord {
+func (lc *LocalBeatRecordCache) Get(keys ...string) (map[string]*ReadBeatRecord, error) {
 	lc.lock.RLock()
 	defer lc.lock.RUnlock()
 	ret := make(map[string]*ReadBeatRecord, len(keys))
@@ -110,10 +110,10 @@ func (lc *LocalBeatRecordCache) Get(keys ...string) map[string]*ReadBeatRecord {
 			Exist:  ok,
 		}
 	}
-	return ret
+	return ret, nil
 }
 
-func (lc *LocalBeatRecordCache) Put(records ...WriteBeatRecord) {
+func (lc *LocalBeatRecordCache) Put(records ...WriteBeatRecord) error {
 	lc.lock.RLock()
 	defer lc.lock.RUnlock()
 	for i := range records {
@@ -123,9 +123,10 @@ func (lc *LocalBeatRecordCache) Put(records ...WriteBeatRecord) {
 		}
 		lc.beatCache.Put(record.Key, record.Record)
 	}
+	return nil
 }
 
-func (lc *LocalBeatRecordCache) Del(keys ...string) {
+func (lc *LocalBeatRecordCache) Del(keys ...string) error {
 	lc.lock.RLock()
 	defer lc.lock.RUnlock()
 	for i := range keys {
@@ -135,6 +136,7 @@ func (lc *LocalBeatRecordCache) Del(keys ...string) {
 			plog.Debug("delete result", zap.String("key", key), zap.Bool("exist", ok))
 		}
 	}
+	return nil
 }
 
 func (lc *LocalBeatRecordCache) Clean() {
@@ -174,16 +176,19 @@ type RemoteBeatRecordCache struct {
 	getter RecordGetter
 }
 
-func (rc *RemoteBeatRecordCache) Get(keys ...string) map[string]*ReadBeatRecord {
+func (rc *RemoteBeatRecordCache) Get(keys ...string)  (map[string]*ReadBeatRecord, error) {
 	ret := make(map[string]*ReadBeatRecord)
 	for i := range keys {
 		ret[keys[i]] = &ReadBeatRecord{
 			Exist: false,
 		}
 	}
-	resp := rc.getter(&apiservice.GetHeartbeatsRequest{
+	resp, err := rc.getter(&apiservice.GetHeartbeatsRequest{
 		InstanceIds: keys,
 	})
+	if err != nil {
+		return nil, err
+	}
 	records := resp.GetRecords()
 	for i := range records {
 		record := records[i]
@@ -197,10 +202,10 @@ func (rc *RemoteBeatRecordCache) Get(keys ...string) map[string]*ReadBeatRecord 
 			CurTimeSec: record.GetLastHeartbeatSec(),
 		}
 	}
-	return ret
+	return ret, nil
 }
 
-func (rc *RemoteBeatRecordCache) Put(records ...WriteBeatRecord) {
+func (rc *RemoteBeatRecordCache) Put(records ...WriteBeatRecord) error {
 	req := &apiservice.HeartbeatsRequest{
 		Heartbeats: make([]*apiservice.InstanceHeartbeat, 0, len(records)),
 	}
@@ -211,13 +216,14 @@ func (rc *RemoteBeatRecordCache) Put(records ...WriteBeatRecord) {
 		})
 	}
 	rc.saver(req)
+	return nil
 }
 
-func (rc *RemoteBeatRecordCache) Del(key ...string) {
+func (rc *RemoteBeatRecordCache) Del(key ...string) error {
 	req := &apiservice.DelHeartbeatsRequest{
 		InstanceIds: key,
 	}
-	rc.delter(req)
+	return rc.delter(req)
 }
 
 func (lc *RemoteBeatRecordCache) Clean() {

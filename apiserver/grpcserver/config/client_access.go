@@ -88,6 +88,21 @@ func (g *ConfigGRPCServer) PublishConfigFile(ctx context.Context,
 	return response, nil
 }
 
+func (g *ConfigGRPCServer) UpsertAndPublishConfigFile(ctx context.Context,
+	req *apiconfig.ConfigFilePublishInfo) (*apiconfig.ConfigClientResponse, error) {
+	ctx = utils.ConvertGRPCContext(ctx)
+	response := g.configServer.CasUpsertAndReleaseConfigFileFromClient(ctx, req)
+	return &apiconfig.ConfigClientResponse{
+		Code: response.Code,
+		Info: response.Info,
+		ConfigFile: &apiconfig.ClientConfigFileInfo{
+			Namespace: req.Namespace,
+			Group:     req.Group,
+			FileName:  req.FileName,
+		},
+	}, nil
+}
+
 // WatchConfigFiles 订阅配置变更
 func (g *ConfigGRPCServer) WatchConfigFiles(ctx context.Context,
 	request *apiconfig.ClientWatchConfigFileRequest) (*apiconfig.ConfigClientResponse, error) {

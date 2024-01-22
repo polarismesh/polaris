@@ -133,12 +133,12 @@ func TestLocalPeer(t *testing.T) {
 	mockKey := utils.NewUUID()
 	mockVal := time.Now().Unix()
 
-	ret, err := localPeer.Get(mockKey)
+	ret, err := localPeer.Storage().Get(mockKey)
 	assert.NoError(t, err)
 	assert.NotNil(t, ret)
-	assert.False(t, ret.Exist)
+	assert.False(t, ret[mockKey].Exist)
 
-	err = localPeer.Put(WriteBeatRecord{
+	err = localPeer.Storage().Put(WriteBeatRecord{
 		Record: RecordValue{
 			CurTimeSec: mockVal,
 			Count:      0,
@@ -147,19 +147,19 @@ func TestLocalPeer(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	ret, err = localPeer.Get(mockKey)
+	ret, err = localPeer.Storage().Get(mockKey)
 	assert.NoError(t, err)
 	assert.NotNil(t, ret)
-	assert.True(t, ret.Exist)
-	assert.Equal(t, mockVal, ret.Record.CurTimeSec)
+	assert.True(t, ret[mockKey].Exist)
+	assert.Equal(t, mockVal, ret[mockKey].Record.CurTimeSec)
 
-	err = localPeer.Del(mockKey)
+	err = localPeer.Storage().Del(mockKey)
 	assert.NoError(t, err)
 
-	ret, err = localPeer.Get(mockKey)
+	ret, err = localPeer.Storage().Get(mockKey)
 	assert.NoError(t, err)
 	assert.NotNil(t, ret)
-	assert.False(t, ret.Exist)
+	assert.False(t, ret[mockKey].Exist)
 
 	err = localPeer.Close()
 	assert.NoError(t, err)
@@ -205,12 +205,12 @@ func TestRemotePeer(t *testing.T) {
 	mockKey := utils.NewUUID()
 	mockVal := time.Now().Unix()
 
-	ret, err := remotePeer.Get(mockKey)
+	ret, err := remotePeer.Storage().Get(mockKey)
 	assert.NoError(t, err)
 	assert.NotNil(t, ret)
-	assert.False(t, ret.Exist)
+	assert.False(t, ret[mockKey].Exist)
 
-	err = remotePeer.Put(WriteBeatRecord{
+	err = remotePeer.Storage().Put(WriteBeatRecord{
 		Record: RecordValue{
 			CurTimeSec: mockVal,
 			Count:      0,
@@ -219,19 +219,19 @@ func TestRemotePeer(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	ret, err = remotePeer.Get(mockKey)
+	ret, err = remotePeer.Storage().Get(mockKey)
 	assert.NoError(t, err)
 	assert.NotNil(t, ret)
-	assert.True(t, ret.Exist)
-	assert.True(t, mockVal <= ret.Record.CurTimeSec)
+	assert.True(t, ret[mockKey].Exist)
+	assert.True(t, mockVal <= ret[mockKey].Record.CurTimeSec)
 
-	err = remotePeer.Del(mockKey)
+	err = remotePeer.Storage().Del(mockKey)
 	assert.NoError(t, err)
 
-	ret, err = remotePeer.Get(mockKey)
+	ret, err = remotePeer.Storage().Get(mockKey)
 	assert.NoError(t, err)
 	assert.NotNil(t, ret)
-	assert.False(t, ret.Exist)
+	assert.False(t, ret[mockKey].Exist)
 
 	err = remotePeer.Close()
 	assert.NoError(t, err)
@@ -308,7 +308,7 @@ func (ms *MockPolarisGRPCServer) BatchHeartbeat(svr service_manage.PolarisHeartb
 
 		heartbeats := req.GetHeartbeats()
 		for i := range heartbeats {
-			ms.peer.Put(WriteBeatRecord{
+			ms.peer.Storage().Put(WriteBeatRecord{
 				Record: RecordValue{
 					CurTimeSec: time.Now().Unix(),
 				},
@@ -328,14 +328,14 @@ func (ms *MockPolarisGRPCServer) BatchGetHeartbeat(_ context.Context,
 	keys := req.GetInstanceIds()
 	records := make([]*service_manage.HeartbeatRecord, 0, len(keys))
 	for i := range keys {
-		ret, err := ms.peer.Get(keys[i])
+		ret, err := ms.peer.Storage().Get(keys[i])
 		if err != nil {
 			return nil, err
 		}
 		record := &service_manage.HeartbeatRecord{
 			InstanceId:       keys[i],
-			LastHeartbeatSec: ret.Record.CurTimeSec,
-			Exist:            ret.Exist,
+			LastHeartbeatSec: ret[keys[i]].Record.CurTimeSec,
+			Exist:            ret[keys[i]].Exist,
 		}
 		records = append(records, record)
 	}
@@ -349,7 +349,7 @@ func (ms *MockPolarisGRPCServer) BatchDelHeartbeat(_ context.Context,
 	req *service_manage.DelHeartbeatsRequest) (*service_manage.DelHeartbeatsResponse, error) {
 	keys := req.GetInstanceIds()
 	for i := range keys {
-		if err := ms.peer.Del(keys[i]); err != nil {
+		if err := ms.peer.Storage().Del(keys[i]); err != nil {
 			return nil, err
 		}
 	}

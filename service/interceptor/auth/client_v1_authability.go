@@ -219,7 +219,7 @@ func (svr *ServerAuthAbility) UpdateInstance(ctx context.Context, req *apiservic
 
 // GetServiceContractWithCache User Client Get ServiceContract Rule Information
 func (svr *ServerAuthAbility) GetServiceContractWithCache(ctx context.Context,
-	req *apiservice.ServiceContract) *apiservice.DiscoverResponse {
+	req *apiservice.ServiceContract) *apiservice.Response {
 	authCtx := svr.collectServiceAuthContext(ctx, []*apiservice.Service{{
 		Namespace: wrapperspb.String(req.Namespace),
 		Name:      wrapperspb.String(req.Service),
@@ -227,7 +227,7 @@ func (svr *ServerAuthAbility) GetServiceContractWithCache(ctx context.Context,
 
 	_, err := svr.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
-		resp := api.NewDiscoverResponse(convertToErrCode(err))
+		resp := api.NewResponse(convertToErrCode(err))
 		resp.Info = utils.NewStringValue(err.Error())
 		return resp
 	}

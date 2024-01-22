@@ -64,8 +64,8 @@ func (s *Server) GetConfigFileWithCache(ctx context.Context,
 			return api.NewConfigClientResponse(apimodel.Code_NotFoundResource, req)
 		}
 	}
-	// 客户端版本号大于等于服务端版本号，服务端不返回变更
-	if req.GetVersion().GetValue() >= release.Version {
+	// 客户端版本号大于服务端版本号，服务端不返回变更
+	if req.GetVersion().GetValue() > release.Version {
 		return api.NewConfigClientResponse(apimodel.Code_DataNoChange, req)
 	}
 	configFile, err := toClientInfo(req, release)

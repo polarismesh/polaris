@@ -56,12 +56,6 @@ type Peer interface {
 	Initialize(conf Config)
 	// Serve .
 	Serve(ctx context.Context, checker *LeaderHealthChecker, listenIP string, listenPort uint32) error
-	// Get .
-	Get(key string) (*ReadBeatRecord, error)
-	// Put .
-	Put(record WriteBeatRecord) error
-	// Del .
-	Del(key string) error
 	// Close .
 	Close() error
 	// Host .
@@ -98,24 +92,6 @@ func (p *LocalPeer) IsAlive() bool {
 // Get get records
 func (p *LocalPeer) Host() string {
 	return utils.LocalHost
-}
-
-// Get get records
-func (p *LocalPeer) Get(key string) (*ReadBeatRecord, error) {
-	ret := p.Cache.Get(key)
-	return ret[key], nil
-}
-
-// Put put records
-func (p *LocalPeer) Put(record WriteBeatRecord) error {
-	p.Cache.Put(record)
-	return nil
-}
-
-// Del del records
-func (p *LocalPeer) Del(key string) error {
-	p.Cache.Del(key)
-	return nil
 }
 
 // Close close peer life
@@ -212,25 +188,7 @@ func (p *RemotePeer) IsAlive() bool {
 	return true
 }
 
-// Get get records
-func (p *RemotePeer) Get(key string) (*ReadBeatRecord, error) {
-	ret := p.Cache.Get(key)
-	return ret[key], nil
-}
-
-// Put put records
-func (p *RemotePeer) Put(record WriteBeatRecord) error {
-	p.Cache.Put(record)
-	return nil
-}
-
-// Del del records
-func (p *RemotePeer) Del(key string) error {
-	p.Cache.Del(key)
-	return nil
-}
-
-func (p *RemotePeer) GetFunc(req *apiservice.GetHeartbeatsRequest) *apiservice.GetHeartbeatsResponse {
+func (p *RemotePeer) GetFunc(req *apiservice.GetHeartbeatsRequest) (*apiservice.GetHeartbeatsResponse, error) {
 	start := time.Now()
 	code := "0"
 	defer func() {
@@ -248,12 +206,12 @@ func (p *RemotePeer) GetFunc(req *apiservice.GetHeartbeatsRequest) *apiservice.G
 		code = "-1"
 		plog.Error("[HealthCheck][Leader] send get record request", zap.String("host", p.Host()),
 			zap.Uint32("port", p.port), zap.Error(err))
-		return &apiservice.GetHeartbeatsResponse{}
+		return nil, err
 	}
-	return resp
+	return resp, nil
 }
 
-func (p *RemotePeer) PutFunc(req *apiservice.HeartbeatsRequest) {
+func (p *RemotePeer) PutFunc(req *apiservice.HeartbeatsRequest) error {
 	start := time.Now()
 	code := "0"
 	defer func() {
@@ -268,10 +226,12 @@ func (p *RemotePeer) PutFunc(req *apiservice.HeartbeatsRequest) {
 		code = "-1"
 		plog.Error("[HealthCheck][Leader] send put record request", zap.String("host", p.Host()),
 			zap.Uint32("port", p.port), zap.Error(err))
+		return err
 	}
+	return nil
 }
 
-func (p *RemotePeer) DelFunc(req *apiservice.DelHeartbeatsRequest) {
+func (p *RemotePeer) DelFunc(req *apiservice.DelHeartbeatsRequest) error {
 	start := time.Now()
 	code := "0"
 	defer func() {
@@ -288,7 +248,9 @@ func (p *RemotePeer) DelFunc(req *apiservice.DelHeartbeatsRequest) {
 		code = "-1"
 		plog.Error("send del record request", zap.String("host", p.Host()),
 			zap.Uint32("port", p.port), zap.Error(err))
+		return err
 	}
+	return nil
 }
 
 func (p *RemotePeer) choseOneClient() apiservice.PolarisHeartbeatGRPCClient {

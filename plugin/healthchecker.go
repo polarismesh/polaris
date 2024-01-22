@@ -56,12 +56,22 @@ type QueryRequest struct {
 	Healthy    bool
 }
 
+// BatchQueryRequest batch query heartbeat request
+type BatchQueryRequest struct {
+	Requests []*QueryRequest
+}
+
 // QueryResponse query heartbeat response
 type QueryResponse struct {
 	Server           string
 	Exists           bool
 	LastHeartbeatSec int64
 	Count            int64
+}
+
+// BatchQueryResponse batch query heartbeat response
+type BatchQueryResponse struct {
+	Responses []*QueryResponse
 }
 
 // AddCheckRequest add check request
