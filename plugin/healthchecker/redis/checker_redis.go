@@ -215,6 +215,45 @@ func (r *RedisHealthChecker) Query(ctx context.Context, request *plugin.QueryReq
 	return queryResp, nil
 }
 
+func (r *RedisHealthChecker) BatchQuery(ctx context.Context, request *plugin.BatchQueryRequest) (*plugin.BatchQueryResponse, error) {
+	keys := make([]string, 0, len(request.Requests))
+	for i := range request.Requests {
+		keys = append(keys, request.Requests[i].InstanceId)
+	}
+
+	resp := r.checkPool.MGet(keys)
+	if resp.Err != nil {
+		log.Errorf("[Health Check][RedisCheck] mget redis err:%s", resp.Err)
+		return nil, resp.Err
+	}
+	values := resp.Values
+	queryResp := &plugin.BatchQueryResponse{
+		Responses: make([]*plugin.QueryResponse, 0, len(values)),
+	}
+	if len(values) == 0 {
+		return queryResp, nil
+	}
+	for i := range values {
+		subRsp := &plugin.QueryResponse{}
+		value := values[i]
+		if value == nil {
+			subRsp.Exists = false
+		} else {
+			heathCheckRecord := &HeathCheckRecord{}
+			if err := heathCheckRecord.Deserialize(fmt.Sprintf("%+v", value), resp.Compatible); err != nil {
+				log.Errorf("[Health Check][RedisCheck] mget parse %s err:%v", value, err)
+				return nil, err
+			}
+			subRsp.Server = heathCheckRecord.LocalHost
+			subRsp.LastHeartbeatSec = heathCheckRecord.CurTimeSec
+			subRsp.Count = heathCheckRecord.Count
+			subRsp.Exists = true
+		}
+	}
+	return queryResp, nil
+}
+
+
 const maxCheckDuration = 500 * time.Second
 
 func (r *RedisHealthChecker) skipCheck(instanceId string, expireDurationSec int64) bool {

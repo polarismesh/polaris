@@ -114,6 +114,10 @@ func (s *StatisWorker) registerMetrics() error {
 
 // ReportCallMetrics report call metrics info
 func (s *StatisWorker) ReportCallMetrics(metric metrics.CallMetric) {
+	// 只上报服务端接受客户端请求调用的结果
+	if metric.Type != metrics.ServerCallMetric {
+		return
+	}
 	s.BaseWorker.ReportCallMetrics(metric)
 }
 

@@ -27,6 +27,7 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/srand"
 	commonstore "github.com/polarismesh/polaris/common/store"
@@ -81,33 +82,67 @@ type itemValue struct {
 	checker           plugin.HealthChecker
 }
 
-type InstanceEventHealthCheckHandler struct {
+type ResourceHealthCheckHandler struct {
 	svr                  *Server
 	ctx                  context.Context
 	instanceEventChannel chan *model.InstanceEvent
 }
 
 // newLeaderChangeEventHandler
-func newInstanceEventHealthCheckHandler(ctx context.Context, svr *Server) *InstanceEventHealthCheckHandler {
-	return &InstanceEventHealthCheckHandler{
-		svr:                  svr,
-		ctx:                  ctx,
-		instanceEventChannel: svr.instanceEventChannel,
+func newResourceHealthCheckHandler(ctx context.Context, svr *Server) *ResourceHealthCheckHandler {
+	return &ResourceHealthCheckHandler{
+		svr: svr,
+		ctx: ctx,
 	}
 }
 
-func (handler *InstanceEventHealthCheckHandler) PreProcess(ctx context.Context, value any) any {
+func (handler *ResourceHealthCheckHandler) PreProcess(ctx context.Context, value any) any {
 	return value
 }
 
 // OnEvent event trigger
-func (handler *InstanceEventHealthCheckHandler) OnEvent(ctx context.Context, i interface{}) error {
-	e := i.(model.InstanceEvent)
-	select {
-	case handler.instanceEventChannel <- &e:
-		log.Debugf("[Health Check]get instance event, id is %s, type is %s", e.Id, e.EType)
-	default:
-		log.Errorf("[Health Check]instance event chan full, drop event, id is %s, type is %s", e.Id, e.EType)
+func (handler *ResourceHealthCheckHandler) OnEvent(ctx context.Context, i interface{}) error {
+	s := handler.svr
+	switch event := i.(type) {
+	case model.InstanceEvent:
+		log.Debugf("[Health Check]get instance event, id is %s, type is %s", event.Id, event.EType)
+		if event.EType != model.EventInstanceOffline {
+			return nil
+		}
+		insCache := s.cacheProvider.GetInstance(event.Id)
+		if insCache == nil {
+			log.Errorf("[Health Check] cannot get instance from cache, instance id is %s", event.Id)
+			break
+		}
+		checker, ok := s.checkers[int32(insCache.HealthCheck().GetType())]
+		if !ok {
+			log.Errorf("[Health Check]heart beat type not found checkType %d",
+				int32(insCache.HealthCheck().GetType()))
+			break
+		}
+		log.Infof("[Health Check]delete instance heart beat information, id is %s", event.Id)
+		if err := checker.Delete(context.Background(), event.Id); err != nil {
+			log.Errorf("[Health Check]addr is %s:%d, id is %s, delete err is %s",
+				insCache.Host(), insCache.Port(), insCache.ID(), err)
+		}
+	case model.ClientEvent:
+		if event.EType != model.EventInstanceOffline {
+			return nil
+		}
+		clientCache := s.cacheProvider.GetClient(event.Id)
+		if clientCache == nil {
+			log.Errorf("[Health Check] cannot get instance from cache, instance id is %s", event.Id)
+			break
+		}
+		checker, ok := s.checkers[int32(apiservice.HealthCheck_HEARTBEAT)]
+		if !ok {
+			log.Errorf("[Health Check]heart beat type not found checkType %d", int32(apiservice.HealthCheck_HEARTBEAT))
+			break
+		}
+		log.Infof("[Health Check]delete client heart beat information, id is %s", event.Id)
+		if err := checker.Delete(context.Background(), event.Id); err != nil {
+			log.Errorf("[Health Check] client id is %s, delete err is %+v", clientCache.Proto().GetId().Value, err)
+		}
 	}
 	return nil
 }
@@ -620,6 +655,10 @@ func asyncDeleteClient(svr *Server, client *apiservice.Client) apimodel.Code {
 		log.Error("[Health Check][Check] async delete client", zap.String("client-id", client.GetId().GetValue()),
 			zap.Error(err))
 	}
+	eventhub.Publish(eventhub.ClientEventTopic, &model.ClientEvent{
+		EType: model.EventClientOffline,
+		Id:    client.GetId().GetValue(),
+	})
 	return future.Code()
 }
 

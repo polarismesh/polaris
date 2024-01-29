@@ -176,7 +176,7 @@ type RemoteBeatRecordCache struct {
 	getter RecordGetter
 }
 
-func (rc *RemoteBeatRecordCache) Get(keys ...string)  (map[string]*ReadBeatRecord, error) {
+func (rc *RemoteBeatRecordCache) Get(keys ...string) (map[string]*ReadBeatRecord, error) {
 	ret := make(map[string]*ReadBeatRecord)
 	for i := range keys {
 		ret[keys[i]] = &ReadBeatRecord{

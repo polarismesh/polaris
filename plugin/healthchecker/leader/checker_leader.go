@@ -474,6 +474,33 @@ func (c *LeaderHealthChecker) isLeader() bool {
 	return atomic.LoadInt32(&c.leader) == 1
 }
 
+const (
+	errCountThreshold = 2
+	maxCheckCount     = 3
+)
+
+func (c *LeaderHealthChecker) checkLeaderAlive(ctx context.Context) {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			peer := c.findLeaderPeer()
+			if peer == nil {
+				// 可能是在 Leader 调整中，不处理探测
+				continue
+			}
+
+			if !peer.IsAlive() {
+				log.Infof("[Health Check][Leader] leader peer not alive, do suspend")
+				c.Suspend()
+			}
+		}
+	}
+}
+
 func (c *LeaderHealthChecker) DebugHandlers() []model.DebugHandler {
 	return []model.DebugHandler{
 		{

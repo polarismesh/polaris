@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
@@ -34,7 +35,9 @@ import (
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	commonstore "github.com/polarismesh/polaris/common/store"
+	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/plugin"
 )
 
 var (
@@ -752,6 +755,8 @@ func updateHealthCheck(req *apiservice.Instance, instance *model.Instance) bool 
 
 // GetInstances 查询服务实例
 func (s *Server) GetInstances(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
+	showLastHeartbeat := query["show_last_heartbeat"] == "true"
+	delete(query, "show_last_heartbeat")
 	// 对数据先进行提前处理一下
 	filters, metaFilter, batchErr := preGetInstances(query)
 	if batchErr != nil {
@@ -786,9 +791,42 @@ func (s *Server) GetInstances(ctx context.Context, query map[string]string) *api
 		s.packCmdb(protoIns)
 		apiInstances = append(apiInstances, protoIns)
 	}
-	out.Instances = apiInstances
+	if showLastHeartbeat {
+		s.fillLastHeartbeatTime(apiInstances)
+	}
 
+	out.Instances = apiInstances
 	return out
+}
+
+func (s *Server) fillLastHeartbeatTime(instances []*apiservice.Instance) {
+	checker, ok := s.healthServer.Checkers()[int32(apiservice.HealthCheck_HEARTBEAT)]
+	if !ok {
+		return
+	}
+	req := &plugin.BatchQueryRequest{Requests: make([]*plugin.QueryRequest, 0, len(instances))}
+	for i := range instances {
+		item := instances[i]
+		req.Requests = append(req.Requests, &plugin.QueryRequest{
+			InstanceId: item.GetId().GetValue(),
+		})
+	}
+	rsp, err := checker.BatchQuery(context.Background(), req)
+	if err != nil {
+		return
+	}
+	for i := range rsp.Responses {
+		item := instances[i]
+		copyMetadata := make(map[string]string, len(item.GetMetadata()))
+		for k, v := range item.GetMetadata() {
+			copyMetadata[k] = v
+		}
+		if queryRsp := rsp.Responses[i]; queryRsp.Exists {
+			copyMetadata["last-heartbeat-timestamp"] = strconv.Itoa(int(queryRsp.LastHeartbeatSec))
+			copyMetadata["last-heartbeat-time"] = commontime.Time2String(time.Unix(queryRsp.LastHeartbeatSec, 0))
+		}
+		item.Metadata = copyMetadata
+	}
 }
 
 var (

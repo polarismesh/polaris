@@ -149,7 +149,7 @@ func (cds *CDSBuilder) makeCluster(svcInfo *resource.ServiceInfo,
 
 	name := resource.MakeServiceName(svcInfo.ServiceKey, trafficDirection, opt)
 
-	return &cluster.Cluster{
+	cluster := &cluster.Cluster{
 		Name:                 name,
 		ConnectTimeout:       durationpb.New(5 * time.Second),
 		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_EDS},
@@ -161,8 +161,12 @@ func (cds *CDSBuilder) makeCluster(svcInfo *resource.ServiceInfo,
 				},
 			},
 		},
-		LbSubsetConfig:   resource.MakeLbSubsetConfig(svcInfo),
-		OutlierDetection: resource.MakeOutlierDetection(svcInfo),
-		HealthChecks:     resource.MakeHealthCheck(svcInfo),
 	}
+	// 只有针对出流量场景才能设置 Cluster 的相关信息
+	if opt.TrafficDirection == corev3.TrafficDirection_OUTBOUND {
+		cluster.LbSubsetConfig = resource.MakeLbSubsetConfig(svcInfo)
+		cluster.OutlierDetection = resource.MakeOutlierDetection(svcInfo)
+		cluster.HealthChecks = resource.MakeHealthCheck(svcInfo)
+	}
+	return cluster
 }

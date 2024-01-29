@@ -553,9 +553,6 @@ func (s *Server) CasUpsertAndReleaseConfigFile(ctx context.Context,
 	if err := utils.CheckResourceName(req.GetGroup()); err != nil {
 		return api.NewConfigResponseWithInfo(apimodel.Code_BadRequest, "invalid config group")
 	}
-	if err := CheckFileName(req.GetFileName()); err != nil {
-		return api.NewConfigResponseWithInfo(apimodel.Code_BadRequest, "invalid config file_name")
-	}
 
 	upsertFileReq := &apiconfig.ConfigFile{
 		Name:        req.GetFileName(),

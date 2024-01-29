@@ -60,7 +60,6 @@ type Server struct {
 	bc                   *batch.Controller
 	serviceCache         cachetypes.ServiceCache
 	instanceCache        cachetypes.InstanceCache
-	instanceEventChannel chan *model.InstanceEvent
 
 	subCtxs []*eventhub.SubscribtionContext
 }
@@ -271,37 +270,6 @@ func (s *Server) GetLastHeartbeat(req *apiservice.Instance) *apiservice.Response
 	req.Metadata["last-heartbeat-time"] = commontime.Time2String(time.Unix(queryResp.LastHeartbeatSec, 0))
 	req.Metadata["system-time"] = commontime.Time2String(time.Unix(s.currentTimeSec(), 0))
 	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
-}
-
-func (s *Server) handleInstanceEventWorker(ctx context.Context) {
-	for {
-		select {
-		case event := <-s.instanceEventChannel:
-			switch event.EType {
-			case model.EventInstanceOffline:
-				insCache := s.cacheProvider.GetInstance(event.Id)
-				if insCache == nil {
-					log.Errorf("[Health Check] cannot get instance from cache, instance id is %s", event.Id)
-					break
-				}
-				checker, ok := s.checkers[int32(insCache.HealthCheck().GetType())]
-				if !ok {
-					log.Errorf("[Health Check]heart beat type not found checkType %d",
-						int32(insCache.HealthCheck().GetType()))
-					break
-				}
-				log.Infof("[Health Check]delete instance heart beat information, id is %s", event.Id)
-				err := checker.Delete(context.Background(), event.Id)
-				if err != nil {
-					log.Errorf("[Health Check]addr is %s:%d, id is %s, delete err is %s",
-						insCache.Host(), insCache.Port(), insCache.ID(), err)
-				}
-			}
-		case <-ctx.Done():
-			log.Infof("[Health Check]instance event handler loop stopped")
-			return
-		}
-	}
 }
 
 // Checkers get all health checker, for test only

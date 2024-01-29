@@ -102,6 +102,8 @@ type HealthChecker interface {
 	Check(request *CheckRequest) (*CheckResponse, error)
 	// Query queries the heartbeat time
 	Query(ctx context.Context, request *QueryRequest) (*QueryResponse, error)
+	// BatchQuery batch queries the heartbeat time
+	BatchQuery(ctx context.Context, request *BatchQueryRequest) (*BatchQueryResponse, error)
 	// Suspend health checker for entire expired duration manually
 	Suspend()
 	// SuspendTimeSec get the suspend time in seconds

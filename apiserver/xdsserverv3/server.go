@@ -242,11 +242,8 @@ func (x *XDSServer) activeUpdateTask() {
 func (x *XDSServer) startSynTask(ctx context.Context) {
 	// 读取 polaris 缓存数据
 	synXdsConfFunc := func() {
-
-		registryInfo := make(map[string]map[model.ServiceKey]*resource.ServiceInfo)
-
-		err := x.getRegistryInfoWithCache(ctx, registryInfo)
-		if err != nil {
+		curRegistryInfo := make(map[string]map[model.ServiceKey]*resource.ServiceInfo)
+		if err := x.getRegistryInfoWithCache(ctx, curRegistryInfo); err != nil {
 			log.Error("get registry info from cache", zap.Error(err))
 			return
 		}
@@ -254,24 +251,19 @@ func (x *XDSServer) startSynTask(ctx context.Context) {
 		needPush := make(map[string]map[model.ServiceKey]*resource.ServiceInfo)
 		needRemove := make(map[string]map[model.ServiceKey]*resource.ServiceInfo)
 
-		// 处理删除 ns 中最后一个 service
-		for ns, infos := range x.registryInfo {
-			_, ok := registryInfo[ns]
-			if !ok && len(infos) > 0 {
-				// 这一次轮询时，该命名空间下的最后一个服务已经被删除了，此时，当前的命名空间需要处理
-				needPush[ns] = map[model.ServiceKey]*resource.ServiceInfo{}
-				x.registryInfo[ns] = map[model.ServiceKey]*resource.ServiceInfo{}
-			}
-		}
+		// 与本地缓存对比，是否发生了变化，对发生变化的命名空间，推送配置
 
+		// step 1: 这里先生成需要删除 XDS 资源数据的资源信息
 		for ns, infos := range x.registryInfo {
-			if _, exist := registryInfo[ns]; !exist {
+			// 如果当前整个命名空间都不存在，直接按照整个 namespace 级别进行数据删除
+			if _, exist := curRegistryInfo[ns]; !exist {
 				needRemove[ns] = infos
 				continue
 			}
 
+			// 命名空间存在，但是命名空间下的服务有删除情况，需要找出来
 			for _, info := range infos {
-				cacheServiceInfos := registryInfo[ns]
+				cacheServiceInfos := curRegistryInfo[ns]
 				if _, ok := cacheServiceInfos[info.ServiceKey]; !ok {
 					if _, ok := needRemove[ns]; !ok {
 						needRemove[ns] = make(map[model.ServiceKey]*resource.ServiceInfo)
@@ -282,21 +274,17 @@ func (x *XDSServer) startSynTask(ctx context.Context) {
 			}
 		}
 
-		// 与本地缓存对比，是否发生了变化，对发生变化的命名空间，推送配置
-		for ns, infos := range registryInfo {
+		for ns, infos := range curRegistryInfo {
 			cacheServiceInfos, ok := x.registryInfo[ns]
 			if !ok {
 				// 新命名空间，需要处理
 				needPush[ns] = infos
-				x.registryInfo[ns] = infos
 				continue
 			}
 
-			// todo 不考虑命名空间删除的情况
 			// 判断当前这个空间，是否需要更新配置
 			if x.checkUpdate(infos, cacheServiceInfos) {
 				needPush[ns] = infos
-				x.registryInfo[ns] = infos
 			}
 		}
 
@@ -305,6 +293,7 @@ func (x *XDSServer) startSynTask(ctx context.Context) {
 				zap.Int("need-remove", len(needRemove)))
 			x.Generate(needPush, needRemove)
 		}
+		x.registryInfo = curRegistryInfo
 	}
 
 	ticker := time.NewTicker(5 * cache.UpdateCacheInterval)
@@ -357,7 +346,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 	}
 
 	if err := x.namingServer.Cache().Service().IteratorServices(serviceIterProc); err != nil {
-		log.Errorf("syn polaris services error %v", err)
+		log.Errorf("sync polaris services error %v", err)
 		return err
 	}
 
