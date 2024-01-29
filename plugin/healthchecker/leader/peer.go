@@ -274,7 +274,7 @@ func (p *RemotePeer) checkLeaderAlive(ctx context.Context) {
 		case <-ticker.C:
 			var errCount int
 			for i := 0; i < maxCheckCount; i++ {
-				if _, err := p.Storage().Get(""); err != nil {
+				if err := p.Ping(); err != nil {
 					plog.Error("check leader is alive fail", zap.String("host", p.Host()),
 						zap.Uint32("port", p.port), zap.Error(err))
 					errCount++
