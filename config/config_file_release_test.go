@@ -19,6 +19,7 @@ package config_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
@@ -673,7 +674,7 @@ func TestServer_CasUpsertAndReleaseConfigFile(t *testing.T) {
 	})
 
 	t.Run("publish_cas", func(t *testing.T) {
-		// 发布灰度配置
+		// 第一次配置发布，就算带了 MD5，也是可以发布成功
 		pubResp := testSuit.ConfigServer().CasUpsertAndReleaseConfigFileFromClient(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
 			Namespace:   utils.NewStringValue(mockNamespace),
 			Group:       utils.NewStringValue(mockGroup),
@@ -683,19 +684,19 @@ func TestServer_CasUpsertAndReleaseConfigFile(t *testing.T) {
 			Md5:         wrapperspb.String(config.CalMd5(mockContent)),
 		})
 		// 正常发布失败，数据冲突无法处理
-		assert.Equal(t, uint32(apimodel.Code_DataConflict), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
 
-		// 正常发布一个配置
-		pubResp = testSuit.ConfigServer().UpsertAndReleaseConfigFileFromClient(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
+		// MD5 不一致，直接发布失败
+		pubResp = testSuit.ConfigServer().CasUpsertAndReleaseConfigFileFromClient(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
 			Namespace:   utils.NewStringValue(mockNamespace),
 			Group:       utils.NewStringValue(mockGroup),
 			FileName:    utils.NewStringValue(mockFileName),
 			ReleaseName: utils.NewStringValue(mockReleaseName),
 			Content:     utils.NewStringValue(mockContent),
-			Md5:         wrapperspb.String(config.CalMd5(mockContent)),
+			Md5:         wrapperspb.String(config.CalMd5(time.Now().UTC().GoString())),
 		})
-		// 正常发布成功
-		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
+		// 正常发布失败，数据冲突无法处理
+		assert.Equal(t, uint32(apimodel.Code_DataConflict), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
 
 		// 获取下当前配置的 Release
 		queryRsp := testSuit.ConfigServer().GetConfigFileRelease(testSuit.DefaultCtx, &config_manage.ConfigFileRelease{

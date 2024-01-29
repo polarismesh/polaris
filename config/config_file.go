@@ -530,6 +530,9 @@ func (s *Server) checkConfigFileParams(configFile *apiconfig.ConfigFile) *apicon
 	if configFile == nil {
 		return api.NewConfigFileResponse(apimodel.Code_InvalidParameter, configFile)
 	}
+	if err := CheckFileName(configFile.Name); err != nil {
+		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileName, configFile)
+	}
 	if err := utils.CheckResourceName(configFile.Namespace); err != nil {
 		return api.NewConfigFileResponse(apimodel.Code_InvalidNamespaceName, configFile)
 	}

@@ -546,7 +546,9 @@ func (s *Server) handleRollbackConfigFileRelease(ctx context.Context, tx store.T
 // CasUpsertAndReleaseConfigFile 根据版本比对决定是否允许进行配置修改发布
 func (s *Server) CasUpsertAndReleaseConfigFile(ctx context.Context,
 	req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
-
+	if err := CheckFileName(req.GetFileName()); err != nil {
+		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileName)
+	}
 	if err := utils.CheckResourceName(req.GetNamespace()); err != nil {
 		return api.NewConfigResponseWithInfo(apimodel.Code_BadRequest, "invalid config namespace")
 	}
