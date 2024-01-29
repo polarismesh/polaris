@@ -147,7 +147,7 @@ func (p *RemotePeer) Serve(_ context.Context, checker *LeaderHealthChecker,
 	if err := p.doConnect(); err != nil {
 		return err
 	}
-	p.Cache = newRemoteBeatRecordCache(p.GetFunc, p.PutFunc, p.DelFunc)
+	p.Cache = newRemoteBeatRecordCache(p.GetFunc, p.PutFunc, p.DelFunc, p.Ping)
 	go p.checkLeaderAlive(ctx)
 	return nil
 }
@@ -158,6 +158,15 @@ func (p *RemotePeer) Host() string {
 
 func (p *RemotePeer) IsAlive() bool {
 	return atomic.LoadInt32(&p.leaderAlive) == 1
+}
+
+func (p *RemotePeer) Ping() error {
+	client := p.choseOneClient()
+	_, err := client.BatchGetHeartbeat(context.Background(), &apiservice.GetHeartbeatsRequest{},
+		grpc.Header(&metadata.MD{
+			sendResource: []string{utils.LocalHost},
+		}))
+	return err
 }
 
 func (p *RemotePeer) GetFunc(req *apiservice.GetHeartbeatsRequest) (*apiservice.GetHeartbeatsResponse, error) {
@@ -272,7 +281,7 @@ func (p *RemotePeer) checkLeaderAlive(ctx context.Context) {
 				}
 			}
 			if errCount >= errCountThreshold {
-				log.Warn("[Health Check][Leader] leader peer not alive, do reconnect", zap.String("host", p.Host()),
+				log.Warn("[Health Check][Leader] leader peer not alive, set leader is dead", zap.String("host", p.Host()),
 					zap.Uint32("port", p.port))
 				atomic.StoreInt32(&p.leaderAlive, 0)
 			} else {
@@ -333,11 +342,14 @@ func (p *RemotePeer) doConnect() error {
 }
 
 func newBeatSender(p *RemotePeer, client apiservice.PolarisHeartbeatGRPC_BatchHeartbeatClient) *beatSender {
+	ctx, cancel := context.WithCancel(context.Background())
 	sender := &beatSender{
 		peer:   p,
+		lock:   &sync.RWMutex{},
 		sender: client,
+		cancel: cancel,
 	}
-	sender.doRecv()
+	go sender.doRecv(ctx)
 	return sender
 }
 
@@ -354,26 +366,22 @@ func (s *beatSender) Send(req *apiservice.HeartbeatsRequest) error {
 	return s.sender.Send(req)
 }
 
-func (s *beatSender) doRecv() {
-	ctx, cancel := context.WithCancel(context.Background())
-	s.cancel = cancel
-	go func(ctx context.Context) {
-		for {
-			select {
-			case <-ctx.Done():
-				plog.Info("[HealthCheck][Leader] cancel receive put record result", zap.String("host", s.peer.Host()),
-					zap.Uint32("port", s.peer.port))
-				return
-			default:
-				if _, err := s.sender.Recv(); err != nil {
-					if err != io.EOF {
-						plog.Error("[HealthCheck][Leader] receive put record result", zap.String("host", s.peer.Host()),
-							zap.Uint32("port", s.peer.port), zap.Error(err))
-					}
+func (s *beatSender) doRecv(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			plog.Info("[HealthCheck][Leader] cancel receive put record result", zap.String("host", s.peer.Host()),
+				zap.Uint32("port", s.peer.port))
+			return
+		default:
+			if _, err := s.sender.Recv(); err != nil {
+				if err != io.EOF {
+					plog.Error("[HealthCheck][Leader] receive put record result", zap.String("host", s.peer.Host()),
+						zap.Uint32("port", s.peer.port), zap.Error(err))
 				}
 			}
 		}
-	}(ctx)
+	}
 }
 
 func (s *beatSender) close() error {

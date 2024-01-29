@@ -73,6 +73,8 @@ type (
 		Clean()
 		// Snapshot
 		Snapshot() map[string]*ReadBeatRecord
+		// Ping
+		Ping() error
 	}
 )
 
@@ -96,6 +98,10 @@ type LocalBeatRecordCache struct {
 	soltNum   int32
 	hashFunc  HashFunction
 	beatCache *utils.SegmentMap[string, RecordValue]
+}
+
+func (lc *LocalBeatRecordCache) Ping() error {
+	return nil
 }
 
 func (lc *LocalBeatRecordCache) Get(keys ...string) (map[string]*ReadBeatRecord, error) {
@@ -161,11 +167,12 @@ func (lc *LocalBeatRecordCache) Snapshot() map[string]*ReadBeatRecord {
 
 // newRemoteBeatRecordCache
 func newRemoteBeatRecordCache(getter RecordGetter, saver RecordSaver,
-	delter RecordDelter) BeatRecordCache {
+	delter RecordDelter, ping func() error) BeatRecordCache {
 	return &RemoteBeatRecordCache{
 		getter: getter,
 		saver:  saver,
 		delter: delter,
+		ping:   ping,
 	}
 }
 
@@ -174,6 +181,11 @@ type RemoteBeatRecordCache struct {
 	saver  RecordSaver
 	delter RecordDelter
 	getter RecordGetter
+	ping   func() error
+}
+
+func (rc *RemoteBeatRecordCache) Ping() error {
+	return rc.ping()
 }
 
 func (rc *RemoteBeatRecordCache) Get(keys ...string) (map[string]*ReadBeatRecord, error) {
