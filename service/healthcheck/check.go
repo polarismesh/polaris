@@ -655,7 +655,7 @@ func asyncDeleteClient(svr *Server, client *apiservice.Client) apimodel.Code {
 		log.Error("[Health Check][Check] async delete client", zap.String("client-id", client.GetId().GetValue()),
 			zap.Error(err))
 	}
-	eventhub.Publish(eventhub.ClientEventTopic, &model.ClientEvent{
+	_ = eventhub.Publish(eventhub.ClientEventTopic, &model.ClientEvent{
 		EType: model.EventClientOffline,
 		Id:    client.GetId().GetValue(),
 	})

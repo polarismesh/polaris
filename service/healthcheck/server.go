@@ -46,20 +46,20 @@ var (
 
 // Server health checks the main server
 type Server struct {
-	hcOpt                *Config
-	storage              store.Store
-	defaultChecker       plugin.HealthChecker
-	checkers             map[int32]plugin.HealthChecker
-	cacheProvider        *CacheProvider
-	timeAdjuster         *TimeAdjuster
-	dispatcher           *Dispatcher
-	checkScheduler       *CheckScheduler
-	history              plugin.History
-	discoverEvent        plugin.DiscoverChannel
-	localHost            string
-	bc                   *batch.Controller
-	serviceCache         cachetypes.ServiceCache
-	instanceCache        cachetypes.InstanceCache
+	hcOpt          *Config
+	storage        store.Store
+	defaultChecker plugin.HealthChecker
+	checkers       map[int32]plugin.HealthChecker
+	cacheProvider  *CacheProvider
+	timeAdjuster   *TimeAdjuster
+	dispatcher     *Dispatcher
+	checkScheduler *CheckScheduler
+	history        plugin.History
+	discoverEvent  plugin.DiscoverChannel
+	localHost      string
+	bc             *batch.Controller
+	serviceCache   cachetypes.ServiceCache
+	instanceCache  cachetypes.InstanceCache
 
 	subCtxs []*eventhub.SubscribtionContext
 }

@@ -253,7 +253,6 @@ func (r *RedisHealthChecker) BatchQuery(ctx context.Context, request *plugin.Bat
 	return queryResp, nil
 }
 
-
 const maxCheckDuration = 500 * time.Second
 
 func (r *RedisHealthChecker) skipCheck(instanceId string, expireDurationSec int64) bool {

@@ -215,8 +215,7 @@ func (rc *RemoteBeatRecordCache) Put(records ...WriteBeatRecord) error {
 			InstanceId: record.Key,
 		})
 	}
-	rc.saver(req)
-	return nil
+	return rc.saver(req)
 }
 
 func (rc *RemoteBeatRecordCache) Del(key ...string) error {

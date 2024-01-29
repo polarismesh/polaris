@@ -80,7 +80,7 @@ func (m *mockPool) Get(id string) *redispool.Resp {
 // Get 使用连接池，向redis发起Get请求
 func (m *mockPool) MGet(id []string) *redispool.Resp {
 	rsp := &redispool.Resp{
-		Values:      make([]interface{}, 0, len(id)),
+		Values:     make([]interface{}, 0, len(id)),
 		Compatible: m.compatible,
 	}
 	for i := range id {
