@@ -21,8 +21,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
-	"net"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -35,6 +35,10 @@ import (
 
 	commonhash "github.com/polarismesh/polaris/common/hash"
 	"github.com/polarismesh/polaris/common/utils"
+)
+
+var (
+	ErrorLeaderNotAlive = errors.New("leader not alive")
 )
 
 var (
@@ -56,12 +60,6 @@ type Peer interface {
 	Initialize(conf Config)
 	// Serve .
 	Serve(ctx context.Context, checker *LeaderHealthChecker, listenIP string, listenPort uint32) error
-	// Get .
-	Get(key string) (*ReadBeatRecord, error)
-	// Put .
-	Put(record WriteBeatRecord) error
-	// Del .
-	Del(key string) error
 	// Close .
 	Close() error
 	// Host .
@@ -100,24 +98,6 @@ func (p *LocalPeer) Host() string {
 	return utils.LocalHost
 }
 
-// Get get records
-func (p *LocalPeer) Get(key string) (*ReadBeatRecord, error) {
-	ret := p.Cache.Get(key)
-	return ret[key], nil
-}
-
-// Put put records
-func (p *LocalPeer) Put(record WriteBeatRecord) error {
-	p.Cache.Put(record)
-	return nil
-}
-
-// Del del records
-func (p *LocalPeer) Del(key string) error {
-	p.Cache.Del(key)
-	return nil
-}
-
 // Close close peer life
 func (p *LocalPeer) Close() error {
 	log.Info("[HealthCheck][Leader] local peer close")
@@ -150,14 +130,12 @@ type RemotePeer struct {
 	conf Config
 	// closed .
 	closed int32
+	// leaderAlive .
+	leaderAlive int32
 }
 
 func (p *RemotePeer) Initialize(conf Config) {
 	p.conf = conf
-}
-
-func (p *RemotePeer) isClose() bool {
-	return atomic.LoadInt32(&p.closed) == 1
 }
 
 func (p *RemotePeer) Serve(_ context.Context, checker *LeaderHealthChecker,
@@ -166,31 +144,11 @@ func (p *RemotePeer) Serve(_ context.Context, checker *LeaderHealthChecker,
 	p.cancel = cancel
 	p.host = listenIP
 	p.port = listenPort
-	p.conns = make([]*grpc.ClientConn, 0, streamNum)
-	p.puters = make([]*beatSender, 0, streamNum)
-	for i := 0; i < streamNum; i++ {
-		conn, err := grpc.DialContext(ctx, fmt.Sprintf("%s:%d", listenIP, listenPort),
-			grpc.WithBlock(),
-			grpc.WithTransportCredentials(insecure.NewCredentials()),
-		)
-		if err != nil {
-			_ = p.Close()
-			return err
-		}
-		p.conns = append(p.conns, conn)
+	if err := p.doConnect(); err != nil {
+		return err
 	}
-	for i := 0; i < streamNum; i++ {
-		client := apiservice.NewPolarisHeartbeatGRPCClient(p.conns[i])
-		puter, err := client.BatchHeartbeat(ctx, grpc.Header(&metadata.MD{
-			sendResource: []string{utils.LocalHost},
-		}))
-		if err != nil {
-			_ = p.Close()
-			return err
-		}
-		p.puters = append(p.puters, newBeatSender(ctx, p, puter))
-	}
-	p.Cache = newRemoteBeatRecordCache(p.GetFunc, p.PutFunc, p.DelFunc)
+	p.Cache = newRemoteBeatRecordCache(p.GetFunc, p.PutFunc, p.DelFunc, p.Ping)
+	go p.checkLeaderAlive(ctx)
 	return nil
 }
 
@@ -199,38 +157,22 @@ func (p *RemotePeer) Host() string {
 }
 
 func (p *RemotePeer) IsAlive() bool {
-	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%v", p.Host(), p.port), time.Second)
-	defer func() {
-		if conn != nil {
-			_ = conn.Close()
-		}
-	}()
+	return atomic.LoadInt32(&p.leaderAlive) == 1
+}
 
-	if err != nil {
-		return false
+func (p *RemotePeer) Ping() error {
+	client := p.choseOneClient()
+	_, err := client.BatchGetHeartbeat(context.Background(), &apiservice.GetHeartbeatsRequest{},
+		grpc.Header(&metadata.MD{
+			sendResource: []string{utils.LocalHost},
+		}))
+	return err
+}
+
+func (p *RemotePeer) GetFunc(req *apiservice.GetHeartbeatsRequest) (*apiservice.GetHeartbeatsResponse, error) {
+	if !p.IsAlive() {
+		return nil, ErrorLeaderNotAlive
 	}
-	return true
-}
-
-// Get get records
-func (p *RemotePeer) Get(key string) (*ReadBeatRecord, error) {
-	ret := p.Cache.Get(key)
-	return ret[key], nil
-}
-
-// Put put records
-func (p *RemotePeer) Put(record WriteBeatRecord) error {
-	p.Cache.Put(record)
-	return nil
-}
-
-// Del del records
-func (p *RemotePeer) Del(key string) error {
-	p.Cache.Del(key)
-	return nil
-}
-
-func (p *RemotePeer) GetFunc(req *apiservice.GetHeartbeatsRequest) *apiservice.GetHeartbeatsResponse {
 	start := time.Now()
 	code := "0"
 	defer func() {
@@ -248,12 +190,15 @@ func (p *RemotePeer) GetFunc(req *apiservice.GetHeartbeatsRequest) *apiservice.G
 		code = "-1"
 		plog.Error("[HealthCheck][Leader] send get record request", zap.String("host", p.Host()),
 			zap.Uint32("port", p.port), zap.Error(err))
-		return &apiservice.GetHeartbeatsResponse{}
+		return nil, err
 	}
-	return resp
+	return resp, nil
 }
 
-func (p *RemotePeer) PutFunc(req *apiservice.HeartbeatsRequest) {
+func (p *RemotePeer) PutFunc(req *apiservice.HeartbeatsRequest) error {
+	if !p.IsAlive() {
+		return ErrorLeaderNotAlive
+	}
 	start := time.Now()
 	code := "0"
 	defer func() {
@@ -263,15 +208,19 @@ func (p *RemotePeer) PutFunc(req *apiservice.HeartbeatsRequest) {
 		})
 		observer.Observe(float64(time.Since(start).Milliseconds()))
 	}()
-	index := rand.Intn(len(p.puters))
-	if err := p.puters[index].Send(req); err != nil {
+	if err := p.choseOneSender().Send(req); err != nil {
 		code = "-1"
 		plog.Error("[HealthCheck][Leader] send put record request", zap.String("host", p.Host()),
 			zap.Uint32("port", p.port), zap.Error(err))
+		return err
 	}
+	return nil
 }
 
-func (p *RemotePeer) DelFunc(req *apiservice.DelHeartbeatsRequest) {
+func (p *RemotePeer) DelFunc(req *apiservice.DelHeartbeatsRequest) error {
+	if !p.IsAlive() {
+		return ErrorLeaderNotAlive
+	}
 	start := time.Now()
 	code := "0"
 	defer func() {
@@ -288,12 +237,9 @@ func (p *RemotePeer) DelFunc(req *apiservice.DelHeartbeatsRequest) {
 		code = "-1"
 		plog.Error("send del record request", zap.String("host", p.Host()),
 			zap.Uint32("port", p.port), zap.Error(err))
+		return err
 	}
-}
-
-func (p *RemotePeer) choseOneClient() apiservice.PolarisHeartbeatGRPCClient {
-	index := rand.Intn(len(p.conns))
-	return apiservice.NewPolarisHeartbeatGRPCClient(p.conns[index])
+	return nil
 }
 
 func (p *RemotePeer) Storage() BeatRecordCache {
@@ -305,6 +251,47 @@ func (p *RemotePeer) Close() error {
 	if !atomic.CompareAndSwapInt32(&p.closed, 0, 1) {
 		return nil
 	}
+	p.doClose()
+	return nil
+}
+
+func (p *RemotePeer) choseOneClient() apiservice.PolarisHeartbeatGRPCClient {
+	index := rand.Intn(len(p.conns))
+	return apiservice.NewPolarisHeartbeatGRPCClient(p.conns[index])
+}
+
+func (p *RemotePeer) choseOneSender() *beatSender {
+	index := rand.Intn(len(p.puters))
+	return p.puters[index]
+}
+
+func (p *RemotePeer) checkLeaderAlive(ctx context.Context) {
+	ticker := time.NewTicker(time.Second)
+	for {
+		select {
+		case <-ctx.Done():
+			ticker.Stop()
+		case <-ticker.C:
+			var errCount int
+			for i := 0; i < maxCheckCount; i++ {
+				if err := p.Ping(); err != nil {
+					plog.Error("check leader is alive fail", zap.String("host", p.Host()),
+						zap.Uint32("port", p.port), zap.Error(err))
+					errCount++
+				}
+			}
+			if errCount >= errCountThreshold {
+				log.Warn("[Health Check][Leader] leader peer not alive, set leader is dead", zap.String("host", p.Host()),
+					zap.Uint32("port", p.port))
+				atomic.StoreInt32(&p.leaderAlive, 0)
+			} else {
+				atomic.StoreInt32(&p.leaderAlive, 1)
+			}
+		}
+	}
+}
+
+func (p *RemotePeer) doClose() {
 	if p.cancel != nil {
 		p.cancel()
 	}
@@ -318,39 +305,59 @@ func (p *RemotePeer) Close() error {
 			_ = p.conns[i].Close()
 		}
 	}
+}
+
+func (p *RemotePeer) doConnect() error {
+	p.conns = make([]*grpc.ClientConn, 0, streamNum)
+	p.puters = make([]*beatSender, 0, streamNum)
+	for i := 0; i < streamNum; i++ {
+		conn, err := grpc.DialContext(context.Background(), fmt.Sprintf("%s:%d", p.Host(), p.port),
+			grpc.WithBlock(),
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithTimeout(5*time.Second),
+		)
+		if err != nil {
+			p.doClose()
+			return err
+		}
+		p.conns = append(p.conns, conn)
+	}
+	for i := 0; i < streamNum; i++ {
+		client := apiservice.NewPolarisHeartbeatGRPCClient(p.conns[i])
+		puter, err := client.BatchHeartbeat(context.Background(), grpc.Header(&metadata.MD{
+			sendResource: []string{utils.LocalHost},
+		}))
+		if err != nil {
+			p.doClose()
+			return err
+		}
+		sender := &beatSender{
+			peer:   p,
+			lock:   &sync.RWMutex{},
+			sender: puter,
+		}
+		p.puters = append(p.puters, sender)
+	}
 	return nil
 }
 
-var (
-	ErrorRecordNotFound = errors.New("beat record not found")
-	ErrorPeerClosed     = errors.New("peer alrady closed")
-)
-
-type beatSender struct {
-	lock   sync.RWMutex
-	sender apiservice.PolarisHeartbeatGRPC_BatchHeartbeatClient
+func newBeatSender(p *RemotePeer, client apiservice.PolarisHeartbeatGRPC_BatchHeartbeatClient) *beatSender {
+	ctx, cancel := context.WithCancel(context.Background())
+	sender := &beatSender{
+		peer:   p,
+		lock:   &sync.RWMutex{},
+		sender: client,
+		cancel: cancel,
+	}
+	go sender.doRecv(ctx)
+	return sender
 }
 
-func newBeatSender(ctx context.Context, p *RemotePeer, sender apiservice.PolarisHeartbeatGRPC_BatchHeartbeatClient) *beatSender {
-	go func(ctx context.Context) {
-		for {
-			select {
-			case <-ctx.Done():
-				plog.Info("[HealthCheck][Leader] cancel receive put record result", zap.String("host", p.Host()),
-					zap.Uint32("port", p.port))
-				return
-			default:
-				if _, err := sender.Recv(); err != nil {
-					plog.Error("[HealthCheck][Leader] receive put record result", zap.String("host", p.Host()),
-						zap.Uint32("port", p.port), zap.Error(err))
-				}
-			}
-		}
-	}(ctx)
-
-	return &beatSender{
-		sender: sender,
-	}
+type beatSender struct {
+	peer   *RemotePeer
+	lock   *sync.RWMutex
+	sender apiservice.PolarisHeartbeatGRPC_BatchHeartbeatClient
+	cancel context.CancelFunc
 }
 
 func (s *beatSender) Send(req *apiservice.HeartbeatsRequest) error {
@@ -359,6 +366,27 @@ func (s *beatSender) Send(req *apiservice.HeartbeatsRequest) error {
 	return s.sender.Send(req)
 }
 
+func (s *beatSender) doRecv(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			plog.Info("[HealthCheck][Leader] cancel receive put record result", zap.String("host", s.peer.Host()),
+				zap.Uint32("port", s.peer.port))
+			return
+		default:
+			if _, err := s.sender.Recv(); err != nil {
+				if err != io.EOF {
+					plog.Error("[HealthCheck][Leader] receive put record result", zap.String("host", s.peer.Host()),
+						zap.Uint32("port", s.peer.port), zap.Error(err))
+				}
+			}
+		}
+	}
+}
+
 func (s *beatSender) close() error {
+	if s.cancel != nil {
+		s.cancel()
+	}
 	return s.sender.CloseSend()
 }

@@ -616,7 +616,6 @@ func (b *instancePorts) listPort(serviceID string) []*model.ServicePort {
 	ret := make([]*model.ServicePort, 0, 4)
 
 	val, ok := b.ports[serviceID]
-
 	if !ok {
 		return ret
 	}

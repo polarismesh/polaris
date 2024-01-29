@@ -496,16 +496,8 @@ func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *apiservice
 
 // GetServiceContractWithCache User Client Get ServiceContract Rule Information
 func (s *Server) GetServiceContractWithCache(ctx context.Context,
-	req *apiservice.ServiceContract) *apiservice.DiscoverResponse {
-	resp := &apiservice.DiscoverResponse{
-		Code: &wrappers.UInt32Value{Value: uint32(apimodel.Code_ExecuteSuccess)},
-		Info: &wrappers.StringValue{Value: api.Code2Info(uint32(apimodel.Code_ExecuteSuccess))},
-		Type: apiservice.DiscoverResponse_SERVICE_CONTRACT,
-		Service: &apiservice.Service{
-			Name:      wrapperspb.String(req.GetService()),
-			Namespace: wrapperspb.String(req.GetNamespace()),
-		},
-	}
+	req *apiservice.ServiceContract) *apiservice.Response {
+	resp := api.NewResponse(apimodel.Code_ExecuteSuccess)
 	if !s.serviceContractCheckDiscoverRequest(req, resp) {
 		return resp
 	}
@@ -636,7 +628,7 @@ func (s *Server) commonCheckDiscoverRequest(req *apiservice.Service, resp *apise
 	return true
 }
 
-func (s *Server) serviceContractCheckDiscoverRequest(req *apiservice.ServiceContract, resp *apiservice.DiscoverResponse) bool {
+func (s *Server) serviceContractCheckDiscoverRequest(req *apiservice.ServiceContract, resp *apiservice.Response) bool {
 	svc := &apiservice.Service{
 		Name:      wrapperspb.String(req.GetService()),
 		Namespace: wrapperspb.String(req.GetNamespace()),
@@ -653,7 +645,6 @@ func (s *Server) serviceContractCheckDiscoverRequest(req *apiservice.ServiceCont
 		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_EmptyRequest))
 		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
 		resp.Service = svc
-		resp.ServiceContract = req
 		return false
 	}
 

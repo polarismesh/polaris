@@ -24,8 +24,6 @@ import (
 
 	"google.golang.org/grpc/metadata"
 
-	"github.com/polarismesh/polaris/apiserver"
-	grpchelp "github.com/polarismesh/polaris/apiserver/grpcserver/utils"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -118,61 +116,6 @@ func TestConvertContext(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := utils.ConvertGRPCContext(tt.args.ctx); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ConvertContext() = %v, \n want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestGetClientOpenMethod(t *testing.T) {
-	type args struct {
-		include  []string
-		protocol string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    map[string]bool
-		wantErr bool
-	}{
-		{
-			name: "case=1",
-			args: args{
-				include: []string{
-					apiserver.RegisterAccess,
-				},
-				protocol: "grpc",
-			},
-			want: map[string]bool{
-				"/v1.PolarisGRPC/RegisterInstance":   true,
-				"/v1.PolarisGRPC/DeregisterInstance": true,
-			},
-			wantErr: false,
-		},
-		{
-			name: "case=2",
-			args: args{
-				include: []string{
-					apiserver.DiscoverAccess,
-				},
-				protocol: "grpc",
-			},
-			want: map[string]bool{
-				"/v1.PolarisGRPC/Discover":                             true,
-				"/v1.PolarisGRPC/ReportClient":                         true,
-				"/v1.PolarisServiceContractGRPC/ReportServiceContract": true,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := grpchelp.GetClientOpenMethod(tt.args.include, tt.args.protocol)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetClientOpenMethod() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetClientOpenMethod() = %v, want %v", got, tt.want)
 			}
 		})
 	}

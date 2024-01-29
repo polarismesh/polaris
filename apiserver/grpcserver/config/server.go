@@ -128,8 +128,16 @@ func (g *ConfigGRPCServer) allowAccess(method string) bool {
 
 // GetClientOpenMethod .
 func GetClientOpenMethod(protocol string) (map[string]bool, error) {
-	openMethods := []string{"GetConfigFile", "CreateConfigFile",
-		"UpdateConfigFile", "PublishConfigFile", "WatchConfigFiles", "GetConfigFileMetadataList", "Discover"}
+	openMethods := []string{
+		"GetConfigFile",
+		"CreateConfigFile",
+		"UpdateConfigFile",
+		"PublishConfigFile",
+		"WatchConfigFiles",
+		"GetConfigFileMetadataList",
+		"UpsertAndPublishConfigFile",
+		"Discover",
+	}
 
 	openMethod := make(map[string]bool)
 

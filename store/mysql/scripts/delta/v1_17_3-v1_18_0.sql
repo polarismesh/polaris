@@ -61,6 +61,7 @@ CREATE TABLE service_contract (
 CREATE TABLE service_contract_detail (
         `id` VARCHAR(128) NOT NULL COMMENT '服务契约单个接口定义记录主键',
         `contract_id` VARCHAR(128) NOT NULL COMMENT '服务契约 ID',
+        `name` VARCHAR(128) NOT NULL COMMENT '接口名称',
         `method` VARCHAR(32) NOT NULL COMMENT 'http协议中的 method 字段, eg:POST/GET/PUT/DELETE, 其他 gRPC 可以用来标识 stream 类型',
         `path` VARCHAR(128) NOT NULL COMMENT '接口具体全路径描述',
         `source` INT COMMENT '该条记录来源, 0:SDK/1:MANUAL',

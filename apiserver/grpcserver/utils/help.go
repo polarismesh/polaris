@@ -30,7 +30,7 @@ import (
 // GetClientOpenMethod 获取客户端openMethod
 func GetClientOpenMethod(include []string, protocol string) (map[string]bool, error) {
 	clientAccess := make(map[string][]string)
-	clientAccess[apiserver.DiscoverAccess] = []string{"Discover", "ReportClient", "ReportServiceContract"}
+	clientAccess[apiserver.DiscoverAccess] = []string{"Discover", "ReportClient", "ReportServiceContract", "GetServiceContract"}
 	clientAccess[apiserver.RegisterAccess] = []string{"RegisterInstance", "DeregisterInstance"}
 	clientAccess[apiserver.HealthcheckAccess] = []string{"Heartbeat", "BatchHeartbeat", "BatchGetHeartbeat", "BatchDelHeartbeat"}
 
@@ -49,7 +49,7 @@ func GetClientOpenMethod(include []string, protocol string) (map[string]bool, er
 				if item == apiserver.HealthcheckAccess && method != "Heartbeat" {
 					recordMethod = "/v1.PolarisHeartbeat" + strings.ToUpper(protocol) + "/" + method
 				}
-				if method == "ReportServiceContract" {
+				if method == "ReportServiceContract" || method == "GetServiceContract" {
 					recordMethod = "/v1.PolarisServiceContract" + strings.ToUpper(protocol) + "/" + method
 				}
 				openMethod[recordMethod] = true

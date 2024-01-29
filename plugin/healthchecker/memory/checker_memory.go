@@ -98,6 +98,18 @@ func (r *MemoryHealthChecker) Query(ctx context.Context, request *plugin.QueryRe
 	}, nil
 }
 
+func (r *MemoryHealthChecker) BatchQuery(ctx context.Context, request *plugin.BatchQueryRequest) (*plugin.BatchQueryResponse, error) {
+	rsp := &plugin.BatchQueryResponse{Responses: make([]*plugin.QueryResponse, 0, len(request.Requests))}
+	for i := range request.Requests {
+		subRsp, err := r.Query(ctx, request.Requests[i])
+		if err != nil {
+			return nil, err
+		}
+		rsp.Responses = append(rsp.Responses, subRsp)
+	}
+	return rsp, nil
+}
+
 func (r *MemoryHealthChecker) skipCheck(instanceId string, expireDurationSec int64) bool {
 	suspendTimeSec := r.SuspendTimeSec()
 	localCurTimeSec := commontime.CurrentMillisecond() / 1000

@@ -61,6 +61,7 @@ func TestGetClientOpenMethod(t *testing.T) {
 				"/v1.PolarisGRPC/Discover":                             true,
 				"/v1.PolarisGRPC/ReportClient":                         true,
 				"/v1.PolarisServiceContractGRPC/ReportServiceContract": true,
+				"/v1.PolarisServiceContractGRPC/GetServiceContract":    true,
 			},
 			wantErr: false,
 		},

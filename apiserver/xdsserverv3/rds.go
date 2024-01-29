@@ -156,15 +156,8 @@ func (rds *RDSBuilder) makeSidecarInBoundRoutes(selfService model.ServiceKey,
 		},
 		Action: &route.Route_Route{
 			Route: &route.RouteAction{
-				ClusterSpecifier: &route.RouteAction_WeightedClusters{
-					WeightedClusters: &route.WeightedCluster{
-						Clusters: []*route.WeightedCluster_ClusterWeight{
-							{
-								Name:   resource.MakeServiceName(selfService, trafficDirection, opt),
-								Weight: wrapperspb.UInt32(100),
-							},
-						},
-					},
+				ClusterSpecifier: &route.RouteAction_Cluster{
+					Cluster: resource.MakeServiceName(selfService, trafficDirection, opt),
 				},
 			},
 		},

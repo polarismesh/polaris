@@ -234,7 +234,6 @@ func BuildWeightClustersV2(trafficDirection corev3.TrafficDirection,
 		weightedClusters = append(weightedClusters, weightCluster)
 		totalWeight += destination.Weight
 	}
-
 	return &route.WeightedCluster{
 		TotalWeight: &wrappers.UInt32Value{Value: totalWeight},
 		Clusters:    weightedClusters,
@@ -1045,10 +1044,7 @@ func MakeLbSubsetConfig(serviceInfo *ServiceInfo) *cluster.Cluster_LbSubsetConfi
 		return nil
 	}
 
-	lbSubsetConfig := &cluster.Cluster_LbSubsetConfig{}
 	var subsetSelectors []*cluster.Cluster_LbSubsetConfig_LbSubsetSelector
-	lbSubsetConfig.FallbackPolicy = cluster.Cluster_LbSubsetConfig_ANY_ENDPOINT
-
 	for _, rule := range rules {
 		// 对每一个 destination 产生一个 subset
 		for _, destination := range rule.GetDestinations() {
@@ -1058,13 +1054,15 @@ func MakeLbSubsetConfig(serviceInfo *ServiceInfo) *cluster.Cluster_LbSubsetConfi
 			}
 			subsetSelectors = append(subsetSelectors, &cluster.Cluster_LbSubsetConfig_LbSubsetSelector{
 				Keys:           keys,
-				FallbackPolicy: cluster.Cluster_LbSubsetConfig_LbSubsetSelector_NO_FALLBACK,
+				FallbackPolicy: cluster.Cluster_LbSubsetConfig_LbSubsetSelector_ANY_ENDPOINT,
 			})
 		}
 	}
 
-	lbSubsetConfig.SubsetSelectors = subsetSelectors
-	return lbSubsetConfig
+	return &cluster.Cluster_LbSubsetConfig{
+		SubsetSelectors: subsetSelectors,
+		FallbackPolicy:  cluster.Cluster_LbSubsetConfig_ANY_ENDPOINT,
+	}
 }
 
 func GenEndpointMetaFromPolarisIns(ins *apiservice.Instance) *core.Metadata {
@@ -1082,7 +1080,7 @@ func GenEndpointMetaFromPolarisIns(ins *apiservice.Instance) *core.Metadata {
 	meta.FilterMetadata["envoy.lb"] = &_struct.Struct{
 		Fields: fields,
 	}
-	if ins.Metadata != nil && ins.Metadata[TLSModeTag] != "" {
+	if ins.Metadata != nil && EnableTLS(TLSMode(ins.Metadata[TLSModeTag])) {
 		meta.FilterMetadata["envoy.transport_socket_match"] = MTLSTransportSocketMatch
 	}
 	return meta

@@ -48,11 +48,6 @@ func CheckFileName(name *wrappers.StringValue) error {
 	if name.GetValue() == "" {
 		return errors.New(utils.EmptyErrString)
 	}
-
-	if ok := regFileName.MatchString(name.GetValue()); !ok {
-		return errors.New("name contains invalid character")
-	}
-
 	return nil
 }
 

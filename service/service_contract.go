@@ -61,9 +61,16 @@ func (s *Server) CreateServiceContracts(ctx context.Context,
 }
 
 func (s *Server) CreateServiceContract(ctx context.Context, contract *apiservice.ServiceContract) *apiservice.Response {
-	contractId, errRsp := utils.CheckContractTetrad(contract)
-	if errRsp != nil {
+	if errRsp := checkBaseServiceContract(contract); errRsp != nil {
 		return errRsp
+	}
+	contractId := contract.GetId()
+	if contractId == "" {
+		tmpId, errRsp := utils.CheckContractTetrad(contract)
+		if errRsp != nil {
+			return errRsp
+		}
+		contractId = tmpId
 	}
 
 	existContract, err := s.storage.GetServiceContract(contractId)
@@ -440,4 +447,23 @@ func serviceContractRecordEntry(ctx context.Context, req *apiservice.ServiceCont
 	}
 
 	return entry
+}
+
+func checkBaseServiceContract(req *apiservice.ServiceContract) *apiservice.Response {
+	if err := utils.CheckResourceName(utils.NewStringValue(req.GetService())); err != nil {
+		return api.NewResponse(apimodel.Code_InvalidServiceName)
+	}
+	if err := utils.CheckResourceName(utils.NewStringValue(req.GetNamespace())); err != nil {
+		return api.NewResponse(apimodel.Code_InvalidNamespaceName)
+	}
+	if err := utils.CheckResourceName(utils.NewStringValue(req.GetName())); err != nil {
+		return api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract name")
+	}
+	if req.GetProtocol() == "" {
+		return api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract protocol")
+	}
+	if req.GetVersion() == "" {
+		return api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract version")
+	}
+	return nil
 }

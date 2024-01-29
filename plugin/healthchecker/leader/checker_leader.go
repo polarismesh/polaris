@@ -268,7 +268,7 @@ func (c *LeaderHealthChecker) Report(ctx context.Context, request *plugin.Report
 		},
 		Key: request.InstanceId,
 	}
-	if err := responsible.Put(record); err != nil {
+	if err := responsible.Storage().Put(record); err != nil {
 		return err
 	}
 	if log.DebugEnabled() {
@@ -322,6 +322,50 @@ func (c *LeaderHealthChecker) Check(request *plugin.CheckRequest) (*plugin.Check
 	return checkResp, nil
 }
 
+func (c *LeaderHealthChecker) BatchQuery(ctx context.Context, request *plugin.BatchQueryRequest) (*plugin.BatchQueryResponse, error) {
+	if isSendFromPeer(ctx) {
+		return nil, ErrorRedirectOnlyOnce
+	}
+
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	if !c.isInitialize() {
+		plog.Infof("[Health Check][Leader] leader checker uninitialize, ignore query")
+		return &plugin.BatchQueryResponse{}, errors.New("leader checker uninitialize")
+	}
+	responsible := c.findLeaderPeer()
+
+	keys := make([]string, 0, len(request.Requests))
+	for i := range request.Requests {
+		keys = append(keys, request.Requests[i].InstanceId)
+	}
+	ret, err := responsible.Storage().Get(keys...)
+	if err != nil {
+		return nil, err
+	}
+
+	rsp := &plugin.BatchQueryResponse{Responses: make([]*plugin.QueryResponse, 0, len(request.Requests))}
+	for i := range request.Requests {
+		req := request.Requests[i]
+		record, ok := ret[req.InstanceId]
+		if !ok {
+			rsp.Responses = append(rsp.Responses, &plugin.QueryResponse{
+				Server: responsible.Host(),
+				Exists: false,
+			})
+		} else {
+			rsp.Responses = append(rsp.Responses, &plugin.QueryResponse{
+				Server:           responsible.Host(),
+				Exists:           record.Exist,
+				LastHeartbeatSec: record.Record.CurTimeSec,
+				Count:            record.Record.Count,
+			})
+		}
+
+	}
+	return rsp, nil
+}
+
 // Query queries the heartbeat time
 func (c *LeaderHealthChecker) Query(ctx context.Context, request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
 	if isSendFromPeer(ctx) {
@@ -337,10 +381,11 @@ func (c *LeaderHealthChecker) Query(ctx context.Context, request *plugin.QueryRe
 		}, nil
 	}
 	responsible := c.findLeaderPeer()
-	record, err := responsible.Get(request.InstanceId)
+	ret, err := responsible.Storage().Get(request.InstanceId)
 	if err != nil {
 		return nil, err
 	}
+	record := ret[request.InstanceId]
 	if log.DebugEnabled() {
 		log.Debugf("[HealthCheck][Leader] query hb record, instanceId %s, record %+v", request.InstanceId, record)
 	}
@@ -360,7 +405,7 @@ func (c *LeaderHealthChecker) Delete(ctx context.Context, key string) error {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	responsible := c.findLeaderPeer()
-	return responsible.Del(key)
+	return responsible.Storage().Del(key)
 }
 
 // Suspend checker for an entire expired interval
@@ -427,6 +472,33 @@ func (c *LeaderHealthChecker) isInitialize() bool {
 
 func (c *LeaderHealthChecker) isLeader() bool {
 	return atomic.LoadInt32(&c.leader) == 1
+}
+
+const (
+	errCountThreshold = 2
+	maxCheckCount     = 3
+)
+
+func (c *LeaderHealthChecker) checkLeaderAlive(ctx context.Context) {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			peer := c.findLeaderPeer()
+			if peer == nil {
+				// 可能是在 Leader 调整中，不处理探测
+				continue
+			}
+
+			if !peer.IsAlive() {
+				log.Infof("[Health Check][Leader] leader peer not alive, do suspend")
+				c.Suspend()
+			}
+		}
+	}
 }
 
 func (c *LeaderHealthChecker) DebugHandlers() []model.DebugHandler {

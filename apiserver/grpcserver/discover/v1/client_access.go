@@ -163,9 +163,6 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 		case apiservice.DiscoverRequest_FAULT_DETECTOR:
 			action = metrics.ActionDiscoverFaultDetect
 			out = g.namingServer.GetFaultDetectWithCache(ctx, in.Service)
-		case apiservice.DiscoverRequest_SERVICE_CONTRACT:
-			action = metrics.ActionDiscoverServiceContract
-			out = g.namingServer.GetServiceContractWithCache(ctx, in.ServiceContract)
 		default:
 			out = api.NewDiscoverRoutingResponse(apimodel.Code_InvalidDiscoverResource, in.Service)
 		}
@@ -183,6 +180,16 @@ func (g *DiscoverServer) ReportServiceContract(ctx context.Context, in *apiservi
 	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), ParseGrpcOperator(ctx))
 
 	out := g.namingServer.ReportServiceContract(rCtx, in)
+	return out, nil
+}
+
+// 查询服务契约
+func (g *DiscoverServer) GetServiceContract(ctx context.Context, req *apiservice.ServiceContract) (*apiservice.Response, error) {
+	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
+	rCtx := utils.ConvertGRPCContext(ctx)
+	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), ParseGrpcOperator(ctx))
+
+	out := g.namingServer.GetServiceContractWithCache(rCtx, req)
 	return out, nil
 }
 
