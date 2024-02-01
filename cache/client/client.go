@@ -25,17 +25,17 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/golang/protobuf/proto"
 	types "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
-	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
 var (
@@ -142,7 +142,7 @@ func (c *clientCache) getClient(id string) (*model.Client, bool) {
 	defer c.lock.RUnlock()
 
 	var client *model.Client
-	c.clients.View(func(tx *bbolt.Tx) error {
+	_ = c.clients.View(func(tx *bbolt.Tx) error {
 		val := tx.Bucket([]byte(id))
 		if val == nil {
 			return nil
@@ -160,14 +160,14 @@ func (c *clientCache) getClient(id string) (*model.Client, bool) {
 
 func (c *clientCache) deleteClient(id string) {
 	atomic.AddInt64(&c.clientCount, -1)
-	c.clients.Update(func(tx *bbolt.Tx) error {
+	_ = c.clients.Update(func(tx *bbolt.Tx) error {
 		return tx.DeleteBucket([]byte(id))
 	})
 }
 
 func (c *clientCache) storeClient(id string, client *model.Client) {
 	atomic.AddInt64(&c.clientCount, 1)
-	c.clients.Update(func(tx *bbolt.Tx) error {
+	_ = c.clients.Update(func(tx *bbolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(id))
 		if err != nil {
 			return err
@@ -176,8 +176,7 @@ func (c *clientCache) storeClient(id string, client *model.Client) {
 		if err != nil {
 			return err
 		}
-		bucket.Put([]byte("client"), saveData)
-		return nil
+		return bucket.Put([]byte("client"), saveData)
 	})
 }
 
@@ -261,10 +260,7 @@ func (c *clientCache) GetClient(id string) *model.Client {
 
 // IteratorClients 迭代
 func (c *clientCache) IteratorClients(iterProc types.ClientIterProc) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
-	c.clients.View(func(tx *bbolt.Tx) error {
+	_ = c.clients.View(func(tx *bbolt.Tx) error {
 		cursor := tx.Cursor()
 		for k, _ := cursor.First(); k != nil; k, _ = cursor.Next() {
 			val := tx.Bucket(k)
