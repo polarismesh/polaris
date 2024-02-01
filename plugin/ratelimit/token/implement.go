@@ -28,6 +28,18 @@ func (tb *tokenBucket) initialize(c *plugin.ConfigEntry) error {
 		log.Errorf("[Plugin][%s] initialize err: %s", PluginName, err.Error())
 		return err
 	}
+	// 加载本地配置
+	if config.RuleFile != "" {
+		config, err = loadLocalConfig(config.RuleFile)
+		if err != nil {
+			log.Errorf("[Plugin][%s] load local rule fail err: %s", PluginName, err.Error())
+			return err
+		}
+	}
+	// 注册一个配置中心的 Change Event
+	if config.RemoteConf {
+		// TODO 监听规则
+	}
 
 	tb.config = config
 	tb.limiters = make(map[plugin.RatelimitType]limiter)

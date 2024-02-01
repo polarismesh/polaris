@@ -18,18 +18,24 @@
 package cache_client
 
 import (
+	"os"
+	"path/filepath"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
+	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
+	"github.com/golang/protobuf/proto"
 	types "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
+	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
 var (
@@ -42,10 +48,12 @@ type clientCache struct {
 
 	storage         store.Store
 	lastMtimeLogged int64
-	clients         map[string]*model.Client // instance id -> instance
-	lock            sync.RWMutex
-	singleFlight    *singleflight.Group
-	lastUpdateTime  time.Time
+	clientCount     int64
+	// valueCache save ConfigFileRelease.Content into local file to reduce memory use
+	clients        *bbolt.DB
+	lock           sync.RWMutex
+	singleFlight   *singleflight.Group
+	lastUpdateTime time.Time
 }
 
 // name 获取资源名称
@@ -63,15 +71,36 @@ func NewClientCache(storage store.Store, cacheMgr types.CacheManager) types.Clie
 	return &clientCache{
 		BaseCache: types.NewBaseCache(storage, cacheMgr),
 		storage:   storage,
-		clients:   map[string]*model.Client{},
 	}
 }
 
 // initialize 初始化函数
-func (c *clientCache) Initialize(_ map[string]interface{}) error {
+func (c *clientCache) Initialize(opt map[string]interface{}) error {
 	c.singleFlight = &singleflight.Group{}
 	c.lastUpdateTime = time.Unix(0, 0)
+	var err error
+	c.clients, err = c.openBoltCache(opt)
+	if err != nil {
+		return err
+	}
 	return nil
+}
+
+func (c *clientCache) openBoltCache(opt map[string]interface{}) (*bbolt.DB, error) {
+	path, _ := opt["cachePath"].(string)
+	if path == "" {
+		path = "./data/cache/client"
+	}
+	if err := os.MkdirAll(path, os.ModePerm); err != nil {
+		return nil, err
+	}
+	dbFile := filepath.Join(path, "client_info.bolt")
+	_ = os.Remove(dbFile)
+	valueCache, err := bbolt.Open(dbFile, os.ModePerm, &bbolt.Options{})
+	if err != nil {
+		return nil, err
+	}
+	return valueCache, nil
 }
 
 // update 更新缓存函数
@@ -112,20 +141,44 @@ func (c *clientCache) getClient(id string) (*model.Client, bool) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
-	client, ok := c.clients[id]
-	return client, ok
+	var client *model.Client
+	c.clients.View(func(tx *bbolt.Tx) error {
+		val := tx.Bucket([]byte(id))
+		if val == nil {
+			return nil
+		}
+		saveData := val.Get([]byte("client"))
+		msg := &service_manage.Client{}
+		if err := proto.Unmarshal(saveData, msg); err != nil {
+			return err
+		}
+		client = model.NewClient(msg)
+		return nil
+	})
+	return client, client != nil
 }
 
 func (c *clientCache) deleteClient(id string) {
-	c.lock.Lock()
-	delete(c.clients, id)
-	c.lock.Unlock()
+	atomic.AddInt64(&c.clientCount, -1)
+	c.clients.Update(func(tx *bbolt.Tx) error {
+		return tx.DeleteBucket([]byte(id))
+	})
 }
 
 func (c *clientCache) storeClient(id string, client *model.Client) {
-	c.lock.Lock()
-	c.clients[id] = client
-	c.lock.Unlock()
+	atomic.AddInt64(&c.clientCount, 1)
+	c.clients.Update(func(tx *bbolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists([]byte(id))
+		if err != nil {
+			return err
+		}
+		saveData, err := proto.Marshal(client.Proto())
+		if err != nil {
+			return err
+		}
+		bucket.Put([]byte("client"), saveData)
+		return nil
+	})
 }
 
 // setClients 保存client到内存中
@@ -187,19 +240,12 @@ func (c *clientCache) setClients(clients map[string]*model.Client) (map[string]t
 }
 
 // clear
-//
-//	@return error
 func (c *clientCache) Clear() error {
 	c.BaseCache.Clear()
-	c.lock.Lock()
-	c.clients = map[string]*model.Client{}
-	c.lock.Unlock()
 	return nil
 }
 
 // GetClient get client
-// @param id
-// @return *model.Client
 func (c *clientCache) GetClient(id string) *model.Client {
 	if id == "" {
 		return nil
@@ -218,11 +264,25 @@ func (c *clientCache) IteratorClients(iterProc types.ClientIterProc) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
-	for key := range c.clients {
-		if !iterProc(key, c.clients[key]) {
-			break
+	c.clients.View(func(tx *bbolt.Tx) error {
+		cursor := tx.Cursor()
+		for k, _ := cursor.First(); k != nil; k, _ = cursor.Next() {
+			val := tx.Bucket(k)
+			if val == nil {
+				continue
+			}
+			saveData := val.Get([]byte("client"))
+			msg := &service_manage.Client{}
+			if err := proto.Unmarshal(saveData, msg); err != nil {
+				return err
+			}
+			client := model.NewClient(msg)
+			if !iterProc(string(k), client) {
+				break
+			}
 		}
-	}
+		return nil
+	})
 }
 
 // GetClientsByFilter Query client information

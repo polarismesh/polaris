@@ -261,16 +261,16 @@ func (x *XDSServer) startSynTask(ctx context.Context) {
 				continue
 			}
 
+			cacheServiceInfos := curRegistryInfo[ns]
 			// 命名空间存在，但是命名空间下的服务有删除情况，需要找出来
 			for _, info := range infos {
-				cacheServiceInfos := curRegistryInfo[ns]
-				if _, ok := cacheServiceInfos[info.ServiceKey]; !ok {
-					if _, ok := needRemove[ns]; !ok {
-						needRemove[ns] = make(map[model.ServiceKey]*resource.ServiceInfo)
-					}
-					needRemove[ns][info.ServiceKey] = info
+				if _, ok := cacheServiceInfos[info.ServiceKey]; ok {
 					continue
 				}
+				if _, ok := needRemove[ns]; !ok {
+					needRemove[ns] = make(map[model.ServiceKey]*resource.ServiceInfo)
+				}
+				needRemove[ns][info.ServiceKey] = info
 			}
 		}
 
@@ -281,10 +281,20 @@ func (x *XDSServer) startSynTask(ctx context.Context) {
 				needPush[ns] = infos
 				continue
 			}
-
-			// 判断当前这个空间，是否需要更新配置
-			if x.checkUpdate(infos, cacheServiceInfos) {
-				needPush[ns] = infos
+			for _, info := range infos {
+				oldSvc, exist := cacheServiceInfos[info.ServiceKey]
+				// 如果原来的 cache 不存在，直接就是需要推送
+				showPush := !exist
+				if exist {
+					// 如果原来的 cache 存在，这需要在比对下数据是否出现变化
+					showPush = !info.Equal(oldSvc)
+				}
+				if showPush {
+					if _, ok := needPush[ns]; !ok {
+						needPush[ns] = make(map[model.ServiceKey]*resource.ServiceInfo)
+					}
+					needPush[ns][info.ServiceKey] = info
+				}
 			}
 		}
 
@@ -436,40 +446,6 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 func (x *XDSServer) Generate(needPush, needRemove map[string]map[model.ServiceKey]*resource.ServiceInfo) {
 	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
 	x.resourceGenerator.Generate(versionLocal, needPush, needRemove)
-}
-
-func (x *XDSServer) checkUpdate(curServiceInfo, cacheServiceInfo map[model.ServiceKey]*resource.ServiceInfo) bool {
-	if len(curServiceInfo) != len(cacheServiceInfo) {
-		return true
-	}
-	for _, info := range curServiceInfo {
-		find := false
-		for _, serviceInfo := range cacheServiceInfo {
-			if info.Name == serviceInfo.Name {
-				// 通过 revision 判断
-				if info.SvcInsRevision != serviceInfo.SvcInsRevision {
-					return true
-				}
-				if info.SvcRoutingRevision != serviceInfo.SvcRoutingRevision {
-					return true
-				}
-				if info.SvcRateLimitRevision != serviceInfo.SvcRateLimitRevision {
-					return true
-				}
-				if info.CircuitBreakerRevision != serviceInfo.CircuitBreakerRevision {
-					return true
-				}
-				if info.FaultDetectRevision != serviceInfo.FaultDetectRevision {
-					return true
-				}
-				find = true
-			}
-		}
-		if !find {
-			return true
-		}
-	}
-	return false
 }
 
 func (x *XDSServer) DebugHandlers() []model.DebugHandler {

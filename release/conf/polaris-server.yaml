@@ -90,10 +90,19 @@ bootstrap:
       rotationMaxAge: 7
       outputLevel: info
       compress: true
-    # Eureka protocol layer plug -in log
+    # Eureka protocol layer plugin log
     eureka:
       rotateOutputPath: log/runtime/polaris-eureka.log
       errorRotateOutputPath: log/runtime/polaris-eureka-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 30
+      rotationMaxAge: 7
+      outputLevel: info
+      compress: true
+    # Nacos protocol layer plug -in log
+    nacos-apiserver:
+      rotateOutputPath: log/runtime/nacos-apiserver.log
+      errorRotateOutputPath: log/runtime/nacos-apiserver-error.log
       rotationMaxSize: 100
       rotationMaxBackups: 30
       rotationMaxAge: 7
@@ -162,14 +171,6 @@ bootstrap:
     cmdb:
       rotateOutputPath: log/runtime/polaris-cmdb.log
       errorRotateOutputPath: log/runtime/polaris-cmdb-error.log
-      rotationMaxSize: 100
-      rotationMaxBackups: 30
-      rotationMaxAge: 7
-      outputLevel: info
-      compress: true
-    nacos-apiserver:
-      rotateOutputPath: log/runtime/nacos-apiserver.log
-      errorRotateOutputPath: log/runtime/nacos-apiserver-error.log
       rotationMaxSize: 100
       rotationMaxBackups: 30
       rotationMaxAge: 7
@@ -324,11 +325,6 @@ apiservers:
         openConnLimit: false
         maxConnPerHost: 128
         maxConnLimit: 10240
-  # - name: service-l5
-  #   option:
-  #     listenIP: 0.0.0.0
-  #     listenPort: 7779
-  #     clusterName: cl5.discover
 # Core logic configuration
 auth:
   # auth's option has migrated to auth.user and auth.strategy
@@ -451,32 +447,28 @@ maintain:
         # clientCleanTimeout: 10m
 # Storage configuration
 store:
-  # Standalone file storage plugin
-  name: boltdbStore
-  option:
-    path: ./polaris.bolt
-  ## Database storage plugin
-  # name: defaultStore
+  # # Standalone file storage plugin
+  # name: boltdbStore
   # option:
-  #   master:
-  #     dbType: mysql
-  #     dbName: polaris_server
-  #     dbUser: ${MYSQL_USER} ##DB_USER##
-  #     dbPwd: ${MYSQL_PWD} ##DB_PWD##
-  #     dbAddr: ${MYSQL_HOST} ##DB_ADDR##
-  #     maxOpenConns: 300
-  #     maxIdleConns: 50
-  #     connMaxLifetime: 300 # Unit second
-  #     txIsolationLevel: 2 #LevelReadCommitted
+  #   path: ./polaris.bolt
+  ## Database storage plugin
+  name: defaultStore
+  option:
+    master:
+      dbType: mysql
+      dbName: polaris_server
+      dbUser: ${MYSQL_USER} ##DB_USER##
+      dbPwd: ${MYSQL_PWD} ##DB_PWD##
+      dbAddr: ${MYSQL_HOST} ##DB_ADDR##
+      maxOpenConns: 300
+      maxIdleConns: 50
+      connMaxLifetime: 300 # Unit second
+      txIsolationLevel: 2 #LevelReadCommitted
 # polaris-server plugin settings
 plugin:
   crypto:
     entries:
       - name: AES
-  # whitelist:
-  #   name: whitelist
-  #   option:
-  #     ip: [127.0.0.1]
   cmdb:
     name: memory
     option:
@@ -498,52 +490,4 @@ plugin:
     name: token-bucket
     option:
       # Whether to use remote configuration
-      remote-conf: false
-      # IP -level current, global
-      ip-limit:
-        # Whether the system opens IP -level current limit
-        open: false 
-        global:
-          open: false
-          # Maximum peak
-          bucket: 300
-          # The average number of requests per second of IP
-          rate: 200
-        # Number of IP of the maximum cache
-        resource-cache-amount: 1024 
-        white-list: [127.0.0.1]
-      instance-limit:
-        open: false
-        global:
-          bucket: 200
-          rate: 100
-        resource-cache-amount: 1024
-      # Interface-level ratelimit limit
-      api-limit:
-        # Whether to turn on the interface restriction and global switch, only for TRUE can it represent the flow restriction on the system.By default
-        open: false
-        rules:
-          - name: store-read
-            limit:
-              # The global configuration of the interface, if in the API sub -item, is not configured, the interface will be limited according to Global
-              open: false
-              # The maximum value of token barrels
-              bucket: 2000
-              # The number of token generated per second
-              rate: 1000
-          - name: store-write
-            limit:
-              open: false
-              bucket: 1000
-              rate: 500
-        apis:
-          - name: "POST:/v1/naming/services"
-            rule: store-write
-          - name: "PUT:/v1/naming/services"
-            rule: store-write
-          - name: "POST:/v1/naming/services/delete"
-            rule: store-write
-          - name: "GET:/v1/naming/services"
-            rule: store-read
-          - name: "GET:/v1/naming/services/count"
-            rule: store-read
+      rule-file: ./conf/plugin/ratelimit/rule.yaml

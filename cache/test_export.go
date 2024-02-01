@@ -44,5 +44,5 @@ var (
 
 // TestUpdate only for test
 func (nc *CacheManager) TestUpdate() error {
-	return nc.update()
+	return nc.warmUp()
 }

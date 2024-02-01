@@ -61,13 +61,24 @@ func (s *Server) ReportServiceContract(ctx context.Context, req *apiservice.Serv
 	// 通过 Cache 模块减少无意义的 CreateServiceContract 逻辑
 	if cacheData == nil || cacheData.Content != req.GetContent() {
 		rsp := s.CreateServiceContract(ctx, req)
-		if rsp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
+		if !isSuccessReportContract(rsp) {
 			return rsp
 		}
 	}
 
 	rsp := s.CreateServiceContractInterfaces(ctx, req, apiservice.InterfaceDescriptor_Client)
 	return rsp
+}
+
+func isSuccessReportContract(rsp *apiservice.Response) bool {
+	code := rsp.GetCode().GetValue()
+	if code == uint32(apimodel.Code_ExecuteSuccess) {
+		return true
+	}
+	if code == uint32(apimodel.Code_NoNeedUpdate) {
+		return true
+	}
+	return false
 }
 
 // ReportClient 客户端上报信息

@@ -98,7 +98,6 @@ func (mp *MockPeerImpl) Host() string {
 }
 
 func TestLocalPeer(t *testing.T) {
-	t.SkipNow()
 	localPeer := newLocalPeer()
 	assert.NotNil(t, localPeer)
 	ctrl := gomock.NewController(t)

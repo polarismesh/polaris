@@ -18,6 +18,8 @@
 package cache_client
 
 import (
+	"sync/atomic"
+
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/plugin"
 )
@@ -27,6 +29,6 @@ func (c *clientCache) reportMetricsInfo() {
 	defer c.lock.RUnlock()
 	plugin.GetStatis().ReportDiscoveryMetrics(metrics.DiscoveryMetric{
 		Type:  metrics.ClientMetrics,
-		Total: int64(len(c.clients)),
+		Total: atomic.LoadInt64(&c.clientCount),
 	})
 }
