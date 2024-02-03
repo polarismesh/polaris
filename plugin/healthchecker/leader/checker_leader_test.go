@@ -19,20 +19,92 @@ package leader
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/polarismesh/polaris/common/eventhub"
+	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
 	"github.com/polarismesh/polaris/store/mock"
 )
 
-func TestLeaderHealthChecker_OnEvent(t *testing.T) {
+func TestLeaderHealthChecker_Function(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	eventhub.InitEventHub()
+	t.Cleanup(func() {
+		ctrl.Finish()
+	})
+	mockStore := mock.NewMockStore(ctrl)
+	mockStore.EXPECT().StartLeaderElection(gomock.Any()).Return(nil).AnyTimes()
+	checker := &LeaderHealthChecker{
+		self: NewLocalPeerFunc(),
+		s:    mockStore,
+		conf: &Config{
+			SoltNum: 0,
+		},
+	}
+	err := checker.Initialize(&plugin.ConfigEntry{
+		Option: map[string]interface{}{},
+	})
+	assert.NoError(t, err)
+
+	t.Run("follower_case", func(t *testing.T) {
+		atomic.StoreInt32(&checker.leader, 0)
+
+		t.Run("duplicate_request", func(t *testing.T) {
+			ctx := metadata.NewIncomingContext(context.Background(), metadata.New(map[string]string{
+				sendResource: utils.LocalHost,
+			}))
+			t.Run("report", func(t *testing.T) {
+				err := checker.Report(ctx, &plugin.ReportRequest{})
+				assert.ErrorIs(t, err, ErrorRedirectOnlyOnce)
+			})
+			t.Run("query", func(t *testing.T) {
+				_, err := checker.Query(ctx, &plugin.QueryRequest{})
+				assert.ErrorIs(t, err, ErrorRedirectOnlyOnce)
+			})
+			t.Run("batch-query", func(t *testing.T) {
+				_, err := checker.BatchQuery(ctx, &plugin.BatchQueryRequest{})
+				assert.ErrorIs(t, err, ErrorRedirectOnlyOnce)
+			})
+			t.Run("delete", func(t *testing.T) {
+				err := checker.Delete(ctx, "")
+				assert.ErrorIs(t, err, ErrorRedirectOnlyOnce)
+			})
+		})
+	})
+
+	t.Run("not-initialize", func(t *testing.T) {
+		ctx := context.Background()
+		atomic.StoreInt32(&checker.initialize, 0)
+		t.Run("report", func(t *testing.T) {
+			err := checker.Report(ctx, &plugin.ReportRequest{})
+			assert.ErrorIs(t, err, ErrorLeaderNotInitialize)
+		})
+		t.Run("query", func(t *testing.T) {
+			_, err := checker.Query(ctx, &plugin.QueryRequest{})
+			assert.ErrorIs(t, err, ErrorLeaderNotInitialize)
+		})
+		t.Run("batch-query", func(t *testing.T) {
+			_, err := checker.BatchQuery(ctx, &plugin.BatchQueryRequest{})
+			assert.ErrorIs(t, err, ErrorLeaderNotInitialize)
+		})
+		t.Run("delete", func(t *testing.T) {
+			err := checker.Delete(ctx, "")
+			assert.ErrorIs(t, err, ErrorLeaderNotInitialize)
+		})
+	})
+}
+
+// TestLeaderHealthChecker_Switch 测试 Leader 事件切换
+func TestLeaderHealthChecker_Switch(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	eventhub.InitEventHub()
 	t.Cleanup(func() {
@@ -57,11 +129,22 @@ func TestLeaderHealthChecker_OnEvent(t *testing.T) {
 	_, err = newMockPolarisGRPCSever(t, mockPort)
 	assert.NoError(t, err)
 
+	oldNewRemoteFunc := NewRemotePeerFunc
+	t.Cleanup(func() {
+		NewRemotePeerFunc = oldNewRemoteFunc
+	})
+	// 这里要模拟一个远程节点，规避 RemotePeer 内部的真实逻辑
+	NewRemotePeerFunc = func() Peer {
+		return &MockPeerImpl{}
+	}
+
+	oldHost := utils.LocalHost
+	oldPort := utils.LocalPort
 	utils.LocalHost = "127.0.0.2"
 	utils.LocalPort = int(mockPort)
 	t.Cleanup(func() {
-		utils.LocalPort = 8091
-		utils.LocalHost = "127.0.0.1"
+		utils.LocalPort = oldPort
+		utils.LocalHost = oldHost
 	})
 
 	t.Run("initialize-self-is-follower", func(t *testing.T) {
@@ -82,7 +165,7 @@ func TestLeaderHealthChecker_OnEvent(t *testing.T) {
 
 		peer := checker.findLeaderPeer()
 		assert.NotNil(t, peer)
-		_, ok := peer.(*RemotePeer)
+		_, ok := peer.(*MockPeerImpl)
 		assert.True(t, ok)
 	})
 
@@ -107,5 +190,81 @@ func TestLeaderHealthChecker_OnEvent(t *testing.T) {
 		assert.NotNil(t, peer)
 		_, ok := peer.(*LocalPeer)
 		assert.True(t, ok)
+	})
+}
+
+func TestLeaderHealthChecker_Normal(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	eventhub.InitEventHub()
+	t.Cleanup(func() {
+		ctrl.Finish()
+	})
+	mockStore := mock.NewMockStore(ctrl)
+	mockStore.EXPECT().StartLeaderElection(gomock.Any()).Return(nil).AnyTimes()
+	checker := &LeaderHealthChecker{
+		self: NewLocalPeerFunc(),
+		s:    mockStore,
+		conf: &Config{
+			SoltNum: 0,
+		},
+		// 设置为 Leader
+		leader: 1,
+		// 设置为已经初始化结束
+		initialize: 1,
+	}
+	err := checker.Initialize(&plugin.ConfigEntry{
+		Option: map[string]interface{}{},
+	})
+	assert.NoError(t, err)
+
+	mockInstanceId := "mockInstanceId"
+	mockInstanceHost := "1.1.1.1"
+	mockInstancePort := uint32(8080)
+
+	t.Run("report", func(t *testing.T) {
+		err := checker.Report(context.Background(), &plugin.ReportRequest{
+			QueryRequest: plugin.QueryRequest{
+				InstanceId: mockInstanceId,
+				Host:       mockInstanceHost,
+				Port:       mockInstancePort,
+			},
+			LocalHost:  utils.LocalHost,
+			CurTimeSec: commontime.CurrentMillisecond(),
+		})
+		assert.NoError(t, err)
+
+		t.Run("abnormal-query", func(t *testing.T) {
+			rsp, err := checker.Query(context.Background(), &plugin.QueryRequest{
+				InstanceId: mockInstanceId + "noExist",
+				Host:       mockInstanceHost,
+				Port:       mockInstancePort,
+			})
+			assert.NoError(t, err)
+			assert.False(t, rsp.Exists)
+		})
+
+		t.Run("normal-query", func(t *testing.T) {
+			rsp, err := checker.Query(context.Background(), &plugin.QueryRequest{
+				InstanceId: mockInstanceId,
+				Host:       mockInstanceHost,
+				Port:       mockInstancePort,
+			})
+			assert.NoError(t, err)
+			assert.True(t, rsp.Exists)
+			assert.True(t, rsp.LastHeartbeatSec <= commontime.CurrentMillisecond())
+		})
+
+		err = checker.Delete(context.Background(), mockInstanceId)
+		assert.NoError(t, err)
+
+		t.Run("query-should-noexist", func(t *testing.T) {
+			rsp, err := checker.Query(context.Background(), &plugin.QueryRequest{
+				InstanceId: mockInstanceId,
+				Host:       mockInstanceHost,
+				Port:       mockInstancePort,
+			})
+			assert.NoError(t, err)
+			assert.False(t, rsp.Exists)
+		})
 	})
 }

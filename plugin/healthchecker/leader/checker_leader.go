@@ -72,7 +72,8 @@ var (
 )
 
 var (
-	ErrorRedirectOnlyOnce = errors.New("redirect request only once")
+	ErrorRedirectOnlyOnce    = errors.New("redirect request only once")
+	ErrorLeaderNotInitialize = errors.New("leader checker uninitialize")
 )
 
 // LeaderHealthChecker Leader~Follower 节点心跳健康检查
@@ -256,8 +257,8 @@ func (c *LeaderHealthChecker) Report(ctx context.Context, request *plugin.Report
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	if !c.isInitialize() {
-		plog.Warn("[Health Check][Leader] leader checker uninitialize, ignore report")
-		return nil
+		plog.Debug("[Health Check][Leader] leader checker uninitialize, ignore report")
+		return ErrorLeaderNotInitialize
 	}
 	responsible := c.findLeaderPeer()
 	record := WriteBeatRecord{
@@ -271,9 +272,7 @@ func (c *LeaderHealthChecker) Report(ctx context.Context, request *plugin.Report
 	if err := responsible.Storage().Put(record); err != nil {
 		return err
 	}
-	if log.DebugEnabled() {
-		log.Debugf("[HealthCheck][Leader] add hb record, instanceId %s, record %+v", request.InstanceId, record)
-	}
+	log.Debugf("[HealthCheck][Leader] add hb record, instanceId %s, record %+v", request.InstanceId, record)
 	return nil
 }
 
@@ -322,16 +321,18 @@ func (c *LeaderHealthChecker) Check(request *plugin.CheckRequest) (*plugin.Check
 	return checkResp, nil
 }
 
-func (c *LeaderHealthChecker) BatchQuery(ctx context.Context, request *plugin.BatchQueryRequest) (*plugin.BatchQueryResponse, error) {
-	if isSendFromPeer(ctx) {
+func (c *LeaderHealthChecker) BatchQuery(ctx context.Context,
+	request *plugin.BatchQueryRequest) (*plugin.BatchQueryResponse, error) {
+
+	if !c.isLeader() && isSendFromPeer(ctx) {
 		return nil, ErrorRedirectOnlyOnce
 	}
 
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	if !c.isInitialize() {
-		plog.Infof("[Health Check][Leader] leader checker uninitialize, ignore query")
-		return &plugin.BatchQueryResponse{}, errors.New("leader checker uninitialize")
+		plog.Debug("[Health Check][Leader] leader checker uninitialize, ignore batch query")
+		return &plugin.BatchQueryResponse{}, ErrorLeaderNotInitialize
 	}
 	responsible := c.findLeaderPeer()
 
@@ -368,17 +369,17 @@ func (c *LeaderHealthChecker) BatchQuery(ctx context.Context, request *plugin.Ba
 
 // Query queries the heartbeat time
 func (c *LeaderHealthChecker) Query(ctx context.Context, request *plugin.QueryRequest) (*plugin.QueryResponse, error) {
-	if isSendFromPeer(ctx) {
+	if !c.isLeader() && isSendFromPeer(ctx) {
 		return nil, ErrorRedirectOnlyOnce
 	}
 
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	if !c.isInitialize() {
-		plog.Infof("[Health Check][Leader] leader checker uninitialize, ignore query")
+		plog.Debug("[Health Check][Leader] leader checker uninitialize, ignore query")
 		return &plugin.QueryResponse{
 			LastHeartbeatSec: 0,
-		}, nil
+		}, ErrorLeaderNotInitialize
 	}
 	responsible := c.findLeaderPeer()
 	ret, err := responsible.Storage().Get(request.InstanceId)
@@ -386,9 +387,7 @@ func (c *LeaderHealthChecker) Query(ctx context.Context, request *plugin.QueryRe
 		return nil, err
 	}
 	record := ret[request.InstanceId]
-	if log.DebugEnabled() {
-		log.Debugf("[HealthCheck][Leader] query hb record, instanceId %s, record %+v", request.InstanceId, record)
-	}
+	log.Debugf("[HealthCheck][Leader] query hb record, instanceId %s, record %+v", request.InstanceId, record)
 	return &plugin.QueryResponse{
 		Server:           responsible.Host(),
 		LastHeartbeatSec: record.Record.CurTimeSec,
@@ -399,8 +398,12 @@ func (c *LeaderHealthChecker) Query(ctx context.Context, request *plugin.QueryRe
 
 // Delete delete record by key
 func (c *LeaderHealthChecker) Delete(ctx context.Context, key string) error {
-	if isSendFromPeer(ctx) {
+	if !c.isLeader() && isSendFromPeer(ctx) {
 		return ErrorRedirectOnlyOnce
+	}
+	if !c.isInitialize() {
+		plog.Debug("[Health Check][Leader] leader checker uninitialize, ignore delete")
+		return ErrorLeaderNotInitialize
 	}
 	c.lock.RLock()
 	defer c.lock.RUnlock()
@@ -494,7 +497,7 @@ func (c *LeaderHealthChecker) checkLeaderAlive(ctx context.Context) {
 			}
 
 			if !peer.IsAlive() {
-				log.Infof("[Health Check][Leader] leader peer not alive, do suspend")
+				log.Info("[Health Check][Leader] leader peer not alive, do suspend")
 				c.Suspend()
 			}
 		}

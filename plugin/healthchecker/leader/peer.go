@@ -51,6 +51,8 @@ var (
 	NewLocalPeerFunc  = newLocalPeer
 	NewRemotePeerFunc = newRemotePeer
 	ConnectPeer       = doConnect
+
+	CreateBeatClientFunc = createBeatClient
 )
 
 func newLocalPeer() Peer {
@@ -147,18 +149,23 @@ func (p *RemotePeer) Initialize(conf Config) {
 
 func (p *RemotePeer) Serve(ctx context.Context, checker *LeaderHealthChecker,
 	listenIP string, listenPort uint32) error {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 	p.cancel = cancel
 	p.host = listenIP
 	p.port = listenPort
 
 	connectPeer := ConnectPeer
-	if val := ctx.Value(ConnectFuncContextKey{}); val != nil {
+	val := ctx.Value(ConnectFuncContextKey{})
+	if val != nil {
 		// 正常情况下只是为了测试场景使用
 		connectPeer = val.(ConnectPeerFunc)
 	}
-	connectPeer(p)
+	if err := connectPeer(p); err != nil {
+		return err
+	}
 	p.cache = newRemoteBeatRecordCache(p.GetFunc, p.PutFunc, p.DelFunc, p.Ping)
+	// 启动前先设置 Leader 为 alive 状态
+	atomic.StoreInt32(&p.leaderAlive, 1)
 	go p.checkLeaderAlive(ctx)
 	return nil
 }
@@ -268,7 +275,7 @@ func (p *RemotePeer) Close() error {
 
 func (p *RemotePeer) choseOneClient() apiservice.PolarisHeartbeatGRPCClient {
 	index := rand.Intn(len(p.conns))
-	return apiservice.NewPolarisHeartbeatGRPCClient(p.conns[index])
+	return CreateBeatClientFunc(p.conns[index])
 }
 
 func (p *RemotePeer) choseOneSender() *beatSender {
@@ -316,6 +323,10 @@ func (p *RemotePeer) doClose() {
 			_ = p.conns[i].Close()
 		}
 	}
+}
+
+func createBeatClient(conn *grpc.ClientConn) apiservice.PolarisHeartbeatGRPCClient {
+	return apiservice.NewPolarisHeartbeatGRPCClient(conn)
 }
 
 func doConnect(p *RemotePeer) error {
