@@ -144,14 +144,14 @@ function test_cluster_discovery() {
     mv coverage_sqldb_3.cover ../
 }
 
-# if [[ "${RUN_MODE}" == "STANDALONE" ]]; then
-#     test_standalone
-# else
-#     prepare_cluster_env
-#     test_cluster_auth
-#     test_cluster_discovery
-#     test_cluster_config
-# fi
+if [[ "${RUN_MODE}" == "STANDALONE" ]]; then
+    test_standalone
+else
+    prepare_cluster_env
+    test_cluster_auth
+    test_cluster_discovery
+    test_cluster_config
+fi
 
 # for pid in $(jobs -p); do
 #     wait $pid

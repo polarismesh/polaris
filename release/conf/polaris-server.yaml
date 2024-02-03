@@ -108,7 +108,7 @@ bootstrap:
       rotationMaxAge: 7
       outputLevel: info
       compress: true
-    # APISERVER common log, record inbound request and outbound response 
+    # APISERVER common log, record inbound request and outbound response
     apiserver:
       rotateOutputPath: log/runtime/polaris-apiserver.log
       errorRotateOutputPath: log/runtime/polaris-apiserver-error.log
@@ -199,14 +199,14 @@ bootstrap:
     isolated: false
     # Service information that needs to be registered
     services:
-        # service name
+      # service name
       - name: polaris.checker
         # Set the port protocol information that requires registration
         protocols:
           - service-grpc
 # apiserver Configuration
 apiservers:
-    # apiserver plugin name
+  # apiserver plugin name
   - name: service-eureka
     # apiserver additional configuration
     option:
@@ -395,7 +395,7 @@ healthcheck:
       waitTime: 32ms
       maxBatchCount: 32
       concurrency: 64
-  # Health check plugin list, currently supports heartBeatMemory/heartBeatredis/heartBeatLeader. 
+  # Health check plugin list, currently supports heartBeatMemory/heartBeatredis/heartBeatLeader.
   # since the three belong to the same type of health check plugin, only one can be enabled to use one
   checkers:
     - name: heartbeatMemory
@@ -403,7 +403,7 @@ healthcheck:
     #   option:
     #     # Heartbeat Record MAP number of shards
     #     soltNum: 128
-    #     # The number of GRPC connections used to process heartbeat forward request processing between leader and follower, 
+    #     # The number of GRPC connections used to process heartbeat forward request processing between leader and follower,
     #     # default value is runtime.GOMAXPROCS(0)
     #     streamNum: 128
 # Configuration center module start configuration
@@ -414,8 +414,8 @@ config:
   contentMaxLength: 20000
 # Cache configuration
 cache:
-  # When the incremental synchronization data is cached, the actual incremental data time range is as follows: 
-  # How many seconds need to be backtracked from the current time, that is, 
+  # When the incremental synchronization data is cached, the actual incremental data time range is as follows:
+  # How many seconds need to be backtracked from the current time, that is,
   # the incremental synchronization at time T [T - abs(DiffTime), ∞)
   diffTime: 5s
 # Maintain configuration
@@ -448,22 +448,22 @@ maintain:
 # Storage configuration
 store:
   # # Standalone file storage plugin
-  # name: boltdbStore
-  # option:
-  #   path: ./polaris.bolt
-  ## Database storage plugin
-  name: defaultStore
+  name: boltdbStore
   option:
-    master:
-      dbType: mysql
-      dbName: polaris_server
-      dbUser: ${MYSQL_USER} ##DB_USER##
-      dbPwd: ${MYSQL_PWD} ##DB_PWD##
-      dbAddr: ${MYSQL_HOST} ##DB_ADDR##
-      maxOpenConns: 300
-      maxIdleConns: 50
-      connMaxLifetime: 300 # Unit second
-      txIsolationLevel: 2 #LevelReadCommitted
+    path: ./polaris.bolt
+  ## Database storage plugin
+  # name: defaultStore
+  # option:
+  #   master:
+  #     dbType: mysql
+  #     dbName: polaris_server
+  #     dbUser: ${MYSQL_USER} ##DB_USER##
+  #     dbPwd: ${MYSQL_PWD} ##DB_PWD##
+  #     dbAddr: ${MYSQL_HOST} ##DB_ADDR##
+  #     maxOpenConns: 300
+  #     maxIdleConns: 50
+  #     connMaxLifetime: 300 # Unit second
+  #     txIsolationLevel: 2 #LevelReadCommitted
 # polaris-server plugin settings
 plugin:
   crypto:
@@ -489,5 +489,4 @@ plugin:
   ratelimit:
     name: token-bucket
     option:
-      # Whether to use remote configuration
       rule-file: ./conf/plugin/ratelimit/rule.yaml
