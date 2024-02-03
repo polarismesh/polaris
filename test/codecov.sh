@@ -91,6 +91,55 @@ for val in ${apiserver_pkg[@]}; do
         coverpkg="${coverpkg},${val}"
     fi
 done
+for val in ${auth_pkg[@]}; do
+    if [ "${coverpkg}" == "" ]; then
+        coverpkg="${val}"
+    else
+        coverpkg="${coverpkg},${val}"
+    fi
+done
+for val in ${cache_pkg[@]}; do
+    if [ "${coverpkg}" == "" ]; then
+        coverpkg="${val}"
+    else
+        coverpkg="${coverpkg},${val}"
+    fi
+done
+for val in ${discover_pkg[@]}; do
+    if [ "${coverpkg}" == "" ]; then
+        coverpkg="${val}"
+    else
+        coverpkg="${coverpkg},${val}"
+    fi
+done
+for val in ${config_pkg[@]}; do
+    if [ "${coverpkg}" == "" ]; then
+        coverpkg="${val}"
+    else
+        coverpkg="${coverpkg},${val}"
+    fi
+done
+for val in ${store_pkg[@]}; do
+    if [ "${coverpkg}" == "" ]; then
+        coverpkg="${val}"
+    else
+        coverpkg="${coverpkg},${val}"
+    fi
+done
+for val in ${plugin_pkg[@]}; do
+    if [ "${coverpkg}" == "" ]; then
+        coverpkg="${val}"
+    else
+        coverpkg="${coverpkg},${val}"
+    fi
+done
+for val in ${common_pkg[@]}; do
+    if [ "${coverpkg}" == "" ]; then
+        coverpkg="${val}"
+    else
+        coverpkg="${coverpkg},${val}"
+    fi
+done
 
 echo "${coverpkg}"
 
