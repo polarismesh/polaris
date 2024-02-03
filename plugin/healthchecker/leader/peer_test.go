@@ -165,8 +165,6 @@ func TestLocalPeer(t *testing.T) {
 }
 
 func TestRemotePeer(t *testing.T) {
-	t.SkipNow()
-	// close old event hub
 	eventhub.InitEventHub()
 	ctrl := gomock.NewController(t)
 	mockStore := mock.NewMockStore(ctrl)
@@ -185,7 +183,6 @@ func TestRemotePeer(t *testing.T) {
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		_ = checker.Destroy()
-		eventhub.InitEventHub()
 		ctrl.Finish()
 	})
 
