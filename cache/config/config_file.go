@@ -86,7 +86,7 @@ func (fc *fileCache) Initialize(opt map[string]interface{}) error {
 	fc.metricsReleaseCount = utils.NewSyncMap[string, *utils.SyncMap[string, uint64]]()
 	fc.preMetricsFiles = utils.NewAtomicValue[map[string]map[string]struct{}](map[string]map[string]struct{}{})
 	fc.lastReportTime = utils.NewAtomicValue[time.Time](time.Time{})
-	valueCache, err := openBoltCache(opt)
+	valueCache, err := fc.openBoltCache(opt)
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func (fc *fileCache) Initialize(opt map[string]interface{}) error {
 	return nil
 }
 
-func openBoltCache(opt map[string]interface{}) (*bbolt.DB, error) {
+func (fc *fileCache) openBoltCache(opt map[string]interface{}) (*bbolt.DB, error) {
 	path, _ := opt["cachePath"].(string)
 	if path == "" {
 		path = "./data/cache/config"

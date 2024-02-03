@@ -700,6 +700,10 @@ func (bc *BaseCache) Close() error {
 	return nil
 }
 
+func (bc *BaseCache) RefreshInterval() time.Duration {
+	return time.Second
+}
+
 type (
 	// GrayCache 灰度 Cache 接口
 	GrayCache interface {

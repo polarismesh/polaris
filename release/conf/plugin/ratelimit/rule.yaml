@@ -1,0 +1,48 @@
+# IP -level current, global
+ip-limit:
+  # Whether the system opens IP -level current limit
+  open: false 
+  global:
+    open: false
+    # Maximum peak
+    bucket: 300
+    # The average number of requests per second of IP
+    rate: 200
+  # Number of IP of the maximum cache
+  resource-cache-amount: 1024 
+  white-list: [127.0.0.1]
+instance-limit:
+  open: false
+  global:
+    bucket: 200
+    rate: 100
+  resource-cache-amount: 1024
+# Interface-level ratelimit limit
+api-limit:
+  # Whether to turn on the interface restriction and global switch, only for TRUE can it represent the flow restriction on the system.By default
+  open: false
+  rules:
+    - name: store-read
+      limit:
+        # The global configuration of the interface, if in the API sub -item, is not configured, the interface will be limited according to Global
+        open: false
+        # The maximum value of token barrels
+        bucket: 2000
+        # The number of token generated per second
+        rate: 1000
+    - name: store-write
+      limit:
+        open: false
+        bucket: 1000
+        rate: 500
+  apis:
+    - name: "POST:/v1/naming/services"
+      rule: store-write
+    - name: "PUT:/v1/naming/services"
+      rule: store-write
+    - name: "POST:/v1/naming/services/delete"
+      rule: store-write
+    - name: "GET:/v1/naming/services"
+      rule: store-read
+    - name: "GET:/v1/naming/services/count"
+      rule: store-read

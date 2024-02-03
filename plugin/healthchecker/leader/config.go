@@ -24,6 +24,8 @@ import (
 type Config struct {
 	SoltNum   int32 `json:"soltNum"`
 	StreamNum int32 `json:"streamNum"`
+	// only use for test
+	checkLeader bool
 }
 
 func unmarshal(options map[string]interface{}) (*Config, error) {

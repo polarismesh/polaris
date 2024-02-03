@@ -90,7 +90,7 @@ bootstrap:
       rotationMaxAge: 7
       outputLevel: info
       compress: true
-    # Eureka protocol layer plug -in log
+    # Eureka protocol layer plugin log
     eureka:
       rotateOutputPath: log/runtime/polaris-eureka.log
       errorRotateOutputPath: log/runtime/polaris-eureka-error.log
@@ -99,7 +99,16 @@ bootstrap:
       rotationMaxAge: 7
       outputLevel: info
       compress: true
-    # APISERVER common log, record inbound request and outbound response 
+    # Nacos protocol layer plug -in log
+    nacos-apiserver:
+      rotateOutputPath: log/runtime/nacos-apiserver.log
+      errorRotateOutputPath: log/runtime/nacos-apiserver-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 30
+      rotationMaxAge: 7
+      outputLevel: info
+      compress: true
+    # APISERVER common log, record inbound request and outbound response
     apiserver:
       rotateOutputPath: log/runtime/polaris-apiserver.log
       errorRotateOutputPath: log/runtime/polaris-apiserver-error.log
@@ -167,14 +176,6 @@ bootstrap:
       rotationMaxAge: 7
       outputLevel: info
       compress: true
-    nacos-apiserver:
-      rotateOutputPath: log/runtime/nacos-apiserver.log
-      errorRotateOutputPath: log/runtime/nacos-apiserver-error.log
-      rotationMaxSize: 100
-      rotationMaxBackups: 30
-      rotationMaxAge: 7
-      outputLevel: info
-      compress: true
   # Start the server in order
   startInOrder:
     # Start the Polaris-Server in order, mainly to avoid data synchronization logic when the server starts the DB to pull the DB out of high load
@@ -198,14 +199,14 @@ bootstrap:
     isolated: false
     # Service information that needs to be registered
     services:
-        # service name
+      # service name
       - name: polaris.checker
         # Set the port protocol information that requires registration
         protocols:
           - service-grpc
 # apiserver Configuration
 apiservers:
-    # apiserver plugin name
+  # apiserver plugin name
   - name: service-eureka
     # apiserver additional configuration
     option:
@@ -324,11 +325,6 @@ apiservers:
         openConnLimit: false
         maxConnPerHost: 128
         maxConnLimit: 10240
-  # - name: service-l5
-  #   option:
-  #     listenIP: 0.0.0.0
-  #     listenPort: 7779
-  #     clusterName: cl5.discover
 # Core logic configuration
 auth:
   # auth's option has migrated to auth.user and auth.strategy
@@ -399,7 +395,7 @@ healthcheck:
       waitTime: 32ms
       maxBatchCount: 32
       concurrency: 64
-  # Health check plugin list, currently supports heartBeatMemory/heartBeatredis/heartBeatLeader. 
+  # Health check plugin list, currently supports heartBeatMemory/heartBeatredis/heartBeatLeader.
   # since the three belong to the same type of health check plugin, only one can be enabled to use one
   checkers:
     - name: heartbeatMemory
@@ -407,7 +403,7 @@ healthcheck:
     #   option:
     #     # Heartbeat Record MAP number of shards
     #     soltNum: 128
-    #     # The number of GRPC connections used to process heartbeat forward request processing between leader and follower, 
+    #     # The number of GRPC connections used to process heartbeat forward request processing between leader and follower,
     #     # default value is runtime.GOMAXPROCS(0)
     #     streamNum: 128
 # Configuration center module start configuration
@@ -418,8 +414,8 @@ config:
   contentMaxLength: 20000
 # Cache configuration
 cache:
-  # When the incremental synchronization data is cached, the actual incremental data time range is as follows: 
-  # How many seconds need to be backtracked from the current time, that is, 
+  # When the incremental synchronization data is cached, the actual incremental data time range is as follows:
+  # How many seconds need to be backtracked from the current time, that is,
   # the incremental synchronization at time T [T - abs(DiffTime), ∞)
   diffTime: 5s
 # Maintain configuration
@@ -451,7 +447,7 @@ maintain:
         # clientCleanTimeout: 10m
 # Storage configuration
 store:
-  # Standalone file storage plugin
+  # # Standalone file storage plugin
   name: boltdbStore
   option:
     path: ./polaris.bolt
@@ -473,10 +469,6 @@ plugin:
   crypto:
     entries:
       - name: AES
-  # whitelist:
-  #   name: whitelist
-  #   option:
-  #     ip: [127.0.0.1]
   cmdb:
     name: memory
     option:
@@ -497,53 +489,4 @@ plugin:
   ratelimit:
     name: token-bucket
     option:
-      # Whether to use remote configuration
-      remote-conf: false
-      # IP -level current, global
-      ip-limit:
-        # Whether the system opens IP -level current limit
-        open: false 
-        global:
-          open: false
-          # Maximum peak
-          bucket: 300
-          # The average number of requests per second of IP
-          rate: 200
-        # Number of IP of the maximum cache
-        resource-cache-amount: 1024 
-        white-list: [127.0.0.1]
-      instance-limit:
-        open: false
-        global:
-          bucket: 200
-          rate: 100
-        resource-cache-amount: 1024
-      # Interface-level ratelimit limit
-      api-limit:
-        # Whether to turn on the interface restriction and global switch, only for TRUE can it represent the flow restriction on the system.By default
-        open: false
-        rules:
-          - name: store-read
-            limit:
-              # The global configuration of the interface, if in the API sub -item, is not configured, the interface will be limited according to Global
-              open: false
-              # The maximum value of token barrels
-              bucket: 2000
-              # The number of token generated per second
-              rate: 1000
-          - name: store-write
-            limit:
-              open: false
-              bucket: 1000
-              rate: 500
-        apis:
-          - name: "POST:/v1/naming/services"
-            rule: store-write
-          - name: "PUT:/v1/naming/services"
-            rule: store-write
-          - name: "POST:/v1/naming/services/delete"
-            rule: store-write
-          - name: "GET:/v1/naming/services"
-            rule: store-read
-          - name: "GET:/v1/naming/services/count"
-            rule: store-read
+      rule-file: ./conf/plugin/ratelimit/rule.yaml

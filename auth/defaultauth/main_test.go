@@ -36,7 +36,6 @@ import (
 	_ "github.com/polarismesh/polaris/plugin/healthchecker/redis"
 	_ "github.com/polarismesh/polaris/plugin/history/logger"
 	_ "github.com/polarismesh/polaris/plugin/password"
-	_ "github.com/polarismesh/polaris/plugin/ratelimit/lrurate"
 	_ "github.com/polarismesh/polaris/plugin/ratelimit/token"
 	_ "github.com/polarismesh/polaris/plugin/statis/logger"
 	_ "github.com/polarismesh/polaris/plugin/statis/prometheus"

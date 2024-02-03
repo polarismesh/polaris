@@ -193,6 +193,26 @@ type ServiceInfo struct {
 	FaultDetectRevision    string
 }
 
+func (s *ServiceInfo) Equal(o *ServiceInfo) bool {
+	// 通过 revision 判断
+	if s.SvcInsRevision != o.SvcInsRevision {
+		return false
+	}
+	if s.SvcRoutingRevision != o.SvcRoutingRevision {
+		return false
+	}
+	if s.SvcRateLimitRevision != o.SvcRateLimitRevision {
+		return false
+	}
+	if s.CircuitBreakerRevision != o.CircuitBreakerRevision {
+		return false
+	}
+	if s.FaultDetectRevision != o.FaultDetectRevision {
+		return false
+	}
+	return true
+}
+
 func (s *ServiceInfo) MatchService(ns, name string) bool {
 	if s.Namespace == ns && s.Name == name {
 		return true
