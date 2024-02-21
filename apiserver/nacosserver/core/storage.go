@@ -129,12 +129,10 @@ func (n *NacosDataStorage) ListInstances(filterCtx *FilterContext, filter Instan
 		CacheMillis:              1000,
 		Name:                     svc.Name,
 		GroupName:                svc.Group,
+		Clusters:                 strings.Join(clusters, ","),
 		Checksum:                 svcInfo.reversion,
 		LastRefTime:              commontime.CurrentMillisecond(),
 		ReachProtectionThreshold: false,
-	}
-	if len(clusters) == 0 {
-		resultInfo.Clusters = strings.Join(clusters, ",")
 	}
 
 	healthCount := int32(0)
