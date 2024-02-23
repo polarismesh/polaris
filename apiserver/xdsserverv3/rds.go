@@ -77,7 +77,7 @@ func (rds *RDSBuilder) makeSidecarInBoundRouteConfiguration(option *resource.Bui
 		return []types.Resource{}
 	}
 	routeConf := &route.RouteConfiguration{
-		Name:             resource.MakeInBoundRouteConfigName(selfService, option.OpenOnDemand),
+		Name:             resource.MakeInBoundRouteConfigName(selfService, option.IsDemand()),
 		ValidateClusters: wrapperspb.Bool(false),
 	}
 
@@ -115,7 +115,7 @@ func (rds *RDSBuilder) makeSidecarOutBoundRouteConfiguration(option *resource.Bu
 		}
 	}
 	hosts = append(hosts, resource.BuildAllowAnyVHost())
-	if option.OpenOnDemand {
+	if option.IsDemand() {
 		baseRouteName = fmt.Sprintf("%s|%s|DEMAND", resource.OutBoundRouteConfigName, option.Namespace)
 		// routeConfiguration.Vhds = &route.Vhds{
 		// 	ConfigSource: &corev3.ConfigSource{
@@ -167,7 +167,7 @@ func (rds *RDSBuilder) makeSidecarInBoundRoutes(selfService model.ServiceKey,
 	limits, typedPerFilterConfig, err := resource.MakeSidecarLocalRateLimit(seacher, selfService)
 	if err == nil {
 		currentRoute.TypedPerFilterConfig = typedPerFilterConfig
-		if opt.OpenOnDemand {
+		if opt.IsDemand() {
 			currentRoute.TypedPerFilterConfig[resource.EnvoyHttpFilter_OnDemand] =
 				resource.BuildOnDemandRouteTypedPerFilterConfig()
 		}
@@ -201,7 +201,7 @@ func (rds *RDSBuilder) makeGatewayRouteConfiguration(option *resource.BuildOptio
 	}
 	hosts = append(hosts, vHost)
 	routeConfiguration := &route.RouteConfiguration{
-		Name:         resource.OutBoundRouteConfigName,
+		Name:         resource.OutBoundRouteConfigName + "-gateway",
 		VirtualHosts: hosts,
 	}
 	return append(routeConfs, routeConfiguration), nil

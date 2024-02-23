@@ -489,4 +489,5 @@ plugin:
   ratelimit:
     name: token-bucket
     option:
+      enable: false
       rule-file: ./conf/plugin/ratelimit/rule.yaml

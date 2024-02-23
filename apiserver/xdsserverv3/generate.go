@@ -18,6 +18,7 @@
 package xdsserverv3
 
 import (
+	"context"
 	"errors"
 	"strconv"
 	"sync"
@@ -49,19 +50,22 @@ type (
 // XdsResourceGenerator is the xDS resource generator
 type XdsResourceGenerator struct {
 	namingServer service.DiscoverServer
-	cache        *cache.XDSCache
+	cache        *cache.ResourceCache
 	versionNum   *atomic.Uint64
 	xdsNodesMgr  *resource.XDSNodeManager
 }
 
-func (x *XdsResourceGenerator) Generate(versionLocal string,
-	needUpdate, needRemove ServiceInfos) {
-
+// Generate 构建 XDS 资源缓存数据信息
+func (x *XdsResourceGenerator) Generate(versionLocal string, needUpdate, needRemove ServiceInfos) {
 	deltaOp := func(runType resource.RunType, infos ServiceInfos, f XDSGenerate) {
 		direction := corev3.TrafficDirection_OUTBOUND
 		if runType == resource.RunTypeGateway {
 			direction = corev3.TrafficDirection_INBOUND
 		}
+
+		// doc: https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol#eventual-consistency-considerations
+		// Cluster -> Endpoint -> Listener -> Route
+
 		// CDS/EDS/VHDS 一起构建
 		for namespace, services := range infos {
 			opt := &resource.BuildOption{
@@ -71,10 +75,6 @@ func (x *XdsResourceGenerator) Generate(versionLocal string,
 				TrafficDirection: direction,
 				TLSMode:          resource.TLSModeNone,
 			}
-			f(resource.RDS, opt)
-			f(resource.EDS, opt)
-			f(resource.VHDS, opt)
-
 			// 默认构建没有设置 TLS 的 CDS 资源
 			f(resource.CDS, opt)
 			// 构建设置了 TLS Mode == Strict 的 CDS 资源
@@ -83,19 +83,22 @@ func (x *XdsResourceGenerator) Generate(versionLocal string,
 			// 构建设置了 TLS Mode == Permissive 的 CDS 资源
 			opt.TLSMode = resource.TLSModePermissive
 			f(resource.CDS, opt)
+			// 恢复 TLSMode
+			opt.TLSMode = resource.TLSModeNone
+			f(resource.EDS, opt)
+			f(resource.RDS, opt)
+			f(resource.VHDS, opt)
 			// 构建支持按需加载
-			opt.OpenOnDemand = true
+			opt.OpenEnvoyDemand()
 			f(resource.RDS, opt)
 
 			if runType == resource.RunTypeSidecar {
 				for svcKey := range services {
-					opt.OpenOnDemand = false
+					opt.CloseEnvoyDemand()
 					// 换成 INBOUND 构建 CDS、EDS、RDS
 					opt.SelfService = svcKey
 					opt.TrafficDirection = corev3.TrafficDirection_INBOUND
 					opt.TLSMode = resource.TLSModeNone
-					f(resource.EDS, opt)
-					f(resource.RDS, opt)
 					// 默认构建没有设置 TLS 的 CDS 资源
 					f(resource.CDS, opt)
 					// 构建设置了 TLS Mode == Strict 的 CDS 资源
@@ -104,11 +107,57 @@ func (x *XdsResourceGenerator) Generate(versionLocal string,
 					// 构建设置了 TLS Mode == Permissive 的 CDS 资源
 					opt.TLSMode = resource.TLSModePermissive
 					f(resource.CDS, opt)
+					// 恢复 TLSMode 信息
+					opt.TLSMode = resource.TLSModeNone
+					f(resource.EDS, opt)
+					f(resource.RDS, opt)
 					// 构建支持按需加载
-					opt.OpenOnDemand = true
+					opt.OpenEnvoyDemand()
 					f(resource.RDS, opt)
 				}
 			}
+		}
+	}
+	finalResources := map[resource.XDSType]cache.TypeResources{}
+	lock := &sync.Mutex{}
+
+	removeRes := func(xdsType resource.XDSType, opt *resource.BuildOption) {
+		lock.Lock()
+		defer lock.Unlock()
+		opt.ForceDelete = true
+		xxds, err := x.generateXDSResource(xdsType, opt)
+		if err != nil {
+			log.Error("[XDS][Envoy] generate envoy node resource fail", zap.Error(err))
+			return
+		}
+		if _, ok := finalResources[xdsType]; !ok {
+			finalResources[xdsType] = cache.TypeResources{
+				RemoveResources: map[string]struct{}{},
+			}
+		}
+		indexRes := cachev3.IndexRawResourcesByName(xxds)
+		for name := range indexRes {
+			finalResources[xdsType].RemoveResources[name] = struct{}{}
+		}
+	}
+
+	upsertRes := func(xdsType resource.XDSType, opt *resource.BuildOption) {
+		lock.Lock()
+		defer lock.Unlock()
+		opt.ForceDelete = false
+		xxds, err := x.generateXDSResource(xdsType, opt)
+		if err != nil {
+			log.Error("[XDS][Envoy] generate xds resource fail", zap.Error(err))
+			return
+		}
+		if _, ok := finalResources[xdsType]; !ok {
+			finalResources[xdsType] = cache.TypeResources{
+				UpsertResources: map[string]types.Resource{},
+			}
+		}
+		indexRes := cachev3.IndexRawResourcesByName(xxds)
+		for name, res := range indexRes {
+			finalResources[xdsType].UpsertResources[name] = res
 		}
 	}
 
@@ -116,90 +165,64 @@ func (x *XdsResourceGenerator) Generate(versionLocal string,
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-
 		// 处理 Sideacr
-		deltaOp(resource.RunTypeSidecar, needUpdate, x.buildAndDeltaUpdate)
-		deltaOp(resource.RunTypeSidecar, needRemove, x.buildAndDeltaRemove)
+		deltaOp(resource.RunTypeSidecar, needUpdate, upsertRes)
+		deltaOp(resource.RunTypeSidecar, needRemove, removeRes)
 	}()
 
 	go func() {
 		defer wg.Done()
-
 		// 处理 Gateway
-		deltaOp(resource.RunTypeGateway, needUpdate, x.buildAndDeltaUpdate)
-		deltaOp(resource.RunTypeGateway, needRemove, x.buildAndDeltaRemove)
+		deltaOp(resource.RunTypeGateway, needUpdate, upsertRes)
+		deltaOp(resource.RunTypeGateway, needRemove, upsertRes)
 	}()
 
 	wg.Wait()
+
+	if err := x.cache.UpdateResources(context.Background(), &cache.UpdateResourcesRequest{
+		Types: finalResources,
+	}); err != nil {
+		log.Error("[XDS][Envoy] update xds resource fail", zap.Error(err))
+	}
 }
 
 func (x *XdsResourceGenerator) buildOneEnvoyXDSCache(node *resource.XDSClient) error {
 	opt := &resource.BuildOption{
-		RunType:      node.RunType,
-		Client:       node,
-		TLSMode:      node.TLSMode,
-		Namespace:    node.GetSelfNamespace(),
-		OpenOnDemand: node.OpenOnDemand,
+		RunType:   node.RunType,
+		Client:    node,
+		TLSMode:   node.TLSMode,
+		Namespace: node.GetSelfNamespace(),
 		SelfService: model.ServiceKey{
 			Namespace: node.GetSelfNamespace(),
 			Name:      node.GetSelfService(),
 		},
 	}
+	if node.OpenOnDemand {
+		opt.OpenEnvoyDemand()
+	}
+
+	updateCache := func(xdsType resource.XDSType, opt *resource.BuildOption) {
+		xxds, err := x.generateXDSResource(xdsType, opt)
+		if err != nil {
+			log.Error("[XDS][Envoy] generate envoy node resource fail", zap.Error(err))
+			return
+		}
+
+		x.cache.UpdateResources(context.Background(), &cache.UpdateResourcesRequest{
+			Lds: map[string]map[string]types.Resource{
+				opt.Client.ID: cachev3.IndexRawResourcesByName(xxds),
+			},
+		})
+	}
 
 	opt.TrafficDirection = corev3.TrafficDirection_OUTBOUND
 	// 构建 OUTBOUND LDS 资源
-	x.buildAndDeltaUpdate(resource.LDS, opt)
+	updateCache(resource.LDS, opt)
+
 	opt.TrafficDirection = corev3.TrafficDirection_INBOUND
 	// 构建 INBOUND LDS 资源
-	x.buildAndDeltaUpdate(resource.LDS, opt)
+	updateCache(resource.LDS, opt)
 	return nil
-}
-
-func (x *XdsResourceGenerator) buildAndDeltaRemove(xdsType resource.XDSType, opt *resource.BuildOption) {
-	opt.ForceDelete = true
-	xxds, err := x.generateXDSResource(xdsType, opt)
-	if err != nil {
-		log.Error("[XDS][Envoy] generate xds resource fail", zap.String("type", xdsType.String()), zap.Error(err))
-		return
-	}
-
-	typeUrl := xdsType.ResourceType()
-	client := opt.Client
-	if client == nil {
-		client = &resource.XDSClient{
-			TLSMode:   opt.TLSMode,
-			Namespace: opt.Namespace,
-		}
-	}
-	cacheKey := cache.BuildCacheKey(typeUrl, opt.TLSMode, client)
-	if err := x.cache.DeltaRemoveResource(cacheKey, typeUrl, cachev3.IndexRawResourcesByName(xxds)); err != nil {
-		log.Error("[XDS][Envoy] delta update fail", zap.String("cache-key", cacheKey),
-			zap.String("type", xdsType.String()), zap.Error(err))
-		return
-	}
-}
-
-func (x *XdsResourceGenerator) buildAndDeltaUpdate(xdsType resource.XDSType, opt *resource.BuildOption) {
-	opt.ForceDelete = false
-	xxds, err := x.generateXDSResource(xdsType, opt)
-	if err != nil {
-		log.Error("[XDS][Envoy] generate xds resource fail", zap.String("type", xdsType.String()), zap.Error(err))
-		return
-	}
-
-	typeUrl := xdsType.ResourceType()
-	client := opt.Client
-	if client == nil {
-		client = &resource.XDSClient{
-			TLSMode:   opt.TLSMode,
-			Namespace: opt.Namespace,
-		}
-	}
-	cacheKey := cache.BuildCacheKey(typeUrl, opt.TLSMode, client)
-	if err = x.cache.DeltaUpdateResource(cacheKey, typeUrl, cachev3.IndexRawResourcesByName(xxds)); err != nil {
-		log.Error("[XDS][Envoy] delta update fail", zap.String("cache-key", cacheKey),
-			zap.String("type", xdsType.String()), zap.Error(err))
-	}
 }
 
 func (x *XdsResourceGenerator) generateXDSResource(xdsType resource.XDSType,

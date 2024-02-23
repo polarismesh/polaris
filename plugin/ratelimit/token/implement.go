@@ -28,6 +28,10 @@ func (tb *tokenBucket) initialize(c *plugin.ConfigEntry) error {
 		log.Errorf("[Plugin][%s] initialize err: %s", PluginName, err.Error())
 		return err
 	}
+	if !config.Enable {
+		tb.config = config
+		return nil
+	}
 	// 加载本地配置
 	if config.RuleFile != "" {
 		config, err = loadLocalConfig(config.RuleFile)

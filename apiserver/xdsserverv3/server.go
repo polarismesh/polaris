@@ -32,6 +32,7 @@ import (
 	routeservice "github.com/envoyproxy/go-control-plane/envoy/service/route/v3"
 	runtimeservice "github.com/envoyproxy/go-control-plane/envoy/service/runtime/v3"
 	secretservice "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/server/sotw/v3"
 	serverv3 "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/atomic"
@@ -65,7 +66,7 @@ type XDSServer struct {
 	exitCh          chan struct{}
 	namingServer    service.DiscoverServer
 	healthSvr       *healthcheck.Server
-	cache           *xdscache.XDSCache
+	cache           *xdscache.ResourceCache
 	versionNum      *atomic.Uint64
 	server          *grpc.Server
 	connLimitConfig *connlimit.Config
@@ -88,7 +89,7 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 	x.listenPort = uint32(option["listenPort"].(int))
 	x.listenIP = option["listenIP"].(string)
 	x.nodeMgr = resource.NewXDSNodeManager()
-	x.cache = xdscache.NewCache(x)
+	x.cache = xdscache.NewResourceCache(x)
 	x.active = atomic.NewBool(false)
 	x.versionNum = atomic.NewUint64(0)
 	x.ctx = ctx
@@ -128,7 +129,7 @@ func (x *XDSServer) Run(errCh chan error) {
 	// 启动 grpc server
 	ctx := context.Background()
 	cb := xdscache.NewCallback(x.cache, x.nodeMgr)
-	srv := serverv3.NewServer(ctx, x.cache, cb)
+	srv := serverv3.NewServer(ctx, x.cache, cb, sotw.WithOrderedADS())
 	var grpcOptions []grpc.ServerOption
 	grpcOptions = append(grpcOptions, grpc.MaxConcurrentStreams(1000))
 	grpcServer := grpc.NewServer(grpcOptions...)
@@ -454,16 +455,6 @@ func (x *XDSServer) DebugHandlers() []model.DebugHandler {
 			Path:    "/debug/apiserver/xds/envoy_nodes",
 			Desc:    "Query the list of Envoy nodes, query parameter name is 'type', value is [sidecar, gateway]",
 			Handler: x.listXDSNodes,
-		},
-		{
-			Path:    "/debug/apiserver/xds/resources",
-			Desc:    "Query XDS Resource List, query parameter name is 'type', value is [node, common]",
-			Handler: x.listXDSResources,
-		},
-		{
-			Path:    "/debug/apiserver/xds/cache_names",
-			Desc:    "Query XDS cache name list",
-			Handler: x.listXDSCaches,
 		},
 	}
 }
