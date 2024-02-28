@@ -84,7 +84,7 @@ func (s *Server) CreateServiceContract(ctx context.Context, contract *apiservice
 			return api.NewAnyDataResponse(apimodel.Code_NoNeedUpdate, nil)
 		}
 		existContract.Content = contract.Content
-		existContract.Revision = utils.NewUUID()
+		existContract.Revision = utils.DefaultString(contract.Revision, utils.NewUUID())
 		if err := s.storage.UpdateServiceContract(existContract.ServiceContract); err != nil {
 			log.Error("[Service][Contract] do update to store", utils.RequestID(ctx), zap.Error(err))
 			return api.NewAnyDataResponse(store.StoreCode2APICode(err), contract)
@@ -102,7 +102,7 @@ func (s *Server) CreateServiceContract(ctx context.Context, contract *apiservice
 		Service:   contract.GetService(),
 		Protocol:  contract.GetProtocol(),
 		Version:   contract.GetVersion(),
-		Revision:  utils.NewUUID(),
+		Revision:  utils.DefaultString(contract.Revision, utils.NewUUID()),
 		Content:   contract.GetContent(),
 	}
 
@@ -268,6 +268,7 @@ func (s *Server) GetServiceContractVersions(ctx context.Context, filter map[stri
 			Service:   item.Service,
 			Version:   item.Version,
 			Protocol:  item.Protocol,
+			Revision:  utils.DefaultString(item.Revision, utils.NewUUID()),
 			Ctime:     commontime.Time2String(item.CreateTime),
 			Mtime:     commontime.Time2String(item.ModifyTime),
 		}); err != nil {
@@ -291,7 +292,7 @@ func (s *Server) CreateServiceContractInterfaces(ctx context.Context,
 	createData := &model.EnrichServiceContract{
 		ServiceContract: &model.ServiceContract{
 			ID:       contract.Id,
-			Revision: utils.NewUUID(),
+			Revision: utils.DefaultString(contract.Revision, utils.NewUUID()),
 		},
 		Interfaces: make([]*model.InterfaceDescriptor, 0, len(contract.Interfaces)),
 	}
@@ -309,7 +310,7 @@ func (s *Server) CreateServiceContractInterfaces(ctx context.Context,
 			Path:       item.Path,
 			Content:    item.Content,
 			Source:     source,
-			Revision:   utils.NewUUID(),
+			Revision:   utils.DefaultString(item.Revision, utils.NewUUID()),
 		})
 	}
 
@@ -340,7 +341,7 @@ func (s *Server) AppendServiceContractInterfaces(ctx context.Context,
 	appendData := &model.EnrichServiceContract{
 		ServiceContract: &model.ServiceContract{
 			ID:       contract.Id,
-			Revision: utils.NewUUID(),
+			Revision: utils.DefaultString(contract.Revision, utils.NewUUID()),
 		},
 		Interfaces: make([]*model.InterfaceDescriptor, 0, len(contract.Interfaces)),
 	}
@@ -359,7 +360,7 @@ func (s *Server) AppendServiceContractInterfaces(ctx context.Context,
 			Path:       item.Path,
 			Content:    item.Content,
 			Source:     source,
-			Revision:   utils.NewUUID(),
+			Revision:   utils.DefaultString(item.Revision, utils.NewUUID()),
 		})
 	}
 	if err := s.storage.AppendServiceContractInterfaces(appendData); err != nil {
@@ -421,6 +422,9 @@ func checkOperationServiceContractInterface(contract *apiservice.ServiceContract
 	if contract.Id != "" {
 		return nil
 	}
+	if err := checkBaseServiceContract(contract); err != nil {
+		return err
+	}
 	id, errRsp := utils.CheckContractTetrad(contract)
 	if errRsp != nil {
 		return errRsp
@@ -456,14 +460,11 @@ func checkBaseServiceContract(req *apiservice.ServiceContract) *apiservice.Respo
 	if err := utils.CheckResourceName(utils.NewStringValue(req.GetNamespace())); err != nil {
 		return api.NewResponse(apimodel.Code_InvalidNamespaceName)
 	}
-	if err := utils.CheckResourceName(utils.NewStringValue(req.GetName())); err != nil {
+	if req.GetName() == "" {
 		return api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract name")
 	}
 	if req.GetProtocol() == "" {
 		return api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract protocol")
-	}
-	if req.GetVersion() == "" {
-		return api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract version")
 	}
 	return nil
 }

@@ -88,12 +88,17 @@ func (u *groupStore) addGroup(group *model.UserGroupDetail) error {
 	  VALUES (?, ?, ?, ?, ?, ?, ?, sysdate(), sysdate())
 	  `
 
+	tokenEnable := 1
+	if !group.TokenEnable {
+		tokenEnable = 0
+	}
+
 	if _, err = tx.Exec(addSql, []interface{}{
 		group.ID,
 		group.Name,
 		group.Owner,
 		group.Token,
-		1,
+		tokenEnable,
 		group.Comment,
 		0,
 	}...); err != nil {

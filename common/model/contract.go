@@ -132,6 +132,8 @@ func (s *ServiceContract) GetCacheKey() string {
 type InterfaceDescriptor struct {
 	// ID
 	ID string
+	// Name 接口名称
+	Name string
 	// ContractID
 	ContractID string
 	// 方法名称，对应 http method/ dubbo interface func/grpc service func

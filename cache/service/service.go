@@ -476,10 +476,11 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 
 func (sc *serviceCache) notifyServiceCountReload(svcIds map[string]bool) {
 	sc.plock.RLock()
-	defer sc.plock.RUnlock()
 	for k := range svcIds {
 		sc.pendingServices.Store(k, struct{}{})
 	}
+	sc.plock.RUnlock()
+	sc.postProcessUpdatedServices(map[string]struct{}{})
 }
 
 // appendServiceCountChangeNamespace

@@ -128,7 +128,7 @@ func Test_DefaultAuthChecker_VerifyCredential(t *testing.T) {
 		assert.NoError(t, err, "Should be verify success")
 		assert.Equal(t, users[1].ID, utils.ParseUserID(authCtx.GetRequestContext()), "user-id should be equal")
 		assert.False(t, utils.ParseIsOwner(authCtx.GetRequestContext()), "should not be owner")
-		assert.True(t, authCtx.GetAttachment(model.TokenDetailInfoKey).(defaultauth.OperatorInfo).Disable, "should be disable")
+		assert.True(t, authCtx.GetAttachments()[model.TokenDetailInfoKey].(defaultauth.OperatorInfo).Disable, "should be disable")
 	})
 
 	t.Run("权限检查非严格模式-错误的token字符串-降级为匿名用户", func(t *testing.T) {
@@ -141,7 +141,7 @@ func Test_DefaultAuthChecker_VerifyCredential(t *testing.T) {
 		err = checker.VerifyCredential(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
-		assert.True(t, authCtx.GetAttachment(model.TokenDetailInfoKey).(defaultauth.OperatorInfo).Anonymous, "should be anonymous")
+		assert.True(t, authCtx.GetAttachments()[model.TokenDetailInfoKey].(defaultauth.OperatorInfo).Anonymous, "should be anonymous")
 	})
 
 	t.Run("权限检查非严格模式-空token字符串-降级为匿名用户", func(t *testing.T) {
@@ -153,7 +153,7 @@ func Test_DefaultAuthChecker_VerifyCredential(t *testing.T) {
 		err = checker.VerifyCredential(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
-		assert.True(t, authCtx.GetAttachment(model.TokenDetailInfoKey).(defaultauth.OperatorInfo).Anonymous, "should be anonymous")
+		assert.True(t, authCtx.GetAttachments()[model.TokenDetailInfoKey].(defaultauth.OperatorInfo).Anonymous, "should be anonymous")
 	})
 
 	t.Run("权限检查非严格模式-错误的token字符串-访问鉴权模块", func(t *testing.T) {

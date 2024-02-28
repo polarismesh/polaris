@@ -134,7 +134,14 @@ func verifyAuth(ctx context.Context, isWrite bool,
 		return nil, api.NewAuthResponse(apimodel.Code_AuthTokenForbidden)
 	}
 
-	tokenInfo := authCtx.GetAttachment(model.TokenDetailInfoKey).(OperatorInfo)
+	attachVal, ok := authCtx.GetAttachment(model.TokenDetailInfoKey)
+	if !ok {
+		return nil, api.NewAuthResponse(apimodel.Code_TokenNotExisted)
+	}
+	tokenInfo, ok := attachVal.(OperatorInfo)
+	if !ok {
+		return nil, api.NewAuthResponse(apimodel.Code_TokenNotExisted)
+	}
 
 	if isWrite && tokenInfo.Disable {
 		log.Error("[Auth][Server] token is disabled", utils.ZapRequestID(reqId),

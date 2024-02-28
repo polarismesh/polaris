@@ -122,8 +122,8 @@ func (s *serviceContractStore) GetServiceContract(id string) (data *model.Enrich
 		}
 
 		contract.Valid = flag == 0
-		contract.CreateTime = time.Unix(0, ctime)
-		contract.ModifyTime = time.Unix(0, mtime)
+		contract.CreateTime = time.Unix(ctime, 0)
+		contract.ModifyTime = time.Unix(mtime, 0)
 
 		list = append(list, &contract)
 	}
@@ -147,12 +147,14 @@ func (s *serviceContractStore) AddServiceContractInterfaces(contract *model.Enri
 
 		// 新增批量数据
 		for _, item := range contract.Interfaces {
-			addSql := "REPLACE INTO service_contract_detail(`id`,`contract_id`, `method`, `path` ,`content`,`revision`" +
+			addSql := "REPLACE INTO service_contract_detail(`id`,`contract_id`, `name`, `method`, `path` " +
+				" ,`content`,`revision`" +
 				",`flag`,`ctime`, `mtime`, `source`" +
 				") VALUES (?,?,?,?,?,?,?,sysdate(),sysdate(),?)"
 			if _, err := tx.Exec(addSql, []interface{}{
 				item.ID,
 				contract.ID,
+				item.Name,
 				item.Method,
 				item.Path,
 				item.Content,
@@ -177,13 +179,15 @@ func (s *serviceContractStore) AppendServiceContractInterfaces(contract *model.E
 			return err
 		}
 		for _, item := range contract.Interfaces {
-			addSql := "REPLACE INTO service_contract_detail(`id`,`contract_id`, `method`, `path` ,`content`,`revision`" +
+			addSql := "REPLACE INTO service_contract_detail(`id`,`contract_id`, `name`, `method`, " +
+				" `path` ,`content`,`revision`" +
 				",`flag`,`ctime`, `mtime`,`source`" +
 				") VALUES (?,?,?,?,?,?,?,sysdate(),sysdate(),?)"
 
 			if _, err := tx.Exec(addSql, []interface{}{
 				item.ID,
 				contract.ID,
+				item.Name,
 				item.Method,
 				item.Path,
 				item.Content,
@@ -262,8 +266,8 @@ func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime t
 		}
 
 		contract.Valid = flag == 0
-		contract.CreateTime = time.Unix(0, ctime)
-		contract.ModifyTime = time.Unix(0, mtime)
+		contract.CreateTime = time.Unix(ctime, 0)
+		contract.ModifyTime = time.Unix(mtime, 0)
 
 		list = append(list, &model.EnrichServiceContract{
 			ServiceContract: contract,
@@ -272,7 +276,7 @@ func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime t
 
 	contractDetailMap := map[string][]*model.InterfaceDescriptor{}
 	if len(list) > 0 {
-		queryDetailSql := "SELECT sd.id, sd.contract_id, sd.method, sd.path, sd.content, sd.revision, " +
+		queryDetailSql := "SELECT sd.id, sd.contract_id, sd.name, sd.method, sd.path, sd.content, sd.revision, " +
 			" UNIX_TIMESTAMP(sd.ctime), UNIX_TIMESTAMP(sd.mtime), IFNULL(sd.source, 1) " +
 			" FROM service_contract_detail sd  LEFT JOIN service_contract sc ON sd.contract_id = sc.id " +
 			" WHERE sc.mtime >= ?"
@@ -288,7 +292,7 @@ func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime t
 			var flag, ctime, mtime, source int64
 			detailItem := &model.InterfaceDescriptor{}
 			if scanErr := detailRows.Scan(
-				&detailItem.ID, &detailItem.ContractID, &detailItem.Method,
+				&detailItem.ID, &detailItem.ContractID, &detailItem.Name, &detailItem.Method,
 				&detailItem.Path, &detailItem.Content, &detailItem.Revision,
 				&ctime, &mtime, &source,
 			); scanErr != nil {
@@ -297,8 +301,8 @@ func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime t
 			}
 
 			detailItem.Valid = flag == 0
-			detailItem.CreateTime = time.Unix(0, ctime)
-			detailItem.ModifyTime = time.Unix(0, mtime)
+			detailItem.CreateTime = time.Unix(ctime, 0)
+			detailItem.ModifyTime = time.Unix(mtime, 0)
 			switch source {
 			case 2:
 				detailItem.Source = service_manage.InterfaceDescriptor_Client
