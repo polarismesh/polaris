@@ -27,9 +27,10 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/server/stream/v3"
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 	"github.com/polarismesh/polaris/common/utils"
+	"go.uber.org/zap"
 )
 
-// CacheHook
+// CacheHook .
 type CacheHook interface {
 	// OnCreateWatch
 	OnCreateWatch(request *cachev3.Request, streamState stream.StreamState,
@@ -41,6 +42,7 @@ type CacheHook interface {
 	OnFetch(ctx context.Context, request *cachev3.Request)
 }
 
+// TypeResources 记录每一类 xDS 的更新/删除资源记录
 type TypeResources struct {
 	// UpsertResources 新增/更新的 XDS resource 信息
 	UpsertResources map[string]types.Resource
@@ -48,12 +50,142 @@ type TypeResources struct {
 	RemoveResources map[string]struct{}
 }
 
+func NewTypeResources() *TypeResources {
+	return &TypeResources{
+		UpsertResources: map[string]types.Resource{},
+		RemoveResources: map[string]struct{}{},
+	}
+}
+
+func (r *TypeResources) AppendUpserts(resource map[string]types.Resource) {
+	for k, v := range resource {
+		r.UpsertResources[k] = v
+	}
+}
+
+func (r *TypeResources) AppendRemoves(resource map[string]types.Resource) {
+	for k := range resource {
+		r.RemoveResources[k] = struct{}{}
+	}
+}
+
+func NewUpdateResourcesRequest() *UpdateResourcesRequest {
+	return &UpdateResourcesRequest{
+		lock:               &sync.Mutex{},
+		Lds:                map[string]map[string]types.Resource{},
+		NamespaceResources: map[string]*NamespaceUpdateResourcesRequest{},
+	}
+}
+
 // UpdateResourcesRequest 更新 XDS 资源请求
 type UpdateResourcesRequest struct {
+	lock *sync.Mutex
 	// Lds LDS 相关的资源
 	Lds map[string]map[string]types.Resource
-	// Types CDS/EDS/RDS/VHDS 相关的资源
-	Types map[resource.XDSType]TypeResources
+	// NamespaceResources .
+	NamespaceResources map[string]*NamespaceUpdateResourcesRequest
+}
+
+// ------------- 针对普通的 xDS 资源 -------------
+
+func (r *UpdateResourcesRequest) AddNormalNamespaces(namespace string,
+	xdsType resource.XDSType, res []types.Resource) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if _, ok := r.NamespaceResources[namespace]; !ok {
+		r.NamespaceResources[namespace] = NewNamespaceUpdateResourcesRequest()
+	}
+	r.NamespaceResources[namespace].AddNormals(xdsType, res)
+}
+
+func (r *UpdateResourcesRequest) RemoveNormalNamespaces(namespace string, tls resource.TLSMode,
+	xdsType resource.XDSType, res []types.Resource) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if _, ok := r.NamespaceResources[namespace]; !ok {
+		r.NamespaceResources[namespace] = NewNamespaceUpdateResourcesRequest()
+	}
+	r.NamespaceResources[namespace].RemoveNormal(xdsType, res)
+}
+
+// ------------- 针对 TLS 相关的 xDS 资源 -------------
+
+// AddTlsNamespaces .
+func (r *UpdateResourcesRequest) AddTlsNamespaces(namespace string, tls resource.TLSMode,
+	xdsType resource.XDSType, res []types.Resource) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if _, ok := r.NamespaceResources[namespace]; !ok {
+		r.NamespaceResources[namespace] = NewNamespaceUpdateResourcesRequest()
+	}
+	r.NamespaceResources[namespace].AddTls(tls, xdsType, res)
+}
+
+// RemoveTlsNamespaces .
+func (r *UpdateResourcesRequest) RemoveTlsNamespaces(namespace string, tls resource.TLSMode,
+	xdsType resource.XDSType, res []types.Resource) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if _, ok := r.NamespaceResources[namespace]; !ok {
+		r.NamespaceResources[namespace] = NewNamespaceUpdateResourcesRequest()
+	}
+	r.NamespaceResources[namespace].RemoveTls(tls, xdsType, res)
+}
+
+func NewNamespaceUpdateResourcesRequest() *NamespaceUpdateResourcesRequest {
+	return &NamespaceUpdateResourcesRequest{
+		NormalResources: map[resource.XDSType]*TypeResources{},
+		DemandResources: map[resource.XDSType]*TypeResources{},
+		TlsResources:    map[resource.TLSMode]map[resource.XDSType]*TypeResources{},
+	}
+}
+
+// NamespaceUpdateResourcesRequest 记录命名空间下的待更新的 XDS 资源
+type NamespaceUpdateResourcesRequest struct {
+	// NormalResources CDS/EDS/RDS/VHDS 相关的资源
+	NormalResources map[resource.XDSType]*TypeResources
+	// DemandResources .
+	DemandResources map[resource.XDSType]*TypeResources
+	// TlsResources .
+	TlsResources map[resource.TLSMode]map[resource.XDSType]*TypeResources
+}
+
+func (r *NamespaceUpdateResourcesRequest) AddTls(tlsMode resource.TLSMode, xdsType resource.XDSType, res []types.Resource) {
+	if _, ok := r.TlsResources[tlsMode]; !ok {
+		r.TlsResources[tlsMode] = make(map[resource.XDSType]*TypeResources)
+	}
+	if _, ok := r.TlsResources[tlsMode][xdsType]; !ok {
+		r.TlsResources[tlsMode][xdsType] = NewTypeResources()
+	}
+	r.TlsResources[tlsMode][xdsType].AppendUpserts(cachev3.IndexRawResourcesByName(res))
+}
+
+func (r *NamespaceUpdateResourcesRequest) RemoveTls(tlsMode resource.TLSMode, xdsType resource.XDSType, res []types.Resource) {
+	if _, ok := r.TlsResources[tlsMode]; !ok {
+		r.TlsResources[tlsMode] = make(map[resource.XDSType]*TypeResources)
+	}
+	if _, ok := r.TlsResources[tlsMode][xdsType]; !ok {
+		r.TlsResources[tlsMode][xdsType] = NewTypeResources()
+	}
+	r.TlsResources[tlsMode][xdsType].AppendRemoves(cachev3.IndexRawResourcesByName(res))
+}
+
+func (r *NamespaceUpdateResourcesRequest) AddNormals(xdsType resource.XDSType, res []types.Resource) {
+	if _, ok := r.NormalResources[xdsType]; !ok {
+		r.NormalResources[xdsType] = NewTypeResources()
+	}
+	r.NormalResources[xdsType].AppendUpserts(cachev3.IndexRawResourcesByName(res))
+}
+
+func (r *NamespaceUpdateResourcesRequest) RemoveNormal(xdsType resource.XDSType, res []types.Resource) {
+	if _, ok := r.NormalResources[xdsType]; !ok {
+		r.NormalResources[xdsType] = NewTypeResources()
+	}
+	r.NormalResources[xdsType].AppendRemoves(cachev3.IndexRawResourcesByName(res))
 }
 
 // ResourcesContainer
@@ -118,6 +250,38 @@ func (s *ResourcesContainer) ConstructVersionMap(modified []string) error {
 	return nil
 }
 
+func newNamespaceResourcesContainer(ns string) *NamespaceResourcesContainer {
+	return &NamespaceResourcesContainer{
+		namespace:          ns,
+		resourcesContainer: map[resource.XDSType]*ResourcesContainer{},
+		demandResources:    map[resource.XDSType]*ResourcesContainer{},
+		tlsResources:       map[resource.TLSMode]map[resource.XDSType]*ResourcesContainer{},
+	}
+}
+
+type NamespaceResourcesContainer struct {
+	namespace string
+	// resourcesContainer are cached resources indexed by node IDs
+	resourcesContainer map[resource.XDSType]*ResourcesContainer
+	// demandResources 记录了支持按需下发的 xds resource 资源
+	demandResources map[resource.XDSType]*ResourcesContainer
+	// tlsResources 记录了使用了 tls 的资源(目前而言只有 CDS)
+	tlsResources map[resource.TLSMode]map[resource.XDSType]*ResourcesContainer
+}
+
+func newNamespaceStatusInfo(ns string) *NamespaceStatusInfo {
+	return &NamespaceStatusInfo{
+		namespace: ns,
+		status:    map[string]*statusInfo{},
+	}
+}
+
+type NamespaceStatusInfo struct {
+	namespace string
+	// status information for all nodes indexed by node IDs
+	status map[string]*statusInfo
+}
+
 type ResourceCache struct {
 	hook CacheHook
 	// watchCount and deltaWatchCount are atomic counters incremented for each watch respectively. They need to
@@ -130,10 +294,10 @@ type ResourceCache struct {
 	ads bool
 	// ldsResources 记录 Envoy Node LDS 的资源记录信息
 	ldsResources map[string]*ResourcesContainer
-	// resourcesContainer are cached resources indexed by node IDs
-	resourcesContainer map[resource.XDSType]*ResourcesContainer
+	// namespaceContainer 按照命名空间级别隔离 xDS resources
+	namespaceContainer map[string]*NamespaceResourcesContainer
 	// status information for all nodes indexed by node IDs
-	status map[string]*statusInfo
+	status map[string]*NamespaceStatusInfo
 
 	mu sync.RWMutex
 }
@@ -147,15 +311,13 @@ type ResourceCache struct {
 // snapshot consistency. For non-ADS case (and fetch), multiple partial
 // requests are sent across multiple streams and re-using the snapshot version
 // is OK.
-//
-// Logger is optional.
 func NewResourceCache(hook CacheHook) *ResourceCache {
 	cache := &ResourceCache{
 		hook:               hook,
 		ads:                true,
 		ldsResources:       make(map[string]*ResourcesContainer),
-		resourcesContainer: make(map[resource.XDSType]*ResourcesContainer),
-		status:             make(map[string]*statusInfo),
+		namespaceContainer: make(map[string]*NamespaceResourcesContainer),
+		status:             make(map[string]*NamespaceStatusInfo),
 	}
 	return cache
 }
@@ -169,11 +331,7 @@ func (sc *ResourceCache) CleanEnvoyNodeCache(node *corev3.Node) error {
 	return nil
 }
 
-// UpdateResources updates a snapshot for a node.
-func (sc *ResourceCache) UpdateResources(ctx context.Context, req *UpdateResourcesRequest) error {
-	sc.mu.Lock()
-	defer sc.mu.Unlock()
-
+func (sc *ResourceCache) updateResourceContainer(ctx context.Context, req *UpdateResourcesRequest) {
 	// 更新 LDS 资源信息
 	for nodeId, resources := range req.Lds {
 		if _, ok := sc.ldsResources[nodeId]; !ok {
@@ -185,91 +343,143 @@ func (sc *ResourceCache) UpdateResources(ctx context.Context, req *UpdateResourc
 		}
 	}
 
-	// 更新非 LDS 的 XDS 规则到 ResourceContainer 中
-	for typeUrl, resources := range req.Types {
-		if container, ok := sc.resourcesContainer[typeUrl]; !ok {
-			container = &ResourcesContainer{
-				Resources: resources.UpsertResources,
+	namespaceResources := req.NamespaceResources
+	for ns, nsResources := range namespaceResources {
+		if _, ok := sc.namespaceContainer[ns]; !ok {
+			sc.namespaceContainer[ns] = newNamespaceResourcesContainer(ns)
+		}
+
+		namespaceContainer := sc.namespaceContainer[ns]
+
+		// OnDemand 场景下的资源直接一把更新
+		demandResources := map[resource.XDSType]*ResourcesContainer{}
+		for xdsType, res := range nsResources.DemandResources {
+			demandResources[xdsType] = &ResourcesContainer{
+				Resources: res.UpsertResources,
 			}
-			sc.resourcesContainer[typeUrl] = container
-		} else {
-			for name := range resources.RemoveResources {
-				delete(container.Resources, name)
-				delete(container.VersionMap, name)
+			namespaceContainer.demandResources = demandResources
+		}
+
+		// 更新 TLS 资源信息
+		for tlsMode, xdsResources := range nsResources.TlsResources {
+			if _, ok := namespaceContainer.tlsResources[tlsMode]; !ok {
+				namespaceContainer.tlsResources[tlsMode] = make(map[resource.XDSType]*ResourcesContainer, 32)
 			}
-			modified := make([]string, 0, len(resources.UpsertResources))
-			for name, res := range resources.UpsertResources {
-				container.Resources[name] = res
-				modified = append(modified, name)
+			for typeUrl, res := range xdsResources {
+				if container, ok := namespaceContainer.tlsResources[tlsMode][typeUrl]; !ok {
+					container = &ResourcesContainer{
+						Resources: res.UpsertResources,
+					}
+					namespaceContainer.tlsResources[tlsMode][typeUrl] = container
+				} else {
+					for name := range res.RemoveResources {
+						delete(container.Resources, name)
+						delete(container.VersionMap, name)
+					}
+					modified := make([]string, 0, len(res.UpsertResources))
+					for name, res := range res.UpsertResources {
+						container.Resources[name] = res
+						modified = append(modified, name)
+					}
+				}
+				namespaceContainer.tlsResources[tlsMode][typeUrl].updateGlobalRevision()
 			}
 		}
-		sc.resourcesContainer[typeUrl].updateGlobalRevision()
+
+		// 更新非 LDS 的 XDS 规则到 ResourceContainer 中
+		for typeUrl, resources := range nsResources.NormalResources {
+			if container, ok := namespaceContainer.resourcesContainer[typeUrl]; !ok {
+				container = &ResourcesContainer{
+					Resources: resources.UpsertResources,
+				}
+				namespaceContainer.resourcesContainer[typeUrl] = container
+			} else {
+				for name := range resources.RemoveResources {
+					delete(container.Resources, name)
+					delete(container.VersionMap, name)
+				}
+				modified := make([]string, 0, len(resources.UpsertResources))
+				for name, res := range resources.UpsertResources {
+					container.Resources[name] = res
+					modified = append(modified, name)
+				}
+			}
+
+			namespaceContainer.resourcesContainer[typeUrl].updateGlobalRevision()
+		}
 	}
+}
 
-	for _, info := range sc.status {
-		info.mu.Lock()
-		defer info.mu.Unlock()
-		for id, watch := range info.watches {
-			watchType := resource.FormatTypeUrl(watch.Request.TypeUrl)
-			var container *ResourcesContainer
-			switch watchType {
-			case resource.LDS:
-				// 获取到 Envoy Node 对应希望看到的 ldsRes 资源
-				container = sc.ldsResources[info.node.Id]
-			default:
-				container = sc.resourcesContainer[watchType]
-			}
-			curVersion := container.GlobalVersion
-			if curVersion != watch.Request.VersionInfo {
-				log.Debugf("respond open watch %d %s%v with new version %q", id, watch.Request.TypeUrl,
-					watch.Request.ResourceNames, curVersion)
+// UpdateResources updates a snapshot for a node.
+func (sc *ResourceCache) UpdateResources(ctx context.Context, req *UpdateResourcesRequest) error {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 
-				resources := container.Resources
-				if err := sc.respond(ctx, watch.Request, watch.Response, resources, curVersion, false); err != nil {
-					return err
+	// updateResourceContainer 更新所有 XDS 资源的容器
+	sc.updateResourceContainer(ctx, req)
+
+	for ns, nsStatus := range sc.status {
+		for _, info := range nsStatus.status {
+			info.mu.Lock()
+			defer info.mu.Unlock()
+			for id, watch := range info.watches {
+				watchType := resource.FormatTypeUrl(watch.Request.TypeUrl)
+				container, exists := sc.loadResourceContainer(info.client, watchType)
+				if !exists {
+					continue
 				}
-				// discard the watch
-				delete(info.watches, id)
-			}
-		}
+				curVersion := container.GlobalVersion
+				if curVersion != watch.Request.VersionInfo {
+					log.Debugf("respond open watch %d %s%v with new version %q", id, watch.Request.TypeUrl,
+						watch.Request.ResourceNames, curVersion)
 
-		// We only calculate version hashes when using delta. We don't
-		// want to do this when using SOTW so we can avoid unnecessary
-		// computational cost if not using delta.
-		if len(info.deltaWatches) > 0 {
-			for _, container := range sc.resourcesContainer {
-				if err := container.ConstructVersionMap(nil); err != nil {
-					log.Errorf("failed to compute version for snapshot resources inline: %s", err)
-					return err
+					resources := container.Resources
+					if err := sc.respond(ctx, watch.Request, watch.Response, resources, curVersion, false); err != nil {
+						return err
+					}
+					// discard the watch
+					delete(info.watches, id)
 				}
 			}
-		}
 
-		// process our delta watches
-		for id, watch := range info.deltaWatches {
-			watchType := resource.FormatTypeUrl(watch.Request.TypeUrl)
-			var container *ResourcesContainer
-			switch watchType {
-			case resource.LDS:
-				// 获取到 Envoy Node 对应希望看到的 ldsRes 资源
-				container = sc.ldsResources[info.node.Id]
-			default:
-				container = sc.resourcesContainer[watchType]
+			namespaceContainer, exist := sc.namespaceContainer[ns]
+			if !exist {
+				continue
 			}
-			res, err := sc.respondDelta(
-				ctx,
-				container,
-				watch.Request,
-				watch.Response,
-				watch.StreamState,
-			)
-			if err != nil {
-				return err
+			// We only calculate version hashes when using delta. We don't
+			// want to do this when using SOTW so we can avoid unnecessary
+			// computational cost if not using delta.
+			if len(info.deltaWatches) > 0 {
+				for _, container := range namespaceContainer.resourcesContainer {
+					if err := container.ConstructVersionMap(nil); err != nil {
+						log.Errorf("failed to compute version for snapshot resources inline: %s", err)
+						return err
+					}
+				}
 			}
-			// If we detect a nil response here, that means there has been no state change
-			// so we don't want to respond or remove any existing resource watches
-			if res != nil {
-				delete(info.deltaWatches, id)
+
+			// process our delta watches
+			for id, watch := range info.deltaWatches {
+				watchType := resource.FormatTypeUrl(watch.Request.TypeUrl)
+				container, exist := sc.loadResourceContainer(info.client, watchType)
+				if !exist {
+					continue
+				}
+				res, err := sc.respondDelta(
+					ctx,
+					container,
+					watch.Request,
+					watch.Response,
+					watch.StreamState,
+				)
+				if err != nil {
+					return err
+				}
+				// If we detect a nil response here, that means there has been no state change
+				// so we don't want to respond or remove any existing resource watches
+				if res != nil {
+					delete(info.deltaWatches, id)
+				}
 			}
 		}
 	}
@@ -302,35 +512,20 @@ func (sc *ResourceCache) CreateWatch(request *cachev3.Request, streamState strea
 		sc.hook.OnCreateWatch(request, streamState, value)
 	}
 
-	nodeID := request.Node.GetId()
-
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
 
-	info, ok := sc.status[nodeID]
-	if !ok {
-		info = newStatusInfo(request.Node)
-		sc.status[nodeID] = info
-	}
+	info, client := sc.loadWatchStatus(request.GetNode())
 
 	// update last watch request time
 	info.mu.Lock()
 	info.lastWatchRequestTime = time.Now()
 	info.mu.Unlock()
 
-	watchType := resource.FormatTypeUrl(request.GetTypeUrl())
-
-	var container *ResourcesContainer
 	var version string
-	var exists bool
 
-	switch watchType {
-	case resource.LDS:
-		// 获取到 Envoy Node 对应希望看到的 ldsRes 资源
-		container, exists = sc.ldsResources[info.node.Id]
-	default:
-		container, exists = sc.resourcesContainer[watchType]
-	}
+	container, exists := sc.loadResourceContainer(client, resource.FormatTypeUrl(request.GetTypeUrl()))
+
 	if exists {
 		version = container.GlobalVersion
 	}
@@ -344,7 +539,7 @@ func (sc *ResourceCache) CreateWatch(request *cachev3.Request, streamState strea
 			}
 		}
 
-		log.Debugf("nodeID %q requested %s%v and known %v. Diff %v", nodeID,
+		log.Debugf("nodeID %q requested %s%v and known %v. Diff %v", client.GetNodeID(),
 			request.TypeUrl, request.ResourceNames, knownResourceNames, diff)
 
 		if len(diff) > 0 {
@@ -353,7 +548,7 @@ func (sc *ResourceCache) CreateWatch(request *cachev3.Request, streamState strea
 				if _, exists := resources[name]; exists {
 					if err := sc.respond(context.Background(), request, value, resources, version, false); err != nil {
 						log.Errorf("failed to send a response for %s%v to nodeID %q: %s", request.TypeUrl,
-							request.ResourceNames, nodeID, err)
+							request.ResourceNames, client.GetNodeID(), err)
 						return nil
 					}
 					return func() {}
@@ -365,18 +560,19 @@ func (sc *ResourceCache) CreateWatch(request *cachev3.Request, streamState strea
 	// if the requested version is up-to-date or missing a response, leave an open watch
 	if !exists || request.VersionInfo == version {
 		watchID := sc.nextWatchID()
-		log.Debugf("open watch %d for %s%v from nodeID %q, version %q", watchID, request.TypeUrl, request.ResourceNames, nodeID, request.VersionInfo)
+		log.Debugf("open watch %d for %s%v from nodeID %q, version %q", watchID,
+			request.TypeUrl, request.ResourceNames, client.GetNodeID(), request.VersionInfo)
 		info.mu.Lock()
 		info.watches[watchID] = cachev3.ResponseWatch{Request: request, Response: value}
 		info.mu.Unlock()
-		return sc.cancelWatch(nodeID, watchID)
+		return sc.cancelWatch(client.GetNodeID(), watchID)
 	}
 
 	// otherwise, the watch may be responded immediately
 	resources := container.Resources
 	if err := sc.respond(context.Background(), request, value, resources, version, false); err != nil {
 		log.Errorf("failed to send a response for %s%v to nodeID %q: %s", request.TypeUrl,
-			request.ResourceNames, nodeID, err)
+			request.ResourceNames, client.GetNodeID(), err)
 		return nil
 	}
 
@@ -393,10 +589,12 @@ func (sc *ResourceCache) cancelWatch(nodeID string, watchID int64) func() {
 		// uses the cache mutex
 		sc.mu.RLock()
 		defer sc.mu.RUnlock()
-		if info, ok := sc.status[nodeID]; ok {
-			info.mu.Lock()
-			delete(info.watches, watchID)
-			info.mu.Unlock()
+		for _, nsStatus := range sc.status {
+			if info, ok := nsStatus.status[nodeID]; ok {
+				info.mu.Lock()
+				delete(info.watches, watchID)
+				info.mu.Unlock()
+			}
 		}
 	}
 }
@@ -466,33 +664,15 @@ func (sc *ResourceCache) CreateDeltaWatch(request *cachev3.DeltaRequest, state s
 		sc.hook.OnCreateDeltaWatch(request, state, value)
 	}
 
-	nodeID := request.Node.GetId()
-	t := request.GetTypeUrl()
-
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
 
-	info, ok := sc.status[nodeID]
-	if !ok {
-		info = newStatusInfo(request.Node)
-		sc.status[nodeID] = info
-	}
+	info, client := sc.loadWatchStatus(request.GetNode())
 
 	// update last watch request time
 	info.setLastDeltaWatchRequestTime(time.Now())
 
-	watchType := resource.FormatTypeUrl(request.GetTypeUrl())
-
-	var container *ResourcesContainer
-	var exists bool
-
-	switch watchType {
-	case resource.LDS:
-		// 获取到 Envoy Node 对应希望看到的 ldsRes 资源
-		container, exists = sc.ldsResources[info.node.Id]
-	default:
-		container, exists = sc.resourcesContainer[watchType]
-	}
+	container, exists := sc.loadResourceContainer(client, resource.FormatTypeUrl(request.GetTypeUrl()))
 
 	// There are three different cases that leads to a delayed watch trigger:
 	// - no snapshot exists for the requested nodeID
@@ -515,11 +695,11 @@ func (sc *ResourceCache) CreateDeltaWatch(request *cachev3.DeltaRequest, state s
 		watchID := sc.nextDeltaWatchID()
 
 		if exists {
-			log.Infof("open delta watch ID:%d for %s Resources:%v from nodeID: %q,  version %q", watchID, t,
-				state.GetSubscribedResourceNames(), nodeID, container.GlobalVersion)
+			log.Infof("open delta watch ID:%d for %s Resources:%v from nodeID: %q,  version %q", watchID, request.GetTypeUrl(),
+				state.GetSubscribedResourceNames(), client.GetNodeID(), container.GlobalVersion)
 		} else {
-			log.Infof("open delta watch ID:%d for %s Resources:%v from nodeID: %q", watchID, t,
-				state.GetSubscribedResourceNames(), nodeID)
+			log.Infof("open delta watch ID:%d for %s Resources:%v from nodeID: %q", watchID, request.GetTypeUrl(),
+				state.GetSubscribedResourceNames(), client.GetNodeID())
 		}
 
 		info.setDeltaResponseWatch(watchID, cachev3.DeltaResponseWatch{
@@ -527,7 +707,7 @@ func (sc *ResourceCache) CreateDeltaWatch(request *cachev3.DeltaRequest, state s
 			Response:    value,
 			StreamState: state,
 		})
-		return sc.cancelDeltaWatch(nodeID, watchID)
+		return sc.cancelDeltaWatch(client.GetNodeID(), watchID)
 	}
 
 	return nil
@@ -573,12 +753,15 @@ func (sc *ResourceCache) nextDeltaWatchID() int64 {
 // cancellation function for cleaning stale delta watches
 func (sc *ResourceCache) cancelDeltaWatch(nodeID string, watchID int64) func() {
 	return func() {
+		// uses the cache mutex
 		sc.mu.RLock()
 		defer sc.mu.RUnlock()
-		if info, ok := sc.status[nodeID]; ok {
-			info.mu.Lock()
-			delete(info.deltaWatches, watchID)
-			info.mu.Unlock()
+		for _, nsStatus := range sc.status {
+			if info, ok := nsStatus.status[nodeID]; ok {
+				info.mu.Lock()
+				delete(info.deltaWatches, watchID)
+				info.mu.Unlock()
+			}
 		}
 	}
 }
@@ -587,12 +770,14 @@ func (sc *ResourceCache) cancelDeltaWatch(nodeID string, watchID int64) func() {
 // Fetch is called on multiple streams, so responding to individual names with the same version works.
 func (sc *ResourceCache) Fetch(ctx context.Context, request *cachev3.Request) (cachev3.Response, error) {
 
-	nodeID := request.Node.GetId()
+	client := resource.ParseXDSClient(request.GetNode())
 
 	sc.mu.RLock()
 	defer sc.mu.RUnlock()
 
-	if container, exists := sc.resourcesContainer[resource.FormatTypeUrl(request.GetTypeUrl())]; exists {
+	container, exists := sc.loadResourceContainer(client, resource.FormatTypeUrl(request.GetTypeUrl()))
+
+	if exists {
 		// Respond only if the request version is distinct from the current snapshot state.
 		// It might be beneficial to hold the request since Envoy will re-attempt the refresh.
 		version := container.GlobalVersion
@@ -605,21 +790,58 @@ func (sc *ResourceCache) Fetch(ctx context.Context, request *cachev3.Request) (c
 		return out, nil
 	}
 
-	return nil, fmt.Errorf("missing snapshot for %q", nodeID)
+	return nil, fmt.Errorf("missing snapshot for %q", client.GetNodeID())
 }
 
-// GetStatusInfo retrieves the status info for the node.
-func (sc *ResourceCache) GetStatusInfo(node string) cachev3.StatusInfo {
-	sc.mu.RLock()
-	defer sc.mu.RUnlock()
+func (sc *ResourceCache) loadWatchStatus(node *corev3.Node) (*statusInfo, *resource.XDSClient) {
+	client := resource.ParseXDSClient(node)
 
-	info, exists := sc.status[node]
-	if !exists {
-		log.Warnf("node does not exist")
-		return nil
+	namespaceContainer, ok := sc.status[client.GetSelfNamespace()]
+	if !ok {
+		namespaceContainer = newNamespaceStatusInfo(client.GetSelfNamespace())
+		sc.status[client.GetSelfNamespace()] = namespaceContainer
+	}
+	if _, ok := namespaceContainer.status[client.GetNodeID()]; !ok {
+		namespaceContainer.status[client.GetNodeID()] = newStatusInfo(node)
 	}
 
-	return info
+	info := namespaceContainer.status[client.GetNodeID()]
+	return info, client
+}
+
+func (sc *ResourceCache) loadResourceContainer(client *resource.XDSClient, watchType resource.XDSType) (*ResourcesContainer, bool) {
+
+	namespaceContainer, ok := sc.namespaceContainer[client.GetSelfNamespace()]
+	if !ok {
+		log.Error("load resource container not found namespace", zap.String("id", client.GetNodeID()),
+			zap.String("namespace", client.GetSelfNamespace()))
+		return nil, false
+	}
+
+	var container *ResourcesContainer
+	var exists bool
+
+	switch watchType {
+	case resource.LDS:
+		// 获取到 Envoy Node 对应希望看到的 ldsRes 资源
+		container, exists = sc.ldsResources[client.GetNodeID()]
+	case resource.CDS:
+		switch client.TLSMode {
+		case resource.TLSModeNone:
+			container, exists = namespaceContainer.resourcesContainer[watchType]
+		default:
+			container, exists = namespaceContainer.tlsResources[client.TLSMode][watchType]
+		}
+	default:
+		container, exists = namespaceContainer.resourcesContainer[watchType]
+	}
+
+	if !exists {
+		log.Error("load resource container not found target type", zap.String("id", client.GetNodeID()),
+			zap.String("tls", string(client.TLSMode)), zap.String("type", watchType.String()))
+	}
+
+	return container, exists
 }
 
 // GetStatusKeys retrieves all node IDs in the status map.
@@ -633,4 +855,34 @@ func (sc *ResourceCache) GetStatusKeys() []string {
 	}
 
 	return out
+}
+
+// GetResources .
+func (sc *ResourceCache) GetResources(typeUrl resource.XDSType, ns, nodeId string) map[string]types.Resource {
+	sc.mu.RLock()
+	defer sc.mu.RUnlock()
+
+	var data *ResourcesContainer
+	if typeUrl == resource.LDS {
+		val, ok := sc.ldsResources[nodeId]
+		if !ok {
+			return map[string]types.Resource{}
+		}
+		data = val
+	} else {
+		if _, ok := sc.namespaceContainer[ns]; !ok {
+			return map[string]types.Resource{}
+		}
+		val, ok := sc.namespaceContainer[ns].resourcesContainer[typeUrl]
+		if !ok {
+			return make(map[string]types.Resource)
+		}
+		data = val
+	}
+
+	copyData := make(map[string]types.Resource, len(data.Resources))
+	for k, v := range data.Resources {
+		copyData[k] = v
+	}
+	return copyData
 }

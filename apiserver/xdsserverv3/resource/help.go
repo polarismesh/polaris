@@ -840,7 +840,8 @@ func MakeGatewayBoundHCM(svcKey model.ServiceKey, opt *BuildOption) *hcm.HttpCon
 func routeSpecifier(trafficDirection corev3.TrafficDirection, opt *BuildOption) *hcm.HttpConnectionManager_Rds {
 	baseRouteName := TrafficBoundRoute[trafficDirection]
 	if opt.IsDemand() {
-		baseRouteName = fmt.Sprintf("%s|%s|DEMAND", TrafficBoundRoute[trafficDirection], opt.Namespace)
+		baseRouteName = fmt.Sprintf("%s|%s|demand", TrafficBoundRoute[trafficDirection],
+			opt.Namespace)
 	}
 	if opt.RunType == RunTypeGateway {
 		baseRouteName += "-gateway"

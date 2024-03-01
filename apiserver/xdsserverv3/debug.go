@@ -19,7 +19,9 @@ package xdsserverv3
 
 import (
 	"net/http"
+	"strings"
 
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
@@ -32,6 +34,39 @@ func (x *XDSServer) listXDSNodes(resp http.ResponseWriter, req *http.Request) {
 		"code": apimodel.Code_ExecuteSuccess,
 		"info": "execute success",
 		"data": x.nodeMgr.ListEnvoyNodesView(resource.RunType(cType)),
+	}
+
+	ret := utils.MustJson(data)
+	resp.WriteHeader(http.StatusOK)
+	_, _ = resp.Write([]byte(ret))
+}
+
+func (x *XDSServer) listXDSResource(resp http.ResponseWriter, req *http.Request) {
+	cType := req.URL.Query().Get("type")
+	nodeId := req.URL.Query().Get("nodeId")
+	service := req.URL.Query().Get("service")
+	namespace := req.URL.Query().Get("namespace")
+	if namespace == "" {
+		namespace = "default"
+	}
+
+	res := x.cache.GetResources(resource.FromSimpleXDS(cType), namespace, nodeId)
+	if len(service) != 0 {
+		copyData := make(map[string]types.Resource, len(res))
+		hasSvc := len(service) != 0
+		for k, v := range res {
+			if hasSvc && !strings.Contains(k, service) {
+				continue
+			}
+			copyData[k] = v
+		}
+		res = copyData
+	}
+
+	data := map[string]interface{}{
+		"code": apimodel.Code_ExecuteSuccess,
+		"info": "execute success",
+		"data": res,
 	}
 
 	ret := utils.MustJson(data)

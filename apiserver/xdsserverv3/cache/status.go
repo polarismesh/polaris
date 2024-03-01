@@ -6,12 +6,13 @@ import (
 
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 )
 
 // statusInfo tracks the server state for the remote Envoy node.
 type statusInfo struct {
 	// node is the constant Envoy node metadata.
-	node *core.Node
+	client *resource.XDSClient
 	// watches are indexed channels for the response watches and the original requests.
 	watches map[int64]cachev3.ResponseWatch
 	// deltaWatches are indexed channels for the delta response watches and the original requests
@@ -28,7 +29,7 @@ type statusInfo struct {
 // newStatusInfo initializes a status info data structure.
 func newStatusInfo(node *core.Node) *statusInfo {
 	out := statusInfo{
-		node:         node,
+		client:       resource.ParseXDSClient(node),
 		watches:      make(map[int64]cachev3.ResponseWatch),
 		deltaWatches: make(map[int64]cachev3.DeltaResponseWatch),
 	}
@@ -38,7 +39,7 @@ func newStatusInfo(node *core.Node) *statusInfo {
 func (info *statusInfo) GetNode() *core.Node {
 	info.mu.RLock()
 	defer info.mu.RUnlock()
-	return info.node
+	return info.GetNode()
 }
 
 func (info *statusInfo) GetNumWatches() int {

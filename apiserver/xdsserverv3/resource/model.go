@@ -18,6 +18,8 @@
 package resource
 
 import (
+	"strings"
+
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	resourcev3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
@@ -85,6 +87,26 @@ const (
 	VHDS
 	UnknownXDS
 )
+
+func FromSimpleXDS(s string) XDSType {
+	s = strings.ToLower(s)
+	switch s {
+	case "cds":
+		return CDS
+	case "eds":
+		return EDS
+	case "rds":
+		return RDS
+	case "lds":
+		return LDS
+	case "rls":
+		return RLS
+	case "vhds":
+		return VHDS
+	default:
+		return UnknownXDS
+	}
+}
 
 func FormatTypeUrl(typeUrl string) XDSType {
 	switch typeUrl {

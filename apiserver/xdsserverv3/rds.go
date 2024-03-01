@@ -116,7 +116,7 @@ func (rds *RDSBuilder) makeSidecarOutBoundRouteConfiguration(option *resource.Bu
 	}
 	hosts = append(hosts, resource.BuildAllowAnyVHost())
 	if option.IsDemand() {
-		baseRouteName = fmt.Sprintf("%s|%s|DEMAND", resource.OutBoundRouteConfigName, option.Namespace)
+		baseRouteName = fmt.Sprintf("%s|%s|demand", resource.OutBoundRouteConfigName, option.Namespace)
 		// routeConfiguration.Vhds = &route.Vhds{
 		// 	ConfigSource: &corev3.ConfigSource{
 		// 		ConfigSourceSpecifier: &corev3.ConfigSource_ApiConfigSource{

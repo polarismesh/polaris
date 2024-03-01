@@ -103,7 +103,7 @@ func (s *serviceContractStore) GetServiceContract(id string) (data *model.Enrich
 	args := []interface{}{id}
 	rows, err := s.master.Query(querySql, args...)
 	if err != nil {
-		log.Error("[Store][Contract] list contract ", zap.String("query sql", querySql), zap.Any("args", args))
+		log.Error("[Store][Contract] list contract ", zap.String("query", querySql), zap.Any("args", args))
 		return nil, store.Error(err)
 	}
 	defer func() {
@@ -147,7 +147,7 @@ func (s *serviceContractStore) AddServiceContractInterfaces(contract *model.Enri
 
 		// 新增批量数据
 		for _, item := range contract.Interfaces {
-			addSql := "REPLACE INTO service_contract_detail(`id`,`contract_id`, `name`, `method`, `path` " +
+			addSql := "REPLACE INTO service_contract_detail(`id`, `contract_id`, `name`, `method`, `path` " +
 				" ,`content`,`revision`" +
 				",`flag`,`ctime`, `mtime`, `source`" +
 				") VALUES (?,?,?,?,?,?,?,sysdate(),sysdate(),?)"
@@ -212,12 +212,13 @@ func (s *serviceContractStore) DeleteServiceContractInterfaces(contract *model.E
 			return err
 		}
 		for _, item := range contract.Interfaces {
-			addSql := "DELETE FROM service_contract_detail WHERE contract_id = ? AND method = ? AND path = ?"
+			addSql := "DELETE FROM service_contract_detail WHERE contract_id = ? AND method = ? AND path = ? AND name = ?"
 
 			if _, err := tx.Exec(addSql, []interface{}{
 				item.ContractID,
 				item.Method,
 				item.Path,
+				item.Name,
 			}...); err != nil {
 				log.Errorf("[Store][database] delete service contract detail err: %s", err.Error())
 				return err
