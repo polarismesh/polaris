@@ -111,13 +111,6 @@ func GetGroupName(s string) string {
 	return ss[0]
 }
 
-func DefaultString(s, d string) string {
-	if len(s) == 0 {
-		return d
-	}
-	return s
-}
-
 var ConvertPolarisNamespaceVal = "default"
 
 // ToPolarisNamespace 替换 nacos namespace 为 polaris 的 namespace 信息，主要是针对默认命令空间转为 polaris 的 default

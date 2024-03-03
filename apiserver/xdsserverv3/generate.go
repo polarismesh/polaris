@@ -165,12 +165,11 @@ func (x *XdsResourceGenerator) buildOneEnvoyXDSCache(node *resource.XDSClient) e
 	// 构建 INBOUND LDS 资源
 	buildCache(resource.LDS, opt)
 
-	x.cache.UpdateResources(context.Background(), &cache.UpdateResourcesRequest{
+	return x.cache.UpdateResources(context.Background(), &cache.UpdateResourcesRequest{
 		Lds: map[string]map[string]types.Resource{
 			opt.Client.ID: cachev3.IndexRawResourcesByName(finalResources),
 		},
 	})
-	return nil
 }
 
 func (x *XdsResourceGenerator) buildUpdateRequest(req *cache.UpdateResourcesRequest, xdsType resource.XDSType,

@@ -25,9 +25,10 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/server/stream/v3"
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 	"github.com/polarismesh/polaris/common/utils"
-	"go.uber.org/zap"
 )
 
 // CacheHook .
@@ -57,14 +58,14 @@ func NewTypeResources() *TypeResources {
 	}
 }
 
-func (r *TypeResources) AppendUpserts(resource map[string]types.Resource) {
-	for k, v := range resource {
+func (r *TypeResources) AppendUpserts(resources map[string]types.Resource) {
+	for k, v := range resources {
 		r.UpsertResources[k] = v
 	}
 }
 
-func (r *TypeResources) AppendRemoves(resource map[string]types.Resource) {
-	for k := range resource {
+func (r *TypeResources) AppendRemoves(resources map[string]types.Resource) {
+	for k := range resources {
 		r.RemoveResources[k] = struct{}{}
 	}
 }
@@ -339,7 +340,7 @@ func (sc *ResourceCache) updateResourceContainer(ctx context.Context, req *Updat
 				Resources: resources,
 			}
 			sc.ldsResources[nodeId].updateGlobalRevision()
-			sc.ldsResources[nodeId].ConstructVersionMap(nil)
+			_ = sc.ldsResources[nodeId].ConstructVersionMap(nil)
 		}
 	}
 

@@ -143,7 +143,7 @@ func (n *DiscoverServer) handleQueryInstances(ctx context.Context, params map[st
 	if n.pushCenter != nil && udpPort > 0 {
 		n.pushCenter.AddSubscriber(core.Subscriber{
 			Key:         fmt.Sprintf("%s:%d", clientIP, udpPort),
-			App:         model.DefaultString(params["app"], "unknown"),
+			App:         utils.DefaultString(params["app"], "unknown"),
 			AddrStr:     clientIP,
 			Ip:          clientIP,
 			Port:        int(udpPort),

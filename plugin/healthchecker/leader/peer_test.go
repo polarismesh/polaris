@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 
@@ -30,7 +31,6 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store/mock"
-	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
 
 func TestLocalPeer(t *testing.T) {

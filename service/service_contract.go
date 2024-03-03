@@ -86,7 +86,7 @@ func (s *Server) CreateServiceContract(ctx context.Context, contract *apiservice
 			return api.NewAnyDataResponse(apimodel.Code_NoNeedUpdate, nil)
 		}
 		existContract.Content = contract.Content
-		existContract.Revision = utils.DefaultString(contract.Revision, utils.NewUUID())
+		existContract.Revision = utils.NewUUID()
 		if err := s.storage.UpdateServiceContract(existContract.ServiceContract); err != nil {
 			log.Error("[Service][Contract] do update to store", utils.RequestID(ctx), zap.Error(err))
 			return api.NewAnyDataResponse(store.StoreCode2APICode(err), contract)
@@ -104,7 +104,7 @@ func (s *Server) CreateServiceContract(ctx context.Context, contract *apiservice
 		Service:   contract.GetService(),
 		Protocol:  contract.GetProtocol(),
 		Version:   contract.GetVersion(),
-		Revision:  utils.DefaultString(contract.Revision, utils.NewUUID()),
+		Revision:  utils.NewUUID(),
 		Content:   contract.GetContent(),
 	}
 
@@ -267,7 +267,7 @@ func (s *Server) GetServiceContractVersions(ctx context.Context, filter map[stri
 			Service:   item.Service,
 			Version:   item.Version,
 			Protocol:  item.Protocol,
-			Revision:  utils.DefaultString(item.Revision, utils.NewUUID()),
+			Revision:  utils.NewUUID(),
 			Ctime:     commontime.Time2String(item.CreateTime),
 			Mtime:     commontime.Time2String(item.ModifyTime),
 		}); err != nil {
@@ -291,7 +291,7 @@ func (s *Server) CreateServiceContractInterfaces(ctx context.Context,
 	createData := &model.EnrichServiceContract{
 		ServiceContract: &model.ServiceContract{
 			ID:       contract.Id,
-			Revision: utils.DefaultString(contract.Revision, utils.NewUUID()),
+			Revision: utils.NewUUID(),
 		},
 		Interfaces: make([]*model.InterfaceDescriptor, 0, len(contract.Interfaces)),
 	}
@@ -310,7 +310,7 @@ func (s *Server) CreateServiceContractInterfaces(ctx context.Context,
 			Path:       item.Path,
 			Content:    item.Content,
 			Source:     source,
-			Revision:   utils.DefaultString(item.Revision, utils.NewUUID()),
+			Revision:   utils.NewUUID(),
 		})
 	}
 
@@ -341,7 +341,7 @@ func (s *Server) AppendServiceContractInterfaces(ctx context.Context,
 	appendData := &model.EnrichServiceContract{
 		ServiceContract: &model.ServiceContract{
 			ID:       contract.Id,
-			Revision: utils.DefaultString(contract.Revision, utils.NewUUID()),
+			Revision: utils.NewUUID(),
 		},
 		Interfaces: make([]*model.InterfaceDescriptor, 0, len(contract.Interfaces)),
 	}
@@ -361,7 +361,7 @@ func (s *Server) AppendServiceContractInterfaces(ctx context.Context,
 			Path:       item.Path,
 			Content:    item.Content,
 			Source:     source,
-			Revision:   utils.DefaultString(item.Revision, utils.NewUUID()),
+			Revision:   utils.NewUUID(),
 		})
 	}
 	if err := s.storage.AppendServiceContractInterfaces(appendData); err != nil {

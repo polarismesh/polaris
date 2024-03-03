@@ -184,7 +184,7 @@ func (mc *MockPolarisHeartbeatClient) BatchGetHeartbeat(ctx context.Context,
 				}
 				return 0
 			}(),
-			Exist: func () bool {
+			Exist: func() bool {
 				if ok {
 					return val.Exist
 				}
