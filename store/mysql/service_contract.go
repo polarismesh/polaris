@@ -150,7 +150,7 @@ func (s *serviceContractStore) AddServiceContractInterfaces(contract *model.Enri
 			addSql := "REPLACE INTO service_contract_detail(`id`, `contract_id`, `name`, `method`, `path` " +
 				" ,`content`,`revision`" +
 				",`flag`,`ctime`, `mtime`, `source`" +
-				") VALUES (?,?,?,?,?,?,?,sysdate(),sysdate(),?)"
+				") VALUES (?,?,?,?,?,?,?,?,sysdate(),sysdate(),?)"
 			if _, err := tx.Exec(addSql, []interface{}{
 				item.ID,
 				contract.ID,
@@ -182,7 +182,7 @@ func (s *serviceContractStore) AppendServiceContractInterfaces(contract *model.E
 			addSql := "REPLACE INTO service_contract_detail(`id`,`contract_id`, `name`, `method`, " +
 				" `path` ,`content`,`revision`" +
 				",`flag`,`ctime`, `mtime`,`source`" +
-				") VALUES (?,?,?,?,?,?,?,sysdate(),sysdate(),?)"
+				") VALUES (?,?,?,?,?,?,?,?,sysdate(),sysdate(),?)"
 
 			if _, err := tx.Exec(addSql, []interface{}{
 				item.ID,
