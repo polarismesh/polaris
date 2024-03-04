@@ -98,6 +98,7 @@ func (e *EnrichServiceContract) ToSpec() *apiservice.ServiceContract {
 		interfaces = append(interfaces, &apiservice.InterfaceDescriptor{
 			Id:       item.ID,
 			Path:     item.Path,
+			Name:     item.Name,
 			Method:   item.Method,
 			Source:   item.Source,
 			Content:  item.Content,

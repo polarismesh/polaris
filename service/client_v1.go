@@ -673,21 +673,7 @@ func (s *Server) serviceContractCheckDiscoverRequest(req *apiservice.ServiceCont
 		resp.ServiceContract = req
 		return false
 	}
-	if req.GetService() == "" {
-		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidServiceName))
-		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
-		resp.Service = svc
-		resp.ServiceContract = req
-		return false
-	}
 	if req.GetProtocol() == "" {
-		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidParameter))
-		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
-		resp.Service = svc
-		resp.ServiceContract = req
-		return false
-	}
-	if req.GetVersion() == "" {
 		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidParameter))
 		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
 		resp.Service = svc
