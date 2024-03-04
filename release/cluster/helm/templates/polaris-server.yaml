@@ -27,7 +27,7 @@ spec:
     - port: {{ .Values.service.eurekaPort }}
       name: service-eureka
       targetPort: {{ .Values.service.eurekaPort }}
-    - port: {{ .Values.service.eurekaPort }}
+    - port: {{ .Values.service.nacosPort }}
       name: service-nacos-http
       targetPort: {{ .Values.service.nacosPort }}
     - port: {{ add .Values.service.nacosPort 1000 }}
