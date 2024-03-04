@@ -80,7 +80,7 @@ require (
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
-	github.com/polarismesh/specification v1.4.2-alpha.9
+	github.com/polarismesh/specification v1.4.2
 )
 
 require github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
