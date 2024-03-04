@@ -37,15 +37,17 @@ import (
 
 var (
 	contractSearchFilters = map[string]string{
-		"id":        "id",
-		"namespace": "namespace",
-		"service":   "service",
-		"name":      "name",
-		"protocol":  "protocol",
-		"version":   "version",
-		"brief":     "brief",
-		"offset":    "offset",
-		"limit":     "limit",
+		"id":             "id",
+		"namespace":      "namespace",
+		"service":        "service",
+		"name":           "name",
+		"protocol":       "protocol",
+		"version":        "version",
+		"brief":          "brief",
+		"offset":         "offset",
+		"limit":          "limit",
+		"interface_name": "interface_name",
+		"interface_path": "interface_path",
 	}
 )
 
@@ -252,9 +254,6 @@ func (s *Server) GetServiceContractVersions(ctx context.Context, filter map[stri
 	if namespace == "" {
 		return api.NewBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, "namespace is empty")
 	}
-	if serviceName == "" {
-		return api.NewBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, "service is empty")
-	}
 
 	ret := s.caches.ServiceContract().ListVersions(serviceName, namespace)
 	resp := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
@@ -268,6 +267,7 @@ func (s *Server) GetServiceContractVersions(ctx context.Context, filter map[stri
 			Service:   item.Service,
 			Version:   item.Version,
 			Protocol:  item.Protocol,
+			Revision:  utils.NewUUID(),
 			Ctime:     commontime.Time2String(item.CreateTime),
 			Mtime:     commontime.Time2String(item.ModifyTime),
 		}); err != nil {
@@ -305,6 +305,7 @@ func (s *Server) CreateServiceContractInterfaces(ctx context.Context,
 		createData.Interfaces = append(createData.Interfaces, &model.InterfaceDescriptor{
 			ID:         interfaceId,
 			ContractID: contract.Id,
+			Name:       item.Name,
 			Method:     item.Method,
 			Path:       item.Path,
 			Content:    item.Content,
@@ -355,6 +356,7 @@ func (s *Server) AppendServiceContractInterfaces(ctx context.Context,
 		appendData.Interfaces = append(appendData.Interfaces, &model.InterfaceDescriptor{
 			ID:         interfaceId,
 			ContractID: contract.Id,
+			Name:       item.Name,
 			Method:     item.Method,
 			Path:       item.Path,
 			Content:    item.Content,
@@ -406,6 +408,7 @@ func (s *Server) DeleteServiceContractInterfaces(ctx context.Context,
 			ID:         interfaceId,
 			ContractID: contract.Id,
 			Method:     item.Method,
+			Name:       item.Name,
 			Path:       item.Path,
 		})
 	}
@@ -420,6 +423,9 @@ func (s *Server) DeleteServiceContractInterfaces(ctx context.Context,
 func checkOperationServiceContractInterface(contract *apiservice.ServiceContract) *apiservice.Response {
 	if contract.Id != "" {
 		return nil
+	}
+	if err := checkBaseServiceContract(contract); err != nil {
+		return err
 	}
 	id, errRsp := utils.CheckContractTetrad(contract)
 	if errRsp != nil {
@@ -450,20 +456,14 @@ func serviceContractRecordEntry(ctx context.Context, req *apiservice.ServiceCont
 }
 
 func checkBaseServiceContract(req *apiservice.ServiceContract) *apiservice.Response {
-	if err := utils.CheckResourceName(utils.NewStringValue(req.GetService())); err != nil {
-		return api.NewResponse(apimodel.Code_InvalidServiceName)
-	}
 	if err := utils.CheckResourceName(utils.NewStringValue(req.GetNamespace())); err != nil {
 		return api.NewResponse(apimodel.Code_InvalidNamespaceName)
 	}
-	if err := utils.CheckResourceName(utils.NewStringValue(req.GetName())); err != nil {
+	if req.GetName() == "" {
 		return api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract name")
 	}
 	if req.GetProtocol() == "" {
 		return api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract protocol")
-	}
-	if req.GetVersion() == "" {
-		return api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract version")
 	}
 	return nil
 }

@@ -31,6 +31,7 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
@@ -85,6 +86,17 @@ func (l *CacheListener) OnBatchDeleted(value interface{}) {
 	if l.onBatchDeleted != nil {
 		l.onBatchDeleted(value)
 	}
+}
+
+func Test_Echo(t *testing.T) {
+	data, _ := json.Marshal(&apitraffic.Rule{
+		Method: &apimodel.MatchString{
+			Type:      apimodel.MatchString_EXACT,
+			Value:     wrapperspb.String("*"),
+			ValueType: apimodel.MatchString_TEXT,
+		},
+	})
+	t.Logf("%s", string(data))
 }
 
 /**

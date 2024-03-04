@@ -32,6 +32,7 @@ import (
 	routeservice "github.com/envoyproxy/go-control-plane/envoy/service/route/v3"
 	runtimeservice "github.com/envoyproxy/go-control-plane/envoy/service/runtime/v3"
 	secretservice "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/server/sotw/v3"
 	serverv3 "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/atomic"
@@ -52,7 +53,7 @@ import (
 )
 
 type ResourceServer interface {
-	Generate(versionLocal string, registryInfo map[string]map[model.ServiceKey]*resource.ServiceInfo)
+	Generate(versionLocal string, registryInfo ServiceInfos)
 }
 
 // XDSServer is the xDS server
@@ -65,13 +66,13 @@ type XDSServer struct {
 	exitCh          chan struct{}
 	namingServer    service.DiscoverServer
 	healthSvr       *healthcheck.Server
-	cache           *xdscache.XDSCache
+	cache           *xdscache.ResourceCache
 	versionNum      *atomic.Uint64
 	server          *grpc.Server
 	connLimitConfig *connlimit.Config
 
 	nodeMgr           *resource.XDSNodeManager
-	registryInfo      map[string]map[model.ServiceKey]*resource.ServiceInfo
+	registryInfo      *utils.AtomicValue[ServiceInfos]
 	resourceGenerator *XdsResourceGenerator
 
 	active         *atomic.Bool
@@ -84,11 +85,11 @@ type XDSServer struct {
 // Initialize 初始化
 func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{},
 	apiConf map[string]apiserver.APIConfig) error {
-	x.registryInfo = make(map[string]map[model.ServiceKey]*resource.ServiceInfo)
+	x.registryInfo = utils.NewAtomicValue[ServiceInfos](ServiceInfos{})
 	x.listenPort = uint32(option["listenPort"].(int))
 	x.listenIP = option["listenIP"].(string)
 	x.nodeMgr = resource.NewXDSNodeManager()
-	x.cache = xdscache.NewCache(x)
+	x.cache = xdscache.NewResourceCache(x)
 	x.active = atomic.NewBool(false)
 	x.versionNum = atomic.NewUint64(0)
 	x.ctx = ctx
@@ -114,10 +115,11 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 		x.connLimitConfig = connConfig
 	}
 	x.resourceGenerator = &XdsResourceGenerator{
-		namingServer: x.namingServer,
-		cache:        x.cache,
-		versionNum:   x.versionNum,
-		xdsNodesMgr:  x.nodeMgr,
+		namingServer:    x.namingServer,
+		cache:           x.cache,
+		versionNum:      x.versionNum,
+		xdsNodesMgr:     x.nodeMgr,
+		svcInfoProvider: x.fetchCurrentServices,
 	}
 	resource.Init()
 	return nil
@@ -128,7 +130,7 @@ func (x *XDSServer) Run(errCh chan error) {
 	// 启动 grpc server
 	ctx := context.Background()
 	cb := xdscache.NewCallback(x.cache, x.nodeMgr)
-	srv := serverv3.NewServer(ctx, x.cache, cb)
+	srv := serverv3.NewServer(ctx, x.cache, cb, sotw.WithOrderedADS())
 	var grpcOptions []grpc.ServerOption
 	grpcOptions = append(grpcOptions, grpc.MaxConcurrentStreams(1000))
 	grpcServer := grpc.NewServer(grpcOptions...)
@@ -230,31 +232,32 @@ func (x *XDSServer) activeUpdateTask() {
 		return
 	}
 
-	if err := x.getRegistryInfoWithCache(x.ctx, x.registryInfo); err != nil {
+	if err := x.getRegistryInfoWithCache(x.ctx, x.registryInfo.Load()); err != nil {
 		log.Errorf("getRegistryInfoWithCache %v", err)
 		return
 	}
 	// 首次更新没有需要移除的 XDS 资源信息
-	x.Generate(x.registryInfo, nil)
+	x.Generate(x.registryInfo.Load(), nil)
 	go x.startSynTask(x.ctx)
 }
 
 func (x *XDSServer) startSynTask(ctx context.Context) {
 	// 读取 polaris 缓存数据
 	synXdsConfFunc := func() {
-		curRegistryInfo := make(map[string]map[model.ServiceKey]*resource.ServiceInfo)
+		curRegistryInfo := make(ServiceInfos)
 		if err := x.getRegistryInfoWithCache(ctx, curRegistryInfo); err != nil {
 			log.Error("get registry info from cache", zap.Error(err))
 			return
 		}
 
-		needPush := make(map[string]map[model.ServiceKey]*resource.ServiceInfo)
-		needRemove := make(map[string]map[model.ServiceKey]*resource.ServiceInfo)
+		needPush := make(ServiceInfos)
+		needRemove := make(ServiceInfos)
 
 		// 与本地缓存对比，是否发生了变化，对发生变化的命名空间，推送配置
+		oldRegistryInfo := x.registryInfo.Load()
 
 		// step 1: 这里先生成需要删除 XDS 资源数据的资源信息
-		for ns, infos := range x.registryInfo {
+		for ns, infos := range oldRegistryInfo {
 			// 如果当前整个命名空间都不存在，直接按照整个 namespace 级别进行数据删除
 			if _, exist := curRegistryInfo[ns]; !exist {
 				needRemove[ns] = infos
@@ -275,7 +278,7 @@ func (x *XDSServer) startSynTask(ctx context.Context) {
 		}
 
 		for ns, infos := range curRegistryInfo {
-			cacheServiceInfos, ok := x.registryInfo[ns]
+			cacheServiceInfos, ok := oldRegistryInfo[ns]
 			if !ok {
 				// 新命名空间，需要处理
 				needPush[ns] = infos
@@ -298,12 +301,12 @@ func (x *XDSServer) startSynTask(ctx context.Context) {
 			}
 		}
 
+		x.registryInfo.Store(curRegistryInfo)
 		if len(needPush) > 0 || len(needRemove) > 0 {
 			log.Info("start update xds resource snapshot ticker task", zap.Int("need-push", len(needPush)),
 				zap.Int("need-remove", len(needRemove)))
 			x.Generate(needPush, needRemove)
 		}
-		x.registryInfo = curRegistryInfo
 	}
 
 	ticker := time.NewTicker(5 * cache.UpdateCacheInterval)
@@ -319,18 +322,24 @@ func (x *XDSServer) startSynTask(ctx context.Context) {
 	}
 }
 
+func (x *XDSServer) fetchCurrentServices() ServiceInfos {
+	return x.registryInfo.Load()
+}
+
 func (x *XDSServer) initRegistryInfo() error {
+	cur := map[string]map[model.ServiceKey]*resource.ServiceInfo{}
 	namespaces := x.namingServer.Cache().Namespace().GetNamespaceList()
 	// 启动时，获取全量的 namespace 信息，用来推送空配置
 	for _, n := range namespaces {
-		x.registryInfo[n.Name] = map[model.ServiceKey]*resource.ServiceInfo{}
+		cur[n.Name] = map[model.ServiceKey]*resource.ServiceInfo{}
 	}
+	x.registryInfo.Store(cur)
 	return nil
 }
 
 // syncPolarisServiceInfo 初始化本地 cache，初始化 xds cache
 func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
-	registryInfo map[string]map[model.ServiceKey]*resource.ServiceInfo) error {
+	registryInfo ServiceInfos) error {
 
 	// 从 cache 中获取全量的服务信息
 	serviceIterProc := func(key string, value *model.Service) (bool, error) {
@@ -443,7 +452,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 	return nil
 }
 
-func (x *XDSServer) Generate(needPush, needRemove map[string]map[model.ServiceKey]*resource.ServiceInfo) {
+func (x *XDSServer) Generate(needPush, needRemove ServiceInfos) {
 	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
 	x.resourceGenerator.Generate(versionLocal, needPush, needRemove)
 }
@@ -457,13 +466,8 @@ func (x *XDSServer) DebugHandlers() []model.DebugHandler {
 		},
 		{
 			Path:    "/debug/apiserver/xds/resources",
-			Desc:    "Query XDS Resource List, query parameter name is 'type', value is [node, common]",
-			Handler: x.listXDSResources,
-		},
-		{
-			Path:    "/debug/apiserver/xds/cache_names",
-			Desc:    "Query XDS cache name list",
-			Handler: x.listXDSCaches,
+			Desc:    "Query the list of Envoy nodes, eg. /debug/apiserver/xds/resources?type=&nodeId=, type is [eds,cds,rds,vhds,lds]",
+			Handler: x.listXDSResource,
 		},
 	}
 }

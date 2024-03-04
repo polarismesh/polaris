@@ -59,6 +59,7 @@ header: # `header` section is configurations for source codes license header.
     - "release"
     - "test/data/xds"
     - "apiserver/nacosserver/v2/pb"
+    - "apiserver/xdsserverv3/cache"
 
     # single file
     - "LICENSE"

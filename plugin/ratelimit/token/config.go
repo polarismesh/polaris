@@ -27,6 +27,8 @@ import (
 
 // Config 限流配置类
 type Config struct {
+	// Enable 是否启用
+	Enable bool `yaml:"enable" mapstructure:"enable"`
 	// RuleFile
 	RuleFile string `yaml:"rule-file" mapstructure:"rule-file"`
 	// 是否启用远程配置，默认false。TODO 暂时无远程配置，后续版本补全，如果开启，则默认监听 Polaris/polaris-system 分组下的 plugin-ratelimit.yaml 配置文件

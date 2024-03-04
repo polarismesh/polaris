@@ -129,19 +129,27 @@ func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 		return nil
 	}
 
-	// 如果 token 信息为空，则代表当前创建的资源，任何人都可以进行操作，不做资源的后置逻辑处理
-	if IsEmptyOperator(afterCtx.GetAttachment(model.TokenDetailInfoKey).(OperatorInfo)) {
+	attachVal, ok := afterCtx.GetAttachment(model.TokenDetailInfoKey)
+	if !ok {
+		return nil
+	}
+	tokenInfo, ok := attachVal.(OperatorInfo)
+	if !ok {
 		return nil
 	}
 
-	addUserIds := afterCtx.GetAttachment(model.LinkUsersKey).([]string)
-	addGroupIds := afterCtx.GetAttachment(model.LinkGroupsKey).([]string)
-	removeUserIds := afterCtx.GetAttachment(model.RemoveLinkUsersKey).([]string)
-	removeGroupIds := afterCtx.GetAttachment(model.RemoveLinkGroupsKey).([]string)
+	// 如果 token 信息为空，则代表当前创建的资源，任何人都可以进行操作，不做资源的后置逻辑处理
+	if IsEmptyOperator(tokenInfo) {
+		return nil
+	}
+
+	addUserIds := afterCtx.GetAttachments()[model.LinkUsersKey].([]string)
+	addGroupIds := afterCtx.GetAttachments()[model.LinkGroupsKey].([]string)
+	removeUserIds := afterCtx.GetAttachments()[model.RemoveLinkUsersKey].([]string)
+	removeGroupIds := afterCtx.GetAttachments()[model.RemoveLinkGroupsKey].([]string)
 
 	// 只有在创建一个资源的时候，才需要把当前的创建者一并加到里面去
 	if afterCtx.GetOperation() == model.Create {
-		tokenInfo := afterCtx.GetAttachment(model.TokenDetailInfoKey).(OperatorInfo)
 		if tokenInfo.IsUserToken {
 			addUserIds = append(addUserIds, tokenInfo.OperatorID)
 		} else {
@@ -150,7 +158,7 @@ func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 	}
 
 	log.Info("[Auth][Server] add resource to principal default strategy",
-		zap.Any("resource", afterCtx.GetAttachment(model.ResourceAttachmentKey)),
+		zap.Any("resource", afterCtx.GetAttachments()[model.ResourceAttachmentKey]),
 		zap.Any("add_user", addUserIds),
 		zap.Any("add_group", addGroupIds), zap.Any("remove_user", removeUserIds),
 		zap.Any("remove_group", removeGroupIds),
@@ -237,10 +245,16 @@ func (svr *Server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 
 	var (
 		strategyResource = make([]model.StrategyResource, 0)
-		resources        = afterCtx.GetAttachment(
-			model.ResourceAttachmentKey).(map[apisecurity.ResourceType][]model.ResourceEntry)
-		strategyId = strategy.ID
+		strategyId       = strategy.ID
 	)
+	attachVal, ok := afterCtx.GetAttachment(model.ResourceAttachmentKey)
+	if !ok {
+		return nil
+	}
+	resources, ok := attachVal.(map[apisecurity.ResourceType][]model.ResourceEntry)
+	if !ok {
+		return nil
+	}
 
 	// 资源删除时，清理该资源与所有策略的关联关系
 	if afterCtx.GetOperation() == model.Delete {

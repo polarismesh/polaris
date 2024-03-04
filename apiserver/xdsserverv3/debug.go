@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"strings"
 
-	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
@@ -41,51 +41,32 @@ func (x *XDSServer) listXDSNodes(resp http.ResponseWriter, req *http.Request) {
 	_, _ = resp.Write([]byte(ret))
 }
 
-func (x *XDSServer) listXDSResources(resp http.ResponseWriter, req *http.Request) {
+func (x *XDSServer) listXDSResource(resp http.ResponseWriter, req *http.Request) {
 	cType := req.URL.Query().Get("type")
-
-	resources := map[string]interface{}{}
-	x.cache.Caches.ReadRange(func(key string, val cachev3.Cache) {
-		linearCache := val.(*cachev3.LinearCache)
-
-		if cType == "node" {
-			if strings.Contains(key, resource.LDS.ResourceType()) {
-				resources[key] = map[string]interface{}{
-					"resources": linearCache.GetResources(),
-				}
-			}
-		} else {
-			if !strings.Contains(key, resource.LDS.ResourceType()) {
-				resources[key] = map[string]interface{}{
-					"resources": linearCache.GetResources(),
-				}
-			}
-		}
-	})
-
-	data := map[string]interface{}{
-		"code":  apimodel.Code_ExecuteSuccess,
-		"info":  "execute success",
-		"data":  resources,
-		"count": len(resources),
+	nodeId := req.URL.Query().Get("nodeId")
+	service := req.URL.Query().Get("service")
+	namespace := req.URL.Query().Get("namespace")
+	if namespace == "" {
+		namespace = "default"
 	}
 
-	ret := utils.MustJson(data)
-	resp.WriteHeader(http.StatusOK)
-	_, _ = resp.Write([]byte(ret))
-}
-
-func (x *XDSServer) listXDSCaches(resp http.ResponseWriter, req *http.Request) {
-	resources := []string{}
-	x.cache.Caches.ReadRange(func(key string, val cachev3.Cache) {
-		resources = append(resources, key)
-	})
+	res := x.cache.GetResources(resource.FromSimpleXDS(cType), namespace, nodeId)
+	if len(service) != 0 {
+		copyData := make(map[string]types.Resource, len(res))
+		hasSvc := len(service) != 0
+		for k, v := range res {
+			if hasSvc && !strings.Contains(k, service) {
+				continue
+			}
+			copyData[k] = v
+		}
+		res = copyData
+	}
 
 	data := map[string]interface{}{
-		"code":  apimodel.Code_ExecuteSuccess,
-		"info":  "execute success",
-		"data":  resources,
-		"count": len(resources),
+		"code": apimodel.Code_ExecuteSuccess,
+		"info": "execute success",
+		"data": res,
 	}
 
 	ret := utils.MustJson(data)

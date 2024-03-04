@@ -172,6 +172,8 @@ func (sc *serviceContractCache) Query(filter map[string]string, offset, limit ui
 	searchName := filter["name"]
 	searchProtocol := filter["protocol"]
 	searchVersion := filter["version"]
+	searchInterfaceName := filter["interface_name"]
+	searchInterfacePath := filter["interface_path"]
 
 	sc.contracts.ReadRange(func(namespace string, services *utils.SyncMap[string, *utils.SyncMap[string, *model.EnrichServiceContract]]) {
 		if searchNamespace != "" {
@@ -205,7 +207,26 @@ func (sc *serviceContractCache) Query(filter map[string]string, offset, limit ui
 						return
 					}
 				}
-				values = append(values, val)
+				// 支持针对接口信息反向查询服务契约列表
+				if searchInterfaceName != "" || searchInterfacePath != "" {
+					tmpContract := &model.EnrichServiceContract{
+						ServiceContract: val.ServiceContract,
+						Interfaces:      []*model.InterfaceDescriptor{},
+					}
+					for i := range val.Interfaces {
+						descriptor := val.Interfaces[i]
+						if !utils.IsWildMatch(descriptor.Name, searchInterfaceName) {
+							continue
+						}
+						if !utils.IsWildMatch(descriptor.Path, searchInterfacePath) {
+							continue
+						}
+						tmpContract.Interfaces = append(tmpContract.Interfaces, descriptor)
+					}
+					values = append(values, tmpContract)
+				} else {
+					values = append(values, val)
+				}
 				return
 			})
 		})

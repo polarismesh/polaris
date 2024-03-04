@@ -44,5 +44,8 @@ func (tb *tokenBucket) Destroy() error {
 
 // Allow 限流接口实现
 func (tb *tokenBucket) Allow(typ plugin.RatelimitType, key string) bool {
+	if !tb.config.Enable {
+		return true
+	}
 	return tb.allow(typ, key)
 }

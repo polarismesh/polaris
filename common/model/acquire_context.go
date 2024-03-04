@@ -200,8 +200,9 @@ func (authCtx *AcquireContext) GetAttachments() map[string]interface{} {
 }
 
 // GetAttachment 按照 key 获取某一个附件信息
-func (authCtx *AcquireContext) GetAttachment(key string) interface{} {
-	return authCtx.attachment[key]
+func (authCtx *AcquireContext) GetAttachment(key string) (interface{}, bool) {
+	val, ok := authCtx.attachment[key]
+	return val, ok
 }
 
 // SetAttachment 设置附件

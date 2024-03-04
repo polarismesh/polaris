@@ -157,7 +157,14 @@ func (d *DefaultAuthChecker) checkMaintainPermission(preCtx *model.AcquireContex
 		return true, nil
 	}
 
-	tokenInfo := preCtx.GetAttachment(model.TokenDetailInfoKey).(OperatorInfo)
+	attachVal, ok := preCtx.GetAttachment(model.TokenDetailInfoKey)
+	if !ok {
+		return false, model.ErrorTokenNotExist
+	}
+	tokenInfo, ok := attachVal.(OperatorInfo)
+	if !ok {
+		return false, model.ErrorTokenNotExist
+	}
 
 	if tokenInfo.Disable {
 		return false, model.ErrorTokenDisabled
@@ -189,7 +196,14 @@ func (d *DefaultAuthChecker) CheckPermission(authCtx *model.AcquireContext) (boo
 		return true, nil
 	}
 
-	operatorInfo := authCtx.GetAttachment(model.TokenDetailInfoKey).(OperatorInfo)
+	attachVal, ok := authCtx.GetAttachment(model.TokenDetailInfoKey)
+	if !ok {
+		return false, model.ErrorTokenNotExist
+	}
+	operatorInfo, ok := attachVal.(OperatorInfo)
+	if !ok {
+		return false, model.ErrorTokenNotExist
+	}
 	// 这里需要检查当 token 被禁止的情况，如果 token 被禁止，无论是否可以操作目标资源，都无法进行写操作
 	if operatorInfo.Disable {
 		return false, model.ErrorTokenDisabled
@@ -407,8 +421,8 @@ func (d *DefaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext) (b
 	svcResEntries := reqRes[apisecurity.ResourceType_Services]
 	cfgResEntries := reqRes[apisecurity.ResourceType_ConfigGroups]
 
-	principleID, _ := authCtx.GetAttachment(model.OperatorIDKey).(string)
-	principleType, _ := authCtx.GetAttachment(model.OperatorPrincipalType).(model.PrincipalType)
+	principleID, _ := authCtx.GetAttachments()[model.OperatorIDKey].(string)
+	principleType, _ := authCtx.GetAttachments()[model.OperatorPrincipalType].(model.PrincipalType)
 	p := model.Principal{
 		PrincipalID:   principleID,
 		PrincipalRole: principleType,

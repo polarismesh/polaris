@@ -590,7 +590,7 @@ func MakeDefaultRoute(trafficDirection corev3.TrafficDirection, svcKey model.Ser
 			},
 		},
 	}
-	if opt.OpenOnDemand {
+	if opt.IsDemand() {
 		routeConf.TypedPerFilterConfig = map[string]*anypb.Any{
 			EnvoyHttpFilter_OnDemand: BuildOnDemandRouteTypedPerFilterConfig(),
 		}
@@ -614,7 +614,7 @@ func MakeSidecarRoute(trafficDirection corev3.TrafficDirection, routeMatch *rout
 			},
 		},
 	}
-	if opt.OpenOnDemand {
+	if opt.IsDemand() {
 		currentRoute.TypedPerFilterConfig = map[string]*anypb.Any{
 			EnvoyHttpFilter_OnDemand: BuildOnDemandRouteTypedPerFilterConfig(),
 		}
@@ -674,7 +674,7 @@ func MakeInBoundRouteConfigName(svcKey model.ServiceKey, demand bool) string {
 // MakeServiceName .
 func MakeServiceName(svcKey model.ServiceKey, trafficDirection corev3.TrafficDirection,
 	opt *BuildOption) string {
-	if trafficDirection == core.TrafficDirection_INBOUND || !opt.OpenOnDemand {
+	if trafficDirection == core.TrafficDirection_INBOUND || !opt.IsDemand() {
 		return fmt.Sprintf("%s|%s|%s", corev3.TrafficDirection_name[int32(trafficDirection)],
 			svcKey.Namespace, svcKey.Name)
 	}
@@ -787,7 +787,7 @@ func MakeSidecarBoundHCM(svcKey model.ServiceKey, trafficDirection corev3.Traffi
 	if trafficDirection == corev3.TrafficDirection_INBOUND {
 		hcmFilters = append(makeRateLimitHCMFilter(svcKey), hcmFilters...)
 	}
-	if opt.OpenOnDemand {
+	if opt.IsDemand() {
 		hcmFilters = append([]*hcm.HttpFilter{
 			{
 				Name: EnvoyHttpFilter_OnDemand,
@@ -811,7 +811,7 @@ func MakeSidecarBoundHCM(svcKey model.ServiceKey, trafficDirection corev3.Traffi
 
 	// 重写 RouteSpecifier 的路由规则数据信息
 	if trafficDirection == core.TrafficDirection_INBOUND {
-		manager.GetRds().RouteConfigName = MakeInBoundRouteConfigName(svcKey, opt.OpenOnDemand)
+		manager.GetRds().RouteConfigName = MakeInBoundRouteConfigName(svcKey, opt.IsDemand())
 	}
 
 	return manager
@@ -839,8 +839,12 @@ func MakeGatewayBoundHCM(svcKey model.ServiceKey, opt *BuildOption) *hcm.HttpCon
 
 func routeSpecifier(trafficDirection corev3.TrafficDirection, opt *BuildOption) *hcm.HttpConnectionManager_Rds {
 	baseRouteName := TrafficBoundRoute[trafficDirection]
-	if opt.OpenOnDemand {
-		baseRouteName = fmt.Sprintf("%s|%s|DEMAND", TrafficBoundRoute[trafficDirection], opt.Namespace)
+	if opt.IsDemand() {
+		baseRouteName = fmt.Sprintf("%s|%s|demand", TrafficBoundRoute[trafficDirection],
+			opt.Namespace)
+	}
+	if opt.RunType == RunTypeGateway {
+		baseRouteName += "-gateway"
 	}
 	return &hcm.HttpConnectionManager_Rds{
 		Rds: &hcm.Rds{

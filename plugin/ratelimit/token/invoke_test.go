@@ -28,6 +28,7 @@ import (
 // baseConfigOption 返回一个基础的正常option配置
 func baseConfigOption() map[string]interface{} {
 	return map[string]interface{}{
+		"enable": true,
 		"ip-limit": &ResourceLimitConfig{
 			Open:                   true,
 			Global:                 &BucketRatelimit{true, 10, 2},
@@ -70,11 +71,13 @@ func TestTokenBucket_Initialize(t *testing.T) {
 				Global:                 nil,
 				MaxResourceCacheAmount: 100,
 			},
+			"enable": true,
 		}
 		So(tb.Initialize(configEntry), ShouldNotBeNil)
 	})
 	Convey("无效api-limit配置，返回失败", t, func() {
 		configEntry.Option = map[string]interface{}{
+			"enable":    true,
 			"api-limit": &APILimitConfig{Open: true},
 		}
 		So(tb.Initialize(configEntry), ShouldNotBeNil)

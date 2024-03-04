@@ -47,7 +47,7 @@ func (h *DiscoverServer) handleSubscribeServiceReques(ctx context.Context, req n
 		Key:         remote.ValueConnID(ctx),
 		AddrStr:     meta.ClientIP,
 		Agent:       meta.ClientVersion,
-		App:         nacosmodel.DefaultString(req.GetHeaders()["app"], "unknown"),
+		App:         utils.DefaultString(req.GetHeaders()["app"], "unknown"),
 		Ip:          meta.ClientIP,
 		NamespaceId: namespace,
 		Group:       group,

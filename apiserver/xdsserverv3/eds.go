@@ -42,19 +42,14 @@ func (eds *EDSBuilder) Init(svr service.DiscoverServer) {
 
 func (eds *EDSBuilder) Generate(option *resource.BuildOption) (interface{}, error) {
 	var resources []types.Resource
-	switch option.RunType {
-	case resource.RunTypeGateway:
-		resources = append(resources, eds.makeBoundEndpoints(option, core.TrafficDirection_OUTBOUND)...)
-	case resource.RunTypeSidecar:
-		// sidecar 场景，如果流量方向是 envoy -> 业务 POD，那么 endpoint 只能是 本地 127.0.0.1
-		switch option.TrafficDirection {
-		case core.TrafficDirection_INBOUND:
-			inBoundEndpoints := eds.makeSelfEndpoint(option)
-			resources = append(resources, inBoundEndpoints...)
-		case core.TrafficDirection_OUTBOUND:
-			outBoundEndpoints := eds.makeBoundEndpoints(option, core.TrafficDirection_OUTBOUND)
-			resources = append(resources, outBoundEndpoints...)
-		}
+	// sidecar 场景，如果流量方向是 envoy -> 业务 POD，那么 endpoint 只能是 本地 127.0.0.1
+	switch option.TrafficDirection {
+	case core.TrafficDirection_INBOUND:
+		inBoundEndpoints := eds.makeSelfEndpoint(option)
+		resources = append(resources, inBoundEndpoints...)
+	case core.TrafficDirection_OUTBOUND:
+		outBoundEndpoints := eds.makeBoundEndpoints(option, core.TrafficDirection_OUTBOUND)
+		resources = append(resources, outBoundEndpoints...)
 	}
 	return resources, nil
 }
@@ -63,15 +58,8 @@ func (eds *EDSBuilder) makeBoundEndpoints(option *resource.BuildOption,
 	direction corev3.TrafficDirection) []types.Resource {
 
 	services := option.Services
-	selfServiceKey := option.SelfService
-	isGateway := option.RunType == resource.RunTypeGateway
-
 	var clusterLoads []types.Resource
 	for svcKey, serviceInfo := range services {
-		if isGateway && selfServiceKey.Equal(&svcKey) {
-			continue
-		}
-
 		var lbEndpoints []*endpoint.LocalityLbEndpoints
 		if !option.ForceDelete {
 			lbEndpoints = eds.buildServiceEndpoint(serviceInfo)
