@@ -88,10 +88,6 @@ func (s *Server) GetAllConfigFileTemplates(ctx context.Context) *apiconfig.Confi
 		return api.NewConfigBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}
 
-	if len(templates) == 0 {
-		return api.NewConfigBatchQueryResponse(apimodel.Code_ExecuteSuccess)
-	}
-
 	var apiTemplates []*apiconfig.ConfigFileTemplate
 	for _, template := range templates {
 		apiTemplates = append(apiTemplates, model.ToConfigFileTemplateAPI(template))

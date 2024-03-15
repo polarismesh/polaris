@@ -38,6 +38,8 @@ type configGroupCache struct {
 	groups *utils.SyncMap[uint64, *model.ConfigFileGroup]
 	// name2files config_file.<namespace, group> -> model.ConfigFileGroup
 	name2groups *utils.SyncMap[string, *utils.SyncMap[string, *model.ConfigFileGroup]]
+	// revisions namespace -> [revision]
+	revisions *utils.SyncMap[string, string]
 	// singleGroup
 	singleGroup *singleflight.Group
 }
@@ -56,6 +58,7 @@ func (fc *configGroupCache) Initialize(opt map[string]interface{}) error {
 	fc.groups = utils.NewSyncMap[uint64, *model.ConfigFileGroup]()
 	fc.name2groups = utils.NewSyncMap[string, *utils.SyncMap[string, *model.ConfigFileGroup]]()
 	fc.singleGroup = &singleflight.Group{}
+	fc.revisions = utils.NewSyncMap[string, string]()
 	return nil
 }
 
@@ -138,10 +141,22 @@ func (fc *configGroupCache) setConfigGroups(groups []*model.ConfigFileGroup) (ma
 func (fc *configGroupCache) postProcessUpdatedGroups(affect map[string]struct{}) {
 	for ns := range affect {
 		nsBucket, ok := fc.name2groups.Load(ns)
-		if ok {
-			count := nsBucket.Len()
-			fc.reportMetricsInfo(ns, count)
+		if !ok {
+			continue
 		}
+		count := nsBucket.Len()
+		fc.reportMetricsInfo(ns, count)
+
+		revisions := make([]string, 0, count)
+		nsBucket.Range(func(key string, val *model.ConfigFileGroup) {
+			revisions = append(revisions, val.Revision)
+		})
+
+		revision, err := types.CompositeComputeRevision(revisions)
+		if err != nil {
+			revision = utils.NewUUID()
+		}
+		fc.revisions.Store(ns, revision)
 	}
 }
 
@@ -150,12 +165,31 @@ func (fc *configGroupCache) Clear() error {
 	fc.groups = utils.NewSyncMap[uint64, *model.ConfigFileGroup]()
 	fc.name2groups = utils.NewSyncMap[string, *utils.SyncMap[string, *model.ConfigFileGroup]]()
 	fc.singleGroup = &singleflight.Group{}
+	fc.revisions = utils.NewSyncMap[string, string]()
 	return nil
 }
 
 // Name
 func (fc *configGroupCache) Name() string {
 	return types.ConfigGroupCacheName
+}
+
+func (fc *configGroupCache) ListGroups(namespace string) ([]*model.ConfigFileGroup, string) {
+	nsBucket, ok := fc.name2groups.Load(namespace)
+	if !ok {
+		return nil, ""
+	}
+	ret := make([]*model.ConfigFileGroup, 0, nsBucket.Len())
+	nsBucket.Range(func(key string, val *model.ConfigFileGroup) {
+		ret = append(ret, val)
+	})
+
+	revision, ok := fc.revisions.Load(namespace)
+	if !ok {
+		revision = utils.NewUUID()
+	}
+
+	return ret, revision
 }
 
 // GetGroupByName

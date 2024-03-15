@@ -18,14 +18,14 @@
 package xdsserverv3
 
 import (
+	"fmt"
+
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	on_demandv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/on_demand/v3"
 	v32 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
-	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
@@ -76,18 +76,22 @@ func (rds *RDSBuilder) makeSidecarInBoundRouteConfiguration(option *resource.Bui
 	if !selfService.IsExact() {
 		return []types.Resource{}
 	}
-	return []types.Resource{
-		&route.RouteConfiguration{
-			Name:             resource.MakeInBoundRouteConfigName(selfService),
-			ValidateClusters: wrapperspb.Bool(false),
-			VirtualHosts: []*route.VirtualHost{
-				{
-					Name:    resource.MakeServiceName(selfService, corev3.TrafficDirection_INBOUND, option),
-					Domains: []string{"*"},
-					Routes:  rds.makeSidecarInBoundRoutes(selfService, corev3.TrafficDirection_INBOUND, option),
-				},
+	routeConf := &route.RouteConfiguration{
+		Name:             resource.MakeInBoundRouteConfigName(selfService, option.IsDemand()),
+		ValidateClusters: wrapperspb.Bool(false),
+	}
+
+	if !option.ForceDelete {
+		routeConf.VirtualHosts = []*route.VirtualHost{
+			{
+				Name:    resource.MakeServiceName(selfService, corev3.TrafficDirection_INBOUND, option),
+				Domains: []string{"*"},
+				Routes:  rds.makeSidecarInBoundRoutes(selfService, corev3.TrafficDirection_INBOUND, option),
 			},
-		},
+		}
+	}
+	return []types.Resource{
+		routeConf,
 	}
 }
 
@@ -97,12 +101,8 @@ func (rds *RDSBuilder) makeSidecarOutBoundRouteConfiguration(option *resource.Bu
 		routeConfs []types.Resource
 		hosts      []*route.VirtualHost
 	)
-
-	routeConfiguration := &route.RouteConfiguration{
-		Name:             resource.OutBoundRouteConfigName,
-		ValidateClusters: wrapperspb.Bool(false),
-	}
-	if !option.OpenOnDemand {
+	baseRouteName := resource.OutBoundRouteConfigName
+	if !option.ForceDelete {
 		// step 1: 生成服务的 OUTBOUND 规则
 		services := option.Services
 		for svcKey, serviceInfo := range services {
@@ -113,58 +113,37 @@ func (rds *RDSBuilder) makeSidecarOutBoundRouteConfiguration(option *resource.Bu
 			}
 			hosts = append(hosts, vHost)
 		}
-		hosts = append(hosts, resource.BuildAllowAnyVHost())
-		routeConfiguration.VirtualHosts = hosts
 	}
-
-	if option.OpenOnDemand {
-		routeConfiguration.TypedPerFilterConfig = map[string]*anypb.Any{
-			"envoy.filters.http.on_demand": resource.MustNewAny(&on_demandv3.PerRouteConfig{
-				Odcds: &on_demandv3.OnDemandCds{
-					Source: &corev3.ConfigSource{
-						ConfigSourceSpecifier: &corev3.ConfigSource_ApiConfigSource{
-							ApiConfigSource: &corev3.ApiConfigSource{
-								ApiType:             corev3.ApiConfigSource_DELTA_GRPC,
-								TransportApiVersion: corev3.ApiVersion_V3,
-								GrpcServices: []*corev3.GrpcService{
-									{
-										TargetSpecifier: &corev3.GrpcService_GoogleGrpc_{
-											GoogleGrpc: &corev3.GrpcService_GoogleGrpc{
-												TargetUri:  option.OnDemandServer,
-												StatPrefix: "polaris_odcds",
-											},
-										},
-									},
-								},
-							},
-						},
-						ResourceApiVersion: corev3.ApiVersion_V3,
-					},
-				},
-			}),
-		}
-		routeConfiguration.Vhds = &route.Vhds{
-			ConfigSource: &corev3.ConfigSource{
-				ConfigSourceSpecifier: &corev3.ConfigSource_ApiConfigSource{
-					ApiConfigSource: &corev3.ApiConfigSource{
-						ApiType:             corev3.ApiConfigSource_DELTA_GRPC,
-						TransportApiVersion: corev3.ApiVersion_V3,
-						GrpcServices: []*corev3.GrpcService{
-							{
-								TargetSpecifier: &corev3.GrpcService_GoogleGrpc_{
-									GoogleGrpc: &corev3.GrpcService_GoogleGrpc{
-										TargetUri:  option.OnDemandServer,
-										StatPrefix: "polaris_vhds",
-									},
-								},
-							},
-						},
-					},
-				},
-				ResourceApiVersion: corev3.ApiVersion_V3,
-			},
-		}
+	hosts = append(hosts, resource.BuildAllowAnyVHost())
+	if option.IsDemand() {
+		baseRouteName = fmt.Sprintf("%s|%s|demand", resource.OutBoundRouteConfigName, option.Namespace)
+		// routeConfiguration.Vhds = &route.Vhds{
+		// 	ConfigSource: &corev3.ConfigSource{
+		// 		ConfigSourceSpecifier: &corev3.ConfigSource_ApiConfigSource{
+		// 			ApiConfigSource: &corev3.ApiConfigSource{
+		// 				ApiType:             corev3.ApiConfigSource_DELTA_GRPC,
+		// 				TransportApiVersion: corev3.ApiVersion_V3,
+		// 				GrpcServices: []*corev3.GrpcService{
+		// 					{
+		// 						TargetSpecifier: &corev3.GrpcService_GoogleGrpc_{
+		// 							GoogleGrpc: &corev3.GrpcService_GoogleGrpc{
+		// 								TargetUri:  option.OnDemandServer,
+		// 								StatPrefix: "polaris_vhds",
+		// 							},
+		// 						},
+		// 					},
+		// 				},
+		// 			},
+		// 		},
+		// 		ResourceApiVersion: corev3.ApiVersion_V3,
+		// 	},
+		// }
 	}
+	routeConfiguration := &route.RouteConfiguration{
+		Name:             baseRouteName,
+		ValidateClusters: wrapperspb.Bool(false),
+	}
+	routeConfiguration.VirtualHosts = hosts
 	routeConfs = append(routeConfs, routeConfiguration)
 	return routeConfs
 }
@@ -177,15 +156,8 @@ func (rds *RDSBuilder) makeSidecarInBoundRoutes(selfService model.ServiceKey,
 		},
 		Action: &route.Route_Route{
 			Route: &route.RouteAction{
-				ClusterSpecifier: &route.RouteAction_WeightedClusters{
-					WeightedClusters: &route.WeightedCluster{
-						Clusters: []*route.WeightedCluster_ClusterWeight{
-							{
-								Name:   resource.MakeServiceName(selfService, trafficDirection, opt),
-								Weight: wrapperspb.UInt32(100),
-							},
-						},
-					},
+				ClusterSpecifier: &route.RouteAction_Cluster{
+					Cluster: resource.MakeServiceName(selfService, trafficDirection, opt),
 				},
 			},
 		},
@@ -195,6 +167,10 @@ func (rds *RDSBuilder) makeSidecarInBoundRoutes(selfService model.ServiceKey,
 	limits, typedPerFilterConfig, err := resource.MakeSidecarLocalRateLimit(seacher, selfService)
 	if err == nil {
 		currentRoute.TypedPerFilterConfig = typedPerFilterConfig
+		if opt.IsDemand() {
+			currentRoute.TypedPerFilterConfig[resource.EnvoyHttpFilter_OnDemand] =
+				resource.BuildOnDemandRouteTypedPerFilterConfig()
+		}
 		currentRoute.GetRoute().RateLimits = limits
 	}
 	return []*route.Route{
@@ -225,7 +201,7 @@ func (rds *RDSBuilder) makeGatewayRouteConfiguration(option *resource.BuildOptio
 	}
 	hosts = append(hosts, vHost)
 	routeConfiguration := &route.RouteConfiguration{
-		Name:         resource.OutBoundRouteConfigName,
+		Name:         resource.OutBoundRouteConfigName + "-gateway",
 		VirtualHosts: hosts,
 	}
 	return append(routeConfs, routeConfiguration), nil

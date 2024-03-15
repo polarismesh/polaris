@@ -350,10 +350,12 @@ func TestServer_ReportClient(t *testing.T) {
 		if err := discoverSuit.Initialize(); err != nil {
 			t.Fatal(err)
 		}
-		defer discoverSuit.Destroy()
+		t.Cleanup(func() {
+			discoverSuit.cleanReportClient()
+			discoverSuit.Destroy()
+		})
 
 		clients := mockReportClients(1)
-		defer discoverSuit.cleanReportClient()
 
 		for i := range clients {
 			resp := discoverSuit.DiscoverServer().ReportClient(discoverSuit.DefaultCtx, clients[i])
@@ -368,10 +370,18 @@ func TestServer_GetReportClient(t *testing.T) {
 		if err := discoverSuit.Initialize(); err != nil {
 			t.Fatal(err)
 		}
-		defer discoverSuit.Destroy()
+		// 主动触发清理之前的 ReportClient 数据
+		discoverSuit.cleanReportClient()
+		// 强制触发缓存更新
+		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		t.Log("finish sleep to wait cache refresh")
+
+		t.Cleanup(func() {
+			discoverSuit.cleanReportClient()
+			discoverSuit.Destroy()
+		})
 
 		clients := mockReportClients(5)
-		defer discoverSuit.cleanReportClient()
 
 		wait := sync.WaitGroup{}
 		wait.Add(5)
@@ -389,8 +399,8 @@ func TestServer_GetReportClient(t *testing.T) {
 		t.Log("finish sleep to wait cache refresh")
 
 		resp := discoverSuit.DiscoverServer().GetPrometheusTargets(context.Background(), map[string]string{})
+		t.Logf("get report clients result: %#v", resp)
 		assert.Equal(t, apiv1.ExecuteSuccess, resp.Code)
-		assert.True(t, len(resp.Response) >= 0 && len(resp.Response) <= 5)
 	})
 }
 

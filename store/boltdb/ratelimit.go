@@ -358,9 +358,8 @@ func getRealRateConfList(routeConf []*model.ExtendRateLimit, offset, limit uint3
 			return true
 		} else if routeConf[i].RateLimit.ModifyTime.Before(routeConf[j].RateLimit.ModifyTime) {
 			return false
-		} else {
-			return strings.Compare(routeConf[i].RateLimit.ID, routeConf[j].RateLimit.ID) < 0
 		}
+		return strings.Compare(routeConf[i].RateLimit.ID, routeConf[j].RateLimit.ID) < 0
 	})
 
 	return routeConf[beginIndex:endIndex]

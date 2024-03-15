@@ -35,28 +35,21 @@ import (
 
 // EDSBuilder .
 type EDSBuilder struct {
-	svr service.DiscoverServer
 }
 
 func (eds *EDSBuilder) Init(svr service.DiscoverServer) {
-	eds.svr = svr
 }
 
 func (eds *EDSBuilder) Generate(option *resource.BuildOption) (interface{}, error) {
 	var resources []types.Resource
-	switch option.RunType {
-	case resource.RunTypeGateway:
-		resources = append(resources, eds.makeBoundEndpoints(option, core.TrafficDirection_OUTBOUND)...)
-	case resource.RunTypeSidecar:
-		// sidecar 场景，如果流量方向是 envoy -> 业务 POD，那么 endpoint 只能是 本地 127.0.0.1
-		switch option.TrafficDirection {
-		case core.TrafficDirection_INBOUND:
-			inBoundEndpoints := eds.makeSelfEndpoint(option)
-			resources = append(resources, inBoundEndpoints...)
-		case core.TrafficDirection_OUTBOUND:
-			outBoundEndpoints := eds.makeBoundEndpoints(option, core.TrafficDirection_OUTBOUND)
-			resources = append(resources, outBoundEndpoints...)
-		}
+	// sidecar 场景，如果流量方向是 envoy -> 业务 POD，那么 endpoint 只能是 本地 127.0.0.1
+	switch option.TrafficDirection {
+	case core.TrafficDirection_INBOUND:
+		inBoundEndpoints := eds.makeSelfEndpoint(option)
+		resources = append(resources, inBoundEndpoints...)
+	case core.TrafficDirection_OUTBOUND:
+		outBoundEndpoints := eds.makeBoundEndpoints(option, core.TrafficDirection_OUTBOUND)
+		resources = append(resources, outBoundEndpoints...)
 	}
 	return resources, nil
 }
@@ -65,55 +58,86 @@ func (eds *EDSBuilder) makeBoundEndpoints(option *resource.BuildOption,
 	direction corev3.TrafficDirection) []types.Resource {
 
 	services := option.Services
-	selfServiceKey := option.SelfService
-	isGateway := option.RunType == resource.RunTypeGateway
-
 	var clusterLoads []types.Resource
 	for svcKey, serviceInfo := range services {
-		if isGateway && selfServiceKey.Equal(&svcKey) {
-			continue
-		}
-
-		var lbEndpoints []*endpoint.LbEndpoint
-		for _, instance := range serviceInfo.Instances {
-			// 处于隔离状态或者权重为0的实例不进行下发
-			if !resource.IsNormalEndpoint(instance) {
-				continue
-			}
-			ep := &endpoint.LbEndpoint{
-				HostIdentifier: &endpoint.LbEndpoint_Endpoint{
-					Endpoint: &endpoint.Endpoint{
-						Address: &core.Address{
-							Address: &core.Address_SocketAddress{
-								SocketAddress: &core.SocketAddress{
-									Protocol: core.SocketAddress_TCP,
-									Address:  instance.Host.Value,
-									PortSpecifier: &core.SocketAddress_PortValue{
-										PortValue: instance.Port.Value,
-									},
-								},
-							},
-						},
-					},
-				},
-				HealthStatus:        resource.FormatEndpointHealth(instance),
-				LoadBalancingWeight: utils.NewUInt32Value(instance.GetWeight().GetValue()),
-				Metadata:            resource.GenEndpointMetaFromPolarisIns(instance),
-			}
-			lbEndpoints = append(lbEndpoints, ep)
+		var lbEndpoints []*endpoint.LocalityLbEndpoints
+		if !option.ForceDelete {
+			lbEndpoints = eds.buildServiceEndpoint(serviceInfo)
 		}
 
 		cla := &endpoint.ClusterLoadAssignment{
 			ClusterName: resource.MakeServiceName(svcKey, direction, option),
-			Endpoints: []*endpoint.LocalityLbEndpoints{
-				{
-					LbEndpoints: lbEndpoints,
-				},
-			},
+			Endpoints:   lbEndpoints,
 		}
 		clusterLoads = append(clusterLoads, cla)
 	}
 	return clusterLoads
+}
+
+func (eds *EDSBuilder) buildServiceEndpoint(serviceInfo *resource.ServiceInfo) []*endpoint.LocalityLbEndpoints {
+	locality := map[string]map[string]map[string][]*endpoint.LbEndpoint{}
+	for _, instance := range serviceInfo.Instances {
+		// 处于隔离状态或者权重为0的实例不进行下发
+		if !resource.IsNormalEndpoint(instance) {
+			continue
+		}
+		region := instance.GetLocation().GetRegion().GetValue()
+		zone := instance.GetLocation().GetZone().GetValue()
+		campus := instance.GetLocation().GetCampus().GetValue()
+		if _, ok := locality[region]; !ok {
+			locality[region] = map[string]map[string][]*endpoint.LbEndpoint{}
+		}
+		if _, ok := locality[region][zone]; !ok {
+			locality[region][zone] = map[string][]*endpoint.LbEndpoint{}
+		}
+		if _, ok := locality[region][zone][campus]; !ok {
+			locality[region][zone][campus] = make([]*endpoint.LbEndpoint, 0, 32)
+		}
+		ep := &endpoint.LbEndpoint{
+			HostIdentifier: &endpoint.LbEndpoint_Endpoint{
+				Endpoint: &endpoint.Endpoint{
+					Address: &core.Address{
+						Address: &core.Address_SocketAddress{
+							SocketAddress: &core.SocketAddress{
+								Protocol: core.SocketAddress_TCP,
+								Address:  instance.Host.Value,
+								PortSpecifier: &core.SocketAddress_PortValue{
+									PortValue: instance.Port.Value,
+								},
+							},
+						},
+					},
+					HealthCheckConfig: &endpoint.Endpoint_HealthCheckConfig{
+						DisableActiveHealthCheck: true,
+					},
+				},
+			},
+			HealthStatus:        resource.FormatEndpointHealth(instance),
+			LoadBalancingWeight: utils.NewUInt32Value(instance.GetWeight().GetValue()),
+			Metadata:            resource.GenEndpointMetaFromPolarisIns(instance),
+		}
+		locality[region][zone][campus] = append(locality[region][zone][campus], ep)
+	}
+
+	retVal := make([]*endpoint.LocalityLbEndpoints, 0, len(serviceInfo.Instances))
+
+	for region := range locality {
+		for zone := range locality[region] {
+			for campus := range locality[region][zone] {
+				lbEndpoints := locality[region][zone][campus]
+				localityLbEndpoints := &endpoint.LocalityLbEndpoints{
+					Locality: &core.Locality{
+						Region:  region,
+						Zone:    zone,
+						SubZone: campus,
+					},
+					LbEndpoints: lbEndpoints,
+				}
+				retVal = append(retVal, localityLbEndpoints)
+			}
+		}
+	}
+	return retVal
 }
 
 func (eds *EDSBuilder) makeSelfEndpoint(option *resource.BuildOption) []types.Resource {

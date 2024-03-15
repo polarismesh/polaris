@@ -112,7 +112,7 @@ func (c *Checker) syncCacheData(cancel context.CancelFunc) {
 		c.OnUpsert(val)
 	}
 
-	c.cacheMgr.Instance().IteratorInstances(func(key string, value *model.Instance) (bool, error) {
+	_ = c.cacheMgr.Instance().IteratorInstances(func(key string, value *model.Instance) (bool, error) {
 		handle(key, value)
 		return true, nil
 	})

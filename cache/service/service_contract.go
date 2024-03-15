@@ -38,24 +38,25 @@ const (
 func NewServiceContractCache(storage store.Store, cacheMgr types.CacheManager) types.ServiceContractCache {
 	return &serviceContractCache{
 		BaseCache: types.NewBaseCache(storage, cacheMgr),
-		storage:   storage,
 	}
 }
 
 type serviceContractCache struct {
 	*types.BaseCache
 
-	storage store.Store
-
 	lastMtimeLogged int64
 
+	// data namespace/service/name/protocol/version -> *model.EnrichServiceContract
+	data *utils.SyncMap[string, *model.EnrichServiceContract]
 	// contracts 服务契约缓存，namespace -> service -> []*model.EnrichServiceContract
 	contracts   *utils.SyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *model.EnrichServiceContract]]]
-	singleGroup singleflight.Group
+	singleGroup *singleflight.Group
 }
 
 // Initialize
 func (sc *serviceContractCache) Initialize(c map[string]interface{}) error {
+	sc.singleGroup = &singleflight.Group{}
+	sc.data = utils.NewSyncMap[string, *model.EnrichServiceContract]()
 	sc.contracts = utils.NewSyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *model.EnrichServiceContract]]]()
 	return nil
 }
@@ -79,7 +80,7 @@ func (sc *serviceContractCache) singleUpdate() (error, bool) {
 
 func (sc *serviceContractCache) realUpdate() (map[string]time.Time, int64, error) {
 	start := time.Now()
-	values, err := sc.storage.GetMoreServiceContracts(sc.IsFirstUpdate(), sc.LastFetchTime())
+	values, err := sc.Store().GetMoreServiceContracts(sc.IsFirstUpdate(), sc.LastFetchTime())
 	if err != nil {
 		log.Errorf("[Cache][ServiceContract] update service_contract err: %s", err.Error())
 		return nil, 0, err
@@ -87,11 +88,9 @@ func (sc *serviceContractCache) realUpdate() (map[string]time.Time, int64, error
 
 	lastMtimes, update, del := sc.setContracts(values)
 	costTime := time.Since(start)
-	if costTime > time.Second {
-		log.Info(
-			"[Cache][ServiceContract] get more service_contract", zap.Int("upsert", update), zap.Int("delete", del),
-			zap.Time("last", sc.LastMtime(sc.Name())), zap.Duration("used", costTime))
-	}
+	log.Info(
+		"[Cache][ServiceContract] get more service_contract", zap.Int("upsert", update), zap.Int("delete", del),
+		zap.Time("last", sc.LastMtime(sc.Name())), zap.Duration("used", costTime))
 	return lastMtimes, int64(len(values)), err
 }
 
@@ -115,14 +114,16 @@ func (sc *serviceContractCache) setContracts(values []*model.EnrichServiceContra
 		}
 
 		serviceVal, _ := namespaceVal.Load(service)
-		id := item.GetKey()
 		if !item.Valid {
 			del++
-			serviceVal.Delete(id)
+			sc.data.Delete(item.GetCacheKey())
+			serviceVal.Delete(item.ID)
+			continue
 		}
 
 		upsert++
-		serviceVal.Store(id, item)
+		sc.data.Store(item.GetCacheKey(), item)
+		serviceVal.Store(item.ID, item)
 	}
 	return map[string]time.Time{
 		sc.Name(): lastMtime,
@@ -131,6 +132,7 @@ func (sc *serviceContractCache) setContracts(values []*model.EnrichServiceContra
 
 // Clear
 func (sc *serviceContractCache) Clear() error {
+	sc.data = utils.NewSyncMap[string, *model.EnrichServiceContract]()
 	sc.contracts = utils.NewSyncMap[string, *utils.SyncMap[string, *utils.SyncMap[string, *model.EnrichServiceContract]]]()
 	return nil
 }
@@ -152,6 +154,11 @@ func (sc *serviceContractCache) forceQueryUpdate() error {
 	return err
 }
 
+func (sc *serviceContractCache) Get(req *model.ServiceContract) *model.EnrichServiceContract {
+	ret, _ := sc.data.Load(req.GetCacheKey())
+	return ret
+}
+
 // Query .
 func (sc *serviceContractCache) Query(filter map[string]string, offset, limit uint32) ([]*model.EnrichServiceContract, uint32, error) {
 	if err := sc.forceQueryUpdate(); err != nil {
@@ -165,6 +172,8 @@ func (sc *serviceContractCache) Query(filter map[string]string, offset, limit ui
 	searchName := filter["name"]
 	searchProtocol := filter["protocol"]
 	searchVersion := filter["version"]
+	searchInterfaceName := filter["interface_name"]
+	searchInterfacePath := filter["interface_path"]
 
 	sc.contracts.ReadRange(func(namespace string, services *utils.SyncMap[string, *utils.SyncMap[string, *model.EnrichServiceContract]]) {
 		if searchNamespace != "" {
@@ -183,7 +192,7 @@ func (sc *serviceContractCache) Query(filter map[string]string, offset, limit ui
 				if searchName != "" {
 					names := strings.Split(searchName, ",")
 					for i := range names {
-						if !utils.IsWildMatch(names[i], searchName) {
+						if !utils.IsWildMatch(val.Name, names[i]) {
 							return
 						}
 					}
@@ -198,7 +207,26 @@ func (sc *serviceContractCache) Query(filter map[string]string, offset, limit ui
 						return
 					}
 				}
-				values = append(values, val)
+				// 支持针对接口信息反向查询服务契约列表
+				if searchInterfaceName != "" || searchInterfacePath != "" {
+					tmpContract := &model.EnrichServiceContract{
+						ServiceContract: val.ServiceContract,
+						Interfaces:      []*model.InterfaceDescriptor{},
+					}
+					for i := range val.Interfaces {
+						descriptor := val.Interfaces[i]
+						if !utils.IsWildMatch(descriptor.Name, searchInterfaceName) {
+							continue
+						}
+						if !utils.IsWildMatch(descriptor.Path, searchInterfacePath) {
+							continue
+						}
+						tmpContract.Interfaces = append(tmpContract.Interfaces, descriptor)
+					}
+					values = append(values, tmpContract)
+				} else {
+					values = append(values, val)
+				}
 				return
 			})
 		})
@@ -237,11 +265,8 @@ func (sc *serviceContractCache) ListVersions(searchService, searchNamespace stri
 						ModifyTime: val.ModifyTime,
 					},
 				})
-				return
 			})
-			return
 		})
-		return
 	})
 	sort.Slice(values, func(i, j int) bool {
 		return values[j].ModifyTime.Before(values[i].ModifyTime)

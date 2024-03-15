@@ -329,6 +329,18 @@ func ParseClientAddress(ctx context.Context) string {
 	return rid
 }
 
+// ParseClientIP .
+func ParseClientIP(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	rid, _ := ctx.Value(ContextClientAddress).(string)
+	if strings.Contains(rid, ":") {
+		return strings.Split(rid, ":")[0]
+	}
+	return rid
+}
+
 // ParseAuthToken 从ctx中获取token
 func ParseAuthToken(ctx context.Context) string {
 	if ctx == nil {
@@ -540,67 +552,31 @@ func ConvertStringValuesToSlice(vals []*wrapperspb.StringValue) []string {
 	return ret
 }
 
-func CalculateContractID(namespace, service, name, protocol, version string) (string, error) {
-	h := sha1.New()
-	str := fmt.Sprintf("%s##%s##%s##%s##%s", namespace, service, name, protocol, version)
-
-	if _, err := io.WriteString(h, str); err != nil {
-		return "", err
-	}
-
-	out := hex.EncodeToString(h.Sum(nil))
-	return out, nil
-}
-
 // CheckContractTetrad 根据服务实例四元组计算ID
 func CheckContractTetrad(req *apiservice.ServiceContract) (string, *apiservice.Response) {
-	if err := CheckResourceName(NewStringValue(req.GetService())); err != nil {
-		return "", api.NewResponse(apimodel.Code_InvalidServiceName)
-	}
+	str := fmt.Sprintf("%s##%s##%s##%s##%s", req.GetNamespace(), req.GetService(), req.GetName(),
+		req.GetProtocol(), req.GetVersion())
 
-	if err := CheckResourceName(NewStringValue(req.GetNamespace())); err != nil {
-		return "", api.NewResponse(apimodel.Code_InvalidNamespaceName)
-	}
-
-	if err := CheckResourceName(NewStringValue(req.GetName())); err != nil {
-		return "", api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract name")
-	}
-
-	if req.GetProtocol() == "" {
-		return "", api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract protocol")
-	}
-
-	if req.GetVersion() == "" {
-		return "", api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract version")
-	}
-
-	id, err := CalculateContractID(
-		req.GetNamespace(),
-		req.GetService(),
-		req.GetName(),
-		req.GetProtocol(),
-		req.GetVersion(),
-	)
-	if err != nil {
+	h := sha1.New()
+	if _, err := io.WriteString(h, str); err != nil {
 		return "", api.NewResponse(apimodel.Code_ExecuteException)
 	}
-	return id, nil
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
 func CheckContractInterfaceTetrad(contractId string, source apiservice.InterfaceDescriptor_Source,
 	req *apiservice.InterfaceDescriptor) (string, *apiservice.Response) {
-
 	if contractId == "" {
 		return "", api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract id")
 	}
-	if req.GetMethod() == "" {
-		return "", api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract interface method")
+	if req.GetId() != "" {
+		return req.GetId(), nil
 	}
 	if req.GetPath() == "" {
 		return "", api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract interface path")
 	}
 	h := sha1.New()
-	str := fmt.Sprintf("%s##%s##%s##%d", contractId, req.GetMethod(), req.GetPath(), source)
+	str := fmt.Sprintf("%s##%s##%s##%s##%d", contractId, req.GetMethod(), req.GetPath(), req.GetName(), source)
 
 	if _, err := io.WriteString(h, str); err != nil {
 		return "", api.NewResponseWithMsg(apimodel.Code_ExecuteException, err.Error())

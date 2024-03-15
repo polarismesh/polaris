@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/smartystreets/goconvey/convey"
@@ -36,6 +37,7 @@ import (
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -1370,10 +1372,10 @@ func TestConcurrencyCreateSameService(t *testing.T) {
 
 		mockStore := mock.NewMockStore(ctrl)
 		mockStore.EXPECT().GetMoreNamespaces(gomock.Any()).Return([]*model.Namespace{
-			&model.Namespace{
+			{
 				Name: "mock_ns",
 			},
-		}, nil)
+		}, nil).AnyTimes()
 		mockStore.EXPECT().GetUnixSecond(gomock.Any()).Return(time.Now().Unix(), nil).AnyTimes()
 		cacheMgr, err = cache.TestCacheInitialize(ctx, &cache.Config{}, mockStore)
 		assert.NoError(t, err)
@@ -1386,7 +1388,7 @@ func TestConcurrencyCreateSameService(t *testing.T) {
 		}, mockStore, cacheMgr, userMgn, strategyMgn)
 		assert.NoError(t, err)
 
-		cacheMgr.OpenResourceCache([]cache.ConfigEntry{
+		cacheMgr.OpenResourceCache([]cachetypes.ConfigEntry{
 			{
 				Name: "namespace",
 			},
@@ -1461,5 +1463,137 @@ func TestConcurrencyCreateSameService(t *testing.T) {
 		resp := svr.CreateService(context.TODO(), req)
 		assert.Equal(t, apimodel.Code_ExistedResource, apimodel.Code(resp.GetCode().GetValue()))
 		assert.Equal(t, mockSvcId, resp.GetService().GetId().GetValue())
+	})
+}
+
+func Test_ServiceVisible(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.Initialize(); err != nil {
+		t.Fatal(err)
+	}
+
+	service := genMainService(int(time.Now().Unix()))
+
+	t.Cleanup(func() {
+		discoverSuit.cleanNamespace(service.GetNamespace().GetValue())
+		discoverSuit.cleanAllService()
+		discoverSuit.Destroy()
+	})
+
+	t.Run("创建服务时指定可见性", func(t *testing.T) {
+		service.ExportTo = []*wrapperspb.StringValue{wrapperspb.String("mock_namespace")}
+		resp := discoverSuit.DiscoverServer().CreateServices(discoverSuit.DefaultCtx, []*apiservice.Service{service})
+		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
+
+		_ = discoverSuit.CacheMgr().TestUpdate()
+
+		rsp := discoverSuit.DiscoverServer().GetServices(discoverSuit.DefaultCtx, map[string]string{
+			"name":      service.GetName().GetValue(),
+			"namespace": service.GetNamespace().GetValue(),
+		})
+		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
+		assert.True(t, len(rsp.GetServices()) == 1)
+		assert.True(t, len(rsp.GetServices()[0].GetExportTo()) == 1)
+		assert.Equal(t, model.ExportToMap([]*wrappers.StringValue{wrapperspb.String("mock_namespace")}),
+			model.ExportToMap(rsp.GetServices()[0].GetExportTo()))
+	})
+
+	t.Run("修改服务时指定可见性", func(t *testing.T) {
+		service.ExportTo = []*wrapperspb.StringValue{wrapperspb.String("mock_ns_1"), wrapperspb.String("mock_ns_2")}
+		resp := discoverSuit.DiscoverServer().UpdateServices(discoverSuit.DefaultCtx, []*apiservice.Service{service})
+		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
+
+		_ = discoverSuit.CacheMgr().TestUpdate()
+
+		rsp := discoverSuit.DiscoverServer().GetServices(discoverSuit.DefaultCtx, map[string]string{
+			"name":      service.GetName().GetValue(),
+			"namespace": service.GetNamespace().GetValue(),
+		})
+		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
+		assert.True(t, len(rsp.GetServices()) == 1)
+		assert.True(t, len(rsp.GetServices()[0].GetExportTo()) == 2)
+		assert.Equal(t, model.ExportToMap([]*wrapperspb.StringValue{wrapperspb.String("mock_ns_1"), wrapperspb.String("mock_ns_2")}),
+			model.ExportToMap(rsp.GetServices()[0].GetExportTo()))
+	})
+
+	t.Run("清空服务可见性", func(t *testing.T) {
+		service.ExportTo = []*wrappers.StringValue{}
+		resp := discoverSuit.DiscoverServer().UpdateServices(discoverSuit.DefaultCtx, []*apiservice.Service{service})
+		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
+
+		_ = discoverSuit.CacheMgr().TestUpdate()
+
+		rsp := discoverSuit.DiscoverServer().GetServices(discoverSuit.DefaultCtx, map[string]string{
+			"name":      service.GetName().GetValue(),
+			"namespace": service.GetNamespace().GetValue(),
+		})
+		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
+		assert.True(t, len(rsp.GetServices()) == 1)
+		assert.True(t, len(rsp.GetServices()[0].GetExportTo()) == 0)
+	})
+}
+
+func Test_NamespaceVisible(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.Initialize(); err != nil {
+		t.Fatal(err)
+	}
+
+	nsVal := &apimodel.Namespace{
+		Name: wrapperspb.String(fmt.Sprintf("mock_ns_%d", time.Now().Unix())),
+	}
+
+	t.Cleanup(func() {
+		discoverSuit.cleanNamespace(nsVal.GetName().GetValue())
+		discoverSuit.Destroy()
+	})
+
+	t.Run("创建命名空间时指定可见性", func(t *testing.T) {
+		nsVal.ServiceExportTo = []*wrapperspb.StringValue{wrapperspb.String("mock_namespace")}
+		resp := discoverSuit.NamespaceServer().CreateNamespace(discoverSuit.DefaultCtx, nsVal)
+		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
+
+		_ = discoverSuit.CacheMgr().TestUpdate()
+
+		rsp := discoverSuit.NamespaceServer().GetNamespaces(discoverSuit.DefaultCtx, map[string][]string{
+			"name": {nsVal.GetName().GetValue()},
+		})
+		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
+		assert.True(t, len(rsp.GetNamespaces()) == 1)
+		assert.True(t, len(rsp.GetNamespaces()[0].GetServiceExportTo()) == 1)
+		assert.Equal(t, model.ExportToMap([]*wrappers.StringValue{wrapperspb.String("mock_namespace")}),
+			model.ExportToMap(rsp.GetNamespaces()[0].GetServiceExportTo()))
+	})
+
+	t.Run("修改命名空间时指定可见性", func(t *testing.T) {
+		nsVal.ServiceExportTo = []*wrapperspb.StringValue{wrapperspb.String("mock_ns_1"), wrapperspb.String("mock_ns_2")}
+		resp := discoverSuit.NamespaceServer().UpdateNamespaces(discoverSuit.DefaultCtx, []*apimodel.Namespace{nsVal})
+		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
+
+		_ = discoverSuit.CacheMgr().TestUpdate()
+
+		rsp := discoverSuit.NamespaceServer().GetNamespaces(discoverSuit.DefaultCtx, map[string][]string{
+			"name": {nsVal.GetName().GetValue()},
+		})
+		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
+		assert.True(t, len(rsp.GetNamespaces()) == 1)
+		assert.True(t, len(rsp.GetNamespaces()[0].GetServiceExportTo()) == 2)
+		assert.Equal(t, model.ExportToMap([]*wrapperspb.StringValue{wrapperspb.String("mock_ns_1"), wrapperspb.String("mock_ns_2")}),
+			model.ExportToMap(rsp.GetNamespaces()[0].GetServiceExportTo()))
+	})
+
+	t.Run("清空命名空间可见性", func(t *testing.T) {
+		nsVal.ServiceExportTo = []*wrappers.StringValue{}
+		resp := discoverSuit.NamespaceServer().UpdateNamespaces(discoverSuit.DefaultCtx, []*apimodel.Namespace{nsVal})
+		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
+
+		_ = discoverSuit.CacheMgr().TestUpdate()
+
+		rsp := discoverSuit.NamespaceServer().GetNamespaces(discoverSuit.DefaultCtx, map[string][]string{
+			"name": []string{nsVal.GetName().GetValue()},
+		})
+		assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(resp.GetCode().GetValue()))
+		assert.True(t, len(rsp.GetNamespaces()) == 1)
+		assert.True(t, len(rsp.GetNamespaces()[0].GetServiceExportTo()) == 0)
 	})
 }

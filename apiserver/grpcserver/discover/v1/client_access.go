@@ -128,34 +128,47 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 			continue
 		}
 
+		var out *apiservice.DiscoverResponse
+		var action string
 		startTime := commontime.CurrentMillisecond()
 		defer func() {
 			plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+				Action:    action,
 				ClientIP:  utils.ParseClientAddress(ctx),
 				Namespace: in.GetService().GetNamespace().GetValue(),
-				Resource:  in.Type.String() + ":" + in.GetService().GetName().GetValue(),
+				Resource:  in.GetType().String() + ":" + in.GetService().GetName().GetValue(),
 				Timestamp: startTime,
 				CostTime:  commontime.CurrentMillisecond() - startTime,
+				Revision:  out.GetService().GetRevision().GetValue(),
+				Success:   out.GetCode().GetValue() > uint32(apimodel.Code_DataNoChange),
 			})
 		}()
 
+    // 将请求里的 token 写入 context 中
 		if in.GetService().GetToken().GetValue() != "" {
 			ctx = context.WithValue(ctx, utils.ContextAuthTokenKey, in.GetService().GetToken().GetValue())
 		}
 
 		var out *apiservice.DiscoverResponse
+
 		switch in.Type {
 		case apiservice.DiscoverRequest_INSTANCE:
+			action = metrics.ActionDiscoverInstance
 			out = g.namingServer.ServiceInstancesCache(ctx, &apiservice.DiscoverFilter{}, in.Service)
 		case apiservice.DiscoverRequest_ROUTING:
+			action = metrics.ActionDiscoverRouterRule
 			out = g.namingServer.GetRoutingConfigWithCache(ctx, in.Service)
 		case apiservice.DiscoverRequest_RATE_LIMIT:
+			action = metrics.ActionDiscoverRateLimit
 			out = g.namingServer.GetRateLimitWithCache(ctx, in.Service)
 		case apiservice.DiscoverRequest_CIRCUIT_BREAKER:
+			action = metrics.ActionDiscoverCircuitBreaker
 			out = g.namingServer.GetCircuitBreakerWithCache(ctx, in.Service)
 		case apiservice.DiscoverRequest_SERVICES:
+			action = metrics.ActionDiscoverServices
 			out = g.namingServer.GetServiceWithCache(ctx, in.Service)
 		case apiservice.DiscoverRequest_FAULT_DETECTOR:
+			action = metrics.ActionDiscoverFaultDetect
 			out = g.namingServer.GetFaultDetectWithCache(ctx, in.Service)
 		default:
 			out = api.NewDiscoverRoutingResponse(apimodel.Code_InvalidDiscoverResource, in.Service)
@@ -166,6 +179,25 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 			return err
 		}
 	}
+}
+
+func (g *DiscoverServer) ReportServiceContract(ctx context.Context, in *apiservice.ServiceContract) (*apiservice.Response, error) {
+	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
+	rCtx := utils.ConvertGRPCContext(ctx)
+	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), ParseGrpcOperator(ctx))
+
+	out := g.namingServer.ReportServiceContract(rCtx, in)
+	return out, nil
+}
+
+// 查询服务契约
+func (g *DiscoverServer) GetServiceContract(ctx context.Context, req *apiservice.ServiceContract) (*apiservice.Response, error) {
+	// 需要记录操作来源，提高效率，只针对特殊接口添加operator
+	rCtx := utils.ConvertGRPCContext(ctx)
+	rCtx = context.WithValue(rCtx, utils.StringContext("operator"), ParseGrpcOperator(ctx))
+
+	out := g.namingServer.GetServiceContractWithCache(rCtx, req)
+	return out, nil
 }
 
 // ParseGrpcOperator 构造请求源

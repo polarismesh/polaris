@@ -51,6 +51,20 @@ func (g *grayStore) CreateGrayResourceTx(tx store.Tx, data *model.GrayResource) 
 	return nil
 }
 
+func (g *grayStore) CleanGrayResource(tx store.Tx, data *model.GrayResource) error {
+	if tx == nil {
+		return ErrTxIsNil
+	}
+	dbTx := tx.GetDelegateTx().(*BaseTx)
+	s := "UPDATE gray_resource SET flag = 1, modify_time = sysdate() WHERE name = ?"
+
+	args := []interface{}{data.Name}
+	if _, err := dbTx.Exec(s, args...); err != nil {
+		return store.Error(err)
+	}
+	return nil
+}
+
 // GetMoreGrayResouces  获取最近更新的灰度资源, 此方法用于 cache 增量更新，需要注意 modifyTime 应为数据库时间戳
 func (g *grayStore) GetMoreGrayResouces(firstUpdate bool,
 	modifyTime time.Time) ([]*model.GrayResource, error) {
@@ -60,7 +74,10 @@ func (g *grayStore) GetMoreGrayResouces(firstUpdate bool,
 	}
 
 	s := "SELECT name,  match_rule,  UNIX_TIMESTAMP(create_time), IFNULL(create_by, ''),  " +
-		" UNIX_TIMESTAMP(modify_time), IFNULL(modify_by, '') FROM gray_resource WHERE modify_time > FROM_UNIXTIME(?)"
+		" UNIX_TIMESTAMP(modify_time), IFNULL(modify_by, ''), flag FROM gray_resource WHERE modify_time > FROM_UNIXTIME(?)"
+	if firstUpdate {
+		s += " AND flag = 0 "
+	}
 	rows, err := g.slave.Query(s, timeToTimestamp(modifyTime))
 	if err != nil {
 		return nil, err
@@ -80,12 +97,13 @@ func (g *grayStore) fetchGrayResourceRows(rows *sql.Rows) ([]*model.GrayResource
 
 	grayResources := make([]*model.GrayResource, 0, 32)
 	for rows.Next() {
-		var ctime, mtime int64
+		var ctime, mtime, valid int64
 		grayResource := &model.GrayResource{}
 		if err := rows.Scan(&grayResource.Name, &grayResource.MatchRule, &ctime,
-			&grayResource.CreateBy, &mtime, &grayResource.ModifyBy); err != nil {
+			&grayResource.CreateBy, &mtime, &grayResource.ModifyBy, &valid); err != nil {
 			return nil, err
 		}
+		grayResource.Valid = valid == 0
 		grayResource.CreateTime = time.Unix(ctime, 0)
 		grayResource.ModifyTime = time.Unix(mtime, 0)
 		grayResources = append(grayResources, grayResource)

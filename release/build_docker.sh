@@ -35,6 +35,7 @@ platforms=""
 
 for arch in ${arch_list[@]}; do
     export GOARCH=${arch}
+    export GOOS="linux"
     make build VERSION=${docker_tag} ARCH=${arch}
 
     if [ $? != 0 ]; then
@@ -46,7 +47,8 @@ for arch in ${arch_list[@]}; do
     platforms+="linux/${arch},"
 done
 
-platforms=${platforms::-1}
+echo "${platforms}"
+platforms=${platforms%?}
 extra_tags=""
 
 pre_release=`echo ${docker_tag}|egrep "(alpha|beta|rc|[T|t]est)"|wc -l`

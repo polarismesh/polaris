@@ -108,40 +108,6 @@ func checkOwner(owner *wrappers.StringValue) error {
 	return nil
 }
 
-// checkMobile 检查用户的 mobile 信息
-func checkMobile(mobile *wrappers.StringValue) error {
-	if mobile == nil {
-		return nil
-	}
-
-	if mobile.GetValue() == "" {
-		return nil
-	}
-
-	if utf8.RuneCountInString(mobile.GetValue()) != 11 {
-		return errors.New("invalid mobile")
-	}
-
-	return nil
-}
-
-// checkEmail 检查用户的 email 信息
-func checkEmail(email *wrappers.StringValue) error {
-	if email == nil {
-		return nil
-	}
-
-	if email.GetValue() == "" {
-		return nil
-	}
-
-	if ok := regEmail.MatchString(email.GetValue()); !ok {
-		return errors.New("invalid email")
-	}
-
-	return nil
-}
-
 // verifyAuth 用于 user、group 以及 strategy 模块的鉴权工作检查
 func verifyAuth(ctx context.Context, isWrite bool,
 	needOwner bool, authMgn *DefaultAuthChecker) (context.Context, *apiservice.Response) {
@@ -168,7 +134,14 @@ func verifyAuth(ctx context.Context, isWrite bool,
 		return nil, api.NewAuthResponse(apimodel.Code_AuthTokenForbidden)
 	}
 
-	tokenInfo := authCtx.GetAttachment(model.TokenDetailInfoKey).(OperatorInfo)
+	attachVal, ok := authCtx.GetAttachment(model.TokenDetailInfoKey)
+	if !ok {
+		return nil, api.NewAuthResponse(apimodel.Code_TokenNotExisted)
+	}
+	tokenInfo, ok := attachVal.(OperatorInfo)
+	if !ok {
+		return nil, api.NewAuthResponse(apimodel.Code_TokenNotExisted)
+	}
 
 	if isWrite && tokenInfo.Disable {
 		log.Error("[Auth][Server] token is disabled", utils.ZapRequestID(reqId),

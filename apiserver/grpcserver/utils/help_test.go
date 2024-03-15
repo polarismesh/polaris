@@ -61,6 +61,7 @@ func TestGetClientOpenMethod(t *testing.T) {
 				"/v1.PolarisGRPC/Discover":                             true,
 				"/v1.PolarisGRPC/ReportClient":                         true,
 				"/v1.PolarisServiceContractGRPC/ReportServiceContract": true,
+				"/v1.PolarisServiceContractGRPC/GetServiceContract":    true,
 			},
 			wantErr: false,
 		},
@@ -83,13 +84,13 @@ func TestGetClientOpenMethod(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetClientOpenMethod(tt.args.include, tt.args.protocol)
+			got, err := GetDiscoverClientOpenMethod(tt.args.include, tt.args.protocol)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("GetClientOpenMethod() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("GetDiscoverClientOpenMethod() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetClientOpenMethod() = %v, want %v", got, tt.want)
+				t.Errorf("GetDiscoverClientOpenMethod() = %v, want %v", got, tt.want)
 			}
 		})
 	}

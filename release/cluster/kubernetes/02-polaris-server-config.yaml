@@ -104,7 +104,7 @@ data:
             - stdout
           errorOutputPaths:
             - stderr
-        discoverLocal:
+        discoverstat:
           rotateOutputPath: log/statis/polaris-discoverstat.log
           errorRotateOutputPath: log/statis/polaris-discoverstat-error.log
           rotationMaxSize: 100
@@ -156,6 +156,18 @@ data:
           rotationMaxBackups: 10
           rotationMaxAge: 7
           outputLevel: info
+          outputPaths:
+            - stdout
+          errorOutputPaths:
+            - stderr
+        nacos-apiserver:
+          rotateOutputPath: log/runtime/nacos-apiserver.log
+          errorRotateOutputPath: log/runtime/nacos-apiserver-error.log
+          rotationMaxSize: 100
+          rotationMaxBackups: 30
+          rotationMaxAge: 7
+          outputLevel: info
+          compress: true
           outputPaths:
             - stdout
           errorOutputPaths:
@@ -247,6 +259,16 @@ data:
             openConnLimit: false
             maxConnPerHost: 128
             maxConnLimit: 10240
+      - name: service-nacos
+        option:
+          listenIP: "0.0.0.0"
+          listenPort: 8848
+          # 设置 nacos 默认命名空间对应 Polaris 命名空间信息
+          defaultNamespace: default
+          connLimit:
+            openConnLimit: false
+            maxConnPerHost: 128
+            maxConnLimit: 10240
     #  - name: service-l5
     #    option:
     #      listenIP: 0.0.0.0
@@ -265,10 +287,14 @@ data:
       strategy:
         name: defaultStrategy
         option:
-          # Console power switch, open default
+          # Console auth switch, default true
           consoleOpen: true
-          # Customer inspection ability switch, default close
+          # Console Strict Model, default true
+          consoleStrict: true
+          # Customer auth switch, default false
           clientOpen: false
+          # Customer Strict Model, default close
+          clientStrict: false
     namespace:
       autoCreate: true
     naming:
@@ -317,29 +343,9 @@ data:
           maxBatchCount: 32
           concurrency: 64
       checkers:
-        - name: heartbeatMemory
-        # - name: heartbeatLeader
-        #   option:
-        #     soltNum: 128
-        #     streamNum: 128 # default value is runtime.GOMAXPROCS(0)
-        #     batch:
-        #       queueSize: 16384
-        #       waitTime: 32ms
-        #       maxBatchCount: 64
-        #       concurrency: 512
-        # - name: heartbeatRedis
-        #   option:
-        #     kvAddr: ##REDIS_ADDR##
-        #      # ACL user from redis v6.0, remove it if ACL is not available
-        #     kvUser: ##REDIS_USER#
-        #     kvPasswd: ##REDIS_PWD##
-        #     poolSize: 200
-        #     minIdleConns: 30
-        #     idleTimeout: 120s
-        #     connectTimeout: 200ms
-        #     msgTimeout: 200ms
-        #     concurrency: 200
-        #     withTLS: false
+        - name: heartbeatLeader
+          option:
+            soltNum: 128
     # Maintain configuration
     maintain:
       jobs:
@@ -394,11 +400,6 @@ data:
       discoverEvent:
         entries:
           - name: discoverEventLocal
-      discoverStatis:
-        name: discoverLocal
-        option:
-          interval: 60 # 统计间隔，单位为秒
-          outputPath: ./discover-statis
       statis:
         entries:
           - name: local

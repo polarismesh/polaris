@@ -180,8 +180,12 @@ type ClientServer interface {
 	GetCircuitBreakerWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse
 	// GetFaultDetectWithCache User Client Get FaultDetect Rule Information
 	GetFaultDetectWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse
+	// GetServiceContractWithCache User Client Get ServiceContract Rule Information
+	GetServiceContractWithCache(ctx context.Context, req *apiservice.ServiceContract) *apiservice.Response
 	// UpdateInstance update one instance by client
 	UpdateInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response
+	// ReportServiceContract client report service_contract
+	ReportServiceContract(ctx context.Context, req *apiservice.ServiceContract) *apiservice.Response
 }
 
 // L5OperateServer L5 related operations

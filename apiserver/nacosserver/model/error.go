@@ -17,7 +17,9 @@
 
 package model
 
-import "encoding/json"
+import (
+	"github.com/polarismesh/polaris/common/utils"
+)
 
 type NacosApiError struct {
 	DetailErrCode int32
@@ -26,8 +28,7 @@ type NacosApiError struct {
 }
 
 func (e *NacosApiError) Error() string {
-	desc, _ := json.Marshal(e)
-	return string(desc)
+	return utils.MustJson(e)
 }
 
 type NacosError struct {
@@ -37,6 +38,5 @@ type NacosError struct {
 }
 
 func (e *NacosError) Error() string {
-	desc, _ := json.Marshal(e)
-	return string(desc)
+	return utils.MustJson(e)
 }

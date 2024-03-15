@@ -38,6 +38,8 @@ run:
     - pkg/model/pb
     - .*~
     - test
+    - "apiserver/nacosserver/v2/pb"
+    - "apiserver/xdsserverv3/cache"
 
   # Which files to skip: they will be analyzed, but issues from them won't be reported.
   # Default value is empty list,
@@ -51,7 +53,7 @@ run:
     - ".*_test\\.go$"
     - ".*\\.yaml$"
     - ".*\\.yml$"
-
+    - "apiserver/xdsserverv3/cache/linear.go"
 
 # Main linters configurations.
 # See https://golangci-lint.run/usage/linters
@@ -60,24 +62,23 @@ linters:
   disable-all: true
   # Custom enable linters we want to use.
   enable:
-    - errcheck      # Errcheck is a program for checking for unchecked errors in go programs.
-    - errchkjson    # Checks types passed to the json encoding functions. Reports unsupported types and optionally reports occasions, where the check for the returned error can be omitted.
-    - funlen        # Tool for detection of long functions
-    - gci           # Gci controls golang package import order and makes it always deterministic.
-    - goconst       # Finds repeated strings that could be replaced by a constant
-    - gocritic      # Provides diagnostics that check for bugs, performance and style issues.
-    - gofmt         # Gofmt checks whether code was gofmt-ed. By default this tool runs with -s option to check for code simplification
-    - gosimple      # Linter for Go source code that specializes in simplifying code
-    - govet         # Vet examines Go source code and reports suspicious constructs, such as Printf calls whose arguments do not align with the format string
-    - misspell      # Finds commonly misspelled English words in comments
-    - nolintlint    # Reports ill-formed or insufficient nolint directives
-    - revive        # Fast, configurable, extensible, flexible, and beautiful linter for Go. Drop-in replacement of golint.
-    - staticcheck   # It's a set of rules from staticcheck. It's not the same thing as the staticcheck binary.
-    - typecheck     # Like the front-end of a Go compiler, parses and type-checks Go code
+    - errcheck # Errcheck is a program for checking for unchecked errors in go programs.
+    - errchkjson # Checks types passed to the json encoding functions. Reports unsupported types and optionally reports occasions, where the check for the returned error can be omitted.
+    - funlen # Tool for detection of long functions
+    - gci # Gci controls golang package import order and makes it always deterministic.
+    - goconst # Finds repeated strings that could be replaced by a constant
+    - gocritic # Provides diagnostics that check for bugs, performance and style issues.
+    - gofmt # Gofmt checks whether code was gofmt-ed. By default this tool runs with -s option to check for code simplification
+    - gosimple # Linter for Go source code that specializes in simplifying code
+    - govet # Vet examines Go source code and reports suspicious constructs, such as Printf calls whose arguments do not align with the format string
+    - misspell # Finds commonly misspelled English words in comments
+    - nolintlint # Reports ill-formed or insufficient nolint directives
+    - revive # Fast, configurable, extensible, flexible, and beautiful linter for Go. Drop-in replacement of golint.
+    - staticcheck # It's a set of rules from staticcheck. It's not the same thing as the staticcheck binary.
+    - typecheck # Like the front-end of a Go compiler, parses and type-checks Go code
     - usestdlibvars # A linter that detect the possibility to use variables/constants from the Go standard library.
     - lll
     #- whitespace    # Tool for detection of leading and trailing whitespace
-
 
 issues:
   max-issues-per-linter: 0
@@ -98,7 +99,6 @@ issues:
         - gocritic
       text: "unnecessaryDefer:"
 
-
 # https://golangci-lint.run/usage/linters
 linters-settings:
   # https://golangci-lint.run/usage/linters/#misspell
@@ -115,25 +115,40 @@ linters-settings:
       - name: atomic
       - name: line-length-limit
         severity: error
-        arguments: [ 480 ]
+        arguments: [480]
       - name: unhandled-error
         severity: warning
         disabled: true
-        arguments: [ "fmt.Printf", "myFunction" ]
+        arguments: ["fmt.Printf", "myFunction"]
       - name: var-naming
         severity: warning
         disabled: true
         arguments:
-          - [ "ID","URL","IP","HTTP","JSON","API","UID","Id","Api","Uid","Http","Json","Ip","Url" ] # AllowList
-          - [ "VM" ] # DenyList
+          - [
+              "ID",
+              "URL",
+              "IP",
+              "HTTP",
+              "JSON",
+              "API",
+              "UID",
+              "Id",
+              "Api",
+              "Uid",
+              "Http",
+              "Json",
+              "Ip",
+              "Url",
+            ] # AllowList
+          - ["VM"] # DenyList
       - name: string-format
         severity: warning
         disabled: false
         arguments:
-          - - 'core.WriteError[1].Message'
-            - '/^([^A-Z]|$)/'
+          - - "core.WriteError[1].Message"
+            - "/^([^A-Z]|$)/"
             - must not start with a capital letter
-          - - 'fmt.Errorf[0]'
+          - - "fmt.Errorf[0]"
             - '/(^|[^\.!?])$/'
             - must not end in punctuation
           - - panic
@@ -142,27 +157,30 @@ linters-settings:
       - name: function-result-limit
         severity: warning
         disabled: false
-        arguments: [ 5 ]
+        arguments: [5]
       - name: import-shadowing
         severity: warning
         disabled: false
-        arguments: [ "github.com/polarismesh/polaris","namespace" ]
+        arguments: ["github.com/polarismesh/polaris", "namespace"]
       - name: waitgroup-by-value
         severity: warning
         disabled: false
       - name: max-public-structs
         severity: warning
         disabled: false
-        arguments: [ 35 ]
+        arguments: [35]
       - name: indent-error-flow
         severity: warning
         disabled: false
       - name: function-length
         severity: warning
         disabled: false
-        arguments: [ 80,0 ]
+        arguments: [80, 0]
       - name: file-header
-        arguments: [ "Tencent is pleased to support the open source community by making Polaris available." ]
+        arguments:
+          [
+            "Tencent is pleased to support the open source community by making Polaris available.",
+          ]
       - name: exported
         severity: warning
         disabled: true
@@ -183,7 +201,7 @@ linters-settings:
     # If lower than 0, disable the check.
     # Default: 40
     statements: -1
-  
+
   # https://golangci-lint.run/usage/linters/#lll
   lll:
     # Max line length, lines longer will be reported.
@@ -242,9 +260,22 @@ linters-settings:
     go: "1.15"
     # Sxxxx checks in https://staticcheck.io/docs/configuration/options/#checks
     # Default: ["*"]
-    checks: [
-      "all", "-S1000", "-S1001", "-S1002", "-S1008", "-S1009", "-S1016", "-S1023", "-S1025", "-S1029", "-S1034", "-S1040","-S1019"
-    ]
+    checks:
+      [
+        "all",
+        "-S1000",
+        "-S1001",
+        "-S1002",
+        "-S1008",
+        "-S1009",
+        "-S1016",
+        "-S1023",
+        "-S1025",
+        "-S1029",
+        "-S1034",
+        "-S1040",
+        "-S1019",
+      ]
 
   # https://golangci-lint.run/usage/linters/#govet
   govet:
@@ -333,7 +364,24 @@ linters-settings:
     go: "1.15"
     # SAxxxx checks in https://staticcheck.io/docs/configuration/options/#checks
     # Default: ["*"]
-    checks: [ "all","-SA1019","-SA4015","-SA1029","-SA1016","-SA9003","-SA4006","-SA6003","-SA1004","-SA4009","-SA6002","-SA4017","-SA4021","-SA1006","-SA4010" ]
+    checks:
+      [
+        "all",
+        "-SA1019",
+        "-SA4015",
+        "-SA1029",
+        "-SA1016",
+        "-SA9003",
+        "-SA4006",
+        "-SA6003",
+        "-SA1004",
+        "-SA4009",
+        "-SA6002",
+        "-SA4017",
+        "-SA4021",
+        "-SA1006",
+        "-SA4010",
+      ]
 
   # https://golangci-lint.run/usage/linters/#gofmt
   gofmt:
@@ -343,7 +391,7 @@ linters-settings:
     # Apply the rewrite rules to the source before reformatting.
     # https://pkg.go.dev/cmd/gofmt
     # Default: []
-    rewrite-rules: [ ]
+    rewrite-rules: []
 
   # https://golangci-lint.run/usage/linters/#gci
   gci:

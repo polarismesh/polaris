@@ -54,7 +54,9 @@ var (
 )
 
 func (h *NacosV2Server) Request(ctx context.Context, payload *nacospb.Payload) (*nacospb.Payload, error) {
+	ctx = h.ConvertContext(ctx)
 	h.connectionManager.RefreshClient(ctx)
+	ctx = injectPayloadHeader(ctx, payload)
 	handle, val, err := h.UnmarshalPayload(payload)
 	if err != nil {
 		return nil, err
@@ -63,20 +65,8 @@ func (h *NacosV2Server) Request(ctx context.Context, payload *nacospb.Payload) (
 	if !ok {
 		return nil, ErrorInvalidRequestBodyType
 	}
-
-	if _, ok := debugLevel[msg.GetRequestType()]; !ok {
-		nacoslog.Info("[NACOS-V2] handler client request", zap.String("conn-id", remote.ValueConnID(ctx)),
-			utils.ZapRequestID(msg.GetRequestId()),
-			zap.String("type", msg.GetRequestType()),
-		)
-	} else {
-		if nacoslog.DebugEnabled() {
-			nacoslog.Debug("[NACOS-V2] handler client request", zap.String("conn-id", remote.ValueConnID(ctx)),
-				utils.ZapRequestID(msg.GetRequestId()),
-				zap.String("type", msg.GetRequestType()),
-			)
-		}
-	}
+	nacoslog.Debug("[NACOS-V2] handler client request", zap.String("conn-id", remote.ValueConnID(ctx)),
+		utils.ZapRequestID(msg.GetRequestId()), zap.String("type", msg.GetRequestType()))
 	connMeta := remote.ValueConnMeta(ctx)
 
 	startTime := time.Now()
@@ -150,7 +140,7 @@ func (h *NacosV2Server) RequestBiStream(svr nacospb.BiRequestStream_RequestBiStr
 			}
 			return err
 		}
-
+		ctx = injectPayloadHeader(ctx, req)
 		_, val, err := h.UnmarshalPayload(req)
 		if err != nil {
 			return err
@@ -193,4 +183,22 @@ func (h *NacosV2Server) UnmarshalPayload(payload *nacospb.Payload) (remote.Reque
 		return nil, nil, err
 	}
 	return handler.Handler, msg, nil
+}
+
+func injectPayloadHeader(ctx context.Context, payload *nacospb.Payload) context.Context {
+	metadata := payload.GetMetadata()
+	if metadata == nil {
+		return ctx
+	}
+	if len(metadata.Headers) == 0 {
+		return ctx
+	}
+	token, exist := metadata.Headers[nacosmodel.NacosClientAuthHeader]
+	if exist {
+		ctx = context.WithValue(ctx, utils.ContextAuthTokenKey, token)
+	}
+	for k, v := range metadata.Headers {
+		ctx = context.WithValue(ctx, utils.StringContext(k), v)
+	}
+	return ctx
 }

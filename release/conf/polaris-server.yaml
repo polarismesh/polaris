@@ -90,7 +90,7 @@ bootstrap:
       rotationMaxAge: 7
       outputLevel: info
       compress: true
-    # Eureka protocol layer plug -in log
+    # Eureka protocol layer plugin log
     eureka:
       rotateOutputPath: log/runtime/polaris-eureka.log
       errorRotateOutputPath: log/runtime/polaris-eureka-error.log
@@ -99,7 +99,16 @@ bootstrap:
       rotationMaxAge: 7
       outputLevel: info
       compress: true
-    # APISERVER common log, record inbound request and outbound response 
+    # Nacos protocol layer plug -in log
+    nacos-apiserver:
+      rotateOutputPath: log/runtime/nacos-apiserver.log
+      errorRotateOutputPath: log/runtime/nacos-apiserver-error.log
+      rotationMaxSize: 100
+      rotationMaxBackups: 30
+      rotationMaxAge: 7
+      outputLevel: info
+      compress: true
+    # APISERVER common log, record inbound request and outbound response
     apiserver:
       rotateOutputPath: log/runtime/polaris-apiserver.log
       errorRotateOutputPath: log/runtime/polaris-apiserver-error.log
@@ -125,7 +134,7 @@ bootstrap:
       rotationMaxAge: 7
       outputLevel: info
       compress: true
-    discoverLocal:
+    discoverstat:
       rotateOutputPath: log/statis/polaris-discoverstat.log
       errorRotateOutputPath: log/statis/polaris-discoverstat-error.log
       rotationMaxSize: 100
@@ -133,6 +142,7 @@ bootstrap:
       rotationMaxAge: 7
       outputLevel: info
       compress: true
+      onlyContent: true
     local:
       rotateOutputPath: log/statis/polaris-statis.log
       errorRotateOutputPath: log/statis/polaris-statis-error.log
@@ -166,14 +176,6 @@ bootstrap:
       rotationMaxAge: 7
       outputLevel: info
       compress: true
-    nacos-apiserver:
-      rotateOutputPath: log/runtime/nacos-apiserver.log
-      errorRotateOutputPath: log/runtime/nacos-apiserver-error.log
-      rotationMaxSize: 100
-      rotationMaxBackups: 30
-      rotationMaxAge: 7
-      outputLevel: info
-      compress: true
   # Start the server in order
   startInOrder:
     # Start the Polaris-Server in order, mainly to avoid data synchronization logic when the server starts the DB to pull the DB out of high load
@@ -184,7 +186,7 @@ bootstrap:
   polaris_service:
     ## level: self_address > network_inter > probe_address
     ## Obtain the IP of the VM or POD where Polaris is located by making a TCP connection with the probe_adreess address
-    probe_address: ##DB_ADDR##
+    # probe_address: ##DB_ADDR##
     ## Set the name of the gateway to get your own IP
     # network_inter: eth0
     ## Show the setting node itself IP information
@@ -197,14 +199,14 @@ bootstrap:
     isolated: false
     # Service information that needs to be registered
     services:
-        # service name
+      # service name
       - name: polaris.checker
         # Set the port protocol information that requires registration
         protocols:
           - service-grpc
 # apiserver Configuration
 apiservers:
-    # apiserver plugin name
+  # apiserver plugin name
   - name: service-eureka
     # apiserver additional configuration
     option:
@@ -323,11 +325,6 @@ apiservers:
         openConnLimit: false
         maxConnPerHost: 128
         maxConnLimit: 10240
-  # - name: service-l5
-  #   option:
-  #     listenIP: 0.0.0.0
-  #     listenPort: 7779
-  #     clusterName: cl5.discover
 # Core logic configuration
 auth:
   # auth's option has migrated to auth.user and auth.strategy
@@ -398,7 +395,7 @@ healthcheck:
       waitTime: 32ms
       maxBatchCount: 32
       concurrency: 64
-  # Health check plugin list, currently supports heartBeatMemory/heartBeatredis/heartBeatLeader. 
+  # Health check plugin list, currently supports heartBeatMemory/heartBeatredis/heartBeatLeader.
   # since the three belong to the same type of health check plugin, only one can be enabled to use one
   checkers:
     - name: heartbeatMemory
@@ -406,17 +403,9 @@ healthcheck:
     #   option:
     #     # Heartbeat Record MAP number of shards
     #     soltNum: 128
-    #     # The number of GRPC connections used to process heartbeat forward request processing between leader and follower, default value is runtime.GOMAXPROCS(0)
+    #     # The number of GRPC connections used to process heartbeat forward request processing between leader and follower,
+    #     # default value is runtime.GOMAXPROCS(0)
     #     streamNum: 128
-    #     batch:
-    #       # Heartbeat forwarding processing task cache queue
-    #       queueSize: 16384
-    #       # The maximum waiting time for task batch
-    #       waitTime: 32ms
-    #       # The maximum number of heartbeat forwarding tasks of single -batch tasks
-    #       maxBatchCount: 64 
-    #       # Number of workers
-    #       concurrency: 512  
 # Configuration center module start configuration
 config:
   # Whether to start the configuration module
@@ -424,9 +413,10 @@ config:
   # Maximum number of number of file characters
   contentMaxLength: 20000
 # Cache configuration
-
 cache:
-  # 缓存增量同步数据时，相较于当前时刻需要往回倒退多少秒, 即在 T 时刻的增量同步，实际增量数据时间范围为 [T - abs(DiffTime), ∞)
+  # When the incremental synchronization data is cached, the actual incremental data time range is as follows:
+  # How many seconds need to be backtracked from the current time, that is,
+  # the incremental synchronization at time T [T - abs(DiffTime), ∞)
   diffTime: 5s
 # Maintain configuration
 maintain:
@@ -457,7 +447,7 @@ maintain:
         # clientCleanTimeout: 10m
 # Storage configuration
 store:
-  # Standalone file storage plugin
+  # # Standalone file storage plugin
   name: boltdbStore
   option:
     path: ./polaris.bolt
@@ -467,9 +457,9 @@ store:
   #   master:
   #     dbType: mysql
   #     dbName: polaris_server
-  #     dbUser: ##DB_USER##
-  #     dbPwd: ##DB_PWD##
-  #     dbAddr: ##DB_ADDR##
+  #     dbUser: ${MYSQL_USER} ##DB_USER##
+  #     dbPwd: ${MYSQL_PWD} ##DB_PWD##
+  #     dbAddr: ${MYSQL_HOST} ##DB_ADDR##
   #     maxOpenConns: 300
   #     maxIdleConns: 50
   #     connMaxLifetime: 300 # Unit second
@@ -479,10 +469,6 @@ plugin:
   crypto:
     entries:
       - name: AES
-  # whitelist:
-  #   name: whitelist
-  #   option:
-  #     ip: [127.0.0.1]
   cmdb:
     name: memory
     option:
@@ -494,11 +480,6 @@ plugin:
   discoverEvent:
     entries:
       - name: discoverEventLocal
-  discoverStatis:
-    name: discoverLocal
-    option:
-      # Statistical interval, the unit is second
-      interval: 60
   statis:
     entries:
       - name: local
@@ -508,53 +489,5 @@ plugin:
   ratelimit:
     name: token-bucket
     option:
-      # Whether to use remote configuration
-      remote-conf: false
-      # IP -level current, global
-      ip-limit:
-        # Whether the system opens IP -level current limit
-        open: false 
-        global:
-          open: false
-          # Maximum peak
-          bucket: 300
-          # The average number of requests per second of IP
-          rate: 200
-        # Number of IP of the maximum cache
-        resource-cache-amount: 1024 
-        white-list: [127.0.0.1]
-      instance-limit:
-        open: false
-        global:
-          bucket: 200
-          rate: 100
-        resource-cache-amount: 1024
-      # Interface-level ratelimit limit
-      api-limit:
-        # Whether to turn on the interface restriction and global switch, only for TRUE can it represent the flow restriction on the system.By default
-        open: false
-        rules:
-          - name: store-read
-            limit:
-              # The global configuration of the interface, if in the API sub -item, is not configured, the interface will be limited according to Global
-              open: false
-              # The maximum value of token barrels
-              bucket: 2000
-              # The number of token generated per second
-              rate: 1000
-          - name: store-write
-            limit:
-              open: false
-              bucket: 1000
-              rate: 500
-        apis:
-          - name: "POST:/v1/naming/services"
-            rule: store-write
-          - name: "PUT:/v1/naming/services"
-            rule: store-write
-          - name: "POST:/v1/naming/services/delete"
-            rule: store-write
-          - name: "GET:/v1/naming/services"
-            rule: store-read
-          - name: "GET:/v1/naming/services/count"
-            rule: store-read
+      enable: false
+      rule-file: ./conf/plugin/ratelimit/rule.yaml

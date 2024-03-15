@@ -33,7 +33,6 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
-	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/service"
 )
 
@@ -77,32 +76,9 @@ func (cds *CDSBuilder) GenerateByDirection(option *resource.BuildOption,
 	direction corev3.TrafficDirection) ([]types.Resource, error) {
 	var clusters []types.Resource
 
-	selfServiceKey := option.SelfService
-
-	ignore := func(svcKey model.ServiceKey) bool {
-		// 如果是 INBOUND 场景，只需要下发 XDS Sidecar Node 所归属的服务 INBOUND Cluster 规则
-		isGateway := option.RunType == resource.RunTypeGateway
-		if direction == core.TrafficDirection_INBOUND {
-			if isGateway {
-				return true
-			}
-			if !isGateway && !selfServiceKey.Equal(&svcKey) {
-				return true
-			}
-		}
-		// 如果是网关，则自己的数据不会下发
-		if isGateway && selfServiceKey.Equal(&svcKey) {
-			return true
-		}
-		return false
-	}
-
 	services := option.Services
 	// 每一个 polaris service 对应一个 envoy cluster
-	for svcKey, svc := range services {
-		if ignore(svcKey) {
-			continue
-		}
+	for _, svc := range services {
 		c := cds.makeCluster(svc, direction, option)
 		switch option.TLSMode {
 		case resource.TLSModePermissive:
@@ -149,8 +125,7 @@ func (cds *CDSBuilder) makeCluster(svcInfo *resource.ServiceInfo,
 	trafficDirection corev3.TrafficDirection, opt *resource.BuildOption) *cluster.Cluster {
 
 	name := resource.MakeServiceName(svcInfo.ServiceKey, trafficDirection, opt)
-
-	return &cluster.Cluster{
+	c := &cluster.Cluster{
 		Name:                 name,
 		ConnectTimeout:       durationpb.New(5 * time.Second),
 		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_EDS},
@@ -163,8 +138,12 @@ func (cds *CDSBuilder) makeCluster(svcInfo *resource.ServiceInfo,
 				},
 			},
 		},
-		LbSubsetConfig:   resource.MakeLbSubsetConfig(svcInfo),
-		OutlierDetection: resource.MakeOutlierDetection(svcInfo),
-		HealthChecks:     resource.MakeHealthCheck(svcInfo),
 	}
+	// 只有针对出流量场景才能设置 Cluster 的相关信息
+	if opt.TrafficDirection == corev3.TrafficDirection_OUTBOUND {
+		c.LbSubsetConfig = resource.MakeLbSubsetConfig(svcInfo)
+		c.OutlierDetection = resource.MakeOutlierDetection(svcInfo)
+		c.HealthChecks = resource.MakeHealthCheck(svcInfo)
+	}
+	return c
 }

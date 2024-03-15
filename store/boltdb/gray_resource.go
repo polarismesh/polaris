@@ -30,8 +30,7 @@ import (
 var _ store.GrayStore = (*grayStore)(nil)
 
 const (
-	tblGrayResource string = "GrayResource"
-
+	tblGrayResource             string = "GrayResource"
 	GrayResourceFieldModifyTime string = "ModifyTime"
 )
 
@@ -55,6 +54,22 @@ func (cfr *grayStore) CreateGrayResourceTx(proxyTx store.Tx, grayResource *model
 	err := saveValue(tx, tblGrayResource, grayResource.Name, grayResource)
 	if err != nil {
 		log.Error("[GrayResource] save info", zap.Error(err))
+		return store.Error(err)
+	}
+	return nil
+}
+
+func (cfr *grayStore) CleanGrayResource(proxyTx store.Tx, data *model.GrayResource) error {
+	tx := proxyTx.GetDelegateTx().(*bolt.Tx)
+
+	properties := map[string]interface{}{
+		GrayResourceFieldModifyTime: time.Now(),
+		CommonFieldValid:            false,
+	}
+
+	err := updateValue(tx, tblGrayResource, data.Name, properties)
+	if err != nil {
+		log.Error("[GrayResource] update info", zap.Error(err))
 		return store.Error(err)
 	}
 	return nil

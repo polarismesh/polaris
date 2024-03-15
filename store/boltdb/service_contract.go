@@ -236,7 +236,7 @@ func (s *serviceContractStore) DeleteServiceContractInterfaces(contract *model.E
 func (s *serviceContractStore) toModel(data *ServiceContract) *model.EnrichServiceContract {
 	interfaces := make([]*model.InterfaceDescriptor, 0, 4)
 	_ = json.Unmarshal([]byte(data.Interfaces), &interfaces)
-	return &model.EnrichServiceContract{
+	ret := &model.EnrichServiceContract{
 		ServiceContract: &model.ServiceContract{
 			ID:         data.ID,
 			Namespace:  data.Namespace,
@@ -252,6 +252,8 @@ func (s *serviceContractStore) toModel(data *ServiceContract) *model.EnrichServi
 		},
 		Interfaces: interfaces,
 	}
+	ret.Format()
+	return ret
 }
 
 func (s *serviceContractStore) toStore(data *model.EnrichServiceContract) *ServiceContract {

@@ -20,7 +20,8 @@ package apiserver
 import (
 	"context"
 	"fmt"
-	"net/http"
+
+	"github.com/polarismesh/polaris/common/model"
 )
 
 const (
@@ -61,12 +62,7 @@ type Apiserver interface {
 
 type EnrichApiserver interface {
 	Apiserver
-	DebugHandlers() []DebugHandler
-}
-
-type DebugHandler struct {
-	Path    string
-	Handler http.HandlerFunc
+	DebugHandlers() []model.DebugHandler
 }
 
 var (

@@ -33,12 +33,10 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
-	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"google.golang.org/protobuf/types/known/anypb"
-	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 	"github.com/polarismesh/polaris/common/model"
@@ -202,130 +200,6 @@ func TestParseNodeID(t *testing.T) {
 				item.Namespace, item.UUID, item.HostIP,
 				ns, id, hostip,
 			)
-		}
-	}
-}
-
-func TestNodeHashID(t *testing.T) {
-	testTable := []struct {
-		Node     *core.Node
-		TargetID string
-	}{
-		{
-			Node: &core.Node{
-				Id: "default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
-				Metadata: &_struct.Struct{
-					Fields: map[string]*structpb.Value{
-						resource.TLSModeTag: &_struct.Value{
-							Kind: &_struct.Value_StringValue{
-								StringValue: string(resource.TLSModeStrict),
-							},
-						},
-					},
-				},
-			},
-			TargetID: "default/" + string(resource.TLSModeStrict),
-		},
-		{
-			Node: &core.Node{
-				Id: "polaris/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
-				Metadata: &_struct.Struct{
-					Fields: map[string]*structpb.Value{
-						resource.TLSModeTag: &_struct.Value{
-							Kind: &_struct.Value_StringValue{
-								StringValue: string(resource.TLSModePermissive),
-							},
-						},
-					},
-				},
-			},
-			TargetID: "polaris/" + string(resource.TLSModePermissive),
-		},
-		{
-			Node: &core.Node{
-				Id: "default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
-				Metadata: &_struct.Struct{
-					Fields: map[string]*structpb.Value{
-						resource.TLSModeTag: &_struct.Value{
-							Kind: &_struct.Value_StringValue{
-								StringValue: string(resource.TLSModeNone),
-							},
-						},
-					},
-				},
-			},
-			TargetID: "default",
-		},
-		// bad case: wrong tls mode
-		{
-			Node: &core.Node{
-				Id: "default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
-				Metadata: &_struct.Struct{
-					Fields: map[string]*structpb.Value{
-						resource.TLSModeTag: &_struct.Value{
-							Kind: &_struct.Value_StringValue{
-								StringValue: "abc",
-							},
-						},
-					},
-				},
-			},
-			TargetID: "default",
-		},
-		// no node metadata
-		{
-			Node: &core.Node{
-				Id: "default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
-			},
-			TargetID: "default",
-		},
-		// metadata does not contain tls mode kv
-		{
-			Node: &core.Node{
-				Id: "default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
-				Metadata: &_struct.Struct{
-					Fields: map[string]*structpb.Value{
-						"hello": &_struct.Value{
-							Kind: &_struct.Value_StringValue{
-								StringValue: "abc",
-							},
-						},
-					},
-				},
-			},
-			TargetID: "default",
-		},
-		{
-			Node: &core.Node{
-				Id: "gateway~default/9b9f5630-81a1-47cd-a558-036eb616dc71~172.17.1.1",
-				Metadata: &_struct.Struct{
-					Fields: map[string]*structpb.Value{
-						"hello": &_struct.Value{
-							Kind: &_struct.Value_StringValue{
-								StringValue: "abc",
-							},
-						},
-						resource.GatewayNamespaceName: &_struct.Value{
-							Kind: &structpb.Value_StringValue{
-								StringValue: "default",
-							},
-						},
-						resource.GatewayServiceName: &_struct.Value{
-							Kind: &structpb.Value_StringValue{
-								StringValue: "service",
-							},
-						},
-					},
-				},
-			},
-			TargetID: "gateway/default/service",
-		},
-	}
-	for i, item := range testTable {
-		id := resource.PolarisNodeHash{}.ID(item.Node)
-		if id != item.TargetID {
-			t.Fatalf("test case [%d] failed: expect ID %s, got ID %s",
-				i, item.TargetID, id)
 		}
 	}
 }

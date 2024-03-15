@@ -30,6 +30,10 @@ const (
 )
 
 const (
+	NacosClientAuthHeader = "accessToken"
+)
+
+const (
 	ParamCode              = "code"
 	ParamServiceName       = "serviceName"
 	ParamClusterList       = "clusters"
@@ -107,13 +111,6 @@ func GetGroupName(s string) string {
 	return ss[0]
 }
 
-func DefaultString(s, d string) string {
-	if len(s) == 0 {
-		return d
-	}
-	return s
-}
-
 var ConvertPolarisNamespaceVal = "default"
 
 // ToPolarisNamespace 替换 nacos namespace 为 polaris 的 namespace 信息，主要是针对默认命令空间转为 polaris 的 default
@@ -139,3 +136,11 @@ func ToNacosConfigNamespace(ns string) string {
 	}
 	return ns
 }
+
+const (
+	ActionGetConfigFile         = "NACOS_GET_CONFIG"
+	ActionPublishConfigFile     = "NACOS_PUBLISH_CONFIG"
+	ActionGrpcGetConfigFile     = "NACOS_GRPC_GET_CONFIG"
+	ActionGrpcPublishConfigFile = "NACOS_GRPC_PUBLISH_CONFIG"
+	ActionGrpcPushConfigFile    = "NACOS_GRPC_PUSH_CONFIG"
+)

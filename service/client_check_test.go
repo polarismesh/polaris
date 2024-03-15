@@ -38,7 +38,10 @@ func TestClientCheck(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	defer discoverSuit.Destroy()
+	t.Cleanup(func() {
+		discoverSuit.cleanReportClient()
+		discoverSuit.Destroy()
+	})
 
 	clientId1 := "111"
 	clientId2 := "222"

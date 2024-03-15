@@ -19,7 +19,6 @@
 package utils
 
 import (
-	"encoding/json"
 	"sync"
 )
 
@@ -128,8 +127,7 @@ func (set *SyncSet[K]) Contains(val K) bool {
 
 func (set *SyncSet[K]) String() string {
 	ret := set.ToSlice()
-	data, _ := json.Marshal(ret)
-	return string(data)
+	return MustJson(ret)
 }
 
 func NewSegmentMap[K comparable, V any](soltNum int, hashFunc func(k K) int) *SegmentMap[K, V] {

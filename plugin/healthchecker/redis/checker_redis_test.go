@@ -77,6 +77,23 @@ func (m *mockPool) Get(id string) *redispool.Resp {
 	}
 }
 
+// Get 使用连接池，向redis发起Get请求
+func (m *mockPool) MGet(id []string) *redispool.Resp {
+	rsp := &redispool.Resp{
+		Values:     make([]interface{}, 0, len(id)),
+		Compatible: m.compatible,
+	}
+	for i := range id {
+		value, ok := m.itemValues[id[i]]
+		if ok {
+			rsp.Values = append(rsp.Values, value)
+		} else {
+			rsp.Values = append(rsp.Values, nil)
+		}
+	}
+	return rsp
+}
+
 // Set 使用连接池，向redis发起Set请求
 func (m *mockPool) Set(id string, redisObj redispool.RedisObject) *redispool.Resp {
 	value := redisObj.Serialize(m.compatible)

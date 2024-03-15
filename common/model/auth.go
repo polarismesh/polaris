@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 )
 
 var (
@@ -49,6 +51,18 @@ var (
 	// ErrorTokenDisabled token 已经被禁用
 	ErrorTokenDisabled error = errors.New("token already disabled")
 )
+
+func ConvertToErrCode(err error) apimodel.Code {
+	if errors.Is(err, ErrorTokenNotExist) {
+		return apimodel.Code_TokenNotExisted
+	}
+
+	if errors.Is(err, ErrorTokenDisabled) {
+		return apimodel.Code_TokenDisabled
+	}
+
+	return apimodel.Code_NotAllowedAccess
+}
 
 const (
 	OperatorRoleKey       string = "operator_role"
