@@ -146,6 +146,13 @@ func NewV2Revision() string {
 	return "v2-" + hex.EncodeToString(uuidBytes[:])
 }
 
+func DefaultString(v, d string) string {
+	if v == "" {
+		return d
+	}
+	return v
+}
+
 // StringSliceDeDuplication 字符切片去重
 func StringSliceDeDuplication(s []string) []string {
 	m := make(map[string]struct{}, len(s))

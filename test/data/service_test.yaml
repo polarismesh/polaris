@@ -23,7 +23,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: error
+      outputLevel: info
       # outputPaths:
       # - stdout
       # errorOutputPaths:
@@ -34,7 +34,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: error
+      outputLevel: info
       # outputPaths:
       #   - stdout
       # errorOutputPaths:
@@ -56,7 +56,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: error
+      outputLevel: info
       # outputPaths:
       #   - stdout
       # errorOutputPaths:
@@ -67,7 +67,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: error
+      outputLevel: info
       # outputPaths:
       #   - stdout
       # errorOutputPaths:
@@ -78,7 +78,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: error
+      outputLevel: info
       # outputPaths:
       #   - stdout
       # errorOutputPaths:
@@ -89,7 +89,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: error
+      outputLevel: info
       # outputPaths:
       #   - stdout
       # errorOutputPaths:
@@ -122,7 +122,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: error
+      outputLevel: info
       # outputPaths:
       #   - stdout
       # errorOutputPaths:
@@ -139,7 +139,7 @@ bootstrap:
       #   - stdout
       # errorOutputPaths:
       #   - stderr
-    discoverLocal:
+    discoverstat:
       rotateOutputPath: log/statis/polaris-discoverstat.log
       errorRotateOutputPath: log/statis/polaris-discoverstat-error.log
       rotationMaxSize: 100
@@ -246,9 +246,7 @@ naming:
 config:
   # 是否启动配置模块
   open: true
-  cache:
-    #配置文件缓存过期时间，单位s
-    expireTimeAfterWrite: 3600
+  contentMaxLength: 20000
 # 健康检查的配置
 healthcheck:
   open: true

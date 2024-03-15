@@ -21,7 +21,9 @@ import (
 	"testing"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
@@ -93,4 +95,44 @@ func assembleConfigFileTemplate(name string) *apiconfig.ConfigFileTemplate {
 		CreateBy: utils.NewStringValue("testUser"),
 		ModifyBy: utils.NewStringValue("testUser"),
 	}
+}
+
+func TestServer_CreateConfigFileTemplateParam(t *testing.T) {
+	testSuit := newConfigCenterTestSuit(t)
+	_ = testSuit
+
+	var (
+		mockTemplName = "mock_templname"
+		mockContent   = "mock_content"
+	)
+
+	t.Run("invalid_tpl_name", func(t *testing.T) {
+		rsp := testSuit.ConfigServer().CreateConfigFileTemplate(testSuit.DefaultCtx, &apiconfig.ConfigFileTemplate{
+			Content: wrapperspb.String(mockContent),
+		})
+		assert.Equal(t, uint32(apimodel.Code_InvalidConfigFileTemplateName), rsp.Code.GetValue())
+	})
+
+	t.Run("content_too_long", func(t *testing.T) {
+		mockContentL := "mock_content"
+		for {
+			if len(mockContentL) > int(testSuit.GetBootstrapConfig().Config.ContentMaxLength) {
+				break
+			}
+			mockContentL += mockContentL
+		}
+		rsp := testSuit.ConfigServer().CreateConfigFileTemplate(testSuit.DefaultCtx, &apiconfig.ConfigFileTemplate{
+			Name:    wrapperspb.String(mockTemplName),
+			Content: wrapperspb.String(mockContentL),
+		})
+		assert.Equal(t, uint32(apimodel.Code_InvalidConfigFileContentLength), rsp.Code.GetValue(), rsp.GetInfo().GetValue())
+	})
+
+	t.Run("no_content", func(t *testing.T) {
+		rsp := testSuit.ConfigServer().CreateConfigFileTemplate(testSuit.DefaultCtx, &apiconfig.ConfigFileTemplate{
+			Name:    wrapperspb.String(mockTemplName),
+			Content: wrapperspb.String(""),
+		})
+		assert.Equal(t, uint32(apimodel.Code_BadRequest), rsp.Code.GetValue())
+	})
 }

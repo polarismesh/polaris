@@ -32,6 +32,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -97,27 +98,29 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cacheMgn.OpenResourceCache([]cache.ConfigEntry{
+	_ = cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
 		{
-			Name: "service",
+			Name: cachetypes.ServiceName,
 			Option: map[string]interface{}{
 				"disableBusiness": false,
 				"needMeta":        true,
 			},
 		},
 		{
-			Name: "instance",
+			Name: cachetypes.InstanceName,
 		},
 		{
-			Name: "users",
+			Name: cachetypes.UsersName,
 		},
 		{
-			Name: "strategyRule",
+			Name: cachetypes.StrategyRuleName,
 		},
 		{
-			Name: "namespace",
+			Name: cachetypes.NamespaceName,
 		},
 	}...)
+
+	_ = cacheMgn.TestUpdate()
 
 	checker := &defaultauth.DefaultAuthChecker{}
 	checker.Initialize(&auth.Config{

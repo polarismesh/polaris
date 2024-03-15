@@ -23,8 +23,13 @@ import (
 
 var (
 	nacoslog = commonlog.RegisterScope("nacos-apiserver", "nacos apiserver plugin", 0)
+	tracelog = commonlog.RegisterScope("nacos-trace", "nacos trace", 0)
 )
 
 func GetNacosLog() *commonlog.Scope {
 	return nacoslog
+}
+
+func GetTraceLog() *commonlog.Scope {
+	return tracelog
 }

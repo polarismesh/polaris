@@ -31,6 +31,7 @@ func (n *DiscoverServer) GetClientServer() (*restful.WebService, error) {
 	ws.Path("/nacos/v1/ns").Consumes(restful.MIME_JSON, model.MIME).Produces(restful.MIME_JSON)
 	n.addInstanceAccess(ws)
 	n.addSystemAccess(ws)
+	n.AddServiceAccess(ws)
 	return ws, nil
 }
 

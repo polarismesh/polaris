@@ -22,19 +22,19 @@ import (
 	"time"
 
 	"github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-type ReleaseType uint32
+type ReleaseType string
 
 const (
-	_ ReleaseType = iota
 	// ReleaseTypeFull 全量类型
-	ReleaseTypeFull
+	ReleaseTypeFull = ""
 	// ReleaseTypeGray 灰度类型
-	ReleaseTypeGray
+	ReleaseTypeGray = "gray"
 )
 
 /** ----------- DataObject ------------- */
@@ -54,6 +54,7 @@ type ConfigFileGroup struct {
 	CreateBy   string
 	ModifyBy   string
 	Valid      bool
+	Revision   string
 }
 
 type ConfigFileKey struct {
@@ -104,14 +105,14 @@ func (s *ConfigFile) KeyString() string {
 }
 
 func (s *ConfigFile) GetEncryptDataKey() string {
-	return s.Metadata[utils.ConfigFileTagKeyDataKey]
+	return s.Metadata[MetaKeyConfigFileDataKey]
 }
 
 func (s *ConfigFile) GetEncryptAlgo() string {
 	if s.EncryptAlgo != "" {
 		return s.EncryptAlgo
 	}
-	return s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
+	return s.Metadata[MetaKeyConfigFileEncryptAlgo]
 }
 
 func (s *ConfigFile) IsEncrypted() bool {
@@ -133,12 +134,12 @@ type ConfigFileRelease struct {
 }
 
 type ConfigFileReleaseKey struct {
-	Id        uint64
-	Name      string
-	Namespace string
-	Group     string
-	FileName  string
-	Typ       ReleaseType
+	Id          uint64
+	Name        string
+	Namespace   string
+	Group       string
+	FileName    string
+	ReleaseType ReleaseType
 }
 
 func (c ConfigFileReleaseKey) ToFileKey() *ConfigFileKey {
@@ -153,15 +154,19 @@ func (c *ConfigFileReleaseKey) OwnerKey() string {
 	return c.Namespace + "@" + c.Group
 }
 
+func (c ConfigFileReleaseKey) FileKey() string {
+	return fmt.Sprintf("%v@%v@%v", c.Namespace, c.Group, c.FileName)
+}
+
 func (c ConfigFileReleaseKey) ActiveKey() string {
-	return fmt.Sprintf("%v@%v@%v@%v", c.Namespace, c.Group, c.FileName, c.Typ)
+	return fmt.Sprintf("%v@%v@%v@%v", c.Namespace, c.Group, c.FileName, c.ReleaseType)
 }
 
 func (c ConfigFileReleaseKey) ReleaseKey() string {
 	return fmt.Sprintf("%v@%v@%v@%v", c.Namespace, c.Group, c.FileName, c.Name)
 }
 
-// BuildKeyForClientConfigFileInfo 必须保证和 ConfigFileReleaseKey 是一样的生成规则
+// BuildKeyForClientConfigFileInfo 必须保证和 ConfigFileReleaseKey.FileKey 是一样的生成规则
 func BuildKeyForClientConfigFileInfo(info *config_manage.ClientConfigFileInfo) string {
 	key := info.GetNamespace().GetValue() + "@" +
 		info.GetGroup().GetValue() + "@" + info.GetFileName().GetValue()
@@ -184,14 +189,15 @@ type SimpleConfigFileRelease struct {
 	ModifyTime         time.Time
 	ModifyBy           string
 	ReleaseDescription string
+	BetaLabels         []*apimodel.ClientLabel
 }
 
 func (s *SimpleConfigFileRelease) GetEncryptDataKey() string {
-	return s.Metadata[utils.ConfigFileTagKeyDataKey]
+	return s.Metadata[MetaKeyConfigFileDataKey]
 }
 
 func (s *SimpleConfigFileRelease) GetEncryptAlgo() string {
-	return s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
+	return s.Metadata[MetaKeyConfigFileEncryptAlgo]
 }
 
 func (s *SimpleConfigFileRelease) IsEncrypted() bool {
@@ -234,11 +240,11 @@ type ConfigFileReleaseHistory struct {
 }
 
 func (s ConfigFileReleaseHistory) GetEncryptDataKey() string {
-	return s.Metadata[utils.ConfigFileTagKeyDataKey]
+	return s.Metadata[MetaKeyConfigFileDataKey]
 }
 
 func (s ConfigFileReleaseHistory) GetEncryptAlgo() string {
-	return s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
+	return s.Metadata[MetaKeyConfigFileEncryptAlgo]
 }
 
 func (s ConfigFileReleaseHistory) IsEncrypted() bool {
@@ -293,7 +299,7 @@ func ToConfigFileStore(file *config_manage.ConfigFile) *ConfigFile {
 
 	metadata := ToTagMap(file.GetTags())
 	if file.GetEncryptAlgo().GetValue() != "" {
-		metadata[utils.ConfigFileTagKeyEncryptAlgo] = file.GetEncryptAlgo().GetValue()
+		metadata[MetaKeyConfigFileEncryptAlgo] = file.GetEncryptAlgo().GetValue()
 	}
 
 	return &ConfigFile{
@@ -359,7 +365,8 @@ func ToConfiogFileReleaseApi(release *ConfigFileRelease) *config_manage.ConfigFi
 		ReleaseDescription: utils.NewStringValue(release.ReleaseDescription),
 		Tags:               FromTagMap(release.Metadata),
 		Active:             utils.NewBoolValue(release.Active),
-		Type:               utils.NewUInt32Value(uint32(release.Typ)),
+		ReleaseType:        utils.NewStringValue(string(release.ReleaseType)),
+		BetaLabels:         release.BetaLabels,
 	}
 }
 

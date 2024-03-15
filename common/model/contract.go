@@ -22,6 +22,8 @@ import (
 	"time"
 
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+
+	commontime "github.com/polarismesh/polaris/common/time"
 )
 
 type ServiceContract struct {
@@ -50,17 +52,89 @@ type ServiceContract struct {
 
 type EnrichServiceContract struct {
 	*ServiceContract
+	isFormated bool
 	// 接口描述信息
-	Interfaces []*InterfaceDescriptor
+	Interfaces       []*InterfaceDescriptor
+	ClientInterfaces map[string]*InterfaceDescriptor
+	ManualInterfaces map[string]*InterfaceDescriptor
 }
 
-func (s *ServiceContract) GetKey() string {
+func (e *EnrichServiceContract) Format() {
+	if e.isFormated {
+		return
+	}
+	e.isFormated = true
+
+	e.ClientInterfaces = map[string]*InterfaceDescriptor{}
+	e.ManualInterfaces = map[string]*InterfaceDescriptor{}
+
+	copyInterfaces := e.Interfaces
+	for i := range copyInterfaces {
+		item := copyInterfaces[i]
+		switch item.Source {
+		case apiservice.InterfaceDescriptor_Client:
+			e.ClientInterfaces[item.Path+"/"+item.Method] = item
+		case apiservice.InterfaceDescriptor_Manual:
+			e.ManualInterfaces[item.Path+"/"+item.Method] = item
+		}
+	}
+
+	e.Interfaces = make([]*InterfaceDescriptor, 0, len(e.ClientInterfaces))
+	for k := range e.ManualInterfaces {
+		e.Interfaces = append(e.Interfaces, e.ManualInterfaces[k])
+	}
+	for k := range e.ClientInterfaces {
+		if _, ok := e.ManualInterfaces[k]; ok {
+			continue
+		}
+		e.Interfaces = append(e.Interfaces, e.ClientInterfaces[k])
+	}
+}
+
+func (e *EnrichServiceContract) ToSpec() *apiservice.ServiceContract {
+	interfaces := make([]*apiservice.InterfaceDescriptor, 0, len(e.Interfaces))
+	for i := range e.Interfaces {
+		item := e.Interfaces[i]
+		interfaces = append(interfaces, &apiservice.InterfaceDescriptor{
+			Id:       item.ID,
+			Path:     item.Path,
+			Name:     item.Name,
+			Method:   item.Method,
+			Source:   item.Source,
+			Content:  item.Content,
+			Revision: item.Revision,
+			Ctime:    commontime.Time2String(item.CreateTime),
+			Mtime:    commontime.Time2String(item.ModifyTime),
+		})
+	}
+	return &apiservice.ServiceContract{
+		Id:         e.ID,
+		Name:       e.Name,
+		Namespace:  e.Namespace,
+		Service:    e.Service,
+		Protocol:   e.Protocol,
+		Version:    e.Version,
+		Revision:   e.Revision,
+		Content:    e.Content,
+		Ctime:      commontime.Time2String(e.CreateTime),
+		Mtime:      commontime.Time2String(e.ModifyTime),
+		Interfaces: interfaces,
+	}
+}
+
+func (s *ServiceContract) GetResourceName() string {
+	return fmt.Sprintf("%s/%s/%s/%s", s.Service, s.Name, s.Protocol, s.Version)
+}
+
+func (s *ServiceContract) GetCacheKey() string {
 	return fmt.Sprintf("%s/%s/%s/%s/%s", s.Namespace, s.Service, s.Name, s.Protocol, s.Version)
 }
 
 type InterfaceDescriptor struct {
 	// ID
 	ID string
+	// Name 接口名称
+	Name string
 	// ContractID
 	ContractID string
 	// 方法名称，对应 http method/ dubbo interface func/grpc service func

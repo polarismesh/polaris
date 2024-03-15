@@ -25,9 +25,11 @@ import (
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/apiserver/nacosserver/core"
 	"github.com/polarismesh/polaris/apiserver/nacosserver/model"
+	commonmodel "github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -45,6 +47,24 @@ func (n *DiscoverServer) handleRegister(ctx context.Context, namespace, serviceN
 
 func (n *DiscoverServer) handleUpdate(ctx context.Context, namespace, serviceName string, ins *model.Instance) error {
 	specIns := model.PrepareSpecInstance(namespace, serviceName, ins)
+	if specIns.Id == nil || specIns.GetId().GetValue() == "" {
+		insId, errRsp := utils.CheckInstanceTetrad(specIns)
+		if errRsp != nil {
+			return &model.NacosError{
+				ErrCode: int32(model.ExceptionCode_ServerError),
+				ErrMsg:  errRsp.GetInfo().GetValue(),
+			}
+		}
+		specIns.Id = wrapperspb.String(insId)
+	}
+	saveIns, err := n.discoverSvr.Cache().GetStore().GetInstance(specIns.GetId().GetValue())
+	if err != nil {
+		return &model.NacosError{
+			ErrCode: int32(model.ExceptionCode_ServerError),
+			ErrMsg:  err.Error(),
+		}
+	}
+	specIns = mergeUpdateInstanceInfo(specIns, saveIns)
 	resp := n.discoverSvr.UpdateInstance(ctx, specIns)
 	if apimodel.Code(resp.GetCode().GetValue()) != apimodel.Code_ExecuteSuccess {
 		return &model.NacosError{
@@ -123,7 +143,7 @@ func (n *DiscoverServer) handleQueryInstances(ctx context.Context, params map[st
 	if n.pushCenter != nil && udpPort > 0 {
 		n.pushCenter.AddSubscriber(core.Subscriber{
 			Key:         fmt.Sprintf("%s:%d", clientIP, udpPort),
-			App:         model.DefaultString(params["app"], "unknown"),
+			App:         utils.DefaultString(params["app"], "unknown"),
 			AddrStr:     clientIP,
 			Ip:          clientIP,
 			Port:        int(udpPort),
@@ -147,4 +167,8 @@ func (n *DiscoverServer) handleQueryInstances(ctx context.Context, params map[st
 	result.Name = fmt.Sprintf("%s%s%s", result.GroupName, model.DefaultNacosGroupConnectStr, result.Name)
 	result.Namespace = model.ToNacosNamespace(namespace)
 	return result, nil
+}
+
+func mergeUpdateInstanceInfo(req *apiservice.Instance, saveVal *commonmodel.Instance) *apiservice.Instance {
+	return req
 }

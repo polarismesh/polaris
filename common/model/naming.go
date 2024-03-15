@@ -34,6 +34,14 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
+func ExportToMap(exportTo []*wrappers.StringValue) map[string]struct{} {
+	ret := make(map[string]struct{})
+	for _, v := range exportTo {
+		ret[v.Value] = struct{}{}
+	}
+	return ret
+}
+
 // Namespace 命名空间结构体
 type Namespace struct {
 	Name       string
@@ -851,6 +859,8 @@ const (
 	EventInstanceSendHeartbeat InstanceEventType = "InstanceSendHeartbeat"
 	// EventInstanceUpdate Instance metadata and info update event
 	EventInstanceUpdate InstanceEventType = "InstanceUpdate"
+	// EventClientOffline .
+	EventClientOffline InstanceEventType = "ClientOffline"
 )
 
 // CtxEventKeyMetadata 用于将metadata从Context中传入并取出
@@ -884,4 +894,9 @@ func (i *InstanceEvent) String() string {
 	hostPortStr := fmt.Sprintf("%s:%d", i.Instance.GetHost().GetValue(), i.Instance.GetPort().GetValue())
 	return fmt.Sprintf("InstanceEvent(id=%s, namespace=%s, svcId=%s, service=%s, type=%v, instance=%s, healthy=%v)",
 		i.Id, i.Namespace, i.SvcId, i.Service, i.EType, hostPortStr, i.Instance.GetHealthy().GetValue())
+}
+
+type ClientEvent struct {
+	EType InstanceEventType
+	Id    string
 }

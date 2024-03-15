@@ -938,13 +938,13 @@ func addServiceMain(tx *BaseTx, s *model.Service) error {
 	insertStmt := `
 		insert into service
 			(id, name, namespace, ports, business, department, cmdb_mod1, cmdb_mod2,
-			cmdb_mod3, comment, token, reference,  platform_id, revision, owner, ctime, mtime)
+			cmdb_mod3, comment, token, reference,  platform_id, revision, owner, export_to, ctime, mtime)
 		values
-			(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, sysdate(), sysdate())`
+			(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, sysdate(), sysdate())`
 
 	_, err := tx.Exec(insertStmt, s.ID, s.Name, s.Namespace, s.Ports, s.Business, s.Department,
 		s.CmdbMod1, s.CmdbMod2, s.CmdbMod3, s.Comment, s.Token,
-		s.Reference, s.PlatformID, s.Revision, s.Owner)
+		s.Reference, s.PlatformID, s.Revision, s.Owner, utils.MustJson(s.ExportTo))
 	return err
 }
 
@@ -978,11 +978,12 @@ func addServiceMeta(tx *BaseTx, id string, meta map[string]string) error {
 func updateServiceMain(tx *BaseTx, service *model.Service) error {
 	str := `update service set name = ?, namespace = ?, ports = ?, business = ?,
 	department = ?, cmdb_mod1 = ?, cmdb_mod2 = ?, cmdb_mod3 = ?, comment = ?, token = ?, platform_id = ?,
-	revision = ?, owner = ?, mtime = sysdate() where id = ?`
+	revision = ?, owner = ?, mtime = sysdate(), export_to = ? where id = ?`
 
 	_, err := tx.Exec(str, service.Name, service.Namespace, service.Ports, service.Business,
 		service.Department, service.CmdbMod1, service.CmdbMod2, service.CmdbMod3,
-		service.Comment, service.Token, service.PlatformID, service.Revision, service.Owner, service.ID)
+		service.Comment, service.Token, service.PlatformID, service.Revision, service.Owner,
+		utils.MustJson(service.ExportTo), service.ID)
 	return err
 }
 
@@ -1034,7 +1035,7 @@ func genServiceSelectSQL() string {
 			UNIX_TIMESTAMP(service.ctime), UNIX_TIMESTAMP(service.mtime),
 			IFNULL(ports, ""), IFNULL(department, ""), IFNULL(cmdb_mod1, ""), IFNULL(cmdb_mod2, ""), 
 			IFNULL(cmdb_mod3, ""), IFNULL(reference, ""), IFNULL(refer_filter, ""), IFNULL(platform_id, ""),
-			IFNULL(export_to, "") `
+			IFNULL(export_to, "{}") `
 }
 
 // callFetchServiceRows call fetch service rows

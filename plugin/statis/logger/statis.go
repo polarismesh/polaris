@@ -20,9 +20,9 @@ package logger
 import (
 	"context"
 	"fmt"
+	"math"
+	"strconv"
 	"time"
-
-	"go.uber.org/zap"
 
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
@@ -97,8 +97,7 @@ func (s *StatisWorker) ReportConfigMetrics(metric ...metrics.ConfigMetrics) {
 
 // ReportDiscoverCall report discover service times
 func (s *StatisWorker) ReportDiscoverCall(metric metrics.ClientDiscoverMetric) {
-	discoverlog.Info("", zap.String("client-ip", metric.ClientIP), zap.String("namespace", metric.Namespace),
-		zap.String("resource", metric.Resource), zap.Int64("access-time", metric.Timestamp))
+	discoverlog.Infof(metric.String())
 }
 
 func (a *StatisWorker) metricsHandle(mt metrics.CallMetricType, start time.Time,
@@ -114,30 +113,34 @@ func (a *StatisWorker) metricsHandle(mt metrics.CallMetricType, start time.Time,
 		scope = log
 	}
 
-	header := fmt.Sprintf("Statis %s:\n", startStr)
-
-	header += fmt.Sprintf(
-		"%-48v|%12v|%17v|%12v|%12v|%12v|%12v|%12v|\n", "", "Protocol", "TrafficDirection", "Code", "Count",
-		"Min(ms)", "Max(ms)", "Avg(ms)")
-
 	var msg string
+	var prefixMax int
 	for i := range statics {
-		msg += formatAPICallStatisItem(mt, statics[i])
+		prefixMax = int(math.Max(float64(prefixMax), float64(len(statics[i].API))))
+	}
+	for i := range statics {
+		msg += formatAPICallStatisItem(prefixMax, mt, statics[i])
 	}
 	if len(msg) == 0 {
 		log.Info(fmt.Sprintf("Statis %s: No API Call\n", startStr))
 		return
 	}
 
+	header := fmt.Sprintf("Statis %s:\n", startStr)
+
+	header += fmt.Sprintf(
+		"%-"+strconv.Itoa(prefixMax)+"v|%12v|%17v|%12v|%12v|%12v|%12v|%12v|\n", "", "Protocol", "TrafficDirection", "Code", "Count",
+		"Min(ms)", "Max(ms)", "Avg(ms)")
+
 	log.Info(header + msg)
 }
 
-func formatAPICallStatisItem(mt metrics.CallMetricType, item *base.APICallStatisItem) string {
+func formatAPICallStatisItem(prefixMax int, mt metrics.CallMetricType, item *base.APICallStatisItem) string {
 	if item.Count == 0 {
 		return ""
 	}
-	return fmt.Sprintf("%-48v|%12v|%17v|%12v|%12v|%12.3f|%12.3f|%12.3f|\n",
-		item.API, mt, item.TrafficDirection, item.Code, item.Count,
+	return fmt.Sprintf("%-"+strconv.Itoa(prefixMax)+"v|%12v|%17v|%12v|%12v|%12.3f|%12.3f|%12.3f|\n",
+		item.API, item.Protocol, item.TrafficDirection, item.Code, item.Count,
 		float64(item.MinTime)/1e6,
 		float64(item.MaxTime)/1e6,
 		float64(item.AccTime)/float64(item.Count)/1e6,

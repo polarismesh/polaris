@@ -30,6 +30,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	storemock "github.com/polarismesh/polaris/store/mock"
@@ -69,11 +70,13 @@ func Test_DefaultAuthChecker_VerifyCredential(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cacheMgn.OpenResourceCache([]cache.ConfigEntry{
+	_ = cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
 		{
-			Name: "users",
+			Name: cachetypes.UsersName,
 		},
 	}...)
+
+	_ = cacheMgn.TestUpdate()
 
 	t.Cleanup(func() {
 		cancel()
@@ -125,7 +128,7 @@ func Test_DefaultAuthChecker_VerifyCredential(t *testing.T) {
 		assert.NoError(t, err, "Should be verify success")
 		assert.Equal(t, users[1].ID, utils.ParseUserID(authCtx.GetRequestContext()), "user-id should be equal")
 		assert.False(t, utils.ParseIsOwner(authCtx.GetRequestContext()), "should not be owner")
-		assert.True(t, authCtx.GetAttachment(model.TokenDetailInfoKey).(defaultauth.OperatorInfo).Disable, "should be disable")
+		assert.True(t, authCtx.GetAttachments()[model.TokenDetailInfoKey].(defaultauth.OperatorInfo).Disable, "should be disable")
 	})
 
 	t.Run("权限检查非严格模式-错误的token字符串-降级为匿名用户", func(t *testing.T) {
@@ -138,7 +141,7 @@ func Test_DefaultAuthChecker_VerifyCredential(t *testing.T) {
 		err = checker.VerifyCredential(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
-		assert.True(t, authCtx.GetAttachment(model.TokenDetailInfoKey).(defaultauth.OperatorInfo).Anonymous, "should be anonymous")
+		assert.True(t, authCtx.GetAttachments()[model.TokenDetailInfoKey].(defaultauth.OperatorInfo).Anonymous, "should be anonymous")
 	})
 
 	t.Run("权限检查非严格模式-空token字符串-降级为匿名用户", func(t *testing.T) {
@@ -150,7 +153,7 @@ func Test_DefaultAuthChecker_VerifyCredential(t *testing.T) {
 		err = checker.VerifyCredential(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
-		assert.True(t, authCtx.GetAttachment(model.TokenDetailInfoKey).(defaultauth.OperatorInfo).Anonymous, "should be anonymous")
+		assert.True(t, authCtx.GetAttachments()[model.TokenDetailInfoKey].(defaultauth.OperatorInfo).Anonymous, "should be anonymous")
 	})
 
 	t.Run("权限检查非严格模式-错误的token字符串-访问鉴权模块", func(t *testing.T) {
@@ -231,13 +234,20 @@ func Test_DefaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	_ = cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
+		{
+			Name: cachetypes.UsersName,
+		},
+		{
+			Name: cachetypes.StrategyRuleName,
+		},
+	}...)
+	_ = cacheMgn.TestUpdate()
 
 	t.Cleanup(func() {
 		cancel()
 		cacheMgn.Close()
 	})
-
-	time.Sleep(time.Second)
 
 	checker := &defaultauth.DefaultAuthChecker{}
 	checker.SetCacheMgr(cacheMgn)
@@ -476,7 +486,15 @@ func Test_DefaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 		cacheMgn.Close()
 	})
 
-	time.Sleep(time.Second)
+	_ = cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
+		{
+			Name: cachetypes.UsersName,
+		},
+		{
+			Name: cachetypes.StrategyRuleName,
+		},
+	}...)
+	_ = cacheMgn.TestUpdate()
 
 	checker := &defaultauth.DefaultAuthChecker{}
 	checker.SetCacheMgr(cacheMgn)
@@ -670,8 +688,15 @@ func Test_DefaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 		cancel()
 		cacheMgn.Close()
 	})
-
-	time.Sleep(time.Second)
+	_ = cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
+		{
+			Name: cachetypes.UsersName,
+		},
+		{
+			Name: cachetypes.StrategyRuleName,
+		},
+	}...)
+	_ = cacheMgn.TestUpdate()
 
 	checker := &defaultauth.DefaultAuthChecker{}
 	checker.SetCacheMgr(cacheMgn)
@@ -886,8 +911,15 @@ func Test_DefaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 		cancel()
 		cacheMgn.Close()
 	})
-
-	time.Sleep(time.Second)
+	_ = cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
+		{
+			Name: cachetypes.UsersName,
+		},
+		{
+			Name: cachetypes.StrategyRuleName,
+		},
+	}...)
+	_ = cacheMgn.TestUpdate()
 
 	checker := &defaultauth.DefaultAuthChecker{}
 	checker.SetCacheMgr(cacheMgn)
@@ -1090,9 +1122,9 @@ func Test_DefaultAuthChecker_Initialize(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cacheMgn.OpenResourceCache([]cache.ConfigEntry{
+	_ = cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
 		{
-			Name: "users",
+			Name: cachetypes.UsersName,
 		},
 	}...)
 	t.Cleanup(func() {

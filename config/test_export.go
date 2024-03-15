@@ -19,8 +19,10 @@ package config
 
 import (
 	"context"
+	"fmt"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
@@ -33,14 +35,34 @@ import (
 // Initialize 初始化配置中心模块
 func TestInitialize(ctx context.Context, config Config, s store.Store, cacheMgn *cache.CacheManager,
 	namespaceOperator namespace.NamespaceOperateServer, userMgn auth.UserServer,
-	strategyMgn auth.StrategyServer) (ConfigCenterServer, ConfigCenterServer, error) {
-	mockServer := &Server{}
+	strategyMgn auth.StrategyServer) (ConfigCenterServer, *Server, error) {
+	mockServer := &Server{
+		initialized: true,
+	}
 
-	cacheMgn.OpenResourceCache(testConfigCacheEntries...)
+	log.Info("Config.TestInitialize", zap.Any("entries", testConfigCacheEntries))
+	_ = cacheMgn.OpenResourceCache(testConfigCacheEntries...)
 	if err := mockServer.initialize(ctx, config, s, namespaceOperator, cacheMgn); err != nil {
 		return nil, nil, err
 	}
-	return newServerAuthAbility(mockServer, userMgn, strategyMgn), mockServer, nil
+
+	var proxySvr ConfigCenterServer
+	proxySvr = mockServer
+	// 需要返回包装代理的 ConfigCenterServer
+	order := config.Interceptors
+	for i := range order {
+		factory, exist := serverProxyFactories[order[i]]
+		if !exist {
+			return nil, nil, fmt.Errorf("name(%s) not exist in serverProxyFactories", order[i])
+		}
+
+		tmpSvr, err := factory(cacheMgn, proxySvr)
+		if err != nil {
+			return nil, nil, err
+		}
+		proxySvr = tmpSvr
+	}
+	return proxySvr, mockServer, nil
 }
 
 func (s *Server) TestCheckClientConfigFile(ctx context.Context, files []*apiconfig.ClientConfigFileInfo,
@@ -50,10 +72,6 @@ func (s *Server) TestCheckClientConfigFile(ctx context.Context, files []*apiconf
 
 func TestCompareByVersion(clientInfo *apiconfig.ClientConfigFileInfo, file *model.ConfigFileRelease) bool {
 	return CompareByVersion(clientInfo, file)
-}
-
-func TestCompareByMD5(clientInfo *apiconfig.ClientConfigFileInfo, file *model.ConfigFileRelease) bool {
-	return CompareByMD5(clientInfo, file)
 }
 
 // TestDecryptConfigFile 解密配置文件

@@ -56,9 +56,9 @@ func (nc *CacheManager) Initialize() error {
 }
 
 // OpenResourceCache 开启资源缓存
-func (nc *CacheManager) OpenResourceCache(entries ...ConfigEntry) error {
+func (nc *CacheManager) OpenResourceCache(entries ...types.ConfigEntry) error {
 	for _, obj := range nc.caches {
-		var entryItem *ConfigEntry
+		var entryItem *types.ConfigEntry
 		for _, entry := range entries {
 			if obj.Name() == entry.Name {
 				entryItem = &entry
@@ -76,8 +76,8 @@ func (nc *CacheManager) OpenResourceCache(entries ...ConfigEntry) error {
 	return nil
 }
 
-// update 缓存更新
-func (nc *CacheManager) update() error {
+// warmUp 缓存更新
+func (nc *CacheManager) warmUp() error {
 	var wg sync.WaitGroup
 	entries := nc.needLoad.ToSlice()
 	for i := range entries {
@@ -124,25 +124,32 @@ func (nc *CacheManager) Start(ctx context.Context) error {
 
 	// 启动的时候，先更新一版缓存
 	log.Infof("[Cache] cache update now first time")
-	if err := nc.update(); err != nil {
+	if err := nc.warmUp(); err != nil {
 		return err
 	}
 	log.Infof("[Cache] cache update done")
 
 	// 启动协程，开始定时更新缓存数据
-	go func() {
-		ticker := time.NewTicker(nc.GetUpdateCacheInterval())
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ticker.C:
-				_ = nc.update()
-			case <-ctx.Done():
-				return
-			}
+	entries := nc.needLoad.ToSlice()
+	for i := range entries {
+		name := entries[i]
+		index, exist := cacheSet[name]
+		if !exist {
+			return fmt.Errorf("cache resource %s not exists", name)
 		}
-	}()
+		go func(c types.Cache) {
+			ticker := time.NewTicker(nc.GetUpdateCacheInterval())
+			for {
+				select {
+				case <-ticker.C:
+					_ = c.Update()
+				case <-ctx.Done():
+					ticker.Stop()
+					return
+				}
+			}
+		}(nc.caches[index])
+	}
 
 	return nil
 }

@@ -20,8 +20,34 @@ type MetaRequestInfo interface {
 	RequestMeta() interface{}
 }
 
-// ClientAbilities
+// ClientAbilities 客户端能力协商请求
 type ClientAbilities struct {
+	// RemoteAbility .
+	RemoteAbility ClientRemoteAbility `json:"remoteAbility"`
+	// ConfigAbility .
+	ConfigAbility ClientConfigAbility `json:"configAbility"`
+	// NamingAbility .
+	NamingAbility ClientNamingAbility `json:"namingAbility"`
+}
+
+// 客户端支持能力功能列表
+
+// ClientRemoteAbility 客户端支持长连接功能
+type ClientRemoteAbility struct {
+	// SupportRemoteConnection .
+	SupportRemoteConnection bool `json:"supportRemoteConnection"`
+}
+
+type ClientConfigAbility struct {
+	// SupportRemoteMetrics .
+	SupportRemoteMetrics bool `json:"supportRemoteMetrics"`
+}
+
+type ClientNamingAbility struct {
+	// SupportDeltaPush 支持增量推送
+	SupportDeltaPush bool `json:"supportDeltaPush"`
+	// SupportRemoteMetric .
+	SupportRemoteMetric bool `json:"supportRemoteMetric"`
 }
 
 // InternalRequest

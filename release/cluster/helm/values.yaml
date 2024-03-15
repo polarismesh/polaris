@@ -31,7 +31,6 @@ polaris:
       cpu: "500m"
       memory: "1000Mi"
   healthChecker:
-    type: heartbeatRedis
     type: heartbeatLeader
   replicaCount: 1
   limiterReplicaCount: 1
@@ -40,17 +39,10 @@ polaris:
     clientOpen: false
   storage:
     db:
-      server:
-        address: localhost:3306
-        name: polaris_server
-        user: root
-        password: polaris@123456
-    redis:
-      address: localhost:6379
-      # ACL user from redis v6.0, remove it if ACL is not available
-      # user: polaris
-      password: polaris@123456 # AUTH password below redis v6.0, or ACL password from redis v6.0
-      withTLS: false
+      address: localhost:3306
+      name: polaris_server
+      user: root
+      password: polaris@123456
 
 prometheus:
   image:
@@ -67,6 +59,7 @@ service:
   type: LoadBalancer
   webPort: 8080
   eurekaPort: 8761
+  nacosPort: 8848
   httpPort: 8090
   serviceGrpcPort: 8091
   xdsv3Port: 15010

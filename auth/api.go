@@ -23,7 +23,7 @@ import (
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/store"
 )
@@ -31,7 +31,7 @@ import (
 // AuthChecker 权限管理通用接口定义
 type AuthChecker interface {
 	// Initialize 执行初始化动作
-	Initialize(options *Config, storage store.Store, cacheMgn *cache.CacheManager) error
+	Initialize(options *Config, storage store.Store, cacheMgn cachetypes.CacheManager) error
 	// VerifyCredential 验证令牌
 	VerifyCredential(preCtx *model.AcquireContext) error
 	// CheckClientPermission 执行检查客户端动作判断是否有权限，并且对 RequestContext 注入操作者数据
@@ -47,7 +47,7 @@ type AuthChecker interface {
 // UserServer 用户数据管理 server
 type UserServer interface {
 	// Initialize 初始化
-	Initialize(authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error
+	Initialize(authOpt *Config, storage store.Store, cacheMgn cachetypes.CacheManager) error
 	// Name 用户数据管理server名称
 	Name() string
 	// CreateUsers 批量创建用户
@@ -94,7 +94,7 @@ type GroupOperator interface {
 // StrategyServer 策略相关操作
 type StrategyServer interface {
 	// Initialize 初始化
-	Initialize(authOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error
+	Initialize(authOpt *Config, storage store.Store, cacheMgn cachetypes.CacheManager) error
 	// Name 策略管理server名称
 	Name() string
 	// CreateStrategy 创建策略

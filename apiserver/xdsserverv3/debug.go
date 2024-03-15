@@ -19,29 +19,21 @@ package xdsserverv3
 
 import (
 	"net/http"
+	"strings"
 
-	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
-	"github.com/polarismesh/polaris/apiserver/xdsserverv3/cache"
+	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
 func (x *XDSServer) listXDSNodes(resp http.ResponseWriter, req *http.Request) {
 	cType := req.URL.Query().Get("type")
-	var nodes interface{}
-
-	switch cType {
-	case "sidecar":
-		nodes = x.nodeMgr.ListSidecarNodes()
-	case "gateway":
-		nodes = x.nodeMgr.ListGatewayNodes()
-	}
-
 	data := map[string]interface{}{
 		"code": apimodel.Code_ExecuteSuccess,
 		"info": "execute success",
-		"data": nodes,
+		"data": x.nodeMgr.ListEnvoyNodesView(resource.RunType(cType)),
 	}
 
 	ret := utils.MustJson(data)
@@ -49,20 +41,32 @@ func (x *XDSServer) listXDSNodes(resp http.ResponseWriter, req *http.Request) {
 	_, _ = resp.Write([]byte(ret))
 }
 
-func (x *XDSServer) listXDSResources(resp http.ResponseWriter, req *http.Request) {
-	resources := map[string]interface{}{}
-	x.cache.Caches.ReadRange(func(key string, val cachev3.Cache) {
-		linearCache := val.(*cache.LinearCache)
-		resources[key] = map[string]interface{}{
-			"resources": linearCache.GetResources(),
+func (x *XDSServer) listXDSResource(resp http.ResponseWriter, req *http.Request) {
+	cType := req.URL.Query().Get("type")
+	nodeId := req.URL.Query().Get("nodeId")
+	service := req.URL.Query().Get("service")
+	namespace := req.URL.Query().Get("namespace")
+	if namespace == "" {
+		namespace = "default"
+	}
+
+	res := x.cache.GetResources(resource.FromSimpleXDS(cType), namespace, nodeId)
+	if len(service) != 0 {
+		copyData := make(map[string]types.Resource, len(res))
+		hasSvc := len(service) != 0
+		for k, v := range res {
+			if hasSvc && !strings.Contains(k, service) {
+				continue
+			}
+			copyData[k] = v
 		}
-	})
+		res = copyData
+	}
 
 	data := map[string]interface{}{
-		"code":  apimodel.Code_ExecuteSuccess,
-		"info":  "execute success",
-		"data":  resources,
-		"count": len(resources),
+		"code": apimodel.Code_ExecuteSuccess,
+		"info": "execute success",
+		"data": res,
 	}
 
 	ret := utils.MustJson(data)

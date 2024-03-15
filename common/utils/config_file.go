@@ -23,7 +23,7 @@ const (
 	// ReleaseTypeNormal 发布类型，全量发布
 	ReleaseTypeNormal = "normal"
 	// ReleaseTypeGray 灰度发布
-	ReleaseTypeGray = "gray"
+	ReleaseTypeGray = "betaing"
 	// ReleaseTypeCancelGray 取消灰度发布
 	ReleaseTypeCancelGray = "cancel-gray"
 	// ReleaseTypeDelete 发布类型，删除配置发布
@@ -60,12 +60,6 @@ const (
 	ConfigFileImportConflictSkip = "skip"
 	// ConfigFileImportConflictOverwrite 导入配置文件发生冲突覆盖原配置文件
 	ConfigFileImportConflictOverwrite = "overwrite"
-	// ConfigFileTagKeyUseEncrypted 配置加密开关标识，value 为 boolean
-	ConfigFileTagKeyUseEncrypted = "internal-encrypted"
-	// ConfigFileTagKeyDataKey 加密密钥 tag key
-	ConfigFileTagKeyDataKey = "internal-datakey"
-	// ConfigFileTagKeyEncryptAlgo 加密算法 tag key
-	ConfigFileTagKeyEncryptAlgo = "internal-encryptalgo"
 )
 
 // GenFileId 生成文件 Id

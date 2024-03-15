@@ -20,11 +20,10 @@ package config
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
-	"github.com/polarismesh/polaris/auth"
-	"github.com/polarismesh/polaris/cache"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -43,61 +42,25 @@ const (
 var (
 	server       ConfigCenterServer
 	originServer = &Server{}
+	// serverProxyFactories Service Server API 代理工厂
+	serverProxyFactories = map[string]ServerProxyFactory{}
 )
 
-var (
-	availableSearch = map[string]map[string]string{
-		"config_file": {
-			"namespace":   "namespace",
-			"group":       "group",
-			"name":        "name",
-			"offset":      "offset",
-			"limit":       "limit",
-			"order_type":  "order_type",
-			"order_field": "order_field",
-		},
-		"config_file_release": {
-			"namespace":    "namespace",
-			"group":        "group",
-			"file_name":    "file_name",
-			"fileName":     "file_name",
-			"name":         "release_name",
-			"release_name": "release_name",
-			"offset":       "offset",
-			"limit":        "limit",
-			"order_type":   "order_type",
-			"order_field":  "order_field",
-			"only_active":  "only_active",
-		},
-		"config_file_group": {
-			"namespace":   "namespace",
-			"group":       "name",
-			"name":        "name",
-			"business":    "business",
-			"department":  "department",
-			"offset":      "offset",
-			"limit":       "limit",
-			"order_type":  "order_type",
-			"order_field": "order_field",
-		},
-		"config_file_release_history": {
-			"namespace":   "namespace",
-			"group":       "group",
-			"name":        "file_name",
-			"offset":      "offset",
-			"limit":       "limit",
-			"endId":       "endId",
-			"end_id":      "endId",
-			"order_type":  "order_type",
-			"order_field": "order_field",
-		},
+type ServerProxyFactory func(cacheMgr cachetypes.CacheManager, pre ConfigCenterServer) (ConfigCenterServer, error)
+
+func RegisterServerProxy(name string, factor ServerProxyFactory) error {
+	if _, ok := serverProxyFactories[name]; ok {
+		return fmt.Errorf("duplicate ServerProxyFactory, name(%s)", name)
 	}
-)
+	serverProxyFactories[name] = factor
+	return nil
+}
 
 // Config 配置中心模块启动参数
 type Config struct {
-	Open             bool  `yaml:"open"`
-	ContentMaxLength int64 `yaml:"contentMaxLength"`
+	Open             bool     `yaml:"open"`
+	ContentMaxLength int64    `yaml:"contentMaxLength"`
+	Interceptors     []string `yaml:"-"`
 }
 
 // Server 配置中心核心服务
@@ -108,7 +71,7 @@ type Server struct {
 	fileCache         cachetypes.ConfigFileCache
 	groupCache        cachetypes.ConfigGroupCache
 	grayCache         cachetypes.GrayCache
-	caches            *cache.CacheManager
+	caches            cachetypes.CacheManager
 	watchCenter       *watchCenter
 	namespaceOperator namespace.NamespaceOperateServer
 	initialized       bool
@@ -124,30 +87,60 @@ type Server struct {
 }
 
 // Initialize 初始化配置中心模块
-func Initialize(ctx context.Context, config Config, s store.Store, cacheMgn *cache.CacheManager,
-	namespaceOperator namespace.NamespaceOperateServer, userMgn auth.UserServer, strategyMgn auth.StrategyServer) error {
-	if !config.Open {
-		originServer.initialized = true
-		return nil
-	}
-
+func Initialize(ctx context.Context, config Config, s store.Store, cacheMgr cachetypes.CacheManager,
+	namespaceOperator namespace.NamespaceOperateServer) error {
 	if originServer.initialized {
 		return nil
 	}
-
-	cacheMgn.OpenResourceCache(configCacheEntries...)
-	err := originServer.initialize(ctx, config, s, namespaceOperator, cacheMgn)
+	proxySvr, originSvr, err := doInitialize(ctx, config, s, cacheMgr, namespaceOperator)
 	if err != nil {
 		return err
 	}
-
-	server = newServerAuthAbility(originServer, userMgn, strategyMgn)
-	originServer.initialized = true
+	originServer = originSvr
+	server = proxySvr
 	return nil
 }
 
+func doInitialize(ctx context.Context, config Config, s store.Store, cacheMgr cachetypes.CacheManager,
+	namespaceOperator namespace.NamespaceOperateServer) (ConfigCenterServer, *Server, error) {
+	var proxySvr ConfigCenterServer
+	originSvr := &Server{}
+
+	if !config.Open {
+		originSvr.initialized = true
+		return nil, nil, nil
+	}
+
+	if err := cacheMgr.OpenResourceCache(configCacheEntries...); err != nil {
+		return nil, nil, err
+	}
+	err := originSvr.initialize(ctx, config, s, namespaceOperator, cacheMgr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	proxySvr = originSvr
+	// 需要返回包装代理的 DiscoverServer
+	order := config.Interceptors
+	for i := range order {
+		factory, exist := serverProxyFactories[order[i]]
+		if !exist {
+			return nil, nil, fmt.Errorf("name(%s) not exist in serverProxyFactories", order[i])
+		}
+
+		tmpSvr, err := factory(cacheMgr, proxySvr)
+		if err != nil {
+			return nil, nil, err
+		}
+		proxySvr = tmpSvr
+	}
+
+	originSvr.initialized = true
+	return proxySvr, originSvr, nil
+}
+
 func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
-	namespaceOperator namespace.NamespaceOperateServer, cacheMgn *cache.CacheManager) error {
+	namespaceOperator namespace.NamespaceOperateServer, cacheMgr cachetypes.CacheManager) error {
 	var err error
 	s.cfg = &config
 	if s.cfg.ContentMaxLength <= 0 {
@@ -155,11 +148,11 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 	}
 	s.storage = ss
 	s.namespaceOperator = namespaceOperator
-	s.fileCache = cacheMgn.ConfigFile()
-	s.groupCache = cacheMgn.ConfigGroup()
-	s.grayCache = cacheMgn.Gray()
+	s.fileCache = cacheMgr.ConfigFile()
+	s.groupCache = cacheMgr.ConfigGroup()
+	s.grayCache = cacheMgr.Gray()
 
-	s.watchCenter, err = NewWatchCenter(cacheMgn.ConfigFile())
+	s.watchCenter, err = NewWatchCenter(cacheMgr)
 	if err != nil {
 		return err
 	}
@@ -175,7 +168,7 @@ func (s *Server) initialize(ctx context.Context, config Config, ss store.Store,
 		log.Warnf("Not Found Crypto Plugin")
 	}
 
-	s.caches = cacheMgn
+	s.caches = cacheMgr
 	s.chains = newConfigChains(s, []ConfigFileChain{
 		&CryptoConfigFileChain{},
 		&ReleaseConfigFileChain{},
@@ -207,9 +200,18 @@ func (s *Server) WatchCenter() *watchCenter {
 	return s.watchCenter
 }
 
+func (s *Server) CacheManager() cachetypes.CacheManager {
+	return s.caches
+}
+
 // Cache 获取配置中心缓存模块
-func (s *Server) Cache() cachetypes.ConfigFileCache {
+func (s *Server) FileCache() cachetypes.ConfigFileCache {
 	return s.fileCache
+}
+
+// Cache 获取配置中心缓存模块
+func (s *Server) GroupCache() cachetypes.ConfigGroupCache {
+	return s.groupCache
 }
 
 // CryptoManager 获取加密管理
@@ -323,4 +325,10 @@ func (cc *ConfigChains) AfterGetFileHistory(ctx context.Context,
 		history = _history
 	}
 	return history, nil
+}
+
+func GetChainOrder() []string {
+	return []string{
+		"auth",
+	}
 }

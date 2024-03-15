@@ -33,6 +33,8 @@ const (
 	CacheClientEventTopic = "cache_client_event"
 	// CacheNamespaceEventTopic record cache occur namespace add/update/del event
 	CacheNamespaceEventTopic = "cache_namespace_event"
+	// ClientEventTopic .
+	ClientEventTopic = "client_event"
 )
 
 // PublishConfigFileEvent 事件对象，包含类型和事件消息

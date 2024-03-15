@@ -32,6 +32,7 @@ import (
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/store"
 	"github.com/polarismesh/polaris/store/mock"
 	testsuit "github.com/polarismesh/polaris/test/suit"
@@ -120,10 +121,14 @@ func TestEurekaServer_renew(t *testing.T) {
 			},
 		}, nil)
 
+	mockStore.EXPECT().GetMoreClients(gomock.Any(), gomock.Any()).Return(map[string]*model.Client{}, nil).AnyTimes()
+	mockStore.EXPECT().GetMoreGrayResouces(gomock.Any(), gomock.Any()).Return([]*model.GrayResource{}, nil).AnyTimes()
 	mockStore.EXPECT().GetInstancesCountTx(gomock.Any()).AnyTimes().Return(uint32(1), nil)
 	mockStore.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 	mockStore.EXPECT().GetServicesCount().Return(uint32(1), nil).AnyTimes()
 	mockStore.EXPECT().StartLeaderElection(gomock.Any()).AnyTimes()
+	mockStore.EXPECT().GetMoreServiceContracts(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+	mockStore.EXPECT().GetMoreNamespaces(gomock.Any()).Return(nil, nil).AnyTimes()
 	mockStore.EXPECT().Destroy().Return(nil)
 	mockStore.EXPECT().Initialize(gomock.Any()).Return(nil).AnyTimes()
 	mockStore.EXPECT().Name().Return("eureka_store_test").AnyTimes()
@@ -135,7 +140,10 @@ func TestEurekaServer_renew(t *testing.T) {
 		return mockStore
 	})
 	eurekaSuit.Initialize(func(conf *testsuit.TestConfig) {
+		conf.DisableAuth = true
 		conf.Cache = cache.Config{}
+		conf.DisableConfig = true
+		conf.ServiceCacheEntries = service.GetRegisterCaches()
 		store.TestInjectConfig(store.Config{
 			Name: "eureka_store_test",
 		})

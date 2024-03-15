@@ -393,9 +393,8 @@ func buildDataCenterInfo() *DataCenterInfo {
 			Clazz: DefaultDciClazz,
 			Name:  customDciName,
 		}
-	} else {
-		return DefaultDataCenterInfo
 	}
+	return DefaultDataCenterInfo
 }
 
 func buildLocationInfo(instanceInfo *InstanceInfo, instance *apiservice.Instance) {

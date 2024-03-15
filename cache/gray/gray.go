@@ -19,18 +19,19 @@ package gray
 
 import (
 	"bytes"
+	"encoding/json"
 	"time"
 
+	regexp "github.com/dlclark/regexp2"
+	"github.com/golang/protobuf/jsonpb"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/golang/protobuf/jsonpb"
 	types "github.com/polarismesh/polaris/cache/api"
-	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 )
 
 var (
@@ -40,7 +41,7 @@ var (
 type grayCache struct {
 	*types.BaseCache
 	storage       store.Store
-	grayResources *utils.SyncMap[string, *apimodel.MatchTerm]
+	grayResources *utils.SyncMap[string, []*apimodel.ClientLabel]
 	updater       *singleflight.Group
 }
 
@@ -54,7 +55,7 @@ func NewGrayCache(storage store.Store, cacheMgr types.CacheManager) types.GrayCa
 
 // Initialize init gray cache
 func (gc *grayCache) Initialize(opt map[string]interface{}) error {
-	gc.grayResources = utils.NewSyncMap[string, *apimodel.MatchTerm]()
+	gc.grayResources = utils.NewSyncMap[string, []*apimodel.ClientLabel]()
 	gc.updater = &singleflight.Group{}
 	return nil
 }
@@ -78,39 +79,46 @@ func (gc *grayCache) realUpdate() (map[string]time.Time, int64, error) {
 	if len(grayResources) == 0 {
 		return nil, 0, nil
 	}
-	lastMtimes := gc.setGrayResources(grayResources)
-	log.Info("[Cache][Gray] get more gray resource",
-		zap.Int("total", len(grayResources)))
+	lastMtimes, err := gc.setGrayResources(grayResources)
+	if err != nil {
+		return nil, 0, err
+	}
+	log.Info("[Cache][Gray] get more gray resource", zap.Int("total", len(grayResources)))
 	return lastMtimes, int64(len(grayResources)), nil
 }
 
-func (gc *grayCache) setGrayResources(grayResources []*model.GrayResource) map[string]time.Time {
+func (gc *grayCache) setGrayResources(grayResources []*model.GrayResource) (map[string]time.Time, error) {
 	lastMtime := gc.LastMtime(gc.Name()).Unix()
 	for _, grayResource := range grayResources {
 		modifyUnix := grayResource.ModifyTime.Unix()
 		if modifyUnix > lastMtime {
 			lastMtime = modifyUnix
 		}
-		grayRule := &apimodel.MatchTerm{}
-		reader := bytes.NewReader([]byte(grayResource.MatchRule))
-		err := jsonpb.Unmarshal(reader, grayRule)
-		if err != nil {
-			log.Error("[Cache][Gray] setGrayResources unmarshal gray rule fail.",
-				zap.String("name", grayResource.Name), zap.Error(err))
-			continue
+		clientLabels := []*apimodel.ClientLabel{}
+		jsonDecoder := json.NewDecoder(bytes.NewBuffer([]byte(grayResource.MatchRule)))
+		// read open bracket
+		if _, err := jsonDecoder.Token(); err != nil {
+			return nil, err
 		}
-		gc.grayResources.Store(grayResource.Name, grayRule)
+		for jsonDecoder.More() {
+			protoMessage := &apimodel.ClientLabel{}
+			if err := jsonpb.UnmarshalNext(jsonDecoder, protoMessage); err != nil {
+				return nil, err
+			}
+			clientLabels = append(clientLabels, protoMessage)
+		}
+		gc.grayResources.Store(grayResource.Name, clientLabels)
 	}
 
 	return map[string]time.Time{
 		gc.Name(): time.Unix(lastMtime, 0),
-	}
+	}, nil
 }
 
 // Clear clear cache
 func (gc *grayCache) Clear() error {
 	gc.BaseCache.Clear()
-	gc.grayResources = utils.NewSyncMap[string, *apimodel.MatchTerm]()
+	gc.grayResources = utils.NewSyncMap[string, []*apimodel.ClientLabel]()
 	return nil
 }
 
@@ -120,10 +128,42 @@ func (gc *grayCache) Name() string {
 }
 
 // GetGrayRule get gray rule
-func (gc *grayCache) GetGrayRule(name string) *apimodel.MatchTerm {
+func (gc *grayCache) GetGrayRule(name string) []*apimodel.ClientLabel {
 	val, ok := gc.grayResources.Load(name)
 	if !ok {
 		return nil
 	}
 	return val
+}
+
+func (gc *grayCache) HitGrayRule(name string, labels map[string]string) bool {
+	rule, ok := gc.grayResources.Load(name)
+	if !ok {
+		return false
+	}
+
+	return grayMatch(rule, labels)
+}
+
+func grayMatch(rule []*apimodel.ClientLabel, labels map[string]string) bool {
+	for i := range rule {
+		clientLabel := rule[i]
+		labelKey := clientLabel.Key
+		actualVal, ok := labels[labelKey]
+		if !ok {
+			return false
+		}
+		isMatch := utils.MatchString(actualVal, clientLabel.Value, func(s string) *regexp.Regexp {
+			regex, err := regexp.Compile(s, regexp.RE2)
+			if err != nil {
+				log.Error("[Cache][Gray] compile regex failed", zap.Error(err))
+				return nil
+			}
+			return regex
+		})
+		if !isMatch {
+			return false
+		}
+	}
+	return true
 }

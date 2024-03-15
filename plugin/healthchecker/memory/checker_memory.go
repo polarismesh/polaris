@@ -22,6 +22,7 @@ import (
 	"sync/atomic"
 
 	commonLog "github.com/polarismesh/polaris/common/log"
+	"github.com/polarismesh/polaris/common/model"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
@@ -97,6 +98,18 @@ func (r *MemoryHealthChecker) Query(ctx context.Context, request *plugin.QueryRe
 	}, nil
 }
 
+func (r *MemoryHealthChecker) BatchQuery(ctx context.Context, request *plugin.BatchQueryRequest) (*plugin.BatchQueryResponse, error) {
+	rsp := &plugin.BatchQueryResponse{Responses: make([]*plugin.QueryResponse, 0, len(request.Requests))}
+	for i := range request.Requests {
+		subRsp, err := r.Query(ctx, request.Requests[i])
+		if err != nil {
+			return nil, err
+		}
+		rsp.Responses = append(rsp.Responses, subRsp)
+	}
+	return rsp, nil
+}
+
 func (r *MemoryHealthChecker) skipCheck(instanceId string, expireDurationSec int64) bool {
 	suspendTimeSec := r.SuspendTimeSec()
 	localCurTimeSec := commontime.CurrentMillisecond() / 1000
@@ -169,8 +182,8 @@ func (r *MemoryHealthChecker) SuspendTimeSec() int64 {
 	return atomic.LoadInt64(&r.suspendTimeSec)
 }
 
-func (r *MemoryHealthChecker) DebugHandlers() []plugin.DebugHandler {
-	return []plugin.DebugHandler{}
+func (r *MemoryHealthChecker) DebugHandlers() []model.DebugHandler {
+	return []model.DebugHandler{}
 }
 
 func init() {

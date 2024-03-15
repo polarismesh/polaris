@@ -27,7 +27,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -45,15 +45,15 @@ var (
 
 // DefaultAuthChecker 北极星自带的默认鉴权中心
 type DefaultAuthChecker struct {
-	cacheMgn *cache.CacheManager
+	cacheMgn cachetypes.CacheManager
 }
 
-func (d *DefaultAuthChecker) SetCacheMgr(mgr *cache.CacheManager) {
+func (d *DefaultAuthChecker) SetCacheMgr(mgr cachetypes.CacheManager) {
 	d.cacheMgn = mgr
 }
 
 // Initialize 执行初始化动作
-func (d *DefaultAuthChecker) Initialize(options *auth.Config, s store.Store, cacheMgn *cache.CacheManager) error {
+func (d *DefaultAuthChecker) Initialize(options *auth.Config, s store.Store, cacheMgr cachetypes.CacheManager) error {
 	// 新版本鉴权策略配置均从auth.Option中迁移至auth.user.option及auth.strategy.option中
 	var (
 		strategyContentBytes []byte
@@ -103,12 +103,12 @@ func (d *DefaultAuthChecker) Initialize(options *auth.Config, s store.Store, cac
 		cfg.ConsoleOpen = cfg.Strict
 	}
 	AuthOption = cfg
-	d.cacheMgn = cacheMgn
+	d.cacheMgn = cacheMgr
 	return nil
 }
 
 // Cache 获取缓存统一管理
-func (d *DefaultAuthChecker) Cache() *cache.CacheManager {
+func (d *DefaultAuthChecker) Cache() cachetypes.CacheManager {
 	return d.cacheMgn
 }
 
@@ -157,7 +157,14 @@ func (d *DefaultAuthChecker) checkMaintainPermission(preCtx *model.AcquireContex
 		return true, nil
 	}
 
-	tokenInfo := preCtx.GetAttachment(model.TokenDetailInfoKey).(OperatorInfo)
+	attachVal, ok := preCtx.GetAttachment(model.TokenDetailInfoKey)
+	if !ok {
+		return false, model.ErrorTokenNotExist
+	}
+	tokenInfo, ok := attachVal.(OperatorInfo)
+	if !ok {
+		return false, model.ErrorTokenNotExist
+	}
 
 	if tokenInfo.Disable {
 		return false, model.ErrorTokenDisabled
@@ -189,7 +196,14 @@ func (d *DefaultAuthChecker) CheckPermission(authCtx *model.AcquireContext) (boo
 		return true, nil
 	}
 
-	operatorInfo := authCtx.GetAttachment(model.TokenDetailInfoKey).(OperatorInfo)
+	attachVal, ok := authCtx.GetAttachment(model.TokenDetailInfoKey)
+	if !ok {
+		return false, model.ErrorTokenNotExist
+	}
+	operatorInfo, ok := attachVal.(OperatorInfo)
+	if !ok {
+		return false, model.ErrorTokenNotExist
+	}
 	// 这里需要检查当 token 被禁止的情况，如果 token 被禁止，无论是否可以操作目标资源，都无法进行写操作
 	if operatorInfo.Disable {
 		return false, model.ErrorTokenDisabled
@@ -407,8 +421,8 @@ func (d *DefaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext) (b
 	svcResEntries := reqRes[apisecurity.ResourceType_Services]
 	cfgResEntries := reqRes[apisecurity.ResourceType_ConfigGroups]
 
-	principleID, _ := authCtx.GetAttachment(model.OperatorIDKey).(string)
-	principleType, _ := authCtx.GetAttachment(model.OperatorPrincipalType).(model.PrincipalType)
+	principleID, _ := authCtx.GetAttachments()[model.OperatorIDKey].(string)
+	principleType, _ := authCtx.GetAttachments()[model.OperatorPrincipalType].(model.PrincipalType)
 	p := model.Principal{
 		PrincipalID:   principleID,
 		PrincipalRole: principleType,
