@@ -373,7 +373,16 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *apis
 	var (
 		metaKeys, metaValues                   string
 		inputInstMetaKeys, inputInstMetaValues string
+		onlyExistHealthInstance                bool
 	)
+
+	if hes, ok := query["only_exist_health_instance"]; ok {
+		if strings.EqualFold(hes, "true") {
+			onlyExistHealthInstance = true
+		}
+		delete(query, "only_exist_health_instance")
+	}
+
 	for key, value := range query {
 		typ, ok := ServiceFilterAttributes[key]
 		if !ok {
@@ -444,6 +453,17 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *apis
 	if err != nil {
 		log.Errorf("[Server][Service][Query] req(%+v) store err: %s", query, err.Error())
 		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))
+	}
+
+	if onlyExistHealthInstance {
+		onlyExistHealthInstanceServices := make([]*model.EnhancedService, 0, len(services))
+		for _, service := range services {
+			if service.HealthyInstanceCount > 0 {
+				onlyExistHealthInstanceServices = append(onlyExistHealthInstanceServices, service)
+			}
+		}
+		total = uint32(len(onlyExistHealthInstanceServices))
+		services = onlyExistHealthInstanceServices
 	}
 
 	resp := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)

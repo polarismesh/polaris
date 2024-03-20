@@ -121,6 +121,9 @@ func EnrichGetAllServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder 
 		Metadata(restfulspec.KeyOpenAPITags, servicesApiTags).
 		Param(restful.QueryParameter("namespace", "命名空间").DataType(typeNameString).
 			Required(false)).
+		Param(restful.QueryParameter("only_exist_health_instance", "只返回存在健康实例的服务").DataType(typeNameBool).
+			Required(false).
+			DefaultValue("false")).
 		Returns(0, "", struct {
 			BatchQueryResponse
 			Services []service_manage.Service `json:"services"`
@@ -157,6 +160,9 @@ func EnrichGetServicesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 			" 和 instance_values 需要同时填写且必须元素个数一致").
 			DataType(typeNameString).
 			Required(false)).
+		Param(restful.QueryParameter("hide_empty_service", "隐藏空服务").DataType(typeNameBool).
+			Required(false).
+			DefaultValue("false")).
 		Param(restful.QueryParameter("offset", "查询偏移量").DataType(typeNameInteger).
 			Required(false).DefaultValue("0")).
 		Param(restful.QueryParameter("limit", "查询条数，**最多查询100条**").DataType(typeNameInteger).
