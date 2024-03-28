@@ -144,6 +144,11 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 			})
 		}()
 
+		// 兼容。如果请求中带了token，优先使用该token
+		if in.GetService().GetToken().GetValue() != "" {
+			ctx = context.WithValue(ctx, utils.ContextAuthTokenKey, in.GetService().GetToken().GetValue())
+		}
+
 		switch in.Type {
 		case apiservice.DiscoverRequest_INSTANCE:
 			action = metrics.ActionDiscoverInstance
