@@ -144,10 +144,6 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 			})
 		}()
 
-		if in.GetService().GetToken().GetValue() != "" {
-			ctx = context.WithValue(ctx, utils.ContextAuthTokenKey, in.GetService().GetToken().GetValue())
-		}
-
 		switch in.Type {
 		case apiservice.DiscoverRequest_INSTANCE:
 			action = metrics.ActionDiscoverInstance
