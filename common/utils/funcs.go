@@ -216,10 +216,8 @@ func IsNotEqualMap(req map[string]string, old map[string]string) bool {
 
 // ConvertGRPCContext 将GRPC上下文转换成内部上下文
 func ConvertGRPCContext(ctx context.Context) context.Context {
-	var (
-		requestID = ""
-		userAgent = ""
-	)
+	var requestID, userAgent, token string
+
 	meta, exist := metadata.FromIncomingContext(ctx)
 	if exist {
 		ids := meta["request-id"]
@@ -229,6 +227,9 @@ func ConvertGRPCContext(ctx context.Context) context.Context {
 		agents := meta["user-agent"]
 		if len(agents) > 0 {
 			userAgent = agents[0]
+		}
+		if tokens := meta["x-polaris-token"]; len(tokens) > 0 {
+			token = tokens[0]
 		}
 	} else {
 		meta = metadata.MD{}
@@ -252,6 +253,7 @@ func ConvertGRPCContext(ctx context.Context) context.Context {
 	ctx = context.WithValue(ctx, StringContext("client-ip"), clientIP)
 	ctx = context.WithValue(ctx, ContextClientAddress, address)
 	ctx = context.WithValue(ctx, StringContext("user-agent"), userAgent)
+	ctx = context.WithValue(ctx, ContextAuthTokenKey, token)
 
 	return ctx
 }
