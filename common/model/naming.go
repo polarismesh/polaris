@@ -166,6 +166,14 @@ type ServiceAlias struct {
 	ExportTo       map[string]struct{}
 }
 
+func (s *ServiceAlias) ListExportTo() []*wrappers.StringValue {
+	ret := make([]*wrappers.StringValue, 0, len(s.ExportTo))
+	for i := range s.ExportTo {
+		ret = append(ret, &wrappers.StringValue{Value: i})
+	}
+	return ret
+}
+
 // WeightType 服务下实例的权重类型
 type WeightType uint32
 

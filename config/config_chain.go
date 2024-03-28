@@ -145,6 +145,7 @@ func (chain *CryptoConfigFileChain) AfterGetFileRelease(ctx context.Context,
 			utils.ZapNamespace(release.Namespace), utils.ZapGroup(release.Group),
 			utils.ZapFileName(release.Name), zap.Error(err))
 	}
+	delete(release.Metadata, model.MetaKeyConfigFileDataKey)
 	return release, nil
 }
 
@@ -167,6 +168,7 @@ func (chain *CryptoConfigFileChain) AfterGetFileHistory(ctx context.Context,
 			utils.ZapNamespace(history.Namespace), utils.ZapGroup(history.Group),
 			utils.ZapFileName(history.Name), zap.Error(err))
 	}
+	delete(history.Metadata, model.MetaKeyConfigFileDataKey)
 	return history, err
 }
 

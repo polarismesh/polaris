@@ -126,10 +126,10 @@ func TestRemotePeer(t *testing.T) {
 		cancel()
 	})
 
-	CreateBeatClientFunc = func(conn *grpc.ClientConn) service_manage.PolarisHeartbeatGRPCClient {
+	CreateBeatClientFunc = func(conn *grpc.ClientConn) (service_manage.PolarisHeartbeatGRPCClient, error) {
 		return &MockPolarisHeartbeatClient{
 			peer: mockSvr.peer,
-		}
+		}, nil
 	}
 
 	ctx = context.WithValue(ctx, ConnectFuncContextKey{}, ConnectPeerFunc(mockSvr.mockRemotePeerConnect))
