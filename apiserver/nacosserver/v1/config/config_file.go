@@ -28,8 +28,10 @@ import (
 	"github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris/apiserver/nacosserver/model"
+	nacoshttp "github.com/polarismesh/polaris/apiserver/nacosserver/v1/http"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/metrics"
 	commonmodel "github.com/polarismesh/polaris/common/model"
@@ -239,6 +241,192 @@ func (n *ConfigServer) BuildTimeoutWatchCtx(ctx context.Context, watchTimeOut ti
 		}
 		return watchCtx
 	}
+}
+
+const (
+	ConfigExportMetadata   = ".meta.yml"
+	ConfigExpotrMetadataV2 = ".metadata.yml"
+)
+
+func (n *ConfigServer) handleConfigImport(ctx context.Context, policy string, result *UnZipResult, rsp *restful.Response) {
+	var files []*model.ConfigFile
+	var err error
+
+	if result.Meta != nil && result.Meta.Name == ConfigExpotrMetadataV2 {
+		files, err = n.parseImportV2(result)
+	}
+
+	if err != nil {
+		nacoshttp.WrirteNacosResponse(map[string]interface{}{
+			"errMsg": "解析数据失败",
+			"code":   100004,
+		}, rsp)
+		return
+	}
+
+	if len(files) == 0 {
+		nacoshttp.WrirteNacosResponse(map[string]interface{}{
+			"errMsg": "导入的文件数据为空",
+			"code":   100005,
+		}, rsp)
+		return
+	}
+
+	for _, file := range files {
+		// 看下之前有没有存在已发布的配置文件
+		existVal := n.cacheSvr.ConfigFile().GetActiveRelease(file.Namespace, file.Group, file.DataId)
+		switch policy {
+		case "ABORT":
+			if existVal != nil {
+				return
+			}
+		case "SKIP":
+			if existVal != nil {
+				continue
+			}
+			fallthrough
+		default:
+			if _, err := n.handlePublishConfig(ctx, file); err != nil {
+				nacoshttp.WrirteNacosErrorResponse(err, rsp)
+				return
+			}
+		}
+	}
+	nacoshttp.WrirteNacosResponse(map[string]interface{}{
+		"errMsg": "导入成功",
+		"code":   200,
+	}, rsp)
+}
+
+func (n *ConfigServer) parseImportV1(result *UnZipResult) ([]*model.ConfigFile, error) {
+	metaData := map[string]string{}
+	if result.Meta != nil {
+		metaDataStr := strings.ReplaceAll(string(result.Meta.Data), "[\r\n]+", "|")
+		metaDataArr := strings.Split(metaDataStr, "\\|")
+		for _, meta := range metaDataArr {
+			metaArr := strings.Split(meta, "=")
+			if len(metaArr) == 2 {
+				metaData[metaArr[0]] = metaArr[1]
+			}
+		}
+	}
+
+	files := make([]*model.ConfigFile, 0, len(result.Items))
+	for _, item := range result.Items {
+		name := item.Name
+		groupDataId := strings.Split(name, "/")
+		if len(groupDataId) != 2 {
+			return nil, nil
+		}
+		group := groupDataId[0]
+		dataId := groupDataId[1]
+		if strings.Contains(dataId, ":") {
+			dataId = dataId[0:strings.LastIndex(dataId, ".")] + "~" + dataId[strings.LastIndex(dataId, ".")+1:]
+		}
+		metaDataId := group + "." + dataId + ".app"
+		appName := ""
+		if val, ok := metaData[metaDataId]; ok {
+			appName = val
+		}
+
+		files = append(files, &model.ConfigFile{
+			ConfigFileBase: model.ConfigFileBase{
+				Namespace: result.Namespace,
+				Group:     group,
+				DataId:    dataId,
+			},
+			Content: string(item.Data),
+			AppName: appName,
+		})
+	}
+	return files, nil
+}
+
+func (n *ConfigServer) parseImportV2(result *UnZipResult) ([]*model.ConfigFile, error) {
+	meta := &ConfigMetadata{}
+	if err := yaml.Unmarshal(result.Meta.Data, meta); err != nil {
+		return nil, err
+	}
+	if err := meta.Valid(); err != nil {
+		return nil, err
+	}
+
+	metaKeys := meta.CalcKeys()
+	for _, item := range result.Items {
+		name := item.Name
+		groupDataId := strings.Split(name, "/")
+		if len(groupDataId) != 2 {
+			return nil, nil
+		}
+		group := groupDataId[0]
+		if _, ok := metaKeys[group]; !ok {
+			return nil, nil
+		}
+		dataId := groupDataId[1]
+		if _, ok := metaKeys[group][dataId]; !ok {
+			return nil, nil
+		}
+
+		metaKeys[group][dataId] = string(item.Data)
+	}
+
+	files := make([]*model.ConfigFile, 0, len(meta.Metadata))
+	for _, item := range meta.Metadata {
+		if _, ok := metaKeys[item.Group]; !ok {
+			return nil, nil
+		}
+		if _, ok := metaKeys[item.Group][item.DataId]; !ok {
+			return nil, nil
+		}
+
+		files = append(files, &model.ConfigFile{
+			ConfigFileBase: model.ConfigFileBase{
+				Namespace: result.Namespace,
+				Group:     item.Group,
+				DataId:    item.DataId,
+			},
+			Content:     metaKeys[item.Group][item.DataId],
+			Type:        item.Type,
+			Description: item.Desc,
+			AppName:     item.AppName,
+		})
+	}
+	return files, nil
+}
+
+type ConfigMetadata struct {
+	Metadata []ConfigExportItem `yaml:"metadata"`
+}
+
+func (c *ConfigMetadata) CalcKeys() map[string]map[string]string {
+	return nil
+}
+
+// Valid .
+func (c *ConfigMetadata) Valid() error {
+	return &model.NacosError{
+		ErrCode: 100002,
+		ErrMsg:  "导入的元数据非法",
+	}
+}
+
+type ConfigExportItem struct {
+	Group   string `yaml:"group"`
+	DataId  string `yaml:"dataId"`
+	Desc    string `yaml:"desc"`
+	Type    string `yaml:"type"`
+	AppName string `yaml:"appName"`
+}
+
+type UnZipResult struct {
+	Namespace string
+	Meta      *ZipItem
+	Items     []*ZipItem
+}
+
+type ZipItem struct {
+	Name string
+	Data []byte
 }
 
 func md5OldResult(items []*model.ConfigListenItem) string {

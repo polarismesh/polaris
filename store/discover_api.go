@@ -18,6 +18,7 @@
 package store
 
 import (
+	"context"
 	"time"
 
 	"github.com/polarismesh/polaris/common/model"
@@ -51,6 +52,8 @@ type NamingModuleStore interface {
 	FaultDetectRuleStore
 	// ServiceContractStore 服务契约操作接口
 	ServiceContractStore
+	// LaneStore 泳道规则存储操作接口
+	LaneStore
 }
 
 // ServiceStore 服务存储接口
@@ -277,14 +280,40 @@ type ServiceContractStore interface {
 	UpdateServiceContract(contract *model.ServiceContract) error
 	// DeleteServiceContract 删除服务契约
 	DeleteServiceContract(contract *model.ServiceContract) error
-	// GetMoreServiceContracts 用于缓存加载数据
-	GetMoreServiceContracts(firstUpdate bool, mtime time.Time) ([]*model.EnrichServiceContract, error)
 	// GetServiceContract 查询服务契约数据
 	GetServiceContract(id string) (data *model.EnrichServiceContract, err error)
+	// GetServiceContracts 查询服务契约公共属性列表
+	GetServiceContracts(ctx context.Context, filter map[string]string, offset, limit uint32) (uint32, []*model.EnrichServiceContract, error)
 	// AddServiceContractInterfaces 创建服务契约API接口
 	AddServiceContractInterfaces(contract *model.EnrichServiceContract) error
 	// AppendServiceContractInterfaces 追加服务契约API接口
 	AppendServiceContractInterfaces(contract *model.EnrichServiceContract) error
 	// DeleteServiceContractInterfaces 批量删除服务契约API接口
 	DeleteServiceContractInterfaces(contract *model.EnrichServiceContract) error
+	// GetInterfaceDescriptors 查询服务接口列表
+	GetInterfaceDescriptors(ctx context.Context, filter map[string]string, offset, limit uint32) (uint32, []*model.InterfaceDescriptor, error)
+	// ListVersions .
+	ListVersions(ctx context.Context, service, namespace string) ([]*model.ServiceContract, error)
+}
+
+// LaneStore 泳道资源存储操作
+type LaneStore interface {
+	// AddLaneGroup 添加泳道组
+	AddLaneGroup(tx Tx, item *model.LaneGroup) error
+	// UpdateLaneGroup 更新泳道组
+	UpdateLaneGroup(tx Tx, item *model.LaneGroup) error
+	// GetLaneGroup 按照名称查询泳道组
+	GetLaneGroup(name string) (*model.LaneGroup, error)
+	// GetLaneGroupByID 按照名称查询泳道组
+	GetLaneGroupByID(id string) (*model.LaneGroup, error)
+	// GetLaneGroups 查询泳道组
+	GetLaneGroups(filter map[string]string, offset, limit uint32) (uint32, []*model.LaneGroup, error)
+	// LockLaneGroup 锁住一个泳道分组
+	LockLaneGroup(tx Tx, name string) (*model.LaneGroup, error)
+	// GetMoreLaneGroups 获取泳道规则列表到缓存层
+	GetMoreLaneGroups(mtime time.Time, firstUpdate bool) (map[string]*model.LaneGroup, error)
+	// DeleteLaneGroup 删除泳道组
+	DeleteLaneGroup(id string) error
+	// GetLaneRuleMaxPriority 获取泳道规则中当前最大的泳道规则优先级信息
+	GetLaneRuleMaxPriority() (int32, error)
 }

@@ -40,7 +40,7 @@ func (svr *ServerAuthAbility) CreateCircuitBreakerRules(
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.CreateCircuitBreakerRules(ctx, request)
+	return svr.nextSvr.CreateCircuitBreakerRules(ctx, request)
 }
 
 func (svr *ServerAuthAbility) DeleteCircuitBreakerRules(
@@ -53,7 +53,7 @@ func (svr *ServerAuthAbility) DeleteCircuitBreakerRules(
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.DeleteCircuitBreakerRules(ctx, request)
+	return svr.nextSvr.DeleteCircuitBreakerRules(ctx, request)
 }
 
 func (svr *ServerAuthAbility) EnableCircuitBreakerRules(
@@ -66,7 +66,7 @@ func (svr *ServerAuthAbility) EnableCircuitBreakerRules(
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.EnableCircuitBreakerRules(ctx, request)
+	return svr.nextSvr.EnableCircuitBreakerRules(ctx, request)
 }
 
 func (svr *ServerAuthAbility) UpdateCircuitBreakerRules(
@@ -79,7 +79,7 @@ func (svr *ServerAuthAbility) UpdateCircuitBreakerRules(
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.UpdateCircuitBreakerRules(ctx, request)
+	return svr.nextSvr.UpdateCircuitBreakerRules(ctx, request)
 }
 
 func (svr *ServerAuthAbility) GetCircuitBreakerRules(
@@ -92,5 +92,5 @@ func (svr *ServerAuthAbility) GetCircuitBreakerRules(
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.GetCircuitBreakerRules(ctx, query)
+	return svr.nextSvr.GetCircuitBreakerRules(ctx, query)
 }

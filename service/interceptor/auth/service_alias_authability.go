@@ -47,7 +47,7 @@ func (svr *ServerAuthAbility) CreateServiceAlias(
 		req.Owners = utils.NewStringValue(ownerId)
 	}
 
-	return svr.targetServer.CreateServiceAlias(ctx, req)
+	return svr.nextSvr.CreateServiceAlias(ctx, req)
 }
 
 // DeleteServiceAliases deletes service aliases
@@ -62,7 +62,7 @@ func (svr *ServerAuthAbility) DeleteServiceAliases(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.DeleteServiceAliases(ctx, reqs)
+	return svr.nextSvr.DeleteServiceAliases(ctx, reqs)
 }
 
 // UpdateServiceAlias updates service alias
@@ -78,7 +78,7 @@ func (svr *ServerAuthAbility) UpdateServiceAlias(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.UpdateServiceAlias(ctx, req)
+	return svr.nextSvr.UpdateServiceAlias(ctx, req)
 }
 
 // GetServiceAliases gets service aliases
@@ -93,7 +93,7 @@ func (svr *ServerAuthAbility) GetServiceAliases(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	resp := svr.targetServer.GetServiceAliases(ctx, query)
+	resp := svr.nextSvr.GetServiceAliases(ctx, query)
 	if len(resp.Aliases) != 0 {
 		// 对于服务别名，则是参考源服务是否有编辑权限
 		principal := model.Principal{

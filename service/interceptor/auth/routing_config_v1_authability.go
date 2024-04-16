@@ -42,7 +42,7 @@ func (svr *ServerAuthAbility) CreateRoutingConfigs(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.CreateRoutingConfigs(ctx, reqs)
+	return svr.nextSvr.CreateRoutingConfigs(ctx, reqs)
 }
 
 // DeleteRoutingConfigs deletes routing configs
@@ -58,7 +58,7 @@ func (svr *ServerAuthAbility) DeleteRoutingConfigs(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.DeleteRoutingConfigs(ctx, reqs)
+	return svr.nextSvr.DeleteRoutingConfigs(ctx, reqs)
 }
 
 // UpdateRoutingConfigs updates routing configs
@@ -74,7 +74,7 @@ func (svr *ServerAuthAbility) UpdateRoutingConfigs(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.UpdateRoutingConfigs(ctx, reqs)
+	return svr.nextSvr.UpdateRoutingConfigs(ctx, reqs)
 }
 
 // GetRoutingConfigs gets routing configs
@@ -90,5 +90,5 @@ func (svr *ServerAuthAbility) GetRoutingConfigs(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.GetRoutingConfigs(ctx, query)
+	return svr.nextSvr.GetRoutingConfigs(ctx, query)
 }

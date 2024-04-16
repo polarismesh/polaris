@@ -56,7 +56,7 @@ func TestInitialize(ctx context.Context, config Config, s store.Store, cacheMgn 
 			return nil, nil, fmt.Errorf("name(%s) not exist in serverProxyFactories", order[i])
 		}
 
-		tmpSvr, err := factory(cacheMgn, proxySvr)
+		tmpSvr, err := factory(cacheMgn, proxySvr, config)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -204,6 +204,11 @@ func (nc *CacheManager) ServiceContract() types.ServiceContractCache {
 	return nc.caches[types.CacheServiceContract].(types.ServiceContractCache)
 }
 
+// LaneRule 获取泳道规则缓存信息
+func (nc *CacheManager) LaneRule() types.LaneCache {
+	return nc.caches[types.CacheLaneRule].(types.LaneCache)
+}
+
 // User Get user information cache information
 func (nc *CacheManager) User() types.UserCache {
 	return nc.caches[types.CacheUser].(types.UserCache)

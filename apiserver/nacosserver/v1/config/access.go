@@ -18,6 +18,7 @@
 package config
 
 import (
+	"archive/zip"
 	"net/http"
 
 	"github.com/emicklei/go-restful/v3"
@@ -35,10 +36,19 @@ func (n *ConfigServer) GetClientServer() (*restful.WebService, error) {
 }
 
 func (n *ConfigServer) addConfigFileAccess(ws *restful.WebService) {
-	ws.Route(ws.POST("/").To(n.PublishConfig))
+	ws.Route(ws.POST("/").To(n.Dispatch))
 	ws.Route(ws.GET("/").To(n.GetConfig))
 	ws.Route(ws.DELETE("/").To(n.DeleteConfig))
 	ws.Route(ws.POST("/listener").To(n.WatchConfigs))
+}
+
+func (n *ConfigServer) Dispatch(req *restful.Request, rsp *restful.Response) {
+	switch req.Request.URL.RawQuery {
+	case "":
+		n.PublishConfig(req, rsp)
+	case "import=true":
+		n.ConfigImport(req, rsp)
+	}
 }
 
 func (n *ConfigServer) PublishConfig(req *restful.Request, rsp *restful.Response) {
@@ -121,6 +131,37 @@ func (n *ConfigServer) WatchConfigs(req *restful.Request, rsp *restful.Response)
 	}
 
 	n.handleWatch(handler.ParseHeaderContext(), listenCtx, rsp)
+}
+
+func (n *ConfigServer) ConfigImport(req *restful.Request, rsp *restful.Response) {
+	handler := nacoshttp.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	var metaDataItem *ZipItem
+	var items = make([]*ZipItem, 0, 32)
+
+	handler.ProcessZip(func(f *zip.File, data []byte) {
+		if (f.Name == ConfigExportMetadata || f.Name == ConfigExpotrMetadataV2) && metaDataItem == nil {
+			metaDataItem = &ZipItem{
+				Name: f.Name,
+				Data: data,
+			}
+			return
+		}
+		items = append(items, &ZipItem{
+			Name: f.Name,
+			Data: data,
+		})
+	})
+
+	policy := req.QueryParameter("policy")
+
+	n.handleConfigImport(handler.ParseHeaderContext(), policy, &UnZipResult{
+		Meta:  metaDataItem,
+		Items: items,
+	}, rsp)
 }
 
 func parseConfigFileBase(req *restful.Request) (*model.ConfigFileBase, error) {

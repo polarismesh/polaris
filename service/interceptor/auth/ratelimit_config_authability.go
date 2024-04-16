@@ -42,7 +42,7 @@ func (svr *ServerAuthAbility) CreateRateLimits(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.CreateRateLimits(ctx, reqs)
+	return svr.nextSvr.CreateRateLimits(ctx, reqs)
 }
 
 // DeleteRateLimits deletes rate limits for a namespace.
@@ -58,7 +58,7 @@ func (svr *ServerAuthAbility) DeleteRateLimits(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.DeleteRateLimits(ctx, reqs)
+	return svr.nextSvr.DeleteRateLimits(ctx, reqs)
 }
 
 // UpdateRateLimits updates rate limits for a namespace.
@@ -74,7 +74,7 @@ func (svr *ServerAuthAbility) UpdateRateLimits(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.UpdateRateLimits(ctx, reqs)
+	return svr.nextSvr.UpdateRateLimits(ctx, reqs)
 }
 
 // EnableRateLimits 启用限流规则
@@ -90,7 +90,7 @@ func (svr *ServerAuthAbility) EnableRateLimits(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.EnableRateLimits(ctx, reqs)
+	return svr.nextSvr.EnableRateLimits(ctx, reqs)
 }
 
 // GetRateLimits gets rate limits for a namespace.
@@ -106,5 +106,5 @@ func (svr *ServerAuthAbility) GetRateLimits(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.GetRateLimits(ctx, query)
+	return svr.nextSvr.GetRateLimits(ctx, query)
 }

@@ -30,10 +30,10 @@ import (
 // Stat::instance()->add_agent(sbac.agent_ip());
 func (svr *ServerAuthAbility) SyncByAgentCmd(ctx context.Context, sbac *l5.Cl5SyncByAgentCmd) (
 	*l5.Cl5SyncByAgentAckCmd, error) {
-	return svr.targetServer.SyncByAgentCmd(ctx, sbac)
+	return svr.nextSvr.SyncByAgentCmd(ctx, sbac)
 }
 
 // RegisterByNameCmd 根据名字获取sid信息
 func (svr *ServerAuthAbility) RegisterByNameCmd(rbnc *l5.Cl5RegisterByNameCmd) (*l5.Cl5RegisterByNameAckCmd, error) {
-	return svr.targetServer.RegisterByNameCmd(rbnc)
+	return svr.nextSvr.RegisterByNameCmd(rbnc)
 }

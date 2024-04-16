@@ -18,6 +18,7 @@
 package api
 
 import (
+	"context"
 	"runtime"
 	"sync"
 	"time"
@@ -47,6 +48,8 @@ const (
 	L5Name = "l5"
 	// RoutingConfigName router config name
 	RoutingConfigName = "routingConfig"
+	// LaneRuleName lane rule config name
+	LaneRuleName = "laneRule"
 	// RateLimitConfigName rate limit config name
 	RateLimitConfigName = "rateLimitConfig"
 	// CircuitBreakerName circuit breaker config name
@@ -89,6 +92,7 @@ const (
 	CacheConfigGroup
 	CacheServiceContract
 	CacheGray
+	CacheLaneRule
 
 	CacheLast
 )
@@ -244,12 +248,8 @@ type (
 	// ServiceContractCache .
 	ServiceContractCache interface {
 		Cache
-		// Query .
-		Query(filter map[string]string, offset, limit uint32) ([]*model.EnrichServiceContract, uint32, error)
-		// ListVersions .
-		ListVersions(service, namespace string) []*model.EnrichServiceContract
 		// Get .
-		Get(req *model.ServiceContract) *model.EnrichServiceContract
+		Get(ctx context.Context, req *model.ServiceContract) *model.EnrichServiceContract
 	}
 )
 
@@ -292,6 +292,14 @@ type (
 		Cache
 		// GetFaultDetectConfig 根据ServiceID获取探测配置
 		GetFaultDetectConfig(svcName string, namespace string) *model.ServiceWithFaultDetectRules
+	}
+)
+
+type (
+	LaneCache interface {
+		Cache
+		// GetLaneRules 根据serviceID获取泳道规则
+		GetLaneRules(serviceKey *model.Service) ([]*model.LaneGroupProto, string)
 	}
 )
 
@@ -713,3 +721,36 @@ type (
 		HitGrayRule(name string, labels map[string]string) bool
 	}
 )
+
+func NewExpireEntry[T any](t T, maxAlive time.Duration) *ExpireEntry[T] {
+	return &ExpireEntry[T]{
+		data:     t,
+		maxAlive: maxAlive,
+	}
+}
+
+func EmptyExpireEntry[T any](t T, maxAlive time.Duration) *ExpireEntry[T] {
+	return &ExpireEntry[T]{
+		empty:    true,
+		maxAlive: maxAlive,
+	}
+}
+
+type ExpireEntry[T any] struct {
+	empty      bool
+	data       T
+	lastAccess time.Time
+	maxAlive   time.Duration
+}
+
+func (e *ExpireEntry[T]) Get() T {
+	if e.empty {
+		return e.data
+	}
+	e.lastAccess = time.Now()
+	return e.data
+}
+
+func (e *ExpireEntry[T]) IsExpire() bool {
+	return time.Since(e.lastAccess) > e.maxAlive
+}

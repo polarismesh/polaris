@@ -94,9 +94,6 @@ func (s *Server) handleCreateConfigFile(ctx context.Context, tx store.Tx,
 
 // UpdateConfigFile 更新配置文件
 func (s *Server) UpdateConfigFile(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-	if checkRsp := s.checkConfigFileParams(req); checkRsp != nil {
-		return checkRsp
-	}
 	tx, err := s.storage.StartTx()
 	if err != nil {
 		log.Error("[Config][File] update config file begin tx.", utils.RequestID(ctx), zap.Error(err))
@@ -227,10 +224,6 @@ func (s *Server) BatchDeleteConfigFile(ctx context.Context, req []*apiconfig.Con
 
 // DeleteConfigFile 删除配置文件，删除配置文件同时会通知客户端 Not_Found
 func (s *Server) DeleteConfigFile(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-	if errResp := checkReadFileParameter(req); errResp != nil {
-		return errResp
-	}
-
 	namespace := req.GetNamespace().GetValue()
 	group := req.GetGroup().GetValue()
 	fileName := req.GetName().GetValue()
@@ -282,10 +275,6 @@ func (s *Server) DeleteConfigFile(ctx context.Context, req *apiconfig.ConfigFile
 
 // GetConfigFileRichInfo 获取单个配置文件基础信息，包含发布状态等信息
 func (s *Server) GetConfigFileRichInfo(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-	if errResp := checkReadFileParameter(req); errResp != nil {
-		return errResp
-	}
-
 	namespace := req.GetNamespace().GetValue()
 	group := req.GetGroup().GetValue()
 	fileName := req.GetName().GetValue()
@@ -310,23 +299,8 @@ func (s *Server) GetConfigFileRichInfo(ctx context.Context, req *apiconfig.Confi
 }
 
 // SearchConfigFile 查询配置文件
-func (s *Server) SearchConfigFile(ctx context.Context, filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
-	offset, limit, err := utils.ParseOffsetAndLimit(filter)
-	if err != nil {
-		out := api.NewConfigBatchQueryResponse(apimodel.Code_BadRequest)
-		out.Info = utils.NewStringValue(err.Error())
-		return out
-	}
-	searchFilters := map[string]string{}
-	for k, v := range filter {
-		// 无效查询参数自动忽略
-		if v == "" {
-			continue
-		}
-		if _, ok := availableSearch["config_file"][k]; ok {
-			searchFilters[k] = v
-		}
-	}
+func (s *Server) SearchConfigFile(ctx context.Context, searchFilters map[string]string) *apiconfig.ConfigBatchQueryResponse {
+	offset, limit, _ := utils.ParseOffsetAndLimit(searchFilters)
 	count, files, err := s.storage.QueryConfigFiles(searchFilters, offset, limit)
 	if err != nil {
 		log.Error("[Config][File] search config files.", utils.RequestID(ctx), zap.Error(err))
@@ -436,9 +410,6 @@ func (s *Server) ImportConfigFile(ctx context.Context,
 	configFiles []*apiconfig.ConfigFile, conflictHandling string) *apiconfig.ConfigImportResponse {
 	// 预创建命名空间和分组
 	for _, configFile := range configFiles {
-		if checkRsp := s.checkConfigFileParams(configFile); checkRsp != nil {
-			return api.NewConfigFileImportResponse(apimodel.Code(checkRsp.Code.GetValue()), nil, nil, nil)
-		}
 		if rsp := s.prepareCreateConfigFile(ctx, configFile); rsp.Code.Value != api.ExecuteSuccess {
 			return api.NewConfigFileImportResponse(apimodel.Code(rsp.Code.GetValue()), nil, nil, nil)
 		}
@@ -524,29 +495,6 @@ func (s *Server) getGroupAllConfigFiles(namespace, group string) ([]*model.Confi
 		offset += uint32(len(files))
 	}
 	return configFiles, nil
-}
-
-func (s *Server) checkConfigFileParams(configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-	if configFile == nil {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidParameter, configFile)
-	}
-	if err := CheckFileName(configFile.Name); err != nil {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileName, configFile)
-	}
-	if err := utils.CheckResourceName(configFile.Namespace); err != nil {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidNamespaceName, configFile)
-	}
-	if err := CheckContentLength(configFile.Content.GetValue(), int(s.cfg.ContentMaxLength)); err != nil {
-		return api.NewConfigResponseWithInfo(apimodel.Code_InvalidConfigFileContentLength, err.Error())
-	}
-	if len(configFile.Tags) > 0 {
-		for _, tag := range configFile.Tags {
-			if tag.Key.GetValue() == "" || tag.Value.GetValue() == "" {
-				return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileTags, configFile)
-			}
-		}
-	}
-	return nil
 }
 
 // GetAllConfigEncryptAlgorithms 获取配置加密算法

@@ -22,11 +22,25 @@ import (
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/config"
 	config_auth "github.com/polarismesh/polaris/config/interceptor/auth"
+	"github.com/polarismesh/polaris/config/interceptor/paramcheck"
+	"github.com/polarismesh/polaris/store"
 )
 
 func init() {
-	err := config.RegisterServerProxy("auth", func(cacheMgr cachetypes.CacheManager,
-		pre config.ConfigCenterServer) (config.ConfigCenterServer, error) {
+	err := config.RegisterServerProxy("paramcheck", func(cacheMgr cachetypes.CacheManager,
+		next config.ConfigCenterServer, cfg config.Config) (config.ConfigCenterServer, error) {
+		storage, err := store.GetStore()
+		if err != nil {
+			return nil, err
+		}
+		return paramcheck.New(next, cacheMgr, storage, cfg), nil
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	err = config.RegisterServerProxy("auth", func(cacheMgr cachetypes.CacheManager,
+		next config.ConfigCenterServer, cfg config.Config) (config.ConfigCenterServer, error) {
 		userMgr, err := auth.GetUserServer()
 		if err != nil {
 			return nil, err
@@ -36,7 +50,7 @@ func init() {
 			return nil, err
 		}
 
-		return config_auth.New(pre, cacheMgr, userMgr, strategyMgr), nil
+		return config_auth.New(next, cacheMgr, userMgr, strategyMgr), nil
 	})
 	if err != nil {
 		panic(err)

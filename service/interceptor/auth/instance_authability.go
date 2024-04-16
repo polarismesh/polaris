@@ -45,7 +45,7 @@ func (svr *ServerAuthAbility) CreateInstances(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.CreateInstances(ctx, reqs)
+	return svr.nextSvr.CreateInstances(ctx, reqs)
 }
 
 // DeleteInstances delete instances
@@ -64,7 +64,7 @@ func (svr *ServerAuthAbility) DeleteInstances(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.DeleteInstances(ctx, reqs)
+	return svr.nextSvr.DeleteInstances(ctx, reqs)
 }
 
 // DeleteInstancesByHost 目前只允许 super account 进行数据删除
@@ -83,7 +83,7 @@ func (svr *ServerAuthAbility) DeleteInstancesByHost(ctx context.Context,
 		return ret
 	}
 
-	return svr.targetServer.DeleteInstancesByHost(ctx, reqs)
+	return svr.nextSvr.DeleteInstancesByHost(ctx, reqs)
 }
 
 // UpdateInstances update instances
@@ -99,7 +99,7 @@ func (svr *ServerAuthAbility) UpdateInstances(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.UpdateInstances(ctx, reqs)
+	return svr.nextSvr.UpdateInstances(ctx, reqs)
 }
 
 // UpdateInstancesIsolate update instances
@@ -115,7 +115,7 @@ func (svr *ServerAuthAbility) UpdateInstancesIsolate(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.UpdateInstancesIsolate(ctx, reqs)
+	return svr.nextSvr.UpdateInstancesIsolate(ctx, reqs)
 }
 
 // GetInstances get instances
@@ -130,7 +130,7 @@ func (svr *ServerAuthAbility) GetInstances(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.GetInstances(ctx, query)
+	return svr.nextSvr.GetInstances(ctx, query)
 }
 
 // GetInstancesCount get instances to count
@@ -143,7 +143,7 @@ func (svr *ServerAuthAbility) GetInstancesCount(ctx context.Context) *apiservice
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.GetInstancesCount(ctx)
+	return svr.nextSvr.GetInstancesCount(ctx)
 }
 
 func (svr *ServerAuthAbility) GetInstanceLabels(ctx context.Context,
@@ -156,5 +156,5 @@ func (svr *ServerAuthAbility) GetInstanceLabels(ctx context.Context,
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.GetInstanceLabels(ctx, query)
+	return svr.nextSvr.GetInstanceLabels(ctx, query)
 }

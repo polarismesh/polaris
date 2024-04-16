@@ -41,22 +41,6 @@ import (
 
 // PublishConfigFile 发布配置文件
 func (s *Server) PublishConfigFile(ctx context.Context, req *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
-	if err := CheckFileName(req.GetFileName()); err != nil {
-		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileName)
-	}
-	if err := utils.CheckResourceName(req.GetNamespace()); err != nil {
-		return api.NewConfigResponse(apimodel.Code_InvalidNamespaceName)
-	}
-	if err := utils.CheckResourceName(req.GetGroup()); err != nil {
-		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileGroupName)
-	}
-	if !s.checkNamespaceExisted(req.GetNamespace().GetValue()) {
-		return api.NewConfigResponse(apimodel.Code_NotFoundNamespace)
-	}
-	if req.GetReleaseType().GetValue() == model.ReleaseTypeGray && len(req.GetBetaLabels()) == 0 {
-		return api.NewConfigResponse(apimodel.Code_InvalidMatchRule)
-	}
-
 	tx, err := s.storage.StartTx()
 	if err != nil {
 		log.Error("[Config][Release] publish config file begin tx.", utils.RequestID(ctx), zap.Error(err))
@@ -207,10 +191,6 @@ func (s *Server) GetConfigFileRelease(ctx context.Context, req *apiconfig.Config
 	group := req.GetGroup().GetValue()
 	fileName := req.GetFileName().GetValue()
 	releaseName := req.GetName().GetValue()
-
-	if errCode, errMsg := checkBaseReleaseParam(req, false); errCode != apimodel.Code_ExecuteSuccess {
-		return api.NewConfigResponseWithInfo(errCode, errMsg)
-	}
 	var (
 		ret *model.ConfigFileRelease
 		err error
@@ -263,7 +243,7 @@ func (s *Server) DeleteConfigFileReleases(ctx context.Context,
 	for i, instance := range reqs {
 		chs = append(chs, make(chan *apiconfig.ConfigResponse))
 		go func(index int, ins *apiconfig.ConfigFileRelease) {
-			chs[index] <- s.handleDeleteConfigFileRelease(ctx, ins)
+			chs[index] <- s.DeleteConfigFileRelease(ctx, ins)
 		}(i, instance)
 	}
 
@@ -274,12 +254,8 @@ func (s *Server) DeleteConfigFileReleases(ctx context.Context,
 	return responses
 }
 
-func (s *Server) handleDeleteConfigFileRelease(ctx context.Context,
+func (s *Server) DeleteConfigFileRelease(ctx context.Context,
 	req *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
-
-	if errCode, errMsg := checkBaseReleaseParam(req, true); errCode != apimodel.Code_ExecuteSuccess {
-		return api.NewConfigResponseWithInfo(errCode, errMsg)
-	}
 	release := &model.ConfigFileRelease{
 		SimpleConfigFileRelease: &model.SimpleConfigFileRelease{
 			ConfigFileReleaseKey: &model.ConfigFileReleaseKey{
@@ -348,33 +324,14 @@ func (s *Server) handleDeleteConfigFileRelease(ctx context.Context,
 }
 
 func (s *Server) GetConfigFileReleaseVersions(ctx context.Context,
-	filters map[string]string) *apiconfig.ConfigBatchQueryResponse {
+	searchFilters map[string]string) *apiconfig.ConfigBatchQueryResponse {
 
-	searchFilters := map[string]string{}
-	for k, v := range filters {
-		if nk, ok := availableSearch["config_file_release"][k]; ok {
-			searchFilters[nk] = v
-		}
-	}
-
-	namespace := searchFilters["namespace"]
-	group := searchFilters["group"]
-	fileName := searchFilters["file_name"]
-	if namespace == "" {
-		return api.NewConfigBatchQueryResponseWithInfo(apimodel.Code_BadRequest, "invalid namespace")
-	}
-	if group == "" {
-		return api.NewConfigBatchQueryResponseWithInfo(apimodel.Code_BadRequest, "invalid config group")
-	}
-	if fileName == "" {
-		return api.NewConfigBatchQueryResponseWithInfo(apimodel.Code_BadRequest, "invalid config file name")
-	}
 	args := cachetypes.ConfigReleaseArgs{
 		BaseConfigArgs: cachetypes.BaseConfigArgs{
-			Namespace: filters["namespace"],
-			Group:     filters["group"],
+			Namespace: searchFilters["namespace"],
+			Group:     searchFilters["group"],
 		},
-		FileName:   filters["file_name"],
+		FileName:   searchFilters["file_name"],
 		OnlyActive: false,
 		NoPage:     true,
 	}
@@ -382,19 +339,9 @@ func (s *Server) GetConfigFileReleaseVersions(ctx context.Context,
 }
 
 func (s *Server) GetConfigFileReleases(ctx context.Context,
-	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
+	searchFilters map[string]string) *apiconfig.ConfigBatchQueryResponse {
 
-	searchFilters := map[string]string{}
-	for k, v := range filter {
-		if nK, ok := availableSearch["config_file_release"][k]; ok {
-			searchFilters[nK] = v
-		}
-	}
-
-	offset, limit, err := utils.ParseOffsetAndLimit(filter)
-	if err != nil {
-		return api.NewConfigBatchQueryResponseWithInfo(apimodel.Code_BadRequest, err.Error())
-	}
+	offset, limit, _ := utils.ParseOffsetAndLimit(searchFilters)
 
 	args := cachetypes.ConfigReleaseArgs{
 		BaseConfigArgs: cachetypes.BaseConfigArgs{
@@ -475,9 +422,6 @@ func (s *Server) RollbackConfigFileReleases(ctx context.Context,
 // RollbackConfigFileRelease 回滚配置
 func (s *Server) RollbackConfigFileRelease(ctx context.Context,
 	req *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
-	if errCode, errMsg := checkBaseReleaseParam(req, true); errCode != apimodel.Code_ExecuteSuccess {
-		return api.NewConfigResponseWithInfo(errCode, errMsg)
-	}
 	data := &model.ConfigFileRelease{
 		SimpleConfigFileRelease: &model.SimpleConfigFileRelease{
 			ConfigFileReleaseKey: &model.ConfigFileReleaseKey{
@@ -546,16 +490,6 @@ func (s *Server) handleRollbackConfigFileRelease(ctx context.Context, tx store.T
 // CasUpsertAndReleaseConfigFile 根据版本比对决定是否允许进行配置修改发布
 func (s *Server) CasUpsertAndReleaseConfigFile(ctx context.Context,
 	req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
-	if err := CheckFileName(req.GetFileName()); err != nil {
-		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileName)
-	}
-	if err := utils.CheckResourceName(req.GetNamespace()); err != nil {
-		return api.NewConfigResponseWithInfo(apimodel.Code_BadRequest, "invalid config namespace")
-	}
-	if err := utils.CheckResourceName(req.GetGroup()); err != nil {
-		return api.NewConfigResponseWithInfo(apimodel.Code_BadRequest, "invalid config group")
-	}
-
 	upsertFileReq := &apiconfig.ConfigFile{
 		Name:        req.GetFileName(),
 		Namespace:   req.GetNamespace(),
@@ -648,17 +582,6 @@ func (s *Server) CasUpsertAndReleaseConfigFile(ctx context.Context,
 
 func (s *Server) UpsertAndReleaseConfigFile(ctx context.Context,
 	req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
-
-	if err := utils.CheckResourceName(req.GetNamespace()); err != nil {
-		return api.NewConfigResponseWithInfo(apimodel.Code_BadRequest, "invalid config namespace")
-	}
-	if err := utils.CheckResourceName(req.GetGroup()); err != nil {
-		return api.NewConfigResponseWithInfo(apimodel.Code_BadRequest, "invalid config group")
-	}
-	if err := CheckFileName(req.GetFileName()); err != nil {
-		return api.NewConfigResponseWithInfo(apimodel.Code_BadRequest, "invalid config file_name")
-	}
-
 	upsertFileReq := &apiconfig.ConfigFile{
 		Name:        req.GetFileName(),
 		Namespace:   req.GetNamespace(),
@@ -848,26 +771,4 @@ func configFileReleaseRecordEntry(ctx context.Context, req *apiconfig.ConfigFile
 	}
 
 	return entry
-}
-
-func checkBaseReleaseParam(req *apiconfig.ConfigFileRelease, checkRelease bool) (apimodel.Code, string) {
-	namespace := req.GetNamespace().GetValue()
-	group := req.GetGroup().GetValue()
-	fileName := req.GetFileName().GetValue()
-	releaseName := req.GetName().GetValue()
-	if namespace == "" {
-		return apimodel.Code_BadRequest, "invalid namespace"
-	}
-	if group == "" {
-		return apimodel.Code_BadRequest, "invalid config group"
-	}
-	if fileName == "" {
-		return apimodel.Code_BadRequest, "invalid config file name"
-	}
-	if checkRelease {
-		if releaseName == "" {
-			return apimodel.Code_BadRequest, "invalid config release name"
-		}
-	}
-	return apimodel.Code_ExecuteSuccess, ""
 }

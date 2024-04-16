@@ -27,71 +27,71 @@ import (
 // CreateCircuitBreakers creates circuit breakers
 func (svr *ServerAuthAbility) CreateCircuitBreakers(ctx context.Context,
 	reqs []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse {
-	return svr.targetServer.CreateCircuitBreakers(ctx, reqs)
+	return svr.nextSvr.CreateCircuitBreakers(ctx, reqs)
 }
 
 // CreateCircuitBreakerVersions creates circuit breaker versions
 func (svr *ServerAuthAbility) CreateCircuitBreakerVersions(ctx context.Context,
 	reqs []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse {
-	return svr.targetServer.CreateCircuitBreakerVersions(ctx, reqs)
+	return svr.nextSvr.CreateCircuitBreakerVersions(ctx, reqs)
 }
 
 // DeleteCircuitBreakers delete circuit breakers
 func (svr *ServerAuthAbility) DeleteCircuitBreakers(ctx context.Context,
 	reqs []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse {
-	return svr.targetServer.DeleteCircuitBreakers(ctx, reqs)
+	return svr.nextSvr.DeleteCircuitBreakers(ctx, reqs)
 }
 
 // UpdateCircuitBreakers update circuit breakers
 func (svr *ServerAuthAbility) UpdateCircuitBreakers(ctx context.Context,
 	reqs []*apifault.CircuitBreaker) *apiservice.BatchWriteResponse {
-	return svr.targetServer.UpdateCircuitBreakers(ctx, reqs)
+	return svr.nextSvr.UpdateCircuitBreakers(ctx, reqs)
 }
 
 // ReleaseCircuitBreakers release circuit breakers
 func (svr *ServerAuthAbility) ReleaseCircuitBreakers(ctx context.Context,
 	reqs []*apiservice.ConfigRelease) *apiservice.BatchWriteResponse {
-	return svr.targetServer.ReleaseCircuitBreakers(ctx, reqs)
+	return svr.nextSvr.ReleaseCircuitBreakers(ctx, reqs)
 }
 
 // UnBindCircuitBreakers unbind circuit breakers
 func (svr *ServerAuthAbility) UnBindCircuitBreakers(ctx context.Context,
 	reqs []*apiservice.ConfigRelease) *apiservice.BatchWriteResponse {
-	return svr.targetServer.UnBindCircuitBreakers(ctx, reqs)
+	return svr.nextSvr.UnBindCircuitBreakers(ctx, reqs)
 }
 
 // GetCircuitBreaker get circuit breaker
 func (svr *ServerAuthAbility) GetCircuitBreaker(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
-	return svr.targetServer.GetCircuitBreaker(ctx, query)
+	return svr.nextSvr.GetCircuitBreaker(ctx, query)
 }
 
 // GetCircuitBreakerVersions get circuit breaker versions
 func (svr *ServerAuthAbility) GetCircuitBreakerVersions(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
-	return svr.targetServer.GetCircuitBreakerVersions(ctx, query)
+	return svr.nextSvr.GetCircuitBreakerVersions(ctx, query)
 }
 
 // GetMasterCircuitBreakers get master circuit breakers
 func (svr *ServerAuthAbility) GetMasterCircuitBreakers(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
-	return svr.targetServer.GetMasterCircuitBreakers(ctx, query)
+	return svr.nextSvr.GetMasterCircuitBreakers(ctx, query)
 }
 
 // GetReleaseCircuitBreakers get release circuit breakers
 func (svr *ServerAuthAbility) GetReleaseCircuitBreakers(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
-	return svr.targetServer.GetReleaseCircuitBreakers(ctx, query)
+	return svr.nextSvr.GetReleaseCircuitBreakers(ctx, query)
 }
 
 // GetCircuitBreakerByService get circuit breaker by service
 func (svr *ServerAuthAbility) GetCircuitBreakerByService(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
-	return svr.targetServer.GetCircuitBreakerByService(ctx, query)
+	return svr.nextSvr.GetCircuitBreakerByService(ctx, query)
 }
 
 // GetCircuitBreakerToken get circuit breaker token
 func (svr *ServerAuthAbility) GetCircuitBreakerToken(
 	ctx context.Context, req *apifault.CircuitBreaker) *apiservice.Response {
-	return svr.targetServer.GetCircuitBreakerToken(ctx, req)
+	return svr.nextSvr.GetCircuitBreakerToken(ctx, req)
 }

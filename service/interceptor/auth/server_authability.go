@@ -39,33 +39,35 @@ import (
 //
 //	该层会对请求参数做一些调整，根据具体的请求发起人，设置为数据对应的 owner，不可为为别人进行创建资源
 type ServerAuthAbility struct {
-	targetServer *service.Server
-	userMgn      auth.UserServer
-	strategyMgn  auth.StrategyServer
+	nextSvr     service.DiscoverServer
+	userMgn     auth.UserServer
+	strategyMgn auth.StrategyServer
 }
 
-func NewServerAuthAbility(targetServer *service.Server,
+func NewServerAuthAbility(nextSvr service.DiscoverServer,
 	userMgn auth.UserServer, strategyMgn auth.StrategyServer) service.DiscoverServer {
 	proxy := &ServerAuthAbility{
-		targetServer: targetServer,
-		userMgn:      userMgn,
-		strategyMgn:  strategyMgn,
+		nextSvr:     nextSvr,
+		userMgn:     userMgn,
+		strategyMgn: strategyMgn,
 	}
 
-	targetServer.SetResourceHooks(proxy)
-
+	actualSvr, ok := nextSvr.(*service.Server)
+	if ok {
+		actualSvr.SetResourceHooks(proxy)
+	}
 	return proxy
 }
 
 // Cache Get cache management
 func (svr *ServerAuthAbility) Cache() *cache.CacheManager {
-	return svr.targetServer.Cache()
+	return svr.nextSvr.Cache()
 }
 
 // GetServiceInstanceRevision 获取服务实例的版本号
 func (svr *ServerAuthAbility) GetServiceInstanceRevision(serviceID string,
 	instances []*model.Instance) (string, error) {
-	return svr.targetServer.GetServiceInstanceRevision(serviceID, instances)
+	return svr.nextSvr.GetServiceInstanceRevision(serviceID, instances)
 }
 
 // collectServiceAuthContext 对于服务的处理，收集所有的与鉴权的相关信息

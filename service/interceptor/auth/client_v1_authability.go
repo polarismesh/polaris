@@ -42,7 +42,7 @@ func (svr *ServerAuthAbility) RegisterInstance(ctx context.Context, req *apiserv
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.RegisterInstance(ctx, req)
+	return svr.nextSvr.RegisterInstance(ctx, req)
 }
 
 // DeregisterInstance delete onr instance
@@ -59,12 +59,12 @@ func (svr *ServerAuthAbility) DeregisterInstance(ctx context.Context, req *apise
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.DeregisterInstance(ctx, req)
+	return svr.nextSvr.DeregisterInstance(ctx, req)
 }
 
 // ReportClient is the interface for reporting client authability
 func (svr *ServerAuthAbility) ReportClient(ctx context.Context, req *apiservice.Client) *apiservice.Response {
-	return svr.targetServer.ReportClient(ctx, req)
+	return svr.nextSvr.ReportClient(ctx, req)
 }
 
 // ReportServiceContract .
@@ -83,14 +83,14 @@ func (svr *ServerAuthAbility) ReportServiceContract(ctx context.Context, req *ap
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.ReportServiceContract(ctx, req)
+	return svr.nextSvr.ReportServiceContract(ctx, req)
 }
 
 // GetPrometheusTargets Used for client acquisition service information
 func (svr *ServerAuthAbility) GetPrometheusTargets(ctx context.Context,
 	query map[string]string) *model.PrometheusDiscoveryResponse {
 
-	return svr.targetServer.GetPrometheusTargets(ctx, query)
+	return svr.nextSvr.GetPrometheusTargets(ctx, query)
 }
 
 // GetServiceWithCache is the interface for getting service with cache
@@ -108,7 +108,7 @@ func (svr *ServerAuthAbility) GetServiceWithCache(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.GetServiceWithCache(ctx, req)
+	return svr.nextSvr.GetServiceWithCache(ctx, req)
 }
 
 // ServiceInstancesCache is the interface for getting service instances cache
@@ -126,7 +126,7 @@ func (svr *ServerAuthAbility) ServiceInstancesCache(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.ServiceInstancesCache(ctx, filter, req)
+	return svr.nextSvr.ServiceInstancesCache(ctx, filter, req)
 }
 
 // GetRoutingConfigWithCache is the interface for getting routing config with cache
@@ -144,7 +144,7 @@ func (svr *ServerAuthAbility) GetRoutingConfigWithCache(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.GetRoutingConfigWithCache(ctx, req)
+	return svr.nextSvr.GetRoutingConfigWithCache(ctx, req)
 }
 
 // GetRateLimitWithCache is the interface for getting rate limit with cache
@@ -162,7 +162,7 @@ func (svr *ServerAuthAbility) GetRateLimitWithCache(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.GetRateLimitWithCache(ctx, req)
+	return svr.nextSvr.GetRateLimitWithCache(ctx, req)
 }
 
 // GetCircuitBreakerWithCache is the interface for getting a circuit breaker with cache
@@ -180,7 +180,7 @@ func (svr *ServerAuthAbility) GetCircuitBreakerWithCache(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.GetCircuitBreakerWithCache(ctx, req)
+	return svr.nextSvr.GetCircuitBreakerWithCache(ctx, req)
 }
 
 func (svr *ServerAuthAbility) GetFaultDetectWithCache(
@@ -197,7 +197,7 @@ func (svr *ServerAuthAbility) GetFaultDetectWithCache(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.GetFaultDetectWithCache(ctx, req)
+	return svr.nextSvr.GetFaultDetectWithCache(ctx, req)
 }
 
 // UpdateInstance update single instance
@@ -214,7 +214,7 @@ func (svr *ServerAuthAbility) UpdateInstance(ctx context.Context, req *apiservic
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.UpdateInstance(ctx, req)
+	return svr.nextSvr.UpdateInstance(ctx, req)
 }
 
 // GetServiceContractWithCache User Client Get ServiceContract Rule Information
@@ -235,5 +235,21 @@ func (svr *ServerAuthAbility) GetServiceContractWithCache(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.GetServiceContractWithCache(ctx, req)
+	return svr.nextSvr.GetServiceContractWithCache(ctx, req)
+}
+
+// GetLaneRuleWithCache fetch lane rules by client
+func (svr *ServerAuthAbility) GetLaneRuleWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+	authCtx := svr.collectServiceAuthContext(
+		ctx, []*apiservice.Service{req}, model.Read, "DiscoverLaneRule")
+	_, err := svr.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx)
+	if err != nil {
+		resp := api.NewDiscoverResponse(convertToErrCode(err))
+		resp.Info = utils.NewStringValue(err.Error())
+		return resp
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.nextSvr.GetLaneRuleWithCache(ctx, req)
 }

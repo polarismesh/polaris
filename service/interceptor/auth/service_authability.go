@@ -50,7 +50,7 @@ func (svr *ServerAuthAbility) CreateServices(
 		}
 	}
 
-	resp := svr.targetServer.CreateServices(ctx, reqs)
+	resp := svr.nextSvr.CreateServices(ctx, reqs)
 	return resp
 }
 
@@ -69,7 +69,7 @@ func (svr *ServerAuthAbility) DeleteServices(
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	resp := svr.targetServer.DeleteServices(ctx, reqs)
+	resp := svr.nextSvr.DeleteServices(ctx, reqs)
 	return resp
 }
 
@@ -89,7 +89,7 @@ func (svr *ServerAuthAbility) UpdateServices(
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.UpdateServices(ctx, reqs)
+	return svr.nextSvr.UpdateServices(ctx, reqs)
 }
 
 // UpdateServiceToken 更新服务的 token
@@ -108,7 +108,7 @@ func (svr *ServerAuthAbility) UpdateServiceToken(
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.UpdateServiceToken(ctx, req)
+	return svr.nextSvr.UpdateServiceToken(ctx, req)
 }
 
 func (svr *ServerAuthAbility) GetAllServices(ctx context.Context,
@@ -122,7 +122,7 @@ func (svr *ServerAuthAbility) GetAllServices(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.GetAllServices(ctx, query)
+	return svr.nextSvr.GetAllServices(ctx, query)
 }
 
 // GetServices 批量获取服务
@@ -137,7 +137,7 @@ func (svr *ServerAuthAbility) GetServices(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	resp := svr.targetServer.GetServices(ctx, query)
+	resp := svr.nextSvr.GetServices(ctx, query)
 	if len(resp.Services) != 0 {
 		principal := model.Principal{
 			PrincipalID:   utils.ParseUserID(ctx),
@@ -167,7 +167,7 @@ func (svr *ServerAuthAbility) GetServicesCount(ctx context.Context) *apiservice.
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.GetServicesCount(ctx)
+	return svr.nextSvr.GetServicesCount(ctx)
 }
 
 // GetServiceToken 获取服务的 token
@@ -180,7 +180,7 @@ func (svr *ServerAuthAbility) GetServiceToken(ctx context.Context, req *apiservi
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.GetServiceToken(ctx, req)
+	return svr.nextSvr.GetServiceToken(ctx, req)
 }
 
 // GetServiceOwner 获取服务的 owner
@@ -194,5 +194,5 @@ func (svr *ServerAuthAbility) GetServiceOwner(
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.GetServiceOwner(ctx, req)
+	return svr.nextSvr.GetServiceOwner(ctx, req)
 }

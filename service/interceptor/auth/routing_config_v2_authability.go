@@ -39,7 +39,7 @@ func (svr *ServerAuthAbility) CreateRoutingConfigsV2(ctx context.Context,
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.CreateRoutingConfigsV2(ctx, req)
+	return svr.nextSvr.CreateRoutingConfigsV2(ctx, req)
 }
 
 // DeleteRoutingConfigsV2 批量删除路由配置
@@ -52,7 +52,7 @@ func (svr *ServerAuthAbility) DeleteRoutingConfigsV2(ctx context.Context,
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.DeleteRoutingConfigsV2(ctx, req)
+	return svr.nextSvr.DeleteRoutingConfigsV2(ctx, req)
 }
 
 // UpdateRoutingConfigsV2 批量更新路由配置
@@ -65,7 +65,7 @@ func (svr *ServerAuthAbility) UpdateRoutingConfigsV2(ctx context.Context,
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.UpdateRoutingConfigsV2(ctx, req)
+	return svr.nextSvr.UpdateRoutingConfigsV2(ctx, req)
 }
 
 // EnableRoutings batch enable routing rules
@@ -78,12 +78,12 @@ func (svr *ServerAuthAbility) EnableRoutings(ctx context.Context,
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.EnableRoutings(ctx, req)
+	return svr.nextSvr.EnableRoutings(ctx, req)
 }
 
 // QueryRoutingConfigsV2 提供给OSS的查询路由配置的接口
 func (svr *ServerAuthAbility) QueryRoutingConfigsV2(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
 
-	return svr.targetServer.QueryRoutingConfigsV2(ctx, query)
+	return svr.nextSvr.QueryRoutingConfigsV2(ctx, query)
 }

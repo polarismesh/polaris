@@ -32,8 +32,8 @@ type ServiceContract struct {
 	Namespace string
 	// 所属服务名称
 	Service string
-	// 契约名称
-	Name string
+	// Type 类型
+	Type string
 	// 协议，http/grpc/dubbo/thrift
 	Protocol string
 	// 契约版本
@@ -98,7 +98,8 @@ func (e *EnrichServiceContract) ToSpec() *apiservice.ServiceContract {
 		interfaces = append(interfaces, &apiservice.InterfaceDescriptor{
 			Id:       item.ID,
 			Path:     item.Path,
-			Name:     item.Name,
+			Name:     item.Type,
+			Type:     item.Type,
 			Method:   item.Method,
 			Source:   item.Source,
 			Content:  item.Content,
@@ -109,7 +110,8 @@ func (e *EnrichServiceContract) ToSpec() *apiservice.ServiceContract {
 	}
 	return &apiservice.ServiceContract{
 		Id:         e.ID,
-		Name:       e.Name,
+		Name:       e.Type,
+		Type:       e.Type,
 		Namespace:  e.Namespace,
 		Service:    e.Service,
 		Protocol:   e.Protocol,
@@ -123,20 +125,28 @@ func (e *EnrichServiceContract) ToSpec() *apiservice.ServiceContract {
 }
 
 func (s *ServiceContract) GetResourceName() string {
-	return fmt.Sprintf("%s/%s/%s/%s", s.Service, s.Name, s.Protocol, s.Version)
+	return fmt.Sprintf("%s/%s/%s/%s", s.Service, s.Type, s.Protocol, s.Version)
 }
 
 func (s *ServiceContract) GetCacheKey() string {
-	return fmt.Sprintf("%s/%s/%s/%s/%s", s.Namespace, s.Service, s.Name, s.Protocol, s.Version)
+	return fmt.Sprintf("%s/%s/%s/%s/%s", s.Namespace, s.Service, s.Type, s.Protocol, s.Version)
 }
 
 type InterfaceDescriptor struct {
 	// ID
 	ID string
-	// Name 接口名称
-	Name string
 	// ContractID
 	ContractID string
+	// 所属命名空间
+	Namespace string
+	// 所属服务名称
+	Service string
+	// 协议，http/grpc/dubbo/thrift
+	Protocol string
+	// 契约版本
+	Version string
+	// Type 类型
+	Type string
 	// 方法名称，对应 http method/ dubbo interface func/grpc service func
 	Method string
 	// 接口名称，http path/dubbo interface/grpc service

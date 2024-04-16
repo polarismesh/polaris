@@ -5,6 +5,7 @@
 package mock
 
 import (
+	context "context"
 	reflect "reflect"
 	time "time"
 
@@ -76,6 +77,20 @@ func (m *MockStore) AddInstance(instance *model.Instance) error {
 func (mr *MockStoreMockRecorder) AddInstance(instance interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddInstance", reflect.TypeOf((*MockStore)(nil).AddInstance), instance)
+}
+
+// AddLaneGroup mocks base method.
+func (m *MockStore) AddLaneGroup(tx store.Tx, item *model.LaneGroup) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddLaneGroup", tx, item)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddLaneGroup indicates an expected call of AddLaneGroup.
+func (mr *MockStoreMockRecorder) AddLaneGroup(tx, item interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddLaneGroup", reflect.TypeOf((*MockStore)(nil).AddLaneGroup), tx, item)
 }
 
 // AddNamespace mocks base method.
@@ -732,6 +747,20 @@ func (mr *MockStoreMockRecorder) DeleteInstance(instanceID interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInstance", reflect.TypeOf((*MockStore)(nil).DeleteInstance), instanceID)
 }
 
+// DeleteLaneGroup mocks base method.
+func (m *MockStore) DeleteLaneGroup(id string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteLaneGroup", id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteLaneGroup indicates an expected call of DeleteLaneGroup.
+func (mr *MockStoreMockRecorder) DeleteLaneGroup(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLaneGroup", reflect.TypeOf((*MockStore)(nil).DeleteLaneGroup), id)
+}
+
 // DeleteRateLimit mocks base method.
 func (m *MockStore) DeleteRateLimit(limiting *model.RateLimit) error {
 	m.ctrl.T.Helper()
@@ -1323,6 +1352,22 @@ func (mr *MockStoreMockRecorder) GetInstancesMainByService(serviceID, host inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstancesMainByService", reflect.TypeOf((*MockStore)(nil).GetInstancesMainByService), serviceID, host)
 }
 
+// GetInterfaceDescriptors mocks base method.
+func (m *MockStore) GetInterfaceDescriptors(ctx context.Context, filter map[string]string, offset, limit uint32) (uint32, []*model.InterfaceDescriptor, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInterfaceDescriptors", ctx, filter, offset, limit)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.InterfaceDescriptor)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetInterfaceDescriptors indicates an expected call of GetInterfaceDescriptors.
+func (mr *MockStoreMockRecorder) GetInterfaceDescriptors(ctx, filter, offset, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInterfaceDescriptors", reflect.TypeOf((*MockStore)(nil).GetInterfaceDescriptors), ctx, filter, offset, limit)
+}
+
 // GetL5Extend mocks base method.
 func (m *MockStore) GetL5Extend(serviceID string) (map[string]interface{}, error) {
 	m.ctrl.T.Helper()
@@ -1336,6 +1381,67 @@ func (m *MockStore) GetL5Extend(serviceID string) (map[string]interface{}, error
 func (mr *MockStoreMockRecorder) GetL5Extend(serviceID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetL5Extend", reflect.TypeOf((*MockStore)(nil).GetL5Extend), serviceID)
+}
+
+// GetLaneGroup mocks base method.
+func (m *MockStore) GetLaneGroup(name string) (*model.LaneGroup, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLaneGroup", name)
+	ret0, _ := ret[0].(*model.LaneGroup)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLaneGroup indicates an expected call of GetLaneGroup.
+func (mr *MockStoreMockRecorder) GetLaneGroup(name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLaneGroup", reflect.TypeOf((*MockStore)(nil).GetLaneGroup), name)
+}
+
+// GetLaneGroupByID mocks base method.
+func (m *MockStore) GetLaneGroupByID(id string) (*model.LaneGroup, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLaneGroupByID", id)
+	ret0, _ := ret[0].(*model.LaneGroup)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLaneGroupByID indicates an expected call of GetLaneGroupByID.
+func (mr *MockStoreMockRecorder) GetLaneGroupByID(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLaneGroupByID", reflect.TypeOf((*MockStore)(nil).GetLaneGroupByID), id)
+}
+
+// GetLaneGroups mocks base method.
+func (m *MockStore) GetLaneGroups(filter map[string]string, offset, limit uint32) (uint32, []*model.LaneGroup, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLaneGroups", filter, offset, limit)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.LaneGroup)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetLaneGroups indicates an expected call of GetLaneGroups.
+func (mr *MockStoreMockRecorder) GetLaneGroups(filter, offset, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLaneGroups", reflect.TypeOf((*MockStore)(nil).GetLaneGroups), filter, offset, limit)
+}
+
+// GetLaneRuleMaxPriority mocks base method.
+func (m *MockStore) GetLaneRuleMaxPriority() (int32, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLaneRuleMaxPriority")
+	ret0, _ := ret[0].(int32)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLaneRuleMaxPriority indicates an expected call of GetLaneRuleMaxPriority.
+func (mr *MockStoreMockRecorder) GetLaneRuleMaxPriority() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLaneRuleMaxPriority", reflect.TypeOf((*MockStore)(nil).GetLaneRuleMaxPriority))
 }
 
 // GetMoreClients mocks base method.
@@ -1473,6 +1579,21 @@ func (mr *MockStoreMockRecorder) GetMoreL5Sections(flow interface{}) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreL5Sections", reflect.TypeOf((*MockStore)(nil).GetMoreL5Sections), flow)
 }
 
+// GetMoreLaneGroups mocks base method.
+func (m *MockStore) GetMoreLaneGroups(mtime time.Time, firstUpdate bool) (map[string]*model.LaneGroup, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMoreLaneGroups", mtime, firstUpdate)
+	ret0, _ := ret[0].(map[string]*model.LaneGroup)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMoreLaneGroups indicates an expected call of GetMoreLaneGroups.
+func (mr *MockStoreMockRecorder) GetMoreLaneGroups(mtime, firstUpdate interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreLaneGroups", reflect.TypeOf((*MockStore)(nil).GetMoreLaneGroups), mtime, firstUpdate)
+}
+
 // GetMoreNamespaces mocks base method.
 func (m *MockStore) GetMoreNamespaces(mtime time.Time) ([]*model.Namespace, error) {
 	m.ctrl.T.Helper()
@@ -1501,21 +1622,6 @@ func (m *MockStore) GetMoreReleaseFile(firstUpdate bool, modifyTime time.Time) (
 func (mr *MockStoreMockRecorder) GetMoreReleaseFile(firstUpdate, modifyTime interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreReleaseFile", reflect.TypeOf((*MockStore)(nil).GetMoreReleaseFile), firstUpdate, modifyTime)
-}
-
-// GetMoreServiceContracts mocks base method.
-func (m *MockStore) GetMoreServiceContracts(firstUpdate bool, mtime time.Time) ([]*model.EnrichServiceContract, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMoreServiceContracts", firstUpdate, mtime)
-	ret0, _ := ret[0].([]*model.EnrichServiceContract)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMoreServiceContracts indicates an expected call of GetMoreServiceContracts.
-func (mr *MockStoreMockRecorder) GetMoreServiceContracts(firstUpdate, mtime interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreServiceContracts", reflect.TypeOf((*MockStore)(nil).GetMoreServiceContracts), firstUpdate, mtime)
 }
 
 // GetMoreServices mocks base method.
@@ -1759,6 +1865,22 @@ func (m *MockStore) GetServiceContract(id string) (*model.EnrichServiceContract,
 func (mr *MockStoreMockRecorder) GetServiceContract(id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServiceContract", reflect.TypeOf((*MockStore)(nil).GetServiceContract), id)
+}
+
+// GetServiceContracts mocks base method.
+func (m *MockStore) GetServiceContracts(ctx context.Context, filter map[string]string, offset, limit uint32) (uint32, []*model.EnrichServiceContract, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetServiceContracts", ctx, filter, offset, limit)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.EnrichServiceContract)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetServiceContracts indicates an expected call of GetServiceContracts.
+func (mr *MockStoreMockRecorder) GetServiceContracts(ctx, filter, offset, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServiceContracts", reflect.TypeOf((*MockStore)(nil).GetServiceContracts), ctx, filter, offset, limit)
 }
 
 // GetServices mocks base method.
@@ -2166,6 +2288,21 @@ func (mr *MockStoreMockRecorder) ListLeaderElections() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListLeaderElections", reflect.TypeOf((*MockStore)(nil).ListLeaderElections))
 }
 
+// ListVersions mocks base method.
+func (m *MockStore) ListVersions(ctx context.Context, service, namespace string) ([]*model.ServiceContract, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListVersions", ctx, service, namespace)
+	ret0, _ := ret[0].([]*model.ServiceContract)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListVersions indicates an expected call of ListVersions.
+func (mr *MockStoreMockRecorder) ListVersions(ctx, service, namespace interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListVersions", reflect.TypeOf((*MockStore)(nil).ListVersions), ctx, service, namespace)
+}
+
 // LockConfigFile mocks base method.
 func (m *MockStore) LockConfigFile(tx store.Tx, file *model.ConfigFileKey) (*model.ConfigFile, error) {
 	m.ctrl.T.Helper()
@@ -2179,6 +2316,21 @@ func (m *MockStore) LockConfigFile(tx store.Tx, file *model.ConfigFileKey) (*mod
 func (mr *MockStoreMockRecorder) LockConfigFile(tx, file interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LockConfigFile", reflect.TypeOf((*MockStore)(nil).LockConfigFile), tx, file)
+}
+
+// LockLaneGroup mocks base method.
+func (m *MockStore) LockLaneGroup(tx store.Tx, name string) (*model.LaneGroup, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LockLaneGroup", tx, name)
+	ret0, _ := ret[0].(*model.LaneGroup)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LockLaneGroup indicates an expected call of LockLaneGroup.
+func (mr *MockStoreMockRecorder) LockLaneGroup(tx, name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LockLaneGroup", reflect.TypeOf((*MockStore)(nil).LockLaneGroup), tx, name)
 }
 
 // LooseAddStrategyResources mocks base method.
@@ -2439,6 +2591,20 @@ func (m *MockStore) UpdateInstance(instance *model.Instance) error {
 func (mr *MockStoreMockRecorder) UpdateInstance(instance interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInstance", reflect.TypeOf((*MockStore)(nil).UpdateInstance), instance)
+}
+
+// UpdateLaneGroup mocks base method.
+func (m *MockStore) UpdateLaneGroup(tx store.Tx, item *model.LaneGroup) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateLaneGroup", tx, item)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateLaneGroup indicates an expected call of UpdateLaneGroup.
+func (mr *MockStoreMockRecorder) UpdateLaneGroup(tx, item interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateLaneGroup", reflect.TypeOf((*MockStore)(nil).UpdateLaneGroup), tx, item)
 }
 
 // UpdateNamespace mocks base method.

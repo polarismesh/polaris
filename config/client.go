@@ -45,10 +45,6 @@ func (s *Server) GetConfigFileWithCache(ctx context.Context,
 	group := req.GetGroup().GetValue()
 	fileName := req.GetFileName().GetValue()
 
-	if namespace == "" || group == "" || fileName == "" {
-		return api.NewConfigClientResponseWithInfo(
-			apimodel.Code_BadRequest, "namespace & group & fileName can not be empty")
-	}
 	req = formatClientRequest(ctx, req)
 	// 从缓存中获取灰度文件
 	var release *model.ConfigFileRelease
@@ -142,10 +138,6 @@ func (s *Server) GetConfigFileNamesWithCache(ctx context.Context,
 	namespace := req.GetConfigFileGroup().GetNamespace().GetValue()
 	group := req.GetConfigFileGroup().GetName().GetValue()
 
-	if namespace == "" || group == "" {
-		return api.NewConfigClientListResponse(apimodel.Code_BadRequest)
-	}
-
 	releases, revision := s.fileCache.GetGroupActiveReleases(namespace, group)
 	if revision == "" {
 		return api.NewConfigClientListResponse(apimodel.Code_ExecuteSuccess)
@@ -179,11 +171,6 @@ func (s *Server) GetConfigFileNamesWithCache(ctx context.Context,
 func (s *Server) GetConfigGroupsWithCache(ctx context.Context, req *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigDiscoverResponse {
 	namespace := req.GetNamespace().GetValue()
 	out := api.NewConfigDiscoverResponse(apimodel.Code_ExecuteSuccess)
-	if namespace == "" {
-		out.Code = uint32(apimodel.Code_BadRequest)
-		out.Info = "invalid namespace"
-		return out
-	}
 
 	groups, revision := s.groupCache.ListGroups(namespace)
 	if revision == "" {
@@ -217,6 +204,7 @@ func CompareByVersion(clientInfo *apiconfig.ClientConfigFileInfo, file *model.Co
 	return clientInfo.GetVersion().GetValue() < file.Version
 }
 
+// only for unit test
 func (s *Server) checkClientConfigFile(ctx context.Context, files []*apiconfig.ClientConfigFileInfo,
 	compartor CompareFunction) (*apiconfig.ConfigClientResponse, bool) {
 	if len(files) == 0 {

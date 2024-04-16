@@ -45,7 +45,7 @@ func (svr *ServerAuthAbility) CreateServiceContracts(ctx context.Context,
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.CreateServiceContracts(ctx, req)
+	return svr.nextSvr.CreateServiceContracts(ctx, req)
 }
 
 // GetServiceContracts .
@@ -58,7 +58,7 @@ func (svr *ServerAuthAbility) GetServiceContracts(ctx context.Context,
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.GetServiceContracts(ctx, query)
+	return svr.nextSvr.GetServiceContracts(ctx, query)
 }
 
 // GetServiceContractVersions .
@@ -72,7 +72,7 @@ func (svr *ServerAuthAbility) GetServiceContractVersions(ctx context.Context,
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.GetServiceContractVersions(ctx, filter)
+	return svr.nextSvr.GetServiceContractVersions(ctx, filter)
 }
 
 // DeleteServiceContracts .
@@ -93,7 +93,7 @@ func (svr *ServerAuthAbility) DeleteServiceContracts(ctx context.Context,
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.DeleteServiceContracts(ctx, req)
+	return svr.nextSvr.DeleteServiceContracts(ctx, req)
 }
 
 // CreateServiceContractInterfaces .
@@ -111,7 +111,7 @@ func (svr *ServerAuthAbility) CreateServiceContractInterfaces(ctx context.Contex
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.CreateServiceContractInterfaces(ctx, contract, source)
+	return svr.nextSvr.CreateServiceContractInterfaces(ctx, contract, source)
 }
 
 // AppendServiceContractInterfaces .
@@ -129,7 +129,7 @@ func (svr *ServerAuthAbility) AppendServiceContractInterfaces(ctx context.Contex
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.AppendServiceContractInterfaces(ctx, contract, source)
+	return svr.nextSvr.AppendServiceContractInterfaces(ctx, contract, source)
 }
 
 // DeleteServiceContractInterfaces .
@@ -147,5 +147,5 @@ func (svr *ServerAuthAbility) DeleteServiceContractInterfaces(ctx context.Contex
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.DeleteServiceContractInterfaces(ctx, contract)
+	return svr.nextSvr.DeleteServiceContractInterfaces(ctx, contract)
 }

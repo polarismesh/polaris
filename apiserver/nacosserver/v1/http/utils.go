@@ -18,6 +18,8 @@
 package http
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -96,6 +98,54 @@ func (h *Handler) ParseHeaderContext() context.Context {
 	ctx = context.WithValue(ctx, utils.StringContext("operator"), operator)
 	ctx = context.WithValue(ctx, utils.ContextClientAddress, h.Request.Request.RemoteAddr)
 	return ctx
+}
+
+func (h *Handler) ProcessZip(consumer func(f *zip.File, data []byte)) error {
+	req := h.Request
+	rsp := h.Response
+
+	req.Request.Body = http.MaxBytesReader(rsp, req.Request.Body, utils.MaxRequestBodySize)
+
+	file, _, err := req.Request.FormFile(utils.ConfigFileFormKey)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, file); err != nil {
+		return err
+	}
+
+	data := buf.Bytes()
+	zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		return err
+	}
+
+	extractFileContent := func(f *zip.File) ([]byte, error) {
+		rc, err := f.Open()
+		if err != nil {
+			return nil, err
+		}
+		defer rc.Close()
+		var buf bytes.Buffer
+		if _, err := io.Copy(&buf, rc); err != nil {
+			return nil, err
+		}
+		return buf.Bytes(), nil
+	}
+
+	// 提取元数据文件
+	for _, file := range zr.File {
+		content, err := extractFileContent(file)
+		if err != nil {
+			return err
+		}
+		consumer(file, content)
+	}
+
+	return nil
 }
 
 // ParseQueryParams 解析并获取HTTP的query params

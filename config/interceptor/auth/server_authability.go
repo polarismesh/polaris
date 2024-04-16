@@ -50,7 +50,7 @@ func New(nextServer config.ConfigCenterServer, cacheMgr cachetypes.CacheManager,
 		userMgn:     userMgr,
 		strategyMgn: strategyMgr,
 	}
-	if val, ok := nextServer.(*config.Server); !ok {
+	if val, ok := nextServer.(*config.Server); ok {
 		val.SetResourceHooks(proxy)
 	}
 	return proxy

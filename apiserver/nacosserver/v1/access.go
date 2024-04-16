@@ -25,13 +25,9 @@ import (
 
 func (n *NacosV1Server) GetAuthServer() (*restful.WebService, error) {
 	ws := new(restful.WebService)
-	ws.Route(ws.POST("/v1/auth/login").To(n.Login))
-	ws.Route(ws.POST("/v1/auth/users/login").To(n.Login))
+	ws.Route(ws.POST("/nacos/v1/auth/login").To(n.Login))
+	ws.Route(ws.POST("/nacos/v1/auth/users/login").To(n.Login))
 	return ws, nil
-}
-
-func (n *NacosV1Server) addSystemAccess(ws *restful.WebService) {
-	ws.Route(ws.GET("/operator/metrics").To(n.ServerHealthStatus))
 }
 
 func (n *NacosV1Server) Login(req *restful.Request, rsp *restful.Response) {

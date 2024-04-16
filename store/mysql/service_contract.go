@@ -18,6 +18,10 @@
 package sqldb
 
 import (
+	"context"
+	"database/sql"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -27,17 +31,6 @@ import (
 	"github.com/polarismesh/polaris/store"
 )
 
-var (
-	// contractAvaiableFilter 允许查询的字段
-	contractAvaiableFilter = map[string]struct{}{
-		"name":      {},
-		"service":   {},
-		"namespace": {},
-		"version":   {},
-		"protocol":  {},
-	}
-)
-
 type serviceContractStore struct {
 	master *BaseDB
 	slave  *BaseDB
@@ -45,13 +38,13 @@ type serviceContractStore struct {
 
 // CreateServiceContract 创建服务契约
 func (s *serviceContractStore) CreateServiceContract(contract *model.ServiceContract) error {
-	addSql := "INSERT INTO service_contract(`id`,`name`, `namespace`, `service`, `protocol`,`version`, " +
+	addSql := "INSERT INTO service_contract(`id`,`type`, `namespace`, `service`, `protocol`,`version`, " +
 		" `revision`, `flag`, `content`, `ctime`, `mtime`" +
 		") VALUES (?,?,?,?,?,?,?,0,?,sysdate(),sysdate())"
 
 	_, err := s.master.Exec(addSql, []interface{}{
 		contract.ID,
-		contract.Name,
+		contract.Type,
 		contract.Namespace,
 		contract.Service,
 		contract.Protocol,
@@ -83,7 +76,7 @@ func (s *serviceContractStore) DeleteServiceContract(contract *model.ServiceCont
 			return err
 		}
 
-		deleteDetailSql := "DELETE FROM service_contract_detail WHERE contract_id = ?"
+		deleteDetailSql := "UPDATE service_contract_detail SET flag = 1 WHERE contract_id = ?"
 		if _, err := tx.Exec(deleteDetailSql, []interface{}{
 			contract.ID,
 		}...); err != nil {
@@ -96,49 +89,82 @@ func (s *serviceContractStore) DeleteServiceContract(contract *model.ServiceCont
 }
 
 // GetServiceContract 通过ID查询服务契约数据
-func (s *serviceContractStore) GetServiceContract(id string) (data *model.EnrichServiceContract, err error) {
-	querySql := "SELECT id, name, namespace, service, protocol, version, revision, flag,content, " +
+func (s *serviceContractStore) GetServiceContract(id string) (*model.EnrichServiceContract, error) {
+	querySql := "SELECT id, type, namespace, service, protocol, version, revision, flag, content, " +
 		" UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM service_contract WHERE flag = 0 AND id = ?"
 
 	args := []interface{}{id}
-	rows, err := s.master.Query(querySql, args...)
-	if err != nil {
-		log.Error("[Store][Contract] list contract ", zap.String("query", querySql), zap.Any("args", args))
-		return nil, store.Error(err)
-	}
-	defer func() {
-		_ = rows.Close()
-	}()
 
-	list := make([]*model.ServiceContract, 0)
-	for rows.Next() {
-		var flag, ctime, mtime int64
-		contract := model.ServiceContract{}
-		if scanErr := rows.Scan(&contract.ID, &contract.Name, &contract.Namespace, &contract.Service,
-			&contract.Protocol, &contract.Version, &contract.Revision, &flag,
-			&contract.Content, &ctime, &mtime); scanErr != nil {
+	list := make([]*model.EnrichServiceContract, 0)
+	err := s.slave.processWithTransaction("GetServiceContract", func(tx *BaseTx) error {
+		rows, err := tx.Query(querySql, args...)
+		if err != nil {
+			log.Error("[Store][Contract] list contract ", zap.String("query sql", querySql), zap.Any("args", args))
+			return err
+		}
+		err = transferEnrichServiceContract(rows, func(contract *model.EnrichServiceContract) {
+			list = append(list, contract)
+		})
+		if err != nil {
 			log.Errorf("[Store][Contract] fetch contract rows scan err: %s", err.Error())
-			return nil, store.Error(err)
+			return err
 		}
 
-		contract.Valid = flag == 0
-		contract.CreateTime = time.Unix(ctime, 0)
-		contract.ModifyTime = time.Unix(mtime, 0)
+		for i := range list {
+			contract := list[i]
+			queryDetailSql := "SELECT id, contract_id, namespace, service, protocol, version, type, method, path, content, revision, " +
+				" UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime), IFNULL(source, 1) " +
+				" FROM service_contract_detail " +
+				" WHERE contract_id = ?"
 
-		list = append(list, &contract)
+			descriptors, err := s.loadContractInterfaces(tx, queryDetailSql, []interface{}{contract.ID})
+			if err != nil {
+				log.Error("[Store][Contract] load service_contract link interfaces",
+					zap.String("contract_id", contract.ID), zap.Error(err))
+				return err
+			}
+			contract.Interfaces = descriptors
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, store.Error(err)
 	}
 
 	if len(list) == 0 {
 		return nil, nil
 	}
-	return &model.EnrichServiceContract{
-		ServiceContract: list[0],
-	}, nil
+	return list[0], nil
+}
+
+func transferEnrichServiceContract(rows *sql.Rows, consumer func(contract *model.EnrichServiceContract)) error {
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	for rows.Next() {
+		var flag, ctime, mtime int64
+		contract := model.EnrichServiceContract{
+			ServiceContract: &model.ServiceContract{},
+		}
+		if scanErr := rows.Scan(&contract.ID, &contract.Type, &contract.Namespace, &contract.Service,
+			&contract.Protocol, &contract.Version, &contract.Revision, &flag,
+			&contract.Content, &ctime, &mtime); scanErr != nil {
+			log.Errorf("[Store][Contract] fetch contract rows scan err: %s", scanErr.Error())
+			return scanErr
+		}
+
+		contract.Valid = flag == 0
+		contract.CreateTime = time.Unix(0, ctime)
+		contract.ModifyTime = time.Unix(0, mtime)
+		consumer(&contract)
+	}
+	return nil
 }
 
 // AddServiceContractInterfaces 创建服务契约API接口
 func (s *serviceContractStore) AddServiceContractInterfaces(contract *model.EnrichServiceContract) error {
-	return s.master.processWithTransaction("AddServiceContractDetail", func(tx *BaseTx) error {
+	return s.master.processWithTransaction("AddServiceContractInterfaces", func(tx *BaseTx) error {
 		updateRevision := "UPDATE service_contract SET revision = ?, mtime = sysdate() WHERE id = ?"
 		if _, err := tx.Exec(updateRevision, contract.Revision, contract.ID); err != nil {
 			log.Errorf("[Store][database] update service contract revision err: %s", err.Error())
@@ -147,16 +173,19 @@ func (s *serviceContractStore) AddServiceContractInterfaces(contract *model.Enri
 
 		// 新增批量数据
 		for _, item := range contract.Interfaces {
-			addSql := "REPLACE INTO service_contract_detail(`id`, `contract_id`, `name`, `method`, `path` " +
-				" ,`content`,`revision`" +
-				",`flag`,`ctime`, `mtime`, `source`" +
-				") VALUES (?,?,?,?,?,?,?,?,sysdate(),sysdate(),?)"
+			addSql := "REPLACE INTO service_contract_detail (id, contract_id, namespace, service, protocol, " +
+				" version, method, path, type, content, revision, flag, ctime, mtime, source) " +
+				" VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, sysdate(), sysdate(), ?)"
 			if _, err := tx.Exec(addSql, []interface{}{
 				item.ID,
 				contract.ID,
-				item.Name,
+				item.Namespace,
+				item.Service,
+				item.Protocol,
+				item.Version,
 				item.Method,
 				item.Path,
+				item.Type,
 				item.Content,
 				item.Revision,
 				0,
@@ -179,17 +208,21 @@ func (s *serviceContractStore) AppendServiceContractInterfaces(contract *model.E
 			return err
 		}
 		for _, item := range contract.Interfaces {
-			addSql := "REPLACE INTO service_contract_detail(`id`,`contract_id`, `name`, `method`, " +
-				" `path` ,`content`,`revision`" +
+			addSql := "REPLACE INTO service_contract_detail(`id`,`contract_id`, `namespace`, `service`, " +
+				" `protocol`, `version`, `method`, `path`, `type` ,`content`,`revision`" +
 				",`flag`,`ctime`, `mtime`,`source`" +
-				") VALUES (?,?,?,?,?,?,?,?,sysdate(),sysdate(),?)"
+				") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,sysdate(),sysdate(),?)"
 
 			if _, err := tx.Exec(addSql, []interface{}{
 				item.ID,
 				contract.ID,
-				item.Name,
+				item.Namespace,
+				item.Service,
+				item.Protocol,
+				item.Version,
 				item.Method,
 				item.Path,
+				item.Type,
 				item.Content,
 				item.Revision,
 				0,
@@ -205,20 +238,20 @@ func (s *serviceContractStore) AppendServiceContractInterfaces(contract *model.E
 
 // DeleteServiceContractInterfaces 删除服务契约API接口
 func (s *serviceContractStore) DeleteServiceContractInterfaces(contract *model.EnrichServiceContract) error {
-	return s.master.processWithTransaction("DeleteServiceContractDetail", func(tx *BaseTx) error {
+	return s.master.processWithTransaction("DeleteServiceContractInterfaces", func(tx *BaseTx) error {
 		updateRevision := "UPDATE service_contract SET revision = ?, mtime = sysdate() WHERE id = ?"
 		if _, err := tx.Exec(updateRevision, contract.Revision, contract.ID); err != nil {
 			log.Errorf("[Store][database] update service contract revision err: %s", err.Error())
 			return err
 		}
 		for _, item := range contract.Interfaces {
-			addSql := "DELETE FROM service_contract_detail WHERE contract_id = ? AND method = ? AND path = ? AND name = ?"
+			addSql := "UPDATE service_contract_detail SET flag = 1 WHERE contract_id = ? AND method = ? AND path = ? AND type = ?"
 
 			if _, err := tx.Exec(addSql, []interface{}{
 				item.ContractID,
 				item.Method,
 				item.Path,
-				item.Name,
+				item.Type,
 			}...); err != nil {
 				log.Errorf("[Store][database] delete service contract detail err: %s", err.Error())
 				return err
@@ -228,100 +261,219 @@ func (s *serviceContractStore) DeleteServiceContractInterfaces(contract *model.E
 	})
 }
 
-// GetMoreServiceContracts 查询服务契约数据
-func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime time.Time) ([]*model.EnrichServiceContract, error) {
-	querySql := "SELECT id, name, namespace, service, protocol, version, revision, flag, content, " +
-		" UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM service_contract WHERE mtime >= ? "
-	if firstUpdate {
-		mtime = time.Unix(0, 1)
-		querySql += " AND flag = 0 "
+func (s *serviceContractStore) GetServiceContracts(ctx context.Context, filter map[string]string,
+	offset, limit uint32) (uint32, []*model.EnrichServiceContract, error) {
+
+	querySql := `
+ SELECT id, type, namespace, service, protocol
+	 , version, revision, flag, content
+	 , UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime)
+ FROM service_contract
+ WHERE flag = 0 
+ `
+
+	countSql := "SELECT COUNT(*) FROM service_contract WHERE flag = 0 "
+
+	brief := filter[briefSearch] == "true"
+	args := make([]interface{}, 0, len(filter))
+	conditions := make([]string, 0, len(filter))
+	for k, v := range filter {
+		if k == "order_field" || k == "order_type" {
+			continue
+		}
+		conditions = append(conditions, k+" = ? ")
+		args = append(args, v)
 	}
 
-	tx, err := s.slave.Begin()
-	if err != nil {
-		log.Error("[Store][Contract] list contract for cache when begin tx", zap.Error(err))
-		return nil, store.Error(err)
+	if len(conditions) > 0 {
+		countSql += " AND " + strings.Join(conditions, " AND ")
+		querySql += " AND " + strings.Join(conditions, " AND ")
 	}
-	defer func() {
-		_ = tx.Commit()
-	}()
+	querySql += fmt.Sprintf(" ORDER BY %s %s LIMIT ?, ? ", filter["order_field"], filter["order_type"])
 
-	rows, err := tx.Query(querySql, mtime)
+	var count int64
+	var list = make([]*model.EnrichServiceContract, 0, limit)
+
+	err := s.master.processWithTransaction("GetServiceContracts", func(tx *BaseTx) error {
+		row := tx.QueryRow(countSql, args...)
+		if err := row.Scan(&count); err != nil {
+			log.Error("[Store][Contract] count service_contracts", zap.String("count", countSql), zap.Any("args", args), zap.Error(err))
+			return err
+		}
+
+		args = append(args, offset, limit)
+		rows, err := tx.Query(querySql, args...)
+		if err != nil {
+			log.Error("[Store][Contract] list service_contracts", zap.String("query", querySql), zap.Any("args", args), zap.Error(err))
+			return err
+		}
+		defer func() {
+			_ = rows.Close()
+		}()
+
+		contractIds := make([]interface{}, 0, limit)
+		err = transferEnrichServiceContract(rows, func(contract *model.EnrichServiceContract) {
+			list = append(list, contract)
+			contractIds = append(contractIds, contract.ID)
+		})
+		if err != nil {
+			log.Errorf("[Store][Contract] fetch contract rows scan err: %s", err.Error())
+			return err
+		}
+
+		if !brief && len(contractIds) > 0 {
+			// 加载 interfaces 列表
+			queryDetailSql := fmt.Sprintf("SELECT id, contract_id, namespace, service, protocol, version, "+
+				" type, method, path, content, revision, "+
+				" UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime), IFNULL(source, 1) "+
+				" FROM service_contract_detail "+
+				" WHERE contract_id IN (%s)", placeholders(len(contractIds)))
+
+			contractDetailMap := map[string][]*model.InterfaceDescriptor{}
+			interfaces, err := s.loadContractInterfaces(tx, queryDetailSql, contractIds)
+			if err != nil {
+				return err
+			}
+			for i := range interfaces {
+				descriptor := interfaces[i]
+				if _, ok := contractDetailMap[descriptor.ContractID]; !ok {
+					contractDetailMap[descriptor.ContractID] = make([]*model.InterfaceDescriptor, 0, 4)
+				}
+				contractDetailMap[descriptor.ContractID] = append(contractDetailMap[descriptor.ContractID], descriptor)
+			}
+
+			for _, item := range list {
+				methods := contractDetailMap[item.ID]
+				item.Interfaces = methods
+				item.Format()
+			}
+		}
+		return nil
+	})
 	if err != nil {
-		log.Error("[Store][Contract] list contract for cache when query", zap.Error(err))
-		return nil, store.Error(err)
+		return 0, nil, store.Error(err)
 	}
+	return uint32(count), list, nil
+}
+
+func (s *serviceContractStore) GetInterfaceDescriptors(ctx context.Context, filter map[string]string,
+	offset, limit uint32) (uint32, []*model.InterfaceDescriptor, error) {
+
+	countSql := "SELECT COUNT(*) FROM service_contract_detail sd WHERE flag = 0 "
+
+	// 加载 interfaces 列表
+	querySql := `
+ SELECT id, contract_id, namespace, service, protocol, version
+	 , type, method, path, content, revision
+	 , UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime)
+	 , IFNULL(source, 1)
+ FROM service_contract_detail
+ WHERE flag = 0
+ `
+
+	args := make([]interface{}, 0, len(filter))
+	conditions := make([]string, 0, len(filter))
+
+	for k, v := range filter {
+		if k == "order_field" || k == "order_type" {
+			continue
+		}
+		conditions = append(conditions, k+" = ? ")
+		args = append(args, v)
+	}
+
+	var count uint32
+	var list []*model.InterfaceDescriptor
+
+	if len(conditions) > 0 {
+		countSql += " AND " + strings.Join(conditions, " AND ")
+		querySql += " AND " + strings.Join(conditions, " AND ")
+	}
+	querySql += fmt.Sprintf(" ORDER BY %s %s LIMIT ?, ? ", filter["order_field"], filter["order_type"])
+
+	err := s.slave.processWithTransaction("GetInterfaceDescriptors", func(tx *BaseTx) error {
+		row := tx.QueryRow(countSql, args...)
+		err := row.Scan(&count)
+		if err != nil {
+			log.Error("[Store][Contract] count service_interfaces", zap.String("countSql", countSql), zap.Any("args", args), zap.Error(err))
+			return err
+		}
+
+		args = append(args, offset, limit)
+		list, err = s.loadContractInterfaces(tx, querySql, args)
+		return err
+	})
+	if err != nil {
+		return 0, nil, store.Error(err)
+	}
+	return count, list, nil
+}
+
+func (s *serviceContractStore) loadContractInterfaces(tx *BaseTx, query string, args []interface{}) ([]*model.InterfaceDescriptor, error) {
+	rows, err := tx.Query(query, args...)
+	if err != nil {
+		log.Error("[Store][Contract] load service_contract interface list", zap.String("sql", query), zap.Error(err))
+		return nil, err
+	}
+
 	defer func() {
 		_ = rows.Close()
 	}()
 
-	list := make([]*model.EnrichServiceContract, 0)
+	var list []*model.InterfaceDescriptor
 	for rows.Next() {
-		var flag, ctime, mtime int64
-		contract := &model.ServiceContract{}
-		if scanErr := rows.Scan(&contract.ID, &contract.Name, &contract.Namespace, &contract.Service,
-			&contract.Protocol, &contract.Version, &contract.Revision, &flag,
-			&contract.Content, &ctime, &mtime); scanErr != nil {
-			log.Error("[Store][Contract] fetch contract rows scan err: %s", zap.Error(err))
-			return nil, store.Error(err)
+		var flag, ctime, mtime, source int64
+		detailItem := &model.InterfaceDescriptor{}
+		if scanErr := rows.Scan(
+			&detailItem.ID, &detailItem.ContractID, &detailItem.Namespace, &detailItem.Service, &detailItem.Protocol,
+			&detailItem.Version, &detailItem.Type, &detailItem.Method,
+			&detailItem.Path, &detailItem.Content, &detailItem.Revision,
+			&ctime, &mtime, &source,
+		); scanErr != nil {
+			log.Error("[Store][Contract] load service_contract interface rows scan", zap.Error(scanErr))
+			return nil, err
 		}
 
-		contract.Valid = flag == 0
-		contract.CreateTime = time.Unix(ctime, 0)
-		contract.ModifyTime = time.Unix(mtime, 0)
+		detailItem.Valid = flag == 0
+		detailItem.CreateTime = time.Unix(ctime, 0)
+		detailItem.ModifyTime = time.Unix(mtime, 0)
+		switch source {
+		case 2:
+			detailItem.Source = service_manage.InterfaceDescriptor_Client
+		default:
+			detailItem.Source = service_manage.InterfaceDescriptor_Manual
+		}
 
-		list = append(list, &model.EnrichServiceContract{
-			ServiceContract: contract,
-		})
+		list = append(list, detailItem)
+	}
+	return list, nil
+}
+
+// ListVersions .
+func (s *serviceContractStore) ListVersions(ctx context.Context, service, namespace string) ([]*model.ServiceContract, error) {
+	list := make([]*model.ServiceContract, 0, 4)
+
+	querySql := `
+ SELECT id, type, namespace, service, protocol
+	 , version, revision, flag
+	 , UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime)
+ FROM service_contract
+ WHERE flag = 0 AND namespace = ? AND service = ?
+ `
+
+	rows, err := s.slave.Query(querySql, namespace, service)
+	if err != nil {
+		log.Error("[Store][Contract] list version service_contract", zap.String("namespace", namespace),
+			zap.String("service", service), zap.Error(err))
+		return nil, store.Error(err)
 	}
 
-	contractDetailMap := map[string][]*model.InterfaceDescriptor{}
-	if len(list) > 0 {
-		queryDetailSql := "SELECT sd.id, sd.contract_id, sd.name, sd.method, sd.path, sd.content, sd.revision, " +
-			" UNIX_TIMESTAMP(sd.ctime), UNIX_TIMESTAMP(sd.mtime), IFNULL(sd.source, 1) " +
-			" FROM service_contract_detail sd  LEFT JOIN service_contract sc ON sd.contract_id = sc.id " +
-			" WHERE sc.mtime >= ?"
-		detailRows, err := tx.Query(queryDetailSql, mtime)
-		if err != nil {
-			log.Error("[Store][Contract] list contract detail", zap.String("query sql", queryDetailSql), zap.Error(err))
-			return nil, store.Error(err)
-		}
-		defer func() {
-			_ = detailRows.Close()
-		}()
-		for detailRows.Next() {
-			var flag, ctime, mtime, source int64
-			detailItem := &model.InterfaceDescriptor{}
-			if scanErr := detailRows.Scan(
-				&detailItem.ID, &detailItem.ContractID, &detailItem.Name, &detailItem.Method,
-				&detailItem.Path, &detailItem.Content, &detailItem.Revision,
-				&ctime, &mtime, &source,
-			); scanErr != nil {
-				log.Error("[Store][Contract] fetch contract detail rows scan", zap.Error(scanErr))
-				return nil, store.Error(scanErr)
-			}
-
-			detailItem.Valid = flag == 0
-			detailItem.CreateTime = time.Unix(ctime, 0)
-			detailItem.ModifyTime = time.Unix(mtime, 0)
-			switch source {
-			case 2:
-				detailItem.Source = service_manage.InterfaceDescriptor_Client
-			default:
-				detailItem.Source = service_manage.InterfaceDescriptor_Manual
-			}
-
-			if _, ok := contractDetailMap[detailItem.ContractID]; !ok {
-				contractDetailMap[detailItem.ContractID] = make([]*model.InterfaceDescriptor, 0, 4)
-			}
-			contractDetailMap[detailItem.ContractID] = append(contractDetailMap[detailItem.ContractID], detailItem)
-		}
-
-		for _, item := range list {
-			methods := contractDetailMap[item.ID]
-			item.Interfaces = methods
-			item.Format()
-		}
+	err = transferEnrichServiceContract(rows, func(contract *model.EnrichServiceContract) {
+		list = append(list, contract.ServiceContract)
+	})
+	if err != nil {
+		log.Errorf("[Store][Contract] fetch contract rows scan err: %s", err.Error())
+		return nil, err
 	}
 	return list, nil
 }

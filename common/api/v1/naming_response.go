@@ -323,6 +323,16 @@ func NewDiscoverCircuitBreakerResponse(code apimodel.Code, service *apiservice.S
 	}
 }
 
+// NewDiscoverLaneResponse .
+func NewDiscoverLaneResponse(code apimodel.Code, service *apiservice.Service) *apiservice.DiscoverResponse {
+	return &apiservice.DiscoverResponse{
+		Code:    &wrappers.UInt32Value{Value: uint32(code)},
+		Info:    &wrappers.StringValue{Value: code2info[uint32(code)]},
+		Type:    apiservice.DiscoverResponse_LANE,
+		Service: service,
+	}
+}
+
 /**
  * @brief 创建查询探测规则回复
  */

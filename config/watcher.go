@@ -216,11 +216,6 @@ func (wc *watchCenter) OnEvent(ctx context.Context, arg any) error {
 }
 
 func (wc *watchCenter) checkQuickResponseClient(watchCtx WatchContext) *apiconfig.ConfigClientResponse {
-	watchFiles := watchCtx.ListWatchFiles()
-	if len(watchFiles) == 0 {
-		return api.NewConfigClientResponse0(apimodel.Code_InvalidWatchConfigFileFormat)
-	}
-
 	buildRet := func(release *model.ConfigFileRelease) *apiconfig.ConfigClientResponse {
 		ret := &apiconfig.ClientConfigFileInfo{
 			Namespace: utils.NewStringValue(release.Namespace),
@@ -233,14 +228,10 @@ func (wc *watchCenter) checkQuickResponseClient(watchCtx WatchContext) *apiconfi
 		return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, ret)
 	}
 
-	for _, configFile := range watchFiles {
+	for _, configFile := range watchCtx.ListWatchFiles() {
 		namespace := configFile.GetNamespace().GetValue()
 		group := configFile.GetGroup().GetValue()
 		fileName := configFile.GetFileName().GetValue()
-		if namespace == "" || group == "" || fileName == "" {
-			return api.NewConfigClientResponseWithInfo(apimodel.Code_BadRequest,
-				"namespace & group & fileName can not be empty")
-		}
 		// 从缓存中获取灰度文件
 		if len(watchCtx.ClientLabels()) > 0 {
 			if release := wc.fileCache.GetActiveGrayRelease(namespace, group, fileName); release != nil {
@@ -375,9 +366,6 @@ func (wc *watchCenter) startHandleTimeoutRequestWorker(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			if wc.clients.Len() == 0 {
-				continue
-			}
 			tNow := time.Now()
 			waitRemove := make([]WatchContext, 0, 32)
 			wc.clients.Range(func(client string, watchCtx WatchContext) {
@@ -385,6 +373,9 @@ func (wc *watchCenter) startHandleTimeoutRequestWorker(ctx context.Context) {
 					waitRemove = append(waitRemove, watchCtx)
 				}
 			})
+			if len(waitRemove) > 0 {
+				log.Info("remove expire watch context", zap.Any("client-ids", waitRemove))
+			}
 
 			for i := range waitRemove {
 				watchCtx := waitRemove[i]

@@ -33,9 +33,6 @@ import (
 // CreateConfigFileTemplate create config file template
 func (s *Server) CreateConfigFileTemplate(
 	ctx context.Context, template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
-	if checkRsp := s.checkConfigFileTemplateParam(template); checkRsp != nil {
-		return checkRsp
-	}
 	name := template.GetName().GetValue()
 
 	saveData, err := s.storage.GetConfigFileTemplate(name)
@@ -94,17 +91,4 @@ func (s *Server) GetAllConfigFileTemplates(ctx context.Context) *apiconfig.Confi
 	}
 	return api.NewConfigFileTemplateBatchQueryResponse(apimodel.Code_ExecuteSuccess,
 		uint32(len(templates)), apiTemplates)
-}
-
-func (s *Server) checkConfigFileTemplateParam(template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
-	if err := CheckFileName(template.GetName()); err != nil {
-		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileTemplateName)
-	}
-	if err := CheckContentLength(template.Content.GetValue(), int(s.cfg.ContentMaxLength)); err != nil {
-		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileContentLength)
-	}
-	if len(template.Content.GetValue()) == 0 {
-		return api.NewConfigFileTemplateResponseWithMessage(apimodel.Code_BadRequest, "content can not be blank.")
-	}
-	return nil
 }

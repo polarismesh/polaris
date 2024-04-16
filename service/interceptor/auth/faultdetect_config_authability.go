@@ -37,7 +37,7 @@ func (svr *ServerAuthAbility) CreateFaultDetectRules(
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.CreateFaultDetectRules(ctx, request)
+	return svr.nextSvr.CreateFaultDetectRules(ctx, request)
 }
 
 func (svr *ServerAuthAbility) DeleteFaultDetectRules(
@@ -49,7 +49,7 @@ func (svr *ServerAuthAbility) DeleteFaultDetectRules(
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.DeleteFaultDetectRules(ctx, request)
+	return svr.nextSvr.DeleteFaultDetectRules(ctx, request)
 }
 
 func (svr *ServerAuthAbility) UpdateFaultDetectRules(
@@ -61,7 +61,7 @@ func (svr *ServerAuthAbility) UpdateFaultDetectRules(
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.UpdateFaultDetectRules(ctx, request)
+	return svr.nextSvr.UpdateFaultDetectRules(ctx, request)
 }
 
 func (svr *ServerAuthAbility) GetFaultDetectRules(
@@ -72,5 +72,5 @@ func (svr *ServerAuthAbility) GetFaultDetectRules(
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.GetFaultDetectRules(ctx, query)
+	return svr.nextSvr.GetFaultDetectRules(ctx, query)
 }

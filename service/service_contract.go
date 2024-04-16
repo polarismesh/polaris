@@ -99,7 +99,7 @@ func (s *Server) CreateServiceContract(ctx context.Context, contract *apiservice
 
 	saveData := &model.ServiceContract{
 		ID:        contractId,
-		Name:      contract.GetName(),
+		Type:      utils.DefaultString(contract.GetType(), contract.GetName()),
 		Namespace: contract.GetNamespace(),
 		Service:   contract.GetService(),
 		Protocol:  contract.GetProtocol(),
@@ -140,7 +140,7 @@ func (s *Server) GetServiceContracts(ctx context.Context, query map[string]strin
 		return out
 	}
 
-	ret, totalCount, err := s.caches.ServiceContract().Query(searchFilters, offset, limit)
+	totalCount, ret, err := s.storage.GetServiceContracts(ctx, searchFilters, offset, limit)
 	if err != nil {
 		out = api.NewBatchQueryResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 		return out
@@ -172,7 +172,8 @@ func (s *Server) GetServiceContracts(ctx context.Context, query map[string]strin
 
 		contract := &apiservice.ServiceContract{
 			Id:         item.ID,
-			Name:       item.Name,
+			Name:       item.Type,
+			Type:       item.Type,
 			Namespace:  item.Namespace,
 			Service:    item.Service,
 			Protocol:   item.Protocol,
@@ -231,7 +232,7 @@ func (s *Server) DeleteServiceContract(ctx context.Context,
 
 	deleteData := &model.ServiceContract{
 		ID:        contract.Id,
-		Name:      contract.Name,
+		Type:      utils.DefaultString(contract.Type, contract.Name),
 		Namespace: contract.Namespace,
 		Service:   contract.Service,
 		Protocol:  contract.Protocol,
@@ -255,14 +256,20 @@ func (s *Server) GetServiceContractVersions(ctx context.Context, filter map[stri
 		return api.NewBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, "namespace is empty")
 	}
 
-	ret := s.caches.ServiceContract().ListVersions(serviceName, namespace)
+	ret, err := s.storage.ListVersions(ctx, serviceName, namespace)
+	if err != nil {
+		log.Error("[Service][Contract] list save service_contract versions", utils.RequestID(ctx), zap.Error(err))
+		return api.NewBatchQueryResponse(store.StoreCode2APICode(err))
+	}
+
 	resp := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
 	resp.Data = make([]*anypb.Any, 0, len(ret))
 	for i := range ret {
 		item := ret[i]
 		if err := api.AddAnyDataIntoBatchQuery(resp, &apiservice.ServiceContract{
 			Id:        item.ID,
-			Name:      item.Name,
+			Name:      item.Type,
+			Type:      item.Type,
 			Namespace: item.Namespace,
 			Service:   item.Service,
 			Version:   item.Version,
@@ -305,7 +312,7 @@ func (s *Server) CreateServiceContractInterfaces(ctx context.Context,
 		createData.Interfaces = append(createData.Interfaces, &model.InterfaceDescriptor{
 			ID:         interfaceId,
 			ContractID: contract.Id,
-			Name:       item.Name,
+			Type:       utils.DefaultString(item.Type, item.Name),
 			Method:     item.Method,
 			Path:       item.Path,
 			Content:    item.Content,
@@ -356,7 +363,7 @@ func (s *Server) AppendServiceContractInterfaces(ctx context.Context,
 		appendData.Interfaces = append(appendData.Interfaces, &model.InterfaceDescriptor{
 			ID:         interfaceId,
 			ContractID: contract.Id,
-			Name:       item.Name,
+			Type:       utils.DefaultString(item.Type, item.Name),
 			Method:     item.Method,
 			Path:       item.Path,
 			Content:    item.Content,
@@ -408,7 +415,7 @@ func (s *Server) DeleteServiceContractInterfaces(ctx context.Context,
 			ID:         interfaceId,
 			ContractID: contract.Id,
 			Method:     item.Method,
-			Name:       item.Name,
+			Type:       utils.DefaultString(item.Type, item.Name),
 			Path:       item.Path,
 		})
 	}
