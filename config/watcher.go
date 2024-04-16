@@ -302,6 +302,7 @@ func (wc *watchCenter) RemoveAllWatcher(clientId string) {
 		}
 		watchers.Remove(clientId)
 	}
+	wc.clients.Delete(clientId)
 }
 
 // RemoveWatcher 删除订阅者
@@ -345,11 +346,10 @@ func (wc *watchCenter) notifyToWatchers(publishConfigFile *model.SimpleConfigFil
 		if watchCtx.ShouldNotify(publishConfigFile) {
 			watchCtx.Reply(response)
 			notifyCnt++
-		}
-		// 只能用一次，通知完就要立马清理掉这个 WatchContext
-		if watchCtx.IsOnce() {
-			wc.clients.Delete(clientId)
-			wc.RemoveAllWatcher(watchCtx.ClientID())
+			// 只能用一次，通知完就要立马清理掉这个 WatchContext
+			if watchCtx.IsOnce() {
+				wc.RemoveAllWatcher(watchCtx.ClientID())
+			}
 		}
 	})
 
