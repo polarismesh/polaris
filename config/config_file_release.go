@@ -400,6 +400,7 @@ func (s *Server) handleDescribeConfigFileReleases(ctx context.Context,
 	return resp
 }
 
+// RollbackConfigFileReleases 批量回滚配置
 func (s *Server) RollbackConfigFileReleases(ctx context.Context,
 	reqs []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse {
 

@@ -15,30 +15,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package v1
+package authcheck
 
-import (
-	"context"
+import commonlog "github.com/polarismesh/polaris/common/log"
 
-	"github.com/polarismesh/polaris/common/model"
+var (
+	log      = commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName)
+	sysOplog = commonlog.GetScopeOrDefaultByName(commonlog.SystemOperationLoggerName)
 )
-
-func (n *NacosV1Server) handleLogin(ctx context.Context, params map[string]string) (map[string]interface{}, error) {
-	username := params["username"]
-	token := params["password"]
-	authCtx := model.NewAcquireContext(
-		model.WithFromClient(),
-		model.WithRequestContext(ctx),
-	)
-
-	if err := n.discoverOpt.UserSvr.CheckCredential(authCtx); err != nil {
-		return nil, err
-	}
-
-	return map[string]interface{}{
-		"accessToken": token,
-		"tokenTtl":    120,
-		"globalAdmin": false,
-		"username":    username,
-	}, nil
-}

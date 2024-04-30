@@ -24,6 +24,7 @@ import (
 	"time"
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 )
 
 var (
@@ -332,4 +333,10 @@ type Principal struct {
 	StrategyID    string
 	PrincipalID   string
 	PrincipalRole PrincipalType
+}
+
+type OperateResource struct {
+	ResOwner string
+	ResType  apisecurity.ResourceType
+	ResID    string
 }

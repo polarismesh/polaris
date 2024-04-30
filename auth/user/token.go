@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth
+package defaultuser
 
 import (
 	"crypto/aes"
@@ -25,59 +25,79 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/google/uuid"
 
+	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/common/model"
 )
 
-// OperatorInfo 根据 token 解析出来的具体额外信息
-type OperatorInfo struct {
-
-	// Origin 原始 token 字符串
-	Origin string
-
-	// OperatorID 当前 token 绑定的 用户/用户组 ID
-	OperatorID string
-
-	// OwnerID 当前用户/用户组对应的 owner
-	OwnerID string
-
-	// Role 如果当前是 user token 的话，该值才能有信息
-	Role model.UserRoleType
-
-	// IsUserToken 当前 token 是否是 user 的 token
-	IsUserToken bool
-
-	// Disable 标识用户 token 是否被禁用
-	Disable bool
-
-	// 是否属于匿名操作者
-	Anonymous bool
-}
-
-func newAnonymous() OperatorInfo {
-	return OperatorInfo{
-		Origin:     "",
-		OwnerID:    "",
-		OperatorID: "__anonymous__",
-		Anonymous:  true,
+// decodeToken 解析 token 信息，如果 t == ""，直接返回一个空对象
+func (svr *Server) decodeToken(t string) (auth.OperatorInfo, error) {
+	if t == "" {
+		return auth.OperatorInfo{}, model.ErrorTokenInvalid
 	}
+
+	ret, err := DecryptMessage([]byte(svr.authOpt.Salt), t)
+	if err != nil {
+		return auth.OperatorInfo{}, err
+	}
+	tokenDetails := strings.Split(ret, TokenSplit)
+	if len(tokenDetails) != 2 {
+		return auth.OperatorInfo{}, model.ErrorTokenInvalid
+	}
+
+	detail := strings.Split(tokenDetails[1], "/")
+	if len(detail) != 2 {
+		return auth.OperatorInfo{}, model.ErrorTokenInvalid
+	}
+
+	tokenInfo := auth.OperatorInfo{
+		Origin:      t,
+		IsUserToken: detail[0] == model.TokenForUser,
+		OperatorID:  detail[1],
+		Role:        model.UnknownUserRole,
+	}
+	return tokenInfo, nil
 }
 
-// IsEmptyOperator token 是否是一个空类型
-func IsEmptyOperator(t OperatorInfo) bool {
-	return t.Origin == "" || t.Anonymous
-}
+// checkToken 对 token 进行检查，如果 token 是一个空，直接返回默认值，但是不返回错误
+// return {owner-id} {is-owner} {error}
+func (svr *Server) checkToken(tokenInfo *auth.OperatorInfo) (string, bool, error) {
+	if auth.IsEmptyOperator(*tokenInfo) {
+		return "", false, nil
+	}
 
-// IsSubAccount 当前 token 对应的账户类型
-func IsSubAccount(t OperatorInfo) bool {
-	return t.Role == model.SubAccountUserRole
-}
+	id := tokenInfo.OperatorID
+	if tokenInfo.IsUserToken {
+		user := svr.cacheMgr.User().GetUserByID(id)
+		if user == nil {
+			return "", false, model.ErrorNoUser
+		}
 
-func (t *OperatorInfo) String() string {
-	return fmt.Sprintf("operator-id=%s, owner=%s, role=%d, is-user=%v, disable=%v",
-		t.OperatorID, t.OwnerID, t.Role, t.IsUserToken, t.Disable)
+		if tokenInfo.Origin != user.Token {
+			return "", false, model.ErrorTokenNotExist
+		}
+
+		tokenInfo.Disable = !user.TokenEnable
+		if user.Owner == "" {
+			return user.ID, true, nil
+		}
+
+		return user.Owner, false, nil
+	}
+	group := svr.cacheMgr.User().GetGroup(id)
+	if group == nil {
+		return "", false, model.ErrorNoUserGroup
+	}
+
+	if tokenInfo.Origin != group.Token {
+		return "", false, model.ErrorTokenNotExist
+	}
+
+	tokenInfo.Disable = !group.TokenEnable
+	return group.Owner, false, nil
 }
 
 const (
@@ -88,17 +108,17 @@ const (
 )
 
 // createUserToken Create a user token
-func createUserToken(uid string) (string, error) {
-	return createToken(uid, "")
+func createUserToken(uid string, salt string) (string, error) {
+	return CreateToken(uid, "", salt)
 }
 
 // createGroupToken Create user group token
-func createGroupToken(gid string) (string, error) {
-	return createToken("", gid)
+func createGroupToken(gid string, salt string) (string, error) {
+	return CreateToken("", gid, salt)
 }
 
 // createToken Determine what type of Token created according to the incoming parameters
-func createToken(uid, gid string) (string, error) {
+func CreateToken(uid, gid string, salt string) (string, error) {
 	if uid == "" && gid == "" {
 		return "", errors.New("uid and groupid not be empty at the same time")
 	}
@@ -111,7 +131,7 @@ func createToken(uid, gid string) (string, error) {
 	}
 
 	token := fmt.Sprintf(TokenPattern, uuid.NewString()[8:16], val)
-	return encryptMessage([]byte(AuthOption.Salt), token)
+	return encryptMessage([]byte(salt), token)
 }
 
 // encryptMessage 对消息进行加密
@@ -135,7 +155,7 @@ func encryptMessage(key []byte, message string) (string, error) {
 }
 
 // decryptMessage 对消息进行解密
-func decryptMessage(key []byte, message string) (string, error) {
+func DecryptMessage(key []byte, message string) (string, error) {
 	cipherText, err := base64.StdEncoding.DecodeString(message)
 	if err != nil {
 		return "", fmt.Errorf("could not base64 decode: %v", err)

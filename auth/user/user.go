@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth
+package defaultuser
 
 import (
 	"context"
@@ -31,6 +31,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/polarismesh/polaris/auth"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
@@ -118,7 +119,7 @@ func (svr *Server) CreateUser(ctx context.Context, req *apisecurity.User) *apise
 func (svr *Server) createUser(ctx context.Context, req *apisecurity.User) *apiservice.Response {
 	requestID := utils.ParseRequestID(ctx)
 
-	data, err := createUserModel(req, authcommon.ParseUserRole(ctx))
+	data, err := svr.createUserModel(req, authcommon.ParseUserRole(ctx))
 
 	if err != nil {
 		log.Error("[Auth][User] create user model", utils.ZapRequestID(requestID), zap.Error(err))
@@ -350,12 +351,12 @@ func (svr *Server) GetUsers(ctx context.Context, query map[string]string) *apise
 func (svr *Server) GetUserToken(ctx context.Context, req *apisecurity.User) *apiservice.Response {
 	var user *model.User
 	if req.GetId().GetValue() != "" {
-		user = svr.cacheMgn.User().GetUserByID(req.GetId().GetValue())
+		user = svr.cacheMgr.User().GetUserByID(req.GetId().GetValue())
 	} else if req.GetName().GetValue() != "" {
 		ownerName := req.GetOwner().GetValue()
 		ownerID := utils.ParseOwnerID(ctx)
 		if ownerName == "" {
-			owner := svr.cacheMgn.User().GetUserByID(ownerID)
+			owner := svr.cacheMgr.User().GetUserByID(ownerID)
 			if owner == nil {
 				log.Error("[Auth][User] get user's owner not found",
 					zap.String("name", req.GetName().GetValue()), zap.String("owner", ownerID))
@@ -363,7 +364,7 @@ func (svr *Server) GetUserToken(ctx context.Context, req *apisecurity.User) *api
 			}
 			ownerName = owner.Name
 		}
-		user = svr.cacheMgn.User().GetUserByName(req.GetName().GetValue(), ownerName)
+		user = svr.cacheMgr.User().GetUserByName(req.GetName().GetValue(), ownerName)
 	} else {
 		return api.NewAuthResponse(apimodel.Code_InvalidParameter)
 	}
@@ -447,7 +448,7 @@ func (svr *Server) ResetUserToken(ctx context.Context, req *apisecurity.User) *a
 		return api.NewUserResponse(apimodel.Code_NotAllowedAccess, req)
 	}
 
-	newToken, err := createUserToken(user.ID)
+	newToken, err := createUserToken(user.ID, svr.authOpt.Salt)
 	if err != nil {
 		log.Error("[Auth][User] update user token", utils.ZapRequestID(requestID), zap.Error(err))
 		return api.NewUserResponse(apimodel.Code_ExecuteException, req)
@@ -467,6 +468,103 @@ func (svr *Server) ResetUserToken(ctx context.Context, req *apisecurity.User) *a
 	req.AuthToken = utils.NewStringValue(user.Token)
 
 	return api.NewUserResponse(apimodel.Code_ExecuteSuccess, req)
+}
+
+// VerifyCredential 对 token 进行检查验证，并将 verify 过程中解析出的数据注入到 model.AcquireContext 中
+// step 1. 首先对 token 进行解析，获取相关的数据信息，注入到整个的 AcquireContext 中
+// step 2. 最后对 token 进行一些验证步骤的执行
+// step 3. 兜底措施：如果开启了鉴权的非严格模式，则根据错误的类型，判断是否转为匿名用户进行访问
+//   - 如果是访问权限控制相关模块（用户、用户组、权限策略），不得转为匿名用户
+func (svr *Server) CheckCredential(authCtx *model.AcquireContext) error {
+	reqId := utils.ParseRequestID(authCtx.GetRequestContext())
+
+	checkErr := func() error {
+		authToken := utils.ParseAuthToken(authCtx.GetRequestContext())
+		operator, err := svr.decodeToken(authToken)
+		if err != nil {
+			log.Error("[Auth][Checker] decode token", zap.Error(err))
+			return model.ErrorTokenInvalid
+		}
+
+		ownerId, isOwner, err := svr.checkToken(&operator)
+		if err != nil {
+			log.Errorf("[Auth][Checker] check token err : %s", err.Error())
+			return err
+		}
+
+		operator.OwnerID = ownerId
+		ctx := authCtx.GetRequestContext()
+		ctx = context.WithValue(ctx, utils.ContextIsOwnerKey, isOwner)
+		ctx = context.WithValue(ctx, utils.ContextUserIDKey, operator.OperatorID)
+		ctx = context.WithValue(ctx, utils.ContextOwnerIDKey, ownerId)
+		authCtx.SetRequestContext(ctx)
+		svr.parseOperatorInfo(operator, authCtx)
+		if operator.Disable {
+			log.Warn("[Auth][Checker] token already disabled", utils.ZapRequestID(reqId),
+				zap.Any("token", operator.String()))
+		}
+		return nil
+	}()
+
+	if checkErr != nil {
+		if !canDowngradeAnonymous(authCtx, checkErr) {
+			return checkErr
+		}
+		log.Warn("[Auth][Checker] parse operator info, downgrade to anonymous", utils.ZapRequestID(reqId),
+			zap.Error(checkErr))
+		// 操作者信息解析失败，降级为匿名用户
+		authCtx.SetAttachment(model.TokenDetailInfoKey, auth.NewAnonymous())
+	}
+
+	return nil
+}
+
+func (svr *Server) parseOperatorInfo(operator auth.OperatorInfo, authCtx *model.AcquireContext) {
+	ctx := authCtx.GetRequestContext()
+	if operator.IsUserToken {
+		user := svr.cacheMgr.User().GetUserByID(operator.OperatorID)
+		if user != nil {
+			operator.Role = user.Type
+			ctx = context.WithValue(ctx, utils.ContextOperator, user.Name)
+			ctx = context.WithValue(ctx, utils.ContextUserNameKey, user.Name)
+			ctx = context.WithValue(ctx, utils.ContextUserRoleIDKey, user.Type)
+		}
+	} else {
+		userGroup := svr.cacheMgr.User().GetGroup(operator.OperatorID)
+		if userGroup != nil {
+			ctx = context.WithValue(ctx, utils.ContextOperator, userGroup.Name)
+			ctx = context.WithValue(ctx, utils.ContextUserNameKey, userGroup.Name)
+		}
+	}
+
+	authCtx.SetAttachment(model.OperatorRoleKey, operator.Role)
+	authCtx.SetAttachment(model.OperatorPrincipalType, func() model.PrincipalType {
+		if operator.IsUserToken {
+			return model.PrincipalUser
+		}
+		return model.PrincipalGroup
+	}())
+	authCtx.SetAttachment(model.OperatorIDKey, operator.OperatorID)
+	authCtx.SetAttachment(model.OperatorOwnerKey, operator)
+	authCtx.SetAttachment(model.TokenDetailInfoKey, operator)
+
+	authCtx.SetRequestContext(ctx)
+}
+
+func canDowngradeAnonymous(authCtx *model.AcquireContext, err error) bool {
+	if authCtx.GetModule() == model.AuthModule {
+		return false
+	}
+	if !authCtx.IsAllowAnonymous() {
+		return false
+	}
+	if errors.Is(err, model.ErrorTokenInvalid) {
+		return true
+	}
+	if errors.Is(err, model.ErrorTokenNotExist) {
+		return true
+	}
+	return false
 }
 
 // checkUserViewPermission 检查是否可以操作该用户
@@ -552,15 +650,15 @@ func checkCreateUser(req *apisecurity.User) *apiservice.Response {
 		return api.NewUserResponse(apimodel.Code_EmptyRequest, req)
 	}
 
-	if err := checkName(req.Name); err != nil {
+	if err := CheckName(req.Name); err != nil {
 		return api.NewUserResponse(apimodel.Code_InvalidUserName, req)
 	}
 
-	if err := checkPassword(req.Password); err != nil {
+	if err := CheckPassword(req.Password); err != nil {
 		return api.NewUserResponse(apimodel.Code_InvalidUserPassword, req)
 	}
 
-	if err := checkOwner(req.Owner); err != nil {
+	if err := CheckOwner(req.Owner); err != nil {
 		return api.NewUserResponse(apimodel.Code_InvalidUserOwners, req)
 	}
 	return nil
@@ -574,7 +672,7 @@ func checkUpdateUser(req *apisecurity.User) *apiservice.Response {
 
 	// 如果本次请求需要修改密码的话
 	if req.GetPassword() != nil {
-		if err := checkPassword(req.Password); err != nil {
+		if err := CheckPassword(req.Password); err != nil {
 			return api.NewUserResponseWithMsg(apimodel.Code_InvalidUserPassword, err.Error(), req)
 		}
 	}
@@ -601,7 +699,7 @@ func updateUserPasswordAttribute(
 	isAdmin bool, user *model.User, req *apisecurity.ModifyUserPassword) (*model.User, bool, error) {
 	needUpdate := false
 
-	if err := checkPassword(req.NewPassword); err != nil {
+	if err := CheckPassword(req.NewPassword); err != nil {
 		return nil, false, err
 	}
 
@@ -634,7 +732,7 @@ func updateUserPasswordAttribute(
 }
 
 // createUserModel 创建用户模型
-func createUserModel(req *apisecurity.User, role model.UserRoleType) (*model.User, error) {
+func (svr *Server) createUserModel(req *apisecurity.User, role model.UserRoleType) (*model.User, error) {
 	pwd, err := bcrypt.GenerateFromPassword([]byte(req.GetPassword().GetValue()), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
@@ -664,7 +762,7 @@ func createUserModel(req *apisecurity.User, role model.UserRoleType) (*model.Use
 		user.Owner = ""
 	}
 
-	newToken, err := createUserToken(user.ID)
+	newToken, err := createUserToken(user.ID, svr.authOpt.Salt)
 	if err != nil {
 		return nil, err
 	}

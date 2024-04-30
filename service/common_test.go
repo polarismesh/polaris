@@ -34,7 +34,6 @@ import (
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	bolt "go.etcd.io/bbolt"
 
-	_ "github.com/polarismesh/polaris/auth/defaultauth"
 	_ "github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/log"

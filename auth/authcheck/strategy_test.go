@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth_test
+package authcheck_test
 
 import (
 	"context"
@@ -30,7 +30,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/auth"
-	"github.com/polarismesh/polaris/auth/defaultauth"
+	"github.com/polarismesh/polaris/auth/authcheck"
 	"github.com/polarismesh/polaris/cache"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -57,7 +57,7 @@ type StrategyTest struct {
 	cacheMgn *cache.CacheManager
 	checker  auth.AuthChecker
 
-	svr *defaultauth.StrategyAuthAbility
+	svr *authcheck.Server
 
 	cancel context.CancelFunc
 
@@ -122,33 +122,18 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 
 	_ = cacheMgn.TestUpdate()
 
-	checker := &defaultauth.DefaultAuthChecker{}
-	checker.Initialize(&auth.Config{
-		User: &auth.UserConfig{
-			Name: "",
-			Option: map[string]interface{}{
-				"salt": "polarismesh@2021",
-			},
-		},
-		Strategy: &auth.StrategyConfig{
-			Name: "",
-			Option: map[string]interface{}{
-				"consoleOpen": true,
-				"clientOpen":  true,
-				"strict":      false,
-			},
-		},
-	}, storage, cacheMgn)
+	checker := &authcheck.DefaultAuthChecker{}
+	checker.Initialize(&authcheck.AuthConfig{
+		ConsoleOpen:   true,
+		ClientOpen:    true,
+		ConsoleStrict: false,
+		ClientStrict:  false,
+	}, storage, cacheMgn, nil)
 	checker.SetCacheMgr(cacheMgn)
 
 	t.Cleanup(func() {
 		cacheMgn.Close()
 	})
-
-	svr := defaultauth.NewStrategyAuthAbility(
-		checker,
-		defaultauth.NewServer(storage, nil, cacheMgn, checker),
-	)
 
 	return &StrategyTest{
 		ownerOne: users[0],
@@ -165,7 +150,6 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 		storage:  storage,
 		cacheMgn: cacheMgn,
 		checker:  checker,
-		svr:      svr,
 
 		cancel: cancel,
 
@@ -850,7 +834,7 @@ func Test_parseStrategySearchArgs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := defaultauth.TestParseStrategySearchArgs(tt.args.ctx, tt.args.searchFilters); !reflect.DeepEqual(got, tt.want) {
+			if got := authcheck.ParseStrategySearchArgs(tt.args.ctx, tt.args.searchFilters); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("parseStrategySearchArgs() = %v, want %v", got, tt.want)
 			}
 		})

@@ -15,11 +15,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth
+package authcheck
 
-import commonlog "github.com/polarismesh/polaris/common/log"
-
-var (
-	log      = commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName)
-	sysOplog = commonlog.GetScopeOrDefaultByName(commonlog.SystemOperationLoggerName)
+import (
+	"github.com/polarismesh/polaris/auth"
 )
+
+func init() {
+	_ = auth.RegisterStrategyServer(&Server{})
+}

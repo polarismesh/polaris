@@ -35,7 +35,6 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris/auth"
-	_ "github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/cache"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"

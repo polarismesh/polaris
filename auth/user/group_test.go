@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth_test
+package defaultuser_test
 
 import (
 	"context"
@@ -28,7 +28,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/auth"
-	"github.com/polarismesh/polaris/auth/defaultauth"
+	defaultauth "github.com/polarismesh/polaris/auth/user"
 	"github.com/polarismesh/polaris/cache"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	v1 "github.com/polarismesh/polaris/common/api/v1"
@@ -51,10 +51,9 @@ type GroupTest struct {
 	storage  *storemock.MockStore
 	cacheMgn *cache.CacheManager
 	checker  auth.AuthChecker
+	cancel   context.CancelFunc
 
-	svr *defaultauth.GroupAuthAbility
-
-	cancel context.CancelFunc
+	svr *defaultauth.Server
 }
 
 func newGroupTest(t *testing.T) *GroupTest {
@@ -95,15 +94,6 @@ func newGroupTest(t *testing.T) *GroupTest {
 	})
 
 	_ = cacheMgn.TestUpdate()
-
-	checker := &defaultauth.DefaultAuthChecker{}
-	checker.SetCacheMgr(cacheMgn)
-
-	svr := defaultauth.NewGroupAuthAbility(
-		checker,
-		defaultauth.NewServer(storage, nil, cacheMgn, checker),
-	)
-
 	return &GroupTest{
 		ctrl: ctrl,
 
@@ -117,8 +107,6 @@ func newGroupTest(t *testing.T) *GroupTest {
 
 		storage:  storage,
 		cacheMgn: cacheMgn,
-		checker:  checker,
-		svr:      svr,
 
 		cancel: cancel,
 	}

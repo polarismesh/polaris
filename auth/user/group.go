@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth
+package defaultuser
 
 import (
 	"context"
@@ -79,7 +79,7 @@ func (svr *Server) CreateGroup(ctx context.Context, req *apisecurity.UserGroup) 
 		return api.NewGroupResponse(apimodel.Code_UserGroupExisted, req)
 	}
 
-	data, err := createGroupModel(req)
+	data, err := svr.createGroupModel(req)
 	if err != nil {
 		log.Error("create group model", utils.ZapRequestID(requestID),
 			utils.ZapPlatformID(platformID), zap.Error(err))
@@ -368,7 +368,7 @@ func (svr *Server) ResetGroupToken(ctx context.Context, req *apisecurity.UserGro
 		return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
 	}
 
-	newToken, err := createGroupToken(group.ID)
+	newToken, err := createGroupToken(group.ID, svr.authOpt.Salt)
 	if err != nil {
 		log.Error("reset group token", utils.ZapRequestID(requestID),
 			utils.ZapPlatformID(platformID), zap.Error(err))
@@ -414,7 +414,7 @@ func (svr *Server) getGroupFromDB(id string) (*model.UserGroupDetail, *apiservic
 
 // getGroupFromCache 从缓存中获取用户组信息数据
 func (svr *Server) getGroupFromCache(req *apisecurity.UserGroup) (*model.UserGroupDetail, *apiservice.Response) {
-	group := svr.cacheMgn.User().GetGroup(req.Id.GetValue())
+	group := svr.cacheMgr.User().GetGroup(req.Id.GetValue())
 	if group == nil {
 		return nil, api.NewGroupResponse(apimodel.Code_NotFoundUserGroup, req)
 	}
@@ -425,7 +425,7 @@ func (svr *Server) getGroupFromCache(req *apisecurity.UserGroup) (*model.UserGro
 // preCheckGroupRelation 检查用户-用户组关联关系中，对应的用户信息是否存在，即不能添加一个不存在的用户到用户组
 func (svr *Server) preCheckGroupRelation(groupID string, req *apisecurity.UserGroupRelation) (*model.UserGroupDetail,
 	*apiservice.Response) {
-	group := svr.cacheMgn.User().GetGroup(groupID)
+	group := svr.cacheMgr.User().GetGroup(groupID)
 	if group == nil {
 		return nil, api.NewAuthResponse(apimodel.Code_NotFoundUserGroup)
 	}
@@ -438,7 +438,7 @@ func (svr *Server) preCheckGroupRelation(groupID string, req *apisecurity.UserGr
 
 	uIDs = utils.StringSliceDeDuplication(uIDs)
 	for i := range uIDs {
-		user := svr.cacheMgn.User().GetUserByID(uIDs[i])
+		user := svr.cacheMgr.User().GetUserByID(uIDs[i])
 		if user == nil {
 			return group, api.NewGroupRelationResponse(apimodel.Code_NotFoundUser, req)
 		}
@@ -455,7 +455,7 @@ func (svr *Server) checkCreateGroup(_ context.Context, req *apisecurity.UserGrou
 
 	users := req.GetRelation().GetUsers()
 	for i := range users {
-		user := svr.cacheMgn.User().GetUserByID(users[i].GetId().GetValue())
+		user := svr.cacheMgr.User().GetUserByID(users[i].GetId().GetValue())
 		if user == nil {
 			return api.NewGroupRelationResponse(apimodel.Code_NotFoundUser, req.GetRelation())
 		}
@@ -502,7 +502,7 @@ func (svr *Server) checkUpdateGroup(ctx context.Context, req *apisecurity.Modify
 }
 
 func (svr *Server) fillGroupUserCount(groups []*apisecurity.UserGroup) {
-	groupCache := svr.cacheMgn.User()
+	groupCache := svr.cacheMgr.User()
 
 	for index := range groups {
 		group := groups[index]
@@ -569,7 +569,7 @@ func enhancedGroups2Api(groups []*model.UserGroup, handler UserGroup2Api) []*api
 }
 
 // createGroupModel 创建用户组的存储模型
-func createGroupModel(req *apisecurity.UserGroup) (group *model.UserGroupDetail, err error) {
+func (svr *Server) createGroupModel(req *apisecurity.UserGroup) (group *model.UserGroupDetail, err error) {
 	ids := make(map[string]struct{}, len(req.GetRelation().GetUsers()))
 	for index := range req.GetRelation().GetUsers() {
 		ids[req.GetRelation().GetUsers()[index].GetId().GetValue()] = struct{}{}
@@ -589,7 +589,7 @@ func createGroupModel(req *apisecurity.UserGroup) (group *model.UserGroupDetail,
 		UserIds: ids,
 	}
 
-	if group.Token, err = createGroupToken(group.ID); err != nil {
+	if group.Token, err = createGroupToken(group.ID, svr.authOpt.Salt); err != nil {
 		return nil, err
 	}
 	return group, nil
@@ -623,7 +623,7 @@ func (svr *Server) userGroupDetail2Api(group *model.UserGroupDetail) *apisecurit
 
 	users := make([]*apisecurity.User, 0, len(group.UserIds))
 	for id := range group.UserIds {
-		user := svr.cacheMgn.User().GetUserByID(id)
+		user := svr.cacheMgr.User().GetUserByID(id)
 		users = append(users, &apisecurity.User{
 			Id:          utils.NewStringValue(user.ID),
 			Name:        utils.NewStringValue(user.Name),

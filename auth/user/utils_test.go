@@ -15,14 +15,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth_test
+package defaultuser_test
 
 import (
 	"testing"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
-
-	"github.com/polarismesh/polaris/auth/defaultauth"
+	defaultuser "github.com/polarismesh/polaris/auth/user"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -98,7 +97,7 @@ func Test_checkPassword(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := defaultauth.TestCheckPassword(tt.args.password); (err != nil) != tt.wantErr {
+			if err := defaultuser.CheckPassword(tt.args.password); (err != nil) != tt.wantErr {
 				t.Errorf("checkPassword() error = %v, wantErr %v, args = %#v", err, tt.wantErr, tt.args.password.GetValue())
 			}
 		})
@@ -147,7 +146,7 @@ func Test_checkName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := defaultauth.TestCheckName(tt.args.name); (err != nil) != tt.wantErr {
+			if err := defaultuser.CheckName(tt.args.name); (err != nil) != tt.wantErr {
 				t.Errorf("checkName() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

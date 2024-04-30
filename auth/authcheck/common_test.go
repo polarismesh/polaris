@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth_test
+package authcheck_test
 
 import (
 	"fmt"
@@ -28,7 +28,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/polarismesh/polaris/auth/defaultauth"
+	defaultuser "github.com/polarismesh/polaris/auth/user"
 	"github.com/polarismesh/polaris/cache"
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
@@ -37,12 +37,7 @@ import (
 )
 
 func reset(strict bool) {
-	defaultauth.AuthOption = defaultauth.DefaultAuthConfig()
-	defaultauth.AuthOption.ClientOpen = true
-	defaultauth.AuthOption.ConsoleOpen = true
-	defaultauth.AuthOption.Strict = strict
-	defaultauth.AuthOption.ConsoleStrict = strict
-	defaultauth.AuthOption.ClientStrict = strict
+
 }
 
 func initCache(ctrl *gomock.Controller) (*cache.Config, *storemock.MockStore) {
@@ -119,131 +114,6 @@ func createMockService(namespaces []*model.Namespace) []*model.Service {
 	}
 
 	return services
-}
-
-// createMockUser 默认 users[0] 为 owner 用户
-func createMockUser(total int, prefix ...string) []*model.User {
-	users := make([]*model.User, 0, total)
-
-	ownerId := utils.NewUUID()
-
-	nameTemp := "user-%d"
-	if len(prefix) != 0 {
-		nameTemp = prefix[0] + nameTemp
-	}
-
-	for i := 0; i < total; i++ {
-		id := fmt.Sprintf("fake-user-id-%d-%s", i, utils.NewUUID())
-		if i == 0 {
-			id = ownerId
-		}
-		pwd, _ := bcrypt.GenerateFromPassword([]byte("polaris"), bcrypt.DefaultCost)
-		token, _ := defaultauth.TestCreateToken(id, "")
-		users = append(users, &model.User{
-			ID:       id,
-			Name:     fmt.Sprintf(nameTemp, i),
-			Password: string(pwd),
-			Owner: func() string {
-				if id == ownerId {
-					return ""
-				}
-				return ownerId
-			}(),
-			Source: "Polaris",
-			Mobile: "",
-			Email:  "",
-			Type: func() model.UserRoleType {
-				if id == ownerId {
-					return model.OwnerUserRole
-				}
-				return model.SubAccountUserRole
-			}(),
-			Token:       token,
-			TokenEnable: true,
-			Valid:       true,
-			CreateTime:  time.Time{},
-			ModifyTime:  time.Time{},
-		})
-	}
-	return users
-}
-
-func createApiMockUser(total int, prefix ...string) []*apisecurity.User {
-	users := make([]*apisecurity.User, 0, total)
-
-	models := createMockUser(total, prefix...)
-
-	for i := range models {
-		users = append(users, &apisecurity.User{
-			Name:     utils.NewStringValue("test-" + models[i].Name),
-			Password: utils.NewStringValue("123456"),
-			Source:   utils.NewStringValue("Polaris"),
-			Comment:  utils.NewStringValue(models[i].Comment),
-			Mobile:   utils.NewStringValue(models[i].Mobile),
-			Email:    utils.NewStringValue(models[i].Email),
-		})
-	}
-
-	return users
-}
-
-func createMockUserGroup(users []*model.User) []*model.UserGroupDetail {
-	groups := make([]*model.UserGroupDetail, 0, len(users))
-
-	for i := range users {
-		user := users[i]
-		id := utils.NewUUID()
-
-		token, _ := defaultauth.TestCreateToken("", id)
-
-		groups = append(groups, &model.UserGroupDetail{
-			UserGroup: &model.UserGroup{
-				ID:          id,
-				Name:        fmt.Sprintf("test-group-%d", i),
-				Owner:       users[0].ID,
-				Token:       token,
-				TokenEnable: true,
-				Valid:       true,
-				Comment:     "",
-				CreateTime:  time.Time{},
-				ModifyTime:  time.Time{},
-			},
-			UserIds: map[string]struct{}{
-				user.ID: {},
-			},
-		})
-	}
-
-	return groups
-}
-
-// createMockApiUserGroup
-func createMockApiUserGroup(users []*apisecurity.User) []*apisecurity.UserGroup {
-	musers := make([]*model.User, 0, len(users))
-	for i := range users {
-		musers = append(musers, &model.User{
-			ID: users[i].GetId().GetValue(),
-		})
-	}
-
-	models := createMockUserGroup(musers)
-	ret := make([]*apisecurity.UserGroup, 0, len(models))
-
-	for i := range models {
-		ret = append(ret, &apisecurity.UserGroup{
-			Name:    utils.NewStringValue(models[i].Name),
-			Comment: utils.NewStringValue(models[i].Comment),
-			Relation: &apisecurity.UserGroupRelation{
-				Users: []*apisecurity.User{
-					{
-						Id: utils.NewStringValue(users[i].GetId().GetValue()),
-					},
-				},
-			},
-		})
-	}
-
-	return ret
 }
 
 func createMockStrategy(users []*model.User, groups []*model.UserGroupDetail, services []*model.Service) ([]*model.StrategyDetail, []*model.StrategyDetail) {
@@ -402,6 +272,130 @@ func convertServiceSliceToMap(services []*model.Service) map[string]*model.Servi
 	for i := range services {
 		service := services[i]
 		ret[service.ID] = service
+	}
+
+	return ret
+}
+
+// createMockUser 默认 users[0] 为 owner 用户
+func createMockUser(total int, prefix ...string) []*model.User {
+	users := make([]*model.User, 0, total)
+
+	ownerId := utils.NewUUID()
+
+	nameTemp := "user-%d"
+	if len(prefix) != 0 {
+		nameTemp = prefix[0] + nameTemp
+	}
+
+	for i := 0; i < total; i++ {
+		id := fmt.Sprintf("fake-user-id-%d-%s", i, utils.NewUUID())
+		if i == 0 {
+			id = ownerId
+		}
+		pwd, _ := bcrypt.GenerateFromPassword([]byte("polaris"), bcrypt.DefaultCost)
+		token, _ := defaultuser.CreateToken(id, "", "polarismesh@2021")
+		users = append(users, &model.User{
+			ID:       id,
+			Name:     fmt.Sprintf(nameTemp, i),
+			Password: string(pwd),
+			Owner: func() string {
+				if id == ownerId {
+					return ""
+				}
+				return ownerId
+			}(),
+			Source: "Polaris",
+			Mobile: "",
+			Email:  "",
+			Type: func() model.UserRoleType {
+				if id == ownerId {
+					return model.OwnerUserRole
+				}
+				return model.SubAccountUserRole
+			}(),
+			Token:       token,
+			TokenEnable: true,
+			Valid:       true,
+			CreateTime:  time.Time{},
+			ModifyTime:  time.Time{},
+		})
+	}
+	return users
+}
+
+func createApiMockUser(total int, prefix ...string) []*apisecurity.User {
+	users := make([]*apisecurity.User, 0, total)
+
+	models := createMockUser(total, prefix...)
+
+	for i := range models {
+		users = append(users, &apisecurity.User{
+			Name:     utils.NewStringValue("test-" + models[i].Name),
+			Password: utils.NewStringValue("123456"),
+			Source:   utils.NewStringValue("Polaris"),
+			Comment:  utils.NewStringValue(models[i].Comment),
+			Mobile:   utils.NewStringValue(models[i].Mobile),
+			Email:    utils.NewStringValue(models[i].Email),
+		})
+	}
+
+	return users
+}
+
+func createMockUserGroup(users []*model.User) []*model.UserGroupDetail {
+	groups := make([]*model.UserGroupDetail, 0, len(users))
+
+	for i := range users {
+		user := users[i]
+		id := utils.NewUUID()
+
+		token, _ := defaultuser.CreateToken("", id, "polarismesh@2021")
+		groups = append(groups, &model.UserGroupDetail{
+			UserGroup: &model.UserGroup{
+				ID:          id,
+				Name:        fmt.Sprintf("test-group-%d", i),
+				Owner:       users[0].ID,
+				Token:       token,
+				TokenEnable: true,
+				Valid:       true,
+				Comment:     "",
+				CreateTime:  time.Time{},
+				ModifyTime:  time.Time{},
+			},
+			UserIds: map[string]struct{}{
+				user.ID: {},
+			},
+		})
+	}
+
+	return groups
+}
+
+// createMockApiUserGroup
+func createMockApiUserGroup(users []*apisecurity.User) []*apisecurity.UserGroup {
+	musers := make([]*model.User, 0, len(users))
+	for i := range users {
+		musers = append(musers, &model.User{
+			ID: users[i].GetId().GetValue(),
+		})
+	}
+
+	models := createMockUserGroup(musers)
+	ret := make([]*apisecurity.UserGroup, 0, len(models))
+
+	for i := range models {
+		ret = append(ret, &apisecurity.UserGroup{
+			Name:    utils.NewStringValue(models[i].Name),
+			Comment: utils.NewStringValue(models[i].Comment),
+			Relation: &apisecurity.UserGroupRelation{
+				Users: []*apisecurity.User{
+					{
+						Id: utils.NewStringValue(users[i].GetId().GetValue()),
+					},
+				},
+			},
+		})
 	}
 
 	return ret

@@ -199,7 +199,7 @@ func (n *NacosServer) prepareRun() error {
 		nacosv1.WithNamespaceSvr(n.namespaceSvr),
 		nacosv1.WithDiscoverSvr(n.discoverSvr, n.originDiscoverSvr, n.healthSvr),
 		nacosv1.WithConfigSvr(n.configSvr, n.originConfigSvr),
-		nacosv1.WithAuthSvr(n.userSvr, n.strategySvr),
+		nacosv1.WithAuthSvr(n.userSvr),
 	)
 	if err != nil {
 		return err
@@ -211,7 +211,7 @@ func (n *NacosServer) prepareRun() error {
 		nacosv2.WithNamespaceSvr(n.namespaceSvr),
 		nacosv2.WithDiscoverSvr(n.discoverSvr, n.originDiscoverSvr, n.healthSvr),
 		nacosv2.WithConfigSvr(n.configSvr, n.originConfigSvr),
-		nacosv2.WithAuthSvr(n.userSvr, n.strategySvr),
+		nacosv2.WithAuthSvr(n.userSvr),
 	)
 	if err != nil {
 		return err

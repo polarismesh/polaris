@@ -82,9 +82,9 @@ type StrategyConfig struct {
 
 var (
 	// userMgnSlots 保存用户管理manager slot
-	userMgnSlots = map[string]UserServer{}
+	userMgrSlots = map[string]UserServer{}
 	// strategyMgnSlots 保存策略管理manager slot
-	strategyMgnSlots = map[string]StrategyServer{}
+	strategyMgrSlots = map[string]StrategyServer{}
 	once             sync.Once
 	userMgn          UserServer
 	strategyMgn      StrategyServer
@@ -94,11 +94,11 @@ var (
 // RegisterUserServer 注册一个新的 UserServer
 func RegisterUserServer(s UserServer) error {
 	name := s.Name()
-	if _, ok := userMgnSlots[name]; ok {
+	if _, ok := userMgrSlots[name]; ok {
 		return fmt.Errorf("UserServer=[%s] exist", name)
 	}
 
-	userMgnSlots[name] = s
+	userMgrSlots[name] = s
 	return nil
 }
 
@@ -113,11 +113,11 @@ func GetUserServer() (UserServer, error) {
 // RegisterStrategyServer 注册一个新的 StrategyServer
 func RegisterStrategyServer(s StrategyServer) error {
 	name := s.Name()
-	if _, ok := strategyMgnSlots[name]; ok {
+	if _, ok := strategyMgrSlots[name]; ok {
 		return fmt.Errorf("StrategyServer=[%s] exist", name)
 	}
 
-	strategyMgnSlots[name] = s
+	strategyMgrSlots[name] = s
 	return nil
 }
 
@@ -151,7 +151,7 @@ func initialize(_ context.Context, authOpt *Config, storage store.Store,
 		return nil, nil, errors.New("UserServer Name is empty")
 	}
 
-	namedUserMgn, ok := userMgnSlots[name]
+	namedUserMgn, ok := userMgrSlots[name]
 	if !ok {
 		return nil, nil, fmt.Errorf("no such UserServer plugin. name(%s)", name)
 	}
@@ -165,11 +165,11 @@ func initialize(_ context.Context, authOpt *Config, storage store.Store,
 		return nil, nil, errors.New("StrategyServer Name is empty")
 	}
 
-	namedStrategyMgn, ok := strategyMgnSlots[name]
+	namedStrategyMgn, ok := strategyMgrSlots[name]
 	if !ok {
 		return nil, nil, fmt.Errorf("no such StrategyServer plugin. name(%s)", name)
 	}
-	if err := namedStrategyMgn.Initialize(authOpt, storage, cacheMgr); err != nil {
+	if err := namedStrategyMgn.Initialize(authOpt, storage, cacheMgr, namedUserMgn); err != nil {
 		log.Printf("StrategyServer do initialize err: %s", err.Error())
 		return nil, nil, err
 	}

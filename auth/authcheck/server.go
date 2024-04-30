@@ -15,87 +15,135 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth
+package authcheck
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/polarismesh/polaris/cache"
+	"github.com/polarismesh/polaris/auth"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
 )
 
-func NewServer(storage store.Store,
-	history plugin.History,
-	cacheMgn *cache.CacheManager,
-	authMgn *DefaultAuthChecker) *Server {
-	return &Server{
-		storage:  storage,
-		history:  history,
-		cacheMgn: cacheMgn,
-		authMgn:  authMgn,
+// AuthConfig 鉴权配置
+type AuthConfig struct {
+	// ConsoleOpen 控制台是否开启鉴权
+	ConsoleOpen bool `json:"consoleOpen" xml:"consoleOpen"`
+	// ClientOpen 是否开启客户端接口鉴权
+	ClientOpen bool `json:"clientOpen" xml:"clientOpen"`
+	// Strict 是否启用鉴权的严格模式，即对于没有任何鉴权策略的资源，也必须带上正确的token才能操作, 默认关闭
+	// Deprecated
+	Strict bool `json:"strict"`
+	// ConsoleStrict 是否启用鉴权的严格模式，即对于没有任何鉴权策略的资源，也必须带上正确的token才能操作, 默认关闭
+	ConsoleStrict bool `json:"consoleStrict"`
+	// ClientStrict 是否启用鉴权的严格模式，即对于没有任何鉴权策略的资源，也必须带上正确的token才能操作, 默认关闭
+	ClientStrict bool `json:"clientStrict"`
+}
+
+// DefaultAuthConfig 返回一个默认的鉴权配置
+func DefaultAuthConfig() *AuthConfig {
+	return &AuthConfig{
+		// 针对控制台接口，默认开启鉴权操作
+		ConsoleOpen: true,
+		// 针对客户端接口，默认不开启鉴权操作
+		ClientOpen: false,
+		// 这里默认开启 OpenAPI 的强 Token 检查模式
+		ConsoleStrict: true,
+		// 客户端接口默认不开启 token 强检查模式
+		ClientStrict: false,
 	}
 }
 
 type Server struct {
+	options  *AuthConfig
 	storage  store.Store
 	history  plugin.History
-	cacheMgn cachetypes.CacheManager
-	authMgn  *DefaultAuthChecker
+	cacheMgr cachetypes.CacheManager
+	checker  *DefaultAuthChecker
+	userSvr  auth.UserServer
 }
 
 // initialize
-func (svr *Server) initialize() error {
+func (svr *Server) Initialize(options *auth.Config, storage store.Store, cacheMgr cachetypes.CacheManager, userSvr auth.UserServer) error {
+	svr.cacheMgr = cacheMgr
+	svr.userSvr = userSvr
+	svr.storage = storage
+	if err := svr.ParseOptions(options); err != nil {
+		return err
+	}
+
+	_ = cacheMgr.OpenResourceCache(cachetypes.ConfigEntry{
+		Name: cachetypes.StrategyRuleName,
+	})
 	// 获取History插件，注意：插件的配置在bootstrap已经设置好
 	svr.history = plugin.GetHistory()
 	if svr.history == nil {
 		log.Warnf("Not Found History Log Plugin")
 	}
-
 	return nil
 }
 
-// Login 登录动作
-func (svr *Server) Login(req *apisecurity.LoginRequest) *apiservice.Response {
-	username := req.GetName().GetValue()
-	ownerName := req.GetOwner().GetValue()
-	if ownerName == "" {
-		ownerName = username
-	}
-	user := svr.cacheMgn.User().GetUserByName(username, ownerName)
-	if user == nil {
-		return api.NewAuthResponse(apimodel.Code_NotFoundUser)
-	}
+func (svr *Server) GetOptions() *AuthConfig {
+	return svr.options
+}
 
-	// TODO AES 解密操作，在进行密码比对计算
-	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.GetPassword().GetValue()))
-	if err != nil {
-		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			return api.NewAuthResponseWithMsg(
-				apimodel.Code_NotAllowedAccess, model.ErrorWrongUsernameOrPassword.Error())
+func (svr *Server) ParseOptions(options *auth.Config) error {
+	// 新版本鉴权策略配置均从auth.Option中迁移至auth.user.option及auth.strategy.option中
+	var (
+		strategyContentBytes []byte
+		authContentBytes     []byte
+		err                  error
+	)
+
+	cfg := DefaultAuthConfig()
+
+	// 一旦设置了auth.user.option或auth.strategy.option，将不会继续读取auth.option
+	if len(options.Strategy.Option) > 0 || len(options.User.Option) > 0 {
+		// 判断auth.option是否还有值，有则不兼容
+		if len(options.Option) > 0 {
+			log.Warn("auth.user.option or auth.strategy.option has set, auth.option will ignore")
 		}
-		return api.NewAuthResponseWithMsg(apimodel.Code_ExecuteException, model.ErrorWrongUsernameOrPassword.Error())
+		strategyContentBytes, err = json.Marshal(options.Strategy.Option)
+		if err != nil {
+			return err
+		}
+		if err := json.Unmarshal(strategyContentBytes, cfg); err != nil {
+			return err
+		}
+	} else {
+		log.Warn("[Auth][Checker] auth.option has deprecated, use auth.user.option and auth.strategy.option instead.")
+		authContentBytes, err = json.Marshal(options.Option)
+		if err != nil {
+			return err
+		}
+		if err := json.Unmarshal(authContentBytes, cfg); err != nil {
+			return err
+		}
 	}
+	// 兼容原本老的配置逻辑
+	if cfg.Strict {
+		cfg.ConsoleOpen = cfg.Strict
+	}
+	svr.options = cfg
+	return nil
+}
 
-	return api.NewLoginResponse(apimodel.Code_ExecuteSuccess, &apisecurity.LoginResponse{
-		UserId:  utils.NewStringValue(user.ID),
-		OwnerId: utils.NewStringValue(user.Owner),
-		Token:   utils.NewStringValue(user.Token),
-		Name:    utils.NewStringValue(user.Name),
-		Role:    utils.NewStringValue(model.UserRoleNames[user.Type]),
-	})
+func (svr *Server) Name() string {
+	return auth.DefaultStrategyMgnPluginName
+}
+
+func (svr *Server) GetAuthChecker() auth.AuthChecker {
+	return svr.checker
 }
 
 // RecordHistory Server对外提供history插件的简单封装
@@ -116,16 +164,16 @@ func (svr *Server) RecordHistory(entry *model.RecordEntry) {
 // AfterResourceOperation 对于资源的添加删除操作，需要执行后置逻辑
 // 所有子用户或者用户分组，都默认获得对所创建的资源的写权限
 func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error {
-	if !svr.authMgn.IsOpenAuth() || afterCtx.GetOperation() == model.Read {
+	if !svr.checker.IsOpenAuth() || afterCtx.GetOperation() == model.Read {
 		return nil
 	}
 
 	// 如果客户端鉴权没有开启，且请求来自客户端，忽略
-	if afterCtx.IsFromClient() && !svr.authMgn.IsOpenClientAuth() {
+	if afterCtx.IsFromClient() && !svr.checker.IsOpenClientAuth() {
 		return nil
 	}
 	// 如果控制台鉴权没有开启，且请求来自控制台，忽略
-	if afterCtx.IsFromConsole() && !svr.authMgn.IsOpenConsoleAuth() {
+	if afterCtx.IsFromConsole() && !svr.checker.IsOpenConsoleAuth() {
 		return nil
 	}
 
@@ -133,13 +181,13 @@ func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 	if !ok {
 		return nil
 	}
-	tokenInfo, ok := attachVal.(OperatorInfo)
+	tokenInfo, ok := attachVal.(auth.OperatorInfo)
 	if !ok {
 		return nil
 	}
 
 	// 如果 token 信息为空，则代表当前创建的资源，任何人都可以进行操作，不做资源的后置逻辑处理
-	if IsEmptyOperator(tokenInfo) {
+	if auth.IsEmptyOperator(tokenInfo) {
 		return nil
 	}
 
@@ -191,21 +239,22 @@ func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 func (svr *Server) handleUserStrategy(userIds []string, afterCtx *model.AcquireContext, isRemove bool) error {
 	for index := range utils.StringSliceDeDuplication(userIds) {
 		userId := userIds[index]
-		user := svr.cacheMgn.User().GetUserByID(userId)
+		user := svr.userSvr.GetUserHelper().GetUser(&apisecurity.User{
+			Id: wrapperspb.String(userId),
+		})
 		if user == nil {
 			return errors.New("not found target user")
 		}
 
-		ownerId := user.Owner
+		ownerId := user.GetOwner().GetValue()
 		if ownerId == "" {
-			ownerId = user.ID
+			ownerId = user.GetId().GetValue()
 		}
 		if err := svr.handlerModifyDefaultStrategy(userId, ownerId, model.PrincipalUser,
 			afterCtx, isRemove); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -213,12 +262,13 @@ func (svr *Server) handleUserStrategy(userIds []string, afterCtx *model.AcquireC
 func (svr *Server) handleGroupStrategy(groupIds []string, afterCtx *model.AcquireContext, isRemove bool) error {
 	for index := range utils.StringSliceDeDuplication(groupIds) {
 		groupId := groupIds[index]
-		group := svr.cacheMgn.User().GetGroup(groupId)
+		group := svr.userSvr.GetUserHelper().GetGroup(&apisecurity.UserGroup{
+			Id: wrapperspb.String(groupId),
+		})
 		if group == nil {
 			return errors.New("not found target group")
 		}
-
-		ownerId := group.Owner
+		ownerId := group.GetOwner().GetValue()
 		if err := svr.handlerModifyDefaultStrategy(groupId, ownerId, model.PrincipalGroup,
 			afterCtx, isRemove); err != nil {
 			return err
@@ -255,7 +305,6 @@ func (svr *Server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 	if !ok {
 		return nil
 	}
-
 	// 资源删除时，清理该资源与所有策略的关联关系
 	if afterCtx.GetOperation() == model.Delete {
 		strategyId = ""
@@ -301,13 +350,4 @@ func (svr *Server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 	entry.OperationType = model.OUpdate
 	plugin.GetHistory().Record(entry)
 	return nil
-}
-
-func checkHasPassAll(rule *model.StrategyDetail) bool {
-	for i := range rule.Resources {
-		if rule.Resources[i].ResID == "*" {
-			return true
-		}
-	}
-	return false
 }

@@ -88,7 +88,7 @@ type NacosV1Server struct {
 	pushCenter core.PushCenter
 	store      *core.NacosDataStorage
 
-	checker auth.StrategyServer
+	checker auth.UserServer
 
 	discoverOpt *discover.ServerOption
 	discoverSvr *discover.DiscoverServer

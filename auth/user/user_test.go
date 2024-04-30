@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth_test
+package defaultuser_test
 
 import (
 	"context"
@@ -27,8 +27,7 @@ import (
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/polarismesh/polaris/auth"
-	"github.com/polarismesh/polaris/auth/defaultauth"
+	defaultuser "github.com/polarismesh/polaris/auth/user"
 	"github.com/polarismesh/polaris/cache"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -51,9 +50,8 @@ type UserTest struct {
 
 	storage  *storemock.MockStore
 	cacheMgn *cache.CacheManager
-	checker  auth.AuthChecker
 
-	svr *defaultauth.UserAuthAbility
+	svr *defaultuser.Server
 
 	cancel context.CancelFunc
 	ctrl   *gomock.Controller
@@ -105,15 +103,9 @@ func newUserTest(t *testing.T) *UserTest {
 	)
 	time.Sleep(5 * time.Second)
 
-	checker := &defaultauth.DefaultAuthChecker{}
-	checker.SetCacheMgr(cacheMgn)
-
 	_ = cache.TestRun(ctx, cacheMgn)
-	svr := defaultauth.NewUserAuthAbility(
-		checker,
-		defaultauth.NewServer(storage, nil, cacheMgn, checker),
-	)
 
+	svr := &defaultuser.Server{}
 	return &UserTest{
 		admin:    admin,
 		ownerOne: users[0],
@@ -125,7 +117,6 @@ func newUserTest(t *testing.T) *UserTest {
 
 		storage:  storage,
 		cacheMgn: cacheMgn,
-		checker:  checker,
 		svr:      svr,
 
 		cancel: cancel,

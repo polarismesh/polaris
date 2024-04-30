@@ -15,13 +15,8 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth
+package defaultuser
 
-import (
-	"github.com/polarismesh/polaris/auth"
-)
+type DefaultUserHelper struct {
 
-func init() {
-	_ = auth.RegisterUserServer(&UserAuthAbility{})
-	_ = auth.RegisterStrategyServer(&StrategyAuthAbility{})
 }

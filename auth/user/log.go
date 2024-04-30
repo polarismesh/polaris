@@ -15,30 +15,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultauth
+package defaultuser
 
-import (
-	"context"
+import commonlog "github.com/polarismesh/polaris/common/log"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
+var (
+	log = commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName)
 )
-
-func TestCheckPassword(password *wrappers.StringValue) error {
-	return checkPassword(password)
-}
-
-func TestCheckName(password *wrappers.StringValue) error {
-	return checkName(password)
-}
-
-func TestCreateToken(uid, gid string) (string, error) {
-	return createToken(uid, gid)
-}
-
-func TestDecryptMessage(key []byte, message string) (string, error) {
-	return decryptMessage(key, message)
-}
-
-func TestParseStrategySearchArgs(ctx context.Context, searchFilters map[string]string) map[string]string {
-	return parseStrategySearchArgs(ctx, searchFilters)
-}
