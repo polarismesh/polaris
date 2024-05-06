@@ -57,6 +57,7 @@ func (m *boltStore) loadByFile(loadFile string) error {
 	if err != nil {
 		return err
 	}
+	defer cf.Close()
 	data := &DefaultData{}
 	if err := yaml.NewDecoder(cf).Decode(data); err != nil {
 		fmt.Printf("[ERROR] %v\n", err)
