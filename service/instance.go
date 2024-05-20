@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
@@ -1237,7 +1238,17 @@ func preGetInstances(query map[string]string) (map[string]string, map[string]str
 			apimodel.Code_InvalidQueryInsParameter, "instance metadata key and value must be both provided")
 	}
 	if metaKeyAvail {
-		metaFilter = map[string]string{metaKey: metaValue}
+		metaFilter = map[string]string{}
+		keys := strings.Split(metaKey, ",")
+		values := strings.Split(metaValue, ",")
+		if len(keys) == len(values) {
+			for i := range keys {
+				metaFilter[keys[i]] = values[i]
+			}
+		} else {
+			return nil, nil, api.NewBatchQueryResponseWithMsg(
+				apimodel.Code_InvalidQueryInsParameter, "instance metadata key and value length are different")
+		}
 	}
 
 	// 以healthy为准

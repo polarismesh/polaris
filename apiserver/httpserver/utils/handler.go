@@ -389,10 +389,13 @@ func ParseQueryParams(req *restful.Request) map[string]string {
 	queryParams := make(map[string]string)
 	for key, value := range req.Request.URL.Query() {
 		if len(value) > 0 {
-			queryParams[key] = value[0] // 暂时默认只支持一个查询
+			if key == "keys" || key == "values" {
+				queryParams[key] = strings.Join(value, ",")
+			} else {
+				queryParams[key] = value[0] // 暂时默认只支持一个查询
+			}
 		}
 	}
-
 	return queryParams
 }
 
