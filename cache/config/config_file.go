@@ -166,6 +166,7 @@ func (fc *fileCache) setActiveReleases(releases []*model.ConfigFileRelease) erro
 					ConfigFileReleaseKey: item.ConfigFileReleaseKey,
 					Valid:                false,
 					Version:              item.Version,
+					Active:               true,
 				},
 			}
 		}

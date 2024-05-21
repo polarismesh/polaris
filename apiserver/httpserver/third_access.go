@@ -18,10 +18,62 @@
 package httpserver
 
 import (
+	"net/http"
+	"net/http/pprof"
+
 	"github.com/emicklei/go-restful/v3"
 	"github.com/go-openapi/spec"
 	restfulspec "github.com/polarismesh/go-restful-openapi/v2"
+
+	"github.com/polarismesh/polaris/common/metrics"
 )
+
+// enablePprofAccess 开启pprof接口
+func (h *HTTPServer) enablePprofAccess(wsContainer *restful.Container) {
+	log.Infof("open http access for pprof")
+	wsContainer.Handle("/debug/pprof/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if h.enablePprof.Load() {
+			pprof.Index(w, r)
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}
+	}))
+	wsContainer.Handle("/debug/pprof/cmdline", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if h.enablePprof.Load() {
+			pprof.Cmdline(w, r)
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}
+	}))
+	wsContainer.Handle("/debug/pprof/profile", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if h.enablePprof.Load() {
+			pprof.Profile(w, r)
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}
+	}))
+	wsContainer.Handle("/debug/pprof/symbol", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if h.enablePprof.Load() {
+			pprof.Symbol(w, r)
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}
+	}))
+	wsContainer.Handle("/debug/pprof/trace", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if h.enablePprof.Load() {
+			pprof.Trace(w, r)
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}
+	}))
+}
+
+// enablePrometheusAccess 开启 Prometheus 接口
+func (h *HTTPServer) enablePrometheusAccess(wsContainer *restful.Container) {
+	log.Infof("open http access for prometheus")
+
+	wsContainer.Handle("/metrics", metrics.GetHttpHandler())
+}
 
 func (h *HTTPServer) enableSwaggerAPI(wsContainer *restful.Container) {
 	log.Infof("[HTTPServer] open http access for swagger API")
@@ -31,7 +83,9 @@ func (h *HTTPServer) enableSwaggerAPI(wsContainer *restful.Container) {
 		PostBuildSwaggerObjectHandler: enrichSwaggerObject,
 	}
 
-	wsContainer.Add(restfulspec.NewOpenAPIService(config))
+	if h.enableSwagger {
+		wsContainer.Add(restfulspec.NewOpenAPIService(config))
+	}
 }
 
 func enrichSwaggerObject(swo *spec.Swagger) {

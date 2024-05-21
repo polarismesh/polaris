@@ -90,6 +90,7 @@ func (svr *Server) Initialize(authOpt *auth.Config, storage store.Store, cacheMg
 	if svr.history == nil {
 		log.Warnf("Not Found History Log Plugin")
 	}
+	svr.helper = &DefaultUserHelper{svr: svr}
 	return nil
 }
 

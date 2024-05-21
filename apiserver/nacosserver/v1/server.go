@@ -73,8 +73,9 @@ func NewNacosV1Server(store *core.NacosDataStorage, options ...option) (*NacosV1
 
 // NacosV1Server HTTP API服务器
 type NacosV1Server struct {
-	listenIP        string
-	listenPort      uint32
+	listenIP   string
+	listenPort uint32
+
 	connLimitConfig *connlimit.Config
 	tlsInfo         *secure.TLSInfo
 	option          map[string]interface{}

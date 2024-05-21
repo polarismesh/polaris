@@ -15,9 +15,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package authcheck
+package policy
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -90,6 +91,9 @@ func (svr *Server) Initialize(options *auth.Config, storage store.Store, cacheMg
 	if svr.history == nil {
 		log.Warnf("Not Found History Log Plugin")
 	}
+
+	svr.checker = &DefaultAuthChecker{}
+	svr.checker.Initialize(svr.options, svr.storage, cacheMgr, userSvr)
 	return nil
 }
 
@@ -107,8 +111,8 @@ func (svr *Server) ParseOptions(options *auth.Config) error {
 
 	cfg := DefaultAuthConfig()
 
-	// 一旦设置了auth.user.option或auth.strategy.option，将不会继续读取auth.option
-	if len(options.Strategy.Option) > 0 || len(options.User.Option) > 0 {
+	// 设置了 auth.strategy.option，将不会继续读取 auth.option
+	if len(options.Strategy.Option) > 0 {
 		// 判断auth.option是否还有值，有则不兼容
 		if len(options.Option) > 0 {
 			log.Warn("auth.user.option or auth.strategy.option has set, auth.option will ignore")
@@ -139,7 +143,7 @@ func (svr *Server) ParseOptions(options *auth.Config) error {
 }
 
 func (svr *Server) Name() string {
-	return auth.DefaultStrategyMgnPluginName
+	return auth.DefaultPolicyPluginName
 }
 
 func (svr *Server) GetAuthChecker() auth.AuthChecker {
@@ -239,7 +243,7 @@ func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 func (svr *Server) handleUserStrategy(userIds []string, afterCtx *model.AcquireContext, isRemove bool) error {
 	for index := range utils.StringSliceDeDuplication(userIds) {
 		userId := userIds[index]
-		user := svr.userSvr.GetUserHelper().GetUser(&apisecurity.User{
+		user := svr.userSvr.GetUserHelper().GetUser(context.TODO(), &apisecurity.User{
 			Id: wrapperspb.String(userId),
 		})
 		if user == nil {
@@ -262,7 +266,7 @@ func (svr *Server) handleUserStrategy(userIds []string, afterCtx *model.AcquireC
 func (svr *Server) handleGroupStrategy(groupIds []string, afterCtx *model.AcquireContext, isRemove bool) error {
 	for index := range utils.StringSliceDeDuplication(groupIds) {
 		groupId := groupIds[index]
-		group := svr.userSvr.GetUserHelper().GetGroup(&apisecurity.UserGroup{
+		group := svr.userSvr.GetUserHelper().GetGroup(context.TODO(), &apisecurity.UserGroup{
 			Id: wrapperspb.String(groupId),
 		})
 		if group == nil {

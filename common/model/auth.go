@@ -25,6 +25,9 @@ import (
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	commontime "github.com/polarismesh/polaris/common/time"
 )
 
 var (
@@ -221,6 +224,22 @@ type User struct {
 	ModifyTime  time.Time
 }
 
+func (u *User) ToSpec() *apisecurity.User {
+	return &apisecurity.User{
+		Id:          &wrapperspb.StringValue{},
+		Name:        &wrapperspb.StringValue{},
+		Password:    &wrapperspb.StringValue{},
+		Owner:       &wrapperspb.StringValue{},
+		Source:      &wrapperspb.StringValue{},
+		AuthToken:   &wrapperspb.StringValue{},
+		TokenEnable: &wrapperspb.BoolValue{},
+		Comment:     &wrapperspb.StringValue{},
+		Ctime:       &wrapperspb.StringValue{},
+		Mtime:       &wrapperspb.StringValue{},
+		UserType:    &wrapperspb.StringValue{},
+	}
+}
+
 // UserGroupDetail 用户组详细（带用户列表）
 type UserGroupDetail struct {
 	*UserGroup
@@ -235,8 +254,39 @@ func (ugd *UserGroupDetail) ToUserIdSlice() []string {
 	for uid := range ugd.UserIds {
 		uids = append(uids, uid)
 	}
-
 	return uids
+}
+
+func (ugd *UserGroupDetail) ListSpecUser() []*apisecurity.User {
+	users := make([]*apisecurity.User, 0, len(ugd.UserIds))
+	for i := range ugd.UserIds {
+		users = append(users, &apisecurity.User{
+			Id: wrapperspb.String(i),
+		})
+	}
+	return users
+}
+
+// ToSpec 将用户ID Map 专为 slice
+func (ugd *UserGroupDetail) ToSpec() *apisecurity.UserGroup {
+	if ugd == nil {
+		return nil
+	}
+	return &apisecurity.UserGroup{
+		Id:          wrapperspb.String(ugd.ID),
+		Name:        wrapperspb.String(ugd.Name),
+		Owner:       wrapperspb.String(ugd.Owner),
+		AuthToken:   wrapperspb.String(ugd.Token),
+		TokenEnable: wrapperspb.Bool(ugd.TokenEnable),
+		Comment:     wrapperspb.String(ugd.Comment),
+		Ctime:       wrapperspb.String(commontime.Time2String(ugd.CreateTime)),
+		Mtime:       wrapperspb.String(commontime.Time2String(ugd.ModifyTime)),
+		Relation: &apisecurity.UserGroupRelation{
+			GroupId: wrapperspb.String(ugd.ID),
+			Users:   ugd.ListSpecUser(),
+		},
+		UserCount: wrapperspb.UInt32(uint32(len(ugd.UserIds))),
+	}
 }
 
 // UserGroup 用户组

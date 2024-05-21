@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package authcheck_test
+package policy_test
 
 import (
 	"context"
@@ -26,14 +26,18 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris/auth"
-	"github.com/polarismesh/polaris/auth/authcheck"
+	"github.com/polarismesh/polaris/auth/policy"
+	defaultuser "github.com/polarismesh/polaris/auth/user"
 	"github.com/polarismesh/polaris/cache"
-	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-func Test_DefaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
+func newPolicyServer() (*policy.Server, auth.StrategyServer, error) {
+	return policy.BuildServer()
+}
+
+func Test_DefaultAuthChecker_CheckConsolePermission_Write_NoStrict(t *testing.T) {
 	reset(false)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -59,23 +63,38 @@ func Test_DefaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_ = cacheMgr.OpenResourceCache([]cachetypes.ConfigEntry{
-		{
-			Name: cachetypes.UsersName,
-		},
-		{
-			Name: cachetypes.StrategyRuleName,
-		},
-	}...)
-	_ = cacheMgr.TestUpdate()
-
 	t.Cleanup(func() {
 		cancel()
 		cacheMgr.Close()
 	})
 
-	checker := &authcheck.DefaultAuthChecker{}
-	checker.SetCacheMgr(cacheMgr)
+	_, proxySvr, err := defaultuser.BuildServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	proxySvr.Initialize(&auth.Config{
+		User: &auth.UserConfig{
+			Name: auth.DefaultUserMgnPluginName,
+			Option: map[string]interface{}{
+				"salt": "polarismesh@2021",
+			},
+		},
+	}, storage, cacheMgr)
+
+	_, svr, err := newPolicyServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svr.Initialize(&auth.Config{
+		Strategy: &auth.StrategyConfig{
+			Name: auth.DefaultPolicyPluginName,
+		},
+	}, storage, cacheMgr, proxySvr); err != nil {
+		t.Fatal(err)
+	}
+	checker := svr.GetAuthChecker()
+
+	_ = cacheMgr.TestUpdate()
 
 	freeIndex := len(users) + len(groups) + 1
 
@@ -96,7 +115,7 @@ func Test_DefaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -118,7 +137,7 @@ func Test_DefaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -140,7 +159,7 @@ func Test_DefaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -162,7 +181,7 @@ func Test_DefaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -184,7 +203,7 @@ func Test_DefaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -206,7 +225,7 @@ func Test_DefaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -229,7 +248,7 @@ func Test_DefaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -251,7 +270,7 @@ func Test_DefaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -273,13 +292,13 @@ func Test_DefaultAuthChecker_CheckPermission_Write_NoStrict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
 }
 
-func Test_DefaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
+func Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict(t *testing.T) {
 	reset(true)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -311,18 +330,33 @@ func Test_DefaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 		cacheMgr.Close()
 	})
 
-	_ = cacheMgr.OpenResourceCache([]cachetypes.ConfigEntry{
-		{
-			Name: cachetypes.UsersName,
+	_, proxySvr, err := defaultuser.BuildServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	proxySvr.Initialize(&auth.Config{
+		User: &auth.UserConfig{
+			Name: auth.DefaultUserMgnPluginName,
+			Option: map[string]interface{}{
+				"salt": "polarismesh@2021",
+			},
 		},
-		{
-			Name: cachetypes.StrategyRuleName,
-		},
-	}...)
-	_ = cacheMgr.TestUpdate()
+	}, storage, cacheMgr)
 
-	checker := &authcheck.DefaultAuthChecker{}
-	checker.SetCacheMgr(cacheMgr)
+	_, svr, err := newPolicyServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svr.Initialize(&auth.Config{
+		Strategy: &auth.StrategyConfig{
+			Name: auth.DefaultPolicyPluginName,
+		},
+	}, storage, cacheMgr, proxySvr); err != nil {
+		t.Fatal(err)
+	}
+	checker := svr.GetAuthChecker()
+
+	_ = cacheMgr.TestUpdate()
 
 	freeIndex := len(users) + len(groups) + 1
 
@@ -330,7 +364,7 @@ func Test_DefaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_CheckPermission_Write_Strict"),
+			model.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
 			// model.WithToken(users[0].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
@@ -344,7 +378,7 @@ func Test_DefaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 			}),
 		)
 
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -353,7 +387,7 @@ func Test_DefaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_CheckPermission_Write_Strict"),
+			model.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
 			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
@@ -366,7 +400,7 @@ func Test_DefaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -375,7 +409,7 @@ func Test_DefaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_CheckPermission_Write_Strict"),
+			model.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
 			// model.WithToken(users[1].Token),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
@@ -388,16 +422,16 @@ func Test_DefaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
 
 	t.Run("权限检查严格模式-token非法-匿名账户操作资源（资源有策略）", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_DefaultAuthChecker_CheckPermission_Write_Strict")
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_CheckPermission_Write_Strict"),
+			model.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
 			// model.WithToken("Test_DefaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
@@ -410,7 +444,7 @@ func Test_DefaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -419,7 +453,7 @@ func Test_DefaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_CheckPermission_Write_Strict"),
+			model.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
 			// model.WithToken(""),
 			model.WithModule(model.DiscoverModule),
 			model.WithOperation(model.Create),
@@ -432,16 +466,16 @@ func Test_DefaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
 
 	t.Run("权限检查严格模式-token非法-匿名账户操作资源（资源没有策略）", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_DefaultAuthChecker_CheckPermission_Write_Strict")
+		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_CheckPermission_Write_Strict"),
+			model.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
 			// model.WithToken("Test_DefaultAuthChecker_VerifyCredential"),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
@@ -454,7 +488,7 @@ func Test_DefaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -463,7 +497,7 @@ func Test_DefaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_CheckPermission_Write_Strict"),
+			model.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
 			// model.WithToken(""),
 			model.WithOperation(model.Create),
 			model.WithModule(model.DiscoverModule),
@@ -476,13 +510,13 @@ func Test_DefaultAuthChecker_CheckPermission_Write_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
 }
 
-func Test_DefaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
+func Test_DefaultAuthChecker_CheckConsolePermission_Read_NoStrict(t *testing.T) {
 	reset(false)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -513,18 +547,34 @@ func Test_DefaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 		cancel()
 		cacheMgr.Close()
 	})
-	_ = cacheMgr.OpenResourceCache([]cachetypes.ConfigEntry{
-		{
-			Name: cachetypes.UsersName,
-		},
-		{
-			Name: cachetypes.StrategyRuleName,
-		},
-	}...)
-	_ = cacheMgr.TestUpdate()
 
-	checker := &authcheck.DefaultAuthChecker{}
-	checker.SetCacheMgr(cacheMgr)
+	_, proxySvr, err := defaultuser.BuildServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	proxySvr.Initialize(&auth.Config{
+		User: &auth.UserConfig{
+			Name: auth.DefaultUserMgnPluginName,
+			Option: map[string]interface{}{
+				"salt": "polarismesh@2021",
+			},
+		},
+	}, storage, cacheMgr)
+
+	_, svr, err := newPolicyServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svr.Initialize(&auth.Config{
+		Strategy: &auth.StrategyConfig{
+			Name: auth.DefaultPolicyPluginName,
+		},
+	}, storage, cacheMgr, proxySvr); err != nil {
+		t.Fatal(err)
+	}
+	checker := svr.GetAuthChecker()
+
+	_ = cacheMgr.TestUpdate()
 
 	freeIndex := len(users) + len(groups) + 1
 
@@ -545,7 +595,7 @@ func Test_DefaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -567,7 +617,7 @@ func Test_DefaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -589,7 +639,7 @@ func Test_DefaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -611,7 +661,7 @@ func Test_DefaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -633,7 +683,7 @@ func Test_DefaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -655,7 +705,7 @@ func Test_DefaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -677,7 +727,7 @@ func Test_DefaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -699,13 +749,13 @@ func Test_DefaultAuthChecker_CheckPermission_Read_NoStrict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
 }
 
-func Test_DefaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
+func Test_DefaultAuthChecker_CheckConsolePermission_Read_Strict(t *testing.T) {
 	reset(true)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -736,18 +786,34 @@ func Test_DefaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 		cancel()
 		cacheMgr.Close()
 	})
-	_ = cacheMgr.OpenResourceCache([]cachetypes.ConfigEntry{
-		{
-			Name: cachetypes.UsersName,
-		},
-		{
-			Name: cachetypes.StrategyRuleName,
-		},
-	}...)
-	_ = cacheMgr.TestUpdate()
 
-	checker := &authcheck.DefaultAuthChecker{}
-	checker.SetCacheMgr(cacheMgr)
+	_, proxySvr, err := defaultuser.BuildServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	proxySvr.Initialize(&auth.Config{
+		User: &auth.UserConfig{
+			Name: auth.DefaultUserMgnPluginName,
+			Option: map[string]interface{}{
+				"salt": "polarismesh@2021",
+			},
+		},
+	}, storage, cacheMgr)
+
+	_, svr, err := newPolicyServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svr.Initialize(&auth.Config{
+		Strategy: &auth.StrategyConfig{
+			Name: auth.DefaultPolicyPluginName,
+		},
+	}, storage, cacheMgr, proxySvr); err != nil {
+		t.Fatal(err)
+	}
+	checker := svr.GetAuthChecker()
+
+	_ = cacheMgr.TestUpdate()
 
 	freeIndex := len(users) + len(groups) + 1
 
@@ -768,7 +834,7 @@ func Test_DefaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -790,7 +856,7 @@ func Test_DefaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -812,7 +878,7 @@ func Test_DefaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -834,7 +900,7 @@ func Test_DefaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.NoError(t, err, "Should be verify success")
 	})
@@ -856,7 +922,7 @@ func Test_DefaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -878,7 +944,7 @@ func Test_DefaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -900,7 +966,7 @@ func Test_DefaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -922,7 +988,7 @@ func Test_DefaultAuthChecker_CheckPermission_Read_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckPermission(authCtx)
+		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -934,7 +1000,7 @@ func Test_DefaultAuthChecker_Initialize(t *testing.T) {
 
 	t.Run("使用未迁移至auth.user.option及auth.strategy.option的配置", func(t *testing.T) {
 		reset(true)
-		authChecker := &authcheck.Server{}
+		authChecker := &policy.Server{}
 		cfg := &auth.Config{}
 		cfg.SetDefault()
 		cfg.Name = ""
@@ -946,7 +1012,7 @@ func Test_DefaultAuthChecker_Initialize(t *testing.T) {
 		}
 		err := authChecker.ParseOptions(cfg)
 		assert.NoError(t, err)
-		assert.Equal(t, &authcheck.AuthConfig{
+		assert.Equal(t, &policy.AuthConfig{
 			ConsoleOpen:   true,
 			ClientOpen:    true,
 			Strict:        false,
@@ -957,7 +1023,7 @@ func Test_DefaultAuthChecker_Initialize(t *testing.T) {
 
 	t.Run("使用完全迁移至auth.user.option及auth.strategy.option的配置", func(t *testing.T) {
 		reset(true)
-		authChecker := &authcheck.Server{}
+		authChecker := &policy.Server{}
 
 		cfg := &auth.Config{}
 		cfg.SetDefault()
@@ -976,7 +1042,7 @@ func Test_DefaultAuthChecker_Initialize(t *testing.T) {
 
 		err := authChecker.ParseOptions(cfg)
 		assert.NoError(t, err)
-		assert.Equal(t, &authcheck.AuthConfig{
+		assert.Equal(t, &policy.AuthConfig{
 			ConsoleOpen:   true,
 			ClientOpen:    true,
 			Strict:        false,
@@ -986,7 +1052,7 @@ func Test_DefaultAuthChecker_Initialize(t *testing.T) {
 
 	t.Run("使用部分迁移至auth.user.option及auth.strategy.option的配置（应当报错）", func(t *testing.T) {
 		reset(true)
-		authChecker := &authcheck.Server{}
+		authChecker := &policy.Server{}
 		cfg := &auth.Config{}
 		cfg.SetDefault()
 		cfg.Name = ""

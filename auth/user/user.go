@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
@@ -159,10 +158,6 @@ func (svr *Server) UpdateUser(ctx context.Context, req *apisecurity.User) *apise
 		return api.NewUserResponse(apimodel.Code_NotFoundUser, req)
 	}
 
-	if !checkUserViewPermission(ctx, user) {
-		return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
-	}
-
 	data, needUpdate, err := updateUserAttribute(user, req)
 	if err != nil {
 		return api.NewAuthResponseWithMsg(apimodel.Code_ExecuteException, err.Error())
@@ -199,10 +194,6 @@ func (svr *Server) UpdateUserPassword(ctx context.Context, req *apisecurity.Modi
 	}
 	if user == nil {
 		return api.NewAuthResponse(apimodel.Code_NotFoundUser)
-	}
-
-	if !checkUserViewPermission(ctx, user) {
-		return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
 	}
 
 	ignoreOrigin := authcommon.ParseUserRole(ctx) == model.AdminUserRole ||
@@ -260,11 +251,6 @@ func (svr *Server) DeleteUser(ctx context.Context, req *apisecurity.User) *apise
 		return api.NewUserResponse(apimodel.Code_ExecuteSuccess, req)
 	}
 
-	if !checkUserViewPermission(ctx, user) {
-		log.Error("[Auth][User] delete user forbidden", utils.ZapRequestID(requestID),
-			zap.String("name", req.GetName().GetValue()))
-		return api.NewUserResponse(apimodel.Code_NotAllowedAccess, req)
-	}
 	if user.ID == utils.ParseOwnerID(ctx) {
 		log.Error("[Auth][User] delete user forbidden, can't delete when self is owner",
 			utils.ZapRequestID(requestID), zap.String("name", req.Name.GetValue()))
@@ -314,13 +300,6 @@ func (svr *Server) GetUsers(ctx context.Context, query map[string]string) *apise
 		}
 
 		searchFilters[key] = value
-	}
-
-	searchFilters["hide_admin"] = strconv.FormatBool(true)
-	// 如果不是超级管理员，查看数据有限制
-	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
-		// 设置 owner 参数，只能查看对应 owner 下的用户
-		searchFilters["owner"] = utils.ParseOwnerID(ctx)
 	}
 
 	var (
@@ -373,10 +352,6 @@ func (svr *Server) GetUserToken(ctx context.Context, req *apisecurity.User) *api
 		return api.NewUserResponse(apimodel.Code_NotFoundUser, req)
 	}
 
-	if !checkUserViewPermission(ctx, user) {
-		return api.NewUserResponse(apimodel.Code_NotAllowedAccess, req)
-	}
-
 	out := &apisecurity.User{
 		Id:          utils.NewStringValue(user.ID),
 		Name:        utils.NewStringValue(user.Name),
@@ -401,10 +376,6 @@ func (svr *Server) UpdateUserToken(ctx context.Context, req *apisecurity.User) *
 	}
 	if user == nil {
 		return api.NewUserResponse(apimodel.Code_NotFoundUser, req)
-	}
-
-	if !checkUserViewPermission(ctx, user) {
-		return api.NewUserResponse(apimodel.Code_NotAllowedAccess, req)
 	}
 
 	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
@@ -442,10 +413,6 @@ func (svr *Server) ResetUserToken(ctx context.Context, req *apisecurity.User) *a
 	}
 	if user == nil {
 		return api.NewUserResponse(apimodel.Code_NotFoundUser, req)
-	}
-
-	if !checkUserViewPermission(ctx, user) {
-		return api.NewUserResponse(apimodel.Code_NotAllowedAccess, req)
 	}
 
 	newToken, err := createUserToken(user.ID, svr.authOpt.Salt)
@@ -564,31 +531,6 @@ func canDowngradeAnonymous(authCtx *model.AcquireContext, err error) bool {
 	if errors.Is(err, model.ErrorTokenNotExist) {
 		return true
 	}
-	return false
-}
-
-// checkUserViewPermission 检查是否可以操作该用户
-// Case 1: 如果是自己操作自己，通过
-// Case 2: 如果是主账户操作自己的子账户，通过
-// Case 3: 如果是超级账户，通过
-func checkUserViewPermission(ctx context.Context, user *model.User) bool {
-	role := authcommon.ParseUserRole(ctx)
-	if role == model.AdminUserRole {
-		log.Debug("check user view permission", utils.RequestID(ctx), zap.Bool("admin", true))
-		return true
-	}
-
-	userId := utils.ParseUserID(ctx)
-	if user.ID == userId {
-		return true
-	}
-
-	if user.Owner == userId {
-		log.Debug("check user view permission", utils.RequestID(ctx),
-			zap.Any("user", user), zap.String("owner", user.Owner), zap.String("operator", userId))
-		return true
-	}
-
 	return false
 }
 

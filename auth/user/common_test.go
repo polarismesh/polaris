@@ -136,7 +136,7 @@ func createMockUser(total int, prefix ...string) []*model.User {
 			id = ownerId
 		}
 		pwd, _ := bcrypt.GenerateFromPassword([]byte("polaris"), bcrypt.DefaultCost)
-		token, _ := defaultuser.CreateToken(id, "", "")
+		token, _ := defaultuser.CreateToken(id, "", "polarismesh@2021")
 		users = append(users, &model.User{
 			ID:       id,
 			Name:     fmt.Sprintf(nameTemp, i),

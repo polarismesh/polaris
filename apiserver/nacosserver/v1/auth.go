@@ -20,8 +20,32 @@ package v1
 import (
 	"context"
 
+	"github.com/emicklei/go-restful/v3"
+	nacoshttp "github.com/polarismesh/polaris/apiserver/nacosserver/v1/http"
 	"github.com/polarismesh/polaris/common/model"
 )
+
+func (n *NacosV1Server) GetAuthServer() (*restful.WebService, error) {
+	ws := new(restful.WebService)
+	ws.Route(ws.POST("/nacos/v1/auth/login").To(n.Login))
+	ws.Route(ws.POST("/nacos/v1/auth/users/login").To(n.Login))
+	return ws, nil
+}
+
+func (n *NacosV1Server) Login(req *restful.Request, rsp *restful.Response) {
+	handler := nacoshttp.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	ctx := handler.ParseHeaderContext()
+	data, err := n.handleLogin(ctx, nacoshttp.ParseQueryParams(req))
+	if err != nil {
+		nacoshttp.WrirteNacosErrorResponse(err, rsp)
+		return
+	}
+	nacoshttp.WrirteNacosResponse(data, rsp)
+}
 
 func (n *NacosV1Server) handleLogin(ctx context.Context, params map[string]string) (map[string]interface{}, error) {
 	username := params["username"]

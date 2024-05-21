@@ -15,24 +15,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package main
+package testsuit
 
 import (
-	_ "github.com/polarismesh/polaris/apiserver/eurekaserver"
-	_ "github.com/polarismesh/polaris/apiserver/grpcserver/config"
-	_ "github.com/polarismesh/polaris/apiserver/grpcserver/discover"
-	_ "github.com/polarismesh/polaris/apiserver/httpserver"
-	_ "github.com/polarismesh/polaris/apiserver/l5pbserver"
-	_ "github.com/polarismesh/polaris/apiserver/nacosserver"
-	_ "github.com/polarismesh/polaris/apiserver/xdsserverv3"
 	_ "github.com/polarismesh/polaris/auth/policy"
 	_ "github.com/polarismesh/polaris/auth/user"
-	_ "github.com/polarismesh/polaris/cache"
-	_ "github.com/polarismesh/polaris/cache/auth"
-	_ "github.com/polarismesh/polaris/cache/client"
-	_ "github.com/polarismesh/polaris/cache/config"
-	_ "github.com/polarismesh/polaris/cache/namespace"
-	_ "github.com/polarismesh/polaris/cache/service"
 	_ "github.com/polarismesh/polaris/config/interceptor"
 	_ "github.com/polarismesh/polaris/plugin/cmdb/memory"
 	_ "github.com/polarismesh/polaris/plugin/crypto/aes"
@@ -45,8 +32,6 @@ import (
 	_ "github.com/polarismesh/polaris/plugin/ratelimit/token"
 	_ "github.com/polarismesh/polaris/plugin/statis/logger"
 	_ "github.com/polarismesh/polaris/plugin/statis/prometheus"
-	_ "github.com/polarismesh/polaris/plugin/whitelist"
 	_ "github.com/polarismesh/polaris/service/interceptor"
 	_ "github.com/polarismesh/polaris/store/boltdb"
-	_ "github.com/polarismesh/polaris/store/mysql"
 )

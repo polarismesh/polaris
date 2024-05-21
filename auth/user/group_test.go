@@ -53,7 +53,7 @@ type GroupTest struct {
 	checker  auth.AuthChecker
 	cancel   context.CancelFunc
 
-	svr *defaultauth.Server
+	svr auth.UserServer
 }
 
 func newGroupTest(t *testing.T) *GroupTest {
@@ -93,22 +93,31 @@ func newGroupTest(t *testing.T) *GroupTest {
 		_ = cacheMgn.Close()
 	})
 
+	_, proxySvr, err := defaultauth.BuildServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	proxySvr.Initialize(&auth.Config{
+		User: &auth.UserConfig{
+			Name: auth.DefaultUserMgnPluginName,
+			Option: map[string]interface{}{
+				"salt": "polarismesh@2021",
+			},
+		},
+	}, storage, cacheMgn)
 	_ = cacheMgn.TestUpdate()
 	return &GroupTest{
-		ctrl: ctrl,
-
-		ownerOne: users[0],
-		ownerTwo: newUsers[0],
-
+		ctrl:      ctrl,
+		ownerOne:  users[0],
+		ownerTwo:  newUsers[0],
 		users:     users,
 		groups:    groups,
 		newGroups: newGroups,
 		allGroups: allGroups,
-
-		storage:  storage,
-		cacheMgn: cacheMgn,
-
-		cancel: cancel,
+		storage:   storage,
+		cacheMgn:  cacheMgn,
+		cancel:    cancel,
+		svr:       proxySvr,
 	}
 }
 
@@ -196,7 +205,7 @@ func Test_server_CreateGroup(t *testing.T) {
 	t.Run("子账户去查询自己所在的用户组", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[1].Token)
 
-		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[1], nil)
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[1], nil).AnyTimes()
 
 		resp := groupTest.svr.GetGroup(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[1].ID),
@@ -208,7 +217,7 @@ func Test_server_CreateGroup(t *testing.T) {
 	t.Run("子账户去查询自己不在的用户组", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[1].Token)
 
-		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[2], nil)
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[2], nil).AnyTimes()
 
 		resp := groupTest.svr.GetGroup(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[2].ID),
@@ -249,7 +258,7 @@ func Test_server_GetGroup(t *testing.T) {
 	t.Run("子账户去查询自己所在的用户组", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[1].Token)
 
-		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[1], nil)
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[1], nil).AnyTimes()
 
 		resp := groupTest.svr.GetGroup(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[1].ID),
@@ -261,7 +270,7 @@ func Test_server_GetGroup(t *testing.T) {
 	t.Run("子账户去查询自己不在的用户组", func(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[1].Token)
 
-		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[2], nil)
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[2], nil).AnyTimes()
 
 		resp := groupTest.svr.GetGroup(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[2].ID),
@@ -652,7 +661,7 @@ func Test_server_RefreshGroupToken(t *testing.T) {
 		})
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.ownerTwo.Token)
 
-		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil)
+		groupTest.storage.EXPECT().GetGroup(gomock.Any()).Return(groupTest.groups[0], nil).AnyTimes()
 
 		batchResp := groupTest.svr.ResetGroupToken(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[2].ID),

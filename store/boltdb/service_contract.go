@@ -412,6 +412,35 @@ func (s *serviceContractStore) ListVersions(ctx context.Context, service, namesp
 	return nil, nil
 }
 
+// GetMoreServiceContracts .
+func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime time.Time) ([]*model.EnrichServiceContract, error) {
+	if firstUpdate {
+		mtime = time.Unix(0, 0)
+	}
+
+	fields := []string{ContractFieldValid, ContractFieldModifyTime}
+	values, err := s.handler.LoadValuesByFilter(tblServiceContract, fields, &ServiceContract{},
+		func(m map[string]interface{}) bool {
+			if firstUpdate {
+				valid, _ := m[ContractFieldValid].(bool)
+				if !valid {
+					return false
+				}
+			}
+			saveMtime, _ := m[ContractFieldModifyTime].(time.Time)
+			return !saveMtime.Before(mtime)
+		})
+	if err != nil {
+		return nil, store.Error(err)
+	}
+
+	ret := make([]*model.EnrichServiceContract, 0, len(values))
+	for _, v := range values {
+		ret = append(ret, s.toModel(v.(*ServiceContract)))
+	}
+	return ret, nil
+}
+
 func (s *serviceContractStore) toModel(data *ServiceContract) *model.EnrichServiceContract {
 	interfaces := make([]*model.InterfaceDescriptor, 0, 4)
 	_ = json.Unmarshal([]byte(data.Interfaces), &interfaces)

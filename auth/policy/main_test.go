@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package authcheck_test
+package policy_test
 
 import (
 	"errors"

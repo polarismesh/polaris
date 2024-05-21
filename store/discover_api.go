@@ -294,6 +294,8 @@ type ServiceContractStore interface {
 	GetInterfaceDescriptors(ctx context.Context, filter map[string]string, offset, limit uint32) (uint32, []*model.InterfaceDescriptor, error)
 	// ListVersions .
 	ListVersions(ctx context.Context, service, namespace string) ([]*model.ServiceContract, error)
+	// GetMoreServiceContracts 查询服务契约公共属性列表
+	GetMoreServiceContracts(firstUpdate bool, mtime time.Time) ([]*model.EnrichServiceContract, error)
 }
 
 // LaneStore 泳道资源存储操作

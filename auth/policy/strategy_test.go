@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package authcheck_test
+package policy_test
 
 import (
 	"context"
@@ -30,7 +30,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/auth"
-	"github.com/polarismesh/polaris/auth/authcheck"
+	"github.com/polarismesh/polaris/auth/policy"
 	"github.com/polarismesh/polaris/cache"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -57,7 +57,7 @@ type StrategyTest struct {
 	cacheMgn *cache.CacheManager
 	checker  auth.AuthChecker
 
-	svr *authcheck.Server
+	svr *policy.Server
 
 	cancel context.CancelFunc
 
@@ -122,8 +122,8 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 
 	_ = cacheMgn.TestUpdate()
 
-	checker := &authcheck.DefaultAuthChecker{}
-	checker.Initialize(&authcheck.AuthConfig{
+	checker := &policy.DefaultAuthChecker{}
+	checker.Initialize(&policy.AuthConfig{
 		ConsoleOpen:   true,
 		ClientOpen:    true,
 		ConsoleStrict: false,
@@ -834,7 +834,7 @@ func Test_parseStrategySearchArgs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := authcheck.ParseStrategySearchArgs(tt.args.ctx, tt.args.searchFilters); !reflect.DeepEqual(got, tt.want) {
+			if got := policy.ParseStrategySearchArgs(tt.args.ctx, tt.args.searchFilters); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("parseStrategySearchArgs() = %v, want %v", got, tt.want)
 			}
 		})

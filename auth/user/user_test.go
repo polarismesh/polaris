@@ -27,6 +27,7 @@ import (
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/polarismesh/polaris/auth"
 	defaultuser "github.com/polarismesh/polaris/auth/user"
 	"github.com/polarismesh/polaris/cache"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
@@ -51,7 +52,7 @@ type UserTest struct {
 	storage  *storemock.MockStore
 	cacheMgn *cache.CacheManager
 
-	svr *defaultuser.Server
+	svr auth.UserServer
 
 	cancel context.CancelFunc
 	ctrl   *gomock.Controller
@@ -105,7 +106,18 @@ func newUserTest(t *testing.T) *UserTest {
 
 	_ = cache.TestRun(ctx, cacheMgn)
 
-	svr := &defaultuser.Server{}
+	_, proxySvr, err := defaultuser.BuildServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	proxySvr.Initialize(&auth.Config{
+		User: &auth.UserConfig{
+			Name: auth.DefaultUserMgnPluginName,
+			Option: map[string]interface{}{
+				"salt": "polarismesh@2021",
+			},
+		},
+	}, storage, cacheMgn)
 	return &UserTest{
 		admin:    admin,
 		ownerOne: users[0],
@@ -117,7 +129,7 @@ func newUserTest(t *testing.T) *UserTest {
 
 		storage:  storage,
 		cacheMgn: cacheMgn,
-		svr:      svr,
+		svr:      proxySvr,
 
 		cancel: cancel,
 		ctrl:   ctrl,
@@ -569,8 +581,10 @@ func Test_server_DeleteUser(t *testing.T) {
 		userTest.storage.EXPECT().GetUser(gomock.Any()).Return(userTest.users[0], nil)
 
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.users[0].Token)
-		resp := userTest.svr.DeleteUser(reqCtx, &apisecurity.User{
-			Id: utils.NewStringValue(userTest.users[0].ID),
+		resp := userTest.svr.DeleteUsers(reqCtx, []*apisecurity.User{
+			&apisecurity.User{
+				Id: utils.NewStringValue(userTest.users[0].ID),
+			},
 		})
 
 		assert.True(t, resp.GetCode().Value == api.NotAllowedAccess, resp.Info.GetValue())
@@ -590,8 +604,10 @@ func Test_server_DeleteUser(t *testing.T) {
 		}, nil)
 
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.users[0].Token)
-		resp := userTest.svr.DeleteUser(reqCtx, &apisecurity.User{
-			Id: utils.NewStringValue(uid),
+		resp := userTest.svr.DeleteUsers(reqCtx, []*apisecurity.User{
+			&apisecurity.User{
+				Id: utils.NewStringValue(uid),
+			},
 		})
 
 		assert.True(t, resp.GetCode().Value == api.NotAllowedAccess, resp.Info.GetValue())
@@ -606,8 +622,10 @@ func Test_server_DeleteUser(t *testing.T) {
 		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.users[1].ID)).Return(userTest.users[1], nil).AnyTimes()
 
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.users[0].Token)
-		resp := userTest.svr.DeleteUser(reqCtx, &apisecurity.User{
-			Id: utils.NewStringValue(userTest.users[1].ID),
+		resp := userTest.svr.DeleteUsers(reqCtx, []*apisecurity.User{
+			&apisecurity.User{
+				Id: utils.NewStringValue(userTest.users[1].ID),
+			},
 		})
 
 		assert.True(t, resp.GetCode().Value == api.ExecuteSuccess, resp.Info.GetValue())
@@ -628,8 +646,10 @@ func Test_server_DeleteUser(t *testing.T) {
 		}, nil).AnyTimes()
 
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.users[0].Token)
-		resp := userTest.svr.DeleteUser(reqCtx, &apisecurity.User{
-			Id: utils.NewStringValue(uid),
+		resp := userTest.svr.DeleteUsers(reqCtx, []*apisecurity.User{
+			&apisecurity.User{
+				Id: utils.NewStringValue(uid),
+			},
 		})
 
 		assert.True(t, resp.GetCode().Value == api.NotAllowedAccess, resp.Info.GetValue())
@@ -645,8 +665,10 @@ func Test_server_DeleteUser(t *testing.T) {
 		userTest.storage.EXPECT().GetSubCount(gomock.Any()).Return(uint32(0), nil).AnyTimes()
 
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.admin.Token)
-		resp := userTest.svr.DeleteUser(reqCtx, &apisecurity.User{
-			Id: utils.NewStringValue(userTest.users[0].ID),
+		resp := userTest.svr.DeleteUsers(reqCtx, []*apisecurity.User{
+			&apisecurity.User{
+				Id: utils.NewStringValue(userTest.users[0].ID),
+			},
 		})
 
 		assert.True(t, resp.GetCode().Value == api.ExecuteSuccess, resp.Info.GetValue())
@@ -662,8 +684,10 @@ func Test_server_DeleteUser(t *testing.T) {
 		userTest.storage.EXPECT().GetSubCount(gomock.Any()).Return(uint32(1), nil).AnyTimes()
 
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.admin.Token)
-		resp := userTest.svr.DeleteUser(reqCtx, &apisecurity.User{
-			Id: utils.NewStringValue(userTest.users[0].ID),
+		resp := userTest.svr.DeleteUsers(reqCtx, []*apisecurity.User{
+			&apisecurity.User{
+				Id: utils.NewStringValue(userTest.users[0].ID),
+			},
 		})
 
 		assert.True(t, resp.GetCode().Value == api.SubAccountExisted, resp.Info.GetValue())
@@ -676,8 +700,10 @@ func Test_server_DeleteUser(t *testing.T) {
 		})
 
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.users[1].Token)
-		resp := userTest.svr.DeleteUser(reqCtx, &apisecurity.User{
-			Id: utils.NewStringValue(userTest.users[0].ID),
+		resp := userTest.svr.DeleteUsers(reqCtx, []*apisecurity.User{
+			&apisecurity.User{
+				Id: utils.NewStringValue(userTest.users[0].ID),
+			},
 		})
 
 		assert.True(t, resp.GetCode().Value == api.OperationRoleException, resp.Info.GetValue())

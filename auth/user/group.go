@@ -30,7 +30,6 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
-	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	commonstore "github.com/polarismesh/polaris/common/store"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -43,14 +42,15 @@ type (
 
 var (
 	// UserLinkGroupAttributes is the user link group attributes
-	UserLinkGroupAttributes = map[string]bool{
-		"id":        true,
-		"user_id":   true,
-		"user_name": true,
-		"group_id":  true,
-		"name":      true,
-		"offset":    true,
-		"limit":     true,
+	UserLinkGroupAttributes = map[string]struct{}{
+		"id":        {},
+		"user_id":   {},
+		"user_name": {},
+		"group_id":  {},
+		"name":      {},
+		"offset":    {},
+		"limit":     {},
+		"owner":     {},
 	}
 )
 
@@ -63,12 +63,12 @@ func (svr *Server) CreateGroup(ctx context.Context, req *apisecurity.UserGroup) 
 	)
 
 	req.Owner = utils.NewStringValue(ownerID)
-	if checkErrResp := svr.checkCreateGroup(ctx, req); checkErrResp != nil {
-		return checkErrResp
+	if rsp := svr.preCheckGroupRelation(req.GetRelation()); rsp != nil {
+		return rsp
 	}
 
 	// 根据 owner + groupname 确定唯一的用户组信息
-	group, err := svr.storage.GetGroupByName(req.Name.GetValue(), ownerID)
+	group, err := svr.storage.GetGroupByName(req.GetName().GetValue(), ownerID)
 	if err != nil {
 		log.Error("get group when create", utils.ZapRequestID(requestID),
 			utils.ZapPlatformID(platformID), zap.Error(err))
@@ -115,11 +115,6 @@ func (svr *Server) UpdateGroups(
 
 // UpdateGroup 更新用户组
 func (svr *Server) UpdateGroup(ctx context.Context, req *apisecurity.ModifyUserGroup) *apiservice.Response {
-	var (
-		requestID  = utils.ParseRequestID(ctx)
-		platformID = utils.ParsePlatformID(ctx)
-	)
-
 	if checkErrResp := svr.checkUpdateGroup(ctx, req); checkErrResp != nil {
 		return checkErrResp
 	}
@@ -132,17 +127,16 @@ func (svr *Server) UpdateGroup(ctx context.Context, req *apisecurity.ModifyUserG
 	modifyReq, needUpdate := updateGroupAttribute(ctx, data.UserGroup, req)
 	if !needUpdate {
 		log.Info("update group data no change, no need update",
-			utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID), zap.String("group", req.String()))
+			utils.RequestID(ctx), zap.String("group", req.String()))
 		return api.NewModifyGroupResponse(apimodel.Code_NoNeedUpdate, req)
 	}
 
 	if err := svr.storage.UpdateGroup(modifyReq); err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.Error("update group", zap.Error(err), utils.RequestID(ctx))
 		return api.NewAuthResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 
-	log.Info("update group", zap.String("name", data.Name), utils.ZapRequestID(requestID),
-		utils.ZapPlatformID(platformID))
+	log.Info("update group", zap.String("name", data.Name), utils.RequestID(ctx))
 	svr.RecordHistory(modifyUserGroupRecordEntry(ctx, req, data.UserGroup, model.OUpdateGroup))
 
 	return api.NewModifyGroupResponse(apimodel.Code_ExecuteSuccess, req)
@@ -161,32 +155,21 @@ func (svr *Server) DeleteGroups(ctx context.Context, reqs []*apisecurity.UserGro
 
 // DeleteGroup 删除用户组
 func (svr *Server) DeleteGroup(ctx context.Context, req *apisecurity.UserGroup) *apiservice.Response {
-	var (
-		requestID = utils.ParseRequestID(ctx)
-		userID    = utils.ParseUserID(ctx)
-	)
-
 	group, err := svr.storage.GetGroup(req.GetId().GetValue())
 	if err != nil {
-		log.Error("get group from store", utils.ZapRequestID(requestID), zap.Error(err))
+		log.Error("get group from store", utils.RequestID(ctx), zap.Error(err))
 		return api.NewGroupResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if group == nil {
 		return api.NewGroupResponse(apimodel.Code_ExecuteSuccess, req)
 	}
 
-	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
-		if group.Owner != userID {
-			return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
-		}
-	}
-
 	if err := svr.storage.DeleteGroup(group); err != nil {
-		log.Error("delete group from store", utils.ZapRequestID(requestID), zap.Error(err))
+		log.Error("delete group from store", utils.RequestID(ctx), zap.Error(err))
 		return api.NewAuthResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 
-	log.Info("delete group", utils.ZapRequestID(requestID), zap.String("name", req.Name.GetValue()))
+	log.Info("delete group", utils.RequestID(ctx), zap.String("name", req.Name.GetValue()))
 	svr.RecordHistory(userGroupRecordEntry(ctx, req, group.UserGroup, model.ODelete))
 
 	return api.NewGroupResponse(apimodel.Code_ExecuteSuccess, req)
@@ -194,24 +177,21 @@ func (svr *Server) DeleteGroup(ctx context.Context, req *apisecurity.UserGroup) 
 
 // GetGroups 查看用户组
 func (svr *Server) GetGroups(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
-	requestID := utils.ParseRequestID(ctx)
-
 	log.Info("[Auth][Group] origin get groups query params",
-		utils.ZapRequestID(requestID), zap.Any("query", query))
+		utils.RequestID(ctx), zap.Any("query", query))
 
-	var (
-		offset, limit uint32
-		err           error
-	)
-
-	offset, limit, err = utils.ParseOffsetAndLimit(query)
+	offset, limit, err := utils.ParseOffsetAndLimit(query)
 	if err != nil {
 		return api.NewAuthBatchQueryResponse(apimodel.Code_InvalidParameter)
 	}
 
-	searchFilters, errResp := parseGroupSearchArgs(ctx, query)
-	if errResp != nil {
-		return errResp
+	searchFilters := make(map[string]string, len(query))
+	for key, value := range query {
+		if _, ok := UserLinkGroupAttributes[key]; !ok {
+			log.Errorf("[Auth][Group] get groups attribute(%s) it not allowed", key)
+			return api.NewAuthBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, key+" is not allowed")
+		}
+		searchFilters[key] = value
 	}
 
 	total, groups, err := svr.storage.GetGroups(searchFilters, offset, limit)
@@ -225,35 +205,16 @@ func (svr *Server) GetGroups(ctx context.Context, query map[string]string) *apis
 	resp.Size = utils.NewUInt32Value(uint32(len(groups)))
 	resp.UserGroups = enhancedGroups2Api(groups, userGroup2Api)
 
-	svr.fillGroupUserCount(resp.UserGroups)
-
+	for index := range resp.UserGroups {
+		group := resp.UserGroups[index]
+		cacheVal := svr.cacheMgr.User().GetGroup(group.Id.Value)
+		if cacheVal == nil {
+			group.UserCount = utils.NewUInt32Value(0)
+		} else {
+			group.UserCount = utils.NewUInt32Value(uint32(len(cacheVal.UserIds)))
+		}
+	}
 	return resp
-}
-
-func parseGroupSearchArgs(
-	ctx context.Context, query map[string]string) (map[string]string, *apiservice.BatchQueryResponse) {
-	searchFilters := make(map[string]string, len(query))
-	for key, value := range query {
-		if _, ok := UserLinkGroupAttributes[key]; !ok {
-			log.Errorf("[Auth][Group] get groups attribute(%s) it not allowed", key)
-			return nil, api.NewAuthBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, key+" is not allowed")
-		}
-
-		searchFilters[key] = value
-	}
-
-	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
-		// step 1: 设置 owner 信息，只能查看归属主帐户下的用户组
-		searchFilters["owner"] = utils.ParseOwnerID(ctx)
-		if authcommon.ParseUserRole(ctx) != model.OwnerUserRole {
-			// step 2: 非主帐户，只能查看自己所在的用户组
-			if _, ok := searchFilters["user_id"]; !ok {
-				searchFilters["user_id"] = utils.ParseUserID(ctx)
-			}
-		}
-	}
-
-	return searchFilters, nil
 }
 
 // GetGroup 查看对应用户组下的用户信息
@@ -265,18 +226,6 @@ func (svr *Server) GetGroup(ctx context.Context, req *apisecurity.UserGroup) *ap
 	group, errResp := svr.getGroupFromDB(req.Id.Value)
 	if errResp != nil {
 		return errResp
-	}
-
-	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
-		userID := utils.ParseUserID(ctx)
-		isGroupOwner := group.Owner == userID
-		_, find := group.UserIds[userID]
-		if !isGroupOwner && !find {
-			log.Error("can't see group info", zap.String("user", userID),
-				zap.String("group", req.GetId().GetValue()), zap.Bool("group-owner", isGroupOwner),
-				zap.Bool("in-group", find))
-			return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
-		}
 	}
 
 	return api.NewGroupResponse(apimodel.Code_ExecuteSuccess, svr.userGroupDetail2Api(group))
@@ -291,18 +240,6 @@ func (svr *Server) GetGroupToken(ctx context.Context, req *apisecurity.UserGroup
 	groupCache, errResp := svr.getGroupFromCache(req)
 	if errResp != nil {
 		return errResp
-	}
-
-	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
-		userID := utils.ParseUserID(ctx)
-		isGroupOwner := groupCache.Owner == userID
-		_, find := groupCache.UserIds[userID]
-		if !isGroupOwner && !find {
-			log.Error("can't see group token", zap.String("user", userID),
-				zap.String("group", req.GetId().GetValue()), zap.Bool("group-owner", isGroupOwner),
-				zap.Bool("in-group", find))
-			return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
-		}
 	}
 
 	req.AuthToken = utils.NewStringValue(groupCache.Token)
@@ -321,13 +258,6 @@ func (svr *Server) UpdateGroupToken(ctx context.Context, req *apisecurity.UserGr
 
 	if errResp != nil {
 		return errResp
-	}
-
-	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
-		userID := utils.ParseUserID(ctx)
-		if group.Owner != userID {
-			return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
-		}
 	}
 
 	group.TokenEnable = req.TokenEnable.GetValue()
@@ -423,13 +353,7 @@ func (svr *Server) getGroupFromCache(req *apisecurity.UserGroup) (*model.UserGro
 }
 
 // preCheckGroupRelation 检查用户-用户组关联关系中，对应的用户信息是否存在，即不能添加一个不存在的用户到用户组
-func (svr *Server) preCheckGroupRelation(groupID string, req *apisecurity.UserGroupRelation) (*model.UserGroupDetail,
-	*apiservice.Response) {
-	group := svr.cacheMgr.User().GetGroup(groupID)
-	if group == nil {
-		return nil, api.NewAuthResponse(apimodel.Code_NotFoundUserGroup)
-	}
-
+func (svr *Server) preCheckGroupRelation(req *apisecurity.UserGroupRelation) *apiservice.Response {
 	// 检查该关系中所有的用户是否存在
 	uIDs := make([]string, len(req.GetUsers()))
 	for i := range req.GetUsers() {
@@ -440,24 +364,7 @@ func (svr *Server) preCheckGroupRelation(groupID string, req *apisecurity.UserGr
 	for i := range uIDs {
 		user := svr.cacheMgr.User().GetUserByID(uIDs[i])
 		if user == nil {
-			return group, api.NewGroupRelationResponse(apimodel.Code_NotFoundUser, req)
-		}
-	}
-
-	return group, nil
-}
-
-// checkCreateGroup 检查创建用户组的请求
-func (svr *Server) checkCreateGroup(_ context.Context, req *apisecurity.UserGroup) *apiservice.Response {
-	if req == nil {
-		return api.NewGroupResponse(apimodel.Code_EmptyRequest, req)
-	}
-
-	users := req.GetRelation().GetUsers()
-	for i := range users {
-		user := svr.cacheMgr.User().GetUserByID(users[i].GetId().GetValue())
-		if user == nil {
-			return api.NewGroupRelationResponse(apimodel.Code_NotFoundUser, req.GetRelation())
+			return api.NewGroupRelationResponse(apimodel.Code_NotFoundUser, req)
 		}
 	}
 
@@ -466,53 +373,16 @@ func (svr *Server) checkCreateGroup(_ context.Context, req *apisecurity.UserGrou
 
 // checkUpdateGroup 检查用户组的更新请求
 func (svr *Server) checkUpdateGroup(ctx context.Context, req *apisecurity.ModifyUserGroup) *apiservice.Response {
-	userID := utils.ParseUserID(ctx)
-	isOwner := utils.ParseIsOwner(ctx)
-
 	if req == nil {
 		return api.NewModifyGroupResponse(apimodel.Code_EmptyRequest, req)
 	}
-
 	if req.Id == nil || req.Id.GetValue() == "" {
 		return api.NewModifyGroupResponse(apimodel.Code_InvalidUserGroupID, req)
 	}
-
-	group, checkErrResp := svr.preCheckGroupRelation(req.GetId().GetValue(), req.GetAddRelations())
-	if checkErrResp != nil {
-		return checkErrResp
-	}
-
-	// 满足以下情况才可以进行操作
-	// 1.管理员
-	// 2.自己在这个用户组里面
-	// 3.自己是这个用户组的owner角色
-	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
-		_, inGroup := group.UserIds[userID]
-		if !inGroup && group.Owner != userID {
-			return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
-		}
-
-		// 如果当前用户只是在这个组里面，但不是该用户组的owner，那只能添加用户，不能删除用户
-		if inGroup && !isOwner && len(req.GetRemoveRelations().GetUsers()) != 0 {
-			return api.NewAuthResponseWithMsg(
-				apimodel.Code_NotAllowedAccess, "only main account can remove user from usergroup")
-		}
+	if rsp := svr.preCheckGroupRelation(req.GetAddRelations()); rsp != nil {
+		return rsp
 	}
 	return nil
-}
-
-func (svr *Server) fillGroupUserCount(groups []*apisecurity.UserGroup) {
-	groupCache := svr.cacheMgr.User()
-
-	for index := range groups {
-		group := groups[index]
-		cacheVal := groupCache.GetGroup(group.Id.Value)
-		if cacheVal == nil {
-			group.UserCount = utils.NewUInt32Value(0)
-		} else {
-			group.UserCount = utils.NewUInt32Value(uint32(len(cacheVal.UserIds)))
-		}
-	}
 }
 
 // updateGroupAttribute 更新计算用户组更新时的结构体数据，并判断是否需要执行更新操作

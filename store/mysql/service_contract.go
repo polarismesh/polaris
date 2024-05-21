@@ -455,7 +455,7 @@ func (s *serviceContractStore) ListVersions(ctx context.Context, service, namesp
 
 	querySql := `
  SELECT id, type, namespace, service, protocol
-	 , version, revision, flag
+	 , version, revision, flag, content
 	 , UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime)
  FROM service_contract
  WHERE flag = 0 AND namespace = ? AND service = ?
@@ -474,6 +474,104 @@ func (s *serviceContractStore) ListVersions(ctx context.Context, service, namesp
 	if err != nil {
 		log.Errorf("[Store][Contract] fetch contract rows scan err: %s", err.Error())
 		return nil, err
+	}
+	return list, nil
+}
+
+// GetMoreServiceContracts .
+func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime time.Time) ([]*model.EnrichServiceContract, error) {
+	querySql := "SELECT id, type, namespace, service, protocol, version, revision, flag, content, " +
+		" UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM service_contract WHERE mtime >= ? "
+	if firstUpdate {
+		mtime = time.Unix(0, 1)
+		querySql += " AND flag = 0 "
+	}
+
+	tx, err := s.slave.Begin()
+	if err != nil {
+		log.Error("[Store][Contract] list contract for cache when begin tx", zap.Error(err))
+		return nil, store.Error(err)
+	}
+	defer func() {
+		_ = tx.Commit()
+	}()
+
+	rows, err := tx.Query(querySql, mtime)
+	if err != nil {
+		log.Error("[Store][Contract] list contract for cache when query", zap.Error(err))
+		return nil, store.Error(err)
+	}
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	list := make([]*model.EnrichServiceContract, 0)
+	for rows.Next() {
+		var flag, ctime, mtime int64
+		contract := &model.ServiceContract{}
+		if scanErr := rows.Scan(&contract.ID, &contract.Type, &contract.Namespace, &contract.Service,
+			&contract.Protocol, &contract.Version, &contract.Revision, &flag,
+			&contract.Content, &ctime, &mtime); scanErr != nil {
+			log.Error("[Store][Contract] fetch contract rows scan err: %s", zap.Error(err))
+			return nil, store.Error(err)
+		}
+
+		contract.Valid = flag == 0
+		contract.CreateTime = time.Unix(ctime, 0)
+		contract.ModifyTime = time.Unix(mtime, 0)
+
+		list = append(list, &model.EnrichServiceContract{
+			ServiceContract: contract,
+		})
+	}
+
+	contractDetailMap := map[string][]*model.InterfaceDescriptor{}
+	if len(list) > 0 {
+		queryDetailSql := "SELECT sd.id, sd.contract_id, sd.type, sd.method, sd.path, sd.content, sd.revision, " +
+			" UNIX_TIMESTAMP(sd.ctime), UNIX_TIMESTAMP(sd.mtime), IFNULL(sd.source, 1) " +
+			" FROM service_contract_detail sd  LEFT JOIN service_contract sc ON sd.contract_id = sc.id " +
+			" WHERE sc.mtime >= ?"
+		detailRows, err := tx.Query(queryDetailSql, mtime)
+		if err != nil {
+			log.Error("[Store][Contract] list contract detail", zap.String("query sql", queryDetailSql), zap.Error(err))
+			return nil, store.Error(err)
+		}
+		defer func() {
+			_ = detailRows.Close()
+		}()
+		for detailRows.Next() {
+			var flag, ctime, mtime, source int64
+			detailItem := &model.InterfaceDescriptor{}
+			if scanErr := detailRows.Scan(
+				&detailItem.ID, &detailItem.ContractID, &detailItem.Type, &detailItem.Method,
+				&detailItem.Path, &detailItem.Content, &detailItem.Revision,
+				&ctime, &mtime, &source,
+			); scanErr != nil {
+				log.Error("[Store][Contract] fetch contract detail rows scan", zap.Error(scanErr))
+				return nil, store.Error(scanErr)
+			}
+
+			detailItem.Valid = flag == 0
+			detailItem.CreateTime = time.Unix(ctime, 0)
+			detailItem.ModifyTime = time.Unix(mtime, 0)
+			switch source {
+			case 2:
+				detailItem.Source = service_manage.InterfaceDescriptor_Client
+			default:
+				detailItem.Source = service_manage.InterfaceDescriptor_Manual
+			}
+
+			if _, ok := contractDetailMap[detailItem.ContractID]; !ok {
+				contractDetailMap[detailItem.ContractID] = make([]*model.InterfaceDescriptor, 0, 4)
+			}
+			contractDetailMap[detailItem.ContractID] = append(contractDetailMap[detailItem.ContractID], detailItem)
+		}
+
+		for _, item := range list {
+			methods := contractDetailMap[item.ID]
+			item.Interfaces = methods
+			item.Format()
+		}
 	}
 	return list, nil
 }

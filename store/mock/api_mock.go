@@ -1624,6 +1624,21 @@ func (mr *MockStoreMockRecorder) GetMoreReleaseFile(firstUpdate, modifyTime inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreReleaseFile", reflect.TypeOf((*MockStore)(nil).GetMoreReleaseFile), firstUpdate, modifyTime)
 }
 
+// GetMoreServiceContracts mocks base method.
+func (m *MockStore) GetMoreServiceContracts(firstUpdate bool, mtime time.Time) ([]*model.EnrichServiceContract, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMoreServiceContracts", firstUpdate, mtime)
+	ret0, _ := ret[0].([]*model.EnrichServiceContract)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMoreServiceContracts indicates an expected call of GetMoreServiceContracts.
+func (mr *MockStoreMockRecorder) GetMoreServiceContracts(firstUpdate, mtime interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreServiceContracts", reflect.TypeOf((*MockStore)(nil).GetMoreServiceContracts), firstUpdate, mtime)
+}
+
 // GetMoreServices mocks base method.
 func (m *MockStore) GetMoreServices(mtime time.Time, firstUpdate, disableBusiness, needMeta bool) (map[string]*model.Service, error) {
 	m.ctrl.T.Helper()

@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package authcheck
+package policy
 
 import (
 	"context"
@@ -343,7 +343,7 @@ func (svr *Server) handleGetStrategy(ctx context.Context, req *apisecurity.AuthS
 				group := &apisecurity.UserGroup{
 					Id: wrapperspb.String(principal.PrincipalID),
 				}
-				if svr.userSvr.GetUserHelper().CheckUserInGroup(group, curUser) {
+				if svr.userSvr.GetUserHelper().CheckUserInGroup(context.TODO(), group, curUser) {
 					canView = true
 					break
 				}
@@ -393,7 +393,7 @@ func (svr *Server) handleGetPrincipalResources(ctx context.Context, query map[st
 
 	// 找这个用户所关联的用户组
 	if model.PrincipalType(principalRole) == model.PrincipalUser {
-		groups := svr.userSvr.GetUserHelper().GetUserOwnGroup(&apisecurity.User{
+		groups := svr.userSvr.GetUserHelper().GetUserOwnGroup(context.TODO(), &apisecurity.User{
 			Id: wrapperspb.String(principalId),
 		})
 		for i := range groups {
@@ -829,7 +829,7 @@ func (svr *Server) checkUserExist(users []*apisecurity.User) error {
 	if len(users) == 0 {
 		return nil
 	}
-	return svr.userSvr.GetUserHelper().CheckUsersExist(users)
+	return svr.userSvr.GetUserHelper().CheckUsersExist(context.TODO(), users)
 }
 
 // checkUserGroupExist 检查用户组是否存在
@@ -837,7 +837,7 @@ func (svr *Server) checkGroupExist(groups []*apisecurity.UserGroup) error {
 	if len(groups) == 0 {
 		return nil
 	}
-	return svr.userSvr.GetUserHelper().CheckGroupsExist(groups)
+	return svr.userSvr.GetUserHelper().CheckGroupsExist(context.TODO(), groups)
 }
 
 // checkResourceExist 检查资源是否存在
@@ -906,7 +906,7 @@ func (svr *Server) fillPrincipalInfo(resp *apisecurity.AuthStrategy, data *model
 	for index := range data.Principals {
 		principal := data.Principals[index]
 		if principal.PrincipalRole == model.PrincipalUser {
-			user := svr.userSvr.GetUserHelper().GetUser(&apisecurity.User{
+			user := svr.userSvr.GetUserHelper().GetUser(context.TODO(), &apisecurity.User{
 				Id: wrapperspb.String(principal.PrincipalID),
 			})
 			if user == nil {
@@ -917,7 +917,7 @@ func (svr *Server) fillPrincipalInfo(resp *apisecurity.AuthStrategy, data *model
 				Name: utils.NewStringValue(user.GetName().GetValue()),
 			})
 		} else {
-			group := svr.userSvr.GetUserHelper().GetGroup(&apisecurity.UserGroup{
+			group := svr.userSvr.GetUserHelper().GetGroup(context.TODO(), &apisecurity.UserGroup{
 				Id: wrapperspb.String(principal.PrincipalID),
 			})
 			if group == nil {

@@ -3,11 +3,12 @@ package paramcheck
 import (
 	"context"
 
-	"github.com/polarismesh/polaris/common/api/l5"
-	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+
+	"github.com/polarismesh/polaris/common/api/l5"
+	"github.com/polarismesh/polaris/common/model"
 )
 
 // AppendServiceContractInterfaces implements service.DiscoverServer.

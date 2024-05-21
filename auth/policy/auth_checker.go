@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package authcheck
+package policy
 
 import (
 	"github.com/pkg/errors"
@@ -211,6 +211,7 @@ func (d *DefaultAuthChecker) checkAction(principal model.Principal,
 
 	switch ctx.GetOperation() {
 	case model.Read:
+		return true
 	default:
 		for _, entry := range resources {
 			if !d.cacheMgr.AuthStrategy().IsResourceEditable(principal, resType, entry.ID) {

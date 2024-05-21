@@ -125,17 +125,19 @@ type GroupOperator interface {
 
 type UserHelper interface {
 	// CheckUserInGroup 检查用户是否在用户组中
-	CheckUserInGroup(group *apisecurity.UserGroup, user *apisecurity.User) bool
+	CheckUserInGroup(ctx context.Context, group *apisecurity.UserGroup, user *apisecurity.User) bool
 	// CheckGroupsExist 批量检查用户组是否存在
-	CheckGroupsExist(groups []*apisecurity.UserGroup) error
+	CheckGroupsExist(ctx context.Context, groups []*apisecurity.UserGroup) error
 	// CheckUsersExist 批量检查用户是否存在
-	CheckUsersExist(users []*apisecurity.User) error
+	CheckUsersExist(ctx context.Context, users []*apisecurity.User) error
 	// GetUserOwnGroup 查询某个用户所在的所有用户组
-	GetUserOwnGroup(user *apisecurity.User) []*apisecurity.UserGroup
+	GetUserOwnGroup(ctx context.Context, user *apisecurity.User) []*apisecurity.UserGroup
 	// GetUser 查询用户信息
-	GetUser(user *apisecurity.User) *apisecurity.User
+	GetUser(ctx context.Context, user *apisecurity.User) *apisecurity.User
+	// GetUserByID 查询用户信息
+	GetUserByID(ctx context.Context, id string) *apisecurity.User
 	// GetGroup 查询用户组信息
-	GetGroup(req *apisecurity.UserGroup) *apisecurity.UserGroup
+	GetGroup(ctx context.Context, req *apisecurity.UserGroup) *apisecurity.UserGroup
 }
 
 // OperatorInfo 根据 token 解析出来的具体额外信息

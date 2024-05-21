@@ -15,17 +15,17 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package defaultuser
+package policy
 
 import (
 	"fmt"
 	golog "log"
 
 	"github.com/polarismesh/polaris/auth"
-	user_auth "github.com/polarismesh/polaris/auth/user/inteceptor/auth"
+	policy_auth "github.com/polarismesh/polaris/auth/policy/inteceptor/auth"
 )
 
-type ServerProxyFactory func(svr *Server, pre auth.UserServer) (auth.UserServer, error)
+type ServerProxyFactory func(svr *Server, pre auth.StrategyServer) (auth.StrategyServer, error)
 
 var (
 	// serverProxyFactories auth.UserServer API 代理工厂
@@ -46,19 +46,19 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	_ = auth.RegisterUserServer(nextSvr)
+	_ = auth.RegisterStrategyServer(nextSvr)
 }
 
 func loadInteceptors() {
-	RegisterServerProxy("auth", func(svr *Server, pre auth.UserServer) (auth.UserServer, error) {
-		return user_auth.NewServer(pre), nil
+	RegisterServerProxy("auth", func(svr *Server, pre auth.StrategyServer) (auth.StrategyServer, error) {
+		return policy_auth.NewServer(pre), nil
 	})
 }
 
-func BuildServer() (*Server, auth.UserServer, error) {
+func BuildServer() (*Server, auth.StrategyServer, error) {
 	loadInteceptors()
 	svr := &Server{}
-	var nextSvr auth.UserServer
+	var nextSvr auth.StrategyServer
 	nextSvr = svr
 	// 需要返回包装代理的 DiscoverServer
 	order := []string{"auth"}
