@@ -35,6 +35,7 @@ var (
 			"group":     "`group`",
 			"file_name": "name",
 			"namespace": "namespace",
+			"content":   "content",
 		},
 		"config_file_release": {
 			"group":        "`group`",

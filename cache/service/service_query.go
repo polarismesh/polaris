@@ -49,14 +49,32 @@ func (sc *serviceCache) GetServicesByFilter(serviceFilters *types.ServiceArgs,
 
 	var amount uint32
 	var err error
-	var services []*model.Service
+	var matchServices []*model.Service
 
 	// 如果具有名字条件，并且不是模糊查询，直接获取对应命名空间下面的服务，并检查是否匹配所有条件
 	if serviceFilters.Name != "" && !serviceFilters.WildName && !serviceFilters.WildNamespace {
-		amount, services, err = sc.getServicesFromCacheByName(serviceFilters, instanceFilters, offset, limit)
+		matchServices, err = sc.getServicesFromCacheByName(serviceFilters, instanceFilters, offset, limit)
 	} else {
-		amount, services, err = sc.getServicesByIteratingCache(serviceFilters, instanceFilters, offset, limit)
+		matchServices, err = sc.getServicesByIteratingCache(serviceFilters, instanceFilters, offset, limit)
 	}
+
+	if serviceFilters.OnlyExistHealthInstance || serviceFilters.OnlyExistInstance {
+		tmpSvcs := make([]*model.Service, 0, len(matchServices))
+		for i := range matchServices {
+			count := sc.instCache.GetInstancesCountByServiceID(matchServices[i].ID)
+			if serviceFilters.OnlyExistInstance && count.TotalInstanceCount == 0 {
+				continue
+			}
+			if serviceFilters.OnlyExistHealthInstance && count.HealthyInstanceCount == 0 {
+				continue
+			}
+			tmpSvcs = append(tmpSvcs, matchServices[i])
+		}
+		matchServices = tmpSvcs
+	}
+
+	amount, services := sortBeforeTrim(matchServices, offset, limit)
+
 	var enhancedServices []*model.EnhancedService
 	if amount > 0 {
 		enhancedServices = make([]*model.EnhancedService, 0, len(services))
@@ -151,7 +169,7 @@ func (sc *serviceCache) GetAllNamespaces() []string {
 
 // 通过具体的名字来进行查询服务
 func (sc *serviceCache) getServicesFromCacheByName(svcArgs *types.ServiceArgs, instArgs *store.InstanceArgs,
-	offset, limit uint32) (uint32, []*model.Service, error) {
+	offset, limit uint32) ([]*model.Service, error) {
 	var res []*model.Service
 	if svcArgs.Namespace != "" {
 		svc := sc.GetServiceByName(svcArgs.Name, svcArgs.Namespace)
@@ -168,8 +186,7 @@ func (sc *serviceCache) getServicesFromCacheByName(svcArgs *types.ServiceArgs, i
 			}
 		}
 	}
-	amount, services := sortBeforeTrim(res, offset, limit)
-	return amount, services, nil
+	return res, nil
 }
 
 func sortBeforeTrim(services []*model.Service, offset, limit uint32) (uint32, []*model.Service) {
@@ -275,7 +292,7 @@ func (sc *serviceCache) matchInstance(svc *model.Service, instArgs *store.Instan
 
 // getServicesByIteratingCache 通过遍历缓存中的服务
 func (sc *serviceCache) getServicesByIteratingCache(
-	svcArgs *types.ServiceArgs, instArgs *store.InstanceArgs, offset, limit uint32) (uint32, []*model.Service, error) {
+	svcArgs *types.ServiceArgs, instArgs *store.InstanceArgs, offset, limit uint32) ([]*model.Service, error) {
 	var res []*model.Service
 	var process = func(svc *model.Service) {
 		// 如果是别名，直接略过
@@ -296,7 +313,7 @@ func (sc *serviceCache) getServicesByIteratingCache(
 		// 从命名空间来找
 		spaces, ok := sc.names.Load(svcArgs.Namespace)
 		if !ok {
-			return 0, nil, nil
+			return nil, nil
 		}
 		spaces.ReadRange(func(key string, value *model.Service) {
 			process(value)
@@ -308,6 +325,5 @@ func (sc *serviceCache) getServicesByIteratingCache(
 			return true, nil
 		})
 	}
-	amount, services := sortBeforeTrim(res, offset, limit)
-	return amount, services, nil
+	return res, nil
 }

@@ -196,6 +196,10 @@ type (
 		Name string
 		// EmptyCondition 是否是空条件，即只需要从所有服务或者某个命名空间下面的服务，进行不需要匹配的遍历，返回前面的服务即可
 		EmptyCondition bool
+		// OnlyExistHealthInstance 只展示存在健康实例的服务
+		OnlyExistHealthInstance bool
+		// OnlyExistInstance 只展示存在实例的服务
+		OnlyExistInstance bool
 	}
 
 	// ServiceCache 服务数据缓存接口

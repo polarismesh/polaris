@@ -50,23 +50,25 @@ var (
 	serviceMetaFilter       = 3 // 过滤service Metadata的
 	instanceMetaFilter      = 4 // 过滤instance Metadata的
 	ServiceFilterAttributes = map[string]int{
-		"name":            serviceFilter,
-		"namespace":       serviceFilter,
-		"business":        serviceFilter,
-		"department":      serviceFilter,
-		"cmdb_mod1":       serviceFilter,
-		"cmdb_mod2":       serviceFilter,
-		"cmdb_mod3":       serviceFilter,
-		"owner":           serviceFilter,
-		"offset":          serviceFilter,
-		"limit":           serviceFilter,
-		"platform_id":     serviceFilter,
-		"host":            instanceFilter,
-		"port":            instanceFilter,
-		"keys":            serviceMetaFilter,
-		"values":          serviceMetaFilter,
-		"instance_keys":   instanceMetaFilter,
-		"instance_values": instanceMetaFilter,
+		"name":        serviceFilter,
+		"namespace":   serviceFilter,
+		"business":    serviceFilter,
+		"department":  serviceFilter,
+		"cmdb_mod1":   serviceFilter,
+		"cmdb_mod2":   serviceFilter,
+		"cmdb_mod3":   serviceFilter,
+		"owner":       serviceFilter,
+		"offset":      serviceFilter,
+		"limit":       serviceFilter,
+		"platform_id": serviceFilter,
+		// 只返回存在健康实例的服务列表
+		"only_exist_health_instance": serviceFilter,
+		"host":                       instanceFilter,
+		"port":                       instanceFilter,
+		"keys":                       serviceMetaFilter,
+		"values":                     serviceMetaFilter,
+		"instance_keys":              instanceMetaFilter,
+		"instance_values":            instanceMetaFilter,
 	}
 )
 
@@ -475,6 +477,12 @@ func parseServiceArgs(filter map[string]string, metaFilter map[string]string,
 		log.Infof("[Server][Service][Query] fuzzy search with business %s, operator %s",
 			business, utils.ParseOperator(ctx))
 		res.WildBusiness = true
+	}
+	if val, ok := filter["only_exist_health_instance"]; ok {
+		res.OnlyExistHealthInstance = val == "true"
+	}
+	if val, ok := filter["only_exist_instance"]; ok {
+		res.OnlyExistInstance = val == "true"
 	}
 	// 如果元数据条件是空的话，判断是否是空条件匹配
 	if len(metaFilter) == 0 {
