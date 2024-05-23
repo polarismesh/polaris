@@ -931,6 +931,7 @@ func TestListInstances1(t *testing.T) {
 		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 
 		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 1, 1)
+
 		// 使用共同的元数据查询，返回两个实例
 		query = map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
@@ -939,7 +940,24 @@ func TestListInstances1(t *testing.T) {
 			"values":    "1111",
 		}
 		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 2, 2)
+
+		query = map[string]string{
+			"service":   serviceResp.GetName().GetValue(),
+			"namespace": serviceResp.GetNamespace().GetValue(),
+			"keys":      "my-meta-a1,smy-xmeta-h2",
+			"values":    "1111,2222",
+		}
+		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 2, 2)
+
 		// 使用不存在的元数据查询，返回零个实例
+		query = map[string]string{
+			"service":   serviceResp.GetName().GetValue(),
+			"namespace": serviceResp.GetNamespace().GetValue(),
+			"keys":      "my-meta-a1,smy-xmeta-h2",
+			"values":    "1111,none",
+		}
+		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 0, 0)
+
 		query = map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),
