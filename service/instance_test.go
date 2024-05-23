@@ -935,8 +935,8 @@ func TestListInstances1(t *testing.T) {
 		query = map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),
-			"keys":      "my-meta-a1",
-			"values":    "1111",
+			"keys":      "my-meta-a1,smy-xmeta-h2",
+			"values":    "1111,2222",
 		}
 		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 2, 2)
 		// 使用不存在的元数据查询，返回零个实例
