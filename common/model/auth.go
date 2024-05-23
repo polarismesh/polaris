@@ -226,17 +226,15 @@ type User struct {
 
 func (u *User) ToSpec() *apisecurity.User {
 	return &apisecurity.User{
-		Id:          &wrapperspb.StringValue{},
-		Name:        &wrapperspb.StringValue{},
-		Password:    &wrapperspb.StringValue{},
-		Owner:       &wrapperspb.StringValue{},
-		Source:      &wrapperspb.StringValue{},
-		AuthToken:   &wrapperspb.StringValue{},
-		TokenEnable: &wrapperspb.BoolValue{},
-		Comment:     &wrapperspb.StringValue{},
-		Ctime:       &wrapperspb.StringValue{},
-		Mtime:       &wrapperspb.StringValue{},
-		UserType:    &wrapperspb.StringValue{},
+		Id:          wrapperspb.String(u.ID),
+		Name:        wrapperspb.String(u.Name),
+		Password:    wrapperspb.String(u.Password),
+		Owner:       wrapperspb.String(u.Owner),
+		Source:      wrapperspb.String(u.Source),
+		AuthToken:   wrapperspb.String(u.Token),
+		TokenEnable: wrapperspb.Bool(u.TokenEnable),
+		Comment:     wrapperspb.String(u.Comment),
+		UserType:    wrapperspb.String(fmt.Sprintf("%d", u.Type)),
 	}
 }
 

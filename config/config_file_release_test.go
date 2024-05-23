@@ -176,6 +176,65 @@ func Test_PublishConfigFile(t *testing.T) {
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
 	})
 
+	// 创建一个 v1 的配置发布
+	// 删除 v1 配置发布
+	// 再创建一个 v1 的配置发布
+	// 客户端可以正常读取到数据
+	t.Run("create_delete_recreate_same", func(t *testing.T) {
+		pubResp := testSuit.ConfigServer().UpsertAndReleaseConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
+			ReleaseName:        utils.NewStringValue(mockReleaseName + "same-v1"),
+			Namespace:          utils.NewStringValue(mockNamespace + "same-v1"),
+			Group:              utils.NewStringValue(mockGroup + "same-v1"),
+			FileName:           utils.NewStringValue(mockFileName + "same-v1"),
+			Content:            utils.NewStringValue(mockContent + "same-v1"),
+			Comment:            utils.NewStringValue("mock_comment"),
+			Format:             utils.NewStringValue("yaml"),
+			ReleaseDescription: utils.NewStringValue("mock_releaseDescription"),
+			Tags: []*config_manage.ConfigFileTag{
+				{
+					Key:   utils.NewStringValue("mock_key"),
+					Value: utils.NewStringValue("mock_value"),
+				},
+			},
+		})
+
+		// 正常发布成功
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
+
+		delResp := testSuit.ConfigServer().DeleteConfigFileReleases(testSuit.DefaultCtx, []*config_manage.ConfigFileRelease{
+			{
+				Name:      utils.NewStringValue(mockReleaseName + "same-v1"),
+				Namespace: utils.NewStringValue(mockNamespace + "same-v1"),
+				Group:     utils.NewStringValue(mockGroup + "same-v1"),
+				FileName:  utils.NewStringValue(mockFileName + "same-v1"),
+			},
+		})
+		// 删除成功
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), delResp.GetCode().GetValue(), delResp.GetInfo().GetValue())
+
+		// 再次重新发布
+		pubResp = testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFileRelease{
+			Name:      utils.NewStringValue(mockReleaseName + "same-v1"),
+			Namespace: utils.NewStringValue(mockNamespace + "same-v1"),
+			Group:     utils.NewStringValue(mockGroup + "same-v1"),
+			FileName:  utils.NewStringValue(mockFileName + "same-v1"),
+		})
+
+		// 再次重新发布成功
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
+
+		// 客户端读取数据正常
+		_ = testSuit.CacheMgr().TestUpdate()
+
+		clientRsp := testSuit.ConfigServer().GetConfigFileWithCache(testSuit.DefaultCtx, &config_manage.ClientConfigFileInfo{
+			Namespace: utils.NewStringValue(mockNamespace + "same-v1"),
+			Group:     utils.NewStringValue(mockGroup + "same-v1"),
+			FileName:  utils.NewStringValue(mockFileName + "same-v1"),
+		})
+		// 正常读取到数据
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), clientRsp.GetCode().GetValue(), clientRsp.GetInfo().GetValue())
+	})
+
 	t.Run("list_release_version", func(t *testing.T) {
 		t.Run("invalid_namespace", func(t *testing.T) {
 			queryRsp := testSuit.ConfigServer().GetConfigFileReleaseVersions(testSuit.DefaultCtx, map[string]string{

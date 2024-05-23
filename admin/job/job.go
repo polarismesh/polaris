@@ -49,11 +49,9 @@ func NewMaintainJobs(namingServer service.DiscoverServer, cacheMgn *cache.CacheM
 				namingServer: namingServer, storage: storage},
 			"DeleteEmptyService": &deleteEmptyServiceJob{
 				namingServer: namingServer, cacheMgn: cacheMgn, storage: storage},
-			"CleanDeletedInstances": &cleanDeletedInstancesJob{
-				storage: storage},
-			"CleanDeletedClients": &cleanDeletedClientsJob{
-				storage: storage},
 			"CleanConfigReleaseHistory": &cleanConfigFileHistoryJob{
+				storage: storage},
+			"CleanDeletedResources": &cleanDeletedResourceJob{
 				storage: storage},
 		},
 		startedJobs: map[string]maintainJob{},
@@ -73,7 +71,8 @@ func (mj *MaintainJobs) StartMaintianJobs(configs []JobConfig) error {
 		jobName := parseJobName(cfg.Name)
 		job, ok := mj.findAdminJob(jobName)
 		if !ok {
-			return fmt.Errorf("[Maintain][Job] job (%s) not exist", jobName)
+			log.Warnf("[Maintain][Job] job (%s) not exist", jobName)
+			continue
 		}
 		if _, ok := mj.startedJobs[jobName]; ok {
 			return fmt.Errorf("[Maintain][Job] job (%s) duplicated", jobName)

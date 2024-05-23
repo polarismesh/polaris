@@ -76,8 +76,10 @@ func (cfr *configFileReleaseStore) CreateConfigFileReleaseTx(proxyTx store.Tx,
 		&ConfigFileRelease{}, values); err != nil {
 		return err
 	}
-	if len(values) != 0 {
-		return store.NewStatusError(store.DuplicateEntryErr, "exist record")
+	for i := range values {
+		if ret := cfr.toModelData(values[i].(*ConfigFileRelease)); ret != nil {
+			return store.NewStatusError(store.DuplicateEntryErr, "exist record")
+		}
 	}
 
 	table, err := tx.CreateBucketIfNotExists([]byte(tblConfigFileRelease))
@@ -361,9 +363,8 @@ func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *bolt.Tx,
 	// 查询这个 release 相关的所有
 	if err := loadValuesByFilter(tx, tblConfigFileRelease, fields, &ConfigFileRelease{},
 		func(m map[string]interface{}) bool {
-			flag, _ := m[FileReleaseFieldFlag].(int)
 			// 已经删除的不管
-			if flag == 1 {
+			if valid, _ := m[FileReleaseFieldValid].(bool); !valid {
 				return false
 			}
 			isActive, _ := m[FileReleaseFieldActive].(bool)
@@ -445,6 +446,9 @@ type ConfigFileRelease struct {
 }
 
 func (cfr *configFileReleaseStore) toModelData(data *ConfigFileRelease) *model.ConfigFileRelease {
+	if !data.Valid {
+		return nil
+	}
 	return &model.ConfigFileRelease{
 		SimpleConfigFileRelease: &model.SimpleConfigFileRelease{
 			ConfigFileReleaseKey: &model.ConfigFileReleaseKey{

@@ -155,7 +155,7 @@ func (svr *Server) GetUserToken(ctx context.Context, user *apisecurity.User) *ap
 		return rsp
 	}
 	helper := svr.GetUserHelper()
-	targetUser := helper.GetUserByID(ctx, user.GetId().GetValue())
+	targetUser := helper.GetUser(ctx, user)
 	if !checkUserViewPermission(ctx, targetUser) {
 		return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
 	}
