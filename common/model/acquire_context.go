@@ -255,3 +255,12 @@ func (authCtx *AcquireContext) IsAllowAnonymous() bool {
 func (authCtx *AcquireContext) SetAllowAnonymous(a bool) {
 	authCtx.allowAnonymous = a
 }
+
+// ResourceOpInfo 资源的数据操作信息
+type ResourceOpInfo struct {
+	ResourceType apisecurity.ResourceType
+	Namespace    string
+	ResourceName string
+	ResourceID   string
+	Operation    ResourceOperation
+}

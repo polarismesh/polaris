@@ -33,7 +33,7 @@ func (svr *ServerAuthAbility) RegisterInstance(ctx context.Context, req *apiserv
 	authCtx := svr.collectClientInstanceAuthContext(
 		ctx, []*apiservice.Instance{req}, model.Create, "RegisterInstance")
 
-	_, err := svr.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
 		resp := api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 		return resp
@@ -50,7 +50,7 @@ func (svr *ServerAuthAbility) DeregisterInstance(ctx context.Context, req *apise
 	authCtx := svr.collectClientInstanceAuthContext(
 		ctx, []*apiservice.Instance{req}, model.Create, "DeregisterInstance")
 
-	_, err := svr.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
 		resp := api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 		return resp
@@ -75,7 +75,7 @@ func (svr *ServerAuthAbility) ReportServiceContract(ctx context.Context, req *ap
 			Namespace: wrapperspb.String(req.GetNamespace()),
 		}}, model.Create, "ReportServiceContract")
 
-	_, err := svr.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
 		resp := api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 		return resp
@@ -99,7 +99,7 @@ func (svr *ServerAuthAbility) GetServiceWithCache(
 
 	authCtx := svr.collectServiceAuthContext(
 		ctx, []*apiservice.Service{req}, model.Read, "DiscoverServices")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
 		resp := api.NewDiscoverResponse(convertToErrCode(err))
 		resp.Info = utils.NewStringValue(err.Error())
@@ -117,7 +117,7 @@ func (svr *ServerAuthAbility) ServiceInstancesCache(
 
 	authCtx := svr.collectServiceAuthContext(
 		ctx, []*apiservice.Service{req}, model.Read, "DiscoverInstances")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
 		resp := api.NewDiscoverResponse(convertToErrCode(err))
 		resp.Info = utils.NewStringValue(err.Error())
@@ -135,7 +135,7 @@ func (svr *ServerAuthAbility) GetRoutingConfigWithCache(
 
 	authCtx := svr.collectServiceAuthContext(
 		ctx, []*apiservice.Service{req}, model.Read, "DiscoverRouterRule")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
 		resp := api.NewDiscoverResponse(convertToErrCode(err))
 		resp.Info = utils.NewStringValue(err.Error())
@@ -153,7 +153,7 @@ func (svr *ServerAuthAbility) GetRateLimitWithCache(
 
 	authCtx := svr.collectServiceAuthContext(
 		ctx, []*apiservice.Service{req}, model.Read, "DiscoverRateLimit")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
 		resp := api.NewDiscoverResponse(convertToErrCode(err))
 		resp.Info = utils.NewStringValue(err.Error())
@@ -171,7 +171,7 @@ func (svr *ServerAuthAbility) GetCircuitBreakerWithCache(
 
 	authCtx := svr.collectServiceAuthContext(
 		ctx, []*apiservice.Service{req}, model.Read, "DiscoverCircuitBreaker")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
 		resp := api.NewDiscoverResponse(convertToErrCode(err))
 		resp.Info = utils.NewStringValue(err.Error())
@@ -188,7 +188,7 @@ func (svr *ServerAuthAbility) GetFaultDetectWithCache(
 
 	authCtx := svr.collectServiceAuthContext(
 		ctx, []*apiservice.Service{req}, model.Read, "DiscoverFaultDetect")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
 		resp := api.NewDiscoverResponse(convertToErrCode(err))
 		resp.Info = utils.NewStringValue(err.Error())
@@ -205,7 +205,7 @@ func (svr *ServerAuthAbility) UpdateInstance(ctx context.Context, req *apiservic
 	authCtx := svr.collectClientInstanceAuthContext(
 		ctx, []*apiservice.Instance{req}, model.Modify, "UpdateInstance")
 
-	_, err := svr.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
 		resp := api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 		return resp
@@ -225,7 +225,7 @@ func (svr *ServerAuthAbility) GetServiceContractWithCache(ctx context.Context,
 		Name:      wrapperspb.String(req.Service),
 	}}, model.Read, "GetServiceContractWithCache")
 
-	_, err := svr.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
 		resp := api.NewResponse(convertToErrCode(err))
 		resp.Info = utils.NewStringValue(err.Error())
@@ -242,7 +242,7 @@ func (svr *ServerAuthAbility) GetServiceContractWithCache(ctx context.Context,
 func (svr *ServerAuthAbility) GetLaneRuleWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	authCtx := svr.collectServiceAuthContext(
 		ctx, []*apiservice.Service{req}, model.Read, "DiscoverLaneRule")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckClientPermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
 		resp := api.NewDiscoverResponse(convertToErrCode(err))
 		resp.Info = utils.NewStringValue(err.Error())

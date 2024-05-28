@@ -39,4 +39,6 @@ const (
 	MetaKeyConfigFileSyncSourceKey = "internal-sync-source"
 	// MetaKeyConfigFileSyncSourceClusterKey 配置同步来源所在集群
 	MetaKeyConfigFileSyncSourceClusterKey = "internal-sync-sourcecluster"
+	// MetaKey3RdPlatform 第三方平台标签
+	MetaKey3RdPlatform = "internal-3rd-platform"
 )

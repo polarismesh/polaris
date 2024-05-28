@@ -68,5 +68,5 @@ func (svr *ServerAuthAbility) onServiceResource(ctx context.Context, res *servic
 	authCtx.SetAttachment(model.LinkGroupsKey, utils.StringSliceDeDuplication(groups))
 	authCtx.SetAttachment(model.RemoveLinkGroupsKey, utils.StringSliceDeDuplication(removeGroups))
 
-	return svr.strategyMgn.AfterResourceOperation(authCtx)
+	return svr.policyMgr.AfterResourceOperation(authCtx)
 }

@@ -137,6 +137,7 @@ func (nc *CacheManager) Start(ctx context.Context) error {
 		if !exist {
 			return fmt.Errorf("cache resource %s not exists", name)
 		}
+		// 每个缓存各自在自己的协程内部按照期望的缓存更新时间完成数据缓存刷新
 		go func(c types.Cache) {
 			ticker := time.NewTicker(nc.GetUpdateCacheInterval())
 			for {

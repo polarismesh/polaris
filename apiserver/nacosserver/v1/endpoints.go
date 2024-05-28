@@ -24,9 +24,10 @@ import (
 	"strings"
 
 	"github.com/emicklei/go-restful/v3"
-	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	api "github.com/polarismesh/polaris/common/api/v1"
 )
 
 func (n *NacosV1Server) GetAddressServer() (*restful.WebService, error) {

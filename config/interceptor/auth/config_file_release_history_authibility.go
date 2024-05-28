@@ -33,7 +33,7 @@ func (s *ServerAuthability) GetConfigFileReleaseHistories(ctx context.Context,
 
 	authCtx := s.collectConfigFileReleaseHistoryAuthContext(ctx, nil, model.Read, "GetConfigFileReleaseHistories")
 
-	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigBatchQueryResponseWithInfo(model.ConvertToErrCode(err), err.Error())
 	}
 	ctx = authCtx.GetRequestContext()

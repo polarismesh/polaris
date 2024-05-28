@@ -34,7 +34,7 @@ func (svr *ServerAuthAbility) CreateServiceAlias(
 	authCtx := svr.collectServiceAliasAuthContext(
 		ctx, []*apiservice.ServiceAlias{req}, model.Create, "CreateServiceAlias")
 
-	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewServiceAliasResponse(convertToErrCode(err), req)
 	}
 
@@ -55,7 +55,7 @@ func (svr *ServerAuthAbility) DeleteServiceAliases(ctx context.Context,
 	reqs []*apiservice.ServiceAlias) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, reqs, model.Delete, "DeleteServiceAliases")
 
-	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 
@@ -71,7 +71,7 @@ func (svr *ServerAuthAbility) UpdateServiceAlias(
 	authCtx := svr.collectServiceAliasAuthContext(
 		ctx, []*apiservice.ServiceAlias{req}, model.Modify, "UpdateServiceAlias")
 
-	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewServiceAliasResponse(convertToErrCode(err), req)
 	}
 
@@ -86,7 +86,7 @@ func (svr *ServerAuthAbility) GetServiceAliases(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectServiceAliasAuthContext(ctx, nil, model.Read, "GetServiceAliases")
 
-	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchQueryResponse(convertToErrCode(err))
 	}
 
@@ -95,23 +95,19 @@ func (svr *ServerAuthAbility) GetServiceAliases(ctx context.Context,
 
 	resp := svr.nextSvr.GetServiceAliases(ctx, query)
 	if len(resp.Aliases) != 0 {
-		// 对于服务别名，则是参考源服务是否有编辑权限
-		principal := model.Principal{
-			PrincipalID:   utils.ParseUserID(ctx),
-			PrincipalRole: model.PrincipalUser,
-		}
 		for index := range resp.Aliases {
 			alias := resp.Aliases[index]
 			svc := svr.Cache().Service().GetServiceByName(alias.Service.Value, alias.Namespace.Value)
 			if svc == nil {
 				continue
 			}
-			editable := true
-			// 如果鉴权能力没有开启，那就默认都可以进行编辑
-			if svr.strategyMgn.GetAuthChecker().IsOpenConsoleAuth() {
-				editable = svr.Cache().AuthStrategy().IsResourceEditable(principal,
-					apisecurity.ResourceType_Services, svc.ID)
-			}
+			editable := svr.policyMgr.GetAuthChecker().AllowResourceOperate(authCtx, &model.ResourceOpInfo{
+				ResourceType: apisecurity.ResourceType_Services,
+				Namespace:    svc.Namespace,
+				ResourceName: svc.Name,
+				ResourceID:   svc.ID,
+				Operation:    authCtx.GetOperation(),
+			})
 			alias.Editable = utils.NewBoolValue(editable)
 		}
 	}

@@ -89,6 +89,9 @@ func (e *EnrichServiceContract) Format() {
 		}
 		e.Interfaces = append(e.Interfaces, e.ClientInterfaces[k])
 	}
+	// 格式化完毕之后，清空暂存的 ClientInterface 以及 ManualInterface 数据
+	e.ClientInterfaces = nil
+	e.ManualInterfaces = nil
 }
 
 func (e *EnrichServiceContract) ToSpec() *apiservice.ServiceContract {

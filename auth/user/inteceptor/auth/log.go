@@ -20,5 +20,5 @@ package auth
 import commonlog "github.com/polarismesh/polaris/common/log"
 
 var (
-	log      = commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName)
+	log = commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName)
 )

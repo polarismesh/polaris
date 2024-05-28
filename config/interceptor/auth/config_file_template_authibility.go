@@ -31,7 +31,7 @@ import (
 func (s *ServerAuthability) GetAllConfigFileTemplates(ctx context.Context) *apiconfig.ConfigBatchQueryResponse {
 	authCtx := s.collectConfigFileTemplateAuthContext(ctx,
 		[]*apiconfig.ConfigFileTemplate{}, model.Read, "GetAllConfigFileTemplates")
-	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileBatchQueryResponseWithMessage(model.ConvertToErrCode(err), err.Error())
 	}
 
@@ -44,7 +44,7 @@ func (s *ServerAuthability) GetAllConfigFileTemplates(ctx context.Context) *apic
 func (s *ServerAuthability) GetConfigFileTemplate(ctx context.Context, name string) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigFileTemplateAuthContext(ctx,
 		[]*apiconfig.ConfigFileTemplate{}, model.Read, "GetAllConfigFileTemplates")
-	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigResponseWithInfo(model.ConvertToErrCode(err), err.Error())
 	}
 
@@ -59,7 +59,7 @@ func (s *ServerAuthability) CreateConfigFileTemplate(ctx context.Context,
 
 	authCtx := s.collectConfigFileTemplateAuthContext(ctx,
 		[]*apiconfig.ConfigFileTemplate{template}, model.Create, "CreateConfigFileTemplate")
-	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigResponseWithInfo(model.ConvertToErrCode(err), err.Error())
 	}
 

@@ -152,18 +152,15 @@ func (svr *serverAuthAbility) GetNamespaces(
 
 	resp := svr.targetServer.GetNamespaces(ctx, query)
 	if len(resp.Namespaces) != 0 {
-		principal := model.Principal{
-			PrincipalID:   utils.ParseUserID(ctx),
-			PrincipalRole: model.PrincipalUser,
-		}
 		for index := range resp.Namespaces {
 			ns := resp.Namespaces[index]
-			editable := true
-			// 如果鉴权能力没有开启，那就默认都可以进行编辑
-			if svr.strategyMgn.GetAuthChecker().IsOpenConsoleAuth() {
-				editable = svr.targetServer.caches.AuthStrategy().IsResourceEditable(principal,
-					apisecurity.ResourceType_Namespaces, ns.Id.GetValue())
-			}
+			editable := svr.strategyMgn.GetAuthChecker().AllowResourceOperate(authCtx, &model.ResourceOpInfo{
+				ResourceType: apisecurity.ResourceType_Namespaces,
+				Namespace:    ns.GetName().GetValue(),
+				ResourceName: ns.GetName().GetValue(),
+				ResourceID:   ns.GetId().GetValue(),
+				Operation:    authCtx.GetOperation(),
+			})
 			ns.Editable = utils.NewBoolValue(editable)
 		}
 	}

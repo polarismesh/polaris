@@ -36,7 +36,7 @@ func (s *ServerAuthability) CreateConfigFileGroup(ctx context.Context,
 		model.Create, "CreateConfigFileGroup")
 
 	// 验证 token 信息
-	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigResponseWithInfo(model.ConvertToErrCode(err), err.Error())
 	}
 
@@ -52,7 +52,7 @@ func (s *ServerAuthability) QueryConfigFileGroups(ctx context.Context,
 
 	authCtx := s.collectConfigGroupAuthContext(ctx, nil, model.Read, "QueryConfigFileGroups")
 
-	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigBatchQueryResponse(model.ConvertToErrCode(err))
 	}
 
@@ -61,22 +61,22 @@ func (s *ServerAuthability) QueryConfigFileGroups(ctx context.Context,
 
 	resp := s.nextServer.QueryConfigFileGroups(ctx, filter)
 	if len(resp.ConfigFileGroups) != 0 {
-		principal := model.Principal{
-			PrincipalID:   utils.ParseUserID(ctx),
-			PrincipalRole: model.PrincipalUser,
-		}
 		for index := range resp.ConfigFileGroups {
 			group := resp.ConfigFileGroups[index]
-			editable := true
-			// 如果鉴权能力没有开启，那就默认都可以进行编辑
-			if s.strategyMgn.GetAuthChecker().IsOpenConsoleAuth() {
-				editable = s.cacheMgr.AuthStrategy().IsResourceEditable(principal,
-					apisecurity.ResourceType_ConfigGroups, fmt.Sprintf("%d", group.GetId().GetValue()))
+			editable := s.policyMgr.GetAuthChecker().AllowResourceOperate(authCtx, &model.ResourceOpInfo{
+				ResourceType: apisecurity.ResourceType_ConfigGroups,
+				Namespace:    group.GetNamespace().GetValue(),
+				ResourceName: group.GetName().GetValue(),
+				ResourceID:   fmt.Sprintf("%d", group.GetId().GetValue()),
+				Operation:    authCtx.GetOperation(),
+			})
+			// 如果包含特殊标签，也不允许修改
+			if _, ok := group.GetMetadata()[model.MetaKey3RdPlatform]; ok {
+				editable = false
 			}
 			group.Editable = utils.NewBoolValue(editable)
 		}
 	}
-
 	return resp
 }
 
@@ -86,7 +86,7 @@ func (s *ServerAuthability) DeleteConfigFileGroup(
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*apiconfig.ConfigFileGroup{{Name: utils.NewStringValue(name),
 		Namespace: utils.NewStringValue(namespace)}}, model.Delete, "DeleteConfigFileGroup")
 
-	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigResponseWithInfo(model.ConvertToErrCode(err), err.Error())
 	}
 
@@ -102,7 +102,7 @@ func (s *ServerAuthability) UpdateConfigFileGroup(ctx context.Context,
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*apiconfig.ConfigFileGroup{configFileGroup},
 		model.Modify, "UpdateConfigFileGroup")
 
-	if _, err := s.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigResponseWithInfo(model.ConvertToErrCode(err), err.Error())
 	}
 

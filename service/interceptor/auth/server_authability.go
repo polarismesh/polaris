@@ -39,17 +39,17 @@ import (
 //
 //	该层会对请求参数做一些调整，根据具体的请求发起人，设置为数据对应的 owner，不可为为别人进行创建资源
 type ServerAuthAbility struct {
-	nextSvr     service.DiscoverServer
-	userMgn     auth.UserServer
-	strategyMgn auth.StrategyServer
+	nextSvr   service.DiscoverServer
+	userMgn   auth.UserServer
+	policyMgr auth.StrategyServer
 }
 
 func NewServerAuthAbility(nextSvr service.DiscoverServer,
-	userMgn auth.UserServer, strategyMgn auth.StrategyServer) service.DiscoverServer {
+	userMgn auth.UserServer, policyMgr auth.StrategyServer) service.DiscoverServer {
 	proxy := &ServerAuthAbility{
-		nextSvr:     nextSvr,
-		userMgn:     userMgn,
-		strategyMgn: strategyMgn,
+		nextSvr:   nextSvr,
+		userMgn:   userMgn,
+		policyMgr: policyMgr,
 	}
 
 	actualSvr, ok := nextSvr.(*service.Server)

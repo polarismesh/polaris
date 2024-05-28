@@ -51,7 +51,8 @@ func (d *DefaultAuthChecker) SetCacheMgr(mgr cachetypes.CacheManager) {
 }
 
 // Initialize 执行初始化动作
-func (d *DefaultAuthChecker) Initialize(conf *AuthConfig, s store.Store, cacheMgr cachetypes.CacheManager, userSvr auth.UserServer) error {
+func (d *DefaultAuthChecker) Initialize(conf *AuthConfig, s store.Store,
+	cacheMgr cachetypes.CacheManager, userSvr auth.UserServer) error {
 	d.conf = conf
 	d.cacheMgr = cacheMgr
 	d.userSvr = userSvr
@@ -76,6 +77,33 @@ func (d *DefaultAuthChecker) IsOpenClientAuth() bool {
 // IsOpenAuth 返回对于控制台/客户端任意其中的一个是否开启了操作鉴权
 func (d *DefaultAuthChecker) IsOpenAuth() bool {
 	return d.IsOpenConsoleAuth() || d.IsOpenClientAuth()
+}
+
+// AllowResourceOperate 是否允许资源的操作
+func (d *DefaultAuthChecker) AllowResourceOperate(ctx *model.AcquireContext, opInfo *model.ResourceOpInfo) bool {
+	// 如果鉴权能力没有开启，那就默认都可以进行编辑
+	if !d.IsOpenAuth() {
+		return true
+	}
+	attachVal, ok := ctx.GetAttachment(model.TokenDetailInfoKey)
+	if !ok {
+		// TODO need log
+		return false
+	}
+	tokenInfo, ok := attachVal.(auth.OperatorInfo)
+
+	principal := model.Principal{
+		PrincipalID: tokenInfo.OperatorID,
+		PrincipalRole: func() model.PrincipalType {
+			if tokenInfo.IsUserToken {
+				return model.PrincipalUser
+			}
+			return model.PrincipalGroup
+		}(),
+	}
+
+	editable := d.cacheMgr.AuthStrategy().IsResourceEditable(principal, opInfo.ResourceType, opInfo.ResourceID)
+	return editable
 }
 
 // CheckClientPermission 执行检查客户端动作判断是否有权限，并且对 RequestContext 注入操作者数据

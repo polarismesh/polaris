@@ -19,8 +19,12 @@ package service
 
 import (
 	"context"
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"time"
 
+	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
@@ -39,7 +43,9 @@ func NewServiceContractCache(storage store.Store, cacheMgr cachetypes.CacheManag
 type ServiceContractCache struct {
 	*cachetypes.BaseCache
 	// data namespace/service/type/protocol/version -> *model.EnrichServiceContract
-	data        *utils.SyncMap[string, *model.EnrichServiceContract]
+	data *utils.SyncMap[string, *model.EnrichServiceContract]
+	// valueCache save ConfigFileRelease.Content into local file to reduce memory use
+	valueCache  *bbolt.DB
 	singleGroup singleflight.Group
 }
 
@@ -47,6 +53,23 @@ type ServiceContractCache struct {
 func (sc *ServiceContractCache) Initialize(c map[string]interface{}) error {
 	sc.data = utils.NewSyncMap[string, *model.EnrichServiceContract]()
 	return nil
+}
+
+func (fc *ServiceContractCache) openBoltCache(opt map[string]interface{}) (*bbolt.DB, error) {
+	path, _ := opt["cachePath"].(string)
+	if path == "" {
+		path = "./data/cache/service_contract"
+	}
+	if err := os.MkdirAll(path, os.ModePerm); err != nil {
+		return nil, err
+	}
+	dbFile := filepath.Join(path, "service_contract.bolt")
+	_ = os.Remove(dbFile)
+	valueCache, err := bbolt.Open(dbFile, os.ModePerm, &bbolt.Options{})
+	if err != nil {
+		return nil, err
+	}
+	return valueCache, nil
 }
 
 // Update
@@ -88,11 +111,11 @@ func (sc *ServiceContractCache) setContracts(values []*model.EnrichServiceContra
 		item := values[i]
 		if !item.Valid {
 			del++
-			sc.data.Delete(item.GetCacheKey())
+			sc.upsertValueCache(item, true)
 			continue
 		}
 		upsert++
-		sc.data.Store(item.GetCacheKey(), item)
+		sc.upsertValueCache(item, false)
 	}
 	return map[string]time.Time{
 		sc.Name(): lastMtime,
@@ -111,6 +134,32 @@ func (sc *ServiceContractCache) Name() string {
 }
 
 func (sc *ServiceContractCache) Get(ctx context.Context, req *model.ServiceContract) *model.EnrichServiceContract {
-	ret, _ := sc.data.Load(req.GetCacheKey())
+	ret, _ := sc.loadValueCache(req)
 	return ret
+}
+
+func (fc *ServiceContractCache) upsertValueCache(item *model.EnrichServiceContract, del bool) error {
+	return fc.valueCache.Update(func(tx *bbolt.Tx) error {
+		if del {
+			return tx.DeleteBucket([]byte(item.GetCacheKey()))
+		}
+		bucket, err := tx.CreateBucketIfNotExists([]byte(item.GetCacheKey()))
+		if err != nil {
+			return err
+		}
+		return bucket.Put([]byte(item.GetCacheKey()), []byte(utils.MustJson(item)))
+	})
+}
+
+func (fc *ServiceContractCache) loadValueCache(release *model.ServiceContract) (*model.EnrichServiceContract, error) {
+	ret := &model.EnrichServiceContract{}
+	err := fc.valueCache.View(func(tx *bbolt.Tx) error {
+		bucket := tx.Bucket([]byte(release.GetCacheKey()))
+		if bucket == nil {
+			return nil
+		}
+		val := bucket.Get([]byte(release.GetCacheKey()))
+		return json.Unmarshal(val, ret)
+	})
+	return ret, err
 }

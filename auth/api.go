@@ -39,6 +39,8 @@ type AuthChecker interface {
 	IsOpenConsoleAuth() bool
 	// IsOpenClientAuth
 	IsOpenClientAuth() bool
+	// AllowResourceOperate 是否允许资源的操作
+	AllowResourceOperate(ctx *model.AcquireContext, opInfo *model.ResourceOpInfo) bool
 }
 
 // StrategyServer 策略相关操作
