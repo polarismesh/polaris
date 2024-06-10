@@ -65,8 +65,7 @@ var (
 // handleCreateStrategy 创建鉴权策略
 func (svr *Server) handleCreateStrategy(ctx context.Context, req *apisecurity.AuthStrategy) *apiservice.Response {
 	requestID := utils.ParseRequestID(ctx)
-	ownerId := utils.ParseOwnerID(ctx)
-	req.Owner = utils.NewStringValue(ownerId)
+	req.Owner = utils.NewStringValue(utils.ParseOwnerID(ctx))
 
 	if checkErrResp := svr.checkCreateStrategy(req); checkErrResp != nil {
 		return checkErrResp
@@ -343,7 +342,7 @@ func (svr *Server) handleGetStrategy(ctx context.Context, req *apisecurity.AuthS
 				group := &apisecurity.UserGroup{
 					Id: wrapperspb.String(principal.PrincipalID),
 				}
-				if svr.userSvr.GetUserHelper().CheckUserInGroup(context.TODO(), group, curUser) {
+				if svr.userSvr.GetUserHelper().CheckUserInGroup(ctx, group, curUser) {
 					canView = true
 					break
 				}
@@ -393,7 +392,7 @@ func (svr *Server) handleGetPrincipalResources(ctx context.Context, query map[st
 
 	// 找这个用户所关联的用户组
 	if model.PrincipalType(principalRole) == model.PrincipalUser {
-		groups := svr.userSvr.GetUserHelper().GetUserOwnGroup(context.TODO(), &apisecurity.User{
+		groups := svr.userSvr.GetUserHelper().GetUserOwnGroup(ctx, &apisecurity.User{
 			Id: wrapperspb.String(principalId),
 		})
 		for i := range groups {

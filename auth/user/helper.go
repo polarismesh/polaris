@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/polarismesh/polaris/common/utils"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"go.uber.org/zap"
 )
@@ -88,14 +89,11 @@ func (helper *DefaultUserHelper) GetUser(ctx context.Context, user *apisecurity.
 	if user.GetName().GetValue() == "" {
 		return cacheMgr.User().GetUserByID(user.GetId().GetValue()).ToSpec()
 	}
-	owner := ""
-	if user.GetOwner().GetValue() != "" {
-		ownerUser := cacheMgr.User().GetUserByID(user.GetOwner().GetValue())
-		if ownerUser != nil {
-			owner = ownerUser.ID
-		}
+	owner := cacheMgr.User().GetUserByID(utils.ParseUserID(ctx))
+	if owner == nil {
+		return nil
 	}
-	return cacheMgr.User().GetUserByName(user.GetName().GetValue(), owner).ToSpec()
+	return cacheMgr.User().GetUserByName(user.GetName().GetValue(), owner.Name).ToSpec()
 }
 
 func (helper *DefaultUserHelper) GetUserByID(ctx context.Context, id string) *apisecurity.User {

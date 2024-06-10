@@ -225,6 +225,9 @@ type User struct {
 }
 
 func (u *User) ToSpec() *apisecurity.User {
+	if u == nil {
+		return nil
+	}
 	return &apisecurity.User{
 		Id:          wrapperspb.String(u.ID),
 		Name:        wrapperspb.String(u.Name),

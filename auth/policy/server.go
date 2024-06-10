@@ -56,10 +56,10 @@ func DefaultAuthConfig() *AuthConfig {
 	return &AuthConfig{
 		// 针对控制台接口，默认开启鉴权操作
 		ConsoleOpen: true,
+		// 这里默认开启 OpenAPI 的强 Token 检查模式
+		ConsoleStrict: false,
 		// 针对客户端接口，默认不开启鉴权操作
 		ClientOpen: false,
-		// 这里默认开启 OpenAPI 的强 Token 检查模式
-		ConsoleStrict: true,
 		// 客户端接口默认不开启 token 强检查模式
 		ClientStrict: false,
 	}

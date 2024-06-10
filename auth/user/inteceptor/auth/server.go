@@ -169,9 +169,14 @@ func (svr *Server) UpdateUserToken(ctx context.Context, user *apisecurity.User) 
 		return rsp
 	}
 	helper := svr.GetUserHelper()
-	targetUser := helper.GetUserByID(ctx, user.GetId().GetValue())
+	targetUser := helper.GetUser(ctx, user)
 	if !checkUserViewPermission(ctx, targetUser) {
 		return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
+	}
+	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
+		if targetUser.GetUserType().GetValue() != strconv.Itoa(int(model.SubAccountUserRole)) {
+			return api.NewUserResponseWithMsg(apimodel.Code_NotAllowedAccess, "only disable sub-account token", user)
+		}
 	}
 	return svr.nextSvr.UpdateUserToken(ctx, user)
 }
@@ -333,11 +338,10 @@ func (svr *Server) ResetGroupToken(ctx context.Context, group *apisecurity.UserG
 // verifyAuth 用于 user、group 以及 strategy 模块的鉴权工作检查
 func (svr *Server) verifyAuth(ctx context.Context, isWrite bool,
 	needOwner bool) (context.Context, *apiservice.Response) {
-	reqId := utils.ParseRequestID(ctx)
 	authToken := utils.ParseAuthToken(ctx)
 
 	if authToken == "" {
-		log.Error("[Auth][Server] auth token is empty", utils.ZapRequestID(reqId))
+		log.Error("[Auth][Server] auth token is empty", utils.RequestID(ctx))
 		return nil, api.NewAuthResponse(apimodel.Code_EmptyAutToken)
 	}
 
@@ -351,31 +355,30 @@ func (svr *Server) verifyAuth(ctx context.Context, isWrite bool,
 	// 		i. 如果当前只是一个数据的读取操作，则放通
 	// 		ii. 如果当前是一个数据的写操作，则只能允许处于正常的 token 进行操作
 	if err := svr.CheckCredential(authCtx); err != nil {
-		log.Error("[Auth][Server] verify auth token", utils.ZapRequestID(reqId),
-			zap.Error(err))
+		log.Error("[Auth][Server] verify auth token", utils.RequestID(ctx), zap.Error(err))
 		return nil, api.NewAuthResponse(apimodel.Code_AuthTokenForbidden)
 	}
 
 	attachVal, exist := authCtx.GetAttachment(model.TokenDetailInfoKey)
 	if !exist {
-		log.Error("[Auth][Server] token detail info not exist", utils.ZapRequestID(reqId))
+		log.Error("[Auth][Server] token detail info not exist", utils.RequestID(ctx))
 		return nil, api.NewAuthResponse(apimodel.Code_TokenNotExisted)
 	}
 
 	operateInfo := attachVal.(auth.OperatorInfo)
 	if isWrite && operateInfo.Disable {
-		log.Error("[Auth][Server] token is disabled", utils.ZapRequestID(reqId),
+		log.Error("[Auth][Server] token is disabled", utils.RequestID(ctx),
 			zap.String("operation", authCtx.GetMethod()))
 		return nil, api.NewAuthResponse(apimodel.Code_TokenDisabled)
 	}
 
 	if !operateInfo.IsUserToken {
-		log.Error("[Auth][Server] only user role can access this API", utils.ZapRequestID(reqId))
+		log.Error("[Auth][Server] only user role can access this API", utils.RequestID(ctx))
 		return nil, api.NewAuthResponse(apimodel.Code_OperationRoleForbidden)
 	}
 
 	if needOwner && auth.IsSubAccount(operateInfo) {
-		log.Error("[Auth][Server] only admin/owner account can access this API", utils.ZapRequestID(reqId))
+		log.Error("[Auth][Server] only admin/owner account can access this API", utils.RequestID(ctx))
 		return nil, api.NewAuthResponse(apimodel.Code_OperationRoleForbidden)
 	}
 

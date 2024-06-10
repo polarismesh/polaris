@@ -310,6 +310,8 @@ func (p *RemotePeer) checkLeaderAlive(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			ticker.Stop()
+			plog.Error("check leader alive job stop", zap.String("host", p.Host()), zap.Uint32("port", p.port))
+			return
 		case <-ticker.C:
 			var errCount int
 			for i := 0; i < maxCheckCount; i++ {
@@ -320,7 +322,7 @@ func (p *RemotePeer) checkLeaderAlive(ctx context.Context) {
 				}
 			}
 			if errCount >= errCountThreshold {
-				log.Warn("[Health Check][Leader] leader peer not alive, set leader is dead", zap.String("host", p.Host()),
+				plog.Warn("[Health Check][Leader] leader peer not alive, set leader is dead", zap.String("host", p.Host()),
 					zap.Uint32("port", p.port))
 				atomic.StoreInt32(&p.leaderAlive, 0)
 			} else {

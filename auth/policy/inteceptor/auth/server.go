@@ -157,8 +157,7 @@ func (svr *Server) verifyAuth(ctx context.Context, isWrite bool,
 	// 		i. 如果当前只是一个数据的读取操作，则放通
 	// 		ii. 如果当前是一个数据的写操作，则只能允许处于正常的 token 进行操作
 	if err := svr.userSvr.CheckCredential(authCtx); err != nil {
-		log.Error("[Auth][Server] verify auth token", utils.ZapRequestID(reqId),
-			zap.Error(err))
+		log.Error("[Auth][Server] verify auth token", utils.ZapRequestID(reqId), zap.Error(err))
 		return nil, api.NewAuthResponse(apimodel.Code_AuthTokenForbidden)
 	}
 

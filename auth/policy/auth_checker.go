@@ -46,10 +46,6 @@ type DefaultAuthChecker struct {
 	userSvr  auth.UserServer
 }
 
-func (d *DefaultAuthChecker) SetCacheMgr(mgr cachetypes.CacheManager) {
-	d.cacheMgr = mgr
-}
-
 // Initialize 执行初始化动作
 func (d *DefaultAuthChecker) Initialize(conf *AuthConfig, s store.Store,
 	cacheMgr cachetypes.CacheManager, userSvr auth.UserServer) error {
@@ -248,4 +244,16 @@ func (d *DefaultAuthChecker) checkAction(principal model.Principal,
 		}
 	}
 	return true
+}
+
+func (d *DefaultAuthChecker) SetCacheMgr(mgr cachetypes.CacheManager) {
+	d.cacheMgr = mgr
+}
+
+func (d *DefaultAuthChecker) GetConfig() *AuthConfig {
+	return d.conf
+}
+
+func (d *DefaultAuthChecker) SetConfig(conf *AuthConfig) {
+	d.conf = conf
 }

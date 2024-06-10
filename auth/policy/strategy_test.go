@@ -31,9 +31,11 @@ import (
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/auth/policy"
+	defaultuser "github.com/polarismesh/polaris/auth/user"
 	"github.com/polarismesh/polaris/cache"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	storemock "github.com/polarismesh/polaris/store/mock"
@@ -57,7 +59,7 @@ type StrategyTest struct {
 	cacheMgn *cache.CacheManager
 	checker  auth.AuthChecker
 
-	svr *policy.Server
+	svr auth.StrategyServer
 
 	cancel context.CancelFunc
 
@@ -66,6 +68,7 @@ type StrategyTest struct {
 
 func newStrategyTest(t *testing.T) *StrategyTest {
 	reset(false)
+	eventhub.InitEventHub()
 
 	ctrl := gomock.NewController(t)
 
@@ -98,7 +101,7 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_ = cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
+	err = cacheMgn.OpenResourceCache([]cachetypes.ConfigEntry{
 		{
 			Name: cachetypes.ServiceName,
 			Option: map[string]interface{}{
@@ -110,26 +113,48 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 			Name: cachetypes.InstanceName,
 		},
 		{
+			Name: cachetypes.NamespaceName,
+		},
+		{
 			Name: cachetypes.UsersName,
 		},
 		{
 			Name: cachetypes.StrategyRuleName,
 		},
-		{
-			Name: cachetypes.NamespaceName,
-		},
 	}...)
-
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := cache.TestRun(ctx, cacheMgn); err != nil {
+		t.Fatal(err)
+	}
 	_ = cacheMgn.TestUpdate()
 
-	checker := &policy.DefaultAuthChecker{}
-	checker.Initialize(&policy.AuthConfig{
-		ConsoleOpen:   true,
-		ClientOpen:    true,
-		ConsoleStrict: false,
-		ClientStrict:  false,
-	}, storage, cacheMgn, nil)
-	checker.SetCacheMgr(cacheMgn)
+	_, proxySvr, err := defaultuser.BuildServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	proxySvr.Initialize(&auth.Config{
+		User: &auth.UserConfig{
+			Name: auth.DefaultUserMgnPluginName,
+			Option: map[string]interface{}{
+				"salt": "polarismesh@2021",
+			},
+		},
+	}, storage, cacheMgn)
+
+	_, svr, err := newPolicyServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svr.Initialize(&auth.Config{
+		Strategy: &auth.StrategyConfig{
+			Name: auth.DefaultPolicyPluginName,
+		},
+	}, storage, cacheMgn, proxySvr); err != nil {
+		t.Fatal(err)
+	}
+	checker := svr.GetAuthChecker()
 
 	t.Cleanup(func() {
 		cacheMgn.Close()
@@ -153,6 +178,8 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 
 		cancel: cancel,
 
+		svr: svr,
+
 		ctrl: ctrl,
 	}
 }
@@ -167,6 +194,8 @@ func Test_GetPrincipalResources(t *testing.T) {
 	strategyTest := newStrategyTest(t)
 	defer strategyTest.Clean()
 
+	_ = strategyTest.cacheMgn.TestUpdate()
+
 	valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[1].Token)
 
 	ret := strategyTest.svr.GetPrincipalResources(valCtx, map[string]string{
@@ -177,13 +206,15 @@ func Test_GetPrincipalResources(t *testing.T) {
 	t.Logf("GetPrincipalResources resp : %+v", ret)
 	assert.EqualValues(t, api.ExecuteSuccess, ret.Code.GetValue(), "need query success")
 	resources := ret.Resources
-	assert.Equal(t, 2, len(resources.Services), "need query 2 service resources")
+	assert.Equal(t, 2, len(resources.GetServices()), "need query 2 service resources")
 }
 
 func Test_CreateStrategy(t *testing.T) {
 
 	strategyTest := newStrategyTest(t)
 	defer strategyTest.Clean()
+
+	_ = strategyTest.cacheMgn.TestUpdate()
 
 	t.Run("正常创建鉴权策略", func(t *testing.T) {
 		strategyTest.storage.EXPECT().AddStrategy(gomock.Any()).Return(nil)
@@ -327,6 +358,8 @@ func Test_CreateStrategy(t *testing.T) {
 func Test_UpdateStrategy(t *testing.T) {
 	strategyTest := newStrategyTest(t)
 	defer strategyTest.Clean()
+
+	_ = strategyTest.cacheMgn.TestUpdate()
 
 	t.Run("正常更新鉴权策略", func(t *testing.T) {
 		strategyTest.storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategyTest.strategies[0], nil)
@@ -549,8 +582,9 @@ func Test_DeleteStrategy(t *testing.T) {
 	strategyTest := newStrategyTest(t)
 	defer strategyTest.Clean()
 
-	t.Run("正常删除鉴权策略", func(t *testing.T) {
+	_ = strategyTest.cacheMgn.TestUpdate()
 
+	t.Run("正常删除鉴权策略", func(t *testing.T) {
 		index := rand.Intn(len(strategyTest.strategies))
 
 		strategyTest.storage.EXPECT().GetStrategyDetail(gomock.Any()).Return(strategyTest.strategies[index], nil)
@@ -907,16 +941,15 @@ func Test_AuthServer_NormalOperateStrategy(t *testing.T) {
 
 	t.Run("正常更新用户Token", func(t *testing.T) {
 		resp := suit.UserServer().ResetUserToken(suit.DefaultCtx, users[0])
-
-		if !respSuccess(resp) {
+		if !api.IsSuccess(resp) {
 			t.Fatal(resp.GetInfo().GetValue())
 		}
 
 		_ = suit.CacheMgr().TestUpdate()
 
 		qresp := suit.UserServer().GetUserToken(suit.DefaultCtx, users[0])
-		if !respSuccess(qresp) {
-			t.Fatal(resp.GetInfo().GetValue())
+		if !api.IsSuccess(qresp) {
+			t.Fatal(qresp.String())
 		}
 		assert.Equal(t, resp.GetUser().GetAuthToken().GetValue(), qresp.GetUser().GetAuthToken().GetValue())
 	})

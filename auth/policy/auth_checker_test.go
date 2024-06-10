@@ -488,6 +488,17 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict(t *testing.T) {
 				},
 			}),
 		)
+
+		dchecker := checker.(*policy.DefaultAuthChecker)
+		oldConf := dchecker.GetConfig()
+		defer func() {
+			dchecker.SetConfig(oldConf)
+		}()
+		dchecker.SetConfig(&policy.AuthConfig{
+			ConsoleOpen:   true,
+			ConsoleStrict: true,
+		})
+
 		_, err = checker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
@@ -510,7 +521,17 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict(t *testing.T) {
 				},
 			}),
 		)
-		_, err = checker.CheckConsolePermission(authCtx)
+		dchecker := checker.(*policy.DefaultAuthChecker)
+		oldConf := dchecker.GetConfig()
+		defer func() {
+			dchecker.SetConfig(oldConf)
+		}()
+		dchecker.SetConfig(&policy.AuthConfig{
+			ConsoleOpen:   true,
+			ConsoleStrict: true,
+		})
+
+		_, err = dchecker.CheckConsolePermission(authCtx)
 		t.Logf("%+v", err)
 		assert.Error(t, err, "Should be verify fail")
 	})
@@ -693,7 +714,6 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Read_NoStrict(t *testing.T) 
 		authCtx := model.NewAcquireContext(
 			model.WithRequestContext(ctx),
 			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			// model.WithToken(""),
 			model.WithOperation(model.Read),
 			model.WithModule(model.DiscoverModule),
 			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
@@ -812,6 +832,15 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Read_Strict(t *testing.T) {
 		t.Fatal(err)
 	}
 	checker := svr.GetAuthChecker()
+	dchecker := checker.(*policy.DefaultAuthChecker)
+	oldConf := dchecker.GetConfig()
+	defer func() {
+		dchecker.SetConfig(oldConf)
+	}()
+	dchecker.SetConfig(&policy.AuthConfig{
+		ConsoleOpen:   true,
+		ConsoleStrict: true,
+	})
 
 	_ = cacheMgr.TestUpdate()
 
@@ -1016,7 +1045,7 @@ func Test_DefaultAuthChecker_Initialize(t *testing.T) {
 			ConsoleOpen:   true,
 			ClientOpen:    true,
 			Strict:        false,
-			ConsoleStrict: true,
+			ConsoleStrict: false,
 			ClientStrict:  false,
 		}, authChecker.GetOptions())
 	})
@@ -1044,9 +1073,9 @@ func Test_DefaultAuthChecker_Initialize(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, &policy.AuthConfig{
 			ConsoleOpen:   true,
+			ConsoleStrict: false,
 			ClientOpen:    true,
 			Strict:        false,
-			ConsoleStrict: true,
 		}, authChecker.GetOptions())
 	})
 
