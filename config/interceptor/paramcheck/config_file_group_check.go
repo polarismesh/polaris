@@ -49,8 +49,8 @@ func (s *Server) QueryConfigFileGroups(ctx context.Context,
 	}
 
 	searchFilters := map[string]string{
-		"offset": strconv.Itoa(int(offset)),
-		"limit":  strconv.Itoa(int(limit)),
+		"offset": strconv.FormatInt(int64(offset), 10),
+		"limit":  strconv.FormatInt(int64(limit), 10),
 	}
 	for k, v := range filter {
 		if newK, ok := availableSearch["config_file_group"][k]; ok {

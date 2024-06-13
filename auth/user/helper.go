@@ -21,9 +21,10 @@ import (
 	"context"
 	"errors"
 
-	"github.com/polarismesh/polaris/common/utils"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"go.uber.org/zap"
+
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 var (
@@ -98,7 +99,11 @@ func (helper *DefaultUserHelper) GetUser(ctx context.Context, user *apisecurity.
 
 func (helper *DefaultUserHelper) GetUserByID(ctx context.Context, id string) *apisecurity.User {
 	cacheMgr := helper.svr.cacheMgr
-	return cacheMgr.User().GetUserByID(id).ToSpec()
+	saveUser := cacheMgr.User().GetUserByID(id)
+	if saveUser == nil {
+		saveUser, _ = helper.svr.storage.GetUser(id)
+	}
+	return saveUser.ToSpec()
 }
 
 // GetGroup 查询用户组信息

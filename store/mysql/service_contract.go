@@ -311,7 +311,7 @@ func (s *serviceContractStore) GetServiceContracts(ctx context.Context, filter m
 			_ = rows.Close()
 		}()
 
-		contractIds := make([]interface{}, 0, limit)
+		contractIds := make([]interface{}, 0, 32)
 		err = transferEnrichServiceContract(rows, func(contract *model.EnrichServiceContract) {
 			list = append(list, contract)
 			contractIds = append(contractIds, contract.ID)

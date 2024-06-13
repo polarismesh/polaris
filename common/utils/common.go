@@ -587,7 +587,7 @@ func CheckContractInterfaceTetrad(contractId string, source apiservice.Interface
 
 func CalculateContractID(namespace, service, name, protocol, version string) (string, error) {
 	h := sha1.New()
-	str := fmt.Sprintf("%s##%s##%s##%s##%d", namespace, service, name, protocol, version)
+	str := fmt.Sprintf("%s##%s##%s##%s##%s", namespace, service, name, protocol, version)
 
 	if _, err := io.WriteString(h, str); err != nil {
 		return "", err

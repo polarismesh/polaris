@@ -55,8 +55,8 @@ func (s *Server) SearchConfigFile(ctx context.Context,
 		return out
 	}
 	searchFilters := map[string]string{
-		"offset": strconv.Itoa(int(offset)),
-		"limit":  strconv.Itoa(int(limit)),
+		"offset": strconv.FormatInt(int64(offset), 10),
+		"limit":  strconv.FormatInt(int64(limit), 10),
 	}
 	for k, v := range filter {
 		// 无效查询参数自动忽略

@@ -102,6 +102,9 @@ func (svr *Server) UpdateUser(ctx context.Context, user *apisecurity.User) *apis
 	}
 	helper := svr.GetUserHelper()
 	targetUser := helper.GetUserByID(ctx, user.GetId().GetValue())
+	if targetUser == nil {
+		return api.NewAuthResponse(apimodel.Code_NotFoundUser)
+	}
 	if !checkUserViewPermission(ctx, targetUser) {
 		return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
 	}
@@ -116,6 +119,9 @@ func (svr *Server) UpdateUserPassword(ctx context.Context, req *apisecurity.Modi
 	}
 	helper := svr.GetUserHelper()
 	targetUser := helper.GetUserByID(ctx, req.GetId().GetValue())
+	if targetUser == nil {
+		return api.NewAuthResponse(apimodel.Code_NotFoundUser)
+	}
 	if !checkUserViewPermission(ctx, targetUser) {
 		return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
 	}
@@ -129,6 +135,18 @@ func (svr *Server) DeleteUsers(ctx context.Context, users []*apisecurity.User) *
 		resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 		api.Collect(resp, rsp)
 		return resp
+	}
+	for i := range users {
+		user := users[i]
+		helper := svr.GetUserHelper()
+		targetUser := helper.GetUserByID(ctx, user.GetId().GetValue())
+		// 已经删除的用户没必要在删除一次
+		if targetUser == nil {
+			continue
+		}
+		if !checkUserViewPermission(ctx, targetUser) {
+			return api.NewAuthBatchWriteResponse(apimodel.Code_NotAllowedAccess)
+		}
 	}
 	return svr.nextSvr.DeleteUsers(ctx, users)
 }
@@ -406,7 +424,8 @@ func checkUserViewPermission(ctx context.Context, user *apisecurity.User) bool {
 			zap.Any("user", user), zap.String("owner", user.GetOwner().GetValue()), zap.String("operator", userId))
 		return true
 	}
-
+	log.Warn("check user view permission", utils.RequestID(ctx),
+		zap.Any("user", user), zap.String("owner", user.GetOwner().GetValue()), zap.String("operator", userId))
 	return false
 }
 

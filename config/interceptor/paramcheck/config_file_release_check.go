@@ -107,8 +107,8 @@ func (s *Server) GetConfigFileReleases(ctx context.Context,
 	}
 
 	searchFilters := map[string]string{
-		"offset": strconv.Itoa(int(offset)),
-		"limit":  strconv.Itoa(int(limit)),
+		"offset": strconv.FormatInt(int64(offset), 10),
+		"limit":  strconv.FormatInt(int64(limit), 10),
 	}
 	for k, v := range filters {
 		if nK, ok := availableSearch["config_file_release"][k]; ok {
