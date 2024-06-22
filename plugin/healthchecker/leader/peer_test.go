@@ -122,7 +122,6 @@ func TestRemotePeer(t *testing.T) {
 	t.Cleanup(func() {
 		CreateBeatClientFunc = oldCreateBeatClient
 		remotePeer.(*RemotePeer).cancel()
-		assert.NoError(t, err)
 		cancel()
 	})
 
@@ -133,8 +132,20 @@ func TestRemotePeer(t *testing.T) {
 	}
 
 	ctx = context.WithValue(ctx, ConnectFuncContextKey{}, ConnectPeerFunc(mockSvr.mockRemotePeerConnect))
+	ctx = context.WithValue(ctx, PingFuncContextKey{}, PingFunc(func() error {
+		t.Logf("debug for peer check ping")
+		return nil
+	}))
 	err = remotePeer.Serve(ctx, nil, "127.0.0.1", mockPort)
 	assert.NoError(t, err)
+
+	for {
+		if remotePeer.IsAlive() {
+			break
+		}
+		time.Sleep(time.Second)
+		t.Logf("wait leader checker ready")
+	}
 
 	mockKey := utils.NewUUID()
 	mockVal := time.Now().Unix()

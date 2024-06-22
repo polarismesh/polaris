@@ -106,12 +106,14 @@ func (cs *clientStore) BatchDeleteClients(ids []string) error {
 
 // GetMoreClients 根据mtime获取增量clients，返回所有store的变更信息
 func (cs *clientStore) GetMoreClients(mtime time.Time, firstUpdate bool) (map[string]*model.Client, error) {
-	fields := []string{ClientFieldMtime}
+	fields := []string{ClientFieldMtime, ClientFieldValid}
 	ret, err := cs.handler.LoadValuesByFilter(tblClient, fields, &clientObject{}, func(m map[string]interface{}) bool {
 		if firstUpdate {
-			return true
+			// 首次更新，那么就只看 valid 状态
+			valid, _ := m[ClientFieldValid].(bool)
+			return valid
 		}
-		return m[ClientFieldMtime].(time.Time).After(mtime)
+		return !m[ClientFieldMtime].(time.Time).Before(mtime)
 	})
 
 	if err != nil {

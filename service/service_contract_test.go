@@ -45,7 +45,7 @@ func TestServer_CreateServiceContracts(t *testing.T) {
 	expectTotal := 10
 	mockData := mockServiceContracts(expectTotal, true)
 
-	t.Run("正常创建一个服务契约配置", func(t *testing.T) {
+	t.Run("01-正常创建一个服务契约配置", func(t *testing.T) {
 		resp := discoverSuit.DiscoverServer().CreateServiceContracts(discoverSuit.DefaultCtx, mockData)
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue(), resp.String())
 
@@ -128,7 +128,7 @@ func TestServer_CreateServiceContracts(t *testing.T) {
 		})
 	})
 
-	t.Run("更新服务契约", func(t *testing.T) {
+	t.Run("02-更新服务契约", func(t *testing.T) {
 		copyData := mockData[expectTotal-1]
 
 		resp := discoverSuit.DiscoverServer().DeleteServiceContractInterfaces(discoverSuit.DefaultCtx, copyData)
@@ -242,7 +242,7 @@ func TestServer_CreateServiceContracts(t *testing.T) {
 		})
 	})
 
-	t.Run("删除服务契约", func(t *testing.T) {
+	t.Run("03-删除服务契约", func(t *testing.T) {
 		resp := discoverSuit.DiscoverServer().DeleteServiceContracts(discoverSuit.DefaultCtx, mockData)
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue(), resp.String())
 		assert.Equal(t, expectTotal, len(resp.GetResponses()), resp.String())

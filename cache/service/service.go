@@ -281,6 +281,9 @@ func (sc *serviceCache) GetServiceByName(name string, namespace string) *model.S
 }
 
 func (sc *serviceCache) fillServicePorts(svc *model.Service) {
+	if svc == nil {
+		return
+	}
 	if svc.Ports != "" {
 		return
 	}

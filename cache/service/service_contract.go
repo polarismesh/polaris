@@ -51,6 +51,11 @@ type ServiceContractCache struct {
 
 // Initialize
 func (sc *ServiceContractCache) Initialize(c map[string]interface{}) error {
+	valueCache, err := sc.openBoltCache(c)
+	if err != nil {
+		return err
+	}
+	sc.valueCache = valueCache
 	sc.data = utils.NewSyncMap[string, *model.EnrichServiceContract]()
 	return nil
 }
@@ -153,13 +158,18 @@ func (fc *ServiceContractCache) upsertValueCache(item *model.EnrichServiceContra
 
 func (fc *ServiceContractCache) loadValueCache(release *model.ServiceContract) (*model.EnrichServiceContract, error) {
 	ret := &model.EnrichServiceContract{}
+	found := false
 	err := fc.valueCache.View(func(tx *bbolt.Tx) error {
 		bucket := tx.Bucket([]byte(release.GetCacheKey()))
 		if bucket == nil {
 			return nil
 		}
+		found = true
 		val := bucket.Get([]byte(release.GetCacheKey()))
 		return json.Unmarshal(val, ret)
 	})
+	if !found {
+		ret.ServiceContract = &model.ServiceContract{}
+	}
 	return ret, err
 }

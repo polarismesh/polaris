@@ -237,31 +237,31 @@ func (s *serviceContractStore) GetServiceContracts(ctx context.Context, filter m
 			}
 			if searchNs, ok := filter["namespace"]; ok {
 				saveNs, _ := m[ContractFieldNamespace].(string)
-				if saveNs != searchNs {
+				if !utils.IsWildMatch(saveNs, searchNs) {
 					return false
 				}
 			}
 			if searchSvc, ok := filter["service"]; ok {
 				saveSvc, _ := m[ContractFieldService].(string)
-				if saveSvc != searchSvc {
+				if !utils.IsWildMatch(saveSvc, searchSvc) {
 					return false
 				}
 			}
 			if searchProtocol, ok := filter["protocol"]; ok {
 				saveProtocol, _ := m[ContractFieldProtocol].(string)
-				if saveProtocol != searchProtocol {
+				if !utils.IsWildMatch(saveProtocol, searchProtocol) {
 					return false
 				}
 			}
 			if searchVer, ok := filter["version"]; ok {
 				saveVer, _ := m[ContractFieldVersion].(string)
-				if searchVer != saveVer {
+				if !utils.IsWildMatch(saveVer, searchVer) {
 					return false
 				}
 			}
 			if searchType, ok := filter["type"]; ok {
 				saveType, _ := m[ContractFieldType].(string)
-				if searchType != saveType {
+				if !utils.IsWildMatch(saveType, searchType) {
 					return false
 				}
 			}

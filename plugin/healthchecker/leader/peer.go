@@ -45,6 +45,9 @@ type (
 	// 仅支持测试场景塞入即可
 	ConnectFuncContextKey struct{}
 	ConnectPeerFunc       func(*RemotePeer) error
+
+	PingFuncContextKey struct{}
+	PingFunc           func() error
 )
 
 var (
@@ -149,19 +152,28 @@ func (p *RemotePeer) Initialize(conf Config) {
 	p.conf = conf
 }
 
-func (p *RemotePeer) Serve(_ context.Context, checker *LeaderHealthChecker,
+func (p *RemotePeer) Serve(ctx context.Context, checker *LeaderHealthChecker,
 	listenIP string, listenPort uint32) error {
-	ctx, cancel := context.WithCancel(context.Background())
+	subCtx, cancel := context.WithCancel(ctx)
 	p.cancel = cancel
 	p.host = listenIP
 	p.port = listenPort
 	p.cmutex = &sync.RWMutex{}
-	if err := ConnectPeer(p); err != nil {
+	if err := execConnectPeer(ctx, p); err != nil {
 		return err
 	}
 	p.Cache = newRemoteBeatRecordCache(p.GetFunc, p.PutFunc, p.DelFunc, p.Ping)
-	go p.checkLeaderAlive(ctx)
+	go p.checkLeaderAlive(subCtx)
 	return nil
+}
+
+func execConnectPeer(ctx context.Context, p *RemotePeer) error {
+	val := ctx.Value(ConnectFuncContextKey{})
+	connectFunc, ok := val.(ConnectPeerFunc)
+	if !ok {
+		connectFunc = ConnectPeer
+	}
+	return connectFunc(p)
 }
 
 func (p *RemotePeer) Host() string {
@@ -310,12 +322,12 @@ func (p *RemotePeer) checkLeaderAlive(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			ticker.Stop()
-			plog.Error("check leader alive job stop", zap.String("host", p.Host()), zap.Uint32("port", p.port))
+			plog.Info("check leader alive job stop", zap.String("host", p.Host()), zap.Uint32("port", p.port))
 			return
 		case <-ticker.C:
 			var errCount int
 			for i := 0; i < maxCheckCount; i++ {
-				if err := p.Ping(); err != nil {
+				if err := execPing(ctx, p); err != nil {
 					plog.Error("check leader is alive fail", zap.String("host", p.Host()),
 						zap.Uint32("port", p.port), zap.Error(err))
 					errCount++
@@ -403,6 +415,15 @@ func (p *RemotePeer) doReconnect(i int) bool {
 	p.conns[i] = conn
 	p.puters[i] = sender
 	return true
+}
+
+func execPing(ctx context.Context, p *RemotePeer) error {
+	val := ctx.Value(PingFuncContextKey{})
+	pingFunc, ok := val.(PingFunc)
+	if !ok {
+		pingFunc = p.Ping
+	}
+	return pingFunc()
 }
 
 func doConnect(p *RemotePeer) error {

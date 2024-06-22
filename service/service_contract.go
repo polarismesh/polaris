@@ -40,7 +40,8 @@ var (
 		"id":             "id",
 		"namespace":      "namespace",
 		"service":        "service",
-		"name":           "name",
+		"name":           "type",
+		"type":           "type",
 		"protocol":       "protocol",
 		"version":        "version",
 		"brief":          "brief",
@@ -126,13 +127,14 @@ func (s *Server) GetServiceContracts(ctx context.Context, query map[string]strin
 
 	searchFilters := map[string]string{}
 	for k, v := range query {
-		if _, ok := contractSearchFilters[k]; !ok {
+		newK, ok := contractSearchFilters[k]
+		if !ok {
 			continue
 		}
 		if v == "" {
 			continue
 		}
-		searchFilters[k] = v
+		searchFilters[newK] = v
 	}
 	offset, limit, err := utils.ParseOffsetAndLimit(searchFilters)
 	if err != nil {

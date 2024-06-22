@@ -191,9 +191,10 @@ func (rlc *rateLimitCache) fixRulesServiceInfo() {
 			}
 			svc = svc2
 		}
-
-		rule.Proto.Namespace = utils.NewStringValue(svc.Namespace)
-		rule.Proto.Name = utils.NewStringValue(svc.Name)
+		if svc != nil {
+			rule.Proto.Namespace = utils.NewStringValue(svc.Namespace)
+			rule.Proto.Name = utils.NewStringValue(svc.Name)
+		}
 		delete(rlc.waitFixRules, rule.ID)
 	}
 }
@@ -217,7 +218,9 @@ func (rlc *rateLimitCache) fixRuleServiceInfo(rateLimit *model.RateLimit) {
 		svc = svc2
 	}
 
-	rateLimit.Proto.Namespace = utils.NewStringValue(svc.Namespace)
-	rateLimit.Proto.Name = utils.NewStringValue(svc.Name)
+	if svc != nil {
+		rateLimit.Proto.Namespace = utils.NewStringValue(svc.Namespace)
+		rateLimit.Proto.Name = utils.NewStringValue(svc.Name)
+	}
 	delete(rlc.waitFixRules, rateLimit.ID)
 }

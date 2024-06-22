@@ -222,27 +222,32 @@ func (svr *Server) GetCircuitBreakerRules(ctx context.Context,
 }
 
 // GetCircuitBreakerToken implements service.DiscoverServer.
-func (svr *Server) GetCircuitBreakerToken(ctx context.Context, req *fault_tolerance.CircuitBreaker) *service_manage.Response {
+func (svr *Server) GetCircuitBreakerToken(ctx context.Context,
+	req *fault_tolerance.CircuitBreaker) *service_manage.Response {
 	return svr.nextSvr.GetCircuitBreakerToken(ctx, req)
 }
 
 // GetCircuitBreakerVersions implements service.DiscoverServer.
-func (svr *Server) GetCircuitBreakerVersions(ctx context.Context, query map[string]string) *service_manage.BatchQueryResponse {
+func (svr *Server) GetCircuitBreakerVersions(ctx context.Context,
+	query map[string]string) *service_manage.BatchQueryResponse {
 	return svr.nextSvr.GetCircuitBreakerVersions(ctx, query)
 }
 
 // GetFaultDetectRules implements service.DiscoverServer.
-func (svr *Server) GetFaultDetectRules(ctx context.Context, query map[string]string) *service_manage.BatchQueryResponse {
+func (svr *Server) GetFaultDetectRules(ctx context.Context,
+	query map[string]string) *service_manage.BatchQueryResponse {
 	return svr.nextSvr.GetFaultDetectRules(ctx, query)
 }
 
 // GetInstanceLabels implements service.DiscoverServer.
-func (svr *Server) GetInstanceLabels(ctx context.Context, query map[string]string) *service_manage.Response {
+func (svr *Server) GetInstanceLabels(ctx context.Context,
+	query map[string]string) *service_manage.Response {
 	return svr.nextSvr.GetInstanceLabels(ctx, query)
 }
 
 // GetInstances implements service.DiscoverServer.
-func (svr *Server) GetInstances(ctx context.Context, query map[string]string) *service_manage.BatchQueryResponse {
+func (svr *Server) GetInstances(ctx context.Context,
+	query map[string]string) *service_manage.BatchQueryResponse {
 	return svr.nextSvr.GetInstances(ctx, query)
 }
 
@@ -252,47 +257,56 @@ func (svr *Server) GetInstancesCount(ctx context.Context) *service_manage.BatchQ
 }
 
 // GetMasterCircuitBreakers implements service.DiscoverServer.
-func (svr *Server) GetMasterCircuitBreakers(ctx context.Context, query map[string]string) *service_manage.BatchQueryResponse {
+func (svr *Server) GetMasterCircuitBreakers(ctx context.Context,
+	query map[string]string) *service_manage.BatchQueryResponse {
 	return svr.nextSvr.GetMasterCircuitBreakers(ctx, query)
 }
 
 // GetPrometheusTargets implements service.DiscoverServer.
-func (svr *Server) GetPrometheusTargets(ctx context.Context, query map[string]string) *model.PrometheusDiscoveryResponse {
+func (svr *Server) GetPrometheusTargets(ctx context.Context,
+	query map[string]string) *model.PrometheusDiscoveryResponse {
 	return svr.nextSvr.GetPrometheusTargets(ctx, query)
 }
 
 // GetRateLimits implements service.DiscoverServer.
-func (svr *Server) GetRateLimits(ctx context.Context, query map[string]string) *service_manage.BatchQueryResponse {
+func (svr *Server) GetRateLimits(ctx context.Context,
+	query map[string]string) *service_manage.BatchQueryResponse {
 	return svr.nextSvr.GetRateLimits(ctx, query)
 }
 
 // GetReleaseCircuitBreakers implements service.DiscoverServer.
-func (svr *Server) GetReleaseCircuitBreakers(ctx context.Context, query map[string]string) *service_manage.BatchQueryResponse {
+func (svr *Server) GetReleaseCircuitBreakers(ctx context.Context,
+	query map[string]string) *service_manage.BatchQueryResponse {
 	return svr.nextSvr.GetReleaseCircuitBreakers(ctx, query)
 }
 
 // GetRoutingConfigs implements service.DiscoverServer.
-func (svr *Server) GetRoutingConfigs(ctx context.Context, query map[string]string) *service_manage.BatchQueryResponse {
+func (svr *Server) GetRoutingConfigs(ctx context.Context,
+	query map[string]string) *service_manage.BatchQueryResponse {
 	return svr.nextSvr.GetRoutingConfigs(ctx, query)
 }
 
 // GetServiceAliases implements service.DiscoverServer.
-func (svr *Server) GetServiceAliases(ctx context.Context, query map[string]string) *service_manage.BatchQueryResponse {
+func (svr *Server) GetServiceAliases(ctx context.Context,
+	query map[string]string) *service_manage.BatchQueryResponse {
 	return svr.nextSvr.GetServiceAliases(ctx, query)
 }
 
 // GetServiceContractVersions implements service.DiscoverServer.
-func (svr *Server) GetServiceContractVersions(ctx context.Context, filter map[string]string) *service_manage.BatchQueryResponse {
+func (svr *Server) GetServiceContractVersions(ctx context.Context,
+	filter map[string]string) *service_manage.BatchQueryResponse {
 	return svr.nextSvr.GetServiceContractVersions(ctx, filter)
 }
 
 // GetServiceContracts implements service.DiscoverServer.
-func (svr *Server) GetServiceContracts(ctx context.Context, query map[string]string) *service_manage.BatchQueryResponse {
+func (svr *Server) GetServiceContracts(ctx context.Context,
+	query map[string]string) *service_manage.BatchQueryResponse {
 	return svr.nextSvr.GetServiceContracts(ctx, query)
 }
 
 // GetServiceOwner implements service.DiscoverServer.
-func (svr *Server) GetServiceOwner(ctx context.Context, req []*service_manage.Service) *service_manage.BatchQueryResponse {
+func (svr *Server) GetServiceOwner(ctx context.Context,
+	req []*service_manage.Service) *service_manage.BatchQueryResponse {
 	return svr.nextSvr.GetServiceOwner(ctx, req)
 }
 
