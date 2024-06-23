@@ -370,7 +370,7 @@ func TestUpdateRateLimit(t *testing.T) {
 	_, rateLimitResp := discoverSuit.createCommonRateLimit(t, serviceResp, 1)
 	defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 
-	t.Run("更新单个限流规则，可以正常更新", func(t *testing.T) {
+	t.Run("01-更新单个限流规则，可以正常更新", func(t *testing.T) {
 		updateRateLimitContent(rateLimitResp, 2)
 		discoverSuit.updateRateLimit(t, rateLimitResp)
 		filters := map[string]string{
@@ -385,7 +385,7 @@ func TestUpdateRateLimit(t *testing.T) {
 		checkRateLimit(t, rateLimitResp, resp.GetRateLimits()[0])
 	})
 
-	t.Run("更新一个不存在的限流规则", func(t *testing.T) {
+	t.Run("02-更新一个不存在的限流规则", func(t *testing.T) {
 		discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 		if resp := discoverSuit.DiscoverServer().UpdateRateLimits(discoverSuit.DefaultCtx, []*apitraffic.Rule{rateLimitResp}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
@@ -394,7 +394,7 @@ func TestUpdateRateLimit(t *testing.T) {
 		}
 	})
 
-	t.Run("更新限流规则时，没有传递token，正常", func(t *testing.T) {
+	t.Run("03-更新限流规则时，没有传递token，正常", func(t *testing.T) {
 		oldCtx := discoverSuit.DefaultCtx
 		discoverSuit.DefaultCtx = context.Background()
 
@@ -410,7 +410,7 @@ func TestUpdateRateLimit(t *testing.T) {
 		}
 	})
 
-	t.Run("并发更新限流规则时，可以正常更新", func(t *testing.T) {
+	t.Run("04-并发更新限流规则时，可以正常更新", func(t *testing.T) {
 		var wg sync.WaitGroup
 		errs := make(chan error)
 		for i := 1; i <= 50; i++ {
@@ -418,17 +418,22 @@ func TestUpdateRateLimit(t *testing.T) {
 			go func(index int) {
 				defer wg.Done()
 				_, serviceResp := discoverSuit.createCommonService(t, index)
-				defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 				discoverSuit.cleanRateLimitRevision(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 				_, rateLimitResp := discoverSuit.createCommonRateLimit(t, serviceResp, index)
-				defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 				updateRateLimitContent(rateLimitResp, index+1)
 				discoverSuit.updateRateLimit(t, rateLimitResp)
+
+				t.Cleanup(func() {
+					discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+					discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
+				})
+
+				_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+
 				filters := map[string]string{
 					"service":   serviceResp.GetName().GetValue(),
 					"namespace": serviceResp.GetNamespace().GetValue(),
 				}
-				_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 				resp := discoverSuit.DiscoverServer().GetRateLimits(discoverSuit.DefaultCtx, filters)
 				if !respSuccess(resp) {
 					errs <- fmt.Errorf("error : %v", resp)
