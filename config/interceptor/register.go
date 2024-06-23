@@ -27,19 +27,15 @@ import (
 )
 
 func init() {
-	err := config.RegisterServerProxy("paramcheck", func(cacheMgr cachetypes.CacheManager,
+	err := config.RegisterServerProxy("paramcheck", func(cacheMgr cachetypes.CacheManager, s store.Store,
 		next config.ConfigCenterServer, cfg config.Config) (config.ConfigCenterServer, error) {
-		storage, err := store.GetStore()
-		if err != nil {
-			return nil, err
-		}
-		return paramcheck.New(next, cacheMgr, storage, cfg), nil
+		return paramcheck.New(next, cacheMgr, s, cfg), nil
 	})
 	if err != nil {
 		panic(err)
 	}
 
-	err = config.RegisterServerProxy("auth", func(cacheMgr cachetypes.CacheManager,
+	err = config.RegisterServerProxy("auth", func(cacheMgr cachetypes.CacheManager, s store.Store,
 		next config.ConfigCenterServer, cfg config.Config) (config.ConfigCenterServer, error) {
 		userMgr, err := auth.GetUserServer()
 		if err != nil {

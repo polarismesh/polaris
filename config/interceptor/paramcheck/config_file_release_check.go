@@ -25,14 +25,29 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
 // PublishConfigFile 发布配置文件
 func (s *Server) PublishConfigFile(ctx context.Context,
-	configFileRelease *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
-
-	return s.nextServer.PublishConfigFile(ctx, configFileRelease)
+	req *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
+	if err := CheckFileName(req.GetFileName()); err != nil {
+		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileName)
+	}
+	if err := utils.CheckResourceName(req.GetNamespace()); err != nil {
+		return api.NewConfigResponse(apimodel.Code_InvalidNamespaceName)
+	}
+	if err := utils.CheckResourceName(req.GetGroup()); err != nil {
+		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileGroupName)
+	}
+	if !s.checkNamespaceExisted(req.GetNamespace().GetValue()) {
+		return api.NewConfigResponse(apimodel.Code_NotFoundNamespace)
+	}
+	if req.GetReleaseType().GetValue() == model.ReleaseTypeGray && len(req.GetBetaLabels()) == 0 {
+		return api.NewConfigResponse(apimodel.Code_InvalidMatchRule)
+	}
+	return s.nextServer.PublishConfigFile(ctx, req)
 }
 
 // GetConfigFileRelease 获取配置文件发布内容

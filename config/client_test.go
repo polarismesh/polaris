@@ -313,7 +313,7 @@ func TestClientVersionBehindServer(t *testing.T) {
 		configFile.Content = utils.NewStringValue("content" + strconv.Itoa(i))
 		// 更新
 		rsp2 := testSuit.ConfigServer().UpdateConfigFile(testSuit.DefaultCtx, configFile)
-		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue())
+		assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue(), rsp2.GetInfo().GetValue())
 		// 发布
 		rsp3 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, assembleConfigFileRelease(configFile))
 		assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue(), rsp3.GetInfo().GetValue())
@@ -324,9 +324,9 @@ func TestClientVersionBehindServer(t *testing.T) {
 	latestContent := "content4"
 
 	fileInfo := &apiconfig.ClientConfigFileInfo{
-		Namespace: &wrapperspb.StringValue{Value: testNamespace},
-		Group:     &wrapperspb.StringValue{Value: testGroup},
-		FileName:  &wrapperspb.StringValue{Value: testFile},
+		Namespace: &wrapperspb.StringValue{Value: configFile.GetNamespace().Value},
+		Group:     &wrapperspb.StringValue{Value: configFile.GetGroup().Value},
+		FileName:  &wrapperspb.StringValue{Value: configFile.GetName().Value},
 		Version:   &wrapperspb.UInt64Value{Value: clientVersion},
 	}
 
@@ -334,7 +334,7 @@ func TestClientVersionBehindServer(t *testing.T) {
 
 	// 拉取配置接口
 	rsp4 := testSuit.ConfigServer().GetConfigFileWithCache(testSuit.DefaultCtx, fileInfo)
-	assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue())
+	assert.Equal(t, api.ExecuteSuccess, rsp4.Code.GetValue(), rsp4.GetInfo().GetValue())
 	assert.NotNil(t, rsp4.ConfigFile)
 	assert.Equal(t, uint64(5), rsp4.ConfigFile.Version.GetValue())
 	assert.Equal(t, latestContent, rsp4.ConfigFile.Content.GetValue())
@@ -521,8 +521,6 @@ func TestDeleteConfigFile(t *testing.T) {
 		watchConfigFiles[i].Namespace = wrapperspb.String(newMockNs)
 	}
 
-	t.Log("add config watcher")
-
 	// 删除配置文件
 	t.Log("remove config file")
 	rsp3 := testSuit.ConfigServer().DeleteConfigFile(testSuit.DefaultCtx, &apiconfig.ConfigFile{
@@ -541,7 +539,7 @@ func TestDeleteConfigFile(t *testing.T) {
 
 	// 重新拉取配置，获取不到配置文件
 	rsp4 := testSuit.ConfigServer().GetConfigFileWithCache(testSuit.DefaultCtx, fileInfo)
-	assert.Equal(t, uint32(api.NotFoundResource), rsp4.Code.GetValue())
+	assert.Equal(t, rsp4.Code.GetValue(), api.NotFoundResource, rsp4.GetInfo().GetValue())
 }
 
 // TestServer_GetConfigFileNamesWithCache

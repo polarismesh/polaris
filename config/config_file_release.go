@@ -139,6 +139,9 @@ func (s *Server) handlePublishConfigFile(ctx context.Context, tx store.Tx,
 	}
 	// 重新激活
 	if saveRelease != nil {
+		log.Debug("[Config][Release] re-active config file release.",
+			utils.RequestID(ctx), utils.ZapNamespace(namespace), utils.ZapGroup(group),
+			utils.ZapFileName(fileName), utils.ZapReleaseName(fileRelease.Name))
 		if err := s.storage.ActiveConfigFileReleaseTx(tx, fileRelease); err != nil {
 			log.Error("[Config][Release] re-active config file release error.",
 				utils.RequestID(ctx), utils.ZapNamespace(namespace), utils.ZapGroup(group),

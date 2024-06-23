@@ -62,6 +62,8 @@ func (s *Server) GetConfigFileWithCache(ctx context.Context,
 	}
 	// 客户端版本号大于服务端版本号，服务端不返回变更
 	if req.GetVersion().GetValue() > release.Version {
+		log.Debug("[Config][Service] get config file to client", utils.RequestID(ctx),
+			zap.Uint64("client-version", req.GetVersion().GetValue()), zap.Uint64("server-version", release.Version))
 		return api.NewConfigClientResponse(apimodel.Code_DataNoChange, req)
 	}
 	configFile, err := toClientInfo(req, release)

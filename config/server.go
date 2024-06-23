@@ -46,7 +46,8 @@ var (
 	serverProxyFactories = map[string]ServerProxyFactory{}
 )
 
-type ServerProxyFactory func(cacheMgr cachetypes.CacheManager, pre ConfigCenterServer, cfg Config) (ConfigCenterServer, error)
+type ServerProxyFactory func(cacheMgr cachetypes.CacheManager, s store.Store,
+	pre ConfigCenterServer, cfg Config) (ConfigCenterServer, error)
 
 func RegisterServerProxy(name string, factor ServerProxyFactory) error {
 	if _, ok := serverProxyFactories[name]; ok {
@@ -128,7 +129,7 @@ func doInitialize(ctx context.Context, svcConf Config, s store.Store, cacheMgr c
 			return nil, nil, fmt.Errorf("name(%s) not exist in serverProxyFactories", order[i])
 		}
 
-		tmpSvr, err := factory(cacheMgr, proxySvr, svcConf)
+		tmpSvr, err := factory(cacheMgr, s, proxySvr, svcConf)
 		if err != nil {
 			return nil, nil, err
 		}

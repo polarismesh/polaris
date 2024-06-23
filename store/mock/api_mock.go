@@ -234,6 +234,21 @@ func (mr *MockStoreMockRecorder) BatchCleanDeletedClients(timeout, batchSize int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchCleanDeletedClients", reflect.TypeOf((*MockStore)(nil).BatchCleanDeletedClients), timeout, batchSize)
 }
 
+// BatchCleanDeletedConfigFiles mocks base method.
+func (m *MockStore) BatchCleanDeletedConfigFiles(timeout time.Duration, batchSize uint32) (uint32, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchCleanDeletedConfigFiles", timeout, batchSize)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BatchCleanDeletedConfigFiles indicates an expected call of BatchCleanDeletedConfigFiles.
+func (mr *MockStoreMockRecorder) BatchCleanDeletedConfigFiles(timeout, batchSize interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchCleanDeletedConfigFiles", reflect.TypeOf((*MockStore)(nil).BatchCleanDeletedConfigFiles), timeout, batchSize)
+}
+
 // BatchCleanDeletedInstances mocks base method.
 func (m *MockStore) BatchCleanDeletedInstances(timeout time.Duration, batchSize uint32) (uint32, error) {
 	m.ctrl.T.Helper()
@@ -247,6 +262,36 @@ func (m *MockStore) BatchCleanDeletedInstances(timeout time.Duration, batchSize 
 func (mr *MockStoreMockRecorder) BatchCleanDeletedInstances(timeout, batchSize interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchCleanDeletedInstances", reflect.TypeOf((*MockStore)(nil).BatchCleanDeletedInstances), timeout, batchSize)
+}
+
+// BatchCleanDeletedRules mocks base method.
+func (m *MockStore) BatchCleanDeletedRules(rule string, timeout time.Duration, batchSize uint32) (uint32, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchCleanDeletedRules", rule, timeout, batchSize)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BatchCleanDeletedRules indicates an expected call of BatchCleanDeletedRules.
+func (mr *MockStoreMockRecorder) BatchCleanDeletedRules(rule, timeout, batchSize interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchCleanDeletedRules", reflect.TypeOf((*MockStore)(nil).BatchCleanDeletedRules), rule, timeout, batchSize)
+}
+
+// BatchCleanDeletedServices mocks base method.
+func (m *MockStore) BatchCleanDeletedServices(timeout time.Duration, batchSize uint32) (uint32, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchCleanDeletedServices", timeout, batchSize)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BatchCleanDeletedServices indicates an expected call of BatchCleanDeletedServices.
+func (mr *MockStoreMockRecorder) BatchCleanDeletedServices(timeout, batchSize interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchCleanDeletedServices", reflect.TypeOf((*MockStore)(nil).BatchCleanDeletedServices), timeout, batchSize)
 }
 
 // BatchDeleteClients mocks base method.

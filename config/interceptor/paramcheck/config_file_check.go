@@ -67,7 +67,7 @@ func (s *Server) SearchConfigFile(ctx context.Context,
 			searchFilters[k] = v
 		}
 	}
-	return s.nextServer.SearchConfigFile(ctx, filter)
+	return s.nextServer.SearchConfigFile(ctx, searchFilters)
 }
 
 // UpdateConfigFile 更新配置文件

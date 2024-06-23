@@ -19,12 +19,14 @@ package boltdb
 
 import (
 	"errors"
+	"sort"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -77,7 +79,7 @@ func (cfr *configFileReleaseStore) CreateConfigFileReleaseTx(proxyTx store.Tx,
 		return err
 	}
 	for i := range values {
-		if ret := cfr.toModelData(values[i].(*ConfigFileRelease)); ret != nil {
+		if ret := cfr.toValisModelData(values[i].(*ConfigFileRelease)); ret != nil {
 			return store.NewStatusError(store.DuplicateEntryErr, "exist record")
 		}
 	}
@@ -103,6 +105,10 @@ func (cfr *configFileReleaseStore) CreateConfigFileReleaseTx(proxyTx store.Tx,
 
 	fileRelease.Active = true
 	fileRelease.Version = maxVersion + 1
+
+	log.Debug("[ConfigFileRelease] cur release version", utils.ZapNamespace(fileRelease.Namespace),
+		utils.ZapGroup(fileRelease.Group), utils.ZapFileName(fileRelease.FileName), utils.ZapVersion(fileRelease.Version))
+
 	err = saveValue(tx, tblConfigFileRelease, fileRelease.ReleaseKey(), cfr.toStoreData(fileRelease))
 	if err != nil {
 		log.Error("[ConfigFileRelease] save info", zap.Error(err))
@@ -120,7 +126,7 @@ func (cfr *configFileReleaseStore) GetConfigFileRelease(args *model.ConfigFileRe
 		return nil, err
 	}
 	for _, v := range values {
-		return cfr.toModelData(v.(*ConfigFileRelease)), nil
+		return cfr.toValisModelData(v.(*ConfigFileRelease)), nil
 	}
 	return nil, nil
 }
@@ -136,7 +142,7 @@ func (cfr *configFileReleaseStore) GetConfigFileReleaseTx(tx store.Tx,
 		return nil, err
 	}
 	for _, v := range values {
-		return cfr.toModelData(v.(*ConfigFileRelease)), nil
+		return cfr.toValisModelData(v.(*ConfigFileRelease)), nil
 	}
 	return nil, nil
 }
@@ -185,7 +191,7 @@ func (cfr *configFileReleaseStore) GetConfigFileActiveReleaseTx(tx store.Tx,
 		return nil, err
 	}
 	for _, v := range values {
-		return cfr.toModelData(v.(*ConfigFileRelease)), nil
+		return cfr.toValisModelData(v.(*ConfigFileRelease)), nil
 	}
 	return nil, nil
 }
@@ -222,7 +228,7 @@ func (cfr *configFileReleaseStore) GetConfigFileBetaReleaseTx(tx store.Tx,
 		return nil, err
 	}
 	for _, v := range values {
-		return cfr.toModelData(v.(*ConfigFileRelease)), nil
+		return cfr.toValisModelData(v.(*ConfigFileRelease)), nil
 	}
 	return nil, nil
 }
@@ -328,6 +334,9 @@ func (cfr *configFileReleaseStore) GetMoreReleaseFile(firstUpdate bool,
 	for _, v := range ret {
 		releases = append(releases, cfr.toModelData(v.(*ConfigFileRelease)))
 	}
+	sort.Slice(releases, func(i, j int) bool {
+		return releases[i].Version > releases[j].Version
+	})
 	return releases, nil
 }
 
@@ -356,7 +365,7 @@ func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *bolt.Tx,
 	release *model.ConfigFileRelease) (uint64, error) {
 
 	fields := []string{FileReleaseFieldNamespace, FileReleaseFieldGroup, FileReleaseFieldFileName,
-		FileReleaseFieldVersion, FileReleaseFieldFlag, FileReleaseFieldActive, FileReleaseFieldType}
+		FileReleaseFieldVersion, FileReleaseFieldValid, FileReleaseFieldActive, FileReleaseFieldType}
 
 	values := map[string]interface{}{}
 	var maxVersion uint64
@@ -445,10 +454,15 @@ type ConfigFileRelease struct {
 	Typ        string
 }
 
-func (cfr *configFileReleaseStore) toModelData(data *ConfigFileRelease) *model.ConfigFileRelease {
-	if !data.Valid {
+func (cfr *configFileReleaseStore) toValisModelData(data *ConfigFileRelease) *model.ConfigFileRelease {
+	saveData := cfr.toModelData(data)
+	if !saveData.Valid {
 		return nil
 	}
+	return saveData
+}
+
+func (cfr *configFileReleaseStore) toModelData(data *ConfigFileRelease) *model.ConfigFileRelease {
 	return &model.ConfigFileRelease{
 		SimpleConfigFileRelease: &model.SimpleConfigFileRelease{
 			ConfigFileReleaseKey: &model.ConfigFileReleaseKey{

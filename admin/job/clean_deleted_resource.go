@@ -27,14 +27,25 @@ import (
 )
 
 var cleanFuncMapping = map[string]func(timeout time.Duration, job *cleanDeletedResourceJob){
-	"instance":            cleanDeletedInstances,
-	"service":             nil,
-	"clients":             cleanDeletedClients,
-	"circuitbreaker_rule": nil,
-	"ratelimit_rule":      nil,
-	"router_rule":         nil,
-	"faultdetect_rule":    nil,
-	"config_file_release": nil,
+	"instance": cleanDeletedInstances,
+	"service":  cleanDeletedServices,
+	"clients":  cleanDeletedClients,
+	"circuitbreaker_rule": func(timeout time.Duration, job *cleanDeletedResourceJob) {
+		cleanDeletedRules("circuitbreaker_rule", timeout, job)
+	},
+	"ratelimit_rule": func(timeout time.Duration, job *cleanDeletedResourceJob) {
+		cleanDeletedRules("ratelimit_rule", timeout, job)
+	},
+	"router_rule": func(timeout time.Duration, job *cleanDeletedResourceJob) {
+		cleanDeletedRules("router_rule", timeout, job)
+	},
+	"faultdetect_rule": func(timeout time.Duration, job *cleanDeletedResourceJob) {
+		cleanDeletedRules("faultdetect_rule", timeout, job)
+	},
+	"lane_rule": func(timeout time.Duration, job *cleanDeletedResourceJob) {
+		cleanDeletedRules("lane_rule", timeout, job)
+	},
+	"config_file_release": cleanDeletedConfigFiles,
 }
 
 type CleanDeletedResource struct {
@@ -110,6 +121,36 @@ func (job *cleanDeletedResourceJob) interval() time.Duration {
 	return time.Minute
 }
 
+func cleanDeletedConfigFiles(timeout time.Duration, job *cleanDeletedResourceJob) {
+	batchSize := uint32(100)
+	for {
+		count, err := job.storage.BatchCleanDeletedConfigFiles(timeout, batchSize)
+		if err != nil {
+			log.Errorf("[Maintain][Job][CleanDeletedClients] batch clean deleted client, err: %v", err)
+			break
+		}
+		log.Infof("[Maintain][Job][CleanDeletedClients] clean deleted client count %d", count)
+		if count < batchSize {
+			break
+		}
+	}
+}
+
+func cleanDeletedServices(timeout time.Duration, job *cleanDeletedResourceJob) {
+	batchSize := uint32(100)
+	for {
+		count, err := job.storage.BatchCleanDeletedServices(timeout, batchSize)
+		if err != nil {
+			log.Errorf("[Maintain][Job][CleanDeletedClients] batch clean deleted client, err: %v", err)
+			break
+		}
+		log.Infof("[Maintain][Job][CleanDeletedClients] clean deleted client count %d", count)
+		if count < batchSize {
+			break
+		}
+	}
+}
+
 func cleanDeletedClients(timeout time.Duration, job *cleanDeletedResourceJob) {
 	batchSize := uint32(100)
 	for {
@@ -135,6 +176,21 @@ func cleanDeletedInstances(timeout time.Duration, job *cleanDeletedResourceJob) 
 		}
 
 		log.Infof("[Maintain][Job][CleanDeletedInstances] clean deleted instance count %d", count)
+		if count < batchSize {
+			break
+		}
+	}
+}
+
+func cleanDeletedRules(rule string, timeout time.Duration, job *cleanDeletedResourceJob) {
+	batchSize := uint32(100)
+	for {
+		count, err := job.storage.BatchCleanDeletedRules(rule, timeout, batchSize)
+		if err != nil {
+			log.Errorf("[Maintain][Job][CleanDeletedClients] batch clean deleted client, err: %v", err)
+			break
+		}
+		log.Infof("[Maintain][Job][CleanDeletedClients] clean deleted client count %d", count)
 		if count < batchSize {
 			break
 		}

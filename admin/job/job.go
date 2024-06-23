@@ -61,6 +61,11 @@ func NewMaintainJobs(namingServer service.DiscoverServer, cacheMgn *cache.CacheM
 
 // StartMaintainJobs
 func (mj *MaintainJobs) StartMaintianJobs(configs []JobConfig) error {
+	if err := mj.storage.StartLeaderElection(store.ElectionKeyMaintainJob); err != nil {
+		log.Errorf("[Maintain][Job] start leader election err: %v", err)
+		return err
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	mj.cancel = cancel
 	for _, cfg := range configs {
@@ -80,10 +85,6 @@ func (mj *MaintainJobs) StartMaintianJobs(configs []JobConfig) error {
 		if err := job.init(cfg.Option); err != nil {
 			log.Errorf("[Maintain][Job] job (%s) fail to init, err: %v", jobName, err)
 			return fmt.Errorf("[Maintain][Job] job (%s) fail to init", jobName)
-		}
-		if err := mj.storage.StartLeaderElection(store.ElectionKeyMaintainJobPrefix + jobName); err != nil {
-			log.Errorf("[Maintain][Job][%s] start leader election err: %v", jobName, err)
-			return err
 		}
 		runAdminJob(ctx, jobName, job.interval(), job, mj.storage)
 		mj.startedJobs[jobName] = job
@@ -117,8 +118,8 @@ func (mj *MaintainJobs) StopMaintainJobs() {
 }
 
 func runAdminJob(ctx context.Context, name string, interval time.Duration, job maintainJob, storage store.Store) {
-	f := func() {
-		if !storage.IsLeader(store.ElectionKeyMaintainJobPrefix + name) {
+	safeExec := func() {
+		if !storage.IsLeader(store.ElectionKeyMaintainJob) {
 			log.Infof("[Maintain][Job][%s] I am follower", name)
 			job.clear()
 			return
@@ -135,7 +136,7 @@ func runAdminJob(ctx context.Context, name string, interval time.Duration, job m
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				f()
+				safeExec()
 			}
 		}
 	}(ctx)

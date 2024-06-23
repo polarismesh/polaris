@@ -517,7 +517,7 @@ func Test_GrayConfigFileRelease(t *testing.T) {
 		mockClientIP        = "1.1.1.1"
 	)
 
-	t.Run("first publish", func(t *testing.T) {
+	t.Run("01-first-publish", func(t *testing.T) {
 		resp := testSuit.ConfigServer().UpsertAndReleaseConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
 			Namespace:   utils.NewStringValue(mockNamespace),
 			Group:       utils.NewStringValue(mockGroup),
@@ -540,7 +540,7 @@ func Test_GrayConfigFileRelease(t *testing.T) {
 		assert.Equal(t, mockContent, resp.GetConfigFileRelease().GetContent().GetValue())
 	})
 
-	t.Run("gray_publish", func(t *testing.T) {
+	t.Run("02-gray_publish", func(t *testing.T) {
 		resp := testSuit.ConfigServer().UpdateConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFile{
 			Namespace: utils.NewStringValue(mockNamespace),
 			Group:     utils.NewStringValue(mockGroup),
@@ -555,8 +555,8 @@ func Test_GrayConfigFileRelease(t *testing.T) {
 			Namespace:   utils.NewStringValue(mockNamespace),
 			Group:       utils.NewStringValue(mockGroup),
 			FileName:    utils.NewStringValue(mockFileName),
-			Name:        utils.NewStringValue(mockBetaReleaseName),
 			Content:     utils.NewStringValue(mockNewContent),
+			Name:        utils.NewStringValue(mockBetaReleaseName),
 			ReleaseType: wrapperspb.String(model.ReleaseTypeGray),
 			BetaLabels: []*apimodel.ClientLabel{
 				{
@@ -608,7 +608,7 @@ func Test_GrayConfigFileRelease(t *testing.T) {
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue(), resp.GetInfo().GetValue())
 		assert.Equal(t, mockNewContent, clientRsp.GetConfigFile().GetContent().GetValue())
 
-		// 携带不正确配置标签查询, 查到处于灰度发布的配置
+		// 携带不正确配置标签查询, 查不到处于灰度发布的配置
 		clientRsp = testSuit.ConfigServer().GetConfigFileWithCache(testSuit.DefaultCtx, &config_manage.ClientConfigFileInfo{
 			Namespace: utils.NewStringValue(mockNamespace),
 			Group:     utils.NewStringValue(mockGroup),
@@ -625,7 +625,7 @@ func Test_GrayConfigFileRelease(t *testing.T) {
 	})
 
 	// 测试存在灰度发布配置时, 不得发布新的配置文件
-	t.Run("normal_publish_when_exist_gray", func(t *testing.T) {
+	t.Run("03-normal_publish_when_exist_gray", func(t *testing.T) {
 		resp := testSuit.ConfigServer().UpsertAndReleaseConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
 			Namespace:   utils.NewStringValue(mockNamespace),
 			Group:       utils.NewStringValue(mockGroup),
@@ -638,7 +638,7 @@ func Test_GrayConfigFileRelease(t *testing.T) {
 	})
 
 	// 删除已发布的灰度配置，获取不到
-	t.Run("delete_gray_release", func(t *testing.T) {
+	t.Run("04-delete_gray_release", func(t *testing.T) {
 		resp := testSuit.ConfigServer().StopGrayConfigFileReleases(testSuit.DefaultCtx, []*config_manage.ConfigFileRelease{
 			{
 				Namespace: utils.NewStringValue(mockNamespace),

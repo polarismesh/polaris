@@ -86,7 +86,7 @@ func (fc *fileCache) Initialize(opt map[string]interface{}) error {
 	fc.metricsReleaseCount = utils.NewSyncMap[string, *utils.SyncMap[string, uint64]]()
 	fc.preMetricsFiles = utils.NewAtomicValue[map[string]map[string]struct{}](map[string]map[string]struct{}{})
 	fc.lastReportTime = utils.NewAtomicValue[time.Time](time.Time{})
-	valueCache, err := fc.openBoltCache(opt)
+	valueCache, err := openBoltCache(opt)
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func (fc *fileCache) Initialize(opt map[string]interface{}) error {
 	return nil
 }
 
-func (fc *fileCache) openBoltCache(opt map[string]interface{}) (*bbolt.DB, error) {
+func openBoltCache(opt map[string]interface{}) (*bbolt.DB, error) {
 	path, _ := opt["cachePath"].(string)
 	if path == "" {
 		path = "./data/cache/config"
@@ -138,9 +138,6 @@ func (fc *fileCache) realUpdate() (map[string]time.Time, int64, error) {
 	if len(releases) == 0 {
 		return nil, 0, nil
 	}
-	if err := fc.setActiveReleases(releases); err != nil {
-		return nil, 0, err
-	}
 
 	lastMimes, update, del, err := fc.setReleases(releases)
 	if err != nil {
@@ -150,56 +147,6 @@ func (fc *fileCache) realUpdate() (map[string]time.Time, int64, error) {
 		zap.Int("update", update), zap.Int("delete", del),
 		zap.Time("last", fc.LastMtime()), zap.Duration("used", time.Since(start)))
 	return lastMimes, int64(len(releases)), err
-}
-
-func (fc *fileCache) setActiveReleases(releases []*model.ConfigFileRelease) error {
-	// 按照 namespace->group->file 分类，保存最后一个 version 版本的 release 发布信息
-	effectRelease := map[string]map[string]map[string]*model.ConfigFileRelease{}
-	for i := range releases {
-		item := releases[i]
-		oldVal := fc.GetRelease(*item.ConfigFileReleaseKey)
-		// 判断是否取消发布了
-		if oldVal != nil && (oldVal.Active && !item.Active) {
-			// 如果配置文件发布被取消了，那么这里等同认为 valid == false 的情况，同时记录 version 为最新的 version
-			item = &model.ConfigFileRelease{
-				SimpleConfigFileRelease: &model.SimpleConfigFileRelease{
-					ConfigFileReleaseKey: item.ConfigFileReleaseKey,
-					Valid:                false,
-					Version:              item.Version,
-					Active:               true,
-				},
-			}
-		}
-
-		if item.Active {
-			if _, ok := effectRelease[item.Namespace]; !ok {
-				effectRelease[item.Namespace] = make(map[string]map[string]*model.ConfigFileRelease)
-			}
-			if _, ok := effectRelease[item.Namespace][item.Group]; !ok {
-				effectRelease[item.Namespace][item.Group] = make(map[string]*model.ConfigFileRelease)
-			}
-			saveVal, ok := effectRelease[item.Namespace][item.Group][item.FileName]
-			// 只保存最新的 version 的 active 状态的配置发布记录
-			// 该逻辑主要是为了避免配置回滚的情况下，客户端有概率性读取到中间态数据，导致程序执行不符合用户预期
-			if !ok || saveVal.Version < item.Version {
-				effectRelease[item.Namespace][item.Group][item.FileName] = item
-			}
-		}
-	}
-
-	for _, groups := range effectRelease {
-		for _, files := range groups {
-			for _, releaseFile := range files {
-				if !releaseFile.Valid {
-					fc.cleanActiveRelease(releaseFile.SimpleConfigFileRelease)
-				} else {
-					fc.saveActiveRelease(releaseFile)
-				}
-				fc.sendEvent(releaseFile)
-			}
-		}
-	}
-	return nil
 }
 
 func (fc *fileCache) setReleases(releases []*model.ConfigFileRelease) (map[string]time.Time, int, int, error) {
@@ -280,7 +227,15 @@ func (fc *fileCache) handleUpdateRelease(oldVal *model.SimpleConfigFileRelease, 
 		files, _ := group.Load(item.FileName)
 		files.Store(item.Name, item.SimpleConfigFileRelease)
 	}()
-	return nil
+
+	if !item.Active {
+		if oldVal != nil && oldVal.Active {
+			return fc.cleanActiveRelease(oldVal)
+		}
+		return nil
+	}
+
+	return fc.saveActiveRelease(item)
 }
 
 // handleDeleteRelease
@@ -289,27 +244,32 @@ func (fc *fileCache) handleDeleteRelease(release *model.SimpleConfigFileRelease)
 		return nil
 	}
 	fc.releases.Del(release.Id)
+	func() {
+		// 记录 namespace -> group -> file_name -> []SimpleRelease 信息
+		if _, ok := fc.name2release.Load(release.Namespace); !ok {
+			return
+		}
+		namespace, _ := fc.name2release.Load(release.Namespace)
+		if _, ok := namespace.Load(release.Group); !ok {
+			return
+		}
+		group, _ := namespace.Load(release.Group)
+		if _, ok := group.Load(release.FileName); !ok {
+			return
+		}
 
-	// 记录 namespace -> group -> file_name -> []SimpleRelease 信息
-	if _, ok := fc.name2release.Load(release.Namespace); !ok {
+		files, _ := group.Load(release.FileName)
+		files.Delete(release.Name)
+
+		if files.Len() == 0 {
+			group.Delete(release.FileName)
+		}
+	}()
+
+	if !release.Active {
 		return nil
 	}
-	namespace, _ := fc.name2release.Load(release.Namespace)
-	if _, ok := namespace.Load(release.Group); !ok {
-		return nil
-	}
-	group, _ := namespace.Load(release.Group)
-	if _, ok := group.Load(release.FileName); !ok {
-		return nil
-	}
-
-	files, _ := group.Load(release.FileName)
-	files.Delete(release.Name)
-
-	if files.Len() == 0 {
-		group.Delete(release.FileName)
-	}
-	return nil
+	return fc.cleanActiveRelease(release)
 }
 
 func (fc *fileCache) saveActiveRelease(item *model.ConfigFileRelease) error {
@@ -338,11 +298,22 @@ func (fc *fileCache) saveActiveRelease(item *model.ConfigFileRelease) error {
 }
 
 func (fc *fileCache) cleanActiveRelease(release *model.SimpleConfigFileRelease) error {
-	if namespace, ok := fc.activeReleases.Load(release.Namespace); ok {
-		if group, ok := namespace.Load(release.Group); ok {
-			group.Delete(release.ActiveKey())
-		}
+	namespace, ok := fc.activeReleases.Load(release.Namespace)
+	if !ok {
+		return nil
 	}
+	group, ok := namespace.Load(release.Group)
+	if !ok {
+		return nil
+	}
+
+	oldActive, ok := group.Load(release.ActiveKey())
+	// 如果存在，并且发现 active 缓存保留的数据 version >= 当前 release 的 version，直接跳过
+	if ok && oldActive.Version > release.Version {
+		return nil
+	}
+
+	group.Delete(release.ActiveKey())
 	if err := fc.valueCache.Update(func(tx *bbolt.Tx) error {
 		bucket := tx.Bucket([]byte(release.OwnerKey()))
 		if bucket == nil {
@@ -451,12 +422,12 @@ func (fc *fileCache) GetGroupActiveReleases(namespace, group string) ([]*model.C
 	return ret, revision
 }
 
-// GetActiveRelease
+// GetActiveRelease .
 func (fc *fileCache) GetActiveRelease(namespace, group, fileName string) *model.ConfigFileRelease {
 	return fc.handleGetActiveRelease(namespace, group, fileName, model.ReleaseTypeFull)
 }
 
-// GetActiveGrayRelease
+// GetActiveGrayRelease .
 func (fc *fileCache) GetActiveGrayRelease(namespace, group, fileName string) *model.ConfigFileRelease {
 	return fc.handleGetActiveRelease(namespace, group, fileName, model.ReleaseTypeGray)
 }
@@ -487,7 +458,7 @@ func (fc *fileCache) handleGetActiveRelease(namespace, group, fileName string, t
 	return ret
 }
 
-// GetRelease
+// GetRelease .
 func (fc *fileCache) GetRelease(key model.ConfigFileReleaseKey) *model.ConfigFileRelease {
 	var (
 		simple *model.SimpleConfigFileRelease
