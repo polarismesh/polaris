@@ -239,20 +239,17 @@ func (m *adminStore) BatchCleanDeletedClients(timeout time.Duration, batchSize u
 		return 0, nil
 	}
 
-	var count uint32 = 0
 	keys := make([]string, 0, batchSize)
 	for k := range values {
 		keys = append(keys, k)
-		count++
-		if count >= batchSize {
+		if uint32(len(keys)) >= batchSize {
 			break
 		}
 	}
-	err = m.handler.DeleteValues(tblClient, keys)
-	if err != nil {
-		return count, err
+	if err = m.handler.DeleteValues(tblClient, keys); err != nil {
+		return 0, err
 	}
-	return count, nil
+	return uint32(len(keys)), nil
 }
 
 // BatchCleanDeletedServices batch clean soft deleted clients
