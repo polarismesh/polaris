@@ -364,7 +364,7 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 	cors := restful.CrossOriginResourceSharing{
 		// ExposeHeaders:  []string{"X-My-Header"},
 		AllowedHeaders: []string{"Content-Type", "Accept", "Request-Id"},
-		AllowedMethods: []string{"GET", "POST", "PUT"},
+		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut},
 		CookiesAllowed: false,
 		Container:      wsContainer}
 	wsContainer.Filter(cors.Filter)

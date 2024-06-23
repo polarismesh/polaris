@@ -194,7 +194,7 @@ func (h *NacosV1Server) createRestfulContainer() (*restful.Container, error) {
 	cors := restful.CrossOriginResourceSharing{
 		// ExposeHeaders:  []string{"X-My-Header"},
 		AllowedHeaders: []string{"Content-Type", "Accept", "Request-Id"},
-		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH"},
+		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch},
 		CookiesAllowed: false,
 		Container:      wsContainer}
 	wsContainer.Filter(cors.Filter)

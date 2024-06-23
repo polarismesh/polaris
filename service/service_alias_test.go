@@ -612,8 +612,8 @@ func TestGetServiceAliases(t *testing.T) {
 	}
 	_, serviceResp := discoverSuit.createCommonService(t, 203)
 	t.Cleanup(func() {
-		discoverSuit.Destroy()
 		discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+		discoverSuit.Destroy()
 	})
 
 	var aliases []*apiservice.Response
