@@ -212,7 +212,7 @@ func (m *adminStore) getUnHealthyInstancesBefore(mtime time.Time, limit uint32) 
 func (m *adminStore) BatchCleanDeletedClients(timeout time.Duration, batchSize uint32) (uint32, error) {
 	mtime := time.Now().Add(-timeout)
 	fields := []string{ClientFieldValid, ClientFieldMtime}
-	values, err := m.handler.LoadValuesByFilter(tblClient, fields, &model.Client{},
+	values, err := m.handler.LoadValuesByFilter(tblClient, fields, &clientObject{},
 		func(m map[string]interface{}) bool {
 			valid, ok := m[ClientFieldValid]
 			if !ok {
