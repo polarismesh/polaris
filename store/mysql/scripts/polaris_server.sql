@@ -933,7 +933,7 @@ CREATE TABLE
         KEY (
             `namespace`,
             `service`,
-            `name`,
+            `type`,
             `version`,
             `protocol`
         )
@@ -976,33 +976,33 @@ CREATE TABLE
     ) ENGINE = InnoDB COMMENT = '灰度资源表';
 
 CREATE TABLE
-    lane_group (
-        id varchar(128) not null comment '泳道分组 ID',
-        name varchar(64) not null comment '泳道分组名称',
-        rule text not null comment '规则的 json 字符串',
-        description varchar(3000) comment '规则描述',
-        revision VARCHAR(40) NOT NULL comment '规则摘要',
-        flag tinyint default 0 comment '软删除标识位',
-        ctime timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        mtime timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `lane_group` (
+        `id` varchar(128) not null comment '泳道分组 ID',
+        `name` varchar(64) not null comment '泳道分组名称',
+        `rule` text not null comment '规则的 json 字符串',
+        `description` varchar(3000) comment '规则描述',
+        `revision` VARCHAR(40) NOT NULL comment '规则摘要',
+        `flag` tinyint default 0 comment '软删除标识位',
+        `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (`id`),
         UNIQUE KEY `name` (`name`)
     ) ENGINE = InnoDB;
 
 CREATE TABLE
-    lane_rule (
-        id varchar(128) not null comment '规则 id',
-        name varchar(64) not null comment '规则名称',
-        group_name varchar(64) not null comment '泳道分组名称',
-        rule text not null comment '规则的 json 字符串',
-        revision VARCHAR(40) NOT NULL comment '规则摘要',
-        description varchar(3000) comment '规则描述',
-        enable tinyint comment '是否启用',
-        flag tinyint default 0 comment '软删除标识位',
-        priority bigint NOT NULL DEFAULT 0 comment '泳道规则优先级',
-        ctime timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        etime timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        mtime timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `lane_rule` (
+        `id` varchar(128) not null comment '规则 id',
+        `name` varchar(64) not null comment '规则名称',
+        `group_name` varchar(64) not null comment '泳道分组名称',
+        `rule` text not null comment '规则的 json 字符串',
+        `revision` VARCHAR(40) NOT NULL comment '规则摘要',
+        `description` varchar(3000) comment '规则描述',
+        `enable` tinyint comment '是否启用',
+        `flag` tinyint default 0 comment '软删除标识位',
+        `priority` bigint NOT NULL DEFAULT 0 comment '泳道规则优先级',
+        `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `etime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (`id`),
         UNIQUE KEY `name` (`group_name`, `name`)
     ) ENGINE = InnoDB;
