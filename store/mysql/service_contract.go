@@ -28,6 +28,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -264,6 +265,13 @@ func (s *serviceContractStore) DeleteServiceContractInterfaces(contract *model.E
 func (s *serviceContractStore) GetServiceContracts(ctx context.Context, filter map[string]string,
 	offset, limit uint32) (uint32, []*model.EnrichServiceContract, error) {
 
+	if _, ok := filter["order_field"]; !ok {
+		filter["order_field"] = "mtime"
+	}
+	if _, ok := filter["order_type"]; !ok {
+		filter["order_type"] = "DESC"
+	}
+
 	querySql := `
  SELECT id, type, namespace, service, protocol
 	 , version, revision, flag, content
@@ -281,8 +289,13 @@ func (s *serviceContractStore) GetServiceContracts(ctx context.Context, filter m
 		if k == "order_field" || k == "order_type" {
 			continue
 		}
-		conditions = append(conditions, k+" = ? ")
-		args = append(args, v)
+		if utils.IsWildName(v) {
+			conditions = append(conditions, k+" LIKE ? ")
+			args = append(args, utils.ParseWildNameForSql(v))
+		} else {
+			conditions = append(conditions, k+" = ? ")
+			args = append(args, v)
+		}
 	}
 
 	if len(conditions) > 0 {
