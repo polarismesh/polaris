@@ -67,6 +67,7 @@ func TestInstanceCheck(t *testing.T) {
 		time.Sleep(1 * time.Second)
 	}
 
+	_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 	instance1 := discoverSuit.DiscoverServer().Cache().Instance().GetInstance(instanceId1)
 	assert.NotNil(t, instance1)
 	assert.Equal(t, true, instance1.Proto.GetHealthy().GetValue())

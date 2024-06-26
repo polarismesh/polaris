@@ -1226,7 +1226,7 @@ func deleteOwnerServiceMap(tx *BaseTx, service, namespace string) error {
 // deleteServiceMetadata 删除 service_metadata 中的残留数据
 func deleteServiceMetadata(tx *BaseTx, service, namespace string) error {
 	log.Infof("[Store][database] delete service(%s) namespace(%s)", service, namespace)
-	delSql := "delete from service_metadata where id IN (select id from service where service=? and namespace=?)"
+	delSql := "delete from service_metadata where id IN (select id from service where name = ? and namespace = ?)"
 	if _, err := tx.Exec(delSql, service, namespace); err != nil {
 		return err
 	}
