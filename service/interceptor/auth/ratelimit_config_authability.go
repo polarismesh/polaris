@@ -34,7 +34,7 @@ func (svr *ServerAuthAbility) CreateRateLimits(
 	ctx context.Context, reqs []*apitraffic.Rule) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Create, "CreateRateLimits")
 
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
@@ -42,7 +42,7 @@ func (svr *ServerAuthAbility) CreateRateLimits(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.CreateRateLimits(ctx, reqs)
+	return svr.nextSvr.CreateRateLimits(ctx, reqs)
 }
 
 // DeleteRateLimits deletes rate limits for a namespace.
@@ -50,7 +50,7 @@ func (svr *ServerAuthAbility) DeleteRateLimits(
 	ctx context.Context, reqs []*apitraffic.Rule) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Delete, "DeleteRateLimits")
 
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
@@ -58,7 +58,7 @@ func (svr *ServerAuthAbility) DeleteRateLimits(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.DeleteRateLimits(ctx, reqs)
+	return svr.nextSvr.DeleteRateLimits(ctx, reqs)
 }
 
 // UpdateRateLimits updates rate limits for a namespace.
@@ -66,7 +66,7 @@ func (svr *ServerAuthAbility) UpdateRateLimits(
 	ctx context.Context, reqs []*apitraffic.Rule) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Modify, "UpdateRateLimits")
 
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
@@ -74,7 +74,7 @@ func (svr *ServerAuthAbility) UpdateRateLimits(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.UpdateRateLimits(ctx, reqs)
+	return svr.nextSvr.UpdateRateLimits(ctx, reqs)
 }
 
 // EnableRateLimits 启用限流规则
@@ -82,7 +82,7 @@ func (svr *ServerAuthAbility) EnableRateLimits(
 	ctx context.Context, reqs []*apitraffic.Rule) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, nil, model.Read, "EnableRateLimits")
 
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
@@ -90,7 +90,7 @@ func (svr *ServerAuthAbility) EnableRateLimits(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.EnableRateLimits(ctx, reqs)
+	return svr.nextSvr.EnableRateLimits(ctx, reqs)
 }
 
 // GetRateLimits gets rate limits for a namespace.
@@ -98,7 +98,7 @@ func (svr *ServerAuthAbility) GetRateLimits(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectRateLimitAuthContext(ctx, nil, model.Read, "GetRateLimits")
 
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchQueryResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
@@ -106,5 +106,5 @@ func (svr *ServerAuthAbility) GetRateLimits(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.GetRateLimits(ctx, query)
+	return svr.nextSvr.GetRateLimits(ctx, query)
 }

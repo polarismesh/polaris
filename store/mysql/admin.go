@@ -559,3 +559,18 @@ func (m *adminStore) BatchCleanDeletedClients(timeout time.Duration, batchSize u
 	})
 	return uint32(rows), err
 }
+
+// BatchCleanDeletedServices batch clean soft deleted clients
+func (m *adminStore) BatchCleanDeletedServices(timeout time.Duration, batchSize uint32) (uint32, error) {
+	return 0, nil
+}
+
+// BatchCleanDeletedRules batch clean soft deleted clients
+func (m *adminStore) BatchCleanDeletedRules(rule string, timeout time.Duration, batchSize uint32) (uint32, error) {
+	return 0, nil
+}
+
+// BatchCleanDeletedConfigFiles batch clean soft deleted clients
+func (m *adminStore) BatchCleanDeletedConfigFiles(timeout time.Duration, batchSize uint32) (uint32, error) {
+	return 0, nil
+}

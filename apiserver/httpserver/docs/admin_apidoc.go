@@ -140,3 +140,12 @@ func EnrichGetReportClientsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
 		Returns(0, "", model.PrometheusDiscoveryResponse{})
 }
+
+func EnrichEnablePprofApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.
+		Doc("开启/关闭 golang 的 pprof 能力").
+		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
+		Reads(struct {
+			Enable bool `json:"enable"`
+		}{})
+}

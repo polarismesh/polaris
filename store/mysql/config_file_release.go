@@ -309,7 +309,7 @@ func (cfr *configFileReleaseStore) GetMoreReleaseFile(firstUpdate bool,
 		modifyTime = time.Time{}
 	}
 
-	s := cfr.baseQuerySql() + " WHERE modify_time > FROM_UNIXTIME(?)"
+	s := cfr.baseQuerySql() + " WHERE modify_time > FROM_UNIXTIME(?) ORDER BY version DESC"
 	rows, err := cfr.slave.Query(s, timeToTimestamp(modifyTime))
 	if err != nil {
 		return nil, err

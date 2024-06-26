@@ -119,6 +119,11 @@ func (ss *serviceStore) deleteService(id, serviceName, namespaceName string) err
 		return err
 	}
 
+	if err := deleteServiceMetadata(tx, serviceName, namespaceName); err != nil {
+		log.Errorf("[Store][database] delete service_metadata(%s) err : %s", id, err.Error())
+		return err
+	}
+
 	if err := tx.Commit(); err != nil {
 		log.Errorf("[Store][database] add service tx commit err: %s", err.Error())
 		return err
@@ -1211,6 +1216,17 @@ func addOwnerServiceMap(tx *BaseTx, service, namespace, owner string) error {
 func deleteOwnerServiceMap(tx *BaseTx, service, namespace string) error {
 	log.Infof("[Store][database] delete service(%s) namespace(%s)", service, namespace)
 	delSql := "delete from owner_service_map where service=? and namespace=?"
+	if _, err := tx.Exec(delSql, service, namespace); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// deleteServiceMetadata 删除 service_metadata 中的残留数据
+func deleteServiceMetadata(tx *BaseTx, service, namespace string) error {
+	log.Infof("[Store][database] delete service(%s) namespace(%s)", service, namespace)
+	delSql := "delete from service_metadata where id IN (select id from service where name = ? and namespace = ?)"
 	if _, err := tx.Exec(delSql, service, namespace); err != nil {
 		return err
 	}

@@ -137,6 +137,7 @@ func (nc *CacheManager) Start(ctx context.Context) error {
 		if !exist {
 			return fmt.Errorf("cache resource %s not exists", name)
 		}
+		// 每个缓存各自在自己的协程内部按照期望的缓存更新时间完成数据缓存刷新
 		go func(c types.Cache) {
 			ticker := time.NewTicker(nc.GetUpdateCacheInterval())
 			for {
@@ -202,6 +203,11 @@ func (nc *CacheManager) FaultDetector() types.FaultDetectCache {
 // ServiceContract 获取服务契约缓存
 func (nc *CacheManager) ServiceContract() types.ServiceContractCache {
 	return nc.caches[types.CacheServiceContract].(types.ServiceContractCache)
+}
+
+// LaneRule 获取泳道规则缓存信息
+func (nc *CacheManager) LaneRule() types.LaneCache {
+	return nc.caches[types.CacheLaneRule].(types.LaneCache)
 }
 
 // User Get user information cache information

@@ -23,6 +23,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/golang/protobuf/proto"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -444,4 +445,46 @@ func TestServer_GetReportClients(t *testing.T) {
 		assert.Equal(t, qresp.GetAmount().GetValue(), uint32(1))
 		assert.Equal(t, qresp.GetSize().GetValue(), uint32(1))
 	})
+}
+
+// TestServer_ReportServiceContract 测试上报服务合约
+func TestServer_ReportServiceContract(t *testing.T) {
+	discoverSuit := &DiscoverTestSuit{}
+	if err := discoverSuit.Initialize(); err != nil {
+		t.Fatal(err)
+	}
+
+	req := &apiservice.ServiceContract{
+		Namespace: "default",
+		Service:   "test",
+		Protocol:  "http",
+		Name:      "test",
+		Version:   "1.0.0",
+		Content:   "test",
+		Interfaces: []*apiservice.InterfaceDescriptor{
+			{
+				Name:   "test",
+				Path:   "/test",
+				Method: "GET",
+			},
+		},
+	}
+
+	t.Run("multi_report_same_contract", func(t *testing.T) {
+		for i := 0; i < 5; i++ {
+			copyReq := proto.Clone(req).(*apiservice.ServiceContract)
+			copyReq.Content = fmt.Sprintf("test%d", i)
+			rsp := discoverSuit.DiscoverServer().ReportServiceContract(discoverSuit.DefaultCtx, copyReq)
+			assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), rsp.GetCode().GetValue(), rsp.GetInfo().GetValue())
+		}
+	})
+
+	t.Run("get_service_contract", func(t *testing.T) {
+		err := discoverSuit.CacheMgr().TestUpdate()
+		assert.NoError(t, err)
+		rsp := discoverSuit.DiscoverServer().GetServiceContractWithCache(discoverSuit.DefaultCtx, req)
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), rsp.GetCode().GetValue(), rsp.GetInfo().GetValue())
+		assert.Equal(t, 1, len(rsp.GetServiceContract().GetInterfaces()))
+	})
+
 }

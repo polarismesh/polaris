@@ -64,7 +64,10 @@ type Server struct {
 }
 
 func (s *Server) isSupportL5() bool {
-	return s.config.L5Open
+	if s.config.L5Open != nil {
+		return *s.config.L5Open
+	}
+	return true
 }
 
 func (s *Server) allowAutoCreate() bool {

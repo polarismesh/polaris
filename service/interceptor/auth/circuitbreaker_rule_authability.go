@@ -33,64 +33,64 @@ func (svr *ServerAuthAbility) CreateCircuitBreakerRules(
 	// TODO not support CircuitBreaker resource auth, so we set op is read
 	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, model.Read, "CreateCircuitBreakerRules")
 
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.CreateCircuitBreakerRules(ctx, request)
+	return svr.nextSvr.CreateCircuitBreakerRules(ctx, request)
 }
 
 func (svr *ServerAuthAbility) DeleteCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, model.Read, "DeleteCircuitBreakerRules")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.DeleteCircuitBreakerRules(ctx, request)
+	return svr.nextSvr.DeleteCircuitBreakerRules(ctx, request)
 }
 
 func (svr *ServerAuthAbility) EnableCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, model.Read, "EnableCircuitBreakerRules")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.EnableCircuitBreakerRules(ctx, request)
+	return svr.nextSvr.EnableCircuitBreakerRules(ctx, request)
 }
 
 func (svr *ServerAuthAbility) UpdateCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, model.Read, "UpdateCircuitBreakerRules")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.UpdateCircuitBreakerRules(ctx, request)
+	return svr.nextSvr.UpdateCircuitBreakerRules(ctx, request)
 }
 
 func (svr *ServerAuthAbility) GetCircuitBreakerRules(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, nil, model.Read, "GetCircuitBreakerRules")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchQueryResponse(convertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.GetCircuitBreakerRules(ctx, query)
+	return svr.nextSvr.GetCircuitBreakerRules(ctx, query)
 }

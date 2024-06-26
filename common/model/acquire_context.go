@@ -23,6 +23,14 @@ import (
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 )
 
+type acquireContextOption func(authCtx *AcquireContext)
+
+var (
+	_defaultAuthContextOptions []acquireContextOption = []acquireContextOption{
+		WithFromConsole(),
+	}
+)
+
 // AcquireContext 每次鉴权请求上下文信息
 type AcquireContext struct {
 	// RequestContext 请求上下文
@@ -39,15 +47,9 @@ type AcquireContext struct {
 	attachment map[string]interface{}
 	// fromClient 是否来自客户端的请求
 	fromClient bool
+	// allowAnonymous 是否允许匿名用户
+	allowAnonymous bool
 }
-
-type acquireContextOption func(authCtx *AcquireContext)
-
-var (
-	_defaultAuthContextOptions []acquireContextOption = []acquireContextOption{
-		WithFromConsole(),
-	}
-)
 
 // NewAcquireContext 创建一个请求响应
 //
@@ -242,4 +244,23 @@ func (authCtx *AcquireContext) IsAccessResourceEmpty() bool {
 	cfgEmpty := len(authCtx.accessResources[apisecurity.ResourceType_ConfigGroups]) == 0
 
 	return nsEmpty && svcEmpty && cfgEmpty
+}
+
+// AllowAnonymous 本次请求是否允许匿名访问
+func (authCtx *AcquireContext) IsAllowAnonymous() bool {
+	return authCtx.allowAnonymous
+}
+
+// SetAllowAnonymous 本次请求是否允许匿名访问
+func (authCtx *AcquireContext) SetAllowAnonymous(a bool) {
+	authCtx.allowAnonymous = a
+}
+
+// ResourceOpInfo 资源的数据操作信息
+type ResourceOpInfo struct {
+	ResourceType apisecurity.ResourceType
+	Namespace    string
+	ResourceName string
+	ResourceID   string
+	Operation    ResourceOperation
 }

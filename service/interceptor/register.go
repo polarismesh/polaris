@@ -21,10 +21,18 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/service"
 	service_auth "github.com/polarismesh/polaris/service/interceptor/auth"
+	"github.com/polarismesh/polaris/service/interceptor/paramcheck"
 )
 
 func init() {
-	err := service.RegisterServerProxy("auth", func(svr *service.Server, pre service.DiscoverServer) (service.DiscoverServer, error) {
+	err := service.RegisterServerProxy("paramcheck", func(svr *service.Server, pre service.DiscoverServer) (service.DiscoverServer, error) {
+		return paramcheck.NewServer(svr), nil
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	err = service.RegisterServerProxy("auth", func(svr *service.Server, pre service.DiscoverServer) (service.DiscoverServer, error) {
 		userMgn, err := auth.GetUserServer()
 		if err != nil {
 			return nil, err

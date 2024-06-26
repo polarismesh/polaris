@@ -476,6 +476,11 @@ func ZapReleaseName(fileName string) zap.Field {
 	return zap.String("release-name", fileName)
 }
 
+// ZapVersion 生成 version 的日志描述
+func ZapVersion(version uint64) zap.Field {
+	return zap.Uint64("version", version)
+}
+
 // CheckDbStrFieldLen 检查name字段是否超过DB中对应字段的最大字符长度限制
 func CheckDbStrFieldLen(param *wrappers.StringValue, dbLen int) error {
 	return CheckDbRawStrFieldLen(param.GetValue(), dbLen)
@@ -581,6 +586,18 @@ func CheckContractInterfaceTetrad(contractId string, source apiservice.Interface
 	if _, err := io.WriteString(h, str); err != nil {
 		return "", api.NewResponseWithMsg(apimodel.Code_ExecuteException, err.Error())
 	}
+	out := hex.EncodeToString(h.Sum(nil))
+	return out, nil
+}
+
+func CalculateContractID(namespace, service, name, protocol, version string) (string, error) {
+	h := sha1.New()
+	str := fmt.Sprintf("%s##%s##%s##%s##%s", namespace, service, name, protocol, version)
+
+	if _, err := io.WriteString(h, str); err != nil {
+		return "", err
+	}
+
 	out := hex.EncodeToString(h.Sum(nil))
 	return out, nil
 }

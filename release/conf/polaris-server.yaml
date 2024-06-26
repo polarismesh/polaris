@@ -31,7 +31,7 @@ bootstrap:
       # The maximum preservation days of a single log file, default 7
       rotationMaxAge: 7
       # Log output level，debug/info/warn/error
-      outputLevel: info
+      outputLevel: debug
       # Open the log file compression
       compress: true
       # onlyContent just print log content, not print log timestamp

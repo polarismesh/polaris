@@ -43,6 +43,13 @@ func NewConfigClientListResponse(code apimodel.Code) *apiconfig.ConfigClientList
 	}
 }
 
+func NewConfigClientListResponseWithInfo(code apimodel.Code, msg string) *apiconfig.ConfigClientListResponse {
+	return &apiconfig.ConfigClientListResponse{
+		Code: &wrappers.UInt32Value{Value: uint32(code)},
+		Info: &wrappers.StringValue{Value: msg},
+	}
+}
+
 func NewConfigClientResponse0(code apimodel.Code) *apiconfig.ConfigClientResponse {
 	return &apiconfig.ConfigClientResponse{
 		Code: &wrappers.UInt32Value{Value: uint32(code)},

@@ -32,8 +32,8 @@ import (
 const (
 	// DefaultUserMgnPluginName default user server name
 	DefaultUserMgnPluginName = "defaultUser"
-	// DefaultStrategyMgnPluginName default strategy server name
-	DefaultStrategyMgnPluginName = "defaultStrategy"
+	// DefaultPolicyPluginName default strategy server name
+	DefaultPolicyPluginName = "defaultStrategy"
 )
 
 // Config 鉴权能力的相关配置参数
@@ -47,6 +47,8 @@ type Config struct {
 	User *UserConfig `yaml:"user"`
 	// Strategy StrategyOperator的相关配置
 	Strategy *StrategyConfig `yaml:"strategy"`
+	// Interceptors .
+	Interceptors []string `yaml:"-"`
 }
 
 func (c *Config) SetDefault() {
@@ -58,7 +60,7 @@ func (c *Config) SetDefault() {
 	}
 	if c.Strategy == nil {
 		c.Strategy = &StrategyConfig{
-			Name:   DefaultStrategyMgnPluginName,
+			Name:   DefaultPolicyPluginName,
 			Option: map[string]interface{}{},
 		}
 	}
@@ -82,9 +84,9 @@ type StrategyConfig struct {
 
 var (
 	// userMgnSlots 保存用户管理manager slot
-	userMgnSlots = map[string]UserServer{}
+	userMgrSlots = map[string]UserServer{}
 	// strategyMgnSlots 保存策略管理manager slot
-	strategyMgnSlots = map[string]StrategyServer{}
+	strategyMgrSlots = map[string]StrategyServer{}
 	once             sync.Once
 	userMgn          UserServer
 	strategyMgn      StrategyServer
@@ -94,11 +96,11 @@ var (
 // RegisterUserServer 注册一个新的 UserServer
 func RegisterUserServer(s UserServer) error {
 	name := s.Name()
-	if _, ok := userMgnSlots[name]; ok {
+	if _, ok := userMgrSlots[name]; ok {
 		return fmt.Errorf("UserServer=[%s] exist", name)
 	}
 
-	userMgnSlots[name] = s
+	userMgrSlots[name] = s
 	return nil
 }
 
@@ -113,11 +115,11 @@ func GetUserServer() (UserServer, error) {
 // RegisterStrategyServer 注册一个新的 StrategyServer
 func RegisterStrategyServer(s StrategyServer) error {
 	name := s.Name()
-	if _, ok := strategyMgnSlots[name]; ok {
+	if _, ok := strategyMgrSlots[name]; ok {
 		return fmt.Errorf("StrategyServer=[%s] exist", name)
 	}
 
-	strategyMgnSlots[name] = s
+	strategyMgrSlots[name] = s
 	return nil
 }
 
@@ -146,33 +148,33 @@ func Initialize(ctx context.Context, authOpt *Config, storage store.Store, cache
 func initialize(_ context.Context, authOpt *Config, storage store.Store,
 	cacheMgr cachetypes.CacheManager) (UserServer, StrategyServer, error) {
 	authOpt.SetDefault()
-	name := authOpt.User.Name
-	if name == "" {
+
+	userMgrName := authOpt.User.Name
+	if userMgrName == "" {
 		return nil, nil, errors.New("UserServer Name is empty")
 	}
-
-	namedUserMgn, ok := userMgnSlots[name]
-	if !ok {
-		return nil, nil, fmt.Errorf("no such UserServer plugin. name(%s)", name)
-	}
-	if err := namedUserMgn.Initialize(authOpt, storage, cacheMgr); err != nil {
-		log.Printf("UserServer do initialize err: %s", err.Error())
-		return nil, nil, err
-	}
-
-	name = authOpt.Strategy.Name
-	if name == "" {
+	policyMgrName := authOpt.Strategy.Name
+	if policyMgrName == "" {
 		return nil, nil, errors.New("StrategyServer Name is empty")
 	}
 
-	namedStrategyMgn, ok := strategyMgnSlots[name]
+	userMgr, ok := userMgrSlots[userMgrName]
 	if !ok {
-		return nil, nil, fmt.Errorf("no such StrategyServer plugin. name(%s)", name)
+		return nil, nil, fmt.Errorf("no such UserServer plugin. name(%s)", userMgrName)
 	}
-	if err := namedStrategyMgn.Initialize(authOpt, storage, cacheMgr); err != nil {
+	policyMgr, ok := strategyMgrSlots[policyMgrName]
+	if !ok {
+		return nil, nil, fmt.Errorf("no such StrategyServer plugin. name(%s)", policyMgrName)
+	}
+
+	if err := userMgr.Initialize(authOpt, storage, cacheMgr); err != nil {
+		log.Printf("UserServer do initialize err: %s", err.Error())
+		return nil, nil, err
+	}
+	if err := policyMgr.Initialize(authOpt, storage, cacheMgr, userMgr); err != nil {
 		log.Printf("StrategyServer do initialize err: %s", err.Error())
 		return nil, nil, err
 	}
 	finishInit = true
-	return namedUserMgn, namedStrategyMgn, nil
+	return userMgr, policyMgr, nil
 }

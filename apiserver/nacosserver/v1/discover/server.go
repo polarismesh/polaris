@@ -33,7 +33,6 @@ type ServerOption struct {
 
 	// polaris
 	UserSvr           auth.UserServer
-	CheckerSvr        auth.StrategyServer
 	NamespaceSvr      namespace.NamespaceOperateServer
 	DiscoverSvr       service.DiscoverServer
 	OriginDiscoverSvr service.DiscoverServer
@@ -64,6 +63,5 @@ func (h *DiscoverServer) Initialize(opt *ServerOption) error {
 	h.originDiscoverSvr = opt.OriginDiscoverSvr
 	h.healthSvr = opt.HealthSvr
 	h.userSvr = opt.UserSvr
-	h.checkerSvr = opt.CheckerSvr
 	return nil
 }

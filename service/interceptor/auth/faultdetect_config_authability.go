@@ -32,45 +32,45 @@ func (svr *ServerAuthAbility) CreateFaultDetectRules(
 	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 
 	authCtx := svr.collectFaultDetectAuthContext(ctx, request, model.Read, "CreateFaultDetectRules")
-	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.CreateFaultDetectRules(ctx, request)
+	return svr.nextSvr.CreateFaultDetectRules(ctx, request)
 }
 
 func (svr *ServerAuthAbility) DeleteFaultDetectRules(
 	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 
 	authCtx := svr.collectFaultDetectAuthContext(ctx, request, model.Read, "DeleteFaultDetectRules")
-	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.DeleteFaultDetectRules(ctx, request)
+	return svr.nextSvr.DeleteFaultDetectRules(ctx, request)
 }
 
 func (svr *ServerAuthAbility) UpdateFaultDetectRules(
 	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 
 	authCtx := svr.collectFaultDetectAuthContext(ctx, request, model.Read, "UpdateFaultDetectRules")
-	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.UpdateFaultDetectRules(ctx, request)
+	return svr.nextSvr.UpdateFaultDetectRules(ctx, request)
 }
 
 func (svr *ServerAuthAbility) GetFaultDetectRules(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectFaultDetectAuthContext(ctx, nil, model.Read, "GetFaultDetectRules")
-	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchQueryResponse(convertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.targetServer.GetFaultDetectRules(ctx, query)
+	return svr.nextSvr.GetFaultDetectRules(ctx, query)
 }

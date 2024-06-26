@@ -73,8 +73,9 @@ func NewNacosV1Server(store *core.NacosDataStorage, options ...option) (*NacosV1
 
 // NacosV1Server HTTP API服务器
 type NacosV1Server struct {
-	listenIP        string
-	listenPort      uint32
+	listenIP   string
+	listenPort uint32
+
 	connLimitConfig *connlimit.Config
 	tlsInfo         *secure.TLSInfo
 	option          map[string]interface{}
@@ -88,7 +89,7 @@ type NacosV1Server struct {
 	pushCenter core.PushCenter
 	store      *core.NacosDataStorage
 
-	checker auth.StrategyServer
+	checker auth.UserServer
 
 	discoverOpt *discover.ServerOption
 	discoverSvr *discover.DiscoverServer
@@ -193,7 +194,7 @@ func (h *NacosV1Server) createRestfulContainer() (*restful.Container, error) {
 	cors := restful.CrossOriginResourceSharing{
 		// ExposeHeaders:  []string{"X-My-Header"},
 		AllowedHeaders: []string{"Content-Type", "Accept", "Request-Id"},
-		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH"},
+		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch},
 		CookiesAllowed: false,
 		Container:      wsContainer}
 	wsContainer.Filter(cors.Filter)

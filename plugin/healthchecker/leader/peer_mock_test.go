@@ -261,11 +261,11 @@ func (ms *MockPolarisGRPCServer) mockRemotePeerConnect(p *RemotePeer) error {
 	if err != nil {
 		return err
 	}
-	p.conns = []*grpc.ClientConn{
-		&grpc.ClientConn{},
+	p.conns = map[int]*grpc.ClientConn{
+		0: &grpc.ClientConn{},
 	}
-	p.puters = []*beatSender{
-		{
+	p.puters = map[int]*beatSender{
+		0: {
 			lock:   &sync.RWMutex{},
 			sender: sender,
 			peer:   p,

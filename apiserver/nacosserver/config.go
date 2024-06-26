@@ -30,6 +30,8 @@ type NacosConfig struct {
 	ConnLimit        *connlimit.Config `mapstructure:"connLimit"`
 	TLS              *secure.TLSConfig `mapstructure:tls`
 	DefaultNamespace string            `mapstructure:defaultNamespace`
+	ServerService    string            `mapstructure:"serverService"`
+	ServerNamespace  string            `mapstructure:"serverNamespace"`
 }
 
 func loadNacosConfig(raw map[string]interface{}) (*NacosConfig, error) {

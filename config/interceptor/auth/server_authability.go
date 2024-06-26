@@ -36,21 +36,21 @@ var _ config.ConfigCenterServer = (*ServerAuthability)(nil)
 
 // Server 配置中心核心服务
 type ServerAuthability struct {
-	cacheMgr    cachetypes.CacheManager
-	nextServer  config.ConfigCenterServer
-	userMgn     auth.UserServer
-	strategyMgn auth.StrategyServer
+	cacheMgr   cachetypes.CacheManager
+	nextServer config.ConfigCenterServer
+	userMgn    auth.UserServer
+	policyMgr  auth.StrategyServer
 }
 
 func New(nextServer config.ConfigCenterServer, cacheMgr cachetypes.CacheManager,
 	userMgr auth.UserServer, strategyMgr auth.StrategyServer) config.ConfigCenterServer {
 	proxy := &ServerAuthability{
-		nextServer:  nextServer,
-		cacheMgr:    cacheMgr,
-		userMgn:     userMgr,
-		strategyMgn: strategyMgr,
+		nextServer: nextServer,
+		cacheMgr:   cacheMgr,
+		userMgn:    userMgr,
+		policyMgr:  strategyMgr,
 	}
-	if val, ok := nextServer.(*config.Server); !ok {
+	if val, ok := nextServer.(*config.Server); ok {
 		val.SetResourceHooks(proxy)
 	}
 	return proxy

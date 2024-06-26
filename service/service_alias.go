@@ -320,7 +320,7 @@ func preCheckAlias(req *apiservice.ServiceAlias) (*apiservice.Response, bool) {
 	}
 
 	if err := utils.CheckResourceName(req.GetAliasNamespace()); err != nil {
-		return api.NewServiceAliasResponse(apimodel.Code_InvalidNamespaceWithAlias, req), true
+		return api.NewServiceAliasResponse(apimodel.Code_InvalidNamespaceName, req), true
 	}
 
 	// 默认类型，需要检查alias是否为空

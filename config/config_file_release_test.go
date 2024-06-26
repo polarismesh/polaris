@@ -176,6 +176,65 @@ func Test_PublishConfigFile(t *testing.T) {
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
 	})
 
+	// 创建一个 v1 的配置发布
+	// 删除 v1 配置发布
+	// 再创建一个 v1 的配置发布
+	// 客户端可以正常读取到数据
+	t.Run("create_delete_recreate_same", func(t *testing.T) {
+		pubResp := testSuit.ConfigServer().UpsertAndReleaseConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
+			ReleaseName:        utils.NewStringValue(mockReleaseName + "same-v1"),
+			Namespace:          utils.NewStringValue(mockNamespace + "same-v1"),
+			Group:              utils.NewStringValue(mockGroup + "same-v1"),
+			FileName:           utils.NewStringValue(mockFileName + "same-v1"),
+			Content:            utils.NewStringValue(mockContent + "same-v1"),
+			Comment:            utils.NewStringValue("mock_comment"),
+			Format:             utils.NewStringValue("yaml"),
+			ReleaseDescription: utils.NewStringValue("mock_releaseDescription"),
+			Tags: []*config_manage.ConfigFileTag{
+				{
+					Key:   utils.NewStringValue("mock_key"),
+					Value: utils.NewStringValue("mock_value"),
+				},
+			},
+		})
+
+		// 正常发布成功
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
+
+		delResp := testSuit.ConfigServer().DeleteConfigFileReleases(testSuit.DefaultCtx, []*config_manage.ConfigFileRelease{
+			{
+				Name:      utils.NewStringValue(mockReleaseName + "same-v1"),
+				Namespace: utils.NewStringValue(mockNamespace + "same-v1"),
+				Group:     utils.NewStringValue(mockGroup + "same-v1"),
+				FileName:  utils.NewStringValue(mockFileName + "same-v1"),
+			},
+		})
+		// 删除成功
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), delResp.GetCode().GetValue(), delResp.GetInfo().GetValue())
+
+		// 再次重新发布
+		pubResp = testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFileRelease{
+			Name:      utils.NewStringValue(mockReleaseName + "same-v1"),
+			Namespace: utils.NewStringValue(mockNamespace + "same-v1"),
+			Group:     utils.NewStringValue(mockGroup + "same-v1"),
+			FileName:  utils.NewStringValue(mockFileName + "same-v1"),
+		})
+
+		// 再次重新发布成功
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
+
+		// 客户端读取数据正常
+		_ = testSuit.CacheMgr().TestUpdate()
+
+		clientRsp := testSuit.ConfigServer().GetConfigFileWithCache(testSuit.DefaultCtx, &config_manage.ClientConfigFileInfo{
+			Namespace: utils.NewStringValue(mockNamespace + "same-v1"),
+			Group:     utils.NewStringValue(mockGroup + "same-v1"),
+			FileName:  utils.NewStringValue(mockFileName + "same-v1"),
+		})
+		// 正常读取到数据
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), clientRsp.GetCode().GetValue(), clientRsp.GetInfo().GetValue())
+	})
+
 	t.Run("list_release_version", func(t *testing.T) {
 		t.Run("invalid_namespace", func(t *testing.T) {
 			queryRsp := testSuit.ConfigServer().GetConfigFileReleaseVersions(testSuit.DefaultCtx, map[string]string{
@@ -458,7 +517,7 @@ func Test_GrayConfigFileRelease(t *testing.T) {
 		mockClientIP        = "1.1.1.1"
 	)
 
-	t.Run("first publish", func(t *testing.T) {
+	t.Run("01-first-publish", func(t *testing.T) {
 		resp := testSuit.ConfigServer().UpsertAndReleaseConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
 			Namespace:   utils.NewStringValue(mockNamespace),
 			Group:       utils.NewStringValue(mockGroup),
@@ -481,7 +540,7 @@ func Test_GrayConfigFileRelease(t *testing.T) {
 		assert.Equal(t, mockContent, resp.GetConfigFileRelease().GetContent().GetValue())
 	})
 
-	t.Run("gray_publish", func(t *testing.T) {
+	t.Run("02-gray_publish", func(t *testing.T) {
 		resp := testSuit.ConfigServer().UpdateConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFile{
 			Namespace: utils.NewStringValue(mockNamespace),
 			Group:     utils.NewStringValue(mockGroup),
@@ -496,8 +555,8 @@ func Test_GrayConfigFileRelease(t *testing.T) {
 			Namespace:   utils.NewStringValue(mockNamespace),
 			Group:       utils.NewStringValue(mockGroup),
 			FileName:    utils.NewStringValue(mockFileName),
-			Name:        utils.NewStringValue(mockBetaReleaseName),
 			Content:     utils.NewStringValue(mockNewContent),
+			Name:        utils.NewStringValue(mockBetaReleaseName),
 			ReleaseType: wrapperspb.String(model.ReleaseTypeGray),
 			BetaLabels: []*apimodel.ClientLabel{
 				{
@@ -549,7 +608,7 @@ func Test_GrayConfigFileRelease(t *testing.T) {
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue(), resp.GetInfo().GetValue())
 		assert.Equal(t, mockNewContent, clientRsp.GetConfigFile().GetContent().GetValue())
 
-		// 携带不正确配置标签查询, 查到处于灰度发布的配置
+		// 携带不正确配置标签查询, 查不到处于灰度发布的配置
 		clientRsp = testSuit.ConfigServer().GetConfigFileWithCache(testSuit.DefaultCtx, &config_manage.ClientConfigFileInfo{
 			Namespace: utils.NewStringValue(mockNamespace),
 			Group:     utils.NewStringValue(mockGroup),
@@ -566,7 +625,7 @@ func Test_GrayConfigFileRelease(t *testing.T) {
 	})
 
 	// 测试存在灰度发布配置时, 不得发布新的配置文件
-	t.Run("normal_publish_when_exist_gray", func(t *testing.T) {
+	t.Run("03-normal_publish_when_exist_gray", func(t *testing.T) {
 		resp := testSuit.ConfigServer().UpsertAndReleaseConfigFile(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
 			Namespace:   utils.NewStringValue(mockNamespace),
 			Group:       utils.NewStringValue(mockGroup),
@@ -579,7 +638,7 @@ func Test_GrayConfigFileRelease(t *testing.T) {
 	})
 
 	// 删除已发布的灰度配置，获取不到
-	t.Run("delete_gray_release", func(t *testing.T) {
+	t.Run("04-delete_gray_release", func(t *testing.T) {
 		resp := testSuit.ConfigServer().StopGrayConfigFileReleases(testSuit.DefaultCtx, []*config_manage.ConfigFileRelease{
 			{
 				Namespace: utils.NewStringValue(mockNamespace),

@@ -702,6 +702,12 @@ func (ss *serviceStore) getServiceByID(id string) (*model.Service, error) {
 		log.Errorf("[Store][boltdb] multiple services found %v", svc)
 		return nil, ErrMultipleSvcFound
 	}
+	if len(svc) == 0 {
+		return nil, nil
+	}
+	if _, ok := svc[id]; !ok {
+		return nil, nil
+	}
 
 	svcRet := toModelService(svc[id].(*Service))
 	if svcRet.Valid {

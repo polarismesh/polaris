@@ -51,10 +51,10 @@ func (s *Server) DeregisterInstance(ctx context.Context, req *apiservice.Instanc
 // ReportServiceContract report client service interface info
 func (s *Server) ReportServiceContract(ctx context.Context, req *apiservice.ServiceContract) *apiservice.Response {
 	ctx = context.WithValue(ctx, utils.ContextIsFromClient, true)
-	cacheData := s.caches.ServiceContract().Get(&model.ServiceContract{
+	cacheData := s.caches.ServiceContract().Get(ctx, &model.ServiceContract{
 		Namespace: req.GetNamespace(),
 		Service:   req.GetService(),
-		Name:      req.GetName(),
+		Type:      req.GetName(),
 		Version:   req.GetVersion(),
 		Protocol:  req.GetProtocol(),
 	})
@@ -83,10 +83,6 @@ func isSuccessReportContract(rsp *apiservice.Response) bool {
 
 // ReportClient 客户端上报信息
 func (s *Server) ReportClient(ctx context.Context, req *apiservice.Client) *apiservice.Response {
-	if s.caches == nil {
-		return api.NewResponse(apimodel.Code_ClientAPINotOpen)
-	}
-
 	// 客户端信息不写入到DB中
 	host := req.GetHost().GetValue()
 	// 从CMDB查询地理位置信息
@@ -175,13 +171,6 @@ func (s *Server) GetPrometheusTargets(ctx context.Context,
 
 // GetServiceWithCache 查询服务列表
 func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
-	if s.caches == nil {
-		return api.NewDiscoverServiceResponse(apimodel.Code_ClientAPINotOpen, req)
-	}
-	if req == nil {
-		return api.NewDiscoverServiceResponse(apimodel.Code_EmptyRequest, req)
-	}
-
 	resp := api.NewDiscoverServiceResponse(apimodel.Code_ExecuteSuccess, req)
 	var (
 		revision string
@@ -228,15 +217,6 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, filter *apiservice.D
 	resp := createCommonDiscoverResponse(req, apiservice.DiscoverResponse_INSTANCE)
 	serviceName := req.GetName().GetValue()
 	namespaceName := req.GetNamespace().GetValue()
-
-	// 消费服务为了兼容，可以不带namespace，server端使用默认的namespace
-	if namespaceName == "" {
-		namespaceName = DefaultNamespace
-		req.Namespace = utils.NewStringValue(namespaceName)
-	}
-	if !s.commonCheckDiscoverRequest(req, resp) {
-		return resp
-	}
 
 	// 数据源都来自Cache，这里拿到的service，已经是源服务
 	aliasFor, visibleServices := s.findVisibleServices(serviceName, namespaceName, req)
@@ -320,23 +300,7 @@ func (s *Server) findVisibleServices(serviceName, namespaceName string, req *api
 // GetRoutingConfigWithCache 获取缓存中的路由配置信息
 func (s *Server) GetRoutingConfigWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	resp := createCommonDiscoverResponse(req, apiservice.DiscoverResponse_ROUTING)
-	if !s.commonCheckDiscoverRequest(req, resp) {
-		return resp
-	}
-
-	resp.Service = &apiservice.Service{
-		Name:      req.GetName(),
-		Namespace: req.GetNamespace(),
-	}
-
-	// 先从缓存获取ServiceID，这里返回的是源服务
-	aliasFor := s.getServiceCache(req.GetName().GetValue(), req.GetNamespace().GetValue())
-	if aliasFor == nil {
-		aliasFor = &model.Service{
-			Namespace: req.GetNamespace().GetValue(),
-			Name:      req.GetName().GetValue(),
-		}
-	}
+	aliasFor := s.findServiceAlias(req)
 
 	out, err := s.caches.RoutingConfig().GetRouterConfig(aliasFor.ID, aliasFor.Name, aliasFor.Namespace)
 	if err != nil {
@@ -366,18 +330,7 @@ func (s *Server) GetRoutingConfigWithCache(ctx context.Context, req *apiservice.
 // GetRateLimitWithCache 获取缓存中的限流规则信息
 func (s *Server) GetRateLimitWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	resp := createCommonDiscoverResponse(req, apiservice.DiscoverResponse_RATE_LIMIT)
-	if !s.commonCheckDiscoverRequest(req, resp) {
-		return resp
-	}
-
-	// 获取源服务
-	aliasFor := s.getServiceCache(req.GetName().GetValue(), req.GetNamespace().GetValue())
-	if aliasFor == nil {
-		aliasFor = &model.Service{
-			Name:      req.GetName().GetValue(),
-			Namespace: req.GetNamespace().GetValue(),
-		}
-	}
+	aliasFor := s.findServiceAlias(req)
 
 	rules, revision := s.caches.RateLimit().GetRateLimitRules(model.ServiceKey{
 		Namespace: aliasFor.Namespace,
@@ -417,23 +370,7 @@ func (s *Server) GetRateLimitWithCache(ctx context.Context, req *apiservice.Serv
 
 func (s *Server) GetFaultDetectWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	resp := createCommonDiscoverResponse(req, apiservice.DiscoverResponse_FAULT_DETECTOR)
-	if !s.commonCheckDiscoverRequest(req, resp) {
-		return resp
-	}
-	// 服务名和request保持一致
-	resp.Service = &apiservice.Service{
-		Name:      req.GetName(),
-		Namespace: req.GetNamespace(),
-	}
-
-	// 获取源服务
-	aliasFor := s.getServiceCache(req.GetName().GetValue(), req.GetNamespace().GetValue())
-	if aliasFor == nil {
-		aliasFor = &model.Service{
-			Namespace: req.GetNamespace().GetValue(),
-			Name:      req.GetName().GetValue(),
-		}
-	}
+	aliasFor := s.findServiceAlias(req)
 
 	out := s.caches.FaultDetector().GetFaultDetectConfig(aliasFor.Name, aliasFor.Namespace)
 	if out == nil || out.Revision == "" {
@@ -462,24 +399,8 @@ func (s *Server) GetFaultDetectWithCache(ctx context.Context, req *apiservice.Se
 // GetCircuitBreakerWithCache 获取缓存中的熔断规则信息
 func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	resp := createCommonDiscoverResponse(req, apiservice.DiscoverResponse_CIRCUIT_BREAKER)
-	if !s.commonCheckDiscoverRequest(req, resp) {
-		return resp
-	}
-
-	// 服务名和request保持一致
-	resp.Service = &apiservice.Service{
-		Name:      req.GetName(),
-		Namespace: req.GetNamespace(),
-	}
-
 	// 获取源服务
-	aliasFor := s.getServiceCache(req.GetName().GetValue(), req.GetNamespace().GetValue())
-	if aliasFor == nil {
-		aliasFor = &model.Service{
-			Namespace: req.GetNamespace().GetValue(),
-			Name:      req.GetName().GetValue(),
-		}
-	}
+	aliasFor := s.findServiceAlias(req)
 	out := s.caches.CircuitBreaker().GetCircuitBreakerConfig(aliasFor.Name, aliasFor.Namespace)
 	if out == nil || out.Revision == "" {
 		return resp
@@ -509,10 +430,6 @@ func (s *Server) GetCircuitBreakerWithCache(ctx context.Context, req *apiservice
 func (s *Server) GetServiceContractWithCache(ctx context.Context,
 	req *apiservice.ServiceContract) *apiservice.Response {
 	resp := api.NewResponse(apimodel.Code_ExecuteSuccess)
-	if !s.serviceContractCheckDiscoverRequest(req, resp) {
-		return resp
-	}
-
 	// 服务名和request保持一致
 	resp.Service = &apiservice.Service{
 		Name:      wrapperspb.String(req.GetService()),
@@ -520,19 +437,13 @@ func (s *Server) GetServiceContractWithCache(ctx context.Context,
 	}
 
 	// 获取源服务
-	aliasFor := s.getServiceCache(req.GetService(), req.GetNamespace())
-	if aliasFor == nil {
-		aliasFor = &model.Service{
-			Namespace: req.GetNamespace(),
-			Name:      req.GetService(),
-		}
-	}
+	aliasFor := s.findServiceAlias(resp.Service)
 
-	out := s.caches.ServiceContract().Get(&model.ServiceContract{
+	out := s.caches.ServiceContract().Get(ctx, &model.ServiceContract{
 		Namespace: aliasFor.Namespace,
 		Service:   aliasFor.Name,
 		Version:   req.Version,
-		Name:      req.Name,
+		Type:      req.Name,
 		Protocol:  req.Protocol,
 	})
 	if out == nil {
@@ -551,6 +462,50 @@ func (s *Server) GetServiceContractWithCache(ctx context.Context,
 	resp.Service.Revision = wrapperspb.String(out.Revision)
 	resp.ServiceContract = out.ToSpec()
 	return resp
+}
+
+// GetLaneRuleWithCache fetch lane rule by client
+func (s *Server) GetLaneRuleWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+	resp := createCommonDiscoverResponse(req, apiservice.DiscoverResponse_LANE)
+	// 获取源服务
+	aliasFor := s.findServiceAlias(req)
+	out, revision := s.caches.LaneRule().GetLaneRules(aliasFor)
+	if out == nil || revision == "" {
+		return resp
+	}
+
+	// 获取泳道规则数据，并对比revision
+	if len(req.GetRevision().GetValue()) > 0 && req.GetRevision().GetValue() == revision {
+		return api.NewDiscoverLaneResponse(apimodel.Code_DataNoChange, req)
+	}
+
+	resp.AliasFor = &apiservice.Service{
+		Name:      utils.NewStringValue(aliasFor.Name),
+		Namespace: utils.NewStringValue(aliasFor.Namespace),
+	}
+	resp.Service.Revision = utils.NewStringValue(revision)
+	resp.Lanes = make([]*apitraffic.LaneGroup, 0, len(out))
+	for i := range out {
+		resp.Lanes = append(resp.Lanes, out[i].Proto)
+	}
+	return resp
+}
+
+func (s *Server) findServiceAlias(req *apiservice.Service) *model.Service {
+	// 获取源服务
+	aliasFor := s.getServiceCache(req.GetName().GetValue(), req.GetNamespace().GetValue())
+	if aliasFor == nil {
+		aliasFor = &model.Service{
+			Namespace: req.GetNamespace().GetValue(),
+			Name:      req.GetName().GetValue(),
+		}
+	}
+	return aliasFor
+}
+
+func CreateCommonDiscoverResponse(req *apiservice.Service,
+	dT apiservice.DiscoverResponse_DiscoverResponseType) *apiservice.DiscoverResponse {
+	return createCommonDiscoverResponse(req, dT)
 }
 
 func createCommonDiscoverResponse(req *apiservice.Service,
@@ -607,78 +562,4 @@ func (s *Server) getServiceCache(name string, namespace string) *model.Service {
 		service.Meta = make(map[string]string)
 	}
 	return service
-}
-
-func (s *Server) commonCheckDiscoverRequest(req *apiservice.Service, resp *apiservice.DiscoverResponse) bool {
-	if s.caches == nil {
-		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_ClientAPINotOpen))
-		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
-		resp.Service = req
-		return false
-	}
-	if req == nil {
-		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_EmptyRequest))
-		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
-		resp.Service = req
-		return false
-	}
-
-	if req.GetName().GetValue() == "" {
-		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidServiceName))
-		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
-		resp.Service = req
-		return false
-	}
-	if req.GetNamespace().GetValue() == "" {
-		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidNamespaceName))
-		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
-		resp.Service = req
-		return false
-	}
-
-	return true
-}
-
-func (s *Server) serviceContractCheckDiscoverRequest(req *apiservice.ServiceContract, resp *apiservice.Response) bool {
-	svc := &apiservice.Service{
-		Name:      wrapperspb.String(req.GetService()),
-		Namespace: wrapperspb.String(req.GetNamespace()),
-	}
-
-	if s.caches == nil {
-		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_ClientAPINotOpen))
-		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
-		resp.Service = svc
-		resp.ServiceContract = req
-		return false
-	}
-	if req == nil {
-		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_EmptyRequest))
-		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
-		resp.Service = svc
-		return false
-	}
-
-	if req.GetName() == "" {
-		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidParameter))
-		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
-		resp.Service = svc
-		resp.ServiceContract = req
-		return false
-	}
-	if req.GetNamespace() == "" {
-		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidNamespaceName))
-		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
-		resp.Service = svc
-		resp.ServiceContract = req
-		return false
-	}
-	if req.GetProtocol() == "" {
-		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidParameter))
-		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
-		resp.Service = svc
-		resp.ServiceContract = req
-		return false
-	}
-	return true
 }

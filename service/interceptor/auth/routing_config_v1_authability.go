@@ -34,7 +34,7 @@ func (svr *ServerAuthAbility) CreateRoutingConfigs(
 	ctx context.Context, reqs []*apitraffic.Routing) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, model.Create, "CreateRoutingConfigs")
 
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
@@ -42,7 +42,7 @@ func (svr *ServerAuthAbility) CreateRoutingConfigs(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.CreateRoutingConfigs(ctx, reqs)
+	return svr.nextSvr.CreateRoutingConfigs(ctx, reqs)
 }
 
 // DeleteRoutingConfigs deletes routing configs
@@ -50,7 +50,7 @@ func (svr *ServerAuthAbility) DeleteRoutingConfigs(
 	ctx context.Context, reqs []*apitraffic.Routing) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, model.Delete, "DeleteRoutingConfigs")
 
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
@@ -58,7 +58,7 @@ func (svr *ServerAuthAbility) DeleteRoutingConfigs(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.DeleteRoutingConfigs(ctx, reqs)
+	return svr.nextSvr.DeleteRoutingConfigs(ctx, reqs)
 }
 
 // UpdateRoutingConfigs updates routing configs
@@ -66,7 +66,7 @@ func (svr *ServerAuthAbility) UpdateRoutingConfigs(
 	ctx context.Context, reqs []*apitraffic.Routing) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, model.Modify, "UpdateRoutingConfigs")
 
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
@@ -74,7 +74,7 @@ func (svr *ServerAuthAbility) UpdateRoutingConfigs(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.UpdateRoutingConfigs(ctx, reqs)
+	return svr.nextSvr.UpdateRoutingConfigs(ctx, reqs)
 }
 
 // GetRoutingConfigs gets routing configs
@@ -82,7 +82,7 @@ func (svr *ServerAuthAbility) GetRoutingConfigs(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, nil, model.Read, "GetRoutingConfigs")
 
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchQueryResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
@@ -90,5 +90,5 @@ func (svr *ServerAuthAbility) GetRoutingConfigs(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	return svr.targetServer.GetRoutingConfigs(ctx, query)
+	return svr.nextSvr.GetRoutingConfigs(ctx, query)
 }

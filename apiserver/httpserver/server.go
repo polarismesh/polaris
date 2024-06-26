@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/http/pprof"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	restful "github.com/emicklei/go-restful/v3"
@@ -78,7 +78,7 @@ type HTTPServer struct {
 	restart         bool
 	exitCh          chan struct{}
 
-	enablePprof   bool
+	enablePprof   *atomic.Bool
 	enableSwagger bool
 
 	server            *http.Server
@@ -125,7 +125,10 @@ func (h *HTTPServer) Initialize(ctx context.Context, option map[string]interface
 	h.openAPI = apiConf
 	h.listenIP = option["listenIP"].(string)
 	h.listenPort = uint32(option["listenPort"].(int))
-	h.enablePprof, _ = option["enablePprof"].(bool)
+	h.enablePprof = &atomic.Bool{}
+	if val, _ := option["enablePprof"].(bool); val {
+		h.enablePprof.Store(true)
+	}
 	h.enableSwagger, _ = option["enableSwagger"].(bool)
 	h.apiserverSlots, _ = ctx.Value(utils.ContextAPIServerSlot{}).(map[string]apiserver.Apiserver)
 	// 连接数限制的配置
@@ -361,7 +364,7 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 	cors := restful.CrossOriginResourceSharing{
 		// ExposeHeaders:  []string{"X-My-Header"},
 		AllowedHeaders: []string{"Content-Type", "Accept", "Request-Id"},
-		AllowedMethods: []string{"GET", "POST", "PUT"},
+		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut},
 		CookiesAllowed: false,
 		Container:      wsContainer}
 	wsContainer.Filter(cors.Filter)
@@ -436,33 +439,12 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 		}
 	}
 
-	if h.enablePprof {
-		h.enablePprofAccess(wsContainer)
-	}
-
-	if h.enableSwagger {
-		h.enableSwaggerAPI(wsContainer)
-	}
+	h.enablePprofAccess(wsContainer)
+	h.enableSwaggerAPI(wsContainer)
 	// 收集插件的 endpoint 数据
 	h.enablePluginDebugAccess(wsContainer)
 	h.enablePrometheusAccess(wsContainer)
 	return wsContainer, nil
-}
-
-// enablePprofAccess 开启pprof接口
-func (h *HTTPServer) enablePprofAccess(wsContainer *restful.Container) {
-	log.Infof("open http access for pprof")
-	wsContainer.Handle("/debug/pprof/", http.HandlerFunc(pprof.Index))
-	wsContainer.Handle("/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
-	wsContainer.Handle("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
-	wsContainer.Handle("/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
-}
-
-// enablePrometheusAccess 开启 Prometheus 接口
-func (h *HTTPServer) enablePrometheusAccess(wsContainer *restful.Container) {
-	log.Infof("open http access for prometheus")
-
-	wsContainer.Handle("/metrics", metrics.GetHttpHandler())
 }
 
 // enablePluginDebugAccess .

@@ -23,7 +23,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: info
+      outputLevel: debug
       # outputPaths:
       # - stdout
       # errorOutputPaths:
@@ -45,7 +45,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: error
+      outputLevel: debug
       # outputPaths:
       #   - stdout
       # errorOutputPaths:
@@ -168,7 +168,7 @@ bootstrap:
       rotationMaxBackups: 10
       rotationMaxAge: 7
       rotationMaxDurationForHour: 24
-      outputLevel: error
+      outputLevel: info
       onlyContent: true
       # outputPaths:
       #   - stdout

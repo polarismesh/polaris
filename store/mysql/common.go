@@ -173,3 +173,11 @@ func toUnderscoreName(name string) string {
 	}
 	return buf.String()
 }
+
+func StringsToArgs(s []string) []interface{} {
+	ret := make([]interface{}, 0, len(s))
+	for i := range s {
+		ret = append(ret, s[i])
+	}
+	return ret
+}

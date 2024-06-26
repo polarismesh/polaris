@@ -758,6 +758,8 @@ func updateHealthCheck(req *apiservice.Instance, instance *model.Instance) bool 
 func (s *Server) GetInstances(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	showLastHeartbeat := query["show_last_heartbeat"] == "true"
 	delete(query, "show_last_heartbeat")
+	showServiceRevision := query["show_service_revision"] == "true"
+	delete(query, "show_service_revision")
 	// 对数据先进行提前处理一下
 	filters, metaFilter, batchErr := preGetInstances(query)
 	if batchErr != nil {
@@ -779,6 +781,7 @@ func (s *Server) GetInstances(ctx context.Context, query map[string]string) *api
 	out.Amount = utils.NewUInt32Value(total)
 	out.Size = utils.NewUInt32Value(uint32(len(instances)))
 
+	svcInfos := make(map[string]*model.Service, 4)
 	apiInstances := make([]*apiservice.Instance, 0, len(instances))
 	for _, instance := range instances {
 		svc, _ := s.loadServiceByID(instance.ServiceID)
@@ -795,7 +798,16 @@ func (s *Server) GetInstances(ctx context.Context, query map[string]string) *api
 	if showLastHeartbeat {
 		s.fillLastHeartbeatTime(apiInstances)
 	}
-
+	if showServiceRevision {
+		// 额外显示每个服务的 revision 版本列表信息数据
+		out.Services = make([]*apiservice.Service, 0, len(svcInfos))
+		for i := range svcInfos {
+			svc := svcInfos[i].ToSpec()
+			revision := s.caches.Service().GetRevisionWorker().GetServiceInstanceRevision(svc.GetId().GetValue())
+			svc.Revision = wrapperspb.String(revision)
+			out.Services = append(out.Services, svc)
+		}
+	}
 	out.Instances = apiInstances
 	return out
 }

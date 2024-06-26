@@ -59,6 +59,11 @@ func CalcCodeV2(rm ResponseMessageV2) int {
 	return int(rm.GetCode() / 1000)
 }
 
+// IsSuccess .
+func IsSuccess(rsp ResponseMessage) bool {
+	return rsp.GetCode().GetValue() == uint32(apimodel.Code_ExecuteSuccess)
+}
+
 /**
  * @brief BatchWriteResponse添加Response
  */
@@ -73,6 +78,19 @@ func Collect(batchWriteResponse *apiservice.BatchWriteResponse, response *apiser
 
 	batchWriteResponse.Size.Value++
 	batchWriteResponse.Responses = append(batchWriteResponse.Responses, response)
+}
+
+/**
+ * @brief BatchWriteResponse添加Response
+ */
+func QueryCollect(resp *apiservice.BatchQueryResponse, response *apiservice.Response) {
+	// 非200的code，都归为异常
+	if CalcCode(response) != 200 {
+		if response.GetCode().GetValue() >= resp.GetCode().GetValue() {
+			resp.Code.Value = response.GetCode().GetValue()
+			resp.Info.Value = code2info[resp.GetCode().GetValue()]
+		}
+	}
 }
 
 // AddNamespace BatchQueryResponse添加命名空间
@@ -319,6 +337,16 @@ func NewDiscoverCircuitBreakerResponse(code apimodel.Code, service *apiservice.S
 		Code:    &wrappers.UInt32Value{Value: uint32(code)},
 		Info:    &wrappers.StringValue{Value: code2info[uint32(code)]},
 		Type:    apiservice.DiscoverResponse_CIRCUIT_BREAKER,
+		Service: service,
+	}
+}
+
+// NewDiscoverLaneResponse .
+func NewDiscoverLaneResponse(code apimodel.Code, service *apiservice.Service) *apiservice.DiscoverResponse {
+	return &apiservice.DiscoverResponse{
+		Code:    &wrappers.UInt32Value{Value: uint32(code)},
+		Info:    &wrappers.StringValue{Value: code2info[uint32(code)]},
+		Type:    apiservice.DiscoverResponse_LANE,
 		Service: service,
 	}
 }

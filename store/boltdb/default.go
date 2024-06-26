@@ -72,6 +72,7 @@ type boltStore struct {
 	*faultDetectStore
 	*routingStoreV2
 	*serviceContractStore
+	*laneStore
 
 	// 配置中心stores
 	*configFileGroupStore
@@ -330,6 +331,7 @@ func (m *boltStore) newDiscoverModuleStore() {
 	m.faultDetectStore = &faultDetectStore{handler: m.handler}
 	m.routingStoreV2 = &routingStoreV2{handler: m.handler}
 	m.serviceContractStore = &serviceContractStore{handler: m.handler}
+	m.laneStore = &laneStore{handler: m.handler}
 }
 
 func (m *boltStore) newAuthModuleStore() {

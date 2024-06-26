@@ -29,6 +29,7 @@ import (
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -98,6 +99,36 @@ type Service struct {
 	OldExportTo map[string]struct{}
 }
 
+func (s *Service) ToSpec() *apiservice.Service {
+	return &apiservice.Service{
+		Name:       wrapperspb.String(s.Name),
+		Namespace:  wrapperspb.String(s.Namespace),
+		Metadata:   s.CopyMeta(),
+		Ports:      wrapperspb.String(s.Ports),
+		Business:   wrapperspb.String(s.Business),
+		Department: wrapperspb.String(s.Department),
+		CmdbMod1:   wrapperspb.String(s.CmdbMod1),
+		CmdbMod2:   wrapperspb.String(s.CmdbMod2),
+		CmdbMod3:   wrapperspb.String(s.CmdbMod3),
+		Comment:    wrapperspb.String(s.Comment),
+		Owners:     wrapperspb.String(s.Owner),
+		Token:      wrapperspb.String(s.Token),
+		Ctime:      wrapperspb.String(commontime.Time2String(s.CreateTime)),
+		Mtime:      wrapperspb.String(commontime.Time2String(s.ModifyTime)),
+		Revision:   wrapperspb.String(s.Revision),
+		Id:         wrapperspb.String(s.ID),
+		ExportTo:   s.ListExportTo(),
+	}
+}
+
+func (s *Service) CopyMeta() map[string]string {
+	ret := make(map[string]string)
+	for k, v := range s.Meta {
+		ret[k] = v
+	}
+	return ret
+}
+
 func (s *Service) ProtectThreshold() float32 {
 	if len(s.Meta) == 0 {
 		return 0
@@ -164,6 +195,14 @@ type ServiceAlias struct {
 	CreateTime     time.Time
 	ModifyTime     time.Time
 	ExportTo       map[string]struct{}
+}
+
+func (s *ServiceAlias) ListExportTo() []*wrappers.StringValue {
+	ret := make([]*wrappers.StringValue, 0, len(s.ExportTo))
+	for i := range s.ExportTo {
+		ret = append(ret, &wrappers.StringValue{Value: i})
+	}
+	return ret
 }
 
 // WeightType 服务下实例的权重类型

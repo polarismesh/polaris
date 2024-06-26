@@ -36,10 +36,6 @@ import (
 
 // CreateConfigFileGroup 创建配置文件组
 func (s *Server) CreateConfigFileGroup(ctx context.Context, req *apiconfig.ConfigFileGroup) *apiconfig.ConfigResponse {
-	if checkError := checkConfigFileGroupParams(req); checkError != nil {
-		return checkError
-	}
-
 	namespace := req.Namespace.GetValue()
 	groupName := req.Name.GetValue()
 
@@ -89,10 +85,6 @@ func (s *Server) CreateConfigFileGroup(ctx context.Context, req *apiconfig.Confi
 
 // UpdateConfigFileGroup 更新配置文件组
 func (s *Server) UpdateConfigFileGroup(ctx context.Context, req *apiconfig.ConfigFileGroup) *apiconfig.ConfigResponse {
-	if resp := checkConfigFileGroupParams(req); resp != nil {
-		return resp
-	}
-
 	namespace := req.Namespace.GetValue()
 	groupName := req.Name.GetValue()
 
@@ -173,13 +165,6 @@ func (s *Server) createConfigFileGroupIfAbsent(ctx context.Context,
 
 // DeleteConfigFileGroup 删除配置文件组
 func (s *Server) DeleteConfigFileGroup(ctx context.Context, namespace, name string) *apiconfig.ConfigResponse {
-	if err := utils.CheckResourceName(utils.NewStringValue(namespace)); err != nil {
-		return api.NewConfigResponse(apimodel.Code_InvalidNamespaceName)
-	}
-	if err := utils.CheckResourceName(utils.NewStringValue(name)); err != nil {
-		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileGroupName)
-	}
-
 	log.Info("[Config][Group] delete config file group. ", utils.RequestID(ctx),
 		utils.ZapNamespace(namespace), utils.ZapGroup(name))
 
@@ -242,21 +227,9 @@ func (s *Server) hasResourceInConfigGroup(ctx context.Context, namespace, name s
 
 // QueryConfigFileGroups 查询配置文件组
 func (s *Server) QueryConfigFileGroups(ctx context.Context,
-	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
+	searchFilters map[string]string) *apiconfig.ConfigBatchQueryResponse {
 
-	offset, limit, err := utils.ParseOffsetAndLimit(filter)
-	if err != nil {
-		resp := api.NewConfigBatchQueryResponse(apimodel.Code_BadRequest)
-		resp.Info = utils.NewStringValue(err.Error())
-		return resp
-	}
-
-	searchFilters := map[string]string{}
-	for k, v := range filter {
-		if newK, ok := availableSearch["config_file_group"][k]; ok {
-			searchFilters[newK] = v
-		}
-	}
+	offset, limit, _ := utils.ParseOffsetAndLimit(searchFilters)
 
 	args := &cachetypes.ConfigGroupArgs{
 		Namespace:  searchFilters["namespace"],
@@ -291,22 +264,6 @@ func (s *Server) QueryConfigFileGroups(ctx context.Context,
 	resp.Total = utils.NewUInt32Value(total)
 	resp.ConfigFileGroups = values
 	return resp
-}
-
-func checkConfigFileGroupParams(configFileGroup *apiconfig.ConfigFileGroup) *apiconfig.ConfigResponse {
-	if configFileGroup == nil {
-		return api.NewConfigResponse(apimodel.Code_InvalidParameter)
-	}
-	if err := utils.CheckResourceName(configFileGroup.Name); err != nil {
-		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileGroupName)
-	}
-	if err := utils.CheckResourceName(configFileGroup.Namespace); err != nil {
-		return api.NewConfigResponse(apimodel.Code_InvalidNamespaceName)
-	}
-	if len(configFileGroup.GetMetadata()) > utils.MaxMetadataLength {
-		return api.NewConfigResponse(apimodel.Code_InvalidMetadata)
-	}
-	return nil
 }
 
 // configGroupRecordEntry 生成服务的记录entry

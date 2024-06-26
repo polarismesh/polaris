@@ -28,6 +28,8 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	"github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	commonmodel "github.com/polarismesh/polaris/common/model"
 )
 
 type ConfigFileBase struct {
@@ -78,18 +80,17 @@ func (i *ConfigFile) ToSpecConfigFile() *config_manage.ConfigFilePublishInfo {
 		ReleaseDescription: wrapperspb.String(i.Description),
 	}
 
-	// TODO 暂时不支持 Nacos 的配置加解密
-	// isCipher := strings.HasPrefix(i.DataId, "cipher-") && i.DataId != "cipher-"
-	// if isCipher {
-	// 	specFile.Encrypted = wrapperspb.Bool(true)
-	// 	specFile.EncryptAlgo = wrapperspb.String(strings.Split(i.DataId, "-")[1])
-	// 	if i.EncryptedDataKey != "" {
-	// 		specFile.Tags = append(specFile.Tags, &config_manage.ConfigFileTag{
-	// 			Key:   wrapperspb.String(utils.ConfigFileTagKeyDataKey),
-	// 			Value: wrapperspb.String(i.EncryptedDataKey),
-	// 		})
-	// 	}
-	// }
+	isCipher := strings.HasPrefix(i.DataId, "cipher-") && i.DataId != "cipher-"
+	if isCipher {
+		specFile.Encrypted = wrapperspb.Bool(true)
+		specFile.EncryptAlgo = wrapperspb.String(strings.Split(i.DataId, "-")[1])
+		if i.EncryptedDataKey != "" {
+			specFile.Tags = append(specFile.Tags, &config_manage.ConfigFileTag{
+				Key:   wrapperspb.String(commonmodel.MetaKeyConfigFileDataKey),
+				Value: wrapperspb.String(i.EncryptedDataKey),
+			})
+		}
+	}
 
 	return specFile
 }

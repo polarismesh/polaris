@@ -34,7 +34,6 @@ type ServerOption struct {
 
 	// polaris
 	UserSvr           auth.UserServer
-	CheckerSvr        auth.StrategyServer
 	NamespaceSvr      namespace.NamespaceOperateServer
 	DiscoverSvr       service.DiscoverServer
 	OriginDiscoverSvr service.DiscoverServer

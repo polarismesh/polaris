@@ -41,7 +41,6 @@ type namespaceCache struct {
 	storage store.Store
 	ids     *utils.SyncMap[string, *model.Namespace]
 	updater *singleflight.Group
-
 	// exportNamespace 某个命名空间下的所有服务的可见性
 	exportNamespace *utils.SyncMap[string, *utils.SyncSet[string]]
 }
@@ -154,7 +153,7 @@ func (nsCache *namespaceCache) GetVisibleNamespaces(namespace string) []*model.N
 	return values
 }
 
-// clear
+// Clear .
 func (nsCache *namespaceCache) Clear() error {
 	nsCache.BaseCache.Clear()
 	nsCache.ids = utils.NewSyncMap[string, *model.Namespace]()
@@ -162,34 +161,21 @@ func (nsCache *namespaceCache) Clear() error {
 	return nil
 }
 
-// name
-//
-//	@return string
+// Name .
 func (nsCache *namespaceCache) Name() string {
 	return types.NamespaceName
 }
 
-// GetNamespace
-//
-//	@receiver nsCache
-//	@param id
-//	@return *model.Namespace
+// GetNamespace get namespace by id
 func (nsCache *namespaceCache) GetNamespace(id string) *model.Namespace {
 	val, ok := nsCache.ids.Load(id)
-
 	if !ok {
 		return nil
 	}
-
 	return val
 }
 
-// GetNamespacesByName
-//
-//	@receiver nsCache
-//	@param names
-//	@return []*model.Namespace
-//	@return error
+// GetNamespacesByName batch get namespace by name
 func (nsCache *namespaceCache) GetNamespacesByName(names []string) []*model.Namespace {
 	nsArr := make([]*model.Namespace, 0, len(names))
 	for _, name := range names {

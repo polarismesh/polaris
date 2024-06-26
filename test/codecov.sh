@@ -36,7 +36,8 @@ apiserver_pkg=(
 
 # 鉴权模块的包信息
 auth_pkg=(
-    "github.com/polarismesh/polaris/auth/defaultauth"
+    "github.com/polarismesh/polaris/auth/user"
+    "github.com/polarismesh/polaris/auth/policy"
 )
 
 # cache 模块的包信息
@@ -164,13 +165,19 @@ function prepare_cluster_env() {
 }
 
 function test_cluster_auth() {
-    cd ${cur_dir}
     # 测试鉴权
     export STORE_MODE=sqldb
     echo "cur STORE MODE=${STORE_MODE}, MYSQL_DB_USER=${MYSQL_DB_USER}, MYSQL_DB_PWD=${MYSQL_DB_PWD}"
-    pushd ./auth/defaultauth
-    go mod vendor && go test -v -timeout 40m -v -covermode=count -coverprofile=coverage_sqldb_1.cover -coverpkg=${coverpkg}
-    mv coverage_sqldb_1.cover ../../
+
+    cd ${cur_dir}
+    pushd ./auth/user
+    go mod vendor && go test -v -timeout 40m -v -covermode=count -coverprofile=user_coverage.cover -coverpkg=${coverpkg}
+    mv user_coverage.cover ../../
+
+    cd ${cur_dir}
+    pushd ./auth/policy
+    go mod vendor && go test -v -timeout 40m -v -covermode=count -coverprofile=policy_coverage.cover -coverpkg=${coverpkg}
+    mv policy_coverage.cover ../../
 }
 
 function test_cluster_config() {

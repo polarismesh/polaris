@@ -435,11 +435,11 @@ func (h *EurekaServer) process(req *restful.Request, rsp *restful.Response, chai
 }
 
 func isImportantRequest(req *restful.Request) bool {
-	if req.Request.Method == "POST" || req.Request.Method == "DELETE" {
+	if req.Request.Method == http.MethodPost || req.Request.Method == http.MethodDelete {
 		return true
 	}
 	urlStr := req.Request.URL.String()
-	if req.Request.Method == "PUT" && strings.Contains(urlStr, "/status") {
+	if req.Request.Method == http.MethodPut && strings.Contains(urlStr, "/status") {
 		return true
 	}
 	return false

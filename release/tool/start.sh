@@ -14,6 +14,14 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+enable_cron="false"
+
+for arg in "$@"
+do
+    if [[ "${arg}" == "--enable-cron" ]]; then
+        enable_cron="true"
+    fi
+done
 
 curpath=$(pwd)
 
@@ -33,6 +41,10 @@ pids=$(ps -ef | grep -w "$cmdline" | grep -v "grep" | awk '{print $2}')
 array=($pids)
 if [ "${#array[@]}" == "0" ]; then
     start
+fi
+
+if [[ "${enable_cron}" == "true" ]]; then
+    add_cron
 fi
 
 #------------------------------------------------------

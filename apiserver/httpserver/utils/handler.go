@@ -78,7 +78,7 @@ func (h *Handler) parseArray(createMessage func() proto.Message, jsonDecoder *js
 	}
 	for jsonDecoder.More() {
 		protoMessage := createMessage()
-		err := jsonpb.UnmarshalNext(jsonDecoder, protoMessage)
+		err := UnmarshalNext(jsonDecoder, protoMessage)
 		if err != nil {
 			accesslog.Error(err.Error(), utils.ZapRequestID(requestID))
 			return nil, err
@@ -122,7 +122,7 @@ func (h *Handler) postParseMessage(requestID string) (context.Context, error) {
 // Parse 解析请求
 func (h *Handler) Parse(message proto.Message) (context.Context, error) {
 	requestID := h.Request.HeaderParameter("Request-Id")
-	if err := jsonpb.Unmarshal(h.Request.Request.Body, message); err != nil {
+	if err := Unmarshal(h.Request.Request.Body, message); err != nil {
 		accesslog.Error(err.Error(), utils.ZapRequestID(requestID))
 		return nil, err
 	}
@@ -460,4 +460,14 @@ func InitProtoCache(option map[string]interface{}, cacheTypes []string, discover
 		protoCache = cache
 		convert = discoverCacheConvert
 	}
+}
+
+func UnmarshalNext(j *json.Decoder, m proto.Message) error {
+	var jsonpbMarshaler = jsonpb.Unmarshaler{AllowUnknownFields: true}
+	return jsonpbMarshaler.UnmarshalNext(j, m)
+}
+
+func Unmarshal(j io.Reader, m proto.Message) error {
+	var jsonpbMarshaler = jsonpb.Unmarshaler{AllowUnknownFields: true}
+	return jsonpbMarshaler.Unmarshal(j, m)
 }
