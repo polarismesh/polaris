@@ -111,20 +111,13 @@ func (uc *userCache) realUpdate() (map[string]time.Time, int64, error) {
 	}
 	lastMimes, refreshRet := uc.setUserAndGroups(users, groups)
 
-	timeDiff := time.Since(start)
-	if timeDiff > time.Second {
-		log.Info("[Cache][User] get more user",
-			zap.Int("add", refreshRet.userAdd),
-			zap.Int("update", refreshRet.userUpdate),
-			zap.Int("delete", refreshRet.userDel),
-			zap.Time("last", time.Unix(uc.lastUserMtime, 0)), zap.Duration("used", time.Since(start)))
+	log.Info("[Cache][User] get more user and user_group",
+		zap.Int("user_add", refreshRet.userAdd), zap.Int("user_update", refreshRet.userUpdate),
+		zap.Int("user_delete", refreshRet.userDel), zap.Time("user_modify_last", time.Unix(uc.lastUserMtime, 0)),
+		zap.Int("group_add", refreshRet.groupAdd), zap.Int("group_update", refreshRet.groupUpdate),
+		zap.Int("group_delete", refreshRet.groupDel), zap.Time("group_modify_last", time.Unix(uc.lastGroupMtime, 0)),
+		zap.Duration("used", time.Since(start)))
 
-		log.Info("[Cache][Group] get more group",
-			zap.Int("add", refreshRet.groupAdd),
-			zap.Int("update", refreshRet.groupUpdate),
-			zap.Int("delete", refreshRet.groupDel),
-			zap.Time("last", time.Unix(uc.lastGroupMtime, 0)), zap.Duration("used", time.Since(start)))
-	}
 	return lastMimes, int64(len(users) + len(groups)), nil
 }
 

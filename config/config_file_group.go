@@ -100,7 +100,7 @@ func (s *Server) UpdateConfigFileGroup(ctx context.Context, req *apiconfig.Confi
 
 	updateData := model.ToConfigGroupStore(req)
 	updateData.ModifyBy = utils.ParseOperator(ctx)
-	updateData, needUpdate := s.updateGroupAttribute(saveData, updateData)
+	updateData, needUpdate := s.UpdateGroupAttribute(saveData, updateData)
 	if !needUpdate {
 		return api.NewConfigResponse(apimodel.Code_NoNeedUpdate)
 	}
@@ -122,7 +122,7 @@ func (s *Server) UpdateConfigFileGroup(ctx context.Context, req *apiconfig.Confi
 	return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
 }
 
-func (s *Server) updateGroupAttribute(saveData, updateData *model.ConfigFileGroup) (*model.ConfigFileGroup, bool) {
+func (s *Server) UpdateGroupAttribute(saveData, updateData *model.ConfigFileGroup) (*model.ConfigFileGroup, bool) {
 	needUpdate := false
 	if saveData.Comment != updateData.Comment {
 		needUpdate = true

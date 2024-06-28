@@ -124,6 +124,12 @@ func TestUserCache_UpdateNormal(t *testing.T) {
 
 	users := genModelUsers(10)
 	groups := genModelUserGroups(users)
+	admin := &model.User{
+		ID:    "admin-polaris",
+		Name:  "admin-polaris",
+		Type:  model.AdminUserRole,
+		Valid: true,
+	}
 
 	t.Run("首次更新用户", func(t *testing.T) {
 		copyUsers := make([]*model.User, 0, len(users))
@@ -133,6 +139,7 @@ func TestUserCache_UpdateNormal(t *testing.T) {
 			copyUser := *users[i]
 			copyUsers = append(copyUsers, &copyUser)
 		}
+		copyUsers = append(copyUsers, admin)
 
 		for i := range groups {
 			copyGroup := *groups[i]
@@ -163,6 +170,16 @@ func TestUserCache_UpdateNormal(t *testing.T) {
 		gid := uc.GetUserLinkGroupIds(users[1].ID)
 		assert.Equal(t, 1, len(gid))
 		assert.Equal(t, groups[1].ID, gid[0])
+	})
+
+	t.Run("Is_owner", func(t *testing.T) {
+		assert.True(t, uc.IsOwner(users[0].ID), users[0].Type)
+		assert.False(t, uc.IsOwner(users[1].ID), users[1].Type)
+		assert.False(t, uc.IsOwner("fake-user-12312313"))
+	})
+
+	t.Run("Get_Admin", func(t *testing.T) {
+		assert.NotNil(t, uc.GetAdmin())
 	})
 
 	t.Run("部分用户删除", func(t *testing.T) {
@@ -247,4 +264,17 @@ func TestUserCache_UpdateNormal(t *testing.T) {
 
 	})
 
+	t.Run("Abnormal_scene", func(t *testing.T) {
+		t.Run("group_id_empty", func(t *testing.T) {
+			assert.Nil(t, uc.GetGroup(""))
+		})
+
+		t.Run("user_id_empty", func(t *testing.T) {
+			assert.False(t, uc.IsUserInGroup("", ""))
+			assert.Nil(t, uc.GetUserByID(""))
+			assert.Nil(t, uc.GetUserLinkGroupIds(""))
+		})
+	})
+
+	uc.Clear()
 }

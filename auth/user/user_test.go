@@ -24,6 +24,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"github.com/stretchr/testify/assert"
 
@@ -315,6 +316,32 @@ func Test_server_CreateUsers(t *testing.T) {
 
 		t.Logf("CreateUsers resp : %+v", resp)
 		assert.Equal(t, api.OperationRoleException, resp.Responses[0].Code.GetValue(), "create users must fail")
+	})
+}
+
+func Test_server_Login(t *testing.T) {
+
+	userTest := newUserTest(t)
+	defer userTest.Clean()
+
+	t.Run("正常登陆", func(t *testing.T) {
+		rsp := userTest.svr.Login(&apisecurity.LoginRequest{
+			Name:     &wrappers.StringValue{Value: userTest.users[0].Name},
+			Password: &wrappers.StringValue{Value: "polaris"},
+		})
+
+		assert.True(t, api.IsSuccess(rsp), rsp.GetInfo().GetValue())
+	})
+
+	t.Run("错误的密码", func(t *testing.T) {
+		rsp := userTest.svr.Login(&apisecurity.LoginRequest{
+			Name:     &wrappers.StringValue{Value: userTest.users[0].Name},
+			Password: &wrappers.StringValue{Value: "polaris_123"},
+		})
+
+		assert.False(t, api.IsSuccess(rsp), rsp.GetInfo().GetValue())
+		assert.Equal(t, uint32(apimodel.Code_NotAllowedAccess), rsp.GetCode().GetValue())
+		assert.Contains(t, rsp.GetInfo().GetValue(), model.ErrorWrongUsernameOrPassword.Error())
 	})
 }
 

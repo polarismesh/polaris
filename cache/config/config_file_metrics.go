@@ -53,7 +53,7 @@ func (fc *fileCache) reportMetricsInfo() {
 			tmpGroup[ns][group] = struct{}{}
 		}
 	}
-	cleanExpireConfigFileMetricLabel(fc.preMetricsFiles.Load(), tmpGroup)
+	_, _ = cleanExpireConfigFileMetricLabel(fc.preMetricsFiles.Load(), tmpGroup)
 	fc.preMetricsFiles.Store(tmpGroup)
 
 	for ns, groups := range configFiles {
@@ -85,26 +85,26 @@ func (fc *fileCache) reportMetricsInfo() {
 	plugin.GetStatis().ReportConfigMetrics(metricValues...)
 }
 
-func cleanExpireConfigFileMetricLabel(pre, curr map[string]map[string]struct{}) {
+func cleanExpireConfigFileMetricLabel(pre, curr map[string]map[string]struct{}) (map[string]struct{}, map[string]map[string]struct{}) {
 	if len(pre) == 0 {
-		return
+		return map[string]struct{}{}, map[string]map[string]struct{}{}
 	}
 
 	var (
-		removeNs = map[string]struct{}{}
-		remove   = map[string]map[string]struct{}{}
+		removeNs     = map[string]struct{}{}
+		removeGroups = map[string]map[string]struct{}{}
 	)
 
 	for ns, groups := range pre {
 		if _, ok := curr[ns]; !ok {
 			removeNs[ns] = struct{}{}
 		}
-		if _, ok := remove[ns]; !ok {
-			remove[ns] = map[string]struct{}{}
+		if _, ok := removeGroups[ns]; !ok {
+			removeGroups[ns] = map[string]struct{}{}
 		}
 		for group := range groups {
 			if _, ok := curr[ns][group]; !ok {
-				remove[ns][group] = struct{}{}
+				removeGroups[ns][group] = struct{}{}
 			}
 		}
 	}
@@ -115,7 +115,7 @@ func cleanExpireConfigFileMetricLabel(pre, curr map[string]map[string]struct{}) 
 		})
 	}
 
-	for ns, groups := range remove {
+	for ns, groups := range removeGroups {
 		for group := range groups {
 			metrics.GetConfigFileTotal().Delete(prometheus.Labels{
 				metrics.LabelNamespace: ns,
@@ -131,5 +131,5 @@ func cleanExpireConfigFileMetricLabel(pre, curr map[string]map[string]struct{}) 
 			})
 		}
 	}
-
+	return removeNs, removeGroups
 }

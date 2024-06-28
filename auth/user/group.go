@@ -124,7 +124,7 @@ func (svr *Server) UpdateGroup(ctx context.Context, req *apisecurity.ModifyUserG
 		return errResp
 	}
 
-	modifyReq, needUpdate := updateGroupAttribute(ctx, data.UserGroup, req)
+	modifyReq, needUpdate := UpdateGroupAttribute(ctx, data.UserGroup, req)
 	if !needUpdate {
 		log.Info("update group data no change, no need update",
 			utils.RequestID(ctx), zap.String("group", req.String()))
@@ -385,8 +385,8 @@ func (svr *Server) checkUpdateGroup(ctx context.Context, req *apisecurity.Modify
 	return nil
 }
 
-// updateGroupAttribute 更新计算用户组更新时的结构体数据，并判断是否需要执行更新操作
-func updateGroupAttribute(ctx context.Context, old *model.UserGroup, newUser *apisecurity.ModifyUserGroup) (
+// UpdateGroupAttribute 更新计算用户组更新时的结构体数据，并判断是否需要执行更新操作
+func UpdateGroupAttribute(ctx context.Context, old *model.UserGroup, newUser *apisecurity.ModifyUserGroup) (
 	*model.ModifyUserGroup, bool) {
 	var (
 		needUpdate bool

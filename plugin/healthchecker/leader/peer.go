@@ -409,6 +409,7 @@ func (p *RemotePeer) doReconnect(i int) bool {
 	if err != nil {
 		plog.Error("[HealthCheck][Leader] reconnect grpc-client", zap.String("host", p.Host()),
 			zap.Uint32("port", p.port), zap.Error(err))
+		_ = conn.Close()
 		return false
 	}
 
@@ -491,6 +492,8 @@ func (s *beatSender) Recv() {
 		if _, err := s.sender.Recv(); err != nil {
 			plog.Error("[HealthCheck][Leader] receive put record result", zap.String("host", s.peer.Host()),
 				zap.Uint32("port", s.peer.port), zap.Error(err))
+			// 先关闭自己
+			s.close()
 			go s.peer.reconnect(s.index)
 			return
 		}

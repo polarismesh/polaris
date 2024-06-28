@@ -20,6 +20,7 @@ package auth
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
@@ -32,7 +33,42 @@ import (
 	"github.com/polarismesh/polaris/store/mock"
 )
 
-func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
+func Test_strategyCache(t *testing.T) {
+	t.Run("get_policy", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		mockCacheMgr := cachemock.NewMockCacheManager(ctrl)
+		mockStore := mock.NewMockStore(ctrl)
+
+		t.Cleanup(func() {
+			ctrl.Finish()
+		})
+
+		userCache := NewUserCache(mockStore, mockCacheMgr)
+		strategyCache := NewStrategyCache(mockStore, mockCacheMgr).(*strategyCache)
+
+		mockStore.EXPECT().GetUnixSecond(gomock.Any()).Return(time.Now().Unix(), nil)
+		mockStore.EXPECT().GetStrategyDetailsForCache(gomock.Any(), gomock.Any()).Return(buildStrategies(10), nil).AnyTimes()
+		mockCacheMgr.EXPECT().GetCacher(types.CacheUser).Return(userCache).AnyTimes()
+
+		userCache.Initialize(map[string]interface{}{})
+		strategyCache.Initialize(map[string]interface{}{})
+
+		_ = strategyCache.ForceSync()
+		_, _, _ = strategyCache.realUpdate()
+
+		policies := strategyCache.GetStrategyDetailsByUID("user-1")
+		assert.True(t, len(policies) > 0, len(policies))
+
+		policies = strategyCache.GetStrategyDetailsByGroupID("group-1")
+		assert.True(t, len(policies) > 0, len(policies))
+
+		policies = strategyCache.GetStrategyDetailsByUID("fake-user-1")
+		assert.True(t, len(policies) == 0, len(policies))
+
+		policies = strategyCache.GetStrategyDetailsByGroupID("fake-group-1")
+		assert.True(t, len(policies) == 0, len(policies))
+	})
+
 	t.Run("资源没有关联任何策略", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockCacheMgr := cachemock.NewMockCacheManager(ctrl)
@@ -45,12 +81,15 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		userCache := NewUserCache(mockStore, mockCacheMgr)
 		strategyCache := NewStrategyCache(mockStore, mockCacheMgr).(*strategyCache)
 
+		mockStore.EXPECT().GetUnixSecond(gomock.Any()).Return(time.Now().Unix(), nil)
+		mockStore.EXPECT().GetStrategyDetailsForCache(gomock.Any(), gomock.Any()).Return(buildStrategies(10), nil).AnyTimes()
 		mockCacheMgr.EXPECT().GetCacher(types.CacheUser).Return(userCache).AnyTimes()
 
 		userCache.Initialize(map[string]interface{}{})
 		strategyCache.Initialize(map[string]interface{}{})
 
-		strategyCache.setStrategys(buildStrategies(10))
+		_ = strategyCache.ForceSync()
+		_, _, _ = strategyCache.realUpdate()
 
 		ret := strategyCache.IsResourceEditable(model.Principal{
 			PrincipalID:   "user-1",
@@ -58,6 +97,15 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 		}, apisecurity.ResourceType_Namespaces, "namespace-1")
 
 		assert.True(t, ret, "must be true")
+
+		ret = strategyCache.IsResourceLinkStrategy(apisecurity.ResourceType_Namespaces, "namespace-1")
+		assert.True(t, ret, "must be true")
+		ret = strategyCache.IsResourceLinkStrategy(apisecurity.ResourceType_Services, "service-1")
+		assert.True(t, ret, "must be true")
+		ret = strategyCache.IsResourceLinkStrategy(apisecurity.ResourceType_ConfigGroups, "config_group-1")
+		assert.True(t, ret, "must be true")
+
+		strategyCache.Clear()
 	})
 
 	t.Run("操作的目标资源关联了策略-自己在principal-user列表中", func(t *testing.T) {
@@ -129,7 +177,18 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 			PrincipalID:   "user-20",
 			PrincipalRole: model.PrincipalUser,
 		}, apisecurity.ResourceType_Namespaces, "namespace-1")
+		assert.False(t, ret, "must be false")
 
+		ret = strategyCache.IsResourceEditable(model.Principal{
+			PrincipalID:   "user-20",
+			PrincipalRole: model.PrincipalUser,
+		}, apisecurity.ResourceType_Services, "service-1")
+		assert.False(t, ret, "must be false")
+
+		ret = strategyCache.IsResourceEditable(model.Principal{
+			PrincipalID:   "user-20",
+			PrincipalRole: model.PrincipalUser,
+		}, apisecurity.ResourceType_ConfigGroups, "config_group-1")
 		assert.False(t, ret, "must be false")
 	})
 
@@ -373,6 +432,9 @@ func Test_strategyCache_IsResourceEditable_1(t *testing.T) {
 
 		assert.True(t, ret, "must be true")
 
+		ret = strategyCache.IsResourceLinkStrategy(apisecurity.ResourceType_Namespaces, "namespace-1")
+		assert.True(t, ret, "must be true")
+
 		strategyDetail.Valid = false
 
 		strategyCache.handlerPrincipalStrategy([]*model.StrategyDetail{strategyDetail})
@@ -418,6 +480,11 @@ func buildStrategies(num int) []*model.StrategyDetail {
 					StrategyID: fmt.Sprintf("rule-%d", i+1),
 					ResType:    1,
 					ResID:      fmt.Sprintf("service-%d", i+1),
+				},
+				{
+					StrategyID: fmt.Sprintf("rule-%d", i+1),
+					ResType:    2,
+					ResID:      fmt.Sprintf("config_group-%d", i+1),
 				},
 			},
 		})

@@ -29,3 +29,39 @@ func TestCheckFileName(t *testing.T) {
 	err := CheckFileName(w)
 	assert.Equal(t, err, nil)
 }
+
+func TestCheckContentLength(t *testing.T) {
+	type args struct {
+		content string
+		max     int
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "01",
+			args: args{
+				content: "123",
+				max:     10,
+			},
+			wantErr: false,
+		},
+		{
+			name: "02",
+			args: args{
+				content: "134234123412312323",
+				max:     10,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := CheckContentLength(tt.args.content, tt.args.max); (err != nil) != tt.wantErr {
+				t.Errorf("CheckContentLength() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

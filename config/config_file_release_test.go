@@ -226,6 +226,16 @@ func Test_PublishConfigFile(t *testing.T) {
 		// 客户端读取数据正常
 		_ = testSuit.CacheMgr().TestUpdate()
 
+		cacheData := testSuit.CacheMgr().ConfigFile().GetRelease(model.ConfigFileReleaseKey{
+			Namespace:   mockNamespace + "same-v1",
+			Group:       mockGroup + "same-v1",
+			FileName:    mockFileName + "same-v1",
+			Name:        mockReleaseName + "same-v1",
+			ReleaseType: model.ReleaseTypeFull,
+		})
+		assert.NotNil(t, cacheData)
+		assert.Equal(t, mockContent+"same-v1", cacheData.Content)
+
 		clientRsp := testSuit.ConfigServer().GetConfigFileWithCache(testSuit.DefaultCtx, &config_manage.ClientConfigFileInfo{
 			Namespace: utils.NewStringValue(mockNamespace + "same-v1"),
 			Group:     utils.NewStringValue(mockGroup + "same-v1"),
