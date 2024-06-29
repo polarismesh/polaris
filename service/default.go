@@ -48,7 +48,7 @@ const (
 	DefaultTLL = 5
 )
 
-type ServerProxyFactory func(svr *Server, pre DiscoverServer) (DiscoverServer, error)
+type ServerProxyFactory func(pre DiscoverServer) (DiscoverServer, error)
 
 var (
 	server       DiscoverServer
@@ -79,7 +79,7 @@ type Config struct {
 func Initialize(ctx context.Context, namingOpt *Config, opts ...InitOption) error {
 	var err error
 	once.Do(func() {
-		err = initialize(ctx, namingOpt, opts...)
+		namingServer, server, err = InitServer(ctx, namingOpt, opts...)
 	})
 
 	if err != nil {
@@ -109,36 +109,39 @@ func GetOriginServer() (*Server, error) {
 }
 
 // 内部初始化函数
-func initialize(ctx context.Context, namingOpt *Config, opts ...InitOption) error {
+func InitServer(ctx context.Context, namingOpt *Config, opts ...InitOption) (*Server, DiscoverServer, error) {
+	actualSvr := new(Server)
 	// l5service
-	namingServer.config = *namingOpt
-	namingServer.l5service = &l5service{}
-	namingServer.instanceChains = make([]InstanceChain, 0, 4)
-	namingServer.createServiceSingle = &singleflight.Group{}
-	namingServer.subCtxs = make([]*eventhub.SubscribtionContext, 0, 4)
+	actualSvr.config = *namingOpt
+	actualSvr.l5service = &l5service{}
+	actualSvr.instanceChains = make([]InstanceChain, 0, 4)
+	actualSvr.createServiceSingle = &singleflight.Group{}
+	actualSvr.subCtxs = make([]*eventhub.SubscribtionContext, 0, 4)
 
 	for i := range opts {
-		opts[i](namingServer)
+		opts[i](actualSvr)
 	}
 
 	// 插件初始化
-	pluginInitialize()
+	actualSvr.pluginInitialize()
 
+	var proxySvr DiscoverServer
+	proxySvr = actualSvr
 	// 需要返回包装代理的 DiscoverServer
 	order := namingOpt.Interceptors
 	for i := range order {
 		factory, exist := serverProxyFactories[order[i]]
 		if !exist {
-			return fmt.Errorf("name(%s) not exist in serverProxyFactories", order[i])
+			return nil, nil, fmt.Errorf("name(%s) not exist in serverProxyFactories", order[i])
 		}
 
-		proxySvr, err := factory(namingServer, server)
+		afterSvr, err := factory(proxySvr)
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
-		server = proxySvr
+		proxySvr = afterSvr
 	}
-	return nil
+	return actualSvr, proxySvr, nil
 }
 
 type PluginInstanceEventHandler struct {
@@ -153,22 +156,22 @@ func (p *PluginInstanceEventHandler) OnEvent(ctx context.Context, any2 any) erro
 }
 
 // 插件初始化
-func pluginInitialize() {
+func (svr *Server) pluginInitialize() {
 	// 获取CMDB插件
-	namingServer.cmdb = plugin.GetCMDB()
-	if namingServer.cmdb == nil {
+	svr.cmdb = plugin.GetCMDB()
+	if svr.cmdb == nil {
 		log.Warnf("Not Found CMDB Plugin")
 	}
 
 	// 获取History插件，注意：插件的配置在bootstrap已经设置好
-	namingServer.history = plugin.GetHistory()
-	if namingServer.history == nil {
+	svr.history = plugin.GetHistory()
+	if svr.history == nil {
 		log.Warnf("Not Found History Log Plugin")
 	}
 
 	// 获取限流插件
-	namingServer.ratelimit = plugin.GetRatelimit()
-	if namingServer.ratelimit == nil {
+	svr.ratelimit = plugin.GetRatelimit()
+	if svr.ratelimit == nil {
 		log.Warnf("Not found Ratelimit Plugin")
 	}
 
@@ -179,18 +182,19 @@ func pluginInitialize() {
 	}
 
 	eventHandler := &PluginInstanceEventHandler{
-		BaseInstanceEventHandler: NewBaseInstanceEventHandler(namingServer),
+		BaseInstanceEventHandler: NewBaseInstanceEventHandler(svr),
 		subscriber:               subscriber,
 	}
 	subCtx, err := eventhub.Subscribe(eventhub.InstanceEventTopic, eventHandler)
 	if err != nil {
 		log.Warnf("register DiscoverEvent into eventhub:%s %v", subscriber.Name(), err)
 	}
-	namingServer.subCtxs = append(namingServer.subCtxs, subCtx)
+	svr.subCtxs = append(svr.subCtxs, subCtx)
 }
 
 func GetChainOrder() []string {
 	return []string{
 		"auth",
+		"paramcheck",
 	}
 }

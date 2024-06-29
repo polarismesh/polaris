@@ -330,7 +330,7 @@ func (cc *ConfigChains) AfterGetFileHistory(ctx context.Context,
 
 func GetChainOrder() []string {
 	return []string{
-		"paramcheck",
 		"auth",
+		"paramcheck",
 	}
 }

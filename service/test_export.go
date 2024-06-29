@@ -19,7 +19,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -66,44 +65,17 @@ func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Conf
 	if len(cacheEntries) != 0 {
 		entrites = cacheEntries
 	} else {
-		entrites = append(entrites, l5CacheEntry)
-		entrites = append(entrites, namingCacheEntries...)
-		entrites = append(entrites, governanceCacheEntries...)
-	}
-	_ = cacheMgr.OpenResourceCache(entrites...)
-	namingServer.healthServer = healthSvr
-	namingServer.storage = storage
-	// 注入命名空间管理模块
-	namingServer.namespaceSvr = namespaceSvr
-
-	// cache模块，可以不开启
-	// 对于控制台集群，只访问控制台接口的，可以不开启cache
-	log.Infof("[Naming][Server] cache is open, can access the client api function")
-	namingServer.caches = cacheMgr
-	namingServer.bc = bc
-	// l5service
-	namingServer.l5service = &l5service{}
-	namingServer.createServiceSingle = &singleflight.Group{}
-	// 插件初始化
-	pluginInitialize()
-
-	var proxySvr DiscoverServer
-	var err error
-	// 需要返回包装代理的 DiscoverServer
-	order := namingOpt.Interceptors
-	for i := range order {
-		factory, exist := serverProxyFactories[order[i]]
-		if !exist {
-			return nil, nil, fmt.Errorf("name(%s) not exist in serverProxyFactories", order[i])
-		}
-
-		proxySvr, err = factory(namingServer, proxySvr)
-		if err != nil {
-			return nil, nil, err
-		}
+		entrites = GetAllCaches()
 	}
 
-	return proxySvr, namingServer, nil
+	namingServer, proxySvr, err := InitServer(ctx, namingOpt,
+		WithBatchController(bc),
+		WithCacheManager(cacheOpt, cacheMgr, entrites...),
+		WithHealthCheckSvr(healthSvr),
+		WithNamespaceSvr(namespaceSvr),
+		WithStorage(storage),
+	)
+	return proxySvr, namingServer, err
 }
 
 // TestSerialCreateInstance .

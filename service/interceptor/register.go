@@ -25,14 +25,14 @@ import (
 )
 
 func init() {
-	err := service.RegisterServerProxy("paramcheck", func(svr *service.Server, pre service.DiscoverServer) (service.DiscoverServer, error) {
-		return paramcheck.NewServer(svr), nil
+	err := service.RegisterServerProxy("paramcheck", func(pre service.DiscoverServer) (service.DiscoverServer, error) {
+		return paramcheck.NewServer(pre), nil
 	})
 	if err != nil {
 		panic(err)
 	}
 
-	err = service.RegisterServerProxy("auth", func(svr *service.Server, pre service.DiscoverServer) (service.DiscoverServer, error) {
+	err = service.RegisterServerProxy("auth", func(pre service.DiscoverServer) (service.DiscoverServer, error) {
 		userMgn, err := auth.GetUserServer()
 		if err != nil {
 			return nil, err
@@ -42,7 +42,7 @@ func init() {
 			return nil, err
 		}
 
-		return service_auth.NewServerAuthAbility(svr, userMgn, strategyMgn), nil
+		return service_auth.NewServerAuthAbility(pre, userMgn, strategyMgn), nil
 	})
 	if err != nil {
 		panic(err)

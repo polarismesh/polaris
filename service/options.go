@@ -113,13 +113,17 @@ func WithStorage(storage store.Store) InitOption {
 	}
 }
 
-func WithCacheManager(cacheOpt *cache.Config, c cachetypes.CacheManager) InitOption {
+func WithCacheManager(cacheOpt *cache.Config, c cachetypes.CacheManager, entries ...cachetypes.ConfigEntry) InitOption {
 	return func(s *Server) {
 		log.Infof("[Naming][Server] cache is open, can access the client api function")
-		_ = c.OpenResourceCache(namingCacheEntries...)
-		_ = c.OpenResourceCache(governanceCacheEntries...)
-		if s.isSupportL5() {
-			_ = c.OpenResourceCache(l5CacheEntry)
+		if len(entries) != 0 {
+			_ = c.OpenResourceCache(entries...)
+		} else {
+			_ = c.OpenResourceCache(namingCacheEntries...)
+			_ = c.OpenResourceCache(governanceCacheEntries...)
+			if s.isSupportL5() {
+				_ = c.OpenResourceCache(l5CacheEntry)
+			}
 		}
 		s.caches = c
 	}
