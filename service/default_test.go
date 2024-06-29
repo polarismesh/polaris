@@ -80,9 +80,12 @@ func Test_Server(t *testing.T) {
 
 		opt := []InitOption{}
 
+		mockCacheMgr := cachemock.NewMockCacheManager(ctrl)
+		mockCacheMgr.EXPECT().OpenResourceCache(gomock.Any()).Return(nil).AnyTimes()
+
 		opt = append(opt, WithBatchController(&batch.Controller{}))
 		opt = append(opt, WithNamespaceSvr(&namespace.Server{}))
-		opt = append(opt, WithCacheManager(&cache.Config{}, cachemock.NewMockCacheManager(ctrl)))
+		opt = append(opt, WithCacheManager(&cache.Config{}, mockCacheMgr))
 		opt = append(opt, WithHealthCheckSvr(&healthcheck.Server{}))
 		opt = append(opt, WithStorage(mock.NewMockStore(ctrl)))
 
