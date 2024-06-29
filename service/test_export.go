@@ -68,13 +68,14 @@ func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Conf
 		entrites = GetAllCaches()
 	}
 
-	namingServer, proxySvr, err := InitServer(ctx, namingOpt,
+	actualSvr, proxySvr, err := InitServer(ctx, namingOpt,
 		WithBatchController(bc),
 		WithCacheManager(cacheOpt, cacheMgr, entrites...),
 		WithHealthCheckSvr(healthSvr),
 		WithNamespaceSvr(namespaceSvr),
 		WithStorage(storage),
 	)
+	namingServer = actualSvr
 	return proxySvr, namingServer, err
 }
 
