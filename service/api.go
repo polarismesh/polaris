@@ -22,7 +22,7 @@ import (
 
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
 )
 
@@ -39,7 +39,7 @@ type DiscoverServer interface {
 	// ClientServer Client operation interface definition
 	ClientServer
 	// Cache Get cache management
-	Cache() *cache.CacheManager
+	Cache() cachetypes.CacheManager
 	// L5OperateServer L5 related operations
 	L5OperateServer
 	// GetServiceInstanceRevision Get the version of the service

@@ -274,6 +274,20 @@ func (mr *MockCacheManagerMockRecorder) Instance() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Instance", reflect.TypeOf((*MockCacheManager)(nil).Instance))
 }
 
+// LaneRule mocks base method.
+func (m *MockCacheManager) LaneRule() api.LaneCache {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LaneRule")
+	ret0, _ := ret[0].(api.LaneCache)
+	return ret0
+}
+
+// LaneRule indicates an expected call of LaneRule.
+func (mr *MockCacheManagerMockRecorder) LaneRule() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LaneRule", reflect.TypeOf((*MockCacheManager)(nil).LaneRule))
+}
+
 // Namespace mocks base method.
 func (m *MockCacheManager) Namespace() api.NamespaceCache {
 	m.ctrl.T.Helper()

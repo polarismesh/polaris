@@ -36,25 +36,9 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-func checkBatchCircuitBreakerRules(req []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
-	if len(req) == 0 {
-		return api.NewBatchWriteResponse(apimodel.Code_EmptyRequest)
-	}
-
-	if len(req) > MaxBatchSize {
-		return api.NewBatchWriteResponse(apimodel.Code_BatchSizeOverLimit)
-	}
-
-	return nil
-}
-
 // CreateCircuitBreakerRules Create a CircuitBreaker rule
 func (s *Server) CreateCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
-	if checkErr := checkBatchCircuitBreakerRules(request); checkErr != nil {
-		return checkErr
-	}
-
 	responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for _, cbRule := range request {
 		response := s.createCircuitBreakerRule(ctx, cbRule)
@@ -182,10 +166,6 @@ var (
 // DeleteCircuitBreakerRules Delete current CircuitBreaker rules
 func (s *Server) DeleteCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
-	if err := checkBatchCircuitBreakerRules(request); err != nil {
-		return err
-	}
-
 	responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for _, entry := range request {
 		resp := s.deleteCircuitBreakerRule(ctx, entry)
@@ -227,10 +207,6 @@ func (s *Server) deleteCircuitBreakerRule(
 // EnableCircuitBreakerRules Enable the CircuitBreaker rule
 func (s *Server) EnableCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
-	if err := checkBatchCircuitBreakerRules(request); err != nil {
-		return err
-	}
-
 	responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for _, entry := range request {
 		resp := s.enableCircuitBreakerRule(ctx, entry)
@@ -273,10 +249,6 @@ func (s *Server) enableCircuitBreakerRule(
 // UpdateCircuitBreakerRules Modify the CircuitBreaker rule
 func (s *Server) UpdateCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
-	if err := checkBatchCircuitBreakerRules(request); err != nil {
-		return err
-	}
-
 	responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for _, entry := range request {
 		response := s.updateCircuitBreakerRule(ctx, entry)

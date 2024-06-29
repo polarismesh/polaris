@@ -250,7 +250,7 @@ func Test_EurekaWrite(t *testing.T) {
 	assert.Equal(t, restfulReq.Attribute(statusCodeHeader), uint32(apimodel.Code_ExecuteSuccess))
 
 	time.Sleep(5 * time.Second)
-	saveIns, err := eurekaSrv.originDiscoverSvr.Cache().GetStore().GetInstance(mockIns.InstanceId)
+	saveIns, err := discoverSuit.Storage.GetInstance(mockIns.InstanceId)
 	assert.NoError(t, err)
 	assert.NotNil(t, saveIns)
 

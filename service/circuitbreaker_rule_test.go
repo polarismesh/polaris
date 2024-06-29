@@ -30,6 +30,8 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
 
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/service"
 )
 
@@ -170,6 +172,26 @@ func TestCreateCircuitBreakerRule(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
+
+	t.Run("abnormal_scene", func(t *testing.T) {
+		t.Run("empty_request", func(t *testing.T) {
+			resp := discoverSuit.DiscoverServer().CreateCircuitBreakerRules(discoverSuit.DefaultCtx, []*apifault.CircuitBreakerRule{})
+			assert.False(t, api.IsSuccess(resp), resp.GetInfo().GetValue())
+			assert.Equal(t, uint32(apimodel.Code_EmptyRequest), resp.GetCode().GetValue())
+		})
+
+		t.Run("too_many_request", func(t *testing.T) {
+			requests := []*apifault.CircuitBreakerRule{}
+			for i := 0; i < utils.MaxBatchSize+10; i++ {
+				requests = append(requests, &apifault.CircuitBreakerRule{
+					Id: "123123",
+				})
+			}
+			resp := discoverSuit.DiscoverServer().CreateCircuitBreakerRules(discoverSuit.DefaultCtx, requests)
+			assert.False(t, api.IsSuccess(resp), resp.GetInfo().GetValue())
+			assert.Equal(t, uint32(apimodel.Code_BatchSizeOverLimit), resp.GetCode().GetValue(), resp.GetInfo().GetValue())
+		})
+	})
 
 	t.Run("正常创建熔断规则，返回成功", func(t *testing.T) {
 		cbRules, resp := createCircuitBreakerRules(discoverSuit, testCount)

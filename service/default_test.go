@@ -26,7 +26,11 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/cache"
 	cachemock "github.com/polarismesh/polaris/cache/mock"
+	"github.com/polarismesh/polaris/namespace"
+	"github.com/polarismesh/polaris/service/batch"
+	"github.com/polarismesh/polaris/service/healthcheck"
 	"github.com/polarismesh/polaris/store/mock"
 )
 
@@ -58,4 +62,39 @@ func Test_Initialize(t *testing.T) {
 	dSvr, err := GetServer()
 	assert.NoError(t, err)
 	assert.NotNil(t, dSvr)
+}
+
+func Test_Server(t *testing.T) {
+	t.Run("cache_entries", func(t *testing.T) {
+		ret := GetAllCaches()
+		assert.True(t, len(ret) > 0)
+	})
+
+	t.Run("with_test", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(func() {
+			ctrl.Finish()
+		})
+
+		svr := &Server{}
+
+		opt := []InitOption{}
+
+		opt = append(opt, WithBatchController(&batch.Controller{}))
+		opt = append(opt, WithNamespaceSvr(&namespace.Server{}))
+		opt = append(opt, WithCacheManager(&cache.Config{}, cachemock.NewMockCacheManager(ctrl)))
+		opt = append(opt, WithHealthCheckSvr(&healthcheck.Server{}))
+		opt = append(opt, WithStorage(mock.NewMockStore(ctrl)))
+
+		for i := range opt {
+			opt[i](svr)
+		}
+
+		assert.NotNil(t, svr.bc)
+		assert.NotNil(t, svr.namespaceSvr)
+		assert.NotNil(t, svr.caches)
+		assert.NotNil(t, svr.healthServer)
+		assert.NotNil(t, svr.storage)
+
+	})
 }

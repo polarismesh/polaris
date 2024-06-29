@@ -638,10 +638,12 @@ func TestDeleteConfigFile(t *testing.T) {
 
 	// 删除配置文件
 	t.Log("remove config file")
-	rsp3 := testSuit.ConfigServer().DeleteConfigFile(testSuit.DefaultCtx, &apiconfig.ConfigFile{
-		Namespace: utils.NewStringValue(newMockNs),
-		Group:     utils.NewStringValue(testGroup),
-		Name:      utils.NewStringValue(testFile),
+	rsp3 := testSuit.ConfigServer().BatchDeleteConfigFile(testSuit.DefaultCtx, []*apiconfig.ConfigFile{
+		&apiconfig.ConfigFile{
+			Namespace: utils.NewStringValue(newMockNs),
+			Group:     utils.NewStringValue(testGroup),
+			Name:      utils.NewStringValue(testFile),
+		},
 	})
 	assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 	_ = testSuit.CacheMgr().TestUpdate()

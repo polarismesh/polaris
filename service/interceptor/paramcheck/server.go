@@ -18,7 +18,7 @@
 package paramcheck
 
 import (
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/service"
 )
@@ -38,7 +38,7 @@ func NewServer(nextSvr service.DiscoverServer) service.DiscoverServer {
 }
 
 // Cache Get cache management
-func (svr *Server) Cache() *cache.CacheManager {
+func (svr *Server) Cache() cachetypes.CacheManager {
 	return svr.nextSvr.Cache()
 }
 

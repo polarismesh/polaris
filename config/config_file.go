@@ -528,16 +528,3 @@ func configFileRecordEntry(ctx context.Context, req *apiconfig.ConfigFile,
 
 	return entry
 }
-
-func checkReadFileParameter(req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-	if req.GetNamespace().GetValue() == "" {
-		return api.NewConfigResponse(apimodel.Code_InvalidNamespaceName)
-	}
-	if req.GetGroup().GetValue() == "" {
-		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileGroupName)
-	}
-	if req.GetName().GetValue() == "" {
-		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileName)
-	}
-	return nil
-}

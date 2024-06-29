@@ -35,6 +35,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
@@ -113,7 +114,7 @@ func TestCreateInstance(t *testing.T) {
 			t.Fatalf("error: %+v", resp)
 		}
 		// 强制先update一次，规避上一次的数据查询结果
-		discoverSuit.DiscoverServer().Cache().TestUpdate()
+		discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{})
 	})
 
@@ -159,7 +160,7 @@ func TestCreateInstance(t *testing.T) {
 			t.Fatalf("error: %+v", resp)
 		}
 		// 强制先update一次，规避上一次的数据查询结果
-		discoverSuit.DiscoverServer().Cache().TestUpdate()
+		discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		getResp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{"host": instanceReq.GetHost().GetValue()})
 		assert.True(t, getResp.GetCode().GetValue() == api.ExecuteSuccess)
 		t.Logf("%+v", getResp)
@@ -235,7 +236,7 @@ func TestCreateInstanceWithNoService(t *testing.T) {
 		}()
 
 		// 等待一段时间的刷新
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 
 		resps := discoverSuit.DiscoverServer().CreateInstances(discoverSuit.DefaultCtx, reqs)
 		if respSuccess(resps) {
@@ -264,7 +265,7 @@ func TestCreateInstance2(t *testing.T) {
 			serviceResps = append(serviceResps, serviceResp)
 		}
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		total := 20
 		var wg sync.WaitGroup
 		start := time.Now()
@@ -388,7 +389,7 @@ func TestGetInstancesById(t *testing.T) {
 	t.Run("根据精准匹配ID进行获取实例", func(t *testing.T) {
 		instId := fmt.Sprintf("%s%d", idPrefix, 0)
 		// 强制先update一次，规避上一次的数据查询结果
-		discoverSuit.DiscoverServer().Cache().TestUpdate()
+		discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		out := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{"id": instId})
 		assert.True(t, respSuccess(out))
 		assert.Equal(t, 1, len(out.GetInstances()))
@@ -402,7 +403,7 @@ func TestGetInstancesById(t *testing.T) {
 	t.Run("根据前缀匹配ID进行获取实例", func(t *testing.T) {
 		instId := fmt.Sprintf("%s%s", idPrefix, "*")
 		// 强制先update一次，规避上一次的数据查询结果
-		discoverSuit.DiscoverServer().Cache().TestUpdate()
+		discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		out := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{"id": instId})
 		assert.True(t, respSuccess(out))
 		assert.Equal(t, prefixCount, len(out.GetInstances()))
@@ -415,7 +416,7 @@ func TestGetInstancesById(t *testing.T) {
 	t.Run("根据后缀匹配ID进行获取实例", func(t *testing.T) {
 		instId := fmt.Sprintf("%s%s", "*", idSuffix)
 		// 强制先update一次，规避上一次的数据查询结果
-		discoverSuit.DiscoverServer().Cache().TestUpdate()
+		discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		out := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{"id": instId})
 		assert.True(t, respSuccess(out))
 		assert.Equal(t, suffixCount, len(out.GetInstances()))
@@ -435,16 +436,16 @@ func TestGetInstances(t *testing.T) {
 	}
 	defer discoverSuit.Destroy()
 	t.Run("可以正常获取到实例信息", func(t *testing.T) {
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate() // 为了防止影响，每个函数需要把缓存的内容清空
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate() // 为了防止影响，每个函数需要把缓存的内容清空
 		_, serviceResp := discoverSuit.createCommonService(t, 320)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		instanceReq, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 30)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
 		// 需要等待一会，等本地缓存更新
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		req := &apiservice.Service{
 			Name:      utils.NewStringValue(instanceResp.GetService().GetValue()),
 			Namespace: utils.NewStringValue(instanceResp.GetNamespace().GetValue()),
@@ -464,7 +465,7 @@ func TestGetInstances(t *testing.T) {
 		t.Logf("pass: %+v", resp.GetInstances()[0])
 	})
 	t.Run("注册实例，查询实例列表，实例反注册，revision会改变", func(t *testing.T) {
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate() // 为了防止影响，每个函数需要把缓存的内容清空
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate() // 为了防止影响，每个函数需要把缓存的内容清空
 		_, serviceResp := discoverSuit.createCommonService(t, 100)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
@@ -472,7 +473,7 @@ func TestGetInstances(t *testing.T) {
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
 		// 需要等待一会，等本地缓存更新
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, &apiservice.DiscoverFilter{}, serviceResp)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -483,7 +484,7 @@ func TestGetInstances(t *testing.T) {
 		_, instanceResp = discoverSuit.createCommonInstance(t, serviceResp, 100)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resp = discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, &apiservice.DiscoverFilter{}, serviceResp)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -506,7 +507,7 @@ func TestGetInstances1(t *testing.T) {
 	defer discoverSuit.Destroy()
 
 	discover := func(t *testing.T, service *apiservice.Service, check func(cnt int) bool) *apiservice.DiscoverResponse {
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		time.Sleep(discoverSuit.UpdateCacheInterval())
 		resp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, &apiservice.DiscoverFilter{}, service)
 		if !respSuccess(resp) {
@@ -519,7 +520,7 @@ func TestGetInstances1(t *testing.T) {
 		return resp
 	}
 	t.Run("注册并反注册多个实例，可以正常获取", func(t *testing.T) {
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate() // 为了防止影响，每个函数需要把缓存的内容清空
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate() // 为了防止影响，每个函数需要把缓存的内容清空
 		_, serviceResp := discoverSuit.createCommonService(t, 320)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
@@ -543,7 +544,7 @@ func TestGetInstances1(t *testing.T) {
 		})
 	})
 	t.Run("传递revision， revision有变化则有数据，否则无数据返回", func(t *testing.T) {
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate() // 为了防止影响，每个函数需要把缓存的内容清空
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate() // 为了防止影响，每个函数需要把缓存的内容清空
 		_, serviceResp := discoverSuit.createCommonService(t, 100)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		for i := 0; i < 5; i++ {
@@ -640,7 +641,7 @@ func TestRemoveInstance(t *testing.T) {
 		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1111)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		waitCreate.Wait()
 		discoverSuit.HeartBeat(t, serviceResp, instanceResp.GetId().GetValue())
 		resp := discoverSuit.GetLastHeartBeat(t, serviceResp, instanceResp.GetId().GetValue())
@@ -649,7 +650,7 @@ func TestRemoveInstance(t *testing.T) {
 		}
 
 		discoverSuit.removeCommonInstance(t, serviceResp, instanceResp.GetId().GetValue())
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		waitRemove.Wait()
 		resp = discoverSuit.GetLastHeartBeat(t, serviceResp, instanceResp.GetId().GetValue())
 		if !respNotFound(resp) {
@@ -680,7 +681,7 @@ func TestListInstances(t *testing.T) {
 		query["port"] = strconv.FormatUint(uint64(instanceReq.GetPort().GetValue()), 10)
 
 		// 强制先update一次，规避上一次的数据查询结果
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -695,7 +696,7 @@ func TestListInstances(t *testing.T) {
 		_, serviceResp := discoverSuit.createCommonService(t, 115)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		total := 50
 		var responses []*apiservice.Instance
 		for i := 0; i < total; i++ {
@@ -712,7 +713,7 @@ func TestListInstances(t *testing.T) {
 		query := map[string]string{"offset": "10", "limit": "20", "host": "127.0.0.1"}
 
 		// 强制先update一次，规避上一次的数据查询结果
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -723,7 +724,7 @@ func TestListInstances(t *testing.T) {
 		query = map[string]string{"offset": "10", "limit": "20"}
 
 		// 强制先update一次，规避上一次的数据查询结果
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resp = discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -751,7 +752,7 @@ func TestListInstances(t *testing.T) {
 		query := map[string]string{"offset": "0", "limit": "200"}
 
 		// 强制先update一次，规避上一次的数据查询结果
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -764,7 +765,7 @@ func TestListInstances(t *testing.T) {
 		_, serviceResp := discoverSuit.createCommonService(t, 200)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		total := 10
 		instance := new(apiservice.Instance)
 		for i := 0; i < total; i++ {
@@ -778,7 +779,7 @@ func TestListInstances(t *testing.T) {
 		query := map[string]string{"limit": "20", "host": host, "port": port}
 
 		// 强制先update一次，规避上一次的数据查询结果
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -826,7 +827,7 @@ func TestListInstances1(t *testing.T) {
 		}
 
 		// 强制先update一次，规避上一次的数据查询结果
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, total, 100)
 	})
@@ -856,7 +857,7 @@ func TestListInstances1(t *testing.T) {
 		}
 
 		// 强制先update一次，规避上一次的数据查询结果
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, total/2, total/2)
 
@@ -881,7 +882,7 @@ func TestListInstances1(t *testing.T) {
 			"healthy":   "false",
 		}
 		// 强制先update一次，规避上一次的数据查询结果
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 
 		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 1, 1)
 
@@ -928,7 +929,7 @@ func TestListInstances1(t *testing.T) {
 			"values":    "internal-personal-xxx_10",
 		}
 		// 强制先update一次，规避上一次的数据查询结果
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 
 		checkAmountAndSize(t, discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query), 1, 1)
 
@@ -982,7 +983,7 @@ func TestListInstances1(t *testing.T) {
 			"keys":      "internal-personal-xxx",
 		}
 		// 强制先update一次，规避上一次的数据查询结果
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if resp.GetCode().GetValue() != api.InvalidQueryInsParameter {
@@ -1035,7 +1036,7 @@ func TestListInstances2(t *testing.T) {
 		}
 
 		// 强制先update一次，规避上一次的数据查询结果
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, 1, 1)
@@ -1062,7 +1063,7 @@ func TestListInstances2(t *testing.T) {
 		}
 
 		// 强制先update一次，规避上一次的数据查询结果
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, 1, 1)
 
@@ -1097,7 +1098,7 @@ func TestListInstances2(t *testing.T) {
 			"values":  "1111",
 		}
 		// 强制先update一次，规避上一次的数据查询结果
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		checkAmountAndSize(t, resp, 1, 1)
 
@@ -1156,7 +1157,7 @@ func TestInstancesContainLocation(t *testing.T) {
 	defer discoverSuit.cleanInstance(resp.Responses[0].GetInstance().GetId().GetValue())
 
 	// 强制先update一次，规避上一次的数据查询结果
-	_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+	_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 	getResp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{
 		"service": instance.GetService().GetValue(), "namespace": instance.GetNamespace().GetValue(),
 	})
@@ -1170,7 +1171,7 @@ func TestInstancesContainLocation(t *testing.T) {
 	t.Logf("%v", getInstances[0])
 	locationCheck(instance.GetLocation(), getInstances[0].GetLocation())
 
-	_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+	_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 	discoverResp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, &apiservice.DiscoverFilter{}, service)
 	if len(discoverResp.GetInstances()) != 1 {
 		t.Fatalf("error: %d", len(discoverResp.GetInstances()))
@@ -1225,7 +1226,7 @@ func TestUpdateInstance(t *testing.T) {
 			"port": strconv.FormatUint(uint64(instanceReq.GetPort().GetValue()), 10),
 		}
 		// 强制先update一次，规避上一次的数据查询结果
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -1352,7 +1353,7 @@ func TestUpdateIsolate(t *testing.T) {
 		}
 
 		// 强制先update一次，规避上一次的数据查询结果
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		// 检查隔离状态和revision是否改变
 		for i := 0; i < instanceNum/portNum; i++ {
 			filter := map[string]string{
@@ -1518,7 +1519,7 @@ func TestUpdateHealthCheck(t *testing.T) {
 			"port": strconv.FormatUint(uint64(req.GetPort().GetValue()), 10),
 		}
 		// 强制先update一次，规避上一次的数据查询结果
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, query)
 		if !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -1606,7 +1607,7 @@ func TestDeleteInstance(t *testing.T) {
 	getInstance := func(t *testing.T, s *apiservice.Service, expect int) []*apiservice.Instance {
 		filters := map[string]string{"service": s.GetName().GetValue(), "namespace": s.GetNamespace().GetValue()}
 		// 强制先update一次，规避上一次的数据查询结果
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		getResp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, filters)
 		if !respSuccess(getResp) {
 			t.Fatalf("error")
@@ -1817,7 +1818,7 @@ func TestBatchDeleteInstances(t *testing.T) {
 			t.Logf("%+v", out)
 		}
 		// 强制先update一次，规避上一次的数据查询结果
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resps := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{
 			"service":   service.GetName().GetValue(),
 			"namespace": service.GetNamespace().GetValue(),
@@ -1874,7 +1875,7 @@ func TestInstanceResponse(t *testing.T) {
 	t.Run("删除实例，返回的信息包括req，不增加信息", func(t *testing.T) {
 		req, resp := create()
 		defer discoverSuit.cleanInstance(resp.GetId().GetValue())
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resps := discoverSuit.DiscoverServer().DeleteInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{req})
 		if !respSuccess(resps) {
 			t.Fatalf("error: %+v", resps)
@@ -1897,7 +1898,7 @@ func TestCreateInstancesBadCase2(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer discoverSuit.Destroy()
-	_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+	_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 
 	_, service := discoverSuit.createCommonService(t, 123)
 	defer discoverSuit.cleanServiceName(service.GetName().GetValue(), service.GetNamespace().GetValue())
@@ -2073,7 +2074,7 @@ func TestUpdateInstancesFiled(t *testing.T) {
 		instanceReq.EnableHealthCheck = utils.NewBoolValue(false)
 		So(discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 		// 强制先update一次，规避上一次的数据查询结果
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		newInstanceResp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),
@@ -2113,7 +2114,7 @@ func TestUpdateInstancesFiled(t *testing.T) {
 		So(discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}).GetCode().GetValue(), ShouldEqual, api.ExecuteSuccess)
 
 		// 强制先update一次，规避上一次的数据查询结果
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		newInstanceResp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, map[string]string{
 			"service":   serviceResp.GetName().GetValue(),
 			"namespace": serviceResp.GetNamespace().GetValue(),
@@ -2130,7 +2131,7 @@ func (d *DiscoverTestSuit) getInstancesWithService(t *testing.T, name string, na
 		"namespace": namespace,
 	}
 	// 强制先update一次，规避上一次的数据查询结果
-	_ = d.DiscoverServer().Cache().TestUpdate()
+	_ = d.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 	resp := d.DiscoverServer().GetInstances(d.DefaultCtx, query)
 	if !respSuccess(resp) {
 		t.Fatalf("error: %s", resp.GetInfo().GetValue())
@@ -2280,7 +2281,7 @@ func TestCheckInstanceParam(t *testing.T) {
 	defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
 	// 强制先update一次，规避上一次的数据查询结果
-	_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+	_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 
 	t.Run("都不传", func(t *testing.T) {
 		resp := discoverSuit.DiscoverServer().GetInstances(discoverSuit.DefaultCtx, make(map[string]string))
@@ -2504,7 +2505,7 @@ func Test_HealthCheckInstanceMetadata(t *testing.T) {
 		err := future.Wait()
 		assert.NoError(t, err)
 
-		discoverSuit.DiscoverServer().Cache().TestUpdate()
+		discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		ins1Cache := discoverSuit.DiscoverServer().Cache().Instance().GetInstance(ins1.GetId().GetValue())
 		assert.NotNil(t, ins1Cache, "ins1Cache is nil")
 		val, ok := ins1Cache.Metadata()[model.MetadataInstanceLastHeartbeatTime]
@@ -2518,7 +2519,7 @@ func Test_HealthCheckInstanceMetadata(t *testing.T) {
 		err := future.Wait()
 		assert.NoError(t, err)
 
-		discoverSuit.DiscoverServer().Cache().TestUpdate()
+		discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		ins1Cache := discoverSuit.DiscoverServer().Cache().Instance().GetInstance(ins1.GetId().GetValue())
 		assert.NotNil(t, ins1Cache, "ins1Cache is nil")
 		_, ok := ins1Cache.Metadata()[model.MetadataInstanceLastHeartbeatTime]
@@ -2565,7 +2566,7 @@ func Test_OperateInstanceMetadata(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		discoverSuit.DiscoverServer().Cache().TestUpdate()
+		discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		ins1Cache := discoverSuit.DiscoverServer().Cache().Instance().GetInstance(ins1.GetId().GetValue())
 		assert.NotNil(t, ins1Cache, "ins1Cache is nil")
 		val, ok := ins1Cache.Metadata()["ins1_mock_key"]
@@ -2603,7 +2604,7 @@ func Test_OperateInstanceMetadata(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		discoverSuit.DiscoverServer().Cache().TestUpdate()
+		discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		ins1Cache := discoverSuit.DiscoverServer().Cache().Instance().GetInstance(ins1.GetId().GetValue())
 		assert.NotNil(t, ins1Cache, "ins1Cache is nil")
 		_, ok := ins1Cache.Metadata()["ins1_mock_key"]

@@ -25,6 +25,13 @@ import (
 	"github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
 	"github.com/polarismesh/polaris/common/api/l5"
+	"github.com/polarismesh/polaris/common/utils"
+
+	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+
+	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 )
 
@@ -107,24 +114,6 @@ func (svr *Server) CreateServices(ctx context.Context,
 	return svr.nextSvr.CreateServices(ctx, req)
 }
 
-// DeleteCircuitBreakerRules implements service.DiscoverServer.
-func (svr *Server) DeleteCircuitBreakerRules(ctx context.Context,
-	request []*fault_tolerance.CircuitBreakerRule) *service_manage.BatchWriteResponse {
-	return svr.nextSvr.DeleteCircuitBreakerRules(ctx, request)
-}
-
-// DeleteCircuitBreakers implements service.DiscoverServer.
-func (svr *Server) DeleteCircuitBreakers(ctx context.Context,
-	req []*fault_tolerance.CircuitBreaker) *service_manage.BatchWriteResponse {
-	return svr.nextSvr.DeleteCircuitBreakers(ctx, req)
-}
-
-// DeleteFaultDetectRules implements service.DiscoverServer.
-func (svr *Server) DeleteFaultDetectRules(ctx context.Context,
-	request []*fault_tolerance.FaultDetectRule) *service_manage.BatchWriteResponse {
-	return svr.nextSvr.DeleteFaultDetectRules(ctx, request)
-}
-
 // DeleteInstances implements service.DiscoverServer.
 func (svr *Server) DeleteInstances(ctx context.Context,
 	req []*service_manage.Instance) *service_manage.BatchWriteResponse {
@@ -179,12 +168,6 @@ func (svr *Server) DeleteServices(ctx context.Context,
 	return svr.nextSvr.DeleteServices(ctx, req)
 }
 
-// EnableCircuitBreakerRules implements service.DiscoverServer.
-func (svr *Server) EnableCircuitBreakerRules(ctx context.Context,
-	request []*fault_tolerance.CircuitBreakerRule) *service_manage.BatchWriteResponse {
-	return svr.nextSvr.EnableCircuitBreakerRules(ctx, request)
-}
-
 // EnableRateLimits implements service.DiscoverServer.
 func (svr *Server) EnableRateLimits(ctx context.Context,
 	request []*traffic_manage.Rule) *service_manage.BatchWriteResponse {
@@ -201,42 +184,6 @@ func (svr *Server) EnableRoutings(ctx context.Context,
 func (svr *Server) GetAllServices(ctx context.Context,
 	query map[string]string) *service_manage.BatchQueryResponse {
 	return svr.nextSvr.GetAllServices(ctx, query)
-}
-
-// GetCircuitBreaker implements service.DiscoverServer.
-func (svr *Server) GetCircuitBreaker(ctx context.Context,
-	query map[string]string) *service_manage.BatchQueryResponse {
-	return svr.nextSvr.GetCircuitBreaker(ctx, query)
-}
-
-// GetCircuitBreakerByService implements service.DiscoverServer.
-func (svr *Server) GetCircuitBreakerByService(ctx context.Context,
-	query map[string]string) *service_manage.BatchQueryResponse {
-	return svr.nextSvr.GetCircuitBreakerByService(ctx, query)
-}
-
-// GetCircuitBreakerRules implements service.DiscoverServer.
-func (svr *Server) GetCircuitBreakerRules(ctx context.Context,
-	query map[string]string) *service_manage.BatchQueryResponse {
-	return svr.nextSvr.GetCircuitBreakerRules(ctx, query)
-}
-
-// GetCircuitBreakerToken implements service.DiscoverServer.
-func (svr *Server) GetCircuitBreakerToken(ctx context.Context,
-	req *fault_tolerance.CircuitBreaker) *service_manage.Response {
-	return svr.nextSvr.GetCircuitBreakerToken(ctx, req)
-}
-
-// GetCircuitBreakerVersions implements service.DiscoverServer.
-func (svr *Server) GetCircuitBreakerVersions(ctx context.Context,
-	query map[string]string) *service_manage.BatchQueryResponse {
-	return svr.nextSvr.GetCircuitBreakerVersions(ctx, query)
-}
-
-// GetFaultDetectRules implements service.DiscoverServer.
-func (svr *Server) GetFaultDetectRules(ctx context.Context,
-	query map[string]string) *service_manage.BatchQueryResponse {
-	return svr.nextSvr.GetFaultDetectRules(ctx, query)
 }
 
 // GetInstanceLabels implements service.DiscoverServer.
@@ -278,6 +225,72 @@ func (svr *Server) GetRateLimits(ctx context.Context,
 func (svr *Server) GetReleaseCircuitBreakers(ctx context.Context,
 	query map[string]string) *service_manage.BatchQueryResponse {
 	return svr.nextSvr.GetReleaseCircuitBreakers(ctx, query)
+}
+
+// GetCircuitBreaker implements service.DiscoverServer.
+func (svr *Server) GetCircuitBreaker(ctx context.Context,
+	query map[string]string) *service_manage.BatchQueryResponse {
+	return svr.nextSvr.GetCircuitBreaker(ctx, query)
+}
+
+// GetCircuitBreakerByService implements service.DiscoverServer.
+func (svr *Server) GetCircuitBreakerByService(ctx context.Context,
+	query map[string]string) *service_manage.BatchQueryResponse {
+	return svr.nextSvr.GetCircuitBreakerByService(ctx, query)
+}
+
+// DeleteCircuitBreakers implements service.DiscoverServer.
+func (svr *Server) DeleteCircuitBreakers(ctx context.Context,
+	req []*fault_tolerance.CircuitBreaker) *service_manage.BatchWriteResponse {
+	return svr.nextSvr.DeleteCircuitBreakers(ctx, req)
+}
+
+// GetCircuitBreakerToken implements service.DiscoverServer.
+func (svr *Server) GetCircuitBreakerToken(ctx context.Context,
+	req *fault_tolerance.CircuitBreaker) *service_manage.Response {
+	return svr.nextSvr.GetCircuitBreakerToken(ctx, req)
+}
+
+// GetCircuitBreakerVersions implements service.DiscoverServer.
+func (svr *Server) GetCircuitBreakerVersions(ctx context.Context,
+	query map[string]string) *service_manage.BatchQueryResponse {
+	return svr.nextSvr.GetCircuitBreakerVersions(ctx, query)
+}
+
+// GetCircuitBreakerRules implements service.DiscoverServer.
+func (svr *Server) GetCircuitBreakerRules(ctx context.Context,
+	query map[string]string) *service_manage.BatchQueryResponse {
+	return svr.nextSvr.GetCircuitBreakerRules(ctx, query)
+}
+
+// DeleteCircuitBreakerRules implements service.DiscoverServer.
+func (svr *Server) DeleteCircuitBreakerRules(ctx context.Context,
+	request []*fault_tolerance.CircuitBreakerRule) *service_manage.BatchWriteResponse {
+	if err := checkBatchCircuitBreakerRules(request); err != nil {
+		return err
+	}
+	return svr.nextSvr.DeleteCircuitBreakerRules(ctx, request)
+}
+
+// DeleteFaultDetectRules implements service.DiscoverServer.
+func (svr *Server) DeleteFaultDetectRules(ctx context.Context,
+	request []*fault_tolerance.FaultDetectRule) *service_manage.BatchWriteResponse {
+	return svr.nextSvr.DeleteFaultDetectRules(ctx, request)
+}
+
+// EnableCircuitBreakerRules implements service.DiscoverServer.
+func (svr *Server) EnableCircuitBreakerRules(ctx context.Context,
+	request []*fault_tolerance.CircuitBreakerRule) *service_manage.BatchWriteResponse {
+	if err := checkBatchCircuitBreakerRules(request); err != nil {
+		return err
+	}
+	return svr.nextSvr.EnableCircuitBreakerRules(ctx, request)
+}
+
+// GetFaultDetectRules implements service.DiscoverServer.
+func (svr *Server) GetFaultDetectRules(ctx context.Context,
+	query map[string]string) *service_manage.BatchQueryResponse {
+	return svr.nextSvr.GetFaultDetectRules(ctx, query)
 }
 
 // GetRoutingConfigs implements service.DiscoverServer.
@@ -335,14 +348,14 @@ func (svr *Server) RegisterByNameCmd(rbnc *l5.Cl5RegisterByNameCmd) (*l5.Cl5Regi
 	return svr.nextSvr.RegisterByNameCmd(rbnc)
 }
 
-// ReleaseCircuitBreakers implements service.DiscoverServer.
-func (svr *Server) ReleaseCircuitBreakers(ctx context.Context, req []*service_manage.ConfigRelease) *service_manage.BatchWriteResponse {
-	return svr.nextSvr.ReleaseCircuitBreakers(ctx, req)
-}
-
 // SyncByAgentCmd implements service.DiscoverServer.
 func (svr *Server) SyncByAgentCmd(ctx context.Context, sbac *l5.Cl5SyncByAgentCmd) (*l5.Cl5SyncByAgentAckCmd, error) {
 	return svr.nextSvr.SyncByAgentCmd(ctx, sbac)
+}
+
+// ReleaseCircuitBreakers implements service.DiscoverServer.
+func (svr *Server) ReleaseCircuitBreakers(ctx context.Context, req []*service_manage.ConfigRelease) *service_manage.BatchWriteResponse {
+	return svr.nextSvr.ReleaseCircuitBreakers(ctx, req)
 }
 
 // UnBindCircuitBreakers implements service.DiscoverServer.
@@ -352,6 +365,9 @@ func (svr *Server) UnBindCircuitBreakers(ctx context.Context, req []*service_man
 
 // UpdateCircuitBreakerRules implements service.DiscoverServer.
 func (svr *Server) UpdateCircuitBreakerRules(ctx context.Context, request []*fault_tolerance.CircuitBreakerRule) *service_manage.BatchWriteResponse {
+	if err := checkBatchCircuitBreakerRules(request); err != nil {
+		return err
+	}
 	return svr.nextSvr.UpdateCircuitBreakerRules(ctx, request)
 }
 
@@ -403,4 +419,15 @@ func (svr *Server) UpdateServiceToken(ctx context.Context, req *service_manage.S
 // UpdateServices implements service.DiscoverServer.
 func (svr *Server) UpdateServices(ctx context.Context, req []*service_manage.Service) *service_manage.BatchWriteResponse {
 	return svr.nextSvr.UpdateServices(ctx, req)
+}
+
+func checkBatchCircuitBreakerRules(req []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
+	if len(req) == 0 {
+		return api.NewBatchWriteResponse(apimodel.Code_EmptyRequest)
+	}
+
+	if len(req) > utils.MaxBatchSize {
+		return api.NewBatchWriteResponse(apimodel.Code_BatchSizeOverLimit)
+	}
+	return nil
 }

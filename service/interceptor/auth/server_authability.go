@@ -29,7 +29,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/service"
@@ -60,7 +60,7 @@ func NewServerAuthAbility(nextSvr service.DiscoverServer,
 }
 
 // Cache Get cache management
-func (svr *ServerAuthAbility) Cache() *cache.CacheManager {
+func (svr *ServerAuthAbility) Cache() cachetypes.CacheManager {
 	return svr.nextSvr.Cache()
 }
 

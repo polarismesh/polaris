@@ -22,7 +22,7 @@ import (
 	nacospb "github.com/polarismesh/polaris/apiserver/nacosserver/v2/pb"
 	"github.com/polarismesh/polaris/apiserver/nacosserver/v2/remote"
 	"github.com/polarismesh/polaris/auth"
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/config"
 	"github.com/polarismesh/polaris/namespace"
 )
@@ -49,7 +49,7 @@ type ConfigServer struct {
 	namespaceSvr    namespace.NamespaceOperateServer
 	configSvr       config.ConfigCenterServer
 	originConfigSvr config.ConfigCenterServer
-	cacheSvr        *cache.CacheManager
+	cacheSvr        cachetypes.CacheManager
 	handleRegistry  map[string]*remote.RequestHandlerWarrper
 }
 

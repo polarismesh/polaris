@@ -33,6 +33,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -115,7 +116,7 @@ func TestCreateRateLimit(t *testing.T) {
 	defer discoverSuit.cleanRateLimitRevision(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
 	t.Run("正常创建限流规则", func(t *testing.T) {
-		_ = discoverSuit.DiscoverServer().Cache().Clear()
+		_ = discoverSuit.CacheMgr().Clear()
 
 		time.Sleep(5 * time.Second)
 
@@ -123,13 +124,13 @@ func TestCreateRateLimit(t *testing.T) {
 		defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 
 		// 等待缓存更新
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetRateLimitWithCache(context.Background(), serviceResp)
 		checkRateLimit(t, rateLimitReq, resp.GetRateLimit().GetRules()[0])
 	})
 
 	t.Run("创建限流规则，删除，再创建，可以正常创建", func(t *testing.T) {
-		_ = discoverSuit.DiscoverServer().Cache().Clear()
+		_ = discoverSuit.CacheMgr().Clear()
 		time.Sleep(5 * time.Second)
 
 		rateLimitReq, rateLimitResp := discoverSuit.createCommonRateLimit(t, serviceResp, 3)
@@ -140,7 +141,7 @@ func TestCreateRateLimit(t *testing.T) {
 		}
 
 		// 等待缓存更新
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetRateLimitWithCache(context.Background(), serviceResp)
 		checkRateLimit(t, rateLimitReq, resp.GetRateLimit().GetRules()[0])
 		discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
@@ -428,7 +429,7 @@ func TestUpdateRateLimit(t *testing.T) {
 					discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 				})
 
-				_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+				_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 
 				filters := map[string]string{
 					"service":   serviceResp.GetName().GetValue(),

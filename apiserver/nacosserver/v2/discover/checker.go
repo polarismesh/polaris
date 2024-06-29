@@ -30,7 +30,7 @@ import (
 
 	nacosmodel "github.com/polarismesh/polaris/apiserver/nacosserver/model"
 	"github.com/polarismesh/polaris/apiserver/nacosserver/v2/remote"
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
@@ -44,7 +44,7 @@ type Checker struct {
 	discoverSvr service.DiscoverServer
 	healthSvr   *healthcheck.Server
 
-	cacheMgr  *cache.CacheManager
+	cacheMgr  cachetypes.CacheManager
 	connMgr   *remote.ConnectionManager
 	clientMgr *ConnectionClientManager
 
@@ -192,6 +192,8 @@ func (c *Checker) runCheck(ctx context.Context) {
 // BUT: 一个实例 T1 时刻对应长连接为 Conn-1，T2 时刻对应的长连接为 Conn-2，但是在 T1 ～ T2 之间的某个时刻检测发现长连接不存在
 // 此时发起一个反注册请求，该请求在 T3 时刻发起，是否会影响 T2 时刻注册上来的实例？
 func (c *Checker) realCheck() {
+	svr := c.discoverSvr.(*service.Server)
+
 	defer func() {
 		if err := recover(); err != nil {
 			var buf [4086]byte
@@ -267,7 +269,7 @@ func (c *Checker) realCheck() {
 		}
 		nacoslog.Info("[NACOS-V2][Checker] batch set instance health_status to unhealthy",
 			zap.Any("instance-ids", ids))
-		if err := c.discoverSvr.Cache().GetStore().
+		if err := svr.Store().
 			BatchSetInstanceHealthStatus(ids, model.StatusBoolToInt(false), utils.NewUUID()); err != nil {
 			nacoslog.Error("[NACOS-V2][Checker] batch set instance health_status to unhealthy",
 				zap.Any("instance-ids", ids), zap.Error(err))
@@ -281,7 +283,7 @@ func (c *Checker) realCheck() {
 		}
 		nacoslog.Info("[NACOS-V2][Checker] batch set instance health_status to healty",
 			zap.Any("instance-ids", ids))
-		if err := c.discoverSvr.Cache().GetStore().
+		if err := svr.Store().
 			BatchSetInstanceHealthStatus(ids, model.StatusBoolToInt(true), utils.NewUUID()); err != nil {
 			nacoslog.Error("[NACOS-V2][Checker] batch set instance health_status to healty",
 				zap.Any("instance-ids", ids), zap.Error(err))

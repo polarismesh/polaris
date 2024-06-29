@@ -35,7 +35,7 @@ type (
 func (h *EurekaServer) registerInstanceChain() {
 	svr := h.originDiscoverSvr.(*service.Server)
 	svr.AddInstanceChain(&EurekaInstanceChain{
-		s: h.namingServer.Cache().GetStore(),
+		s: svr.Store(),
 	})
 }
 

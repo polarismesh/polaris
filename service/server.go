@@ -23,7 +23,7 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	cacheservice "github.com/polarismesh/polaris/cache/service"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
@@ -43,7 +43,7 @@ type Server struct {
 
 	namespaceSvr namespace.NamespaceOperateServer
 
-	caches *cache.CacheManager
+	caches cachetypes.CacheManager
 	bc     *batch.Controller
 
 	healthServer *healthcheck.Server
@@ -77,13 +77,17 @@ func (s *Server) allowAutoCreate() bool {
 	return *s.config.AutoCreate
 }
 
+func (s *Server) Store() store.Store {
+	return s.storage
+}
+
 // HealthServer 健康检查Server
 func (s *Server) HealthServer() *healthcheck.Server {
 	return s.healthServer
 }
 
 // Cache 返回Cache
-func (s *Server) Cache() *cache.CacheManager {
+func (s *Server) Cache() cachetypes.CacheManager {
 	return s.caches
 }
 

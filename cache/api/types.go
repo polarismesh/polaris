@@ -141,6 +141,8 @@ type CacheManager interface {
 	FaultDetector() FaultDetectCache
 	// ServiceContract 获取服务契约缓存
 	ServiceContract() ServiceContractCache
+	// LaneRule 泳道规则
+	LaneRule() LaneCache
 	// User Get user information cache information
 	User() UserCache
 	// AuthStrategy Get authentication cache information

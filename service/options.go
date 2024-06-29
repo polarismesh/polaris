@@ -87,6 +87,9 @@ var (
 		{
 			Name: cachetypes.FaultDetectRuleName,
 		},
+		{
+			Name: cachetypes.LaneRuleName,
+		},
 	}
 )
 
@@ -110,7 +113,7 @@ func WithStorage(storage store.Store) InitOption {
 	}
 }
 
-func WithCacheManager(cacheOpt *cache.Config, c *cache.CacheManager) InitOption {
+func WithCacheManager(cacheOpt *cache.Config, c cachetypes.CacheManager) InitOption {
 	return func(s *Server) {
 		log.Infof("[Naming][Server] cache is open, can access the client api function")
 		_ = c.OpenResourceCache(namingCacheEntries...)

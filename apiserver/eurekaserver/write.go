@@ -32,6 +32,7 @@ import (
 	"github.com/polarismesh/polaris/common/model"
 	commonstore "github.com/polarismesh/polaris/common/store"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/service"
 )
 
 func checkOrBuildNewInstanceId(appId string, instId string, generateUniqueInstId bool) string {
@@ -256,7 +257,8 @@ func (h *EurekaServer) updateStatus(
 		})
 	instanceId = checkOrBuildNewInstanceIdByNamespace(namespace, h.namespace, appId, instanceId, h.generateUniqueInstId)
 
-	saveIns, err := h.originDiscoverSvr.Cache().GetStore().GetInstance(instanceId)
+	svr := h.originDiscoverSvr.(*service.Server)
+	saveIns, err := svr.Store().GetInstance(instanceId)
 	if err != nil {
 		eurekalog.Error("[EUREKA-SERVER] get instance from store when update status", zap.Error(err))
 		return uint32(commonstore.StoreCode2APICode(err))

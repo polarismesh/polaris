@@ -316,6 +316,11 @@ func (p *RemotePeer) choseOneSender() (*beatSender, error) {
 	return p.puters[index], nil
 }
 
+const (
+	errCountThreshold = 2
+	maxCheckCount     = 3
+)
+
 func (p *RemotePeer) checkLeaderAlive(ctx context.Context) {
 	ticker := time.NewTicker(time.Second)
 	for {
