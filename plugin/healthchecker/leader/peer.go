@@ -289,6 +289,8 @@ func (p *RemotePeer) checkLeaderAlive(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			ticker.Stop()
+			plog.Info("check leader alive job stop", zap.String("host", p.Host()), zap.Uint32("port", p.port))
+			return
 		case <-ticker.C:
 			var errCount int
 			for i := 0; i < maxCheckCount; i++ {
