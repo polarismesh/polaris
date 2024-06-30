@@ -50,7 +50,6 @@ func (s *Server) DeregisterInstance(ctx context.Context, req *apiservice.Instanc
 
 // ReportServiceContract report client service interface info
 func (s *Server) ReportServiceContract(ctx context.Context, req *apiservice.ServiceContract) *apiservice.Response {
-	ctx = context.WithValue(ctx, utils.ContextIsFromClient, true)
 	cacheData := s.caches.ServiceContract().Get(ctx, &model.ServiceContract{
 		Namespace: req.GetNamespace(),
 		Service:   req.GetService(),

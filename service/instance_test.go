@@ -333,7 +333,7 @@ func TestUpdateInstanceManyTimes(t *testing.T) {
 				ret := &apiservice.Instance{}
 				proto.Unmarshal(marshalVal, ret)
 
-				ret.Weight.Value = uint32(rand.Int() % 32767)
+				ret.Weight = wrapperspb.UInt32(uint32(rand.Int() % 32767))
 				if updateResp := discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(updateResp) {
 					errs <- fmt.Errorf("error: %+v", updateResp)
 					return
@@ -1881,10 +1881,10 @@ func TestInstanceResponse(t *testing.T) {
 			t.Fatalf("error: %+v", resps)
 		}
 		respIns := resps.GetResponses()[0].GetInstance()
-		if respIns.GetId().GetValue() != "" || respIns.GetService() != req.GetService() ||
-			respIns.GetNamespace() != req.GetNamespace() || respIns.GetHost() != req.GetHost() ||
-			respIns.GetPort() != req.GetPort() || respIns.GetServiceToken() != req.GetServiceToken() {
-			t.Fatalf("error")
+		if respIns.GetService().GetValue() != req.GetService().GetValue() ||
+			respIns.GetNamespace().GetValue() != req.GetNamespace().GetValue() || respIns.GetHost().GetValue() != req.GetHost().GetValue() ||
+			respIns.GetPort().GetValue() != req.GetPort().GetValue() || respIns.GetServiceToken().GetValue() != req.GetServiceToken().GetValue() {
+			t.Fatalf("error; \n%s, \n%s", utils.MustJson(req), utils.MustJson(respIns))
 		}
 		t.Logf("pass")
 	})

@@ -400,7 +400,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 			Namespace: utils.NewStringValue(namespaceName),
 		})
 
-		assert.True(t, len(out.GetRouting().GetOutbounds()) == 1, "inBounds must be one")
+		assert.True(t, len(out.GetRouting().GetOutbounds()) == 0, "inBounds must be zero")
 	})
 
 	t.Run("服务路由数据不改变，传递了路由revision，不返回数据", func(t *testing.T) {

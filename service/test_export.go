@@ -86,11 +86,6 @@ func (s *Server) TestSerialCreateInstance(
 	return s.serialCreateInstance(ctx, svcId, req, ins)
 }
 
-// TestCheckCreateInstance .
-func TestCheckCreateInstance(req *apiservice.Instance) (string, *apiservice.Response) {
-	return checkCreateInstance(req)
-}
-
 // TestIsEmptyLocation .
 func TestIsEmptyLocation(loc *apimodel.Location) bool {
 	return isEmptyLocation(loc)

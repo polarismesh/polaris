@@ -288,7 +288,7 @@ func (b *routeRuleBucket) size() int {
 
 // listEnableRules Inquire the routing rules of the V2 version through the service name,
 // and perform some filtering according to the Predicate
-func (b *routeRuleBucket) listEnableRules(service, namespace string) map[routingLevel][]*model.ExtendRouterConfig {
+func (b *routeRuleBucket) listEnableRules(service, namespace string, enableFullMatch bool) map[routingLevel][]*model.ExtendRouterConfig {
 	ret := make(map[routingLevel][]*model.ExtendRouterConfig)
 	tmpRecord := map[string]struct{}{}
 
@@ -338,11 +338,13 @@ func (b *routeRuleBucket) listEnableRules(service, namespace string) map[routing
 	level2 = append(level2, handler(b.level2Rules[inBound][namespace], inBound)...)
 	ret[level2RoutingV2] = level2
 
-	// Query Level3 level routing-v2 rules
-	level3 := make([]*model.ExtendRouterConfig, 0, 4)
-	level3 = append(level3, handler(b.level3Rules[outBound], outBound)...)
-	level3 = append(level3, handler(b.level3Rules[inBound], inBound)...)
-	ret[level3RoutingV2] = level3
+	if enableFullMatch {
+		// Query Level3 level routing-v2 rules
+		level3 := make([]*model.ExtendRouterConfig, 0, 4)
+		level3 = append(level3, handler(b.level3Rules[outBound], outBound)...)
+		level3 = append(level3, handler(b.level3Rules[inBound], inBound)...)
+		ret[level3RoutingV2] = level3
+	}
 	return ret
 }
 

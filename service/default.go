@@ -169,12 +169,6 @@ func (svr *Server) pluginInitialize() {
 		log.Warnf("Not Found History Log Plugin")
 	}
 
-	// 获取限流插件
-	svr.ratelimit = plugin.GetRatelimit()
-	if svr.ratelimit == nil {
-		log.Warnf("Not found Ratelimit Plugin")
-	}
-
 	subscriber := plugin.GetDiscoverEvent()
 	if subscriber == nil {
 		log.Warnf("Not found DiscoverEvent Plugin")

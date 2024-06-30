@@ -50,7 +50,6 @@ type Server struct {
 
 	cmdb      plugin.CMDB
 	history   plugin.History
-	ratelimit plugin.Ratelimit
 
 	l5service *l5service
 
@@ -156,15 +155,6 @@ func (s *Server) getLocation(host string) *model.Location {
 		return nil
 	}
 	return location
-}
-
-// 实例访问限流
-func (s *Server) allowInstanceAccess(instanceID string) bool {
-	if s.ratelimit == nil {
-		return true
-	}
-
-	return s.ratelimit.Allow(plugin.InstanceRatelimit, instanceID)
 }
 
 func (s *Server) afterServiceResource(ctx context.Context, req *apiservice.Service, save *model.Service,
