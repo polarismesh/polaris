@@ -569,7 +569,7 @@ func polarisServiceRegister(polarisService *boot_config.PolarisService, apiServe
 // selfRegister 服务自注册
 func selfRegister(
 	host string, port uint32, protocol string, isolated bool, polarisService *boot_config.Service, hbInterval int) error {
-	server, err := service.GetOriginServer()
+	server, err := service.GetServer()
 	if err != nil {
 		return err
 	}
@@ -609,7 +609,7 @@ func selfRegister(
 		Metadata: metadata,
 	}
 
-	resp := server.CreateInstance(genContext(), req)
+	resp := server.RegisterInstance(genContext(), req)
 	if api.CalcCode(resp) != 200 {
 		// 如果self之前注册过，那么可以忽略
 		if resp.GetCode().GetValue() != api.ExistedResource {
