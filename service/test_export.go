@@ -86,6 +86,11 @@ func (s *Server) TestSerialCreateInstance(
 	return s.serialCreateInstance(ctx, svcId, req, ins)
 }
 
+// TestSetStore .
+func (s *Server) TestSetStore(storage store.Store) {
+	s.storage = storage
+}
+
 // TestIsEmptyLocation .
 func TestIsEmptyLocation(loc *apimodel.Location) bool {
 	return isEmptyLocation(loc)
