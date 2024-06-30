@@ -52,7 +52,7 @@ func (s *Server) RegisterInstance(ctx context.Context, req *apiservice.Instance)
 	if err := checkMetadata(req.GetMetadata()); err != nil {
 		return api.NewInstanceResponse(apimodel.Code_InvalidMetadata, req)
 	}
-	instanceID, rsp := checkReviseInstance(req)
+	instanceID, rsp := checkCreateInstance(req)
 	if rsp != nil {
 		return rsp
 	}
@@ -62,7 +62,7 @@ func (s *Server) RegisterInstance(ctx context.Context, req *apiservice.Instance)
 
 // DeregisterInstance delete onr instance by client
 func (s *Server) DeregisterInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
-	instanceID, resp := checkCreateInstance(req)
+	instanceID, resp := checkReviseInstance(req)
 	if resp != nil {
 		return resp
 	}

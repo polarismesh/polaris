@@ -119,6 +119,10 @@ type ConfigEntry struct {
 
 // CacheManager
 type CacheManager interface {
+	// GetUpdateCacheInterval .
+	GetUpdateCacheInterval() time.Duration
+	// GetReportInterval .
+	GetReportInterval() time.Duration
 	// GetCacher
 	GetCacher(cacheIndex CacheIndex) Cache
 	// RegisterCacher
@@ -578,17 +582,30 @@ type BaseCache struct {
 	lock sync.RWMutex
 	// firstUpdate Whether the cache is loaded for the first time
 	// this field can only make value on exec initialize/clean, and set it to false on exec update
-	firstUpdate   bool
-	s             store.Store
-	lastFetchTime int64
-	lastMtimes    map[string]time.Time
-	CacheMgr      CacheManager
+	firstUpdate           bool
+	s                     store.Store
+	lastFetchTime         int64
+	lastMtimes            map[string]time.Time
+	CacheMgr              CacheManager
+	reportMetrics         func()
+	lastReportMetricsTime time.Time
 }
 
 func NewBaseCache(s store.Store, cacheMgr CacheManager) *BaseCache {
 	c := &BaseCache{
 		s:        s,
 		CacheMgr: cacheMgr,
+	}
+
+	c.initialize()
+	return c
+}
+
+func NewBaseCacheWithRepoerMetrics(s store.Store, cacheMgr CacheManager, reportMetrics func()) *BaseCache {
+	c := &BaseCache{
+		s:             s,
+		CacheMgr:      cacheMgr,
+		reportMetrics: reportMetrics,
 	}
 
 	c.initialize()
@@ -697,6 +714,12 @@ func (bc *BaseCache) DoCacheUpdate(name string, executor func() (map[string]time
 
 	if total >= 0 {
 		metrics.RecordCacheUpdateCost(time.Since(start), name, total)
+	}
+	if bc.reportMetrics != nil {
+		if time.Since(bc.lastReportMetricsTime) >= bc.CacheMgr.GetReportInterval() {
+			bc.reportMetrics()
+			bc.lastReportMetricsTime = start
+		}
 	}
 	bc.firstUpdate = false
 	return nil

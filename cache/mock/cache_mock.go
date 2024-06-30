@@ -7,6 +7,7 @@ package mock
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	gomock "github.com/golang/mock/gomock"
 	api "github.com/polarismesh/polaris/cache/api"
@@ -244,6 +245,34 @@ func (m *MockCacheManager) GetCacher(cacheIndex api.CacheIndex) api.Cache {
 func (mr *MockCacheManagerMockRecorder) GetCacher(cacheIndex interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCacher", reflect.TypeOf((*MockCacheManager)(nil).GetCacher), cacheIndex)
+}
+
+// GetReportInterval mocks base method.
+func (m *MockCacheManager) GetReportInterval() time.Duration {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetReportInterval")
+	ret0, _ := ret[0].(time.Duration)
+	return ret0
+}
+
+// GetReportInterval indicates an expected call of GetReportInterval.
+func (mr *MockCacheManagerMockRecorder) GetReportInterval() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReportInterval", reflect.TypeOf((*MockCacheManager)(nil).GetReportInterval))
+}
+
+// GetUpdateCacheInterval mocks base method.
+func (m *MockCacheManager) GetUpdateCacheInterval() time.Duration {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUpdateCacheInterval")
+	ret0, _ := ret[0].(time.Duration)
+	return ret0
+}
+
+// GetUpdateCacheInterval indicates an expected call of GetUpdateCacheInterval.
+func (mr *MockCacheManagerMockRecorder) GetUpdateCacheInterval() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpdateCacheInterval", reflect.TypeOf((*MockCacheManager)(nil).GetUpdateCacheInterval))
 }
 
 // Gray mocks base method.

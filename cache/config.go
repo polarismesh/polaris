@@ -23,6 +23,8 @@ import "time"
 type Config struct {
 	// DiffTime 设置拉取时间范围, [T1 - abs(DiffTime), T1]
 	DiffTime time.Duration `yaml:"diffTime"`
+	// ReportInterval 监控数据上报周期
+	ReportInterval time.Duration `yaml:"reportInterval"`
 }
 
 var (

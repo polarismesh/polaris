@@ -202,6 +202,8 @@ func (s *Server) DeleteInstances(ctx context.Context, req []*apiservice.Instance
 
 // DeleteInstance 删除单个服务实例
 func (s *Server) DeleteInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
+	insId, _ := utils.CheckInstanceTetrad(req)
+	req.Id = wrapperspb.String(insId)
 	ins := *req // 防止污染外部的req
 	ins.ServiceToken = utils.NewStringValue(parseInstanceReqToken(ctx, req))
 	return s.deleteInstance(ctx, req, &ins)

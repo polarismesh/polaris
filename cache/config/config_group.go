@@ -46,11 +46,11 @@ type configGroupCache struct {
 
 // NewConfigGroupCache 创建文件缓存
 func NewConfigGroupCache(storage store.Store, cacheMgr types.CacheManager) types.ConfigGroupCache {
-	cache := &configGroupCache{
-		BaseCache: types.NewBaseCache(storage, cacheMgr),
+	gc := &configGroupCache{
 		storage:   storage,
 	}
-	return cache
+	gc.BaseCache = types.NewBaseCacheWithRepoerMetrics(storage, cacheMgr, gc.reportMetricsInfo)
+	return gc
 }
 
 // Initialize
@@ -145,8 +145,6 @@ func (fc *configGroupCache) postProcessUpdatedGroups(affect map[string]struct{})
 			continue
 		}
 		count := nsBucket.Len()
-		fc.reportMetricsInfo(ns, count)
-
 		revisions := make([]string, 0, count)
 		nsBucket.Range(func(key string, val *model.ConfigFileGroup) {
 			revisions = append(revisions, val.Revision)
