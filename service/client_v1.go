@@ -38,13 +38,11 @@ import (
 
 // RegisterInstance create one instance
 func (s *Server) RegisterInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
-	ctx = context.WithValue(ctx, utils.ContextIsFromClient, true)
 	return s.CreateInstance(ctx, req)
 }
 
 // DeregisterInstance delete one instance
 func (s *Server) DeregisterInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
-	ctx = context.WithValue(ctx, utils.ContextIsFromClient, true)
 	return s.DeleteInstance(ctx, req)
 }
 

@@ -48,11 +48,25 @@ func (svr *Server) GetPrometheusTargets(ctx context.Context,
 
 // RegisterInstance create one instance by client
 func (s *Server) RegisterInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
+	// 参数检查
+	if err := checkMetadata(req.GetMetadata()); err != nil {
+		return api.NewInstanceResponse(apimodel.Code_InvalidMetadata, req)
+	}
+	instanceID, rsp := checkReviseInstance(req)
+	if rsp != nil {
+		return rsp
+	}
+	req.Id = utils.NewStringValue(instanceID)
 	return s.nextSvr.RegisterInstance(ctx, req)
 }
 
 // DeregisterInstance delete onr instance by client
 func (s *Server) DeregisterInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
+	instanceID, resp := checkCreateInstance(req)
+	if resp != nil {
+		return resp
+	}
+	req.Id = wrapperspb.String(instanceID)
 	return s.nextSvr.DeregisterInstance(ctx, req)
 }
 
@@ -150,10 +164,10 @@ func (s *Server) GetLaneRuleWithCache(ctx context.Context, req *apiservice.Servi
 
 // UpdateInstance update one instance by client
 func (s *Server) UpdateInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
+	// 参数检查
 	if err := checkMetadata(req.GetMetadata()); err != nil {
 		return api.NewInstanceResponse(apimodel.Code_InvalidMetadata, req)
 	}
-	// 参数检查
 	instanceID, rsp := checkReviseInstance(req)
 	if rsp != nil {
 		return rsp
