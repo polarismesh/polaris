@@ -197,7 +197,7 @@ func TestCreateInstance(t *testing.T) {
 	time.Sleep(5 * time.Second)
 	instanceId := fmt.Sprintf("%s_%s_%d", appId, host, startPort)
 	code := eurekaSrv.deregisterInstance(context.Background(), namespace, appId, instanceId, false)
-	assert.Equal(t, api.ExecuteSuccess, code)
+	assert.Equal(t, api.ExecuteSuccess, code, fmt.Sprintf("%d", code))
 	time.Sleep(20 * time.Second)
 
 	deltaReq := restful.NewRequest(httpRequest)
@@ -244,18 +244,17 @@ func Test_EurekaWrite(t *testing.T) {
 	injectRestfulReqPathParameters(t, restfulReq, map[string]string{
 		ParamAppId: mockIns.AppName,
 	})
-	// 这里是异步注册
 	eurekaSrv.RegisterApplication(restfulReq, restful.NewResponse(mockRsp))
 	assert.Equal(t, http.StatusNoContent, mockRsp.statusCode)
 	assert.Equal(t, restfulReq.Attribute(statusCodeHeader), uint32(apimodel.Code_ExecuteSuccess))
 
-	time.Sleep(5 * time.Second)
-	saveIns, err := eurekaSrv.originDiscoverSvr.Cache().GetStore().GetInstance(mockIns.InstanceId)
+	_ = discoverSuit.CacheMgr().TestUpdate()
+	saveIns, err := discoverSuit.Storage.GetInstance(mockIns.InstanceId)
 	assert.NoError(t, err)
 	assert.NotNil(t, saveIns)
 
 	t.Run("UpdateStatus", func(t *testing.T) {
-		t.Run("StatusUnknown", func(t *testing.T) {
+		t.Run("01_StatusUnknown", func(t *testing.T) {
 			mockReq := httptest.NewRequest("", fmt.Sprintf("http://127.0.0.1:8761/eureka/v2/apps/%s/%s/status",
 				mockIns.AppName, mockIns.InstanceId), nil)
 			mockReq.PostForm = url.Values{}
@@ -278,7 +277,7 @@ func Test_EurekaWrite(t *testing.T) {
 			assert.False(t, saveIns.Isolate())
 		})
 
-		t.Run("StatusDown", func(t *testing.T) {
+		t.Run("02_StatusDown", func(t *testing.T) {
 			mockReq := httptest.NewRequest("", fmt.Sprintf("http://127.0.0.1:8761/eureka/v2/apps/%s/%s/status",
 				mockIns.AppName, mockIns.InstanceId), nil)
 			mockReq.PostForm = url.Values{}
@@ -301,7 +300,7 @@ func Test_EurekaWrite(t *testing.T) {
 			assert.Equal(t, StatusDown, saveIns.Proto.Metadata[InternalMetadataStatus])
 		})
 
-		t.Run("StatusUp", func(t *testing.T) {
+		t.Run("03_StatusUp", func(t *testing.T) {
 			mockReq := httptest.NewRequest("", fmt.Sprintf("http://127.0.0.1:8761/eureka/v2/apps/%s/%s/status",
 				mockIns.AppName, mockIns.InstanceId), nil)
 			mockReq.PostForm = url.Values{}
@@ -324,9 +323,9 @@ func Test_EurekaWrite(t *testing.T) {
 			assert.Equal(t, StatusUp, saveIns.Proto.Metadata[InternalMetadataStatus])
 		})
 
-		t.Run("Polaris_UpdateInstances", func(t *testing.T) {
+		t.Run("04_Polaris_UpdateInstances", func(t *testing.T) {
 			defer func() {
-				rsp := discoverSuit.OriginDiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*service_manage.Instance{
+				rsp := discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*service_manage.Instance{
 					{
 						Id:      wrapperspb.String(mockIns.InstanceId),
 						Isolate: wrapperspb.Bool(false),
@@ -334,7 +333,7 @@ func Test_EurekaWrite(t *testing.T) {
 				})
 				assert.Equal(t, apimodel.Code_ExecuteSuccess, apimodel.Code(rsp.GetCode().GetValue()))
 			}()
-			rsp := discoverSuit.OriginDiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*service_manage.Instance{
+			rsp := discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*service_manage.Instance{
 				{
 					Id:      wrapperspb.String(mockIns.InstanceId),
 					Isolate: wrapperspb.Bool(true),
@@ -349,8 +348,8 @@ func Test_EurekaWrite(t *testing.T) {
 			assert.Equal(t, StatusOutOfService, saveIns.Proto.Metadata[InternalMetadataStatus])
 		})
 
-		t.Run("Polaris_UpdateInstancesIsolate", func(t *testing.T) {
-			rsp := discoverSuit.OriginDiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*service_manage.Instance{
+		t.Run("05_Polaris_UpdateInstancesIsolate", func(t *testing.T) {
+			rsp := discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*service_manage.Instance{
 				{
 					Id:      wrapperspb.String(mockIns.InstanceId),
 					Isolate: wrapperspb.Bool(true),

@@ -367,7 +367,104 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 	// 创建并发布配置文件
 	configFile := assembleConfigFile()
 
-	t.Run("第一次订阅发布", func(t *testing.T) {
+	t.Run("00_QuickCheck", func(t *testing.T) {
+		curConfigFile := assembleConfigFile()
+		curConfigFile.Namespace = utils.NewStringValue("QuickCheck")
+
+		rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, curConfigFile)
+		t.Log("create config file success")
+		assert.Equal(t, api.ExecuteSuccess, rsp.Code.GetValue(), rsp.GetInfo().GetValue())
+
+		watchCenter := testSuit.OriginConfigServer().WatchCenter()
+
+		t.Run("01_file_not_exist", func(t *testing.T) {
+			_ = testSuit.DiscoverServer().Cache().ConfigFile().Update()
+
+			tmpWatchCtx := config.BuildTimeoutWatchCtx(context.Background(),
+				&apiconfig.ClientWatchConfigFileRequest{
+					WatchFiles: []*apiconfig.ClientConfigFileInfo{
+						{
+							Namespace: curConfigFile.Namespace,
+							Group:     curConfigFile.Group,
+							FileName:  curConfigFile.Name,
+						},
+					},
+				}, 0)(utils.NewUUID(), watchCenter.MatchBetaReleaseFile)
+
+			rsp := watchCenter.CheckQuickResponseClient(tmpWatchCtx)
+			assert.Nil(t, rsp, rsp)
+		})
+
+		t.Run("02_normal", func(t *testing.T) {
+			// 发布一个正常的配置文件
+			rsp2 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, assembleConfigFileRelease(curConfigFile))
+			t.Log("publish config file success")
+			assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue(), rsp2.GetInfo().GetValue())
+
+			_ = testSuit.DiscoverServer().Cache().ConfigFile().Update()
+
+			req := &apiconfig.ClientWatchConfigFileRequest{
+				WatchFiles: []*apiconfig.ClientConfigFileInfo{
+					{
+						Namespace: curConfigFile.Namespace,
+						Group:     curConfigFile.Group,
+						FileName:  curConfigFile.Name,
+					},
+				},
+			}
+			tmpWatchCtx := config.BuildTimeoutWatchCtx(context.Background(),
+				req, 0)(utils.NewUUID(), watchCenter.MatchBetaReleaseFile)
+
+			for i := range req.WatchFiles {
+				tmpWatchCtx.AppendInterest(req.WatchFiles[i])
+			}
+			rsp := watchCenter.CheckQuickResponseClient(tmpWatchCtx)
+			assert.NotNil(t, rsp, rsp)
+			assert.True(t, api.IsSuccess(rsp), rsp.GetInfo().GetValue())
+		})
+
+		t.Run("03_gray", func(t *testing.T) {
+			// 发布一个灰度配置文件
+			curConfigFile.Content = utils.NewStringValue("gray polaris test")
+			grayRelease := assembleConfigFileRelease(curConfigFile)
+			grayRelease.ReleaseType = wrapperspb.String("gray")
+			grayRelease.BetaLabels = []*apimodel.ClientLabel{
+				&apimodel.ClientLabel{
+					Key: "CLIENT_IP",
+					Value: &apimodel.MatchString{
+						Type:      apimodel.MatchString_EXACT,
+						Value:     utils.NewStringValue("172.0.0.1"),
+						ValueType: apimodel.MatchString_TEXT,
+					},
+				},
+			}
+			rsp2 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, grayRelease)
+			t.Log("publish config file success")
+			assert.Equal(t, api.ExecuteSuccess, rsp2.Code.GetValue(), rsp2.GetInfo().GetValue())
+
+			req := &apiconfig.ClientWatchConfigFileRequest{
+				ClientIp: wrapperspb.String("172.0.0.1"),
+				WatchFiles: []*apiconfig.ClientConfigFileInfo{
+					{
+						Namespace: curConfigFile.Namespace,
+						Group:     curConfigFile.Group,
+						FileName:  curConfigFile.Name,
+					},
+				},
+			}
+			tmpWatchCtx := config.BuildTimeoutWatchCtx(context.Background(),
+				req, 0)(utils.NewUUID(), watchCenter.MatchBetaReleaseFile)
+
+			for i := range req.WatchFiles {
+				tmpWatchCtx.AppendInterest(req.WatchFiles[i])
+			}
+			rsp := watchCenter.CheckQuickResponseClient(tmpWatchCtx)
+			assert.NotNil(t, rsp, rsp)
+			assert.True(t, api.IsSuccess(rsp), rsp.GetInfo().GetValue())
+		})
+	})
+
+	t.Run("01_first_watch", func(t *testing.T) {
 		watchConfigFiles := assembleDefaultClientConfigFile(0)
 		clientId := "TestWatchConfigFileAtFirstPublish-first"
 
@@ -376,7 +473,7 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 		}()
 
 		watchCtx := testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles,
-			config.BuildTimeoutWatchCtx(context.Background(), 30*time.Second))
+			config.BuildTimeoutWatchCtx(context.Background(), &apiconfig.ClientWatchConfigFileRequest{}, 30*time.Second))
 		assert.NotNil(t, watchCtx)
 
 		rsp := testSuit.ConfigServer().CreateConfigFile(testSuit.DefaultCtx, configFile)
@@ -405,14 +502,14 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 		assert.Equal(t, uint64(1), receivedVersion)
 	})
 
-	t.Run("第二次订阅发布", func(t *testing.T) {
+	t.Run("02_second_watch", func(t *testing.T) {
 		// 版本号由于发布过一次，所以是1
 		watchConfigFiles := assembleDefaultClientConfigFile(1)
 
 		clientId := "TestWatchConfigFileAtFirstPublish-second"
 
 		watchCtx := testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles,
-			config.BuildTimeoutWatchCtx(context.Background(), 30*time.Second))
+			config.BuildTimeoutWatchCtx(context.Background(), &apiconfig.ClientWatchConfigFileRequest{}, 30*time.Second))
 		assert.NotNil(t, watchCtx)
 
 		rsp3 := testSuit.ConfigServer().PublishConfigFile(testSuit.DefaultCtx, assembleConfigFileRelease(configFile))
@@ -430,6 +527,24 @@ func TestWatchConfigFileAtFirstPublish(t *testing.T) {
 		// 为了避免影响其它 case，删除订阅
 		testSuit.OriginConfigServer().WatchCenter().RemoveWatcher(clientId, watchConfigFiles)
 	})
+
+	t.Run("03_clean_invalid_client", func(t *testing.T) {
+		watchConfigFiles := assembleDefaultClientConfigFile(1)
+		for i := range watchConfigFiles {
+			watchConfigFiles[i].Namespace = utils.NewStringValue("03_clean_invalid_client")
+		}
+
+		// watchCtx 默认为 1s 超时
+		watchCtx := testSuit.OriginConfigServer().WatchCenter().AddWatcher(utils.NewUUID(), watchConfigFiles,
+			config.BuildTimeoutWatchCtx(context.Background(), &apiconfig.ClientWatchConfigFileRequest{}, time.Second))
+		assert.NotNil(t, watchCtx)
+
+		time.Sleep(10 * time.Second)
+
+		//
+		ret := watchCtx.(*config.LongPollWatchContext).GetNotifieResult()
+		assert.Equal(t, uint32(apimodel.Code_DataNoChange), ret.GetCode().GetValue())
+	})
 }
 
 // Test10000ClientWatchConfigFile 测试 10000 个客户端同时监听配置变更，配置发布所有客户端都收到通知
@@ -446,7 +561,7 @@ func TestManyClientWatchConfigFile(t *testing.T) {
 		received.Store(clientId, false)
 		receivedVersion.Store(clientId, uint64(0))
 		watchCtx := testSuit.OriginConfigServer().WatchCenter().AddWatcher(clientId, watchConfigFiles,
-			config.BuildTimeoutWatchCtx(context.Background(), 30*time.Second))
+			config.BuildTimeoutWatchCtx(context.Background(), &apiconfig.ClientWatchConfigFileRequest{}, 30*time.Second))
 		assert.NotNil(t, watchCtx)
 		go func() {
 			notifyRsp := (watchCtx.(*config.LongPollWatchContext)).GetNotifieResult()
@@ -523,10 +638,12 @@ func TestDeleteConfigFile(t *testing.T) {
 
 	// 删除配置文件
 	t.Log("remove config file")
-	rsp3 := testSuit.ConfigServer().DeleteConfigFile(testSuit.DefaultCtx, &apiconfig.ConfigFile{
-		Namespace: utils.NewStringValue(newMockNs),
-		Group:     utils.NewStringValue(testGroup),
-		Name:      utils.NewStringValue(testFile),
+	rsp3 := testSuit.ConfigServer().BatchDeleteConfigFile(testSuit.DefaultCtx, []*apiconfig.ConfigFile{
+		&apiconfig.ConfigFile{
+			Namespace: utils.NewStringValue(newMockNs),
+			Group:     utils.NewStringValue(testGroup),
+			Name:      utils.NewStringValue(testFile),
+		},
 	})
 	assert.Equal(t, api.ExecuteSuccess, rsp3.Code.GetValue())
 	_ = testSuit.CacheMgr().TestUpdate()
@@ -572,6 +689,11 @@ func TestServer_GetConfigFileNamesWithCache(t *testing.T) {
 			}
 		}
 	})
+
+	_ = testSuit.OriginConfigServer().CacheManager()
+	_ = testSuit.OriginConfigServer().GroupCache()
+	_ = testSuit.OriginConfigServer().FileCache()
+	_ = testSuit.OriginConfigServer().CryptoManager()
 
 	t.Run("bad-request", func(t *testing.T) {
 		rsp := testSuit.ConfigServer().GetConfigFileNamesWithCache(testSuit.DefaultCtx, &apiconfig.ConfigFileGroupRequest{

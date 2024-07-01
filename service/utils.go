@@ -18,7 +18,6 @@
 package service
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -96,58 +95,6 @@ const (
 	// ParamKeyInstanceId key for parameter key instanceId
 	ParamKeyInstanceId = "instanceId"
 )
-
-// checkInstanceHost 检查服务实例Host
-func checkInstanceHost(host *wrappers.StringValue) error {
-	if host == nil {
-		return errors.New(utils.NilErrString)
-	}
-
-	if host.GetValue() == "" {
-		return errors.New(utils.EmptyErrString)
-	}
-
-	return nil
-}
-
-// checkMetadata 检查metadata的个数; 最大是64个
-// key/value是否符合要求
-func checkMetadata(meta map[string]string) error {
-	if meta == nil {
-		return nil
-	}
-
-	if len(meta) > MaxMetadataLength {
-		return errors.New("metadata is too long")
-	}
-
-	/*regStr := "^[0-9A-Za-z-._*]+$"
-	  matchFunc := func(str string) error {
-	  	if str == "" {
-	  		return nil
-	  	}
-	  	ok, err := regexp.MatchString(regStr, str)
-	  	if err != nil {
-	  		log.Errorf("regexp match string(%s) err: %s", str, err.Error())
-	  		return err
-	  	}
-	  	if !ok {
-	  		log.Errorf("metadata string(%s) contains invalid character", str)
-	  		return errors.New("contain invalid character")
-	  	}
-	  	return nil
-	  }
-	  for key, value := range meta {
-	  	if err := matchFunc(key); err != nil {
-	  		return err
-	  	}
-	  	if err := matchFunc(value); err != nil {
-	  		return err
-	  	}
-	  }*/
-
-	return nil
-}
 
 // storeError2AnyResponse store code
 func storeError2AnyResponse(err error, msg proto.Message) *apiservice.Response {

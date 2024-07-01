@@ -7,6 +7,11 @@ fi
 
 docker_tag=$1
 
-echo "docker repository : polarismesh/polaris-prometheus, tag : ${docker_tag}"
+docker_repository="${DOCKER_REPOSITORY}"
+if [[ "${docker_repository}" == "" ]]; then
+    docker_repository="polarismesh"
+fi
 
-docker buildx build --network=host -t polarismesh/polaris-prometheus:${docker_tag} -t polarismesh/polaris-prometheus:latest --platform linux/amd64,linux/arm64 --push ./
+echo "docker repository : ${docker_repository}/polaris-prometheus, tag : ${docker_tag}"
+
+docker buildx build --network=host -t ${docker_repository}/polaris-prometheus:${docker_tag} -t ${docker_repository}/polaris-prometheus:latest --platform linux/amd64,linux/arm64 --push ./

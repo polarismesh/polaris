@@ -18,22 +18,17 @@
 package service_test
 
 import (
-	"context"
 	"fmt"
-	"sync"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	apiv1 "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
-	"github.com/polarismesh/polaris/service"
 )
 
 // 测试discover instances
@@ -62,7 +57,7 @@ func TestDiscoverInstances(t *testing.T) {
 			reqInstances = append(reqInstances, req)
 		}
 		t.Run("正常服务发现，返回的数据齐全", func(t *testing.T) {
-			_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+			_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 			out := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, &apiservice.DiscoverFilter{}, service)
 			assert.True(t, respSuccess(out))
 			assert.Equal(t, count, len(out.GetInstances()))
@@ -92,7 +87,7 @@ func TestDiscoverInstances(t *testing.T) {
 			service.Metadata["new-metadata1"] = "1233"
 			service.Metadata["new-metadata2"] = "2342"
 			resp := discoverSuit.DiscoverServer().UpdateServices(discoverSuit.DefaultCtx, []*apiservice.Service{service})
-			_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+			_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 			assert.True(t, respSuccess(resp))
 			assert.NotEqual(t, resp.Responses[0].GetService().GetRevision().GetValue(), oldRevision)
 			assert.Equal(t, resp.Responses[0].GetService().GetMetadata()["new-metadata1"], "1233")
@@ -116,7 +111,7 @@ func TestDiscoverCircuitBreaker(t *testing.T) {
 		defer cleanCircuitBreakerRules(discoverSuit, resp)
 		service := &apiservice.Service{Name: utils.NewStringValue("testDestService"), Namespace: utils.NewStringValue("test")}
 		t.Run("正常获取熔断规则", func(t *testing.T) {
-			_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+			_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 			out := discoverSuit.DiscoverServer().GetCircuitBreakerWithCache(discoverSuit.DefaultCtx, service)
 			assert.True(t, respSuccess(out))
 			assert.Equal(t, len(out.GetCircuitBreaker().GetRules()), len(rules))
@@ -145,7 +140,7 @@ func TestDiscoverCircuitBreaker2(t *testing.T) {
 		defer cleanCircuitBreakerRules(discoverSuit, resp)
 		service := &apiservice.Service{Name: utils.NewStringValue("testDestService"), Namespace: utils.NewStringValue("default")}
 		t.Run("熔断规则不存在", func(t *testing.T) {
-			_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+			_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 			out := discoverSuit.DiscoverServer().GetCircuitBreakerWithCache(discoverSuit.DefaultCtx, service)
 			assert.True(t, respSuccess(out))
 			assert.Equal(t, 0, len(out.GetCircuitBreaker().GetRules()))
@@ -192,7 +187,7 @@ func TestDiscoverService(t *testing.T) {
 		expectService2.Metadata = meta
 		_ = discoverSuit.DiscoverServer().UpdateServices(discoverSuit.DefaultCtx, []*apiservice.Service{expectService1})
 		_ = discoverSuit.DiscoverServer().UpdateServices(discoverSuit.DefaultCtx, []*apiservice.Service{expectService1})
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 
 		t.Run("正常获取服务", func(t *testing.T) {
 			requestService := &apiservice.Service{
@@ -267,7 +262,7 @@ func TestDiscoverRateLimits(t *testing.T) {
 		defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 		defer discoverSuit.cleanRateLimitRevision(service.GetName().GetValue(), service.GetNamespace().GetValue())
 		t.Run("正常获取限流规则", func(t *testing.T) {
-			_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+			_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 			out := discoverSuit.DiscoverServer().GetRateLimitWithCache(discoverSuit.DefaultCtx, service)
 			assert.True(t, respSuccess(out))
 			assert.Equal(t, len(out.GetRateLimit().GetRules()), 1)
@@ -281,7 +276,7 @@ func TestDiscoverRateLimits(t *testing.T) {
 		})
 		t.Run("限流规则已删除", func(t *testing.T) {
 			discoverSuit.deleteRateLimit(t, rateLimitResp)
-			_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+			_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 			out := discoverSuit.DiscoverServer().GetRateLimitWithCache(discoverSuit.DefaultCtx, service)
 			assert.True(t, respSuccess(out))
 			assert.Equal(t, len(out.GetRateLimit().GetRules()), 0)
@@ -303,14 +298,14 @@ func TestDiscoverRateLimits2(t *testing.T) {
 		_, service := discoverSuit.createCommonService(t, 1)
 		defer discoverSuit.cleanServiceName(service.GetName().GetValue(), service.GetNamespace().GetValue())
 		t.Run("限流规则不存在", func(t *testing.T) {
-			_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+			_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 			out := discoverSuit.DiscoverServer().GetRateLimitWithCache(discoverSuit.DefaultCtx, service)
 			assert.True(t, respSuccess(out))
 			assert.Nil(t, out.GetRateLimit())
 			t.Logf("pass: out is %+v", out)
 		})
 		t.Run("服务不存在", func(t *testing.T) {
-			_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+			_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 			out := discoverSuit.DiscoverServer().GetRateLimitWithCache(discoverSuit.DefaultCtx, &apiservice.Service{
 				Name:      utils.NewStringValue("not_exist_service"),
 				Namespace: utils.NewStringValue("not_exist_namespace"),
@@ -318,132 +313,6 @@ func TestDiscoverRateLimits2(t *testing.T) {
 			assert.True(t, respSuccess(out))
 			t.Logf("pass: out is %+v", out)
 		})
-	})
-}
-
-func mockReportClients(cnt int) []*apiservice.Client {
-	ret := make([]*apiservice.Client, 0, 4)
-
-	for i := 0; i < cnt; i++ {
-		ret = append(ret, &apiservice.Client{
-			Host:     utils.NewStringValue("127.0.0.1"),
-			Type:     apiservice.Client_SDK,
-			Version:  utils.NewStringValue("v1.0.0"),
-			Location: &apimodel.Location{},
-			Id:       utils.NewStringValue(utils.NewUUID()),
-			Stat: []*apiservice.StatInfo{
-				{
-					Target:   utils.NewStringValue(model.StatReportPrometheus),
-					Port:     utils.NewUInt32Value(uint32(1000 + i)),
-					Path:     utils.NewStringValue("/metrics"),
-					Protocol: utils.NewStringValue("http"),
-				},
-			},
-		})
-	}
-
-	return ret
-}
-
-func TestServer_ReportClient(t *testing.T) {
-	t.Run("正常客户端上报", func(t *testing.T) {
-		discoverSuit := &DiscoverTestSuit{}
-		if err := discoverSuit.Initialize(); err != nil {
-			t.Fatal(err)
-		}
-		t.Cleanup(func() {
-			discoverSuit.cleanReportClient()
-			discoverSuit.Destroy()
-		})
-
-		clients := mockReportClients(1)
-
-		for i := range clients {
-			resp := discoverSuit.DiscoverServer().ReportClient(discoverSuit.DefaultCtx, clients[i])
-			assert.True(t, respSuccess(resp), resp.GetInfo().GetValue())
-		}
-	})
-}
-
-func TestServer_GetReportClient(t *testing.T) {
-	t.Run("客户端上报-查询客户端信息", func(t *testing.T) {
-		discoverSuit := &DiscoverTestSuit{}
-		if err := discoverSuit.Initialize(); err != nil {
-			t.Fatal(err)
-		}
-		// 主动触发清理之前的 ReportClient 数据
-		discoverSuit.cleanReportClient()
-		// 强制触发缓存更新
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
-		t.Log("finish sleep to wait cache refresh")
-
-		t.Cleanup(func() {
-			discoverSuit.cleanReportClient()
-			discoverSuit.Destroy()
-		})
-
-		clients := mockReportClients(5)
-
-		wait := sync.WaitGroup{}
-		wait.Add(5)
-		for i := range clients {
-			go func(client *apiservice.Client) {
-				defer wait.Done()
-				resp := discoverSuit.DiscoverServer().ReportClient(discoverSuit.DefaultCtx, client)
-				assert.True(t, respSuccess(resp), resp.GetInfo().GetValue())
-				t.Logf("create one client success : %s", client.GetId().GetValue())
-			}(clients[i])
-		}
-
-		wait.Wait()
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
-		t.Log("finish sleep to wait cache refresh")
-
-		resp := discoverSuit.DiscoverServer().GetPrometheusTargets(context.Background(), map[string]string{})
-		t.Logf("get report clients result: %#v", resp)
-		assert.Equal(t, apiv1.ExecuteSuccess, resp.Code)
-	})
-}
-
-func TestServer_GetReportClients(t *testing.T) {
-	discoverSuit := &DiscoverTestSuit{}
-	if err := discoverSuit.Initialize(); err != nil {
-		t.Fatal(err)
-	}
-
-	t.Run("create client", func(t *testing.T) {
-		svr := discoverSuit.OriginDiscoverServer()
-
-		mockClientId := utils.NewUUID()
-		resp := svr.ReportClient(context.Background(), &service_manage.Client{
-			Host:    utils.NewStringValue("127.0.0.1"),
-			Type:    service_manage.Client_SDK,
-			Version: utils.NewStringValue("1.0.0"),
-			Location: &apimodel.Location{
-				Region: utils.NewStringValue("region"),
-				Zone:   utils.NewStringValue("zone"),
-				Campus: utils.NewStringValue("campus"),
-			},
-			Id: utils.NewStringValue(mockClientId),
-			Stat: []*service_manage.StatInfo{
-				{
-					Target:   utils.NewStringValue("prometheus"),
-					Port:     utils.NewUInt32Value(8080),
-					Path:     utils.NewStringValue("/metrics"),
-					Protocol: utils.NewStringValue("http"),
-				},
-			},
-		})
-
-		assert.Equal(t, resp.GetCode().GetValue(), uint32(apimodel.Code_ExecuteSuccess))
-		// 强制刷新到 cache
-		svr.Cache().TestUpdate()
-
-		originSvr := discoverSuit.OriginDiscoverServer().(*service.Server)
-		qresp := originSvr.GetReportClients(discoverSuit.DefaultCtx, map[string]string{})
-		assert.Equal(t, resp.GetCode().GetValue(), uint32(apimodel.Code_ExecuteSuccess))
-		assert.Equal(t, qresp.GetAmount().GetValue(), uint32(1))
-		assert.Equal(t, qresp.GetSize().GetValue(), uint32(1))
 	})
 }
 

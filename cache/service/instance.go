@@ -63,11 +63,13 @@ type instanceCache struct {
 
 // NewInstanceCache 新建一个instanceCache
 func NewInstanceCache(storage store.Store, cacheMgr types.CacheManager) types.InstanceCache {
-	return &instanceCache{
-		BaseCache:    types.NewBaseCache(storage, cacheMgr),
+	ic := &instanceCache{
 		storage:      storage,
 		singleFlight: new(singleflight.Group),
 	}
+
+	ic.BaseCache = types.NewBaseCacheWithRepoerMetrics(storage, cacheMgr, ic.reportMetricsInfo)
+	return ic
 }
 
 // Initialize 初始化函数
@@ -161,7 +163,6 @@ func (ic *instanceCache) realUpdate() (map[string]time.Time, int64, error) {
 		for i := range instanceChangeEvents {
 			_ = eventhub.Publish(eventhub.CacheInstanceEventTopic, instanceChangeEvents[i])
 		}
-		ic.reportMetricsInfo()
 	}()
 
 	if err := tx.CreateReadView(); err != nil {

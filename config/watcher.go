@@ -215,7 +215,7 @@ func (wc *watchCenter) OnEvent(ctx context.Context, arg any) error {
 	return nil
 }
 
-func (wc *watchCenter) checkQuickResponseClient(watchCtx WatchContext) *apiconfig.ConfigClientResponse {
+func (wc *watchCenter) CheckQuickResponseClient(watchCtx WatchContext) *apiconfig.ConfigClientResponse {
 	buildRet := func(release *model.ConfigFileRelease) *apiconfig.ConfigClientResponse {
 		ret := &apiconfig.ClientConfigFileInfo{
 			Namespace: utils.NewStringValue(release.Namespace),

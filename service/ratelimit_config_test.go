@@ -33,6 +33,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -115,7 +116,7 @@ func TestCreateRateLimit(t *testing.T) {
 	defer discoverSuit.cleanRateLimitRevision(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
 	t.Run("正常创建限流规则", func(t *testing.T) {
-		_ = discoverSuit.DiscoverServer().Cache().Clear()
+		_ = discoverSuit.CacheMgr().Clear()
 
 		time.Sleep(5 * time.Second)
 
@@ -123,13 +124,13 @@ func TestCreateRateLimit(t *testing.T) {
 		defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 
 		// 等待缓存更新
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetRateLimitWithCache(context.Background(), serviceResp)
 		checkRateLimit(t, rateLimitReq, resp.GetRateLimit().GetRules()[0])
 	})
 
 	t.Run("创建限流规则，删除，再创建，可以正常创建", func(t *testing.T) {
-		_ = discoverSuit.DiscoverServer().Cache().Clear()
+		_ = discoverSuit.CacheMgr().Clear()
 		time.Sleep(5 * time.Second)
 
 		rateLimitReq, rateLimitResp := discoverSuit.createCommonRateLimit(t, serviceResp, 3)
@@ -140,7 +141,7 @@ func TestCreateRateLimit(t *testing.T) {
 		}
 
 		// 等待缓存更新
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetRateLimitWithCache(context.Background(), serviceResp)
 		checkRateLimit(t, rateLimitReq, resp.GetRateLimit().GetRules()[0])
 		discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
@@ -413,6 +414,22 @@ func TestUpdateRateLimit(t *testing.T) {
 	t.Run("04-并发更新限流规则时，可以正常更新", func(t *testing.T) {
 		var wg sync.WaitGroup
 		errs := make(chan error)
+
+		lock := &sync.RWMutex{}
+		waitDelSvcs := []*apiservice.Service{}
+		waitDelRules := []*apitraffic.Rule{}
+
+		t.Cleanup(func() {
+			for i := range waitDelSvcs {
+				serviceResp := waitDelSvcs[i]
+				discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+			}
+			for i := range waitDelRules {
+				rateLimitResp := waitDelRules[i]
+				discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
+			}
+		})
+
 		for i := 1; i <= 50; i++ {
 			wg.Add(1)
 			go func(index int) {
@@ -423,12 +440,15 @@ func TestUpdateRateLimit(t *testing.T) {
 				updateRateLimitContent(rateLimitResp, index+1)
 				discoverSuit.updateRateLimit(t, rateLimitResp)
 
-				t.Cleanup(func() {
-					discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
-					discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
-				})
+				func() {
+					lock.Lock()
+					defer lock.Unlock()
 
-				_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+					waitDelSvcs = append(waitDelSvcs, serviceResp)
+					waitDelRules = append(waitDelRules, rateLimitResp)
+				}()
+
+				_ = discoverSuit.CacheMgr().TestUpdate()
 
 				filters := map[string]string{
 					"service":   serviceResp.GetName().GetValue(),

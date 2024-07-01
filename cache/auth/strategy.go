@@ -100,12 +100,9 @@ func (sc *strategyCache) realUpdate() (map[string]time.Time, int64, error) {
 	}
 
 	lastMtimes, add, update, del := sc.setStrategys(strategies)
-	timeDiff := time.Since(start)
-	if timeDiff > time.Second {
-		log.Info("[Cache][AuthStrategy] get more auth strategy",
-			zap.Int("add", add), zap.Int("update", update), zap.Int("delete", del),
-			zap.Time("last", lastTime), zap.Duration("used", time.Since(start)))
-	}
+	log.Info("[Cache][AuthStrategy] get more auth strategy",
+		zap.Int("add", add), zap.Int("update", update), zap.Int("delete", del),
+		zap.Time("last", lastTime), zap.Duration("used", time.Since(start)))
 	return lastMtimes, int64(len(strategies)), nil
 }
 
@@ -409,23 +406,24 @@ func (sc *strategyCache) getStrategyDetails(uid string, gid string) []*model.Str
 		strategyIds = sets.ToSlice()
 	}
 
+	result := make([]*model.StrategyDetail, 0, 16)
 	if len(strategyIds) > 0 {
-		result := make([]*model.StrategyDetail, 0, 16)
 		for i := range strategyIds {
 			strategy, ok := sc.strategys.Load(strategyIds[i])
 			if ok {
 				result = append(result, strategy.StrategyDetail)
 			}
 		}
-
-		return result
 	}
-
-	return nil
+	return result
 }
 
 // IsResourceLinkStrategy 校验
 func (sc *strategyCache) IsResourceLinkStrategy(resType apisecurity.ResourceType, resId string) bool {
+	hasLinkRule := func(sets *utils.SyncSet[string]) bool {
+		return sets.Len() != 0
+	}
+
 	switch resType {
 	case apisecurity.ResourceType_Namespaces:
 		val, ok := sc.namespace2Strategy.Load(resId)
@@ -439,8 +437,4 @@ func (sc *strategyCache) IsResourceLinkStrategy(resType apisecurity.ResourceType
 	default:
 		return true
 	}
-}
-
-func hasLinkRule(sets *utils.SyncSet[string]) bool {
-	return sets.Len() != 0
 }

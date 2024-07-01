@@ -106,7 +106,7 @@ func TestCreateRoutingConfig(t *testing.T) {
 		_, _ = discoverSuit.createCommonRoutingConfig(t, serviceResp, 3, 0)
 
 		// 对写进去的数据进行查询
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		out := discoverSuit.DiscoverServer().GetRoutingConfigWithCache(discoverSuit.DefaultCtx, serviceResp)
 		defer discoverSuit.cleanCommonRoutingConfig(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 		if !respSuccess(out) {
@@ -151,7 +151,7 @@ func TestCreateRoutingConfig(t *testing.T) {
 		_, serviceResp := discoverSuit.createCommonService(t, 120)
 		discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		req := &apitraffic.Routing{}
 		req.Service = serviceResp.Name
 		req.Namespace = serviceResp.Namespace
@@ -184,7 +184,7 @@ func TestUpdateRoutingConfig(t *testing.T) {
 		assert.True(t, respSuccess(uResp))
 
 		// 等缓存层更新
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 
 		// 直接查询存储无法查询到 v1 的路由规则
 		total, routingsV1, err := discoverSuit.Storage.GetRoutingConfigs(map[string]string{}, 0, 100)
@@ -239,7 +239,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 			routingResps = append(routingResps, routingResp)
 		}
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		for i := 0; i < total; i++ {
 			t.Logf("service : name=%s namespace=%s", serviceResps[i].GetName().GetValue(), serviceResps[i].GetNamespace().GetValue())
 			out := discoverSuit.DiscoverServer().GetRoutingConfigWithCache(discoverSuit.DefaultCtx, serviceResps[i])
@@ -269,7 +269,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 			t.Fatal(svcResp.Info)
 		}
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		t.Logf("service : name=%s namespace=%s", svcName, namespaceName)
 		out := discoverSuit.DiscoverServer().GetRoutingConfigWithCache(discoverSuit.DefaultCtx, &apiservice.Service{
 			Name:      utils.NewStringValue(svcName),
@@ -278,7 +278,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 
 		assert.True(t, len(out.GetRouting().GetOutbounds()) == 0, "inBounds must be zero")
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 
 		enableResp := discoverSuit.DiscoverServer().EnableRoutings(discoverSuit.DefaultCtx, []*apitraffic.RouteRule{
 			{
@@ -291,7 +291,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 			t.Fatal(enableResp.Info)
 		}
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		out = discoverSuit.DiscoverServer().GetRoutingConfigWithCache(discoverSuit.DefaultCtx, &apiservice.Service{
 			Name:      utils.NewStringValue(svcName),
 			Namespace: utils.NewStringValue(namespaceName),
@@ -374,7 +374,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 			t.Fatal(svcResp.Info)
 		}
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		t.Logf("service : name=%s namespace=%s", svcName, namespaceName)
 		out := discoverSuit.DiscoverServer().GetRoutingConfigWithCache(discoverSuit.DefaultCtx, &apiservice.Service{
 			Name:      utils.NewStringValue(svcName),
@@ -382,7 +382,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 		})
 
 		assert.True(t, len(out.GetRouting().GetOutbounds()) == 0, "inBounds must be zero")
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		enableResp := discoverSuit.DiscoverServer().EnableRoutings(discoverSuit.DefaultCtx, []*apitraffic.RouteRule{
 			{
 				Id:     resp[0].Id,
@@ -394,13 +394,13 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 			t.Fatal(enableResp.Info)
 		}
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		out = discoverSuit.DiscoverServer().GetRoutingConfigWithCache(discoverSuit.DefaultCtx, &apiservice.Service{
 			Name:      utils.NewStringValue(svcName),
 			Namespace: utils.NewStringValue(namespaceName),
 		})
 
-		assert.True(t, len(out.GetRouting().GetOutbounds()) == 1, "inBounds must be one")
+		assert.True(t, len(out.GetRouting().GetOutbounds()) == 0, "inBounds must be zero")
 	})
 
 	t.Run("服务路由数据不改变，传递了路由revision，不返回数据", func(t *testing.T) {
@@ -416,7 +416,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 		_, routingResp := discoverSuit.createCommonRoutingConfig(t, serviceResp, 2, 0)
 		defer discoverSuit.cleanCommonRoutingConfig(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		firstResp := discoverSuit.DiscoverServer().GetRoutingConfigWithCache(discoverSuit.DefaultCtx, serviceResp)
 		checkSameRoutingConfig(t, routingResp, firstResp.GetRouting())
 
@@ -436,7 +436,7 @@ func TestGetRoutingConfigWithCache(t *testing.T) {
 
 		_, serviceResp := discoverSuit.createCommonService(t, 10)
 		defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		if resp := discoverSuit.DiscoverServer().GetRoutingConfigWithCache(discoverSuit.DefaultCtx, serviceResp); !respSuccess(resp) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}

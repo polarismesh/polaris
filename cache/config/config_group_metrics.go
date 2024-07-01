@@ -19,17 +19,23 @@ package config
 
 import (
 	"github.com/polarismesh/polaris/common/metrics"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 )
 
-func (fc *configGroupCache) reportMetricsInfo(ns string, count int) {
-	reportValue := metrics.ConfigMetrics{
-		Type:    metrics.ConfigGroupMetric,
-		Total:   int64(count),
-		Release: 0,
-		Labels: map[string]string{
-			metrics.LabelNamespace: ns,
-		},
-	}
-	plugin.GetStatis().ReportConfigMetrics(reportValue)
+func (fc *configGroupCache) reportMetricsInfo() {
+	fc.name2groups.Range(func(ns string, val *utils.SyncMap[string, *model.ConfigFileGroup]) {
+		count := val.Len()
+		reportValue := metrics.ConfigMetrics{
+			Type:    metrics.ConfigGroupMetric,
+			Total:   int64(count),
+			Release: 0,
+			Labels: map[string]string{
+				metrics.LabelNamespace: ns,
+			},
+		}
+		plugin.GetStatis().ReportConfigMetrics(reportValue)
+	})
+
 }

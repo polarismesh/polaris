@@ -572,7 +572,7 @@ func TestServiceAliasRelated(t *testing.T) {
 	t.Run("实例Discover，别名查询实例，返回源服务的实例信息", func(t *testing.T) {
 		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 123)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		service := &apiservice.Service{Name: resp.Alias.Alias, Namespace: resp.Alias.Namespace}
 		disResp := discoverSuit.DiscoverServer().ServiceInstancesCache(discoverSuit.DefaultCtx, &apiservice.DiscoverFilter{}, service)
 		assert.True(t, api.IsSuccess(disResp), disResp.GetInfo().GetValue())

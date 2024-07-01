@@ -64,9 +64,6 @@ func (s *Server) CreateServiceContracts(ctx context.Context,
 }
 
 func (s *Server) CreateServiceContract(ctx context.Context, contract *apiservice.ServiceContract) *apiservice.Response {
-	if errRsp := checkBaseServiceContract(contract); errRsp != nil {
-		return errRsp
-	}
 	contractId := contract.GetId()
 	if contractId == "" {
 		tmpId, errRsp := utils.CheckContractTetrad(contract)
@@ -293,8 +290,12 @@ func (s *Server) GetServiceContractVersions(ctx context.Context, filter map[stri
 func (s *Server) CreateServiceContractInterfaces(ctx context.Context,
 	contract *apiservice.ServiceContract, source apiservice.InterfaceDescriptor_Source) *apiservice.Response {
 
-	if errRsp := checkOperationServiceContractInterface(contract); errRsp != nil {
-		return errRsp
+	if contract.Id == "" {
+		id, errRsp := utils.CheckContractTetrad(contract)
+		if errRsp != nil {
+			return errRsp
+		}
+		contract.Id = id
 	}
 
 	createData := &model.EnrichServiceContract{
@@ -335,9 +336,14 @@ func (s *Server) CreateServiceContractInterfaces(ctx context.Context,
 func (s *Server) AppendServiceContractInterfaces(ctx context.Context,
 	contract *apiservice.ServiceContract, source apiservice.InterfaceDescriptor_Source) *apiservice.Response {
 
-	if errRsp := checkOperationServiceContractInterface(contract); errRsp != nil {
-		return errRsp
+	if contract.Id == "" {
+		id, errRsp := utils.CheckContractTetrad(contract)
+		if errRsp != nil {
+			return errRsp
+		}
+		contract.Id = id
 	}
+
 	saveData, err := s.storage.GetServiceContract(contract.Id)
 	if err != nil {
 		log.Error("[Service][Contract] get save service_contract when append interfaces", utils.RequestID(ctx), zap.Error(err))
@@ -385,8 +391,12 @@ func (s *Server) AppendServiceContractInterfaces(ctx context.Context,
 func (s *Server) DeleteServiceContractInterfaces(ctx context.Context,
 	contract *apiservice.ServiceContract) *apiservice.Response {
 
-	if errRsp := checkOperationServiceContractInterface(contract); errRsp != nil {
-		return errRsp
+	if contract.Id == "" {
+		id, errRsp := utils.CheckContractTetrad(contract)
+		if errRsp != nil {
+			return errRsp
+		}
+		contract.Id = id
 	}
 
 	saveData, err := s.storage.GetServiceContract(contract.Id)
@@ -429,21 +439,6 @@ func (s *Server) DeleteServiceContractInterfaces(ctx context.Context,
 	return api.NewAnyDataResponse(apimodel.Code_ExecuteSuccess, nil)
 }
 
-func checkOperationServiceContractInterface(contract *apiservice.ServiceContract) *apiservice.Response {
-	if contract.Id != "" {
-		return nil
-	}
-	if err := checkBaseServiceContract(contract); err != nil {
-		return err
-	}
-	id, errRsp := utils.CheckContractTetrad(contract)
-	if errRsp != nil {
-		return errRsp
-	}
-	contract.Id = id
-	return nil
-}
-
 // serviceContractRecordEntry 生成服务的记录entry
 func serviceContractRecordEntry(ctx context.Context, req *apiservice.ServiceContract, data *model.EnrichServiceContract,
 	operationType model.OperationType) *model.RecordEntry {
@@ -462,17 +457,4 @@ func serviceContractRecordEntry(ctx context.Context, req *apiservice.ServiceCont
 	}
 
 	return entry
-}
-
-func checkBaseServiceContract(req *apiservice.ServiceContract) *apiservice.Response {
-	if err := utils.CheckResourceName(utils.NewStringValue(req.GetNamespace())); err != nil {
-		return api.NewResponse(apimodel.Code_InvalidNamespaceName)
-	}
-	if req.GetName() == "" {
-		return api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract name")
-	}
-	if req.GetProtocol() == "" {
-		return api.NewResponseWithMsg(apimodel.Code_BadRequest, "invalid service_contract protocol")
-	}
-	return nil
 }

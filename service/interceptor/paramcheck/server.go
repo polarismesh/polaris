@@ -18,8 +18,10 @@
 package paramcheck
 
 import (
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
+	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/service"
 )
 
@@ -27,18 +29,24 @@ import (
 //
 //	该层会对请求参数做一些调整，根据具体的请求发起人，设置为数据对应的 owner，不可为为别人进行创建资源
 type Server struct {
-	nextSvr service.DiscoverServer
+	nextSvr   service.DiscoverServer
+	ratelimit plugin.Ratelimit
 }
 
 func NewServer(nextSvr service.DiscoverServer) service.DiscoverServer {
 	proxy := &Server{
 		nextSvr: nextSvr,
 	}
+	// 获取限流插件
+	proxy.ratelimit = plugin.GetRatelimit()
+	if proxy.ratelimit == nil {
+		log.Warnf("Not found Ratelimit Plugin")
+	}
 	return proxy
 }
 
 // Cache Get cache management
-func (svr *Server) Cache() *cache.CacheManager {
+func (svr *Server) Cache() cachetypes.CacheManager {
 	return svr.nextSvr.Cache()
 }
 

@@ -117,7 +117,7 @@ func (rc *routingConfigCache) Name() string {
 }
 
 func (rc *routingConfigCache) ListRouterRule(service, namespace string) []*model.ExtendRouterConfig {
-	routerRules := rc.bucket.listEnableRules(service, namespace)
+	routerRules := rc.bucket.listEnableRules(service, namespace, true)
 	ret := make([]*model.ExtendRouterConfig, 0, len(routerRules))
 	for level := range routerRules {
 		items := routerRules[level]
@@ -132,7 +132,7 @@ func (rc *routingConfigCache) GetRouterConfigV2(id, service, namespace string) (
 		return nil, nil
 	}
 
-	routerRules := rc.bucket.listEnableRules(service, namespace)
+	routerRules := rc.bucket.listEnableRules(service, namespace, true)
 	revisions := make([]string, 0, 8)
 	rulesV2 := make([]*apitraffic.RouteRule, 0, len(routerRules))
 	for level := range routerRules {
@@ -167,7 +167,7 @@ func (rc *routingConfigCache) GetRouterConfig(id, service, namespace string) (*a
 		return nil, nil
 	}
 
-	routerRules := rc.bucket.listEnableRules(service, namespace)
+	routerRules := rc.bucket.listEnableRules(service, namespace, false)
 	inBounds, outBounds, revisions := rc.convertV2toV1(routerRules, service, namespace)
 	revision, err := types.CompositeComputeRevision(revisions)
 	if err != nil {

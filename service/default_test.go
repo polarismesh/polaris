@@ -21,12 +21,17 @@ import (
 	"context"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/cache"
 	cachemock "github.com/polarismesh/polaris/cache/mock"
+	"github.com/polarismesh/polaris/namespace"
+	"github.com/polarismesh/polaris/service/batch"
+	"github.com/polarismesh/polaris/service/healthcheck"
 	"github.com/polarismesh/polaris/store/mock"
 )
 
@@ -40,6 +45,8 @@ func Test_Initialize(t *testing.T) {
 	s := mock.NewMockStore(ctrl)
 	cacheMgr := cachemock.NewMockCacheManager(ctrl)
 	cacheMgr.EXPECT().OpenResourceCache(gomock.Any()).Return(nil).AnyTimes()
+	cacheMgr.EXPECT().GetReportInterval().Return(time.Second).AnyTimes()
+	cacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second).AnyTimes()
 
 	_, _, err := auth.TestInitialize(context.Background(), &auth.Config{
 		Option: map[string]interface{}{},
@@ -58,4 +65,44 @@ func Test_Initialize(t *testing.T) {
 	dSvr, err := GetServer()
 	assert.NoError(t, err)
 	assert.NotNil(t, dSvr)
+}
+
+func Test_Server(t *testing.T) {
+	t.Run("cache_entries", func(t *testing.T) {
+		ret := GetAllCaches()
+		assert.True(t, len(ret) > 0)
+	})
+
+	t.Run("with_test", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(func() {
+			ctrl.Finish()
+		})
+
+		svr := &Server{}
+
+		opt := []InitOption{}
+
+		mockCacheMgr := cachemock.NewMockCacheManager(ctrl)
+		mockCacheMgr.EXPECT().OpenResourceCache(gomock.Any()).Return(nil).AnyTimes()
+		mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second).AnyTimes()
+		mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second).AnyTimes()
+
+		opt = append(opt, WithBatchController(&batch.Controller{}))
+		opt = append(opt, WithNamespaceSvr(&namespace.Server{}))
+		opt = append(opt, WithCacheManager(&cache.Config{}, mockCacheMgr))
+		opt = append(opt, WithHealthCheckSvr(&healthcheck.Server{}))
+		opt = append(opt, WithStorage(mock.NewMockStore(ctrl)))
+
+		for i := range opt {
+			opt[i](svr)
+		}
+
+		assert.NotNil(t, svr.bc)
+		assert.NotNil(t, svr.namespaceSvr)
+		assert.NotNil(t, svr.caches)
+		assert.NotNil(t, svr.healthServer)
+		assert.NotNil(t, svr.storage)
+
+	})
 }

@@ -23,7 +23,7 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	cacheservice "github.com/polarismesh/polaris/cache/service"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
@@ -43,14 +43,13 @@ type Server struct {
 
 	namespaceSvr namespace.NamespaceOperateServer
 
-	caches *cache.CacheManager
+	caches cachetypes.CacheManager
 	bc     *batch.Controller
 
 	healthServer *healthcheck.Server
 
 	cmdb      plugin.CMDB
 	history   plugin.History
-	ratelimit plugin.Ratelimit
 
 	l5service *l5service
 
@@ -77,13 +76,17 @@ func (s *Server) allowAutoCreate() bool {
 	return *s.config.AutoCreate
 }
 
+func (s *Server) Store() store.Store {
+	return s.storage
+}
+
 // HealthServer 健康检查Server
 func (s *Server) HealthServer() *healthcheck.Server {
 	return s.healthServer
 }
 
 // Cache 返回Cache
-func (s *Server) Cache() *cache.CacheManager {
+func (s *Server) Cache() cachetypes.CacheManager {
 	return s.caches
 }
 
@@ -152,15 +155,6 @@ func (s *Server) getLocation(host string) *model.Location {
 		return nil
 	}
 	return location
-}
-
-// 实例访问限流
-func (s *Server) allowInstanceAccess(instanceID string) bool {
-	if s.ratelimit == nil {
-		return true
-	}
-
-	return s.ratelimit.Allow(plugin.InstanceRatelimit, instanceID)
 }
 
 func (s *Server) afterServiceResource(ctx context.Context, req *apiservice.Service, save *model.Service,

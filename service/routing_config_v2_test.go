@@ -53,7 +53,7 @@ func TestCreateRoutingConfigV2(t *testing.T) {
 		defer discoverSuit.truncateCommonRoutingConfigV2()
 
 		// 对写进去的数据进行查询
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		out := discoverSuit.DiscoverServer().QueryRoutingConfigsV2(discoverSuit.DefaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
@@ -157,7 +157,7 @@ func TestCompatibleRoutingConfigV2AndV1(t *testing.T) {
 			discoverSuit.truncateCommonRoutingConfigV2()
 		})
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		// 从缓存中查询应该查到 3+3 条 v2 的路由规则
 		out := discoverSuit.DiscoverServer().QueryRoutingConfigsV2(discoverSuit.DefaultCtx, map[string]string{
 			"limit":  "100",
@@ -190,7 +190,7 @@ func TestCompatibleRoutingConfigV2AndV1(t *testing.T) {
 			discoverSuit.truncateCommonRoutingConfigV2()
 		})
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		// 从缓存中查询应该查到 3 条 v2 的路由规则
 		out := discoverSuit.DiscoverServer().QueryRoutingConfigsV2(discoverSuit.DefaultCtx, map[string]string{
 			"limit":  "100",
@@ -245,7 +245,7 @@ func TestCompatibleRoutingConfigV2AndV1(t *testing.T) {
 			discoverSuit.truncateCommonRoutingConfigV2()
 		})
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		// 从缓存中查询应该查到 3+3 条 v2 的路由规则
 		out := discoverSuit.DiscoverServer().QueryRoutingConfigsV2(discoverSuit.DefaultCtx, map[string]string{
 			"limit":  "100",
@@ -275,7 +275,7 @@ func TestCompatibleRoutingConfigV2AndV1(t *testing.T) {
 		assert.NoError(t, err, err)
 		assert.Nil(t, ruleV2, "v2 routing must delete")
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		// 从缓存中查询应该查到 2 条 v2 的路由规则
 		out = discoverSuit.DiscoverServer().QueryRoutingConfigsV2(discoverSuit.DefaultCtx, map[string]string{
 			"limit":  "100",
@@ -307,7 +307,7 @@ func TestCompatibleRoutingConfigV2AndV1(t *testing.T) {
 			discoverSuit.truncateCommonRoutingConfigV2()
 		})
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		// 从缓存中查询应该查到 3+3 条 v2 的路由规则
 		out := discoverSuit.DiscoverServer().QueryRoutingConfigsV2(discoverSuit.DefaultCtx, map[string]string{
 			"limit":  "100",
@@ -340,7 +340,7 @@ func TestCompatibleRoutingConfigV2AndV1(t *testing.T) {
 		assert.NotNil(t, ruleV2, "v2 routing must exist")
 		assert.Equal(t, rulesV2[0].Description, ruleV2.Description)
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		out = discoverSuit.DiscoverServer().QueryRoutingConfigsV2(discoverSuit.DefaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
@@ -382,7 +382,7 @@ func TestDeleteRoutingConfigV2(t *testing.T) {
 		namespaceName := fmt.Sprintf("in-source-service-%d", 0)
 
 		// 删除之后，数据不见
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		out := discoverSuit.DiscoverServer().GetRoutingConfigWithCache(discoverSuit.DefaultCtx, &apiservice.Service{
 			Name:      utils.NewStringValue(serviceName),
 			Namespace: utils.NewStringValue(namespaceName),
@@ -408,7 +408,7 @@ func TestUpdateRoutingConfigV2(t *testing.T) {
 		req := discoverSuit.createCommonRoutingConfigV2(t, 1)
 		defer discoverSuit.cleanCommonRoutingConfigV2(req)
 		// 对写进去的数据进行查询
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		out := discoverSuit.DiscoverServer().QueryRoutingConfigsV2(discoverSuit.DefaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",
@@ -427,7 +427,7 @@ func TestUpdateRoutingConfigV2(t *testing.T) {
 		routing.Name = updateName
 
 		discoverSuit.DiscoverServer().UpdateRoutingConfigsV2(discoverSuit.DefaultCtx, []*apitraffic.RouteRule{routing})
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		out = discoverSuit.DiscoverServer().QueryRoutingConfigsV2(discoverSuit.DefaultCtx, map[string]string{
 			"limit":  "100",
 			"offset": "0",

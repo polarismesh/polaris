@@ -31,6 +31,7 @@ import (
 	"github.com/polarismesh/polaris/apiserver/nacosserver/model"
 	commonmodel "github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/service"
 )
 
 func (n *DiscoverServer) handleRegister(ctx context.Context, namespace, serviceName string, ins *model.Instance) error {
@@ -57,7 +58,8 @@ func (n *DiscoverServer) handleUpdate(ctx context.Context, namespace, serviceNam
 		}
 		specIns.Id = wrapperspb.String(insId)
 	}
-	saveIns, err := n.discoverSvr.Cache().GetStore().GetInstance(specIns.GetId().GetValue())
+	svr := n.discoverSvr.(*service.Server)
+	saveIns, err := svr.Store().GetInstance(specIns.GetId().GetValue())
 	if err != nil {
 		return &model.NacosError{
 			ErrCode: int32(model.ExceptionCode_ServerError),

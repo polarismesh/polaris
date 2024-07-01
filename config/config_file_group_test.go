@@ -19,14 +19,16 @@ package config_test
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/config"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-
-	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/utils"
 )
 
 var (
@@ -219,4 +221,47 @@ func TestConfigFileGroupCRUD(t *testing.T) {
 		assert.Equal(t, 0, len(rsp2.ConfigFileGroups))
 		assert.Equal(t, randomGroupSize, rsp2.Total.GetValue())
 	})
+}
+
+func TestServer_UpdateGroupAttribute(t *testing.T) {
+	type args struct {
+		saveData   *model.ConfigFileGroup
+		updateData *model.ConfigFileGroup
+	}
+	tests := []struct {
+		name  string
+		args  args
+		want  *model.ConfigFileGroup
+		want1 bool
+	}{
+		{
+			name: "01",
+			args: args{
+				saveData: &model.ConfigFileGroup{
+					Comment:    "test",
+					Business:   "test",
+					Department: "test",
+				},
+				updateData: &model.ConfigFileGroup{
+					Comment: "test-1",
+				},
+			},
+			want: &model.ConfigFileGroup{
+				Comment: "test-1",
+			},
+			want1: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &config.Server{}
+			got, got1 := s.UpdateGroupAttribute(tt.args.saveData, tt.args.updateData)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Server.UpdateGroupAttribute() got = %v, want %v", got, tt.want)
+			}
+			if got1 != tt.want1 {
+				t.Errorf("Server.UpdateGroupAttribute() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
+	}
 }

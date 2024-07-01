@@ -38,19 +38,16 @@ import (
 
 // RegisterInstance create one instance
 func (s *Server) RegisterInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
-	ctx = context.WithValue(ctx, utils.ContextIsFromClient, true)
 	return s.CreateInstance(ctx, req)
 }
 
 // DeregisterInstance delete one instance
 func (s *Server) DeregisterInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
-	ctx = context.WithValue(ctx, utils.ContextIsFromClient, true)
 	return s.DeleteInstance(ctx, req)
 }
 
 // ReportServiceContract report client service interface info
 func (s *Server) ReportServiceContract(ctx context.Context, req *apiservice.ServiceContract) *apiservice.Response {
-	ctx = context.WithValue(ctx, utils.ContextIsFromClient, true)
 	cacheData := s.caches.ServiceContract().Get(ctx, &model.ServiceContract{
 		Namespace: req.GetNamespace(),
 		Service:   req.GetService(),
