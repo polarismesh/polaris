@@ -48,8 +48,8 @@ func Test_Initialize(t *testing.T) {
 	cacheMgr.EXPECT().ConfigFile().Return(nil).AnyTimes()
 	cacheMgr.EXPECT().Gray().Return(nil).AnyTimes()
 	cacheMgr.EXPECT().ConfigGroup().Return(nil).AnyTimes()
-	cacheMgr.EXPECT().GetReportInterval().Return(time.Second)
-	cacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second)
+	cacheMgr.EXPECT().GetReportInterval().Return(time.Second).AnyTimes()
+	cacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second).AnyTimes()
 
 	_, _, err := auth.TestInitialize(context.Background(), &auth.Config{}, mockStore, cacheMgr)
 	assert.NoError(t, err)

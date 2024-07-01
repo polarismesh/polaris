@@ -49,8 +49,8 @@ func Test_strategyCache(t *testing.T) {
 		mockStore.EXPECT().GetUnixSecond(gomock.Any()).Return(time.Now().Unix(), nil)
 		mockStore.EXPECT().GetStrategyDetailsForCache(gomock.Any(), gomock.Any()).Return(buildStrategies(10), nil).AnyTimes()
 		mockCacheMgr.EXPECT().GetCacher(types.CacheUser).Return(userCache).AnyTimes()
-		mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second)
-		mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second)
+		mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second).AnyTimes()
+		mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second).AnyTimes()
 
 		userCache.Initialize(map[string]interface{}{})
 		strategyCache.Initialize(map[string]interface{}{})
@@ -86,8 +86,8 @@ func Test_strategyCache(t *testing.T) {
 		mockStore.EXPECT().GetUnixSecond(gomock.Any()).Return(time.Now().Unix(), nil)
 		mockStore.EXPECT().GetStrategyDetailsForCache(gomock.Any(), gomock.Any()).Return(buildStrategies(10), nil).AnyTimes()
 		mockCacheMgr.EXPECT().GetCacher(types.CacheUser).Return(userCache).AnyTimes()
-		mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second)
-		mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second)
+		mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second).AnyTimes()
+		mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second).AnyTimes()
 
 		userCache.Initialize(map[string]interface{}{})
 		strategyCache.Initialize(map[string]interface{}{})
@@ -125,8 +125,8 @@ func Test_strategyCache(t *testing.T) {
 		strategyCache := NewStrategyCache(mockStore, mockCacheMgr).(*strategyCache)
 
 		mockCacheMgr.EXPECT().GetCacher(types.CacheUser).Return(userCache).AnyTimes()
-		mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second)
-		mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second)
+		mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second).AnyTimes()
+		mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second).AnyTimes()
 
 		userCache.Initialize(map[string]interface{}{})
 		strategyCache.Initialize(map[string]interface{}{})
@@ -173,8 +173,8 @@ func Test_strategyCache(t *testing.T) {
 		strategyCache := NewStrategyCache(mockStore, mockCacheMgr).(*strategyCache)
 
 		mockCacheMgr.EXPECT().GetCacher(types.CacheUser).Return(userCache).AnyTimes()
-		mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second)
-		mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second)
+		mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second).AnyTimes()
+		mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second).AnyTimes()
 
 		userCache.Initialize(map[string]interface{}{})
 		strategyCache.Initialize(map[string]interface{}{})
@@ -213,8 +213,8 @@ func Test_strategyCache(t *testing.T) {
 		strategyCache := NewStrategyCache(mockStore, mockCacheMgr).(*strategyCache)
 
 		mockCacheMgr.EXPECT().GetCacher(types.CacheUser).Return(userCache).AnyTimes()
-		mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second)
-		mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second)
+		mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second).AnyTimes()
+		mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second).AnyTimes()
 
 		userCache.Initialize(map[string]interface{}{})
 		strategyCache.Initialize(map[string]interface{}{})
@@ -255,8 +255,8 @@ func Test_strategyCache(t *testing.T) {
 		strategyCache := NewStrategyCache(mockStore, mockCacheMgr).(*strategyCache)
 
 		mockCacheMgr.EXPECT().GetCacher(types.CacheUser).Return(userCache).AnyTimes()
-		mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second)
-		mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second)
+		mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second).AnyTimes()
+		mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second).AnyTimes()
 
 		userCache.Initialize(map[string]interface{}{})
 		strategyCache.Initialize(map[string]interface{}{})
@@ -347,8 +347,8 @@ func Test_strategyCache(t *testing.T) {
 		strategyCache := NewStrategyCache(mockStore, mockCacheMgr).(*strategyCache)
 
 		mockCacheMgr.EXPECT().GetCacher(types.CacheUser).Return(userCache).AnyTimes()
-		mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second)
-		mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second)
+		mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second).AnyTimes()
+		mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second).AnyTimes()
 
 		userCache.Initialize(map[string]interface{}{})
 		strategyCache.Initialize(map[string]interface{}{})

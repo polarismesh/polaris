@@ -45,8 +45,8 @@ func Test_Initialize(t *testing.T) {
 	s := mock.NewMockStore(ctrl)
 	cacheMgr := cachemock.NewMockCacheManager(ctrl)
 	cacheMgr.EXPECT().OpenResourceCache(gomock.Any()).Return(nil).AnyTimes()
-	cacheMgr.EXPECT().GetReportInterval().Return(time.Second)
-	cacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second)
+	cacheMgr.EXPECT().GetReportInterval().Return(time.Second).AnyTimes()
+	cacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second).AnyTimes()
 
 	_, _, err := auth.TestInitialize(context.Background(), &auth.Config{
 		Option: map[string]interface{}{},
@@ -85,8 +85,8 @@ func Test_Server(t *testing.T) {
 
 		mockCacheMgr := cachemock.NewMockCacheManager(ctrl)
 		mockCacheMgr.EXPECT().OpenResourceCache(gomock.Any()).Return(nil).AnyTimes()
-		mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second)
-		mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second)
+		mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second).AnyTimes()
+		mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second).AnyTimes()
 
 		opt = append(opt, WithBatchController(&batch.Controller{}))
 		opt = append(opt, WithNamespaceSvr(&namespace.Server{}))

@@ -48,8 +48,8 @@ func newTestInstanceCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *i
 
 	mockCacheMgr.EXPECT().GetCacher(types.CacheService).Return(mockSvcCache).AnyTimes()
 	mockCacheMgr.EXPECT().GetCacher(types.CacheInstance).Return(mockInstCache).AnyTimes()
-	mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second)
-	mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second)
+	mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second).AnyTimes()
+	mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second).AnyTimes()
 
 	mockTx := mock.NewMockTx(ctl)
 	mockTx.EXPECT().Commit().Return(nil).AnyTimes()

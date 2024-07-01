@@ -621,7 +621,7 @@ func TestRemoveInstance(t *testing.T) {
 		wCtx, _ := eventhub.SubscribeWithFunc(eventhub.CacheInstanceEventTopic, func(ctx context.Context, any2 any) error {
 			time.Sleep(3 * time.Second)
 			event := any2.(*eventhub.CacheInstanceEvent)
-			t.Logf("receive instance change event : %#v", event)
+			t.Logf("receive instance change event : %s", utils.MustJson(event))
 			switch event.EventType {
 			case eventhub.EventCreated:
 				waitCreateOnce.Do(func() {
@@ -641,7 +641,7 @@ func TestRemoveInstance(t *testing.T) {
 		_, instanceResp := discoverSuit.createCommonInstance(t, serviceResp, 1111)
 		defer discoverSuit.cleanInstance(instanceResp.GetId().GetValue())
 
-		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		waitCreate.Wait()
 		discoverSuit.HeartBeat(t, serviceResp, instanceResp.GetId().GetValue())
 		resp := discoverSuit.GetLastHeartBeat(t, serviceResp, instanceResp.GetId().GetValue())
@@ -649,8 +649,9 @@ func TestRemoveInstance(t *testing.T) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}
 
+		t.Logf("begin deregister instance : %s", instanceResp.GetId().GetValue())
 		discoverSuit.removeCommonInstance(t, serviceResp, instanceResp.GetId().GetValue())
-		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		waitRemove.Wait()
 		resp = discoverSuit.GetLastHeartBeat(t, serviceResp, instanceResp.GetId().GetValue())
 		if !respNotFound(resp) {
