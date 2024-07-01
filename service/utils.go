@@ -18,7 +18,6 @@
 package service
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -96,19 +95,6 @@ const (
 	// ParamKeyInstanceId key for parameter key instanceId
 	ParamKeyInstanceId = "instanceId"
 )
-
-// checkInstanceHost 检查服务实例Host
-func checkInstanceHost(host *wrappers.StringValue) error {
-	if host == nil {
-		return errors.New(utils.NilErrString)
-	}
-
-	if host.GetValue() == "" {
-		return errors.New(utils.EmptyErrString)
-	}
-
-	return nil
-}
 
 // storeError2AnyResponse store code
 func storeError2AnyResponse(err error, msg proto.Message) *apiservice.Response {
