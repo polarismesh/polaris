@@ -50,6 +50,8 @@ func newTestServiceCache(t *testing.T) (*gomock.Controller, *mock.MockStore, *se
 
 	mockCacheMgr.EXPECT().GetCacher(types.CacheService).Return(mockSvcCache).AnyTimes()
 	mockCacheMgr.EXPECT().GetCacher(types.CacheInstance).Return(mockInstCache).AnyTimes()
+	mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second)
+	mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second)
 
 	mockTx := mock.NewMockTx(ctl)
 	mockTx.EXPECT().Commit().Return(nil).AnyTimes()
@@ -485,6 +487,9 @@ func TestRevisionWorker(t *testing.T) {
 	ctl := gomock.NewController(t)
 	storage := mock.NewMockStore(ctl)
 	mockCacheMgr := cachemock.NewMockCacheManager(ctl)
+
+	mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second)
+	mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second)
 	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 	defer ctl.Finish()
 
@@ -600,6 +605,8 @@ func Test_serviceCache_GetVisibleServicesInOtherNamespace(t *testing.T) {
 	ctl := gomock.NewController(t)
 	storage := mock.NewMockStore(ctl)
 	mockCacheMgr := cachemock.NewMockCacheManager(ctl)
+	mockCacheMgr.EXPECT().GetReportInterval().Return(time.Second)
+	mockCacheMgr.EXPECT().GetUpdateCacheInterval().Return(time.Second)
 	defer ctl.Finish()
 
 	t.Run("服务可见性查询判断", func(t *testing.T) {
