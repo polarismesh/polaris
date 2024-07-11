@@ -43,19 +43,21 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			name: "命名空间-或-精确查询",
 			args: args{
 				rule: &model.ExtendRouterConfig{
-					RuleRouting: &apitraffic.RuleRoutingConfig{
-						Rules: []*apitraffic.SubRuleRouting{
-							{
-								Sources: []*apitraffic.SourceService{
-									{
-										Service:   "test-1",
-										Namespace: "test-1",
+					RuleRouting: &model.RuleRoutingConfigWrapper{
+						RuleRouting: &apitraffic.RuleRoutingConfig{
+							Rules: []*apitraffic.SubRuleRouting{
+								{
+									Sources: []*apitraffic.SourceService{
+										{
+											Service:   "test-1",
+											Namespace: "test-1",
+										},
 									},
-								},
-								Destinations: []*apitraffic.DestinationGroup{
-									{
-										Service:   "test-1",
-										Namespace: "test-1",
+									Destinations: []*apitraffic.DestinationGroup{
+										{
+											Service:   "test-1",
+											Namespace: "test-1",
+										},
 									},
 								},
 							},
@@ -74,19 +76,21 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			name: "命名空间-与-精确查询",
 			args: args{
 				rule: &model.ExtendRouterConfig{
-					RuleRouting: &apitraffic.RuleRoutingConfig{
-						Rules: []*apitraffic.SubRuleRouting{
-							{
-								Sources: []*apitraffic.SourceService{
-									{
-										Service:   "test-1",
-										Namespace: "test-1",
+					RuleRouting: &model.RuleRoutingConfigWrapper{
+						RuleRouting: &apitraffic.RuleRoutingConfig{
+							Rules: []*apitraffic.SubRuleRouting{
+								{
+									Sources: []*apitraffic.SourceService{
+										{
+											Service:   "test-1",
+											Namespace: "test-1",
+										},
 									},
-								},
-								Destinations: []*apitraffic.DestinationGroup{
-									{
-										Service:   "test-1",
-										Namespace: "test-1",
+									Destinations: []*apitraffic.DestinationGroup{
+										{
+											Service:   "test-1",
+											Namespace: "test-1",
+										},
 									},
 								},
 							},
@@ -105,19 +109,21 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			name: "命名空间-或-模糊查询",
 			args: args{
 				rule: &model.ExtendRouterConfig{
-					RuleRouting: &apitraffic.RuleRoutingConfig{
-						Rules: []*apitraffic.SubRuleRouting{
-							{
-								Sources: []*apitraffic.SourceService{
-									{
-										Service:   "test-1",
-										Namespace: "test-1",
+					RuleRouting: &model.RuleRoutingConfigWrapper{
+						RuleRouting: &apitraffic.RuleRoutingConfig{
+							Rules: []*apitraffic.SubRuleRouting{
+								{
+									Sources: []*apitraffic.SourceService{
+										{
+											Service:   "test-1",
+											Namespace: "test-1",
+										},
 									},
-								},
-								Destinations: []*apitraffic.DestinationGroup{
-									{
-										Service:   "test-1",
-										Namespace: "test-1",
+									Destinations: []*apitraffic.DestinationGroup{
+										{
+											Service:   "test-1",
+											Namespace: "test-1",
+										},
 									},
 								},
 							},
@@ -136,19 +142,21 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			name: "命名空间-与-模糊查询",
 			args: args{
 				rule: &model.ExtendRouterConfig{
-					RuleRouting: &apitraffic.RuleRoutingConfig{
-						Rules: []*apitraffic.SubRuleRouting{
-							{
-								Sources: []*apitraffic.SourceService{
-									{
-										Service:   "test-1",
-										Namespace: "test-1",
+					RuleRouting: &model.RuleRoutingConfigWrapper{
+						RuleRouting: &apitraffic.RuleRoutingConfig{
+							Rules: []*apitraffic.SubRuleRouting{
+								{
+									Sources: []*apitraffic.SourceService{
+										{
+											Service:   "test-1",
+											Namespace: "test-1",
+										},
 									},
-								},
-								Destinations: []*apitraffic.DestinationGroup{
-									{
-										Service:   "test-1",
-										Namespace: "test-1",
+									Destinations: []*apitraffic.DestinationGroup{
+										{
+											Service:   "test-1",
+											Namespace: "test-1",
+										},
 									},
 								},
 							},
@@ -167,19 +175,21 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			name: "(命名空间精确查询+服务名精确查询)-或",
 			args: args{
 				rule: &model.ExtendRouterConfig{
-					RuleRouting: &apitraffic.RuleRoutingConfig{
-						Rules: []*apitraffic.SubRuleRouting{
-							{
-								Sources: []*apitraffic.SourceService{
-									{
-										Service:   "test-1",
-										Namespace: "test-1",
+					RuleRouting: &model.RuleRoutingConfigWrapper{
+						RuleRouting: &apitraffic.RuleRoutingConfig{
+							Rules: []*apitraffic.SubRuleRouting{
+								{
+									Sources: []*apitraffic.SourceService{
+										{
+											Service:   "test-1",
+											Namespace: "test-1",
+										},
 									},
-								},
-								Destinations: []*apitraffic.DestinationGroup{
-									{
-										Service:   "test-1",
-										Namespace: "test-1",
+									Destinations: []*apitraffic.DestinationGroup{
+										{
+											Service:   "test-1",
+											Namespace: "test-1",
+										},
 									},
 								},
 							},
@@ -198,19 +208,21 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			name: "(命名空间精确查询+服务名精确查询)-与",
 			args: args{
 				rule: &model.ExtendRouterConfig{
-					RuleRouting: &apitraffic.RuleRoutingConfig{
-						Rules: []*apitraffic.SubRuleRouting{
-							{
-								Sources: []*apitraffic.SourceService{
-									{
-										Service:   "test-1",
-										Namespace: "test-1",
+					RuleRouting: &model.RuleRoutingConfigWrapper{
+						RuleRouting: &apitraffic.RuleRoutingConfig{
+							Rules: []*apitraffic.SubRuleRouting{
+								{
+									Sources: []*apitraffic.SourceService{
+										{
+											Service:   "test-1",
+											Namespace: "test-1",
+										},
 									},
-								},
-								Destinations: []*apitraffic.DestinationGroup{
-									{
-										Service:   "test-1",
-										Namespace: "test-1",
+									Destinations: []*apitraffic.DestinationGroup{
+										{
+											Service:   "test-1",
+											Namespace: "test-1",
+										},
 									},
 								},
 							},
@@ -229,19 +241,21 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			name: "(命名空间精确查询+服务名精确查询)-与",
 			args: args{
 				rule: &model.ExtendRouterConfig{
-					RuleRouting: &apitraffic.RuleRoutingConfig{
-						Rules: []*apitraffic.SubRuleRouting{
-							{
-								Sources: []*apitraffic.SourceService{
-									{
-										Service:   "test-1",
-										Namespace: "test-1",
+					RuleRouting: &model.RuleRoutingConfigWrapper{
+						RuleRouting: &apitraffic.RuleRoutingConfig{
+							Rules: []*apitraffic.SubRuleRouting{
+								{
+									Sources: []*apitraffic.SourceService{
+										{
+											Service:   "test-1",
+											Namespace: "test-1",
+										},
 									},
-								},
-								Destinations: []*apitraffic.DestinationGroup{
-									{
-										Service:   "test-1",
-										Namespace: "test-1",
+									Destinations: []*apitraffic.DestinationGroup{
+										{
+											Service:   "test-1",
+											Namespace: "test-1",
+										},
 									},
 								},
 							},
@@ -260,19 +274,21 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			name: "(命名空间模糊+服务名精确查询)-或",
 			args: args{
 				rule: &model.ExtendRouterConfig{
-					RuleRouting: &apitraffic.RuleRoutingConfig{
-						Rules: []*apitraffic.SubRuleRouting{
-							{
-								Sources: []*apitraffic.SourceService{
-									{
-										Service:   "test-1",
-										Namespace: "test-1",
+					RuleRouting: &model.RuleRoutingConfigWrapper{
+						RuleRouting: &apitraffic.RuleRoutingConfig{
+							Rules: []*apitraffic.SubRuleRouting{
+								{
+									Sources: []*apitraffic.SourceService{
+										{
+											Service:   "test-1",
+											Namespace: "test-1",
+										},
 									},
-								},
-								Destinations: []*apitraffic.DestinationGroup{
-									{
-										Service:   "test-1",
-										Namespace: "test-1",
+									Destinations: []*apitraffic.DestinationGroup{
+										{
+											Service:   "test-1",
+											Namespace: "test-1",
+										},
 									},
 								},
 							},
@@ -291,19 +307,21 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			name: "(命名空间模糊+服务名精确查询)-或",
 			args: args{
 				rule: &model.ExtendRouterConfig{
-					RuleRouting: &apitraffic.RuleRoutingConfig{
-						Rules: []*apitraffic.SubRuleRouting{
-							{
-								Sources: []*apitraffic.SourceService{
-									{
-										Service:   "test-1",
-										Namespace: "test-1",
+					RuleRouting: &model.RuleRoutingConfigWrapper{
+						RuleRouting: &apitraffic.RuleRoutingConfig{
+							Rules: []*apitraffic.SubRuleRouting{
+								{
+									Sources: []*apitraffic.SourceService{
+										{
+											Service:   "test-1",
+											Namespace: "test-1",
+										},
 									},
-								},
-								Destinations: []*apitraffic.DestinationGroup{
-									{
-										Service:   "test-1",
-										Namespace: "test-1",
+									Destinations: []*apitraffic.DestinationGroup{
+										{
+											Service:   "test-1",
+											Namespace: "test-1",
+										},
 									},
 								},
 							},
@@ -322,19 +340,21 @@ func Test_queryRoutingRuleV2ByService(t *testing.T) {
 			name: "(命名空间模糊+服务名精确查询)-或",
 			args: args{
 				rule: &model.ExtendRouterConfig{
-					RuleRouting: &apitraffic.RuleRoutingConfig{
-						Rules: []*apitraffic.SubRuleRouting{
-							{
-								Sources: []*apitraffic.SourceService{
-									{
-										Service:   "test-1",
-										Namespace: "test-1",
+					RuleRouting: &model.RuleRoutingConfigWrapper{
+						RuleRouting: &apitraffic.RuleRoutingConfig{
+							Rules: []*apitraffic.SubRuleRouting{
+								{
+									Sources: []*apitraffic.SourceService{
+										{
+											Service:   "test-1",
+											Namespace: "test-1",
+										},
 									},
-								},
-								Destinations: []*apitraffic.DestinationGroup{
-									{
-										Service:   "test-1",
-										Namespace: "test-1",
+									Destinations: []*apitraffic.DestinationGroup{
+										{
+											Service:   "test-1",
+											Namespace: "test-1",
+										},
 									},
 								},
 							},

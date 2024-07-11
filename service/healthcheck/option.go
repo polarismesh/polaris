@@ -81,15 +81,6 @@ func withChecker() serverOption {
 	}
 }
 
-// WithPlugins .
-func WithPlugins() serverOption {
-	return func(svr *Server) error {
-		svr.history = plugin.GetHistory()
-		svr.discoverEvent = plugin.GetDiscoverEvent()
-		return nil
-	}
-}
-
 // withCacheProvider .
 func withCacheProvider() serverOption {
 	return func(svr *Server) error {

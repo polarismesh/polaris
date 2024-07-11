@@ -231,8 +231,8 @@ func (rds *RDSBuilder) makeGatewayRoutes(option *resource.BuildOption) ([]*route
 			continue
 		}
 
-		for i := range rule.RuleRouting.Rules {
-			subRule := rule.RuleRouting.Rules[i]
+		for i := range rule.RuleRouting.RuleRouting.Rules {
+			subRule := rule.RuleRouting.RuleRouting.Rules[i]
 			// 先判断 dest 的服务是否满足目标 namespace
 			var (
 				matchNamespace    bool

@@ -21,7 +21,6 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"hash"
-	"sort"
 	"time"
 )
 
@@ -53,8 +52,6 @@ func CompositeComputeRevision(revisions []string) (string, error) {
 	}
 
 	h := sha1.New()
-	sort.Strings(revisions)
-
 	for i := range revisions {
 		if _, err := h.Write([]byte(revisions[i])); err != nil {
 			return "", err

@@ -56,7 +56,10 @@ func (r *rateLimitRuleBucket) saveRule(rule *model.RateLimit) {
 	r.cleanOldSvcRule(rule)
 
 	r.ids.Store(rule.ID, rule)
-	key := buildServiceKey(rule.Proto.GetNamespace().GetValue(), rule.Proto.GetService().GetValue())
+	key := (&model.ServiceKey{
+		Namespace: rule.Proto.GetNamespace().GetValue(),
+		Name:      rule.Proto.GetService().GetValue(),
+	}).Domain()
 
 	if _, ok := r.rules.Load(key); !ok {
 		r.rules.Store(key, &subRateLimitRuleBucket{
@@ -74,8 +77,12 @@ func (r *rateLimitRuleBucket) cleanOldSvcRule(rule *model.RateLimit) {
 	if !ok {
 		return
 	}
+
 	// 清理原来老记录的绑定数据信息
-	key := buildServiceKey(oldRule.Proto.GetNamespace().GetValue(), oldRule.Proto.GetService().GetValue())
+	key := (&model.ServiceKey{
+		Namespace: oldRule.Proto.GetNamespace().GetValue(),
+		Name:      oldRule.Proto.GetService().GetValue(),
+	}).Domain()
 	bucket, ok := r.rules.Load(key)
 	if !ok {
 		return
@@ -91,7 +98,10 @@ func (r *rateLimitRuleBucket) delRule(rule *model.RateLimit) {
 	r.cleanOldSvcRule(rule)
 	r.ids.Delete(rule.ID)
 
-	key := buildServiceKey(rule.Proto.GetNamespace().GetValue(), rule.Proto.GetService().GetValue())
+	key := (&model.ServiceKey{
+		Namespace: rule.Proto.GetNamespace().GetValue(),
+		Name:      rule.Proto.GetService().GetValue(),
+	}).Domain()
 	if _, ok := r.rules.Load(key); !ok {
 		return
 	}
@@ -109,7 +119,7 @@ func (r *rateLimitRuleBucket) getRuleByID(id string) *model.RateLimit {
 }
 
 func (r *rateLimitRuleBucket) getRules(serviceKey model.ServiceKey) ([]*model.RateLimit, string) {
-	key := buildServiceKey(serviceKey.Namespace, serviceKey.Name)
+	key := (&serviceKey).Domain()
 	if _, ok := r.rules.Load(key); !ok {
 		return nil, ""
 	}
@@ -119,7 +129,7 @@ func (r *rateLimitRuleBucket) getRules(serviceKey model.ServiceKey) ([]*model.Ra
 }
 
 func (r *rateLimitRuleBucket) reloadRevision(serviceKey model.ServiceKey) {
-	key := buildServiceKey(serviceKey.Namespace, serviceKey.Name)
+	key := serviceKey.Domain()
 	v, ok := r.rules.Load(key)
 	if !ok {
 		return

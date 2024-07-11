@@ -15,19 +15,24 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package service
+package policy
 
 import (
-	types "github.com/polarismesh/polaris/cache/api"
+	"github.com/polarismesh/polaris/auth"
+	"github.com/polarismesh/polaris/store"
 )
 
-var (
-	_ types.InstanceCache       = (*instanceCache)(nil)
-	_ types.ServiceCache        = (*serviceCache)(nil)
-	_ types.RoutingConfigCache  = (*RouteRuleCache)(nil)
-	_ types.CircuitBreakerCache = (*circuitBreakerCache)(nil)
-	_ types.RateLimitCache      = (*rateLimitCache)(nil)
-	_ types.FaultDetectCache    = (*faultDetectCache)(nil)
-	_ types.L5Cache             = (*l5Cache)(nil)
-	_ types.FaultDetectCache    = (*faultDetectCache)(nil)
-)
+// MockAuthChecker mock auth.AuthChecker for unit test
+func (svr *Server) MockAuthChecker(checker auth.AuthChecker) {
+	svr.checker = checker
+}
+
+// MockStore mock store.Store for unit test
+func (svr *Server) MockStore(storage store.Store) {
+	svr.storage = storage
+}
+
+// MockUserServer mock auth.UserServer for unit test
+func (svr *Server) MockUserServer(userSvr auth.UserServer) {
+	svr.userSvr = userSvr
+}

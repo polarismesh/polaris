@@ -70,7 +70,7 @@ type Server struct {
 	storage  store.Store
 	history  plugin.History
 	cacheMgr cachetypes.CacheManager
-	checker  *DefaultAuthChecker
+	checker  auth.AuthChecker
 	userSvr  auth.UserServer
 }
 
@@ -92,8 +92,9 @@ func (svr *Server) Initialize(options *auth.Config, storage store.Store, cacheMg
 		log.Warnf("Not Found History Log Plugin")
 	}
 
-	svr.checker = &DefaultAuthChecker{}
-	svr.checker.Initialize(svr.options, svr.storage, cacheMgr, userSvr)
+	checker := &DefaultAuthChecker{}
+	checker.Initialize(svr.options, svr.storage, cacheMgr, userSvr)
+	svr.checker = checker
 	return nil
 }
 
@@ -165,10 +166,14 @@ func (svr *Server) RecordHistory(entry *model.RecordEntry) {
 	svr.history.Record(entry)
 }
 
+func (svr *Server) isOpenAuth() bool {
+	return svr.checker.IsOpenClientAuth() || svr.checker.IsOpenConsoleAuth()
+}
+
 // AfterResourceOperation 对于资源的添加删除操作，需要执行后置逻辑
 // 所有子用户或者用户分组，都默认获得对所创建的资源的写权限
 func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error {
-	if !svr.checker.IsOpenAuth() || afterCtx.GetOperation() == model.Read {
+	if !svr.isOpenAuth() || afterCtx.GetOperation() == model.Read {
 		return nil
 	}
 
@@ -217,21 +222,21 @@ func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 	)
 
 	// 添加某些用户、用户组与资源的默认授权关系
-	if err := svr.handleUserStrategy(addUserIds, afterCtx, false); err != nil {
+	if err := svr.handleChangeUserPolicy(addUserIds, afterCtx, false); err != nil {
 		log.Error("[Auth][Server] add user link resource", zap.Error(err))
 		return err
 	}
-	if err := svr.handleGroupStrategy(addGroupIds, afterCtx, false); err != nil {
+	if err := svr.handleChangeUserGroupPolicy(addGroupIds, afterCtx, false); err != nil {
 		log.Error("[Auth][Server] add group link resource", zap.Error(err))
 		return err
 	}
 
 	// 清理某些用户、用户组与资源的默认授权关系
-	if err := svr.handleUserStrategy(removeUserIds, afterCtx, true); err != nil {
+	if err := svr.handleChangeUserPolicy(removeUserIds, afterCtx, true); err != nil {
 		log.Error("[Auth][Server] remove user link resource", zap.Error(err))
 		return err
 	}
-	if err := svr.handleGroupStrategy(removeGroupIds, afterCtx, true); err != nil {
+	if err := svr.handleChangeUserGroupPolicy(removeGroupIds, afterCtx, true); err != nil {
 		log.Error("[Auth][Server] remove group link resource", zap.Error(err))
 		return err
 	}
@@ -240,7 +245,7 @@ func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 }
 
 // handleUserStrategy
-func (svr *Server) handleUserStrategy(userIds []string, afterCtx *model.AcquireContext, isRemove bool) error {
+func (svr *Server) handleChangeUserPolicy(userIds []string, afterCtx *model.AcquireContext, isRemove bool) error {
 	for index := range utils.StringSliceDeDuplication(userIds) {
 		userId := userIds[index]
 		user := svr.userSvr.GetUserHelper().GetUser(context.TODO(), &apisecurity.User{
@@ -254,7 +259,7 @@ func (svr *Server) handleUserStrategy(userIds []string, afterCtx *model.AcquireC
 		if ownerId == "" {
 			ownerId = user.GetId().GetValue()
 		}
-		if err := svr.handlerModifyDefaultStrategy(userId, ownerId, model.PrincipalUser,
+		if err := svr.changePrincipalPolicies(userId, ownerId, model.PrincipalUser,
 			afterCtx, isRemove); err != nil {
 			return err
 		}
@@ -263,7 +268,7 @@ func (svr *Server) handleUserStrategy(userIds []string, afterCtx *model.AcquireC
 }
 
 // handleGroupStrategy
-func (svr *Server) handleGroupStrategy(groupIds []string, afterCtx *model.AcquireContext, isRemove bool) error {
+func (svr *Server) handleChangeUserGroupPolicy(groupIds []string, afterCtx *model.AcquireContext, isRemove bool) error {
 	for index := range utils.StringSliceDeDuplication(groupIds) {
 		groupId := groupIds[index]
 		group := svr.userSvr.GetUserHelper().GetGroup(context.TODO(), &apisecurity.UserGroup{
@@ -273,7 +278,7 @@ func (svr *Server) handleGroupStrategy(groupIds []string, afterCtx *model.Acquir
 			return errors.New("not found target group")
 		}
 		ownerId := group.GetOwner().GetValue()
-		if err := svr.handlerModifyDefaultStrategy(groupId, ownerId, model.PrincipalGroup,
+		if err := svr.changePrincipalPolicies(groupId, ownerId, model.PrincipalGroup,
 			afterCtx, isRemove); err != nil {
 			return err
 		}
@@ -282,9 +287,9 @@ func (svr *Server) handleGroupStrategy(groupIds []string, afterCtx *model.Acquir
 	return nil
 }
 
-// handlerModifyDefaultStrategy 处理默认策略的修改
+// changePrincipalPolicies 处理默认策略的修改
 // case 1. 如果默认策略是全部放通
-func (svr *Server) handlerModifyDefaultStrategy(id, ownerId string, uType model.PrincipalType,
+func (svr *Server) changePrincipalPolicies(id, ownerId string, uType model.PrincipalType,
 	afterCtx *model.AcquireContext, cleanRealtion bool) error {
 	// Get the default policy rules
 	strategy, err := svr.storage.GetDefaultStrategyDetailByPrincipal(id, uType)

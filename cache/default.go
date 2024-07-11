@@ -93,7 +93,7 @@ func newCacheManager(ctx context.Context, cacheOpt *Config, storage store.Store)
 	// 注册发现 & 服务治理缓存
 	mgr.RegisterCacher(types.CacheService, cachesvc.NewServiceCache(storage, mgr))
 	mgr.RegisterCacher(types.CacheInstance, cachesvc.NewInstanceCache(storage, mgr))
-	mgr.RegisterCacher(types.CacheRoutingConfig, cachesvc.NewRoutingConfigCache(storage, mgr))
+	mgr.RegisterCacher(types.CacheRoutingConfig, cachesvc.NewRouteRuleCache(storage, mgr))
 	mgr.RegisterCacher(types.CacheRateLimit, cachesvc.NewRateLimitCache(storage, mgr))
 	mgr.RegisterCacher(types.CacheCircuitBreaker, cachesvc.NewCircuitBreakerCache(storage, mgr))
 	mgr.RegisterCacher(types.CacheFaultDetector, cachesvc.NewFaultDetectCache(storage, mgr))

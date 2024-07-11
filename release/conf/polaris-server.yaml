@@ -319,7 +319,7 @@ apiservers:
     option:
       listenIP: "0.0.0.0"
       listenPort: 8848
-      # 设置 nacos 默认命名空间对应 Polaris 命名空间信息
+      # Set the nacos default namespace to correspond to the Polaris namespace information
       defaultNamespace: default
       connLimit:
         openConnLimit: false

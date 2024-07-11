@@ -30,7 +30,6 @@ func TestInitialize(ctx context.Context, hcOpt *Config, bc *batch.Controller,
 	testServer, err := NewHealthServer(ctx, hcOpt,
 		WithStore(storage),
 		WithBatchController(bc),
-		WithPlugins(),
 		WithTimeAdjuster(newTimeAdjuster(ctx, storage)),
 	)
 	if err != nil {
