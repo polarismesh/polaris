@@ -18,6 +18,7 @@
 package service
 
 import (
+	"context"
 	"crypto/sha1"
 	"fmt"
 	"sort"
@@ -389,4 +390,9 @@ func (c *circuitBreakerCache) GetCircuitBreakerCount() int {
 		}
 	}
 	return len(names)
+}
+
+// Query implements api.CircuitBreakerCache.
+func (c *circuitBreakerCache) Query(context.Context, *types.CircuitBreakerRuleArgs) (uint32, []*model.CircuitBreakerRule, error) {
+	panic("unimplemented")
 }

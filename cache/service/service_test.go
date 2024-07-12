@@ -420,7 +420,7 @@ func TestServiceCache_GetServicesByFilter(t *testing.T) {
 			svcArgs := &types.ServiceArgs{
 				EmptyCondition: true,
 			}
-			amount, services, err := sc.GetServicesByFilter(svcArgs, instArgs, 0, 10)
+			amount, services, err := sc.GetServicesByFilter(context.Background(), svcArgs, instArgs, 0, 10)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -29,7 +29,7 @@ import (
 	"github.com/polarismesh/polaris/auth/policy"
 	defaultuser "github.com/polarismesh/polaris/auth/user"
 	"github.com/polarismesh/polaris/cache"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -79,7 +79,7 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Write_NoStrict(t *testing.T)
 				"salt": "polarismesh@2021",
 			},
 		},
-	}, storage, cacheMgr)
+	}, storage, nil, cacheMgr)
 
 	_, svr, err := newPolicyServer()
 	if err != nil {
@@ -100,12 +100,12 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Write_NoStrict(t *testing.T)
 
 	t.Run("权限检查非严格模式-主账户资源访问检查", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			model.WithOperation(model.Create),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
@@ -122,12 +122,12 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Write_NoStrict(t *testing.T)
 
 	t.Run("权限检查非严格模式-子账户资源访问检查（无操作权限）", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			model.WithOperation(model.Create),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
@@ -144,12 +144,12 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Write_NoStrict(t *testing.T)
 
 	t.Run("权限检查非严格模式-子账户资源访问检查（有操作权限）", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			model.WithOperation(model.Create),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[1].ID,
@@ -166,12 +166,12 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Write_NoStrict(t *testing.T)
 
 	t.Run("权限检查非严格模式-子账户资源访问检查（资源无绑定策略）", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			model.WithOperation(model.Create),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
@@ -188,12 +188,12 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Write_NoStrict(t *testing.T)
 
 	t.Run("权限检查非严格模式-子账户访问用户组资源检查（属于用户组成员）", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			model.WithOperation(model.Create),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[(len(users)-1)+2].ID,
@@ -210,12 +210,12 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Write_NoStrict(t *testing.T)
 
 	t.Run("权限检查非严格模式-子账户访问用户组资源检查（不属于用户组成员）", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			model.WithOperation(model.Create),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[(len(users)-1)+4].ID,
@@ -232,13 +232,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Write_NoStrict(t *testing.T)
 
 	t.Run("权限检查非严格模式-用户组访问组内成员资源检查", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groups[1].Token)
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			// model.WithToken(groups[1].Token),
-			model.WithOperation(model.Create),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// authcommon.WithToken(groups[1].Token),
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
@@ -255,12 +255,12 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Write_NoStrict(t *testing.T)
 
 	t.Run("权限检查非严格模式-token非法-匿名账户资源访问检查（资源无绑定策略）", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "users[1].Token")
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			model.WithOperation(model.Create),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
@@ -277,12 +277,12 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Write_NoStrict(t *testing.T)
 
 	t.Run("权限检查非严格模式-token为空-匿名账户资源访问检查（资源无绑定策略）", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			model.WithOperation(model.Create),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
@@ -341,7 +341,7 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict(t *testing.T) {
 				"salt": "polarismesh@2021",
 			},
 		},
-	}, storage, cacheMgr)
+	}, storage, nil, cacheMgr)
 
 	_, svr, err := newPolicyServer()
 	if err != nil {
@@ -362,13 +362,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict(t *testing.T) {
 
 	t.Run("权限检查严格模式-主账户操作资源", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
-			// model.WithToken(users[0].Token),
-			model.WithOperation(model.Create),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
+			// authcommon.WithToken(users[0].Token),
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
@@ -385,13 +385,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict(t *testing.T) {
 
 	t.Run("权限检查严格模式-子账户操作资源（无操作权限）", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
-			// model.WithToken(users[1].Token),
-			model.WithOperation(model.Create),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
+			// authcommon.WithToken(users[1].Token),
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
@@ -407,13 +407,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict(t *testing.T) {
 
 	t.Run("权限检查严格模式-子账户操作资源（有操作权限）", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
-			// model.WithToken(users[1].Token),
-			model.WithOperation(model.Create),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
+			// authcommon.WithToken(users[1].Token),
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[1].ID,
@@ -429,13 +429,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict(t *testing.T) {
 
 	t.Run("权限检查严格模式-token非法-匿名账户操作资源（资源有策略）", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict")
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
-			// model.WithToken("Test_DefaultAuthChecker_VerifyCredential"),
-			model.WithOperation(model.Create),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
+			// authcommon.WithToken("Test_DefaultAuthChecker_VerifyCredential"),
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[1].ID,
@@ -451,13 +451,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict(t *testing.T) {
 
 	t.Run("权限检查严格模式-token为空-匿名账户操作资源（资源有策略）", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
-			// model.WithToken(""),
-			model.WithModule(model.DiscoverModule),
-			model.WithOperation(model.Create),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
+			// authcommon.WithToken(""),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[1].ID,
@@ -473,13 +473,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict(t *testing.T) {
 
 	t.Run("权限检查严格模式-token非法-匿名账户操作资源（资源没有策略）", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict")
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
-			// model.WithToken("Test_DefaultAuthChecker_VerifyCredential"),
-			model.WithOperation(model.Create),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
+			// authcommon.WithToken("Test_DefaultAuthChecker_VerifyCredential"),
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
@@ -506,13 +506,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict(t *testing.T) {
 
 	t.Run("权限检查严格模式-token为空-匿名账户操作资源（资源没有策略）", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
-			// model.WithToken(""),
-			model.WithOperation(model.Create),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_CheckConsolePermission_Write_Strict"),
+			// authcommon.WithToken(""),
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
@@ -580,7 +580,7 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Read_NoStrict(t *testing.T) 
 				"salt": "polarismesh@2021",
 			},
 		},
-	}, storage, cacheMgr)
+	}, storage, nil, cacheMgr)
 
 	_, svr, err := newPolicyServer()
 	if err != nil {
@@ -601,13 +601,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Read_NoStrict(t *testing.T) 
 
 	t.Run("权限检查非严格模式-主账户正常读操作", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			// model.WithToken(users[0].Token),
-			model.WithOperation(model.Read),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// authcommon.WithToken(users[0].Token),
+			authcommon.WithOperation(authcommon.Read),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
@@ -623,13 +623,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Read_NoStrict(t *testing.T) 
 
 	t.Run("权限检查非严格模式-子账户正常读操作-资源有权限", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			// model.WithToken(users[1].Token),
-			model.WithOperation(model.Read),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// authcommon.WithToken(users[1].Token),
+			authcommon.WithOperation(authcommon.Read),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[1].ID,
@@ -645,13 +645,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Read_NoStrict(t *testing.T) 
 
 	t.Run("权限检查非严格模式-子账户正常读操作-资源无权限", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			// model.WithToken(users[1].Token),
-			model.WithOperation(model.Read),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// authcommon.WithToken(users[1].Token),
+			authcommon.WithOperation(authcommon.Read),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
@@ -667,13 +667,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Read_NoStrict(t *testing.T) 
 
 	t.Run("权限检查非严格模式-子账户正常读操作-资源无绑定策略", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			// model.WithToken(users[1].Token),
-			model.WithOperation(model.Read),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// authcommon.WithToken(users[1].Token),
+			authcommon.WithOperation(authcommon.Read),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
@@ -689,13 +689,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Read_NoStrict(t *testing.T) 
 
 	t.Run("权限检查非严格模式-匿名账户正常读操作-token为空-资源有策略", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			// model.WithToken(""),
-			model.WithOperation(model.Read),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// authcommon.WithToken(""),
+			authcommon.WithOperation(authcommon.Read),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
@@ -711,12 +711,12 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Read_NoStrict(t *testing.T) 
 
 	t.Run("权限检查非严格模式-匿名账户正常读操作-token为空-资源无策略", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			model.WithOperation(model.Read),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			authcommon.WithOperation(authcommon.Read),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
@@ -732,13 +732,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Read_NoStrict(t *testing.T) 
 
 	t.Run("权限检查非严格模式-匿名账户正常读操作-token非法-资源有策略", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_DefaultAuthChecker_VerifyCredential")
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			// model.WithToken("Test_DefaultAuthChecker_VerifyCredential"),
-			model.WithOperation(model.Read),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// authcommon.WithToken("Test_DefaultAuthChecker_VerifyCredential"),
+			authcommon.WithOperation(authcommon.Read),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
@@ -754,13 +754,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Read_NoStrict(t *testing.T) 
 
 	t.Run("权限检查非严格模式-匿名账户正常读操作-token非法-资源无策略", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_DefaultAuthChecker_VerifyCredential")
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			// model.WithToken("Test_DefaultAuthChecker_VerifyCredential"),
-			model.WithOperation(model.Read),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// authcommon.WithToken("Test_DefaultAuthChecker_VerifyCredential"),
+			authcommon.WithOperation(authcommon.Read),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
@@ -818,7 +818,7 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Read_Strict(t *testing.T) {
 				"salt": "polarismesh@2021",
 			},
 		},
-	}, storage, cacheMgr)
+	}, storage, nil, cacheMgr)
 
 	_, svr, err := newPolicyServer()
 	if err != nil {
@@ -848,13 +848,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Read_Strict(t *testing.T) {
 
 	t.Run("权限检查严格模式-主账户正常读操作", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[0].Token)
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			// model.WithToken(users[0].Token),
-			model.WithOperation(model.Read),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// authcommon.WithToken(users[0].Token),
+			authcommon.WithOperation(authcommon.Read),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
@@ -870,13 +870,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Read_Strict(t *testing.T) {
 
 	t.Run("权限检查严格模式-子账户正常读操作-资源有权限", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			// model.WithToken(users[1].Token),
-			model.WithOperation(model.Read),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// authcommon.WithToken(users[1].Token),
+			authcommon.WithOperation(authcommon.Read),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[1].ID,
@@ -892,13 +892,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Read_Strict(t *testing.T) {
 
 	t.Run("权限检查严格模式-子账户正常读操作-资源无权限", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			// model.WithToken(users[1].Token),
-			model.WithOperation(model.Read),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// authcommon.WithToken(users[1].Token),
+			authcommon.WithOperation(authcommon.Read),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
@@ -914,13 +914,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Read_Strict(t *testing.T) {
 
 	t.Run("权限检查严格模式-子账户正常读操作-资源无绑定策略", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, users[1].Token)
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			// model.WithToken(users[1].Token),
-			model.WithOperation(model.Read),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// authcommon.WithToken(users[1].Token),
+			authcommon.WithOperation(authcommon.Read),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
@@ -936,13 +936,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Read_Strict(t *testing.T) {
 
 	t.Run("权限检查严格模式-匿名账户正常读操作-token为空-资源有策略", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			// model.WithToken(""),
-			model.WithOperation(model.Read),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// authcommon.WithToken(""),
+			authcommon.WithOperation(authcommon.Read),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
@@ -958,13 +958,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Read_Strict(t *testing.T) {
 
 	t.Run("权限检查严格模式-匿名账户正常读操作-token为空-资源无策略", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			// model.WithToken(""),
-			model.WithOperation(model.Read),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// authcommon.WithToken(""),
+			authcommon.WithOperation(authcommon.Read),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,
@@ -980,13 +980,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Read_Strict(t *testing.T) {
 
 	t.Run("权限检查严格模式-匿名账户正常读操作-token非法-资源有策略", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_DefaultAuthChecker_VerifyCredential")
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			// model.WithToken("Test_DefaultAuthChecker_VerifyCredential"),
-			model.WithOperation(model.Read),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// authcommon.WithToken("Test_DefaultAuthChecker_VerifyCredential"),
+			authcommon.WithOperation(authcommon.Read),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[0].ID,
@@ -1002,13 +1002,13 @@ func Test_DefaultAuthChecker_CheckConsolePermission_Read_Strict(t *testing.T) {
 
 	t.Run("权限检查严格模式-匿名账户正常读操作-token非法-资源无策略", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "Test_DefaultAuthChecker_VerifyCredential")
-		authCtx := model.NewAcquireContext(
-			model.WithRequestContext(ctx),
-			model.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
-			// model.WithToken("Test_DefaultAuthChecker_VerifyCredential"),
-			model.WithOperation(model.Read),
-			model.WithModule(model.DiscoverModule),
-			model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{
+		authCtx := authcommon.NewAcquireContext(
+			authcommon.WithRequestContext(ctx),
+			authcommon.WithMethod("Test_DefaultAuthChecker_VerifyCredential"),
+			// authcommon.WithToken("Test_DefaultAuthChecker_VerifyCredential"),
+			authcommon.WithOperation(authcommon.Read),
+			authcommon.WithModule(authcommon.DiscoverModule),
+			authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 				apisecurity.ResourceType_Services: {
 					{
 						ID:    services[freeIndex].ID,

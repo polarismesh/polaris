@@ -31,6 +31,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/service"
 )
@@ -76,15 +77,15 @@ func (svr *ServerAuthAbility) GetServiceInstanceRevision(serviceID string,
 //	@param ctx 请求上下文 ctx
 //	@param req 实际请求对象
 //	@param resourceOp 该接口的数据操作类型
-//	@return *model.AcquireContext 返回鉴权上下文
+//	@return *authcommon.AcquireContext 返回鉴权上下文
 func (svr *ServerAuthAbility) collectServiceAuthContext(ctx context.Context, req []*apiservice.Service,
-	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-	return model.NewAcquireContext(
-		model.WithRequestContext(ctx),
-		model.WithOperation(resourceOp),
-		model.WithModule(model.DiscoverModule),
-		model.WithMethod(methodName),
-		model.WithAccessResources(svr.queryServiceResource(req)),
+	resourceOp authcommon.ResourceOperation, methodName string) *authcommon.AcquireContext {
+	return authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(resourceOp),
+		authcommon.WithModule(authcommon.DiscoverModule),
+		authcommon.WithMethod(methodName),
+		authcommon.WithAccessResources(svr.queryServiceResource(req)),
 	)
 }
 
@@ -94,15 +95,15 @@ func (svr *ServerAuthAbility) collectServiceAuthContext(ctx context.Context, req
 //	@param ctx 请求上下文 ctx
 //	@param req 实际请求对象
 //	@param resourceOp 该接口的数据操作类型
-//	@return *model.AcquireContext 返回鉴权上下文
+//	@return *authcommon.AcquireContext 返回鉴权上下文
 func (svr *ServerAuthAbility) collectServiceAliasAuthContext(ctx context.Context, req []*apiservice.ServiceAlias,
-	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-	return model.NewAcquireContext(
-		model.WithRequestContext(ctx),
-		model.WithOperation(resourceOp),
-		model.WithModule(model.DiscoverModule),
-		model.WithMethod(methodName),
-		model.WithAccessResources(svr.queryServiceAliasResource(req)),
+	resourceOp authcommon.ResourceOperation, methodName string) *authcommon.AcquireContext {
+	return authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(resourceOp),
+		authcommon.WithModule(authcommon.DiscoverModule),
+		authcommon.WithMethod(methodName),
+		authcommon.WithAccessResources(svr.queryServiceAliasResource(req)),
 	)
 }
 
@@ -112,28 +113,28 @@ func (svr *ServerAuthAbility) collectServiceAliasAuthContext(ctx context.Context
 //	@param ctx 请求上下文 ctx
 //	@param req 实际请求对象
 //	@param resourceOp 该接口的数据操作类型
-//	@return *model.AcquireContext 返回鉴权上下文
+//	@return *authcommon.AcquireContext 返回鉴权上下文
 func (svr *ServerAuthAbility) collectInstanceAuthContext(ctx context.Context, req []*apiservice.Instance,
-	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-	return model.NewAcquireContext(
-		model.WithRequestContext(ctx),
-		model.WithOperation(resourceOp),
-		model.WithModule(model.DiscoverModule),
-		model.WithMethod(methodName),
-		model.WithAccessResources(svr.queryInstanceResource(req)),
+	resourceOp authcommon.ResourceOperation, methodName string) *authcommon.AcquireContext {
+	return authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(resourceOp),
+		authcommon.WithModule(authcommon.DiscoverModule),
+		authcommon.WithMethod(methodName),
+		authcommon.WithAccessResources(svr.queryInstanceResource(req)),
 	)
 }
 
 // collectClientInstanceAuthContext 对于服务实例的处理，收集所有的与鉴权的相关信息
 func (svr *ServerAuthAbility) collectClientInstanceAuthContext(ctx context.Context, req []*apiservice.Instance,
-	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-	return model.NewAcquireContext(
-		model.WithRequestContext(ctx),
-		model.WithOperation(resourceOp),
-		model.WithModule(model.DiscoverModule),
-		model.WithMethod(methodName),
-		model.WithFromClient(),
-		model.WithAccessResources(svr.queryInstanceResource(req)),
+	resourceOp authcommon.ResourceOperation, methodName string) *authcommon.AcquireContext {
+	return authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(resourceOp),
+		authcommon.WithModule(authcommon.DiscoverModule),
+		authcommon.WithMethod(methodName),
+		authcommon.WithFromClient(),
+		authcommon.WithAccessResources(svr.queryInstanceResource(req)),
 	)
 }
 
@@ -143,15 +144,15 @@ func (svr *ServerAuthAbility) collectClientInstanceAuthContext(ctx context.Conte
 //	@param ctx 请求上下文 ctx
 //	@param req 实际请求对象
 //	@param resourceOp 该接口的数据操作类型
-//	@return *model.AcquireContext 返回鉴权上下文
+//	@return *authcommon.AcquireContext 返回鉴权上下文
 func (svr *ServerAuthAbility) collectCircuitBreakerAuthContext(ctx context.Context, req []*apifault.CircuitBreaker,
-	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-	return model.NewAcquireContext(
-		model.WithRequestContext(ctx),
-		model.WithOperation(resourceOp),
-		model.WithModule(model.DiscoverModule),
-		model.WithMethod(methodName),
-		model.WithAccessResources(svr.queryCircuitBreakerResource(req)),
+	resourceOp authcommon.ResourceOperation, methodName string) *authcommon.AcquireContext {
+	return authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(resourceOp),
+		authcommon.WithModule(authcommon.DiscoverModule),
+		authcommon.WithMethod(methodName),
+		authcommon.WithAccessResources(svr.queryCircuitBreakerResource(req)),
 	)
 }
 
@@ -161,15 +162,15 @@ func (svr *ServerAuthAbility) collectCircuitBreakerAuthContext(ctx context.Conte
 //	@param ctx
 //	@param req
 //	@param resourceOp
-//	@return *model.AcquireContext
+//	@return *authcommon.AcquireContext
 func (svr *ServerAuthAbility) collectCircuitBreakerReleaseAuthContext(ctx context.Context,
-	req []*apiservice.ConfigRelease, resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-	return model.NewAcquireContext(
-		model.WithRequestContext(ctx),
-		model.WithOperation(resourceOp),
-		model.WithModule(model.DiscoverModule),
-		model.WithMethod(methodName),
-		model.WithAccessResources(svr.queryCircuitBreakerReleaseResource(req)),
+	req []*apiservice.ConfigRelease, resourceOp authcommon.ResourceOperation, methodName string) *authcommon.AcquireContext {
+	return authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(resourceOp),
+		authcommon.WithModule(authcommon.DiscoverModule),
+		authcommon.WithMethod(methodName),
+		authcommon.WithAccessResources(svr.queryCircuitBreakerReleaseResource(req)),
 	)
 }
 
@@ -179,15 +180,15 @@ func (svr *ServerAuthAbility) collectCircuitBreakerReleaseAuthContext(ctx contex
 //	@param ctx 请求上下文 ctx
 //	@param req 实际请求对象
 //	@param resourceOp 该接口的数据操作类型
-//	@return *model.AcquireContext 返回鉴权上下文
+//	@return *authcommon.AcquireContext 返回鉴权上下文
 func (svr *ServerAuthAbility) collectRouteRuleAuthContext(ctx context.Context, req []*apitraffic.Routing,
-	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-	return model.NewAcquireContext(
-		model.WithRequestContext(ctx),
-		model.WithOperation(resourceOp),
-		model.WithModule(model.DiscoverModule),
-		model.WithMethod(methodName),
-		model.WithAccessResources(svr.queryRouteRuleResource(req)),
+	resourceOp authcommon.ResourceOperation, methodName string) *authcommon.AcquireContext {
+	return authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(resourceOp),
+		authcommon.WithModule(authcommon.DiscoverModule),
+		authcommon.WithMethod(methodName),
+		authcommon.WithAccessResources(svr.queryRouteRuleResource(req)),
 	)
 }
 
@@ -197,61 +198,61 @@ func (svr *ServerAuthAbility) collectRouteRuleAuthContext(ctx context.Context, r
 //	@param ctx 请求上下文 ctx
 //	@param req 实际请求对象
 //	@param resourceOp 该接口的数据操作类型
-//	@return *model.AcquireContext 返回鉴权上下文
+//	@return *authcommon.AcquireContext 返回鉴权上下文
 func (svr *ServerAuthAbility) collectRateLimitAuthContext(ctx context.Context, req []*apitraffic.Rule,
-	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-	return model.NewAcquireContext(
-		model.WithRequestContext(ctx),
-		model.WithOperation(resourceOp),
-		model.WithModule(model.DiscoverModule),
-		model.WithMethod(methodName),
-		model.WithAccessResources(svr.queryRateLimitConfigResource(req)),
+	resourceOp authcommon.ResourceOperation, methodName string) *authcommon.AcquireContext {
+	return authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(resourceOp),
+		authcommon.WithModule(authcommon.DiscoverModule),
+		authcommon.WithMethod(methodName),
+		authcommon.WithAccessResources(svr.queryRateLimitConfigResource(req)),
 	)
 }
 
 // collectRouteRuleV2AuthContext 收集路由v2规则
 func (svr *ServerAuthAbility) collectRouteRuleV2AuthContext(ctx context.Context, req []*apitraffic.RouteRule,
-	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-	return model.NewAcquireContext(
-		model.WithRequestContext(ctx),
-		model.WithOperation(resourceOp),
-		model.WithModule(model.DiscoverModule),
-		model.WithMethod(methodName),
-		model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{}),
+	resourceOp authcommon.ResourceOperation, methodName string) *authcommon.AcquireContext {
+	return authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(resourceOp),
+		authcommon.WithModule(authcommon.DiscoverModule),
+		authcommon.WithMethod(methodName),
+		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{}),
 	)
 }
 
 // collectRouteRuleV2AuthContext 收集熔断v2规则
 func (svr *ServerAuthAbility) collectCircuitBreakerRuleV2AuthContext(ctx context.Context,
 	req []*apifault.CircuitBreakerRule,
-	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-	return model.NewAcquireContext(
-		model.WithRequestContext(ctx),
-		model.WithOperation(resourceOp),
-		model.WithModule(model.DiscoverModule),
-		model.WithMethod(methodName),
-		model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{}),
+	resourceOp authcommon.ResourceOperation, methodName string) *authcommon.AcquireContext {
+	return authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(resourceOp),
+		authcommon.WithModule(authcommon.DiscoverModule),
+		authcommon.WithMethod(methodName),
+		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{}),
 	)
 }
 
 // collectRouteRuleV2AuthContext 收集主动探测规则
 func (svr *ServerAuthAbility) collectFaultDetectAuthContext(ctx context.Context,
 	req []*apifault.FaultDetectRule,
-	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-	return model.NewAcquireContext(
-		model.WithRequestContext(ctx),
-		model.WithOperation(resourceOp),
-		model.WithModule(model.DiscoverModule),
-		model.WithMethod(methodName),
-		model.WithAccessResources(map[apisecurity.ResourceType][]model.ResourceEntry{}),
+	resourceOp authcommon.ResourceOperation, methodName string) *authcommon.AcquireContext {
+	return authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(resourceOp),
+		authcommon.WithModule(authcommon.DiscoverModule),
+		authcommon.WithMethod(methodName),
+		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{}),
 	)
 }
 
 // queryServiceResource  根据所给的 service 信息，收集对应的 ResourceEntry 列表
 func (svr *ServerAuthAbility) queryServiceResource(
-	req []*apiservice.Service) map[apisecurity.ResourceType][]model.ResourceEntry {
+	req []*apiservice.Service) map[apisecurity.ResourceType][]authcommon.ResourceEntry {
 	if len(req) == 0 {
-		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
+		return make(map[apisecurity.ResourceType][]authcommon.ResourceEntry)
 	}
 
 	names := utils.NewSet[string]()
@@ -276,9 +277,9 @@ func (svr *ServerAuthAbility) queryServiceResource(
 
 // queryServiceAliasResource  根据所给的 servicealias 信息，收集对应的 ResourceEntry 列表
 func (svr *ServerAuthAbility) queryServiceAliasResource(
-	req []*apiservice.ServiceAlias) map[apisecurity.ResourceType][]model.ResourceEntry {
+	req []*apiservice.ServiceAlias) map[apisecurity.ResourceType][]authcommon.ResourceEntry {
 	if len(req) == 0 {
-		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
+		return make(map[apisecurity.ResourceType][]authcommon.ResourceEntry)
 	}
 
 	names := utils.NewSet[string]()
@@ -305,9 +306,9 @@ func (svr *ServerAuthAbility) queryServiceAliasResource(
 // queryInstanceResource 根据所给的 instances 信息，收集对应的 ResourceEntry 列表
 // 由于实例是注册到服务下的，因此只需要判断，是否有对应服务的权限即可
 func (svr *ServerAuthAbility) queryInstanceResource(
-	req []*apiservice.Instance) map[apisecurity.ResourceType][]model.ResourceEntry {
+	req []*apiservice.Instance) map[apisecurity.ResourceType][]authcommon.ResourceEntry {
 	if len(req) == 0 {
-		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
+		return make(map[apisecurity.ResourceType][]authcommon.ResourceEntry)
 	}
 
 	names := utils.NewSet[string]()
@@ -346,9 +347,9 @@ func (svr *ServerAuthAbility) queryInstanceResource(
 
 // queryCircuitBreakerResource 根据所给的 CircuitBreaker 信息，收集对应的 ResourceEntry 列表
 func (svr *ServerAuthAbility) queryCircuitBreakerResource(
-	req []*apifault.CircuitBreaker) map[apisecurity.ResourceType][]model.ResourceEntry {
+	req []*apifault.CircuitBreaker) map[apisecurity.ResourceType][]authcommon.ResourceEntry {
 	if len(req) == 0 {
-		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
+		return make(map[apisecurity.ResourceType][]authcommon.ResourceEntry)
 	}
 
 	names := utils.NewSet[string]()
@@ -371,9 +372,9 @@ func (svr *ServerAuthAbility) queryCircuitBreakerResource(
 
 // queryCircuitBreakerReleaseResource 根据所给的 CircuitBreakerRelease 信息，收集对应的 ResourceEntry 列表
 func (svr *ServerAuthAbility) queryCircuitBreakerReleaseResource(
-	req []*apiservice.ConfigRelease) map[apisecurity.ResourceType][]model.ResourceEntry {
+	req []*apiservice.ConfigRelease) map[apisecurity.ResourceType][]authcommon.ResourceEntry {
 	if len(req) == 0 {
-		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
+		return make(map[apisecurity.ResourceType][]authcommon.ResourceEntry)
 	}
 
 	names := utils.NewSet[string]()
@@ -397,9 +398,9 @@ func (svr *ServerAuthAbility) queryCircuitBreakerReleaseResource(
 
 // queryRouteRuleResource 根据所给的 RouteRule 信息，收集对应的 ResourceEntry 列表
 func (svr *ServerAuthAbility) queryRouteRuleResource(
-	req []*apitraffic.Routing) map[apisecurity.ResourceType][]model.ResourceEntry {
+	req []*apitraffic.Routing) map[apisecurity.ResourceType][]authcommon.ResourceEntry {
 	if len(req) == 0 {
-		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
+		return make(map[apisecurity.ResourceType][]authcommon.ResourceEntry)
 	}
 
 	names := utils.NewSet[string]()
@@ -423,9 +424,9 @@ func (svr *ServerAuthAbility) queryRouteRuleResource(
 
 // queryRateLimitConfigResource 根据所给的 RateLimit 信息，收集对应的 ResourceEntry 列表
 func (svr *ServerAuthAbility) queryRateLimitConfigResource(
-	req []*apitraffic.Rule) map[apisecurity.ResourceType][]model.ResourceEntry {
+	req []*apitraffic.Rule) map[apisecurity.ResourceType][]authcommon.ResourceEntry {
 	if len(req) == 0 {
-		return make(map[apisecurity.ResourceType][]model.ResourceEntry)
+		return make(map[apisecurity.ResourceType][]authcommon.ResourceEntry)
 	}
 
 	names := utils.NewSet[string]()
@@ -449,39 +450,39 @@ func (svr *ServerAuthAbility) queryRateLimitConfigResource(
 
 // convertToDiscoverResourceEntryMaps 通用方法，进行转换为期望的、服务相关的 ResourceEntry
 func (svr *ServerAuthAbility) convertToDiscoverResourceEntryMaps(nsSet *utils.Set[string],
-	svcSet *utils.Map[string, *model.Service]) map[apisecurity.ResourceType][]model.ResourceEntry {
+	svcSet *utils.Map[string, *model.Service]) map[apisecurity.ResourceType][]authcommon.ResourceEntry {
 	var (
 		param = nsSet.ToSlice()
 		nsArr = svr.Cache().Namespace().GetNamespacesByName(param)
-		nsRet = make([]model.ResourceEntry, 0, len(nsArr))
+		nsRet = make([]authcommon.ResourceEntry, 0, len(nsArr))
 	)
 	for index := range nsArr {
 		ns := nsArr[index]
-		nsRet = append(nsRet, model.ResourceEntry{
+		nsRet = append(nsRet, authcommon.ResourceEntry{
 			ID:    ns.Name,
 			Owner: ns.Owner,
 		})
 	}
 
-	svcRet := make([]model.ResourceEntry, 0, svcSet.Len())
+	svcRet := make([]authcommon.ResourceEntry, 0, svcSet.Len())
 	svcSet.Range(func(key string, svc *model.Service) {
-		svcRet = append(svcRet, model.ResourceEntry{
+		svcRet = append(svcRet, authcommon.ResourceEntry{
 			ID:    svc.ID,
 			Owner: svc.Owner,
 		})
 	})
 
-	return map[apisecurity.ResourceType][]model.ResourceEntry{
+	return map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 		apisecurity.ResourceType_Namespaces: nsRet,
 		apisecurity.ResourceType_Services:   svcRet,
 	}
 }
 
 func convertToErrCode(err error) apimodel.Code {
-	if errors.Is(err, model.ErrorTokenNotExist) {
+	if errors.Is(err, authcommon.ErrorTokenNotExist) {
 		return apimodel.Code_TokenNotExisted
 	}
-	if errors.Is(err, model.ErrorTokenDisabled) {
+	if errors.Is(err, authcommon.ErrorTokenDisabled) {
 		return apimodel.Code_TokenDisabled
 	}
 	return apimodel.Code_NotAllowedAccess

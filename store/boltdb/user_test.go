@@ -26,20 +26,20 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 )
 
-func createTestUsers(num int) []*model.User {
-	ret := make([]*model.User, 0, num)
+func createTestUsers(num int) []*authcommon.User {
+	ret := make([]*authcommon.User, 0, num)
 
 	for i := 0; i < num; i++ {
-		ret = append(ret, &model.User{
+		ret = append(ret, &authcommon.User{
 			ID:          fmt.Sprintf("user_%d", i),
 			Name:        fmt.Sprintf("user_%d", i),
 			Password:    fmt.Sprintf("user_%d", i),
 			Owner:       "polaris",
 			Source:      "Polaris",
-			Type:        model.SubAccountUserRole,
+			Type:        authcommon.SubAccountUserRole,
 			Token:       "polaris",
 			TokenEnable: true,
 			Valid:       true,
@@ -240,7 +240,7 @@ func Test_userStore_GetSubCount(t *testing.T) {
 			}
 		}
 
-		total, err := us.GetSubCount(&model.User{
+		total, err := us.GetSubCount(&authcommon.User{
 			ID: "polaris",
 		})
 
@@ -302,7 +302,7 @@ func Test_userStore_GetUsers(t *testing.T) {
 		admins := createTestUsers(1)
 		admins[0].ID = "admin"
 		admins[0].Name = "admin"
-		admins[0].Type = model.AdminUserRole
+		admins[0].Type = authcommon.AdminUserRole
 
 		if err := us.AddUser(admins[0]); err != nil {
 			t.Fatal(err)

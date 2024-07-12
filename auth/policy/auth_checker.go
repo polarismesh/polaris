@@ -25,7 +25,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
@@ -76,25 +76,25 @@ func (d *DefaultAuthChecker) IsOpenAuth() bool {
 }
 
 // AllowResourceOperate 是否允许资源的操作
-func (d *DefaultAuthChecker) AllowResourceOperate(ctx *model.AcquireContext, opInfo *model.ResourceOpInfo) bool {
+func (d *DefaultAuthChecker) AllowResourceOperate(ctx *authcommon.AcquireContext, opInfo *authcommon.ResourceOpInfo) bool {
 	// 如果鉴权能力没有开启，那就默认都可以进行编辑
 	if !d.IsOpenAuth() {
 		return true
 	}
-	attachVal, ok := ctx.GetAttachment(model.TokenDetailInfoKey)
+	attachVal, ok := ctx.GetAttachment(authcommon.TokenDetailInfoKey)
 	if !ok {
 		// TODO need log
 		return false
 	}
 	tokenInfo, ok := attachVal.(auth.OperatorInfo)
 
-	principal := model.Principal{
+	principal := authcommon.Principal{
 		PrincipalID: tokenInfo.OperatorID,
-		PrincipalRole: func() model.PrincipalType {
+		PrincipalRole: func() authcommon.PrincipalType {
 			if tokenInfo.IsUserToken {
-				return model.PrincipalUser
+				return authcommon.PrincipalUser
 			}
-			return model.PrincipalGroup
+			return authcommon.PrincipalGroup
 		}(),
 	}
 
@@ -103,7 +103,7 @@ func (d *DefaultAuthChecker) AllowResourceOperate(ctx *model.AcquireContext, opI
 }
 
 // CheckClientPermission 执行检查客户端动作判断是否有权限，并且对 RequestContext 注入操作者数据
-func (d *DefaultAuthChecker) CheckClientPermission(preCtx *model.AcquireContext) (bool, error) {
+func (d *DefaultAuthChecker) CheckClientPermission(preCtx *authcommon.AcquireContext) (bool, error) {
 	preCtx.SetFromClient()
 	if !d.IsOpenClientAuth() {
 		return true, nil
@@ -115,7 +115,7 @@ func (d *DefaultAuthChecker) CheckClientPermission(preCtx *model.AcquireContext)
 }
 
 // CheckConsolePermission 执行检查控制台动作判断是否有权限，并且对 RequestContext 注入操作者数据
-func (d *DefaultAuthChecker) CheckConsolePermission(preCtx *model.AcquireContext) (bool, error) {
+func (d *DefaultAuthChecker) CheckConsolePermission(preCtx *authcommon.AcquireContext) (bool, error) {
 	preCtx.SetFromConsole()
 	if !d.IsOpenConsoleAuth() {
 		return true, nil
@@ -123,34 +123,34 @@ func (d *DefaultAuthChecker) CheckConsolePermission(preCtx *model.AcquireContext
 	if d.IsOpenConsoleAuth() && !d.conf.ConsoleStrict {
 		preCtx.SetAllowAnonymous(true)
 	}
-	if preCtx.GetModule() == model.MaintainModule {
+	if preCtx.GetModule() == authcommon.MaintainModule {
 		return d.checkMaintainPermission(preCtx)
 	}
 	return d.CheckPermission(preCtx)
 }
 
 // CheckMaintainPermission 执行检查运维动作判断是否有权限
-func (d *DefaultAuthChecker) checkMaintainPermission(preCtx *model.AcquireContext) (bool, error) {
-	if preCtx.GetOperation() == model.Read {
+func (d *DefaultAuthChecker) checkMaintainPermission(preCtx *authcommon.AcquireContext) (bool, error) {
+	if preCtx.GetOperation() == authcommon.Read {
 		return true, nil
 	}
 
-	attachVal, ok := preCtx.GetAttachment(model.TokenDetailInfoKey)
+	attachVal, ok := preCtx.GetAttachment(authcommon.TokenDetailInfoKey)
 	if !ok {
-		return false, model.ErrorTokenNotExist
+		return false, authcommon.ErrorTokenNotExist
 	}
 	tokenInfo, ok := attachVal.(auth.OperatorInfo)
 	if !ok {
-		return false, model.ErrorTokenNotExist
+		return false, authcommon.ErrorTokenNotExist
 	}
 
 	if tokenInfo.Disable {
-		return false, model.ErrorTokenDisabled
+		return false, authcommon.ErrorTokenDisabled
 	}
 	if !tokenInfo.IsUserToken {
 		return false, errors.New("only user role can access maintain API")
 	}
-	if tokenInfo.Role != model.OwnerUserRole {
+	if tokenInfo.Role != authcommon.OwnerUserRole {
 		return false, errors.New("only owner account can access maintain API")
 	}
 	return true, nil
@@ -165,22 +165,22 @@ func (d *DefaultAuthChecker) checkMaintainPermission(preCtx *model.AcquireContex
 //				b. 写操作，快速失败
 //	step 3. 拉取token对应的操作者相关信息，注入到请求上下文中
 //	step 4. 进行权限检查
-func (d *DefaultAuthChecker) CheckPermission(authCtx *model.AcquireContext) (bool, error) {
+func (d *DefaultAuthChecker) CheckPermission(authCtx *authcommon.AcquireContext) (bool, error) {
 	if err := d.userSvr.CheckCredential(authCtx); err != nil {
 		return false, err
 	}
 
-	attachVal, ok := authCtx.GetAttachment(model.TokenDetailInfoKey)
+	attachVal, ok := authCtx.GetAttachment(authcommon.TokenDetailInfoKey)
 	if !ok {
-		return false, model.ErrorTokenNotExist
+		return false, authcommon.ErrorTokenNotExist
 	}
 	operatorInfo, ok := attachVal.(auth.OperatorInfo)
 	if !ok {
-		return false, model.ErrorTokenNotExist
+		return false, authcommon.ErrorTokenNotExist
 	}
 	// 这里需要检查当 token 被禁止的情况，如果 token 被禁止，无论是否可以操作目标资源，都无法进行写操作
 	if operatorInfo.Disable {
-		return false, model.ErrorTokenDisabled
+		return false, authcommon.ErrorTokenDisabled
 	}
 
 	log.Debug("[Auth][Checker] check permission args", utils.RequestID(authCtx.GetRequestContext()),
@@ -200,7 +200,7 @@ func (d *DefaultAuthChecker) CheckPermission(authCtx *model.AcquireContext) (boo
 }
 
 // doCheckPermission 执行权限检查
-func (d *DefaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext) (bool, error) {
+func (d *DefaultAuthChecker) doCheckPermission(authCtx *authcommon.AcquireContext) (bool, error) {
 
 	var checkNamespace, checkSvc, checkCfgGroup bool
 
@@ -209,9 +209,9 @@ func (d *DefaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext) (b
 	svcResEntries := reqRes[apisecurity.ResourceType_Services]
 	cfgResEntries := reqRes[apisecurity.ResourceType_ConfigGroups]
 
-	principleID, _ := authCtx.GetAttachments()[model.OperatorIDKey].(string)
-	principleType, _ := authCtx.GetAttachments()[model.OperatorPrincipalType].(model.PrincipalType)
-	p := model.Principal{
+	principleID, _ := authCtx.GetAttachments()[authcommon.OperatorIDKey].(string)
+	principleType, _ := authCtx.GetAttachments()[authcommon.OperatorPrincipalType].(authcommon.PrincipalType)
+	p := authcommon.Principal{
 		PrincipalID:   principleID,
 		PrincipalRole: principleType,
 	}
@@ -229,12 +229,12 @@ func (d *DefaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext) (b
 }
 
 // checkAction 检查操作是否和策略匹配
-func (d *DefaultAuthChecker) checkAction(principal model.Principal,
-	resType apisecurity.ResourceType, resources []model.ResourceEntry, ctx *model.AcquireContext) bool {
+func (d *DefaultAuthChecker) checkAction(principal authcommon.Principal,
+	resType apisecurity.ResourceType, resources []authcommon.ResourceEntry, ctx *authcommon.AcquireContext) bool {
 	// TODO 后续可针对读写操作进行鉴权, 并且可以针对具体的方法调用进行鉴权控制
 
 	switch ctx.GetOperation() {
-	case model.Read:
+	case authcommon.Read:
 		return true
 	default:
 		for _, entry := range resources {

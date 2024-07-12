@@ -23,7 +23,7 @@ import (
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -31,10 +31,10 @@ import (
 func (s *ServerAuthability) GetConfigFileReleaseHistories(ctx context.Context,
 	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
 
-	authCtx := s.collectConfigFileReleaseHistoryAuthContext(ctx, nil, model.Read, "GetConfigFileReleaseHistories")
+	authCtx := s.collectConfigFileReleaseHistoryAuthContext(ctx, nil, auth.Read, "GetConfigFileReleaseHistories")
 
 	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigBatchQueryResponseWithInfo(model.ConvertToErrCode(err), err.Error())
+		return api.NewConfigBatchQueryResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)

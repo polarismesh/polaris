@@ -32,7 +32,7 @@ import (
 	"github.com/polarismesh/polaris/cache"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	v1 "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	storemock "github.com/polarismesh/polaris/store/mock"
 )
@@ -40,13 +40,13 @@ import (
 type GroupTest struct {
 	ctrl *gomock.Controller
 
-	ownerOne *model.User
-	ownerTwo *model.User
+	ownerOne *authcommon.User
+	ownerTwo *authcommon.User
 
-	users     []*model.User
-	groups    []*model.UserGroupDetail
-	newGroups []*model.UserGroupDetail
-	allGroups []*model.UserGroupDetail
+	users     []*authcommon.User
+	groups    []*authcommon.UserGroupDetail
+	newGroups []*authcommon.UserGroupDetail
+	allGroups []*authcommon.UserGroupDetail
 
 	storage  *storemock.MockStore
 	cacheMgn *cache.CacheManager
@@ -104,7 +104,7 @@ func newGroupTest(t *testing.T) *GroupTest {
 				"salt": "polarismesh@2021",
 			},
 		},
-	}, storage, cacheMgn)
+	}, storage, nil, cacheMgn)
 	_ = cacheMgn.TestUpdate()
 	return &GroupTest{
 		ctrl:      ctrl,

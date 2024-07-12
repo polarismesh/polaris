@@ -12,6 +12,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	api "github.com/polarismesh/polaris/cache/api"
 	model "github.com/polarismesh/polaris/common/model"
+	auth "github.com/polarismesh/polaris/common/model/auth"
 	store "github.com/polarismesh/polaris/store"
 	model0 "github.com/polarismesh/specification/source/go/api/v1/model"
 	security "github.com/polarismesh/specification/source/go/api/v1/security"
@@ -742,9 +743,9 @@ func (mr *MockServiceCacheMockRecorder) GetServiceByName(name, namespace interfa
 }
 
 // GetServicesByFilter mocks base method.
-func (m *MockServiceCache) GetServicesByFilter(serviceFilters *api.ServiceArgs, instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.EnhancedService, error) {
+func (m *MockServiceCache) GetServicesByFilter(ctx context.Context, serviceFilters *api.ServiceArgs, instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.EnhancedService, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetServicesByFilter", serviceFilters, instanceFilters, offset, limit)
+	ret := m.ctrl.Call(m, "GetServicesByFilter", ctx, serviceFilters, instanceFilters, offset, limit)
 	ret0, _ := ret[0].(uint32)
 	ret1, _ := ret[1].([]*model.EnhancedService)
 	ret2, _ := ret[2].(error)
@@ -752,9 +753,9 @@ func (m *MockServiceCache) GetServicesByFilter(serviceFilters *api.ServiceArgs, 
 }
 
 // GetServicesByFilter indicates an expected call of GetServicesByFilter.
-func (mr *MockServiceCacheMockRecorder) GetServicesByFilter(serviceFilters, instanceFilters, offset, limit interface{}) *gomock.Call {
+func (mr *MockServiceCacheMockRecorder) GetServicesByFilter(ctx, serviceFilters, instanceFilters, offset, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesByFilter", reflect.TypeOf((*MockServiceCache)(nil).GetServicesByFilter), serviceFilters, instanceFilters, offset, limit)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesByFilter", reflect.TypeOf((*MockServiceCache)(nil).GetServicesByFilter), ctx, serviceFilters, instanceFilters, offset, limit)
 }
 
 // GetServicesCount mocks base method.
@@ -1397,6 +1398,22 @@ func (mr *MockFaultDetectCacheMockRecorder) Name() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockFaultDetectCache)(nil).Name))
 }
 
+// Query mocks base method.
+func (m *MockFaultDetectCache) Query(arg0 context.Context, arg1 *api.FaultDetectArgs) (uint32, []*model.FaultDetectRule, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Query", arg0, arg1)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.FaultDetectRule)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Query indicates an expected call of Query.
+func (mr *MockFaultDetectCacheMockRecorder) Query(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Query", reflect.TypeOf((*MockFaultDetectCache)(nil).Query), arg0, arg1)
+}
+
 // Update mocks base method.
 func (m *MockFaultDetectCache) Update() error {
 	m.ctrl.T.Helper()
@@ -1503,6 +1520,22 @@ func (m *MockLaneCache) Name() string {
 func (mr *MockLaneCacheMockRecorder) Name() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockLaneCache)(nil).Name))
+}
+
+// Query mocks base method.
+func (m *MockLaneCache) Query(arg0 context.Context, arg1 *api.LaneGroupArgs) (uint32, []*model.LaneGroupProto, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Query", arg0, arg1)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.LaneGroupProto)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Query indicates an expected call of Query.
+func (mr *MockLaneCacheMockRecorder) Query(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Query", reflect.TypeOf((*MockLaneCache)(nil).Query), arg0, arg1)
 }
 
 // Update mocks base method.
@@ -1684,9 +1717,9 @@ func (mr *MockRoutingConfigCacheMockRecorder) Name() *gomock.Call {
 }
 
 // QueryRoutingConfigsV2 mocks base method.
-func (m *MockRoutingConfigCache) QueryRoutingConfigsV2(args *api.RoutingArgs) (uint32, []*model.ExtendRouterConfig, error) {
+func (m *MockRoutingConfigCache) QueryRoutingConfigsV2(arg0 context.Context, arg1 *api.RoutingArgs) (uint32, []*model.ExtendRouterConfig, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "QueryRoutingConfigsV2", args)
+	ret := m.ctrl.Call(m, "QueryRoutingConfigsV2", arg0, arg1)
 	ret0, _ := ret[0].(uint32)
 	ret1, _ := ret[1].([]*model.ExtendRouterConfig)
 	ret2, _ := ret[2].(error)
@@ -1694,9 +1727,9 @@ func (m *MockRoutingConfigCache) QueryRoutingConfigsV2(args *api.RoutingArgs) (u
 }
 
 // QueryRoutingConfigsV2 indicates an expected call of QueryRoutingConfigsV2.
-func (mr *MockRoutingConfigCacheMockRecorder) QueryRoutingConfigsV2(args interface{}) *gomock.Call {
+func (mr *MockRoutingConfigCacheMockRecorder) QueryRoutingConfigsV2(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryRoutingConfigsV2", reflect.TypeOf((*MockRoutingConfigCache)(nil).QueryRoutingConfigsV2), args)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryRoutingConfigsV2", reflect.TypeOf((*MockRoutingConfigCache)(nil).QueryRoutingConfigsV2), arg0, arg1)
 }
 
 // Update mocks base method.
@@ -1834,9 +1867,9 @@ func (mr *MockRateLimitCacheMockRecorder) Name() *gomock.Call {
 }
 
 // QueryRateLimitRules mocks base method.
-func (m *MockRateLimitCache) QueryRateLimitRules(args api.RateLimitRuleArgs) (uint32, []*model.RateLimit, error) {
+func (m *MockRateLimitCache) QueryRateLimitRules(arg0 context.Context, arg1 api.RateLimitRuleArgs) (uint32, []*model.RateLimit, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "QueryRateLimitRules", args)
+	ret := m.ctrl.Call(m, "QueryRateLimitRules", arg0, arg1)
 	ret0, _ := ret[0].(uint32)
 	ret1, _ := ret[1].([]*model.RateLimit)
 	ret2, _ := ret[2].(error)
@@ -1844,9 +1877,9 @@ func (m *MockRateLimitCache) QueryRateLimitRules(args api.RateLimitRuleArgs) (ui
 }
 
 // QueryRateLimitRules indicates an expected call of QueryRateLimitRules.
-func (mr *MockRateLimitCacheMockRecorder) QueryRateLimitRules(args interface{}) *gomock.Call {
+func (mr *MockRateLimitCacheMockRecorder) QueryRateLimitRules(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryRateLimitRules", reflect.TypeOf((*MockRateLimitCache)(nil).QueryRateLimitRules), args)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryRateLimitRules", reflect.TypeOf((*MockRateLimitCache)(nil).QueryRateLimitRules), arg0, arg1)
 }
 
 // Update mocks base method.
@@ -2117,6 +2150,22 @@ func (m *MockCircuitBreakerCache) Name() string {
 func (mr *MockCircuitBreakerCacheMockRecorder) Name() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockCircuitBreakerCache)(nil).Name))
+}
+
+// Query mocks base method.
+func (m *MockCircuitBreakerCache) Query(arg0 context.Context, arg1 *api.CircuitBreakerRuleArgs) (uint32, []*model.CircuitBreakerRule, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Query", arg0, arg1)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.CircuitBreakerRule)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Query indicates an expected call of Query.
+func (mr *MockCircuitBreakerCacheMockRecorder) Query(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Query", reflect.TypeOf((*MockCircuitBreakerCache)(nil).Query), arg0, arg1)
 }
 
 // Update mocks base method.
@@ -2503,10 +2552,10 @@ func (mr *MockUserCacheMockRecorder) Close() *gomock.Call {
 }
 
 // GetAdmin mocks base method.
-func (m *MockUserCache) GetAdmin() *model.User {
+func (m *MockUserCache) GetAdmin() *auth.User {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAdmin")
-	ret0, _ := ret[0].(*model.User)
+	ret0, _ := ret[0].(*auth.User)
 	return ret0
 }
 
@@ -2517,10 +2566,10 @@ func (mr *MockUserCacheMockRecorder) GetAdmin() *gomock.Call {
 }
 
 // GetGroup mocks base method.
-func (m *MockUserCache) GetGroup(id string) *model.UserGroupDetail {
+func (m *MockUserCache) GetGroup(id string) *auth.UserGroupDetail {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGroup", id)
-	ret0, _ := ret[0].(*model.UserGroupDetail)
+	ret0, _ := ret[0].(*auth.UserGroupDetail)
 	return ret0
 }
 
@@ -2531,10 +2580,10 @@ func (mr *MockUserCacheMockRecorder) GetGroup(id interface{}) *gomock.Call {
 }
 
 // GetUserByID mocks base method.
-func (m *MockUserCache) GetUserByID(id string) *model.User {
+func (m *MockUserCache) GetUserByID(id string) *auth.User {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserByID", id)
-	ret0, _ := ret[0].(*model.User)
+	ret0, _ := ret[0].(*auth.User)
 	return ret0
 }
 
@@ -2545,10 +2594,10 @@ func (mr *MockUserCacheMockRecorder) GetUserByID(id interface{}) *gomock.Call {
 }
 
 // GetUserByName mocks base method.
-func (m *MockUserCache) GetUserByName(name, ownerName string) *model.User {
+func (m *MockUserCache) GetUserByName(name, ownerName string) *auth.User {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserByName", name, ownerName)
-	ret0, _ := ret[0].(*model.User)
+	ret0, _ := ret[0].(*auth.User)
 	return ret0
 }
 
@@ -2708,10 +2757,10 @@ func (mr *MockStrategyCacheMockRecorder) ForceSync() *gomock.Call {
 }
 
 // GetStrategyDetailsByGroupID mocks base method.
-func (m *MockStrategyCache) GetStrategyDetailsByGroupID(groupId string) []*model.StrategyDetail {
+func (m *MockStrategyCache) GetStrategyDetailsByGroupID(groupId string) []*auth.StrategyDetail {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStrategyDetailsByGroupID", groupId)
-	ret0, _ := ret[0].([]*model.StrategyDetail)
+	ret0, _ := ret[0].([]*auth.StrategyDetail)
 	return ret0
 }
 
@@ -2722,10 +2771,10 @@ func (mr *MockStrategyCacheMockRecorder) GetStrategyDetailsByGroupID(groupId int
 }
 
 // GetStrategyDetailsByUID mocks base method.
-func (m *MockStrategyCache) GetStrategyDetailsByUID(uid string) []*model.StrategyDetail {
+func (m *MockStrategyCache) GetStrategyDetailsByUID(uid string) []*auth.StrategyDetail {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStrategyDetailsByUID", uid)
-	ret0, _ := ret[0].([]*model.StrategyDetail)
+	ret0, _ := ret[0].([]*auth.StrategyDetail)
 	return ret0
 }
 
@@ -2750,7 +2799,7 @@ func (mr *MockStrategyCacheMockRecorder) Initialize(c interface{}) *gomock.Call 
 }
 
 // IsResourceEditable mocks base method.
-func (m *MockStrategyCache) IsResourceEditable(principal model.Principal, resType security.ResourceType, resId string) bool {
+func (m *MockStrategyCache) IsResourceEditable(principal auth.Principal, resType security.ResourceType, resId string) bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsResourceEditable", principal, resType, resId)
 	ret0, _ := ret[0].(bool)

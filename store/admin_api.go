@@ -20,7 +20,7 @@ package store
 import (
 	"time"
 
-	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/model/admin"
 )
 
 const (
@@ -34,7 +34,7 @@ type AdminStore interface {
 	// IsLeader whether it is leader node
 	IsLeader(key string) bool
 	// ListLeaderElections list all leaderelection
-	ListLeaderElections() ([]*model.LeaderElection, error)
+	ListLeaderElections() ([]*admin.LeaderElection, error)
 	// ReleaseLeaderElection force release leader status
 	ReleaseLeaderElection(key string) error
 	// BatchCleanDeletedInstances batch clean soft deleted instances

@@ -19,6 +19,7 @@ package model
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -33,6 +34,13 @@ import (
 
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
+)
+
+var (
+	// ErrorNoNamespace 没有找到对应的命名空间
+	ErrorNoNamespace error = errors.New("no such namespace")
+	// ErrorNoService 没有找到对应的服务
+	ErrorNoService error = errors.New("no such service")
 )
 
 func ExportToMap(exportTo []*wrappers.StringValue) map[string]struct{} {

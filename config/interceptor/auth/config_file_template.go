@@ -23,16 +23,16 @@ import (
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
 // GetAllConfigFileTemplates get all config file templates
 func (s *ServerAuthability) GetAllConfigFileTemplates(ctx context.Context) *apiconfig.ConfigBatchQueryResponse {
 	authCtx := s.collectConfigFileTemplateAuthContext(ctx,
-		[]*apiconfig.ConfigFileTemplate{}, model.Read, "GetAllConfigFileTemplates")
+		[]*apiconfig.ConfigFileTemplate{}, auth.Read, "GetAllConfigFileTemplates")
 	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileBatchQueryResponseWithMessage(model.ConvertToErrCode(err), err.Error())
+		return api.NewConfigFileBatchQueryResponseWithMessage(auth.ConvertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -43,9 +43,9 @@ func (s *ServerAuthability) GetAllConfigFileTemplates(ctx context.Context) *apic
 // GetConfigFileTemplate get config file template
 func (s *ServerAuthability) GetConfigFileTemplate(ctx context.Context, name string) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigFileTemplateAuthContext(ctx,
-		[]*apiconfig.ConfigFileTemplate{}, model.Read, "GetAllConfigFileTemplates")
+		[]*apiconfig.ConfigFileTemplate{}, auth.Read, "GetAllConfigFileTemplates")
 	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponseWithInfo(model.ConvertToErrCode(err), err.Error())
+		return api.NewConfigResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -58,9 +58,9 @@ func (s *ServerAuthability) CreateConfigFileTemplate(ctx context.Context,
 	template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
 
 	authCtx := s.collectConfigFileTemplateAuthContext(ctx,
-		[]*apiconfig.ConfigFileTemplate{template}, model.Create, "CreateConfigFileTemplate")
+		[]*apiconfig.ConfigFileTemplate{template}, auth.Create, "CreateConfigFileTemplate")
 	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponseWithInfo(model.ConvertToErrCode(err), err.Error())
+		return api.NewConfigResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()

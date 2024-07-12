@@ -25,14 +25,14 @@ import (
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
 // CreateRoutingConfigs creates routing configs
 func (svr *ServerAuthAbility) CreateRoutingConfigs(
 	ctx context.Context, reqs []*apitraffic.Routing) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, model.Create, "CreateRoutingConfigs")
+	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, authcommon.Create, "CreateRoutingConfigs")
 
 	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
@@ -48,7 +48,7 @@ func (svr *ServerAuthAbility) CreateRoutingConfigs(
 // DeleteRoutingConfigs deletes routing configs
 func (svr *ServerAuthAbility) DeleteRoutingConfigs(
 	ctx context.Context, reqs []*apitraffic.Routing) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, model.Delete, "DeleteRoutingConfigs")
+	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, authcommon.Delete, "DeleteRoutingConfigs")
 
 	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
@@ -64,7 +64,7 @@ func (svr *ServerAuthAbility) DeleteRoutingConfigs(
 // UpdateRoutingConfigs updates routing configs
 func (svr *ServerAuthAbility) UpdateRoutingConfigs(
 	ctx context.Context, reqs []*apitraffic.Routing) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, model.Modify, "UpdateRoutingConfigs")
+	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, authcommon.Modify, "UpdateRoutingConfigs")
 
 	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
@@ -80,7 +80,7 @@ func (svr *ServerAuthAbility) UpdateRoutingConfigs(
 // GetRoutingConfigs gets routing configs
 func (svr *ServerAuthAbility) GetRoutingConfigs(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
-	authCtx := svr.collectRouteRuleAuthContext(ctx, nil, model.Read, "GetRoutingConfigs")
+	authCtx := svr.collectRouteRuleAuthContext(ctx, nil, authcommon.Read, "GetRoutingConfigs")
 
 	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {

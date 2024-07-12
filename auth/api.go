@@ -25,28 +25,28 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	cachetypes "github.com/polarismesh/polaris/cache/api"
-	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/store"
 )
 
 // AuthChecker 权限管理通用接口定义
 type AuthChecker interface {
 	// CheckClientPermission 执行检查客户端动作判断是否有权限，并且对 RequestContext 注入操作者数据
-	CheckClientPermission(preCtx *model.AcquireContext) (bool, error)
+	CheckClientPermission(preCtx *auth.AcquireContext) (bool, error)
 	// CheckConsolePermission 执行检查控制台动作判断是否有权限，并且对 RequestContext 注入操作者数据
-	CheckConsolePermission(preCtx *model.AcquireContext) (bool, error)
+	CheckConsolePermission(preCtx *auth.AcquireContext) (bool, error)
 	// IsOpenConsoleAuth 返回是否开启了操作鉴权，可以用于前端查询
 	IsOpenConsoleAuth() bool
 	// IsOpenClientAuth
 	IsOpenClientAuth() bool
 	// AllowResourceOperate 是否允许资源的操作
-	AllowResourceOperate(ctx *model.AcquireContext, opInfo *model.ResourceOpInfo) bool
+	AllowResourceOperate(ctx *auth.AcquireContext, opInfo *auth.ResourceOpInfo) bool
 }
 
 // StrategyServer 策略相关操作
 type StrategyServer interface {
 	// Initialize 执行初始化动作
-	Initialize(options *Config, storage store.Store, cacheMgr cachetypes.CacheManager, userSvr UserServer) error
+	Initialize(*Config, store.Store, cachetypes.CacheManager, UserServer) error
 	// Name 策略管理server名称
 	Name() string
 	// CreateStrategy 创建策略
@@ -66,19 +66,19 @@ type StrategyServer interface {
 	// GetAuthChecker 获取鉴权检查器
 	GetAuthChecker() AuthChecker
 	// AfterResourceOperation 操作完资源的后置处理逻辑
-	AfterResourceOperation(afterCtx *model.AcquireContext) error
+	AfterResourceOperation(afterCtx *auth.AcquireContext) error
 }
 
 // UserServer 用户数据管理 server
 type UserServer interface {
 	// Initialize 初始化
-	Initialize(authOpt *Config, storage store.Store, cacheMgn cachetypes.CacheManager) error
+	Initialize(*Config, store.Store, StrategyServer, cachetypes.CacheManager) error
 	// Name 用户数据管理server名称
 	Name() string
 	// Login 登录动作
 	Login(req *apisecurity.LoginRequest) *apiservice.Response
 	// CheckCredential 检查当前操作用户凭证
-	CheckCredential(authCtx *model.AcquireContext) error
+	CheckCredential(authCtx *auth.AcquireContext) error
 	// UserOperator
 	UserOperator
 	// GroupOperator
@@ -151,7 +151,7 @@ type OperatorInfo struct {
 	// OwnerID 当前用户/用户组对应的 owner
 	OwnerID string
 	// Role 如果当前是 user token 的话，该值才能有信息
-	Role model.UserRoleType
+	Role auth.UserRoleType
 	// IsUserToken 当前 token 是否是 user 的 token
 	IsUserToken bool
 	// Disable 标识用户 token 是否被禁用
@@ -176,7 +176,7 @@ func IsEmptyOperator(t OperatorInfo) bool {
 
 // IsSubAccount 当前 token 对应的账户类型
 func IsSubAccount(t OperatorInfo) bool {
-	return t.Role == model.SubAccountUserRole
+	return t.Role == auth.SubAccountUserRole
 }
 
 func (t *OperatorInfo) String() string {

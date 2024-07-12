@@ -42,6 +42,7 @@ import (
 	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/common/version"
 	config_center "github.com/polarismesh/polaris/config"
@@ -439,8 +440,11 @@ func genContext() context.Context {
 	ctx := context.Background()
 	reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 	ctx = context.WithValue(ctx, utils.StringContext("request-id"), fmt.Sprintf("self-%d", time.Now().Nanosecond()))
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, model.NewAcquireContext(
-		model.WithOperation(model.Read), model.WithModule(model.BootstrapModule), model.WithRequestContext(reqCtx)))
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey,
+		authcommon.NewAcquireContext(
+			authcommon.WithOperation(authcommon.Read),
+			authcommon.WithModule(authcommon.BootstrapModule),
+			authcommon.WithRequestContext(reqCtx)))
 	return ctx
 }
 

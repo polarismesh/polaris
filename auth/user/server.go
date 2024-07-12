@@ -30,6 +30,7 @@ import (
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
@@ -75,7 +76,7 @@ func (svr *Server) Name() string {
 	return auth.DefaultUserMgnPluginName
 }
 
-func (svr *Server) Initialize(authOpt *auth.Config, storage store.Store, cacheMgr cachetypes.CacheManager) error {
+func (svr *Server) Initialize(authOpt *auth.Config, storage store.Store, policyMgr auth.StrategyServer, cacheMgr cachetypes.CacheManager) error {
 	svr.cacheMgr = cacheMgr
 	svr.storage = storage
 	if err := svr.parseOptions(authOpt); err != nil {
@@ -150,9 +151,9 @@ func (svr *Server) Login(req *apisecurity.LoginRequest) *apiservice.Response {
 	if err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 			return api.NewAuthResponseWithMsg(
-				apimodel.Code_NotAllowedAccess, model.ErrorWrongUsernameOrPassword.Error())
+				apimodel.Code_NotAllowedAccess, authcommon.ErrorWrongUsernameOrPassword.Error())
 		}
-		return api.NewAuthResponseWithMsg(apimodel.Code_ExecuteException, model.ErrorWrongUsernameOrPassword.Error())
+		return api.NewAuthResponseWithMsg(apimodel.Code_ExecuteException, authcommon.ErrorWrongUsernameOrPassword.Error())
 	}
 
 	return api.NewLoginResponse(apimodel.Code_ExecuteSuccess, &apisecurity.LoginResponse{
@@ -160,7 +161,7 @@ func (svr *Server) Login(req *apisecurity.LoginRequest) *apiservice.Response {
 		OwnerId: utils.NewStringValue(user.Owner),
 		Token:   utils.NewStringValue(user.Token),
 		Name:    utils.NewStringValue(user.Name),
-		Role:    utils.NewStringValue(model.UserRoleNames[user.Type]),
+		Role:    utils.NewStringValue(authcommon.UserRoleNames[user.Type]),
 	})
 }
 

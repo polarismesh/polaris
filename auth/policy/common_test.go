@@ -32,6 +32,7 @@ import (
 	"github.com/polarismesh/polaris/cache"
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	storemock "github.com/polarismesh/polaris/store/mock"
 )
@@ -116,9 +117,9 @@ func createMockService(namespaces []*model.Namespace) []*model.Service {
 	return services
 }
 
-func createMockStrategy(users []*model.User, groups []*model.UserGroupDetail, services []*model.Service) ([]*model.StrategyDetail, []*model.StrategyDetail) {
-	strategies := make([]*model.StrategyDetail, 0, len(users)+len(groups))
-	defaultStrategies := make([]*model.StrategyDetail, 0, len(users)+len(groups))
+func createMockStrategy(users []*authcommon.User, groups []*authcommon.UserGroupDetail, services []*model.Service) ([]*authcommon.StrategyDetail, []*authcommon.StrategyDetail) {
+	strategies := make([]*authcommon.StrategyDetail, 0, len(users)+len(groups))
+	defaultStrategies := make([]*authcommon.StrategyDetail, 0, len(users)+len(groups))
 
 	owner := ""
 	for i := 0; i < len(users); i++ {
@@ -133,20 +134,20 @@ func createMockStrategy(users []*model.User, groups []*model.UserGroupDetail, se
 		user := users[i]
 		service := services[i]
 		id := utils.NewUUID()
-		strategies = append(strategies, &model.StrategyDetail{
+		strategies = append(strategies, &authcommon.StrategyDetail{
 			ID:      id,
 			Name:    fmt.Sprintf("strategy_user_%s_%d", user.Name, i),
 			Action:  apisecurity.AuthAction_READ_WRITE.String(),
 			Comment: "",
-			Principals: []model.Principal{
+			Principals: []authcommon.Principal{
 				{
 					PrincipalID:   user.ID,
-					PrincipalRole: model.PrincipalUser,
+					PrincipalRole: authcommon.PrincipalUser,
 				},
 			},
 			Default: false,
 			Owner:   owner,
-			Resources: []model.StrategyResource{
+			Resources: []authcommon.StrategyResource{
 				{
 					StrategyID: id,
 					ResType:    int32(apisecurity.ResourceType_Namespaces),
@@ -164,20 +165,20 @@ func createMockStrategy(users []*model.User, groups []*model.UserGroupDetail, se
 			ModifyTime: time.Time{},
 		})
 
-		defaultStrategies = append(defaultStrategies, &model.StrategyDetail{
+		defaultStrategies = append(defaultStrategies, &authcommon.StrategyDetail{
 			ID:      id,
 			Name:    fmt.Sprintf("strategy_default_user_%s_%d", user.Name, i),
 			Action:  apisecurity.AuthAction_READ_WRITE.String(),
 			Comment: "",
-			Principals: []model.Principal{
+			Principals: []authcommon.Principal{
 				{
 					PrincipalID:   user.ID,
-					PrincipalRole: model.PrincipalUser,
+					PrincipalRole: authcommon.PrincipalUser,
 				},
 			},
 			Default: true,
 			Owner:   owner,
-			Resources: []model.StrategyResource{
+			Resources: []authcommon.StrategyResource{
 				{
 					StrategyID: id,
 					ResType:    int32(apisecurity.ResourceType_Namespaces),
@@ -200,20 +201,20 @@ func createMockStrategy(users []*model.User, groups []*model.UserGroupDetail, se
 		group := groups[i]
 		service := services[len(users)+i]
 		id := utils.NewUUID()
-		strategies = append(strategies, &model.StrategyDetail{
+		strategies = append(strategies, &authcommon.StrategyDetail{
 			ID:      id,
 			Name:    fmt.Sprintf("strategy_group_%s_%d", group.Name, i),
 			Action:  apisecurity.AuthAction_READ_WRITE.String(),
 			Comment: "",
-			Principals: []model.Principal{
+			Principals: []authcommon.Principal{
 				{
 					PrincipalID:   group.ID,
-					PrincipalRole: model.PrincipalGroup,
+					PrincipalRole: authcommon.PrincipalGroup,
 				},
 			},
 			Default: false,
 			Owner:   owner,
-			Resources: []model.StrategyResource{
+			Resources: []authcommon.StrategyResource{
 				{
 					StrategyID: id,
 					ResType:    int32(apisecurity.ResourceType_Namespaces),
@@ -231,20 +232,20 @@ func createMockStrategy(users []*model.User, groups []*model.UserGroupDetail, se
 			ModifyTime: time.Time{},
 		})
 
-		defaultStrategies = append(defaultStrategies, &model.StrategyDetail{
+		defaultStrategies = append(defaultStrategies, &authcommon.StrategyDetail{
 			ID:      id,
 			Name:    fmt.Sprintf("strategy_default_group_%s_%d", group.Name, i),
 			Action:  apisecurity.AuthAction_READ_WRITE.String(),
 			Comment: "",
-			Principals: []model.Principal{
+			Principals: []authcommon.Principal{
 				{
 					PrincipalID:   group.ID,
-					PrincipalRole: model.PrincipalGroup,
+					PrincipalRole: authcommon.PrincipalGroup,
 				},
 			},
 			Default: true,
 			Owner:   owner,
-			Resources: []model.StrategyResource{
+			Resources: []authcommon.StrategyResource{
 				{
 					StrategyID: id,
 					ResType:    int32(apisecurity.ResourceType_Namespaces),
@@ -278,8 +279,8 @@ func convertServiceSliceToMap(services []*model.Service) map[string]*model.Servi
 }
 
 // createMockUser 默认 users[0] 为 owner 用户
-func createMockUser(total int, prefix ...string) []*model.User {
-	users := make([]*model.User, 0, total)
+func createMockUser(total int, prefix ...string) []*authcommon.User {
+	users := make([]*authcommon.User, 0, total)
 
 	ownerId := utils.NewUUID()
 
@@ -295,7 +296,7 @@ func createMockUser(total int, prefix ...string) []*model.User {
 		}
 		pwd, _ := bcrypt.GenerateFromPassword([]byte("polaris"), bcrypt.DefaultCost)
 		token, _ := defaultuser.CreateToken(id, "", "polarismesh@2021")
-		users = append(users, &model.User{
+		users = append(users, &authcommon.User{
 			ID:       id,
 			Name:     fmt.Sprintf(nameTemp, i),
 			Password: string(pwd),
@@ -308,11 +309,11 @@ func createMockUser(total int, prefix ...string) []*model.User {
 			Source: "Polaris",
 			Mobile: "",
 			Email:  "",
-			Type: func() model.UserRoleType {
+			Type: func() authcommon.UserRoleType {
 				if id == ownerId {
-					return model.OwnerUserRole
+					return authcommon.OwnerUserRole
 				}
-				return model.SubAccountUserRole
+				return authcommon.SubAccountUserRole
 			}(),
 			Token:       token,
 			TokenEnable: true,
@@ -343,16 +344,16 @@ func createApiMockUser(total int, prefix ...string) []*apisecurity.User {
 	return users
 }
 
-func createMockUserGroup(users []*model.User) []*model.UserGroupDetail {
-	groups := make([]*model.UserGroupDetail, 0, len(users))
+func createMockUserGroup(users []*authcommon.User) []*authcommon.UserGroupDetail {
+	groups := make([]*authcommon.UserGroupDetail, 0, len(users))
 
 	for i := range users {
 		user := users[i]
 		id := utils.NewUUID()
 
 		token, _ := defaultuser.CreateToken("", id, "polarismesh@2021")
-		groups = append(groups, &model.UserGroupDetail{
-			UserGroup: &model.UserGroup{
+		groups = append(groups, &authcommon.UserGroupDetail{
+			UserGroup: &authcommon.UserGroup{
 				ID:          id,
 				Name:        fmt.Sprintf("test-group-%d", i),
 				Owner:       users[0].ID,
@@ -374,9 +375,9 @@ func createMockUserGroup(users []*model.User) []*model.UserGroupDetail {
 
 // createMockApiUserGroup
 func createMockApiUserGroup(users []*apisecurity.User) []*apisecurity.UserGroup {
-	musers := make([]*model.User, 0, len(users))
+	musers := make([]*authcommon.User, 0, len(users))
 	for i := range users {
-		musers = append(musers, &model.User{
+		musers = append(musers, &authcommon.User{
 			ID: users[i].GetId().GetValue(),
 		})
 	}

@@ -18,6 +18,7 @@
 package service
 
 import (
+	"context"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -353,4 +354,9 @@ func anyToSelector(data *anypb.Any, msg proto.Message) error {
 		return err
 	}
 	return nil
+}
+
+// Query implements api.LaneCache.
+func (lc *LaneCache) Query(context.Context, *types.LaneGroupArgs) (uint32, []*model.LaneGroupProto, error) {
+	panic("unimplemented")
 }

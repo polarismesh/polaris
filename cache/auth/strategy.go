@@ -27,7 +27,7 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	types "github.com/polarismesh/polaris/cache/api"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
@@ -41,7 +41,7 @@ type strategyCache struct {
 	*types.BaseCache
 
 	storage          store.Store
-	strategys        *utils.SyncMap[string, *model.StrategyDetailCache]
+	strategys        *utils.SyncMap[string, *authcommon.StrategyDetailCache]
 	uid2Strategy     *utils.SyncMap[string, *utils.SyncSet[string]]
 	groupid2Strategy *utils.SyncMap[string, *utils.SyncSet[string]]
 
@@ -64,7 +64,7 @@ func NewStrategyCache(storage store.Store, cacheMgr types.CacheManager) types.St
 
 func (sc *strategyCache) Initialize(c map[string]interface{}) error {
 	sc.userCache = sc.BaseCache.CacheMgr.GetCacher(types.CacheUser).(*userCache)
-	sc.strategys = utils.NewSyncMap[string, *model.StrategyDetailCache]()
+	sc.strategys = utils.NewSyncMap[string, *authcommon.StrategyDetailCache]()
 	sc.uid2Strategy = utils.NewSyncMap[string, *utils.SyncSet[string]]()
 	sc.groupid2Strategy = utils.NewSyncMap[string, *utils.SyncSet[string]]()
 	sc.namespace2Strategy = utils.NewSyncMap[string, *utils.SyncSet[string]]()
@@ -109,7 +109,7 @@ func (sc *strategyCache) realUpdate() (map[string]time.Time, int64, error) {
 // setStrategys 处理策略的数据更新情况
 // step 1. 先处理resource以及principal的数据更新情况（主要是为了能够获取到新老数据进行对比计算）
 // step 2. 处理真正的 strategy 的缓存更新
-func (sc *strategyCache) setStrategys(strategies []*model.StrategyDetail) (map[string]time.Time, int, int, int) {
+func (sc *strategyCache) setStrategys(strategies []*authcommon.StrategyDetail) (map[string]time.Time, int, int, int) {
 	var add, remove, update int
 
 	sc.handlerResourceStrategy(strategies)
@@ -138,20 +138,20 @@ func (sc *strategyCache) setStrategys(strategies []*model.StrategyDetail) (map[s
 	return map[string]time.Time{sc.Name(): time.Unix(lastMtime, 0)}, add, update, remove
 }
 
-func buildEnchanceStrategyDetail(strategy *model.StrategyDetail) *model.StrategyDetailCache {
-	users := make(map[string]model.Principal, 0)
-	groups := make(map[string]model.Principal, 0)
+func buildEnchanceStrategyDetail(strategy *authcommon.StrategyDetail) *authcommon.StrategyDetailCache {
+	users := make(map[string]authcommon.Principal, 0)
+	groups := make(map[string]authcommon.Principal, 0)
 
 	for index := range strategy.Principals {
 		principal := strategy.Principals[index]
-		if principal.PrincipalRole == model.PrincipalUser {
+		if principal.PrincipalRole == authcommon.PrincipalUser {
 			users[principal.PrincipalID] = principal
 		} else {
 			groups[principal.PrincipalID] = principal
 		}
 	}
 
-	return &model.StrategyDetailCache{
+	return &authcommon.StrategyDetailCache{
 		StrategyDetail: strategy,
 		UserPrincipal:  users,
 		GroupPrincipal: groups,
@@ -175,7 +175,7 @@ func (sc *strategyCache) writeSet(linkContainers *utils.SyncMap[string, *utils.S
 
 // handlerResourceStrategy 处理资源视角下策略的缓存
 // 根据新老策略的资源列表比对，计算出哪些资源不在和该策略存在关联关系，哪些资源新增了相关的策略
-func (sc *strategyCache) handlerResourceStrategy(strategies []*model.StrategyDetail) {
+func (sc *strategyCache) handlerResourceStrategy(strategies []*authcommon.StrategyDetail) {
 	operateLink := func(resType int32, resId, strategyId string, remove bool) {
 		switch resType {
 		case int32(apisecurity.ResourceType_Namespaces):
@@ -192,7 +192,7 @@ func (sc *strategyCache) handlerResourceStrategy(strategies []*model.StrategyDet
 		addRes := rule.Resources
 
 		if oldRule, exist := sc.strategys.Load(rule.ID); exist {
-			delRes := make([]model.StrategyResource, 0, 8)
+			delRes := make([]authcommon.StrategyResource, 0, 8)
 			// 计算前后对比， resource 的变化
 			newRes := make(map[string]struct{}, len(addRes))
 			for i := range addRes {
@@ -226,14 +226,14 @@ func (sc *strategyCache) handlerResourceStrategy(strategies []*model.StrategyDet
 }
 
 // handlerPrincipalStrategy
-func (sc *strategyCache) handlerPrincipalStrategy(strategies []*model.StrategyDetail) {
+func (sc *strategyCache) handlerPrincipalStrategy(strategies []*authcommon.StrategyDetail) {
 	for index := range strategies {
 		rule := strategies[index]
 		// 计算 uid -> auth rule
 		principals := rule.Principals
 
 		if oldRule, exist := sc.strategys.Load(rule.ID); exist {
-			delMembers := make([]model.Principal, 0, 8)
+			delMembers := make([]authcommon.Principal, 0, 8)
 			// 计算前后对比， principal 的变化
 			newRes := make(map[string]struct{}, len(principals))
 			for i := range principals {
@@ -268,17 +268,17 @@ func (sc *strategyCache) handlerPrincipalStrategy(strategies []*model.StrategyDe
 	}
 }
 
-func (sc *strategyCache) removePrincipalLink(principal model.Principal, rule *model.StrategyDetail) {
+func (sc *strategyCache) removePrincipalLink(principal authcommon.Principal, rule *authcommon.StrategyDetail) {
 	linkContainers := sc.uid2Strategy
-	if principal.PrincipalRole != model.PrincipalUser {
+	if principal.PrincipalRole != authcommon.PrincipalUser {
 		linkContainers = sc.groupid2Strategy
 	}
 	sc.writeSet(linkContainers, principal.PrincipalID, rule.ID, true)
 }
 
-func (sc *strategyCache) addPrincipalLink(principal model.Principal, rule *model.StrategyDetail) {
+func (sc *strategyCache) addPrincipalLink(principal authcommon.Principal, rule *authcommon.StrategyDetail) {
 	linkContainers := sc.uid2Strategy
-	if principal.PrincipalRole != model.PrincipalUser {
+	if principal.PrincipalRole != authcommon.PrincipalUser {
 		linkContainers = sc.groupid2Strategy
 	}
 	sc.writeSet(linkContainers, principal.PrincipalID, rule.ID, false)
@@ -286,7 +286,7 @@ func (sc *strategyCache) addPrincipalLink(principal model.Principal, rule *model
 
 func (sc *strategyCache) Clear() error {
 	sc.BaseCache.Clear()
-	sc.strategys = utils.NewSyncMap[string, *model.StrategyDetailCache]()
+	sc.strategys = utils.NewSyncMap[string, *authcommon.StrategyDetailCache]()
 	sc.uid2Strategy = utils.NewSyncMap[string, *utils.SyncSet[string]]()
 	sc.groupid2Strategy = utils.NewSyncMap[string, *utils.SyncSet[string]]()
 	sc.namespace2Strategy = utils.NewSyncMap[string, *utils.SyncSet[string]]()
@@ -302,7 +302,7 @@ func (sc *strategyCache) Name() string {
 
 // 对于 check 逻辑，如果是计算 * 策略，则必须要求 * 资源下必须有策略
 // 如果是具体的资源ID，则该资源下不必有策略，如果没有策略就认为这个资源是可以被任何人编辑的
-func (sc *strategyCache) checkResourceEditable(strategIds *utils.SyncSet[string], principal model.Principal, mustCheck bool) bool {
+func (sc *strategyCache) checkResourceEditable(strategIds *utils.SyncSet[string], principal authcommon.Principal, mustCheck bool) bool {
 	// 是否可以编辑
 	editable := false
 	// 是否真的包含策略
@@ -316,7 +316,7 @@ func (sc *strategyCache) checkResourceEditable(strategIds *utils.SyncSet[string]
 	strategIds.Range(func(strategyId string) {
 		isCheck = true
 		if rule, ok := sc.strategys.Load(strategyId); ok {
-			if principal.PrincipalRole == model.PrincipalUser {
+			if principal.PrincipalRole == authcommon.PrincipalUser {
 				_, exist := rule.UserPrincipal[principal.PrincipalID]
 				editable = editable || exist
 			} else {
@@ -332,7 +332,7 @@ func (sc *strategyCache) checkResourceEditable(strategIds *utils.SyncSet[string]
 // IsResourceEditable 判断当前资源是否可以操作
 // 这里需要考虑两种情况，一种是 “ * ” 策略，另一种是明确指出了具体的资源ID的策略
 func (sc *strategyCache) IsResourceEditable(
-	principal model.Principal, resType apisecurity.ResourceType, resId string) bool {
+	principal authcommon.Principal, resType apisecurity.ResourceType, resId string) bool {
 	var (
 		valAll, val *utils.SyncSet[string]
 		ok          bool
@@ -354,14 +354,14 @@ func (sc *strategyCache) IsResourceEditable(
 		return true
 	}
 
-	principals := make([]model.Principal, 0, 4)
+	principals := make([]authcommon.Principal, 0, 4)
 	principals = append(principals, principal)
-	if principal.PrincipalRole == model.PrincipalUser {
+	if principal.PrincipalRole == authcommon.PrincipalUser {
 		groupids := sc.userCache.GetUserLinkGroupIds(principal.PrincipalID)
 		for i := range groupids {
-			principals = append(principals, model.Principal{
+			principals = append(principals, authcommon.Principal{
 				PrincipalID:   groupids[i],
-				PrincipalRole: model.PrincipalGroup,
+				PrincipalRole: authcommon.PrincipalGroup,
 			})
 		}
 	}
@@ -380,15 +380,15 @@ func (sc *strategyCache) IsResourceEditable(
 	return false
 }
 
-func (sc *strategyCache) GetStrategyDetailsByUID(uid string) []*model.StrategyDetail {
+func (sc *strategyCache) GetStrategyDetailsByUID(uid string) []*authcommon.StrategyDetail {
 	return sc.getStrategyDetails(uid, "")
 }
 
-func (sc *strategyCache) GetStrategyDetailsByGroupID(groupid string) []*model.StrategyDetail {
+func (sc *strategyCache) GetStrategyDetailsByGroupID(groupid string) []*authcommon.StrategyDetail {
 	return sc.getStrategyDetails("", groupid)
 }
 
-func (sc *strategyCache) getStrategyDetails(uid string, gid string) []*model.StrategyDetail {
+func (sc *strategyCache) getStrategyDetails(uid string, gid string) []*authcommon.StrategyDetail {
 	var (
 		strategyIds []string
 	)
@@ -406,7 +406,7 @@ func (sc *strategyCache) getStrategyDetails(uid string, gid string) []*model.Str
 		strategyIds = sets.ToSlice()
 	}
 
-	result := make([]*model.StrategyDetail, 0, 16)
+	result := make([]*authcommon.StrategyDetail, 0, 16)
 	if len(strategyIds) > 0 {
 		for i := range strategyIds {
 			strategy, ok := sc.strategys.Load(strategyIds[i])

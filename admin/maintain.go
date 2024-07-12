@@ -31,12 +31,13 @@ import (
 	connlimit "github.com/polarismesh/polaris/common/conn/limit"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/model/admin"
 	commonstore "github.com/polarismesh/polaris/common/store"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 )
 
-func (s *Server) GetServerConnections(_ context.Context, req *ConnReq) (*ConnCountResp, error) {
+func (s *Server) GetServerConnections(_ context.Context, req *admin.ConnReq) (*admin.ConnCountResp, error) {
 	if req.Protocol == "" {
 		return nil, errors.New("missing param protocol")
 	}
@@ -46,7 +47,7 @@ func (s *Server) GetServerConnections(_ context.Context, req *ConnReq) (*ConnCou
 		return nil, errors.New("not found the protocol")
 	}
 
-	var resp = ConnCountResp{
+	var resp = admin.ConnCountResp{
 		Protocol: req.Protocol,
 		Total:    lis.GetListenerConnCount(),
 		Host:     map[string]int32{},
@@ -63,7 +64,7 @@ func (s *Server) GetServerConnections(_ context.Context, req *ConnReq) (*ConnCou
 	return &resp, nil
 }
 
-func (s *Server) GetServerConnStats(_ context.Context, req *ConnReq) (*ConnStatsResp, error) {
+func (s *Server) GetServerConnStats(_ context.Context, req *admin.ConnReq) (*admin.ConnStatsResp, error) {
 	if req.Protocol == "" {
 		return nil, errors.New("missing param protocol")
 	}
@@ -73,7 +74,7 @@ func (s *Server) GetServerConnStats(_ context.Context, req *ConnReq) (*ConnStats
 		return nil, errors.New("not found the protocol")
 	}
 
-	var resp ConnStatsResp
+	var resp admin.ConnStatsResp
 
 	resp.Protocol = req.Protocol
 	resp.ActiveConnTotal = lis.GetListenerConnCount()
@@ -100,7 +101,7 @@ func (s *Server) GetServerConnStats(_ context.Context, req *ConnReq) (*ConnStats
 	return &resp, nil
 }
 
-func (s *Server) CloseConnections(_ context.Context, reqs []ConnReq) error {
+func (s *Server) CloseConnections(_ context.Context, reqs []admin.ConnReq) error {
 	for _, entry := range reqs {
 		listener := connlimit.GetLimitListener(entry.Protocol)
 		if listener == nil {
@@ -172,11 +173,11 @@ func (s *Server) GetLastHeartbeat(_ context.Context, req *apiservice.Instance) *
 	return s.healthCheckServer.GetLastHeartbeat(req)
 }
 
-func (s *Server) GetLogOutputLevel(_ context.Context) ([]ScopeLevel, error) {
+func (s *Server) GetLogOutputLevel(_ context.Context) ([]admin.ScopeLevel, error) {
 	scopes := commonlog.Scopes()
-	out := make([]ScopeLevel, 0, len(scopes))
+	out := make([]admin.ScopeLevel, 0, len(scopes))
 	for k := range scopes {
-		out = append(out, ScopeLevel{
+		out = append(out, admin.ScopeLevel{
 			Name:  k,
 			Level: scopes[k].GetOutputLevel().Name(),
 		})
@@ -189,7 +190,7 @@ func (s *Server) SetLogOutputLevel(_ context.Context, scope string, level string
 	return commonlog.SetLogOutputLevel(scope, level)
 }
 
-func (s *Server) ListLeaderElections(_ context.Context) ([]*model.LeaderElection, error) {
+func (s *Server) ListLeaderElections(_ context.Context) ([]*admin.LeaderElection, error) {
 	return s.storage.ListLeaderElections()
 }
 

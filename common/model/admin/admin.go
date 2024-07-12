@@ -15,9 +15,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package model
+package admin
 
-import "time"
+import (
+	"time"
+
+	connlimit "github.com/polarismesh/polaris/common/conn/limit"
+)
 
 // LeaderElection leader election info
 type LeaderElection struct {
@@ -28,4 +32,30 @@ type LeaderElection struct {
 	Mtime      int64
 	ModifyTime time.Time
 	Valid      bool
+}
+
+type ConnReq struct {
+	Protocol string
+	Host     string
+	Port     int
+	Amount   int
+}
+
+type ConnCountResp struct {
+	Protocol string
+	Total    int32
+	Host     map[string]int32
+}
+
+type ConnStatsResp struct {
+	Protocol        string
+	ActiveConnTotal int32
+	StatsTotal      int
+	StatsSize       int
+	Stats           []*connlimit.HostConnStat
+}
+
+type ScopeLevel struct {
+	Name  string
+	Level string
 }

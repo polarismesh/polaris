@@ -23,8 +23,8 @@ import (
 	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
-	"github.com/polarismesh/polaris/admin"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/model/admin"
 )
 
 var (
@@ -115,7 +115,7 @@ func EnrichListLeaderElectionsApiDocs(r *restful.RouteBuilder) *restful.RouteBui
 	return r.
 		Doc("获取选主的结果").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
-		Returns(0, "", []model.LeaderElection{})
+		Returns(0, "", []admin.LeaderElection{})
 }
 
 func EnrichReleaseLeaderElectionApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {

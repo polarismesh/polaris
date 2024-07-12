@@ -26,7 +26,7 @@ import (
 	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
@@ -76,7 +76,7 @@ type userStore struct {
 }
 
 // AddUser 添加用户
-func (us *userStore) AddUser(user *model.User) error {
+func (us *userStore) AddUser(user *authcommon.User) error {
 
 	initUser(user)
 
@@ -88,7 +88,7 @@ func (us *userStore) AddUser(user *model.User) error {
 	return us.addUser(user)
 }
 
-func (us *userStore) addUser(user *model.User) error {
+func (us *userStore) addUser(user *authcommon.User) error {
 	proxy, err := us.handler.StartTx()
 	if err != nil {
 		return err
@@ -110,7 +110,7 @@ func (us *userStore) addUser(user *model.User) error {
 	}
 
 	// 添加用户的默认策略
-	if err := createDefaultStrategy(tx, model.PrincipalUser, user.ID, user.Name, owner); err != nil {
+	if err := createDefaultStrategy(tx, authcommon.PrincipalUser, user.ID, user.Name, owner); err != nil {
 		log.Error("[Store][User] create user default strategy fail", zap.Error(err),
 			zap.String("name", user.Name))
 		return err
@@ -124,7 +124,7 @@ func (us *userStore) addUser(user *model.User) error {
 	return nil
 }
 
-func (us *userStore) addUserMain(tx *bolt.Tx, user *model.User) error {
+func (us *userStore) addUserMain(tx *bolt.Tx, user *authcommon.User) error {
 	// 添加用户信息
 	if err := saveValue(tx, tblUser, user.ID, converToUserStore(user)); err != nil {
 		log.Error("[Store][User] save user fail", zap.Error(err), zap.String("name", user.Name))
@@ -134,7 +134,7 @@ func (us *userStore) addUserMain(tx *bolt.Tx, user *model.User) error {
 }
 
 // UpdateUser
-func (us *userStore) UpdateUser(user *model.User) error {
+func (us *userStore) UpdateUser(user *authcommon.User) error {
 	if user.ID == "" || user.Token == "" {
 		return store.NewStatusError(store.EmptyParamsErr, "update user missing some params")
 	}
@@ -158,7 +158,7 @@ func (us *userStore) UpdateUser(user *model.User) error {
 }
 
 // DeleteUser 删除用户
-func (us *userStore) DeleteUser(user *model.User) error {
+func (us *userStore) DeleteUser(user *authcommon.User) error {
 	if user.ID == "" {
 		return store.NewStatusError(store.EmptyParamsErr, "delete user missing some params")
 	}
@@ -166,7 +166,7 @@ func (us *userStore) DeleteUser(user *model.User) error {
 	return us.deleteUser(user)
 }
 
-func (us *userStore) deleteUser(user *model.User) error {
+func (us *userStore) deleteUser(user *authcommon.User) error {
 	proxy, err := us.handler.StartTx()
 	if err != nil {
 		return err
@@ -191,7 +191,7 @@ func (us *userStore) deleteUser(user *model.User) error {
 		owner = user.ID
 	}
 
-	if err := cleanLinkStrategy(tx, model.PrincipalUser, user.ID, user.Owner); err != nil {
+	if err := cleanLinkStrategy(tx, authcommon.PrincipalUser, user.ID, user.Owner); err != nil {
 		return err
 	}
 
@@ -203,7 +203,7 @@ func (us *userStore) deleteUser(user *model.User) error {
 }
 
 // GetUser 获取用户
-func (us *userStore) GetUser(id string) (*model.User, error) {
+func (us *userStore) GetUser(id string) (*authcommon.User, error) {
 	if id == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, "get user missing some params")
 	}
@@ -221,7 +221,7 @@ func (us *userStore) GetUser(id string) (*model.User, error) {
 }
 
 // GetUser 获取用户
-func (us *userStore) getUser(tx *bolt.Tx, id string) (*model.User, error) {
+func (us *userStore) getUser(tx *bolt.Tx, id string) (*authcommon.User, error) {
 	if id == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, "get user missing id params")
 	}
@@ -243,7 +243,7 @@ func (us *userStore) getUser(tx *bolt.Tx, id string) (*model.User, error) {
 }
 
 // GetUserByName 获取用户
-func (us *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
+func (us *userStore) GetUserByName(name, ownerId string) (*authcommon.User, error) {
 	if name == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, "get user missing name params")
 	}
@@ -285,7 +285,7 @@ func (us *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
 }
 
 // GetUserByIds 通过用户ID批量获取用户
-func (us *userStore) GetUserByIds(ids []string) ([]*model.User, error) {
+func (us *userStore) GetUserByIds(ids []string) ([]*authcommon.User, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
@@ -299,7 +299,7 @@ func (us *userStore) GetUserByIds(ids []string) ([]*model.User, error) {
 		return nil, nil
 	}
 
-	users := make([]*model.User, 0, len(ids))
+	users := make([]*authcommon.User, 0, len(ids))
 	for k := range ret {
 		user := ret[k].(*userForStore)
 		if !user.Valid {
@@ -312,7 +312,7 @@ func (us *userStore) GetUserByIds(ids []string) ([]*model.User, error) {
 }
 
 // GetSubCount 获取子账户的个数
-func (us *userStore) GetSubCount(user *model.User) (uint32, error) {
+func (us *userStore) GetSubCount(user *authcommon.User) (uint32, error) {
 	ownerId := user.ID
 	ret, err := us.handler.LoadValuesByFilter(tblUser, []string{UserFieldOwner, UserFieldValid}, &userForStore{},
 		func(m map[string]interface{}) bool {
@@ -334,7 +334,7 @@ func (us *userStore) GetSubCount(user *model.User) (uint32, error) {
 }
 
 // GetUsers 获取用户列表
-func (us *userStore) GetUsers(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.User, error) {
+func (us *userStore) GetUsers(filters map[string]string, offset uint32, limit uint32) (uint32, []*authcommon.User, error) {
 	if _, ok := filters["group_id"]; ok {
 		return us.getGroupUsers(filters, offset, limit)
 	}
@@ -346,7 +346,7 @@ func (us *userStore) GetUsers(filters map[string]string, offset uint32, limit ui
 // "name":   1,
 // "owner":  1,
 // "source": 1,
-func (us *userStore) getUsers(filters map[string]string, offset uint32, limit uint32) (uint32, []*model.User, error) {
+func (us *userStore) getUsers(filters map[string]string, offset uint32, limit uint32) (uint32, []*authcommon.User, error) {
 	fields := []string{UserFieldID, UserFieldName, UserFieldOwner, UserFieldSource, UserFieldValid, UserFieldType}
 	ret, err := us.handler.LoadValuesByFilter(tblUser, fields, &userForStore{},
 		func(m map[string]interface{}) bool {
@@ -363,7 +363,7 @@ func (us *userStore) getUsers(filters map[string]string, offset uint32, limit ui
 			saveType, _ := m[UserFieldType].(int64)
 
 			// 超级账户不做展示
-			if model.UserRoleType(saveType) == model.AdminUserRole &&
+			if authcommon.UserRoleType(saveType) == authcommon.AdminUserRole &&
 				strings.Compare("true", filters["hide_admin"]) == 0 {
 				return false
 			}
@@ -414,7 +414,7 @@ func (us *userStore) getUsers(filters map[string]string, offset uint32, limit ui
 
 // getGroupUsers 获取某个用户组下的所有用户列表数据信息
 func (us *userStore) getGroupUsers(filters map[string]string, offset uint32, limit uint32) (uint32,
-	[]*model.User, error) {
+	[]*authcommon.User, error) {
 
 	groupId := filters["group_id"]
 	delete(filters, "group_id")
@@ -448,7 +448,7 @@ func (us *userStore) getGroupUsers(filters map[string]string, offset uint32, lim
 			return false
 		}
 
-		if model.UserRoleType(user.Type) == model.AdminUserRole {
+		if authcommon.UserRoleType(user.Type) == authcommon.AdminUserRole {
 			return false
 		}
 
@@ -491,7 +491,7 @@ func (us *userStore) getGroupUsers(filters map[string]string, offset uint32, lim
 }
 
 // GetUsersForCache 获取所有用户信息
-func (us *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*model.User, error) {
+func (us *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*authcommon.User, error) {
 	ret, err := us.handler.LoadValuesByFilter(tblUser, []string{UserFieldModifyTime}, &userForStore{},
 		func(m map[string]interface{}) bool {
 			mt := m[UserFieldModifyTime].(time.Time)
@@ -503,7 +503,7 @@ func (us *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mod
 		return nil, err
 	}
 
-	users := make([]*model.User, 0, len(ret))
+	users := make([]*authcommon.User, 0, len(ret))
 	for k := range ret {
 		val := ret[k]
 		users = append(users, converToUserModel(val.(*userForStore)))
@@ -513,8 +513,8 @@ func (us *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mod
 }
 
 // doPage 进行分页
-func doUserPage(ret map[string]interface{}, offset, limit uint32) []*model.User {
-	users := make([]*model.User, 0, len(ret))
+func doUserPage(ret map[string]interface{}, offset, limit uint32) []*authcommon.User {
+	users := make([]*authcommon.User, 0, len(ret))
 	beginIndex := offset
 	endIndex := beginIndex + limit
 	totalCount := uint32(len(ret))
@@ -542,7 +542,7 @@ func doUserPage(ret map[string]interface{}, offset, limit uint32) []*model.User 
 	return users[beginIndex:endIndex]
 }
 
-func converToUserStore(user *model.User) *userForStore {
+func converToUserStore(user *authcommon.User) *userForStore {
 	return &userForStore{
 		ID:          user.ID,
 		Name:        user.Name,
@@ -559,14 +559,14 @@ func converToUserStore(user *model.User) *userForStore {
 	}
 }
 
-func converToUserModel(user *userForStore) *model.User {
-	return &model.User{
+func converToUserModel(user *userForStore) *authcommon.User {
+	return &authcommon.User{
 		ID:          user.ID,
 		Name:        user.Name,
 		Password:    user.Password,
 		Owner:       user.Owner,
 		Source:      user.Source,
-		Type:        model.UserRoleType(user.Type),
+		Type:        authcommon.UserRoleType(user.Type),
 		Token:       user.Token,
 		TokenEnable: user.TokenEnable,
 		Valid:       user.Valid,
@@ -576,7 +576,7 @@ func converToUserModel(user *userForStore) *model.User {
 	}
 }
 
-func initUser(user *model.User) {
+func initUser(user *authcommon.User) {
 	if user != nil {
 		tn := time.Now()
 		user.Valid = true

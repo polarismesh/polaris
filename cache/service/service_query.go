@@ -18,6 +18,7 @@
 package service
 
 import (
+	"context"
 	"sort"
 	"strings"
 
@@ -40,7 +41,7 @@ func (sc *serviceCache) forceUpdate() error {
 }
 
 // GetServicesByFilter 通过filter在缓存中进行服务过滤
-func (sc *serviceCache) GetServicesByFilter(serviceFilters *types.ServiceArgs,
+func (sc *serviceCache) GetServicesByFilter(ctx context.Context, serviceFilters *types.ServiceArgs,
 	instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.EnhancedService, error) {
 
 	if err := sc.forceUpdate(); err != nil {

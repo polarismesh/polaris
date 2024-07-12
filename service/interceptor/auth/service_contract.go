@@ -23,7 +23,7 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -38,7 +38,7 @@ func (svr *ServerAuthAbility) CreateServiceContracts(ctx context.Context,
 		})
 	}
 
-	authCtx := svr.collectServiceAuthContext(ctx, services, model.Create, "CreateServiceContracts")
+	authCtx := svr.collectServiceAuthContext(ctx, services, authcommon.Create, "CreateServiceContracts")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
@@ -51,7 +51,7 @@ func (svr *ServerAuthAbility) CreateServiceContracts(ctx context.Context,
 // GetServiceContracts .
 func (svr *ServerAuthAbility) GetServiceContracts(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
-	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServiceContracts")
+	authCtx := svr.collectServiceAuthContext(ctx, nil, authcommon.Read, "GetServiceContracts")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchQueryResponse(convertToErrCode(err))
 	}
@@ -65,7 +65,7 @@ func (svr *ServerAuthAbility) GetServiceContracts(ctx context.Context,
 func (svr *ServerAuthAbility) GetServiceContractVersions(ctx context.Context,
 	filter map[string]string) *apiservice.BatchQueryResponse {
 
-	authCtx := svr.collectServiceAuthContext(ctx, nil, model.Read, "GetServiceContractVersions")
+	authCtx := svr.collectServiceAuthContext(ctx, nil, authcommon.Read, "GetServiceContractVersions")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchQueryResponse(convertToErrCode(err))
 	}
@@ -86,7 +86,7 @@ func (svr *ServerAuthAbility) DeleteServiceContracts(ctx context.Context,
 		})
 	}
 
-	authCtx := svr.collectServiceAuthContext(ctx, services, model.Delete, "DeleteServiceContracts")
+	authCtx := svr.collectServiceAuthContext(ctx, services, authcommon.Delete, "DeleteServiceContracts")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
@@ -104,7 +104,7 @@ func (svr *ServerAuthAbility) CreateServiceContractInterfaces(ctx context.Contex
 			Namespace: utils.NewStringValue(contract.Namespace),
 			Name:      utils.NewStringValue(contract.Service),
 		},
-	}, model.Modify, "CreateServiceContractInterfaces")
+	}, authcommon.Modify, "CreateServiceContractInterfaces")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewResponse(convertToErrCode(err))
 	}
@@ -122,7 +122,7 @@ func (svr *ServerAuthAbility) AppendServiceContractInterfaces(ctx context.Contex
 			Namespace: utils.NewStringValue(contract.Namespace),
 			Name:      utils.NewStringValue(contract.Service),
 		},
-	}, model.Modify, "AppendServiceContractInterfaces")
+	}, authcommon.Modify, "AppendServiceContractInterfaces")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewResponse(convertToErrCode(err))
 	}
@@ -140,7 +140,7 @@ func (svr *ServerAuthAbility) DeleteServiceContractInterfaces(ctx context.Contex
 			Namespace: utils.NewStringValue(contract.Namespace),
 			Name:      utils.NewStringValue(contract.Service),
 		},
-	}, model.Modify, "DeleteServiceContractInterfaces")
+	}, authcommon.Modify, "DeleteServiceContractInterfaces")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewResponse(convertToErrCode(err))
 	}

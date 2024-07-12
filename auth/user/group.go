@@ -30,6 +30,7 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	commonstore "github.com/polarismesh/polaris/common/store"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -37,7 +38,7 @@ import (
 
 type (
 	// UserGroup2Api is the user group to api
-	UserGroup2Api func(user *model.UserGroup) *apisecurity.UserGroup
+	UserGroup2Api func(user *authcommon.UserGroup) *apisecurity.UserGroup
 )
 
 var (
@@ -262,7 +263,7 @@ func (svr *Server) UpdateGroupToken(ctx context.Context, req *apisecurity.UserGr
 
 	group.TokenEnable = req.TokenEnable.GetValue()
 
-	modifyReq := &model.ModifyUserGroup{
+	modifyReq := &authcommon.ModifyUserGroup{
 		ID:          group.ID,
 		Owner:       group.Owner,
 		Token:       group.Token,
@@ -306,7 +307,7 @@ func (svr *Server) ResetGroupToken(ctx context.Context, req *apisecurity.UserGro
 	}
 
 	group.Token = newToken
-	modifyReq := &model.ModifyUserGroup{
+	modifyReq := &authcommon.ModifyUserGroup{
 		ID:          group.ID,
 		Owner:       group.Owner,
 		Token:       group.Token,
@@ -329,7 +330,7 @@ func (svr *Server) ResetGroupToken(ctx context.Context, req *apisecurity.UserGro
 }
 
 // getGroupFromDB 获取用户组
-func (svr *Server) getGroupFromDB(id string) (*model.UserGroupDetail, *apiservice.Response) {
+func (svr *Server) getGroupFromDB(id string) (*authcommon.UserGroupDetail, *apiservice.Response) {
 	group, err := svr.storage.GetGroup(id)
 	if err != nil {
 		log.Error("get group from store", zap.Error(err))
@@ -343,7 +344,7 @@ func (svr *Server) getGroupFromDB(id string) (*model.UserGroupDetail, *apiservic
 }
 
 // getGroupFromCache 从缓存中获取用户组信息数据
-func (svr *Server) getGroupFromCache(req *apisecurity.UserGroup) (*model.UserGroupDetail, *apiservice.Response) {
+func (svr *Server) getGroupFromCache(req *apisecurity.UserGroup) (*authcommon.UserGroupDetail, *apiservice.Response) {
 	group := svr.cacheMgr.User().GetGroup(req.Id.GetValue())
 	if group == nil {
 		return nil, api.NewGroupResponse(apimodel.Code_NotFoundUserGroup, req)
@@ -386,11 +387,11 @@ func (svr *Server) checkUpdateGroup(ctx context.Context, req *apisecurity.Modify
 }
 
 // UpdateGroupAttribute 更新计算用户组更新时的结构体数据，并判断是否需要执行更新操作
-func UpdateGroupAttribute(ctx context.Context, old *model.UserGroup, newUser *apisecurity.ModifyUserGroup) (
-	*model.ModifyUserGroup, bool) {
+func UpdateGroupAttribute(ctx context.Context, old *authcommon.UserGroup, newUser *apisecurity.ModifyUserGroup) (
+	*authcommon.ModifyUserGroup, bool) {
 	var (
 		needUpdate bool
-		ret        = &model.ModifyUserGroup{
+		ret        = &authcommon.ModifyUserGroup{
 			ID:          old.ID,
 			Token:       old.Token,
 			TokenEnable: old.TokenEnable,
@@ -429,7 +430,7 @@ func UpdateGroupAttribute(ctx context.Context, old *model.UserGroup, newUser *ap
 }
 
 // enhancedGroups2Api 数组专为 []*apisecurity.UserGroup
-func enhancedGroups2Api(groups []*model.UserGroup, handler UserGroup2Api) []*apisecurity.UserGroup {
+func enhancedGroups2Api(groups []*authcommon.UserGroup, handler UserGroup2Api) []*apisecurity.UserGroup {
 	out := make([]*apisecurity.UserGroup, 0, len(groups))
 	for k := range groups {
 		out = append(out, handler(groups[k]))
@@ -439,14 +440,14 @@ func enhancedGroups2Api(groups []*model.UserGroup, handler UserGroup2Api) []*api
 }
 
 // createGroupModel 创建用户组的存储模型
-func (svr *Server) createGroupModel(req *apisecurity.UserGroup) (group *model.UserGroupDetail, err error) {
+func (svr *Server) createGroupModel(req *apisecurity.UserGroup) (group *authcommon.UserGroupDetail, err error) {
 	ids := make(map[string]struct{}, len(req.GetRelation().GetUsers()))
 	for index := range req.GetRelation().GetUsers() {
 		ids[req.GetRelation().GetUsers()[index].GetId().GetValue()] = struct{}{}
 	}
 
-	group = &model.UserGroupDetail{
-		UserGroup: &model.UserGroup{
+	group = &authcommon.UserGroupDetail{
+		UserGroup: &authcommon.UserGroup{
 			ID:          utils.NewUUID(),
 			Name:        req.GetName().GetValue(),
 			Owner:       req.GetOwner().GetValue(),
@@ -466,7 +467,7 @@ func (svr *Server) createGroupModel(req *apisecurity.UserGroup) (group *model.Us
 }
 
 // model.UserGroup 转为 api.UserGroup
-func userGroup2Api(group *model.UserGroup) *apisecurity.UserGroup {
+func userGroup2Api(group *authcommon.UserGroup) *apisecurity.UserGroup {
 	if group == nil {
 		return nil
 	}
@@ -486,7 +487,7 @@ func userGroup2Api(group *model.UserGroup) *apisecurity.UserGroup {
 }
 
 // model.UserGroupDetail 转为 api.UserGroup，并且主动填充 user 的信息数据
-func (svr *Server) userGroupDetail2Api(group *model.UserGroupDetail) *apisecurity.UserGroup {
+func (svr *Server) userGroupDetail2Api(group *authcommon.UserGroupDetail) *apisecurity.UserGroup {
 	if group == nil {
 		return nil
 	}
@@ -524,7 +525,7 @@ func (svr *Server) userGroupDetail2Api(group *model.UserGroupDetail) *apisecurit
 }
 
 // userGroupRecordEntry 生成用户组的记录entry
-func userGroupRecordEntry(ctx context.Context, req *apisecurity.UserGroup, md *model.UserGroup,
+func userGroupRecordEntry(ctx context.Context, req *apisecurity.UserGroup, md *authcommon.UserGroup,
 	operationType model.OperationType) *model.RecordEntry {
 
 	marshaler := jsonpb.Marshaler{}
@@ -543,7 +544,7 @@ func userGroupRecordEntry(ctx context.Context, req *apisecurity.UserGroup, md *m
 }
 
 // 生成修改用户组的记录entry
-func modifyUserGroupRecordEntry(ctx context.Context, req *apisecurity.ModifyUserGroup, md *model.UserGroup,
+func modifyUserGroupRecordEntry(ctx context.Context, req *apisecurity.ModifyUserGroup, md *authcommon.UserGroup,
 	operationType model.OperationType) *model.RecordEntry {
 
 	marshaler := jsonpb.Marshaler{}
@@ -562,7 +563,7 @@ func modifyUserGroupRecordEntry(ctx context.Context, req *apisecurity.ModifyUser
 }
 
 // 生成用户-用户组关联关系的记录entry
-func userRelationRecordEntry(ctx context.Context, req *apisecurity.UserGroupRelation, md *model.UserGroup,
+func userRelationRecordEntry(ctx context.Context, req *apisecurity.UserGroupRelation, md *authcommon.UserGroup,
 	operationType model.OperationType) *model.RecordEntry {
 
 	marshaler := jsonpb.Marshaler{}

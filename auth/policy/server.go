@@ -31,6 +31,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
@@ -172,8 +173,8 @@ func (svr *Server) isOpenAuth() bool {
 
 // AfterResourceOperation 对于资源的添加删除操作，需要执行后置逻辑
 // 所有子用户或者用户分组，都默认获得对所创建的资源的写权限
-func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error {
-	if !svr.isOpenAuth() || afterCtx.GetOperation() == model.Read {
+func (svr *Server) AfterResourceOperation(afterCtx *authcommon.AcquireContext) error {
+	if !svr.isOpenAuth() || afterCtx.GetOperation() == authcommon.Read {
 		return nil
 	}
 
@@ -186,7 +187,7 @@ func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 		return nil
 	}
 
-	attachVal, ok := afterCtx.GetAttachment(model.TokenDetailInfoKey)
+	attachVal, ok := afterCtx.GetAttachment(authcommon.TokenDetailInfoKey)
 	if !ok {
 		return nil
 	}
@@ -200,13 +201,13 @@ func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 		return nil
 	}
 
-	addUserIds := afterCtx.GetAttachments()[model.LinkUsersKey].([]string)
-	addGroupIds := afterCtx.GetAttachments()[model.LinkGroupsKey].([]string)
-	removeUserIds := afterCtx.GetAttachments()[model.RemoveLinkUsersKey].([]string)
-	removeGroupIds := afterCtx.GetAttachments()[model.RemoveLinkGroupsKey].([]string)
+	addUserIds := afterCtx.GetAttachments()[authcommon.LinkUsersKey].([]string)
+	addGroupIds := afterCtx.GetAttachments()[authcommon.LinkGroupsKey].([]string)
+	removeUserIds := afterCtx.GetAttachments()[authcommon.RemoveLinkUsersKey].([]string)
+	removeGroupIds := afterCtx.GetAttachments()[authcommon.RemoveLinkGroupsKey].([]string)
 
 	// 只有在创建一个资源的时候，才需要把当前的创建者一并加到里面去
-	if afterCtx.GetOperation() == model.Create {
+	if afterCtx.GetOperation() == authcommon.Create {
 		if tokenInfo.IsUserToken {
 			addUserIds = append(addUserIds, tokenInfo.OperatorID)
 		} else {
@@ -215,7 +216,7 @@ func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 	}
 
 	log.Info("[Auth][Server] add resource to principal default strategy",
-		zap.Any("resource", afterCtx.GetAttachments()[model.ResourceAttachmentKey]),
+		zap.Any("resource", afterCtx.GetAttachments()[authcommon.ResourceAttachmentKey]),
 		zap.Any("add_user", addUserIds),
 		zap.Any("add_group", addGroupIds), zap.Any("remove_user", removeUserIds),
 		zap.Any("remove_group", removeGroupIds),
@@ -245,7 +246,7 @@ func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 }
 
 // handleUserStrategy
-func (svr *Server) handleChangeUserPolicy(userIds []string, afterCtx *model.AcquireContext, isRemove bool) error {
+func (svr *Server) handleChangeUserPolicy(userIds []string, afterCtx *authcommon.AcquireContext, isRemove bool) error {
 	for index := range utils.StringSliceDeDuplication(userIds) {
 		userId := userIds[index]
 		user := svr.userSvr.GetUserHelper().GetUser(context.TODO(), &apisecurity.User{
@@ -259,7 +260,7 @@ func (svr *Server) handleChangeUserPolicy(userIds []string, afterCtx *model.Acqu
 		if ownerId == "" {
 			ownerId = user.GetId().GetValue()
 		}
-		if err := svr.changePrincipalPolicies(userId, ownerId, model.PrincipalUser,
+		if err := svr.changePrincipalPolicies(userId, ownerId, authcommon.PrincipalUser,
 			afterCtx, isRemove); err != nil {
 			return err
 		}
@@ -268,7 +269,7 @@ func (svr *Server) handleChangeUserPolicy(userIds []string, afterCtx *model.Acqu
 }
 
 // handleGroupStrategy
-func (svr *Server) handleChangeUserGroupPolicy(groupIds []string, afterCtx *model.AcquireContext, isRemove bool) error {
+func (svr *Server) handleChangeUserGroupPolicy(groupIds []string, afterCtx *authcommon.AcquireContext, isRemove bool) error {
 	for index := range utils.StringSliceDeDuplication(groupIds) {
 		groupId := groupIds[index]
 		group := svr.userSvr.GetUserHelper().GetGroup(context.TODO(), &apisecurity.UserGroup{
@@ -278,7 +279,7 @@ func (svr *Server) handleChangeUserGroupPolicy(groupIds []string, afterCtx *mode
 			return errors.New("not found target group")
 		}
 		ownerId := group.GetOwner().GetValue()
-		if err := svr.changePrincipalPolicies(groupId, ownerId, model.PrincipalGroup,
+		if err := svr.changePrincipalPolicies(groupId, ownerId, authcommon.PrincipalGroup,
 			afterCtx, isRemove); err != nil {
 			return err
 		}
@@ -289,8 +290,8 @@ func (svr *Server) handleChangeUserGroupPolicy(groupIds []string, afterCtx *mode
 
 // changePrincipalPolicies 处理默认策略的修改
 // case 1. 如果默认策略是全部放通
-func (svr *Server) changePrincipalPolicies(id, ownerId string, uType model.PrincipalType,
-	afterCtx *model.AcquireContext, cleanRealtion bool) error {
+func (svr *Server) changePrincipalPolicies(id, ownerId string, uType authcommon.PrincipalType,
+	afterCtx *authcommon.AcquireContext, cleanRealtion bool) error {
 	// Get the default policy rules
 	strategy, err := svr.storage.GetDefaultStrategyDetailByPrincipal(id, uType)
 	if err != nil {
@@ -303,26 +304,26 @@ func (svr *Server) changePrincipalPolicies(id, ownerId string, uType model.Princ
 	}
 
 	var (
-		strategyResource = make([]model.StrategyResource, 0)
+		strategyResource = make([]authcommon.StrategyResource, 0)
 		strategyId       = strategy.ID
 	)
-	attachVal, ok := afterCtx.GetAttachment(model.ResourceAttachmentKey)
+	attachVal, ok := afterCtx.GetAttachment(authcommon.ResourceAttachmentKey)
 	if !ok {
 		return nil
 	}
-	resources, ok := attachVal.(map[apisecurity.ResourceType][]model.ResourceEntry)
+	resources, ok := attachVal.(map[apisecurity.ResourceType][]authcommon.ResourceEntry)
 	if !ok {
 		return nil
 	}
 	// 资源删除时，清理该资源与所有策略的关联关系
-	if afterCtx.GetOperation() == model.Delete {
+	if afterCtx.GetOperation() == authcommon.Delete {
 		strategyId = ""
 	}
 
 	for rType, rIds := range resources {
 		for i := range rIds {
 			id := rIds[i]
-			strategyResource = append(strategyResource, model.StrategyResource{
+			strategyResource = append(strategyResource, authcommon.StrategyResource{
 				StrategyID: strategyId,
 				ResType:    int32(rType),
 				ResID:      id.ID,
@@ -338,11 +339,11 @@ func (svr *Server) changePrincipalPolicies(id, ownerId string, uType model.Princ
 		HappenTime:   time.Now(),
 	}
 
-	if afterCtx.GetOperation() == model.Delete || cleanRealtion {
+	if afterCtx.GetOperation() == authcommon.Delete || cleanRealtion {
 		if err = svr.storage.RemoveStrategyResources(strategyResource); err != nil {
 			log.Error("[Auth][Server] remove default strategy resource",
 				zap.String("owner", ownerId), zap.String("id", id),
-				zap.String("type", model.PrincipalNames[uType]), zap.Error(err))
+				zap.String("type", authcommon.PrincipalNames[uType]), zap.Error(err))
 			return err
 		}
 		entry.OperationType = model.ODelete
@@ -353,7 +354,7 @@ func (svr *Server) changePrincipalPolicies(id, ownerId string, uType model.Princ
 	if err = svr.storage.LooseAddStrategyResources(strategyResource); err != nil {
 		log.Error("[Auth][Server] update default strategy resource",
 			zap.String("owner", ownerId), zap.String("id", id), zap.String("id", id),
-			zap.String("type", model.PrincipalNames[uType]), zap.Error(err))
+			zap.String("type", authcommon.PrincipalNames[uType]), zap.Error(err))
 		return err
 	}
 	entry.OperationType = model.OUpdate

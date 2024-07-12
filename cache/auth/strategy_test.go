@@ -28,7 +28,7 @@ import (
 
 	types "github.com/polarismesh/polaris/cache/api"
 	cachemock "github.com/polarismesh/polaris/cache/mock"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store/mock"
 )
@@ -95,9 +95,9 @@ func Test_strategyCache(t *testing.T) {
 		_ = strategyCache.ForceSync()
 		_, _, _ = strategyCache.realUpdate()
 
-		ret := strategyCache.IsResourceEditable(model.Principal{
+		ret := strategyCache.IsResourceEditable(authcommon.Principal{
 			PrincipalID:   "user-1",
-			PrincipalRole: model.PrincipalUser,
+			PrincipalRole: authcommon.PrincipalUser,
 		}, apisecurity.ResourceType_Namespaces, "namespace-1")
 
 		assert.True(t, ret, "must be true")
@@ -131,18 +131,18 @@ func Test_strategyCache(t *testing.T) {
 		userCache.Initialize(map[string]interface{}{})
 		strategyCache.Initialize(map[string]interface{}{})
 
-		strategyCache.setStrategys([]*model.StrategyDetail{
+		strategyCache.setStrategys([]*authcommon.StrategyDetail{
 			{
 				ID:   fmt.Sprintf("rule-%d", 1),
 				Name: fmt.Sprintf("rule-%d", 1),
-				Principals: []model.Principal{
+				Principals: []authcommon.Principal{
 					{
 						PrincipalID:   "user-1",
-						PrincipalRole: model.PrincipalUser,
+						PrincipalRole: authcommon.PrincipalUser,
 					},
 				},
 				Valid: true,
-				Resources: []model.StrategyResource{
+				Resources: []authcommon.StrategyResource{
 					{
 						StrategyID: fmt.Sprintf("rule-%d", 1),
 						ResType:    0,
@@ -152,9 +152,9 @@ func Test_strategyCache(t *testing.T) {
 			},
 		})
 
-		ret := strategyCache.IsResourceEditable(model.Principal{
+		ret := strategyCache.IsResourceEditable(authcommon.Principal{
 			PrincipalID:   "user-1",
-			PrincipalRole: model.PrincipalUser,
+			PrincipalRole: authcommon.PrincipalUser,
 		}, apisecurity.ResourceType_Namespaces, "namespace-1")
 
 		assert.True(t, ret, "must be true")
@@ -181,21 +181,21 @@ func Test_strategyCache(t *testing.T) {
 
 		strategyCache.setStrategys(buildStrategies(10))
 
-		ret := strategyCache.IsResourceEditable(model.Principal{
+		ret := strategyCache.IsResourceEditable(authcommon.Principal{
 			PrincipalID:   "user-20",
-			PrincipalRole: model.PrincipalUser,
+			PrincipalRole: authcommon.PrincipalUser,
 		}, apisecurity.ResourceType_Namespaces, "namespace-1")
 		assert.False(t, ret, "must be false")
 
-		ret = strategyCache.IsResourceEditable(model.Principal{
+		ret = strategyCache.IsResourceEditable(authcommon.Principal{
 			PrincipalID:   "user-20",
-			PrincipalRole: model.PrincipalUser,
+			PrincipalRole: authcommon.PrincipalUser,
 		}, apisecurity.ResourceType_Services, "service-1")
 		assert.False(t, ret, "must be false")
 
-		ret = strategyCache.IsResourceEditable(model.Principal{
+		ret = strategyCache.IsResourceEditable(authcommon.Principal{
 			PrincipalID:   "user-20",
-			PrincipalRole: model.PrincipalUser,
+			PrincipalRole: authcommon.PrincipalUser,
 		}, apisecurity.ResourceType_ConfigGroups, "config_group-1")
 		assert.False(t, ret, "must be false")
 	})
@@ -219,8 +219,8 @@ func Test_strategyCache(t *testing.T) {
 		userCache.Initialize(map[string]interface{}{})
 		strategyCache.Initialize(map[string]interface{}{})
 
-		userCache.groups.Store("group-1", &model.UserGroupDetail{
-			UserGroup: &model.UserGroup{
+		userCache.groups.Store("group-1", &authcommon.UserGroupDetail{
+			UserGroup: &authcommon.UserGroup{
 				ID: "group-1",
 			},
 			UserIds: map[string]struct{}{
@@ -234,9 +234,9 @@ func Test_strategyCache(t *testing.T) {
 
 		strategyCache.setStrategys(buildStrategies(10))
 
-		ret := strategyCache.IsResourceEditable(model.Principal{
+		ret := strategyCache.IsResourceEditable(authcommon.Principal{
 			PrincipalID:   "user-1",
-			PrincipalRole: model.PrincipalUser,
+			PrincipalRole: authcommon.PrincipalUser,
 		}, apisecurity.ResourceType_Namespaces, "namespace-1")
 
 		assert.True(t, ret, "must be true")
@@ -261,8 +261,8 @@ func Test_strategyCache(t *testing.T) {
 		userCache.Initialize(map[string]interface{}{})
 		strategyCache.Initialize(map[string]interface{}{})
 
-		userCache.groups.Store("group-1", &model.UserGroupDetail{
-			UserGroup: &model.UserGroup{
+		userCache.groups.Store("group-1", &authcommon.UserGroupDetail{
+			UserGroup: &authcommon.UserGroup{
 				ID: "group-1",
 			},
 			UserIds: map[string]struct{}{
@@ -273,27 +273,27 @@ func Test_strategyCache(t *testing.T) {
 		userCache.user2Groups.Store("user-1", utils.NewSyncSet[string]())
 		links, _ := userCache.user2Groups.Load("user-1")
 		links.Add("group-1")
-		strategyCache.strategys.Store("rule-1", &model.StrategyDetailCache{
-			StrategyDetail: &model.StrategyDetail{
+		strategyCache.strategys.Store("rule-1", &authcommon.StrategyDetailCache{
+			StrategyDetail: &authcommon.StrategyDetail{
 				ID:         "rule-1",
 				Name:       "rule-1",
-				Principals: []model.Principal{},
-				Resources:  []model.StrategyResource{},
+				Principals: []authcommon.Principal{},
+				Resources:  []authcommon.StrategyResource{},
 			},
-			GroupPrincipal: map[string]model.Principal{
+			GroupPrincipal: map[string]authcommon.Principal{
 				"group-1": {
 					PrincipalID: "group-1",
 				},
 			},
 		})
-		strategyCache.strategys.Store("rule-2", &model.StrategyDetailCache{
-			StrategyDetail: &model.StrategyDetail{
+		strategyCache.strategys.Store("rule-2", &authcommon.StrategyDetailCache{
+			StrategyDetail: &authcommon.StrategyDetail{
 				ID:         "rule-2",
 				Name:       "rule-2",
-				Principals: []model.Principal{},
-				Resources:  []model.StrategyResource{},
+				Principals: []authcommon.Principal{},
+				Resources:  []authcommon.StrategyResource{},
 			},
-			GroupPrincipal: map[string]model.Principal{
+			GroupPrincipal: map[string]authcommon.Principal{
 				"group-2": {
 					PrincipalID: "group-2",
 				},
@@ -303,20 +303,20 @@ func Test_strategyCache(t *testing.T) {
 		strategyCache.writeSet(strategyCache.namespace2Strategy, "namespace-1", "rule-1", false)
 		strategyCache.writeSet(strategyCache.namespace2Strategy, "namespace-1", "rule-2", false)
 
-		ret := strategyCache.IsResourceEditable(model.Principal{
+		ret := strategyCache.IsResourceEditable(authcommon.Principal{
 			PrincipalID:   "user-1",
-			PrincipalRole: model.PrincipalUser,
+			PrincipalRole: authcommon.PrincipalUser,
 		}, apisecurity.ResourceType_Namespaces, "namespace-1")
 
 		assert.True(t, ret, "must be true")
 
-		strategyCache.handlerResourceStrategy([]*model.StrategyDetail{
+		strategyCache.handlerResourceStrategy([]*authcommon.StrategyDetail{
 			{
 				ID:         "rule-1",
 				Name:       "rule-1",
 				Valid:      false,
-				Principals: []model.Principal{},
-				Resources: []model.StrategyResource{
+				Principals: []authcommon.Principal{},
+				Resources: []authcommon.StrategyResource{
 					{
 						StrategyID: "rule-1",
 						ResType:    0,
@@ -326,9 +326,9 @@ func Test_strategyCache(t *testing.T) {
 			},
 		})
 
-		ret = strategyCache.IsResourceEditable(model.Principal{
+		ret = strategyCache.IsResourceEditable(authcommon.Principal{
 			PrincipalID:   "user-1",
-			PrincipalRole: model.PrincipalUser,
+			PrincipalRole: authcommon.PrincipalUser,
 		}, apisecurity.ResourceType_Namespaces, "namespace-1")
 
 		assert.False(t, ret, "must be false")
@@ -353,8 +353,8 @@ func Test_strategyCache(t *testing.T) {
 		userCache.Initialize(map[string]interface{}{})
 		strategyCache.Initialize(map[string]interface{}{})
 
-		userCache.groups.Store("group-1", &model.UserGroupDetail{
-			UserGroup: &model.UserGroup{
+		userCache.groups.Store("group-1", &authcommon.UserGroupDetail{
+			UserGroup: &authcommon.UserGroup{
 				ID: "group-1",
 			},
 			UserIds: map[string]struct{}{
@@ -362,21 +362,21 @@ func Test_strategyCache(t *testing.T) {
 			},
 		})
 
-		strategyDetail := &model.StrategyDetail{
+		strategyDetail := &authcommon.StrategyDetail{
 			ID:   "rule-1",
 			Name: "rule-1",
-			Principals: []model.Principal{
+			Principals: []authcommon.Principal{
 				{
 					PrincipalID:   "user-1",
-					PrincipalRole: model.PrincipalUser,
+					PrincipalRole: authcommon.PrincipalUser,
 				},
 				{
 					PrincipalID:   "group-1",
-					PrincipalRole: model.PrincipalGroup,
+					PrincipalRole: authcommon.PrincipalGroup,
 				},
 			},
 			Valid: true,
-			Resources: []model.StrategyResource{
+			Resources: []authcommon.StrategyResource{
 				{
 					StrategyID: "rule-1",
 					ResType:    0,
@@ -385,21 +385,21 @@ func Test_strategyCache(t *testing.T) {
 			},
 		}
 
-		strategyDetail2 := &model.StrategyDetail{
+		strategyDetail2 := &authcommon.StrategyDetail{
 			ID:   "rule-2",
 			Name: "rule-2",
-			Principals: []model.Principal{
+			Principals: []authcommon.Principal{
 				{
 					PrincipalID:   "user-2",
-					PrincipalRole: model.PrincipalUser,
+					PrincipalRole: authcommon.PrincipalUser,
 				},
 				{
 					PrincipalID:   "group-2",
-					PrincipalRole: model.PrincipalGroup,
+					PrincipalRole: authcommon.PrincipalGroup,
 				},
 			},
 			Valid: true,
-			Resources: []model.StrategyResource{
+			Resources: []authcommon.StrategyResource{
 				{
 					StrategyID: "rule-2",
 					ResType:    0,
@@ -408,40 +408,40 @@ func Test_strategyCache(t *testing.T) {
 			},
 		}
 
-		strategyCache.strategys.Store("rule-1", &model.StrategyDetailCache{
+		strategyCache.strategys.Store("rule-1", &authcommon.StrategyDetailCache{
 			StrategyDetail: strategyDetail,
-			UserPrincipal: map[string]model.Principal{
+			UserPrincipal: map[string]authcommon.Principal{
 				"user-1": {
 					PrincipalID: "user-1",
 				},
 			},
-			GroupPrincipal: map[string]model.Principal{
+			GroupPrincipal: map[string]authcommon.Principal{
 				"group-1": {
 					PrincipalID: "group-1",
 				},
 			},
 		})
-		strategyCache.strategys.Store("rule-2", &model.StrategyDetailCache{
+		strategyCache.strategys.Store("rule-2", &authcommon.StrategyDetailCache{
 			StrategyDetail: strategyDetail2,
-			UserPrincipal: map[string]model.Principal{
+			UserPrincipal: map[string]authcommon.Principal{
 				"user-2": {
 					PrincipalID: "user-2",
 				},
 			},
-			GroupPrincipal: map[string]model.Principal{
+			GroupPrincipal: map[string]authcommon.Principal{
 				"group-2": {
 					PrincipalID: "group-2",
 				},
 			},
 		})
 
-		strategyCache.handlerPrincipalStrategy([]*model.StrategyDetail{strategyDetail2})
-		strategyCache.handlerResourceStrategy([]*model.StrategyDetail{strategyDetail2})
-		strategyCache.handlerPrincipalStrategy([]*model.StrategyDetail{strategyDetail})
-		strategyCache.handlerResourceStrategy([]*model.StrategyDetail{strategyDetail})
-		ret := strategyCache.IsResourceEditable(model.Principal{
+		strategyCache.handlerPrincipalStrategy([]*authcommon.StrategyDetail{strategyDetail2})
+		strategyCache.handlerResourceStrategy([]*authcommon.StrategyDetail{strategyDetail2})
+		strategyCache.handlerPrincipalStrategy([]*authcommon.StrategyDetail{strategyDetail})
+		strategyCache.handlerResourceStrategy([]*authcommon.StrategyDetail{strategyDetail})
+		ret := strategyCache.IsResourceEditable(authcommon.Principal{
 			PrincipalID:   "user-1",
-			PrincipalRole: model.PrincipalUser,
+			PrincipalRole: authcommon.PrincipalUser,
 		}, apisecurity.ResourceType_Namespaces, "namespace-1")
 
 		assert.True(t, ret, "must be true")
@@ -451,40 +451,40 @@ func Test_strategyCache(t *testing.T) {
 
 		strategyDetail.Valid = false
 
-		strategyCache.handlerPrincipalStrategy([]*model.StrategyDetail{strategyDetail})
-		strategyCache.handlerResourceStrategy([]*model.StrategyDetail{strategyDetail})
+		strategyCache.handlerPrincipalStrategy([]*authcommon.StrategyDetail{strategyDetail})
+		strategyCache.handlerResourceStrategy([]*authcommon.StrategyDetail{strategyDetail})
 		strategyCache.strategys.Delete(strategyDetail.ID)
-		ret = strategyCache.IsResourceEditable(model.Principal{
+		ret = strategyCache.IsResourceEditable(authcommon.Principal{
 			PrincipalID:   "user-1",
-			PrincipalRole: model.PrincipalUser,
+			PrincipalRole: authcommon.PrincipalUser,
 		}, apisecurity.ResourceType_Namespaces, "namespace-1")
 
 		assert.False(t, ret, "must be false")
 	})
 }
 
-func buildStrategies(num int) []*model.StrategyDetail {
+func buildStrategies(num int) []*authcommon.StrategyDetail {
 
-	ret := make([]*model.StrategyDetail, 0, num)
+	ret := make([]*authcommon.StrategyDetail, 0, num)
 
 	for i := 0; i < num; i++ {
-		principals := make([]model.Principal, 0, num)
+		principals := make([]authcommon.Principal, 0, num)
 		for j := 0; j < num; j++ {
-			principals = append(principals, model.Principal{
+			principals = append(principals, authcommon.Principal{
 				PrincipalID:   fmt.Sprintf("user-%d", i+1),
-				PrincipalRole: model.PrincipalUser,
-			}, model.Principal{
+				PrincipalRole: authcommon.PrincipalUser,
+			}, authcommon.Principal{
 				PrincipalID:   fmt.Sprintf("group-%d", i+1),
-				PrincipalRole: model.PrincipalGroup,
+				PrincipalRole: authcommon.PrincipalGroup,
 			})
 		}
 
-		ret = append(ret, &model.StrategyDetail{
+		ret = append(ret, &authcommon.StrategyDetail{
 			ID:         fmt.Sprintf("rule-%d", i+1),
 			Name:       fmt.Sprintf("rule-%d", i+1),
 			Principals: principals,
 			Valid:      true,
-			Resources: []model.StrategyResource{
+			Resources: []authcommon.StrategyResource{
 				{
 					StrategyID: fmt.Sprintf("rule-%d", i+1),
 					ResType:    0,
@@ -507,8 +507,8 @@ func buildStrategies(num int) []*model.StrategyDetail {
 	return ret
 }
 
-func testBuildPrincipalMap(principals []model.Principal, role model.PrincipalType) map[string]model.Principal {
-	ret := make(map[string]model.Principal, 0)
+func testBuildPrincipalMap(principals []authcommon.Principal, role authcommon.PrincipalType) map[string]authcommon.Principal {
+	ret := make(map[string]authcommon.Principal, 0)
 	for i := range principals {
 		principal := principals[i]
 		if principal.PrincipalRole == role {

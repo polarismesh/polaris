@@ -25,13 +25,14 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
 // RegisterInstance create one instance
 func (svr *ServerAuthAbility) RegisterInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	authCtx := svr.collectClientInstanceAuthContext(
-		ctx, []*apiservice.Instance{req}, model.Create, "RegisterInstance")
+		ctx, []*apiservice.Instance{req}, authcommon.Create, "RegisterInstance")
 
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
@@ -48,7 +49,7 @@ func (svr *ServerAuthAbility) RegisterInstance(ctx context.Context, req *apiserv
 // DeregisterInstance delete onr instance
 func (svr *ServerAuthAbility) DeregisterInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	authCtx := svr.collectClientInstanceAuthContext(
-		ctx, []*apiservice.Instance{req}, model.Create, "DeregisterInstance")
+		ctx, []*apiservice.Instance{req}, authcommon.Create, "DeregisterInstance")
 
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
@@ -73,7 +74,7 @@ func (svr *ServerAuthAbility) ReportServiceContract(ctx context.Context, req *ap
 		ctx, []*apiservice.Service{{
 			Name:      wrapperspb.String(req.GetService()),
 			Namespace: wrapperspb.String(req.GetNamespace()),
-		}}, model.Create, "ReportServiceContract")
+		}}, authcommon.Create, "ReportServiceContract")
 
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
@@ -98,7 +99,7 @@ func (svr *ServerAuthAbility) GetServiceWithCache(
 	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 
 	authCtx := svr.collectServiceAuthContext(
-		ctx, []*apiservice.Service{req}, model.Read, "DiscoverServices")
+		ctx, []*apiservice.Service{req}, authcommon.Read, "DiscoverServices")
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
 		resp := api.NewDiscoverResponse(convertToErrCode(err))
@@ -116,7 +117,7 @@ func (svr *ServerAuthAbility) ServiceInstancesCache(
 	ctx context.Context, filter *apiservice.DiscoverFilter, req *apiservice.Service) *apiservice.DiscoverResponse {
 
 	authCtx := svr.collectServiceAuthContext(
-		ctx, []*apiservice.Service{req}, model.Read, "DiscoverInstances")
+		ctx, []*apiservice.Service{req}, authcommon.Read, "DiscoverInstances")
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
 		resp := api.NewDiscoverResponse(convertToErrCode(err))
@@ -134,7 +135,7 @@ func (svr *ServerAuthAbility) GetRoutingConfigWithCache(
 	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 
 	authCtx := svr.collectServiceAuthContext(
-		ctx, []*apiservice.Service{req}, model.Read, "DiscoverRouterRule")
+		ctx, []*apiservice.Service{req}, authcommon.Read, "DiscoverRouterRule")
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
 		resp := api.NewDiscoverResponse(convertToErrCode(err))
@@ -152,7 +153,7 @@ func (svr *ServerAuthAbility) GetRateLimitWithCache(
 	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 
 	authCtx := svr.collectServiceAuthContext(
-		ctx, []*apiservice.Service{req}, model.Read, "DiscoverRateLimit")
+		ctx, []*apiservice.Service{req}, authcommon.Read, "DiscoverRateLimit")
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
 		resp := api.NewDiscoverResponse(convertToErrCode(err))
@@ -170,7 +171,7 @@ func (svr *ServerAuthAbility) GetCircuitBreakerWithCache(
 	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 
 	authCtx := svr.collectServiceAuthContext(
-		ctx, []*apiservice.Service{req}, model.Read, "DiscoverCircuitBreaker")
+		ctx, []*apiservice.Service{req}, authcommon.Read, "DiscoverCircuitBreaker")
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
 		resp := api.NewDiscoverResponse(convertToErrCode(err))
@@ -187,7 +188,7 @@ func (svr *ServerAuthAbility) GetFaultDetectWithCache(
 	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 
 	authCtx := svr.collectServiceAuthContext(
-		ctx, []*apiservice.Service{req}, model.Read, "DiscoverFaultDetect")
+		ctx, []*apiservice.Service{req}, authcommon.Read, "DiscoverFaultDetect")
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
 		resp := api.NewDiscoverResponse(convertToErrCode(err))
@@ -203,7 +204,7 @@ func (svr *ServerAuthAbility) GetFaultDetectWithCache(
 // UpdateInstance update single instance
 func (svr *ServerAuthAbility) UpdateInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	authCtx := svr.collectClientInstanceAuthContext(
-		ctx, []*apiservice.Instance{req}, model.Modify, "UpdateInstance")
+		ctx, []*apiservice.Instance{req}, authcommon.Modify, "UpdateInstance")
 
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
@@ -223,7 +224,7 @@ func (svr *ServerAuthAbility) GetServiceContractWithCache(ctx context.Context,
 	authCtx := svr.collectServiceAuthContext(ctx, []*apiservice.Service{{
 		Namespace: wrapperspb.String(req.Namespace),
 		Name:      wrapperspb.String(req.Service),
-	}}, model.Read, "GetServiceContractWithCache")
+	}}, authcommon.Read, "GetServiceContractWithCache")
 
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
@@ -241,7 +242,7 @@ func (svr *ServerAuthAbility) GetServiceContractWithCache(ctx context.Context,
 // GetLaneRuleWithCache fetch lane rules by client
 func (svr *ServerAuthAbility) GetLaneRuleWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 	authCtx := svr.collectServiceAuthContext(
-		ctx, []*apiservice.Service{req}, model.Read, "DiscoverLaneRule")
+		ctx, []*apiservice.Service{req}, authcommon.Read, "DiscoverLaneRule")
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
 		resp := api.NewDiscoverResponse(convertToErrCode(err))

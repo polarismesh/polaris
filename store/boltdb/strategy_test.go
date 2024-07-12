@@ -26,29 +26,29 @@ import (
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-func createTestStrategy(num int) []*model.StrategyDetail {
-	ret := make([]*model.StrategyDetail, 0, num)
+func createTestStrategy(num int) []*authcommon.StrategyDetail {
+	ret := make([]*authcommon.StrategyDetail, 0, num)
 
 	for i := 0; i < num; i++ {
-		ret = append(ret, &model.StrategyDetail{
+		ret = append(ret, &authcommon.StrategyDetail{
 			ID:      fmt.Sprintf("strategy-%d", i),
 			Name:    fmt.Sprintf("strategy-%d", i),
 			Action:  apisecurity.AuthAction_READ_WRITE.String(),
 			Comment: fmt.Sprintf("strategy-%d", i),
-			Principals: []model.Principal{
+			Principals: []authcommon.Principal{
 				{
 					StrategyID:    fmt.Sprintf("strategy-%d", i),
 					PrincipalID:   fmt.Sprintf("user-%d", i),
-					PrincipalRole: model.PrincipalUser,
+					PrincipalRole: authcommon.PrincipalUser,
 				},
 			},
 			Default: true,
 			Owner:   "polaris",
-			Resources: []model.StrategyResource{
+			Resources: []authcommon.StrategyResource{
 				{
 					StrategyID: "",
 					ResType:    int32(apisecurity.ResourceType_Namespaces),
@@ -84,27 +84,27 @@ func Test_strategyStore_UpdateStrategy(t *testing.T) {
 		err := ss.AddStrategy(rules[0])
 		assert.Nil(t, err, "add strategy must success")
 
-		addPrincipals := []model.Principal{{
+		addPrincipals := []authcommon.Principal{{
 			StrategyID:    rules[0].ID,
 			PrincipalID:   utils.NewUUID(),
-			PrincipalRole: model.PrincipalGroup,
+			PrincipalRole: authcommon.PrincipalGroup,
 		}}
 
-		req := &model.ModifyStrategyDetail{
+		req := &authcommon.ModifyStrategyDetail{
 			ID:               rules[0].ID,
 			Name:             rules[0].Name,
 			Action:           rules[0].Action,
 			Comment:          "update-strategy",
 			AddPrincipals:    addPrincipals,
-			RemovePrincipals: []model.Principal{},
-			AddResources: []model.StrategyResource{
+			RemovePrincipals: []authcommon.Principal{},
+			AddResources: []authcommon.StrategyResource{
 				{
 					StrategyID: rules[0].ID,
 					ResType:    int32(apisecurity.ResourceType_Services),
 					ResID:      utils.NewUUID(),
 				},
 			},
-			RemoveResources: []model.StrategyResource{},
+			RemoveResources: []authcommon.StrategyResource{},
 			ModifyTime:      time.Time{},
 		}
 
@@ -143,7 +143,7 @@ func Test_strategyStore_RemoveStrategyResources(t *testing.T) {
 		err := ss.AddStrategy(rules[0])
 		assert.Nil(t, err, "add strategy must success")
 
-		err = ss.RemoveStrategyResources([]model.StrategyResource{
+		err = ss.RemoveStrategyResources([]authcommon.StrategyResource{
 			{
 				StrategyID: rules[0].ID,
 				ResType:    int32(apisecurity.ResourceType_Namespaces),
@@ -157,7 +157,7 @@ func Test_strategyStore_RemoveStrategyResources(t *testing.T) {
 		for i := range ret.Resources {
 			res := ret.Resources[i]
 			t.Logf("resource=%#v", res)
-			assert.NotEqual(t, res, model.StrategyResource{
+			assert.NotEqual(t, res, authcommon.StrategyResource{
 				StrategyID: rules[0].ID,
 				ResType:    int32(apisecurity.ResourceType_Namespaces),
 				ResID:      "namespace_0",
@@ -174,7 +174,7 @@ func Test_strategyStore_LooseAddStrategyResources(t *testing.T) {
 		err := ss.AddStrategy(rules[0])
 		assert.Nil(t, err, "add strategy must success")
 
-		err = ss.LooseAddStrategyResources([]model.StrategyResource{
+		err = ss.LooseAddStrategyResources([]authcommon.StrategyResource{
 			{
 				StrategyID: rules[0].ID,
 				ResType:    int32(apisecurity.ResourceType_Namespaces),
@@ -185,12 +185,12 @@ func Test_strategyStore_LooseAddStrategyResources(t *testing.T) {
 		ret, err := ss.GetStrategyDetail(rules[0].ID)
 		assert.Nil(t, err, "get strategy must success")
 
-		ans := make([]model.StrategyResource, 0)
+		ans := make([]authcommon.StrategyResource, 0)
 		for i := range ret.Resources {
 			res := ret.Resources[i]
 			t.Logf("resource=%#v", res)
 			res.StrategyID = rules[0].ID
-			if reflect.DeepEqual(res, model.StrategyResource{
+			if reflect.DeepEqual(res, authcommon.StrategyResource{
 				StrategyID: rules[0].ID,
 				ResType:    int32(apisecurity.ResourceType_Namespaces),
 				ResID:      "namespace_1",
@@ -233,10 +233,10 @@ func Test_strategyStore_GetStrategyResources(t *testing.T) {
 			assert.Nil(t, err, "add strategy must success")
 		}
 
-		res, err := ss.GetStrategyResources("user-1", model.PrincipalUser)
+		res, err := ss.GetStrategyResources("user-1", authcommon.PrincipalUser)
 		assert.Nil(t, err, "GetStrategyResources must success")
 
-		assert.ElementsMatch(t, []model.StrategyResource{
+		assert.ElementsMatch(t, []authcommon.StrategyResource{
 			{
 				StrategyID: "strategy-1",
 				ResType:    int32(apisecurity.ResourceType_Namespaces),
@@ -259,7 +259,7 @@ func Test_strategyStore_GetDefaultStrategyDetailByPrincipal(t *testing.T) {
 			assert.Nil(t, err, "add strategy must success")
 		}
 
-		res, err := ss.GetDefaultStrategyDetailByPrincipal("user-1", model.PrincipalUser)
+		res, err := ss.GetDefaultStrategyDetailByPrincipal("user-1", authcommon.PrincipalUser)
 		assert.Nil(t, err, "GetStrategyResources must success")
 
 		rules[1].ModifyTime = rules[1].CreateTime

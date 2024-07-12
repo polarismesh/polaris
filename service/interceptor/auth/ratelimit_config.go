@@ -25,14 +25,14 @@ import (
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
 // CreateRateLimits creates rate limits for a namespace.
 func (svr *ServerAuthAbility) CreateRateLimits(
 	ctx context.Context, reqs []*apitraffic.Rule) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Create, "CreateRateLimits")
+	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, authcommon.Create, "CreateRateLimits")
 
 	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
@@ -48,7 +48,7 @@ func (svr *ServerAuthAbility) CreateRateLimits(
 // DeleteRateLimits deletes rate limits for a namespace.
 func (svr *ServerAuthAbility) DeleteRateLimits(
 	ctx context.Context, reqs []*apitraffic.Rule) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Delete, "DeleteRateLimits")
+	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, authcommon.Delete, "DeleteRateLimits")
 
 	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
@@ -64,7 +64,7 @@ func (svr *ServerAuthAbility) DeleteRateLimits(
 // UpdateRateLimits updates rate limits for a namespace.
 func (svr *ServerAuthAbility) UpdateRateLimits(
 	ctx context.Context, reqs []*apitraffic.Rule) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, model.Modify, "UpdateRateLimits")
+	authCtx := svr.collectRateLimitAuthContext(ctx, reqs, authcommon.Modify, "UpdateRateLimits")
 
 	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
@@ -80,7 +80,7 @@ func (svr *ServerAuthAbility) UpdateRateLimits(
 // EnableRateLimits 启用限流规则
 func (svr *ServerAuthAbility) EnableRateLimits(
 	ctx context.Context, reqs []*apitraffic.Rule) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectRateLimitAuthContext(ctx, nil, model.Read, "EnableRateLimits")
+	authCtx := svr.collectRateLimitAuthContext(ctx, nil, authcommon.Read, "EnableRateLimits")
 
 	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
@@ -96,7 +96,7 @@ func (svr *ServerAuthAbility) EnableRateLimits(
 // GetRateLimits gets rate limits for a namespace.
 func (svr *ServerAuthAbility) GetRateLimits(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
-	authCtx := svr.collectRateLimitAuthContext(ctx, nil, model.Read, "GetRateLimits")
+	authCtx := svr.collectRateLimitAuthContext(ctx, nil, authcommon.Read, "GetRateLimits")
 
 	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {

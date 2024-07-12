@@ -26,6 +26,7 @@ import (
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -33,11 +34,11 @@ import (
 func (s *ServerAuthability) CreateConfigFileGroup(ctx context.Context,
 	configFileGroup *apiconfig.ConfigFileGroup) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*apiconfig.ConfigFileGroup{configFileGroup},
-		model.Create, "CreateConfigFileGroup")
+		auth.Create, "CreateConfigFileGroup")
 
 	// 验证 token 信息
 	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponseWithInfo(model.ConvertToErrCode(err), err.Error())
+		return api.NewConfigResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -50,10 +51,10 @@ func (s *ServerAuthability) CreateConfigFileGroup(ctx context.Context,
 func (s *ServerAuthability) QueryConfigFileGroups(ctx context.Context,
 	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
 
-	authCtx := s.collectConfigGroupAuthContext(ctx, nil, model.Read, "QueryConfigFileGroups")
+	authCtx := s.collectConfigGroupAuthContext(ctx, nil, auth.Read, "QueryConfigFileGroups")
 
 	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigBatchQueryResponse(model.ConvertToErrCode(err))
+		return api.NewConfigBatchQueryResponse(auth.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -63,7 +64,7 @@ func (s *ServerAuthability) QueryConfigFileGroups(ctx context.Context,
 	if len(resp.ConfigFileGroups) != 0 {
 		for index := range resp.ConfigFileGroups {
 			group := resp.ConfigFileGroups[index]
-			editable := s.policyMgr.GetAuthChecker().AllowResourceOperate(authCtx, &model.ResourceOpInfo{
+			editable := s.policyMgr.GetAuthChecker().AllowResourceOperate(authCtx, &auth.ResourceOpInfo{
 				ResourceType: apisecurity.ResourceType_ConfigGroups,
 				Namespace:    group.GetNamespace().GetValue(),
 				ResourceName: group.GetName().GetValue(),
@@ -84,10 +85,10 @@ func (s *ServerAuthability) QueryConfigFileGroups(ctx context.Context,
 func (s *ServerAuthability) DeleteConfigFileGroup(
 	ctx context.Context, namespace, name string) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*apiconfig.ConfigFileGroup{{Name: utils.NewStringValue(name),
-		Namespace: utils.NewStringValue(namespace)}}, model.Delete, "DeleteConfigFileGroup")
+		Namespace: utils.NewStringValue(namespace)}}, auth.Delete, "DeleteConfigFileGroup")
 
 	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponseWithInfo(model.ConvertToErrCode(err), err.Error())
+		return api.NewConfigResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -100,10 +101,10 @@ func (s *ServerAuthability) DeleteConfigFileGroup(
 func (s *ServerAuthability) UpdateConfigFileGroup(ctx context.Context,
 	configFileGroup *apiconfig.ConfigFileGroup) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*apiconfig.ConfigFileGroup{configFileGroup},
-		model.Modify, "UpdateConfigFileGroup")
+		auth.Modify, "UpdateConfigFileGroup")
 
 	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponseWithInfo(model.ConvertToErrCode(err), err.Error())
+		return api.NewConfigResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()

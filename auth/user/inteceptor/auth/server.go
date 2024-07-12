@@ -30,8 +30,8 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/model"
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
+	authmodel "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
@@ -54,12 +54,13 @@ func NewServer(nextSvr auth.UserServer) auth.UserServer {
 }
 
 type Server struct {
-	nextSvr auth.UserServer
+	nextSvr   auth.UserServer
+	policySvr auth.StrategyServer
 }
 
 // Initialize 初始化
-func (svr *Server) Initialize(authOpt *auth.Config, storage store.Store, cacheMgr cachetypes.CacheManager) error {
-	return svr.nextSvr.Initialize(authOpt, storage, cacheMgr)
+func (svr *Server) Initialize(authOpt *auth.Config, storage store.Store, policyMgr auth.StrategyServer, cacheMgr cachetypes.CacheManager) error {
+	return svr.nextSvr.Initialize(authOpt, storage, policyMgr, cacheMgr)
 }
 
 // Name 用户数据管理server名称
@@ -73,7 +74,7 @@ func (svr *Server) Login(req *apisecurity.LoginRequest) *apiservice.Response {
 }
 
 // CheckCredential 检查当前操作用户凭证
-func (svr *Server) CheckCredential(authCtx *model.AcquireContext) error {
+func (svr *Server) CheckCredential(authCtx *authmodel.AcquireContext) error {
 	return svr.nextSvr.CheckCredential(authCtx)
 }
 
@@ -159,10 +160,16 @@ func (svr *Server) GetUsers(ctx context.Context, query map[string]string) *apise
 	}
 	query["hide_admin"] = strconv.FormatBool(true)
 	// 如果不是超级管理员，查看数据有限制
-	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
+	if authcommon.ParseUserRole(ctx) != authmodel.AdminUserRole {
 		// 设置 owner 参数，只能查看对应 owner 下的用户
 		query["owner"] = utils.ParseOwnerID(ctx)
 	}
+
+	cachetypes.AppendUserPredicate(ctx, func(ctx context.Context, u *authcommon.User) bool {
+		svr.policySvr.GetAuthChecker().AllowResourceOperate(nil, &authmodel.ResourceOpInfo{})
+		return true
+	})
+
 	return svr.nextSvr.GetUsers(ctx, query)
 }
 
@@ -191,8 +198,8 @@ func (svr *Server) UpdateUserToken(ctx context.Context, user *apisecurity.User) 
 	if !checkUserViewPermission(ctx, targetUser) {
 		return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
 	}
-	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
-		if targetUser.GetUserType().GetValue() != strconv.Itoa(int(model.SubAccountUserRole)) {
+	if authcommon.ParseUserRole(ctx) != authmodel.AdminUserRole {
+		if targetUser.GetUserType().GetValue() != strconv.Itoa(int(authmodel.SubAccountUserRole)) {
 			return api.NewUserResponseWithMsg(apimodel.Code_NotAllowedAccess, "only disable sub-account token", user)
 		}
 	}
@@ -275,10 +282,10 @@ func (svr *Server) GetGroups(ctx context.Context, query map[string]string) *apis
 	}
 
 	delete(query, "owner")
-	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
+	if authcommon.ParseUserRole(ctx) != authmodel.AdminUserRole {
 		// step 1: 设置 owner 信息，只能查看归属主帐户下的用户组
 		query["owner"] = utils.ParseOwnerID(ctx)
-		if authcommon.ParseUserRole(ctx) != model.OwnerUserRole {
+		if authcommon.ParseUserRole(ctx) != authmodel.OwnerUserRole {
 			// step 2: 非主帐户，只能查看自己所在的用户组
 			if _, ok := query["user_id"]; !ok {
 				query["user_id"] = utils.ParseUserID(ctx)
@@ -325,7 +332,7 @@ func (svr *Server) UpdateGroupToken(ctx context.Context, group *apisecurity.User
 	if saveGroup == nil {
 		return api.NewAuthResponse(apimodel.Code_NotFoundUserGroup)
 	}
-	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
+	if authcommon.ParseUserRole(ctx) != authmodel.AdminUserRole {
 		if saveGroup.GetOwner().GetValue() != utils.ParseUserID(ctx) {
 			return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
 		}
@@ -345,7 +352,7 @@ func (svr *Server) ResetGroupToken(ctx context.Context, group *apisecurity.UserG
 	if saveGroup == nil {
 		return api.NewAuthResponse(apimodel.Code_NotFoundUserGroup)
 	}
-	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
+	if authcommon.ParseUserRole(ctx) != authmodel.AdminUserRole {
 		if saveGroup.GetOwner().GetValue() != utils.ParseUserID(ctx) {
 			return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
 		}
@@ -363,9 +370,9 @@ func (svr *Server) verifyAuth(ctx context.Context, isWrite bool,
 		return nil, api.NewAuthResponse(apimodel.Code_EmptyAutToken)
 	}
 
-	authCtx := model.NewAcquireContext(
-		model.WithRequestContext(ctx),
-		model.WithModule(model.AuthModule),
+	authCtx := authmodel.NewAcquireContext(
+		authmodel.WithRequestContext(ctx),
+		authmodel.WithModule(authmodel.AuthModule),
 	)
 
 	// case 1. 如果 error 不是 token 被禁止的 error，直接返回
@@ -377,7 +384,7 @@ func (svr *Server) verifyAuth(ctx context.Context, isWrite bool,
 		return nil, api.NewAuthResponse(apimodel.Code_AuthTokenForbidden)
 	}
 
-	attachVal, exist := authCtx.GetAttachment(model.TokenDetailInfoKey)
+	attachVal, exist := authCtx.GetAttachment(authmodel.TokenDetailInfoKey)
 	if !exist {
 		log.Error("[Auth][Server] token detail info not exist", utils.RequestID(ctx))
 		return nil, api.NewAuthResponse(apimodel.Code_TokenNotExisted)
@@ -400,7 +407,9 @@ func (svr *Server) verifyAuth(ctx context.Context, isWrite bool,
 		return nil, api.NewAuthResponse(apimodel.Code_OperationRoleForbidden)
 	}
 
-	return authCtx.GetRequestContext(), nil
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+	return ctx, nil
 }
 
 // checkUserViewPermission 检查是否可以操作该用户
@@ -409,7 +418,7 @@ func (svr *Server) verifyAuth(ctx context.Context, isWrite bool,
 // Case 3: 如果是超级账户，通过
 func checkUserViewPermission(ctx context.Context, user *apisecurity.User) bool {
 	role := authcommon.ParseUserRole(ctx)
-	if role == model.AdminUserRole {
+	if role == authmodel.AdminUserRole {
 		log.Debug("check user view permission", utils.RequestID(ctx), zap.Bool("admin", true))
 		return true
 	}
@@ -444,7 +453,7 @@ func (svr *Server) checkUpdateGroup(ctx context.Context, req *apisecurity.Modify
 	// 1.管理员
 	// 2.自己在这个用户组里面
 	// 3.自己是这个用户组的owner角色
-	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
+	if authcommon.ParseUserRole(ctx) != authmodel.AdminUserRole {
 		inGroup := false
 		for i := range saveGroup.GetRelation().GetUsers() {
 			if userId == saveGroup.GetRelation().GetUsers()[i].GetId().GetValue() {
@@ -472,7 +481,7 @@ func (svr *Server) checkGroupViewAuth(ctx context.Context, id string) bool {
 		return false
 	}
 
-	if authcommon.ParseUserRole(ctx) != model.AdminUserRole {
+	if authcommon.ParseUserRole(ctx) != authmodel.AdminUserRole {
 		userID := utils.ParseUserID(ctx)
 		inGroup := svr.GetUserHelper().CheckUserInGroup(ctx, &apisecurity.UserGroup{
 			Id: wrapperspb.String(id),

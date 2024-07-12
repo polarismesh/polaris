@@ -264,7 +264,7 @@ func (s *Server) GetRateLimits(ctx context.Context, query map[string]string) *ap
 		return errResp
 	}
 
-	total, extendRateLimits, err := s.Cache().RateLimit().QueryRateLimitRules(*args)
+	total, extendRateLimits, err := s.Cache().RateLimit().QueryRateLimitRules(ctx, *args)
 	if err != nil {
 		log.Errorf("get rate limits store err: %s", err.Error())
 		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))

@@ -18,6 +18,7 @@
 package service
 
 import (
+	"context"
 	"sort"
 	"strings"
 
@@ -119,7 +120,7 @@ func queryRoutingRuleV2ByService(rule *model.ExtendRouterConfig, sourceNamespace
 }
 
 // QueryRoutingConfigsV2 Query Route Configuration List
-func (rc *RouteRuleCache) QueryRoutingConfigsV2(args *types.RoutingArgs) (uint32, []*model.ExtendRouterConfig, error) {
+func (rc *RouteRuleCache) QueryRoutingConfigsV2(ctx context.Context, args *types.RoutingArgs) (uint32, []*model.ExtendRouterConfig, error) {
 	if err := rc.forceUpdate(); err != nil {
 		return 0, nil, err
 	}

@@ -11,7 +11,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	auth "github.com/polarismesh/polaris/auth"
 	api "github.com/polarismesh/polaris/cache/api"
-	model "github.com/polarismesh/polaris/common/model"
+	auth0 "github.com/polarismesh/polaris/common/model/auth"
 	store "github.com/polarismesh/polaris/store"
 	security "github.com/polarismesh/specification/source/go/api/v1/security"
 	service_manage "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -41,7 +41,7 @@ func (m *MockAuthChecker) EXPECT() *MockAuthCheckerMockRecorder {
 }
 
 // AllowResourceOperate mocks base method.
-func (m *MockAuthChecker) AllowResourceOperate(ctx *model.AcquireContext, opInfo *model.ResourceOpInfo) bool {
+func (m *MockAuthChecker) AllowResourceOperate(ctx *auth0.AcquireContext, opInfo *auth0.ResourceOpInfo) bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AllowResourceOperate", ctx, opInfo)
 	ret0, _ := ret[0].(bool)
@@ -55,7 +55,7 @@ func (mr *MockAuthCheckerMockRecorder) AllowResourceOperate(ctx, opInfo interfac
 }
 
 // CheckClientPermission mocks base method.
-func (m *MockAuthChecker) CheckClientPermission(preCtx *model.AcquireContext) (bool, error) {
+func (m *MockAuthChecker) CheckClientPermission(preCtx *auth0.AcquireContext) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CheckClientPermission", preCtx)
 	ret0, _ := ret[0].(bool)
@@ -70,7 +70,7 @@ func (mr *MockAuthCheckerMockRecorder) CheckClientPermission(preCtx interface{})
 }
 
 // CheckConsolePermission mocks base method.
-func (m *MockAuthChecker) CheckConsolePermission(preCtx *model.AcquireContext) (bool, error) {
+func (m *MockAuthChecker) CheckConsolePermission(preCtx *auth0.AcquireContext) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CheckConsolePermission", preCtx)
 	ret0, _ := ret[0].(bool)
@@ -136,7 +136,7 @@ func (m *MockStrategyServer) EXPECT() *MockStrategyServerMockRecorder {
 }
 
 // AfterResourceOperation mocks base method.
-func (m *MockStrategyServer) AfterResourceOperation(afterCtx *model.AcquireContext) error {
+func (m *MockStrategyServer) AfterResourceOperation(afterCtx *auth0.AcquireContext) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AfterResourceOperation", afterCtx)
 	ret0, _ := ret[0].(error)
@@ -234,17 +234,17 @@ func (mr *MockStrategyServerMockRecorder) GetStrategy(ctx, strategy interface{})
 }
 
 // Initialize mocks base method.
-func (m *MockStrategyServer) Initialize(options *auth.Config, storage store.Store, cacheMgr api.CacheManager, userSvr auth.UserServer) error {
+func (m *MockStrategyServer) Initialize(arg0 *auth.Config, arg1 store.Store, arg2 api.CacheManager, arg3 auth.UserServer) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Initialize", options, storage, cacheMgr, userSvr)
+	ret := m.ctrl.Call(m, "Initialize", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Initialize indicates an expected call of Initialize.
-func (mr *MockStrategyServerMockRecorder) Initialize(options, storage, cacheMgr, userSvr interface{}) *gomock.Call {
+func (mr *MockStrategyServerMockRecorder) Initialize(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockStrategyServer)(nil).Initialize), options, storage, cacheMgr, userSvr)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockStrategyServer)(nil).Initialize), arg0, arg1, arg2, arg3)
 }
 
 // Name mocks base method.
@@ -299,7 +299,7 @@ func (m *MockUserServer) EXPECT() *MockUserServerMockRecorder {
 }
 
 // CheckCredential mocks base method.
-func (m *MockUserServer) CheckCredential(authCtx *model.AcquireContext) error {
+func (m *MockUserServer) CheckCredential(authCtx *auth0.AcquireContext) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CheckCredential", authCtx)
 	ret0, _ := ret[0].(error)
@@ -453,17 +453,17 @@ func (mr *MockUserServerMockRecorder) GetUsers(ctx, query interface{}) *gomock.C
 }
 
 // Initialize mocks base method.
-func (m *MockUserServer) Initialize(authOpt *auth.Config, storage store.Store, cacheMgn api.CacheManager) error {
+func (m *MockUserServer) Initialize(arg0 *auth.Config, arg1 store.Store, arg2 auth.StrategyServer, arg3 api.CacheManager) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Initialize", authOpt, storage, cacheMgn)
+	ret := m.ctrl.Call(m, "Initialize", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Initialize indicates an expected call of Initialize.
-func (mr *MockUserServerMockRecorder) Initialize(authOpt, storage, cacheMgn interface{}) *gomock.Call {
+func (mr *MockUserServerMockRecorder) Initialize(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockUserServer)(nil).Initialize), authOpt, storage, cacheMgn)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockUserServer)(nil).Initialize), arg0, arg1, arg2, arg3)
 }
 
 // Login mocks base method.

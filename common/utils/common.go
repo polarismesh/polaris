@@ -87,6 +87,8 @@ const (
 	MaxDbCircuitbreakerOwner      = 1024
 	MaxDbCircuitbreakerVersion    = 32
 
+	MaxRuleName = 64
+
 	MaxPlatformIDLength     = 32
 	MaxPlatformNameLength   = 128
 	MaxPlatformDomainLength = 1024

@@ -28,7 +28,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
@@ -132,7 +132,7 @@ func (svr *Server) GetAuthChecker() auth.AuthChecker {
 }
 
 // AfterResourceOperation 操作完资源的后置处理逻辑
-func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error {
+func (svr *Server) AfterResourceOperation(afterCtx *authcommon.AcquireContext) error {
 	return svr.nextSvr.AfterResourceOperation(afterCtx)
 }
 
@@ -147,9 +147,9 @@ func (svr *Server) verifyAuth(ctx context.Context, isWrite bool,
 		return nil, api.NewAuthResponse(apimodel.Code_EmptyAutToken)
 	}
 
-	authCtx := model.NewAcquireContext(
-		model.WithRequestContext(ctx),
-		model.WithModule(model.AuthModule),
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithModule(authcommon.AuthModule),
 	)
 
 	// case 1. 如果 error 不是 token 被禁止的 error，直接返回
@@ -161,7 +161,7 @@ func (svr *Server) verifyAuth(ctx context.Context, isWrite bool,
 		return nil, api.NewAuthResponse(apimodel.Code_AuthTokenForbidden)
 	}
 
-	attachVal, exist := authCtx.GetAttachment(model.TokenDetailInfoKey)
+	attachVal, exist := authCtx.GetAttachment(authcommon.TokenDetailInfoKey)
 	if !exist {
 		log.Error("[Auth][Server] token detail info not exist", utils.ZapRequestID(reqId))
 		return nil, api.NewAuthResponse(apimodel.Code_TokenNotExisted)

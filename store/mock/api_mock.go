@@ -11,6 +11,8 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	model "github.com/polarismesh/polaris/common/model"
+	admin "github.com/polarismesh/polaris/common/model/admin"
+	auth "github.com/polarismesh/polaris/common/model/auth"
 	store "github.com/polarismesh/polaris/store"
 )
 
@@ -52,7 +54,7 @@ func (mr *MockStoreMockRecorder) ActiveConfigFileReleaseTx(tx, release interface
 }
 
 // AddGroup mocks base method.
-func (m *MockStore) AddGroup(group *model.UserGroupDetail) error {
+func (m *MockStore) AddGroup(group *auth.UserGroupDetail) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddGroup", group)
 	ret0, _ := ret[0].(error)
@@ -136,7 +138,7 @@ func (mr *MockStoreMockRecorder) AddServiceContractInterfaces(contract interface
 }
 
 // AddStrategy mocks base method.
-func (m *MockStore) AddStrategy(strategy *model.StrategyDetail) error {
+func (m *MockStore) AddStrategy(strategy *auth.StrategyDetail) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddStrategy", strategy)
 	ret0, _ := ret[0].(error)
@@ -150,7 +152,7 @@ func (mr *MockStoreMockRecorder) AddStrategy(strategy interface{}) *gomock.Call 
 }
 
 // AddUser mocks base method.
-func (m *MockStore) AddUser(user *model.User) error {
+func (m *MockStore) AddUser(user *auth.User) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddUser", user)
 	ret0, _ := ret[0].(error)
@@ -765,7 +767,7 @@ func (mr *MockStoreMockRecorder) DeleteFaultDetectRule(id interface{}) *gomock.C
 }
 
 // DeleteGroup mocks base method.
-func (m *MockStore) DeleteGroup(group *model.UserGroupDetail) error {
+func (m *MockStore) DeleteGroup(group *auth.UserGroupDetail) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteGroup", group)
 	ret0, _ := ret[0].(error)
@@ -933,7 +935,7 @@ func (mr *MockStoreMockRecorder) DeleteStrategy(id interface{}) *gomock.Call {
 }
 
 // DeleteUser mocks base method.
-func (m *MockStore) DeleteUser(user *model.User) error {
+func (m *MockStore) DeleteUser(user *auth.User) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteUser", user)
 	ret0, _ := ret[0].(error)
@@ -1184,10 +1186,10 @@ func (mr *MockStoreMockRecorder) GetConfigFileTx(tx, namespace, group, name inte
 }
 
 // GetDefaultStrategyDetailByPrincipal mocks base method.
-func (m *MockStore) GetDefaultStrategyDetailByPrincipal(principalId string, principalType model.PrincipalType) (*model.StrategyDetail, error) {
+func (m *MockStore) GetDefaultStrategyDetailByPrincipal(principalId string, principalType auth.PrincipalType) (*auth.StrategyDetail, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetDefaultStrategyDetailByPrincipal", principalId, principalType)
-	ret0, _ := ret[0].(*model.StrategyDetail)
+	ret0, _ := ret[0].(*auth.StrategyDetail)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1262,10 +1264,10 @@ func (mr *MockStoreMockRecorder) GetFaultDetectRulesForCache(mtime, firstUpdate 
 }
 
 // GetGroup mocks base method.
-func (m *MockStore) GetGroup(id string) (*model.UserGroupDetail, error) {
+func (m *MockStore) GetGroup(id string) (*auth.UserGroupDetail, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGroup", id)
-	ret0, _ := ret[0].(*model.UserGroupDetail)
+	ret0, _ := ret[0].(*auth.UserGroupDetail)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1277,10 +1279,10 @@ func (mr *MockStoreMockRecorder) GetGroup(id interface{}) *gomock.Call {
 }
 
 // GetGroupByName mocks base method.
-func (m *MockStore) GetGroupByName(name, owner string) (*model.UserGroup, error) {
+func (m *MockStore) GetGroupByName(name, owner string) (*auth.UserGroup, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGroupByName", name, owner)
-	ret0, _ := ret[0].(*model.UserGroup)
+	ret0, _ := ret[0].(*auth.UserGroup)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1292,11 +1294,11 @@ func (mr *MockStoreMockRecorder) GetGroupByName(name, owner interface{}) *gomock
 }
 
 // GetGroups mocks base method.
-func (m *MockStore) GetGroups(filters map[string]string, offset, limit uint32) (uint32, []*model.UserGroup, error) {
+func (m *MockStore) GetGroups(filters map[string]string, offset, limit uint32) (uint32, []*auth.UserGroup, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGroups", filters, offset, limit)
 	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].([]*model.UserGroup)
+	ret1, _ := ret[1].([]*auth.UserGroup)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
@@ -1308,10 +1310,10 @@ func (mr *MockStoreMockRecorder) GetGroups(filters, offset, limit interface{}) *
 }
 
 // GetGroupsForCache mocks base method.
-func (m *MockStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*model.UserGroupDetail, error) {
+func (m *MockStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*auth.UserGroupDetail, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGroupsForCache", mtime, firstUpdate)
-	ret0, _ := ret[0].([]*model.UserGroupDetail)
+	ret0, _ := ret[0].([]*auth.UserGroupDetail)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2005,11 +2007,11 @@ func (mr *MockStoreMockRecorder) GetSourceServiceToken(name, namespace interface
 }
 
 // GetStrategies mocks base method.
-func (m *MockStore) GetStrategies(filters map[string]string, offset, limit uint32) (uint32, []*model.StrategyDetail, error) {
+func (m *MockStore) GetStrategies(filters map[string]string, offset, limit uint32) (uint32, []*auth.StrategyDetail, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStrategies", filters, offset, limit)
 	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].([]*model.StrategyDetail)
+	ret1, _ := ret[1].([]*auth.StrategyDetail)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
@@ -2021,10 +2023,10 @@ func (mr *MockStoreMockRecorder) GetStrategies(filters, offset, limit interface{
 }
 
 // GetStrategyDetail mocks base method.
-func (m *MockStore) GetStrategyDetail(id string) (*model.StrategyDetail, error) {
+func (m *MockStore) GetStrategyDetail(id string) (*auth.StrategyDetail, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStrategyDetail", id)
-	ret0, _ := ret[0].(*model.StrategyDetail)
+	ret0, _ := ret[0].(*auth.StrategyDetail)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2036,10 +2038,10 @@ func (mr *MockStoreMockRecorder) GetStrategyDetail(id interface{}) *gomock.Call 
 }
 
 // GetStrategyDetailsForCache mocks base method.
-func (m *MockStore) GetStrategyDetailsForCache(mtime time.Time, firstUpdate bool) ([]*model.StrategyDetail, error) {
+func (m *MockStore) GetStrategyDetailsForCache(mtime time.Time, firstUpdate bool) ([]*auth.StrategyDetail, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStrategyDetailsForCache", mtime, firstUpdate)
-	ret0, _ := ret[0].([]*model.StrategyDetail)
+	ret0, _ := ret[0].([]*auth.StrategyDetail)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2051,10 +2053,10 @@ func (mr *MockStoreMockRecorder) GetStrategyDetailsForCache(mtime, firstUpdate i
 }
 
 // GetStrategyResources mocks base method.
-func (m *MockStore) GetStrategyResources(principalId string, principalRole model.PrincipalType) ([]model.StrategyResource, error) {
+func (m *MockStore) GetStrategyResources(principalId string, principalRole auth.PrincipalType) ([]auth.StrategyResource, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStrategyResources", principalId, principalRole)
-	ret0, _ := ret[0].([]model.StrategyResource)
+	ret0, _ := ret[0].([]auth.StrategyResource)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2066,7 +2068,7 @@ func (mr *MockStoreMockRecorder) GetStrategyResources(principalId, principalRole
 }
 
 // GetSubCount mocks base method.
-func (m *MockStore) GetSubCount(user *model.User) (uint32, error) {
+func (m *MockStore) GetSubCount(user *auth.User) (uint32, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSubCount", user)
 	ret0, _ := ret[0].(uint32)
@@ -2126,10 +2128,10 @@ func (mr *MockStoreMockRecorder) GetUnixSecond(maxWait interface{}) *gomock.Call
 }
 
 // GetUser mocks base method.
-func (m *MockStore) GetUser(id string) (*model.User, error) {
+func (m *MockStore) GetUser(id string) (*auth.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUser", id)
-	ret0, _ := ret[0].(*model.User)
+	ret0, _ := ret[0].(*auth.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2141,10 +2143,10 @@ func (mr *MockStoreMockRecorder) GetUser(id interface{}) *gomock.Call {
 }
 
 // GetUserByIds mocks base method.
-func (m *MockStore) GetUserByIds(ids []string) ([]*model.User, error) {
+func (m *MockStore) GetUserByIds(ids []string) ([]*auth.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserByIds", ids)
-	ret0, _ := ret[0].([]*model.User)
+	ret0, _ := ret[0].([]*auth.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2156,10 +2158,10 @@ func (mr *MockStoreMockRecorder) GetUserByIds(ids interface{}) *gomock.Call {
 }
 
 // GetUserByName mocks base method.
-func (m *MockStore) GetUserByName(name, ownerId string) (*model.User, error) {
+func (m *MockStore) GetUserByName(name, ownerId string) (*auth.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserByName", name, ownerId)
-	ret0, _ := ret[0].(*model.User)
+	ret0, _ := ret[0].(*auth.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2171,11 +2173,11 @@ func (mr *MockStoreMockRecorder) GetUserByName(name, ownerId interface{}) *gomoc
 }
 
 // GetUsers mocks base method.
-func (m *MockStore) GetUsers(filters map[string]string, offset, limit uint32) (uint32, []*model.User, error) {
+func (m *MockStore) GetUsers(filters map[string]string, offset, limit uint32) (uint32, []*auth.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUsers", filters, offset, limit)
 	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].([]*model.User)
+	ret1, _ := ret[1].([]*auth.User)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
@@ -2187,10 +2189,10 @@ func (mr *MockStoreMockRecorder) GetUsers(filters, offset, limit interface{}) *g
 }
 
 // GetUsersForCache mocks base method.
-func (m *MockStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*model.User, error) {
+func (m *MockStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*auth.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUsersForCache", mtime, firstUpdate)
-	ret0, _ := ret[0].([]*model.User)
+	ret0, _ := ret[0].([]*auth.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2334,10 +2336,10 @@ func (mr *MockStoreMockRecorder) IsLeader(key interface{}) *gomock.Call {
 }
 
 // ListLeaderElections mocks base method.
-func (m *MockStore) ListLeaderElections() ([]*model.LeaderElection, error) {
+func (m *MockStore) ListLeaderElections() ([]*admin.LeaderElection, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListLeaderElections")
-	ret0, _ := ret[0].([]*model.LeaderElection)
+	ret0, _ := ret[0].([]*admin.LeaderElection)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -2394,7 +2396,7 @@ func (mr *MockStoreMockRecorder) LockLaneGroup(tx, name interface{}) *gomock.Cal
 }
 
 // LooseAddStrategyResources mocks base method.
-func (m *MockStore) LooseAddStrategyResources(resources []model.StrategyResource) error {
+func (m *MockStore) LooseAddStrategyResources(resources []auth.StrategyResource) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LooseAddStrategyResources", resources)
 	ret0, _ := ret[0].(error)
@@ -2483,7 +2485,7 @@ func (mr *MockStoreMockRecorder) ReleaseLeaderElection(key interface{}) *gomock.
 }
 
 // RemoveStrategyResources mocks base method.
-func (m *MockStore) RemoveStrategyResources(resources []model.StrategyResource) error {
+func (m *MockStore) RemoveStrategyResources(resources []auth.StrategyResource) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RemoveStrategyResources", resources)
 	ret0, _ := ret[0].(error)
@@ -2626,7 +2628,7 @@ func (mr *MockStoreMockRecorder) UpdateFaultDetectRule(conf interface{}) *gomock
 }
 
 // UpdateGroup mocks base method.
-func (m *MockStore) UpdateGroup(group *model.ModifyUserGroup) error {
+func (m *MockStore) UpdateGroup(group *auth.ModifyUserGroup) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateGroup", group)
 	ret0, _ := ret[0].(error)
@@ -2808,7 +2810,7 @@ func (mr *MockStoreMockRecorder) UpdateServiceToken(serviceID, token, revision i
 }
 
 // UpdateStrategy mocks base method.
-func (m *MockStore) UpdateStrategy(strategy *model.ModifyStrategyDetail) error {
+func (m *MockStore) UpdateStrategy(strategy *auth.ModifyStrategyDetail) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateStrategy", strategy)
 	ret0, _ := ret[0].(error)
@@ -2822,7 +2824,7 @@ func (mr *MockStoreMockRecorder) UpdateStrategy(strategy interface{}) *gomock.Ca
 }
 
 // UpdateUser mocks base method.
-func (m *MockStore) UpdateUser(user *model.User) error {
+func (m *MockStore) UpdateUser(user *auth.User) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateUser", user)
 	ret0, _ := ret[0].(error)

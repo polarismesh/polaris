@@ -30,13 +30,13 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/polarismesh/polaris/auth"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 )
 
 // decodeToken 解析 token 信息，如果 t == ""，直接返回一个空对象
 func (svr *Server) decodeToken(t string) (auth.OperatorInfo, error) {
 	if t == "" {
-		return auth.OperatorInfo{}, model.ErrorTokenInvalid
+		return auth.OperatorInfo{}, authcommon.ErrorTokenInvalid
 	}
 
 	ret, err := DecryptMessage([]byte(svr.authOpt.Salt), t)
@@ -45,19 +45,19 @@ func (svr *Server) decodeToken(t string) (auth.OperatorInfo, error) {
 	}
 	tokenDetails := strings.Split(ret, TokenSplit)
 	if len(tokenDetails) != 2 {
-		return auth.OperatorInfo{}, model.ErrorTokenInvalid
+		return auth.OperatorInfo{}, authcommon.ErrorTokenInvalid
 	}
 
 	detail := strings.Split(tokenDetails[1], "/")
 	if len(detail) != 2 {
-		return auth.OperatorInfo{}, model.ErrorTokenInvalid
+		return auth.OperatorInfo{}, authcommon.ErrorTokenInvalid
 	}
 
 	tokenInfo := auth.OperatorInfo{
 		Origin:      t,
-		IsUserToken: detail[0] == model.TokenForUser,
+		IsUserToken: detail[0] == authcommon.TokenForUser,
 		OperatorID:  detail[1],
-		Role:        model.UnknownUserRole,
+		Role:        authcommon.UnknownUserRole,
 	}
 	return tokenInfo, nil
 }
@@ -73,11 +73,11 @@ func (svr *Server) checkToken(tokenInfo *auth.OperatorInfo) (string, bool, error
 	if tokenInfo.IsUserToken {
 		user := svr.cacheMgr.User().GetUserByID(id)
 		if user == nil {
-			return "", false, model.ErrorNoUser
+			return "", false, authcommon.ErrorNoUser
 		}
 
 		if tokenInfo.Origin != user.Token {
-			return "", false, model.ErrorTokenNotExist
+			return "", false, authcommon.ErrorTokenNotExist
 		}
 
 		tokenInfo.Disable = !user.TokenEnable
@@ -89,11 +89,11 @@ func (svr *Server) checkToken(tokenInfo *auth.OperatorInfo) (string, bool, error
 	}
 	group := svr.cacheMgr.User().GetGroup(id)
 	if group == nil {
-		return "", false, model.ErrorNoUserGroup
+		return "", false, authcommon.ErrorNoUserGroup
 	}
 
 	if tokenInfo.Origin != group.Token {
-		return "", false, model.ErrorTokenNotExist
+		return "", false, authcommon.ErrorTokenNotExist
 	}
 
 	tokenInfo.Disable = !group.TokenEnable
@@ -125,9 +125,9 @@ func CreateToken(uid, gid string, salt string) (string, error) {
 
 	var val string
 	if uid == "" {
-		val = fmt.Sprintf("%s/%s", model.TokenForUserGroup, gid)
+		val = fmt.Sprintf("%s/%s", authcommon.TokenForUserGroup, gid)
 	} else {
-		val = fmt.Sprintf("%s/%s", model.TokenForUser, uid)
+		val = fmt.Sprintf("%s/%s", authcommon.TokenForUser, uid)
 	}
 
 	token := fmt.Sprintf(TokenPattern, uuid.NewString()[8:16], val)

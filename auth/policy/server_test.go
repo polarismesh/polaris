@@ -25,7 +25,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	authmock "github.com/polarismesh/polaris/auth/mock"
 	"github.com/polarismesh/polaris/auth/policy"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	storemock "github.com/polarismesh/polaris/store/mock"
 	"github.com/polarismesh/specification/source/go/api/v1/security"
@@ -44,7 +44,7 @@ func Test_AfterResourceOperation(t *testing.T) {
 		mockChecker.EXPECT().IsOpenClientAuth().Return(false).AnyTimes()
 		mockChecker.EXPECT().IsOpenConsoleAuth().Return(false).AnyTimes()
 
-		err := svr.AfterResourceOperation(model.NewAcquireContext())
+		err := svr.AfterResourceOperation(authcommon.NewAcquireContext())
 		assert.NoError(t, err)
 	})
 
@@ -56,8 +56,8 @@ func Test_AfterResourceOperation(t *testing.T) {
 		mockChecker.EXPECT().IsOpenClientAuth().Return(true).AnyTimes()
 		mockChecker.EXPECT().IsOpenConsoleAuth().Return(false).AnyTimes()
 
-		err := svr.AfterResourceOperation(model.NewAcquireContext(
-			model.WithOperation(model.Read),
+		err := svr.AfterResourceOperation(authcommon.NewAcquireContext(
+			authcommon.WithOperation(authcommon.Read),
 		))
 		assert.NoError(t, err)
 	})
@@ -70,9 +70,9 @@ func Test_AfterResourceOperation(t *testing.T) {
 		mockChecker.EXPECT().IsOpenClientAuth().Return(false).AnyTimes()
 		mockChecker.EXPECT().IsOpenConsoleAuth().Return(true).AnyTimes()
 
-		err := svr.AfterResourceOperation(model.NewAcquireContext(
-			model.WithOperation(model.Create),
-			model.WithFromClient(),
+		err := svr.AfterResourceOperation(authcommon.NewAcquireContext(
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithFromClient(),
 		))
 		assert.NoError(t, err)
 	})
@@ -85,9 +85,9 @@ func Test_AfterResourceOperation(t *testing.T) {
 		mockChecker.EXPECT().IsOpenClientAuth().Return(true).AnyTimes()
 		mockChecker.EXPECT().IsOpenConsoleAuth().Return(false).AnyTimes()
 
-		err := svr.AfterResourceOperation(model.NewAcquireContext(
-			model.WithOperation(model.Create),
-			model.WithFromConsole(),
+		err := svr.AfterResourceOperation(authcommon.NewAcquireContext(
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithFromConsole(),
 		))
 		assert.NoError(t, err)
 	})
@@ -100,9 +100,9 @@ func Test_AfterResourceOperation(t *testing.T) {
 		mockChecker.EXPECT().IsOpenClientAuth().Return(true).AnyTimes()
 		mockChecker.EXPECT().IsOpenConsoleAuth().Return(false).AnyTimes()
 
-		err := svr.AfterResourceOperation(model.NewAcquireContext(
-			model.WithOperation(model.Create),
-			model.WithFromClient(),
+		err := svr.AfterResourceOperation(authcommon.NewAcquireContext(
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithFromClient(),
 		))
 		assert.NoError(t, err)
 	})
@@ -115,11 +115,11 @@ func Test_AfterResourceOperation(t *testing.T) {
 		mockChecker.EXPECT().IsOpenClientAuth().Return(true).AnyTimes()
 		mockChecker.EXPECT().IsOpenConsoleAuth().Return(false).AnyTimes()
 
-		ctx := model.NewAcquireContext(
-			model.WithOperation(model.Create),
-			model.WithFromClient(),
+		ctx := authcommon.NewAcquireContext(
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithFromClient(),
 		)
-		ctx.SetAttachment(model.TokenDetailInfoKey, map[string]string{})
+		ctx.SetAttachment(authcommon.TokenDetailInfoKey, map[string]string{})
 		err := svr.AfterResourceOperation(ctx)
 		assert.NoError(t, err)
 	})
@@ -132,12 +132,12 @@ func Test_AfterResourceOperation(t *testing.T) {
 		mockChecker.EXPECT().IsOpenClientAuth().Return(true).AnyTimes()
 		mockChecker.EXPECT().IsOpenConsoleAuth().Return(false).AnyTimes()
 
-		ctx := model.NewAcquireContext(
-			model.WithOperation(model.Create),
-			model.WithFromClient(),
+		ctx := authcommon.NewAcquireContext(
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithFromClient(),
 		)
 		t.Run("origin_empty", func(t *testing.T) {
-			ctx.SetAttachment(model.TokenDetailInfoKey, auth.OperatorInfo{
+			ctx.SetAttachment(authcommon.TokenDetailInfoKey, auth.OperatorInfo{
 				Origin: "",
 			})
 			err := svr.AfterResourceOperation(ctx)
@@ -145,7 +145,7 @@ func Test_AfterResourceOperation(t *testing.T) {
 		})
 
 		t.Run("is_anonymous", func(t *testing.T) {
-			ctx.SetAttachment(model.TokenDetailInfoKey, auth.OperatorInfo{
+			ctx.SetAttachment(authcommon.TokenDetailInfoKey, auth.OperatorInfo{
 				Origin:    "123",
 				Anonymous: true,
 			})
@@ -161,20 +161,20 @@ func Test_AfterResourceOperation(t *testing.T) {
 		mockChecker.EXPECT().IsOpenClientAuth().Return(true).AnyTimes()
 		mockChecker.EXPECT().IsOpenConsoleAuth().Return(true).AnyTimes()
 
-		ctx := model.NewAcquireContext(
-			model.WithOperation(model.Create),
-			model.WithFromClient(),
+		ctx := authcommon.NewAcquireContext(
+			authcommon.WithOperation(authcommon.Create),
+			authcommon.WithFromClient(),
 		)
 
 		ownerId := "mock_auth_owner"
 		curUserId := "123"
 
 		t.Run("user", func(t *testing.T) {
-			ctx.SetAttachment(model.TokenDetailInfoKey, auth.OperatorInfo{
+			ctx.SetAttachment(authcommon.TokenDetailInfoKey, auth.OperatorInfo{
 				Origin:      curUserId,
 				OperatorID:  curUserId,
 				OwnerID:     ownerId,
-				Role:        model.OwnerUserRole,
+				Role:        authcommon.OwnerUserRole,
 				IsUserToken: true,
 			})
 
@@ -237,7 +237,7 @@ func Test_AfterResourceOperation(t *testing.T) {
 					defer sctrl.Finish()
 					mockStore := storemock.NewMockStore(sctrl)
 
-					mockStore.EXPECT().GetDefaultStrategyDetailByPrincipal(gomock.Any(), gomock.Any()).Return(&model.StrategyDetail{}, nil)
+					mockStore.EXPECT().GetDefaultStrategyDetailByPrincipal(gomock.Any(), gomock.Any()).Return(&authcommon.StrategyDetail{}, nil)
 					svr.MockStore(mockStore)
 
 					err := svr.AfterResourceOperation(ctx)
@@ -249,25 +249,25 @@ func Test_AfterResourceOperation(t *testing.T) {
 					defer sctrl.Finish()
 					mockStore := storemock.NewMockStore(sctrl)
 
-					mockStore.EXPECT().GetDefaultStrategyDetailByPrincipal(gomock.Any(), gomock.Any()).Return(&model.StrategyDetail{}, nil)
+					mockStore.EXPECT().GetDefaultStrategyDetailByPrincipal(gomock.Any(), gomock.Any()).Return(&authcommon.StrategyDetail{}, nil)
 					svr.MockStore(mockStore)
 
-					ctx.SetAttachment(model.ResourceAttachmentKey, map[string]interface{}{})
+					ctx.SetAttachment(authcommon.ResourceAttachmentKey, map[string]interface{}{})
 
 					err := svr.AfterResourceOperation(ctx)
 					assert.NoError(t, err)
 				})
 
 				t.Run("delete_resource", func(t *testing.T) {
-					delCtx := model.NewAcquireContext(
-						model.WithOperation(model.Delete),
-						model.WithFromClient(),
+					delCtx := authcommon.NewAcquireContext(
+						authcommon.WithOperation(authcommon.Delete),
+						authcommon.WithFromClient(),
 					)
-					delCtx.SetAttachment(model.TokenDetailInfoKey, auth.OperatorInfo{
+					delCtx.SetAttachment(authcommon.TokenDetailInfoKey, auth.OperatorInfo{
 						Origin:      curUserId,
 						OperatorID:  curUserId,
 						OwnerID:     ownerId,
-						Role:        model.OwnerUserRole,
+						Role:        authcommon.OwnerUserRole,
 						IsUserToken: true,
 					})
 
@@ -277,7 +277,7 @@ func Test_AfterResourceOperation(t *testing.T) {
 					defer sctrl.Finish()
 					mockStore := storemock.NewMockStore(sctrl)
 					mockStore.EXPECT().RemoveStrategyResources(gomock.Any()).DoAndReturn(func(args interface{}) error {
-						resources := args.([]model.StrategyResource)
+						resources := args.([]authcommon.StrategyResource)
 						for i := range resources {
 							assert.True(t, resources[i].StrategyID == "", utils.MustJson(resources[i]))
 						}
@@ -293,9 +293,9 @@ func Test_AfterResourceOperation(t *testing.T) {
 	})
 }
 
-func initMockAcquireContext(ctx *model.AcquireContext) {
-	ctx.SetAttachment(model.LinkUsersKey, []string{})
-	ctx.SetAttachment(model.LinkGroupsKey, []string{})
-	ctx.SetAttachment(model.RemoveLinkUsersKey, []string{})
-	ctx.SetAttachment(model.RemoveLinkGroupsKey, []string{})
+func initMockAcquireContext(ctx *authcommon.AcquireContext) {
+	ctx.SetAttachment(authcommon.LinkUsersKey, []string{})
+	ctx.SetAttachment(authcommon.LinkGroupsKey, []string{})
+	ctx.SetAttachment(authcommon.RemoveLinkUsersKey, []string{})
+	ctx.SetAttachment(authcommon.RemoveLinkGroupsKey, []string{})
 }

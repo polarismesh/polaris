@@ -24,14 +24,14 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
 func (svr *ServerAuthAbility) CreateFaultDetectRules(
 	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 
-	authCtx := svr.collectFaultDetectAuthContext(ctx, request, model.Read, "CreateFaultDetectRules")
+	authCtx := svr.collectFaultDetectAuthContext(ctx, request, authcommon.Read, "CreateFaultDetectRules")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
@@ -43,7 +43,7 @@ func (svr *ServerAuthAbility) CreateFaultDetectRules(
 func (svr *ServerAuthAbility) DeleteFaultDetectRules(
 	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 
-	authCtx := svr.collectFaultDetectAuthContext(ctx, request, model.Read, "DeleteFaultDetectRules")
+	authCtx := svr.collectFaultDetectAuthContext(ctx, request, authcommon.Read, "DeleteFaultDetectRules")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
@@ -55,7 +55,7 @@ func (svr *ServerAuthAbility) DeleteFaultDetectRules(
 func (svr *ServerAuthAbility) UpdateFaultDetectRules(
 	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 
-	authCtx := svr.collectFaultDetectAuthContext(ctx, request, model.Read, "UpdateFaultDetectRules")
+	authCtx := svr.collectFaultDetectAuthContext(ctx, request, authcommon.Read, "UpdateFaultDetectRules")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(convertToErrCode(err))
 	}
@@ -66,7 +66,7 @@ func (svr *ServerAuthAbility) UpdateFaultDetectRules(
 
 func (svr *ServerAuthAbility) GetFaultDetectRules(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
-	authCtx := svr.collectFaultDetectAuthContext(ctx, nil, model.Read, "GetFaultDetectRules")
+	authCtx := svr.collectFaultDetectAuthContext(ctx, nil, authcommon.Read, "GetFaultDetectRules")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchQueryResponse(convertToErrCode(err))
 	}

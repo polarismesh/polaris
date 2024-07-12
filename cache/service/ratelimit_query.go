@@ -18,6 +18,7 @@
 package service
 
 import (
+	"context"
 	"sort"
 	"strings"
 
@@ -35,7 +36,7 @@ func (rlc *rateLimitCache) forceUpdate() error {
 }
 
 // QueryRateLimitRules
-func (rlc *rateLimitCache) QueryRateLimitRules(args types.RateLimitRuleArgs) (uint32, []*model.RateLimit, error) {
+func (rlc *rateLimitCache) QueryRateLimitRules(ctx context.Context, args types.RateLimitRuleArgs) (uint32, []*model.RateLimit, error) {
 	if err := rlc.forceUpdate(); err != nil {
 		return 0, nil, err
 	}
