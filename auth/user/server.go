@@ -66,7 +66,6 @@ func DefaultUserConfig() *AuthConfig {
 type Server struct {
 	authOpt  *AuthConfig
 	storage  store.Store
-	history  plugin.History
 	cacheMgr cachetypes.CacheManager
 	helper   auth.UserHelper
 }
@@ -86,11 +85,6 @@ func (svr *Server) Initialize(authOpt *auth.Config, storage store.Store, policyM
 	_ = cacheMgr.OpenResourceCache(cachetypes.ConfigEntry{
 		Name: cachetypes.UsersName,
 	})
-	// 获取History插件，注意：插件的配置在bootstrap已经设置好
-	svr.history = plugin.GetHistory()
-	if svr.history == nil {
-		log.Warnf("Not Found History Log Plugin")
-	}
 	svr.helper = &DefaultUserHelper{svr: svr}
 	return nil
 }
@@ -167,17 +161,7 @@ func (svr *Server) Login(req *apisecurity.LoginRequest) *apiservice.Response {
 
 // RecordHistory Server对外提供history插件的简单封装
 func (svr *Server) RecordHistory(entry *model.RecordEntry) {
-	// 如果插件没有初始化，那么不记录history
-	if svr.history == nil {
-		return
-	}
-	// 如果数据为空，则不需要打印了
-	if entry == nil {
-		return
-	}
-
-	// 调用插件记录history
-	svr.history.Record(entry)
+	plugin.GetHistory().Record(entry)
 }
 
 func (svr *Server) GetUserHelper() auth.UserHelper {

@@ -31,6 +31,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/polarismesh/polaris/auth"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
@@ -269,9 +270,7 @@ func (svr *Server) DeleteUser(ctx context.Context, req *apisecurity.User) *apise
 
 // GetUsers 查询用户列表
 func (svr *Server) GetUsers(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
-	requestID := utils.ParseRequestID(ctx)
-	log.Debug("[Auth][User] origin get users query params",
-		utils.ZapRequestID(requestID), zap.Any("query", query))
+	log.Debug("[Auth][User] origin get users query params", utils.RequestID(ctx), zap.Any("query", query))
 
 	var (
 		offset, limit uint32
@@ -281,10 +280,9 @@ func (svr *Server) GetUsers(ctx context.Context, query map[string]string) *apise
 
 	for key, value := range query {
 		if _, ok := UserFilterAttributes[key]; !ok {
-			log.Errorf("[Auth][User] attribute(%s) it not allowed", key)
+			log.Error("[Auth][User] attribute it not allowed", utils.RequestID(ctx), zap.String("key", key))
 			return api.NewAuthBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, key+" is not allowed")
 		}
-
 		searchFilters[key] = value
 	}
 
@@ -298,9 +296,13 @@ func (svr *Server) GetUsers(ctx context.Context, query map[string]string) *apise
 		return api.NewAuthBatchQueryResponse(apimodel.Code_InvalidParameter)
 	}
 
-	total, users, err = svr.storage.GetUsers(searchFilters, offset, limit)
+	total, users, err = svr.cacheMgr.User().QueryUsers(ctx, cachetypes.UserSearchArgs{
+		Filters: searchFilters,
+		Offset:  offset,
+		Limit:   limit,
+	})
 	if err != nil {
-		log.Error("[Auth][User] get user from store", zap.Any("req", searchFilters),
+		log.Error("[Auth][User] get user from store", utils.RequestID(ctx), zap.Any("req", searchFilters),
 			zap.Error(err))
 		return api.NewAuthBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}

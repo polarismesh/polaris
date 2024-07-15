@@ -18,6 +18,7 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"sync/atomic"
@@ -343,4 +344,14 @@ func (uc *userCache) GetUserLinkGroupIds(userId string) []string {
 		return nil
 	}
 	return val.ToSlice()
+}
+
+// QueryUsers .
+func (uc *userCache) QueryUsers(ctx context.Context, args types.UserSearchArgs) (uint32, []*authcommon.User, error) {
+	return 0, nil, nil
+}
+
+// QueryUserGroups .
+func (uc *userCache) QueryUserGroups(ctx context.Context, args types.UserGroupSearchArgs) (uint32, []*authcommon.UserGroupDetail, error) {
+	return 0, nil, nil
 }

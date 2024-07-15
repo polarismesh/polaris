@@ -641,6 +641,17 @@ type (
 )
 
 type (
+	UserSearchArgs struct {
+		Filters map[string]string
+		Offset  uint32
+		Limit   uint32
+	}
+	UserGroupSearchArgs struct {
+		Filters map[string]string
+		Offset  uint32
+		Limit   uint32
+	}
+
 	// UserPredicate .
 	UserPredicate func(context.Context, *authcommon.User) bool
 	// UserGroupPredicate .
@@ -662,6 +673,10 @@ type (
 		IsOwner(id string) bool
 		// GetUserLinkGroupIds
 		GetUserLinkGroupIds(id string) []string
+		// QueryUsers .
+		QueryUsers(context.Context, UserSearchArgs) (uint32, []*authcommon.User, error)
+		// QueryUserGroups .
+		QueryUserGroups(context.Context, UserGroupSearchArgs) (uint32, []*authcommon.UserGroupDetail, error)
 	}
 
 	// AuthPolicyPredicate .

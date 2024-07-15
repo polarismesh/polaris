@@ -143,14 +143,8 @@ func (svr *ServerAuthAbility) GetServices(
 	if len(resp.Services) != 0 {
 		for index := range resp.Services {
 			svc := resp.Services[index]
-			editable := svr.policyMgr.GetAuthChecker().AllowResourceOperate(authCtx, &authcommon.ResourceOpInfo{
-				ResourceType: apisecurity.ResourceType_Services,
-				Namespace:    svc.GetNamespace().GetValue(),
-				ResourceName: svc.GetName().GetValue(),
-				ResourceID:   svc.GetId().GetValue(),
-				Operation:    authCtx.GetOperation(),
-			})
-			svc.Editable = utils.NewBoolValue(editable)
+			// TODO 需要配合 metadata 做调整
+			svc.Editable = utils.NewBoolValue(true)
 		}
 	}
 	return resp

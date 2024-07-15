@@ -28,6 +28,7 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
@@ -189,15 +190,20 @@ func (svr *Server) GetGroups(ctx context.Context, query map[string]string) *apis
 	searchFilters := make(map[string]string, len(query))
 	for key, value := range query {
 		if _, ok := UserLinkGroupAttributes[key]; !ok {
-			log.Errorf("[Auth][Group] get groups attribute(%s) it not allowed", key)
+			log.Error("[Auth][Group] get groups attribute it not allowed", utils.RequestID(ctx), zap.String("key", key))
 			return api.NewAuthBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, key+" is not allowed")
 		}
 		searchFilters[key] = value
 	}
 
-	total, groups, err := svr.storage.GetGroups(searchFilters, offset, limit)
+	total, groups, err := svr.cacheMgr.User().QueryUserGroups(ctx, cachetypes.UserGroupSearchArgs{
+		Filters: searchFilters,
+		Offset:  offset,
+		Limit:   limit,
+	})
 	if err != nil {
-		log.Errorf("[Auth][Group] get groups req(%+v) store err: %s", query, err.Error())
+		log.Error("[Auth][Group] list user_group from store", utils.RequestID(ctx),
+			zap.Any("filters", searchFilters), zap.Error(err))
 		return api.NewAuthBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}
 
@@ -430,10 +436,10 @@ func UpdateGroupAttribute(ctx context.Context, old *authcommon.UserGroup, newUse
 }
 
 // enhancedGroups2Api 数组专为 []*apisecurity.UserGroup
-func enhancedGroups2Api(groups []*authcommon.UserGroup, handler UserGroup2Api) []*apisecurity.UserGroup {
+func enhancedGroups2Api(groups []*authcommon.UserGroupDetail, handler UserGroup2Api) []*apisecurity.UserGroup {
 	out := make([]*apisecurity.UserGroup, 0, len(groups))
 	for k := range groups {
-		out = append(out, handler(groups[k]))
+		out = append(out, handler(groups[k].UserGroup))
 	}
 
 	return out

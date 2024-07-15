@@ -2677,6 +2677,38 @@ func (mr *MockUserCacheMockRecorder) Name() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockUserCache)(nil).Name))
 }
 
+// QueryUserGroups mocks base method.
+func (m *MockUserCache) QueryUserGroups(arg0 context.Context, arg1 api.UserGroupSearchArgs) (uint32, []*auth.UserGroupDetail, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "QueryUserGroups", arg0, arg1)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*auth.UserGroupDetail)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// QueryUserGroups indicates an expected call of QueryUserGroups.
+func (mr *MockUserCacheMockRecorder) QueryUserGroups(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryUserGroups", reflect.TypeOf((*MockUserCache)(nil).QueryUserGroups), arg0, arg1)
+}
+
+// QueryUsers mocks base method.
+func (m *MockUserCache) QueryUsers(arg0 context.Context, arg1 api.UserSearchArgs) (uint32, []*auth.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "QueryUsers", arg0, arg1)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*auth.User)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// QueryUsers indicates an expected call of QueryUsers.
+func (mr *MockUserCacheMockRecorder) QueryUsers(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryUsers", reflect.TypeOf((*MockUserCache)(nil).QueryUsers), arg0, arg1)
+}
+
 // Update mocks base method.
 func (m *MockUserCache) Update() error {
 	m.ctrl.T.Helper()

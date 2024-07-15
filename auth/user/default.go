@@ -23,6 +23,7 @@ import (
 
 	"github.com/polarismesh/polaris/auth"
 	user_auth "github.com/polarismesh/polaris/auth/user/inteceptor/auth"
+	"github.com/polarismesh/polaris/auth/user/inteceptor/paramcheck"
 )
 
 type ServerProxyFactory func(svr *Server, pre auth.UserServer) (auth.UserServer, error)
@@ -53,6 +54,9 @@ func loadInteceptors() {
 	RegisterServerProxy("auth", func(svr *Server, pre auth.UserServer) (auth.UserServer, error) {
 		return user_auth.NewServer(pre), nil
 	})
+	RegisterServerProxy("paramcheck", func(svr *Server, pre auth.UserServer) (auth.UserServer, error) {
+		return paramcheck.NewServer(pre), nil
+	})
 }
 
 func BuildServer() (*Server, auth.UserServer, error) {
@@ -61,7 +65,7 @@ func BuildServer() (*Server, auth.UserServer, error) {
 	var nextSvr auth.UserServer
 	nextSvr = svr
 	// 需要返回包装代理的 DiscoverServer
-	order := []string{"auth"}
+	order := GetChainOrder()
 	for i := range order {
 		factory, exist := serverProxyFactories[order[i]]
 		if !exist {
@@ -75,4 +79,11 @@ func BuildServer() (*Server, auth.UserServer, error) {
 		nextSvr = proxySvr
 	}
 	return svr, nextSvr, nil
+}
+
+func GetChainOrder() []string {
+	return []string{
+		"auth",
+		"paramcheck",
+	}
 }

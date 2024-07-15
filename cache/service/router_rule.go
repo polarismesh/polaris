@@ -260,6 +260,7 @@ func (rc *RouteRuleCache) setRoutingConfigV2(lastMtimes map[string]time.Time, cs
 		}
 		rc.container.saveV2(extendEntry)
 	}
+	rc.container.reload()
 	lastMtimes[rc.Name()+"v2"] = time.Unix(lastMtimeV2, 0)
 }
 

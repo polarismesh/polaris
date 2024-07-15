@@ -299,6 +299,7 @@ func newRouteRuleContainer() *RouteRuleContainer {
 			model.TrafficDirection_INBOUND:  newClientRouteRuleContainer(model.TrafficDirection_INBOUND),
 			model.TrafficDirection_OUTBOUND: newClientRouteRuleContainer(model.TrafficDirection_OUTBOUND),
 		},
+		effect: utils.NewSyncSet[model.ServiceKey](),
 	}
 }
 
@@ -322,6 +323,9 @@ type RouteRuleContainer struct {
 	v1rules map[string][]*model.ExtendRouterConfig
 	// v1rulesToOld 转为 v2 规则id 对应的原本的 v1 规则id 信息
 	v1rulesToOld map[string]string
+
+	// effect
+	effect *utils.SyncSet[model.ServiceKey]
 }
 
 func (b *RouteRuleContainer) saveV2(conf *model.ExtendRouterConfig) {
@@ -472,4 +476,36 @@ func (b *RouteRuleContainer) foreach(proc types.RouterRuleIterProc) {
 			proc(rules[i].ID, rules[i])
 		}
 	}
+}
+
+func (b *RouteRuleContainer) reload() {
+	defer func() {
+		b.effect = utils.NewSyncSet[model.ServiceKey]()
+	}()
+
+	b.effect.Range(func(val model.ServiceKey) {
+		// 处理 exact
+		rules, ok := b.v2Containers[model.TrafficDirection_INBOUND].exactRules.Load(val.Domain())
+		if ok {
+			rules.reload()
+		}
+		rules, ok = b.v2Containers[model.TrafficDirection_OUTBOUND].exactRules.Load(val.Domain())
+		if ok {
+			rules.reload()
+		}
+
+		// 处理 ns wildcard
+		rules, ok = b.v2Containers[model.TrafficDirection_INBOUND].nsWildcardRules.Load(val.Namespace)
+		if ok {
+			rules.reload()
+		}
+		rules, ok = b.v2Containers[model.TrafficDirection_OUTBOUND].nsWildcardRules.Load(val.Namespace)
+		if ok {
+			rules.reload()
+		}
+
+		// 处理 all wildcard
+		b.v2Containers[model.TrafficDirection_INBOUND].allWildcardRules.reload()
+		b.v2Containers[model.TrafficDirection_OUTBOUND].allWildcardRules.reload()
+	})
 }
