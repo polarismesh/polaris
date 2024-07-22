@@ -115,7 +115,7 @@ func (rc *RouteRuleCache) Name() string {
 }
 
 func (rc *RouteRuleCache) ListRouterRule(service, namespace string) []*model.ExtendRouterConfig {
-	routerRules := rc.container.SearchRouteRules(service, namespace)
+	routerRules := rc.container.SearchCustomRules(service, namespace)
 	ret := make([]*model.ExtendRouterConfig, 0, len(routerRules))
 	ret = append(ret, routerRules...)
 	return ret
@@ -127,7 +127,7 @@ func (rc *RouteRuleCache) GetRouterConfigV2(id, service, namespace string) (*api
 		return nil, nil
 	}
 
-	routerRules := rc.container.SearchRouteRules(service, namespace)
+	routerRules := rc.container.SearchCustomRules(service, namespace)
 	revisions := make([]string, 0, len(routerRules))
 	rulesV2 := make([]*apitraffic.RouteRule, 0, len(routerRules))
 	for i := range routerRules {
@@ -163,9 +163,9 @@ func (rc *RouteRuleCache) GetRouterConfig(id, svcName, namespace string) (*apitr
 	key := model.ServiceKey{Namespace: namespace, Name: svcName}
 
 	revisions := []string{}
-	inRule, inRevision := rc.container.directionContainers[model.TrafficDirection_INBOUND].SearchRouteRuleV1(key)
+	inRule, inRevision := rc.container.customContainers[model.TrafficDirection_INBOUND].SearchRouteRuleV1(key)
 	revisions = append(revisions, inRevision...)
-	outRule, outRevision := rc.container.directionContainers[model.TrafficDirection_OUTBOUND].SearchRouteRuleV1(key)
+	outRule, outRevision := rc.container.customContainers[model.TrafficDirection_OUTBOUND].SearchRouteRuleV1(key)
 	revisions = append(revisions, outRevision...)
 
 	revision, err := types.CompositeComputeRevision(revisions)
@@ -194,7 +194,7 @@ func (rc *RouteRuleCache) GetNearbyRouteRule(service, namespace string) ([]*apit
 		Name:      service,
 	}
 
-	routerRules := rc.container.directionContainers[model.TrafficDirection_INBOUND].SearchRouteRuleV2(apitraffic.RoutingPolicy_NearbyPolicy, svcKey)
+	routerRules := rc.container.nearbyContainers.SearchRouteRuleV2(svcKey)
 	revisions := make([]string, 0, len(routerRules))
 	ret := make([]*apitraffic.RouteRule, 0, len(routerRules))
 	for i := range routerRules {
