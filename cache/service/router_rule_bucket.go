@@ -333,6 +333,7 @@ type RouteRuleContainer struct {
 func (b *RouteRuleContainer) saveV2(conf *model.ExtendRouterConfig) {
 	b.rules.Store(conf.ID, conf)
 	handler := func(direction model.TrafficDirection, svcKey model.ServiceKey) {
+		b.effect.Add(svcKey)
 		container := b.customRuleContainers[direction]
 		// level1 级别 cache 处理
 		if svcKey.Name != model.MatchAll && svcKey.Namespace != model.MatchAll {
@@ -361,6 +362,7 @@ func (b *RouteRuleContainer) saveV2(conf *model.ExtendRouterConfig) {
 			Name:      conf.NearbyRouting.Service,
 		})
 	}
+
 }
 
 // saveV1 保存 v1 级别的路由规则
@@ -395,6 +397,7 @@ func (b *RouteRuleContainer) deleteV2(id string) {
 	}
 
 	handler := func(direction model.TrafficDirection, svcKey model.ServiceKey) {
+		b.effect.Add(svcKey)
 		container := b.customRuleContainers[direction]
 		// level1 级别 cache 处理
 		if svcKey.Name != model.MatchAll && svcKey.Namespace != model.MatchAll {

@@ -95,6 +95,7 @@ func (rc *RouteRuleCache) realUpdate() (map[string]time.Time, int64, error) {
 	lastMtimes := map[string]time.Time{}
 	rc.setRoutingConfigV1(lastMtimes, outV1)
 	rc.setRoutingConfigV2(lastMtimes, outV2)
+	rc.container.reload()
 	return lastMtimes, int64(len(outV1) + len(outV2)), err
 }
 
@@ -265,7 +266,6 @@ func (rc *RouteRuleCache) setRoutingConfigV2(lastMtimes map[string]time.Time, cs
 		}
 		rc.container.saveV2(extendEntry)
 	}
-	rc.container.reload()
 	lastMtimes[rc.Name()+"v2"] = time.Unix(lastMtimeV2, 0)
 }
 
