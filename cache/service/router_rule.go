@@ -163,9 +163,9 @@ func (rc *RouteRuleCache) GetRouterConfig(id, svcName, namespace string) (*apitr
 	key := model.ServiceKey{Namespace: namespace, Name: svcName}
 
 	revisions := []string{}
-	inRule, inRevision := rc.container.customContainers[model.TrafficDirection_INBOUND].SearchRouteRuleV1(key)
+	inRule, inRevision := rc.container.customContainers[model.TrafficDirection_INBOUND].SearchCustomRuleV1(key)
 	revisions = append(revisions, inRevision...)
-	outRule, outRevision := rc.container.customContainers[model.TrafficDirection_OUTBOUND].SearchRouteRuleV1(key)
+	outRule, outRevision := rc.container.customContainers[model.TrafficDirection_OUTBOUND].SearchCustomRuleV1(key)
 	revisions = append(revisions, outRevision...)
 
 	revision, err := types.CompositeComputeRevision(revisions)

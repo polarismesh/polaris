@@ -176,7 +176,6 @@ func newClientRouteRuleContainer(direction model.TrafficDirection) *ClientRouteR
 }
 
 type ClientRouteRuleContainer struct {
-	policy    apitraffic.RoutingPolicy
 	direction model.TrafficDirection
 	// key1: namespace, key2: service
 	exactRules *utils.SyncMap[string, *ServiceWithRouterRules]
@@ -209,8 +208,8 @@ func (c *ClientRouteRuleContainer) SearchRouteRuleV2(svc model.ServiceKey) []*mo
 	return ret
 }
 
-// SearchRouteRuleV1 针对 v1 客户端拉取路由规则
-func (c *ClientRouteRuleContainer) SearchRouteRuleV1(svc model.ServiceKey) (*apitraffic.Routing, []string) {
+// SearchCustomRuleV1 针对 v1 客户端拉取路由规则
+func (c *ClientRouteRuleContainer) SearchCustomRuleV1(svc model.ServiceKey) (*apitraffic.Routing, []string) {
 	ret := &apitraffic.Routing{
 		Inbounds:  make([]*apitraffic.Route, 0, 8),
 		Outbounds: make([]*apitraffic.Route, 0, 8),
@@ -247,47 +246,51 @@ func (c *ClientRouteRuleContainer) SearchRouteRuleV1(svc model.ServiceKey) (*api
 	return ret, revisions
 }
 
-func (c *ClientRouteRuleContainer) SaveToExact(svc model.ServiceKey, item *model.ExtendRouterConfig) {
-	c.exactRules.ComputeIfAbsent(svc.Domain(), func(k string) *ServiceWithRouterRules {
-		return NewServiceWithRouterRules(svc, c.direction)
-	})
-
-	svcContainer, _ := c.exactRules.Load(svc.Domain())
-	svcContainer.AddRouterRule(item)
-}
-
-func (c *ClientRouteRuleContainer) RemoveFromExact(svc model.ServiceKey, ruleId string) {
-	svcContainer, ok := c.exactRules.Load(svc.Domain())
-	if !ok {
-		return
+func (c *ClientRouteRuleContainer) SaveRule(svcKey model.ServiceKey, item *model.ExtendRouterConfig) {
+	// level1 级别 cache 处理
+	if svcKey.Name != model.MatchAll && svcKey.Namespace != model.MatchAll {
+		c.exactRules.ComputeIfAbsent(svcKey.Domain(), func(k string) *ServiceWithRouterRules {
+			return NewServiceWithRouterRules(svcKey, c.direction)
+		})
+		svcContainer, _ := c.exactRules.Load(svcKey.Domain())
+		svcContainer.AddRouterRule(item)
 	}
-	svcContainer.DelRouterRule(ruleId)
-}
+	// level2 级别 cache 处理
+	if svcKey.Name == model.MatchAll && svcKey.Namespace != model.MatchAll {
+		c.nsWildcardRules.ComputeIfAbsent(svcKey.Namespace, func(k string) *ServiceWithRouterRules {
+			return NewServiceWithRouterRules(svcKey, c.direction)
+		})
 
-func (c *ClientRouteRuleContainer) SaveToNamespaceWildcard(svc model.ServiceKey, item *model.ExtendRouterConfig) {
-	c.nsWildcardRules.ComputeIfAbsent(svc.Namespace, func(k string) *ServiceWithRouterRules {
-		return NewServiceWithRouterRules(svc, c.direction)
-	})
-
-	nsRules, _ := c.nsWildcardRules.Load(svc.Namespace)
-	nsRules.AddRouterRule(item)
-}
-
-func (c *ClientRouteRuleContainer) RemoveFromNamespaceWildcard(svc model.ServiceKey, ruleId string) {
-	nsRules, ok := c.nsWildcardRules.Load(svc.Namespace)
-	if !ok {
-		return
+		nsRules, _ := c.nsWildcardRules.Load(svcKey.Namespace)
+		nsRules.AddRouterRule(item)
 	}
-
-	nsRules.DelRouterRule(ruleId)
+	// level3 级别 cache 处理
+	if svcKey.Name == model.MatchAll && svcKey.Namespace == model.MatchAll {
+		c.allWildcardRules.AddRouterRule(item)
+	}
 }
 
-func (c *ClientRouteRuleContainer) SaveToAllWildcard(item *model.ExtendRouterConfig) {
-	c.allWildcardRules.AddRouterRule(item)
-}
-
-func (c *ClientRouteRuleContainer) RemoveFromAllWildcard(ruleId string) {
-	c.allWildcardRules.DelRouterRule(ruleId)
+func (c *ClientRouteRuleContainer) RemoveRule(svcKey model.ServiceKey, ruleId string) {
+	// level1 级别 cache 处理
+	if svcKey.Name != model.MatchAll && svcKey.Namespace != model.MatchAll {
+		svcContainer, ok := c.exactRules.Load(svcKey.Domain())
+		if !ok {
+			return
+		}
+		svcContainer.DelRouterRule(ruleId)
+	}
+	// level2 级别 cache 处理
+	if svcKey.Name == model.MatchAll && svcKey.Namespace != model.MatchAll {
+		nsRules, ok := c.nsWildcardRules.Load(svcKey.Namespace)
+		if !ok {
+			return
+		}
+		nsRules.DelRouterRule(ruleId)
+	}
+	// level3 级别 cache 处理
+	if svcKey.Name == model.MatchAll && svcKey.Namespace == model.MatchAll {
+		c.allWildcardRules.DelRouterRule(ruleId)
+	}
 }
 
 func newRouteRuleContainer() *RouteRuleContainer {
@@ -329,21 +332,7 @@ func (b *RouteRuleContainer) saveV2(conf *model.ExtendRouterConfig) {
 	b.rules.Store(conf.ID, conf)
 	handler := func(container *ClientRouteRuleContainer, svcKey model.ServiceKey) {
 		b.effect.Add(svcKey)
-		// level1 级别 cache 处理
-		if svcKey.Name != model.MatchAll && svcKey.Namespace != model.MatchAll {
-			container.SaveToExact(svcKey, conf)
-			return
-		}
-		// level2 级别 cache 处理
-		if svcKey.Name == model.MatchAll && svcKey.Namespace != model.MatchAll {
-			container.SaveToNamespaceWildcard(svcKey, conf)
-			return
-		}
-		// level3 级别 cache 处理
-		if svcKey.Name == model.MatchAll && svcKey.Namespace == model.MatchAll {
-			container.SaveToAllWildcard(conf)
-			return
-		}
+		container.SaveRule(svcKey, conf)
 	}
 
 	switch conf.GetRoutingPolicy() {
@@ -392,21 +381,7 @@ func (b *RouteRuleContainer) deleteV2(id string) {
 
 	handler := func(container *ClientRouteRuleContainer, svcKey model.ServiceKey) {
 		b.effect.Add(svcKey)
-		// level1 级别 cache 处理
-		if svcKey.Name != model.MatchAll && svcKey.Namespace != model.MatchAll {
-			container.RemoveFromExact(svcKey, id)
-			return
-		}
-		// level2 级别 cache 处理
-		if svcKey.Name == model.MatchAll && svcKey.Namespace != model.MatchAll {
-			container.RemoveFromNamespaceWildcard(svcKey, id)
-			return
-		}
-		// level3 级别 cache 处理
-		if svcKey.Name == model.MatchAll && svcKey.Namespace == model.MatchAll {
-			container.RemoveFromAllWildcard(id)
-			return
-		}
+		container.RemoveRule(svcKey, id)
 	}
 
 	switch rule.GetRoutingPolicy() {
