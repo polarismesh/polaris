@@ -130,6 +130,7 @@ func checkDeleteServiceAliasReq(ctx context.Context, req *apiservice.ServiceAlia
 
 	return nil
 }
+
 func preCheckAlias(req *apiservice.ServiceAlias) (*apiservice.Response, bool) {
 	if req == nil {
 		return api.NewServiceAliasResponse(apimodel.Code_EmptyRequest, req), true

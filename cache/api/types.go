@@ -433,6 +433,8 @@ type (
 		GetRouterConfig(id, service, namespace string) (*apitraffic.Routing, error)
 		// GetRouterConfig Obtain routing configuration based on serviceid
 		GetRouterConfigV2(id, service, namespace string) (*apitraffic.Routing, error)
+		// GetNearbyRouteRule 根据服务名查询就近路由数据
+		GetNearbyRouteRule(service, namespace string) ([]*apitraffic.RouteRule, string, error)
 		// GetRoutingConfigCount Get the total number of routing configuration cache
 		GetRoutingConfigCount() int
 		// QueryRoutingConfigsV2 Query Route Configuration List
@@ -685,6 +687,8 @@ type (
 	// StrategyCache is a cache for strategy rules.
 	StrategyCache interface {
 		Cache
+		// GetPrincipalPolicies
+		GetPrincipalPolicies(effect string, p authcommon.Principal) []*authcommon.StrategyDetail
 		// GetStrategyDetailsByUID
 		GetStrategyDetailsByUID(uid string) []*authcommon.StrategyDetail
 		// GetStrategyDetailsByGroupID returns all strategy details of a group.
@@ -693,8 +697,6 @@ type (
 		IsResourceLinkStrategy(resType apisecurity.ResourceType, resId string) bool
 		// IsResourceEditable 判断该资源是否可以操作
 		IsResourceEditable(principal authcommon.Principal, resType apisecurity.ResourceType, resId string) bool
-		// ForceSync 强制同步鉴权策略到cache (串行)
-		ForceSync() error
 	}
 )
 

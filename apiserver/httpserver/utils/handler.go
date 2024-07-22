@@ -141,6 +141,7 @@ func (h *Handler) ParseHeaderContext() context.Context {
 	ctx = context.WithValue(ctx, utils.StringContext("request-id"), requestID)
 	ctx = context.WithValue(ctx, utils.StringContext("platform-id"), platformID)
 	ctx = context.WithValue(ctx, utils.StringContext("platform-token"), platformToken)
+	ctx = context.WithValue(ctx, utils.ContextRequestHeaders, h.Request.Request.Header)
 	ctx = context.WithValue(ctx, utils.ContextClientAddress, h.Request.Request.RemoteAddr)
 	if token != "" {
 		ctx = context.WithValue(ctx, utils.StringContext("polaris-token"), token)

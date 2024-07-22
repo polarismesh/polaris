@@ -19,10 +19,8 @@ package config_auth
 
 import (
 	"context"
-	"fmt"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
-	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
@@ -64,13 +62,7 @@ func (s *ServerAuthability) QueryConfigFileGroups(ctx context.Context,
 	if len(resp.ConfigFileGroups) != 0 {
 		for index := range resp.ConfigFileGroups {
 			group := resp.ConfigFileGroups[index]
-			editable := s.policyMgr.GetAuthChecker().AllowResourceOperate(authCtx, &auth.ResourceOpInfo{
-				ResourceType: apisecurity.ResourceType_ConfigGroups,
-				Namespace:    group.GetNamespace().GetValue(),
-				ResourceName: group.GetName().GetValue(),
-				ResourceID:   fmt.Sprintf("%d", group.GetId().GetValue()),
-				Operation:    authCtx.GetOperation(),
-			})
+			editable := true
 			// 如果包含特殊标签，也不允许修改
 			if _, ok := group.GetMetadata()[model.MetaKey3RdPlatform]; ok {
 				editable = false

@@ -22,15 +22,16 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/polarismesh/specification/source/go/api/v1/security"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	"github.com/polarismesh/polaris/auth"
 	authmock "github.com/polarismesh/polaris/auth/mock"
 	"github.com/polarismesh/polaris/auth/policy"
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	storemock "github.com/polarismesh/polaris/store/mock"
-	"github.com/polarismesh/specification/source/go/api/v1/security"
-	"github.com/stretchr/testify/assert"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func Test_AfterResourceOperation(t *testing.T) {

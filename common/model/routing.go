@@ -61,14 +61,18 @@ var (
 	RuleRoutingTypeUrl string
 	// MetaRoutingTypeUrl 记录 anypb.Any 中关于 MetadataRoutingConfig 的 url 信息
 	MetaRoutingTypeUrl string
+	// NearbyRoutingTypeUrl 记录 anypb.Any 中关于 NearbyRoutingConfig 的 url 信息
+	NearbyRoutingTypeUrl string
 )
 
 func init() {
 	ruleAny, _ := ptypes.MarshalAny(&apitraffic.RuleRoutingConfig{})
 	metaAny, _ := ptypes.MarshalAny(&apitraffic.MetadataRoutingConfig{})
+	nearbyAny, _ := ptypes.MarshalAny(&apitraffic.NearbyRoutingConfig{})
 
 	RuleRoutingTypeUrl = ruleAny.GetTypeUrl()
 	MetaRoutingTypeUrl = metaAny.GetTypeUrl()
+	NearbyRoutingTypeUrl = nearbyAny.GetTypeUrl()
 }
 
 /*
@@ -98,6 +102,8 @@ type ExtendRouterConfig struct {
 	MetadataRouting *apitraffic.MetadataRoutingConfig
 	// RuleRouting 规则路由配置
 	RuleRouting *RuleRoutingConfigWrapper
+	// NearbyRouting 就近路由规则数据
+	NearbyRouting *apitraffic.NearbyRoutingConfig
 	// ExtendInfo 额外信息数据
 	ExtendInfo map[string]string
 }
@@ -109,12 +115,18 @@ func (r *ExtendRouterConfig) ToApi() (*apitraffic.RouteRule, error) {
 		err      error
 	)
 
-	if r.GetRoutingPolicy() == apitraffic.RoutingPolicy_MetadataPolicy {
+	switch r.GetRoutingPolicy() {
+	case apitraffic.RoutingPolicy_RulePolicy:
+		anyValue, err = ptypes.MarshalAny(r.NearbyRouting)
+		if err != nil {
+			return nil, err
+		}
+	case apitraffic.RoutingPolicy_MetadataPolicy:
 		anyValue, err = ptypes.MarshalAny(r.MetadataRouting)
 		if err != nil {
 			return nil, err
 		}
-	} else {
+	default:
 		anyValue, err = ptypes.MarshalAny(r.RuleRouting.RuleRouting)
 		if err != nil {
 			return nil, err
@@ -220,6 +232,13 @@ func (r *RouterConfig) ToExpendRoutingConfig() (*ExtendRouterConfig, error) {
 			}
 			ret.MetadataRouting = rule
 			break
+		case apitraffic.RoutingPolicy_NearbyPolicy:
+			rule := &apitraffic.NearbyRoutingConfig{}
+			if err = utils.UnmarshalFromJsonString(rule, configText); nil != err {
+				return nil, err
+			}
+			ret.NearbyRouting = rule
+			break
 		}
 		return ret, nil
 	}
@@ -254,6 +273,16 @@ func (r *RouterConfig) parseBinaryAnyMessage(
 			return err
 		}
 		ret.MetadataRouting = rule
+	case apitraffic.RoutingPolicy_NearbyPolicy:
+		rule := &apitraffic.NearbyRoutingConfig{}
+		anyMsg := &anypb.Any{
+			TypeUrl: NearbyRoutingTypeUrl,
+			Value:   []byte(r.Config),
+		}
+		if err := unmarshalToAny(anyMsg, rule); nil != err {
+			return err
+		}
+		ret.NearbyRouting = rule
 	}
 	return nil
 }
@@ -308,7 +337,11 @@ func ParseRouteRuleAnyToMessage(policy apitraffic.RoutingPolicy, anyMessage *any
 			return nil, err
 		}
 		break
-	default:
+	case apitraffic.RoutingPolicy_NearbyPolicy:
+		rule = &apitraffic.NearbyRoutingConfig{}
+		if err := unmarshalToAny(anyMessage, rule); err != nil {
+			return nil, err
+		}
 		break
 	}
 	return rule, nil

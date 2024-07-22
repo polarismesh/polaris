@@ -35,7 +35,7 @@ func (svr *ServerAuthAbility) CreateCircuitBreakerRules(
 
 	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponse(convertToErrCode(err))
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -48,7 +48,7 @@ func (svr *ServerAuthAbility) DeleteCircuitBreakerRules(
 	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, authcommon.Read, "DeleteCircuitBreakerRules")
 	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponse(convertToErrCode(err))
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -61,7 +61,7 @@ func (svr *ServerAuthAbility) EnableCircuitBreakerRules(
 	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, authcommon.Read, "EnableCircuitBreakerRules")
 	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponse(convertToErrCode(err))
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -74,7 +74,7 @@ func (svr *ServerAuthAbility) UpdateCircuitBreakerRules(
 	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, authcommon.Read, "UpdateCircuitBreakerRules")
 	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
-		return api.NewBatchWriteResponse(convertToErrCode(err))
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -87,7 +87,7 @@ func (svr *ServerAuthAbility) GetCircuitBreakerRules(
 	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, nil, authcommon.Read, "GetCircuitBreakerRules")
 	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
-		return api.NewBatchQueryResponse(convertToErrCode(err))
+		return api.NewBatchQueryResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()

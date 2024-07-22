@@ -15,19 +15,18 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package batch
+package policy
 
-import (
-	"testing"
+var actionsMap map[string]string
 
-	"github.com/stretchr/testify/assert"
+func InitActionMapping() {
+	// TODO
+}
 
-	"github.com/polarismesh/polaris/common/model"
-)
-
-func TestClientFuture_SetClient(t *testing.T) {
-	f := &ClientFuture{}
-
-	f.SetClient(&model.Client{})
-	assert.NotNil(t, f.Client())
+func GetRealAction(s string) string {
+	val, ok := actionsMap[s]
+	if !ok {
+		return s
+	}
+	return val
 }

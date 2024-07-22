@@ -25,9 +25,10 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	commonhash "github.com/polarismesh/polaris/common/hash"
 	"github.com/polarismesh/polaris/common/utils"
-	"github.com/stretchr/testify/assert"
 )
 
 func Test_LeaderCheckerDebugerHandler(t *testing.T) {

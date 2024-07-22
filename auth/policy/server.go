@@ -50,6 +50,8 @@ type AuthConfig struct {
 	ConsoleStrict bool `json:"consoleStrict"`
 	// ClientStrict 是否启用鉴权的严格模式，即对于没有任何鉴权策略的资源，也必须带上正确的token才能操作, 默认关闭
 	ClientStrict bool `json:"clientStrict"`
+	// CredibleHeaders 可信请求 Header
+	CredibleHeaders map[string]string
 }
 
 // DefaultAuthConfig 返回一个默认的鉴权配置

@@ -40,7 +40,7 @@ func (svr *ServerAuthAbility) CreateServiceContracts(ctx context.Context,
 
 	authCtx := svr.collectServiceAuthContext(ctx, services, authcommon.Create, "CreateServiceContracts")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchWriteResponse(convertToErrCode(err))
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -53,7 +53,7 @@ func (svr *ServerAuthAbility) GetServiceContracts(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectServiceAuthContext(ctx, nil, authcommon.Read, "GetServiceContracts")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchQueryResponse(convertToErrCode(err))
+		return api.NewBatchQueryResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -67,7 +67,7 @@ func (svr *ServerAuthAbility) GetServiceContractVersions(ctx context.Context,
 
 	authCtx := svr.collectServiceAuthContext(ctx, nil, authcommon.Read, "GetServiceContractVersions")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchQueryResponse(convertToErrCode(err))
+		return api.NewBatchQueryResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -88,7 +88,7 @@ func (svr *ServerAuthAbility) DeleteServiceContracts(ctx context.Context,
 
 	authCtx := svr.collectServiceAuthContext(ctx, services, authcommon.Delete, "DeleteServiceContracts")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchWriteResponse(convertToErrCode(err))
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -106,7 +106,7 @@ func (svr *ServerAuthAbility) CreateServiceContractInterfaces(ctx context.Contex
 		},
 	}, authcommon.Modify, "CreateServiceContractInterfaces")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewResponse(convertToErrCode(err))
+		return api.NewResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -124,7 +124,7 @@ func (svr *ServerAuthAbility) AppendServiceContractInterfaces(ctx context.Contex
 		},
 	}, authcommon.Modify, "AppendServiceContractInterfaces")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewResponse(convertToErrCode(err))
+		return api.NewResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -142,7 +142,7 @@ func (svr *ServerAuthAbility) DeleteServiceContractInterfaces(ctx context.Contex
 		},
 	}, authcommon.Modify, "DeleteServiceContractInterfaces")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewResponse(convertToErrCode(err))
+		return api.NewResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()

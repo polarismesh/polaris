@@ -61,6 +61,7 @@ func (s *Server) checkInstanceExists(ctx context.Context, id string) (int64, *mo
 		return -1, nil, apimodel.Code_ExecuteSuccess
 	}
 	if resp.Count > max404Count {
+		log.Errorf("[healthcheck] not found heartbeat record by id %s, count: %v", id, resp.Count)
 		return resp.Count, nil, apimodel.Code_NotFoundResource
 	}
 	return resp.Count, nil, apimodel.Code_ExecuteSuccess

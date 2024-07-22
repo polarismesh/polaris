@@ -533,8 +533,7 @@ func (m *adminStore) BatchCleanDeletedClients(timeout time.Duration, batchSize u
 	log.Infof("[Store][database] batch clean soft deleted clients(%d)", batchSize)
 	var rows int64
 	err := m.master.processWithTransaction("batchCleanDeletedClients", func(tx *BaseTx) error {
-		mainStr := "delete from client where flag = 1 and " +
-			"mtime <= FROM_UNIXTIME(UNIX_TIMESTAMP(SYSDATE()) - ?) limit ?"
+		mainStr := "delete from client where flag = 1 limit ?"
 		result, err := tx.Exec(mainStr, int32(timeout.Seconds()), batchSize)
 		if err != nil {
 			log.Errorf("[Store][database] batch clean soft deleted clients(%d), err: %s", batchSize, err.Error())

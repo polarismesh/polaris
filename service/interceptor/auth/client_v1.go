@@ -36,7 +36,7 @@ func (svr *ServerAuthAbility) RegisterInstance(ctx context.Context, req *apiserv
 
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
-		resp := api.NewResponseWithMsg(convertToErrCode(err), err.Error())
+		resp := api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 		return resp
 	}
 
@@ -53,7 +53,7 @@ func (svr *ServerAuthAbility) DeregisterInstance(ctx context.Context, req *apise
 
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
-		resp := api.NewResponseWithMsg(convertToErrCode(err), err.Error())
+		resp := api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 		return resp
 	}
 
@@ -78,7 +78,7 @@ func (svr *ServerAuthAbility) ReportServiceContract(ctx context.Context, req *ap
 
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
-		resp := api.NewResponseWithMsg(convertToErrCode(err), err.Error())
+		resp := api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 		return resp
 	}
 
@@ -102,7 +102,7 @@ func (svr *ServerAuthAbility) GetServiceWithCache(
 		ctx, []*apiservice.Service{req}, authcommon.Read, "DiscoverServices")
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
-		resp := api.NewDiscoverResponse(convertToErrCode(err))
+		resp := api.NewDiscoverResponse(authcommon.ConvertToErrCode(err))
 		resp.Info = utils.NewStringValue(err.Error())
 		return resp
 	}
@@ -120,7 +120,7 @@ func (svr *ServerAuthAbility) ServiceInstancesCache(
 		ctx, []*apiservice.Service{req}, authcommon.Read, "DiscoverInstances")
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
-		resp := api.NewDiscoverResponse(convertToErrCode(err))
+		resp := api.NewDiscoverResponse(authcommon.ConvertToErrCode(err))
 		resp.Info = utils.NewStringValue(err.Error())
 		return resp
 	}
@@ -138,7 +138,7 @@ func (svr *ServerAuthAbility) GetRoutingConfigWithCache(
 		ctx, []*apiservice.Service{req}, authcommon.Read, "DiscoverRouterRule")
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
-		resp := api.NewDiscoverResponse(convertToErrCode(err))
+		resp := api.NewDiscoverResponse(authcommon.ConvertToErrCode(err))
 		resp.Info = utils.NewStringValue(err.Error())
 		return resp
 	}
@@ -156,7 +156,7 @@ func (svr *ServerAuthAbility) GetRateLimitWithCache(
 		ctx, []*apiservice.Service{req}, authcommon.Read, "DiscoverRateLimit")
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
-		resp := api.NewDiscoverResponse(convertToErrCode(err))
+		resp := api.NewDiscoverResponse(authcommon.ConvertToErrCode(err))
 		resp.Info = utils.NewStringValue(err.Error())
 		return resp
 	}
@@ -174,7 +174,7 @@ func (svr *ServerAuthAbility) GetCircuitBreakerWithCache(
 		ctx, []*apiservice.Service{req}, authcommon.Read, "DiscoverCircuitBreaker")
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
-		resp := api.NewDiscoverResponse(convertToErrCode(err))
+		resp := api.NewDiscoverResponse(authcommon.ConvertToErrCode(err))
 		resp.Info = utils.NewStringValue(err.Error())
 		return resp
 	}
@@ -191,7 +191,7 @@ func (svr *ServerAuthAbility) GetFaultDetectWithCache(
 		ctx, []*apiservice.Service{req}, authcommon.Read, "DiscoverFaultDetect")
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
-		resp := api.NewDiscoverResponse(convertToErrCode(err))
+		resp := api.NewDiscoverResponse(authcommon.ConvertToErrCode(err))
 		resp.Info = utils.NewStringValue(err.Error())
 		return resp
 	}
@@ -208,7 +208,7 @@ func (svr *ServerAuthAbility) UpdateInstance(ctx context.Context, req *apiservic
 
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
-		resp := api.NewResponseWithMsg(convertToErrCode(err), err.Error())
+		resp := api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 		return resp
 	}
 
@@ -228,7 +228,7 @@ func (svr *ServerAuthAbility) GetServiceContractWithCache(ctx context.Context,
 
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
-		resp := api.NewResponse(convertToErrCode(err))
+		resp := api.NewResponse(authcommon.ConvertToErrCode(err))
 		resp.Info = utils.NewStringValue(err.Error())
 		return resp
 	}
@@ -245,7 +245,7 @@ func (svr *ServerAuthAbility) GetLaneRuleWithCache(ctx context.Context, req *api
 		ctx, []*apiservice.Service{req}, authcommon.Read, "DiscoverLaneRule")
 	_, err := svr.policyMgr.GetAuthChecker().CheckClientPermission(authCtx)
 	if err != nil {
-		resp := api.NewDiscoverResponse(convertToErrCode(err))
+		resp := api.NewDiscoverResponse(authcommon.ConvertToErrCode(err))
 		resp.Info = utils.NewStringValue(err.Error())
 		return resp
 	}

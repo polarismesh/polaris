@@ -2774,18 +2774,18 @@ func (mr *MockStrategyCacheMockRecorder) Close() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockStrategyCache)(nil).Close))
 }
 
-// ForceSync mocks base method.
-func (m *MockStrategyCache) ForceSync() error {
+// GetPrincipalPolicies mocks base method.
+func (m *MockStrategyCache) GetPrincipalPolicies(effect string, p auth.Principal) []*auth.StrategyDetail {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ForceSync")
-	ret0, _ := ret[0].(error)
+	ret := m.ctrl.Call(m, "GetPrincipalPolicies", effect, p)
+	ret0, _ := ret[0].([]*auth.StrategyDetail)
 	return ret0
 }
 
-// ForceSync indicates an expected call of ForceSync.
-func (mr *MockStrategyCacheMockRecorder) ForceSync() *gomock.Call {
+// GetPrincipalPolicies indicates an expected call of GetPrincipalPolicies.
+func (mr *MockStrategyCacheMockRecorder) GetPrincipalPolicies(effect, p interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ForceSync", reflect.TypeOf((*MockStrategyCache)(nil).ForceSync))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPrincipalPolicies", reflect.TypeOf((*MockStrategyCache)(nil).GetPrincipalPolicies), effect, p)
 }
 
 // GetStrategyDetailsByGroupID mocks base method.

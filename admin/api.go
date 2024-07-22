@@ -20,6 +20,7 @@ package admin
 import (
 	"context"
 
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	"github.com/polarismesh/polaris/common/model"
@@ -38,12 +39,10 @@ type AdminOperateServer interface {
 	FreeOSMemory(ctx context.Context) error
 	// CleanInstance Clean deleted instance
 	CleanInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response
-
 	// BatchCleanInstances Batch clean deleted instances
 	BatchCleanInstances(ctx context.Context, batchSize uint32) (uint32, error)
 	// GetLastHeartbeat Get last heartbeat
 	GetLastHeartbeat(ctx context.Context, req *apiservice.Instance) *apiservice.Response
-
 	// GetLogOutputLevel Get log output level
 	GetLogOutputLevel(ctx context.Context) ([]admin.ScopeLevel, error)
 	// SetLogOutputLevel Set log output level by scope
@@ -54,4 +53,6 @@ type AdminOperateServer interface {
 	ReleaseLeaderElection(ctx context.Context, electKey string) error
 	// GetCMDBInfo get cmdb info
 	GetCMDBInfo(ctx context.Context) ([]model.LocationView, error)
+	// InitMainUser
+	InitMainUser(ctx context.Context, user apisecurity.User) error
 }

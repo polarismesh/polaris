@@ -18,6 +18,8 @@
 package policy
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"go.uber.org/zap"
@@ -53,6 +55,18 @@ func (d *DefaultAuthChecker) Initialize(conf *AuthConfig, s store.Store,
 	d.cacheMgr = cacheMgr
 	d.userSvr = userSvr
 	return nil
+}
+
+func (d *DefaultAuthChecker) SetCacheMgr(mgr cachetypes.CacheManager) {
+	d.cacheMgr = mgr
+}
+
+func (d *DefaultAuthChecker) GetConfig() *AuthConfig {
+	return d.conf
+}
+
+func (d *DefaultAuthChecker) SetConfig(conf *AuthConfig) {
+	d.conf = conf
 }
 
 // Cache 获取缓存统一管理
@@ -182,16 +196,17 @@ func (d *DefaultAuthChecker) CheckPermission(authCtx *authcommon.AcquireContext)
 	if operatorInfo.Disable {
 		return false, authcommon.ErrorTokenDisabled
 	}
-
-	log.Debug("[Auth][Checker] check permission args", utils.RequestID(authCtx.GetRequestContext()),
-		zap.String("method", authCtx.GetMethod()), zap.Any("resources", authCtx.GetAccessResources()))
+	if log.DebugEnabled() {
+		log.Debug("[Auth][Checker] check permission args", utils.RequestID(authCtx.GetRequestContext()),
+			zap.String("method", authCtx.GetMethod()), zap.Any("resources", authCtx.GetAccessResources()))
+	}
 
 	if pass, _ := d.doCheckPermission(authCtx); pass {
 		return ok, nil
 	}
 
 	// 强制同步一次db中strategy数据到cache
-	if err := d.cacheMgr.AuthStrategy().ForceSync(); err != nil {
+	if err := d.cacheMgr.AuthStrategy().Update(); err != nil {
 		log.Error("[Auth][Checker] force sync strategy to cache failed",
 			utils.RequestID(authCtx.GetRequestContext()), zap.Error(err))
 		return false, err
@@ -201,59 +216,107 @@ func (d *DefaultAuthChecker) CheckPermission(authCtx *authcommon.AcquireContext)
 
 // doCheckPermission 执行权限检查
 func (d *DefaultAuthChecker) doCheckPermission(authCtx *authcommon.AcquireContext) (bool, error) {
-
-	var checkNamespace, checkSvc, checkCfgGroup bool
-
-	reqRes := authCtx.GetAccessResources()
-	nsResEntries := reqRes[apisecurity.ResourceType_Namespaces]
-	svcResEntries := reqRes[apisecurity.ResourceType_Services]
-	cfgResEntries := reqRes[apisecurity.ResourceType_ConfigGroups]
-
 	principleID, _ := authCtx.GetAttachments()[authcommon.OperatorIDKey].(string)
 	principleType, _ := authCtx.GetAttachments()[authcommon.OperatorPrincipalType].(authcommon.PrincipalType)
 	p := authcommon.Principal{
 		PrincipalID:   principleID,
 		PrincipalRole: principleType,
 	}
-	checkNamespace = d.checkAction(p, apisecurity.ResourceType_Namespaces, nsResEntries, authCtx)
-	checkSvc = d.checkAction(p, apisecurity.ResourceType_Services, svcResEntries, authCtx)
-	checkCfgGroup = d.checkAction(p, apisecurity.ResourceType_ConfigGroups, cfgResEntries, authCtx)
 
-	checkAllResEntries := checkNamespace && checkSvc && checkCfgGroup
-
-	var err error
-	if !checkAllResEntries {
-		err = ErrorNotPermission
+	if d.IsCredible(authCtx) {
+		return true, nil
 	}
-	return checkAllResEntries, err
+
+	allowPolicies := d.cacheMgr.AuthStrategy().GetPrincipalPolicies("allow", p)
+	denyPolicies := d.cacheMgr.AuthStrategy().GetPrincipalPolicies("deny", p)
+
+	// 先执行 deny 策略
+	for i := range denyPolicies {
+		item := denyPolicies[i]
+		if d.CheckByPolicy(item, p, authCtx) {
+			return false, ErrorNotPermission
+		}
+	}
+
+	// 处理 allow 策略，只要有一个放开，就可以认为通过
+	for i := range allowPolicies {
+		item := allowPolicies[i]
+		if d.CheckByPolicy(item, p, authCtx) {
+			return true, nil
+		}
+	}
+	return false, ErrorNotPermission
+}
+
+func (d *DefaultAuthChecker) IsCredible(authCtx *authcommon.AcquireContext) bool {
+	reqHeaders, ok := authCtx.GetRequestContext().Value(utils.ContextRequestHeaders).(map[string][]string)
+	if !ok || len(d.conf.CredibleHeaders) == 0 {
+		return false
+	}
+	matched := true
+	for k, v := range d.conf.CredibleHeaders {
+		val, exist := reqHeaders[strings.ToLower(k)]
+		if !exist {
+			matched = false
+			break
+		}
+		if len(val) == 0 {
+			matched = false
+		}
+		matched = v == val[0]
+		if !matched {
+			break
+		}
+	}
+	return matched
+}
+
+func (d *DefaultAuthChecker) CheckByPolicy(policy *authcommon.StrategyDetail, principal authcommon.Principal,
+	authCtx *authcommon.AcquireContext) bool {
+
+	if !d.CheckResourceOperateable(principal, authCtx) {
+		return false
+	}
+	if !d.CheckConditions(principal, authCtx) {
+		return false
+	}
+	if !d.CheckCalleeFunctions(principal, authCtx) {
+		return false
+	}
+	return true
+}
+
+func (d *DefaultAuthChecker) CheckCalleeFunctions(principal authcommon.Principal, authCtx *authcommon.AcquireContext) bool {
+	return true
 }
 
 // checkAction 检查操作是否和策略匹配
-func (d *DefaultAuthChecker) checkAction(principal authcommon.Principal,
-	resType apisecurity.ResourceType, resources []authcommon.ResourceEntry, ctx *authcommon.AcquireContext) bool {
-	// TODO 后续可针对读写操作进行鉴权, 并且可以针对具体的方法调用进行鉴权控制
-
-	switch ctx.GetOperation() {
-	case authcommon.Read:
-		return true
-	default:
+func (d *DefaultAuthChecker) CheckResourceOperateable(principal authcommon.Principal, authCtx *authcommon.AcquireContext) bool {
+	passCheck := func(resType apisecurity.ResourceType, resources []authcommon.ResourceEntry) bool {
 		for _, entry := range resources {
 			if !d.cacheMgr.AuthStrategy().IsResourceEditable(principal, resType, entry.ID) {
 				return false
 			}
 		}
+		return true
 	}
-	return true
+
+	reqRes := authCtx.GetAccessResources()
+	nsResEntries := reqRes[apisecurity.ResourceType_Namespaces]
+	delete(reqRes, apisecurity.ResourceType_Namespaces)
+	isPass := true
+	for k, v := range reqRes {
+		if isPass = passCheck(k, v); !isPass {
+			break
+		}
+	}
+	if !isPass {
+		// 如果 service、config_group 均没有权限，则看下目标 namespace 是否有权限操作
+		isPass = passCheck(apisecurity.ResourceType_Namespaces, nsResEntries)
+	}
+	return isPass
 }
 
-func (d *DefaultAuthChecker) SetCacheMgr(mgr cachetypes.CacheManager) {
-	d.cacheMgr = mgr
-}
-
-func (d *DefaultAuthChecker) GetConfig() *AuthConfig {
-	return d.conf
-}
-
-func (d *DefaultAuthChecker) SetConfig(conf *AuthConfig) {
-	d.conf = conf
+func (d *DefaultAuthChecker) CheckConditions(principal authcommon.Principal, authCtx *authcommon.AcquireContext) bool {
+	return false
 }

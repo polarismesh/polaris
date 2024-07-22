@@ -20,6 +20,7 @@ package admin
 import (
 	"context"
 
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -30,6 +31,14 @@ import (
 )
 
 var _ AdminOperateServer = (*serverAuthAbility)(nil)
+
+func (s *serverAuthAbility) HasMainUser(ctx context.Context) (bool, error) {
+	return false, nil
+}
+
+func (s *serverAuthAbility) InitMainUser(ctx context.Context, user apisecurity.User) error {
+	return nil
+}
 
 func (svr *serverAuthAbility) GetServerConnections(ctx context.Context, req *admin.ConnReq) (*admin.ConnCountResp, error) {
 	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Read, "GetServerConnections")

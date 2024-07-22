@@ -19,10 +19,8 @@ package service_auth
 
 import (
 	"context"
-	"errors"
 
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
@@ -476,14 +474,4 @@ func (svr *ServerAuthAbility) convertToDiscoverResourceEntryMaps(nsSet *utils.Se
 		apisecurity.ResourceType_Namespaces: nsRet,
 		apisecurity.ResourceType_Services:   svcRet,
 	}
-}
-
-func convertToErrCode(err error) apimodel.Code {
-	if errors.Is(err, authcommon.ErrorTokenNotExist) {
-		return apimodel.Code_TokenNotExisted
-	}
-	if errors.Is(err, authcommon.ErrorTokenDisabled) {
-		return apimodel.Code_TokenDisabled
-	}
-	return apimodel.Code_NotAllowedAccess
 }

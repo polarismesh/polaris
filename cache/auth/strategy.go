@@ -83,10 +83,6 @@ func (sc *strategyCache) Update() error {
 	return err
 }
 
-func (sc *strategyCache) ForceSync() error {
-	return sc.Update()
-}
-
 func (sc *strategyCache) realUpdate() (map[string]time.Time, int64, error) {
 	// 获取几秒前的全部数据
 	var (
@@ -437,4 +433,32 @@ func (sc *strategyCache) IsResourceLinkStrategy(resType apisecurity.ResourceType
 	default:
 		return true
 	}
+}
+
+func (sc *strategyCache) GetPrincipalPolicies(effect string, p authcommon.Principal) []*authcommon.StrategyDetail {
+	var policies []*authcommon.StrategyDetail
+	switch p.PrincipalRole {
+	case authcommon.PrincipalUser:
+		policies = sc.GetStrategyDetailsByUID(p.PrincipalID)
+	default:
+		policies = sc.GetStrategyDetailsByGroupID(p.PrincipalID)
+	}
+
+	ret := make([]*authcommon.StrategyDetail, 0, 32)
+	for i := range policies {
+		allow := policies[i].Action == apisecurity.AuthAction_READ_WRITE.String()
+		switch effect {
+		case "allow":
+			if allow {
+				ret = append(ret, policies[i])
+			}
+		case "deny":
+			if !allow {
+				ret = append(ret, policies[i])
+			}
+		default:
+			ret = append(ret, policies[i])
+		}
+	}
+	return ret
 }

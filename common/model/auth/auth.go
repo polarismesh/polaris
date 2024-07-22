@@ -319,19 +319,29 @@ type UserGroupRelation struct {
 
 // StrategyDetail 鉴权策略详细
 type StrategyDetail struct {
-	ID         string
-	Name       string
-	Action     string
-	Comment    string
-	Principals []Principal
-	Default    bool
-	Owner      string
-	Resources  []StrategyResource
-	Valid      bool
-	Revision   string
-	Metadata   map[string]string
-	CreateTime time.Time
-	ModifyTime time.Time
+	ID   string
+	Name string
+	// Action: 只有 allow 以及 deny
+	Action  string
+	Comment string
+	Default bool
+	Owner   string
+	// CalleeMethods 允许访问的服务端接口
+	CalleeMethods []string
+	Resources     []StrategyResource
+	Conditions    []Condition
+	Principals    []Principal
+	Valid         bool
+	Revision      string
+	Metadata      map[string]string
+	CreateTime    time.Time
+	ModifyTime    time.Time
+}
+
+type Condition struct {
+	Key         string
+	Value       string
+	CompareFunc string
 }
 
 // StrategyDetailCache 鉴权策略详细

@@ -35,7 +35,7 @@ func (svr *ServerAuthAbility) CreateRoutingConfigsV2(ctx context.Context,
 	// TODO not support RouteRuleV2 resource auth, so we set op is read
 	authCtx := svr.collectRouteRuleV2AuthContext(ctx, req, authcommon.Read, "CreateRoutingConfigsV2")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchWriteResponse(convertToErrCode(err))
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
@@ -48,7 +48,7 @@ func (svr *ServerAuthAbility) DeleteRoutingConfigsV2(ctx context.Context,
 
 	authCtx := svr.collectRouteRuleV2AuthContext(ctx, req, authcommon.Read, "DeleteRoutingConfigsV2")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchWriteResponse(convertToErrCode(err))
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
@@ -61,7 +61,7 @@ func (svr *ServerAuthAbility) UpdateRoutingConfigsV2(ctx context.Context,
 
 	authCtx := svr.collectRouteRuleV2AuthContext(ctx, req, authcommon.Read, "UpdateRoutingConfigsV2")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchWriteResponse(convertToErrCode(err))
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
@@ -74,7 +74,7 @@ func (svr *ServerAuthAbility) EnableRoutings(ctx context.Context,
 
 	authCtx := svr.collectRouteRuleV2AuthContext(ctx, req, authcommon.Read, "EnableRoutings")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchWriteResponse(convertToErrCode(err))
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)

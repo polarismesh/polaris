@@ -29,6 +29,7 @@ import (
 	"github.com/polarismesh/polaris/auth/policy"
 	defaultuser "github.com/polarismesh/polaris/auth/user"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -1104,4 +1105,32 @@ func Test_DefaultAuthChecker_Initialize(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+}
+
+func TestDefaultAuthChecker_isCredible(t *testing.T) {
+	type fields struct {
+		conf     *policy.AuthConfig
+		cacheMgr cachetypes.CacheManager
+		userSvr  auth.UserServer
+	}
+	type args struct {
+		authCtx *authcommon.AcquireContext
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   bool
+	}{
+		{},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := &policy.DefaultAuthChecker{}
+			d.SetConfig(tt.fields.conf)
+			if got := d.IsCredible(tt.args.authCtx); got != tt.want {
+				t.Errorf("DefaultAuthChecker.isCredible() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

@@ -162,9 +162,9 @@ func (rc *RouteRuleCache) GetRouterConfig(id, svcName, namespace string) (*apitr
 	key := model.ServiceKey{Namespace: namespace, Name: svcName}
 
 	revisions := []string{}
-	inRule, inRevision := rc.container.v2Containers[model.TrafficDirection_INBOUND].SearchRouteRuleV1(key)
+	inRule, inRevision := rc.container.customRuleContainers[model.TrafficDirection_INBOUND].SearchRouteRuleV1(key)
 	revisions = append(revisions, inRevision...)
-	outRule, outRevision := rc.container.v2Containers[model.TrafficDirection_OUTBOUND].SearchRouteRuleV1(key)
+	outRule, outRevision := rc.container.customRuleContainers[model.TrafficDirection_OUTBOUND].SearchRouteRuleV1(key)
 	revisions = append(revisions, outRevision...)
 
 	revision, err := types.CompositeComputeRevision(revisions)
@@ -180,6 +180,11 @@ func (rc *RouteRuleCache) GetRouterConfig(id, svcName, namespace string) (*apitr
 		Outbounds: outRule.Outbounds,
 		Revision:  utils.NewStringValue(revision),
 	}, nil
+}
+
+// GetNearbyRouteRule 根据服务名查询就近路由数据
+func (rc *RouteRuleCache) GetNearbyRouteRule(service, namespace string) ([]*apitraffic.RouteRule, string, error) {
+	return nil, "", nil
 }
 
 // IteratorRouterRule

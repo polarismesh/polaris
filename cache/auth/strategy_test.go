@@ -55,19 +55,30 @@ func Test_strategyCache(t *testing.T) {
 		userCache.Initialize(map[string]interface{}{})
 		strategyCache.Initialize(map[string]interface{}{})
 
-		_ = strategyCache.ForceSync()
 		_, _, _ = strategyCache.realUpdate()
 
-		policies := strategyCache.GetStrategyDetailsByUID("user-1")
+		policies := strategyCache.GetPrincipalPolicies("allow", authcommon.Principal{
+			PrincipalID:   "user-1",
+			PrincipalRole: authcommon.PrincipalUser,
+		})
 		assert.True(t, len(policies) > 0, len(policies))
 
-		policies = strategyCache.GetStrategyDetailsByGroupID("group-1")
+		policies = strategyCache.GetPrincipalPolicies("allow", authcommon.Principal{
+			PrincipalID:   "group-1",
+			PrincipalRole: authcommon.PrincipalGroup,
+		})
 		assert.True(t, len(policies) > 0, len(policies))
 
-		policies = strategyCache.GetStrategyDetailsByUID("fake-user-1")
+		policies = strategyCache.GetPrincipalPolicies("allow", authcommon.Principal{
+			PrincipalID:   "fake-user-1",
+			PrincipalRole: authcommon.PrincipalUser,
+		})
 		assert.True(t, len(policies) == 0, len(policies))
 
-		policies = strategyCache.GetStrategyDetailsByGroupID("fake-group-1")
+		policies = strategyCache.GetPrincipalPolicies("allow", authcommon.Principal{
+			PrincipalID:   "fake-group-1",
+			PrincipalRole: authcommon.PrincipalGroup,
+		})
 		assert.True(t, len(policies) == 0, len(policies))
 	})
 
@@ -92,7 +103,6 @@ func Test_strategyCache(t *testing.T) {
 		userCache.Initialize(map[string]interface{}{})
 		strategyCache.Initialize(map[string]interface{}{})
 
-		_ = strategyCache.ForceSync()
 		_, _, _ = strategyCache.realUpdate()
 
 		ret := strategyCache.IsResourceEditable(authcommon.Principal{

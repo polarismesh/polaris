@@ -21,7 +21,6 @@ import (
 	"context"
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -151,20 +150,6 @@ func (svr *serverAuthAbility) GetNamespaces(
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	resp := svr.targetServer.GetNamespaces(ctx, query)
-	if len(resp.Namespaces) != 0 {
-		for index := range resp.Namespaces {
-			ns := resp.Namespaces[index]
-			editable := svr.strategyMgn.GetAuthChecker().AllowResourceOperate(authCtx, &authcommon.ResourceOpInfo{
-				ResourceType: apisecurity.ResourceType_Namespaces,
-				Namespace:    ns.GetName().GetValue(),
-				ResourceName: ns.GetName().GetValue(),
-				ResourceID:   ns.GetId().GetValue(),
-				Operation:    authCtx.GetOperation(),
-			})
-			ns.Editable = utils.NewBoolValue(editable)
-		}
-	}
-
 	return resp
 }
 

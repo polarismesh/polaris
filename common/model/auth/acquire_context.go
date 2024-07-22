@@ -262,5 +262,4 @@ type ResourceOpInfo struct {
 	Namespace    string
 	ResourceName string
 	ResourceID   string
-	Operation    ResourceOperation
 }

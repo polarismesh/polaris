@@ -33,7 +33,7 @@ func (svr *ServerAuthAbility) CreateFaultDetectRules(
 
 	authCtx := svr.collectFaultDetectAuthContext(ctx, request, authcommon.Read, "CreateFaultDetectRules")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchWriteResponse(convertToErrCode(err))
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
@@ -45,7 +45,7 @@ func (svr *ServerAuthAbility) DeleteFaultDetectRules(
 
 	authCtx := svr.collectFaultDetectAuthContext(ctx, request, authcommon.Read, "DeleteFaultDetectRules")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchWriteResponse(convertToErrCode(err))
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
@@ -57,7 +57,7 @@ func (svr *ServerAuthAbility) UpdateFaultDetectRules(
 
 	authCtx := svr.collectFaultDetectAuthContext(ctx, request, authcommon.Read, "UpdateFaultDetectRules")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchWriteResponse(convertToErrCode(err))
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
@@ -68,7 +68,7 @@ func (svr *ServerAuthAbility) GetFaultDetectRules(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectFaultDetectAuthContext(ctx, nil, authcommon.Read, "GetFaultDetectRules")
 	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchQueryResponse(convertToErrCode(err))
+		return api.NewBatchQueryResponse(authcommon.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)

@@ -24,6 +24,7 @@ import (
 	"time"
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
@@ -36,6 +37,14 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 )
+
+func (s *Server) HasMainUser(ctx context.Context, user apisecurity.User) (bool, error) {
+	return false, nil
+}
+
+func (s *Server) InitMainUser(ctx context.Context, user apisecurity.User) error {
+	return nil
+}
 
 func (s *Server) GetServerConnections(_ context.Context, req *admin.ConnReq) (*admin.ConnCountResp, error) {
 	if req.Protocol == "" {

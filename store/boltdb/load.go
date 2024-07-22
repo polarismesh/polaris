@@ -47,7 +47,7 @@ func (m *boltStore) loadByDefault() error {
 // DefaultData 默认数据信息
 type DefaultData struct {
 	Namespaces []*model.Namespace `yaml:"namespaces"`
-	Users      []*authcommon.User      `yaml:"users"`
+	Users      []*authcommon.User `yaml:"users"`
 }
 
 func (m *boltStore) loadByFile(loadFile string) error {

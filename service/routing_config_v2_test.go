@@ -601,3 +601,8 @@ func unmarshalRoutingV2toAnySlice(routings []*anypb.Any) ([]*apitraffic.RouteRul
 
 	return ret, nil
 }
+
+func Test_PrintRouteRuleTypeUrl(t *testing.T) {
+	any, _ := ptypes.MarshalAny(&apitraffic.RuleRoutingConfig{})
+	t.Log(any.TypeUrl)
+}
