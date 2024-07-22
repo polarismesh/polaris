@@ -163,9 +163,9 @@ func (rc *RouteRuleCache) GetRouterConfig(id, svcName, namespace string) (*apitr
 	key := model.ServiceKey{Namespace: namespace, Name: svcName}
 
 	revisions := []string{}
-	inRule, inRevision := rc.container.customRuleContainers[model.TrafficDirection_INBOUND].SearchRouteRuleV1(key)
+	inRule, inRevision := rc.container.directionContainers[model.TrafficDirection_INBOUND].SearchRouteRuleV1(key)
 	revisions = append(revisions, inRevision...)
-	outRule, outRevision := rc.container.customRuleContainers[model.TrafficDirection_OUTBOUND].SearchRouteRuleV1(key)
+	outRule, outRevision := rc.container.directionContainers[model.TrafficDirection_OUTBOUND].SearchRouteRuleV1(key)
 	revisions = append(revisions, outRevision...)
 
 	revision, err := types.CompositeComputeRevision(revisions)
@@ -185,7 +185,34 @@ func (rc *RouteRuleCache) GetRouterConfig(id, svcName, namespace string) (*apitr
 
 // GetNearbyRouteRule 根据服务名查询就近路由数据
 func (rc *RouteRuleCache) GetNearbyRouteRule(service, namespace string) ([]*apitraffic.RouteRule, string, error) {
-	return nil, "", nil
+	if service == "" && namespace == "" {
+		return nil, "", nil
+	}
+
+	svcKey := model.ServiceKey{
+		Namespace: namespace,
+		Name:      service,
+	}
+
+	routerRules := rc.container.directionContainers[model.TrafficDirection_INBOUND].SearchRouteRuleV2(apitraffic.RoutingPolicy_NearbyPolicy, svcKey)
+	revisions := make([]string, 0, len(routerRules))
+	ret := make([]*apitraffic.RouteRule, 0, len(routerRules))
+	for i := range routerRules {
+		item := routerRules[i]
+		entry, err := item.ToApi()
+		if err != nil {
+			return nil, "", err
+		}
+		ret = append(ret, entry)
+		revisions = append(revisions, entry.GetRevision())
+	}
+	revision, err := types.CompositeComputeRevision(revisions)
+	if err != nil {
+		log.Warn("[Cache][Routing] v2=>v1 compute revisions fail, use fake revision", zap.Error(err))
+		revision = utils.NewV2Revision()
+	}
+
+	return ret, revision, nil
 }
 
 // IteratorRouterRule

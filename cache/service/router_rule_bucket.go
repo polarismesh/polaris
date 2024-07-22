@@ -79,14 +79,32 @@ func (s *ServiceWithRouterRules) DelRouterRule(id string) {
 }
 
 // IterateRouterRules 这里是可以保证按照路由规则优先顺序进行遍历
-func (s *ServiceWithRouterRules) IterateRouterRules(callback func(*model.ExtendRouterConfig)) {
+func (s *ServiceWithRouterRules) IterateRouterRules(policy apitraffic.RoutingPolicy, callback func(*model.ExtendRouterConfig)) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
-	for _, key := range s.sortKeys {
-		val, ok := s.customv2Rules[key]
-		if ok {
-			callback(val)
+
+	switch policy {
+	case apitraffic.RoutingPolicy_RulePolicy:
+		for _, key := range s.sortKeys {
+			val, ok := s.customv2Rules[key]
+			if ok {
+				callback(val)
+			}
 		}
+	case apitraffic.RoutingPolicy_NearbyPolicy:
+		for i := range s.nearbyRules {
+			callback(s.nearbyRules[i])
+		}
+	}
+}
+
+// IterateNearRules 这里是可以保证按照路由规则优先顺序进行遍历
+func (s *ServiceWithRouterRules) IterateNearRules(callback func(*model.ExtendRouterConfig)) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	for i := range s.nearbyRules {
+		callback(s.nearbyRules[i])
 	}
 }
 
@@ -191,24 +209,24 @@ type ClientRouteRuleContainer struct {
 	allWildcardRules *ServiceWithRouterRules
 }
 
-func (c *ClientRouteRuleContainer) SearchRouteRuleV2(svc model.ServiceKey) []*model.ExtendRouterConfig {
+func (c *ClientRouteRuleContainer) SearchRouteRuleV2(policy apitraffic.RoutingPolicy, svc model.ServiceKey) []*model.ExtendRouterConfig {
 	ret := make([]*model.ExtendRouterConfig, 0, 32)
 
 	exactRule, existExactRule := c.exactRules.Load(svc.Domain())
 	if existExactRule {
-		exactRule.IterateRouterRules(func(erc *model.ExtendRouterConfig) {
+		exactRule.IterateRouterRules(policy, func(erc *model.ExtendRouterConfig) {
 			ret = append(ret, erc)
 		})
 	}
 
 	nsWildcardRule, existNsWildcardRule := c.nsWildcardRules.Load(svc.Namespace)
 	if existNsWildcardRule {
-		nsWildcardRule.IterateRouterRules(func(erc *model.ExtendRouterConfig) {
+		nsWildcardRule.IterateRouterRules(policy, func(erc *model.ExtendRouterConfig) {
 			ret = append(ret, erc)
 		})
 	}
 
-	c.allWildcardRules.IterateRouterRules(func(erc *model.ExtendRouterConfig) {
+	c.allWildcardRules.IterateRouterRules(policy, func(erc *model.ExtendRouterConfig) {
 		ret = append(ret, erc)
 	})
 	return ret
@@ -300,7 +318,7 @@ func newRouteRuleContainer() *RouteRuleContainer {
 		rules:        utils.NewSyncMap[string, *model.ExtendRouterConfig](),
 		v1rules:      map[string][]*model.ExtendRouterConfig{},
 		v1rulesToOld: map[string]string{},
-		customRuleContainers: map[model.TrafficDirection]*ClientRouteRuleContainer{
+		directionContainers: map[model.TrafficDirection]*ClientRouteRuleContainer{
 			model.TrafficDirection_INBOUND:  newClientRouteRuleContainer(model.TrafficDirection_INBOUND),
 			model.TrafficDirection_OUTBOUND: newClientRouteRuleContainer(model.TrafficDirection_OUTBOUND),
 		},
@@ -313,13 +331,7 @@ type RouteRuleContainer struct {
 	// rules id => routing rule
 	rules *utils.SyncMap[string, *model.ExtendRouterConfig]
 
-	// 路由规则的全部命名空间、全部服务的选择策略
-	// case 1: 主调服务为全部命名空间、全部服务，被调命名空间不能选择全部，服务可以选择全部
-	// case 2: 主调服务为精确命名空间、全部服务，被调命名空间选择全部，服务只能全部
-	// case 3: 主调服务为精确命名空间、精确服务，被调命名空间选择精确，服务可以选择全部或者精确
-	// case 4: 主调服务为精确命名空间、精确服务，被调命名空间选择全部，服务只能全部
-	// 自定义路由规则缓存需要按照 Caller/Callee 的方式保存
-	customRuleContainers map[model.TrafficDirection]*ClientRouteRuleContainer
+	directionContainers map[model.TrafficDirection]*ClientRouteRuleContainer
 
 	lock sync.RWMutex
 	// v1rules service-id => []*model.ExtendRouterConfig v1 版本的规则自动转为 v2 版本的规则，用于 v2 接口的数据查看
@@ -334,7 +346,7 @@ func (b *RouteRuleContainer) saveV2(conf *model.ExtendRouterConfig) {
 	b.rules.Store(conf.ID, conf)
 	handler := func(direction model.TrafficDirection, svcKey model.ServiceKey) {
 		b.effect.Add(svcKey)
-		container := b.customRuleContainers[direction]
+		container := b.directionContainers[direction]
 		// level1 级别 cache 处理
 		if svcKey.Name != model.MatchAll && svcKey.Namespace != model.MatchAll {
 			container.SaveToExact(svcKey, conf)
@@ -398,7 +410,7 @@ func (b *RouteRuleContainer) deleteV2(id string) {
 
 	handler := func(direction model.TrafficDirection, svcKey model.ServiceKey) {
 		b.effect.Add(svcKey)
-		container := b.customRuleContainers[direction]
+		container := b.directionContainers[direction]
 		// level1 级别 cache 处理
 		if svcKey.Name != model.MatchAll && svcKey.Namespace != model.MatchAll {
 			container.RemoveFromExact(svcKey, id)
@@ -461,13 +473,13 @@ func (b *RouteRuleContainer) SearchRouteRules(svcName, namespace string) []*mode
 
 	ret := make([]*model.ExtendRouterConfig, 0, 32)
 
-	rules := b.customRuleContainers[model.TrafficDirection_INBOUND].SearchRouteRuleV2(svcKey)
+	rules := b.directionContainers[model.TrafficDirection_INBOUND].SearchRouteRuleV2(apitraffic.RoutingPolicy_RulePolicy, svcKey)
 	ret = append(ret, rules...)
 	for i := range rules {
 		ruleIds[rules[i].ID] = struct{}{}
 	}
 
-	rules = b.customRuleContainers[model.TrafficDirection_OUTBOUND].SearchRouteRuleV2(svcKey)
+	rules = b.directionContainers[model.TrafficDirection_OUTBOUND].SearchRouteRuleV2(apitraffic.RoutingPolicy_RulePolicy, svcKey)
 	for i := range rules {
 		if _, ok := ruleIds[rules[i].ID]; !ok {
 			ret = append(ret, rules[i])
@@ -491,33 +503,29 @@ func (b *RouteRuleContainer) foreach(proc types.RouterRuleIterProc) {
 }
 
 func (b *RouteRuleContainer) reload() {
-	defer func() {
-		b.effect = utils.NewSyncSet[model.ServiceKey]()
-	}()
-
 	b.effect.Range(func(val model.ServiceKey) {
 		// 处理 exact
-		rules, ok := b.customRuleContainers[model.TrafficDirection_INBOUND].exactRules.Load(val.Domain())
+		rules, ok := b.directionContainers[model.TrafficDirection_INBOUND].exactRules.Load(val.Domain())
 		if ok {
 			rules.reload()
 		}
-		rules, ok = b.customRuleContainers[model.TrafficDirection_OUTBOUND].exactRules.Load(val.Domain())
+		rules, ok = b.directionContainers[model.TrafficDirection_OUTBOUND].exactRules.Load(val.Domain())
 		if ok {
 			rules.reload()
 		}
 
 		// 处理 ns wildcard
-		rules, ok = b.customRuleContainers[model.TrafficDirection_INBOUND].nsWildcardRules.Load(val.Namespace)
+		rules, ok = b.directionContainers[model.TrafficDirection_INBOUND].nsWildcardRules.Load(val.Namespace)
 		if ok {
 			rules.reload()
 		}
-		rules, ok = b.customRuleContainers[model.TrafficDirection_OUTBOUND].nsWildcardRules.Load(val.Namespace)
+		rules, ok = b.directionContainers[model.TrafficDirection_OUTBOUND].nsWildcardRules.Load(val.Namespace)
 		if ok {
 			rules.reload()
 		}
 
 		// 处理 all wildcard
-		b.customRuleContainers[model.TrafficDirection_INBOUND].allWildcardRules.reload()
-		b.customRuleContainers[model.TrafficDirection_OUTBOUND].allWildcardRules.reload()
+		b.directionContainers[model.TrafficDirection_INBOUND].allWildcardRules.reload()
+		b.directionContainers[model.TrafficDirection_OUTBOUND].allWildcardRules.reload()
 	})
 }
