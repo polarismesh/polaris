@@ -69,9 +69,12 @@ func Test_groupStore_AddGroup(t *testing.T) {
 
 		groups := createTestUserGroup(1)
 
-		if err := gs.AddGroup(groups[0]); err != nil {
+		tx, err := handler.StartTx()
+		assert.NoError(t, err)
+		if err := gs.AddGroup(tx, groups[0]); err != nil {
 			t.Fatal(err)
 		}
+		assert.NoError(t, tx.Commit())
 
 		ret, err := gs.GetGroup(groups[0].ID)
 		if err != nil {
@@ -94,9 +97,12 @@ func Test_groupStore_UpdateGroup(t *testing.T) {
 
 		groups := createTestUserGroup(1)
 
-		if err := gs.AddGroup(groups[0]); err != nil {
+		tx, err := handler.StartTx()
+		assert.NoError(t, err)
+		if err := gs.AddGroup(tx, groups[0]); err != nil {
 			t.Fatal(err)
 		}
+		assert.NoError(t, tx.Commit())
 
 		groups[0].Comment = time.Now().String()
 
@@ -131,15 +137,21 @@ func Test_groupStore_DeleteGroup(t *testing.T) {
 
 		groups := createTestUserGroup(1)
 
-		if err := gs.AddGroup(groups[0]); err != nil {
+		tx, err := handler.StartTx()
+		assert.NoError(t, err)
+		if err := gs.AddGroup(tx, groups[0]); err != nil {
 			t.Fatal(err)
 		}
+		assert.NoError(t, tx.Commit())
 
 		groups[0].Comment = time.Now().String()
 
-		if err := gs.DeleteGroup(groups[0]); err != nil {
+		tx, err = handler.StartTx()
+		assert.NoError(t, err)
+		if err := gs.DeleteGroup(tx, groups[0]); err != nil {
 			t.Fatal(err)
 		}
+		assert.NoError(t, tx.Commit())
 
 		ret, err := gs.GetGroup(groups[0].ID)
 		if err != nil {
@@ -156,9 +168,12 @@ func Test_groupStore_GetGroupByName(t *testing.T) {
 
 		groups := createTestUserGroup(1)
 
-		if err := gs.AddGroup(groups[0]); err != nil {
+		tx, err := handler.StartTx()
+		assert.NoError(t, err)
+		if err := gs.AddGroup(tx, groups[0]); err != nil {
 			t.Fatal(err)
 		}
+		assert.NoError(t, tx.Commit())
 
 		ret, err := gs.GetGroupByName(groups[0].Name, groups[0].Owner)
 		if err != nil {
@@ -182,9 +197,12 @@ func Test_groupStore_GetGroups(t *testing.T) {
 		groups := createTestUserGroup(10)
 
 		for i := range groups {
-			if err := gs.AddGroup(groups[i]); err != nil {
+			tx, err := handler.StartTx()
+			assert.NoError(t, err)
+			if err := gs.AddGroup(tx, groups[i]); err != nil {
 				t.Fatal(err)
 			}
+			assert.NoError(t, tx.Commit())
 		}
 
 		total, ret, err := gs.GetGroups(map[string]string{

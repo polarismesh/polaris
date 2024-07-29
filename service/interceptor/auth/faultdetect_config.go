@@ -21,18 +21,21 @@ import (
 	"context"
 
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
+	"github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-func (svr *ServerAuthAbility) CreateFaultDetectRules(
+func (svr *Server) CreateFaultDetectRules(
 	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 
-	authCtx := svr.collectFaultDetectAuthContext(ctx, request, authcommon.Read, "CreateFaultDetectRules")
-	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	authCtx := svr.collectFaultDetectAuthContext(ctx, request, authcommon.Read, authcommon.CreateFaultDetectRules)
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
@@ -40,11 +43,11 @@ func (svr *ServerAuthAbility) CreateFaultDetectRules(
 	return svr.nextSvr.CreateFaultDetectRules(ctx, request)
 }
 
-func (svr *ServerAuthAbility) DeleteFaultDetectRules(
+func (svr *Server) DeleteFaultDetectRules(
 	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 
-	authCtx := svr.collectFaultDetectAuthContext(ctx, request, authcommon.Read, "DeleteFaultDetectRules")
-	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	authCtx := svr.collectFaultDetectAuthContext(ctx, request, authcommon.Read, authcommon.DeleteFaultDetectRules)
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
@@ -52,11 +55,11 @@ func (svr *ServerAuthAbility) DeleteFaultDetectRules(
 	return svr.nextSvr.DeleteFaultDetectRules(ctx, request)
 }
 
-func (svr *ServerAuthAbility) UpdateFaultDetectRules(
+func (svr *Server) UpdateFaultDetectRules(
 	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 
-	authCtx := svr.collectFaultDetectAuthContext(ctx, request, authcommon.Read, "UpdateFaultDetectRules")
-	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	authCtx := svr.collectFaultDetectAuthContext(ctx, request, authcommon.Read, authcommon.UpdateFaultDetectRules)
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
@@ -64,13 +67,22 @@ func (svr *ServerAuthAbility) UpdateFaultDetectRules(
 	return svr.nextSvr.UpdateFaultDetectRules(ctx, request)
 }
 
-func (svr *ServerAuthAbility) GetFaultDetectRules(
+func (svr *Server) GetFaultDetectRules(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
-	authCtx := svr.collectFaultDetectAuthContext(ctx, nil, authcommon.Read, "GetFaultDetectRules")
-	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	authCtx := svr.collectFaultDetectAuthContext(ctx, nil, authcommon.Read, authcommon.DescribeFaultDetectRules)
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchQueryResponse(authcommon.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	cachetypes.AppendFaultDetectRulePredicate(ctx, func(ctx context.Context, cbr *model.FaultDetectRule) bool {
+		return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authcommon.ResourceEntry{
+			Type:     security.ResourceType_FaultDetectRules,
+			ID:       cbr.ID,
+			Metadata: cbr.Proto.Metadata,
+		})
+	})
+
 	return svr.nextSvr.GetFaultDetectRules(ctx, query)
 }

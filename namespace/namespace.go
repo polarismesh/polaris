@@ -122,16 +122,14 @@ func (s *Server) CreateNamespace(ctx context.Context, req *apimodel.Namespace) *
 		return api.NewNamespaceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 
-	msg := fmt.Sprintf("create namespace: name=%s", namespaceName)
-	log.Info(msg, utils.ZapRequestID(requestID))
-
+	log.Info("create namespace", utils.RequestID(ctx), zap.String("name", namespaceName))
 	out := &apimodel.Namespace{
 		Name:  req.GetName(),
 		Token: utils.NewStringValue(data.Token),
 	}
 
+	s.RecordHistory(namespaceRecordEntry(ctx, req, model.OCreate))
 	_ = s.afterNamespaceResource(ctx, req, data, false)
-
 	return api.NewNamespaceResponse(apimodel.Code_ExecuteSuccess, out)
 }
 
@@ -229,8 +227,7 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *apimodel.Namespace) *
 
 	s.caches.Service().CleanNamespace(namespace.Name)
 
-	msg := fmt.Sprintf("delete namespace: name=%s", namespace.Name)
-	log.Info(msg, utils.ZapRequestID(requestID))
+	log.Info("delete namespace", utils.RequestID(ctx), zap.String("name", namespace.Name))
 	s.RecordHistory(namespaceRecordEntry(ctx, req, model.ODelete))
 
 	_ = s.afterNamespaceResource(ctx, req, &model.Namespace{Name: req.GetName().GetValue()}, true)

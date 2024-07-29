@@ -61,15 +61,15 @@ func ConvertToErrCode(err error) apimodel.Code {
 }
 
 const (
-	OperatorRoleKey       string = "operator_role"
-	OperatorPrincipalType string = "operator_principal"
-	OperatorIDKey         string = "operator_id"
-	OperatorOwnerKey      string = "operator_owner"
-	OperatorLinkStrategy  string = "operator_link_strategy"
-	LinkUsersKey          string = "link_users"
-	LinkGroupsKey         string = "link_groups"
-	RemoveLinkUsersKey    string = "remove_link_users"
-	RemoveLinkGroupsKey   string = "remove_link_groups"
+	OperatorRoleKey      string = "operator_role"
+	OperatorIDKey        string = "operator_id"
+	OperatorOwnerKey     string = "operator_owner"
+	OperatorLinkStrategy string = "operator_link_strategy"
+	PrincipalKey         string = "principal"
+	LinkUsersKey         string = "link_users"
+	LinkGroupsKey        string = "link_groups"
+	RemoveLinkUsersKey   string = "remove_link_users"
+	RemoveLinkGroupsKey  string = "remove_link_groups"
 
 	TokenDetailInfoKey string = "TokenInfo"
 	TokenForUser       string = "uid"
@@ -104,6 +104,7 @@ type PrincipalType int
 const (
 	PrincipalUser  PrincipalType = 1
 	PrincipalGroup PrincipalType = 2
+	PrincipalRole  PrincipalType = 3
 )
 
 // CheckPrincipalType 检查鉴权策略成员角色信息
@@ -112,6 +113,8 @@ func CheckPrincipalType(role int) error {
 	case PrincipalUser:
 		return nil
 	case PrincipalGroup:
+		return nil
+	case PrincipalRole:
 		return nil
 	default:
 		return errors.New("invalid principal type")
@@ -123,6 +126,7 @@ var (
 	PrincipalNames = map[PrincipalType]string{
 		PrincipalUser:  "user",
 		PrincipalGroup: "group",
+		PrincipalRole:  "role",
 	}
 )
 
@@ -194,8 +198,10 @@ var (
 
 // ResourceEntry 资源最简单信息
 type ResourceEntry struct {
-	ID    string
-	Owner string
+	Type     apisecurity.ResourceType
+	ID       string
+	Owner    string
+	Metadata map[string]string
 }
 
 // User 用户
@@ -215,6 +221,22 @@ type User struct {
 	Comment     string
 	CreateTime  time.Time
 	ModifyTime  time.Time
+}
+
+func (u *User) GetToken() string {
+	return u.Token
+}
+
+func (u *User) Disable() bool {
+	return !u.TokenEnable
+}
+
+func (u *User) OwnerID() string {
+	return u.Owner
+}
+
+func (u *User) SelfID() string {
+	return u.ID
 }
 
 func (u *User) ToSpec() *apisecurity.User {
@@ -293,8 +315,25 @@ type UserGroup struct {
 	Metadata    map[string]string
 	Valid       bool
 	Comment     string
+	Source      string
 	CreateTime  time.Time
 	ModifyTime  time.Time
+}
+
+func (u *UserGroup) GetToken() string {
+	return u.Token
+}
+
+func (u *UserGroup) Disable() bool {
+	return !u.TokenEnable
+}
+
+func (u *UserGroup) OwnerID() string {
+	return u.Owner
+}
+
+func (u *UserGroup) SelfID() string {
+	return u.ID
 }
 
 // ModifyUserGroup 用户组修改
@@ -315,6 +354,12 @@ type UserGroupRelation struct {
 	UserIds    []string
 	CreateTime time.Time
 	ModifyTime time.Time
+}
+
+type Condition struct {
+	Key         string
+	Value       string
+	CompareFunc string
 }
 
 // StrategyDetail 鉴权策略详细
@@ -338,17 +383,47 @@ type StrategyDetail struct {
 	ModifyTime    time.Time
 }
 
-type Condition struct {
-	Key         string
-	Value       string
-	CompareFunc string
+func (s *StrategyDetail) IsDeny() bool {
+	return s.Action == apisecurity.AuthAction_DENY.String()
 }
 
-// StrategyDetailCache 鉴权策略详细
-type StrategyDetailCache struct {
+func NewPolicyDetailCache(d *StrategyDetail) *PolicyDetailCache {
+	users := make(map[string]Principal, 0)
+	groups := make(map[string]Principal, 0)
+
+	for index := range d.Principals {
+		principal := d.Principals[index]
+		if principal.PrincipalType == PrincipalUser {
+			users[principal.PrincipalID] = principal
+		} else {
+			groups[principal.PrincipalID] = principal
+		}
+	}
+
+	resources := map[apisecurity.ResourceType]*utils.SyncSet[string]{}
+	for index := range d.Resources {
+		resource := d.Resources[index]
+		resType := apisecurity.ResourceType(resource.ResType)
+		if _, ok := resources[resType]; !ok {
+			resources[resType] = utils.NewSyncSet[string]()
+		}
+		resources[resType].Add(resource.ResID)
+	}
+
+	return &PolicyDetailCache{
+		StrategyDetail: d,
+		UserPrincipal:  users,
+		GroupPrincipal: groups,
+		ResourceDict:   resources,
+	}
+}
+
+// PolicyDetailCache 鉴权策略详细
+type PolicyDetailCache struct {
 	*StrategyDetail
 	UserPrincipal  map[string]Principal
 	GroupPrincipal map[string]Principal
+	ResourceDict   map[apisecurity.ResourceType]*utils.SyncSet[string]
 }
 
 // ModifyStrategyDetail 修改鉴权策略详细
@@ -389,14 +464,14 @@ type StrategyResource struct {
 // Principal 策略相关人
 type Principal struct {
 	StrategyID    string
+	Name          string
+	Owner         string
 	PrincipalID   string
-	PrincipalRole PrincipalType
+	PrincipalType PrincipalType
 }
 
-type OperateResource struct {
-	ResOwner string
-	ResType  apisecurity.ResourceType
-	ResID    string
+func (p Principal) String() string {
+	return fmt.Sprintf("%s/%s", p.PrincipalType.String(), p.PrincipalID)
 }
 
 // ParseUserRole 从ctx中解析用户角色
@@ -407,4 +482,19 @@ func ParseUserRole(ctx context.Context) UserRoleType {
 
 	role, _ := ctx.Value(utils.ContextUserRoleIDKey).(UserRoleType)
 	return role
+}
+
+type Role struct {
+	ID         string
+	Name       string
+	Owner      string
+	Source     string
+	Type       string
+	Metadata   map[string]string
+	Valid      bool
+	Comment    string
+	CreateTime time.Time
+	ModifyTime time.Time
+	Users      []*User
+	UserGroups []*UserGroup
 }

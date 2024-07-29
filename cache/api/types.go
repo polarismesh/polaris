@@ -67,6 +67,8 @@ const (
 	UsersName = "users"
 	// StrategyRuleName strategy rule config name
 	StrategyRuleName = "strategyRule"
+	// RolesName role data config name
+	RolesName = "roles"
 	// ServiceContractName service contract config name
 	ServiceContractName = "serviceContract"
 	// GrayName gray config name
@@ -94,6 +96,7 @@ const (
 	CacheServiceContract
 	CacheGray
 	CacheLaneRule
+	CacheRole
 
 	CacheLast
 )
@@ -162,6 +165,8 @@ type CacheManager interface {
 	ConfigGroup() ConfigGroupCache
 	// Gray get Gray cache information
 	Gray() GrayCache
+	// Role Get role cache information
+	Role() RoleCache
 }
 
 type (
@@ -307,7 +312,7 @@ type (
 
 type (
 	// FaultDetectPredicate .
-	FaultDetectPredicate func(context.Context, *model.ExtendRouterConfig) bool
+	FaultDetectPredicate func(context.Context, *model.FaultDetectRule) bool
 	// FaultDetectArgs
 	FaultDetectArgs struct {
 		// Filter extend filter params
@@ -345,6 +350,8 @@ type (
 		Query(context.Context, *FaultDetectArgs) (uint32, []*model.FaultDetectRule, error)
 		// GetFaultDetectConfig 根据ServiceID获取探测配置
 		GetFaultDetectConfig(svcName string, namespace string) *model.ServiceWithFaultDetectRules
+		// GetRule 获取规则 ID 获取主动探测规则
+		GetRule(id string) *model.FaultDetectRule
 	}
 )
 
@@ -383,6 +390,8 @@ type (
 		Query(context.Context, *LaneGroupArgs) (uint32, []*model.LaneGroupProto, error)
 		// GetLaneRules 根据serviceID获取泳道规则
 		GetLaneRules(serviceKey *model.Service) ([]*model.LaneGroupProto, string)
+		// GetRule 获取规则 ID 获取全链路灰度规则
+		GetRule(id string) *model.LaneGroup
 	}
 )
 
@@ -445,6 +454,8 @@ type (
 		IsConvertFromV1(id string) (string, bool)
 		// IteratorRouterRule iterator router rule
 		IteratorRouterRule(iterProc RouterRuleIterProc)
+		// GetRule 获取规则 ID 获取路由规则
+		GetRule(id string) *model.ExtendRouterConfig
 	}
 )
 
@@ -491,6 +502,8 @@ type (
 		QueryRateLimitRules(context.Context, RateLimitRuleArgs) (uint32, []*model.RateLimit, error)
 		// GetRateLimitsCount 获取限流规则总数
 		GetRateLimitsCount() int
+		// GetRule 获取规则 ID 获取限流规则
+		GetRule(id string) *model.RateLimit
 	}
 )
 
@@ -554,6 +567,8 @@ type (
 		Query(context.Context, *CircuitBreakerRuleArgs) (uint32, []*model.CircuitBreakerRule, error)
 		// GetCircuitBreakerConfig 根据ServiceID获取熔断配置
 		GetCircuitBreakerConfig(svcName string, namespace string) *model.ServiceWithCircuitBreakerRules
+		// GetRule 获取规则 ID 获取熔断规则
+		GetRule(id string) *model.CircuitBreakerRule
 	}
 )
 
@@ -681,22 +696,44 @@ type (
 		QueryUserGroups(context.Context, UserGroupSearchArgs) (uint32, []*authcommon.UserGroupDetail, error)
 	}
 
+	PolicySearchArgs struct {
+		Filters map[string]string
+		Offset  uint32
+		Limit   uint32
+	}
+
 	// AuthPolicyPredicate .
 	AuthPolicyPredicate func(context.Context, *authcommon.StrategyDetail) bool
 
 	// StrategyCache is a cache for strategy rules.
 	StrategyCache interface {
 		Cache
-		// GetPrincipalPolicies
+		// GetPrincipalPolicies 根据 effect 获取 principal 的策略信息
 		GetPrincipalPolicies(effect string, p authcommon.Principal) []*authcommon.StrategyDetail
-		// GetStrategyDetailsByUID
-		GetStrategyDetailsByUID(uid string) []*authcommon.StrategyDetail
-		// GetStrategyDetailsByGroupID returns all strategy details of a group.
-		GetStrategyDetailsByGroupID(groupId string) []*authcommon.StrategyDetail
-		// IsResourceLinkStrategy 该资源是否关联了鉴权策略
-		IsResourceLinkStrategy(resType apisecurity.ResourceType, resId string) bool
-		// IsResourceEditable 判断该资源是否可以操作
-		IsResourceEditable(principal authcommon.Principal, resType apisecurity.ResourceType, resId string) bool
+		// Hint 确认某个 principal 对于资源的访问权限
+		Hint(p authcommon.Principal, r *authcommon.ResourceEntry) apisecurity.AuthAction
+		// Query .
+		Query(context.Context, PolicySearchArgs) (uint32, []*authcommon.StrategyDetail, error)
+	}
+
+	RoleSearchArgs struct {
+		Filters map[string]string
+		Offset  uint32
+		Limit   uint32
+	}
+
+	// AuthPolicyPredicate .
+	AuthRolePredicate func(context.Context, *authcommon.Role) bool
+
+	// RoleCache .
+	RoleCache interface {
+		Cache
+		// GetRole .
+		GetRole(id string) *authcommon.Role
+		// Query .
+		Query(context.Context, RoleSearchArgs) (uint32, []*authcommon.Role, error)
+		// GetPrincipalRoles .
+		GetPrincipalRoles(authcommon.Principal) []*authcommon.Role
 	}
 )
 

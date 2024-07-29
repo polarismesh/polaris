@@ -94,5 +94,5 @@ func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *Reso
 	authCtx.SetAttachment(authcommon.LinkGroupsKey, utils.StringSliceDeDuplication(groups))
 	authCtx.SetAttachment(authcommon.RemoveLinkGroupsKey, utils.StringSliceDeDuplication(removeGroups))
 
-	return svr.strategyMgn.AfterResourceOperation(authCtx)
+	return svr.policySvr.AfterResourceOperation(authCtx)
 }

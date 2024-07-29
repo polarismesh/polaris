@@ -29,11 +29,11 @@ import (
 )
 
 // CreateInstances create instances
-func (svr *ServerAuthAbility) CreateInstances(ctx context.Context,
+func (svr *Server) CreateInstances(ctx context.Context,
 	reqs []*apiservice.Instance) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectInstanceAuthContext(ctx, reqs, authcommon.Create, "CreateInstances")
+	authCtx := svr.collectInstanceAuthContext(ctx, reqs, authcommon.Create, authcommon.CreateInstances)
 
-	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		resp := api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 		batchResp := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
@@ -48,11 +48,11 @@ func (svr *ServerAuthAbility) CreateInstances(ctx context.Context,
 }
 
 // DeleteInstances delete instances
-func (svr *ServerAuthAbility) DeleteInstances(ctx context.Context,
+func (svr *Server) DeleteInstances(ctx context.Context,
 	reqs []*apiservice.Instance) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectInstanceAuthContext(ctx, reqs, authcommon.Delete, "DeleteInstances")
+	authCtx := svr.collectInstanceAuthContext(ctx, reqs, authcommon.Delete, authcommon.DeleteInstances)
 
-	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		resp := api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 		batchResp := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
@@ -67,11 +67,11 @@ func (svr *ServerAuthAbility) DeleteInstances(ctx context.Context,
 }
 
 // DeleteInstancesByHost 目前只允许 super account 进行数据删除
-func (svr *ServerAuthAbility) DeleteInstancesByHost(ctx context.Context,
+func (svr *Server) DeleteInstancesByHost(ctx context.Context,
 	reqs []*apiservice.Instance) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectInstanceAuthContext(ctx, reqs, authcommon.Delete, "DeleteInstancesByHost")
+	authCtx := svr.collectInstanceAuthContext(ctx, reqs, authcommon.Delete, authcommon.DeleteInstancesByHost)
 
-	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
@@ -86,11 +86,11 @@ func (svr *ServerAuthAbility) DeleteInstancesByHost(ctx context.Context,
 }
 
 // UpdateInstances update instances
-func (svr *ServerAuthAbility) UpdateInstances(ctx context.Context,
+func (svr *Server) UpdateInstances(ctx context.Context,
 	reqs []*apiservice.Instance) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectInstanceAuthContext(ctx, reqs, authcommon.Modify, "UpdateInstances")
+	authCtx := svr.collectInstanceAuthContext(ctx, reqs, authcommon.Modify, authcommon.UpdateInstances)
 
-	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
@@ -102,11 +102,11 @@ func (svr *ServerAuthAbility) UpdateInstances(ctx context.Context,
 }
 
 // UpdateInstancesIsolate update instances
-func (svr *ServerAuthAbility) UpdateInstancesIsolate(ctx context.Context,
+func (svr *Server) UpdateInstancesIsolate(ctx context.Context,
 	reqs []*apiservice.Instance) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectInstanceAuthContext(ctx, reqs, authcommon.Modify, "UpdateInstancesIsolate")
+	authCtx := svr.collectInstanceAuthContext(ctx, reqs, authcommon.Modify, authcommon.UpdateInstancesIsolate)
 
-	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
@@ -118,10 +118,10 @@ func (svr *ServerAuthAbility) UpdateInstancesIsolate(ctx context.Context,
 }
 
 // GetInstances get instances
-func (svr *ServerAuthAbility) GetInstances(ctx context.Context,
+func (svr *Server) GetInstances(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
-	authCtx := svr.collectInstanceAuthContext(ctx, nil, authcommon.Read, "GetInstances")
-	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
+	authCtx := svr.collectInstanceAuthContext(ctx, nil, authcommon.Read, authcommon.DescribeInstances)
+	_, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchQueryResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
@@ -133,9 +133,9 @@ func (svr *ServerAuthAbility) GetInstances(ctx context.Context,
 }
 
 // GetInstancesCount get instances to count
-func (svr *ServerAuthAbility) GetInstancesCount(ctx context.Context) *apiservice.BatchQueryResponse {
-	authCtx := svr.collectInstanceAuthContext(ctx, nil, authcommon.Read, "GetInstancesCount")
-	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
+func (svr *Server) GetInstancesCount(ctx context.Context) *apiservice.BatchQueryResponse {
+	authCtx := svr.collectInstanceAuthContext(ctx, nil, authcommon.Read, authcommon.DescribeInstancesCount)
+	_, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchQueryResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
@@ -145,11 +145,11 @@ func (svr *ServerAuthAbility) GetInstancesCount(ctx context.Context) *apiservice
 	return svr.nextSvr.GetInstancesCount(ctx)
 }
 
-func (svr *ServerAuthAbility) GetInstanceLabels(ctx context.Context,
+func (svr *Server) GetInstanceLabels(ctx context.Context,
 	query map[string]string) *apiservice.Response {
 
-	authCtx := svr.collectInstanceAuthContext(ctx, nil, authcommon.Read, "GetInstanceLabels")
-	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
+	authCtx := svr.collectInstanceAuthContext(ctx, nil, authcommon.Read, authcommon.DescribeInstanceLabels)
+	_, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}

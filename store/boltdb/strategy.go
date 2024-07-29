@@ -82,7 +82,7 @@ type strategyStore struct {
 }
 
 // AddStrategy add a new strategy
-func (ss *strategyStore) AddStrategy(strategy *authcommon.StrategyDetail) error {
+func (ss *strategyStore) AddStrategy(tx store.Tx, strategy *authcommon.StrategyDetail) error {
 	if strategy.ID == "" || strategy.Name == "" || strategy.Owner == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"add auth_strategy missing some params, id is %s, name is %s, owner is %s",
@@ -90,39 +90,19 @@ func (ss *strategyStore) AddStrategy(strategy *authcommon.StrategyDetail) error 
 	}
 
 	initStrategy(strategy)
+	dbTx := tx.GetDelegateTx().(*bolt.Tx)
 
-	proxy, err := ss.handler.StartTx()
-	if err != nil {
-		return err
-	}
-	tx := proxy.GetDelegateTx().(*bolt.Tx)
-
-	defer func() {
-		_ = tx.Rollback()
-	}()
-
-	return ss.addStrategy(tx, strategy)
-}
-
-func (ss *strategyStore) addStrategy(tx *bolt.Tx, strategy *authcommon.StrategyDetail) error {
-	if err := ss.cleanInvalidStrategy(tx, strategy.Name, strategy.Owner); err != nil {
+	if err := ss.cleanInvalidStrategy(dbTx, strategy.Name, strategy.Owner); err != nil {
 		log.Error("[Store][Strategy] clean invalid auth_strategy", zap.Error(err),
 			zap.String("name", strategy.Name), zap.Any("owner", strategy.Owner))
 		return err
 	}
 
-	if err := saveValue(tx, tblStrategy, strategy.ID, convertForStrategyStore(strategy)); err != nil {
+	if err := saveValue(dbTx, tblStrategy, strategy.ID, convertForStrategyStore(strategy)); err != nil {
 		log.Error("[Store][Strategy] save auth_strategy", zap.Error(err),
 			zap.String("name", strategy.Name), zap.String("owner", strategy.Owner))
 		return err
 	}
-
-	if err := tx.Commit(); err != nil {
-		log.Error("[Store][Strategy] clean invalid auth_strategy tx commit", zap.Error(err),
-			zap.String("name", strategy.Name), zap.String("owner", strategy.Owner))
-		return err
-	}
-
 	return nil
 }
 
@@ -188,7 +168,7 @@ func (ss *strategyStore) updateStrategy(tx *bolt.Tx, modify *authcommon.ModifySt
 func computePrincipals(remove bool, principals []authcommon.Principal, saveVal *strategyForStore) {
 	for i := range principals {
 		principal := principals[i]
-		if principal.PrincipalRole == authcommon.PrincipalUser {
+		if principal.PrincipalType == authcommon.PrincipalUser {
 			if remove {
 				delete(saveVal.Users, principal.PrincipalID)
 			} else {
@@ -673,9 +653,8 @@ func comparePrincipalExist(principalType, principalId string, m map[string]inter
 	return true
 }
 
-// GetStrategyDetailsForCache get strategy details for cache
-func (ss *strategyStore) GetStrategyDetailsForCache(mtime time.Time,
-	firstUpdate bool) ([]*authcommon.StrategyDetail, error) {
+// GetMoreStrategies get strategy details for cache
+func (ss *strategyStore) GetMoreStrategies(mtime time.Time, firstUpdate bool) ([]*authcommon.StrategyDetail, error) {
 
 	ret, err := ss.handler.LoadValuesByFilter(tblStrategy, []string{StrategyFieldModifyTime}, &strategyForStore{},
 		func(m map[string]interface{}) bool {
@@ -696,6 +675,58 @@ func (ss *strategyStore) GetStrategyDetailsForCache(mtime time.Time,
 	}
 
 	return strategies, nil
+}
+
+func (ss *strategyStore) CleanPrincipalPolicies(tx store.Tx, p authcommon.Principal) error {
+	fields := []string{StrategyFieldDefault, StrategyFieldUsersPrincipal, StrategyFieldGroupsPrincipal}
+	values := make(map[string]interface{})
+
+	dbTx := tx.GetDelegateTx().(*bolt.Tx)
+	err := loadValuesByFilter(dbTx, tblStrategy, fields, &strategyForStore{},
+		func(m map[string]interface{}) bool {
+			isDefault := m[StrategyFieldDefault].(bool)
+			if !isDefault {
+				return false
+			}
+
+			var principals map[string]string
+			if p.PrincipalType == authcommon.PrincipalUser {
+				principals = m[StrategyFieldUsersPrincipal].(map[string]string)
+			} else {
+				principals = m[StrategyFieldGroupsPrincipal].(map[string]string)
+			}
+
+			if len(principals) != 1 {
+				return false
+			}
+			_, exist := principals[p.PrincipalID]
+			return exist
+		}, values)
+
+	if err != nil {
+		log.Error("[Store][Strategy] load link auth_strategy", zap.Error(err), zap.String("principal", p.String()))
+		return err
+	}
+
+	if len(values) == 0 {
+		return nil
+	}
+	if len(values) > 1 {
+		return ErrorMultiDefaultStrategy
+	}
+
+	for k := range values {
+
+		properties := make(map[string]interface{})
+		properties[StrategyFieldValid] = false
+		properties[StrategyFieldModifyTime] = time.Now()
+
+		if err := updateValue(dbTx, tblStrategy, k, properties); err != nil {
+			log.Error("[Store][Strategy] clean link auth_strategy", zap.String("principal", p.String()), zap.Error(err))
+			return err
+		}
+	}
+	return nil
 }
 
 // cleanInvalidStrategy clean up authentication strategy by name
@@ -736,83 +767,6 @@ func (ss *strategyStore) cleanInvalidStrategy(tx *bolt.Tx, name, owner string) e
 	return deleteValues(tx, tblStrategy, keys)
 }
 
-func createDefaultStrategy(tx *bolt.Tx, role authcommon.PrincipalType, principalId, name, owner string) error {
-	strategy := &authcommon.StrategyDetail{
-		ID:        utils.NewUUID(),
-		Name:      authcommon.BuildDefaultStrategyName(role, name),
-		Action:    apisecurity.AuthAction_READ_WRITE.String(),
-		Default:   true,
-		Owner:     owner,
-		Revision:  utils.NewUUID(),
-		Resources: []authcommon.StrategyResource{},
-		Valid:     true,
-		Principals: []authcommon.Principal{
-			{
-				PrincipalID:   principalId,
-				PrincipalRole: role,
-			},
-		},
-		Comment: "Default Strategy",
-	}
-
-	return saveValue(tx, tblStrategy, strategy.ID, convertForStrategyStore(strategy))
-}
-
-func cleanLinkStrategy(tx *bolt.Tx, role authcommon.PrincipalType, principalId, owner string) error {
-
-	fields := []string{StrategyFieldDefault, StrategyFieldUsersPrincipal, StrategyFieldGroupsPrincipal}
-	values := make(map[string]interface{})
-
-	err := loadValuesByFilter(tx, tblStrategy, fields, &strategyForStore{},
-		func(m map[string]interface{}) bool {
-			isDefault := m[StrategyFieldDefault].(bool)
-			if !isDefault {
-				return false
-			}
-
-			var principals map[string]string
-			if role == authcommon.PrincipalUser {
-				principals = m[StrategyFieldUsersPrincipal].(map[string]string)
-			} else {
-				principals = m[StrategyFieldGroupsPrincipal].(map[string]string)
-			}
-
-			if len(principals) != 1 {
-				return false
-			}
-			_, exist := principals[principalId]
-			return exist
-		}, values)
-
-	if err != nil {
-		log.Error("[Store][Strategy] load link auth_strategy", zap.Error(err),
-			zap.String("principal-id", principalId), zap.Any("principal-type", role))
-		return err
-	}
-
-	if len(values) == 0 {
-		return nil
-	}
-	if len(values) > 1 {
-		return ErrorMultiDefaultStrategy
-	}
-
-	for k := range values {
-
-		properties := make(map[string]interface{})
-		properties[StrategyFieldValid] = false
-		properties[StrategyFieldModifyTime] = time.Now()
-
-		if err := updateValue(tx, tblStrategy, k, properties); err != nil {
-			log.Error("[Store][Strategy] clean link auth_strategy", zap.Error(err),
-				zap.String("principal-id", principalId), zap.Any("principal-type", role))
-			return err
-		}
-	}
-
-	return nil
-}
-
 func convertForStrategyStore(strategy *authcommon.StrategyDetail) *strategyForStore {
 
 	var (
@@ -823,7 +777,7 @@ func convertForStrategyStore(strategy *authcommon.StrategyDetail) *strategyForSt
 
 	for i := range principals {
 		principal := principals[i]
-		if principal.PrincipalRole == authcommon.PrincipalUser {
+		if principal.PrincipalType == authcommon.PrincipalUser {
 			users[principal.PrincipalID] = ""
 		} else {
 			groups[principal.PrincipalID] = ""
@@ -877,14 +831,14 @@ func convertForStrategyDetail(strategy *strategyForStore) *authcommon.StrategyDe
 		principals = append(principals, authcommon.Principal{
 			StrategyID:    strategy.ID,
 			PrincipalID:   id,
-			PrincipalRole: authcommon.PrincipalUser,
+			PrincipalType: authcommon.PrincipalUser,
 		})
 	}
 	for id := range strategy.Groups {
 		principals = append(principals, authcommon.Principal{
 			StrategyID:    strategy.ID,
 			PrincipalID:   id,
-			PrincipalRole: authcommon.PrincipalGroup,
+			PrincipalType: authcommon.PrincipalGroup,
 		})
 	}
 

@@ -20,10 +20,8 @@ package sqldb
 import (
 	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 
-	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"go.uber.org/zap"
 
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
@@ -54,25 +52,23 @@ type userStore struct {
 }
 
 // AddUser 添加用户
-func (u *userStore) AddUser(user *authcommon.User) error {
+func (u *userStore) AddUser(tx store.Tx, user *authcommon.User) error {
 	if user.ID == "" || user.Name == "" || user.Token == "" || user.Password == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"add user missing some params, id is %s, name is %s", user.ID, user.Name))
 	}
+	dbTx := tx.GetDelegateTx().(*BaseTx)
 
 	// 先清理无效数据
-	if err := u.cleanInValidUser(user.Name, user.Owner); err != nil {
+	if err := u.cleanInValidUser(dbTx, user.Name, user.Owner); err != nil {
 		return err
 	}
 
-	err := RetryTransaction("addUser", func() error {
-		return u.addUser(user)
-	})
-
+	err := u.addUser(dbTx, user)
 	return store.Error(err)
 }
 
-func (u *userStore) addUser(user *authcommon.User) error {
+func (u *userStore) addUser(tx *BaseTx, user *authcommon.User) error {
 
 	tx, err := u.master.Begin()
 	if err != nil {
@@ -100,21 +96,6 @@ func (u *userStore) addUser(user *authcommon.User) error {
 	}...)
 
 	if err != nil {
-		return store.Error(err)
-	}
-
-	owner := user.Owner
-	if owner == "" {
-		owner = user.ID
-	}
-
-	if err := createDefaultStrategy(tx, authcommon.PrincipalUser, user.ID, user.Name, user.Owner); err != nil {
-		log.Error("[Auth][User] create default strategy", zap.Error(err))
-		return store.Error(err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		log.Errorf("[Store][User] add user tx commit err: %s", err.Error())
 		return store.Error(err)
 	}
 	return nil
@@ -174,56 +155,26 @@ func (u *userStore) updateUser(user *authcommon.User) error {
 }
 
 // DeleteUser delete user by user id
-func (u *userStore) DeleteUser(user *authcommon.User) error {
+func (u *userStore) DeleteUser(tx store.Tx, user *authcommon.User) error {
 	if user.ID == "" || user.Name == "" {
 		return store.NewStatusError(store.EmptyParamsErr, "delete user id parameter missing")
 	}
 
-	err := RetryTransaction("deleteUser", func() error {
-		return u.deleteUser(user)
-	})
+	dbTx := tx.GetDelegateTx().(*BaseTx)
 
-	return store.Error(err)
-}
-
-// deleteUser Specific deletion user steps
-// step 1. Delete the user-associated policy information
-//
-//	a. Delete the user's default policy
-//	b. Update the latest update time of related policies, make the Cache mechanism
-//	c. Delete the association relationship of the user and policy
-//
-// step 2. Delete the user group associated with this user
-func (u *userStore) deleteUser(user *authcommon.User) error {
-	tx, err := u.master.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer func() { _ = tx.Rollback() }()
-
-	if err := cleanLinkStrategy(tx, authcommon.PrincipalUser, user.ID, user.Owner); err != nil {
-		return err
-	}
-
-	if _, err = tx.Exec("UPDATE user SET flag = 1 WHERE id = ?", user.ID); err != nil {
+	if _, err := dbTx.Exec("UPDATE user SET flag = 1 WHERE id = ?", user.ID); err != nil {
 		log.Error("[Store][User] update set user flag", zap.Error(err))
 		return err
 	}
 
-	if _, err = tx.Exec("UPDATE user_group SET mtime = sysdate() WHERE id IN (SELECT DISTINCT group_id FROM "+
+	if _, err := dbTx.Exec("UPDATE user_group SET mtime = sysdate() WHERE id IN (SELECT DISTINCT group_id FROM "+
 		" user_group_relation WHERE user_id = ?)", user.ID); err != nil {
 		log.Error("[Store][User] update usergroup mtime", zap.Error(err))
 		return err
 	}
 
-	if _, err = tx.Exec("DELETE FROM user_group_relation WHERE user_id = ?", user.ID); err != nil {
+	if _, err := dbTx.Exec("DELETE FROM user_group_relation WHERE user_id = ?", user.ID); err != nil {
 		log.Error("[Store][User] delete usergroup relation", zap.Error(err))
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
-		log.Error("[Store][User] delete user tx commit", zap.Error(err))
 		return err
 	}
 	return nil
@@ -543,46 +494,6 @@ func (u *userStore) collectUsers(handler QueryHandler, querySql string, args []i
 	return users, nil
 }
 
-func createDefaultStrategy(tx *BaseTx, role authcommon.PrincipalType, id, name, owner string) error {
-	if strings.Compare(owner, "") == 0 {
-		owner = id
-	}
-
-	// Create the user's default weight policy
-	strategy := &authcommon.StrategyDetail{
-		ID:        utils.NewUUID(),
-		Name:      authcommon.BuildDefaultStrategyName(role, name),
-		Action:    apisecurity.AuthAction_READ_WRITE.String(),
-		Default:   true,
-		Owner:     owner,
-		Revision:  utils.NewUUID(),
-		Resources: []authcommon.StrategyResource{},
-		Valid:     true,
-		Comment:   "Default Strategy",
-	}
-
-	// 需要清理过期的 auth_strategy
-	cleanInvalidRule := "DELETE FROM auth_strategy WHERE name = ? AND owner = ? AND flag = 1 AND `default` = ?"
-	if _, err := tx.Exec(cleanInvalidRule, []interface{}{strategy.Name, strategy.Owner,
-		strategy.Default}...); err != nil {
-		return err
-	}
-
-	// Save policy master information
-	saveMainSql := "INSERT INTO auth_strategy(`id`, `name`, `action`, `owner`, `comment`, `flag`, " +
-		" `default`, `revision`) VALUES (?,?,?,?,?,?,?,?)"
-	if _, err := tx.Exec(saveMainSql, []interface{}{strategy.ID, strategy.Name, strategy.Action,
-		strategy.Owner, strategy.Comment,
-		0, strategy.Default, strategy.Revision}...); err != nil {
-		return err
-	}
-
-	// Insert User / Group and Policy Association
-	savePrincipalSql := "INSERT INTO auth_principal(`strategy_id`, `principal_id`, `principal_role`) VALUES (?,?,?)"
-	_, err := tx.Exec(savePrincipalSql, []interface{}{strategy.ID, id, role}...)
-	return err
-}
-
 func fetchRown2User(rows *sql.Rows) (*authcommon.User, error) {
 	var (
 		ctime, mtime                int64
@@ -610,13 +521,12 @@ func fetchRown2User(rows *sql.Rows) (*authcommon.User, error) {
 	return user, nil
 }
 
-func (u *userStore) cleanInValidUser(name, owner string) error {
+func (u *userStore) cleanInValidUser(tx *BaseTx, name, owner string) error {
 	log.Infof("[Store][User] clean user, name=(%s), owner=(%s)", name, owner)
 	str := "delete from user where name = ? and owner = ? and flag = 1"
-	if _, err := u.master.Exec(str, name, owner); err != nil {
+	if _, err := tx.Exec(str, name, owner); err != nil {
 		log.Errorf("[Store][User] clean user(%s) err: %s", name, err.Error())
 		return err
 	}
-
 	return nil
 }

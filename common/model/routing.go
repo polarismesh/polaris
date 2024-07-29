@@ -104,8 +104,8 @@ type ExtendRouterConfig struct {
 	RuleRouting *RuleRoutingConfigWrapper
 	// NearbyRouting 就近路由规则数据
 	NearbyRouting *apitraffic.NearbyRoutingConfig
-	// ExtendInfo 额外信息数据
-	ExtendInfo map[string]string
+	// Metadata .
+	Metadata map[string]string
 }
 
 // ToApi Turn to API object
@@ -634,7 +634,7 @@ func ConvertRoutingV1ToExtendV2(svcName, svcNamespace string,
 			routing.CreateTime = rule.CreateTime
 			routing.ModifyTime = rule.ModifyTime
 			routing.EnableTime = rule.CreateTime
-			routing.ExtendInfo = map[string]string{
+			routing.Metadata = map[string]string{
 				V1RuleIDKey:         rule.ID,
 				V1RuleRouteIndexKey: fmt.Sprintf("%d", i),
 				V1RuleRouteTypeKey:  V1RuleInRoute,
@@ -670,7 +670,7 @@ func ConvertRoutingV1ToExtendV2(svcName, svcNamespace string,
 			routing.CreateTime = rule.CreateTime
 			routing.ModifyTime = rule.ModifyTime
 			routing.EnableTime = rule.CreateTime
-			routing.ExtendInfo = map[string]string{
+			routing.Metadata = map[string]string{
 				V1RuleIDKey:         rule.ID,
 				V1RuleRouteIndexKey: fmt.Sprintf("%d", i),
 				V1RuleRouteTypeKey:  V1RuleOutRoute,

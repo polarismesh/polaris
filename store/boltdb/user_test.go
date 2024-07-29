@@ -57,10 +57,12 @@ func Test_userStore_AddUser(t *testing.T) {
 		us := &userStore{handler: handler}
 
 		users := createTestUsers(1)
-
-		if err := us.AddUser(users[0]); err != nil {
+		tx, err := handler.StartTx()
+		assert.NoError(t, err)
+		if err := us.AddUser(tx, users[0]); err != nil {
 			t.Fatal(err)
 		}
+		assert.NoError(t, tx.Commit())
 
 		ret, err := us.GetUser(users[0].ID)
 		if err != nil {
@@ -86,9 +88,12 @@ func Test_userStore_UpdateUser(t *testing.T) {
 
 		users := createTestUsers(1)
 
-		if err := us.AddUser(users[0]); err != nil {
+		tx, err := handler.StartTx()
+		assert.NoError(t, err)
+		if err := us.AddUser(tx, users[0]); err != nil {
 			t.Fatal(err)
 		}
+		assert.NoError(t, tx.Commit())
 
 		users[0].Comment = "user update test"
 
@@ -120,9 +125,12 @@ func Test_userStore_DeleteUser(t *testing.T) {
 
 		users := createTestUsers(1)
 
-		if err := us.AddUser(users[0]); err != nil {
+		tx, err := handler.StartTx()
+		assert.NoError(t, err)
+		if err := us.AddUser(tx, users[0]); err != nil {
 			t.Fatal(err)
 		}
+		assert.NoError(t, tx.Commit())
 
 		ret, err := us.GetUser(users[0].ID)
 		if err != nil {
@@ -133,9 +141,12 @@ func Test_userStore_DeleteUser(t *testing.T) {
 			t.FailNow()
 		}
 
-		if err = us.DeleteUser(users[0]); err != nil {
+		tx, err = handler.StartTx()
+		assert.NoError(t, err)
+		if err = us.DeleteUser(tx, users[0]); err != nil {
 			t.Fatal(err)
 		}
+		assert.NoError(t, tx.Commit())
 
 		ret, err = us.GetUser(users[0].ID)
 		if err != nil {
@@ -154,9 +165,12 @@ func Test_userStore_GetUserByName(t *testing.T) {
 
 		users := createTestUsers(1)
 
-		if err := us.AddUser(users[0]); err != nil {
+		tx, err := handler.StartTx()
+		assert.NoError(t, err)
+		if err := us.AddUser(tx, users[0]); err != nil {
 			t.Fatal(err)
 		}
+		assert.NoError(t, tx.Commit())
 
 		ret, err := us.GetUserByName(users[0].Name, users[0].Owner)
 		if err != nil {
@@ -184,9 +198,12 @@ func Test_userStore_GetUserByIds(t *testing.T) {
 		ids := make([]string, 0, len(users))
 
 		for i := range users {
-			if err := us.AddUser(users[i]); err != nil {
+			tx, err := handler.StartTx()
+			assert.NoError(t, err)
+			if err := us.AddUser(tx, users[i]); err != nil {
 				t.Fatal(err)
 			}
+			assert.NoError(t, tx.Commit())
 			ids = append(ids, users[i].ID)
 		}
 
@@ -235,9 +252,12 @@ func Test_userStore_GetSubCount(t *testing.T) {
 		users := createTestUsers(5)
 
 		for i := range users {
-			if err := us.AddUser(users[i]); err != nil {
+			tx, err := handler.StartTx()
+			assert.NoError(t, err)
+			if err := us.AddUser(tx, users[i]); err != nil {
 				t.Fatal(err)
 			}
+			assert.NoError(t, tx.Commit())
 		}
 
 		total, err := us.GetSubCount(&authcommon.User{
@@ -262,9 +282,12 @@ func Test_userStore_GetUsers(t *testing.T) {
 		users := createTestUsers(10)
 
 		for i := range users {
-			if err := us.AddUser(users[i]); err != nil {
+			tx, err := handler.StartTx()
+			assert.NoError(t, err)
+			if err := us.AddUser(tx, users[i]); err != nil {
 				t.Fatal(err)
 			}
+			assert.NoError(t, tx.Commit())
 		}
 
 		total, ret, err := us.GetUsers(map[string]string{
@@ -304,9 +327,12 @@ func Test_userStore_GetUsers(t *testing.T) {
 		admins[0].Name = "admin"
 		admins[0].Type = authcommon.AdminUserRole
 
-		if err := us.AddUser(admins[0]); err != nil {
+		tx, err := handler.StartTx()
+		assert.NoError(t, err)
+		if err := us.AddUser(tx, admins[0]); err != nil {
 			t.Fatal(err)
 		}
+		assert.NoError(t, tx.Commit())
 
 		total, ret, err = us.GetUsers(map[string]string{
 			"hide_admin": "true",
@@ -340,18 +366,21 @@ func Test_userStore_GetUsersByGroup(t *testing.T) {
 		gs := &groupStore{handler: handler}
 
 		groups := createTestUserGroup(1)
+		tx, err := handler.StartTx()
+		assert.NoError(t, err)
 		for i := range groups {
-			if err := gs.AddGroup(groups[i]); err != nil {
+			if err := gs.AddGroup(tx, groups[i]); err != nil {
 				t.Fatal(err)
 			}
 		}
 
 		users := createTestUsers(10)
 		for i := range users {
-			if err := us.AddUser(users[i]); err != nil {
+			if err := us.AddUser(tx, users[i]); err != nil {
 				t.Fatal(err)
 			}
 		}
+		assert.NoError(t, tx.Commit())
 
 		total, ret, err := us.GetUsers(map[string]string{
 			"group_id": groups[0].ID,

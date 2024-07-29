@@ -300,7 +300,7 @@ func (le *leaderElectionStateMachine) changeToLeader() {
 
 // changeToFollower
 func (le *leaderElectionStateMachine) changeToFollower(leader string) {
-	log.Infof("[Store][database] change from leader to follower (%s)", le.electKey)
+	log.Infof("[Store][database] change from leader(%s) to follower (%s)", leader, le.electKey)
 	atomic.StoreInt32(&le.leaderFlag, 0)
 	le.leader = leader
 	le.publishLeaderChangeEvent()

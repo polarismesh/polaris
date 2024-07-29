@@ -52,6 +52,8 @@ type AuthConfig struct {
 	ClientStrict bool `json:"clientStrict"`
 	// CredibleHeaders 可信请求 Header
 	CredibleHeaders map[string]string
+	// OpenPrincipalDefaultPolicy 是否开启 principal 默认策略
+	OpenPrincipalDefaultPolicy bool `json:"openPrincipalDefaultPolicy"`
 }
 
 // DefaultAuthConfig 返回一个默认的鉴权配置
@@ -71,10 +73,19 @@ func DefaultAuthConfig() *AuthConfig {
 type Server struct {
 	options  *AuthConfig
 	storage  store.Store
-	history  plugin.History
 	cacheMgr cachetypes.CacheManager
 	checker  auth.AuthChecker
 	userSvr  auth.UserServer
+}
+
+// PolicyHelper implements auth.StrategyServer.
+func (svr *Server) PolicyHelper() auth.PolicyHelper {
+	return &DefaultPolicyHelper{
+		options:  svr.options,
+		storage:  svr.storage,
+		cacheMgr: svr.cacheMgr,
+		checker:  svr.checker,
+	}
 }
 
 // initialize
@@ -89,13 +100,10 @@ func (svr *Server) Initialize(options *auth.Config, storage store.Store, cacheMg
 	_ = cacheMgr.OpenResourceCache(cachetypes.ConfigEntry{
 		Name: cachetypes.StrategyRuleName,
 	})
-	// 获取History插件，注意：插件的配置在bootstrap已经设置好
-	svr.history = plugin.GetHistory()
-	if svr.history == nil {
-		log.Warnf("Not Found History Log Plugin")
-	}
 
-	checker := &DefaultAuthChecker{}
+	checker := &DefaultAuthChecker{
+		policyMgr: svr,
+	}
 	checker.Initialize(svr.options, svr.storage, cacheMgr, userSvr)
 	svr.checker = checker
 	return nil
@@ -156,17 +164,7 @@ func (svr *Server) GetAuthChecker() auth.AuthChecker {
 
 // RecordHistory Server对外提供history插件的简单封装
 func (svr *Server) RecordHistory(entry *model.RecordEntry) {
-	// 如果插件没有初始化，那么不记录history
-	if svr.history == nil {
-		return
-	}
-	// 如果数据为空，则不需要打印了
-	if entry == nil {
-		return
-	}
-
-	// 调用插件记录history
-	svr.history.Record(entry)
+	plugin.GetHistory().Record(entry)
 }
 
 func (svr *Server) isOpenAuth() bool {

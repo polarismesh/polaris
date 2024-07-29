@@ -31,7 +31,7 @@ import (
 func (s *ServerAuthability) GetConfigFileReleaseHistories(ctx context.Context,
 	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
 
-	authCtx := s.collectConfigFileReleaseHistoryAuthContext(ctx, nil, auth.Read, "GetConfigFileReleaseHistories")
+	authCtx := s.collectConfigFileReleaseHistoryAuthContext(ctx, nil, auth.Read, auth.DescribeConfigFileReleaseHistories)
 
 	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigBatchQueryResponseWithInfo(auth.ConvertToErrCode(err), err.Error())

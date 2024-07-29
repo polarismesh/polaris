@@ -36,15 +36,15 @@ import (
 type serverAuthAbility struct {
 	targetServer *Server
 	userMgn      auth.UserServer
-	strategyMgn  auth.StrategyServer
+	policySvr    auth.StrategyServer
 }
 
 func newServerAuthAbility(targetServer *Server,
-	userMgn auth.UserServer, strategyMgn auth.StrategyServer) NamespaceOperateServer {
+	userMgn auth.UserServer, policySvr auth.StrategyServer) NamespaceOperateServer {
 	proxy := &serverAuthAbility{
 		targetServer: targetServer,
 		userMgn:      userMgn,
-		strategyMgn:  strategyMgn,
+		policySvr:    policySvr,
 	}
 
 	targetServer.SetResourceHooks(proxy)
@@ -53,7 +53,7 @@ func newServerAuthAbility(targetServer *Server,
 
 // collectNamespaceAuthContext 对于命名空间的处理，收集所有的与鉴权的相关信息
 func (svr *serverAuthAbility) collectNamespaceAuthContext(ctx context.Context, req []*apimodel.Namespace,
-	resourceOp authcommon.ResourceOperation, methodName string) *authcommon.AcquireContext {
+	resourceOp authcommon.ResourceOperation, methodName authcommon.ServerFunctionName) *authcommon.AcquireContext {
 	return authcommon.NewAcquireContext(
 		authcommon.WithRequestContext(ctx),
 		authcommon.WithOperation(resourceOp),
@@ -78,6 +78,7 @@ func (svr *serverAuthAbility) queryNamespaceResource(
 	for index := range nsArr {
 		ns := nsArr[index]
 		temp = append(temp, authcommon.ResourceEntry{
+			Type:  apisecurity.ResourceType_Namespaces,
 			ID:    ns.Name,
 			Owner: ns.Owner,
 		})

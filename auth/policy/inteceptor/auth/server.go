@@ -49,6 +49,11 @@ type Server struct {
 	userSvr auth.UserServer
 }
 
+// PolicyHelper implements auth.StrategyServer.
+func (svr *Server) PolicyHelper() auth.PolicyHelper {
+	return svr.nextSvr.PolicyHelper()
+}
+
 // Initialize 执行初始化动作
 func (svr *Server) Initialize(options *auth.Config, storage store.Store, cacheMgr cachetypes.CacheManager, userSvr auth.UserServer) error {
 	svr.userSvr = userSvr
@@ -66,7 +71,7 @@ func (svr *Server) CreateStrategy(ctx context.Context, strategy *apisecurity.Aut
 		authcommon.WithRequestContext(ctx),
 		authcommon.WithOperation(authcommon.Create),
 		authcommon.WithModule(authcommon.AuthModule),
-		authcommon.WithMethod("CreatePolicy"),
+		authcommon.WithMethod(authcommon.CreateAuthPolicy),
 	)
 
 	if _, err := svr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
@@ -90,7 +95,7 @@ func (svr *Server) UpdateStrategies(ctx context.Context, reqs []*apisecurity.Mod
 		authcommon.WithRequestContext(ctx),
 		authcommon.WithOperation(authcommon.Modify),
 		authcommon.WithModule(authcommon.AuthModule),
-		authcommon.WithMethod("UpdatePolicies"),
+		authcommon.WithMethod(authcommon.UpdateAuthPolicies),
 	)
 
 	if _, err := svr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
@@ -114,7 +119,7 @@ func (svr *Server) DeleteStrategies(ctx context.Context, reqs []*apisecurity.Aut
 		authcommon.WithRequestContext(ctx),
 		authcommon.WithOperation(authcommon.Delete),
 		authcommon.WithModule(authcommon.AuthModule),
-		authcommon.WithMethod("DeletePolicies"),
+		authcommon.WithMethod(authcommon.DeleteAuthPolicies),
 	)
 
 	if _, err := svr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
@@ -132,7 +137,7 @@ func (svr *Server) GetStrategies(ctx context.Context, query map[string]string) *
 		authcommon.WithRequestContext(ctx),
 		authcommon.WithOperation(authcommon.Read),
 		authcommon.WithModule(authcommon.AuthModule),
-		authcommon.WithMethod("DescribePolicies"),
+		authcommon.WithMethod(authcommon.DescribeAuthPolicies),
 	)
 
 	if err := svr.userSvr.CheckCredential(authCtx); err != nil {
@@ -141,10 +146,9 @@ func (svr *Server) GetStrategies(ctx context.Context, query map[string]string) *
 
 	checker := svr.GetAuthChecker()
 	cachetypes.AppendAuthPolicyPredicate(ctx, func(ctx context.Context, sd *authcommon.StrategyDetail) bool {
-		return checker.AllowResourceOperate(authCtx, &authcommon.ResourceOpInfo{
-			ResourceType: apisecurity.ResourceType_PolicyRules,
-			ResourceName: sd.Name,
-			ResourceID:   sd.ID,
+		return checker.ResourcePredicate(authCtx, &authcommon.ResourceEntry{
+			Type: apisecurity.ResourceType_PolicyRules,
+			ID:   sd.ID,
 		})
 	})
 
@@ -157,19 +161,19 @@ func (svr *Server) GetStrategy(ctx context.Context, strategy *apisecurity.AuthSt
 		authcommon.WithRequestContext(ctx),
 		authcommon.WithOperation(authcommon.Read),
 		authcommon.WithModule(authcommon.AuthModule),
-		authcommon.WithMethod("DescribePolicy"),
+		authcommon.WithMethod(authcommon.DescribeAuthPolicyDetail),
 	)
 
-	if err := svr.userSvr.CheckCredential(authCtx); err != nil {
+	checker := svr.GetAuthChecker()
+
+	if _, err := checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
 
-	checker := svr.GetAuthChecker()
 	cachetypes.AppendAuthPolicyPredicate(ctx, func(ctx context.Context, sd *authcommon.StrategyDetail) bool {
-		return checker.AllowResourceOperate(authCtx, &authcommon.ResourceOpInfo{
-			ResourceType: apisecurity.ResourceType_PolicyRules,
-			ResourceName: sd.Name,
-			ResourceID:   sd.ID,
+		return checker.ResourcePredicate(authCtx, &authcommon.ResourceEntry{
+			Type: apisecurity.ResourceType_PolicyRules,
+			ID:   sd.ID,
 		})
 	})
 
@@ -178,6 +182,18 @@ func (svr *Server) GetStrategy(ctx context.Context, strategy *apisecurity.AuthSt
 
 // GetPrincipalResources 获取某个 principal 的所有可操作资源列表
 func (svr *Server) GetPrincipalResources(ctx context.Context, query map[string]string) *apiservice.Response {
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Read),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.DescribePrincipalResources),
+	)
+
+	checker := svr.GetAuthChecker()
+
+	if _, err := checker.CheckConsolePermission(authCtx); err != nil {
+		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+	}
 	return svr.nextSvr.GetPrincipalResources(ctx, query)
 }
 
@@ -189,4 +205,24 @@ func (svr *Server) GetAuthChecker() auth.AuthChecker {
 // AfterResourceOperation 操作完资源的后置处理逻辑
 func (svr *Server) AfterResourceOperation(afterCtx *authcommon.AcquireContext) error {
 	return svr.nextSvr.AfterResourceOperation(afterCtx)
+}
+
+// CreateRoles 批量创建角色
+func (svr *Server) CreateRoles(ctx context.Context, reqs []*apisecurity.Role) *apiservice.BatchWriteResponse {
+	return nil
+}
+
+// UpdateRoles 批量更新角色
+func (svr *Server) UpdateRoles(ctx context.Context, reqs []*apisecurity.Role) *apiservice.BatchWriteResponse {
+	return nil
+}
+
+// DeleteRoles 批量删除角色
+func (svr *Server) DeleteRoles(ctx context.Context, reqs []*apisecurity.Role) *apiservice.BatchWriteResponse {
+	return nil
+}
+
+// GetRoles 查询角色列表
+func (svr *Server) GetRoles(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
+	return nil
 }

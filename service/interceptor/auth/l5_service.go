@@ -28,12 +28,12 @@ import (
 // Stat::instance()->inc_sync_req_cnt();
 // 保存client的IP，该函数只是存储到本地的缓存中
 // Stat::instance()->add_agent(sbac.agent_ip());
-func (svr *ServerAuthAbility) SyncByAgentCmd(ctx context.Context, sbac *l5.Cl5SyncByAgentCmd) (
+func (svr *Server) SyncByAgentCmd(ctx context.Context, sbac *l5.Cl5SyncByAgentCmd) (
 	*l5.Cl5SyncByAgentAckCmd, error) {
 	return svr.nextSvr.SyncByAgentCmd(ctx, sbac)
 }
 
 // RegisterByNameCmd 根据名字获取sid信息
-func (svr *ServerAuthAbility) RegisterByNameCmd(rbnc *l5.Cl5RegisterByNameCmd) (*l5.Cl5RegisterByNameAckCmd, error) {
+func (svr *Server) RegisterByNameCmd(rbnc *l5.Cl5RegisterByNameCmd) (*l5.Cl5RegisterByNameAckCmd, error) {
 	return svr.nextSvr.RegisterByNameCmd(rbnc)
 }

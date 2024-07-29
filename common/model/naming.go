@@ -62,6 +62,8 @@ type Namespace struct {
 	ModifyTime time.Time
 	// ServiceExportTo 服务可见性设置
 	ServiceExportTo map[string]struct{}
+	// Metadata 命名空间元数据
+	Metadata map[string]string
 }
 
 func (n *Namespace) ListServiceExportTo() []*wrappers.StringValue {

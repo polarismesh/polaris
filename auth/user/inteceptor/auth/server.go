@@ -24,8 +24,6 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-	"go.uber.org/zap"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/auth"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
@@ -34,17 +32,6 @@ import (
 	authmodel "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
-)
-
-var (
-	// MustOwner 必须超级账户 or 主账户
-	MustOwner = true
-	// NotOwner 任意账户
-	NotOwner = false
-	// WriteOp 写操作
-	WriteOp = true
-	// ReadOp 读操作
-	ReadOp = false
 )
 
 func NewServer(nextSvr auth.UserServer) auth.UserServer {
@@ -85,79 +72,121 @@ func (svr *Server) GetUserHelper() auth.UserHelper {
 
 // CreateUsers 批量创建用户
 func (svr *Server) CreateUsers(ctx context.Context, users []*apisecurity.User) *apiservice.BatchWriteResponse {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
-	if rsp != nil {
-		resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
-		api.Collect(resp, rsp)
-		return resp
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Create),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.CreateUsers),
+	)
+
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewBatchWriteResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
-	return svr.nextSvr.CreateUsers(ctx, users)
+	return svr.nextSvr.CreateUsers(authCtx.GetRequestContext(), users)
 }
 
 // UpdateUser 更新用户信息
 func (svr *Server) UpdateUser(ctx context.Context, user *apisecurity.User) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
-	if rsp != nil {
-		rsp.User = user
-		return rsp
+	helper := svr.nextSvr.GetUserHelper()
+	saveUser := helper.GetUserByID(ctx, user.GetId().GetValue())
+	if saveUser == nil {
+		return api.NewResponse(apimodel.Code_NotFoundUser)
 	}
-	helper := svr.GetUserHelper()
-	targetUser := helper.GetUserByID(ctx, user.GetId().GetValue())
-	if targetUser == nil {
-		return api.NewAuthResponse(apimodel.Code_NotFoundUser)
+
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Modify),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.UpdateUser),
+		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authmodel.ResourceEntry{
+			apisecurity.ResourceType_Users: {
+				authmodel.ResourceEntry{
+					ID:       user.GetId().GetValue(),
+					Type:     apisecurity.ResourceType_Users,
+					Metadata: saveUser.Metadata,
+				},
+			},
+		}),
+	)
+
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
-	if !checkUserViewPermission(ctx, targetUser) {
-		return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
-	}
-	return svr.nextSvr.UpdateUser(ctx, user)
+	return svr.nextSvr.UpdateUser(authCtx.GetRequestContext(), user)
 }
 
 // UpdateUserPassword 更新用户密码
 func (svr *Server) UpdateUserPassword(ctx context.Context, req *apisecurity.ModifyUserPassword) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
-	if rsp != nil {
-		return rsp
+	helper := svr.nextSvr.GetUserHelper()
+	saveUser := helper.GetUserByID(ctx, req.GetId().GetValue())
+	if saveUser == nil {
+		return api.NewResponse(apimodel.Code_NotFoundUser)
 	}
-	helper := svr.GetUserHelper()
-	targetUser := helper.GetUserByID(ctx, req.GetId().GetValue())
-	if targetUser == nil {
-		return api.NewAuthResponse(apimodel.Code_NotFoundUser)
+
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Modify),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.UpdateUserPassword),
+		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authmodel.ResourceEntry{
+			apisecurity.ResourceType_Users: {
+				authmodel.ResourceEntry{
+					ID:       req.GetId().GetValue(),
+					Type:     apisecurity.ResourceType_Users,
+					Metadata: saveUser.Metadata,
+				},
+			},
+		}),
+	)
+
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
-	if !checkUserViewPermission(ctx, targetUser) {
-		return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
-	}
-	return svr.nextSvr.UpdateUserPassword(ctx, req)
+	return svr.nextSvr.UpdateUserPassword(authCtx.GetRequestContext(), req)
 }
 
 // DeleteUsers 批量删除用户
 func (svr *Server) DeleteUsers(ctx context.Context, users []*apisecurity.User) *apiservice.BatchWriteResponse {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
-	if rsp != nil {
-		resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
-		api.Collect(resp, rsp)
-		return resp
-	}
+	helper := svr.nextSvr.GetUserHelper()
+	resources := make([]authcommon.ResourceEntry, 0, len(users))
 	for i := range users {
-		user := users[i]
-		helper := svr.GetUserHelper()
-		targetUser := helper.GetUserByID(ctx, user.GetId().GetValue())
-		// 已经删除的用户没必要在删除一次
-		if targetUser == nil {
-			continue
+		saveUser := helper.GetUserByID(ctx, users[i].GetId().GetValue())
+		if saveUser == nil {
+			return api.NewBatchWriteResponse(apimodel.Code_NotFoundUser)
 		}
-		if !checkUserViewPermission(ctx, targetUser) {
-			return api.NewAuthBatchWriteResponse(apimodel.Code_NotAllowedAccess)
-		}
+		resources = append(resources, authmodel.ResourceEntry{
+			ID:       users[i].GetId().GetValue(),
+			Type:     apisecurity.ResourceType_Users,
+			Metadata: saveUser.Metadata,
+		})
 	}
-	return svr.nextSvr.DeleteUsers(ctx, users)
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Delete),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.DeleteUsers),
+		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authmodel.ResourceEntry{
+			apisecurity.ResourceType_Users: resources,
+		}),
+	)
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewBatchWriteResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+	}
+	return svr.nextSvr.DeleteUsers(authCtx.GetRequestContext(), users)
 }
 
 // GetUsers 查询用户列表
 func (svr *Server) GetUsers(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
-	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
-	if rsp != nil {
-		return api.NewAuthBatchQueryResponseWithMsg(apimodel.Code(rsp.GetCode().Value), rsp.Info.Value)
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Read),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.DescribeUsers),
+	)
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewBatchQueryResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
+	ctx = authCtx.GetRequestContext()
 	query["hide_admin"] = strconv.FormatBool(true)
 	// 如果不是超级管理员，查看数据有限制
 	if authcommon.ParseUserRole(ctx) != authmodel.AdminUserRole {
@@ -166,335 +195,320 @@ func (svr *Server) GetUsers(ctx context.Context, query map[string]string) *apise
 	}
 
 	cachetypes.AppendUserPredicate(ctx, func(ctx context.Context, u *authcommon.User) bool {
-		svr.policySvr.GetAuthChecker().AllowResourceOperate(nil, &authmodel.ResourceOpInfo{})
-		return true
+		return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authmodel.ResourceEntry{
+			Type:     apisecurity.ResourceType_Users,
+			ID:       u.ID,
+			Metadata: u.Metadata,
+		})
 	})
 
-	return svr.nextSvr.GetUsers(ctx, query)
+	return svr.nextSvr.GetUsers(authCtx.GetRequestContext(), query)
 }
 
 // GetUserToken 获取用户的 token
 func (svr *Server) GetUserToken(ctx context.Context, user *apisecurity.User) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
-	if rsp != nil {
-		return rsp
+	helper := svr.nextSvr.GetUserHelper()
+	saveUser := helper.GetUserByID(ctx, user.GetId().GetValue())
+	if saveUser == nil {
+		return api.NewResponse(apimodel.Code_NotFoundUser)
 	}
-	helper := svr.GetUserHelper()
-	targetUser := helper.GetUser(ctx, user)
-	if !checkUserViewPermission(ctx, targetUser) {
-		return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Read),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.DescribeUserToken),
+		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authmodel.ResourceEntry{
+			apisecurity.ResourceType_Users: {
+				authmodel.ResourceEntry{
+					ID:       user.GetId().GetValue(),
+					Type:     apisecurity.ResourceType_Users,
+					Metadata: saveUser.Metadata,
+				},
+			},
+		}),
+	)
+
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
-	return svr.nextSvr.GetUserToken(ctx, user)
+	return svr.nextSvr.GetUserToken(authCtx.GetRequestContext(), user)
 }
 
 // UpdateUserToken 禁止用户的token使用
-func (svr *Server) UpdateUserToken(ctx context.Context, user *apisecurity.User) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, NotOwner)
-	if rsp != nil {
-		return rsp
+func (svr *Server) EnableUserToken(ctx context.Context, user *apisecurity.User) *apiservice.Response {
+	helper := svr.nextSvr.GetUserHelper()
+	saveUser := helper.GetUserByID(ctx, user.GetId().GetValue())
+	if saveUser == nil {
+		return api.NewResponse(apimodel.Code_NotFoundUser)
 	}
-	helper := svr.GetUserHelper()
-	targetUser := helper.GetUser(ctx, user)
-	if !checkUserViewPermission(ctx, targetUser) {
-		return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Modify),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.EnableUserToken),
+		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authmodel.ResourceEntry{
+			apisecurity.ResourceType_Users: {
+				authmodel.ResourceEntry{
+					ID:       user.GetId().GetValue(),
+					Type:     apisecurity.ResourceType_Users,
+					Metadata: saveUser.Metadata,
+				},
+			},
+		}),
+	)
+
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
-	if authcommon.ParseUserRole(ctx) != authmodel.AdminUserRole {
-		if targetUser.GetUserType().GetValue() != strconv.Itoa(int(authmodel.SubAccountUserRole)) {
-			return api.NewUserResponseWithMsg(apimodel.Code_NotAllowedAccess, "only disable sub-account token", user)
-		}
-	}
-	return svr.nextSvr.UpdateUserToken(ctx, user)
+	return svr.nextSvr.EnableUserToken(ctx, user)
 }
 
 // ResetUserToken 重置用户的token
 func (svr *Server) ResetUserToken(ctx context.Context, user *apisecurity.User) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, NotOwner)
-	if rsp != nil {
-		return rsp
+	helper := svr.nextSvr.GetUserHelper()
+	saveUser := helper.GetUserByID(ctx, user.GetId().GetValue())
+	if saveUser == nil {
+		return api.NewResponse(apimodel.Code_NotFoundUser)
 	}
-	helper := svr.GetUserHelper()
-	targetUser := helper.GetUserByID(ctx, user.GetId().GetValue())
-	if !checkUserViewPermission(ctx, targetUser) {
-		return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Modify),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.ResetUserToken),
+		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authmodel.ResourceEntry{
+			apisecurity.ResourceType_Users: {
+				authmodel.ResourceEntry{
+					ID:       user.GetId().GetValue(),
+					Type:     apisecurity.ResourceType_Users,
+					Metadata: saveUser.Metadata,
+				},
+			},
+		}),
+	)
+
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
 	return svr.nextSvr.ResetUserToken(ctx, user)
 }
 
 // CreateGroup 创建用户组
 func (svr *Server) CreateGroup(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
-	if rsp != nil {
-		return rsp
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Create),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.CreateUserGroup),
+	)
+
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
-	return svr.nextSvr.CreateGroup(ctx, group)
+	return svr.nextSvr.CreateGroup(authCtx.GetRequestContext(), group)
 }
 
 // UpdateGroups 更新用户组
 func (svr *Server) UpdateGroups(ctx context.Context, groups []*apisecurity.ModifyUserGroup) *apiservice.BatchWriteResponse {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
-	if rsp != nil {
-		resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
-		api.Collect(resp, rsp)
-		return resp
-	}
-
-	resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
+	helper := svr.nextSvr.GetUserHelper()
+	resources := make([]authcommon.ResourceEntry, 0, len(groups))
 	for i := range groups {
-		item := groups[i]
-		rsp := svr.checkUpdateGroup(ctx, item)
-		api.Collect(resp, rsp)
-	}
-	if !api.IsSuccess(resp) {
-		return resp
+		saveGroup := helper.GetGroup(ctx, &apisecurity.UserGroup{Id: groups[i].GetId()})
+		if saveGroup == nil {
+			return api.NewBatchWriteResponse(apimodel.Code_NotFoundUserGroup)
+		}
+		resources = append(resources, authmodel.ResourceEntry{
+			Type:     apisecurity.ResourceType_UserGroups,
+			ID:       groups[i].GetId().GetValue(),
+			Metadata: saveGroup.Metadata,
+		})
 	}
 
-	return svr.nextSvr.UpdateGroups(ctx, groups)
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Modify),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.UpdateUserGroups),
+		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authmodel.ResourceEntry{
+			apisecurity.ResourceType_UserGroups: resources,
+		}),
+	)
+
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewBatchWriteResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+	}
+	return svr.nextSvr.UpdateGroups(authCtx.GetRequestContext(), groups)
 }
 
 // DeleteGroups 批量删除用户组
 func (svr *Server) DeleteGroups(ctx context.Context, groups []*apisecurity.UserGroup) *apiservice.BatchWriteResponse {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
-	if rsp != nil {
-		resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
-		api.Collect(resp, rsp)
-		return resp
-	}
-	resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
+	helper := svr.nextSvr.GetUserHelper()
+	resources := make([]authcommon.ResourceEntry, 0, len(groups))
 	for i := range groups {
-		item := groups[i]
-		if !svr.checkGroupViewAuth(ctx, item.GetId().GetValue()) {
-			api.Collect(resp, api.NewAuthResponse(apimodel.Code_NotAllowedAccess))
+		saveGroup := helper.GetGroup(ctx, &apisecurity.UserGroup{Id: groups[i].GetId()})
+		if saveGroup == nil {
+			return api.NewBatchWriteResponse(apimodel.Code_NotFoundUserGroup)
 		}
+		resources = append(resources, authmodel.ResourceEntry{
+			ID: groups[i].GetId().GetValue(),
+		})
 	}
-	if !api.IsSuccess(resp) {
-		return resp
+
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Modify),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.DeleteUserGroups),
+		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authmodel.ResourceEntry{
+			apisecurity.ResourceType_UserGroups: resources,
+		}),
+	)
+
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewBatchWriteResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
 	return svr.nextSvr.DeleteGroups(ctx, groups)
 }
 
 // GetGroups 查询用户组列表（不带用户详细信息）
 func (svr *Server) GetGroups(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
-	if rsp != nil {
-		resp := api.NewAuthBatchQueryResponse(apimodel.Code_ExecuteSuccess)
-		api.QueryCollect(resp, rsp)
-		return resp
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Read),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.DescribeUserGroups),
+	)
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewBatchQueryResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
-
-	delete(query, "owner")
+	ctx = authCtx.GetRequestContext()
 	if authcommon.ParseUserRole(ctx) != authmodel.AdminUserRole {
 		// step 1: 设置 owner 信息，只能查看归属主帐户下的用户组
 		query["owner"] = utils.ParseOwnerID(ctx)
-		if authcommon.ParseUserRole(ctx) != authmodel.OwnerUserRole {
-			// step 2: 非主帐户，只能查看自己所在的用户组
-			if _, ok := query["user_id"]; !ok {
-				query["user_id"] = utils.ParseUserID(ctx)
-			}
-		}
 	}
 
+	cachetypes.AppendUserPredicate(ctx, func(ctx context.Context, u *authcommon.User) bool {
+		return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authmodel.ResourceEntry{
+			Type:     apisecurity.ResourceType_UserGroups,
+			ID:       u.ID,
+			Metadata: u.Metadata,
+		})
+	})
+	delete(query, "owner")
 	return svr.nextSvr.GetGroups(ctx, query)
 }
 
 // GetGroup 根据用户组信息，查询该用户组下的用户相信
 func (svr *Server) GetGroup(ctx context.Context, req *apisecurity.UserGroup) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
-	if rsp != nil {
-		return rsp
+	helper := svr.nextSvr.GetUserHelper()
+	saveGroup := helper.GetGroup(ctx, req)
+	if saveGroup == nil {
+		return api.NewResponse(apimodel.Code_NotFoundUserGroup)
 	}
-	if !svr.checkGroupViewAuth(ctx, req.GetId().GetValue()) {
-		return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Read),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.DescribeUserGroupDetail),
+		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authmodel.ResourceEntry{
+			apisecurity.ResourceType_UserGroups: {
+				authmodel.ResourceEntry{
+					Type:     apisecurity.ResourceType_UserGroups,
+					ID:       req.GetId().GetValue(),
+					Metadata: saveGroup.Metadata,
+				},
+			},
+		}),
+	)
+
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
 	return svr.nextSvr.GetGroup(ctx, req)
 }
 
 // GetGroupToken 获取用户组的 token
 func (svr *Server) GetGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
-	if rsp != nil {
-		return rsp
+	helper := svr.nextSvr.GetUserHelper()
+	saveGroup := helper.GetGroup(ctx, group)
+	if saveGroup == nil {
+		return api.NewResponse(apimodel.Code_NotFoundUserGroup)
 	}
-	if !svr.checkGroupViewAuth(ctx, group.GetId().GetValue()) {
-		return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Read),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.DescribeUserGroupToken),
+		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authmodel.ResourceEntry{
+			apisecurity.ResourceType_UserGroups: {
+				authmodel.ResourceEntry{
+					ID:       group.GetId().GetValue(),
+					Type:     apisecurity.ResourceType_UserGroups,
+					Metadata: saveGroup.Metadata,
+				},
+			},
+		}),
+	)
+
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
 	return svr.nextSvr.GetGroupToken(ctx, group)
 }
 
-// UpdateGroupToken 取消用户组的 token 使用
-func (svr *Server) UpdateGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
-	if rsp != nil {
-		return rsp
-	}
-	saveGroup := svr.GetUserHelper().GetGroup(ctx, &apisecurity.UserGroup{
-		Id: wrapperspb.String(group.GetId().GetValue()),
-	})
+// EnableGroupToken 取消用户组的 token 使用
+func (svr *Server) EnableGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
+	helper := svr.nextSvr.GetUserHelper()
+	saveGroup := helper.GetGroup(ctx, group)
 	if saveGroup == nil {
-		return api.NewAuthResponse(apimodel.Code_NotFoundUserGroup)
+		return api.NewResponse(apimodel.Code_NotFoundUserGroup)
 	}
-	if authcommon.ParseUserRole(ctx) != authmodel.AdminUserRole {
-		if saveGroup.GetOwner().GetValue() != utils.ParseUserID(ctx) {
-			return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
-		}
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Modify),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.EnableUserGroupToken),
+		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authmodel.ResourceEntry{
+			apisecurity.ResourceType_UserGroups: {
+				authmodel.ResourceEntry{
+					ID:       group.GetId().GetValue(),
+					Type:     apisecurity.ResourceType_UserGroups,
+					Metadata: saveGroup.Metadata,
+				},
+			},
+		}),
+	)
+
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
-	return svr.nextSvr.UpdateGroupToken(ctx, group)
+	return svr.nextSvr.EnableGroupToken(ctx, group)
 }
 
 // ResetGroupToken 重置用户组的 token
 func (svr *Server) ResetGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
-	if rsp != nil {
-		return rsp
-	}
-	saveGroup := svr.GetUserHelper().GetGroup(ctx, &apisecurity.UserGroup{
-		Id: wrapperspb.String(group.GetId().GetValue()),
-	})
+	helper := svr.nextSvr.GetUserHelper()
+	saveGroup := helper.GetGroup(ctx, group)
 	if saveGroup == nil {
-		return api.NewAuthResponse(apimodel.Code_NotFoundUserGroup)
+		return api.NewResponse(apimodel.Code_NotFoundUserGroup)
 	}
-	if authcommon.ParseUserRole(ctx) != authmodel.AdminUserRole {
-		if saveGroup.GetOwner().GetValue() != utils.ParseUserID(ctx) {
-			return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
-		}
-	}
-	return svr.nextSvr.ResetGroupToken(ctx, group)
-}
-
-// verifyAuth 用于 user、group 以及 strategy 模块的鉴权工作检查
-func (svr *Server) verifyAuth(ctx context.Context, isWrite bool,
-	needOwner bool) (context.Context, *apiservice.Response) {
-	authToken := utils.ParseAuthToken(ctx)
-
-	if authToken == "" {
-		log.Error("[Auth][Server] auth token is empty", utils.RequestID(ctx))
-		return nil, api.NewAuthResponse(apimodel.Code_EmptyAutToken)
-	}
-
-	authCtx := authmodel.NewAcquireContext(
-		authmodel.WithRequestContext(ctx),
-		authmodel.WithModule(authmodel.AuthModule),
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Modify),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.ResetUserGroupToken),
+		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authmodel.ResourceEntry{
+			apisecurity.ResourceType_UserGroups: {
+				authmodel.ResourceEntry{
+					ID:       group.GetId().GetValue(),
+					Type:     apisecurity.ResourceType_UserGroups,
+					Metadata: saveGroup.Metadata,
+				},
+			},
+		}),
 	)
 
-	// case 1. 如果 error 不是 token 被禁止的 error，直接返回
-	// case 2. 如果 error 是 token 被禁止，按下面情况判断
-	// 		i. 如果当前只是一个数据的读取操作，则放通
-	// 		ii. 如果当前是一个数据的写操作，则只能允许处于正常的 token 进行操作
-	if err := svr.CheckCredential(authCtx); err != nil {
-		log.Error("[Auth][Server] verify auth token", utils.RequestID(ctx), zap.Error(err))
-		return nil, api.NewAuthResponse(apimodel.Code_AuthTokenForbidden)
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
-
-	attachVal, exist := authCtx.GetAttachment(authmodel.TokenDetailInfoKey)
-	if !exist {
-		log.Error("[Auth][Server] token detail info not exist", utils.RequestID(ctx))
-		return nil, api.NewAuthResponse(apimodel.Code_TokenNotExisted)
-	}
-
-	operateInfo := attachVal.(auth.OperatorInfo)
-	if isWrite && operateInfo.Disable {
-		log.Error("[Auth][Server] token is disabled", utils.RequestID(ctx),
-			zap.String("operation", authCtx.GetMethod()))
-		return nil, api.NewAuthResponse(apimodel.Code_TokenDisabled)
-	}
-
-	if !operateInfo.IsUserToken {
-		log.Error("[Auth][Server] only user role can access this API", utils.RequestID(ctx))
-		return nil, api.NewAuthResponse(apimodel.Code_OperationRoleForbidden)
-	}
-
-	if needOwner && auth.IsSubAccount(operateInfo) {
-		log.Error("[Auth][Server] only admin/owner account can access this API", utils.RequestID(ctx))
-		return nil, api.NewAuthResponse(apimodel.Code_OperationRoleForbidden)
-	}
-
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return ctx, nil
-}
-
-// checkUserViewPermission 检查是否可以操作该用户
-// Case 1: 如果是自己操作自己，通过
-// Case 2: 如果是主账户操作自己的子账户，通过
-// Case 3: 如果是超级账户，通过
-func checkUserViewPermission(ctx context.Context, user *apisecurity.User) bool {
-	role := authcommon.ParseUserRole(ctx)
-	if role == authmodel.AdminUserRole {
-		log.Debug("check user view permission", utils.RequestID(ctx), zap.Bool("admin", true))
-		return true
-	}
-
-	userId := utils.ParseUserID(ctx)
-	if user.GetId().GetValue() == userId {
-		return true
-	}
-
-	if user.GetOwner().GetValue() == userId {
-		log.Debug("check user view permission", utils.RequestID(ctx),
-			zap.Any("user", user), zap.String("owner", user.GetOwner().GetValue()), zap.String("operator", userId))
-		return true
-	}
-	log.Warn("check user view permission", utils.RequestID(ctx),
-		zap.Any("user", user), zap.String("owner", user.GetOwner().GetValue()), zap.String("operator", userId))
-	return false
-}
-
-// checkUpdateGroup 检查用户组的更新请求
-func (svr *Server) checkUpdateGroup(ctx context.Context, req *apisecurity.ModifyUserGroup) *apiservice.Response {
-	userId := utils.ParseUserID(ctx)
-	isOwner := utils.ParseIsOwner(ctx)
-	saveGroup := svr.GetUserHelper().GetGroup(ctx, &apisecurity.UserGroup{
-		Id: wrapperspb.String(req.GetId().GetValue()),
-	})
-	if saveGroup == nil {
-		return api.NewAuthResponse(apimodel.Code_NotFoundUserGroup)
-	}
-
-	// 满足以下情况才可以进行操作
-	// 1.管理员
-	// 2.自己在这个用户组里面
-	// 3.自己是这个用户组的owner角色
-	if authcommon.ParseUserRole(ctx) != authmodel.AdminUserRole {
-		inGroup := false
-		for i := range saveGroup.GetRelation().GetUsers() {
-			if userId == saveGroup.GetRelation().GetUsers()[i].GetId().GetValue() {
-				inGroup = true
-				break
-			}
-		}
-		if !inGroup && saveGroup.GetOwner().GetValue() != userId {
-			return api.NewAuthResponse(apimodel.Code_NotAllowedAccess)
-		}
-		// 如果当前用户只是在这个组里面，但不是该用户组的owner，那只能添加用户，不能删除用户
-		if inGroup && !isOwner && len(req.GetRemoveRelations().GetUsers()) != 0 {
-			return api.NewAuthResponseWithMsg(
-				apimodel.Code_NotAllowedAccess, "only main account can remove user from usergroup")
-		}
-	}
-	return nil
-}
-
-func (svr *Server) checkGroupViewAuth(ctx context.Context, id string) bool {
-	saveGroup := svr.GetUserHelper().GetGroup(ctx, &apisecurity.UserGroup{
-		Id: wrapperspb.String(id),
-	})
-	if saveGroup == nil {
-		return false
-	}
-
-	if authcommon.ParseUserRole(ctx) != authmodel.AdminUserRole {
-		userID := utils.ParseUserID(ctx)
-		inGroup := svr.GetUserHelper().CheckUserInGroup(ctx, &apisecurity.UserGroup{
-			Id: wrapperspb.String(id),
-		}, &apisecurity.User{
-			Id: wrapperspb.String(userID),
-		})
-		isGroupOwner := saveGroup.GetOwner().GetValue() == userID
-		if !isGroupOwner && !inGroup {
-			log.Error("can't see group info", zap.String("user", userID),
-				zap.String("group", id), zap.Bool("group-owner", isGroupOwner),
-				zap.Bool("in-group", inGroup))
-			return false
-		}
-	}
-	return true
+	return svr.nextSvr.ResetGroupToken(ctx, group)
 }

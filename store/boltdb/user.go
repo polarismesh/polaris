@@ -76,7 +76,7 @@ type userStore struct {
 }
 
 // AddUser 添加用户
-func (us *userStore) AddUser(user *authcommon.User) error {
+func (us *userStore) AddUser(tx store.Tx, user *authcommon.User) error {
 
 	initUser(user)
 
@@ -85,48 +85,14 @@ func (us *userStore) AddUser(user *authcommon.User) error {
 		return store.NewStatusError(store.EmptyParamsErr, "add user missing some params")
 	}
 
-	return us.addUser(user)
-}
-
-func (us *userStore) addUser(user *authcommon.User) error {
-	proxy, err := us.handler.StartTx()
-	if err != nil {
-		return err
-	}
-	tx := proxy.GetDelegateTx().(*bolt.Tx)
-
-	defer func() {
-		_ = tx.Rollback()
-	}()
-
+	dbTx := tx.GetDelegateTx().(*bolt.Tx)
 	owner := user.Owner
 	if owner == "" {
 		owner = user.ID
 	}
 
 	// 添加用户信息
-	if err := us.addUserMain(tx, user); err != nil {
-		return err
-	}
-
-	// 添加用户的默认策略
-	if err := createDefaultStrategy(tx, authcommon.PrincipalUser, user.ID, user.Name, owner); err != nil {
-		log.Error("[Store][User] create user default strategy fail", zap.Error(err),
-			zap.String("name", user.Name))
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
-		log.Error("[Store][User] save user tx commit fail", zap.Error(err),
-			zap.String("name", user.Name))
-		return err
-	}
-	return nil
-}
-
-func (us *userStore) addUserMain(tx *bolt.Tx, user *authcommon.User) error {
-	// 添加用户信息
-	if err := saveValue(tx, tblUser, user.ID, converToUserStore(user)); err != nil {
+	if err := saveValue(dbTx, tblUser, user.ID, converToUserStore(user)); err != nil {
 		log.Error("[Store][User] save user fail", zap.Error(err), zap.String("name", user.Name))
 		return err
 	}
@@ -158,45 +124,18 @@ func (us *userStore) UpdateUser(user *authcommon.User) error {
 }
 
 // DeleteUser 删除用户
-func (us *userStore) DeleteUser(user *authcommon.User) error {
+func (us *userStore) DeleteUser(tx store.Tx, user *authcommon.User) error {
 	if user.ID == "" {
 		return store.NewStatusError(store.EmptyParamsErr, "delete user missing some params")
 	}
-
-	return us.deleteUser(user)
-}
-
-func (us *userStore) deleteUser(user *authcommon.User) error {
-	proxy, err := us.handler.StartTx()
-	if err != nil {
-		return err
-	}
-	tx := proxy.GetDelegateTx().(*bolt.Tx)
-
-	defer func() {
-		_ = tx.Rollback()
-	}()
+	dbTx := tx.GetDelegateTx().(*bolt.Tx)
 
 	properties := make(map[string]interface{})
 	properties[UserFieldValid] = false
 	properties[UserFieldModifyTime] = time.Now()
 
-	if err := updateValue(tx, tblUser, user.ID, properties); err != nil {
+	if err := updateValue(dbTx, tblUser, user.ID, properties); err != nil {
 		log.Error("[Store][User] delete user by id", zap.Error(err), zap.String("id", user.ID))
-		return err
-	}
-
-	owner := user.Owner
-	if owner == "" {
-		owner = user.ID
-	}
-
-	if err := cleanLinkStrategy(tx, authcommon.PrincipalUser, user.ID, user.Owner); err != nil {
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
-		log.Error("[Store][User] delete user tx commit", zap.Error(err), zap.String("id", user.ID))
 		return err
 	}
 	return nil

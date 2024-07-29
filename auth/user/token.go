@@ -62,42 +62,62 @@ func (svr *Server) decodeToken(t string) (auth.OperatorInfo, error) {
 	return tokenInfo, nil
 }
 
+type TokenPrincipal interface {
+	GetToken() string
+	Disable() bool
+	OwnerID() string
+	SelfID() string
+}
+
 // checkToken 对 token 进行检查，如果 token 是一个空，直接返回默认值，但是不返回错误
 // return {owner-id} {is-owner} {error}
 func (svr *Server) checkToken(tokenInfo *auth.OperatorInfo) (string, bool, error) {
 	if auth.IsEmptyOperator(*tokenInfo) {
 		return "", false, nil
 	}
-
-	id := tokenInfo.OperatorID
-	if tokenInfo.IsUserToken {
-		user := svr.cacheMgr.User().GetUserByID(id)
-		if user == nil {
-			return "", false, authcommon.ErrorNoUser
-		}
-
-		if tokenInfo.Origin != user.Token {
-			return "", false, authcommon.ErrorTokenNotExist
-		}
-
-		tokenInfo.Disable = !user.TokenEnable
-		if user.Owner == "" {
-			return user.ID, true, nil
-		}
-
-		return user.Owner, false, nil
-	}
-	group := svr.cacheMgr.User().GetGroup(id)
-	if group == nil {
-		return "", false, authcommon.ErrorNoUserGroup
+	principal, err := svr.getTokenPrincipal(tokenInfo)
+	if err != nil {
+		return "", false, err
 	}
 
-	if tokenInfo.Origin != group.Token {
+	if tokenInfo.Origin != principal.GetToken() {
 		return "", false, authcommon.ErrorTokenNotExist
 	}
+	tokenInfo.Disable = principal.Disable()
+	if principal.OwnerID() == "" {
+		return principal.SelfID(), true, nil
+	}
 
-	tokenInfo.Disable = !group.TokenEnable
-	return group.Owner, false, nil
+	return principal.OwnerID(), false, nil
+}
+
+func (svr *Server) getTokenPrincipal(tokenInfo *auth.OperatorInfo) (TokenPrincipal, error) {
+	if tokenInfo.IsUserToken {
+		user := svr.cacheMgr.User().GetUserByID(tokenInfo.OperatorID)
+		if user != nil {
+			return user, nil
+		}
+		if err := svr.cacheMgr.User().Update(); err != nil {
+			return nil, err
+		}
+		user = svr.cacheMgr.User().GetUserByID(tokenInfo.OperatorID)
+		if user != nil {
+			return user, nil
+		}
+		return nil, authcommon.ErrorNoUser
+	}
+	group := svr.cacheMgr.User().GetGroup(tokenInfo.OperatorID)
+	if group != nil {
+		return group, nil
+	}
+	if err := svr.cacheMgr.User().Update(); err != nil {
+		return nil, err
+	}
+	group = svr.cacheMgr.User().GetGroup(tokenInfo.OperatorID)
+	if group != nil {
+		return group, nil
+	}
+	return nil, authcommon.ErrorNoUserGroup
 }
 
 const (

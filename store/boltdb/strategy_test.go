@@ -43,7 +43,7 @@ func createTestStrategy(num int) []*authcommon.StrategyDetail {
 				{
 					StrategyID:    fmt.Sprintf("strategy-%d", i),
 					PrincipalID:   fmt.Sprintf("user-%d", i),
-					PrincipalRole: authcommon.PrincipalUser,
+					PrincipalType: authcommon.PrincipalUser,
 				},
 			},
 			Default: true,
@@ -70,9 +70,13 @@ func Test_strategyStore_AddStrategy(t *testing.T) {
 		ss := &strategyStore{handler: handler}
 
 		rules := createTestStrategy(1)
-		err := ss.AddStrategy(rules[0])
 
+		tx, err := handler.StartTx()
+		assert.NoError(t, err)
+		err = ss.AddStrategy(tx, rules[0])
 		assert.Nil(t, err, "add strategy must success")
+		err = tx.Commit()
+		assert.NoError(t, err)
 	})
 }
 
@@ -81,13 +85,18 @@ func Test_strategyStore_UpdateStrategy(t *testing.T) {
 		ss := &strategyStore{handler: handler}
 
 		rules := createTestStrategy(1)
-		err := ss.AddStrategy(rules[0])
+
+		tx, err := handler.StartTx()
+		assert.NoError(t, err)
+		err = ss.AddStrategy(tx, rules[0])
 		assert.Nil(t, err, "add strategy must success")
+		err = tx.Commit()
+		assert.NoError(t, err)
 
 		addPrincipals := []authcommon.Principal{{
 			StrategyID:    rules[0].ID,
 			PrincipalID:   utils.NewUUID(),
-			PrincipalRole: authcommon.PrincipalGroup,
+			PrincipalType: authcommon.PrincipalGroup,
 		}}
 
 		req := &authcommon.ModifyStrategyDetail{
@@ -123,8 +132,12 @@ func Test_strategyStore_DeleteStrategy(t *testing.T) {
 		ss := &strategyStore{handler: handler}
 
 		rules := createTestStrategy(1)
-		err := ss.AddStrategy(rules[0])
+		tx, err := handler.StartTx()
+		assert.NoError(t, err)
+		err = ss.AddStrategy(tx, rules[0])
 		assert.Nil(t, err, "add strategy must success")
+		err = tx.Commit()
+		assert.NoError(t, err)
 
 		err = ss.DeleteStrategy(rules[0].ID)
 		assert.Nil(t, err, "delete strategy must success")
@@ -140,8 +153,12 @@ func Test_strategyStore_RemoveStrategyResources(t *testing.T) {
 		ss := &strategyStore{handler: handler}
 
 		rules := createTestStrategy(1)
-		err := ss.AddStrategy(rules[0])
+		tx, err := handler.StartTx()
+		assert.NoError(t, err)
+		err = ss.AddStrategy(tx, rules[0])
 		assert.Nil(t, err, "add strategy must success")
+		err = tx.Commit()
+		assert.NoError(t, err)
 
 		err = ss.RemoveStrategyResources([]authcommon.StrategyResource{
 			{
@@ -171,8 +188,12 @@ func Test_strategyStore_LooseAddStrategyResources(t *testing.T) {
 		ss := &strategyStore{handler: handler}
 
 		rules := createTestStrategy(1)
-		err := ss.AddStrategy(rules[0])
+		tx, err := handler.StartTx()
+		assert.NoError(t, err)
+		err = ss.AddStrategy(tx, rules[0])
 		assert.Nil(t, err, "add strategy must success")
+		err = tx.Commit()
+		assert.NoError(t, err)
 
 		err = ss.LooseAddStrategyResources([]authcommon.StrategyResource{
 			{
@@ -208,8 +229,12 @@ func Test_strategyStore_GetStrategyDetail(t *testing.T) {
 		ss := &strategyStore{handler: handler}
 
 		rules := createTestStrategy(1)
-		err := ss.AddStrategy(rules[0])
+		tx, err := handler.StartTx()
+		assert.NoError(t, err)
+		err = ss.AddStrategy(tx, rules[0])
 		assert.Nil(t, err, "add strategy must success")
+		err = tx.Commit()
+		assert.NoError(t, err)
 
 		v, err := ss.GetStrategyDetail(rules[0].ID)
 		assert.Nil(t, err, "get strategy-detail must success")
@@ -229,8 +254,12 @@ func Test_strategyStore_GetStrategyResources(t *testing.T) {
 		rules := createTestStrategy(2)
 		for i := range rules {
 			rule := rules[i]
-			err := ss.AddStrategy(rule)
+			tx, err := handler.StartTx()
+			assert.NoError(t, err)
+			err = ss.AddStrategy(tx, rule)
 			assert.Nil(t, err, "add strategy must success")
+			err = tx.Commit()
+			assert.NoError(t, err)
 		}
 
 		res, err := ss.GetStrategyResources("user-1", authcommon.PrincipalUser)
@@ -255,8 +284,12 @@ func Test_strategyStore_GetDefaultStrategyDetailByPrincipal(t *testing.T) {
 			rule := rules[i]
 			rule.Default = i == 1
 			rules[i] = rule
-			err := ss.AddStrategy(rule)
+			tx, err := handler.StartTx()
+			assert.NoError(t, err)
+			err = ss.AddStrategy(tx, rule)
 			assert.Nil(t, err, "add strategy must success")
+			err = tx.Commit()
+			assert.NoError(t, err)
 		}
 
 		res, err := ss.GetDefaultStrategyDetailByPrincipal("user-1", authcommon.PrincipalUser)

@@ -64,10 +64,11 @@ func DefaultUserConfig() *AuthConfig {
 }
 
 type Server struct {
-	authOpt  *AuthConfig
-	storage  store.Store
-	cacheMgr cachetypes.CacheManager
-	helper   auth.UserHelper
+	authOpt   *AuthConfig
+	storage   store.Store
+	policySvr auth.StrategyServer
+	cacheMgr  cachetypes.CacheManager
+	helper    auth.UserHelper
 }
 
 // Name of the user operator plugin
@@ -75,9 +76,10 @@ func (svr *Server) Name() string {
 	return auth.DefaultUserMgnPluginName
 }
 
-func (svr *Server) Initialize(authOpt *auth.Config, storage store.Store, policyMgr auth.StrategyServer, cacheMgr cachetypes.CacheManager) error {
+func (svr *Server) Initialize(authOpt *auth.Config, storage store.Store, policySvr auth.StrategyServer, cacheMgr cachetypes.CacheManager) error {
 	svr.cacheMgr = cacheMgr
 	svr.storage = storage
+	svr.policySvr = policySvr
 	if err := svr.parseOptions(authOpt); err != nil {
 		return err
 	}

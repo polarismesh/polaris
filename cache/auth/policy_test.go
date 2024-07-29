@@ -16,12 +16,3 @@
  */
 
 package auth
-
-import (
-	types "github.com/polarismesh/polaris/cache/api"
-)
-
-var (
-	_ types.UserCache     = (*userCache)(nil)
-	_ types.StrategyCache = (*policyCache)(nil)
-)

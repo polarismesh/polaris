@@ -142,7 +142,7 @@ func createMockStrategy(users []*authcommon.User, groups []*authcommon.UserGroup
 			Principals: []authcommon.Principal{
 				{
 					PrincipalID:   user.ID,
-					PrincipalRole: authcommon.PrincipalUser,
+					PrincipalType: authcommon.PrincipalUser,
 				},
 			},
 			Default: false,
@@ -173,7 +173,7 @@ func createMockStrategy(users []*authcommon.User, groups []*authcommon.UserGroup
 			Principals: []authcommon.Principal{
 				{
 					PrincipalID:   user.ID,
-					PrincipalRole: authcommon.PrincipalUser,
+					PrincipalType: authcommon.PrincipalUser,
 				},
 			},
 			Default: true,
@@ -209,7 +209,7 @@ func createMockStrategy(users []*authcommon.User, groups []*authcommon.UserGroup
 			Principals: []authcommon.Principal{
 				{
 					PrincipalID:   group.ID,
-					PrincipalRole: authcommon.PrincipalGroup,
+					PrincipalType: authcommon.PrincipalGroup,
 				},
 			},
 			Default: false,
@@ -240,7 +240,7 @@ func createMockStrategy(users []*authcommon.User, groups []*authcommon.UserGroup
 			Principals: []authcommon.Principal{
 				{
 					PrincipalID:   group.ID,
-					PrincipalRole: authcommon.PrincipalGroup,
+					PrincipalType: authcommon.PrincipalGroup,
 				},
 			},
 			Default: true,

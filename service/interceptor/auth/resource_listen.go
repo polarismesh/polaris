@@ -29,12 +29,12 @@ import (
 )
 
 // Before this function is called before the resource operation
-func (svr *ServerAuthAbility) Before(ctx context.Context, resourceType model.Resource) {
+func (svr *Server) Before(ctx context.Context, resourceType model.Resource) {
 	// do nothing
 }
 
 // After this function is called after the resource operation
-func (svr *ServerAuthAbility) After(ctx context.Context, resourceType model.Resource, res *service.ResourceEvent) error {
+func (svr *Server) After(ctx context.Context, resourceType model.Resource, res *service.ResourceEvent) error {
 	switch resourceType {
 	case model.RService:
 		return svr.onServiceResource(ctx, res)
@@ -44,15 +44,16 @@ func (svr *ServerAuthAbility) After(ctx context.Context, resourceType model.Reso
 }
 
 // onServiceResource 服务资源的处理，只处理服务，namespace 只由 namespace 相关的进行处理，
-func (svr *ServerAuthAbility) onServiceResource(ctx context.Context, res *service.ResourceEvent) error {
+func (svr *Server) onServiceResource(ctx context.Context, res *service.ResourceEvent) error {
 	authCtx := ctx.Value(utils.ContextAuthContextKey).(*authcommon.AcquireContext)
 	ownerId := utils.ParseOwnerID(ctx)
 
 	authCtx.SetAttachment(authcommon.ResourceAttachmentKey, map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 		apisecurity.ResourceType_Services: {
 			{
-				ID:    res.Service.ID,
-				Owner: ownerId,
+				ID:       res.Service.ID,
+				Owner:    ownerId,
+				Metadata: res.Service.Meta,
 			},
 		},
 	})
@@ -69,5 +70,5 @@ func (svr *ServerAuthAbility) onServiceResource(ctx context.Context, res *servic
 	authCtx.SetAttachment(authcommon.LinkGroupsKey, utils.StringSliceDeDuplication(groups))
 	authCtx.SetAttachment(authcommon.RemoveLinkGroupsKey, utils.StringSliceDeDuplication(removeGroups))
 
-	return svr.policyMgr.AfterResourceOperation(authCtx)
+	return svr.policySvr.AfterResourceOperation(authCtx)
 }

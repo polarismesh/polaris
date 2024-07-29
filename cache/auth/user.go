@@ -348,10 +348,130 @@ func (uc *userCache) GetUserLinkGroupIds(userId string) []string {
 
 // QueryUsers .
 func (uc *userCache) QueryUsers(ctx context.Context, args types.UserSearchArgs) (uint32, []*authcommon.User, error) {
-	return 0, nil, nil
+	searchId, hasId := args.Filters["id"]
+	searchName, hasName := args.Filters["name"]
+	searchOwner, hasOwner := args.Filters["owner"]
+	searchSource, hasSource := args.Filters["source"]
+	searchGroupId, hasGroup := args.Filters["group_id"]
+
+	predicates := types.LoadUserPredicates(ctx)
+
+	if hasGroup {
+		g, ok := uc.groups.Load(searchGroupId)
+		if !ok {
+			return 0, nil, nil
+		}
+		predicates = append(predicates, func(ctx context.Context, u *authcommon.User) bool {
+			_, exist := g.UserIds[u.ID]
+			return exist
+		})
+	}
+
+	result := make([]*authcommon.User, 0, 32)
+	uc.users.Range(func(key string, val *authcommon.User) {
+		// 超级账户不做展示
+		if authcommon.UserRoleType(val.Type) == authcommon.AdminUserRole {
+			return
+		}
+		if hasId && searchId != key {
+			return
+		}
+		if hasOwner && val.Owner != searchOwner {
+			return
+		}
+		if hasName && !utils.IsWildMatch(val.Name, searchName) {
+			return
+		}
+		if hasSource && !utils.IsWildMatch(val.Source, searchSource) {
+			return
+		}
+		for i := range predicates {
+			if !predicates[i](ctx, val) {
+				return
+			}
+		}
+		result = append(result, val)
+	})
+
+	total, ret := uc.listUsersPage(result, args)
+	return total, ret, nil
+}
+
+func (uc *userCache) listUsersPage(users []*authcommon.User, args types.UserSearchArgs) (uint32, []*authcommon.User) {
+	total := uint32(len(users))
+	if args.Limit == 0 {
+		return total, nil
+	}
+	start := args.Limit * (args.Offset - 1)
+	end := args.Limit * args.Offset
+	if start > total {
+		return total, nil
+	}
+	if end > total {
+		end = total
+	}
+	return total, users[start:end]
 }
 
 // QueryUserGroups .
 func (uc *userCache) QueryUserGroups(ctx context.Context, args types.UserGroupSearchArgs) (uint32, []*authcommon.UserGroupDetail, error) {
-	return 0, nil, nil
+	searchId, hasId := args.Filters["id"]
+	searchName, hasName := args.Filters["name"]
+	searchOwner, hasOwner := args.Filters["owner"]
+	searchSource, hasSource := args.Filters["source"]
+
+	predicates := types.LoadUserGroupPredicates(ctx)
+
+	searchUserId, hasUserId := args.Filters["user_id"]
+	if hasUserId {
+		if _, ok := uc.users.Load(searchUserId); !ok {
+			return 0, nil, nil
+		}
+		predicates = append(predicates, func(ctx context.Context, ugd *authcommon.UserGroupDetail) bool {
+			_, exist := ugd.UserIds[searchUserId]
+			return exist
+		})
+	}
+
+	result := make([]*authcommon.UserGroupDetail, 0, 32)
+	uc.groups.Range(func(key string, val *authcommon.UserGroupDetail) {
+		// 超级账户不做展示
+		if hasId && searchId != key {
+			return
+		}
+		if hasOwner && val.Owner != searchOwner {
+			return
+		}
+		if hasName && !utils.IsWildMatch(val.Name, searchName) {
+			return
+		}
+		if hasSource && !utils.IsWildMatch(val.Source, searchSource) {
+			return
+		}
+		for i := range predicates {
+			if !predicates[i](ctx, val) {
+				return
+			}
+		}
+		result = append(result, val)
+	})
+
+	total, ret := uc.listUserGroupsPage(result, args)
+	return total, ret, nil
+}
+
+func (uc *userCache) listUserGroupsPage(groups []*authcommon.UserGroupDetail, args types.UserGroupSearchArgs) (uint32, []*authcommon.UserGroupDetail) {
+	total := uint32(len(groups))
+	if args.Limit == 0 {
+		return total, nil
+	}
+	start := args.Limit * (args.Offset - 1)
+	end := args.Limit * args.Offset
+	if start > total {
+		return total, nil
+	}
+	if end > total {
+		end = total
+	}
+	return total, groups[start:end]
 }

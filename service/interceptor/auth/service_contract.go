@@ -28,7 +28,7 @@ import (
 )
 
 // CreateServiceContracts .
-func (svr *ServerAuthAbility) CreateServiceContracts(ctx context.Context,
+func (svr *Server) CreateServiceContracts(ctx context.Context,
 	req []*apiservice.ServiceContract) *apiservice.BatchWriteResponse {
 	services := make([]*apiservice.Service, 0, len(req))
 	for i := range req {
@@ -38,8 +38,8 @@ func (svr *ServerAuthAbility) CreateServiceContracts(ctx context.Context,
 		})
 	}
 
-	authCtx := svr.collectServiceAuthContext(ctx, services, authcommon.Create, "CreateServiceContracts")
-	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	authCtx := svr.collectServiceAuthContext(ctx, services, authcommon.Create, authcommon.CreateServiceContracts)
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 
@@ -49,10 +49,10 @@ func (svr *ServerAuthAbility) CreateServiceContracts(ctx context.Context,
 }
 
 // GetServiceContracts .
-func (svr *ServerAuthAbility) GetServiceContracts(ctx context.Context,
+func (svr *Server) GetServiceContracts(ctx context.Context,
 	query map[string]string) *apiservice.BatchQueryResponse {
-	authCtx := svr.collectServiceAuthContext(ctx, nil, authcommon.Read, "GetServiceContracts")
-	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	authCtx := svr.collectServiceAuthContext(ctx, nil, authcommon.Read, authcommon.DescribeServiceContracts)
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchQueryResponse(authcommon.ConvertToErrCode(err))
 	}
 
@@ -62,11 +62,11 @@ func (svr *ServerAuthAbility) GetServiceContracts(ctx context.Context,
 }
 
 // GetServiceContractVersions .
-func (svr *ServerAuthAbility) GetServiceContractVersions(ctx context.Context,
+func (svr *Server) GetServiceContractVersions(ctx context.Context,
 	filter map[string]string) *apiservice.BatchQueryResponse {
 
-	authCtx := svr.collectServiceAuthContext(ctx, nil, authcommon.Read, "GetServiceContractVersions")
-	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	authCtx := svr.collectServiceAuthContext(ctx, nil, authcommon.Read, authcommon.DescribeServiceContractVersions)
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchQueryResponse(authcommon.ConvertToErrCode(err))
 	}
 
@@ -76,7 +76,7 @@ func (svr *ServerAuthAbility) GetServiceContractVersions(ctx context.Context,
 }
 
 // DeleteServiceContracts .
-func (svr *ServerAuthAbility) DeleteServiceContracts(ctx context.Context,
+func (svr *Server) DeleteServiceContracts(ctx context.Context,
 	req []*apiservice.ServiceContract) *apiservice.BatchWriteResponse {
 	services := make([]*apiservice.Service, 0, len(req))
 	for i := range req {
@@ -86,8 +86,8 @@ func (svr *ServerAuthAbility) DeleteServiceContracts(ctx context.Context,
 		})
 	}
 
-	authCtx := svr.collectServiceAuthContext(ctx, services, authcommon.Delete, "DeleteServiceContracts")
-	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	authCtx := svr.collectServiceAuthContext(ctx, services, authcommon.Delete, authcommon.DeleteServiceContracts)
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 
@@ -97,15 +97,15 @@ func (svr *ServerAuthAbility) DeleteServiceContracts(ctx context.Context,
 }
 
 // CreateServiceContractInterfaces .
-func (svr *ServerAuthAbility) CreateServiceContractInterfaces(ctx context.Context, contract *apiservice.ServiceContract,
+func (svr *Server) CreateServiceContractInterfaces(ctx context.Context, contract *apiservice.ServiceContract,
 	source apiservice.InterfaceDescriptor_Source) *apiservice.Response {
 	authCtx := svr.collectServiceAuthContext(ctx, []*apiservice.Service{
 		{
 			Namespace: utils.NewStringValue(contract.Namespace),
 			Name:      utils.NewStringValue(contract.Service),
 		},
-	}, authcommon.Modify, "CreateServiceContractInterfaces")
-	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	}, authcommon.Modify, authcommon.CreateServiceContractInterfaces)
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewResponse(authcommon.ConvertToErrCode(err))
 	}
 
@@ -115,15 +115,15 @@ func (svr *ServerAuthAbility) CreateServiceContractInterfaces(ctx context.Contex
 }
 
 // AppendServiceContractInterfaces .
-func (svr *ServerAuthAbility) AppendServiceContractInterfaces(ctx context.Context,
+func (svr *Server) AppendServiceContractInterfaces(ctx context.Context,
 	contract *apiservice.ServiceContract, source apiservice.InterfaceDescriptor_Source) *apiservice.Response {
 	authCtx := svr.collectServiceAuthContext(ctx, []*apiservice.Service{
 		{
 			Namespace: utils.NewStringValue(contract.Namespace),
 			Name:      utils.NewStringValue(contract.Service),
 		},
-	}, authcommon.Modify, "AppendServiceContractInterfaces")
-	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	}, authcommon.Modify, authcommon.AppendServiceContractInterfaces)
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewResponse(authcommon.ConvertToErrCode(err))
 	}
 
@@ -133,15 +133,15 @@ func (svr *ServerAuthAbility) AppendServiceContractInterfaces(ctx context.Contex
 }
 
 // DeleteServiceContractInterfaces .
-func (svr *ServerAuthAbility) DeleteServiceContractInterfaces(ctx context.Context,
+func (svr *Server) DeleteServiceContractInterfaces(ctx context.Context,
 	contract *apiservice.ServiceContract) *apiservice.Response {
 	authCtx := svr.collectServiceAuthContext(ctx, []*apiservice.Service{
 		{
 			Namespace: utils.NewStringValue(contract.Namespace),
 			Name:      utils.NewStringValue(contract.Service),
 		},
-	}, authcommon.Modify, "DeleteServiceContractInterfaces")
-	if _, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	}, authcommon.Modify, authcommon.DeleteServiceContractInterfaces)
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewResponse(authcommon.ConvertToErrCode(err))
 	}
 

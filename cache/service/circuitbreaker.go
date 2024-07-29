@@ -396,3 +396,9 @@ func (c *circuitBreakerCache) GetCircuitBreakerCount() int {
 func (c *circuitBreakerCache) Query(context.Context, *types.CircuitBreakerRuleArgs) (uint32, []*model.CircuitBreakerRule, error) {
 	panic("unimplemented")
 }
+
+// GetRule implements api.FaultDetectCache.
+func (f *circuitBreakerCache) GetRule(id string) *model.CircuitBreakerRule {
+	rule, _ := f.rules.Load(id)
+	return rule
+}

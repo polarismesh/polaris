@@ -30,11 +30,11 @@ import (
 )
 
 // CreateRoutingConfigs creates routing configs
-func (svr *ServerAuthAbility) CreateRoutingConfigs(
+func (svr *Server) CreateRoutingConfigs(
 	ctx context.Context, reqs []*apitraffic.Routing) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, authcommon.Create, "CreateRoutingConfigs")
 
-	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
@@ -46,11 +46,11 @@ func (svr *ServerAuthAbility) CreateRoutingConfigs(
 }
 
 // DeleteRoutingConfigs deletes routing configs
-func (svr *ServerAuthAbility) DeleteRoutingConfigs(
+func (svr *Server) DeleteRoutingConfigs(
 	ctx context.Context, reqs []*apitraffic.Routing) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, authcommon.Delete, "DeleteRoutingConfigs")
 
-	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
@@ -62,11 +62,11 @@ func (svr *ServerAuthAbility) DeleteRoutingConfigs(
 }
 
 // UpdateRoutingConfigs updates routing configs
-func (svr *ServerAuthAbility) UpdateRoutingConfigs(
+func (svr *Server) UpdateRoutingConfigs(
 	ctx context.Context, reqs []*apitraffic.Routing) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, authcommon.Modify, "UpdateRoutingConfigs")
 
-	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
@@ -78,11 +78,11 @@ func (svr *ServerAuthAbility) UpdateRoutingConfigs(
 }
 
 // GetRoutingConfigs gets routing configs
-func (svr *ServerAuthAbility) GetRoutingConfigs(
+func (svr *Server) GetRoutingConfigs(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, nil, authcommon.Read, "GetRoutingConfigs")
 
-	_, err := svr.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx)
+	_, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewBatchQueryResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}

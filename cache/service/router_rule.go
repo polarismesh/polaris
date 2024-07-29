@@ -226,6 +226,12 @@ func (rc *RouteRuleCache) GetRoutingConfigCount() int {
 	return rc.container.size()
 }
 
+// GetRule implements api.RoutingConfigCache.
+func (rc *RouteRuleCache) GetRule(id string) *model.ExtendRouterConfig {
+	rule, _ := rc.container.rules.Load(id)
+	return rule
+}
+
 // setRoutingConfigV1 Update the data of the store to the cache and convert to v2 model
 func (rc *RouteRuleCache) setRoutingConfigV1(lastMtimes map[string]time.Time, cs []*model.RoutingConfig) {
 	if len(cs) == 0 {

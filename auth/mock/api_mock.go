@@ -40,20 +40,6 @@ func (m *MockAuthChecker) EXPECT() *MockAuthCheckerMockRecorder {
 	return m.recorder
 }
 
-// AllowResourceOperate mocks base method.
-func (m *MockAuthChecker) AllowResourceOperate(ctx *auth0.AcquireContext, opInfo *auth0.ResourceOpInfo) bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AllowResourceOperate", ctx, opInfo)
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// AllowResourceOperate indicates an expected call of AllowResourceOperate.
-func (mr *MockAuthCheckerMockRecorder) AllowResourceOperate(ctx, opInfo interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllowResourceOperate", reflect.TypeOf((*MockAuthChecker)(nil).AllowResourceOperate), ctx, opInfo)
-}
-
 // CheckClientPermission mocks base method.
 func (m *MockAuthChecker) CheckClientPermission(preCtx *auth0.AcquireContext) (bool, error) {
 	m.ctrl.T.Helper()
@@ -110,6 +96,20 @@ func (m *MockAuthChecker) IsOpenConsoleAuth() bool {
 func (mr *MockAuthCheckerMockRecorder) IsOpenConsoleAuth() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsOpenConsoleAuth", reflect.TypeOf((*MockAuthChecker)(nil).IsOpenConsoleAuth))
+}
+
+// ResourcePredicate mocks base method.
+func (m *MockAuthChecker) ResourcePredicate(ctx *auth0.AcquireContext, opInfo *auth0.ResourceEntry) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResourcePredicate", ctx, opInfo)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// ResourcePredicate indicates an expected call of ResourcePredicate.
+func (mr *MockAuthCheckerMockRecorder) ResourcePredicate(ctx, opInfo interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResourcePredicate", reflect.TypeOf((*MockAuthChecker)(nil).ResourcePredicate), ctx, opInfo)
 }
 
 // MockStrategyServer is a mock of StrategyServer interface.
@@ -368,6 +368,34 @@ func (mr *MockUserServerMockRecorder) DeleteUsers(ctx, users interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUsers", reflect.TypeOf((*MockUserServer)(nil).DeleteUsers), ctx, users)
 }
 
+// EnableGroupToken mocks base method.
+func (m *MockUserServer) EnableGroupToken(ctx context.Context, group *security.UserGroup) *service_manage.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnableGroupToken", ctx, group)
+	ret0, _ := ret[0].(*service_manage.Response)
+	return ret0
+}
+
+// EnableGroupToken indicates an expected call of EnableGroupToken.
+func (mr *MockUserServerMockRecorder) EnableGroupToken(ctx, group interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableGroupToken", reflect.TypeOf((*MockUserServer)(nil).EnableGroupToken), ctx, group)
+}
+
+// EnableUserToken mocks base method.
+func (m *MockUserServer) EnableUserToken(ctx context.Context, user *security.User) *service_manage.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnableUserToken", ctx, user)
+	ret0, _ := ret[0].(*service_manage.Response)
+	return ret0
+}
+
+// EnableUserToken indicates an expected call of EnableUserToken.
+func (mr *MockUserServerMockRecorder) EnableUserToken(ctx, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableUserToken", reflect.TypeOf((*MockUserServer)(nil).EnableUserToken), ctx, user)
+}
+
 // GetGroup mocks base method.
 func (m *MockUserServer) GetGroup(ctx context.Context, req *security.UserGroup) *service_manage.Response {
 	m.ctrl.T.Helper()
@@ -522,20 +550,6 @@ func (mr *MockUserServerMockRecorder) ResetUserToken(ctx, user interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetUserToken", reflect.TypeOf((*MockUserServer)(nil).ResetUserToken), ctx, user)
 }
 
-// UpdateGroupToken mocks base method.
-func (m *MockUserServer) UpdateGroupToken(ctx context.Context, group *security.UserGroup) *service_manage.Response {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateGroupToken", ctx, group)
-	ret0, _ := ret[0].(*service_manage.Response)
-	return ret0
-}
-
-// UpdateGroupToken indicates an expected call of UpdateGroupToken.
-func (mr *MockUserServerMockRecorder) UpdateGroupToken(ctx, group interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateGroupToken", reflect.TypeOf((*MockUserServer)(nil).UpdateGroupToken), ctx, group)
-}
-
 // UpdateGroups mocks base method.
 func (m *MockUserServer) UpdateGroups(ctx context.Context, groups []*security.ModifyUserGroup) *service_manage.BatchWriteResponse {
 	m.ctrl.T.Helper()
@@ -576,20 +590,6 @@ func (m *MockUserServer) UpdateUserPassword(ctx context.Context, req *security.M
 func (mr *MockUserServerMockRecorder) UpdateUserPassword(ctx, req interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserPassword", reflect.TypeOf((*MockUserServer)(nil).UpdateUserPassword), ctx, req)
-}
-
-// UpdateUserToken mocks base method.
-func (m *MockUserServer) UpdateUserToken(ctx context.Context, user *security.User) *service_manage.Response {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateUserToken", ctx, user)
-	ret0, _ := ret[0].(*service_manage.Response)
-	return ret0
-}
-
-// UpdateUserToken indicates an expected call of UpdateUserToken.
-func (mr *MockUserServerMockRecorder) UpdateUserToken(ctx, user interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserToken", reflect.TypeOf((*MockUserServer)(nil).UpdateUserToken), ctx, user)
 }
 
 // MockUserOperator is a mock of UserOperator interface.
@@ -641,6 +641,20 @@ func (m *MockUserOperator) DeleteUsers(ctx context.Context, users []*security.Us
 func (mr *MockUserOperatorMockRecorder) DeleteUsers(ctx, users interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUsers", reflect.TypeOf((*MockUserOperator)(nil).DeleteUsers), ctx, users)
+}
+
+// EnableUserToken mocks base method.
+func (m *MockUserOperator) EnableUserToken(ctx context.Context, user *security.User) *service_manage.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnableUserToken", ctx, user)
+	ret0, _ := ret[0].(*service_manage.Response)
+	return ret0
+}
+
+// EnableUserToken indicates an expected call of EnableUserToken.
+func (mr *MockUserOperatorMockRecorder) EnableUserToken(ctx, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableUserToken", reflect.TypeOf((*MockUserOperator)(nil).EnableUserToken), ctx, user)
 }
 
 // GetUserToken mocks base method.
@@ -713,20 +727,6 @@ func (mr *MockUserOperatorMockRecorder) UpdateUserPassword(ctx, req interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserPassword", reflect.TypeOf((*MockUserOperator)(nil).UpdateUserPassword), ctx, req)
 }
 
-// UpdateUserToken mocks base method.
-func (m *MockUserOperator) UpdateUserToken(ctx context.Context, user *security.User) *service_manage.Response {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateUserToken", ctx, user)
-	ret0, _ := ret[0].(*service_manage.Response)
-	return ret0
-}
-
-// UpdateUserToken indicates an expected call of UpdateUserToken.
-func (mr *MockUserOperatorMockRecorder) UpdateUserToken(ctx, user interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserToken", reflect.TypeOf((*MockUserOperator)(nil).UpdateUserToken), ctx, user)
-}
-
 // MockGroupOperator is a mock of GroupOperator interface.
 type MockGroupOperator struct {
 	ctrl     *gomock.Controller
@@ -776,6 +776,20 @@ func (m *MockGroupOperator) DeleteGroups(ctx context.Context, group []*security.
 func (mr *MockGroupOperatorMockRecorder) DeleteGroups(ctx, group interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteGroups", reflect.TypeOf((*MockGroupOperator)(nil).DeleteGroups), ctx, group)
+}
+
+// EnableGroupToken mocks base method.
+func (m *MockGroupOperator) EnableGroupToken(ctx context.Context, group *security.UserGroup) *service_manage.Response {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnableGroupToken", ctx, group)
+	ret0, _ := ret[0].(*service_manage.Response)
+	return ret0
+}
+
+// EnableGroupToken indicates an expected call of EnableGroupToken.
+func (mr *MockGroupOperatorMockRecorder) EnableGroupToken(ctx, group interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableGroupToken", reflect.TypeOf((*MockGroupOperator)(nil).EnableGroupToken), ctx, group)
 }
 
 // GetGroup mocks base method.
@@ -832,20 +846,6 @@ func (m *MockGroupOperator) ResetGroupToken(ctx context.Context, group *security
 func (mr *MockGroupOperatorMockRecorder) ResetGroupToken(ctx, group interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetGroupToken", reflect.TypeOf((*MockGroupOperator)(nil).ResetGroupToken), ctx, group)
-}
-
-// UpdateGroupToken mocks base method.
-func (m *MockGroupOperator) UpdateGroupToken(ctx context.Context, group *security.UserGroup) *service_manage.Response {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateGroupToken", ctx, group)
-	ret0, _ := ret[0].(*service_manage.Response)
-	return ret0
-}
-
-// UpdateGroupToken indicates an expected call of UpdateGroupToken.
-func (mr *MockGroupOperatorMockRecorder) UpdateGroupToken(ctx, group interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateGroupToken", reflect.TypeOf((*MockGroupOperator)(nil).UpdateGroupToken), ctx, group)
 }
 
 // UpdateGroups mocks base method.

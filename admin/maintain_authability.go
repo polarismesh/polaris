@@ -41,9 +41,8 @@ func (s *serverAuthAbility) InitMainUser(ctx context.Context, user apisecurity.U
 }
 
 func (svr *serverAuthAbility) GetServerConnections(ctx context.Context, req *admin.ConnReq) (*admin.ConnCountResp, error) {
-	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Read, "GetServerConnections")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
-	if err != nil {
+	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Read, authcommon.DescribeServerConnections)
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return nil, err
 	}
 
@@ -54,9 +53,8 @@ func (svr *serverAuthAbility) GetServerConnections(ctx context.Context, req *adm
 }
 
 func (svr *serverAuthAbility) GetServerConnStats(ctx context.Context, req *admin.ConnReq) (*admin.ConnStatsResp, error) {
-	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Read, "GetServerConnStats")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
-	if err != nil {
+	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Read, authcommon.DescribeServerConnStats)
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return nil, err
 	}
 
@@ -67,9 +65,8 @@ func (svr *serverAuthAbility) GetServerConnStats(ctx context.Context, req *admin
 }
 
 func (svr *serverAuthAbility) CloseConnections(ctx context.Context, reqs []admin.ConnReq) error {
-	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Delete, "CloseConnections")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
-	if err != nil {
+	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Delete, authcommon.CloseConnections)
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return err
 	}
 
@@ -80,9 +77,8 @@ func (svr *serverAuthAbility) CloseConnections(ctx context.Context, reqs []admin
 }
 
 func (svr *serverAuthAbility) FreeOSMemory(ctx context.Context) error {
-	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Modify, "FreeOSMemory")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
-	if err != nil {
+	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Modify, authcommon.FreeOSMemory)
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return err
 	}
 
@@ -93,9 +89,8 @@ func (svr *serverAuthAbility) FreeOSMemory(ctx context.Context) error {
 }
 
 func (svr *serverAuthAbility) CleanInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
-	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Delete, "CleanInstance")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
-	if err != nil {
+	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Delete, authcommon.CleanInstance)
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 	}
 
@@ -106,9 +101,8 @@ func (svr *serverAuthAbility) CleanInstance(ctx context.Context, req *apiservice
 }
 
 func (svr *serverAuthAbility) BatchCleanInstances(ctx context.Context, batchSize uint32) (uint32, error) {
-	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Delete, "BatchCleanInstances")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
-	if err != nil {
+	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Delete, authcommon.BatchCleanInstances)
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return 0, err
 	}
 
@@ -116,9 +110,8 @@ func (svr *serverAuthAbility) BatchCleanInstances(ctx context.Context, batchSize
 }
 
 func (svr *serverAuthAbility) GetLastHeartbeat(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
-	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Read, "GetLastHeartbeat")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
-	if err != nil {
+	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Read, authcommon.DescribeInstanceLastHeartbeat)
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewResponseWithMsg(convertToErrCode(err), err.Error())
 	}
 
@@ -129,9 +122,8 @@ func (svr *serverAuthAbility) GetLastHeartbeat(ctx context.Context, req *apiserv
 }
 
 func (svr *serverAuthAbility) GetLogOutputLevel(ctx context.Context) ([]admin.ScopeLevel, error) {
-	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Read, "GetLogOutputLevel")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
-	if err != nil {
+	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Read, authcommon.DescribeGetLogOutputLevel)
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return nil, err
 	}
 
@@ -142,9 +134,8 @@ func (svr *serverAuthAbility) GetLogOutputLevel(ctx context.Context) ([]admin.Sc
 }
 
 func (svr *serverAuthAbility) SetLogOutputLevel(ctx context.Context, scope string, level string) error {
-	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Modify, "SetLogOutputLevel")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
-	if err != nil {
+	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Modify, authcommon.UpdateLogOutputLevel)
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return err
 	}
 
@@ -152,9 +143,8 @@ func (svr *serverAuthAbility) SetLogOutputLevel(ctx context.Context, scope strin
 }
 
 func (svr *serverAuthAbility) ListLeaderElections(ctx context.Context) ([]*admin.LeaderElection, error) {
-	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Read, "ListLeaderElections")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
-	if err != nil {
+	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Read, authcommon.DescribeLeaderElections)
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return nil, err
 	}
 
@@ -165,9 +155,8 @@ func (svr *serverAuthAbility) ListLeaderElections(ctx context.Context) ([]*admin
 }
 
 func (svr *serverAuthAbility) ReleaseLeaderElection(ctx context.Context, electKey string) error {
-	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Modify, "ReleaseLeaderElection")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
-	if err != nil {
+	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Modify, authcommon.ReleaseLeaderElection)
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return err
 	}
 
@@ -178,9 +167,8 @@ func (svr *serverAuthAbility) ReleaseLeaderElection(ctx context.Context, electKe
 }
 
 func (svr *serverAuthAbility) GetCMDBInfo(ctx context.Context) ([]model.LocationView, error) {
-	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Read, "GetCMDBInfo")
-	_, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx)
-	if err != nil {
+	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Read, authcommon.DescribeCMDBInfo)
+	if _, err := svr.strategyMgn.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return nil, err
 	}
 

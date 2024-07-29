@@ -73,33 +73,19 @@ type groupStore struct {
 }
 
 // AddGroup add a group
-func (gs *groupStore) AddGroup(group *authcommon.UserGroupDetail) error {
+func (gs *groupStore) AddGroup(tx store.Tx, group *authcommon.UserGroupDetail) error {
 	if group.ID == "" || group.Name == "" || group.Token == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"add usergroup missing some params, groupId is %s, name is %s", group.ID, group.Name))
 	}
 
-	proxy, err := gs.handler.StartTx()
-	if err != nil {
-		return err
-	}
-	tx := proxy.GetDelegateTx().(*bolt.Tx)
+	dbTx := tx.GetDelegateTx().(*bolt.Tx)
 
-	defer func() {
-		_ = tx.Rollback()
-	}()
-
-	if err := gs.cleanInValidGroup(tx, group.Name, group.Owner); err != nil {
+	if err := gs.cleanInValidGroup(dbTx, group.Name, group.Owner); err != nil {
 		log.Error("[Store][Group] clean invalid usergroup", zap.Error(err),
 			zap.String("name", group.Name), zap.String("owner", group.Owner))
 		return err
 	}
-
-	return gs.addGroup(tx, group)
-}
-
-// addGroup to boltdb
-func (gs *groupStore) addGroup(tx *bolt.Tx, group *authcommon.UserGroupDetail) error {
 
 	group.Valid = true
 	group.CreateTime = time.Now()
@@ -107,27 +93,12 @@ func (gs *groupStore) addGroup(tx *bolt.Tx, group *authcommon.UserGroupDetail) e
 
 	data := convertForGroupStore(group)
 
-	if err := saveValue(tx, tblGroup, data.ID, data); err != nil {
+	if err := saveValue(dbTx, tblGroup, data.ID, data); err != nil {
 		log.Error("[Store][Group] save usergroup", zap.Error(err),
 			zap.String("name", group.Name), zap.String("owner", group.Owner))
 
 		return err
 	}
-
-	if err := createDefaultStrategy(tx, authcommon.PrincipalGroup, data.ID, data.Name,
-		data.Owner); err != nil {
-		log.Error("[Store][Group] add usergroup default strategy", zap.Error(err),
-			zap.String("name", group.Name), zap.String("owner", group.Owner))
-
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
-		log.Error("[Store][Group] add usergroup tx commit", zap.Error(err),
-			zap.String("name", group.Name), zap.String("owner", group.Owner))
-		return err
-	}
-
 	return nil
 }
 
@@ -204,47 +175,21 @@ func updateGroupRelation(group *authcommon.UserGroupDetail, modify *authcommon.M
 }
 
 // DeleteGroup 删除用户组
-func (gs *groupStore) DeleteGroup(group *authcommon.UserGroupDetail) error {
+func (gs *groupStore) DeleteGroup(tx store.Tx, group *authcommon.UserGroupDetail) error {
 	if group.ID == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"delete usergroup missing some params, groupId is %s", group.ID))
 	}
-
-	return gs.deleteGroup(group)
-}
-
-func (gs *groupStore) deleteGroup(group *authcommon.UserGroupDetail) error {
-	proxy, err := gs.handler.StartTx()
-	if err != nil {
-		return err
-	}
-	tx := proxy.GetDelegateTx().(*bolt.Tx)
-
-	defer func() {
-		_ = tx.Rollback()
-	}()
+	dbTx := tx.GetDelegateTx().(*bolt.Tx)
 
 	properties := make(map[string]interface{})
 	properties[GroupFieldValid] = false
 	properties[GroupFieldModifyTime] = time.Now()
 
-	if err := updateValue(tx, tblGroup, group.ID, properties); err != nil {
+	if err := updateValue(dbTx, tblGroup, group.ID, properties); err != nil {
 		log.Error("[Store][Group] remove usergroup", zap.Error(err), zap.String("id", group.ID))
-		return err
+		return store.Error(err)
 	}
-
-	if err := cleanLinkStrategy(tx, authcommon.PrincipalGroup, group.ID, group.Owner); err != nil {
-		log.Error("[Store][Group] clean usergroup default strategy",
-			zap.Error(err), zap.String("id", group.ID))
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
-		log.Error("[Store][Group] delete usergroupr tx commit",
-			zap.Error(err), zap.String("id", group.ID))
-		return err
-	}
-
 	return nil
 }
 

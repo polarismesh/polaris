@@ -76,6 +76,7 @@ type (
 	userPredicateCtxKey               struct{}
 	userGroupPredicateCtxKey          struct{}
 	authPolicyPredicateCtxKey         struct{}
+	authRolePredicateCtxKey           struct{}
 )
 
 func AppendNamespacePredicate(ctx context.Context, p NamespacePredicate) context.Context {
@@ -316,6 +317,28 @@ func LoadAuthPolicyPredicates(ctx context.Context) []AuthPolicyPredicate {
 	val := ctx.Value(userGroupPredicateCtxKey{})
 	if val != nil {
 		predicates, _ = val.([]AuthPolicyPredicate)
+	}
+	return predicates
+}
+
+func AppendAuthRolePredicate(ctx context.Context, p AuthRolePredicate) context.Context {
+	var predicates []AuthRolePredicate
+
+	val := ctx.Value(authRolePredicateCtxKey{})
+	if val != nil {
+		predicates, _ = val.([]AuthRolePredicate)
+	}
+
+	predicates = append(predicates, p)
+	return context.WithValue(ctx, authRolePredicateCtxKey{}, predicates)
+}
+
+func LoadAuthRolePredicates(ctx context.Context) []AuthRolePredicate {
+	var predicates []AuthRolePredicate
+
+	val := ctx.Value(authRolePredicateCtxKey{})
+	if val != nil {
+		predicates, _ = val.([]AuthRolePredicate)
 	}
 	return predicates
 }

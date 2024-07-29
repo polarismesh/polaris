@@ -32,7 +32,7 @@ import (
 func (s *ServerAuthability) CreateConfigFileGroup(ctx context.Context,
 	configFileGroup *apiconfig.ConfigFileGroup) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*apiconfig.ConfigFileGroup{configFileGroup},
-		auth.Create, "CreateConfigFileGroup")
+		auth.Create, auth.CreateConfigFileGroup)
 
 	// 验证 token 信息
 	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
@@ -49,7 +49,7 @@ func (s *ServerAuthability) CreateConfigFileGroup(ctx context.Context,
 func (s *ServerAuthability) QueryConfigFileGroups(ctx context.Context,
 	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
 
-	authCtx := s.collectConfigGroupAuthContext(ctx, nil, auth.Read, "QueryConfigFileGroups")
+	authCtx := s.collectConfigGroupAuthContext(ctx, nil, auth.Read, auth.DescribeConfigFileGroups)
 
 	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigBatchQueryResponse(auth.ConvertToErrCode(err))
@@ -77,7 +77,7 @@ func (s *ServerAuthability) QueryConfigFileGroups(ctx context.Context,
 func (s *ServerAuthability) DeleteConfigFileGroup(
 	ctx context.Context, namespace, name string) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*apiconfig.ConfigFileGroup{{Name: utils.NewStringValue(name),
-		Namespace: utils.NewStringValue(namespace)}}, auth.Delete, "DeleteConfigFileGroup")
+		Namespace: utils.NewStringValue(namespace)}}, auth.Delete, auth.DeleteConfigFileGroup)
 
 	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
@@ -93,7 +93,7 @@ func (s *ServerAuthability) DeleteConfigFileGroup(
 func (s *ServerAuthability) UpdateConfigFileGroup(ctx context.Context,
 	configFileGroup *apiconfig.ConfigFileGroup) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*apiconfig.ConfigFileGroup{configFileGroup},
-		auth.Modify, "UpdateConfigFileGroup")
+		auth.Modify, auth.UpdateConfigFileGroup)
 
 	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigResponseWithInfo(auth.ConvertToErrCode(err), err.Error())

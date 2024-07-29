@@ -40,7 +40,7 @@ type rateLimitCache struct {
 	waitFixRules map[string]struct{}
 	svcCache     types.ServiceCache
 	storage      store.Store
-	rules        *rateLimitRuleBucket
+	rules        *RateLimitRuleContainer
 	singleFlight singleflight.Group
 }
 
@@ -194,8 +194,8 @@ func (rlc *rateLimitCache) fixRulesServiceInfo() {
 		if svc != nil {
 			rule.Proto.Namespace = utils.NewStringValue(svc.Namespace)
 			rule.Proto.Name = utils.NewStringValue(svc.Name)
+			delete(rlc.waitFixRules, rule.ID)
 		}
-		delete(rlc.waitFixRules, rule.ID)
 	}
 }
 
@@ -223,4 +223,9 @@ func (rlc *rateLimitCache) fixRuleServiceInfo(rateLimit *model.RateLimit) {
 		rateLimit.Proto.Name = utils.NewStringValue(svc.Name)
 	}
 	delete(rlc.waitFixRules, rateLimit.ID)
+}
+
+// GetRule implements api.RateLimitCache.
+func (rlc *rateLimitCache) GetRule(id string) *model.RateLimit {
+	return rlc.rules.getRuleByID(id)
 }

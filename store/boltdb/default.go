@@ -82,6 +82,8 @@ type boltStore struct {
 	*configFileReleaseHistoryStore
 	*configFileTemplateStore
 
+	*grayStore
+
 	// adminStore store
 	*adminStore
 	// 工具
@@ -90,7 +92,7 @@ type boltStore struct {
 	*userStore
 	*groupStore
 	*strategyStore
-	*grayStore
+	*roleStore
 
 	handler BoltHandler
 	start   bool
@@ -168,7 +170,7 @@ var (
 			{
 				StrategyID:    "super_user_default_strategy",
 				PrincipalID:   "",
-				PrincipalRole: authcommon.PrincipalUser,
+				PrincipalType: authcommon.PrincipalUser,
 			},
 		},
 		Default: true,
@@ -205,7 +207,7 @@ var (
 			{
 				StrategyID:    "fbca9bfa04ae4ead86e1ecf5811e32a9",
 				PrincipalID:   "65e4789a6d5b49669adf1e9e8387549c",
-				PrincipalRole: authcommon.PrincipalUser,
+				PrincipalType: authcommon.PrincipalUser,
 			},
 		},
 		Default: true,

@@ -91,7 +91,7 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)
 	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(groups, nil)
-	storage.EXPECT().GetStrategyDetailsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(allStrategies, nil)
+	storage.EXPECT().GetMoreStrategies(gomock.Any(), gomock.Any()).AnyTimes().Return(allStrategies, nil)
 	storage.EXPECT().GetMoreNamespaces(gomock.Any()).AnyTimes().Return(namespaces, nil)
 	storage.EXPECT().GetMoreServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(serviceMap, nil)
 	storage.EXPECT().GetStrategyResources(gomock.Eq(users[1].ID), gomock.Any()).AnyTimes().Return(strategies[1].Resources, nil)
@@ -218,7 +218,7 @@ func Test_CreateStrategy(t *testing.T) {
 	_ = strategyTest.cacheMgn.TestUpdate()
 
 	t.Run("正常创建鉴权策略", func(t *testing.T) {
-		strategyTest.storage.EXPECT().AddStrategy(gomock.Any()).Return(nil)
+		strategyTest.storage.EXPECT().AddStrategy(gomock.Any(), gomock.Any()).Return(nil)
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
 		strategyId := utils.NewUUID()

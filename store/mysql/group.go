@@ -57,29 +57,15 @@ type groupStore struct {
 }
 
 // AddGroup 创建一个用户组
-func (u *groupStore) AddGroup(group *authcommon.UserGroupDetail) error {
+func (u *groupStore) AddGroup(tx store.Tx, group *authcommon.UserGroupDetail) error {
 	if group.ID == "" || group.Name == "" || group.Token == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"add usergroup missing some params, groupId is %s, name is %s", group.ID, group.Name))
 	}
-
-	err := RetryTransaction("addGroup", func() error {
-		return u.addGroup(group)
-	})
-
-	return store.Error(err)
-}
-
-func (u *groupStore) addGroup(group *authcommon.UserGroupDetail) error {
-	tx, err := u.master.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer func() { _ = tx.Rollback() }()
+	dbTx := tx.GetDelegateTx().(*BaseTx)
 
 	// 先清理无效数据
-	if err := cleanInValidGroup(tx, group.Name, group.Owner); err != nil {
+	if err := cleanInValidGroup(dbTx, group.Name, group.Owner); err != nil {
 		return store.Error(err)
 	}
 
@@ -93,7 +79,7 @@ func (u *groupStore) addGroup(group *authcommon.UserGroupDetail) error {
 		tokenEnable = 0
 	}
 
-	if _, err = tx.Exec(addSql, []interface{}{
+	if _, err := dbTx.Exec(addSql, []interface{}{
 		group.ID,
 		group.Name,
 		group.Owner,
@@ -106,18 +92,8 @@ func (u *groupStore) addGroup(group *authcommon.UserGroupDetail) error {
 		return err
 	}
 
-	if err := u.addGroupRelation(tx, group.ID, group.ToUserIdSlice()); err != nil {
+	if err := u.addGroupRelation(dbTx, group.ID, group.ToUserIdSlice()); err != nil {
 		log.Errorf("[Store][Group] add usergroup relation err: %s", err.Error())
-		return err
-	}
-
-	if err := createDefaultStrategy(tx, authcommon.PrincipalGroup, group.ID, group.Name, group.Owner); err != nil {
-		log.Errorf("[Store][Group] add usergroup default strategy err: %s", err.Error())
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
-		log.Errorf("[Store][Group] add usergroup tx commit err: %s", err.Error())
 		return err
 	}
 	return nil
@@ -186,48 +162,25 @@ func (u *groupStore) updateGroup(group *authcommon.ModifyUserGroup) error {
 }
 
 // DeleteGroup 删除用户组
-func (u *groupStore) DeleteGroup(group *authcommon.UserGroupDetail) error {
+func (u *groupStore) DeleteGroup(tx store.Tx, group *authcommon.UserGroupDetail) error {
 	if group.ID == "" || group.Name == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"delete usergroup missing some params, groupId is %s", group.ID))
 	}
 
-	err := RetryTransaction("deleteUserGroup", func() error {
-		return u.deleteUserGroup(group)
-	})
+	dbTx := tx.GetDelegateTx().(*BaseTx)
 
-	return store.Error(err)
-}
-
-func (u *groupStore) deleteUserGroup(group *authcommon.UserGroupDetail) error {
-	tx, err := u.master.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer func() { _ = tx.Rollback() }()
-
-	if _, err = tx.Exec("DELETE FROM user_group_relation WHERE group_id = ?", []interface{}{
+	if _, err := dbTx.Exec("DELETE FROM user_group_relation WHERE group_id = ?", []interface{}{
 		group.ID,
 	}...); err != nil {
 		log.Errorf("[Store][Group] clean usergroup relation err: %s", err.Error())
 		return err
 	}
 
-	if _, err = tx.Exec("UPDATE user_group SET flag = 1, mtime = sysdate() WHERE id = ?", []interface{}{
+	if _, err := dbTx.Exec("UPDATE user_group SET flag = 1, mtime = sysdate() WHERE id = ?", []interface{}{
 		group.ID,
 	}...); err != nil {
 		log.Errorf("[Store][Group] remove usergroup err: %s", err.Error())
-		return err
-	}
-
-	if err := cleanLinkStrategy(tx, authcommon.PrincipalGroup, group.ID, group.Owner); err != nil {
-		log.Errorf("[Store][Group] clean usergroup default strategy err: %s", err.Error())
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
-		log.Errorf("[Store][Group] delete usergroupr tx commit err: %s", err.Error())
 		return err
 	}
 	return nil

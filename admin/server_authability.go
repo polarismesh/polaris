@@ -46,7 +46,7 @@ func newServerAuthAbility(targetServer *Server,
 }
 
 func (svr *serverAuthAbility) collectMaintainAuthContext(ctx context.Context, resourceOp authcommon.ResourceOperation,
-	methodName string) *authcommon.AcquireContext {
+	methodName authcommon.ServerFunctionName) *authcommon.AcquireContext {
 	return authcommon.NewAcquireContext(
 		authcommon.WithRequestContext(ctx),
 		authcommon.WithOperation(resourceOp),

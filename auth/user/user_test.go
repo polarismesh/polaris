@@ -75,7 +75,7 @@ func newUserTest(t *testing.T) *UserTest {
 	storage := storemock.NewMockStore(ctrl)
 	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 	storage.EXPECT().GetServicesCount().AnyTimes().Return(uint32(1), nil)
-	storage.EXPECT().AddUser(gomock.Any()).AnyTimes().Return(nil)
+	storage.EXPECT().AddUser(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().GetUserByName(gomock.Eq("create-user-1"), gomock.Any()).AnyTimes().Return(nil, nil)
 	storage.EXPECT().GetUserByName(gomock.Eq("create-user-2"), gomock.Any()).AnyTimes().Return(&authcommon.User{
 		Name: "create-user-2",
@@ -86,7 +86,7 @@ func newUserTest(t *testing.T) *UserTest {
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(allUsers, nil)
 	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(groups, nil)
 	storage.EXPECT().UpdateUser(gomock.Any()).AnyTimes().Return(nil)
-	storage.EXPECT().DeleteUser(gomock.Any()).AnyTimes().Return(nil)
+	storage.EXPECT().DeleteUser(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
 
 	cfg := &cache.Config{}
 	ctx, cancel := context.WithCancel(context.Background())
@@ -857,7 +857,7 @@ func Test_server_UpdateUserToken(t *testing.T) {
 		defer userTest.Clean()
 		_ = userTest.cacheMgn.TestUpdate()
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.ownerOne.Token)
-		resp := userTest.svr.UpdateUserToken(reqCtx, &apisecurity.User{
+		resp := userTest.svr.EnableUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.ownerOne.ID),
 		})
 
@@ -873,7 +873,7 @@ func Test_server_UpdateUserToken(t *testing.T) {
 		userTest.storage.EXPECT().GetUser(gomock.Any()).Return(&authcommon.User{}, nil).AnyTimes()
 		userTest.storage.EXPECT().UpdateUser(gomock.Any()).Return(nil).AnyTimes()
 
-		resp := userTest.svr.UpdateUserToken(reqCtx, &apisecurity.User{
+		resp := userTest.svr.EnableUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.users[4].ID),
 		})
 
@@ -885,7 +885,7 @@ func Test_server_UpdateUserToken(t *testing.T) {
 		defer userTest.Clean()
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.ownerOne.Token)
 		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.users[3].ID)).Return(userTest.users[3], nil)
-		resp := userTest.svr.UpdateUserToken(reqCtx, &apisecurity.User{
+		resp := userTest.svr.EnableUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.users[3].ID),
 		})
 
@@ -900,7 +900,7 @@ func Test_server_UpdateUserToken(t *testing.T) {
 		t.Logf("operator-id : %s, user-two-owner : %s", userTest.ownerOne.ID, userTest.ownerTwo.ID)
 
 		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.ownerTwo.ID)).Return(userTest.ownerTwo, nil).AnyTimes()
-		resp := userTest.svr.UpdateUserToken(reqCtx, &apisecurity.User{
+		resp := userTest.svr.EnableUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.ownerTwo.ID),
 		})
 
@@ -914,7 +914,7 @@ func Test_server_UpdateUserToken(t *testing.T) {
 		_ = userTest.cacheMgn.TestUpdate()
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, userTest.ownerOne.Token)
 		userTest.storage.EXPECT().GetUser(gomock.Eq(userTest.newUsers[3].ID)).Return(userTest.newUsers[3], nil).AnyTimes()
-		resp := userTest.svr.UpdateUserToken(reqCtx, &apisecurity.User{
+		resp := userTest.svr.EnableUserToken(reqCtx, &apisecurity.User{
 			Id: utils.NewStringValue(userTest.newUsers[3].ID),
 		})
 
@@ -945,7 +945,7 @@ func Test_AuthServer_NormalOperateUser(t *testing.T) {
 	})
 
 	t.Run("非正常创建用户-直接操作存储层", func(t *testing.T) {
-		err := suit.Storage.AddUser(&authcommon.User{})
+		err := suit.Storage.AddUser(nil, &authcommon.User{})
 		assert.Error(t, err)
 	})
 

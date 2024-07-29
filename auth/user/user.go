@@ -45,21 +45,6 @@ type (
 	User2Api func(user *authcommon.User) *apisecurity.User
 )
 
-var (
-
-	// UserFilterAttributes 查询用户所能允许的参数查询列表
-	UserFilterAttributes = map[string]bool{
-		"id":         true,
-		"name":       true,
-		"owner":      true,
-		"source":     true,
-		"offset":     true,
-		"group_id":   true,
-		"limit":      true,
-		"hide_admin": true,
-	}
-)
-
 // CreateUsers 批量创建用户
 func (svr *Server) CreateUsers(ctx context.Context, req []*apisecurity.User) *apiservice.BatchWriteResponse {
 	batchResp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
@@ -116,15 +101,38 @@ func (svr *Server) CreateUser(ctx context.Context, req *apisecurity.User) *apise
 
 func (svr *Server) createUser(ctx context.Context, req *apisecurity.User) *apiservice.Response {
 	data, err := svr.createUserModel(req, authcommon.ParseUserRole(ctx))
-
 	if err != nil {
 		log.Error("[Auth][User] create user model", utils.RequestID(ctx), zap.Error(err))
 		return api.NewAuthResponse(apimodel.Code_ExecuteException)
 	}
 
-	if err := svr.storage.AddUser(data); err != nil {
+	tx, err := svr.storage.StartTx()
+	if err != nil {
+		log.Error("[Auth][User] create user begion storage tx", utils.RequestID(ctx), zap.Error(err))
+		return api.NewAuthResponse(apimodel.Code_ExecuteException)
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	if err := svr.storage.AddUser(tx, data); err != nil {
 		log.Error("[Auth][User] add user into store", utils.RequestID(ctx), zap.Error(err))
 		return api.NewAuthResponse(commonstore.StoreCode2APICode(err))
+	}
+
+	if err := svr.policySvr.PolicyHelper().CreatePrincipal(ctx, tx, authcommon.Principal{
+		PrincipalID:   data.ID,
+		PrincipalType: authcommon.PrincipalUser,
+		Owner:         data.Owner,
+		Name:          data.Name,
+	}); err != nil {
+		log.Error("[Auth][User] add user default policy rule", utils.RequestID(ctx), zap.Error(err))
+		return api.NewAuthResponse(commonstore.StoreCode2APICode(err))
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Error("[Auth][User] create user commit storage tx", utils.RequestID(ctx), zap.Error(err))
+		return api.NewAuthResponse(apimodel.Code_ExecuteException)
 	}
 
 	log.Info("[Auth][User] create user", utils.RequestID(ctx), zap.String("name", req.GetName().GetValue()))
@@ -228,10 +236,9 @@ func (svr *Server) DeleteUsers(ctx context.Context, reqs []*apisecurity.User) *a
 // Case 3. 主账户角色下，只能删除自己创建的子账户
 // Case 4. 超级账户角色下，可以删除任意账户
 func (svr *Server) DeleteUser(ctx context.Context, req *apisecurity.User) *apiservice.Response {
-	requestID := utils.ParseRequestID(ctx)
 	user, err := svr.storage.GetUser(req.Id.GetValue())
 	if err != nil {
-		log.Error("[Auth][User] get user from store", utils.ZapRequestID(requestID), zap.Error(err))
+		log.Error("[Auth][User] get user from store", utils.RequestID(ctx), zap.Error(err))
 		return api.NewUserResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if user == nil {
@@ -240,14 +247,14 @@ func (svr *Server) DeleteUser(ctx context.Context, req *apisecurity.User) *apise
 
 	if user.ID == utils.ParseOwnerID(ctx) {
 		log.Error("[Auth][User] delete user forbidden, can't delete when self is owner",
-			utils.ZapRequestID(requestID), zap.String("name", req.Name.GetValue()))
+			utils.RequestID(ctx), zap.String("name", req.Name.GetValue()))
 		return api.NewUserResponse(apimodel.Code_NotAllowedAccess, req)
 	}
 	if user.Type == authcommon.OwnerUserRole {
 		count, err := svr.storage.GetSubCount(user)
 		if err != nil {
 			log.Error("[Auth][User] get user sub-account", zap.String("owner", user.ID),
-				utils.ZapRequestID(requestID), zap.Error(err))
+				utils.RequestID(ctx), zap.Error(err))
 			return api.NewUserResponse(commonstore.StoreCode2APICode(err), req)
 		}
 		if count != 0 {
@@ -255,54 +262,49 @@ func (svr *Server) DeleteUser(ctx context.Context, req *apisecurity.User) *apise
 			return api.NewUserResponse(apimodel.Code_SubAccountExisted, req)
 		}
 	}
+	tx, err := svr.storage.StartTx()
+	if err != nil {
+		log.Error("[Auth][User] delete user begion storage tx", utils.RequestID(ctx), zap.Error(err))
+		return api.NewAuthResponse(apimodel.Code_ExecuteException)
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
-	if err := svr.storage.DeleteUser(user); err != nil {
-		log.Error("[Auth][User] delete user from store", utils.ZapRequestID(requestID), zap.Error(err))
+	if err := svr.storage.DeleteUser(tx, user); err != nil {
+		log.Error("[Auth][User] delete user from store", utils.RequestID(ctx), zap.Error(err))
 		return api.NewAuthResponse(commonstore.StoreCode2APICode(err))
 	}
+	if err := svr.policySvr.PolicyHelper().CleanPrincipal(ctx, tx, authcommon.Principal{
+		PrincipalID:   user.ID,
+		PrincipalType: authcommon.PrincipalUser,
+		Owner:         user.Owner,
+	}); err != nil {
+		log.Error("[Auth][User] delete user from policy server", utils.RequestID(ctx), zap.Error(err))
+		return api.NewAuthResponse(commonstore.StoreCode2APICode(err))
+	}
+	if err := tx.Commit(); err != nil {
+		log.Error("[Auth][User] delete user commit storage tx", utils.RequestID(ctx), zap.Error(err))
+		return api.NewAuthResponse(apimodel.Code_ExecuteException)
+	}
 
-	log.Info("[Auth][User] delete user", utils.ZapRequestID(requestID),
-		zap.String("name", req.Name.GetValue()))
+	log.Info("[Auth][User] delete user", utils.RequestID(ctx), zap.String("name", req.Name.GetValue()))
 	svr.RecordHistory(userRecordEntry(ctx, req, user, model.ODelete))
 
 	return api.NewUserResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
 // GetUsers 查询用户列表
-func (svr *Server) GetUsers(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
-	log.Debug("[Auth][User] origin get users query params", utils.RequestID(ctx), zap.Any("query", query))
+func (svr *Server) GetUsers(ctx context.Context, filters map[string]string) *apiservice.BatchQueryResponse {
+	offset, limit, _ := utils.ParseOffsetAndLimit(filters)
 
-	var (
-		offset, limit uint32
-		err           error
-		searchFilters = make(map[string]string, len(query)+1)
-	)
-
-	for key, value := range query {
-		if _, ok := UserFilterAttributes[key]; !ok {
-			log.Error("[Auth][User] attribute it not allowed", utils.RequestID(ctx), zap.String("key", key))
-			return api.NewAuthBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, key+" is not allowed")
-		}
-		searchFilters[key] = value
-	}
-
-	var (
-		total uint32
-		users []*authcommon.User
-	)
-
-	offset, limit, err = utils.ParseOffsetAndLimit(searchFilters)
-	if err != nil {
-		return api.NewAuthBatchQueryResponse(apimodel.Code_InvalidParameter)
-	}
-
-	total, users, err = svr.cacheMgr.User().QueryUsers(ctx, cachetypes.UserSearchArgs{
-		Filters: searchFilters,
+	total, users, err := svr.cacheMgr.User().QueryUsers(ctx, cachetypes.UserSearchArgs{
+		Filters: filters,
 		Offset:  offset,
 		Limit:   limit,
 	})
 	if err != nil {
-		log.Error("[Auth][User] get user from store", utils.RequestID(ctx), zap.Any("req", searchFilters),
+		log.Error("[Auth][User] get user from store", utils.RequestID(ctx), zap.Any("req", filters),
 			zap.Error(err))
 		return api.NewAuthBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}
@@ -350,8 +352,8 @@ func (svr *Server) GetUserToken(ctx context.Context, req *apisecurity.User) *api
 	return api.NewUserResponse(apimodel.Code_ExecuteSuccess, out)
 }
 
-// UpdateUserToken 更新用户 token
-func (svr *Server) UpdateUserToken(ctx context.Context, req *apisecurity.User) *apiservice.Response {
+// EnableUserToken 更新用户 token
+func (svr *Server) EnableUserToken(ctx context.Context, req *apisecurity.User) *apiservice.Response {
 	if checkErrResp := checkUpdateUser(req); checkErrResp != nil {
 		return checkErrResp
 	}
@@ -431,7 +433,7 @@ func (svr *Server) CheckCredential(authCtx *authcommon.AcquireContext) error {
 
 		ownerId, isOwner, err := svr.checkToken(&operator)
 		if err != nil {
-			log.Errorf("[Auth][Checker] check token err : %s", err.Error())
+			log.Error("[Auth][Checker] check token", utils.RequestID(authCtx.GetRequestContext()), zap.Error(err))
 			return err
 		}
 
@@ -443,8 +445,9 @@ func (svr *Server) CheckCredential(authCtx *authcommon.AcquireContext) error {
 		authCtx.SetRequestContext(ctx)
 		svr.parseOperatorInfo(operator, authCtx)
 		if operator.Disable {
-			log.Warn("[Auth][Checker] token already disabled", utils.RequestID(authCtx.GetRequestContext()),
-				zap.Any("token", operator.String()))
+			log.Error("[Auth][Checker] token has been set disable", utils.RequestID(authCtx.GetRequestContext()),
+				zap.String("operator", operator.String()))
+			return authcommon.ErrorTokenDisabled
 		}
 		return nil
 	}()
@@ -458,7 +461,6 @@ func (svr *Server) CheckCredential(authCtx *authcommon.AcquireContext) error {
 		// 操作者信息解析失败，降级为匿名用户
 		authCtx.SetAttachment(authcommon.TokenDetailInfoKey, auth.NewAnonymous())
 	}
-
 	return nil
 }
 
@@ -480,13 +482,16 @@ func (svr *Server) parseOperatorInfo(operator auth.OperatorInfo, authCtx *authco
 		}
 	}
 
+	authCtx.SetAttachment(authcommon.PrincipalKey, authcommon.Principal{
+		PrincipalID: operator.OperatorID,
+		PrincipalType: func() authcommon.PrincipalType {
+			if operator.IsUserToken {
+				return authcommon.PrincipalUser
+			}
+			return authcommon.PrincipalGroup
+		}(),
+	})
 	authCtx.SetAttachment(authcommon.OperatorRoleKey, operator.Role)
-	authCtx.SetAttachment(authcommon.OperatorPrincipalType, func() authcommon.PrincipalType {
-		if operator.IsUserToken {
-			return authcommon.PrincipalUser
-		}
-		return authcommon.PrincipalGroup
-	}())
 	authCtx.SetAttachment(authcommon.OperatorIDKey, operator.OperatorID)
 	authCtx.SetAttachment(authcommon.OperatorOwnerKey, operator)
 	authCtx.SetAttachment(authcommon.TokenDetailInfoKey, operator)
@@ -495,7 +500,7 @@ func (svr *Server) parseOperatorInfo(operator auth.OperatorInfo, authCtx *authco
 }
 
 func canDowngradeAnonymous(authCtx *authcommon.AcquireContext, err error) bool {
-	if authCtx.GetModule() == authcommon.AuthModule {
+	if authCtx.GetModule() == authcommon.AuthModule || authCtx.GetModule() == authcommon.MaintainModule {
 		return false
 	}
 	if !authCtx.IsAllowAnonymous() {

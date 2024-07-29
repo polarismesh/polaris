@@ -19,14 +19,37 @@ package paramcheck
 
 import (
 	"context"
+	"strconv"
 
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/log"
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
+)
+
+var (
+	// StrategyFilterAttributes strategy filter attributes
+	StrategyFilterAttributes = map[string]bool{
+		"id":             true,
+		"name":           true,
+		"owner":          true,
+		"offset":         true,
+		"limit":          true,
+		"principal_id":   true,
+		"principal_type": true,
+		"res_id":         true,
+		"res_type":       true,
+		"default":        true,
+		"show_detail":    true,
+	}
 )
 
 func NewServer(nextSvr auth.StrategyServer) auth.StrategyServer {
@@ -38,6 +61,11 @@ func NewServer(nextSvr auth.StrategyServer) auth.StrategyServer {
 type Server struct {
 	nextSvr auth.StrategyServer
 	userSvr auth.UserServer
+}
+
+// PolicyHelper implements auth.StrategyServer.
+func (svr *Server) PolicyHelper() auth.PolicyHelper {
+	return svr.nextSvr.PolicyHelper()
 }
 
 // Initialize 执行初始化动作
@@ -70,6 +98,24 @@ func (svr *Server) DeleteStrategies(ctx context.Context, reqs []*apisecurity.Aut
 // support 1. 支持按照 principal-id + principal-role 进行查询
 // support 2. 支持普通的鉴权策略查询
 func (svr *Server) GetStrategies(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
+	log.Debug("[Auth][Strategy] origin get strategies query params", utils.RequestID(ctx), zap.Any("query", query))
+
+	searchFilters := make(map[string]string, len(query))
+	for key, value := range query {
+		if _, ok := StrategyFilterAttributes[key]; !ok {
+			log.Errorf("[Auth][Strategy] get strategies attribute(%s) it not allowed", key)
+			return api.NewAuthBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, key+" is not allowed")
+		}
+		searchFilters[key] = value
+	}
+
+	offset, limit, err := utils.ParseOffsetAndLimit(searchFilters)
+
+	if err != nil {
+		return api.NewAuthBatchQueryResponse(apimodel.Code_InvalidParameter)
+	}
+	searchFilters["offset"] = strconv.FormatUint(uint64(offset), 10)
+	searchFilters["limit"] = strconv.FormatUint(uint64(limit), 10)
 	return svr.nextSvr.GetStrategies(ctx, query)
 }
 
@@ -91,4 +137,24 @@ func (svr *Server) GetAuthChecker() auth.AuthChecker {
 // AfterResourceOperation 操作完资源的后置处理逻辑
 func (svr *Server) AfterResourceOperation(afterCtx *authcommon.AcquireContext) error {
 	return svr.nextSvr.AfterResourceOperation(afterCtx)
+}
+
+// CreateRoles 批量创建角色
+func (svr *Server) CreateRoles(ctx context.Context, reqs []*apisecurity.Role) *apiservice.BatchWriteResponse {
+	return svr.nextSvr.CreateRoles(ctx, reqs)
+}
+
+// UpdateRoles 批量更新角色
+func (svr *Server) UpdateRoles(ctx context.Context, reqs []*apisecurity.Role) *apiservice.BatchWriteResponse {
+	return svr.nextSvr.UpdateRoles(ctx, reqs)
+}
+
+// DeleteRoles 批量删除角色
+func (svr *Server) DeleteRoles(ctx context.Context, reqs []*apisecurity.Role) *apiservice.BatchWriteResponse {
+	return svr.nextSvr.DeleteRoles(ctx, reqs)
+}
+
+// GetRoles 查询角色列表
+func (svr *Server) GetRoles(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
+	return svr.nextSvr.GetRoles(ctx, query)
 }

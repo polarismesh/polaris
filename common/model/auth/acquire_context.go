@@ -38,7 +38,7 @@ type AcquireContext struct {
 	// Module 来自那个业务层（服务注册与服务治理、配置模块）
 	module BzModule
 	// Method 操作函数
-	method string
+	method ServerFunctionName
 	// Operation 本次操作涉及的动作
 	operation ResourceOperation
 	// Resources 本次
@@ -96,7 +96,7 @@ func WithModule(module BzModule) acquireContextOption {
 }
 
 // WithMethod 本次操作函数名称
-func WithMethod(method string) acquireContextOption {
+func WithMethod(method ServerFunctionName) acquireContextOption {
 	return func(authCtx *AcquireContext) {
 		authCtx.method = method
 	}
@@ -213,7 +213,7 @@ func (authCtx *AcquireContext) SetAttachment(key string, val interface{}) {
 }
 
 // GetMethod 获取本次请求涉及的操作函数
-func (authCtx *AcquireContext) GetMethod() string {
+func (authCtx *AcquireContext) GetMethod() ServerFunctionName {
 	return authCtx.method
 }
 

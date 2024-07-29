@@ -155,11 +155,18 @@ func (m *boltStore) loadFromData(data *DefaultData) error {
 		return err
 	}
 
+	tx, err := m.handle.StartTx()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
 	// 挨个处理其他用户数据信息
 	for i := 1; i < len(users); i++ {
-		if err := m.addUser(users[i]); err != nil {
+		if err := m.AddUser(tx, users[i]); err != nil {
 			return nil
 		}
 	}
-	return nil
+	return tx.Commit()
 }

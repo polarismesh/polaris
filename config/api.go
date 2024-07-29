@@ -79,12 +79,8 @@ type ConfigFileReleaseOperate interface {
 	GetConfigFileRelease(ctx context.Context, req *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse
 	// DeleteConfigFileReleases 批量删除配置文件发布内容
 	DeleteConfigFileReleases(ctx context.Context, reqs []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse
-	// DeleteConfigFileRelease 删除配置文件发布
-	DeleteConfigFileRelease(ctx context.Context, req *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse
 	// RollbackConfigFileReleases 批量回滚配置到指定版本
 	RollbackConfigFileReleases(ctx context.Context, releases []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse
-	// RollbackConfigFileRelease 回滚配置到指定版本
-	RollbackConfigFileRelease(ctx context.Context, req *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse
 	// GetConfigFileReleases 查询所有的配置发布版本信息
 	GetConfigFileReleases(ctx context.Context, filters map[string]string) *apiconfig.ConfigBatchQueryResponse
 	// GetConfigFileReleaseVersions 查询所有的配置发布版本信息

@@ -53,25 +53,25 @@ type (
 	WatchContextFactory func(clientId string, matcher BetaReleaseMatcher) WatchContext
 
 	WatchContext interface {
-		// ClientID .
+		// ClientID 客户端发起的
 		ClientID() string
-		// ClientLabels .
+		// ClientLabels 客户端的标识，用于灰度发布要做标签的匹配判断
 		ClientLabels() map[string]string
-		// AppendInterest .
+		// AppendInterest 客户端增加订阅列表
 		AppendInterest(item *apiconfig.ClientConfigFileInfo)
-		// RemoveInterest .
+		// RemoveInterest 客户端删除订阅列表
 		RemoveInterest(item *apiconfig.ClientConfigFileInfo)
-		// ShouldNotify .
+		// ShouldNotify 判断是不是需要通知客户端某个配置变动了
 		ShouldNotify(event *model.SimpleConfigFileRelease) bool
-		// Reply .
+		// Reply 真正的通知逻辑
 		Reply(rsp *apiconfig.ConfigClientResponse)
 		// Close .
 		Close() error
-		// ShouldExpire .
+		// ShouldExpire 是不是存在有效时间
 		ShouldExpire(now time.Time) bool
-		// ListWatchFiles
+		// ListWatchFiles 列举出当前订阅的所有配置文件
 		ListWatchFiles() []*apiconfig.ClientConfigFileInfo
-		// IsOnce
+		// IsOnce 是不是只能被通知一次
 		IsOnce() bool
 	}
 )

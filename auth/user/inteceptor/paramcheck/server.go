@@ -19,14 +19,45 @@ package paramcheck
 
 import (
 	"context"
+	"strconv"
 
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
-	authmodel "github.com/polarismesh/polaris/common/model/auth"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/log"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
+)
+
+var (
+	// UserFilterAttributes 查询用户所能允许的参数查询列表
+	UserFilterAttributes = map[string]bool{
+		"id":         true,
+		"name":       true,
+		"owner":      true,
+		"source":     true,
+		"offset":     true,
+		"group_id":   true,
+		"limit":      true,
+		"hide_admin": true,
+	}
+	// UserGroupAttributes is the user link group attributes
+	UserGroupAttributes = map[string]struct{}{
+		"id":        {},
+		"user_id":   {},
+		"user_name": {},
+		"group_id":  {},
+		"name":      {},
+		"offset":    {},
+		"limit":     {},
+		"owner":     {},
+	}
 )
 
 func NewServer(nextSvr auth.UserServer) auth.UserServer {
@@ -41,8 +72,9 @@ type Server struct {
 }
 
 // Initialize 初始化
-func (svr *Server) Initialize(authOpt *auth.Config, storage store.Store, policyMgr auth.StrategyServer, cacheMgr cachetypes.CacheManager) error {
-	return svr.nextSvr.Initialize(authOpt, storage, policyMgr, cacheMgr)
+func (svr *Server) Initialize(authOpt *auth.Config, storage store.Store, policySvr auth.StrategyServer,
+	cacheMgr cachetypes.CacheManager) error {
+	return svr.nextSvr.Initialize(authOpt, storage, policySvr, cacheMgr)
 }
 
 // Name 用户数据管理server名称
@@ -56,7 +88,7 @@ func (svr *Server) Login(req *apisecurity.LoginRequest) *apiservice.Response {
 }
 
 // CheckCredential 检查当前操作用户凭证
-func (svr *Server) CheckCredential(authCtx *authmodel.AcquireContext) error {
+func (svr *Server) CheckCredential(authCtx *authcommon.AcquireContext) error {
 	return svr.nextSvr.CheckCredential(authCtx)
 }
 
@@ -87,6 +119,27 @@ func (svr *Server) DeleteUsers(ctx context.Context, users []*apisecurity.User) *
 
 // GetUsers 查询用户列表
 func (svr *Server) GetUsers(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
+	log.Debug("[Auth][User] origin get users query params", utils.RequestID(ctx), zap.Any("query", query))
+	var (
+		offset, limit uint32
+		err           error
+		searchFilters = make(map[string]string, len(query)+1)
+	)
+
+	for key, value := range query {
+		if _, ok := UserFilterAttributes[key]; !ok {
+			log.Error("[Auth][User] attribute it not allowed", utils.RequestID(ctx), zap.String("key", key))
+			return api.NewAuthBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, key+" is not allowed")
+		}
+		searchFilters[key] = value
+	}
+
+	offset, limit, err = utils.ParseOffsetAndLimit(searchFilters)
+	if err != nil {
+		return api.NewAuthBatchQueryResponse(apimodel.Code_InvalidParameter)
+	}
+	searchFilters["offset"] = strconv.FormatUint(uint64(offset), 10)
+	searchFilters["limit"] = strconv.FormatUint(uint64(limit), 10)
 	return svr.nextSvr.GetUsers(ctx, query)
 }
 
@@ -95,9 +148,19 @@ func (svr *Server) GetUserToken(ctx context.Context, user *apisecurity.User) *ap
 	return svr.nextSvr.GetUserToken(ctx, user)
 }
 
-// UpdateUserToken 禁止用户的token使用
-func (svr *Server) UpdateUserToken(ctx context.Context, user *apisecurity.User) *apiservice.Response {
-	return svr.nextSvr.UpdateUserToken(ctx, user)
+// EnableUserToken 禁止用户的token使用
+func (svr *Server) EnableUserToken(ctx context.Context, user *apisecurity.User) *apiservice.Response {
+	helper := svr.nextSvr.GetUserHelper()
+	saveUser := helper.GetUserByID(ctx, user.GetId().GetValue())
+	if saveUser == nil {
+		return api.NewResponse(apimodel.Code_NotFoundUser)
+	}
+	if authcommon.ParseUserRole(ctx) != authcommon.AdminUserRole {
+		if saveUser.GetUserType().GetValue() != strconv.Itoa(int(authcommon.SubAccountUserRole)) {
+			return api.NewUserResponseWithMsg(apimodel.Code_NotAllowedAccess, "only disable sub-account token", user)
+		}
+	}
+	return svr.nextSvr.EnableUserToken(ctx, user)
 }
 
 // ResetUserToken 重置用户的token
@@ -122,6 +185,25 @@ func (svr *Server) DeleteGroups(ctx context.Context, groups []*apisecurity.UserG
 
 // GetGroups 查询用户组列表（不带用户详细信息）
 func (svr *Server) GetGroups(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
+	log.Info("[Auth][Group] origin get groups query params",
+		utils.RequestID(ctx), zap.Any("query", query))
+
+	offset, limit, err := utils.ParseOffsetAndLimit(query)
+	if err != nil {
+		return api.NewAuthBatchQueryResponse(apimodel.Code_InvalidParameter)
+	}
+
+	searchFilters := make(map[string]string, len(query))
+	for key, value := range query {
+		if _, ok := UserGroupAttributes[key]; !ok {
+			log.Error("[Auth][Group] get groups attribute it not allowed", utils.RequestID(ctx), zap.String("key", key))
+			return api.NewAuthBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, key+" is not allowed")
+		}
+		searchFilters[key] = value
+	}
+
+	searchFilters["offset"] = strconv.FormatUint(uint64(offset), 10)
+	searchFilters["limit"] = strconv.FormatUint(uint64(limit), 10)
 	return svr.nextSvr.GetGroups(ctx, query)
 }
 
@@ -136,8 +218,8 @@ func (svr *Server) GetGroupToken(ctx context.Context, group *apisecurity.UserGro
 }
 
 // UpdateGroupToken 取消用户组的 token 使用
-func (svr *Server) UpdateGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
-	return svr.nextSvr.UpdateGroupToken(ctx, group)
+func (svr *Server) EnableGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response {
+	return svr.nextSvr.EnableGroupToken(ctx, group)
 }
 
 // ResetGroupToken 重置用户组的 token
