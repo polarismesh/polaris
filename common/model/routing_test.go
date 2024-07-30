@@ -65,7 +65,7 @@ func TestToExpendRoutingConfig(t *testing.T) {
 	rConfig.Policy = "RulePolicy"
 	erConfig, err := rConfig.ToExpendRoutingConfig()
 	assert.Nil(t, err)
-	assert.Equal(t, ruleRouting.Sources[0].Service, erConfig.RuleRouting.Sources[0].Service)
+	assert.Equal(t, ruleRouting.Sources[0].Service, erConfig.RuleRouting.RuleRouting.Sources[0].Service)
 
 	// 2. check v1 binary
 	anyValue, err := anypb.New(proto.MessageV2(ruleRouting))
@@ -74,7 +74,7 @@ func TestToExpendRoutingConfig(t *testing.T) {
 	rConfig.Config = v1AnyStr
 	erConfig, err = rConfig.ToExpendRoutingConfig()
 	assert.Nil(t, err)
-	assert.Equal(t, ruleRouting.Sources[0].Service, erConfig.RuleRouting.Sources[0].Service)
+	assert.Equal(t, ruleRouting.Sources[0].Service, erConfig.RuleRouting.RuleRouting.Sources[0].Service)
 
 	// 3. check v2 binary
 	//ruleRoutingV2 := &v2.RuleRoutingConfig{

@@ -18,6 +18,7 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"sync/atomic"
@@ -27,7 +28,7 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	types "github.com/polarismesh/polaris/cache/api"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
@@ -54,11 +55,11 @@ type userCache struct {
 
 	adminUser atomic.Value
 	// userid -> user
-	users *utils.SyncMap[string, *model.User]
+	users *utils.SyncMap[string, *authcommon.User]
 	// username -> user
-	name2Users *utils.SyncMap[string, *model.User]
+	name2Users *utils.SyncMap[string, *authcommon.User]
 	// groupid -> group
-	groups *utils.SyncMap[string, *model.UserGroupDetail]
+	groups *utils.SyncMap[string, *authcommon.UserGroupDetail]
 	// userid -> groups
 	user2Groups *utils.SyncMap[string, *utils.SyncSet[string]]
 
@@ -78,9 +79,9 @@ func NewUserCache(storage store.Store, cacheMgr types.CacheManager) types.UserCa
 
 // Initialize
 func (uc *userCache) Initialize(_ map[string]interface{}) error {
-	uc.users = utils.NewSyncMap[string, *model.User]()
-	uc.name2Users = utils.NewSyncMap[string, *model.User]()
-	uc.groups = utils.NewSyncMap[string, *model.UserGroupDetail]()
+	uc.users = utils.NewSyncMap[string, *authcommon.User]()
+	uc.name2Users = utils.NewSyncMap[string, *authcommon.User]()
+	uc.groups = utils.NewSyncMap[string, *authcommon.UserGroupDetail]()
 	uc.user2Groups = utils.NewSyncMap[string, *utils.SyncSet[string]]()
 	uc.adminUser = atomic.Value{}
 	uc.singleFlight = new(singleflight.Group)
@@ -121,12 +122,12 @@ func (uc *userCache) realUpdate() (map[string]time.Time, int64, error) {
 	return lastMimes, int64(len(users) + len(groups)), nil
 }
 
-func (uc *userCache) setUserAndGroups(users []*model.User,
-	groups []*model.UserGroupDetail) (map[string]time.Time, userRefreshResult) {
+func (uc *userCache) setUserAndGroups(users []*authcommon.User,
+	groups []*authcommon.UserGroupDetail) (map[string]time.Time, userRefreshResult) {
 	ret := userRefreshResult{}
 
-	ownerSupplier := func(user *model.User) *model.User {
-		if user.Type == model.SubAccountUserRole {
+	ownerSupplier := func(user *authcommon.User) *authcommon.User {
+		if user.Type == authcommon.SubAccountUserRole {
 			owner, _ := uc.users.Load(user.Owner)
 			return owner
 		}
@@ -137,13 +138,13 @@ func (uc *userCache) setUserAndGroups(users []*model.User,
 
 	// 更新 users 缓存
 	// step 1. 先更新 owner 用户
-	uc.handlerUserCacheUpdate(lastMimes, &ret, users, func(user *model.User) bool {
-		return user.Type == model.OwnerUserRole
+	uc.handlerUserCacheUpdate(lastMimes, &ret, users, func(user *authcommon.User) bool {
+		return user.Type == authcommon.OwnerUserRole
 	}, ownerSupplier)
 
 	// step 2. 更新非 owner 用户
-	uc.handlerUserCacheUpdate(lastMimes, &ret, users, func(user *model.User) bool {
-		return user.Type == model.SubAccountUserRole
+	uc.handlerUserCacheUpdate(lastMimes, &ret, users, func(user *authcommon.User) bool {
+		return user.Type == authcommon.SubAccountUserRole
 	}, ownerSupplier)
 
 	uc.handlerGroupCacheUpdate(lastMimes, &ret, groups)
@@ -151,8 +152,8 @@ func (uc *userCache) setUserAndGroups(users []*model.User,
 }
 
 // handlerUserCacheUpdate 处理用户信息更新
-func (uc *userCache) handlerUserCacheUpdate(lastMimes map[string]time.Time, ret *userRefreshResult, users []*model.User,
-	filter func(user *model.User) bool, ownerSupplier func(user *model.User) *model.User) {
+func (uc *userCache) handlerUserCacheUpdate(lastMimes map[string]time.Time, ret *userRefreshResult, users []*authcommon.User,
+	filter func(user *authcommon.User) bool, ownerSupplier func(user *authcommon.User) *authcommon.User) {
 
 	lastUserMtime := uc.LastMtime("users").Unix()
 
@@ -161,7 +162,7 @@ func (uc *userCache) handlerUserCacheUpdate(lastMimes map[string]time.Time, ret 
 
 		lastUserMtime = int64(math.Max(float64(lastUserMtime), float64(user.ModifyTime.Unix())))
 
-		if user.Type == model.AdminUserRole {
+		if user.Type == authcommon.AdminUserRole {
 			uc.adminUser.Store(user)
 			uc.users.Store(user.ID, user)
 			uc.name2Users.Store(fmt.Sprintf(NameLinkOwnerTemp, user.Name, user.Name), user)
@@ -197,7 +198,7 @@ func (uc *userCache) handlerUserCacheUpdate(lastMimes map[string]time.Time, ret 
 
 // handlerGroupCacheUpdate 处理用户组信息更新
 func (uc *userCache) handlerGroupCacheUpdate(lastMimes map[string]time.Time, ret *userRefreshResult,
-	groups []*model.UserGroupDetail) {
+	groups []*authcommon.UserGroupDetail) {
 
 	lastGroupMtime := uc.LastMtime("group").Unix()
 
@@ -211,7 +212,7 @@ func (uc *userCache) handlerGroupCacheUpdate(lastMimes map[string]time.Time, ret
 			uc.groups.Delete(group.ID)
 			ret.groupDel++
 		} else {
-			var oldGroup *model.UserGroupDetail
+			var oldGroup *authcommon.UserGroupDetail
 			if oldVal, ok := uc.groups.Load(group.ID); ok {
 				ret.groupUpdate++
 				oldGroup = oldVal
@@ -253,9 +254,9 @@ func (uc *userCache) handlerGroupCacheUpdate(lastMimes map[string]time.Time, ret
 
 func (uc *userCache) Clear() error {
 	uc.BaseCache.Clear()
-	uc.users = utils.NewSyncMap[string, *model.User]()
-	uc.name2Users = utils.NewSyncMap[string, *model.User]()
-	uc.groups = utils.NewSyncMap[string, *model.UserGroupDetail]()
+	uc.users = utils.NewSyncMap[string, *authcommon.User]()
+	uc.name2Users = utils.NewSyncMap[string, *authcommon.User]()
+	uc.groups = utils.NewSyncMap[string, *authcommon.UserGroupDetail]()
 	uc.user2Groups = utils.NewSyncMap[string, *utils.SyncSet[string]]()
 	uc.adminUser = atomic.Value{}
 	uc.lastUserMtime = 0
@@ -268,13 +269,13 @@ func (uc *userCache) Name() string {
 }
 
 // GetAdmin 获取管理员数据信息
-func (uc *userCache) GetAdmin() *model.User {
+func (uc *userCache) GetAdmin() *authcommon.User {
 	val := uc.adminUser.Load()
 	if val == nil {
 		return nil
 	}
 
-	return val.(*model.User)
+	return val.(*authcommon.User)
 }
 
 // IsOwner 判断当前用户是否是 owner 角色
@@ -284,7 +285,7 @@ func (uc *userCache) IsOwner(id string) bool {
 		return false
 	}
 	ut := val.Type
-	return ut == model.AdminUserRole || ut == model.OwnerUserRole
+	return ut == authcommon.AdminUserRole || ut == authcommon.OwnerUserRole
 }
 
 func (uc *userCache) IsUserInGroup(userId, groupId string) bool {
@@ -297,7 +298,7 @@ func (uc *userCache) IsUserInGroup(userId, groupId string) bool {
 }
 
 // GetUserByID 根据用户ID获取用户缓存对象
-func (uc *userCache) GetUserByID(id string) *model.User {
+func (uc *userCache) GetUserByID(id string) *authcommon.User {
 	if id == "" {
 		return nil
 	}
@@ -310,7 +311,7 @@ func (uc *userCache) GetUserByID(id string) *model.User {
 }
 
 // GetUserByName 通过用户 name 以及 owner 获取用户缓存对象
-func (uc *userCache) GetUserByName(name, ownerName string) *model.User {
+func (uc *userCache) GetUserByName(name, ownerName string) *authcommon.User {
 	val, ok := uc.name2Users.Load(fmt.Sprintf(NameLinkOwnerTemp, ownerName, name))
 
 	if !ok {
@@ -320,7 +321,7 @@ func (uc *userCache) GetUserByName(name, ownerName string) *model.User {
 }
 
 // GetGroup 通过用户组ID获取用户组缓存对象
-func (uc *userCache) GetGroup(id string) *model.UserGroupDetail {
+func (uc *userCache) GetGroup(id string) *authcommon.UserGroupDetail {
 	if id == "" {
 		return nil
 	}
@@ -343,4 +344,134 @@ func (uc *userCache) GetUserLinkGroupIds(userId string) []string {
 		return nil
 	}
 	return val.ToSlice()
+}
+
+// QueryUsers .
+func (uc *userCache) QueryUsers(ctx context.Context, args types.UserSearchArgs) (uint32, []*authcommon.User, error) {
+	searchId, hasId := args.Filters["id"]
+	searchName, hasName := args.Filters["name"]
+	searchOwner, hasOwner := args.Filters["owner"]
+	searchSource, hasSource := args.Filters["source"]
+	searchGroupId, hasGroup := args.Filters["group_id"]
+
+	predicates := types.LoadUserPredicates(ctx)
+
+	if hasGroup {
+		g, ok := uc.groups.Load(searchGroupId)
+		if !ok {
+			return 0, nil, nil
+		}
+		predicates = append(predicates, func(ctx context.Context, u *authcommon.User) bool {
+			_, exist := g.UserIds[u.ID]
+			return exist
+		})
+	}
+
+	result := make([]*authcommon.User, 0, 32)
+	uc.users.Range(func(key string, val *authcommon.User) {
+		// 超级账户不做展示
+		if authcommon.UserRoleType(val.Type) == authcommon.AdminUserRole {
+			return
+		}
+		if hasId && searchId != key {
+			return
+		}
+		if hasOwner && val.Owner != searchOwner {
+			return
+		}
+		if hasName && !utils.IsWildMatch(val.Name, searchName) {
+			return
+		}
+		if hasSource && !utils.IsWildMatch(val.Source, searchSource) {
+			return
+		}
+		for i := range predicates {
+			if !predicates[i](ctx, val) {
+				return
+			}
+		}
+		result = append(result, val)
+	})
+
+	total, ret := uc.listUsersPage(result, args)
+	return total, ret, nil
+}
+
+func (uc *userCache) listUsersPage(users []*authcommon.User, args types.UserSearchArgs) (uint32, []*authcommon.User) {
+	total := uint32(len(users))
+	if args.Limit == 0 {
+		return total, nil
+	}
+	start := args.Limit * (args.Offset - 1)
+	end := args.Limit * args.Offset
+	if start > total {
+		return total, nil
+	}
+	if end > total {
+		end = total
+	}
+	return total, users[start:end]
+}
+
+// QueryUserGroups .
+func (uc *userCache) QueryUserGroups(ctx context.Context, args types.UserGroupSearchArgs) (uint32, []*authcommon.UserGroupDetail, error) {
+	searchId, hasId := args.Filters["id"]
+	searchName, hasName := args.Filters["name"]
+	searchOwner, hasOwner := args.Filters["owner"]
+	searchSource, hasSource := args.Filters["source"]
+
+	predicates := types.LoadUserGroupPredicates(ctx)
+
+	searchUserId, hasUserId := args.Filters["user_id"]
+	if hasUserId {
+		if _, ok := uc.users.Load(searchUserId); !ok {
+			return 0, nil, nil
+		}
+		predicates = append(predicates, func(ctx context.Context, ugd *authcommon.UserGroupDetail) bool {
+			_, exist := ugd.UserIds[searchUserId]
+			return exist
+		})
+	}
+
+	result := make([]*authcommon.UserGroupDetail, 0, 32)
+	uc.groups.Range(func(key string, val *authcommon.UserGroupDetail) {
+		// 超级账户不做展示
+		if hasId && searchId != key {
+			return
+		}
+		if hasOwner && val.Owner != searchOwner {
+			return
+		}
+		if hasName && !utils.IsWildMatch(val.Name, searchName) {
+			return
+		}
+		if hasSource && !utils.IsWildMatch(val.Source, searchSource) {
+			return
+		}
+		for i := range predicates {
+			if !predicates[i](ctx, val) {
+				return
+			}
+		}
+		result = append(result, val)
+	})
+
+	total, ret := uc.listUserGroupsPage(result, args)
+	return total, ret, nil
+}
+
+func (uc *userCache) listUserGroupsPage(groups []*authcommon.UserGroupDetail, args types.UserGroupSearchArgs) (uint32, []*authcommon.UserGroupDetail) {
+	total := uint32(len(groups))
+	if args.Limit == 0 {
+		return total, nil
+	}
+	start := args.Limit * (args.Offset - 1)
+	end := args.Limit * args.Offset
+	if start > total {
+		return total, nil
+	}
+	if end > total {
+		end = total
+	}
+	return total, groups[start:end]
 }

@@ -24,7 +24,7 @@ import (
 var (
 	_ types.InstanceCache       = (*instanceCache)(nil)
 	_ types.ServiceCache        = (*serviceCache)(nil)
-	_ types.RoutingConfigCache  = (*routingConfigCache)(nil)
+	_ types.RoutingConfigCache  = (*RouteRuleCache)(nil)
 	_ types.CircuitBreakerCache = (*circuitBreakerCache)(nil)
 	_ types.RateLimitCache      = (*rateLimitCache)(nil)
 	_ types.FaultDetectCache    = (*faultDetectCache)(nil)

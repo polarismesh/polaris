@@ -31,7 +31,7 @@ import (
 	v1 "github.com/polarismesh/polaris/apiserver/grpcserver/discover/v1"
 	"github.com/polarismesh/polaris/apiserver/grpcserver/utils"
 	commonlog "github.com/polarismesh/polaris/common/log"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/healthcheck"
 )
@@ -153,7 +153,7 @@ func (g *GRPCServer) allowAccess(method string) bool {
 
 func (g *GRPCServer) buildInitOptions(option map[string]interface{}) []grpcserver.InitOption {
 	initOptions := []grpcserver.InitOption{
-		grpcserver.WithModule(model.DiscoverModule),
+		grpcserver.WithModule(authcommon.DiscoverModule),
 		grpcserver.WithProtocol(g.GetProtocol()),
 		grpcserver.WithLogger(commonlog.FindScope(commonlog.APIServerLoggerName)),
 		grpcserver.WithMessageToCacheObject(discoverCacheConvert),

@@ -23,11 +23,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/polarismesh/polaris/cache"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	"github.com/polarismesh/polaris/cache"
 )
 
 func TestInstanceCheck(t *testing.T) {

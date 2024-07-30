@@ -66,7 +66,7 @@ type fileCache struct {
 // NewConfigFileCache 创建文件缓存
 func NewConfigFileCache(storage store.Store, cacheMgr types.CacheManager) types.ConfigFileCache {
 	fc := &fileCache{
-		storage:   storage,
+		storage: storage,
 	}
 	fc.BaseCache = types.NewBaseCacheWithRepoerMetrics(storage, cacheMgr, fc.reportMetricsInfo)
 	return fc

@@ -70,10 +70,12 @@ type stableStore struct {
 	*clientStore
 	*adminStore
 	*toolStore
+	*grayStore
+
 	*userStore
 	*groupStore
 	*strategyStore
-	*grayStore
+	*roleStore
 
 	// 主数据库，可以进行读写
 	master *BaseDB

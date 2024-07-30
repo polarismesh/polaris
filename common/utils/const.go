@@ -73,4 +73,6 @@ const (
 	ContextIsFromSystem = StringContext("from-system")
 	// ContextOperator operator info
 	ContextOperator = StringContext("operator")
+	// ContextRequestHeaders request headers
+	ContextRequestHeaders = StringContext("request-headers")
 )

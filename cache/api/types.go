@@ -30,6 +30,7 @@ import (
 
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -66,6 +67,8 @@ const (
 	UsersName = "users"
 	// StrategyRuleName strategy rule config name
 	StrategyRuleName = "strategyRule"
+	// RolesName role data config name
+	RolesName = "roles"
 	// ServiceContractName service contract config name
 	ServiceContractName = "serviceContract"
 	// GrayName gray config name
@@ -93,6 +96,7 @@ const (
 	CacheServiceContract
 	CacheGray
 	CacheLaneRule
+	CacheRole
 
 	CacheLast
 )
@@ -161,9 +165,14 @@ type CacheManager interface {
 	ConfigGroup() ConfigGroupCache
 	// Gray get Gray cache information
 	Gray() GrayCache
+	// Role Get role cache information
+	Role() RoleCache
 }
 
 type (
+	// NamespacePredicate .
+	NamespacePredicate func(context.Context, *model.Namespace) bool
+
 	// NamespaceCache 命名空间的 Cache 接口
 	NamespaceCache interface {
 		Cache
@@ -179,6 +188,9 @@ type (
 )
 
 type (
+	// ServicePredicate .
+	ServicePredicate func(context.Context, *model.Service) bool
+
 	// ServiceIterProc 迭代回调函数
 	ServiceIterProc func(key string, value *model.Service) (bool, error)
 
@@ -206,6 +218,8 @@ type (
 		OnlyExistHealthInstance bool
 		// OnlyExistInstance 只展示存在实例的服务
 		OnlyExistInstance bool
+		// Predicates 额外的数据检查
+		Predicates []ServicePredicate
 	}
 
 	// ServiceCache 服务数据缓存接口
@@ -229,7 +243,7 @@ type (
 		// GetServiceByCl5Name Get the corresponding SID according to CL5name
 		GetServiceByCl5Name(cl5Name string) *model.Service
 		// GetServicesByFilter Serving the service filtering in the cache through Filter
-		GetServicesByFilter(serviceFilters *ServiceArgs,
+		GetServicesByFilter(ctx context.Context, serviceFilters *ServiceArgs,
 			instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.EnhancedService, error)
 		// ListServices get service list and revision by namespace
 		ListServices(ns string) (string, []*model.Service)
@@ -297,23 +311,93 @@ type (
 )
 
 type (
+	// FaultDetectPredicate .
+	FaultDetectPredicate func(context.Context, *model.FaultDetectRule) bool
+	// FaultDetectArgs
+	FaultDetectArgs struct {
+		// Filter extend filter params
+		Filter map[string]string
+		// ID route rule id
+		ID string
+		// Name route rule name
+		Name string
+		// Service service name
+		Service string
+		// Namespace namesapce
+		Namespace        string
+		ServiceNamespace string
+		DstNamespace     string
+		DstService       string
+		DstMethod        string
+		// Enable
+		Enable *bool
+		// Offset
+		Offset uint32
+		// Limit
+		Limit uint32
+		// OrderField Sort field
+		OrderField string
+		// OrderType Sorting rules
+		OrderType string
+		// Predicates 额外的数据检查
+		Predicates []FaultDetectPredicate
+	}
+
 	// FaultDetectCache  fault detect rule cache service
 	FaultDetectCache interface {
 		Cache
+		// Query .
+		Query(context.Context, *FaultDetectArgs) (uint32, []*model.FaultDetectRule, error)
 		// GetFaultDetectConfig 根据ServiceID获取探测配置
 		GetFaultDetectConfig(svcName string, namespace string) *model.ServiceWithFaultDetectRules
+		// GetRule 获取规则 ID 获取主动探测规则
+		GetRule(id string) *model.FaultDetectRule
 	}
 )
 
 type (
+	// LanePredicate .
+	LanePredicate func(context.Context, *model.LaneGroupProto) bool
+	// LaneGroupArgs .
+	LaneGroupArgs struct {
+		// Filter extend filter params
+		Filter map[string]string
+		// ID route rule id
+		ID string
+		// Name route rule name
+		Name string
+		// Service service name
+		Service string
+		// Namespace namesapce
+		Namespace string
+		// Enable
+		Enable *bool
+		// Offset
+		Offset uint32
+		// Limit
+		Limit uint32
+		// OrderField Sort field
+		OrderField string
+		// OrderType Sorting rules
+		OrderType string
+		// Predicates 额外的数据检查
+		Predicates []FaultDetectPredicate
+	}
+	// LaneCache .
 	LaneCache interface {
 		Cache
+		// Query .
+		Query(context.Context, *LaneGroupArgs) (uint32, []*model.LaneGroupProto, error)
 		// GetLaneRules 根据serviceID获取泳道规则
 		GetLaneRules(serviceKey *model.Service) ([]*model.LaneGroupProto, string)
+		// GetRule 获取规则 ID 获取全链路灰度规则
+		GetRule(id string) *model.LaneGroup
 	}
 )
 
 type (
+	// RouteRulePredicate .
+	RouteRulePredicate func(context.Context, *model.ExtendRouterConfig) bool
 	// RoutingArgs Routing rules query parameters
 	RoutingArgs struct {
 		// Filter extend filter params
@@ -344,6 +428,8 @@ type (
 		OrderField string
 		// OrderType Sorting rules
 		OrderType string
+		// Predicates 额外的数据检查
+		Predicates []RouteRulePredicate
 	}
 
 	// RouterRuleIterProc Method definition of routing rules
@@ -356,20 +442,26 @@ type (
 		GetRouterConfig(id, service, namespace string) (*apitraffic.Routing, error)
 		// GetRouterConfig Obtain routing configuration based on serviceid
 		GetRouterConfigV2(id, service, namespace string) (*apitraffic.Routing, error)
+		// GetNearbyRouteRule 根据服务名查询就近路由数据
+		GetNearbyRouteRule(service, namespace string) ([]*apitraffic.RouteRule, string, error)
 		// GetRoutingConfigCount Get the total number of routing configuration cache
 		GetRoutingConfigCount() int
 		// QueryRoutingConfigsV2 Query Route Configuration List
-		QueryRoutingConfigsV2(args *RoutingArgs) (uint32, []*model.ExtendRouterConfig, error)
+		QueryRoutingConfigsV2(context.Context, *RoutingArgs) (uint32, []*model.ExtendRouterConfig, error)
 		// ListRouterRule list all router rule
 		ListRouterRule(service, namespace string) []*model.ExtendRouterConfig
 		// IsConvertFromV1 Whether the current routing rules are converted from the V1 rule
 		IsConvertFromV1(id string) (string, bool)
 		// IteratorRouterRule iterator router rule
 		IteratorRouterRule(iterProc RouterRuleIterProc)
+		// GetRule 获取规则 ID 获取路由规则
+		GetRule(id string) *model.ExtendRouterConfig
 	}
 )
 
 type (
+	// RateLimitRulePredicate .
+	RateLimitRulePredicate func(context.Context, *model.RateLimit) bool
 	// RateLimitRuleArgs ratelimit rules query parameters
 	RateLimitRuleArgs struct {
 		// Filter extend filter params
@@ -392,6 +484,8 @@ type (
 		OrderField string
 		// OrderType Sorting rules
 		OrderType string
+		// Predicates .
+		Predicates []RateLimitRulePredicate
 	}
 
 	// RateLimitIterProc rate limit iter func
@@ -405,9 +499,11 @@ type (
 		// GetRateLimitRules 根据serviceID获取限流数据
 		GetRateLimitRules(serviceKey model.ServiceKey) ([]*model.RateLimit, string)
 		// QueryRateLimitRules
-		QueryRateLimitRules(args RateLimitRuleArgs) (uint32, []*model.RateLimit, error)
+		QueryRateLimitRules(context.Context, RateLimitRuleArgs) (uint32, []*model.RateLimit, error)
 		// GetRateLimitsCount 获取限流规则总数
 		GetRateLimitsCount() int
+		// GetRule 获取规则 ID 获取限流规则
+		GetRule(id string) *model.RateLimit
 	}
 )
 
@@ -429,11 +525,50 @@ type (
 )
 
 type (
+	// CircuitBreakerPredicate .
+	CircuitBreakerPredicate func(context.Context, *model.CircuitBreakerRule) bool
+	// CircuitBreakerRuleArgs .
+	CircuitBreakerRuleArgs struct {
+		// Filter extend filter params
+		Filter map[string]string
+		// ID route rule id
+		ID string
+		// Name route rule name
+		Name string
+		// Service service name
+		Service string
+		// Namespace namesapce
+		Namespace string
+		// SourceService source service name
+		SourceService string
+		// SourceNamespace source service namespace
+		SourceNamespace string
+		// DestinationService destination service name
+		DestinationService string
+		// DestinationNamespace destination service namespace
+		DestinationNamespace string
+		// Enable
+		Enable *bool
+		// Offset
+		Offset uint32
+		// Limit
+		Limit uint32
+		// OrderField Sort field
+		OrderField string
+		// OrderType Sorting rules
+		OrderType string
+		// Predicates 额外的数据检查
+		Predicates []CircuitBreakerPredicate
+	}
 	// CircuitBreakerCache  circuitBreaker配置的cache接口
 	CircuitBreakerCache interface {
 		Cache
+		// Query .
+		Query(context.Context, *CircuitBreakerRuleArgs) (uint32, []*model.CircuitBreakerRule, error)
 		// GetCircuitBreakerConfig 根据ServiceID获取熔断配置
 		GetCircuitBreakerConfig(svcName string, namespace string) *model.ServiceWithCircuitBreakerRules
+		// GetRule 获取规则 ID 获取熔断规则
+		GetRule(id string) *model.CircuitBreakerRule
 	}
 )
 
@@ -490,6 +625,9 @@ type (
 		OrderType string
 	}
 
+	// ConfigGroupPredicate .
+	ConfigGroupPredicate func(context.Context, *model.ConfigFileGroup) bool
+
 	// ConfigGroupCache file cache
 	ConfigGroupCache interface {
 		Cache
@@ -520,38 +658,82 @@ type (
 )
 
 type (
+	UserSearchArgs struct {
+		Filters map[string]string
+		Offset  uint32
+		Limit   uint32
+	}
+	UserGroupSearchArgs struct {
+		Filters map[string]string
+		Offset  uint32
+		Limit   uint32
+	}
+
+	// UserPredicate .
+	UserPredicate func(context.Context, *authcommon.User) bool
+	// UserGroupPredicate .
+	UserGroupPredicate func(context.Context, *authcommon.UserGroupDetail) bool
 	// UserCache User information cache
 	UserCache interface {
 		Cache
 		// GetAdmin 获取管理员信息
-		GetAdmin() *model.User
+		GetAdmin() *authcommon.User
 		// GetUserByID
-		GetUserByID(id string) *model.User
+		GetUserByID(id string) *authcommon.User
 		// GetUserByName
-		GetUserByName(name, ownerName string) *model.User
+		GetUserByName(name, ownerName string) *authcommon.User
 		// GetUserGroup
-		GetGroup(id string) *model.UserGroupDetail
+		GetGroup(id string) *authcommon.UserGroupDetail
 		// IsUserInGroup 判断 userid 是否在对应的 group 中
 		IsUserInGroup(userId, groupId string) bool
 		// IsOwner
 		IsOwner(id string) bool
 		// GetUserLinkGroupIds
 		GetUserLinkGroupIds(id string) []string
+		// QueryUsers .
+		QueryUsers(context.Context, UserSearchArgs) (uint32, []*authcommon.User, error)
+		// QueryUserGroups .
+		QueryUserGroups(context.Context, UserGroupSearchArgs) (uint32, []*authcommon.UserGroupDetail, error)
 	}
+
+	PolicySearchArgs struct {
+		Filters map[string]string
+		Offset  uint32
+		Limit   uint32
+	}
+
+	// AuthPolicyPredicate .
+	AuthPolicyPredicate func(context.Context, *authcommon.StrategyDetail) bool
 
 	// StrategyCache is a cache for strategy rules.
 	StrategyCache interface {
 		Cache
-		// GetStrategyDetailsByUID
-		GetStrategyDetailsByUID(uid string) []*model.StrategyDetail
-		// GetStrategyDetailsByGroupID returns all strategy details of a group.
-		GetStrategyDetailsByGroupID(groupId string) []*model.StrategyDetail
-		// IsResourceLinkStrategy 该资源是否关联了鉴权策略
-		IsResourceLinkStrategy(resType apisecurity.ResourceType, resId string) bool
-		// IsResourceEditable 判断该资源是否可以操作
-		IsResourceEditable(principal model.Principal, resType apisecurity.ResourceType, resId string) bool
-		// ForceSync 强制同步鉴权策略到cache (串行)
-		ForceSync() error
+		// GetPrincipalPolicies 根据 effect 获取 principal 的策略信息
+		GetPrincipalPolicies(effect string, p authcommon.Principal) []*authcommon.StrategyDetail
+		// Hint 确认某个 principal 对于资源的访问权限
+		Hint(p authcommon.Principal, r *authcommon.ResourceEntry) apisecurity.AuthAction
+		// Query .
+		Query(context.Context, PolicySearchArgs) (uint32, []*authcommon.StrategyDetail, error)
+	}
+
+	RoleSearchArgs struct {
+		Filters map[string]string
+		Offset  uint32
+		Limit   uint32
+	}
+
+	// AuthPolicyPredicate .
+	AuthRolePredicate func(context.Context, *authcommon.Role) bool
+
+	// RoleCache .
+	RoleCache interface {
+		Cache
+		// GetRole .
+		GetRole(id string) *authcommon.Role
+		// Query .
+		Query(context.Context, RoleSearchArgs) (uint32, []*authcommon.Role, error)
+		// GetPrincipalRoles .
+		GetPrincipalRoles(authcommon.Principal) []*authcommon.Role
 	}
 )
 

@@ -50,6 +50,7 @@ func init() {
 	RegisterCache(types.ServiceContractName, types.CacheServiceContract)
 	RegisterCache(types.GrayName, types.CacheGray)
 	RegisterCache(types.LaneRuleName, types.CacheLaneRule)
+	RegisterCache(types.RolesName, types.CacheRole)
 }
 
 var (
@@ -93,7 +94,7 @@ func newCacheManager(ctx context.Context, cacheOpt *Config, storage store.Store)
 	// 注册发现 & 服务治理缓存
 	mgr.RegisterCacher(types.CacheService, cachesvc.NewServiceCache(storage, mgr))
 	mgr.RegisterCacher(types.CacheInstance, cachesvc.NewInstanceCache(storage, mgr))
-	mgr.RegisterCacher(types.CacheRoutingConfig, cachesvc.NewRoutingConfigCache(storage, mgr))
+	mgr.RegisterCacher(types.CacheRoutingConfig, cachesvc.NewRouteRuleCache(storage, mgr))
 	mgr.RegisterCacher(types.CacheRateLimit, cachesvc.NewRateLimitCache(storage, mgr))
 	mgr.RegisterCacher(types.CacheCircuitBreaker, cachesvc.NewCircuitBreakerCache(storage, mgr))
 	mgr.RegisterCacher(types.CacheFaultDetector, cachesvc.NewFaultDetectCache(storage, mgr))
@@ -106,6 +107,7 @@ func newCacheManager(ctx context.Context, cacheOpt *Config, storage store.Store)
 	// 用户/用户组 & 鉴权规则缓存
 	mgr.RegisterCacher(types.CacheUser, cacheauth.NewUserCache(storage, mgr))
 	mgr.RegisterCacher(types.CacheAuthStrategy, cacheauth.NewStrategyCache(storage, mgr))
+	mgr.RegisterCacher(types.CacheRole, cacheauth.NewRoleCache(storage, mgr))
 	// 北极星SDK Client
 	mgr.RegisterCacher(types.CacheClient, cacheclient.NewClientCache(storage, mgr))
 	mgr.RegisterCacher(types.CacheGray, cachegray.NewGrayCache(storage, mgr))

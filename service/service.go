@@ -381,7 +381,7 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *apis
 	}
 
 	serviceArgs := parseServiceArgs(serviceFilters, serviceMetas, ctx)
-	total, services, err := s.caches.Service().GetServicesByFilter(serviceArgs, instanceArgs, offset, limit)
+	total, services, err := s.caches.Service().GetServicesByFilter(ctx, serviceArgs, instanceArgs, offset, limit)
 	if err != nil {
 		log.Errorf("[Server][Service][Query] req(%+v) store err: %s", query, err.Error())
 		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))

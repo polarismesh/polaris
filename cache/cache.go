@@ -254,6 +254,11 @@ func (nc *CacheManager) Gray() types.GrayCache {
 	return nc.caches[types.CacheGray].(types.GrayCache)
 }
 
+// Role get Role cache information
+func (nc *CacheManager) Role() types.RoleCache {
+	return nc.caches[types.CacheRole].(types.RoleCache)
+}
+
 // GetCacher get types.Cache impl
 func (nc *CacheManager) GetCacher(cacheIndex types.CacheIndex) types.Cache {
 	return nc.caches[cacheIndex]

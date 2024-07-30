@@ -63,7 +63,7 @@ func (future *InstanceFuture) Reply(cur time.Time, code apimodel.Code, result er
 
 	if !future.needWait {
 		if result != nil {
-			log.Error("[Instance][Regis] receive future result", zap.String("service-id", future.serviceId),
+			log.Error("[Instance][Regis] receive future result", zap.String("instance-id", future.instance.ID()),
 				zap.Error(result))
 		}
 		return

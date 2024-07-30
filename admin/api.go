@@ -20,64 +20,39 @@ package admin
 import (
 	"context"
 
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
-	connlimit "github.com/polarismesh/polaris/common/conn/limit"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/model/admin"
 )
-
-type ConnReq struct {
-	Protocol string
-	Host     string
-	Port     int
-	Amount   int
-}
-
-type ConnCountResp struct {
-	Protocol string
-	Total    int32
-	Host     map[string]int32
-}
-
-type ConnStatsResp struct {
-	Protocol        string
-	ActiveConnTotal int32
-	StatsTotal      int
-	StatsSize       int
-	Stats           []*connlimit.HostConnStat
-}
-
-type ScopeLevel struct {
-	Name  string
-	Level string
-}
 
 // AdminOperateServer Maintain related operation
 type AdminOperateServer interface {
 	// GetServerConnections Get connection count
-	GetServerConnections(ctx context.Context, req *ConnReq) (*ConnCountResp, error)
+	GetServerConnections(ctx context.Context, req *admin.ConnReq) (*admin.ConnCountResp, error)
 	// GetServerConnStats 获取连接缓存里面的统计信息
-	GetServerConnStats(ctx context.Context, req *ConnReq) (*ConnStatsResp, error)
+	GetServerConnStats(ctx context.Context, req *admin.ConnReq) (*admin.ConnStatsResp, error)
 	// CloseConnections Close connection by ip
-	CloseConnections(ctx context.Context, reqs []ConnReq) error
+	CloseConnections(ctx context.Context, reqs []admin.ConnReq) error
 	// FreeOSMemory Free system memory
 	FreeOSMemory(ctx context.Context) error
 	// CleanInstance Clean deleted instance
 	CleanInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response
-
 	// BatchCleanInstances Batch clean deleted instances
 	BatchCleanInstances(ctx context.Context, batchSize uint32) (uint32, error)
 	// GetLastHeartbeat Get last heartbeat
 	GetLastHeartbeat(ctx context.Context, req *apiservice.Instance) *apiservice.Response
-
 	// GetLogOutputLevel Get log output level
-	GetLogOutputLevel(ctx context.Context) ([]ScopeLevel, error)
+	GetLogOutputLevel(ctx context.Context) ([]admin.ScopeLevel, error)
 	// SetLogOutputLevel Set log output level by scope
 	SetLogOutputLevel(ctx context.Context, scope string, level string) error
 	// ListLeaderElections
-	ListLeaderElections(ctx context.Context) ([]*model.LeaderElection, error)
+	ListLeaderElections(ctx context.Context) ([]*admin.LeaderElection, error)
 	// ReleaseLeaderElection
 	ReleaseLeaderElection(ctx context.Context, electKey string) error
 	// GetCMDBInfo get cmdb info
 	GetCMDBInfo(ctx context.Context) ([]model.LocationView, error)
+	// InitMainUser
+	InitMainUser(ctx context.Context, user apisecurity.User) error
 }

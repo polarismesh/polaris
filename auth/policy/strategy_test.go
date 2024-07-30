@@ -37,23 +37,24 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	storemock "github.com/polarismesh/polaris/store/mock"
 )
 
 type StrategyTest struct {
-	admin    *model.User
-	ownerOne *model.User
-	ownerTwo *model.User
+	admin    *authcommon.User
+	ownerOne *authcommon.User
+	ownerTwo *authcommon.User
 
 	namespaces        []*model.Namespace
 	services          []*model.Service
-	strategies        []*model.StrategyDetail
-	allStrategies     []*model.StrategyDetail
-	defaultStrategies []*model.StrategyDetail
+	strategies        []*authcommon.StrategyDetail
+	allStrategies     []*authcommon.StrategyDetail
+	defaultStrategies []*authcommon.StrategyDetail
 
-	users  []*model.User
-	groups []*model.UserGroupDetail
+	users  []*authcommon.User
+	groups []*authcommon.UserGroupDetail
 
 	storage  *storemock.MockStore
 	cacheMgn *cache.CacheManager
@@ -80,7 +81,7 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 	serviceMap := convertServiceSliceToMap(services)
 	defaultStrategies, strategies := createMockStrategy(users, groups, services[:len(users)+len(groups)])
 
-	allStrategies := make([]*model.StrategyDetail, 0, len(defaultStrategies)+len(strategies))
+	allStrategies := make([]*authcommon.StrategyDetail, 0, len(defaultStrategies)+len(strategies))
 	allStrategies = append(allStrategies, defaultStrategies...)
 	allStrategies = append(allStrategies, strategies...)
 
@@ -90,7 +91,7 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(users, nil)
 	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(groups, nil)
-	storage.EXPECT().GetStrategyDetailsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(allStrategies, nil)
+	storage.EXPECT().GetMoreStrategies(gomock.Any(), gomock.Any()).AnyTimes().Return(allStrategies, nil)
 	storage.EXPECT().GetMoreNamespaces(gomock.Any()).AnyTimes().Return(namespaces, nil)
 	storage.EXPECT().GetMoreServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(serviceMap, nil)
 	storage.EXPECT().GetStrategyResources(gomock.Eq(users[1].ID), gomock.Any()).AnyTimes().Return(strategies[1].Resources, nil)
@@ -141,7 +142,7 @@ func newStrategyTest(t *testing.T) *StrategyTest {
 				"salt": "polarismesh@2021",
 			},
 		},
-	}, storage, cacheMgn)
+	}, storage, nil, cacheMgn)
 
 	_, svr, err := newPolicyServer()
 	if err != nil {
@@ -217,7 +218,7 @@ func Test_CreateStrategy(t *testing.T) {
 	_ = strategyTest.cacheMgn.TestUpdate()
 
 	t.Run("正常创建鉴权策略", func(t *testing.T) {
-		strategyTest.storage.EXPECT().AddStrategy(gomock.Any()).Return(nil)
+		strategyTest.storage.EXPECT().AddStrategy(gomock.Any(), gomock.Any()).Return(nil)
 
 		valCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, strategyTest.users[0].Token)
 		strategyId := utils.NewUUID()
@@ -776,7 +777,7 @@ func Test_parseStrategySearchArgs(t *testing.T) {
 				ctx: func() context.Context {
 					ctx := context.WithValue(context.Background(), utils.ContextOwnerIDKey, "owner")
 					ctx = context.WithValue(ctx, utils.ContextUserIDKey, "user")
-					ctx = context.WithValue(ctx, utils.ContextUserRoleIDKey, model.OwnerUserRole)
+					ctx = context.WithValue(ctx, utils.ContextUserRoleIDKey, authcommon.OwnerUserRole)
 					ctx = context.WithValue(ctx, utils.ContextIsOwnerKey, true)
 					return ctx
 				}(),
@@ -795,7 +796,7 @@ func Test_parseStrategySearchArgs(t *testing.T) {
 				ctx: func() context.Context {
 					ctx := context.WithValue(context.Background(), utils.ContextOwnerIDKey, "owner")
 					ctx = context.WithValue(ctx, utils.ContextUserIDKey, "user")
-					ctx = context.WithValue(ctx, utils.ContextUserRoleIDKey, model.OwnerUserRole)
+					ctx = context.WithValue(ctx, utils.ContextUserRoleIDKey, authcommon.OwnerUserRole)
 					ctx = context.WithValue(ctx, utils.ContextIsOwnerKey, true)
 					return ctx
 				}(),
@@ -814,7 +815,7 @@ func Test_parseStrategySearchArgs(t *testing.T) {
 				ctx: func() context.Context {
 					ctx := context.WithValue(context.Background(), utils.ContextOwnerIDKey, "owner")
 					ctx = context.WithValue(ctx, utils.ContextUserIDKey, "user")
-					ctx = context.WithValue(ctx, utils.ContextUserRoleIDKey, model.SubAccountUserRole)
+					ctx = context.WithValue(ctx, utils.ContextUserRoleIDKey, authcommon.SubAccountUserRole)
 					ctx = context.WithValue(ctx, utils.ContextIsOwnerKey, false)
 					return ctx
 				}(),
@@ -834,7 +835,7 @@ func Test_parseStrategySearchArgs(t *testing.T) {
 				ctx: func() context.Context {
 					ctx := context.WithValue(context.Background(), utils.ContextOwnerIDKey, "owner")
 					ctx = context.WithValue(ctx, utils.ContextUserIDKey, "user")
-					ctx = context.WithValue(ctx, utils.ContextUserRoleIDKey, model.OwnerUserRole)
+					ctx = context.WithValue(ctx, utils.ContextUserRoleIDKey, authcommon.OwnerUserRole)
 					ctx = context.WithValue(ctx, utils.ContextIsOwnerKey, true)
 					return ctx
 				}(),
@@ -853,7 +854,7 @@ func Test_parseStrategySearchArgs(t *testing.T) {
 				ctx: func() context.Context {
 					ctx := context.WithValue(context.Background(), utils.ContextOwnerIDKey, "owner")
 					ctx = context.WithValue(ctx, utils.ContextUserIDKey, "user")
-					ctx = context.WithValue(ctx, utils.ContextUserRoleIDKey, model.OwnerUserRole)
+					ctx = context.WithValue(ctx, utils.ContextUserRoleIDKey, authcommon.OwnerUserRole)
 					ctx = context.WithValue(ctx, utils.ContextIsOwnerKey, true)
 					return ctx
 				}(),

@@ -62,27 +62,7 @@ func (s *Server) GetConfigFileRelease(ctx context.Context,
 // DeleteConfigFileReleases implements ConfigCenterServer.
 func (s *Server) DeleteConfigFileReleases(ctx context.Context,
 	reqs []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse {
-	responses := api.NewConfigBatchWriteResponse(apimodel.Code_ExecuteSuccess)
-	chs := make([]chan *apiconfig.ConfigResponse, 0, len(reqs))
-	for i, instance := range reqs {
-		chs = append(chs, make(chan *apiconfig.ConfigResponse))
-		go func(index int, ins *apiconfig.ConfigFileRelease) {
-			chs[index] <- s.DeleteConfigFileRelease(ctx, ins)
-		}(i, instance)
-	}
-
-	for _, ch := range chs {
-		resp := <-ch
-		api.ConfigCollect(responses, resp)
-	}
-	return responses
-}
-
-func (s *Server) DeleteConfigFileRelease(ctx context.Context, req *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
-	if errCode, errMsg := checkBaseReleaseParam(req, true); errCode != apimodel.Code_ExecuteSuccess {
-		return api.NewConfigResponseWithInfo(errCode, errMsg)
-	}
-	return s.nextServer.DeleteConfigFileRelease(ctx, req)
+	return s.nextServer.DeleteConfigFileReleases(ctx, reqs)
 }
 
 // GetConfigFileReleaseVersions implements ConfigCenterServer.
@@ -138,28 +118,7 @@ func (s *Server) GetConfigFileReleases(ctx context.Context,
 func (s *Server) RollbackConfigFileReleases(ctx context.Context,
 	reqs []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse {
 
-	responses := api.NewConfigBatchWriteResponse(apimodel.Code_ExecuteSuccess)
-	chs := make([]chan *apiconfig.ConfigResponse, 0, len(reqs))
-	for i, instance := range reqs {
-		chs = append(chs, make(chan *apiconfig.ConfigResponse))
-		go func(index int, ins *apiconfig.ConfigFileRelease) {
-			chs[index] <- s.RollbackConfigFileRelease(ctx, ins)
-		}(i, instance)
-	}
-
-	for _, ch := range chs {
-		resp := <-ch
-		api.ConfigCollect(responses, resp)
-	}
-	return responses
-}
-
-func (s *Server) RollbackConfigFileRelease(ctx context.Context,
-	req *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
-	if errCode, errMsg := checkBaseReleaseParam(req, true); errCode != apimodel.Code_ExecuteSuccess {
-		return api.NewConfigResponseWithInfo(errCode, errMsg)
-	}
-	return s.nextServer.RollbackConfigFileRelease(ctx, req)
+	return s.nextServer.RollbackConfigFileReleases(ctx, reqs)
 }
 
 // UpsertAndReleaseConfigFile .

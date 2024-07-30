@@ -20,28 +20,22 @@ package auth
 import (
 	"context"
 
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/model"
-	"github.com/polarismesh/polaris/common/utils"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/store"
 )
 
-var (
-	// MustOwner 必须超级账户 or 主账户
-	MustOwner = true
-	// NotOwner 任意账户
-	NotOwner = false
-	// WriteOp 写操作
-	WriteOp = true
-	// ReadOp 读操作
-	ReadOp = false
+type (
+	PolicyInfoGetter interface {
+		GetId() *wrappers.StringValue
+		GetName() *wrappers.StringValue
+	}
 )
 
 func NewServer(nextSvr auth.StrategyServer) auth.StrategyServer {
@@ -53,6 +47,11 @@ func NewServer(nextSvr auth.StrategyServer) auth.StrategyServer {
 type Server struct {
 	nextSvr auth.StrategyServer
 	userSvr auth.UserServer
+}
+
+// PolicyHelper implements auth.StrategyServer.
+func (svr *Server) PolicyHelper() auth.PolicyHelper {
+	return svr.nextSvr.PolicyHelper()
 }
 
 // Initialize 执行初始化动作
@@ -68,19 +67,39 @@ func (svr *Server) Name() string {
 
 // CreateStrategy 创建策略
 func (svr *Server) CreateStrategy(ctx context.Context, strategy *apisecurity.AuthStrategy) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
-	if rsp != nil {
-		return rsp
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Create),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.CreateAuthPolicy),
+	)
+
+	if _, err := svr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		resp := api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return resp
 	}
 	return svr.nextSvr.CreateStrategy(ctx, strategy)
 }
 
 // UpdateStrategies 批量更新策略
 func (svr *Server) UpdateStrategies(ctx context.Context, reqs []*apisecurity.ModifyAuthStrategy) *apiservice.BatchWriteResponse {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
-	if rsp != nil {
-		resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
-		api.Collect(resp, rsp)
+	resources := make([]authcommon.ResourceEntry, 0, len(reqs))
+	for i := range reqs {
+		item := reqs[i]
+		resources = append(resources, authcommon.ResourceEntry{
+			ID: item.GetId().GetValue(),
+		})
+	}
+
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Modify),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.UpdateAuthPolicies),
+	)
+
+	if _, err := svr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		resp := api.NewBatchWriteResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 		return resp
 	}
 	return svr.nextSvr.UpdateStrategies(ctx, reqs)
@@ -88,10 +107,23 @@ func (svr *Server) UpdateStrategies(ctx context.Context, reqs []*apisecurity.Mod
 
 // DeleteStrategies 删除策略
 func (svr *Server) DeleteStrategies(ctx context.Context, reqs []*apisecurity.AuthStrategy) *apiservice.BatchWriteResponse {
-	ctx, rsp := svr.verifyAuth(ctx, WriteOp, MustOwner)
-	if rsp != nil {
-		resp := api.NewAuthBatchWriteResponse(apimodel.Code_ExecuteSuccess)
-		api.Collect(resp, rsp)
+	resources := make([]authcommon.ResourceEntry, 0, len(reqs))
+	for i := range reqs {
+		item := reqs[i]
+		resources = append(resources, authcommon.ResourceEntry{
+			ID: item.GetId().GetValue(),
+		})
+	}
+
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Delete),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.DeleteAuthPolicies),
+	)
+
+	if _, err := svr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		resp := api.NewBatchWriteResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 		return resp
 	}
 	return svr.nextSvr.DeleteStrategies(ctx, reqs)
@@ -101,27 +133,66 @@ func (svr *Server) DeleteStrategies(ctx context.Context, reqs []*apisecurity.Aut
 // support 1. 支持按照 principal-id + principal-role 进行查询
 // support 2. 支持普通的鉴权策略查询
 func (svr *Server) GetStrategies(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
-	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
-	if rsp != nil {
-		return api.NewAuthBatchQueryResponseWithMsg(apimodel.Code(rsp.GetCode().Value), rsp.Info.Value)
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Read),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.DescribeAuthPolicies),
+	)
+
+	if err := svr.userSvr.CheckCredential(authCtx); err != nil {
+		return api.NewAuthBatchQueryResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
+
+	checker := svr.GetAuthChecker()
+	cachetypes.AppendAuthPolicyPredicate(ctx, func(ctx context.Context, sd *authcommon.StrategyDetail) bool {
+		return checker.ResourcePredicate(authCtx, &authcommon.ResourceEntry{
+			Type: apisecurity.ResourceType_PolicyRules,
+			ID:   sd.ID,
+		})
+	})
+
 	return svr.nextSvr.GetStrategies(ctx, query)
 }
 
 // GetStrategy 获取策略详细
 func (svr *Server) GetStrategy(ctx context.Context, strategy *apisecurity.AuthStrategy) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
-	if rsp != nil {
-		return rsp
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Read),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.DescribeAuthPolicyDetail),
+	)
+
+	checker := svr.GetAuthChecker()
+
+	if _, err := checker.CheckConsolePermission(authCtx); err != nil {
+		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
+
+	cachetypes.AppendAuthPolicyPredicate(ctx, func(ctx context.Context, sd *authcommon.StrategyDetail) bool {
+		return checker.ResourcePredicate(authCtx, &authcommon.ResourceEntry{
+			Type: apisecurity.ResourceType_PolicyRules,
+			ID:   sd.ID,
+		})
+	})
+
 	return svr.nextSvr.GetStrategy(ctx, strategy)
 }
 
 // GetPrincipalResources 获取某个 principal 的所有可操作资源列表
 func (svr *Server) GetPrincipalResources(ctx context.Context, query map[string]string) *apiservice.Response {
-	ctx, rsp := svr.verifyAuth(ctx, ReadOp, NotOwner)
-	if rsp != nil {
-		return rsp
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Read),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.DescribePrincipalResources),
+	)
+
+	checker := svr.GetAuthChecker()
+
+	if _, err := checker.CheckConsolePermission(authCtx); err != nil {
+		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
 	return svr.nextSvr.GetPrincipalResources(ctx, query)
 }
@@ -132,57 +203,26 @@ func (svr *Server) GetAuthChecker() auth.AuthChecker {
 }
 
 // AfterResourceOperation 操作完资源的后置处理逻辑
-func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error {
+func (svr *Server) AfterResourceOperation(afterCtx *authcommon.AcquireContext) error {
 	return svr.nextSvr.AfterResourceOperation(afterCtx)
 }
 
-// verifyAuth 用于 user、group 以及 strategy 模块的鉴权工作检查
-func (svr *Server) verifyAuth(ctx context.Context, isWrite bool,
-	needOwner bool) (context.Context, *apiservice.Response) {
-	reqId := utils.ParseRequestID(ctx)
-	authToken := utils.ParseAuthToken(ctx)
+// CreateRoles 批量创建角色
+func (svr *Server) CreateRoles(ctx context.Context, reqs []*apisecurity.Role) *apiservice.BatchWriteResponse {
+	return nil
+}
 
-	if authToken == "" {
-		log.Error("[Auth][Server] auth token is empty", utils.ZapRequestID(reqId))
-		return nil, api.NewAuthResponse(apimodel.Code_EmptyAutToken)
-	}
+// UpdateRoles 批量更新角色
+func (svr *Server) UpdateRoles(ctx context.Context, reqs []*apisecurity.Role) *apiservice.BatchWriteResponse {
+	return nil
+}
 
-	authCtx := model.NewAcquireContext(
-		model.WithRequestContext(ctx),
-		model.WithModule(model.AuthModule),
-	)
+// DeleteRoles 批量删除角色
+func (svr *Server) DeleteRoles(ctx context.Context, reqs []*apisecurity.Role) *apiservice.BatchWriteResponse {
+	return nil
+}
 
-	// case 1. 如果 error 不是 token 被禁止的 error，直接返回
-	// case 2. 如果 error 是 token 被禁止，按下面情况判断
-	// 		i. 如果当前只是一个数据的读取操作，则放通
-	// 		ii. 如果当前是一个数据的写操作，则只能允许处于正常的 token 进行操作
-	if err := svr.userSvr.CheckCredential(authCtx); err != nil {
-		log.Error("[Auth][Server] verify auth token", utils.ZapRequestID(reqId), zap.Error(err))
-		return nil, api.NewAuthResponse(apimodel.Code_AuthTokenForbidden)
-	}
-
-	attachVal, exist := authCtx.GetAttachment(model.TokenDetailInfoKey)
-	if !exist {
-		log.Error("[Auth][Server] token detail info not exist", utils.ZapRequestID(reqId))
-		return nil, api.NewAuthResponse(apimodel.Code_TokenNotExisted)
-	}
-
-	operateInfo := attachVal.(auth.OperatorInfo)
-	if isWrite && operateInfo.Disable {
-		log.Error("[Auth][Server] token is disabled", utils.ZapRequestID(reqId),
-			zap.String("operation", authCtx.GetMethod()))
-		return nil, api.NewAuthResponse(apimodel.Code_TokenDisabled)
-	}
-
-	if !operateInfo.IsUserToken {
-		log.Error("[Auth][Server] only user role can access this API", utils.ZapRequestID(reqId))
-		return nil, api.NewAuthResponse(apimodel.Code_OperationRoleForbidden)
-	}
-
-	if needOwner && auth.IsSubAccount(operateInfo) {
-		log.Error("[Auth][Server] only admin/owner account can access this API", utils.ZapRequestID(reqId))
-		return nil, api.NewAuthResponse(apimodel.Code_OperationRoleForbidden)
-	}
-
-	return authCtx.GetRequestContext(), nil
+// GetRoles 查询角色列表
+func (svr *Server) GetRoles(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
+	return nil
 }

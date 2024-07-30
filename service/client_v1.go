@@ -250,7 +250,7 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, filter *apiservice.D
 		}
 		ret := s.caches.Instance().DiscoverServiceInstances(specSvc.GetId().GetValue(), filter.GetOnlyHealthyInstance())
 		for i := range ret {
-			copyIns := s.getInstance(req, ret[i].Proto)
+			copyIns := s.getInstance(specSvc, ret[i].Proto)
 			// 注意：这里的value是cache的，不修改cache的数据，通过getInstance，浅拷贝一份数据
 			finalInstances[copyIns.GetId().GetValue()] = copyIns
 		}

@@ -23,5 +23,5 @@ import (
 
 var (
 	_ types.UserCache     = (*userCache)(nil)
-	_ types.StrategyCache = (*strategyCache)(nil)
+	_ types.StrategyCache = (*policyCache)(nil)
 )

@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	model "github.com/polarismesh/polaris/common/model"
+	admin "github.com/polarismesh/polaris/common/model/admin"
 )
 
 // MockLeaderElectionStore is a mock of LeaderElectionStore interface.
@@ -95,10 +95,10 @@ func (mr *MockLeaderElectionStoreMockRecorder) GetVersion(key interface{}) *gomo
 }
 
 // ListLeaderElections mocks base method.
-func (m *MockLeaderElectionStore) ListLeaderElections() ([]*model.LeaderElection, error) {
+func (m *MockLeaderElectionStore) ListLeaderElections() ([]*admin.LeaderElection, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListLeaderElections")
-	ret0, _ := ret[0].([]*model.LeaderElection)
+	ret0, _ := ret[0].([]*admin.LeaderElection)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

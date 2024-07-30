@@ -249,6 +249,7 @@ func ConvertGRPCContext(ctx context.Context) context.Context {
 
 	ctx = context.Background()
 	ctx = context.WithValue(ctx, ContextGrpcHeader, meta)
+	ctx = context.WithValue(ctx, ContextRequestHeaders, meta)
 	ctx = context.WithValue(ctx, StringContext("request-id"), requestID)
 	ctx = context.WithValue(ctx, StringContext("client-ip"), clientIP)
 	ctx = context.WithValue(ctx, ContextClientAddress, address)

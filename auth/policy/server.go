@@ -31,6 +31,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
@@ -49,6 +50,10 @@ type AuthConfig struct {
 	ConsoleStrict bool `json:"consoleStrict"`
 	// ClientStrict 是否启用鉴权的严格模式，即对于没有任何鉴权策略的资源，也必须带上正确的token才能操作, 默认关闭
 	ClientStrict bool `json:"clientStrict"`
+	// CredibleHeaders 可信请求 Header
+	CredibleHeaders map[string]string
+	// OpenPrincipalDefaultPolicy 是否开启 principal 默认策略
+	OpenPrincipalDefaultPolicy bool `json:"openPrincipalDefaultPolicy"`
 }
 
 // DefaultAuthConfig 返回一个默认的鉴权配置
@@ -68,10 +73,19 @@ func DefaultAuthConfig() *AuthConfig {
 type Server struct {
 	options  *AuthConfig
 	storage  store.Store
-	history  plugin.History
 	cacheMgr cachetypes.CacheManager
-	checker  *DefaultAuthChecker
+	checker  auth.AuthChecker
 	userSvr  auth.UserServer
+}
+
+// PolicyHelper implements auth.StrategyServer.
+func (svr *Server) PolicyHelper() auth.PolicyHelper {
+	return &DefaultPolicyHelper{
+		options:  svr.options,
+		storage:  svr.storage,
+		cacheMgr: svr.cacheMgr,
+		checker:  svr.checker,
+	}
 }
 
 // initialize
@@ -86,14 +100,12 @@ func (svr *Server) Initialize(options *auth.Config, storage store.Store, cacheMg
 	_ = cacheMgr.OpenResourceCache(cachetypes.ConfigEntry{
 		Name: cachetypes.StrategyRuleName,
 	})
-	// 获取History插件，注意：插件的配置在bootstrap已经设置好
-	svr.history = plugin.GetHistory()
-	if svr.history == nil {
-		log.Warnf("Not Found History Log Plugin")
-	}
 
-	svr.checker = &DefaultAuthChecker{}
-	svr.checker.Initialize(svr.options, svr.storage, cacheMgr, userSvr)
+	checker := &DefaultAuthChecker{
+		policyMgr: svr,
+	}
+	checker.Initialize(svr.options, svr.storage, cacheMgr, userSvr)
+	svr.checker = checker
 	return nil
 }
 
@@ -152,23 +164,17 @@ func (svr *Server) GetAuthChecker() auth.AuthChecker {
 
 // RecordHistory Server对外提供history插件的简单封装
 func (svr *Server) RecordHistory(entry *model.RecordEntry) {
-	// 如果插件没有初始化，那么不记录history
-	if svr.history == nil {
-		return
-	}
-	// 如果数据为空，则不需要打印了
-	if entry == nil {
-		return
-	}
+	plugin.GetHistory().Record(entry)
+}
 
-	// 调用插件记录history
-	svr.history.Record(entry)
+func (svr *Server) isOpenAuth() bool {
+	return svr.checker.IsOpenClientAuth() || svr.checker.IsOpenConsoleAuth()
 }
 
 // AfterResourceOperation 对于资源的添加删除操作，需要执行后置逻辑
 // 所有子用户或者用户分组，都默认获得对所创建的资源的写权限
-func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error {
-	if !svr.checker.IsOpenAuth() || afterCtx.GetOperation() == model.Read {
+func (svr *Server) AfterResourceOperation(afterCtx *authcommon.AcquireContext) error {
+	if !svr.isOpenAuth() || afterCtx.GetOperation() == authcommon.Read {
 		return nil
 	}
 
@@ -181,7 +187,7 @@ func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 		return nil
 	}
 
-	attachVal, ok := afterCtx.GetAttachment(model.TokenDetailInfoKey)
+	attachVal, ok := afterCtx.GetAttachment(authcommon.TokenDetailInfoKey)
 	if !ok {
 		return nil
 	}
@@ -195,13 +201,13 @@ func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 		return nil
 	}
 
-	addUserIds := afterCtx.GetAttachments()[model.LinkUsersKey].([]string)
-	addGroupIds := afterCtx.GetAttachments()[model.LinkGroupsKey].([]string)
-	removeUserIds := afterCtx.GetAttachments()[model.RemoveLinkUsersKey].([]string)
-	removeGroupIds := afterCtx.GetAttachments()[model.RemoveLinkGroupsKey].([]string)
+	addUserIds := afterCtx.GetAttachments()[authcommon.LinkUsersKey].([]string)
+	addGroupIds := afterCtx.GetAttachments()[authcommon.LinkGroupsKey].([]string)
+	removeUserIds := afterCtx.GetAttachments()[authcommon.RemoveLinkUsersKey].([]string)
+	removeGroupIds := afterCtx.GetAttachments()[authcommon.RemoveLinkGroupsKey].([]string)
 
 	// 只有在创建一个资源的时候，才需要把当前的创建者一并加到里面去
-	if afterCtx.GetOperation() == model.Create {
+	if afterCtx.GetOperation() == authcommon.Create {
 		if tokenInfo.IsUserToken {
 			addUserIds = append(addUserIds, tokenInfo.OperatorID)
 		} else {
@@ -210,28 +216,28 @@ func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 	}
 
 	log.Info("[Auth][Server] add resource to principal default strategy",
-		zap.Any("resource", afterCtx.GetAttachments()[model.ResourceAttachmentKey]),
+		zap.Any("resource", afterCtx.GetAttachments()[authcommon.ResourceAttachmentKey]),
 		zap.Any("add_user", addUserIds),
 		zap.Any("add_group", addGroupIds), zap.Any("remove_user", removeUserIds),
 		zap.Any("remove_group", removeGroupIds),
 	)
 
 	// 添加某些用户、用户组与资源的默认授权关系
-	if err := svr.handleUserStrategy(addUserIds, afterCtx, false); err != nil {
+	if err := svr.handleChangeUserPolicy(addUserIds, afterCtx, false); err != nil {
 		log.Error("[Auth][Server] add user link resource", zap.Error(err))
 		return err
 	}
-	if err := svr.handleGroupStrategy(addGroupIds, afterCtx, false); err != nil {
+	if err := svr.handleChangeUserGroupPolicy(addGroupIds, afterCtx, false); err != nil {
 		log.Error("[Auth][Server] add group link resource", zap.Error(err))
 		return err
 	}
 
 	// 清理某些用户、用户组与资源的默认授权关系
-	if err := svr.handleUserStrategy(removeUserIds, afterCtx, true); err != nil {
+	if err := svr.handleChangeUserPolicy(removeUserIds, afterCtx, true); err != nil {
 		log.Error("[Auth][Server] remove user link resource", zap.Error(err))
 		return err
 	}
-	if err := svr.handleGroupStrategy(removeGroupIds, afterCtx, true); err != nil {
+	if err := svr.handleChangeUserGroupPolicy(removeGroupIds, afterCtx, true); err != nil {
 		log.Error("[Auth][Server] remove group link resource", zap.Error(err))
 		return err
 	}
@@ -240,7 +246,7 @@ func (svr *Server) AfterResourceOperation(afterCtx *model.AcquireContext) error 
 }
 
 // handleUserStrategy
-func (svr *Server) handleUserStrategy(userIds []string, afterCtx *model.AcquireContext, isRemove bool) error {
+func (svr *Server) handleChangeUserPolicy(userIds []string, afterCtx *authcommon.AcquireContext, isRemove bool) error {
 	for index := range utils.StringSliceDeDuplication(userIds) {
 		userId := userIds[index]
 		user := svr.userSvr.GetUserHelper().GetUser(context.TODO(), &apisecurity.User{
@@ -254,7 +260,7 @@ func (svr *Server) handleUserStrategy(userIds []string, afterCtx *model.AcquireC
 		if ownerId == "" {
 			ownerId = user.GetId().GetValue()
 		}
-		if err := svr.handlerModifyDefaultStrategy(userId, ownerId, model.PrincipalUser,
+		if err := svr.changePrincipalPolicies(userId, ownerId, authcommon.PrincipalUser,
 			afterCtx, isRemove); err != nil {
 			return err
 		}
@@ -263,7 +269,7 @@ func (svr *Server) handleUserStrategy(userIds []string, afterCtx *model.AcquireC
 }
 
 // handleGroupStrategy
-func (svr *Server) handleGroupStrategy(groupIds []string, afterCtx *model.AcquireContext, isRemove bool) error {
+func (svr *Server) handleChangeUserGroupPolicy(groupIds []string, afterCtx *authcommon.AcquireContext, isRemove bool) error {
 	for index := range utils.StringSliceDeDuplication(groupIds) {
 		groupId := groupIds[index]
 		group := svr.userSvr.GetUserHelper().GetGroup(context.TODO(), &apisecurity.UserGroup{
@@ -273,7 +279,7 @@ func (svr *Server) handleGroupStrategy(groupIds []string, afterCtx *model.Acquir
 			return errors.New("not found target group")
 		}
 		ownerId := group.GetOwner().GetValue()
-		if err := svr.handlerModifyDefaultStrategy(groupId, ownerId, model.PrincipalGroup,
+		if err := svr.changePrincipalPolicies(groupId, ownerId, authcommon.PrincipalGroup,
 			afterCtx, isRemove); err != nil {
 			return err
 		}
@@ -282,10 +288,10 @@ func (svr *Server) handleGroupStrategy(groupIds []string, afterCtx *model.Acquir
 	return nil
 }
 
-// handlerModifyDefaultStrategy 处理默认策略的修改
+// changePrincipalPolicies 处理默认策略的修改
 // case 1. 如果默认策略是全部放通
-func (svr *Server) handlerModifyDefaultStrategy(id, ownerId string, uType model.PrincipalType,
-	afterCtx *model.AcquireContext, cleanRealtion bool) error {
+func (svr *Server) changePrincipalPolicies(id, ownerId string, uType authcommon.PrincipalType,
+	afterCtx *authcommon.AcquireContext, cleanRealtion bool) error {
 	// Get the default policy rules
 	strategy, err := svr.storage.GetDefaultStrategyDetailByPrincipal(id, uType)
 	if err != nil {
@@ -298,26 +304,26 @@ func (svr *Server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 	}
 
 	var (
-		strategyResource = make([]model.StrategyResource, 0)
+		strategyResource = make([]authcommon.StrategyResource, 0)
 		strategyId       = strategy.ID
 	)
-	attachVal, ok := afterCtx.GetAttachment(model.ResourceAttachmentKey)
+	attachVal, ok := afterCtx.GetAttachment(authcommon.ResourceAttachmentKey)
 	if !ok {
 		return nil
 	}
-	resources, ok := attachVal.(map[apisecurity.ResourceType][]model.ResourceEntry)
+	resources, ok := attachVal.(map[apisecurity.ResourceType][]authcommon.ResourceEntry)
 	if !ok {
 		return nil
 	}
 	// 资源删除时，清理该资源与所有策略的关联关系
-	if afterCtx.GetOperation() == model.Delete {
+	if afterCtx.GetOperation() == authcommon.Delete {
 		strategyId = ""
 	}
 
 	for rType, rIds := range resources {
 		for i := range rIds {
 			id := rIds[i]
-			strategyResource = append(strategyResource, model.StrategyResource{
+			strategyResource = append(strategyResource, authcommon.StrategyResource{
 				StrategyID: strategyId,
 				ResType:    int32(rType),
 				ResID:      id.ID,
@@ -333,11 +339,11 @@ func (svr *Server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 		HappenTime:   time.Now(),
 	}
 
-	if afterCtx.GetOperation() == model.Delete || cleanRealtion {
+	if afterCtx.GetOperation() == authcommon.Delete || cleanRealtion {
 		if err = svr.storage.RemoveStrategyResources(strategyResource); err != nil {
 			log.Error("[Auth][Server] remove default strategy resource",
 				zap.String("owner", ownerId), zap.String("id", id),
-				zap.String("type", model.PrincipalNames[uType]), zap.Error(err))
+				zap.String("type", authcommon.PrincipalNames[uType]), zap.Error(err))
 			return err
 		}
 		entry.OperationType = model.ODelete
@@ -348,7 +354,7 @@ func (svr *Server) handlerModifyDefaultStrategy(id, ownerId string, uType model.
 	if err = svr.storage.LooseAddStrategyResources(strategyResource); err != nil {
 		log.Error("[Auth][Server] update default strategy resource",
 			zap.String("owner", ownerId), zap.String("id", id), zap.String("id", id),
-			zap.String("type", model.PrincipalNames[uType]), zap.Error(err))
+			zap.String("type", authcommon.PrincipalNames[uType]), zap.Error(err))
 		return err
 	}
 	entry.OperationType = model.OUpdate

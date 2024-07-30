@@ -18,6 +18,7 @@
 package service
 
 import (
+	"context"
 	"sort"
 	"strings"
 
@@ -29,7 +30,7 @@ import (
 )
 
 // forceUpdate 更新配置
-func (rc *routingConfigCache) forceUpdate() error {
+func (rc *RouteRuleCache) forceUpdate() error {
 	if err := rc.Update(); err != nil {
 		return err
 	}
@@ -53,8 +54,8 @@ func queryRoutingRuleV2ByService(rule *model.ExtendRouterConfig, sourceNamespace
 	destService, isWildDestSvc := utils.ParseWildName(destService)
 	destNamespace, isWildDestNamespace := utils.ParseWildName(destNamespace)
 
-	for i := range rule.RuleRouting.Rules {
-		subRule := rule.RuleRouting.Rules[i]
+	for i := range rule.RuleRouting.RuleRouting.Rules {
+		subRule := rule.RuleRouting.RuleRouting.Rules[i]
 		sources := subRule.GetSources()
 		if hasSourceNamespace || hasSourceSvc {
 			for i := range sources {
@@ -119,7 +120,7 @@ func queryRoutingRuleV2ByService(rule *model.ExtendRouterConfig, sourceNamespace
 }
 
 // QueryRoutingConfigsV2 Query Route Configuration List
-func (rc *routingConfigCache) QueryRoutingConfigsV2(args *types.RoutingArgs) (uint32, []*model.ExtendRouterConfig, error) {
+func (rc *RouteRuleCache) QueryRoutingConfigsV2(ctx context.Context, args *types.RoutingArgs) (uint32, []*model.ExtendRouterConfig, error) {
 	if err := rc.forceUpdate(); err != nil {
 		return 0, nil, err
 	}
@@ -188,7 +189,7 @@ func (rc *routingConfigCache) QueryRoutingConfigsV2(args *types.RoutingArgs) (ui
 	return amount, routings, nil
 }
 
-func (rc *routingConfigCache) sortBeforeTrim(routings []*model.ExtendRouterConfig,
+func (rc *RouteRuleCache) sortBeforeTrim(routings []*model.ExtendRouterConfig,
 	args *types.RoutingArgs) (uint32, []*model.ExtendRouterConfig) {
 	amount := uint32(len(routings))
 	if args.Offset >= amount || args.Limit == 0 {

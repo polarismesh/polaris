@@ -37,7 +37,7 @@ import (
 	connlimit "github.com/polarismesh/polaris/common/conn/limit"
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/secure"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
@@ -58,7 +58,7 @@ type BaseGrpcServer struct {
 
 	protocol string
 
-	bz model.BzModule
+	bz authcommon.BzModule
 
 	server     *grpc.Server
 	statis     plugin.Statis
@@ -436,24 +436,24 @@ func (b *BaseGrpcServer) AllowAccess(method string) bool {
 }
 
 type connCounterHook struct {
-	bz model.BzModule
+	bz authcommon.BzModule
 }
 
 func (h *connCounterHook) OnAccept(conn net.Conn) {
-	if h.bz == model.DiscoverModule {
+	if h.bz == authcommon.DiscoverModule {
 		metrics.AddDiscoveryClientConn()
 	}
-	if h.bz == model.ConfigModule {
+	if h.bz == authcommon.ConfigModule {
 		metrics.AddConfigurationClientConn()
 	}
 	metrics.AddSDKClientConn()
 }
 
 func (h *connCounterHook) OnRelease(conn net.Conn) {
-	if h.bz == model.DiscoverModule {
+	if h.bz == authcommon.DiscoverModule {
 		metrics.RemoveDiscoveryClientConn()
 	}
-	if h.bz == model.ConfigModule {
+	if h.bz == authcommon.ConfigModule {
 		metrics.RemoveConfigurationClientConn()
 	}
 	metrics.RemoveSDKClientConn()

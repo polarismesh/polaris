@@ -25,6 +25,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
@@ -81,6 +82,8 @@ type boltStore struct {
 	*configFileReleaseHistoryStore
 	*configFileTemplateStore
 
+	*grayStore
+
 	// adminStore store
 	*adminStore
 	// 工具
@@ -89,7 +92,7 @@ type boltStore struct {
 	*userStore
 	*groupStore
 	*strategyStore
-	*grayStore
+	*roleStore
 
 	handler BoltHandler
 	start   bool
@@ -141,7 +144,7 @@ var (
 		"polaris.checker": "fbca9bfa04ae4ead86e1ecf5811e32a9",
 	}
 
-	mainUser = &model.User{
+	mainUser = &authcommon.User{
 		ID:          "65e4789a6d5b49669adf1e9e8387549c",
 		Name:        "polaris",
 		Password:    "$2a$10$3izWuZtE5SBdAtSZci.gs.iZ2pAn9I8hEqYrC6gwJp1dyjqQnrrum",
@@ -158,21 +161,21 @@ var (
 		ModifyTime:  time.Now(),
 	}
 
-	superDefaultStrategy = &model.StrategyDetail{
+	superDefaultStrategy = &authcommon.StrategyDetail{
 		ID:      "super_user_default_strategy",
 		Name:    "(用户) polarissys@admin的默认策略",
 		Action:  "READ_WRITE",
 		Comment: "default admin",
-		Principals: []model.Principal{
+		Principals: []authcommon.Principal{
 			{
 				StrategyID:    "super_user_default_strategy",
 				PrincipalID:   "",
-				PrincipalRole: model.PrincipalUser,
+				PrincipalType: authcommon.PrincipalUser,
 			},
 		},
 		Default: true,
 		Owner:   "",
-		Resources: []model.StrategyResource{
+		Resources: []authcommon.StrategyResource{
 			{
 				StrategyID: "super_user_default_strategy",
 				ResType:    int32(apisecurity.ResourceType_Namespaces),
@@ -195,21 +198,21 @@ var (
 		ModifyTime: time.Now(),
 	}
 
-	mainDefaultStrategy = &model.StrategyDetail{
+	mainDefaultStrategy = &authcommon.StrategyDetail{
 		ID:      "fbca9bfa04ae4ead86e1ecf5811e32a9",
 		Name:    "(用户) polaris的默认策略",
 		Action:  "READ_WRITE",
 		Comment: "default admin",
-		Principals: []model.Principal{
+		Principals: []authcommon.Principal{
 			{
 				StrategyID:    "fbca9bfa04ae4ead86e1ecf5811e32a9",
 				PrincipalID:   "65e4789a6d5b49669adf1e9e8387549c",
-				PrincipalRole: model.PrincipalUser,
+				PrincipalType: authcommon.PrincipalUser,
 			},
 		},
 		Default: true,
 		Owner:   "65e4789a6d5b49669adf1e9e8387549c",
-		Resources: []model.StrategyResource{
+		Resources: []authcommon.StrategyResource{
 			{
 				StrategyID: "fbca9bfa04ae4ead86e1ecf5811e32a9",
 				ResType:    int32(apisecurity.ResourceType_Namespaces),

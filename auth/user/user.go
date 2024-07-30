@@ -31,6 +31,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/polarismesh/polaris/auth"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
@@ -41,22 +42,7 @@ import (
 
 type (
 	// User2Api convert user to api.User
-	User2Api func(user *model.User) *apisecurity.User
-)
-
-var (
-
-	// UserFilterAttributes 查询用户所能允许的参数查询列表
-	UserFilterAttributes = map[string]bool{
-		"id":         true,
-		"name":       true,
-		"owner":      true,
-		"source":     true,
-		"offset":     true,
-		"group_id":   true,
-		"limit":      true,
-		"hide_admin": true,
-	}
+	User2Api func(user *authcommon.User) *apisecurity.User
 )
 
 // CreateUsers 批量创建用户
@@ -81,7 +67,7 @@ func (svr *Server) CreateUser(ctx context.Context, req *apisecurity.User) *apise
 	}
 
 	// 如果创建的目标账户类型是非子账户，则 ownerId 需要设置为 “”
-	if convertCreateUserRole(authcommon.ParseUserRole(ctx)) != model.SubAccountUserRole {
+	if convertCreateUserRole(authcommon.ParseUserRole(ctx)) != authcommon.SubAccountUserRole {
 		ownerID = ""
 	}
 
@@ -115,15 +101,38 @@ func (svr *Server) CreateUser(ctx context.Context, req *apisecurity.User) *apise
 
 func (svr *Server) createUser(ctx context.Context, req *apisecurity.User) *apiservice.Response {
 	data, err := svr.createUserModel(req, authcommon.ParseUserRole(ctx))
-
 	if err != nil {
 		log.Error("[Auth][User] create user model", utils.RequestID(ctx), zap.Error(err))
 		return api.NewAuthResponse(apimodel.Code_ExecuteException)
 	}
 
-	if err := svr.storage.AddUser(data); err != nil {
+	tx, err := svr.storage.StartTx()
+	if err != nil {
+		log.Error("[Auth][User] create user begion storage tx", utils.RequestID(ctx), zap.Error(err))
+		return api.NewAuthResponse(apimodel.Code_ExecuteException)
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	if err := svr.storage.AddUser(tx, data); err != nil {
 		log.Error("[Auth][User] add user into store", utils.RequestID(ctx), zap.Error(err))
 		return api.NewAuthResponse(commonstore.StoreCode2APICode(err))
+	}
+
+	if err := svr.policySvr.PolicyHelper().CreatePrincipal(ctx, tx, authcommon.Principal{
+		PrincipalID:   data.ID,
+		PrincipalType: authcommon.PrincipalUser,
+		Owner:         data.Owner,
+		Name:          data.Name,
+	}); err != nil {
+		log.Error("[Auth][User] add user default policy rule", utils.RequestID(ctx), zap.Error(err))
+		return api.NewAuthResponse(commonstore.StoreCode2APICode(err))
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Error("[Auth][User] create user commit storage tx", utils.RequestID(ctx), zap.Error(err))
+		return api.NewAuthResponse(apimodel.Code_ExecuteException)
 	}
 
 	log.Info("[Auth][User] create user", utils.RequestID(ctx), zap.String("name", req.GetName().GetValue()))
@@ -183,8 +192,8 @@ func (svr *Server) UpdateUserPassword(ctx context.Context, req *apisecurity.Modi
 		return api.NewAuthResponse(apimodel.Code_NotFoundUser)
 	}
 
-	ignoreOrigin := authcommon.ParseUserRole(ctx) == model.AdminUserRole ||
-		authcommon.ParseUserRole(ctx) == model.OwnerUserRole
+	ignoreOrigin := authcommon.ParseUserRole(ctx) == authcommon.AdminUserRole ||
+		authcommon.ParseUserRole(ctx) == authcommon.OwnerUserRole
 	data, needUpdate, err := updateUserPasswordAttribute(ignoreOrigin, user, req)
 	if err != nil {
 		log.Error("[Auth][User] compute user update attribute", zap.Error(err),
@@ -227,10 +236,9 @@ func (svr *Server) DeleteUsers(ctx context.Context, reqs []*apisecurity.User) *a
 // Case 3. 主账户角色下，只能删除自己创建的子账户
 // Case 4. 超级账户角色下，可以删除任意账户
 func (svr *Server) DeleteUser(ctx context.Context, req *apisecurity.User) *apiservice.Response {
-	requestID := utils.ParseRequestID(ctx)
 	user, err := svr.storage.GetUser(req.Id.GetValue())
 	if err != nil {
-		log.Error("[Auth][User] get user from store", utils.ZapRequestID(requestID), zap.Error(err))
+		log.Error("[Auth][User] get user from store", utils.RequestID(ctx), zap.Error(err))
 		return api.NewUserResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if user == nil {
@@ -239,14 +247,14 @@ func (svr *Server) DeleteUser(ctx context.Context, req *apisecurity.User) *apise
 
 	if user.ID == utils.ParseOwnerID(ctx) {
 		log.Error("[Auth][User] delete user forbidden, can't delete when self is owner",
-			utils.ZapRequestID(requestID), zap.String("name", req.Name.GetValue()))
+			utils.RequestID(ctx), zap.String("name", req.Name.GetValue()))
 		return api.NewUserResponse(apimodel.Code_NotAllowedAccess, req)
 	}
-	if user.Type == model.OwnerUserRole {
+	if user.Type == authcommon.OwnerUserRole {
 		count, err := svr.storage.GetSubCount(user)
 		if err != nil {
 			log.Error("[Auth][User] get user sub-account", zap.String("owner", user.ID),
-				utils.ZapRequestID(requestID), zap.Error(err))
+				utils.RequestID(ctx), zap.Error(err))
 			return api.NewUserResponse(commonstore.StoreCode2APICode(err), req)
 		}
 		if count != 0 {
@@ -254,53 +262,49 @@ func (svr *Server) DeleteUser(ctx context.Context, req *apisecurity.User) *apise
 			return api.NewUserResponse(apimodel.Code_SubAccountExisted, req)
 		}
 	}
+	tx, err := svr.storage.StartTx()
+	if err != nil {
+		log.Error("[Auth][User] delete user begion storage tx", utils.RequestID(ctx), zap.Error(err))
+		return api.NewAuthResponse(apimodel.Code_ExecuteException)
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
-	if err := svr.storage.DeleteUser(user); err != nil {
-		log.Error("[Auth][User] delete user from store", utils.ZapRequestID(requestID), zap.Error(err))
+	if err := svr.storage.DeleteUser(tx, user); err != nil {
+		log.Error("[Auth][User] delete user from store", utils.RequestID(ctx), zap.Error(err))
 		return api.NewAuthResponse(commonstore.StoreCode2APICode(err))
 	}
+	if err := svr.policySvr.PolicyHelper().CleanPrincipal(ctx, tx, authcommon.Principal{
+		PrincipalID:   user.ID,
+		PrincipalType: authcommon.PrincipalUser,
+		Owner:         user.Owner,
+	}); err != nil {
+		log.Error("[Auth][User] delete user from policy server", utils.RequestID(ctx), zap.Error(err))
+		return api.NewAuthResponse(commonstore.StoreCode2APICode(err))
+	}
+	if err := tx.Commit(); err != nil {
+		log.Error("[Auth][User] delete user commit storage tx", utils.RequestID(ctx), zap.Error(err))
+		return api.NewAuthResponse(apimodel.Code_ExecuteException)
+	}
 
-	log.Info("[Auth][User] delete user", utils.ZapRequestID(requestID),
-		zap.String("name", req.Name.GetValue()))
+	log.Info("[Auth][User] delete user", utils.RequestID(ctx), zap.String("name", req.Name.GetValue()))
 	svr.RecordHistory(userRecordEntry(ctx, req, user, model.ODelete))
 
 	return api.NewUserResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
 // GetUsers 查询用户列表
-func (svr *Server) GetUsers(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
-	requestID := utils.ParseRequestID(ctx)
-	log.Debug("[Auth][User] origin get users query params",
-		utils.ZapRequestID(requestID), zap.Any("query", query))
+func (svr *Server) GetUsers(ctx context.Context, filters map[string]string) *apiservice.BatchQueryResponse {
+	offset, limit, _ := utils.ParseOffsetAndLimit(filters)
 
-	var (
-		offset, limit uint32
-		err           error
-		searchFilters = make(map[string]string, len(query)+1)
-	)
-
-	for key, value := range query {
-		if _, ok := UserFilterAttributes[key]; !ok {
-			log.Errorf("[Auth][User] attribute(%s) it not allowed", key)
-			return api.NewAuthBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, key+" is not allowed")
-		}
-
-		searchFilters[key] = value
-	}
-
-	var (
-		total uint32
-		users []*model.User
-	)
-
-	offset, limit, err = utils.ParseOffsetAndLimit(searchFilters)
+	total, users, err := svr.cacheMgr.User().QueryUsers(ctx, cachetypes.UserSearchArgs{
+		Filters: filters,
+		Offset:  offset,
+		Limit:   limit,
+	})
 	if err != nil {
-		return api.NewAuthBatchQueryResponse(apimodel.Code_InvalidParameter)
-	}
-
-	total, users, err = svr.storage.GetUsers(searchFilters, offset, limit)
-	if err != nil {
-		log.Error("[Auth][User] get user from store", zap.Any("req", searchFilters),
+		log.Error("[Auth][User] get user from store", utils.RequestID(ctx), zap.Any("req", filters),
 			zap.Error(err))
 		return api.NewAuthBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}
@@ -314,7 +318,7 @@ func (svr *Server) GetUsers(ctx context.Context, query map[string]string) *apise
 
 // GetUserToken 获取用户 token
 func (svr *Server) GetUserToken(ctx context.Context, req *apisecurity.User) *apiservice.Response {
-	var user *model.User
+	var user *authcommon.User
 	if req.GetId().GetValue() != "" {
 		user = svr.cacheMgr.User().GetUserByID(req.GetId().GetValue())
 	} else if req.GetName().GetValue() != "" {
@@ -348,8 +352,8 @@ func (svr *Server) GetUserToken(ctx context.Context, req *apisecurity.User) *api
 	return api.NewUserResponse(apimodel.Code_ExecuteSuccess, out)
 }
 
-// UpdateUserToken 更新用户 token
-func (svr *Server) UpdateUserToken(ctx context.Context, req *apisecurity.User) *apiservice.Response {
+// EnableUserToken 更新用户 token
+func (svr *Server) EnableUserToken(ctx context.Context, req *apisecurity.User) *apiservice.Response {
 	if checkErrResp := checkUpdateUser(req); checkErrResp != nil {
 		return checkErrResp
 	}
@@ -418,18 +422,18 @@ func (svr *Server) ResetUserToken(ctx context.Context, req *apisecurity.User) *a
 // step 2. 最后对 token 进行一些验证步骤的执行
 // step 3. 兜底措施：如果开启了鉴权的非严格模式，则根据错误的类型，判断是否转为匿名用户进行访问
 //   - 如果是访问权限控制相关模块（用户、用户组、权限策略），不得转为匿名用户
-func (svr *Server) CheckCredential(authCtx *model.AcquireContext) error {
+func (svr *Server) CheckCredential(authCtx *authcommon.AcquireContext) error {
 	checkErr := func() error {
 		authToken := utils.ParseAuthToken(authCtx.GetRequestContext())
 		operator, err := svr.decodeToken(authToken)
 		if err != nil {
 			log.Error("[Auth][Checker] decode token", utils.RequestID(authCtx.GetRequestContext()), zap.Error(err))
-			return model.ErrorTokenInvalid
+			return authcommon.ErrorTokenInvalid
 		}
 
 		ownerId, isOwner, err := svr.checkToken(&operator)
 		if err != nil {
-			log.Errorf("[Auth][Checker] check token err : %s", err.Error())
+			log.Error("[Auth][Checker] check token", utils.RequestID(authCtx.GetRequestContext()), zap.Error(err))
 			return err
 		}
 
@@ -441,8 +445,9 @@ func (svr *Server) CheckCredential(authCtx *model.AcquireContext) error {
 		authCtx.SetRequestContext(ctx)
 		svr.parseOperatorInfo(operator, authCtx)
 		if operator.Disable {
-			log.Warn("[Auth][Checker] token already disabled", utils.RequestID(authCtx.GetRequestContext()),
-				zap.Any("token", operator.String()))
+			log.Error("[Auth][Checker] token has been set disable", utils.RequestID(authCtx.GetRequestContext()),
+				zap.String("operator", operator.String()))
+			return authcommon.ErrorTokenDisabled
 		}
 		return nil
 	}()
@@ -454,13 +459,12 @@ func (svr *Server) CheckCredential(authCtx *model.AcquireContext) error {
 		log.Warn("[Auth][Checker] parse operator info, downgrade to anonymous", utils.RequestID(authCtx.GetRequestContext()),
 			zap.Error(checkErr))
 		// 操作者信息解析失败，降级为匿名用户
-		authCtx.SetAttachment(model.TokenDetailInfoKey, auth.NewAnonymous())
+		authCtx.SetAttachment(authcommon.TokenDetailInfoKey, auth.NewAnonymous())
 	}
-
 	return nil
 }
 
-func (svr *Server) parseOperatorInfo(operator auth.OperatorInfo, authCtx *model.AcquireContext) {
+func (svr *Server) parseOperatorInfo(operator auth.OperatorInfo, authCtx *authcommon.AcquireContext) {
 	ctx := authCtx.GetRequestContext()
 	if operator.IsUserToken {
 		user := svr.cacheMgr.User().GetUserByID(operator.OperatorID)
@@ -478,38 +482,41 @@ func (svr *Server) parseOperatorInfo(operator auth.OperatorInfo, authCtx *model.
 		}
 	}
 
-	authCtx.SetAttachment(model.OperatorRoleKey, operator.Role)
-	authCtx.SetAttachment(model.OperatorPrincipalType, func() model.PrincipalType {
-		if operator.IsUserToken {
-			return model.PrincipalUser
-		}
-		return model.PrincipalGroup
-	}())
-	authCtx.SetAttachment(model.OperatorIDKey, operator.OperatorID)
-	authCtx.SetAttachment(model.OperatorOwnerKey, operator)
-	authCtx.SetAttachment(model.TokenDetailInfoKey, operator)
+	authCtx.SetAttachment(authcommon.PrincipalKey, authcommon.Principal{
+		PrincipalID: operator.OperatorID,
+		PrincipalType: func() authcommon.PrincipalType {
+			if operator.IsUserToken {
+				return authcommon.PrincipalUser
+			}
+			return authcommon.PrincipalGroup
+		}(),
+	})
+	authCtx.SetAttachment(authcommon.OperatorRoleKey, operator.Role)
+	authCtx.SetAttachment(authcommon.OperatorIDKey, operator.OperatorID)
+	authCtx.SetAttachment(authcommon.OperatorOwnerKey, operator)
+	authCtx.SetAttachment(authcommon.TokenDetailInfoKey, operator)
 
 	authCtx.SetRequestContext(ctx)
 }
 
-func canDowngradeAnonymous(authCtx *model.AcquireContext, err error) bool {
-	if authCtx.GetModule() == model.AuthModule {
+func canDowngradeAnonymous(authCtx *authcommon.AcquireContext, err error) bool {
+	if authCtx.GetModule() == authcommon.AuthModule || authCtx.GetModule() == authcommon.MaintainModule {
 		return false
 	}
 	if !authCtx.IsAllowAnonymous() {
 		return false
 	}
-	if errors.Is(err, model.ErrorTokenInvalid) {
+	if errors.Is(err, authcommon.ErrorTokenInvalid) {
 		return true
 	}
-	if errors.Is(err, model.ErrorTokenNotExist) {
+	if errors.Is(err, authcommon.ErrorTokenNotExist) {
 		return true
 	}
 	return false
 }
 
 // user 数组转为[]*apisecurity.User
-func enhancedUsers2Api(users []*model.User, handler User2Api) []*apisecurity.User {
+func enhancedUsers2Api(users []*authcommon.User, handler User2Api) []*apisecurity.User {
 	out := make([]*apisecurity.User, 0, len(users))
 	for _, entry := range users {
 		outUser := handler(entry)
@@ -520,7 +527,7 @@ func enhancedUsers2Api(users []*model.User, handler User2Api) []*apisecurity.Use
 }
 
 // model.Service 转为 api.Service
-func user2Api(user *model.User) *apisecurity.User {
+func user2Api(user *authcommon.User) *apisecurity.User {
 	if user == nil {
 		return nil
 	}
@@ -535,14 +542,14 @@ func user2Api(user *model.User) *apisecurity.User {
 		Comment:     utils.NewStringValue(user.Comment),
 		Ctime:       utils.NewStringValue(commontime.Time2String(user.CreateTime)),
 		Mtime:       utils.NewStringValue(commontime.Time2String(user.ModifyTime)),
-		UserType:    utils.NewStringValue(model.UserRoleNames[user.Type]),
+		UserType:    utils.NewStringValue(authcommon.UserRoleNames[user.Type]),
 	}
 
 	return out
 }
 
 // 生成用户的记录entry
-func userRecordEntry(ctx context.Context, req *apisecurity.User, md *model.User,
+func userRecordEntry(ctx context.Context, req *apisecurity.User, md *authcommon.User,
 	operationType model.OperationType) *model.RecordEntry {
 
 	marshaler := jsonpb.Marshaler{}
@@ -600,7 +607,7 @@ func checkUpdateUser(req *apisecurity.User) *apiservice.Response {
 }
 
 // updateUserAttribute 更新用户属性
-func updateUserAttribute(old *model.User, newUser *apisecurity.User) (*model.User, bool, error) {
+func updateUserAttribute(old *authcommon.User, newUser *apisecurity.User) (*authcommon.User, bool, error) {
 	var needUpdate = true
 
 	if newUser.Comment != nil && old.Comment != newUser.Comment.GetValue() {
@@ -612,7 +619,7 @@ func updateUserAttribute(old *model.User, newUser *apisecurity.User) (*model.Use
 
 // updateUserAttribute 更新用户密码信息，如果用户的密码被更新
 func updateUserPasswordAttribute(
-	isAdmin bool, user *model.User, req *apisecurity.ModifyUserPassword) (*model.User, bool, error) {
+	isAdmin bool, user *authcommon.User, req *apisecurity.ModifyUserPassword) (*authcommon.User, bool, error) {
 	needUpdate := false
 
 	if err := CheckPassword(req.NewPassword); err != nil {
@@ -642,7 +649,7 @@ func updateUserPasswordAttribute(
 }
 
 // createUserModel 创建用户模型
-func (svr *Server) createUserModel(req *apisecurity.User, role model.UserRoleType) (*model.User, error) {
+func (svr *Server) createUserModel(req *apisecurity.User, role authcommon.UserRoleType) (*authcommon.User, error) {
 	pwd, err := bcrypt.GenerateFromPassword([]byte(req.GetPassword().GetValue()), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
@@ -653,7 +660,7 @@ func (svr *Server) createUserModel(req *apisecurity.User, role model.UserRoleTyp
 		id = req.GetId().GetValue()
 	}
 
-	user := &model.User{
+	user := &authcommon.User{
 		ID:          id,
 		Name:        req.GetName().GetValue(),
 		Password:    string(pwd),
@@ -668,7 +675,7 @@ func (svr *Server) createUserModel(req *apisecurity.User, role model.UserRoleTyp
 	}
 
 	// 如果不是子账户的话，owner 就是自己
-	if user.Type != model.SubAccountUserRole {
+	if user.Type != authcommon.SubAccountUserRole {
 		user.Owner = ""
 	}
 
@@ -683,14 +690,14 @@ func (svr *Server) createUserModel(req *apisecurity.User, role model.UserRoleTyp
 }
 
 // convertCreateUserRole 转换为创建的目标用户的用户角色类型
-func convertCreateUserRole(role model.UserRoleType) model.UserRoleType {
-	if role == model.AdminUserRole {
-		return model.OwnerUserRole
+func convertCreateUserRole(role authcommon.UserRoleType) authcommon.UserRoleType {
+	if role == authcommon.AdminUserRole {
+		return authcommon.OwnerUserRole
 	}
 
-	if role == model.OwnerUserRole {
-		return model.SubAccountUserRole
+	if role == authcommon.OwnerUserRole {
+		return authcommon.SubAccountUserRole
 	}
 
-	return model.SubAccountUserRole
+	return authcommon.SubAccountUserRole
 }

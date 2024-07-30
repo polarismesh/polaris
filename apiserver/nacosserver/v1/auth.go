@@ -23,7 +23,7 @@ import (
 	"github.com/emicklei/go-restful/v3"
 
 	nacoshttp "github.com/polarismesh/polaris/apiserver/nacosserver/v1/http"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 )
 
 func (n *NacosV1Server) GetAuthServer() (*restful.WebService, error) {
@@ -51,9 +51,9 @@ func (n *NacosV1Server) Login(req *restful.Request, rsp *restful.Response) {
 func (n *NacosV1Server) handleLogin(ctx context.Context, params map[string]string) (map[string]interface{}, error) {
 	username := params["username"]
 	token := params["password"]
-	authCtx := model.NewAcquireContext(
-		model.WithFromClient(),
-		model.WithRequestContext(ctx),
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithFromClient(),
+		authcommon.WithRequestContext(ctx),
 	)
 
 	if err := n.discoverOpt.UserSvr.CheckCredential(authCtx); err != nil {

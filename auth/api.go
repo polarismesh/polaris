@@ -25,30 +25,44 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	cachetypes "github.com/polarismesh/polaris/cache/api"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/store"
 )
 
 // AuthChecker 权限管理通用接口定义
 type AuthChecker interface {
 	// CheckClientPermission 执行检查客户端动作判断是否有权限，并且对 RequestContext 注入操作者数据
-	CheckClientPermission(preCtx *model.AcquireContext) (bool, error)
+	CheckClientPermission(preCtx *authcommon.AcquireContext) (bool, error)
 	// CheckConsolePermission 执行检查控制台动作判断是否有权限，并且对 RequestContext 注入操作者数据
-	CheckConsolePermission(preCtx *model.AcquireContext) (bool, error)
+	CheckConsolePermission(preCtx *authcommon.AcquireContext) (bool, error)
 	// IsOpenConsoleAuth 返回是否开启了操作鉴权，可以用于前端查询
 	IsOpenConsoleAuth() bool
 	// IsOpenClientAuth
 	IsOpenClientAuth() bool
-	// AllowResourceOperate 是否允许资源的操作
-	AllowResourceOperate(ctx *model.AcquireContext, opInfo *model.ResourceOpInfo) bool
+	// ResourcePredicate 是否允许资源的操作
+	ResourcePredicate(ctx *authcommon.AcquireContext, opInfo *authcommon.ResourceEntry) bool
 }
 
 // StrategyServer 策略相关操作
 type StrategyServer interface {
 	// Initialize 执行初始化动作
-	Initialize(options *Config, storage store.Store, cacheMgr cachetypes.CacheManager, userSvr UserServer) error
+	Initialize(*Config, store.Store, cachetypes.CacheManager, UserServer) error
 	// Name 策略管理server名称
 	Name() string
+	// PolicyOperator .
+	PolicyOperator
+	// RoleOperator .
+	RoleOperator
+	// PolicyHelper .
+	PolicyHelper() PolicyHelper
+	// GetAuthChecker 获取鉴权检查器
+	GetAuthChecker() AuthChecker
+	// AfterResourceOperation 操作完资源的后置处理逻辑
+	AfterResourceOperation(afterCtx *authcommon.AcquireContext) error
+}
+
+// PolicyOperator 策略管理
+type PolicyOperator interface {
 	// CreateStrategy 创建策略
 	CreateStrategy(ctx context.Context, strategy *apisecurity.AuthStrategy) *apiservice.Response
 	// UpdateStrategies 批量更新策略
@@ -63,22 +77,30 @@ type StrategyServer interface {
 	GetStrategy(ctx context.Context, strategy *apisecurity.AuthStrategy) *apiservice.Response
 	// GetPrincipalResources 获取某个 principal 的所有可操作资源列表
 	GetPrincipalResources(ctx context.Context, query map[string]string) *apiservice.Response
-	// GetAuthChecker 获取鉴权检查器
-	GetAuthChecker() AuthChecker
-	// AfterResourceOperation 操作完资源的后置处理逻辑
-	AfterResourceOperation(afterCtx *model.AcquireContext) error
+}
+
+// RoleOperator 角色管理
+type RoleOperator interface {
+	// CreateRoles 批量创建角色
+	CreateRoles(ctx context.Context, reqs []*apisecurity.Role) *apiservice.BatchWriteResponse
+	// UpdateRoles 批量更新角色
+	UpdateRoles(ctx context.Context, reqs []*apisecurity.Role) *apiservice.BatchWriteResponse
+	// DeleteRoles 批量删除角色
+	DeleteRoles(ctx context.Context, reqs []*apisecurity.Role) *apiservice.BatchWriteResponse
+	// GetRoles 查询角色列表
+	GetRoles(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse
 }
 
 // UserServer 用户数据管理 server
 type UserServer interface {
 	// Initialize 初始化
-	Initialize(authOpt *Config, storage store.Store, cacheMgn cachetypes.CacheManager) error
+	Initialize(*Config, store.Store, StrategyServer, cachetypes.CacheManager) error
 	// Name 用户数据管理server名称
 	Name() string
 	// Login 登录动作
 	Login(req *apisecurity.LoginRequest) *apiservice.Response
 	// CheckCredential 检查当前操作用户凭证
-	CheckCredential(authCtx *model.AcquireContext) error
+	CheckCredential(authCtx *authcommon.AcquireContext) error
 	// UserOperator
 	UserOperator
 	// GroupOperator
@@ -100,8 +122,8 @@ type UserOperator interface {
 	GetUsers(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse
 	// GetUserToken 获取用户的 token
 	GetUserToken(ctx context.Context, user *apisecurity.User) *apiservice.Response
-	// UpdateUserToken 禁止用户的token使用
-	UpdateUserToken(ctx context.Context, user *apisecurity.User) *apiservice.Response
+	// EnableUserToken 禁止用户的token使用
+	EnableUserToken(ctx context.Context, user *apisecurity.User) *apiservice.Response
 	// ResetUserToken 重置用户的token
 	ResetUserToken(ctx context.Context, user *apisecurity.User) *apiservice.Response
 }
@@ -119,8 +141,8 @@ type GroupOperator interface {
 	GetGroup(ctx context.Context, req *apisecurity.UserGroup) *apiservice.Response
 	// GetGroupToken 获取用户组的 token
 	GetGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response
-	// UpdateGroupToken 取消用户组的 token 使用
-	UpdateGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response
+	// EnableGroupToken 取消用户组的 token 使用
+	EnableGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response
 	// ResetGroupToken 重置用户组的 token
 	ResetGroupToken(ctx context.Context, group *apisecurity.UserGroup) *apiservice.Response
 }
@@ -142,6 +164,14 @@ type UserHelper interface {
 	GetGroup(ctx context.Context, req *apisecurity.UserGroup) *apisecurity.UserGroup
 }
 
+// PolicyHelper .
+type PolicyHelper interface {
+	// CreatePrincipal 创建 principal 的默认 policy 资源
+	CreatePrincipal(ctx context.Context, tx store.Tx, p authcommon.Principal) error
+	// CleanPrincipal 清理 principal 所关联的 policy、role 资源
+	CleanPrincipal(ctx context.Context, tx store.Tx, p authcommon.Principal) error
+}
+
 // OperatorInfo 根据 token 解析出来的具体额外信息
 type OperatorInfo struct {
 	// Origin 原始 token 字符串
@@ -151,7 +181,7 @@ type OperatorInfo struct {
 	// OwnerID 当前用户/用户组对应的 owner
 	OwnerID string
 	// Role 如果当前是 user token 的话，该值才能有信息
-	Role model.UserRoleType
+	Role authcommon.UserRoleType
 	// IsUserToken 当前 token 是否是 user 的 token
 	IsUserToken bool
 	// Disable 标识用户 token 是否被禁用
@@ -176,7 +206,7 @@ func IsEmptyOperator(t OperatorInfo) bool {
 
 // IsSubAccount 当前 token 对应的账户类型
 func IsSubAccount(t OperatorInfo) bool {
-	return t.Role == model.SubAccountUserRole
+	return t.Role == authcommon.SubAccountUserRole
 }
 
 func (t *OperatorInfo) String() string {

@@ -30,33 +30,36 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-func newRateLimitRuleBucket() *rateLimitRuleBucket {
-	return &rateLimitRuleBucket{
+func newRateLimitRuleBucket() *RateLimitRuleContainer {
+	return &RateLimitRuleContainer{
 		ids:   utils.NewSyncMap[string, *model.RateLimit](),
 		rules: utils.NewSyncMap[string, *subRateLimitRuleBucket](),
 	}
 }
 
-type rateLimitRuleBucket struct {
+type RateLimitRuleContainer struct {
 	ids   *utils.SyncMap[string, *model.RateLimit]
 	rules *utils.SyncMap[string, *subRateLimitRuleBucket]
 }
 
-func (r *rateLimitRuleBucket) foreach(proc types.RateLimitIterProc) {
+func (r *RateLimitRuleContainer) foreach(proc types.RateLimitIterProc) {
 	r.rules.Range(func(key string, val *subRateLimitRuleBucket) {
 		val.foreach(proc)
 	})
 }
 
-func (r *rateLimitRuleBucket) count() int {
+func (r *RateLimitRuleContainer) count() int {
 	return r.ids.Len()
 }
 
-func (r *rateLimitRuleBucket) saveRule(rule *model.RateLimit) {
+func (r *RateLimitRuleContainer) saveRule(rule *model.RateLimit) {
 	r.cleanOldSvcRule(rule)
 
 	r.ids.Store(rule.ID, rule)
-	key := buildServiceKey(rule.Proto.GetNamespace().GetValue(), rule.Proto.GetService().GetValue())
+	key := (&model.ServiceKey{
+		Namespace: rule.Proto.GetNamespace().GetValue(),
+		Name:      rule.Proto.GetService().GetValue(),
+	}).Domain()
 
 	if _, ok := r.rules.Load(key); !ok {
 		r.rules.Store(key, &subRateLimitRuleBucket{
@@ -69,13 +72,17 @@ func (r *rateLimitRuleBucket) saveRule(rule *model.RateLimit) {
 }
 
 // cleanOldSvcRule 清理规则之前绑定的服务数据信息
-func (r *rateLimitRuleBucket) cleanOldSvcRule(rule *model.RateLimit) {
+func (r *RateLimitRuleContainer) cleanOldSvcRule(rule *model.RateLimit) {
 	oldRule, ok := r.ids.Load(rule.ID)
 	if !ok {
 		return
 	}
+
 	// 清理原来老记录的绑定数据信息
-	key := buildServiceKey(oldRule.Proto.GetNamespace().GetValue(), oldRule.Proto.GetService().GetValue())
+	key := (&model.ServiceKey{
+		Namespace: oldRule.Proto.GetNamespace().GetValue(),
+		Name:      oldRule.Proto.GetService().GetValue(),
+	}).Domain()
 	bucket, ok := r.rules.Load(key)
 	if !ok {
 		return
@@ -87,11 +94,14 @@ func (r *rateLimitRuleBucket) cleanOldSvcRule(rule *model.RateLimit) {
 	}
 }
 
-func (r *rateLimitRuleBucket) delRule(rule *model.RateLimit) {
+func (r *RateLimitRuleContainer) delRule(rule *model.RateLimit) {
 	r.cleanOldSvcRule(rule)
 	r.ids.Delete(rule.ID)
 
-	key := buildServiceKey(rule.Proto.GetNamespace().GetValue(), rule.Proto.GetService().GetValue())
+	key := (&model.ServiceKey{
+		Namespace: rule.Proto.GetNamespace().GetValue(),
+		Name:      rule.Proto.GetService().GetValue(),
+	}).Domain()
 	if _, ok := r.rules.Load(key); !ok {
 		return
 	}
@@ -103,13 +113,13 @@ func (r *rateLimitRuleBucket) delRule(rule *model.RateLimit) {
 	}
 }
 
-func (r *rateLimitRuleBucket) getRuleByID(id string) *model.RateLimit {
+func (r *RateLimitRuleContainer) getRuleByID(id string) *model.RateLimit {
 	ret, _ := r.ids.Load(id)
 	return ret
 }
 
-func (r *rateLimitRuleBucket) getRules(serviceKey model.ServiceKey) ([]*model.RateLimit, string) {
-	key := buildServiceKey(serviceKey.Namespace, serviceKey.Name)
+func (r *RateLimitRuleContainer) getRules(serviceKey model.ServiceKey) ([]*model.RateLimit, string) {
+	key := (&serviceKey).Domain()
 	if _, ok := r.rules.Load(key); !ok {
 		return nil, ""
 	}
@@ -118,8 +128,8 @@ func (r *rateLimitRuleBucket) getRules(serviceKey model.ServiceKey) ([]*model.Ra
 	return b.toSlice(), b.revision
 }
 
-func (r *rateLimitRuleBucket) reloadRevision(serviceKey model.ServiceKey) {
-	key := buildServiceKey(serviceKey.Namespace, serviceKey.Name)
+func (r *RateLimitRuleContainer) reloadRevision(serviceKey model.ServiceKey) {
+	key := serviceKey.Domain()
 	v, ok := r.rules.Load(key)
 	if !ok {
 		return

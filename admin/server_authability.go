@@ -24,7 +24,7 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	"github.com/polarismesh/polaris/auth"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 )
 
 // serverAuthAbility 带有鉴权能力的 maintainServer
@@ -45,22 +45,22 @@ func newServerAuthAbility(targetServer *Server,
 	return proxy
 }
 
-func (svr *serverAuthAbility) collectMaintainAuthContext(ctx context.Context, resourceOp model.ResourceOperation,
-	methodName string) *model.AcquireContext {
-	return model.NewAcquireContext(
-		model.WithRequestContext(ctx),
-		model.WithOperation(resourceOp),
-		model.WithModule(model.MaintainModule),
-		model.WithMethod(methodName),
+func (svr *serverAuthAbility) collectMaintainAuthContext(ctx context.Context, resourceOp authcommon.ResourceOperation,
+	methodName authcommon.ServerFunctionName) *authcommon.AcquireContext {
+	return authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(resourceOp),
+		authcommon.WithModule(authcommon.MaintainModule),
+		authcommon.WithMethod(methodName),
 	)
 }
 
 func convertToErrCode(err error) apimodel.Code {
-	if errors.Is(err, model.ErrorTokenNotExist) {
+	if errors.Is(err, authcommon.ErrorTokenNotExist) {
 		return apimodel.Code_TokenNotExisted
 	}
 
-	if errors.Is(err, model.ErrorTokenDisabled) {
+	if errors.Is(err, authcommon.ErrorTokenDisabled) {
 		return apimodel.Code_TokenDisabled
 	}
 

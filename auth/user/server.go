@@ -30,6 +30,7 @@ import (
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
@@ -63,11 +64,11 @@ func DefaultUserConfig() *AuthConfig {
 }
 
 type Server struct {
-	authOpt  *AuthConfig
-	storage  store.Store
-	history  plugin.History
-	cacheMgr cachetypes.CacheManager
-	helper   auth.UserHelper
+	authOpt   *AuthConfig
+	storage   store.Store
+	policySvr auth.StrategyServer
+	cacheMgr  cachetypes.CacheManager
+	helper    auth.UserHelper
 }
 
 // Name of the user operator plugin
@@ -75,9 +76,10 @@ func (svr *Server) Name() string {
 	return auth.DefaultUserMgnPluginName
 }
 
-func (svr *Server) Initialize(authOpt *auth.Config, storage store.Store, cacheMgr cachetypes.CacheManager) error {
+func (svr *Server) Initialize(authOpt *auth.Config, storage store.Store, policySvr auth.StrategyServer, cacheMgr cachetypes.CacheManager) error {
 	svr.cacheMgr = cacheMgr
 	svr.storage = storage
+	svr.policySvr = policySvr
 	if err := svr.parseOptions(authOpt); err != nil {
 		return err
 	}
@@ -85,11 +87,6 @@ func (svr *Server) Initialize(authOpt *auth.Config, storage store.Store, cacheMg
 	_ = cacheMgr.OpenResourceCache(cachetypes.ConfigEntry{
 		Name: cachetypes.UsersName,
 	})
-	// 获取History插件，注意：插件的配置在bootstrap已经设置好
-	svr.history = plugin.GetHistory()
-	if svr.history == nil {
-		log.Warnf("Not Found History Log Plugin")
-	}
 	svr.helper = &DefaultUserHelper{svr: svr}
 	return nil
 }
@@ -150,9 +147,9 @@ func (svr *Server) Login(req *apisecurity.LoginRequest) *apiservice.Response {
 	if err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 			return api.NewAuthResponseWithMsg(
-				apimodel.Code_NotAllowedAccess, model.ErrorWrongUsernameOrPassword.Error())
+				apimodel.Code_NotAllowedAccess, authcommon.ErrorWrongUsernameOrPassword.Error())
 		}
-		return api.NewAuthResponseWithMsg(apimodel.Code_ExecuteException, model.ErrorWrongUsernameOrPassword.Error())
+		return api.NewAuthResponseWithMsg(apimodel.Code_ExecuteException, authcommon.ErrorWrongUsernameOrPassword.Error())
 	}
 
 	return api.NewLoginResponse(apimodel.Code_ExecuteSuccess, &apisecurity.LoginResponse{
@@ -160,23 +157,13 @@ func (svr *Server) Login(req *apisecurity.LoginRequest) *apiservice.Response {
 		OwnerId: utils.NewStringValue(user.Owner),
 		Token:   utils.NewStringValue(user.Token),
 		Name:    utils.NewStringValue(user.Name),
-		Role:    utils.NewStringValue(model.UserRoleNames[user.Type]),
+		Role:    utils.NewStringValue(authcommon.UserRoleNames[user.Type]),
 	})
 }
 
 // RecordHistory Server对外提供history插件的简单封装
 func (svr *Server) RecordHistory(entry *model.RecordEntry) {
-	// 如果插件没有初始化，那么不记录history
-	if svr.history == nil {
-		return
-	}
-	// 如果数据为空，则不需要打印了
-	if entry == nil {
-		return
-	}
-
-	// 调用插件记录history
-	svr.history.Record(entry)
+	plugin.GetHistory().Record(entry)
 }
 
 func (svr *Server) GetUserHelper() auth.UserHelper {

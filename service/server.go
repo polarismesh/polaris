@@ -48,8 +48,8 @@ type Server struct {
 
 	healthServer *healthcheck.Server
 
-	cmdb      plugin.CMDB
-	history   plugin.History
+	cmdb    plugin.CMDB
+	history plugin.History
 
 	l5service *l5service
 

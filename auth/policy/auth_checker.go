@@ -18,6 +18,8 @@
 package policy
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"go.uber.org/zap"
@@ -25,7 +27,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
@@ -41,9 +43,10 @@ var (
 
 // DefaultAuthChecker 北极星自带的默认鉴权中心
 type DefaultAuthChecker struct {
-	conf     *AuthConfig
-	cacheMgr cachetypes.CacheManager
-	userSvr  auth.UserServer
+	conf      *AuthConfig
+	cacheMgr  cachetypes.CacheManager
+	userSvr   auth.UserServer
+	policyMgr *Server
 }
 
 // Initialize 执行初始化动作
@@ -53,6 +56,18 @@ func (d *DefaultAuthChecker) Initialize(conf *AuthConfig, s store.Store,
 	d.cacheMgr = cacheMgr
 	d.userSvr = userSvr
 	return nil
+}
+
+func (d *DefaultAuthChecker) SetCacheMgr(mgr cachetypes.CacheManager) {
+	d.cacheMgr = mgr
+}
+
+func (d *DefaultAuthChecker) GetConfig() *AuthConfig {
+	return d.conf
+}
+
+func (d *DefaultAuthChecker) SetConfig(conf *AuthConfig) {
+	d.conf = conf
 }
 
 // Cache 获取缓存统一管理
@@ -76,34 +91,21 @@ func (d *DefaultAuthChecker) IsOpenAuth() bool {
 }
 
 // AllowResourceOperate 是否允许资源的操作
-func (d *DefaultAuthChecker) AllowResourceOperate(ctx *model.AcquireContext, opInfo *model.ResourceOpInfo) bool {
-	// 如果鉴权能力没有开启，那就默认都可以进行编辑
+func (d *DefaultAuthChecker) ResourcePredicate(ctx *authcommon.AcquireContext, res *authcommon.ResourceEntry) bool {
+	// 如果鉴权能力没有开启，那就默认都可以进行操作
 	if !d.IsOpenAuth() {
 		return true
 	}
-	attachVal, ok := ctx.GetAttachment(model.TokenDetailInfoKey)
+
+	p, ok := ctx.GetAttachment(authcommon.PrincipalKey)
 	if !ok {
-		// TODO need log
 		return false
 	}
-	tokenInfo, ok := attachVal.(auth.OperatorInfo)
-
-	principal := model.Principal{
-		PrincipalID: tokenInfo.OperatorID,
-		PrincipalRole: func() model.PrincipalType {
-			if tokenInfo.IsUserToken {
-				return model.PrincipalUser
-			}
-			return model.PrincipalGroup
-		}(),
-	}
-
-	editable := d.cacheMgr.AuthStrategy().IsResourceEditable(principal, opInfo.ResourceType, opInfo.ResourceID)
-	return editable
+	return d.cacheMgr.AuthStrategy().Hint(p.(authcommon.Principal), res) != apisecurity.AuthAction_DENY
 }
 
 // CheckClientPermission 执行检查客户端动作判断是否有权限，并且对 RequestContext 注入操作者数据
-func (d *DefaultAuthChecker) CheckClientPermission(preCtx *model.AcquireContext) (bool, error) {
+func (d *DefaultAuthChecker) CheckClientPermission(preCtx *authcommon.AcquireContext) (bool, error) {
 	preCtx.SetFromClient()
 	if !d.IsOpenClientAuth() {
 		return true, nil
@@ -115,7 +117,7 @@ func (d *DefaultAuthChecker) CheckClientPermission(preCtx *model.AcquireContext)
 }
 
 // CheckConsolePermission 执行检查控制台动作判断是否有权限，并且对 RequestContext 注入操作者数据
-func (d *DefaultAuthChecker) CheckConsolePermission(preCtx *model.AcquireContext) (bool, error) {
+func (d *DefaultAuthChecker) CheckConsolePermission(preCtx *authcommon.AcquireContext) (bool, error) {
 	preCtx.SetFromConsole()
 	if !d.IsOpenConsoleAuth() {
 		return true, nil
@@ -123,37 +125,7 @@ func (d *DefaultAuthChecker) CheckConsolePermission(preCtx *model.AcquireContext
 	if d.IsOpenConsoleAuth() && !d.conf.ConsoleStrict {
 		preCtx.SetAllowAnonymous(true)
 	}
-	if preCtx.GetModule() == model.MaintainModule {
-		return d.checkMaintainPermission(preCtx)
-	}
 	return d.CheckPermission(preCtx)
-}
-
-// CheckMaintainPermission 执行检查运维动作判断是否有权限
-func (d *DefaultAuthChecker) checkMaintainPermission(preCtx *model.AcquireContext) (bool, error) {
-	if preCtx.GetOperation() == model.Read {
-		return true, nil
-	}
-
-	attachVal, ok := preCtx.GetAttachment(model.TokenDetailInfoKey)
-	if !ok {
-		return false, model.ErrorTokenNotExist
-	}
-	tokenInfo, ok := attachVal.(auth.OperatorInfo)
-	if !ok {
-		return false, model.ErrorTokenNotExist
-	}
-
-	if tokenInfo.Disable {
-		return false, model.ErrorTokenDisabled
-	}
-	if !tokenInfo.IsUserToken {
-		return false, errors.New("only user role can access maintain API")
-	}
-	if tokenInfo.Role != model.OwnerUserRole {
-		return false, errors.New("only owner account can access maintain API")
-	}
-	return true, nil
 }
 
 // CheckPermission 执行检查动作判断是否有权限
@@ -165,95 +137,190 @@ func (d *DefaultAuthChecker) checkMaintainPermission(preCtx *model.AcquireContex
 //				b. 写操作，快速失败
 //	step 3. 拉取token对应的操作者相关信息，注入到请求上下文中
 //	step 4. 进行权限检查
-func (d *DefaultAuthChecker) CheckPermission(authCtx *model.AcquireContext) (bool, error) {
+func (d *DefaultAuthChecker) CheckPermission(authCtx *authcommon.AcquireContext) (bool, error) {
 	if err := d.userSvr.CheckCredential(authCtx); err != nil {
 		return false, err
 	}
-
-	attachVal, ok := authCtx.GetAttachment(model.TokenDetailInfoKey)
-	if !ok {
-		return false, model.ErrorTokenNotExist
+	if log.DebugEnabled() {
+		log.Debug("[Auth][Checker] check permission args", utils.RequestID(authCtx.GetRequestContext()),
+			zap.String("method", string(authCtx.GetMethod())), zap.Any("resources", authCtx.GetAccessResources()))
 	}
-	operatorInfo, ok := attachVal.(auth.OperatorInfo)
-	if !ok {
-		return false, model.ErrorTokenNotExist
-	}
-	// 这里需要检查当 token 被禁止的情况，如果 token 被禁止，无论是否可以操作目标资源，都无法进行写操作
-	if operatorInfo.Disable {
-		return false, model.ErrorTokenDisabled
-	}
-
-	log.Debug("[Auth][Checker] check permission args", utils.RequestID(authCtx.GetRequestContext()),
-		zap.String("method", authCtx.GetMethod()), zap.Any("resources", authCtx.GetAccessResources()))
 
 	if pass, _ := d.doCheckPermission(authCtx); pass {
-		return ok, nil
+		return true, nil
 	}
 
-	// 强制同步一次db中strategy数据到cache
-	if err := d.cacheMgr.AuthStrategy().ForceSync(); err != nil {
-		log.Error("[Auth][Checker] force sync strategy to cache failed",
-			utils.RequestID(authCtx.GetRequestContext()), zap.Error(err))
+	// 触发缓存的同步，避免鉴权策略和角色信息不一致导致的权限检查失败
+	if err := d.resyncData(authCtx); err != nil {
 		return false, err
 	}
 	return d.doCheckPermission(authCtx)
 }
 
-// doCheckPermission 执行权限检查
-func (d *DefaultAuthChecker) doCheckPermission(authCtx *model.AcquireContext) (bool, error) {
-
-	var checkNamespace, checkSvc, checkCfgGroup bool
-
-	reqRes := authCtx.GetAccessResources()
-	nsResEntries := reqRes[apisecurity.ResourceType_Namespaces]
-	svcResEntries := reqRes[apisecurity.ResourceType_Services]
-	cfgResEntries := reqRes[apisecurity.ResourceType_ConfigGroups]
-
-	principleID, _ := authCtx.GetAttachments()[model.OperatorIDKey].(string)
-	principleType, _ := authCtx.GetAttachments()[model.OperatorPrincipalType].(model.PrincipalType)
-	p := model.Principal{
-		PrincipalID:   principleID,
-		PrincipalRole: principleType,
+func (d *DefaultAuthChecker) resyncData(authCtx *authcommon.AcquireContext) error {
+	if err := d.cacheMgr.AuthStrategy().Update(); err != nil {
+		log.Error("[Auth][Checker] force sync policy rule to cache failed", utils.RequestID(authCtx.GetRequestContext()), zap.Error(err))
+		return err
 	}
-	checkNamespace = d.checkAction(p, apisecurity.ResourceType_Namespaces, nsResEntries, authCtx)
-	checkSvc = d.checkAction(p, apisecurity.ResourceType_Services, svcResEntries, authCtx)
-	checkCfgGroup = d.checkAction(p, apisecurity.ResourceType_ConfigGroups, cfgResEntries, authCtx)
-
-	checkAllResEntries := checkNamespace && checkSvc && checkCfgGroup
-
-	var err error
-	if !checkAllResEntries {
-		err = ErrorNotPermission
+	if err := d.cacheMgr.Role().Update(); err != nil {
+		log.Error("[Auth][Checker] force sync role to cache failed", utils.RequestID(authCtx.GetRequestContext()), zap.Error(err))
+		return err
 	}
-	return checkAllResEntries, err
+	return nil
 }
 
-// checkAction 检查操作是否和策略匹配
-func (d *DefaultAuthChecker) checkAction(principal model.Principal,
-	resType apisecurity.ResourceType, resources []model.ResourceEntry, ctx *model.AcquireContext) bool {
-	// TODO 后续可针对读写操作进行鉴权, 并且可以针对具体的方法调用进行鉴权控制
+// doCheckPermission 执行权限检查
+func (d *DefaultAuthChecker) doCheckPermission(authCtx *authcommon.AcquireContext) (bool, error) {
+	p, _ := authCtx.GetAttachments()[authcommon.PrincipalKey].(authcommon.Principal)
+	if d.IsCredible(authCtx) {
+		return true, nil
+	}
 
-	switch ctx.GetOperation() {
-	case model.Read:
-		return true
-	default:
-		for _, entry := range resources {
-			if !d.cacheMgr.AuthStrategy().IsResourceEditable(principal, resType, entry.ID) {
-				return false
-			}
+	allowPolicies := d.cacheMgr.AuthStrategy().GetPrincipalPolicies("allow", p)
+	denyPolicies := d.cacheMgr.AuthStrategy().GetPrincipalPolicies("deny", p)
+
+	resources := authCtx.GetAccessResources()
+
+	// 先执行 deny 策略
+	for i := range denyPolicies {
+		item := denyPolicies[i]
+		if d.MatchPolicy(authCtx, item, p, resources) {
+			return false, ErrorNotPermission
 		}
+	}
+
+	// 处理 allow 策略，只要有一个放开，就可以认为通过
+	for i := range allowPolicies {
+		item := allowPolicies[i]
+		if d.MatchPolicy(authCtx, item, p, resources) {
+			return true, nil
+		}
+	}
+	return false, ErrorNotPermission
+}
+
+// IsCredible 检查是否是可信的请求
+func (d *DefaultAuthChecker) IsCredible(authCtx *authcommon.AcquireContext) bool {
+	reqHeaders, ok := authCtx.GetRequestContext().Value(utils.ContextRequestHeaders).(map[string][]string)
+	if !ok || len(d.conf.CredibleHeaders) == 0 {
+		return false
+	}
+	matched := true
+	for k, v := range d.conf.CredibleHeaders {
+		val, exist := reqHeaders[strings.ToLower(k)]
+		if !exist {
+			matched = false
+			break
+		}
+		if len(val) == 0 {
+			matched = false
+		}
+		matched = v == val[0]
+		if !matched {
+			break
+		}
+	}
+	return matched
+}
+
+// MatchPolicy 检查策略是否匹配
+func (d *DefaultAuthChecker) MatchPolicy(authCtx *authcommon.AcquireContext, policy *authcommon.StrategyDetail,
+	principal authcommon.Principal, resources map[apisecurity.ResourceType][]authcommon.ResourceEntry) bool {
+	if !d.MatchCalleeFunctions(authCtx, principal, policy) {
+		return false
+	}
+	if !d.MatchResourceOperateable(authCtx, principal, policy) {
+		return false
+	}
+	if !d.MatchResourceConditions(authCtx, principal, policy) {
+		return false
 	}
 	return true
 }
 
-func (d *DefaultAuthChecker) SetCacheMgr(mgr cachetypes.CacheManager) {
-	d.cacheMgr = mgr
+// MatchCalleeFunctions 检查操作方法是否和策略匹配
+func (d *DefaultAuthChecker) MatchCalleeFunctions(authCtx *authcommon.AcquireContext,
+	principal authcommon.Principal, policy *authcommon.StrategyDetail) bool {
+	functions := policy.CalleeMethods
+	for i := range functions {
+		if functions[i] == string(authCtx.GetMethod()) {
+			return true
+		}
+		if utils.IsWildMatch(string(authCtx.GetMethod()), functions[i]) {
+			return true
+		}
+	}
+	return false
 }
 
-func (d *DefaultAuthChecker) GetConfig() *AuthConfig {
-	return d.conf
+// checkAction 检查操作资源是否和策略匹配
+func (d *DefaultAuthChecker) MatchResourceOperateable(authCtx *authcommon.AcquireContext,
+	principal authcommon.Principal, policy *authcommon.StrategyDetail) bool {
+	matchCheck := func(resType apisecurity.ResourceType, resources []authcommon.ResourceEntry) bool {
+		for i := range resources {
+			actionResult := d.cacheMgr.AuthStrategy().Hint(principal, &resources[i])
+			if actionResult.String() == policy.Action {
+				return true
+			}
+		}
+		return false
+	}
+
+	reqRes := authCtx.GetAccessResources()
+	isMatch := false
+	for k, v := range reqRes {
+		if isMatch = matchCheck(k, v); isMatch {
+			break
+		}
+	}
+	return isMatch
 }
 
-func (d *DefaultAuthChecker) SetConfig(conf *AuthConfig) {
-	d.conf = conf
+// MatchResourceConditions 检查操作资源所拥有的标签是否和策略匹配
+func (d *DefaultAuthChecker) MatchResourceConditions(authCtx *authcommon.AcquireContext,
+	principal authcommon.Principal, policy *authcommon.StrategyDetail) bool {
+	matchCheck := func(resType apisecurity.ResourceType, resources []authcommon.ResourceEntry) bool {
+		conditions := policy.Conditions
+
+		for i := range resources {
+			allMatch := true
+			for j := range conditions {
+				condition := conditions[j]
+				resVal, ok := resources[i].Metadata[condition.Key]
+				if !ok {
+					allMatch = false
+					break
+				}
+				compareFunc, ok := conditionCompareDict[condition.CompareFunc]
+				if !ok {
+					allMatch = false
+					break
+				}
+				if allMatch = compareFunc(resVal, condition.Value); !allMatch {
+					break
+				}
+			}
+			if allMatch {
+				return true
+			}
+		}
+		return false
+	}
+
+	reqRes := authCtx.GetAccessResources()
+	isMatch := false
+	for k, v := range reqRes {
+		if isMatch = matchCheck(k, v); isMatch {
+			break
+		}
+	}
+	return isMatch
 }
+
+var (
+	conditionCompareDict = map[string]func(string, string) bool{
+		"for_any_value:string_equal": func(s1, s2 string) bool {
+			return s1 == s2
+		},
+	}
+)

@@ -28,7 +28,7 @@ import (
 	"github.com/polarismesh/polaris/apiserver/grpcserver"
 	"github.com/polarismesh/polaris/apiserver/grpcserver/utils"
 	commonlog "github.com/polarismesh/polaris/common/log"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/config"
 )
 
@@ -58,7 +58,7 @@ func (g *ConfigGRPCServer) Initialize(ctx context.Context, option map[string]int
 	apiConf map[string]apiserver.APIConfig) error {
 	g.openAPI = apiConf
 	return g.BaseGrpcServer.Initialize(ctx, option,
-		grpcserver.WithModule(model.ConfigModule),
+		grpcserver.WithModule(authcommon.ConfigModule),
 		grpcserver.WithProtocol(g.GetProtocol()),
 		grpcserver.WithLogger(commonlog.FindScope(commonlog.APIServerLoggerName)),
 	)

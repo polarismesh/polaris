@@ -40,12 +40,6 @@ type NamingModuleStore interface {
 	CircuitBreakerStore
 	// ToolStore 函数及工具接口
 	ToolStore
-	// UserStore 用户接口
-	UserStore
-	// GroupStore 用户组接口
-	GroupStore
-	// StrategyStore 鉴权策略接口
-	StrategyStore
 	// RoutingConfigStoreV2 路由策略 v2 接口
 	RoutingConfigStoreV2
 	// FaultDetectRuleStore fault detect rule interface

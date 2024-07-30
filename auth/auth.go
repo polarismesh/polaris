@@ -167,7 +167,7 @@ func initialize(_ context.Context, authOpt *Config, storage store.Store,
 		return nil, nil, fmt.Errorf("no such StrategyServer plugin. name(%s)", policyMgrName)
 	}
 
-	if err := userMgr.Initialize(authOpt, storage, cacheMgr); err != nil {
+	if err := userMgr.Initialize(authOpt, storage, policyMgr, cacheMgr); err != nil {
 		log.Printf("UserServer do initialize err: %s", err.Error())
 		return nil, nil, err
 	}

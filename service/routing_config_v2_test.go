@@ -100,8 +100,8 @@ func TestCreateRoutingConfigV2(t *testing.T) {
 		out = discoverSuit.DiscoverServer().QueryRoutingConfigsV2(discoverSuit.DefaultCtx, map[string]string{
 			"limit":     "100",
 			"offset":    "0",
-			"namespace": expendItem.RuleRouting.Rules[0].Sources[0].Namespace,
-			"service":   expendItem.RuleRouting.Rules[0].Sources[0].Service,
+			"namespace": expendItem.RuleRouting.RuleRouting.Rules[0].Sources[0].Namespace,
+			"service":   expendItem.RuleRouting.RuleRouting.Rules[0].Sources[0].Service,
 		})
 		if !respSuccess(out) {
 			t.Fatalf("error: %+v", out)
@@ -600,4 +600,9 @@ func unmarshalRoutingV2toAnySlice(routings []*anypb.Any) ([]*apitraffic.RouteRul
 	}
 
 	return ret, nil
+}
+
+func Test_PrintRouteRuleTypeUrl(t *testing.T) {
+	any, _ := ptypes.MarshalAny(&apitraffic.RuleRoutingConfig{})
+	t.Log(any.TypeUrl)
 }

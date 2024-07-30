@@ -54,8 +54,6 @@ type Server struct {
 	timeAdjuster   *TimeAdjuster
 	dispatcher     *Dispatcher
 	checkScheduler *CheckScheduler
-	history        plugin.History
-	discoverEvent  plugin.DiscoverChannel
 	localHost      string
 	bc             *batch.Controller
 	serviceCache   cachetypes.ServiceCache
@@ -117,7 +115,6 @@ func initialize(ctx context.Context, hcOpt *Config, bc *batch.Controller) error 
 	}
 
 	svr, err := NewHealthServer(ctx, hcOpt,
-		WithPlugins(),
 		WithStore(storage),
 		WithBatchController(bc),
 		WithTimeAdjuster(newTimeAdjuster(ctx, storage)),
@@ -212,16 +209,13 @@ func (s *Server) ListCheckerServer() []*model.Instance {
 // RecordHistory server对外提供history插件的简单封装
 func (s *Server) RecordHistory(entry *model.RecordEntry) {
 	// 如果插件没有初始化，那么不记录history
-	if s.history == nil {
-		return
-	}
 	// 如果数据为空，则不需要打印了
 	if entry == nil {
 		return
 	}
 
 	// 调用插件记录history
-	s.history.Record(entry)
+	plugin.GetHistory().Record(entry)
 }
 
 // publishInstanceEvent 发布服务事件

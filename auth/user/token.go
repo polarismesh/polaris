@@ -30,13 +30,13 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/polarismesh/polaris/auth"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 )
 
 // decodeToken 解析 token 信息，如果 t == ""，直接返回一个空对象
 func (svr *Server) decodeToken(t string) (auth.OperatorInfo, error) {
 	if t == "" {
-		return auth.OperatorInfo{}, model.ErrorTokenInvalid
+		return auth.OperatorInfo{}, authcommon.ErrorTokenInvalid
 	}
 
 	ret, err := DecryptMessage([]byte(svr.authOpt.Salt), t)
@@ -45,21 +45,28 @@ func (svr *Server) decodeToken(t string) (auth.OperatorInfo, error) {
 	}
 	tokenDetails := strings.Split(ret, TokenSplit)
 	if len(tokenDetails) != 2 {
-		return auth.OperatorInfo{}, model.ErrorTokenInvalid
+		return auth.OperatorInfo{}, authcommon.ErrorTokenInvalid
 	}
 
 	detail := strings.Split(tokenDetails[1], "/")
 	if len(detail) != 2 {
-		return auth.OperatorInfo{}, model.ErrorTokenInvalid
+		return auth.OperatorInfo{}, authcommon.ErrorTokenInvalid
 	}
 
 	tokenInfo := auth.OperatorInfo{
 		Origin:      t,
-		IsUserToken: detail[0] == model.TokenForUser,
+		IsUserToken: detail[0] == authcommon.TokenForUser,
 		OperatorID:  detail[1],
-		Role:        model.UnknownUserRole,
+		Role:        authcommon.UnknownUserRole,
 	}
 	return tokenInfo, nil
+}
+
+type TokenPrincipal interface {
+	GetToken() string
+	Disable() bool
+	OwnerID() string
+	SelfID() string
 }
 
 // checkToken 对 token 进行检查，如果 token 是一个空，直接返回默认值，但是不返回错误
@@ -68,36 +75,49 @@ func (svr *Server) checkToken(tokenInfo *auth.OperatorInfo) (string, bool, error
 	if auth.IsEmptyOperator(*tokenInfo) {
 		return "", false, nil
 	}
+	principal, err := svr.getTokenPrincipal(tokenInfo)
+	if err != nil {
+		return "", false, err
+	}
 
-	id := tokenInfo.OperatorID
+	if tokenInfo.Origin != principal.GetToken() {
+		return "", false, authcommon.ErrorTokenNotExist
+	}
+	tokenInfo.Disable = principal.Disable()
+	if principal.OwnerID() == "" {
+		return principal.SelfID(), true, nil
+	}
+
+	return principal.OwnerID(), false, nil
+}
+
+func (svr *Server) getTokenPrincipal(tokenInfo *auth.OperatorInfo) (TokenPrincipal, error) {
 	if tokenInfo.IsUserToken {
-		user := svr.cacheMgr.User().GetUserByID(id)
-		if user == nil {
-			return "", false, model.ErrorNoUser
+		user := svr.cacheMgr.User().GetUserByID(tokenInfo.OperatorID)
+		if user != nil {
+			return user, nil
 		}
-
-		if tokenInfo.Origin != user.Token {
-			return "", false, model.ErrorTokenNotExist
+		if err := svr.cacheMgr.User().Update(); err != nil {
+			return nil, err
 		}
-
-		tokenInfo.Disable = !user.TokenEnable
-		if user.Owner == "" {
-			return user.ID, true, nil
+		user = svr.cacheMgr.User().GetUserByID(tokenInfo.OperatorID)
+		if user != nil {
+			return user, nil
 		}
-
-		return user.Owner, false, nil
+		return nil, authcommon.ErrorNoUser
 	}
-	group := svr.cacheMgr.User().GetGroup(id)
-	if group == nil {
-		return "", false, model.ErrorNoUserGroup
+	group := svr.cacheMgr.User().GetGroup(tokenInfo.OperatorID)
+	if group != nil {
+		return group, nil
 	}
-
-	if tokenInfo.Origin != group.Token {
-		return "", false, model.ErrorTokenNotExist
+	if err := svr.cacheMgr.User().Update(); err != nil {
+		return nil, err
 	}
-
-	tokenInfo.Disable = !group.TokenEnable
-	return group.Owner, false, nil
+	group = svr.cacheMgr.User().GetGroup(tokenInfo.OperatorID)
+	if group != nil {
+		return group, nil
+	}
+	return nil, authcommon.ErrorNoUserGroup
 }
 
 const (
@@ -125,9 +145,9 @@ func CreateToken(uid, gid string, salt string) (string, error) {
 
 	var val string
 	if uid == "" {
-		val = fmt.Sprintf("%s/%s", model.TokenForUserGroup, gid)
+		val = fmt.Sprintf("%s/%s", authcommon.TokenForUserGroup, gid)
 	} else {
-		val = fmt.Sprintf("%s/%s", model.TokenForUser, uid)
+		val = fmt.Sprintf("%s/%s", authcommon.TokenForUser, uid)
 	}
 
 	token := fmt.Sprintf(TokenPattern, uuid.NewString()[8:16], val)

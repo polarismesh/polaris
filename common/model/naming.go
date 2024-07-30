@@ -19,6 +19,7 @@ package model
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -33,6 +34,13 @@ import (
 
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
+)
+
+var (
+	// ErrorNoNamespace 没有找到对应的命名空间
+	ErrorNoNamespace error = errors.New("no such namespace")
+	// ErrorNoService 没有找到对应的服务
+	ErrorNoService error = errors.New("no such service")
 )
 
 func ExportToMap(exportTo []*wrappers.StringValue) map[string]struct{} {
@@ -54,6 +62,8 @@ type Namespace struct {
 	ModifyTime time.Time
 	// ServiceExportTo 服务可见性设置
 	ServiceExportTo map[string]struct{}
+	// Metadata 命名空间元数据
+	Metadata map[string]string
 }
 
 func (n *Namespace) ListServiceExportTo() []*wrappers.StringValue {

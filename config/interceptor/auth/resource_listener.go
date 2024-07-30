@@ -24,6 +24,7 @@ import (
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/config"
 )
@@ -45,9 +46,9 @@ func (s *ServerAuthability) After(ctx context.Context, resourceType model.Resour
 
 // onConfigGroupResource
 func (s *ServerAuthability) onConfigGroupResource(ctx context.Context, res *config.ResourceEvent) error {
-	authCtx := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
+	authCtx := ctx.Value(utils.ContextAuthContextKey).(*auth.AcquireContext)
 
-	authCtx.SetAttachment(model.ResourceAttachmentKey, map[apisecurity.ResourceType][]model.ResourceEntry{
+	authCtx.SetAttachment(auth.ResourceAttachmentKey, map[apisecurity.ResourceType][]auth.ResourceEntry{
 		apisecurity.ResourceType_ConfigGroups: {
 			{
 				ID:    strconv.FormatUint(res.ConfigGroup.Id.GetValue(), 10),
@@ -62,11 +63,11 @@ func (s *ServerAuthability) onConfigGroupResource(ctx context.Context, res *conf
 	groups := utils.ConvertStringValuesToSlice(res.ConfigGroup.GroupIds)
 	removeGroups := utils.ConvertStringValuesToSlice(res.ConfigGroup.RemoveGroupIds)
 
-	authCtx.SetAttachment(model.LinkUsersKey, utils.StringSliceDeDuplication(users))
-	authCtx.SetAttachment(model.RemoveLinkUsersKey, utils.StringSliceDeDuplication(removeUses))
+	authCtx.SetAttachment(auth.LinkUsersKey, utils.StringSliceDeDuplication(users))
+	authCtx.SetAttachment(auth.RemoveLinkUsersKey, utils.StringSliceDeDuplication(removeUses))
 
-	authCtx.SetAttachment(model.LinkGroupsKey, utils.StringSliceDeDuplication(groups))
-	authCtx.SetAttachment(model.RemoveLinkGroupsKey, utils.StringSliceDeDuplication(removeGroups))
+	authCtx.SetAttachment(auth.LinkGroupsKey, utils.StringSliceDeDuplication(groups))
+	authCtx.SetAttachment(auth.RemoveLinkGroupsKey, utils.StringSliceDeDuplication(removeGroups))
 
 	return s.policyMgr.AfterResourceOperation(authCtx)
 }

@@ -57,6 +57,90 @@ func (set *Set[K]) Range(fn func(val K)) {
 	}
 }
 
+// NewRefSyncSet returns a new Set
+func NewRefSyncSet[K comparable]() *RefSyncSet[K] {
+	return &RefSyncSet[K]{
+		container: make(map[K]int),
+	}
+}
+
+type RefSyncSet[K comparable] struct {
+	container map[K]int
+	lock      sync.RWMutex
+}
+
+// Add adds a string to the set
+func (set *RefSyncSet[K]) Add(val K) {
+	set.lock.Lock()
+	defer set.lock.Unlock()
+
+	ref, ok := set.container[val]
+	if ok {
+		ref++
+	}
+	set.container[val] = ref
+}
+
+// Remove removes a string from the set
+func (set *RefSyncSet[K]) Remove(val K) {
+	set.lock.Lock()
+	defer set.lock.Unlock()
+	ref, ok := set.container[val]
+	if ok {
+		ref--
+	}
+	if ref == 0 {
+		delete(set.container, val)
+	} else {
+		set.container[val] = ref
+	}
+}
+
+func (set *RefSyncSet[K]) ToSlice() []K {
+	set.lock.RLock()
+	defer set.lock.RUnlock()
+
+	ret := make([]K, 0, len(set.container))
+	for k := range set.container {
+		ret = append(ret, k)
+	}
+	return ret
+}
+
+func (set *RefSyncSet[K]) Range(fn func(val K)) {
+	set.lock.RLock()
+	snapshot := map[K]struct{}{}
+	for k := range set.container {
+		snapshot[k] = struct{}{}
+	}
+	set.lock.RUnlock()
+
+	for k := range snapshot {
+		fn(k)
+	}
+}
+
+func (set *RefSyncSet[K]) Len() int {
+	set.lock.RLock()
+	defer set.lock.RUnlock()
+
+	return len(set.container)
+}
+
+// Contains contains target value
+func (set *RefSyncSet[K]) Contains(val K) bool {
+	set.lock.Lock()
+	defer set.lock.Unlock()
+
+	_, exist := set.container[val]
+	return exist
+}
+
+func (set *RefSyncSet[K]) String() string {
+	ret := set.ToSlice()
+	return MustJson(ret)
+}
+
 // NewSyncSet returns a new Set
 func NewSyncSet[K comparable]() *SyncSet[K] {
 	return &SyncSet[K]{
@@ -75,6 +159,15 @@ func (set *SyncSet[K]) Add(val K) {
 	defer set.lock.Unlock()
 
 	set.container[val] = struct{}{}
+}
+
+// Add adds a string to the set
+func (set *SyncSet[K]) AddAll(vals *SyncSet[K]) {
+	vals.Range(func(val K) {
+		set.lock.Lock()
+		defer set.lock.Unlock()
+		set.container[val] = struct{}{}
+	})
 }
 
 // Remove removes a string from the set

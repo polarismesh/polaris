@@ -26,6 +26,7 @@ import (
 
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/model/admin"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
@@ -63,13 +64,13 @@ func (m *adminStore) IsLeader(key string) bool {
 }
 
 // ListLeaderElections
-func (m *adminStore) ListLeaderElections() ([]*model.LeaderElection, error) {
+func (m *adminStore) ListLeaderElections() ([]*admin.LeaderElection, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	var out []*model.LeaderElection
+	var out []*admin.LeaderElection
 	for k, v := range m.leMap {
-		item := &model.LeaderElection{
+		item := &admin.LeaderElection{
 			ElectKey: k,
 			Host:     utils.LocalHost,
 			Ctime:    0,

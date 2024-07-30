@@ -25,7 +25,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
@@ -51,42 +51,36 @@ type strategyStore struct {
 	slave  *BaseDB
 }
 
-func (s *strategyStore) AddStrategy(strategy *model.StrategyDetail) error {
+func (s *strategyStore) AddStrategy(tx store.Tx, strategy *authcommon.StrategyDetail) error {
 	if strategy.ID == "" || strategy.Name == "" || strategy.Owner == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"add auth_strategy missing some params, id is %s, name is %s, owner is %s",
 			strategy.ID, strategy.Name, strategy.Owner))
 	}
 
+	dbTx := tx.GetDelegateTx().(*BaseTx)
+
 	// 先清理无效数据
-	if err := s.cleanInvalidStrategy(strategy.Name, strategy.Owner); err != nil {
-		return store.Error(err)
-	}
+	log.Info("[Store][Strategy] clean invalid auth_strategy", zap.String("name", strategy.Name),
+		zap.String("owner", strategy.Owner))
 
-	err := RetryTransaction("addStrategy", func() error {
-		return s.addStrategy(strategy)
-	})
-	return store.Error(err)
-}
-
-func (s *strategyStore) addStrategy(strategy *model.StrategyDetail) error {
-	tx, err := s.master.Begin()
-	if err != nil {
+	str := "delete from auth_strategy where name = ? and owner = ? and flag = 1"
+	if _, err := dbTx.Exec(str, strategy.Name, strategy.Owner); err != nil {
+		log.Errorf("[Store][Strategy] clean invalid auth_strategy(%s) err: %s", strategy.Name, err.Error())
 		return err
 	}
-	defer func() { _ = tx.Rollback() }()
 
 	isDefault := 0
 	if strategy.Default {
 		isDefault = 1
 	}
 
-	if err := s.addStrategyPrincipals(tx, strategy.ID, strategy.Principals); err != nil {
+	if err := s.addStrategyPrincipals(dbTx, strategy.ID, strategy.Principals); err != nil {
 		log.Error("[Store][Strategy] add auth_strategy principals", zap.Error(err))
 		return err
 	}
 
-	if err := s.addStrategyResources(tx, strategy.ID, strategy.Resources); err != nil {
+	if err := s.addStrategyResources(dbTx, strategy.ID, strategy.Resources); err != nil {
 		log.Error("[Store][Strategy] add auth_strategy resources", zap.Error(err))
 		return err
 	}
@@ -94,7 +88,7 @@ func (s *strategyStore) addStrategy(strategy *model.StrategyDetail) error {
 	// 保存策略主信息
 	saveMainSql := "INSERT INTO auth_strategy(`id`, `name`, `action`, `owner`, `comment`, `flag`, " +
 		" `default`, `revision`) VALUES (?,?,?,?,?,?,?,?)"
-	if _, err = tx.Exec(saveMainSql,
+	if _, err := dbTx.Exec(saveMainSql,
 		[]interface{}{
 			strategy.ID, strategy.Name, strategy.Action, strategy.Owner, strategy.Comment,
 			0, isDefault, strategy.Revision}...,
@@ -102,17 +96,11 @@ func (s *strategyStore) addStrategy(strategy *model.StrategyDetail) error {
 		log.Error("[Store][Strategy] add auth_strategy main info", zap.Error(err))
 		return err
 	}
-
-	if err := tx.Commit(); err != nil {
-		log.Errorf("[Store][Strategy] add auth_strategy tx commit err: %s", err.Error())
-		return err
-	}
-
 	return nil
 }
 
 // UpdateStrategy 更新鉴权规则
-func (s *strategyStore) UpdateStrategy(strategy *model.ModifyStrategyDetail) error {
+func (s *strategyStore) UpdateStrategy(strategy *authcommon.ModifyStrategyDetail) error {
 	if strategy.ID == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"update auth_strategy missing some params, id is %s", strategy.ID))
@@ -124,7 +112,7 @@ func (s *strategyStore) UpdateStrategy(strategy *model.ModifyStrategyDetail) err
 	return store.Error(err)
 }
 
-func (s *strategyStore) updateStrategy(strategy *model.ModifyStrategyDetail) error {
+func (s *strategyStore) updateStrategy(strategy *authcommon.ModifyStrategyDetail) error {
 	tx, err := s.master.Begin()
 	if err != nil {
 		return err
@@ -212,7 +200,7 @@ func (s *strategyStore) deleteStrategy(id string) error {
 }
 
 // addStrategyPrincipals
-func (s *strategyStore) addStrategyPrincipals(tx *BaseTx, id string, principals []model.Principal) error {
+func (s *strategyStore) addStrategyPrincipals(tx *BaseTx, id string, principals []authcommon.Principal) error {
 	if len(principals) == 0 {
 		return nil
 	}
@@ -224,7 +212,7 @@ func (s *strategyStore) addStrategyPrincipals(tx *BaseTx, id string, principals 
 	for i := range principals {
 		principal := principals[i]
 		values = append(values, "(?,?,?)")
-		args = append(args, id, principal.PrincipalID, principal.PrincipalRole)
+		args = append(args, id, principal.PrincipalID, principal.PrincipalType)
 	}
 
 	savePrincipalSql += strings.Join(values, ",")
@@ -238,7 +226,7 @@ func (s *strategyStore) addStrategyPrincipals(tx *BaseTx, id string, principals 
 
 // deleteStrategyPrincipals
 func (s *strategyStore) deleteStrategyPrincipals(tx *BaseTx, id string,
-	principals []model.Principal) error {
+	principals []authcommon.Principal) error {
 	if len(principals) == 0 {
 		return nil
 	}
@@ -248,7 +236,7 @@ func (s *strategyStore) deleteStrategyPrincipals(tx *BaseTx, id string,
 	for i := range principals {
 		principal := principals[i]
 		if _, err := tx.Exec(savePrincipalSql, []interface{}{
-			id, principal.PrincipalID, principal.PrincipalRole,
+			id, principal.PrincipalID, principal.PrincipalType,
 		}...); err != nil {
 			return err
 		}
@@ -257,7 +245,7 @@ func (s *strategyStore) deleteStrategyPrincipals(tx *BaseTx, id string,
 	return nil
 }
 
-func (s *strategyStore) addStrategyResources(tx *BaseTx, id string, resources []model.StrategyResource) error {
+func (s *strategyStore) addStrategyResources(tx *BaseTx, id string, resources []authcommon.StrategyResource) error {
 	if len(resources) == 0 {
 		return nil
 	}
@@ -284,7 +272,7 @@ func (s *strategyStore) addStrategyResources(tx *BaseTx, id string, resources []
 }
 
 func (s *strategyStore) deleteStrategyResources(tx *BaseTx, id string,
-	resources []model.StrategyResource) error {
+	resources []authcommon.StrategyResource) error {
 
 	if len(resources) == 0 {
 		return nil
@@ -305,7 +293,7 @@ func (s *strategyStore) deleteStrategyResources(tx *BaseTx, id string,
 }
 
 // LooseAddStrategyResources loose add strategy resources
-func (s *strategyStore) LooseAddStrategyResources(resources []model.StrategyResource) error {
+func (s *strategyStore) LooseAddStrategyResources(resources []authcommon.StrategyResource) error {
 	tx, err := s.master.Begin()
 	if err != nil {
 		return err
@@ -344,7 +332,7 @@ func (s *strategyStore) LooseAddStrategyResources(resources []model.StrategyReso
 }
 
 // RemoveStrategyResources 删除策略的资源
-func (s *strategyStore) RemoveStrategyResources(resources []model.StrategyResource) error {
+func (s *strategyStore) RemoveStrategyResources(resources []authcommon.StrategyResource) error {
 	tx, err := s.master.Begin()
 	if err != nil {
 		return err
@@ -379,7 +367,7 @@ func (s *strategyStore) RemoveStrategyResources(resources []model.StrategyResour
 }
 
 // GetStrategyDetail 获取策略详情
-func (s *strategyStore) GetStrategyDetail(id string) (*model.StrategyDetail, error) {
+func (s *strategyStore) GetStrategyDetail(id string) (*authcommon.StrategyDetail, error) {
 	if id == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"get auth_strategy missing some params, id is %s", id))
@@ -395,7 +383,7 @@ func (s *strategyStore) GetStrategyDetail(id string) (*model.StrategyDetail, err
 
 // GetDefaultStrategyDetailByPrincipal 获取默认策略
 func (s *strategyStore) GetDefaultStrategyDetailByPrincipal(principalId string,
-	principalType model.PrincipalType) (*model.StrategyDetail, error) {
+	principalType authcommon.PrincipalType) (*authcommon.StrategyDetail, error) {
 
 	if principalId == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
@@ -422,12 +410,12 @@ func (s *strategyStore) GetDefaultStrategyDetailByPrincipal(principalId string,
 }
 
 // getStrategyDetail
-func (s *strategyStore) getStrategyDetail(row *sql.Row) (*model.StrategyDetail, error) {
+func (s *strategyStore) getStrategyDetail(row *sql.Row) (*authcommon.StrategyDetail, error) {
 	var (
 		ctime, mtime    int64
 		isDefault, flag int16
 	)
-	ret := new(model.StrategyDetail)
+	ret := new(authcommon.StrategyDetail)
 	if err := row.Scan(&ret.ID, &ret.Name, &ret.Action, &ret.Owner, &isDefault, &ret.Comment,
 		&ret.Revision, &flag, &ctime, &mtime); err != nil {
 		switch err {
@@ -459,7 +447,7 @@ func (s *strategyStore) getStrategyDetail(row *sql.Row) (*model.StrategyDetail, 
 
 // GetStrategies 获取策略列表
 func (s *strategyStore) GetStrategies(filters map[string]string, offset uint32, limit uint32) (uint32,
-	[]*model.StrategyDetail, error) {
+	[]*authcommon.StrategyDetail, error) {
 	showDetail := filters["show_detail"]
 	delete(filters, "show_detail")
 
@@ -470,7 +458,7 @@ func (s *strategyStore) GetStrategies(filters map[string]string, offset uint32, 
 
 // listStrategies
 func (s *strategyStore) listStrategies(filters map[string]string, offset uint32, limit uint32,
-	showDetail bool) (uint32, []*model.StrategyDetail, error) {
+	showDetail bool) (uint32, []*authcommon.StrategyDetail, error) {
 
 	querySql :=
 		`SELECT
@@ -509,7 +497,7 @@ func (s *strategyStore) queryStrategies(
 	handler QueryHandler,
 	filters map[string]string, mapping map[string]string,
 	querySqlPrefix string, countSqlPrefix string,
-	offset uint32, limit uint32, showDetail bool) (uint32, []*model.StrategyDetail, error) {
+	offset uint32, limit uint32, showDetail bool) (uint32, []*authcommon.StrategyDetail, error) {
 	querySql := querySqlPrefix
 	countSql := countSqlPrefix
 
@@ -570,7 +558,7 @@ func (s *strategyStore) queryStrategies(
 
 // collectStrategies 执行真正的 sql 并从 rows 中获取策略列表
 func (s *strategyStore) collectStrategies(handler QueryHandler, querySql string,
-	args []interface{}, showDetail bool) ([]*model.StrategyDetail, error) {
+	args []interface{}, showDetail bool) ([]*authcommon.StrategyDetail, error) {
 	log.Debug("[Store][Strategy] get simple strategies", zap.String("query sql", querySql),
 		zap.Any("args", args))
 
@@ -586,7 +574,7 @@ func (s *strategyStore) collectStrategies(handler QueryHandler, querySql string,
 
 	idMap := make(map[string]struct{})
 
-	ret := make([]*model.StrategyDetail, 0, 16)
+	ret := make([]*authcommon.StrategyDetail, 0, 16)
 	for rows.Next() {
 		detail, err := fetchRown2StrategyDetail(rows)
 		if err != nil {
@@ -619,8 +607,7 @@ func (s *strategyStore) collectStrategies(handler QueryHandler, querySql string,
 	return ret, nil
 }
 
-func (s *strategyStore) GetStrategyDetailsForCache(mtime time.Time,
-	firstUpdate bool) ([]*model.StrategyDetail, error) {
+func (s *strategyStore) GetMoreStrategies(mtime time.Time, firstUpdate bool) ([]*authcommon.StrategyDetail, error) {
 	tx, err := s.slave.Begin()
 	if err != nil {
 		return nil, store.Error(err)
@@ -644,7 +631,7 @@ func (s *strategyStore) GetStrategyDetailsForCache(mtime time.Time,
 		_ = rows.Close()
 	}()
 
-	ret := make([]*model.StrategyDetail, 0)
+	ret := make([]*authcommon.StrategyDetail, 0)
 	for rows.Next() {
 		detail, err := fetchRown2StrategyDetail(rows)
 		if err != nil {
@@ -671,7 +658,7 @@ func (s *strategyStore) GetStrategyDetailsForCache(mtime time.Time,
 
 // GetStrategyResources 获取对应 principal 能操作的所有资源
 func (s *strategyStore) GetStrategyResources(principalId string,
-	principalRole model.PrincipalType) ([]model.StrategyResource, error) {
+	principalRole authcommon.PrincipalType) ([]authcommon.StrategyResource, error) {
 
 	querySql := "SELECT res_id, res_type FROM auth_strategy_resource WHERE strategy_id IN (SELECT DISTINCT " +
 		" ap.strategy_id FROM auth_principal ap join auth_strategy ar ON ap.strategy_id = ar.id WHERE ar.flag = 0 " +
@@ -691,10 +678,10 @@ func (s *strategyStore) GetStrategyResources(principalId string,
 
 	defer rows.Close()
 
-	resArr := make([]model.StrategyResource, 0)
+	resArr := make([]authcommon.StrategyResource, 0)
 
 	for rows.Next() {
-		res := new(model.StrategyResource)
+		res := new(authcommon.StrategyResource)
 		if err := rows.Scan(&res.ResID, &res.ResType); err != nil {
 			return nil, store.Error(err)
 		}
@@ -704,7 +691,7 @@ func (s *strategyStore) GetStrategyResources(principalId string,
 	return resArr, nil
 }
 
-func (s *strategyStore) getStrategyPrincipals(queryHander QueryHandler, id string) ([]model.Principal, error) {
+func (s *strategyStore) getStrategyPrincipals(queryHander QueryHandler, id string) ([]authcommon.Principal, error) {
 
 	rows, err := queryHander("SELECT principal_id, principal_role FROM auth_principal WHERE strategy_id = ?", id)
 	if err != nil {
@@ -718,11 +705,11 @@ func (s *strategyStore) getStrategyPrincipals(queryHander QueryHandler, id strin
 	}
 	defer rows.Close()
 
-	principals := make([]model.Principal, 0)
+	principals := make([]authcommon.Principal, 0)
 
 	for rows.Next() {
-		res := new(model.Principal)
-		if err := rows.Scan(&res.PrincipalID, &res.PrincipalRole); err != nil {
+		res := new(authcommon.Principal)
+		if err := rows.Scan(&res.PrincipalID, &res.PrincipalType); err != nil {
 			return nil, store.Error(err)
 		}
 		principals = append(principals, *res)
@@ -731,7 +718,7 @@ func (s *strategyStore) getStrategyPrincipals(queryHander QueryHandler, id strin
 	return principals, nil
 }
 
-func (s *strategyStore) getStrategyResources(queryHander QueryHandler, id string) ([]model.StrategyResource, error) {
+func (s *strategyStore) getStrategyResources(queryHander QueryHandler, id string) ([]authcommon.StrategyResource, error) {
 	querySql := "SELECT res_id, res_type FROM auth_strategy_resource WHERE strategy_id = ?"
 	rows, err := queryHander(querySql, id)
 	if err != nil {
@@ -745,10 +732,10 @@ func (s *strategyStore) getStrategyResources(queryHander QueryHandler, id string
 	}
 	defer rows.Close()
 
-	resArr := make([]model.StrategyResource, 0)
+	resArr := make([]authcommon.StrategyResource, 0)
 
 	for rows.Next() {
-		res := new(model.StrategyResource)
+		res := new(authcommon.StrategyResource)
 		if err := rows.Scan(&res.ResID, &res.ResType); err != nil {
 			return nil, store.Error(err)
 		}
@@ -758,13 +745,13 @@ func (s *strategyStore) getStrategyResources(queryHander QueryHandler, id string
 	return resArr, nil
 }
 
-func fetchRown2StrategyDetail(rows *sql.Rows) (*model.StrategyDetail, error) {
+func fetchRown2StrategyDetail(rows *sql.Rows) (*authcommon.StrategyDetail, error) {
 	var (
 		ctime, mtime    int64
 		isDefault, flag int16
 	)
-	ret := &model.StrategyDetail{
-		Resources: make([]model.StrategyResource, 0),
+	ret := &authcommon.StrategyDetail{
+		Resources: make([]authcommon.StrategyResource, 0),
 	}
 
 	if err := rows.Scan(&ret.ID, &ret.Name, &ret.Action, &ret.Owner, &ret.Comment, &isDefault, &ret.Revision, &flag,
@@ -783,34 +770,12 @@ func fetchRown2StrategyDetail(rows *sql.Rows) (*model.StrategyDetail, error) {
 	return ret, nil
 }
 
-// cleanInvalidStrategy 按名称清理鉴权策略
-func (s *strategyStore) cleanInvalidStrategy(name, owner string) error {
-	log.Info("[Store][Strategy] clean invalid auth_strategy",
-		zap.String("name", name), zap.String("owner", owner))
-
-	tx, err := s.master.Begin()
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	str := "delete from auth_strategy where name = ? and owner = ? and flag = 1"
-	if _, err = tx.Exec(str, name, owner); err != nil {
-		log.Errorf("[Store][Strategy] clean invalid auth_strategy(%s) err: %s", name, err.Error())
-		return err
-	}
-	if err := tx.Commit(); err != nil {
-		log.Errorf("[Store][Strategy] clean invalid auth_strategy tx commit err: %s", err.Error())
-		return err
-	}
-	return nil
-}
-
-// cleanLinkStrategy 清理与自己相关联的鉴权信息
+// CleanPrincipalPolicies 清理与自己相关联的鉴权信息
 // step 1. 清理用户/用户组默认策略所关联的所有资源信息（直接走delete删除）
 // step 2. 清理用户/用户组默认策略
 // step 3. 清理用户/用户组所关联的其他鉴权策略的关联关系（直接走delete删除）
-func cleanLinkStrategy(tx *BaseTx, role model.PrincipalType, principalId, owner string) error {
+func (s *strategyStore) CleanPrincipalPolicies(tx store.Tx, p authcommon.Principal) error {
+	dbTx := tx.GetDelegateTx().(*BaseTx)
 
 	// 清理默认策略对应的所有鉴权关联资源
 	removeResSql := `
@@ -829,7 +794,7 @@ func cleanLinkStrategy(tx *BaseTx, role model.PrincipalType, principalId, owner 
 			 )
 		 `
 
-	if _, err := tx.Exec(removeResSql, []interface{}{owner, principalId, role}...); err != nil {
+	if _, err := dbTx.Exec(removeResSql, []interface{}{p.Owner, p.PrincipalID, p.PrincipalType}...); err != nil {
 		return err
 	}
 
@@ -847,20 +812,20 @@ func cleanLinkStrategy(tx *BaseTx, role model.PrincipalType, principalId, owner 
 			 AND ag.owner = ?
 	 `
 
-	if _, err := tx.Exec(cleanaRuleSql, []interface{}{principalId, role, owner}...); err != nil {
+	if _, err := dbTx.Exec(cleanaRuleSql, []interface{}{p.PrincipalID, p.PrincipalType, p.Owner}...); err != nil {
 		return err
 	}
 
 	// 调整所关联的鉴权策略的 mtime 数据，保证cache刷新可以获取到变更的数据信息
 	updateStrategySql := "UPDATE auth_strategy SET mtime = sysdate()  WHERE id IN (SELECT DISTINCT " +
 		" strategy_id FROM auth_principal WHERE principal_id = ? AND principal_role = ?)"
-	if _, err := tx.Exec(updateStrategySql, []interface{}{principalId, role}...); err != nil {
+	if _, err := dbTx.Exec(updateStrategySql, []interface{}{p.PrincipalID, p.PrincipalType}...); err != nil {
 		return err
 	}
 
 	// 清理所在的所有鉴权principal
 	cleanPrincipalSql := "DELETE FROM auth_principal WHERE principal_id = ? AND principal_role = ?"
-	if _, err := tx.Exec(cleanPrincipalSql, []interface{}{principalId, role}...); err != nil {
+	if _, err := dbTx.Exec(cleanPrincipalSql, []interface{}{p.PrincipalID, p.PrincipalType}...); err != nil {
 		return err
 	}
 

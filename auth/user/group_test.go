@@ -32,7 +32,7 @@ import (
 	"github.com/polarismesh/polaris/cache"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	v1 "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	storemock "github.com/polarismesh/polaris/store/mock"
 )
@@ -40,13 +40,13 @@ import (
 type GroupTest struct {
 	ctrl *gomock.Controller
 
-	ownerOne *model.User
-	ownerTwo *model.User
+	ownerOne *authcommon.User
+	ownerTwo *authcommon.User
 
-	users     []*model.User
-	groups    []*model.UserGroupDetail
-	newGroups []*model.UserGroupDetail
-	allGroups []*model.UserGroupDetail
+	users     []*authcommon.User
+	groups    []*authcommon.UserGroupDetail
+	newGroups []*authcommon.UserGroupDetail
+	allGroups []*authcommon.UserGroupDetail
 
 	storage  *storemock.MockStore
 	cacheMgn *cache.CacheManager
@@ -72,7 +72,7 @@ func newGroupTest(t *testing.T) *GroupTest {
 
 	storage.EXPECT().GetServicesCount().AnyTimes().Return(uint32(1), nil)
 	storage.EXPECT().GetUnixSecond(gomock.Any()).AnyTimes().Return(time.Now().Unix(), nil)
-	storage.EXPECT().AddGroup(gomock.Any()).AnyTimes().Return(nil)
+	storage.EXPECT().AddGroup(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().UpdateUser(gomock.Any()).AnyTimes().Return(nil)
 	storage.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(append(users, newUsers...), nil)
 	storage.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).AnyTimes().Return(allGroups, nil)
@@ -104,7 +104,7 @@ func newGroupTest(t *testing.T) *GroupTest {
 				"salt": "polarismesh@2021",
 			},
 		},
-	}, storage, cacheMgn)
+	}, storage, nil, cacheMgn)
 	_ = cacheMgn.TestUpdate()
 	return &GroupTest{
 		ctrl:      ctrl,
@@ -496,7 +496,7 @@ func Test_server_DeleteGroup(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.ownerOne.Token)
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).AnyTimes().Return(groupTest.groups[0], nil)
-		groupTest.storage.EXPECT().DeleteGroup(gomock.Any()).AnyTimes().Return(nil)
+		groupTest.storage.EXPECT().DeleteGroup(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
 
 		batchResp := groupTest.svr.DeleteGroups(reqCtx, []*apisecurity.UserGroup{
 			{
@@ -516,7 +516,7 @@ func Test_server_DeleteGroup(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.ownerOne.Token)
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).AnyTimes().Return(nil, nil)
-		groupTest.storage.EXPECT().DeleteGroup(gomock.Any()).AnyTimes().Return(nil)
+		groupTest.storage.EXPECT().DeleteGroup(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
 
 		batchResp := groupTest.svr.DeleteGroups(reqCtx, []*apisecurity.UserGroup{
 			{
@@ -536,7 +536,7 @@ func Test_server_DeleteGroup(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.ownerTwo.Token)
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).AnyTimes().Return(groupTest.groups[0], nil)
-		groupTest.storage.EXPECT().DeleteGroup(gomock.Any()).AnyTimes().Return(nil)
+		groupTest.storage.EXPECT().DeleteGroup(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
 
 		batchResp := groupTest.svr.DeleteGroups(reqCtx, []*apisecurity.UserGroup{
 			{
@@ -556,7 +556,7 @@ func Test_server_DeleteGroup(t *testing.T) {
 		reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, groupTest.users[1].Token)
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).AnyTimes().Return(groupTest.groups[0], nil)
-		groupTest.storage.EXPECT().DeleteGroup(gomock.Any()).AnyTimes().Return(nil)
+		groupTest.storage.EXPECT().DeleteGroup(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
 
 		batchResp := groupTest.svr.DeleteGroups(reqCtx, []*apisecurity.UserGroup{
 			{
@@ -580,7 +580,7 @@ func Test_server_UpdateGroupToken(t *testing.T) {
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).AnyTimes().Return(groupTest.groups[0], nil)
 		groupTest.storage.EXPECT().UpdateGroup(gomock.Any()).AnyTimes().Return(nil)
 
-		batchResp := groupTest.svr.UpdateGroupToken(reqCtx, &apisecurity.UserGroup{
+		batchResp := groupTest.svr.EnableGroupToken(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[2].ID),
 		})
 
@@ -596,7 +596,7 @@ func Test_server_UpdateGroupToken(t *testing.T) {
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).AnyTimes().Return(groupTest.groups[0], nil)
 
-		batchResp := groupTest.svr.UpdateGroupToken(reqCtx, &apisecurity.UserGroup{
+		batchResp := groupTest.svr.EnableGroupToken(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[2].ID),
 		})
 
@@ -612,7 +612,7 @@ func Test_server_UpdateGroupToken(t *testing.T) {
 
 		groupTest.storage.EXPECT().GetGroup(gomock.Any()).AnyTimes().Return(groupTest.groups[0], nil)
 
-		batchResp := groupTest.svr.UpdateGroupToken(reqCtx, &apisecurity.UserGroup{
+		batchResp := groupTest.svr.EnableGroupToken(reqCtx, &apisecurity.UserGroup{
 			Id: utils.NewStringValue(groupTest.groups[2].ID),
 		})
 

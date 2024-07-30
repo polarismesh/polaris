@@ -47,7 +47,7 @@ type configGroupCache struct {
 // NewConfigGroupCache 创建文件缓存
 func NewConfigGroupCache(storage store.Store, cacheMgr types.CacheManager) types.ConfigGroupCache {
 	gc := &configGroupCache{
-		storage:   storage,
+		storage: storage,
 	}
 	gc.BaseCache = types.NewBaseCacheWithRepoerMetrics(storage, cacheMgr, gc.reportMetricsInfo)
 	return gc
