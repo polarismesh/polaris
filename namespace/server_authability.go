@@ -35,15 +35,15 @@ import (
 // 该层会对请求参数做一些调整，根据具体的请求发起人，设置为数据对应的 owner，不可为为别人进行创建资源
 type serverAuthAbility struct {
 	targetServer *Server
-	userMgn      auth.UserServer
+	userSvr      auth.UserServer
 	policySvr    auth.StrategyServer
 }
 
 func newServerAuthAbility(targetServer *Server,
-	userMgn auth.UserServer, policySvr auth.StrategyServer) NamespaceOperateServer {
+	userSvr auth.UserServer, policySvr auth.StrategyServer) NamespaceOperateServer {
 	proxy := &serverAuthAbility{
 		targetServer: targetServer,
-		userMgn:      userMgn,
+		userSvr:      userSvr,
 		policySvr:    policySvr,
 	}
 
@@ -66,6 +66,10 @@ func (svr *serverAuthAbility) collectNamespaceAuthContext(ctx context.Context, r
 // queryNamespaceResource 根据所给的 namespace 信息，收集对应的 ResourceEntry 列表
 func (svr *serverAuthAbility) queryNamespaceResource(
 	req []*apimodel.Namespace) map[apisecurity.ResourceType][]authcommon.ResourceEntry {
+	if len(req) == 0 {
+		return map[apisecurity.ResourceType][]authcommon.ResourceEntry{}
+	}
+
 	names := utils.NewSet[string]()
 	for index := range req {
 		names.Add(req[index].Name.GetValue())

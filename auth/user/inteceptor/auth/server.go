@@ -46,8 +46,9 @@ type Server struct {
 }
 
 // Initialize 初始化
-func (svr *Server) Initialize(authOpt *auth.Config, storage store.Store, policyMgr auth.StrategyServer, cacheMgr cachetypes.CacheManager) error {
-	return svr.nextSvr.Initialize(authOpt, storage, policyMgr, cacheMgr)
+func (svr *Server) Initialize(authOpt *auth.Config, storage store.Store, policySvr auth.StrategyServer, cacheMgr cachetypes.CacheManager) error {
+	svr.policySvr = policySvr
+	return svr.nextSvr.Initialize(authOpt, storage, policySvr, cacheMgr)
 }
 
 // Name 用户数据管理server名称
@@ -194,7 +195,7 @@ func (svr *Server) GetUsers(ctx context.Context, query map[string]string) *apise
 		query["owner"] = utils.ParseOwnerID(ctx)
 	}
 
-	cachetypes.AppendUserPredicate(ctx, func(ctx context.Context, u *authcommon.User) bool {
+	ctx = cachetypes.AppendUserPredicate(ctx, func(ctx context.Context, u *authcommon.User) bool {
 		return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authmodel.ResourceEntry{
 			Type:     apisecurity.ResourceType_Users,
 			ID:       u.ID,
@@ -386,7 +387,7 @@ func (svr *Server) GetGroups(ctx context.Context, query map[string]string) *apis
 		query["owner"] = utils.ParseOwnerID(ctx)
 	}
 
-	cachetypes.AppendUserPredicate(ctx, func(ctx context.Context, u *authcommon.User) bool {
+	ctx = cachetypes.AppendUserPredicate(ctx, func(ctx context.Context, u *authcommon.User) bool {
 		return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authmodel.ResourceEntry{
 			Type:     apisecurity.ResourceType_UserGroups,
 			ID:       u.ID,

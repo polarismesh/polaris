@@ -18,6 +18,14 @@ type DefaultPolicyHelper struct {
 	checker  auth.AuthChecker
 }
 
+func (h *DefaultPolicyHelper) GetRole(id string) *authcommon.Role {
+	return h.cacheMgr.Role().GetRole(id)
+}
+
+func (h *DefaultPolicyHelper) GetPolicyRule(id string) *authcommon.StrategyDetail {
+	return h.cacheMgr.AuthStrategy().GetPolicyRule(id)
+}
+
 // CreatePrincipal 创建 principal 的默认 policy 资源
 func (h *DefaultPolicyHelper) CreatePrincipal(ctx context.Context, tx store.Tx, p authcommon.Principal) error {
 	if !h.options.OpenPrincipalDefaultPolicy {
@@ -35,13 +43,13 @@ func defaultPrincipalPolicy(p authcommon.Principal) *authcommon.StrategyDetail {
 	return &authcommon.StrategyDetail{
 		ID:        utils.NewUUID(),
 		Name:      authcommon.BuildDefaultStrategyName(authcommon.PrincipalUser, p.Name),
-		Action:    apisecurity.AuthAction_READ_WRITE.String(),
+		Action:    apisecurity.AuthAction_ALLOW.String(),
 		Default:   true,
 		Owner:     p.Owner,
 		Revision:  utils.NewUUID(),
 		Resources: []authcommon.StrategyResource{},
 		Valid:     true,
-		Comment:   "Default Strategy",
+		Comment:   "default auth policy rule",
 	}
 }
 

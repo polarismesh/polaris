@@ -113,18 +113,16 @@ WHERE id = ?
 }
 
 // DeleteRole Delete a role
-func (s *roleStore) DeleteRole(role *authcommon.Role) error {
+func (s *roleStore) DeleteRole(tx store.Tx, role *authcommon.Role) error {
 	if role.ID == "" {
 		return store.NewStatusError(store.EmptyParamsErr, "role id is empty")
 	}
-	err := s.master.processWithTransaction("delete_role", func(tx *BaseTx) error {
-		if _, err := tx.Exec("UPDATE auth_role SET flag = 1 WHERE id = ?", role.ID); err != nil {
-			log.Error("[store][role] delete role", zap.String("name", role.Name), zap.Error(err))
-			return err
-		}
-		return nil
-	})
-	return store.Error(err)
+	dbTx := tx.GetDelegateTx().(*BaseTx)
+	if _, err := dbTx.Exec("UPDATE auth_role SET flag = 1 WHERE id = ?", role.ID); err != nil {
+		log.Error("[store][role] delete role", zap.String("name", role.Name), zap.Error(err))
+		return store.Error(err)
+	}
+	return nil
 }
 
 // CleanPrincipalRoles clean principal roles
@@ -161,6 +159,47 @@ func (s *roleStore) CleanPrincipalRoles(tx store.Tx, p *authcommon.Principal) er
 		return store.Error(err)
 	}
 	return nil
+}
+
+func (s *roleStore) GetRole(id string) (*authcommon.Role, error) {
+	tx, err := s.master.Begin()
+	if err != nil {
+		return nil, store.Error(err)
+	}
+
+	defer func() { _ = tx.Commit() }()
+
+	querySql := "SELECT id, name, owner, source, role_type, comment, flag, metadata, UNIX_TIMESTAMP(ctime), " +
+		" UNIX_TIMESTAMP(mtime) FROM auth_role WHERE flag = 0 AND id = ?"
+	args := []interface{}{id}
+
+	row := tx.QueryRow(querySql, args...)
+	var (
+		ctime, mtime int64
+		flag         int16
+		metadata     string
+	)
+	ret := &authcommon.Role{
+		Metadata:   map[string]string{},
+		Users:      make([]*authcommon.User, 0, 4),
+		UserGroups: make([]*authcommon.UserGroup, 0, 4),
+	}
+
+	if err := row.Scan(&ret.ID, &ret.Name, &ret.Owner, &ret.Source, &ret.Type, &ret.Comment,
+		&flag, &metadata, &ctime, &mtime); err != nil {
+		log.Error("[store][role] fetch one record role info", zap.Error(err))
+		return nil, store.Error(err)
+	}
+
+	ret.CreateTime = time.Unix(ctime, 0)
+	ret.ModifyTime = time.Unix(mtime, 0)
+	ret.Valid = flag == 0
+	_ = json.Unmarshal([]byte(metadata), &ret.Metadata)
+
+	if err := s.fetchRolePrincipals(tx, ret); err != nil {
+		return nil, store.Error(err)
+	}
+	return ret, nil
 }
 
 // GetRole get more role for cache update

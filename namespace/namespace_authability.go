@@ -144,8 +144,7 @@ func (svr *serverAuthAbility) UpdateNamespaceToken(ctx context.Context, req *api
 func (svr *serverAuthAbility) GetNamespaces(
 	ctx context.Context, query map[string][]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectNamespaceAuthContext(ctx, nil, authcommon.Read, authcommon.DescribeNamespaces)
-	_, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx)
-	if err != nil {
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchQueryResponseWithMsg(convertToErrCode(err), err.Error())
 	}
 

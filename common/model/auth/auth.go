@@ -383,6 +383,26 @@ type StrategyDetail struct {
 	ModifyTime    time.Time
 }
 
+func (s *StrategyDetail) IsMatchAction(a string) bool {
+	saveAction := s.Action
+	if isAllowAction(saveAction) {
+		saveAction = apisecurity.AuthAction_ALLOW.String()
+	}
+	if isAllowAction(a) {
+		a = apisecurity.AuthAction_ALLOW.String()
+	}
+	return saveAction == a
+}
+
+func isAllowAction(s string) bool {
+	switch s {
+	case apisecurity.AuthAction_ALLOW.String(), apisecurity.AuthAction_READ_WRITE.String():
+		return true
+	default:
+		return false
+	}
+}
+
 func (s *StrategyDetail) IsDeny() bool {
 	return s.Action == apisecurity.AuthAction_DENY.String()
 }
@@ -433,6 +453,8 @@ type ModifyStrategyDetail struct {
 	Action           string
 	Comment          string
 	Metadata         map[string]string
+	CalleeMethods    []string
+	Conditions       []Condition
 	AddPrincipals    []Principal
 	RemovePrincipals []Principal
 	AddResources     []StrategyResource
@@ -459,6 +481,10 @@ type StrategyResource struct {
 	StrategyID string
 	ResType    int32
 	ResID      string
+}
+
+func (s StrategyResource) Key() string {
+	return strconv.Itoa(int(s.ResType)) + "/" + s.ResID
 }
 
 // Principal 策略相关人
@@ -497,4 +523,54 @@ type Role struct {
 	ModifyTime time.Time
 	Users      []*User
 	UserGroups []*UserGroup
+}
+
+func (r *Role) FromSpec(d *apisecurity.Role) {
+	r.Name = d.Name
+	r.Owner = d.Owner
+	r.Source = d.Source
+	r.Metadata = d.Metadata
+
+	if len(d.Users) != 0 {
+		users := make([]*User, 0, len(d.Users))
+		for i := range d.Users {
+			users = append(users, &User{ID: d.Users[i].GetId().GetValue()})
+		}
+		r.Users = users
+	}
+
+	if len(d.UserGroups) != 0 {
+		groups := make([]*UserGroup, 0, len(d.UserGroups))
+		for i := range d.UserGroups {
+			groups = append(groups, &UserGroup{ID: d.UserGroups[i].GetId().GetValue()})
+		}
+		r.UserGroups = groups
+	}
+}
+
+func (r *Role) ToSpec() *apisecurity.Role {
+	d := &apisecurity.Role{}
+
+	d.Name = r.Name
+	d.Owner = r.Owner
+	d.Source = r.Source
+	d.Metadata = r.Metadata
+
+	if len(r.Users) != 0 {
+		users := make([]*apisecurity.User, 0, len(r.Users))
+		for i := range r.Users {
+			users = append(users, r.Users[i].ToSpec())
+		}
+		d.Users = users
+	}
+
+	if len(d.UserGroups) != 0 {
+		groups := make([]*apisecurity.UserGroup, 0, len(d.UserGroups))
+		for i := range r.UserGroups {
+			groups = append(groups, &apisecurity.UserGroup{Id: utils.NewStringValue(r.UserGroups[i].ID)})
+		}
+		d.UserGroups = groups
+	}
+
+	return d
 }

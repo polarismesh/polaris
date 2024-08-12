@@ -66,7 +66,7 @@ rm -f ${bin_name}
 export CGO_ENABLED=0
 
 build_date=$(date "+%Y%m%d.%H%M%S")
-package="github.com/polarismesh/polaris-server/common/version"
+package="github.com/polarismesh/polaris/common/version"
 sqldb_res="store/mysql"
 GOARCH=${GOARCH} GOOS=${GOOS} go build -o ${bin_name} -ldflags="-X ${package}.Version=${version} -X ${package}.BuildDate=${build_date}"
 

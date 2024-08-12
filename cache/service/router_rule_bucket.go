@@ -51,9 +51,6 @@ func NewServiceWithRouterRules(svcKey model.ServiceKey, direction model.TrafficD
 
 // AddRouterRule 添加路由规则，注意，这里只会保留处于 Enable 状态的路由规则
 func (s *ServiceWithRouterRules) AddRouterRule(rule *model.ExtendRouterConfig) {
-	if !rule.Enable {
-		return
-	}
 	if rule.GetRoutingPolicy() == apitraffic.RoutingPolicy_RulePolicy {
 		s.customv1Rules = &apitraffic.Routing{
 			Inbounds:  []*apitraffic.Route{},
@@ -63,7 +60,11 @@ func (s *ServiceWithRouterRules) AddRouterRule(rule *model.ExtendRouterConfig) {
 
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	s.rules[rule.ID] = rule
+	if !rule.Enable {
+		delete(s.rules, rule.ID)
+	} else {
+		s.rules[rule.ID] = rule
+	}
 }
 
 func (s *ServiceWithRouterRules) DelRouterRule(id string) {
@@ -151,7 +152,7 @@ func (s *ServiceWithRouterRules) reloadV1Rules() {
 	routes := make([]*apitraffic.Route, 0, 32)
 
 	for i := range rules {
-		if rules[i].Priority != uint32(apitraffic.RoutingPolicy_RulePolicy) {
+		if rules[i].Policy != apitraffic.RoutingPolicy_RulePolicy.String() {
 			continue
 		}
 		routes = append(routes, model.BuildRoutes(rules[i], s.direction)...)

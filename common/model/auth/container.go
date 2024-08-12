@@ -40,12 +40,18 @@ func NewPrincipalResourceContainer() *PrincipalResourceContainer {
 func (p *PrincipalResourceContainer) Hint(rt apisecurity.ResourceType, resId string) (apisecurity.AuthAction, bool) {
 	ids, ok := p.denyResources.Load(rt)
 	if ok {
+		if ids.Contains(utils.MatchAll) {
+			return apisecurity.AuthAction_DENY, true
+		}
 		if ids.Contains(resId) {
 			return apisecurity.AuthAction_DENY, true
 		}
 	}
 	ids, ok = p.allowResources.Load(rt)
 	if ok {
+		if ids.Contains(utils.MatchAll) {
+			return apisecurity.AuthAction_ALLOW, true
+		}
 		if ids.Contains(resId) {
 			return apisecurity.AuthAction_ALLOW, true
 		}

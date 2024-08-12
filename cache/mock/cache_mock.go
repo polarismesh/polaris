@@ -2874,6 +2874,20 @@ func (mr *MockStrategyCacheMockRecorder) Close() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockStrategyCache)(nil).Close))
 }
 
+// GetPolicyRule mocks base method.
+func (m *MockStrategyCache) GetPolicyRule(id string) *auth.StrategyDetail {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPolicyRule", id)
+	ret0, _ := ret[0].(*auth.StrategyDetail)
+	return ret0
+}
+
+// GetPolicyRule indicates an expected call of GetPolicyRule.
+func (mr *MockStrategyCacheMockRecorder) GetPolicyRule(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPolicyRule", reflect.TypeOf((*MockStrategyCache)(nil).GetPolicyRule), id)
+}
+
 // GetPrincipalPolicies mocks base method.
 func (m *MockStrategyCache) GetPrincipalPolicies(effect string, p auth.Principal) []*auth.StrategyDetail {
 	m.ctrl.T.Helper()

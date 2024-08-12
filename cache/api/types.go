@@ -708,6 +708,8 @@ type (
 	// StrategyCache is a cache for strategy rules.
 	StrategyCache interface {
 		Cache
+		// GetPolicyRule 获取策略信息
+		GetPolicyRule(id string) *authcommon.StrategyDetail
 		// GetPrincipalPolicies 根据 effect 获取 principal 的策略信息
 		GetPrincipalPolicies(effect string, p authcommon.Principal) []*authcommon.StrategyDetail
 		// Hint 确认某个 principal 对于资源的访问权限

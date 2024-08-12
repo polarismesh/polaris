@@ -100,11 +100,9 @@ func (svr *Server) UpdateStrategies(
 // Case 2. 鉴权策略只能被自己的 owner 对应的用户修改
 // Case 3. 主账户的默认策略不得修改
 func (svr *Server) UpdateStrategy(ctx context.Context, req *apisecurity.ModifyAuthStrategy) *apiservice.Response {
-	requestID := utils.ParseRequestID(ctx)
-
 	strategy, err := svr.storage.GetStrategyDetail(req.GetId().GetValue())
 	if err != nil {
-		log.Error("[Auth][Strategy] get strategy from store", utils.ZapRequestID(requestID),
+		log.Error("[Auth][Strategy] get strategy from store", utils.RequestID(ctx),
 			zap.Error(err))
 		return api.NewModifyAuthStrategyResponse(commonstore.StoreCode2APICode(err), req)
 	}
@@ -124,11 +122,11 @@ func (svr *Server) UpdateStrategy(ctx context.Context, req *apisecurity.ModifyAu
 
 	if err := svr.storage.UpdateStrategy(data); err != nil {
 		log.Error("[Auth][Strategy] update strategy into store",
-			utils.ZapRequestID(requestID), zap.Error(err))
+			utils.RequestID(ctx), zap.Error(err))
 		return api.NewAuthResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 
-	log.Info("[Auth][Strategy] update strategy into store", utils.ZapRequestID(requestID),
+	log.Info("[Auth][Strategy] update strategy into store", utils.RequestID(ctx),
 		zap.String("name", strategy.Name))
 	svr.RecordHistory(authModifyStrategyRecordEntry(ctx, req, data, model.OUpdate))
 
@@ -198,7 +196,6 @@ func (svr *Server) DeleteStrategy(ctx context.Context, req *apisecurity.AuthStra
 //		a. 如果当前是超级管理账户，则按照传入的 query 进行查询即可
 //		b. 如果当前是主账户，则自动注入 owner 字段，即只能查看策略的 owner 是自己的策略
 //		c. 如果当前是子账户，则自动注入 principal_id 以及 principal_type 字段，即稚嫩查询与自己有关的策略
-
 func (svr *Server) GetStrategies(ctx context.Context, filters map[string]string) *apiservice.BatchQueryResponse {
 	filters = ParseStrategySearchArgs(ctx, filters)
 	offset, limit, _ := utils.ParseOffsetAndLimit(filters)
@@ -540,6 +537,19 @@ func (svr *Server) updateAuthStrategyAttribute(ctx context.Context, strategy *ap
 	if computePrincipalChange(ret, strategy) {
 		needUpdate = true
 	}
+	needUpdate = true
+	saved.CalleeMethods = strategy.Functions
+	saved.Metadata = strategy.Metadata
+	saved.Conditions = func() []authcommon.Condition {
+		conditions := make([]authcommon.Condition, 0, len(strategy.GetResourceLabels()))
+		for index := range strategy.GetResourceLabels() {
+			conditions = append(conditions, authcommon.Condition{
+				Key:   strategy.GetResourceLabels()[index].GetKey(),
+				Value: strategy.GetResourceLabels()[index].GetValue(),
+			})
+		}
+		return conditions
+	}()
 
 	return ret, needUpdate
 }

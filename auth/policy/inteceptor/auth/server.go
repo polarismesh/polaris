@@ -78,17 +78,21 @@ func (svr *Server) CreateStrategy(ctx context.Context, strategy *apisecurity.Aut
 		resp := api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 		return resp
 	}
-	return svr.nextSvr.CreateStrategy(ctx, strategy)
+	return svr.nextSvr.CreateStrategy(authCtx.GetRequestContext(), strategy)
 }
 
 // UpdateStrategies 批量更新策略
 func (svr *Server) UpdateStrategies(ctx context.Context, reqs []*apisecurity.ModifyAuthStrategy) *apiservice.BatchWriteResponse {
 	resources := make([]authcommon.ResourceEntry, 0, len(reqs))
 	for i := range reqs {
-		item := reqs[i]
-		resources = append(resources, authcommon.ResourceEntry{
-			ID: item.GetId().GetValue(),
-		})
+		entry := authcommon.ResourceEntry{
+			Type: apisecurity.ResourceType_PolicyRules,
+			ID:   reqs[i].GetId().GetValue(),
+		}
+		if saveRule := svr.nextSvr.PolicyHelper().GetPolicyRule(reqs[i].GetId().GetValue()); saveRule != nil {
+			entry.Metadata = saveRule.Metadata
+		}
+		resources = append(resources, entry)
 	}
 
 	authCtx := authcommon.NewAcquireContext(
@@ -96,23 +100,30 @@ func (svr *Server) UpdateStrategies(ctx context.Context, reqs []*apisecurity.Mod
 		authcommon.WithOperation(authcommon.Modify),
 		authcommon.WithModule(authcommon.AuthModule),
 		authcommon.WithMethod(authcommon.UpdateAuthPolicies),
+		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
+			apisecurity.ResourceType_PolicyRules: resources,
+		}),
 	)
 
 	if _, err := svr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		resp := api.NewBatchWriteResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 		return resp
 	}
-	return svr.nextSvr.UpdateStrategies(ctx, reqs)
+	return svr.nextSvr.UpdateStrategies(authCtx.GetRequestContext(), reqs)
 }
 
 // DeleteStrategies 删除策略
 func (svr *Server) DeleteStrategies(ctx context.Context, reqs []*apisecurity.AuthStrategy) *apiservice.BatchWriteResponse {
 	resources := make([]authcommon.ResourceEntry, 0, len(reqs))
 	for i := range reqs {
-		item := reqs[i]
-		resources = append(resources, authcommon.ResourceEntry{
-			ID: item.GetId().GetValue(),
-		})
+		entry := authcommon.ResourceEntry{
+			Type: apisecurity.ResourceType_PolicyRules,
+			ID:   reqs[i].GetId().GetValue(),
+		}
+		if saveRule := svr.nextSvr.PolicyHelper().GetPolicyRule(reqs[i].GetId().GetValue()); saveRule != nil {
+			entry.Metadata = saveRule.Metadata
+		}
+		resources = append(resources, entry)
 	}
 
 	authCtx := authcommon.NewAcquireContext(
@@ -120,13 +131,16 @@ func (svr *Server) DeleteStrategies(ctx context.Context, reqs []*apisecurity.Aut
 		authcommon.WithOperation(authcommon.Delete),
 		authcommon.WithModule(authcommon.AuthModule),
 		authcommon.WithMethod(authcommon.DeleteAuthPolicies),
+		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
+			apisecurity.ResourceType_PolicyRules: resources,
+		}),
 	)
 
 	if _, err := svr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		resp := api.NewBatchWriteResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 		return resp
 	}
-	return svr.nextSvr.DeleteStrategies(ctx, reqs)
+	return svr.nextSvr.DeleteStrategies(authCtx.GetRequestContext(), reqs)
 }
 
 // GetStrategies 获取资源列表
@@ -140,15 +154,16 @@ func (svr *Server) GetStrategies(ctx context.Context, query map[string]string) *
 		authcommon.WithMethod(authcommon.DescribeAuthPolicies),
 	)
 
-	if err := svr.userSvr.CheckCredential(authCtx); err != nil {
+	checker := svr.GetAuthChecker()
+	if _, err := checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewAuthBatchQueryResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
 
-	checker := svr.GetAuthChecker()
-	cachetypes.AppendAuthPolicyPredicate(ctx, func(ctx context.Context, sd *authcommon.StrategyDetail) bool {
+	ctx = cachetypes.AppendAuthPolicyPredicate(ctx, func(ctx context.Context, sd *authcommon.StrategyDetail) bool {
 		return checker.ResourcePredicate(authCtx, &authcommon.ResourceEntry{
-			Type: apisecurity.ResourceType_PolicyRules,
-			ID:   sd.ID,
+			Type:     apisecurity.ResourceType_PolicyRules,
+			ID:       sd.ID,
+			Metadata: sd.Metadata,
 		})
 	})
 
@@ -157,11 +172,23 @@ func (svr *Server) GetStrategies(ctx context.Context, query map[string]string) *
 
 // GetStrategy 获取策略详细
 func (svr *Server) GetStrategy(ctx context.Context, strategy *apisecurity.AuthStrategy) *apiservice.Response {
+	entry := authcommon.ResourceEntry{
+		Type: apisecurity.ResourceType_PolicyRules,
+		ID:   strategy.GetId().GetValue(),
+	}
+	saveRule := svr.nextSvr.PolicyHelper().GetPolicyRule(strategy.GetId().GetValue())
+	if saveRule != nil {
+		entry.Metadata = saveRule.Metadata
+	}
+
 	authCtx := authcommon.NewAcquireContext(
 		authcommon.WithRequestContext(ctx),
 		authcommon.WithOperation(authcommon.Read),
 		authcommon.WithModule(authcommon.AuthModule),
 		authcommon.WithMethod(authcommon.DescribeAuthPolicyDetail),
+		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
+			apisecurity.ResourceType_PolicyRules: {entry},
+		}),
 	)
 
 	checker := svr.GetAuthChecker()
@@ -169,15 +196,7 @@ func (svr *Server) GetStrategy(ctx context.Context, strategy *apisecurity.AuthSt
 	if _, err := checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
-
-	cachetypes.AppendAuthPolicyPredicate(ctx, func(ctx context.Context, sd *authcommon.StrategyDetail) bool {
-		return checker.ResourcePredicate(authCtx, &authcommon.ResourceEntry{
-			Type: apisecurity.ResourceType_PolicyRules,
-			ID:   sd.ID,
-		})
-	})
-
-	return svr.nextSvr.GetStrategy(ctx, strategy)
+	return svr.nextSvr.GetStrategy(authCtx.GetRequestContext(), strategy)
 }
 
 // GetPrincipalResources 获取某个 principal 的所有可操作资源列表
@@ -194,7 +213,7 @@ func (svr *Server) GetPrincipalResources(ctx context.Context, query map[string]s
 	if _, err := checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
-	return svr.nextSvr.GetPrincipalResources(ctx, query)
+	return svr.nextSvr.GetPrincipalResources(authCtx.GetRequestContext(), query)
 }
 
 // GetAuthChecker 获取鉴权检查器
@@ -209,20 +228,103 @@ func (svr *Server) AfterResourceOperation(afterCtx *authcommon.AcquireContext) e
 
 // CreateRoles 批量创建角色
 func (svr *Server) CreateRoles(ctx context.Context, reqs []*apisecurity.Role) *apiservice.BatchWriteResponse {
-	return nil
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Create),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.CreateAuthRoles),
+	)
+
+	if _, err := svr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		resp := api.NewBatchWriteResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return resp
+	}
+	return svr.nextSvr.CreateRoles(authCtx.GetRequestContext(), reqs)
 }
 
 // UpdateRoles 批量更新角色
 func (svr *Server) UpdateRoles(ctx context.Context, reqs []*apisecurity.Role) *apiservice.BatchWriteResponse {
-	return nil
+	resources := make([]authcommon.ResourceEntry, 0, len(reqs))
+	for i := range reqs {
+		entry := authcommon.ResourceEntry{
+			Type: apisecurity.ResourceType_Roles,
+			ID:   reqs[i].GetId(),
+		}
+		if saveRule := svr.nextSvr.PolicyHelper().GetRole(reqs[i].GetId()); saveRule != nil {
+			entry.Metadata = saveRule.Metadata
+		}
+		resources = append(resources, entry)
+	}
+
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Modify),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.UpdateAuthRoles),
+		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
+			apisecurity.ResourceType_Roles: resources,
+		}),
+	)
+
+	if _, err := svr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		resp := api.NewBatchWriteResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return resp
+	}
+	return svr.nextSvr.UpdateRoles(authCtx.GetRequestContext(), reqs)
 }
 
 // DeleteRoles 批量删除角色
 func (svr *Server) DeleteRoles(ctx context.Context, reqs []*apisecurity.Role) *apiservice.BatchWriteResponse {
-	return nil
+	resources := make([]authcommon.ResourceEntry, 0, len(reqs))
+	for i := range reqs {
+		entry := authcommon.ResourceEntry{
+			Type: apisecurity.ResourceType_Roles,
+			ID:   reqs[i].GetId(),
+		}
+		if saveRule := svr.nextSvr.PolicyHelper().GetRole(reqs[i].GetId()); saveRule != nil {
+			entry.Metadata = saveRule.Metadata
+		}
+		resources = append(resources, entry)
+	}
+
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Modify),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.DeleteAuthRoles),
+		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
+			apisecurity.ResourceType_Roles: resources,
+		}),
+	)
+
+	if _, err := svr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		resp := api.NewBatchWriteResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return resp
+	}
+	return svr.nextSvr.DeleteRoles(authCtx.GetRequestContext(), reqs)
 }
 
 // GetRoles 查询角色列表
 func (svr *Server) GetRoles(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
-	return nil
+	authCtx := authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(authcommon.Read),
+		authcommon.WithModule(authcommon.AuthModule),
+		authcommon.WithMethod(authcommon.DescribeAuthRoles),
+	)
+
+	if _, err := svr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewAuthBatchQueryResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+	}
+
+	checker := svr.GetAuthChecker()
+	ctx = cachetypes.AppendAuthRolePredicate(ctx, func(ctx context.Context, sd *authcommon.Role) bool {
+		return checker.ResourcePredicate(authCtx, &authcommon.ResourceEntry{
+			Type:     apisecurity.ResourceType_Roles,
+			ID:       sd.ID,
+			Metadata: sd.Metadata,
+		})
+	})
+
+	return svr.nextSvr.GetRoles(ctx, query)
 }

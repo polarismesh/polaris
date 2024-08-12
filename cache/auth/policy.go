@@ -271,6 +271,14 @@ func (sc *policyCache) GetPrincipalPolicies(effect string, p authcommon.Principa
 	return result
 }
 
+func (sc *policyCache) GetPolicyRule(id string) *authcommon.StrategyDetail {
+	strategy, ok := sc.rules.Load(id)
+	if !ok {
+		return nil
+	}
+	return strategy.StrategyDetail
+}
+
 // GetPrincipalResources 返回 principal 的资源信息，返回顺序为 (allow, deny)
 func (sc *policyCache) Hint(p authcommon.Principal, r *authcommon.ResourceEntry) apisecurity.AuthAction {
 	resources, ok := sc.principalResources[p.PrincipalType].Load(p.PrincipalID)
@@ -380,32 +388,21 @@ func (sc *policyCache) Query(ctx context.Context, args types.PolicySearchArgs) (
 		}
 		rules = append(rules, val.StrategyDetail)
 	})
-
+	sort.Slice(rules, func(i, j int) bool {
+		return rules[i].ModifyTime.After(rules[j].ModifyTime)
+	})
 	total, ret := sc.toPage(rules, args)
 	return total, ret, nil
 }
 
 func (sc *policyCache) toPage(rules []*authcommon.StrategyDetail, args types.PolicySearchArgs) (uint32, []*authcommon.StrategyDetail) {
-	beginIndex := args.Offset
-	endIndex := beginIndex + args.Limit
-	totalCount := uint32(len(rules))
-
-	if totalCount == 0 {
-		return totalCount, []*authcommon.StrategyDetail{}
+	total := uint32(len(rules))
+	if args.Offset >= total || args.Limit == 0 {
+		return total, nil
 	}
-	if beginIndex >= endIndex {
-		return totalCount, []*authcommon.StrategyDetail{}
+	endIdx := args.Offset + args.Limit
+	if endIdx > total {
+		endIdx = total
 	}
-	if beginIndex >= totalCount {
-		return totalCount, []*authcommon.StrategyDetail{}
-	}
-	if endIndex > totalCount {
-		endIndex = totalCount
-	}
-
-	sort.Slice(rules, func(i, j int) bool {
-		return rules[i].ModifyTime.After(rules[j].ModifyTime)
-	})
-
-	return totalCount, rules[beginIndex:endIndex]
+	return total, rules[args.Offset:endIdx]
 }

@@ -39,6 +39,8 @@ import (
 
 // AuthConfig 鉴权配置
 type AuthConfig struct {
+	// Compatible 兼容模式
+	Compatible bool `json:"compatible" xml:"compatible"`
 	// ConsoleOpen 控制台是否开启鉴权
 	ConsoleOpen bool `json:"consoleOpen" xml:"consoleOpen"`
 	// ClientOpen 是否开启客户端接口鉴权
@@ -59,6 +61,8 @@ type AuthConfig struct {
 // DefaultAuthConfig 返回一个默认的鉴权配置
 func DefaultAuthConfig() *AuthConfig {
 	return &AuthConfig{
+		// 针对旧鉴权逻辑的兼容模式
+		Compatible: true,
 		// 针对控制台接口，默认开启鉴权操作
 		ConsoleOpen: true,
 		// 这里默认开启 OpenAPI 的强 Token 检查模式

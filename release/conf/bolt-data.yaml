@@ -1,0 +1,61 @@
+users:
+  - name: polaris
+    token: nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=
+    password: $2a$10$3izWuZtE5SBdAtSZci.gs.iZ2pAn9I8hEqYrC6gwJp1dyjqQnrrum
+    id: 65e4789a6d5b49669adf1e9e8387549c
+    tokenenable: true
+    type: 20
+    valid: true
+policies:
+  - id: fbca9bfa04ae4ead86e1ecf5811e32a9
+    name: (用户) polaris的默认策略
+    action: READ_WRITE
+    comment: default admin
+    default: true
+    owner: 65e4789a6d5b49669adf1e9e8387549c
+    calleemethods: ["*"]
+    resources:
+      - strategyid: fbca9bfa04ae4ead86e1ecf5811e32a9
+        restype: 6
+        resid: "*"
+      - strategyid: fbca9bfa04ae4ead86e1ecf5811e32a9
+        restype: 7
+        resid: "*"
+      - strategyid: fbca9bfa04ae4ead86e1ecf5811e32a9
+        restype: 20
+        resid: "*"
+      - strategyid: fbca9bfa04ae4ead86e1ecf5811e32a9
+        restype: 0
+        resid: "*"
+      - strategyid: fbca9bfa04ae4ead86e1ecf5811e32a9
+        restype: 3
+        resid: "*"
+      - strategyid: fbca9bfa04ae4ead86e1ecf5811e32a9
+        restype: 4
+        resid: "*"
+      - strategyid: fbca9bfa04ae4ead86e1ecf5811e32a9
+        restype: 5
+        resid: "*"
+      - strategyid: fbca9bfa04ae4ead86e1ecf5811e32a9
+        restype: 21
+        resid: "*"
+      - strategyid: fbca9bfa04ae4ead86e1ecf5811e32a9
+        restype: 22
+        resid: "*"
+      - strategyid: fbca9bfa04ae4ead86e1ecf5811e32a9
+        restype: 23
+        resid: "*"
+      - strategyid: fbca9bfa04ae4ead86e1ecf5811e32a9
+        restype: 1
+        resid: "*"
+      - strategyid: fbca9bfa04ae4ead86e1ecf5811e32a9
+        restype: 2
+        resid: "*"
+    conditions: []
+    principals:
+      - strategyid: fbca9bfa04ae4ead86e1ecf5811e32a9
+        principalid: 65e4789a6d5b49669adf1e9e8387549c
+        principaltype: 1
+    valid: true
+    revision: fbca9bfa04ae4ead86e1ecf5811e32a9
+    metadata: {}

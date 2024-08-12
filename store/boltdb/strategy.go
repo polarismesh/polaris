@@ -18,6 +18,7 @@
 package boltdb
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -57,24 +58,6 @@ var (
 	ErrorMultiDefaultStrategy error = errors.New("multiple strategy found")
 	ErrorStrategyNotFound     error = errors.New("strategy not fonud")
 )
-
-type strategyForStore struct {
-	ID           string
-	Name         string
-	Action       string
-	Comment      string
-	Users        map[string]string
-	Groups       map[string]string
-	Default      bool
-	Owner        string
-	NsResources  map[string]string
-	SvcResources map[string]string
-	CfgResources map[string]string
-	Valid        bool
-	Revision     string
-	CreateTime   time.Time
-	ModifyTime   time.Time
-}
 
 // StrategyStore
 type strategyStore struct {
@@ -136,17 +119,19 @@ func (ss *strategyStore) UpdateStrategy(strategy *authcommon.ModifyStrategyDetai
 
 // updateStrategy
 func (ss *strategyStore) updateStrategy(tx *bolt.Tx, modify *authcommon.ModifyStrategyDetail,
-	saveVal *strategyForStore) error {
+	saveVal *strategyData) error {
 
 	saveVal.Action = modify.Action
 	saveVal.Comment = modify.Comment
 	saveVal.Revision = utils.NewUUID()
+	saveVal.CalleeFunctions = utils.MustJson(modify.CalleeMethods)
+	saveVal.Conditions = utils.MustJson(modify.Conditions)
 
 	computePrincipals(false, modify.AddPrincipals, saveVal)
 	computePrincipals(true, modify.RemovePrincipals, saveVal)
 
-	computeResources(false, modify.AddResources, saveVal)
-	computeResources(true, modify.RemoveResources, saveVal)
+	saveVal.computeResources(false, modify.AddResources)
+	saveVal.computeResources(true, modify.RemoveResources)
 
 	saveVal.ModifyTime = time.Now()
 
@@ -165,7 +150,7 @@ func (ss *strategyStore) updateStrategy(tx *bolt.Tx, modify *authcommon.ModifySt
 	return nil
 }
 
-func computePrincipals(remove bool, principals []authcommon.Principal, saveVal *strategyForStore) {
+func computePrincipals(remove bool, principals []authcommon.Principal, saveVal *strategyData) {
 	for i := range principals {
 		principal := principals[i]
 		if principal.PrincipalType == authcommon.PrincipalUser {
@@ -180,36 +165,6 @@ func computePrincipals(remove bool, principals []authcommon.Principal, saveVal *
 			} else {
 				saveVal.Groups[principal.PrincipalID] = ""
 			}
-		}
-	}
-}
-
-func computeResources(remove bool, resources []authcommon.StrategyResource, saveVal *strategyForStore) {
-	for i := range resources {
-		resource := resources[i]
-		if resource.ResType == int32(apisecurity.ResourceType_Namespaces) {
-			if remove {
-				delete(saveVal.NsResources, resource.ResID)
-			} else {
-				saveVal.NsResources[resource.ResID] = ""
-			}
-			continue
-		}
-		if resource.ResType == int32(apisecurity.ResourceType_Services) {
-			if remove {
-				delete(saveVal.SvcResources, resource.ResID)
-			} else {
-				saveVal.SvcResources[resource.ResID] = ""
-			}
-			continue
-		}
-		if resource.ResType == int32(apisecurity.ResourceType_ConfigGroups) {
-			if remove {
-				delete(saveVal.CfgResources, resource.ResID)
-			} else {
-				saveVal.CfgResources[resource.ResID] = ""
-			}
-			continue
 		}
 	}
 }
@@ -264,7 +219,7 @@ func (ss *strategyStore) operateStrategyResources(remove bool, resources []authc
 			return ErrorStrategyNotFound
 		}
 
-		computeResources(remove, ress, rule)
+		rule.computeResources(remove, ress)
 		rule.ModifyTime = time.Now()
 		if err := saveValue(tx, tblStrategy, rule.ID, rule); err != nil {
 			log.Error("[Store][Strategy] operate strategy resource", zap.Error(err),
@@ -282,10 +237,10 @@ func (ss *strategyStore) operateStrategyResources(remove bool, resources []authc
 	return nil
 }
 
-func loadStrategyById(tx *bolt.Tx, id string) (*strategyForStore, error) {
+func loadStrategyById(tx *bolt.Tx, id string) (*strategyData, error) {
 	values := make(map[string]interface{})
 
-	if err := loadValues(tx, tblStrategy, []string{id}, &strategyForStore{}, values); err != nil {
+	if err := loadValues(tx, tblStrategy, []string{id}, &strategyData{}, values); err != nil {
 		log.Error("[Store][Strategy] get auth_strategy by id", zap.Error(err),
 			zap.String("id", id))
 		return nil, err
@@ -298,9 +253,9 @@ func loadStrategyById(tx *bolt.Tx, id string) (*strategyForStore, error) {
 		return nil, ErrorMultiDefaultStrategy
 	}
 
-	var ret *strategyForStore
+	var ret *strategyData
 	for _, v := range values {
-		ret = v.(*strategyForStore)
+		ret = v.(*strategyData)
 		break
 	}
 
@@ -366,7 +321,7 @@ func (ss *strategyStore) GetStrategyResources(principalId string,
 		fields = []string{StrategyFieldValid, StrategyFieldDefault, StrategyFieldGroupsPrincipal}
 	}
 
-	values, err := ss.handler.LoadValuesByFilter(tblStrategy, fields, &strategyForStore{},
+	values, err := ss.handler.LoadValuesByFilter(tblStrategy, fields, &strategyData{},
 		func(m map[string]interface{}) bool {
 			valid, ok := m[StrategyFieldValid].(bool)
 			if ok && !valid {
@@ -393,41 +348,11 @@ func (ss *strategyStore) GetStrategyResources(principalId string,
 	ret := make([]authcommon.StrategyResource, 0, 4)
 
 	for _, item := range values {
-		rule := item.(*strategyForStore)
-		ret = append(ret, collectStrategyResources(rule)...)
+		rule := item.(*strategyData)
+		ret = append(ret, rule.GetResources()...)
 	}
 
 	return ret, nil
-}
-
-func collectStrategyResources(rule *strategyForStore) []authcommon.StrategyResource {
-	ret := make([]authcommon.StrategyResource, 0, len(rule.NsResources)+len(rule.SvcResources)+len(rule.CfgResources))
-
-	for id := range rule.NsResources {
-		ret = append(ret, authcommon.StrategyResource{
-			StrategyID: rule.ID,
-			ResType:    int32(apisecurity.ResourceType_Namespaces),
-			ResID:      id,
-		})
-	}
-
-	for id := range rule.SvcResources {
-		ret = append(ret, authcommon.StrategyResource{
-			StrategyID: rule.ID,
-			ResType:    int32(apisecurity.ResourceType_Services),
-			ResID:      id,
-		})
-	}
-
-	for id := range rule.CfgResources {
-		ret = append(ret, authcommon.StrategyResource{
-			StrategyID: rule.ID,
-			ResType:    int32(apisecurity.ResourceType_ConfigGroups),
-			ResID:      id,
-		})
-	}
-
-	return ret
 }
 
 // GetDefaultStrategyDetailByPrincipal 获取默认策略详情
@@ -440,7 +365,7 @@ func (ss *strategyStore) GetDefaultStrategyDetailByPrincipal(principalId string,
 		fields = []string{StrategyFieldValid, StrategyFieldDefault, StrategyFieldGroupsPrincipal}
 	}
 
-	values, err := ss.handler.LoadValuesByFilter(tblStrategy, fields, &strategyForStore{},
+	values, err := ss.handler.LoadValuesByFilter(tblStrategy, fields, &strategyData{},
 		func(m map[string]interface{}) bool {
 			valid, ok := m[StrategyFieldValid].(bool)
 			if ok && !valid {
@@ -477,9 +402,9 @@ func (ss *strategyStore) GetDefaultStrategyDetailByPrincipal(principalId string,
 		return nil, ErrorMultiDefaultStrategy
 	}
 
-	var ret *strategyForStore
+	var ret *strategyData
 	for _, v := range values {
-		ret = v.(*strategyForStore)
+		ret = v.(*strategyData)
 		break
 	}
 
@@ -503,7 +428,7 @@ func (ss *strategyStore) listStrategies(filters map[string]string, offset uint32
 		StrategyFieldGroupsPrincipal, StrategyFieldNsResources, StrategyFieldSvcResources,
 		StrategyFieldCfgResources, StrategyFieldOwner, StrategyFieldDefault}
 
-	values, err := ss.handler.LoadValuesByFilter(tblStrategy, fields, &strategyForStore{},
+	values, err := ss.handler.LoadValuesByFilter(tblStrategy, fields, &strategyData{},
 		func(m map[string]interface{}) bool {
 			valid, ok := m[StrategyFieldValid].(bool)
 			if ok && !valid {
@@ -598,7 +523,7 @@ func doStrategyPage(ret map[string]interface{}, offset, limit uint32, showDetail
 	emptyResources := make([]authcommon.StrategyResource, 0)
 
 	for k := range ret {
-		rule := convertForStrategyDetail(ret[k].(*strategyForStore))
+		rule := convertForStrategyDetail(ret[k].(*strategyData))
 		if !showDetail {
 			rule.Principals = emptyPrincipals
 			rule.Resources = emptyResources
@@ -656,7 +581,7 @@ func comparePrincipalExist(principalType, principalId string, m map[string]inter
 // GetMoreStrategies get strategy details for cache
 func (ss *strategyStore) GetMoreStrategies(mtime time.Time, firstUpdate bool) ([]*authcommon.StrategyDetail, error) {
 
-	ret, err := ss.handler.LoadValuesByFilter(tblStrategy, []string{StrategyFieldModifyTime}, &strategyForStore{},
+	ret, err := ss.handler.LoadValuesByFilter(tblStrategy, []string{StrategyFieldModifyTime}, &strategyData{},
 		func(m map[string]interface{}) bool {
 			mt := m[StrategyFieldModifyTime].(time.Time)
 			isAfter := mt.After(mtime)
@@ -671,7 +596,7 @@ func (ss *strategyStore) GetMoreStrategies(mtime time.Time, firstUpdate bool) ([
 
 	for k := range ret {
 		val := ret[k]
-		strategies = append(strategies, convertForStrategyDetail(val.(*strategyForStore)))
+		strategies = append(strategies, convertForStrategyDetail(val.(*strategyData)))
 	}
 
 	return strategies, nil
@@ -682,7 +607,7 @@ func (ss *strategyStore) CleanPrincipalPolicies(tx store.Tx, p authcommon.Princi
 	values := make(map[string]interface{})
 
 	dbTx := tx.GetDelegateTx().(*bolt.Tx)
-	err := loadValuesByFilter(dbTx, tblStrategy, fields, &strategyForStore{},
+	err := loadValuesByFilter(dbTx, tblStrategy, fields, &strategyData{},
 		func(m map[string]interface{}) bool {
 			isDefault := m[StrategyFieldDefault].(bool)
 			if !isDefault {
@@ -735,7 +660,7 @@ func (ss *strategyStore) cleanInvalidStrategy(tx *bolt.Tx, name, owner string) e
 	fields := []string{StrategyFieldName, StrategyFieldOwner, StrategyFieldValid}
 	values := make(map[string]interface{})
 
-	err := loadValuesByFilter(tx, tblStrategy, fields, &strategyForStore{},
+	err := loadValuesByFilter(tx, tblStrategy, fields, &strategyData{},
 		func(m map[string]interface{}) bool {
 			valid, ok := m[StrategyFieldValid].(bool)
 			// 如果数据是 valid 的，则不能被清理
@@ -767,7 +692,85 @@ func (ss *strategyStore) cleanInvalidStrategy(tx *bolt.Tx, name, owner string) e
 	return deleteValues(tx, tblStrategy, keys)
 }
 
-func convertForStrategyStore(strategy *authcommon.StrategyDetail) *strategyForStore {
+type strategyData struct {
+	ID              string
+	Name            string
+	Action          string
+	Comment         string
+	Users           map[string]string
+	Groups          map[string]string
+	Default         bool
+	Owner           string
+	NsResources     map[string]string
+	SvcResources    map[string]string
+	CfgResources    map[string]string
+	AllResources    string
+	CalleeFunctions string
+	Conditions      string
+	Valid           bool
+	Revision        string
+	CreateTime      time.Time
+	ModifyTime      time.Time
+}
+
+func (s *strategyData) computeResources(remove bool, resources []authcommon.StrategyResource) {
+	saveVal := s.GetResources()
+
+	tmp := make(map[string]authcommon.StrategyResource, 8)
+	for i := range saveVal {
+		tmp[saveVal[i].Key()] = saveVal[i]
+	}
+	for i := range resources {
+		resource := resources[i]
+		if remove {
+			delete(tmp, resource.Key())
+		} else {
+			tmp[resource.Key()] = resource
+		}
+	}
+
+	ret := make([]authcommon.StrategyResource, 0, 8)
+	for i := range tmp {
+		ret = append(ret, tmp[i])
+	}
+
+	s.AllResources = utils.MustJson(ret)
+}
+
+func (s *strategyData) GetResources() []authcommon.StrategyResource {
+	ret := make([]authcommon.StrategyResource, 0, len(s.NsResources)+len(s.SvcResources)+len(s.CfgResources))
+
+	for id := range s.NsResources {
+		ret = append(ret, authcommon.StrategyResource{
+			StrategyID: s.ID,
+			ResType:    int32(apisecurity.ResourceType_Namespaces),
+			ResID:      id,
+		})
+	}
+
+	for id := range s.SvcResources {
+		ret = append(ret, authcommon.StrategyResource{
+			StrategyID: s.ID,
+			ResType:    int32(apisecurity.ResourceType_Services),
+			ResID:      id,
+		})
+	}
+
+	for id := range s.CfgResources {
+		ret = append(ret, authcommon.StrategyResource{
+			StrategyID: s.ID,
+			ResType:    int32(apisecurity.ResourceType_ConfigGroups),
+			ResID:      id,
+		})
+	}
+	if len(s.AllResources) != 0 {
+		ret = make([]authcommon.StrategyResource, 0, 4)
+		_ = json.Unmarshal([]byte(s.AllResources), &ret)
+	}
+	return ret
+}
+
+func convertForStrategyStore(strategy *authcommon.StrategyDetail) *strategyData {
 
 	var (
 		users      = make(map[string]string, 4)
@@ -784,48 +787,28 @@ func convertForStrategyStore(strategy *authcommon.StrategyDetail) *strategyForSt
 		}
 	}
 
-	ns := make(map[string]string, 4)
-	svc := make(map[string]string, 4)
-	cfg := make(map[string]string, 4)
-
-	resources := strategy.Resources
-
-	for i := range resources {
-		res := resources[i]
-		switch res.ResType {
-		case int32(apisecurity.ResourceType_Namespaces):
-			ns[res.ResID] = ""
-		case int32(apisecurity.ResourceType_Services):
-			svc[res.ResID] = ""
-		case int32(apisecurity.ResourceType_ConfigGroups):
-			cfg[res.ResID] = ""
-		}
-	}
-
-	return &strategyForStore{
-		ID:           strategy.ID,
-		Name:         strategy.Name,
-		Action:       strategy.Action,
-		Comment:      strategy.Comment,
-		Users:        users,
-		Groups:       groups,
-		Default:      strategy.Default,
-		Owner:        strategy.Owner,
-		NsResources:  ns,
-		SvcResources: svc,
-		CfgResources: cfg,
-		Valid:        strategy.Valid,
-		Revision:     strategy.Revision,
-		CreateTime:   strategy.CreateTime,
-		ModifyTime:   strategy.ModifyTime,
+	return &strategyData{
+		ID:              strategy.ID,
+		Name:            strategy.Name,
+		Action:          strategy.Action,
+		Comment:         strategy.Comment,
+		Users:           users,
+		Groups:          groups,
+		Default:         strategy.Default,
+		Owner:           strategy.Owner,
+		AllResources:    utils.MustJson(strategy.Resources),
+		CalleeFunctions: utils.MustJson(strategy.CalleeMethods),
+		Conditions:      utils.MustJson(strategy.Conditions),
+		Valid:           strategy.Valid,
+		Revision:        strategy.Revision,
+		CreateTime:      strategy.CreateTime,
+		ModifyTime:      strategy.ModifyTime,
 	}
 }
 
-func convertForStrategyDetail(strategy *strategyForStore) *authcommon.StrategyDetail {
+func convertForStrategyDetail(strategy *strategyData) *authcommon.StrategyDetail {
 
 	principals := make([]authcommon.Principal, 0, len(strategy.Users)+len(strategy.Groups))
-	resources := make([]authcommon.StrategyResource, 0, len(strategy.NsResources)+
-		len(strategy.SvcResources)+len(strategy.CfgResources))
 
 	for id := range strategy.Users {
 		principals = append(principals, authcommon.Principal{
@@ -842,31 +825,13 @@ func convertForStrategyDetail(strategy *strategyForStore) *authcommon.StrategyDe
 		})
 	}
 
-	fillRes := func(idMap map[string]string, resType apisecurity.ResourceType) []authcommon.StrategyResource {
-		res := make([]authcommon.StrategyResource, 0, len(idMap))
-
-		for id := range idMap {
-			res = append(res, authcommon.StrategyResource{
-				StrategyID: strategy.ID,
-				ResType:    int32(resType),
-				ResID:      id,
-			})
-		}
-
-		return res
-	}
-
-	resources = append(resources, fillRes(strategy.NsResources, apisecurity.ResourceType_Namespaces)...)
-	resources = append(resources, fillRes(strategy.SvcResources, apisecurity.ResourceType_Services)...)
-	resources = append(resources, fillRes(strategy.CfgResources, apisecurity.ResourceType_ConfigGroups)...)
-
-	return &authcommon.StrategyDetail{
+	ret := &authcommon.StrategyDetail{
 		ID:         strategy.ID,
 		Name:       strategy.Name,
 		Action:     strategy.Action,
 		Comment:    strategy.Comment,
 		Principals: principals,
-		Resources:  resources,
+		Resources:  strategy.GetResources(),
 		Default:    strategy.Default,
 		Owner:      strategy.Owner,
 		Valid:      strategy.Valid,
@@ -874,6 +839,18 @@ func convertForStrategyDetail(strategy *strategyForStore) *authcommon.StrategyDe
 		CreateTime: strategy.CreateTime,
 		ModifyTime: strategy.ModifyTime,
 	}
+
+	if len(strategy.CalleeFunctions) != 0 {
+		functions := make([]string, 0, 4)
+		_ = json.Unmarshal([]byte(strategy.CalleeFunctions), &functions)
+		ret.CalleeMethods = functions
+	}
+	if len(strategy.Conditions) != 0 {
+		condition := make([]authcommon.Condition, 0, 4)
+		_ = json.Unmarshal([]byte(strategy.Conditions), &condition)
+		ret.Conditions = condition
+	}
+	return ret
 }
 
 func initStrategy(rule *authcommon.StrategyDetail) {

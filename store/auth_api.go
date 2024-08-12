@@ -108,12 +108,14 @@ type StrategyStore interface {
 
 // RoleStore Role related storage operation interface
 type RoleStore interface {
+	// GetRole
+	GetRole(id string) (*authcommon.Role, error)
 	// AddRole Add a role
 	AddRole(role *authcommon.Role) error
 	// UpdateRole Update a role
 	UpdateRole(role *authcommon.Role) error
 	// DeleteRole Delete a role
-	DeleteRole(role *authcommon.Role) error
+	DeleteRole(tx Tx, role *authcommon.Role) error
 	// CleanPrincipalRoles Clean all the roles associated with the principal
 	CleanPrincipalRoles(tx Tx, p *authcommon.Principal) error
 	// GetRole get more role for cache update

@@ -129,22 +129,12 @@ func (d *DefaultAuthChecker) CheckConsolePermission(preCtx *authcommon.AcquireCo
 }
 
 // CheckPermission 执行检查动作判断是否有权限
-//
-//	step 1. 判断是否开启了鉴权
-//	step 2. 对token进行检查判断
-//		case 1. 如果 token 被禁用
-//				a. 读操作，直接放通
-//				b. 写操作，快速失败
-//	step 3. 拉取token对应的操作者相关信息，注入到请求上下文中
-//	step 4. 进行权限检查
 func (d *DefaultAuthChecker) CheckPermission(authCtx *authcommon.AcquireContext) (bool, error) {
 	if err := d.userSvr.CheckCredential(authCtx); err != nil {
 		return false, err
 	}
-	if log.DebugEnabled() {
-		log.Debug("[Auth][Checker] check permission args", utils.RequestID(authCtx.GetRequestContext()),
-			zap.String("method", string(authCtx.GetMethod())), zap.Any("resources", authCtx.GetAccessResources()))
-	}
+	log.Info("[Auth][Checker] check permission args", utils.RequestID(authCtx.GetRequestContext()),
+		zap.String("method", string(authCtx.GetMethod())), zap.Any("resources", authCtx.GetAccessResources()))
 
 	if pass, _ := d.doCheckPermission(authCtx); pass {
 		return true, nil
@@ -227,12 +217,18 @@ func (d *DefaultAuthChecker) IsCredible(authCtx *authcommon.AcquireContext) bool
 func (d *DefaultAuthChecker) MatchPolicy(authCtx *authcommon.AcquireContext, policy *authcommon.StrategyDetail,
 	principal authcommon.Principal, resources map[apisecurity.ResourceType][]authcommon.ResourceEntry) bool {
 	if !d.MatchCalleeFunctions(authCtx, principal, policy) {
+		log.Error("server function match policy fail", utils.RequestID(authCtx.GetRequestContext()),
+			zap.String("principal", principal.String()), zap.String("policy-id", policy.ID))
 		return false
 	}
 	if !d.MatchResourceOperateable(authCtx, principal, policy) {
+		log.Error("access resource match policy fail", utils.RequestID(authCtx.GetRequestContext()),
+			zap.String("principal", principal.String()), zap.String("policy-id", policy.ID))
 		return false
 	}
 	if !d.MatchResourceConditions(authCtx, principal, policy) {
+		log.Error("resource label condition match policy fail", utils.RequestID(authCtx.GetRequestContext()),
+			zap.String("principal", principal.String()), zap.String("policy-id", policy.ID))
 		return false
 	}
 	return true
@@ -244,6 +240,9 @@ func (d *DefaultAuthChecker) MatchCalleeFunctions(authCtx *authcommon.AcquireCon
 	functions := policy.CalleeMethods
 	for i := range functions {
 		if functions[i] == string(authCtx.GetMethod()) {
+			return true
+		}
+		if utils.IsMatchAll(functions[i]) {
 			return true
 		}
 		if utils.IsWildMatch(string(authCtx.GetMethod()), functions[i]) {
@@ -259,7 +258,7 @@ func (d *DefaultAuthChecker) MatchResourceOperateable(authCtx *authcommon.Acquir
 	matchCheck := func(resType apisecurity.ResourceType, resources []authcommon.ResourceEntry) bool {
 		for i := range resources {
 			actionResult := d.cacheMgr.AuthStrategy().Hint(principal, &resources[i])
-			if actionResult.String() == policy.Action {
+			if policy.IsMatchAction(actionResult.String()) {
 				return true
 			}
 		}
@@ -267,7 +266,7 @@ func (d *DefaultAuthChecker) MatchResourceOperateable(authCtx *authcommon.Acquir
 	}
 
 	reqRes := authCtx.GetAccessResources()
-	isMatch := false
+	isMatch := len(reqRes) == 0
 	for k, v := range reqRes {
 		if isMatch = matchCheck(k, v); isMatch {
 			break
@@ -281,7 +280,6 @@ func (d *DefaultAuthChecker) MatchResourceConditions(authCtx *authcommon.Acquire
 	principal authcommon.Principal, policy *authcommon.StrategyDetail) bool {
 	matchCheck := func(resType apisecurity.ResourceType, resources []authcommon.ResourceEntry) bool {
 		conditions := policy.Conditions
-
 		for i := range resources {
 			allMatch := true
 			for j := range conditions {
@@ -300,15 +298,15 @@ func (d *DefaultAuthChecker) MatchResourceConditions(authCtx *authcommon.Acquire
 					break
 				}
 			}
-			if allMatch {
-				return true
+			if !allMatch {
+				return false
 			}
 		}
-		return false
+		return true
 	}
 
 	reqRes := authCtx.GetAccessResources()
-	isMatch := false
+	isMatch := len(reqRes) == 0
 	for k, v := range reqRes {
 		if isMatch = matchCheck(k, v); isMatch {
 			break
