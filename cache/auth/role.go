@@ -226,8 +226,8 @@ func (r *roleCache) toPage(total uint32, roles []*authcommon.Role, args types.Ro
 	if args.Limit == 0 {
 		return total, roles
 	}
-	start := args.Limit * (args.Offset - 1)
-	end := args.Limit * args.Offset
+	start := args.Limit * args.Offset
+	end := args.Limit * (args.Offset + 1)
 	if start > total {
 		return total, nil
 	}

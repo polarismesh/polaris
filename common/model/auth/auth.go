@@ -371,6 +371,8 @@ type StrategyDetail struct {
 	Comment string
 	Default bool
 	Owner   string
+	// 来源
+	Source string
 	// CalleeMethods 允许访问的服务端接口
 	CalleeMethods []string
 	Resources     []StrategyResource
@@ -381,6 +383,31 @@ type StrategyDetail struct {
 	Metadata      map[string]string
 	CreateTime    time.Time
 	ModifyTime    time.Time
+}
+
+func (s *StrategyDetail) FromSpec(req *apisecurity.AuthStrategy) {
+	s.ID = utils.NewUUID()
+	s.Name = req.Name.GetValue()
+	s.Action = req.GetAction().String()
+	s.Comment = req.Comment.GetValue()
+	s.Default = false
+	s.Owner = req.Owner.GetValue()
+	s.Valid = true
+	s.Source = req.GetSource().GetValue()
+	s.Revision = utils.NewUUID()
+	s.CreateTime = time.Now()
+	s.ModifyTime = time.Now()
+	s.CalleeMethods = req.GetFunctions()
+	s.Conditions = make([]Condition, 0, len(req.GetResourceLabels()))
+	for i := range req.GetResourceLabels() {
+		item := req.GetResourceLabels()[i]
+		s.Conditions = append(s.Conditions, Condition{
+			Key:         item.Key,
+			Value:       item.Value,
+			CompareFunc: item.CompareType,
+		})
+	}
+
 }
 
 func (s *StrategyDetail) IsMatchAction(a string) bool {

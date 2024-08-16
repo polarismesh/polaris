@@ -581,6 +581,22 @@ func (mr *MockNamespaceCacheMockRecorder) Name() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockNamespaceCache)(nil).Name))
 }
 
+// Query mocks base method.
+func (m *MockNamespaceCache) Query(arg0 context.Context, arg1 *api.NamespaceArgs) (uint32, []*model.Namespace, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Query", arg0, arg1)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*model.Namespace)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Query indicates an expected call of Query.
+func (mr *MockNamespaceCacheMockRecorder) Query(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Query", reflect.TypeOf((*MockNamespaceCache)(nil).Query), arg0, arg1)
+}
+
 // Update mocks base method.
 func (m *MockNamespaceCache) Update() error {
 	m.ctrl.T.Helper()
@@ -829,18 +845,18 @@ func (mr *MockServiceCacheMockRecorder) IteratorServices(iterProc interface{}) *
 }
 
 // ListAllServices mocks base method.
-func (m *MockServiceCache) ListAllServices() (string, []*model.Service) {
+func (m *MockServiceCache) ListAllServices(ctx context.Context) (string, []*model.Service) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAllServices")
+	ret := m.ctrl.Call(m, "ListAllServices", ctx)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].([]*model.Service)
 	return ret0, ret1
 }
 
 // ListAllServices indicates an expected call of ListAllServices.
-func (mr *MockServiceCacheMockRecorder) ListAllServices() *gomock.Call {
+func (mr *MockServiceCacheMockRecorder) ListAllServices(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllServices", reflect.TypeOf((*MockServiceCache)(nil).ListAllServices))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllServices", reflect.TypeOf((*MockServiceCache)(nil).ListAllServices), ctx)
 }
 
 // ListServiceAlias mocks base method.
@@ -858,18 +874,18 @@ func (mr *MockServiceCacheMockRecorder) ListServiceAlias(namespace, name interfa
 }
 
 // ListServices mocks base method.
-func (m *MockServiceCache) ListServices(ns string) (string, []*model.Service) {
+func (m *MockServiceCache) ListServices(ctx context.Context, ns string) (string, []*model.Service) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListServices", ns)
+	ret := m.ctrl.Call(m, "ListServices", ctx, ns)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].([]*model.Service)
 	return ret0, ret1
 }
 
 // ListServices indicates an expected call of ListServices.
-func (mr *MockServiceCacheMockRecorder) ListServices(ns interface{}) *gomock.Call {
+func (mr *MockServiceCacheMockRecorder) ListServices(ctx, ns interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServices", reflect.TypeOf((*MockServiceCache)(nil).ListServices), ns)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServices", reflect.TypeOf((*MockServiceCache)(nil).ListServices), ctx, ns)
 }
 
 // Name mocks base method.

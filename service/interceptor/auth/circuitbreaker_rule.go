@@ -33,7 +33,8 @@ import (
 
 func (svr *Server) CreateCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, authcommon.Create, authcommon.CreateCircuitBreakerRules)
+	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, authcommon.Create,
+		authcommon.CreateCircuitBreakerRules)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
@@ -46,7 +47,8 @@ func (svr *Server) CreateCircuitBreakerRules(
 
 func (svr *Server) DeleteCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, authcommon.Delete, authcommon.DeleteCircuitBreakerRules)
+	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, authcommon.Delete,
+		authcommon.DeleteCircuitBreakerRules)
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
@@ -58,7 +60,8 @@ func (svr *Server) DeleteCircuitBreakerRules(
 
 func (svr *Server) EnableCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, authcommon.Modify, authcommon.EnableCircuitBreakerRules)
+	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, authcommon.Modify,
+		authcommon.EnableCircuitBreakerRules)
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
@@ -70,7 +73,8 @@ func (svr *Server) EnableCircuitBreakerRules(
 
 func (svr *Server) UpdateCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, authcommon.Modify, authcommon.UpdateCircuitBreakerRules)
+	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, request, authcommon.Modify,
+		authcommon.UpdateCircuitBreakerRules)
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
@@ -82,7 +86,8 @@ func (svr *Server) UpdateCircuitBreakerRules(
 
 func (svr *Server) GetCircuitBreakerRules(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
-	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, nil, authcommon.Read, authcommon.DescribeCircuitBreakerRules)
+	authCtx := svr.collectCircuitBreakerRuleV2AuthContext(ctx, nil, authcommon.Read,
+		authcommon.DescribeCircuitBreakerRules)
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchQueryResponse(authcommon.ConvertToErrCode(err))
 	}
@@ -90,13 +95,14 @@ func (svr *Server) GetCircuitBreakerRules(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	cachetypes.AppendCircuitBreakerRulePredicate(ctx, func(ctx context.Context, cbr *model.CircuitBreakerRule) bool {
+	ctx = cachetypes.AppendCircuitBreakerRulePredicate(ctx, func(ctx context.Context, cbr *model.CircuitBreakerRule) bool {
 		return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authcommon.ResourceEntry{
 			Type:     security.ResourceType_CircuitBreakerRules,
 			ID:       cbr.ID,
 			Metadata: cbr.Proto.Metadata,
 		})
 	})
+	authCtx.SetRequestContext(ctx)
 
 	return svr.nextSvr.GetCircuitBreakerRules(ctx, query)
 }

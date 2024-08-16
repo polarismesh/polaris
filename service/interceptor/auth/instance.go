@@ -26,6 +26,7 @@ import (
 	api "github.com/polarismesh/polaris/common/api/v1"
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/service"
 )
 
 // CreateInstances create instances
@@ -66,7 +67,7 @@ func (svr *Server) DeleteInstances(ctx context.Context,
 	return svr.nextSvr.DeleteInstances(ctx, reqs)
 }
 
-// DeleteInstancesByHost 目前只允许 super account 进行数据删除
+// DeleteInstancesByHost 根据 host 信息进行数据删除
 func (svr *Server) DeleteInstancesByHost(ctx context.Context,
 	reqs []*apiservice.Instance) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, authcommon.Delete, authcommon.DeleteInstancesByHost)
@@ -145,10 +146,38 @@ func (svr *Server) GetInstancesCount(ctx context.Context) *apiservice.BatchQuery
 	return svr.nextSvr.GetInstancesCount(ctx)
 }
 
+// GetInstanceLabels 获取某个服务下的实例标签集合
 func (svr *Server) GetInstanceLabels(ctx context.Context,
 	query map[string]string) *apiservice.Response {
 
-	authCtx := svr.collectInstanceAuthContext(ctx, nil, authcommon.Read, authcommon.DescribeInstanceLabels)
+	var (
+		serviceId string
+		namespace = service.DefaultNamespace
+	)
+
+	if val, ok := query["namespace"]; ok {
+		namespace = val
+	}
+
+	if service, ok := query["service"]; ok {
+		if svc := svr.Cache().Service().GetServiceByName(service, namespace); svc != nil {
+			serviceId = svc.ID
+		}
+	}
+
+	if id, ok := query["service_id"]; ok {
+		serviceId = id
+	}
+
+	// TODO 如果在鉴权的时候发现资源不存在，怎么处理？
+	svc := svr.Cache().Service().GetServiceByID(serviceId)
+	if svc == nil {
+		return api.NewResponse(apimodel.Code_NotFoundResource)
+	}
+
+	authCtx := svr.collectServiceAuthContext(ctx, []*apiservice.Service{
+		svc.ToSpec(),
+	}, authcommon.Read, authcommon.DescribeInstanceLabels)
 	_, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx)
 	if err != nil {
 		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())

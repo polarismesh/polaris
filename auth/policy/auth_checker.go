@@ -266,11 +266,10 @@ func (d *DefaultAuthChecker) MatchResourceOperateable(authCtx *authcommon.Acquir
 	}
 
 	reqRes := authCtx.GetAccessResources()
-	isMatch := len(reqRes) == 0
+	isMatch := true
 	for k, v := range reqRes {
-		if isMatch = matchCheck(k, v); isMatch {
-			break
-		}
+		subMatch := matchCheck(k, v)
+		isMatch = isMatch && subMatch
 	}
 	return isMatch
 }

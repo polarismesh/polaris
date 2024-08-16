@@ -28,14 +28,26 @@ import (
 
 // DiscoverServer Server discovered by the service
 type DiscoverServer interface {
-	// DiscoverServerV1 DiscoverServerV1
-	DiscoverServerV1
+	// CircuitBreakerOperateServer Fuse rule operation interface definition
+	CircuitBreakerOperateServer
+	// RateLimitOperateServer Lamflow rule operation interface definition
+	RateLimitOperateServer
+	// RouteRuleOperateServer Routing rules operation interface definition
+	RouteRuleOperateServer
+	// RouterRuleOperateServer Routing rules operation interface definition
+	RouterRuleOperateServer
+	// FaultDetectRuleOperateServer fault detect rules operation interface definition
+	FaultDetectRuleOperateServer
+	// ServiceContractOperateServer service contract rules operation inerface definition
+	ServiceContractOperateServer
 	// ServiceAliasOperateServer Service alias operation interface definition
 	ServiceAliasOperateServer
 	// ServiceOperateServer Service operation interface definition
 	ServiceOperateServer
 	// InstanceOperateServer Instance Operation Interface Definition
 	InstanceOperateServer
+	// LaneOperateServer lane rule operation interface definition
+	LaneOperateServer
 	// ClientServer Client operation interface definition
 	ClientServer
 	// Cache Get cache management

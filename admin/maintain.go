@@ -166,11 +166,11 @@ func (s *Server) CleanInstance(ctx context.Context, req *apiservice.Instance) *a
 	}
 	if err := s.storage.CleanInstance(instanceID); err != nil {
 		log.Error("Clean instance",
-			zap.String("err", err.Error()), utils.ZapRequestID(utils.ParseRequestID(ctx)))
+			zap.String("err", err.Error()), utils.RequestID(ctx))
 		return api.NewInstanceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 
-	log.Info("Clean instance", utils.ZapRequestID(utils.ParseRequestID(ctx)), utils.ZapInstanceID(instanceID))
+	log.Info("Clean instance", utils.RequestID(ctx), utils.ZapInstanceID(instanceID))
 	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
 }
 

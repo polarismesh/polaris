@@ -22,6 +22,8 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -392,13 +394,159 @@ func (c *circuitBreakerCache) GetCircuitBreakerCount() int {
 	return len(names)
 }
 
+var (
+	ignoreCircuitBreakerRuleFilter = map[string]struct{}{
+		"brief":            {},
+		"service":          {},
+		"serviceNamespace": {},
+		"exactName":        {},
+		"excludeId":        {},
+	}
+
+	cbBlurSearchFields = map[string]func(*model.CircuitBreakerRule) string{
+		"name": func(cbr *model.CircuitBreakerRule) string {
+			return cbr.Name
+		},
+		"description": func(cbr *model.CircuitBreakerRule) string {
+			return cbr.Description
+		},
+		"srcservice": func(cbr *model.CircuitBreakerRule) string {
+			return cbr.SrcService
+		},
+		"dstservice": func(cbr *model.CircuitBreakerRule) string {
+			return cbr.DstService
+		},
+		"dstmethod": func(cbr *model.CircuitBreakerRule) string {
+			return cbr.DstMethod
+		},
+	}
+
+	circuitBreakerSort = map[string]func(asc bool, a, b *model.CircuitBreakerRule) bool{
+		"mtime": func(asc bool, a, b *model.CircuitBreakerRule) bool {
+			ret := a.ModifyTime.Before(b.ModifyTime)
+			return ret && asc
+		},
+		"id": func(asc bool, a, b *model.CircuitBreakerRule) bool {
+			ret := a.ID < b.ID
+			return ret && asc
+		},
+		"name": func(asc bool, a, b *model.CircuitBreakerRule) bool {
+			ret := a.Name < b.Name
+			return ret && asc
+		},
+	}
+)
+
 // Query implements api.CircuitBreakerCache.
-func (c *circuitBreakerCache) Query(context.Context, *types.CircuitBreakerRuleArgs) (uint32, []*model.CircuitBreakerRule, error) {
-	panic("unimplemented")
+func (c *circuitBreakerCache) Query(ctx context.Context, args *types.CircuitBreakerRuleArgs) (uint32, []*model.CircuitBreakerRule, error) {
+	if err := c.Update(); err != nil {
+		return 0, nil, err
+	}
+
+	predicates := types.LoadCircuitBreakerRulePredicates(ctx)
+
+	searchSvc, hasSvc := args.Filter["service"]
+	searchNs, hasSvcNs := args.Filter["serviceNamespace"]
+	exactNameValue, hasExactName := args.Filter["exactName"]
+	excludeIdValue, hasExcludeId := args.Filter["excludeId"]
+
+	lowerFilter := make(map[string]string, len(args.Filter))
+	for k, v := range args.Filter {
+		if _, ok := ignoreCircuitBreakerRuleFilter[k]; ok {
+			continue
+		}
+		lowerFilter[strings.ToLower(k)] = v
+	}
+
+	results := make([]*model.CircuitBreakerRule, 0, 32)
+	c.rules.ReadRange(func(key string, val *model.CircuitBreakerRule) {
+		if hasSvcNs {
+			srcNsValue := val.SrcNamespace
+			dstNsValue := val.DstNamespace
+			if !((srcNsValue == "*" || srcNsValue == searchNs) || (dstNsValue == "*" || dstNsValue == searchNs)) {
+				return
+			}
+		}
+		if hasSvc {
+			srcSvcValue := val.SrcService
+			dstSvcValue := val.DstService
+			if !((srcSvcValue == searchSvc || srcSvcValue == "*") || (dstSvcValue == searchSvc || dstSvcValue == "*")) {
+				return
+			}
+		}
+		if hasExactName && exactNameValue != val.Name {
+			return
+		}
+		if hasExcludeId && excludeIdValue != val.ID {
+			return
+		}
+		for fieldKey, filterValue := range lowerFilter {
+			getter, isBlur := cbBlurSearchFields[fieldKey]
+			if isBlur {
+				if utils.IsWildMatch(getter(val), filterValue) {
+					return
+				}
+			} else if fieldKey == "enable" {
+				if filterValue != strconv.FormatBool(val.Enable) {
+					return
+				}
+			} else if fieldKey == "level" {
+				levels := strings.Split(filterValue, ",")
+				var inLevel = false
+				for _, level := range levels {
+					levelInt, _ := strconv.Atoi(level)
+					if int64(levelInt) == int64(val.Level) {
+						inLevel = true
+						break
+					}
+				}
+				if !inLevel {
+					return
+				}
+			} else {
+				// FIXME 暂时不知道还有什么字段查询需要适配，等待自测验证
+			}
+		}
+		for i := range predicates {
+			if !predicates[i](ctx, val) {
+				return
+			}
+		}
+
+		results = append(results, val)
+	})
+
+	sortFunc, ok := circuitBreakerSort[args.Filter["order_field"]]
+	if !ok {
+		sortFunc = circuitBreakerSort["mtime"]
+	}
+	asc := "asc" == strings.ToLower(args.Filter["order_type"])
+	sort.Slice(results, func(i, j int) bool {
+		return sortFunc(asc, results[i], results[j])
+	})
+
+	total, ret := c.toPage(uint32(len(results)), results, args)
+	return total, ret, nil
 }
 
-// GetRule implements api.FaultDetectCache.
-func (f *circuitBreakerCache) GetRule(id string) *model.CircuitBreakerRule {
-	rule, _ := f.rules.Load(id)
+func (c *circuitBreakerCache) toPage(total uint32, items []*model.CircuitBreakerRule,
+	args *types.CircuitBreakerRuleArgs) (uint32, []*model.CircuitBreakerRule) {
+	if args.Limit == 0 {
+		return total, items
+	}
+	start := args.Limit * args.Offset
+	end := args.Limit * (args.Offset + 1)
+	if start > total {
+		return total, nil
+	}
+	if end > total {
+		end = total
+	}
+	return total, items[start:end]
+}
+
+// GetRule implements api.CircuitBreakerCache.
+func (c *circuitBreakerCache) GetRule(id string) *model.CircuitBreakerRule {
+	rule, _ := c.rules.Load(id)
 	return rule
 }

@@ -415,6 +415,10 @@ func (uc *userCache) listUsersPage(users []*authcommon.User, args types.UserSear
 
 // QueryUserGroups .
 func (uc *userCache) QueryUserGroups(ctx context.Context, args types.UserGroupSearchArgs) (uint32, []*authcommon.UserGroupDetail, error) {
+	if err := uc.Update(); err != nil {
+		return 0, nil, err
+	}
+
 	searchId, hasId := args.Filters["id"]
 	searchName, hasName := args.Filters["name"]
 	searchOwner, hasOwner := args.Filters["owner"]
@@ -465,8 +469,8 @@ func (uc *userCache) listUserGroupsPage(groups []*authcommon.UserGroupDetail, ar
 	if args.Limit == 0 {
 		return total, nil
 	}
-	start := args.Limit * (args.Offset - 1)
-	end := args.Limit * args.Offset
+	start := args.Limit * args.Offset
+	end := args.Limit * (args.Offset + 1)
 	if start > total {
 		return total, nil
 	}

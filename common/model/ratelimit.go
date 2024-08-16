@@ -44,6 +44,25 @@ type RateLimit struct {
 	EnableTime time.Time
 }
 
+func (r *RateLimit) CopyNoProto() *RateLimit {
+	return &RateLimit{
+		ID:         r.ID,
+		ServiceID:  r.ServiceID,
+		Name:       r.Name,
+		Method:     r.Method,
+		Labels:     r.Labels,
+		Proto:      r.Proto,
+		Priority:   r.Priority,
+		Rule:       r.Rule,
+		Revision:   r.Revision,
+		Disable:    r.Disable,
+		Valid:      r.Valid,
+		CreateTime: r.CreateTime,
+		ModifyTime: r.ModifyTime,
+		EnableTime: r.EnableTime,
+	}
+}
+
 // Labels2Arguments 适配老的标签到新的参数列表
 func (r *RateLimit) Labels2Arguments() (map[string]*apimodel.MatchString, error) {
 	if len(r.Proto.Arguments) == 0 && len(r.Labels) > 0 {

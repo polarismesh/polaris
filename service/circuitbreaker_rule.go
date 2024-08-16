@@ -50,20 +50,15 @@ func (s *Server) CreateCircuitBreakerRules(
 // CreateCircuitBreakerRule Create a CircuitBreaker rule
 func (s *Server) createCircuitBreakerRule(
 	ctx context.Context, request *apifault.CircuitBreakerRule) *apiservice.Response {
-	requestID := utils.ParseRequestID(ctx)
-	if resp := checkCircuitBreakerRuleParams(request, false, true); resp != nil {
-		return resp
-	}
-
 	// 构造底层数据结构
 	data, err := api2CircuitBreakerRule(request)
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewResponse(apimodel.Code_ParseCircuitBreakerException)
 	}
 	exists, err := s.storage.HasCircuitBreakerRuleByName(data.Name, data.Namespace)
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 	if exists {
@@ -73,13 +68,13 @@ func (s *Server) createCircuitBreakerRule(
 
 	// 存储层操作
 	if err := s.storage.CreateCircuitBreakerRule(data); err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 
 	msg := fmt.Sprintf("create circuitBreaker rule: id=%v, name=%v, namespace=%v",
 		data.ID, request.GetName(), request.GetNamespace())
-	log.Info(msg, utils.ZapRequestID(requestID))
+	log.Info(msg, utils.RequestID(ctx))
 
 	s.RecordHistory(ctx, circuitBreakerRuleRecordEntry(ctx, request, data, model.OCreate))
 
@@ -92,35 +87,11 @@ func checkCircuitBreakerRuleParams(
 	if req == nil {
 		return api.NewResponse(apimodel.Code_EmptyRequest)
 	}
-	if resp := checkCircuitBreakerRuleParamsDbLen(req); nil != resp {
-		return resp
-	}
 	if nameRequired && len(req.GetName()) == 0 {
 		return api.NewResponse(apimodel.Code_InvalidCircuitBreakerName)
 	}
 	if idRequired && len(req.GetId()) == 0 {
 		return api.NewResponse(apimodel.Code_InvalidCircuitBreakerID)
-	}
-	return nil
-}
-
-func checkCircuitBreakerRuleParamsDbLen(req *apifault.CircuitBreakerRule) *apiservice.Response {
-	if err := utils.CheckDbRawStrFieldLen(
-		req.RuleMatcher.GetSource().GetService(), MaxDbServiceNameLength); err != nil {
-		return api.NewResponse(apimodel.Code_InvalidServiceName)
-	}
-	if err := utils.CheckDbRawStrFieldLen(
-		req.RuleMatcher.GetSource().GetNamespace(), MaxDbServiceNamespaceLength); err != nil {
-		return api.NewResponse(apimodel.Code_InvalidNamespaceName)
-	}
-	if err := utils.CheckDbRawStrFieldLen(req.GetName(), MaxRuleName); err != nil {
-		return api.NewResponse(apimodel.Code_InvalidCircuitBreakerName)
-	}
-	if err := utils.CheckDbRawStrFieldLen(req.GetNamespace(), MaxDbServiceNamespaceLength); err != nil {
-		return api.NewResponse(apimodel.Code_InvalidNamespaceName)
-	}
-	if err := utils.CheckDbRawStrFieldLen(req.GetDescription(), MaxCommentLength); err != nil {
-		return api.NewResponse(apimodel.Code_InvalidServiceComment)
 	}
 	return nil
 }
@@ -141,28 +112,6 @@ func circuitBreakerRuleRecordEntry(ctx context.Context, req *apifault.CircuitBre
 	return entry
 }
 
-var (
-	// CircuitBreakerRuleFilters filter circuitbreaker rule query parameters
-	CircuitBreakerRuleFilters = map[string]bool{
-		"brief":            true,
-		"offset":           true,
-		"limit":            true,
-		"id":               true,
-		"name":             true,
-		"namespace":        true,
-		"enable":           true,
-		"level":            true,
-		"service":          true,
-		"serviceNamespace": true,
-		"srcService":       true,
-		"srcNamespace":     true,
-		"dstService":       true,
-		"dstNamespace":     true,
-		"dstMethod":        true,
-		"description":      true,
-	}
-)
-
 // DeleteCircuitBreakerRules Delete current CircuitBreaker rules
 func (s *Server) DeleteCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
@@ -177,11 +126,7 @@ func (s *Server) DeleteCircuitBreakerRules(
 // deleteCircuitBreakerRule delete current CircuitBreaker rule
 func (s *Server) deleteCircuitBreakerRule(
 	ctx context.Context, request *apifault.CircuitBreakerRule) *apiservice.Response {
-	requestID := utils.ParseRequestID(ctx)
-	if resp := checkCircuitBreakerRuleParams(request, true, false); resp != nil {
-		return resp
-	}
-	resp := s.checkCircuitBreakerRuleExists(request.GetId(), requestID)
+	resp := s.checkCircuitBreakerRuleExists(ctx, request.GetId())
 	if resp != nil {
 		if resp.GetCode().GetValue() == uint32(apimodel.Code_NotFoundCircuitBreaker) {
 			resp.Code = &wrappers.UInt32Value{Value: uint32(apimodel.Code_ExecuteSuccess)}
@@ -191,12 +136,12 @@ func (s *Server) deleteCircuitBreakerRule(
 	cbRuleId := &apifault.CircuitBreakerRule{Id: request.GetId()}
 	err := s.storage.DeleteCircuitBreakerRule(request.GetId())
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewAnyDataResponse(apimodel.Code_ParseCircuitBreakerException, cbRuleId)
 	}
 	msg := fmt.Sprintf("delete circuitbreaker rule: id=%v, name=%v, namespace=%v",
 		request.GetId(), request.GetName(), request.GetNamespace())
-	log.Info(msg, utils.ZapRequestID(requestID))
+	log.Info(msg, utils.RequestID(ctx))
 
 	cbRule := &model.CircuitBreakerRule{
 		ID: request.GetId(), Name: request.GetName(), Namespace: request.GetNamespace()}
@@ -221,7 +166,7 @@ func (s *Server) enableCircuitBreakerRule(
 	if resp := checkCircuitBreakerRuleParams(request, true, false); resp != nil {
 		return resp
 	}
-	resp := s.checkCircuitBreakerRuleExists(request.GetId(), requestID)
+	resp := s.checkCircuitBreakerRuleExists(ctx, request.GetId())
 	if resp != nil {
 		return resp
 	}
@@ -259,46 +204,42 @@ func (s *Server) UpdateCircuitBreakerRules(
 
 func (s *Server) updateCircuitBreakerRule(
 	ctx context.Context, request *apifault.CircuitBreakerRule) *apiservice.Response {
-	requestID := utils.ParseRequestID(ctx)
-	if resp := checkCircuitBreakerRuleParams(request, true, true); resp != nil {
-		return resp
-	}
-	resp := s.checkCircuitBreakerRuleExists(request.GetId(), requestID)
+	resp := s.checkCircuitBreakerRuleExists(ctx, request.GetId())
 	if resp != nil {
 		return resp
 	}
 	cbRuleId := &apifault.CircuitBreakerRule{Id: request.GetId()}
 	cbRule, err := api2CircuitBreakerRule(request)
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewAnyDataResponse(apimodel.Code_ParseCircuitBreakerException, cbRuleId)
 	}
 	cbRule.ID = request.GetId()
 	exists, err := s.storage.HasCircuitBreakerRuleByNameExcludeId(cbRule.Name, cbRule.Namespace, cbRule.ID)
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 	if exists {
 		return api.NewResponse(apimodel.Code_ServiceExistedCircuitBreakers)
 	}
 	if err := s.storage.UpdateCircuitBreakerRule(cbRule); err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return storeError2AnyResponse(err, cbRuleId)
 	}
 
 	msg := fmt.Sprintf("update circuitbreaker rule: id=%v, name=%v, namespace=%v",
 		request.GetId(), request.GetName(), request.GetNamespace())
-	log.Info(msg, utils.ZapRequestID(requestID))
+	log.Info(msg, utils.RequestID(ctx))
 
 	s.RecordHistory(ctx, circuitBreakerRuleRecordEntry(ctx, request, cbRule, model.OUpdate))
 	return api.NewAnyDataResponse(apimodel.Code_ExecuteSuccess, cbRuleId)
 }
 
-func (s *Server) checkCircuitBreakerRuleExists(id, requestID string) *apiservice.Response {
+func (s *Server) checkCircuitBreakerRuleExists(ctx context.Context, id string) *apiservice.Response {
 	exists, err := s.storage.HasCircuitBreakerRule(id)
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewResponse(commonstore.StoreCode2APICode(err))
 	}
 	if !exists {
@@ -309,22 +250,8 @@ func (s *Server) checkCircuitBreakerRuleExists(id, requestID string) *apiservice
 
 // GetCircuitBreakerRules Query CircuitBreaker rules
 func (s *Server) GetCircuitBreakerRules(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
-	offset, limit, err := utils.ParseOffsetAndLimit(query)
-	if err != nil {
-		return api.NewBatchQueryResponse(apimodel.Code_InvalidParameter)
-	}
-	searchFilter := make(map[string]string, len(query))
-	for key, value := range query {
-		if _, ok := CircuitBreakerRuleFilters[key]; !ok {
-			log.Errorf("params %s is not allowed in querying circuitbreaker rule", key)
-			return api.NewBatchQueryResponse(apimodel.Code_InvalidParameter)
-		}
-		if value == "" {
-			continue
-		}
-		searchFilter[key] = value
-	}
-	total, cbRules, err := s.storage.GetCircuitBreakerRules(searchFilter, offset, limit)
+	offset, limit, _ := utils.ParseOffsetAndLimit(query)
+	total, cbRules, err := s.storage.GetCircuitBreakerRules(query, offset, limit)
 	if err != nil {
 		log.Errorf("get circuitbreaker rules store err: %s", err.Error())
 		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))

@@ -19,6 +19,8 @@ package service
 
 import (
 	"context"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -356,13 +358,84 @@ func anyToSelector(data *anypb.Any, msg proto.Message) error {
 	return nil
 }
 
+var (
+	laneGroupSort = map[string]func(asc bool, a, b *model.LaneGroupProto) bool{
+		"mtime": func(asc bool, a, b *model.LaneGroupProto) bool {
+			ret := a.ModifyTime.Before(b.ModifyTime)
+			return ret && asc
+		},
+		"id": func(asc bool, a, b *model.LaneGroupProto) bool {
+			ret := a.ID < b.ID
+			return ret && asc
+		},
+		"name": func(asc bool, a, b *model.LaneGroupProto) bool {
+			ret := a.Name < b.Name
+			return ret && asc
+		},
+	}
+)
+
 // Query implements api.LaneCache.
-func (lc *LaneCache) Query(context.Context, *types.LaneGroupArgs) (uint32, []*model.LaneGroupProto, error) {
-	panic("unimplemented")
+func (lc *LaneCache) Query(ctx context.Context, args *types.LaneGroupArgs) (uint32, []*model.LaneGroupProto, error) {
+	if err := lc.Update(); err != nil {
+		return 0, nil, err
+	}
+
+	predicates := types.LoadLaneRulePredicates(ctx)
+
+	searchName, hasName := args.Filter["name"]
+	searchId, hasId := args.Filter["id"]
+
+	results := make([]*model.LaneGroupProto, 0, 32)
+
+	lc.rules.ReadRange(func(key string, val *model.LaneGroupProto) {
+		if hasName && !utils.IsWildMatch(val.Name, searchName) {
+			return
+		}
+		if hasId && val.ID != searchId {
+			return
+		}
+
+		for i := range predicates {
+			if !predicates[i](ctx, val) {
+				return
+			}
+		}
+
+		results = append(results, val)
+	})
+
+	sortFunc, ok := laneGroupSort[args.Filter["order_field"]]
+	if !ok {
+		sortFunc = laneGroupSort["mtime"]
+	}
+	asc := "asc" == strings.ToLower(args.Filter["order_type"])
+	sort.Slice(results, func(i, j int) bool {
+		return sortFunc(asc, results[i], results[j])
+	})
+
+	total, ret := lc.toPage(uint32(len(results)), results, args)
+	return total, ret, nil
+}
+
+func (lc *LaneCache) toPage(total uint32, items []*model.LaneGroupProto,
+	args *types.LaneGroupArgs) (uint32, []*model.LaneGroupProto) {
+	if args.Limit == 0 {
+		return total, items
+	}
+	start := args.Limit * (args.Offset - 1)
+	end := args.Limit * args.Offset
+	if start > total {
+		return total, nil
+	}
+	if end > total {
+		end = total
+	}
+	return total, items[start:end]
 }
 
 // GetRule implements api.LaneCache.
-func (f *LaneCache) GetRule(id string) *model.LaneGroup {
-	rule, _ := f.rules.Load(id)
+func (lc *LaneCache) GetRule(id string) *model.LaneGroup {
+	rule, _ := lc.rules.Load(id)
 	return rule.LaneGroup
 }

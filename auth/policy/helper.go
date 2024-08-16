@@ -28,10 +28,6 @@ func (h *DefaultPolicyHelper) GetPolicyRule(id string) *authcommon.StrategyDetai
 
 // CreatePrincipal 创建 principal 的默认 policy 资源
 func (h *DefaultPolicyHelper) CreatePrincipal(ctx context.Context, tx store.Tx, p authcommon.Principal) error {
-	if !h.options.OpenPrincipalDefaultPolicy {
-		return nil
-	}
-
 	if err := h.storage.AddStrategy(tx, defaultPrincipalPolicy(p)); err != nil {
 		return err
 	}
@@ -40,25 +36,44 @@ func (h *DefaultPolicyHelper) CreatePrincipal(ctx context.Context, tx store.Tx, 
 
 func defaultPrincipalPolicy(p authcommon.Principal) *authcommon.StrategyDetail {
 	// Create the user's default weight policy
+	ruleId := utils.NewUUID()
+
+	resources := []authcommon.StrategyResource{}
+	if p.PrincipalType == authcommon.PrincipalUser {
+		resources = append(resources, authcommon.StrategyResource{
+			StrategyID: ruleId,
+			ResType:    int32(apisecurity.ResourceType_Users),
+			ResID:      p.PrincipalID,
+		})
+	}
+
 	return &authcommon.StrategyDetail{
-		ID:        utils.NewUUID(),
-		Name:      authcommon.BuildDefaultStrategyName(authcommon.PrincipalUser, p.Name),
-		Action:    apisecurity.AuthAction_ALLOW.String(),
-		Default:   true,
-		Owner:     p.Owner,
-		Revision:  utils.NewUUID(),
-		Resources: []authcommon.StrategyResource{},
-		Valid:     true,
-		Comment:   "default auth policy rule",
+		ID:         ruleId,
+		Name:       authcommon.BuildDefaultStrategyName(authcommon.PrincipalUser, p.Name),
+		Action:     apisecurity.AuthAction_ALLOW.String(),
+		Default:    true,
+		Owner:      p.Owner,
+		Revision:   utils.NewUUID(),
+		Source:     "Polaris",
+		Resources:  resources,
+		Principals: []authcommon.Principal{p},
+		CalleeMethods: []string{
+			// 用户操作权限
+			string(authcommon.DescribeUserToken),
+			string(authcommon.UpdateUser),
+			string(authcommon.UpdateUserPassword),
+			string(authcommon.EnableUserToken),
+			string(authcommon.ResetUserToken),
+		},
+		Valid:   true,
+		Comment: "default principal auth policy rule",
 	}
 }
 
 // CleanPrincipal 清理 principal 所关联的 policy、role 资源
 func (h *DefaultPolicyHelper) CleanPrincipal(ctx context.Context, tx store.Tx, p authcommon.Principal) error {
-	if h.options.OpenPrincipalDefaultPolicy {
-		if err := h.storage.CleanPrincipalPolicies(tx, p); err != nil {
-			return err
-		}
+	if err := h.storage.CleanPrincipalPolicies(tx, p); err != nil {
+		return err
 	}
 
 	if err := h.storage.CleanPrincipalRoles(tx, &p); err != nil {

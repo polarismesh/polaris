@@ -34,7 +34,7 @@ import (
 func (svr *Server) CreateFaultDetectRules(
 	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 
-	authCtx := svr.collectFaultDetectAuthContext(ctx, request, authcommon.Read, authcommon.CreateFaultDetectRules)
+	authCtx := svr.collectFaultDetectAuthContext(ctx, request, authcommon.Create, authcommon.CreateFaultDetectRules)
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
@@ -46,7 +46,7 @@ func (svr *Server) CreateFaultDetectRules(
 func (svr *Server) DeleteFaultDetectRules(
 	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 
-	authCtx := svr.collectFaultDetectAuthContext(ctx, request, authcommon.Read, authcommon.DeleteFaultDetectRules)
+	authCtx := svr.collectFaultDetectAuthContext(ctx, request, authcommon.Delete, authcommon.DeleteFaultDetectRules)
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
@@ -58,7 +58,7 @@ func (svr *Server) DeleteFaultDetectRules(
 func (svr *Server) UpdateFaultDetectRules(
 	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 
-	authCtx := svr.collectFaultDetectAuthContext(ctx, request, authcommon.Read, authcommon.UpdateFaultDetectRules)
+	authCtx := svr.collectFaultDetectAuthContext(ctx, request, authcommon.Modify, authcommon.UpdateFaultDetectRules)
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
@@ -76,13 +76,14 @@ func (svr *Server) GetFaultDetectRules(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	cachetypes.AppendFaultDetectRulePredicate(ctx, func(ctx context.Context, cbr *model.FaultDetectRule) bool {
+	ctx = cachetypes.AppendFaultDetectRulePredicate(ctx, func(ctx context.Context, cbr *model.FaultDetectRule) bool {
 		return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authcommon.ResourceEntry{
 			Type:     security.ResourceType_FaultDetectRules,
 			ID:       cbr.ID,
 			Metadata: cbr.Proto.Metadata,
 		})
 	})
+	authCtx.SetRequestContext(ctx)
 
 	return svr.nextSvr.GetFaultDetectRules(ctx, query)
 }

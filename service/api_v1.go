@@ -250,17 +250,14 @@ type ServiceContractOperateServer interface {
 	GetServiceContractVersions(ctx context.Context, filter map[string]string) *apiservice.BatchQueryResponse
 }
 
-type DiscoverServerV1 interface {
-	// CircuitBreakerOperateServer Fuse rule operation interface definition
-	CircuitBreakerOperateServer
-	// RateLimitOperateServer Lamflow rule operation interface definition
-	RateLimitOperateServer
-	// RouteRuleOperateServer Routing rules operation interface definition
-	RouteRuleOperateServer
-	// RouterRuleOperateServer Routing rules operation interface definition
-	RouterRuleOperateServer
-	// FaultDetectRuleOperateServer fault detect rules operation interface definition
-	FaultDetectRuleOperateServer
-	// ServiceContractOperateServer service contract rules operation inerface definition
-	ServiceContractOperateServer
+// LaneOperateServer lane operations
+type LaneOperateServer interface {
+	// CreateLaneGroups 批量创建泳道组
+	CreateLaneGroups(ctx context.Context, req []*apitraffic.LaneGroup) *apiservice.BatchWriteResponse
+	// UpdateLaneGroups 批量更新泳道组
+	UpdateLaneGroups(ctx context.Context, req []*apitraffic.LaneGroup) *apiservice.BatchWriteResponse
+	// DeleteLaneGroups 批量删除泳道组
+	DeleteLaneGroups(ctx context.Context, req []*apitraffic.LaneGroup) *apiservice.BatchWriteResponse
+	// GetLaneGroups 查询泳道组列表
+	GetLaneGroups(ctx context.Context, filter map[string]string) *apiservice.BatchQueryResponse
 }

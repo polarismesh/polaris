@@ -142,28 +142,16 @@ func (s *Server) DeleteServiceAlias(ctx context.Context, req *apiservice.Service
 		return api.NewServiceAliasResponse(commonstore.StoreCode2APICode(err), req)
 	}
 
+	s.RecordHistory(ctx, serviceRecordEntry(ctx, &apiservice.Service{
+		Name:      req.GetAlias(),
+		Namespace: req.GetAliasNamespace(),
+	}, alias, model.ODelete))
 	return api.NewServiceAliasResponse(apimodel.Code_ExecuteSuccess, req)
-}
-
-func checkBatchAlias(req []*apiservice.ServiceAlias) *apiservice.BatchWriteResponse {
-	if len(req) == 0 {
-		return api.NewBatchWriteResponse(apimodel.Code_EmptyRequest)
-	}
-
-	if len(req) > MaxBatchSize {
-		return api.NewBatchWriteResponse(apimodel.Code_BatchSizeOverLimit)
-	}
-
-	return nil
 }
 
 // DeleteServiceAliases 删除服务别名列表
 func (s *Server) DeleteServiceAliases(
 	ctx context.Context, req []*apiservice.ServiceAlias) *apiservice.BatchWriteResponse {
-	if checkError := checkBatchAlias(req); checkError != nil {
-		return checkError
-	}
-
 	responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for _, alias := range req {
 		response := s.DeleteServiceAlias(ctx, alias)

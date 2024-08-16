@@ -20,9 +20,11 @@ package service_auth
 import (
 	"context"
 
+	"github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
@@ -109,6 +111,15 @@ func (svr *Server) GetServiceWithCache(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
+	ctx = cachetypes.AppendServicePredicate(ctx, func(ctx context.Context, cbr *model.Service) bool {
+		return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authcommon.ResourceEntry{
+			Type:     security.ResourceType_Services,
+			ID:       cbr.ID,
+			Metadata: cbr.Meta,
+		})
+	})
+	authCtx.SetRequestContext(ctx)
+
 	return svr.nextSvr.GetServiceWithCache(ctx, req)
 }
 
@@ -184,6 +195,7 @@ func (svr *Server) GetCircuitBreakerWithCache(
 	return svr.nextSvr.GetCircuitBreakerWithCache(ctx, req)
 }
 
+// GetFaultDetectWithCache 获取主动探测规则列表
 func (svr *Server) GetFaultDetectWithCache(
 	ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
 

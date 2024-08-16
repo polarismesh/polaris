@@ -75,12 +75,12 @@ require (
 	golang.org/x/sys v0.18.0 // indirect
 	google.golang.org/genproto v0.0.0-20230711160842-782d3b101e98 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
-	github.com/polarismesh/specification v1.5.2-0.20240722103923-1d9990d6f555
+	github.com/polarismesh/specification v1.5.3-alpha
 )
 
 require github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect

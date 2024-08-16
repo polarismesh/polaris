@@ -20,6 +20,7 @@ package model
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -44,6 +45,8 @@ const (
 const (
 	// V2RuleIDKey v2 版本的规则路由 ID
 	V2RuleIDKey = "__routing_v2_id__"
+	// V2RuleIDPriority v2 版本的规则路由优先级
+	V2RuleIDPriority = "__routing_v2_priority__"
 	// V1RuleIDKey v1 版本的路由规则 ID
 	V1RuleIDKey = "__routing_v1_id__"
 	// V1RuleRouteIndexKey v1 版本 route 规则在自己 route 链中的 index 信息
@@ -606,6 +609,20 @@ func CompareRoutingV2(a, b *ExtendRouterConfig) bool {
 	return a.CreateTime.Before(b.CreateTime)
 }
 
+// CompareRoutingV1 Compare the priority of two routing.
+func CompareRoutingV1(a, b *apitraffic.Route) bool {
+	ap, _ := strconv.ParseUint(a.ExtendInfo[V2RuleIDPriority], 10, 64)
+	bp, _ := strconv.ParseUint(b.ExtendInfo[V2RuleIDPriority], 10, 64)
+
+	if ap != bp {
+		return ap < bp
+	}
+
+	aId := a.ExtendInfo[V2RuleIDKey]
+	bId := b.ExtendInfo[V2RuleIDKey]
+	return aId < bId
+}
+
 // ConvertRoutingV1ToExtendV2 The routing rules of the V1 version are converted to V2 version for storage
 // TODO Reduce duplicate code logic
 func ConvertRoutingV1ToExtendV2(svcName, svcNamespace string,
@@ -755,7 +772,8 @@ func BuildInBoundsRoute(item *ExtendRouterConfig) []*apitraffic.Route {
 			Sources:      v1sources,
 			Destinations: v1destinations,
 			ExtendInfo: map[string]string{
-				V2RuleIDKey: item.ID,
+				V2RuleIDKey:      item.ID,
+				V2RuleIDPriority: strconv.FormatUint(uint64(item.Priority), 10),
 			},
 		})
 	}

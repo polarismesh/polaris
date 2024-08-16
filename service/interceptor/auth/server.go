@@ -203,14 +203,17 @@ func (svr *Server) collectRouteRuleV2AuthContext(ctx context.Context, req []*api
 		}
 	}
 
+	accessResources := map[apisecurity.ResourceType][]authcommon.ResourceEntry{}
+	if len(resources) != 0 {
+		accessResources[apisecurity.ResourceType_RouteRules] = resources
+	}
+
 	return authcommon.NewAcquireContext(
 		authcommon.WithRequestContext(ctx),
 		authcommon.WithOperation(resourceOp),
 		authcommon.WithModule(authcommon.DiscoverModule),
 		authcommon.WithMethod(methodName),
-		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
-			apisecurity.ResourceType_RouteRules: resources,
-		}),
+		authcommon.WithAccessResources(accessResources),
 	)
 }
 

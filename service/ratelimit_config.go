@@ -457,6 +457,7 @@ func rateLimit2Console(rateLimit *model.RateLimit) (*apitraffic.Rule, error) {
 		return nil, nil
 	}
 	if len(rateLimit.Rule) > 0 {
+		rateLimit = rateLimit.CopyNoProto()
 		rateLimit.Proto = &apitraffic.Rule{}
 		// 控制台查询的请求
 		if err := json.Unmarshal([]byte(rateLimit.Rule), rateLimit.Proto); err != nil {

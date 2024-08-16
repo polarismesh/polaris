@@ -179,7 +179,13 @@ const (
 )
 
 // 全链路灰度
-const ()
+const (
+	CreateLaneGroups   ServerFunctionName = "CreateLaneGroups"
+	DeleteLaneGroups   ServerFunctionName = "DeleteLaneGroups"
+	EnableLaneGroups   ServerFunctionName = "EnableLaneGroups"
+	UpdateLaneGroups   ServerFunctionName = "UpdateLaneGroups"
+	DescribeLaneGroups ServerFunctionName = "DescribeLaneGroups"
+)
 
 // 用户/用户组
 const (

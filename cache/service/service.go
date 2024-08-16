@@ -340,13 +340,33 @@ func (sc *serviceCache) GetServicesCount() int {
 }
 
 // ListServices get service list and revision by namespace
-func (sc *serviceCache) ListServices(ns string) (string, []*model.Service) {
-	return sc.serviceList.ListServices(ns)
+func (sc *serviceCache) ListServices(ctx context.Context, ns string) (string, []*model.Service) {
+	revision, matchServices := sc.serviceList.ListServices(ns)
+	predicates := types.LoadServicePredicates(ctx)
+	ret := make([]*model.Service, 0, len(matchServices))
+	for i := range matchServices {
+		if !predicates[i](ctx, matchServices[i]) {
+			continue
+		}
+		ret = append(ret, matchServices[i])
+	}
+	matchServices = ret
+	return revision, matchServices
 }
 
 // ListAllServices get all service and revision
-func (sc *serviceCache) ListAllServices() (string, []*model.Service) {
-	return sc.serviceList.ListAllServices()
+func (sc *serviceCache) ListAllServices(ctx context.Context) (string, []*model.Service) {
+	revision, matchServices := sc.serviceList.ListAllServices()
+	predicates := types.LoadServicePredicates(ctx)
+	ret := make([]*model.Service, 0, len(matchServices))
+	for i := range matchServices {
+		if !predicates[i](ctx, matchServices[i]) {
+			continue
+		}
+		ret = append(ret, matchServices[i])
+	}
+	matchServices = ret
+	return revision, matchServices
 }
 
 // ListServiceAlias get all service alias by target service

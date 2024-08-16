@@ -34,8 +34,7 @@ func (svr *Server) CreateRoutingConfigs(
 	ctx context.Context, reqs []*apitraffic.Routing) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, authcommon.Create, "CreateRoutingConfigs")
 
-	_, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx)
-	if err != nil {
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
 
@@ -50,8 +49,7 @@ func (svr *Server) DeleteRoutingConfigs(
 	ctx context.Context, reqs []*apitraffic.Routing) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, authcommon.Delete, "DeleteRoutingConfigs")
 
-	_, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx)
-	if err != nil {
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
 
@@ -66,8 +64,7 @@ func (svr *Server) UpdateRoutingConfigs(
 	ctx context.Context, reqs []*apitraffic.Routing) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, reqs, authcommon.Modify, "UpdateRoutingConfigs")
 
-	_, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx)
-	if err != nil {
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchWriteResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
 
@@ -82,8 +79,7 @@ func (svr *Server) GetRoutingConfigs(
 	ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	authCtx := svr.collectRouteRuleAuthContext(ctx, nil, authcommon.Read, "GetRoutingConfigs")
 
-	_, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx)
-	if err != nil {
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchQueryResponseWithMsg(apimodel.Code_NotAllowedAccess, err.Error())
 	}
 

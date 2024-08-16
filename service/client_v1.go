@@ -175,9 +175,9 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Servic
 	)
 
 	if req.GetNamespace().GetValue() != "" {
-		revision, svcs = s.Cache().Service().ListServices(req.GetNamespace().GetValue())
+		revision, svcs = s.Cache().Service().ListServices(ctx, req.GetNamespace().GetValue())
 	} else {
-		revision, svcs = s.Cache().Service().ListAllServices()
+		revision, svcs = s.Cache().Service().ListAllServices(ctx)
 	}
 	if revision == "" {
 		return resp

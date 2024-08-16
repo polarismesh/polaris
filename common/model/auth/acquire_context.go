@@ -118,7 +118,7 @@ func WithOperation(operation ResourceOperation) acquireContextOption {
 //	@return acquireContextOption
 func WithAccessResources(accessResources map[apisecurity.ResourceType][]ResourceEntry) acquireContextOption {
 	return func(authCtx *AcquireContext) {
-		authCtx.accessResources = accessResources
+		authCtx.SetAccessResources(accessResources)
 	}
 }
 
@@ -193,7 +193,15 @@ func (authCtx *AcquireContext) GetAccessResources() map[apisecurity.ResourceType
 //	@receiver authCtx
 //	@param accessRes
 func (authCtx *AcquireContext) SetAccessResources(accessRes map[apisecurity.ResourceType][]ResourceEntry) {
-	authCtx.accessResources = accessRes
+	copyM := map[apisecurity.ResourceType][]ResourceEntry{}
+	for k, v := range accessRes {
+		if len(v) == 0 {
+			continue
+		}
+		copyM[k] = v
+	}
+
+	authCtx.accessResources = copyM
 }
 
 // GetAttachments 获取本次请求的额外携带信息

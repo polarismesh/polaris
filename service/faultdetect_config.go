@@ -192,16 +192,9 @@ func (s *Server) checkFaultDetectRuleExists(id, requestID string) *apiservice.Re
 func (s *Server) GetFaultDetectRules(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	offset, limit, _ := utils.ParseOffsetAndLimit(query)
 	total, cbRules, err := s.caches.FaultDetector().Query(ctx, &cachetypes.FaultDetectArgs{
-		ID:               query["id"],
-		Name:             query["name"],
-		Namespace:        query["namespace"],
-		Service:          query["service"],
-		ServiceNamespace: query["serviceNamespace"],
-		DstNamespace:     query["dstNamespace"],
-		DstService:       query["dstService"],
-		DstMethod:        query["dstMethod"],
-		Offset:           offset,
-		Limit:            limit,
+		Filter: query,
+		Offset: offset,
+		Limit:  limit,
 	})
 	if err != nil {
 		log.Errorf("get fault detect rules store err: %s", err.Error())

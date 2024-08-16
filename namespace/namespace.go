@@ -27,6 +27,7 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	commonstore "github.com/polarismesh/polaris/common/store"
@@ -343,7 +344,11 @@ func (s *Server) GetNamespaces(ctx context.Context, query map[string][]string) *
 		return checkError
 	}
 
-	namespaces, amount, err := s.storage.GetNamespaces(filter, offset, limit)
+	amount, namespaces, err := s.caches.Namespace().Query(ctx, &cachetypes.NamespaceArgs{
+		Filter: filter,
+		Offset: offset,
+		Limit:  limit,
+	})
 	if err != nil {
 		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}

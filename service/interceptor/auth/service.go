@@ -125,6 +125,15 @@ func (svr *Server) GetAllServices(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
+	ctx = cachetypes.AppendServicePredicate(ctx, func(ctx context.Context, cbr *model.Service) bool {
+		return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authcommon.ResourceEntry{
+			Type:     security.ResourceType_Services,
+			ID:       cbr.ID,
+			Metadata: cbr.Meta,
+		})
+	})
+	authCtx.SetRequestContext(ctx)
+
 	return svr.nextSvr.GetAllServices(ctx, query)
 }
 
@@ -140,13 +149,21 @@ func (svr *Server) GetServices(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
+	ctx = cachetypes.AppendServicePredicate(ctx, func(ctx context.Context, cbr *model.Service) bool {
+		return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authcommon.ResourceEntry{
+			Type:     security.ResourceType_Services,
+			ID:       cbr.ID,
+			Metadata: cbr.Meta,
+		})
+	})
+	authCtx.SetRequestContext(ctx)
+
 	// 注入查询条件拦截器
 
 	resp := svr.nextSvr.GetServices(ctx, query)
 	if len(resp.Services) != 0 {
 		for index := range resp.Services {
 			svc := resp.Services[index]
-			// TODO 需要配合 metadata 做调整
 			svc.Editable = utils.NewBoolValue(true)
 		}
 	}
@@ -168,7 +185,8 @@ func (svr *Server) GetServicesCount(ctx context.Context) *apiservice.BatchQueryR
 
 // GetServiceToken 获取服务的 token
 func (svr *Server) GetServiceToken(ctx context.Context, req *apiservice.Service) *apiservice.Response {
-	authCtx := svr.collectServiceAuthContext(ctx, nil, authcommon.Read, authcommon.DescribeServiceToken)
+	authCtx := svr.collectServiceAuthContext(ctx, []*apiservice.Service{req}, authcommon.Read,
+		authcommon.DescribeServiceToken)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
@@ -182,7 +200,7 @@ func (svr *Server) GetServiceToken(ctx context.Context, req *apiservice.Service)
 // GetServiceOwner 获取服务的 owner
 func (svr *Server) GetServiceOwner(
 	ctx context.Context, req []*apiservice.Service) *apiservice.BatchQueryResponse {
-	authCtx := svr.collectServiceAuthContext(ctx, nil, authcommon.Read, authcommon.DescribeServiceOwner)
+	authCtx := svr.collectServiceAuthContext(ctx, req, authcommon.Read, authcommon.DescribeServiceOwner)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewBatchQueryResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
@@ -190,14 +208,6 @@ func (svr *Server) GetServiceOwner(
 
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
-	cachetypes.AppendServicePredicate(ctx, func(ctx context.Context, cbr *model.Service) bool {
-		return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authcommon.ResourceEntry{
-			Type:     security.ResourceType_Services,
-			ID:       cbr.ID,
-			Metadata: cbr.Meta,
-		})
-	})
 
 	return svr.nextSvr.GetServiceOwner(ctx, req)
 }

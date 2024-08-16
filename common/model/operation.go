@@ -69,6 +69,8 @@ const (
 	RCircuitBreakerRule Resource = "CircuitBreakerRule"
 	RFaultDetectRule    Resource = "FaultDetectRule"
 	RServiceContract    Resource = "ServiceContract"
+	RLaneGroup          Resource = "LaneGroup"
+	RLaneRule           Resource = "LaneRule"
 )
 
 // RecordEntry Operation records

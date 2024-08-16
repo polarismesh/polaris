@@ -228,6 +228,10 @@ func (c *ClientRouteRuleContainer) SearchCustomRuleV1(svc model.ServiceKey) (*ap
 		if existNsWildcardRule {
 			ret.Inbounds = append(ret.Inbounds, nsWildcardRule.customv1Rules.Inbounds...)
 		}
+
+		sort.Slice(ret.Inbounds, func(i, j int) bool {
+			return model.CompareRoutingV1(ret.Inbounds[i], ret.Inbounds[j])
+		})
 	default:
 		if existExactRule {
 			ret.Outbounds = append(ret.Outbounds, exactRule.customv1Rules.Outbounds...)

@@ -18,7 +18,9 @@
 package namespace
 
 import (
+	"context"
 	"math"
+	"sort"
 	"time"
 
 	"go.uber.org/zap"
@@ -199,4 +201,69 @@ func (nsCache *namespaceCache) GetNamespaceList() []*model.Namespace {
 	})
 
 	return nsArr
+}
+
+func (nsCache *namespaceCache) Query(ctx context.Context, args *types.NamespaceArgs) (uint32, []*model.Namespace, error) {
+	if err := nsCache.Update(); err != nil {
+		return 0, nil, err
+	}
+
+	ret := make([]*model.Namespace, 0, 32)
+
+	predicates := types.LoadNamespacePredicates(ctx)
+
+	searchName, hasName := args.Filter["name"]
+	searchOwner, hasOwner := args.Filter["owner"]
+
+	nsCache.ids.ReadRange(func(key string, val *model.Namespace) {
+		for i := range predicates {
+			if !predicates[i](ctx, val) {
+				return
+			}
+		}
+
+		if hasName {
+			for i := range searchName {
+				if !utils.IsWildMatch(val.Name, searchName[i]) {
+					return
+				}
+			}
+		}
+
+		if hasOwner {
+			for i := range searchOwner {
+				if !utils.IsWildMatch(val.Owner, searchOwner[i]) {
+					return
+				}
+			}
+		}
+
+		ret = append(ret, val)
+	})
+
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].ModifyTime.After(ret[j].ModifyTime)
+	})
+
+	total, ret := nsCache.toPage(len(ret), ret, args)
+	return uint32(total), ret, nil
+}
+
+func (c *namespaceCache) toPage(total int, items []*model.Namespace,
+	args *types.NamespaceArgs) (int, []*model.Namespace) {
+	if len(items) == 0 {
+		return 0, []*model.Namespace{}
+	}
+	if args.Limit == 0 {
+		return total, items
+	}
+	start := args.Limit * args.Offset
+	end := args.Limit * (args.Offset + 1)
+	if start > total {
+		return total, []*model.Namespace{}
+	}
+	if end > total {
+		end = total
+	}
+	return total, items[start:end]
 }

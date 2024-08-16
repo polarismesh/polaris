@@ -54,8 +54,6 @@ type AuthConfig struct {
 	ClientStrict bool `json:"clientStrict"`
 	// CredibleHeaders 可信请求 Header
 	CredibleHeaders map[string]string
-	// OpenPrincipalDefaultPolicy 是否开启 principal 默认策略
-	OpenPrincipalDefaultPolicy bool `json:"openPrincipalDefaultPolicy"`
 }
 
 // DefaultAuthConfig 返回一个默认的鉴权配置

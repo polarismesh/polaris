@@ -74,6 +74,19 @@ func (sc *serviceCache) GetServicesByFilter(ctx context.Context, serviceFilters 
 		matchServices = tmpSvcs
 	}
 
+	// 这里需要额外做过滤判断
+	predicates := types.LoadServicePredicates(ctx)
+	ret := make([]*model.Service, 0, len(matchServices))
+	for i := range matchServices {
+		for pi := range predicates {
+			if !predicates[pi](ctx, matchServices[i]) {
+				continue
+			}
+			ret = append(ret, matchServices[i])
+		}
+	}
+	matchServices = ret
+
 	amount, services := sortBeforeTrim(matchServices, offset, limit)
 
 	var enhancedServices []*model.EnhancedService

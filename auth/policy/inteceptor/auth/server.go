@@ -167,6 +167,7 @@ func (svr *Server) GetStrategies(ctx context.Context, query map[string]string) *
 		})
 	})
 
+	authCtx.SetRequestContext(ctx)
 	return svr.nextSvr.GetStrategies(ctx, query)
 }
 

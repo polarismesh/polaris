@@ -286,7 +286,7 @@ func (h *Handler) WriteHeaderAndProto(obj api.ResponseMessage) {
 	status := api.CalcCode(obj)
 
 	if status != http.StatusOK {
-		accesslog.Error(obj.String(), utils.ZapRequestID(requestID))
+		accesslog.Error(h.Request.Request.RequestURI+" "+obj.String(), utils.ZapRequestID(requestID))
 	}
 	if code := obj.GetCode().GetValue(); code != api.ExecuteSuccess {
 		h.Response.AddHeader(utils.PolarisCode, fmt.Sprintf("%d", code))
