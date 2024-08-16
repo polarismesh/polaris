@@ -20,7 +20,6 @@ package model
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -606,14 +605,14 @@ func CompareRoutingV2(a, b *ExtendRouterConfig) bool {
 	if a.Priority != b.Priority {
 		return a.Priority < b.Priority
 	}
-	return a.CreateTime.Before(b.CreateTime)
+	// 如果优先级相同，则比较规则 ID
+	return a.ID < b.ID
 }
 
 // CompareRoutingV1 Compare the priority of two routing.
 func CompareRoutingV1(a, b *apitraffic.Route) bool {
-	ap, _ := strconv.ParseUint(a.ExtendInfo[V2RuleIDPriority], 10, 64)
-	bp, _ := strconv.ParseUint(b.ExtendInfo[V2RuleIDPriority], 10, 64)
-
+	ap := a.ExtendInfo[V2RuleIDPriority]
+	bp := b.ExtendInfo[V2RuleIDPriority]
 	if ap != bp {
 		return ap < bp
 	}
@@ -773,7 +772,7 @@ func BuildInBoundsRoute(item *ExtendRouterConfig) []*apitraffic.Route {
 			Destinations: v1destinations,
 			ExtendInfo: map[string]string{
 				V2RuleIDKey:      item.ID,
-				V2RuleIDPriority: strconv.FormatUint(uint64(item.Priority), 10),
+				V2RuleIDPriority: fmt.Sprintf("%04d", item.Priority),
 			},
 		})
 	}
