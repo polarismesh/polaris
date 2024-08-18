@@ -29,6 +29,10 @@ type AtomicValue[V any] struct {
 	a atomic.Value
 }
 
+func (a *AtomicValue[V]) HasValue() bool {
+	return a.a.Load() != nil
+}
+
 func (a *AtomicValue[V]) Store(val V) {
 	a.a.Store(val)
 }

@@ -613,13 +613,7 @@ func CompareRoutingV2(a, b *ExtendRouterConfig) bool {
 func CompareRoutingV1(a, b *apitraffic.Route) bool {
 	ap := a.ExtendInfo[V2RuleIDPriority]
 	bp := b.ExtendInfo[V2RuleIDPriority]
-	if ap != bp {
-		return ap < bp
-	}
-
-	aId := a.ExtendInfo[V2RuleIDKey]
-	bId := b.ExtendInfo[V2RuleIDKey]
-	return aId < bId
+	return ap < bp
 }
 
 // ConvertRoutingV1ToExtendV2 The routing rules of the V1 version are converted to V2 version for storage
