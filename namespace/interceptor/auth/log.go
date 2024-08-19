@@ -15,33 +15,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package admin
+package auth
 
 import (
-	"github.com/polarismesh/polaris/admin/job"
+	commonlog "github.com/polarismesh/polaris/common/log"
 )
 
-// Config maintain configuration
-type Config struct {
-	Jobs         []job.JobConfig `yaml:"jobs"`
-	Interceptors []string        `yaml:"-"`
-}
-
-func DefaultConfig() *Config {
-	return &Config{
-		Jobs: []job.JobConfig{
-			{
-				Name:   "CleanDeletedClients",
-				Enable: true,
-			},
-			{
-				Name:   "CleanDeletedInstances",
-				Enable: true,
-			},
-			{
-				Name:   "CleanConfigReleaseHistory",
-				Enable: true,
-			},
-		},
-	}
-}
+var (
+	authLog = commonlog.GetScopeOrDefaultByName(commonlog.AuthLoggerName)
+)

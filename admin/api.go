@@ -25,6 +25,7 @@ import (
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/model/admin"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 )
 
 // AdminOperateServer Maintain related operation
@@ -55,4 +56,6 @@ type AdminOperateServer interface {
 	GetCMDBInfo(ctx context.Context) ([]model.LocationView, error)
 	// InitMainUser
 	InitMainUser(ctx context.Context, user apisecurity.User) error
+	// GetServerFunctions Get server functions
+	GetServerFunctions(ctx context.Context) map[string][]authcommon.ServerFunctionName
 }

@@ -18,6 +18,7 @@
 package policy
 
 import (
+	"context"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -237,6 +238,12 @@ func (d *DefaultAuthChecker) MatchPolicy(authCtx *authcommon.AcquireContext, pol
 // MatchCalleeFunctions 检查操作方法是否和策略匹配
 func (d *DefaultAuthChecker) MatchCalleeFunctions(authCtx *authcommon.AcquireContext,
 	principal authcommon.Principal, policy *authcommon.StrategyDetail) bool {
+
+	// 如果开启了兼容模式，并且策略没有对可调用方法的拦截，那么就认为匹配成功
+	if d.conf.Compatible && len(policy.CalleeMethods) == 0 {
+		return true
+	}
+
 	functions := policy.CalleeMethods
 	for i := range functions {
 		if functions[i] == string(authCtx.GetMethod()) {
@@ -252,6 +259,37 @@ func (d *DefaultAuthChecker) MatchCalleeFunctions(authCtx *authcommon.AcquireCon
 	return false
 }
 
+type (
+	compatibleChecker func(ctx context.Context, cacheSvr cachetypes.CacheManager, resource *authcommon.ResourceEntry) bool
+)
+
+var (
+	compatibleResource = map[apisecurity.ResourceType]compatibleChecker{
+		apisecurity.ResourceType_UserGroups: func(ctx context.Context, cacheSvr cachetypes.CacheManager, resource *authcommon.ResourceEntry) bool {
+			saveVal := cacheSvr.User().GetGroup(resource.ID)
+			if saveVal == nil {
+				return false
+			}
+			operator := utils.ParseUserID(ctx)
+			_, exist := saveVal.UserIds[operator]
+			return exist
+		},
+		apisecurity.ResourceType_PolicyRules: func(ctx context.Context, cacheSvr cachetypes.CacheManager, resource *authcommon.ResourceEntry) bool {
+			saveVal := cacheSvr.AuthStrategy().GetPolicyRule(resource.ID)
+			if saveVal == nil {
+				return false
+			}
+			operator := utils.ParseUserID(ctx)
+			for i := range saveVal.Principals {
+				if saveVal.Principals[i].PrincipalID == operator {
+					return true
+				}
+			}
+			return false
+		},
+	}
+)
+
 // checkAction 检查操作资源是否和策略匹配
 func (d *DefaultAuthChecker) MatchResourceOperateable(authCtx *authcommon.AcquireContext,
 	principal authcommon.Principal, policy *authcommon.StrategyDetail) bool {
@@ -259,6 +297,10 @@ func (d *DefaultAuthChecker) MatchResourceOperateable(authCtx *authcommon.Acquir
 		for i := range resources {
 			actionResult := d.cacheMgr.AuthStrategy().Hint(principal, &resources[i])
 			if policy.IsMatchAction(actionResult.String()) {
+				return true
+			}
+			// 兼容模式下，对于用户组和策略规则，走一遍兜底的检查逻辑
+			if _, ok := compatibleResource[resType]; ok && d.conf.Compatible {
 				return true
 			}
 		}

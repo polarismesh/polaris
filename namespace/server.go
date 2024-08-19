@@ -36,7 +36,6 @@ type Server struct {
 	caches                *cache.CacheManager
 	createNamespaceSingle *singleflight.Group
 	cfg                   Config
-	history               plugin.History
 	hooks                 []ResourceHook
 }
 
@@ -61,7 +60,7 @@ func (s *Server) afterNamespaceResource(ctx context.Context, req *apimodel.Names
 // RecordHistory server对外提供history插件的简单封装
 func (s *Server) RecordHistory(entry *model.RecordEntry) {
 	// 如果插件没有初始化，那么不记录history
-	if s.history == nil {
+	if plugin.GetHistory() == nil {
 		return
 	}
 	// 如果数据为空，则不需要打印了
@@ -70,10 +69,32 @@ func (s *Server) RecordHistory(entry *model.RecordEntry) {
 	}
 
 	// 调用插件记录history
-	s.history.Record(entry)
+	plugin.GetHistory().Record(entry)
 }
 
 // SetResourceHooks 返回Cache
 func (s *Server) SetResourceHooks(hooks ...ResourceHook) {
 	s.hooks = hooks
+}
+
+// ResourceHook The listener is placed before and after the resource operation, only normal flow
+type ResourceHook interface {
+
+	// Before
+	//  @param ctx
+	//  @param resourceType
+	Before(ctx context.Context, resourceType model.Resource)
+
+	// After
+	//  @param ctx
+	//  @param resourceType
+	//  @param res
+	After(ctx context.Context, resourceType model.Resource, res *ResourceEvent) error
+}
+
+// ResourceEvent 资源事件
+type ResourceEvent struct {
+	ReqNamespace *apimodel.Namespace
+	Namespace    *model.Namespace
+	IsRemove     bool
 }

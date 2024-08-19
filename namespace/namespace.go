@@ -370,6 +370,7 @@ func (s *Server) GetNamespaces(ctx context.Context, query map[string][]string) *
 			TotalInstanceCount:       utils.NewUInt32Value(nsCntInfo.InstanceCnt.TotalInstanceCount),
 			TotalHealthInstanceCount: utils.NewUInt32Value(nsCntInfo.InstanceCnt.HealthyInstanceCount),
 			ServiceExportTo:          namespace.ListServiceExportTo(),
+			Editable:                 utils.NewBoolValue(true),
 		})
 		totalServiceCount += nsCntInfo.ServiceCount
 		totalInstanceCount += nsCntInfo.InstanceCnt.TotalInstanceCount

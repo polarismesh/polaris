@@ -67,7 +67,7 @@ func (svr *Server) DeleteServices(
 	authCtx.SetAccessResources(accessRes)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchWriteResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -106,7 +106,7 @@ func (svr *Server) UpdateServiceToken(
 	authCtx.SetAccessResources(accessRes)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -119,7 +119,7 @@ func (svr *Server) GetAllServices(ctx context.Context,
 	authCtx := svr.collectServiceAuthContext(ctx, nil, authcommon.Read, authcommon.DescribeAllServices)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchQueryResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewBatchQueryResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -143,7 +143,7 @@ func (svr *Server) GetServices(
 	authCtx := svr.collectServiceAuthContext(ctx, nil, authcommon.Read, authcommon.DescribeServices)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchQueryResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewBatchQueryResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -175,7 +175,7 @@ func (svr *Server) GetServicesCount(ctx context.Context) *apiservice.BatchQueryR
 	authCtx := svr.collectServiceAuthContext(ctx, nil, authcommon.Read, authcommon.DescribeServicesCount)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchQueryResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewBatchQueryResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -189,7 +189,7 @@ func (svr *Server) GetServiceToken(ctx context.Context, req *apiservice.Service)
 		authcommon.DescribeServiceToken)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -203,7 +203,7 @@ func (svr *Server) GetServiceOwner(
 	authCtx := svr.collectServiceAuthContext(ctx, req, authcommon.Read, authcommon.DescribeServiceOwner)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchQueryResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewBatchQueryResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()

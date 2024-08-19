@@ -28,6 +28,7 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	authmodel "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
@@ -81,7 +82,7 @@ func (svr *Server) CreateUsers(ctx context.Context, users []*apisecurity.User) *
 	)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchWriteResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 	return svr.nextSvr.CreateUsers(authCtx.GetRequestContext(), users)
 }
@@ -111,7 +112,7 @@ func (svr *Server) UpdateUser(ctx context.Context, user *apisecurity.User) *apis
 	)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewResponse(authcommon.ConvertToErrCode(err))
 	}
 	return svr.nextSvr.UpdateUser(authCtx.GetRequestContext(), user)
 }
@@ -141,7 +142,7 @@ func (svr *Server) UpdateUserPassword(ctx context.Context, req *apisecurity.Modi
 	)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewResponse(authcommon.ConvertToErrCode(err))
 	}
 	return svr.nextSvr.UpdateUserPassword(authCtx.GetRequestContext(), req)
 }
@@ -171,7 +172,7 @@ func (svr *Server) DeleteUsers(ctx context.Context, users []*apisecurity.User) *
 		}),
 	)
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchWriteResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 	return svr.nextSvr.DeleteUsers(authCtx.GetRequestContext(), users)
 }
@@ -185,7 +186,7 @@ func (svr *Server) GetUsers(ctx context.Context, query map[string]string) *apise
 		authcommon.WithMethod(authcommon.DescribeUsers),
 	)
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchQueryResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewBatchQueryResponse(authcommon.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
 	query["hide_admin"] = strconv.FormatBool(true)
@@ -230,7 +231,7 @@ func (svr *Server) GetUserToken(ctx context.Context, user *apisecurity.User) *ap
 	)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewResponse(authcommon.ConvertToErrCode(err))
 	}
 	return svr.nextSvr.GetUserToken(authCtx.GetRequestContext(), user)
 }
@@ -259,9 +260,9 @@ func (svr *Server) EnableUserToken(ctx context.Context, user *apisecurity.User) 
 	)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewResponse(authcommon.ConvertToErrCode(err))
 	}
-	return svr.nextSvr.EnableUserToken(ctx, user)
+	return svr.nextSvr.EnableUserToken(authCtx.GetRequestContext(), user)
 }
 
 // ResetUserToken 重置用户的token
@@ -290,7 +291,7 @@ func (svr *Server) ResetUserToken(ctx context.Context, user *apisecurity.User) *
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
-	return svr.nextSvr.ResetUserToken(ctx, user)
+	return svr.nextSvr.ResetUserToken(authCtx.GetRequestContext(), user)
 }
 
 // CreateGroup 创建用户组
@@ -303,7 +304,7 @@ func (svr *Server) CreateGroup(ctx context.Context, group *apisecurity.UserGroup
 	)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewResponse(authcommon.ConvertToErrCode(err))
 	}
 	return svr.nextSvr.CreateGroup(authCtx.GetRequestContext(), group)
 }
@@ -335,7 +336,7 @@ func (svr *Server) UpdateGroups(ctx context.Context, groups []*apisecurity.Modif
 	)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchWriteResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
 	return svr.nextSvr.UpdateGroups(authCtx.GetRequestContext(), groups)
 }
@@ -365,9 +366,9 @@ func (svr *Server) DeleteGroups(ctx context.Context, groups []*apisecurity.UserG
 	)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchWriteResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
 	}
-	return svr.nextSvr.DeleteGroups(ctx, groups)
+	return svr.nextSvr.DeleteGroups(authCtx.GetRequestContext(), groups)
 }
 
 // GetGroups 查询用户组列表（不带用户详细信息）
@@ -379,23 +380,27 @@ func (svr *Server) GetGroups(ctx context.Context, query map[string]string) *apis
 		authcommon.WithMethod(authcommon.DescribeUserGroups),
 	)
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchQueryResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewBatchQueryResponse(authcommon.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
-	if authcommon.ParseUserRole(ctx) != authmodel.AdminUserRole {
-		// step 1: 设置 owner 信息，只能查看归属主帐户下的用户组
-		query["owner"] = utils.ParseOwnerID(ctx)
-	}
-
-	ctx = cachetypes.AppendUserPredicate(ctx, func(ctx context.Context, u *authcommon.User) bool {
-		return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authmodel.ResourceEntry{
+	ctx = cachetypes.AppendUserGroupPredicate(ctx, func(ctx context.Context, u *authcommon.UserGroupDetail) bool {
+		ok := svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authmodel.ResourceEntry{
 			Type:     apisecurity.ResourceType_UserGroups,
 			ID:       u.ID,
 			Metadata: u.Metadata,
 		})
+		if ok {
+			return true
+		}
+		// 兼容老版本的策略查询逻辑
+		if compatible, _ := ctx.Value(model.ContextKeyCompatible{}).(bool); compatible {
+			_, exist := u.UserIds[utils.ParseUserID(ctx)]
+			return exist
+		}
+		return false
 	})
-	delete(query, "owner")
-	return svr.nextSvr.GetGroups(ctx, query)
+	authCtx.SetRequestContext(ctx)
+	return svr.nextSvr.GetGroups(authCtx.GetRequestContext(), query)
 }
 
 // GetGroup 根据用户组信息，查询该用户组下的用户相信
@@ -422,9 +427,9 @@ func (svr *Server) GetGroup(ctx context.Context, req *apisecurity.UserGroup) *ap
 	)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewResponse(authcommon.ConvertToErrCode(err))
 	}
-	return svr.nextSvr.GetGroup(ctx, req)
+	return svr.nextSvr.GetGroup(authCtx.GetRequestContext(), req)
 }
 
 // GetGroupToken 获取用户组的 token
@@ -451,9 +456,9 @@ func (svr *Server) GetGroupToken(ctx context.Context, group *apisecurity.UserGro
 	)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewResponse(authcommon.ConvertToErrCode(err))
 	}
-	return svr.nextSvr.GetGroupToken(ctx, group)
+	return svr.nextSvr.GetGroupToken(authCtx.GetRequestContext(), group)
 }
 
 // EnableGroupToken 取消用户组的 token 使用
@@ -480,9 +485,9 @@ func (svr *Server) EnableGroupToken(ctx context.Context, group *apisecurity.User
 	)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewResponse(authcommon.ConvertToErrCode(err))
 	}
-	return svr.nextSvr.EnableGroupToken(ctx, group)
+	return svr.nextSvr.EnableGroupToken(authCtx.GetRequestContext(), group)
 }
 
 // ResetGroupToken 重置用户组的 token
@@ -509,7 +514,7 @@ func (svr *Server) ResetGroupToken(ctx context.Context, group *apisecurity.UserG
 	)
 
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
+		return api.NewResponse(authcommon.ConvertToErrCode(err))
 	}
-	return svr.nextSvr.ResetGroupToken(ctx, group)
+	return svr.nextSvr.ResetGroupToken(authCtx.GetRequestContext(), group)
 }

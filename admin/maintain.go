@@ -33,6 +33,7 @@ import (
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/model/admin"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	commonstore "github.com/polarismesh/polaris/common/store"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
@@ -205,7 +206,6 @@ func (s *Server) ListLeaderElections(_ context.Context) ([]*admin.LeaderElection
 
 func (s *Server) ReleaseLeaderElection(_ context.Context, electKey string) error {
 	return s.storage.ReleaseLeaderElection(electKey)
-
 }
 
 func (svr *Server) GetCMDBInfo(ctx context.Context) ([]model.LocationView, error) {
@@ -229,4 +229,9 @@ func (svr *Server) GetCMDBInfo(ctx context.Context) ([]model.LocationView, error
 	})
 
 	return ret, nil
+}
+
+// GetServerFunctions 获取服务端支持的功能列表
+func (svr *Server) GetServerFunctions(ctx context.Context) map[string][]authcommon.ServerFunctionName {
+	return authcommon.ServerFunctions
 }

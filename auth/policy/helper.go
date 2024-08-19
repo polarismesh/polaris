@@ -59,11 +59,17 @@ func defaultPrincipalPolicy(p authcommon.Principal) *authcommon.StrategyDetail {
 		Principals: []authcommon.Principal{p},
 		CalleeMethods: []string{
 			// 用户操作权限
+			string(authcommon.DescribeUsers),
 			string(authcommon.DescribeUserToken),
 			string(authcommon.UpdateUser),
 			string(authcommon.UpdateUserPassword),
 			string(authcommon.EnableUserToken),
 			string(authcommon.ResetUserToken),
+			// 鉴权策略
+			string(authcommon.DescribeAuthPolicies),
+			string(authcommon.DescribeAuthPolicyDetail),
+			// 角色
+			string(authcommon.DescribeAuthRoles),
 		},
 		Valid:   true,
 		Comment: "default principal auth policy rule",

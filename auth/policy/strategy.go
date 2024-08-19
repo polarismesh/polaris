@@ -190,6 +190,10 @@ func (svr *Server) DeleteStrategy(ctx context.Context, req *apisecurity.AuthStra
 func (svr *Server) GetStrategies(ctx context.Context, filters map[string]string) *apiservice.BatchQueryResponse {
 	filters = ParseStrategySearchArgs(ctx, filters)
 	offset, limit, _ := utils.ParseOffsetAndLimit(filters)
+
+	// 透传兼容模式信息数据
+	ctx = context.WithValue(ctx, model.ContextKeyCompatible{}, svr.options.Compatible)
+
 	total, strategies, err := svr.cacheMgr.AuthStrategy().Query(ctx, cachetypes.PolicySearchArgs{
 		Filters: filters,
 		Offset:  offset,
@@ -246,22 +250,6 @@ func ParseStrategySearchArgs(ctx context.Context, searchFilters map[string]strin
 			searchFilters["principal_type"] = "1"
 		}
 	}
-
-	if authcommon.ParseUserRole(ctx) != authcommon.AdminUserRole {
-		// 如果当前账户不是 admin 角色，既不是走资源视角查看，也不是指定principal查看，那么只能查询当前操作用户被关联到的鉴权策略，
-		if _, ok := searchFilters["res_id"]; !ok {
-			// 设置 owner 参数，只能查看对应 owner 下的策略
-			searchFilters["owner"] = utils.ParseOwnerID(ctx)
-			if _, ok := searchFilters["principal_id"]; !ok {
-				// 如果当前不是 owner 角色，那么只能查询与自己有关的策略
-				if !utils.ParseIsOwner(ctx) {
-					searchFilters["principal_id"] = utils.ParseUserID(ctx)
-					searchFilters["principal_type"] = strconv.Itoa(int(authcommon.PrincipalUser))
-				}
-			}
-		}
-	}
-
 	return searchFilters
 }
 
@@ -381,11 +369,7 @@ func (svr *Server) GetPrincipalResources(ctx context.Context, query map[string]s
 
 	resources = append(resources, pResources...)
 	tmp := &apisecurity.AuthStrategy{
-		Resources: &apisecurity.StrategyResources{
-			Namespaces:   make([]*apisecurity.StrategyResourceEntry, 0),
-			Services:     make([]*apisecurity.StrategyResourceEntry, 0),
-			ConfigGroups: make([]*apisecurity.StrategyResourceEntry, 0),
-		},
+		Resources: &apisecurity.StrategyResources{},
 	}
 
 	svr.enrichResourceInfo(ctx, tmp, &authcommon.StrategyDetail{
@@ -471,7 +455,10 @@ func (svr *Server) createAuthStrategyModel(strategy *apisecurity.AuthStrategy) *
 	resEntry := make([]authcommon.StrategyResource, 0, 20)
 	for resType, ptrGetter := range resourceFieldPointerGetters {
 		slicePtr := ptrGetter(strategy.Resources)
-		resEntry = append(resEntry, svr.collectResourceEntry(ret.ID, resType, slicePtr, false)...)
+		if slicePtr.Elem().IsNil() {
+			continue
+		}
+		resEntry = append(resEntry, svr.collectResourceEntry(ret.ID, resType, slicePtr.Elem(), false)...)
 	}
 
 	// 收集涉及的 principal 信息
@@ -494,11 +481,14 @@ func (svr *Server) updateAuthStrategyAttribute(ctx context.Context, strategy *ap
 	saved *authcommon.StrategyDetail) (*authcommon.ModifyStrategyDetail, bool) {
 	var needUpdate bool
 	ret := &authcommon.ModifyStrategyDetail{
-		ID:         strategy.Id.GetValue(),
-		Name:       saved.Name,
-		Action:     saved.Action,
-		Comment:    saved.Comment,
-		ModifyTime: time.Now(),
+		ID:            strategy.Id.GetValue(),
+		Name:          saved.Name,
+		Action:        saved.Action,
+		Comment:       saved.Comment,
+		ModifyTime:    time.Now(),
+		CalleeMethods: saved.CalleeMethods,
+		Conditions:    saved.Conditions,
+		Metadata:      saved.Metadata,
 	}
 
 	// 只有 owner 可以修改的属性
@@ -520,19 +510,27 @@ func (svr *Server) updateAuthStrategyAttribute(ctx context.Context, strategy *ap
 	if computePrincipalChange(ret, strategy) {
 		needUpdate = true
 	}
-	needUpdate = true
-	saved.CalleeMethods = strategy.Functions
-	saved.Metadata = strategy.Metadata
-	saved.Conditions = func() []authcommon.Condition {
-		conditions := make([]authcommon.Condition, 0, len(strategy.GetResourceLabels()))
-		for index := range strategy.GetResourceLabels() {
-			conditions = append(conditions, authcommon.Condition{
-				Key:   strategy.GetResourceLabels()[index].GetKey(),
-				Value: strategy.GetResourceLabels()[index].GetValue(),
-			})
-		}
-		return conditions
-	}()
+	if strategy.Functions != nil {
+		needUpdate = true
+		ret.CalleeMethods = strategy.Functions
+	}
+	if strategy.Metadata != nil {
+		needUpdate = true
+		ret.Metadata = strategy.Metadata
+	}
+	if strategy.ResourceLabels != nil {
+		needUpdate = true
+		ret.Conditions = func() []authcommon.Condition {
+			conditions := make([]authcommon.Condition, 0, len(strategy.GetResourceLabels()))
+			for index := range strategy.GetResourceLabels() {
+				conditions = append(conditions, authcommon.Condition{
+					Key:   strategy.GetResourceLabels()[index].GetKey(),
+					Value: strategy.GetResourceLabels()[index].GetValue(),
+				})
+			}
+			return conditions
+		}()
+	}
 
 	return ret, needUpdate
 }
@@ -546,7 +544,10 @@ func (svr *Server) computeResourceChange(
 	addResEntry := make([]authcommon.StrategyResource, 0)
 	for resType, ptrGetter := range resourceFieldPointerGetters {
 		slicePtr := ptrGetter(strategy.AddResources)
-		addResEntry = append(addResEntry, svr.collectResourceEntry(modify.ID, resType, slicePtr, false)...)
+		if slicePtr.Elem().IsNil() {
+			continue
+		}
+		addResEntry = append(addResEntry, svr.collectResourceEntry(modify.ID, resType, slicePtr.Elem(), false)...)
 	}
 
 	if len(addResEntry) != 0 {
@@ -556,8 +557,11 @@ func (svr *Server) computeResourceChange(
 
 	removeResEntry := make([]authcommon.StrategyResource, 0)
 	for resType, ptrGetter := range resourceFieldPointerGetters {
-		slicePtr := ptrGetter(strategy.AddResources)
-		removeResEntry = append(removeResEntry, svr.collectResourceEntry(modify.ID, resType, slicePtr, true)...)
+		slicePtr := ptrGetter(strategy.RemoveResources)
+		if slicePtr.Elem().IsNil() {
+			continue
+		}
+		removeResEntry = append(removeResEntry, svr.collectResourceEntry(modify.ID, resType, slicePtr.Elem(), true)...)
 	}
 
 	if len(removeResEntry) != 0 {
@@ -607,15 +611,15 @@ type pbStringValue interface {
 // collectResEntry 将资源ID转换为对应的 []authcommon.StrategyResource 数组
 func (svr *Server) collectResourceEntry(ruleId string, resType apisecurity.ResourceType,
 	res reflect.Value, delete bool) []authcommon.StrategyResource {
-	resEntries := make([]authcommon.StrategyResource, 0, res.Len())
-	if res.Len() == 0 {
-		return resEntries
+	if res.Kind() != reflect.Slice || res.Len() == 0 {
+		return []authcommon.StrategyResource{}
 	}
 
+	resEntries := make([]authcommon.StrategyResource, 0, res.Len())
 	for i := 0; i < res.Len(); i++ {
 		item := res.Index(i).Elem()
-		resId := item.FieldByName("id").Interface().(pbStringValue)
-		resName := item.FieldByName("name").Interface().(pbStringValue)
+		resId := item.FieldByName("Id").Interface().(pbStringValue)
+		resName := item.FieldByName("Name").Interface().(pbStringValue)
 		// 如果是添加的动作，那么需要进行归一化处理
 		if !delete {
 			// 归一化处理
@@ -644,13 +648,20 @@ func (svr *Server) collectResourceEntry(ruleId string, resType apisecurity.Resou
 
 // normalizeResource 对于资源进行归一化处理, 如果出现 * 的话，则该资源访问策略就是 *
 func (svr *Server) normalizeResource(resources *apisecurity.StrategyResources) *apisecurity.StrategyResources {
+	if resources == nil {
+		return &apisecurity.StrategyResources{}
+	}
 	for _, ptrGetter := range resourceFieldPointerGetters {
 		slicePtr := ptrGetter(resources)
-		for i := 0; i < slicePtr.Len(); i++ {
-			item := slicePtr.Index(i).Elem()
-			resId := item.FieldByName("id").Interface().(pbStringValue)
+		if slicePtr.Elem().IsNil() {
+			continue
+		}
+		sliceVal := slicePtr.Elem()
+		for i := 0; i < sliceVal.Len(); i++ {
+			item := sliceVal.Index(i).Elem()
+			resId := item.FieldByName("Id").Interface().(pbStringValue)
 			if resId.GetValue() == utils.MatchAll {
-				slicePtr.Elem().Set(reflect.ValueOf([]*apisecurity.StrategyResourceEntry{{
+				sliceVal.Set(reflect.ValueOf([]*apisecurity.StrategyResourceEntry{{
 					Id: utils.NewStringValue("*"),
 				}}))
 			}
@@ -731,6 +742,9 @@ func (svr *Server) enrichResourceDetial(ctx context.Context, item authcommon.Str
 
 	resType := apisecurity.ResourceType(item.ResType)
 	slicePtr := resourceFieldPointerGetters[resType](resp.Resources)
+	if slicePtr.Elem().IsNil() {
+		return
+	}
 	sliceVal := slicePtr.Elem()
 
 	if item.ResID == "*" {
@@ -765,6 +779,7 @@ func resourceDeduplication(resources []authcommon.StrategyResource) []authcommon
 		filter, ok := filters[apisecurity.ResourceType(res.ResType)]
 		if !ok {
 			filters[apisecurity.ResourceType(res.ResType)] = map[string]struct{}{}
+			filter = filters[apisecurity.ResourceType(res.ResType)]
 		}
 		if _, exist := filter[res.ResID]; !exist {
 			filter[res.ResID] = est
@@ -849,39 +864,75 @@ var (
 
 	resourceFieldPointerGetters = map[apisecurity.ResourceType]func(*apisecurity.StrategyResources) reflect.Value{
 		apisecurity.ResourceType_Namespaces: func(as *apisecurity.StrategyResources) reflect.Value {
+			if as.GetNamespaces() == nil {
+				return reflect.ValueOf(&[]*apisecurity.StrategyResourceEntry{})
+			}
 			return reflect.ValueOf(&as.Namespaces)
 		},
 		apisecurity.ResourceType_Services: func(as *apisecurity.StrategyResources) reflect.Value {
+			if as.GetServices() == nil {
+				return reflect.ValueOf(&[]*apisecurity.StrategyResourceEntry{})
+			}
 			return reflect.ValueOf(&as.Services)
 		},
 		apisecurity.ResourceType_ConfigGroups: func(as *apisecurity.StrategyResources) reflect.Value {
+			if as.GetConfigGroups() == nil {
+				return reflect.ValueOf(&[]*apisecurity.StrategyResourceEntry{})
+			}
 			return reflect.ValueOf(&as.ConfigGroups)
 		},
 		apisecurity.ResourceType_RouteRules: func(as *apisecurity.StrategyResources) reflect.Value {
+			if as.GetRouteRules() == nil {
+				return reflect.ValueOf(&[]*apisecurity.StrategyResourceEntry{})
+			}
 			return reflect.ValueOf(&as.RouteRules)
 		},
 		apisecurity.ResourceType_RateLimitRules: func(as *apisecurity.StrategyResources) reflect.Value {
+			if as.GetRatelimitRules() == nil {
+				return reflect.ValueOf(&[]*apisecurity.StrategyResourceEntry{})
+			}
 			return reflect.ValueOf(&as.RatelimitRules)
 		},
 		apisecurity.ResourceType_CircuitBreakerRules: func(as *apisecurity.StrategyResources) reflect.Value {
+			if as.GetCircuitbreakerRules() == nil {
+				return reflect.ValueOf(&[]*apisecurity.StrategyResourceEntry{})
+			}
 			return reflect.ValueOf(&as.CircuitbreakerRules)
 		},
 		apisecurity.ResourceType_FaultDetectRules: func(as *apisecurity.StrategyResources) reflect.Value {
+			if as.GetFaultdetectRules() == nil {
+				return reflect.ValueOf(&[]*apisecurity.StrategyResourceEntry{})
+			}
 			return reflect.ValueOf(&as.FaultdetectRules)
 		},
 		apisecurity.ResourceType_LaneRules: func(as *apisecurity.StrategyResources) reflect.Value {
+			if as.GetLaneRules() == nil {
+				return reflect.ValueOf(&[]*apisecurity.StrategyResourceEntry{})
+			}
 			return reflect.ValueOf(&as.LaneRules)
 		},
 		apisecurity.ResourceType_Users: func(as *apisecurity.StrategyResources) reflect.Value {
+			if as.GetUsers() == nil {
+				return reflect.ValueOf(&[]*apisecurity.StrategyResourceEntry{})
+			}
 			return reflect.ValueOf(&as.Users)
 		},
 		apisecurity.ResourceType_UserGroups: func(as *apisecurity.StrategyResources) reflect.Value {
+			if as.GetUserGroups() == nil {
+				return reflect.ValueOf(&[]*apisecurity.StrategyResourceEntry{})
+			}
 			return reflect.ValueOf(&as.UserGroups)
 		},
 		apisecurity.ResourceType_Roles: func(as *apisecurity.StrategyResources) reflect.Value {
+			if as.GetRoles() == nil {
+				return reflect.ValueOf(&[]*apisecurity.StrategyResourceEntry{})
+			}
 			return reflect.ValueOf(&as.Roles)
 		},
 		apisecurity.ResourceType_PolicyRules: func(as *apisecurity.StrategyResources) reflect.Value {
+			if as.GetAuthPolicies() == nil {
+				return reflect.ValueOf(&[]*apisecurity.StrategyResourceEntry{})
+			}
 			return reflect.ValueOf(&as.AuthPolicies)
 		},
 	}

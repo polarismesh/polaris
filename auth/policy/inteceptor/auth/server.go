@@ -27,7 +27,9 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -159,12 +161,25 @@ func (svr *Server) GetStrategies(ctx context.Context, query map[string]string) *
 		return api.NewAuthBatchQueryResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}
 
+	ctx = authCtx.GetRequestContext()
 	ctx = cachetypes.AppendAuthPolicyPredicate(ctx, func(ctx context.Context, sd *authcommon.StrategyDetail) bool {
-		return checker.ResourcePredicate(authCtx, &authcommon.ResourceEntry{
+		ok := checker.ResourcePredicate(authCtx, &authcommon.ResourceEntry{
 			Type:     apisecurity.ResourceType_PolicyRules,
 			ID:       sd.ID,
 			Metadata: sd.Metadata,
 		})
+		if ok {
+			return true
+		}
+		// 兼容老版本的策略查询逻辑
+		if compatible, _ := ctx.Value(model.ContextKeyCompatible{}).(bool); compatible {
+			for i := range sd.Principals {
+				if sd.Principals[i].PrincipalID == utils.ParseUserID(ctx) {
+					return true
+				}
+			}
+		}
+		return false
 	})
 
 	authCtx.SetRequestContext(ctx)
@@ -193,7 +208,6 @@ func (svr *Server) GetStrategy(ctx context.Context, strategy *apisecurity.AuthSt
 	)
 
 	checker := svr.GetAuthChecker()
-
 	if _, err := checker.CheckConsolePermission(authCtx); err != nil {
 		return api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 	}

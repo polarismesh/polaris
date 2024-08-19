@@ -75,23 +75,30 @@ func (s *strategyStore) AddStrategy(tx store.Tx, strategy *authcommon.StrategyDe
 		isDefault = 1
 	}
 
-	if err := s.addStrategyPrincipals(dbTx, strategy.ID, strategy.Principals); err != nil {
+	if err := s.addPolicyPrincipals(dbTx, strategy.ID, strategy.Principals); err != nil {
 		log.Error("[Store][Strategy] add auth_strategy principals", zap.Error(err))
 		return err
 	}
-
-	if err := s.addStrategyResources(dbTx, strategy.ID, strategy.Resources); err != nil {
+	if err := s.addPolicyResources(dbTx, strategy.ID, strategy.Resources); err != nil {
 		log.Error("[Store][Strategy] add auth_strategy resources", zap.Error(err))
+		return err
+	}
+	if err := s.savePolicyFunctions(dbTx, strategy.ID, strategy.CalleeMethods); err != nil {
+		log.Error("[Store][Strategy] save auth_strategy functions", zap.Error(err))
+		return err
+	}
+	if err := s.savePolicyConditions(dbTx, strategy.ID, strategy.Conditions); err != nil {
+		log.Error("[Store][Strategy] save auth_strategy conditions", zap.Error(err))
 		return err
 	}
 
 	// 保存策略主信息
 	saveMainSql := "INSERT INTO auth_strategy(`id`, `name`, `action`, `owner`, `comment`, `flag`, " +
-		" `default`, `revision`) VALUES (?,?,?,?,?,?,?,?)"
+		" `default`, `revision`, `source`, `metadata`) VALUES (?,?,?,?,?,?,?,?,?,?)"
 	if _, err := dbTx.Exec(saveMainSql,
 		[]interface{}{
 			strategy.ID, strategy.Name, strategy.Action, strategy.Owner, strategy.Comment,
-			0, isDefault, strategy.Revision}...,
+			0, isDefault, strategy.Revision, strategy.Source, utils.MustJson(strategy.Metadata)}...,
 	); err != nil {
 		log.Error("[Store][Strategy] add auth_strategy main info", zap.Error(err))
 		return err
@@ -120,22 +127,31 @@ func (s *strategyStore) updateStrategy(strategy *authcommon.ModifyStrategyDetail
 	defer func() { _ = tx.Rollback() }()
 
 	// 调整 principal 信息
-	if err := s.addStrategyPrincipals(tx, strategy.ID, strategy.AddPrincipals); err != nil {
+	if err := s.addPolicyPrincipals(tx, strategy.ID, strategy.AddPrincipals); err != nil {
 		log.Errorf("[Store][Strategy] add strategy principal err: %s", err.Error())
 		return err
 	}
-	if err := s.deleteStrategyPrincipals(tx, strategy.ID, strategy.RemovePrincipals); err != nil {
+	if err := s.deletePolicyPrincipals(tx, strategy.ID, strategy.RemovePrincipals); err != nil {
 		log.Errorf("[Store][Strategy] remove strategy principal err: %s", err.Error())
 		return err
 	}
 
 	// 调整鉴权资源信息
-	if err := s.addStrategyResources(tx, strategy.ID, strategy.AddResources); err != nil {
+	if err := s.addPolicyResources(tx, strategy.ID, strategy.AddResources); err != nil {
 		log.Errorf("[Store][Strategy] add strategy resource err: %s", err.Error())
 		return err
 	}
-	if err := s.deleteStrategyResources(tx, strategy.ID, strategy.RemoveResources); err != nil {
+	if err := s.deletePolicyResources(tx, strategy.ID, strategy.RemoveResources); err != nil {
 		log.Errorf("[Store][Strategy] remove strategy resource err: %s", err.Error())
+		return err
+	}
+
+	if err := s.savePolicyFunctions(tx, strategy.ID, strategy.CalleeMethods); err != nil {
+		log.Error("[Store][Strategy] save auth_strategy functions", zap.Error(err))
+		return err
+	}
+	if err := s.savePolicyConditions(tx, strategy.ID, strategy.Conditions); err != nil {
+		log.Error("[Store][Strategy] save auth_strategy conditions", zap.Error(err))
 		return err
 	}
 
@@ -174,21 +190,19 @@ func (s *strategyStore) deleteStrategy(id string) error {
 
 	defer func() { _ = tx.Rollback() }()
 
-	if _, err = tx.Exec("UPDATE auth_strategy SET flag = 1, mtime = sysdate() WHERE id = ?", []interface{}{
-		id,
-	}...); err != nil {
+	if _, err = tx.Exec("UPDATE auth_strategy SET flag = 1, mtime = sysdate() WHERE id = ?", id); err != nil {
 		return err
 	}
-
-	if _, err = tx.Exec("DELETE FROM auth_strategy_resource WHERE strategy_id = ?", []interface{}{
-		id,
-	}...); err != nil {
+	if _, err = tx.Exec("DELETE FROM auth_strategy_resource WHERE strategy_id = ?", id); err != nil {
 		return err
 	}
-
-	if _, err = tx.Exec("DELETE FROM auth_principal WHERE strategy_id = ?", []interface{}{
-		id,
-	}...); err != nil {
+	if _, err = tx.Exec("DELETE FROM auth_principal WHERE strategy_id = ?", id); err != nil {
+		return err
+	}
+	if _, err = tx.Exec("DELETE FROM auth_strategy_function WHERE strategy_id = ?", id); err != nil {
+		return err
+	}
+	if _, err = tx.Exec("DELETE FROM auth_strategy_label WHERE strategy_id = ?", id); err != nil {
 		return err
 	}
 
@@ -199,8 +213,65 @@ func (s *strategyStore) deleteStrategy(id string) error {
 	return nil
 }
 
-// addStrategyPrincipals
-func (s *strategyStore) addStrategyPrincipals(tx *BaseTx, id string, principals []authcommon.Principal) error {
+// savePolicyFunctions
+func (s *strategyStore) savePolicyFunctions(tx *BaseTx, id string, functions []string) error {
+	if len(functions) == 0 {
+		return nil
+	}
+
+	if _, err := tx.Exec("DELETE FROM auth_strategy_function WHERE strategy_id = ?", id); err != nil {
+		return err
+	}
+
+	savePrincipalSql := "INSERT IGNORE INTO auth_strategy_function(`strategy_id`, `function`) VALUES "
+	values := make([]string, 0)
+	args := make([]interface{}, 0)
+
+	for i := range functions {
+		values = append(values, "(?,?)")
+		args = append(args, id, functions[i])
+	}
+
+	savePrincipalSql += strings.Join(values, ",")
+
+	log.Debug("[Store][Strategy] save policy functions", zap.String("sql", savePrincipalSql),
+		zap.Any("args", args))
+
+	_, err := tx.Exec(savePrincipalSql, args...)
+	return err
+}
+
+// savePolicyConditions
+func (s *strategyStore) savePolicyConditions(tx *BaseTx, id string, conditions []authcommon.Condition) error {
+	if len(conditions) == 0 {
+		return nil
+	}
+
+	if _, err := tx.Exec("DELETE FROM auth_strategy_label WHERE strategy_id = ?", id); err != nil {
+		return err
+	}
+
+	savePrincipalSql := "INSERT IGNORE INTO auth_strategy_label(`strategy_id`, `key`, `value`, `compare_type`) VALUES "
+	values := make([]string, 0)
+	args := make([]interface{}, 0)
+
+	for i := range conditions {
+		item := conditions[i]
+		values = append(values, "(?,?,?,?)")
+		args = append(args, id, item.Key, item.Value, item.CompareFunc)
+	}
+
+	savePrincipalSql += strings.Join(values, ",")
+
+	log.Debug("[Store][Strategy] save policy conditions", zap.String("sql", savePrincipalSql),
+		zap.Any("args", args))
+
+	_, err := tx.Exec(savePrincipalSql, args...)
+	return err
+}
+
+// addPolicyPrincipals
+func (s *strategyStore) addPolicyPrincipals(tx *BaseTx, id string, principals []authcommon.Principal) error {
 	if len(principals) == 0 {
 		return nil
 	}
@@ -224,8 +295,8 @@ func (s *strategyStore) addStrategyPrincipals(tx *BaseTx, id string, principals 
 	return err
 }
 
-// deleteStrategyPrincipals
-func (s *strategyStore) deleteStrategyPrincipals(tx *BaseTx, id string,
+// deletePolicyPrincipals
+func (s *strategyStore) deletePolicyPrincipals(tx *BaseTx, id string,
 	principals []authcommon.Principal) error {
 	if len(principals) == 0 {
 		return nil
@@ -245,7 +316,8 @@ func (s *strategyStore) deleteStrategyPrincipals(tx *BaseTx, id string,
 	return nil
 }
 
-func (s *strategyStore) addStrategyResources(tx *BaseTx, id string, resources []authcommon.StrategyResource) error {
+// addPolicyResources .
+func (s *strategyStore) addPolicyResources(tx *BaseTx, id string, resources []authcommon.StrategyResource) error {
 	if len(resources) == 0 {
 		return nil
 	}
@@ -271,7 +343,8 @@ func (s *strategyStore) addStrategyResources(tx *BaseTx, id string, resources []
 	return err
 }
 
-func (s *strategyStore) deleteStrategyResources(tx *BaseTx, id string,
+// deletePolicyResources .
+func (s *strategyStore) deletePolicyResources(tx *BaseTx, id string,
 	resources []authcommon.StrategyResource) error {
 
 	if len(resources) == 0 {
@@ -280,11 +353,9 @@ func (s *strategyStore) deleteStrategyResources(tx *BaseTx, id string,
 
 	for i := range resources {
 		resource := resources[i]
-
 		saveResSql := "DELETE FROM auth_strategy_resource WHERE strategy_id = ? AND res_id = ? AND res_type = ?"
 		if _, err := tx.Exec(
-			saveResSql,
-			[]interface{}{resource.StrategyID, resource.ResID, resource.ResType}...,
+			saveResSql, []interface{}{resource.StrategyID, resource.ResID, resource.ResType}...,
 		); err != nil {
 			return err
 		}

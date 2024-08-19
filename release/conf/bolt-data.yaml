@@ -59,3 +59,101 @@ policies:
     valid: true
     revision: fbca9bfa04ae4ead86e1ecf5811e32a9
     metadata: {}
+  - id: bfa04ae1e32a94fbca9ead86e1ecf581
+    name: 全局只读策略
+    action: ALLOW
+    comment: global resources read onyly
+    default: false
+    owner: 65e4789a6d5b49669adf1e9e8387549c
+    calleemethods: ["Describe*", "List*", "Get*"]
+    resources:
+      - strategyid: bfa04ae1e32a94fbca9ead86e1ecf581
+        restype: 6
+        resid: "*"
+      - strategyid: bfa04ae1e32a94fbca9ead86e1ecf581
+        restype: 7
+        resid: "*"
+      - strategyid: bfa04ae1e32a94fbca9ead86e1ecf581
+        restype: 20
+        resid: "*"
+      - strategyid: bfa04ae1e32a94fbca9ead86e1ecf581
+        restype: 0
+        resid: "*"
+      - strategyid: bfa04ae1e32a94fbca9ead86e1ecf581
+        restype: 3
+        resid: "*"
+      - strategyid: bfa04ae1e32a94fbca9ead86e1ecf581
+        restype: 4
+        resid: "*"
+      - strategyid: bfa04ae1e32a94fbca9ead86e1ecf581
+        restype: 5
+        resid: "*"
+      - strategyid: bfa04ae1e32a94fbca9ead86e1ecf581
+        restype: 21
+        resid: "*"
+      - strategyid: bfa04ae1e32a94fbca9ead86e1ecf581
+        restype: 22
+        resid: "*"
+      - strategyid: bfa04ae1e32a94fbca9ead86e1ecf581
+        restype: 23
+        resid: "*"
+      - strategyid: bfa04ae1e32a94fbca9ead86e1ecf581
+        restype: 1
+        resid: "*"
+      - strategyid: bfa04ae1e32a94fbca9ead86e1ecf581
+        restype: 2
+        resid: "*"
+    conditions: []
+    principals: []
+    valid: true
+    revision: 2a04ae4ead86e1e9bfacf59fbca811e3
+    metadata: {}
+  - id: e3d86e1ecf5812bfa04ae1a94fbca9ea
+    name: 全局读写策略
+    action: ALLOW
+    comment: global resources read and write
+    default: false
+    owner: 65e4789a6d5b49669adf1e9e8387549c
+    calleemethods: ["*"]
+    resources:
+      - strategyid: e3d86e1ecf5812bfa04ae1a94fbca9ea
+        restype: 6
+        resid: "*"
+      - strategyid: e3d86e1ecf5812bfa04ae1a94fbca9ea
+        restype: 7
+        resid: "*"
+      - strategyid: e3d86e1ecf5812bfa04ae1a94fbca9ea
+        restype: 20
+        resid: "*"
+      - strategyid: e3d86e1ecf5812bfa04ae1a94fbca9ea
+        restype: 0
+        resid: "*"
+      - strategyid: e3d86e1ecf5812bfa04ae1a94fbca9ea
+        restype: 3
+        resid: "*"
+      - strategyid: e3d86e1ecf5812bfa04ae1a94fbca9ea
+        restype: 4
+        resid: "*"
+      - strategyid: e3d86e1ecf5812bfa04ae1a94fbca9ea
+        restype: 5
+        resid: "*"
+      - strategyid: e3d86e1ecf5812bfa04ae1a94fbca9ea
+        restype: 21
+        resid: "*"
+      - strategyid: e3d86e1ecf5812bfa04ae1a94fbca9ea
+        restype: 22
+        resid: "*"
+      - strategyid: e3d86e1ecf5812bfa04ae1a94fbca9ea
+        restype: 23
+        resid: "*"
+      - strategyid: e3d86e1ecf5812bfa04ae1a94fbca9ea
+        restype: 1
+        resid: "*"
+      - strategyid: e3d86e1ecf5812bfa04ae1a94fbca9ea
+        restype: 2
+        resid: "*"
+    conditions: []
+    principals: []
+    valid: true
+    revision: 4ead86e1e9bfac2a04aef59fbca811e3
+    metadata: {}
