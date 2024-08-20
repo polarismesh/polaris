@@ -385,6 +385,16 @@ type StrategyDetail struct {
 	ModifyTime    time.Time
 }
 
+func (s *StrategyDetail) GetAction() apisecurity.AuthAction {
+	if s.Action == apisecurity.AuthAction_ALLOW.String() {
+		return apisecurity.AuthAction_ALLOW
+	}
+	if s.Action == apisecurity.AuthAction_READ_WRITE.String() {
+		return apisecurity.AuthAction_ALLOW
+	}
+	return apisecurity.AuthAction_DENY
+}
+
 func (s *StrategyDetail) FromSpec(req *apisecurity.AuthStrategy) {
 	s.ID = utils.NewUUID()
 	s.Name = req.Name.GetValue()

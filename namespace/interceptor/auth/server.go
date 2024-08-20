@@ -19,7 +19,6 @@ package auth
 
 import (
 	"context"
-	"errors"
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
@@ -59,6 +58,168 @@ func NewServer(nextSvr namespace.NamespaceOperateServer, userSvr auth.UserServer
 		actualSvr.SetResourceHooks(proxy)
 	}
 	return proxy
+}
+
+// CreateNamespaceIfAbsent Create a single name space
+func (svr *Server) CreateNamespaceIfAbsent(ctx context.Context,
+	req *apimodel.Namespace) (string, *apiservice.Response) {
+	return svr.nextSvr.CreateNamespaceIfAbsent(ctx, req)
+}
+
+// CreateNamespace 创建命名空间，只需要要后置鉴权，将数据添加到资源策略中
+func (svr *Server) CreateNamespace(ctx context.Context, req *apimodel.Namespace) *apiservice.Response {
+	authCtx := svr.collectNamespaceAuthContext(
+		ctx, []*apimodel.Namespace{req}, authcommon.Create, authcommon.CreateNamespace)
+	// 验证 token 信息
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewResponse(authcommon.ConvertToErrCode(err))
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	// 填充 ownerId 信息数据
+	if ownerId := utils.ParseOwnerID(ctx); len(ownerId) > 0 {
+		req.Owners = utils.NewStringValue(ownerId)
+	}
+
+	return svr.nextSvr.CreateNamespace(ctx, req)
+}
+
+// CreateNamespaces 创建命名空间，只需要要后置鉴权，将数据添加到资源策略中
+func (svr *Server) CreateNamespaces(
+	ctx context.Context, reqs []*apimodel.Namespace) *apiservice.BatchWriteResponse {
+	authCtx := svr.collectNamespaceAuthContext(ctx, reqs, authcommon.Create, authcommon.CreateNamespaces)
+
+	// 验证 token 信息
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	// 填充 ownerId 信息数据
+	ownerId := utils.ParseOwnerID(ctx)
+	if len(ownerId) > 0 {
+		for index := range reqs {
+			req := reqs[index]
+			req.Owners = utils.NewStringValue(ownerId)
+		}
+	}
+	return svr.nextSvr.CreateNamespaces(ctx, reqs)
+}
+
+// DeleteNamespace 删除命名空间，需要先走权限检查
+func (svr *Server) DeleteNamespace(ctx context.Context, req *apimodel.Namespace) *apiservice.Response {
+	authCtx := svr.collectNamespaceAuthContext(
+		ctx, []*apimodel.Namespace{req}, authcommon.Delete, authcommon.DeleteNamespace)
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewResponse(authcommon.ConvertToErrCode(err))
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.nextSvr.DeleteNamespace(ctx, req)
+}
+
+// DeleteNamespaces 删除命名空间，需要先走权限检查
+func (svr *Server) DeleteNamespaces(
+	ctx context.Context, reqs []*apimodel.Namespace) *apiservice.BatchWriteResponse {
+	authCtx := svr.collectNamespaceAuthContext(ctx, reqs, authcommon.Delete, authcommon.DeleteNamespaces)
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.nextSvr.DeleteNamespaces(ctx, reqs)
+}
+
+// UpdateNamespaces 更新命名空间，需要先走权限检查
+func (svr *Server) UpdateNamespaces(
+	ctx context.Context, req []*apimodel.Namespace) *apiservice.BatchWriteResponse {
+	authCtx := svr.collectNamespaceAuthContext(ctx, req, authcommon.Modify, authcommon.UpdateNamespaces)
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewBatchWriteResponse(authcommon.ConvertToErrCode(err))
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.nextSvr.UpdateNamespaces(ctx, req)
+}
+
+// UpdateNamespaceToken 更新命名空间的token信息，需要先走权限检查
+func (svr *Server) UpdateNamespaceToken(ctx context.Context, req *apimodel.Namespace) *apiservice.Response {
+	authCtx := svr.collectNamespaceAuthContext(
+		ctx, []*apimodel.Namespace{req}, authcommon.Modify, authcommon.UpdateNamespaceToken)
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewResponse(authcommon.ConvertToErrCode(err))
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.nextSvr.UpdateNamespaceToken(ctx, req)
+}
+
+// GetNamespaces 获取命名空间列表信息，暂时不走权限检查
+func (svr *Server) GetNamespaces(
+	ctx context.Context, query map[string][]string) *apiservice.BatchQueryResponse {
+	authCtx := svr.collectNamespaceAuthContext(ctx, nil, authcommon.Read, authcommon.DescribeNamespaces)
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewBatchQueryResponse(authcommon.ConvertToErrCode(err))
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	ctx = cachetypes.AppendNamespacePredicate(ctx, func(ctx context.Context, n *model.Namespace) bool {
+		return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authcommon.ResourceEntry{
+			Type:     apisecurity.ResourceType_Namespaces,
+			ID:       n.Name,
+			Metadata: n.Metadata,
+		})
+	})
+
+	authCtx.SetRequestContext(ctx)
+	resp := svr.nextSvr.GetNamespaces(ctx, query)
+	for i := range resp.Namespaces {
+		item := resp.Namespaces[i]
+		authCtx.SetAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
+			apisecurity.ResourceType_Namespaces: {
+				{
+					Type: apisecurity.ResourceType_Namespaces,
+					ID:   item.GetId().GetValue(),
+				},
+			},
+		})
+		authCtx.SetMethod([]authcommon.ServerFunctionName{
+			authcommon.UpdateNamespaces, authcommon.DeleteNamespaces, authcommon.DeleteNamespace,
+		})
+		// 如果检查不通过，设置 editable 为 false
+		if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+			item.Editable = utils.NewBoolValue(false)
+		}
+	}
+	return resp
+}
+
+// GetNamespaceToken 获取命名空间的token信息，暂时不走权限检查
+func (svr *Server) GetNamespaceToken(ctx context.Context, req *apimodel.Namespace) *apiservice.Response {
+	authCtx := svr.collectNamespaceAuthContext(
+		ctx, []*apimodel.Namespace{req}, authcommon.Read, authcommon.DescribeNamespaceToken)
+	_, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx)
+	if err != nil {
+		return api.NewResponse(authcommon.ConvertToErrCode(err))
+	}
+
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+	return svr.nextSvr.GetNamespaceToken(ctx, req)
 }
 
 // collectNamespaceAuthContext 对于命名空间的处理，收集所有的与鉴权的相关信息
@@ -103,158 +264,4 @@ func (svr *Server) queryNamespaceResource(
 	}
 	authLog.Debug("[Auth][Server] collect namespace access res", zap.Any("res", ret))
 	return ret
-}
-
-func convertToErrCode(err error) apimodel.Code {
-	if errors.Is(err, authcommon.ErrorTokenNotExist) {
-		return apimodel.Code_TokenNotExisted
-	}
-	if errors.Is(err, authcommon.ErrorTokenDisabled) {
-		return apimodel.Code_TokenDisabled
-	}
-	return apimodel.Code_NotAllowedAccess
-}
-
-// CreateNamespaceIfAbsent Create a single name space
-func (svr *Server) CreateNamespaceIfAbsent(ctx context.Context,
-	req *apimodel.Namespace) (string, *apiservice.Response) {
-	return svr.nextSvr.CreateNamespaceIfAbsent(ctx, req)
-}
-
-// CreateNamespace 创建命名空间，只需要要后置鉴权，将数据添加到资源策略中
-func (svr *Server) CreateNamespace(ctx context.Context, req *apimodel.Namespace) *apiservice.Response {
-	authCtx := svr.collectNamespaceAuthContext(
-		ctx, []*apimodel.Namespace{req}, authcommon.Create, authcommon.CreateNamespace)
-	// 验证 token 信息
-	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewResponse(convertToErrCode(err))
-	}
-
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
-	// 填充 ownerId 信息数据
-	if ownerId := utils.ParseOwnerID(ctx); len(ownerId) > 0 {
-		req.Owners = utils.NewStringValue(ownerId)
-	}
-
-	return svr.nextSvr.CreateNamespace(ctx, req)
-}
-
-// CreateNamespaces 创建命名空间，只需要要后置鉴权，将数据添加到资源策略中
-func (svr *Server) CreateNamespaces(
-	ctx context.Context, reqs []*apimodel.Namespace) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectNamespaceAuthContext(ctx, reqs, authcommon.Create, authcommon.CreateNamespaces)
-
-	// 验证 token 信息
-	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchWriteResponse(convertToErrCode(err))
-	}
-
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
-	// 填充 ownerId 信息数据
-	ownerId := utils.ParseOwnerID(ctx)
-	if len(ownerId) > 0 {
-		for index := range reqs {
-			req := reqs[index]
-			req.Owners = utils.NewStringValue(ownerId)
-		}
-	}
-
-	return svr.nextSvr.CreateNamespaces(ctx, reqs)
-}
-
-// DeleteNamespace 删除命名空间，需要先走权限检查
-func (svr *Server) DeleteNamespace(ctx context.Context, req *apimodel.Namespace) *apiservice.Response {
-	authCtx := svr.collectNamespaceAuthContext(
-		ctx, []*apimodel.Namespace{req}, authcommon.Delete, authcommon.DeleteNamespace)
-	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewResponse(convertToErrCode(err))
-	}
-
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
-	return svr.nextSvr.DeleteNamespace(ctx, req)
-}
-
-// DeleteNamespaces 删除命名空间，需要先走权限检查
-func (svr *Server) DeleteNamespaces(
-	ctx context.Context, reqs []*apimodel.Namespace) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectNamespaceAuthContext(ctx, reqs, authcommon.Delete, authcommon.DeleteNamespaces)
-	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchWriteResponse(convertToErrCode(err))
-	}
-
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
-	return svr.nextSvr.DeleteNamespaces(ctx, reqs)
-}
-
-// UpdateNamespaces 更新命名空间，需要先走权限检查
-func (svr *Server) UpdateNamespaces(
-	ctx context.Context, req []*apimodel.Namespace) *apiservice.BatchWriteResponse {
-	authCtx := svr.collectNamespaceAuthContext(ctx, req, authcommon.Modify, authcommon.UpdateNamespaces)
-	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchWriteResponse(convertToErrCode(err))
-	}
-
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
-	return svr.nextSvr.UpdateNamespaces(ctx, req)
-}
-
-// UpdateNamespaceToken 更新命名空间的token信息，需要先走权限检查
-func (svr *Server) UpdateNamespaceToken(ctx context.Context, req *apimodel.Namespace) *apiservice.Response {
-	authCtx := svr.collectNamespaceAuthContext(
-		ctx, []*apimodel.Namespace{req}, authcommon.Modify, authcommon.UpdateNamespaceToken)
-	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewResponse(convertToErrCode(err))
-	}
-
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
-	return svr.nextSvr.UpdateNamespaceToken(ctx, req)
-}
-
-// GetNamespaces 获取命名空间列表信息，暂时不走权限检查
-func (svr *Server) GetNamespaces(
-	ctx context.Context, query map[string][]string) *apiservice.BatchQueryResponse {
-	authCtx := svr.collectNamespaceAuthContext(ctx, nil, authcommon.Read, authcommon.DescribeNamespaces)
-	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewBatchQueryResponse(convertToErrCode(err))
-	}
-
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
-	ctx = cachetypes.AppendNamespacePredicate(ctx, func(ctx context.Context, n *model.Namespace) bool {
-		return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authcommon.ResourceEntry{
-			Type:     apisecurity.ResourceType_Users,
-			ID:       n.Name,
-			Metadata: n.Metadata,
-		})
-	})
-
-	authCtx.SetRequestContext(ctx)
-	return svr.nextSvr.GetNamespaces(ctx, query)
-}
-
-// GetNamespaceToken 获取命名空间的token信息，暂时不走权限检查
-func (svr *Server) GetNamespaceToken(ctx context.Context, req *apimodel.Namespace) *apiservice.Response {
-	authCtx := svr.collectNamespaceAuthContext(
-		ctx, []*apimodel.Namespace{req}, authcommon.Read, authcommon.DescribeNamespaceToken)
-	_, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx)
-	if err != nil {
-		return api.NewResponse(convertToErrCode(err))
-	}
-
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-	return svr.nextSvr.GetNamespaceToken(ctx, req)
 }

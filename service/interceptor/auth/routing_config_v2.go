@@ -102,6 +102,5 @@ func (svr *Server) QueryRoutingConfigsV2(ctx context.Context,
 		})
 	})
 	authCtx.SetRequestContext(ctx)
-
 	return svr.nextSvr.QueryRoutingConfigsV2(ctx, query)
 }

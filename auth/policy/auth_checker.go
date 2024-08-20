@@ -135,7 +135,7 @@ func (d *DefaultAuthChecker) CheckPermission(authCtx *authcommon.AcquireContext)
 		return false, err
 	}
 	log.Info("[Auth][Checker] check permission args", utils.RequestID(authCtx.GetRequestContext()),
-		zap.String("method", string(authCtx.GetMethod())), zap.Any("resources", authCtx.GetAccessResources()))
+		zap.Any("method", authCtx.GetMethods()), zap.Any("resources", authCtx.GetAccessResources()))
 
 	if pass, _ := d.doCheckPermission(authCtx); pass {
 		return true, nil
@@ -245,18 +245,24 @@ func (d *DefaultAuthChecker) MatchCalleeFunctions(authCtx *authcommon.AcquireCon
 	}
 
 	functions := policy.CalleeMethods
-	for i := range functions {
-		if functions[i] == string(authCtx.GetMethod()) {
-			return true
-		}
-		if utils.IsMatchAll(functions[i]) {
-			return true
-		}
-		if utils.IsWildMatch(string(authCtx.GetMethod()), functions[i]) {
-			return true
+
+	allMatch := len(authCtx.GetMethods()) == 0
+	for _, method := range authCtx.GetMethods() {
+		for i := range functions {
+			if utils.IsMatchAll(functions[i]) {
+				return true
+			}
+			if functions[i] != string(method) {
+				allMatch = false
+				break
+			}
+			if !utils.IsWildMatch(string(method), functions[i]) {
+				allMatch = false
+				break
+			}
 		}
 	}
-	return false
+	return allMatch
 }
 
 type (
@@ -319,7 +325,7 @@ func (d *DefaultAuthChecker) MatchResourceOperateable(authCtx *authcommon.Acquir
 // MatchResourceConditions 检查操作资源所拥有的标签是否和策略匹配
 func (d *DefaultAuthChecker) MatchResourceConditions(authCtx *authcommon.AcquireContext,
 	principal authcommon.Principal, policy *authcommon.StrategyDetail) bool {
-	matchCheck := func(resType apisecurity.ResourceType, resources []authcommon.ResourceEntry) bool {
+	matchCheck := func(_ apisecurity.ResourceType, resources []authcommon.ResourceEntry) bool {
 		conditions := policy.Conditions
 		for i := range resources {
 			allMatch := true
@@ -330,7 +336,7 @@ func (d *DefaultAuthChecker) MatchResourceConditions(authCtx *authcommon.Acquire
 					allMatch = false
 					break
 				}
-				compareFunc, ok := conditionCompareDict[condition.CompareFunc]
+				compareFunc, ok := authcommon.ConditionCompareDict[condition.CompareFunc]
 				if !ok {
 					allMatch = false
 					break
@@ -355,11 +361,3 @@ func (d *DefaultAuthChecker) MatchResourceConditions(authCtx *authcommon.Acquire
 	}
 	return isMatch
 }
-
-var (
-	conditionCompareDict = map[string]func(string, string) bool{
-		"for_any_value:string_equal": func(s1, s2 string) bool {
-			return s1 == s2
-		},
-	}
-)

@@ -38,7 +38,7 @@ type AcquireContext struct {
 	// Module 来自那个业务层（服务注册与服务治理、配置模块）
 	module BzModule
 	// Method 操作函数
-	method ServerFunctionName
+	methods []ServerFunctionName
 	// Operation 本次操作涉及的动作
 	operation ResourceOperation
 	// Resources 本次
@@ -98,7 +98,7 @@ func WithModule(module BzModule) acquireContextOption {
 // WithMethod 本次操作函数名称
 func WithMethod(method ServerFunctionName) acquireContextOption {
 	return func(authCtx *AcquireContext) {
-		authCtx.method = method
+		authCtx.methods = []ServerFunctionName{method}
 	}
 }
 
@@ -180,6 +180,11 @@ func (authCtx *AcquireContext) GetOperation() ResourceOperation {
 	return authCtx.operation
 }
 
+// SetOperation 设置本次操作的类型
+func (authCtx *AcquireContext) SetOperation(op ResourceOperation) {
+	authCtx.operation = op
+}
+
 // GetAccessResources 获取本次请求的资源
 //
 //	@receiver authCtx
@@ -204,6 +209,11 @@ func (authCtx *AcquireContext) SetAccessResources(accessRes map[apisecurity.Reso
 	authCtx.accessResources = copyM
 }
 
+// SetMethod 设置本次请求涉及的操作函数
+func (authCtx *AcquireContext) SetMethod(methods []ServerFunctionName) {
+	authCtx.methods = methods
+}
+
 // GetAttachments 获取本次请求的额外携带信息
 func (authCtx *AcquireContext) GetAttachments() map[string]interface{} {
 	return authCtx.attachment
@@ -221,8 +231,8 @@ func (authCtx *AcquireContext) SetAttachment(key string, val interface{}) {
 }
 
 // GetMethod 获取本次请求涉及的操作函数
-func (authCtx *AcquireContext) GetMethod() ServerFunctionName {
-	return authCtx.method
+func (authCtx *AcquireContext) GetMethods() []ServerFunctionName {
+	return authCtx.methods
 }
 
 // SetFromClient 本次请求来自客户端

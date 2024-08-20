@@ -28,14 +28,14 @@ import (
 )
 
 // GetConfigFileReleaseHistory 获取配置文件发布历史记录
-func (s *ServerAuthability) GetConfigFileReleaseHistories(ctx context.Context,
+func (s *Server) GetConfigFileReleaseHistories(ctx context.Context,
 	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
-
 	authCtx := s.collectConfigFileReleaseHistoryAuthContext(ctx, nil, auth.Read, auth.DescribeConfigFileReleaseHistories)
 
 	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigBatchQueryResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
+		return api.NewConfigBatchQueryResponse(auth.ConvertToErrCode(err))
 	}
+
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return s.nextServer.GetConfigFileReleaseHistories(ctx, filter)

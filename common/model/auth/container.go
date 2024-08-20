@@ -24,15 +24,15 @@ import (
 
 // PrincipalResourceContainer principal 资源容器
 type PrincipalResourceContainer struct {
-	denyResources  *utils.SyncMap[apisecurity.ResourceType, *utils.RefSyncSet[string]]
-	allowResources *utils.SyncMap[apisecurity.ResourceType, *utils.RefSyncSet[string]]
+	denyResources  *utils.SyncMap[apisecurity.ResourceType, *utils.RefSyncSet[string, string]]
+	allowResources *utils.SyncMap[apisecurity.ResourceType, *utils.RefSyncSet[string, string]]
 }
 
 // NewPrincipalResourceContainer 创建 PrincipalResourceContainer 对象
 func NewPrincipalResourceContainer() *PrincipalResourceContainer {
 	return &PrincipalResourceContainer{
-		allowResources: utils.NewSyncMap[apisecurity.ResourceType, *utils.RefSyncSet[string]](),
-		denyResources:  utils.NewSyncMap[apisecurity.ResourceType, *utils.RefSyncSet[string]](),
+		allowResources: utils.NewSyncMap[apisecurity.ResourceType, *utils.RefSyncSet[string, string]](),
+		denyResources:  utils.NewSyncMap[apisecurity.ResourceType, *utils.RefSyncSet[string, string]](),
 	}
 }
 
@@ -59,46 +59,50 @@ func (p *PrincipalResourceContainer) Hint(rt apisecurity.ResourceType, resId str
 	return 0, false
 }
 
-// SaveAllowResource 保存允许的资源
-func (p *PrincipalResourceContainer) SaveAllowResource(r StrategyResource) {
-	p.saveResource(p.allowResources, r)
+// SaveResource 保存资源
+func (p *PrincipalResourceContainer) SaveResource(a apisecurity.AuthAction, r StrategyResource) {
+	if a == apisecurity.AuthAction_ALLOW {
+		p.saveResource(p.allowResources, r)
+	} else {
+		p.saveResource(p.denyResources, r)
+	}
 }
 
-// DelAllowResource 删除允许的资源
-func (p *PrincipalResourceContainer) DelAllowResource(r StrategyResource) {
-	p.delResource(p.allowResources, r)
-}
-
-// SaveDenyResource 保存拒绝的资源
-func (p *PrincipalResourceContainer) SaveDenyResource(r StrategyResource) {
-	p.saveResource(p.denyResources, r)
-}
-
-// DelDenyResource 删除拒绝的资源
-func (p *PrincipalResourceContainer) DelDenyResource(r StrategyResource) {
-	p.delResource(p.denyResources, r)
+// DelResource 删除资源
+func (p *PrincipalResourceContainer) DelResource(a apisecurity.AuthAction, r StrategyResource) {
+	if a == apisecurity.AuthAction_ALLOW {
+		p.delResource(p.allowResources, r)
+	} else {
+		p.delResource(p.denyResources, r)
+	}
 }
 
 func (p *PrincipalResourceContainer) saveResource(
-	container *utils.SyncMap[apisecurity.ResourceType, *utils.RefSyncSet[string]], res StrategyResource) {
+	container *utils.SyncMap[apisecurity.ResourceType, *utils.RefSyncSet[string, string]], res StrategyResource) {
 
 	resType := apisecurity.ResourceType(res.ResType)
-	container.ComputeIfAbsent(resType, func(k apisecurity.ResourceType) *utils.RefSyncSet[string] {
-		return utils.NewRefSyncSet[string]()
+	container.ComputeIfAbsent(resType, func(k apisecurity.ResourceType) *utils.RefSyncSet[string, string] {
+		return utils.NewRefSyncSet[string, string]()
 	})
 
 	ids, _ := container.Load(resType)
-	ids.Add(res.ResID)
+	ids.Add(utils.Reference[string, string]{
+		Key:        res.ResID,
+		Referencer: res.StrategyID,
+	})
 }
 
 func (p *PrincipalResourceContainer) delResource(
-	container *utils.SyncMap[apisecurity.ResourceType, *utils.RefSyncSet[string]], r StrategyResource) {
+	container *utils.SyncMap[apisecurity.ResourceType, *utils.RefSyncSet[string, string]], res StrategyResource) {
 
-	resType := apisecurity.ResourceType(r.ResType)
-	container.ComputeIfAbsent(resType, func(k apisecurity.ResourceType) *utils.RefSyncSet[string] {
-		return utils.NewRefSyncSet[string]()
+	resType := apisecurity.ResourceType(res.ResType)
+	container.ComputeIfAbsent(resType, func(k apisecurity.ResourceType) *utils.RefSyncSet[string, string] {
+		return utils.NewRefSyncSet[string, string]()
 	})
 
 	ids, _ := container.Load(resType)
-	ids.Remove(r.ResID)
+	ids.Remove(utils.Reference[string, string]{
+		Key:        res.ResID,
+		Referencer: res.StrategyID,
+	})
 }

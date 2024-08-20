@@ -19,9 +19,12 @@ package config_auth
 
 import (
 	"context"
+	"strconv"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/model/auth"
@@ -29,14 +32,14 @@ import (
 )
 
 // CreateConfigFileGroup 创建配置文件组
-func (s *ServerAuthability) CreateConfigFileGroup(ctx context.Context,
+func (s *Server) CreateConfigFileGroup(ctx context.Context,
 	configFileGroup *apiconfig.ConfigFileGroup) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*apiconfig.ConfigFileGroup{configFileGroup},
 		auth.Create, auth.CreateConfigFileGroup)
 
 	// 验证 token 信息
 	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
+		return api.NewConfigResponse(auth.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -46,9 +49,8 @@ func (s *ServerAuthability) CreateConfigFileGroup(ctx context.Context,
 }
 
 // QueryConfigFileGroups 查询配置文件组
-func (s *ServerAuthability) QueryConfigFileGroups(ctx context.Context,
+func (s *Server) QueryConfigFileGroups(ctx context.Context,
 	filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
-
 	authCtx := s.collectConfigGroupAuthContext(ctx, nil, auth.Read, auth.DescribeConfigFileGroups)
 
 	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
@@ -58,11 +60,20 @@ func (s *ServerAuthability) QueryConfigFileGroups(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
+	ctx = cachetypes.AppendConfigGroupPredicate(ctx, func(ctx context.Context, cfg *model.ConfigFileGroup) bool {
+		return s.policyMgr.GetAuthChecker().ResourcePredicate(authCtx, &auth.ResourceEntry{
+			Type:     apisecurity.ResourceType_ConfigGroups,
+			ID:       strconv.FormatUint(cfg.Id, 10),
+			Metadata: cfg.Metadata,
+		})
+	})
+	authCtx.SetRequestContext(ctx)
+
 	resp := s.nextServer.QueryConfigFileGroups(ctx, filter)
 	if len(resp.ConfigFileGroups) != 0 {
 		for index := range resp.ConfigFileGroups {
 			group := resp.ConfigFileGroups[index]
-			editable := true
+			editable := group.GetEditable().GetValue()
 			// 如果包含特殊标签，也不允许修改
 			if _, ok := group.GetMetadata()[model.MetaKey3RdPlatform]; ok {
 				editable = false
@@ -74,13 +85,13 @@ func (s *ServerAuthability) QueryConfigFileGroups(ctx context.Context,
 }
 
 // DeleteConfigFileGroup 删除配置文件组
-func (s *ServerAuthability) DeleteConfigFileGroup(
+func (s *Server) DeleteConfigFileGroup(
 	ctx context.Context, namespace, name string) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*apiconfig.ConfigFileGroup{{Name: utils.NewStringValue(name),
 		Namespace: utils.NewStringValue(namespace)}}, auth.Delete, auth.DeleteConfigFileGroup)
 
 	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
+		return api.NewConfigResponse(auth.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -90,13 +101,13 @@ func (s *ServerAuthability) DeleteConfigFileGroup(
 }
 
 // UpdateConfigFileGroup 更新配置文件组
-func (s *ServerAuthability) UpdateConfigFileGroup(ctx context.Context,
+func (s *Server) UpdateConfigFileGroup(ctx context.Context,
 	configFileGroup *apiconfig.ConfigFileGroup) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigGroupAuthContext(ctx, []*apiconfig.ConfigFileGroup{configFileGroup},
 		auth.Modify, auth.UpdateConfigFileGroup)
 
 	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
+		return api.NewConfigResponse(auth.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()

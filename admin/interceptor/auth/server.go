@@ -19,9 +19,7 @@ package auth
 
 import (
 	"context"
-	"errors"
 
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
@@ -62,18 +60,6 @@ func (svr *Server) collectMaintainAuthContext(ctx context.Context, resourceOp au
 		authcommon.WithModule(authcommon.MaintainModule),
 		authcommon.WithMethod(methodName),
 	)
-}
-
-func convertToErrCode(err error) apimodel.Code {
-	if errors.Is(err, authcommon.ErrorTokenNotExist) {
-		return apimodel.Code_TokenNotExisted
-	}
-
-	if errors.Is(err, authcommon.ErrorTokenDisabled) {
-		return apimodel.Code_TokenDisabled
-	}
-
-	return apimodel.Code_NotAllowedAccess
 }
 
 func (s *Server) HasMainUser(ctx context.Context) (bool, error) {
@@ -135,7 +121,7 @@ func (svr *Server) FreeOSMemory(ctx context.Context) error {
 func (svr *Server) CleanInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Delete, authcommon.CleanInstance)
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewResponseWithMsg(convertToErrCode(err), err.Error())
+		return api.NewResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -156,7 +142,7 @@ func (svr *Server) BatchCleanInstances(ctx context.Context, batchSize uint32) (u
 func (svr *Server) GetLastHeartbeat(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	authCtx := svr.collectMaintainAuthContext(ctx, authcommon.Read, authcommon.DescribeInstanceLastHeartbeat)
 	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewResponseWithMsg(convertToErrCode(err), err.Error())
+		return api.NewResponse(authcommon.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()

@@ -518,6 +518,10 @@ func (svr *Server) updateAuthStrategyAttribute(ctx context.Context, strategy *ap
 		needUpdate = true
 		ret.Metadata = strategy.Metadata
 	}
+	if strategy.Action != saved.GetAction() {
+		needUpdate = true
+		ret.Action = strategy.GetAction().String()
+	}
 	if strategy.ResourceLabels != nil {
 		needUpdate = true
 		ret.Conditions = func() []authcommon.Condition {
