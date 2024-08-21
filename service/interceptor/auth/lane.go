@@ -29,6 +29,8 @@ import (
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // CreateLaneGroups 批量创建泳道组
@@ -83,7 +85,37 @@ func (svr *Server) GetLaneGroups(ctx context.Context, filter map[string]string) 
 	})
 	authCtx.SetRequestContext(ctx)
 
-	return svr.nextSvr.GetLaneGroups(ctx, filter)
+	resp := svr.nextSvr.GetLaneGroups(ctx, filter)
+
+	for index := range resp.Data {
+		item := &apitraffic.LaneGroup{}
+		_ = anypb.UnmarshalTo(resp.Data[index], item, proto.UnmarshalOptions{})
+		authCtx.SetAccessResources(map[security.ResourceType][]authcommon.ResourceEntry{
+			security.ResourceType_LaneRules: {
+				{
+					Type:     apisecurity.ResourceType_LaneRules,
+					ID:       item.GetId(),
+					Metadata: item.Metadata,
+				},
+			},
+		})
+
+		// 检查 write 操作权限
+		authCtx.SetMethod([]authcommon.ServerFunctionName{authcommon.UpdateLaneGroups, authcommon.EnableLaneGroups})
+		// 如果检查不通过，设置 editable 为 false
+		if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+			item.Editable = false
+		}
+
+		// 检查 delete 操作权限
+		authCtx.SetMethod([]authcommon.ServerFunctionName{authcommon.DeleteLaneGroups})
+		// 如果检查不通过，设置 editable 为 false
+		if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+			item.Deleteable = false
+		}
+		_ = anypb.MarshalFrom(resp.Data[index], item, proto.MarshalOptions{})
+	}
+	return resp
 }
 
 // collectLaneRuleAuthContext 收集全链路灰度规则

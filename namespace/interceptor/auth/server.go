@@ -192,17 +192,25 @@ func (svr *Server) GetNamespaces(
 		authCtx.SetAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 			apisecurity.ResourceType_Namespaces: {
 				{
-					Type: apisecurity.ResourceType_Namespaces,
-					ID:   item.GetId().GetValue(),
+					Type:     apisecurity.ResourceType_Namespaces,
+					ID:       item.GetId().GetValue(),
+					Metadata: item.GetMetadata(),
 				},
 			},
 		})
-		authCtx.SetMethod([]authcommon.ServerFunctionName{
-			authcommon.UpdateNamespaces, authcommon.DeleteNamespaces, authcommon.DeleteNamespace,
-		})
+
+		// 检查 write 操作权限
+		authCtx.SetMethod([]authcommon.ServerFunctionName{authcommon.UpdateNamespaces})
 		// 如果检查不通过，设置 editable 为 false
 		if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 			item.Editable = utils.NewBoolValue(false)
+		}
+
+		// 检查 delete 操作权限
+		authCtx.SetMethod([]authcommon.ServerFunctionName{authcommon.DeleteNamespace, authcommon.DeleteNamespaces})
+		// 如果检查不通过，设置 editable 为 false
+		if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+			item.Deleteable = utils.NewBoolValue(false)
 		}
 	}
 	return resp

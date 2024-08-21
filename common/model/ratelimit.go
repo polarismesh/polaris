@@ -42,6 +42,7 @@ type RateLimit struct {
 	CreateTime time.Time
 	ModifyTime time.Time
 	EnableTime time.Time
+	Metadata   map[string]string
 }
 
 func (r *RateLimit) CopyNoProto() *RateLimit {

@@ -19,7 +19,6 @@ package namespace
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/golang/protobuf/jsonpb"
@@ -95,8 +94,6 @@ func (s *Server) CreateNamespaceIfAbsent(ctx context.Context, req *apimodel.Name
 
 // CreateNamespace 创建单个命名空间
 func (s *Server) CreateNamespace(ctx context.Context, req *apimodel.Namespace) *apiservice.Response {
-	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
-
 	// 参数检查
 	if checkError := checkCreateNamespace(req); checkError != nil {
 		return checkError
@@ -107,7 +104,7 @@ func (s *Server) CreateNamespace(ctx context.Context, req *apimodel.Namespace) *
 	// 检查是否存在
 	namespace, err := s.storage.GetNamespace(namespaceName)
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewNamespaceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if namespace != nil {
@@ -119,7 +116,7 @@ func (s *Server) CreateNamespace(ctx context.Context, req *apimodel.Namespace) *
 
 	// 存储层操作
 	if err := s.storage.AddNamespace(data); err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewNamespaceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 
@@ -144,6 +141,7 @@ func (s *Server) createNamespaceModel(req *apimodel.Namespace) *model.Namespace 
 		Owner:           req.GetOwners().GetValue(),
 		Token:           utils.NewUUID(),
 		ServiceExportTo: model.ExportToMap(req.GetServiceExportTo()),
+		Metadata:        req.GetMetadata(),
 	}
 	return namespace
 }
@@ -165,8 +163,6 @@ func (s *Server) DeleteNamespaces(ctx context.Context, req []*apimodel.Namespace
 
 // DeleteNamespace 删除单个命名空间
 func (s *Server) DeleteNamespace(ctx context.Context, req *apimodel.Namespace) *apiservice.Response {
-	requestID, _ := ctx.Value(utils.StringContext("request-id")).(string)
-
 	// 参数检查
 	if checkError := checkReviseNamespace(ctx, req); checkError != nil {
 		return checkError
@@ -174,7 +170,7 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *apimodel.Namespace) *
 
 	tx, err := s.storage.CreateTransaction()
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewNamespaceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	defer func() { _ = tx.Commit() }()
@@ -182,47 +178,38 @@ func (s *Server) DeleteNamespace(ctx context.Context, req *apimodel.Namespace) *
 	// 检查是否存在
 	namespace, err := tx.LockNamespace(req.GetName().GetValue())
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewNamespaceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if namespace == nil {
 		return api.NewNamespaceResponse(apimodel.Code_ExecuteSuccess, req)
 	}
 
-	// // 鉴权
-	// if ok := s.authority.VerifyNamespace(namespace.Token, parseNamespaceToken(ctx, req)); !ok {
-	// 	return api.NewNamespaceResponse(api.Unauthorized, req)
-	// }
-
 	// 判断属于该命名空间的服务是否都已经被删除
 	total, err := s.getServicesCountWithNamespace(namespace.Name)
 	if err != nil {
-		log.Error("get services count with namespace err",
-			utils.ZapRequestID(requestID),
-			zap.String("err", err.Error()))
+		log.Error("get services count with namespace err", utils.RequestID(ctx), zap.Error(err))
 		return api.NewNamespaceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if total != 0 {
-		log.Error("the removed namespace has remain services", utils.ZapRequestID(requestID))
+		log.Error("the removed namespace has remain services", utils.RequestID(ctx))
 		return api.NewNamespaceResponse(apimodel.Code_NamespaceExistedServices, req)
 	}
 
 	// 判断属于该命名空间的服务是否都已经被删除
 	total, err = s.getConfigGroupCountWithNamespace(namespace.Name)
 	if err != nil {
-		log.Error("get config group count with namespace err",
-			utils.ZapRequestID(requestID),
-			zap.String("err", err.Error()))
+		log.Error("get config group count with namespace err", utils.RequestID(ctx), zap.Error(err))
 		return api.NewNamespaceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if total != 0 {
-		log.Error("the removed namespace has remain config-group", utils.ZapRequestID(requestID))
+		log.Error("the removed namespace has remain config-group", utils.RequestID(ctx))
 		return api.NewNamespaceResponse(apimodel.Code_NamespaceExistedConfigGroups, req)
 	}
 
 	// 存储层操作
 	if err := tx.DeleteNamespace(namespace.Name); err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewNamespaceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 
@@ -263,19 +250,16 @@ func (s *Server) UpdateNamespace(ctx context.Context, req *apimodel.Namespace) *
 	if resp != nil {
 		return resp
 	}
-
-	rid := utils.ParseRequestID(ctx)
 	// 修改
 	s.updateNamespaceAttribute(req, namespace)
 
 	// 存储层操作
 	if err := s.storage.UpdateNamespace(namespace); err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(rid))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewNamespaceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 
-	msg := fmt.Sprintf("update namespace: name=%s", namespace.Name)
-	log.Info(msg, utils.ZapRequestID(rid))
+	log.Info("update namespace", zap.String("name", namespace.Name), utils.RequestID(ctx))
 	s.RecordHistory(namespaceRecordEntry(ctx, req, model.OUpdate))
 
 	if err := s.afterNamespaceResource(ctx, req, namespace, false); err != nil {
@@ -302,6 +286,7 @@ func (s *Server) updateNamespaceAttribute(req *apimodel.Namespace, namespace *mo
 		exportTo[req.GetServiceExportTo()[i].GetValue()] = struct{}{}
 	}
 
+	namespace.Metadata = req.GetMetadata()
 	namespace.ServiceExportTo = exportTo
 }
 
@@ -315,18 +300,16 @@ func (s *Server) UpdateNamespaceToken(ctx context.Context, req *apimodel.Namespa
 		return resp
 	}
 
-	rid := utils.ParseRequestID(ctx)
 	// 生成token
 	token := utils.NewUUID()
 
 	// 存储层操作
 	if err := s.storage.UpdateNamespaceToken(namespace.Name, token); err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(rid))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewNamespaceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 
-	msg := fmt.Sprintf("update namespace token: name=%s", namespace.Name)
-	log.Info(msg, utils.ZapRequestID(rid))
+	log.Info("update namespace token", zap.String("name", namespace.Name), utils.RequestID(ctx))
 	s.RecordHistory(namespaceRecordEntry(ctx, req, model.OUpdateToken))
 
 	out := &apimodel.Namespace{
@@ -371,6 +354,7 @@ func (s *Server) GetNamespaces(ctx context.Context, query map[string][]string) *
 			TotalHealthInstanceCount: utils.NewUInt32Value(nsCntInfo.InstanceCnt.HealthyInstanceCount),
 			ServiceExportTo:          namespace.ListServiceExportTo(),
 			Editable:                 utils.NewBoolValue(true),
+			Deleteable:               utils.NewBoolValue(true),
 		})
 		totalServiceCount += nsCntInfo.ServiceCount
 		totalInstanceCount += nsCntInfo.InstanceCnt.TotalInstanceCount
@@ -441,25 +425,18 @@ func (s *Server) loadNamespace(name string) (string, error) {
 // 检查namespace的权限，并且返回namespace
 func (s *Server) checkNamespaceAuthority(
 	ctx context.Context, req *apimodel.Namespace) (*model.Namespace, *apiservice.Response) {
-	rid := utils.ParseRequestID(ctx)
 	namespaceName := req.GetName().GetValue()
 	// namespaceToken := parseNamespaceToken(ctx, req)
 
 	// 检查是否存在
 	namespace, err := s.storage.GetNamespace(namespaceName)
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(rid))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return nil, api.NewNamespaceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if namespace == nil {
 		return nil, api.NewNamespaceResponse(apimodel.Code_NotFoundResource, req)
 	}
-
-	// 鉴权
-	// if ok := s.authority.VerifyNamespace(namespace.Token, namespaceToken); !ok {
-	// 	return nil, api.NewNamespaceResponse(api.Unauthorized, req)
-	// }
-
 	return namespace, nil
 }
 

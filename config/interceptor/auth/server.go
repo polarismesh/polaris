@@ -39,17 +39,17 @@ var _ config.ConfigCenterServer = (*Server)(nil)
 type Server struct {
 	cacheMgr   cachetypes.CacheManager
 	nextServer config.ConfigCenterServer
-	userMgn    auth.UserServer
-	policyMgr  auth.StrategyServer
+	userSvr    auth.UserServer
+	policySvr  auth.StrategyServer
 }
 
 func New(nextServer config.ConfigCenterServer, cacheMgr cachetypes.CacheManager,
-	userMgr auth.UserServer, strategyMgr auth.StrategyServer) config.ConfigCenterServer {
+	userSvr auth.UserServer, policySvr auth.StrategyServer) config.ConfigCenterServer {
 	proxy := &Server{
 		nextServer: nextServer,
 		cacheMgr:   cacheMgr,
-		userMgn:    userMgr,
-		policyMgr:  strategyMgr,
+		userSvr:    userSvr,
+		policySvr:  policySvr,
 	}
 	if val, ok := nextServer.(*config.Server); ok {
 		val.SetResourceHooks(proxy)

@@ -256,6 +256,12 @@ func (s *Server) QueryConfigFileGroups(ctx context.Context,
 			log.Error("[Config][Service] get config file count for group error.", utils.RequestID(ctx),
 				utils.ZapNamespace(ret[i].Namespace), utils.ZapGroup(ret[i].Name), zap.Error(err))
 		}
+
+		// 如果包含特殊标签，也不允许修改
+		if _, ok := item.GetMetadata()[model.MetaKey3RdPlatform]; ok {
+			item.Editable = utils.NewBoolValue(false)
+		}
+
 		item.FileCount = wrapperspb.UInt64(fileCount)
 		values = append(values, item)
 	}

@@ -423,7 +423,13 @@ func (svr *Server) ResetUserToken(ctx context.Context, req *apisecurity.User) *a
 // step 3. 兜底措施：如果开启了鉴权的非严格模式，则根据错误的类型，判断是否转为匿名用户进行访问
 //   - 如果是访问权限控制相关模块（用户、用户组、权限策略），不得转为匿名用户
 func (svr *Server) CheckCredential(authCtx *authcommon.AcquireContext) error {
+	// 如果已经存在了解析出的 token 信息，则直接返回
+	if _, ok := authCtx.GetAttachment(authcommon.TokenDetailInfoKey); ok {
+		return nil
+	}
+
 	checkErr := func() error {
+		//
 		authToken := utils.ParseAuthToken(authCtx.GetRequestContext())
 		operator, err := svr.decodeToken(authToken)
 		if err != nil {

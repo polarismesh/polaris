@@ -150,11 +150,11 @@ func (d *DefaultAuthChecker) CheckPermission(authCtx *authcommon.AcquireContext)
 
 func (d *DefaultAuthChecker) resyncData(authCtx *authcommon.AcquireContext) error {
 	if err := d.cacheMgr.AuthStrategy().Update(); err != nil {
-		log.Error("[Auth][Checker] force sync policy rule to cache failed", utils.RequestID(authCtx.GetRequestContext()), zap.Error(err))
+		log.Error("[Auth][Checker] force sync policy failed", utils.RequestID(authCtx.GetRequestContext()), zap.Error(err))
 		return err
 	}
 	if err := d.cacheMgr.Role().Update(); err != nil {
-		log.Error("[Auth][Checker] force sync role to cache failed", utils.RequestID(authCtx.GetRequestContext()), zap.Error(err))
+		log.Error("[Auth][Checker] force sync role failed", utils.RequestID(authCtx.GetRequestContext()), zap.Error(err))
 		return err
 	}
 	return nil
@@ -246,23 +246,27 @@ func (d *DefaultAuthChecker) MatchCalleeFunctions(authCtx *authcommon.AcquireCon
 
 	functions := policy.CalleeMethods
 
-	allMatch := len(authCtx.GetMethods()) == 0
+	allMatch := 0
 	for _, method := range authCtx.GetMethods() {
+		curMatch := false
 		for i := range functions {
 			if utils.IsMatchAll(functions[i]) {
 				return true
 			}
-			if functions[i] != string(method) {
-				allMatch = false
+			if functions[i] == string(method) {
+				curMatch = true
 				break
 			}
-			if !utils.IsWildMatch(string(method), functions[i]) {
-				allMatch = false
+			if utils.IsWildMatch(string(method), functions[i]) {
+				curMatch = true
 				break
 			}
 		}
+		if curMatch {
+			allMatch++
+		}
 	}
-	return allMatch
+	return allMatch == len(authCtx.GetMethods())
 }
 
 type (
@@ -271,7 +275,8 @@ type (
 
 var (
 	compatibleResource = map[apisecurity.ResourceType]compatibleChecker{
-		apisecurity.ResourceType_UserGroups: func(ctx context.Context, cacheSvr cachetypes.CacheManager, resource *authcommon.ResourceEntry) bool {
+		apisecurity.ResourceType_UserGroups: func(ctx context.Context, cacheSvr cachetypes.CacheManager,
+			resource *authcommon.ResourceEntry) bool {
 			saveVal := cacheSvr.User().GetGroup(resource.ID)
 			if saveVal == nil {
 				return false
@@ -280,7 +285,8 @@ var (
 			_, exist := saveVal.UserIds[operator]
 			return exist
 		},
-		apisecurity.ResourceType_PolicyRules: func(ctx context.Context, cacheSvr cachetypes.CacheManager, resource *authcommon.ResourceEntry) bool {
+		apisecurity.ResourceType_PolicyRules: func(ctx context.Context, cacheSvr cachetypes.CacheManager,
+			resource *authcommon.ResourceEntry) bool {
 			saveVal := cacheSvr.AuthStrategy().GetPolicyRule(resource.ID)
 			if saveVal == nil {
 				return false

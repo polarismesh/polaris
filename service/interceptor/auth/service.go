@@ -149,6 +149,7 @@ func (svr *Server) GetServices(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
+	// 注入查询条件拦截器
 	ctx = cachetypes.AppendServicePredicate(ctx, func(ctx context.Context, cbr *model.Service) bool {
 		return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authcommon.ResourceEntry{
 			Type:     security.ResourceType_Services,
@@ -158,13 +159,31 @@ func (svr *Server) GetServices(
 	})
 	authCtx.SetRequestContext(ctx)
 
-	// 注入查询条件拦截器
-
 	resp := svr.nextSvr.GetServices(ctx, query)
-	if len(resp.Services) != 0 {
-		for index := range resp.Services {
-			svc := resp.Services[index]
-			svc.Editable = utils.NewBoolValue(true)
+	for index := range resp.Services {
+		item := resp.Services[index]
+		authCtx.SetAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
+			apisecurity.ResourceType_Services: {
+				{
+					Type:     apisecurity.ResourceType_Services,
+					ID:       item.GetId().GetValue(),
+					Metadata: item.Metadata,
+				},
+			},
+		})
+
+		// 检查 write 操作权限
+		authCtx.SetMethod([]authcommon.ServerFunctionName{authcommon.UpdateServices})
+		// 如果检查不通过，设置 editable 为 false
+		if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+			item.Editable = utils.NewBoolValue(false)
+		}
+
+		// 检查 delete 操作权限
+		authCtx.SetMethod([]authcommon.ServerFunctionName{authcommon.DeleteServices})
+		// 如果检查不通过，设置 editable 为 false
+		if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+			item.Deleteable = utils.NewBoolValue(false)
 		}
 	}
 	return resp

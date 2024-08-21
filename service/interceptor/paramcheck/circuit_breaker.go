@@ -182,11 +182,19 @@ func (svr *Server) DeleteCircuitBreakerRules(ctx context.Context,
 
 // EnableCircuitBreakerRules implements service.DiscoverServer.
 func (svr *Server) EnableCircuitBreakerRules(ctx context.Context,
-	request []*fault_tolerance.CircuitBreakerRule) *service_manage.BatchWriteResponse {
-	if err := checkBatchCircuitBreakerRules(request); err != nil {
+	reqs []*fault_tolerance.CircuitBreakerRule) *service_manage.BatchWriteResponse {
+	if err := checkBatchCircuitBreakerRules(reqs); err != nil {
 		return err
 	}
-	return svr.nextSvr.EnableCircuitBreakerRules(ctx, request)
+	batchRsp := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
+	for i := range reqs {
+		rsp := checkCircuitBreakerRuleParams(reqs[i], true, false)
+		api.Collect(batchRsp, rsp)
+	}
+	if !api.IsSuccess(batchRsp) {
+		return batchRsp
+	}
+	return svr.nextSvr.EnableCircuitBreakerRules(ctx, reqs)
 }
 
 // CreateCircuitBreakerRules implements service.DiscoverServer.

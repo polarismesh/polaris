@@ -33,7 +33,7 @@ func (s *Server) UpsertAndReleaseConfigFileFromClient(ctx context.Context,
 	req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigFilePublishAuthContext(ctx, []*apiconfig.ConfigFilePublishInfo{req},
 		auth.Modify, auth.PublishConfigFile)
-	if _, err := s.policyMgr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+	if _, err := s.policySvr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
 		return api.NewConfigFileResponse(auth.ConvertToErrCode(err), nil)
 	}
 
@@ -52,7 +52,7 @@ func (s *Server) CreateConfigFileFromClient(ctx context.Context,
 			Name:      fileInfo.Name,
 			Group:     fileInfo.Group},
 		}, auth.Create, auth.CreateConfigFile)
-	if _, err := s.policyMgr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+	if _, err := s.policySvr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
 		return api.NewConfigClientResponse(auth.ConvertToErrCode(err), nil)
 	}
 
@@ -67,7 +67,7 @@ func (s *Server) UpdateConfigFileFromClient(ctx context.Context,
 	fileInfo *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse {
 	authCtx := s.collectClientConfigFileAuthContext(ctx,
 		[]*apiconfig.ConfigFile{fileInfo}, auth.Modify, auth.UpdateConfigFile)
-	if _, err := s.policyMgr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+	if _, err := s.policySvr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
 		return api.NewConfigClientResponse(auth.ConvertToErrCode(err), nil)
 	}
 
@@ -83,7 +83,7 @@ func (s *Server) DeleteConfigFileFromClient(ctx context.Context,
 
 	authCtx := s.collectConfigFileAuthContext(ctx,
 		[]*apiconfig.ConfigFile{req}, auth.Delete, auth.DeleteConfigFile)
-	if _, err := s.policyMgr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+	if _, err := s.policySvr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
 		return api.NewConfigResponse(auth.ConvertToErrCode(err))
 	}
 
@@ -102,7 +102,7 @@ func (s *Server) PublishConfigFileFromClient(ctx context.Context,
 			Name:      fileInfo.FileName,
 			Group:     fileInfo.Group},
 		}, auth.Create, auth.PublishConfigFile)
-	if _, err := s.policyMgr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+	if _, err := s.policySvr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
 		return api.NewConfigClientResponse(auth.ConvertToErrCode(err), nil)
 	}
 
@@ -121,7 +121,7 @@ func (s *Server) GetConfigFileWithCache(ctx context.Context,
 			Name:      fileInfo.FileName,
 			Group:     fileInfo.Group},
 		}, auth.Read, auth.DiscoverConfigFile)
-	if _, err := s.policyMgr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+	if _, err := s.policySvr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
 		return api.NewConfigClientResponse(auth.ConvertToErrCode(err), nil)
 	}
 
@@ -134,7 +134,7 @@ func (s *Server) GetConfigFileWithCache(ctx context.Context,
 func (s *Server) LongPullWatchFile(ctx context.Context,
 	request *apiconfig.ClientWatchConfigFileRequest) (config.WatchCallback, error) {
 	authCtx := s.collectClientWatchConfigFiles(ctx, request, auth.Read, auth.WatchConfigFile)
-	if _, err := s.policyMgr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+	if _, err := s.policySvr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
 		return func() *apiconfig.ConfigClientResponse {
 			return api.NewConfigClientResponse(auth.ConvertToErrCode(err), nil)
 		}, nil
@@ -156,7 +156,7 @@ func (s *Server) GetConfigFileNamesWithCache(ctx context.Context,
 			Group:     req.GetConfigFileGroup().GetName(),
 		},
 	}, auth.Read, auth.DiscoverConfigFileNames)
-	if _, err := s.policyMgr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+	if _, err := s.policySvr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
 		out := api.NewConfigClientListResponse(auth.ConvertToErrCode(err))
 		return out
 	}
@@ -175,7 +175,7 @@ func (s *Server) GetConfigGroupsWithCache(ctx context.Context,
 			Namespace: req.GetNamespace(),
 		},
 	}, auth.Read, auth.DiscoverConfigGroups)
-	if _, err := s.policyMgr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+	if _, err := s.policySvr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
 		out := api.NewConfigDiscoverResponse(auth.ConvertToErrCode(err))
 		return out
 	}
@@ -191,7 +191,7 @@ func (s *Server) CasUpsertAndReleaseConfigFileFromClient(ctx context.Context,
 
 	authCtx := s.collectConfigFilePublishAuthContext(ctx, []*apiconfig.ConfigFilePublishInfo{req},
 		auth.Modify, auth.UpsertAndReleaseConfigFile)
-	if _, err := s.policyMgr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+	if _, err := s.policySvr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
 		return api.NewConfigFileResponse(auth.ConvertToErrCode(err), nil)
 	}
 

@@ -863,7 +863,7 @@ func (s *Server) instanceAuth(ctx context.Context, req *apiservice.Instance, ser
 	*model.Service, *apiservice.Response) {
 	service, err := s.storage.GetServiceByID(serviceID)
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(utils.ParseRequestID(ctx)))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return nil, api.NewInstanceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if service == nil {

@@ -21,8 +21,11 @@ import (
 	"context"
 
 	"github.com/polarismesh/specification/source/go/api/v1/security"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -102,5 +105,36 @@ func (svr *Server) QueryRoutingConfigsV2(ctx context.Context,
 		})
 	})
 	authCtx.SetRequestContext(ctx)
-	return svr.nextSvr.QueryRoutingConfigsV2(ctx, query)
+
+	resp := svr.nextSvr.QueryRoutingConfigsV2(ctx, query)
+
+	for index := range resp.Data {
+		item := &apitraffic.RouteRule{}
+		_ = anypb.UnmarshalTo(resp.Data[index], item, proto.UnmarshalOptions{})
+		authCtx.SetAccessResources(map[security.ResourceType][]authcommon.ResourceEntry{
+			security.ResourceType_RouteRules: {
+				{
+					Type:     apisecurity.ResourceType_RouteRules,
+					ID:       item.GetId(),
+					Metadata: item.Metadata,
+				},
+			},
+		})
+
+		// 检查 write 操作权限
+		authCtx.SetMethod([]authcommon.ServerFunctionName{authcommon.UpdateRouteRules, authcommon.EnableRouteRules})
+		// 如果检查不通过，设置 editable 为 false
+		if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+			item.Editable = false
+		}
+
+		// 检查 delete 操作权限
+		authCtx.SetMethod([]authcommon.ServerFunctionName{authcommon.DeleteRouteRules})
+		// 如果检查不通过，设置 editable 为 false
+		if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+			item.Deleteable = false
+		}
+		_ = anypb.MarshalFrom(resp.Data[index], item, proto.MarshalOptions{})
+	}
+	return resp
 }

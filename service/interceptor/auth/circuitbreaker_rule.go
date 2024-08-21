@@ -22,7 +22,10 @@ import (
 
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	"github.com/polarismesh/specification/source/go/api/v1/security"
+	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -104,5 +107,35 @@ func (svr *Server) GetCircuitBreakerRules(
 	})
 	authCtx.SetRequestContext(ctx)
 
-	return svr.nextSvr.GetCircuitBreakerRules(ctx, query)
+	resp := svr.nextSvr.GetCircuitBreakerRules(ctx, query)
+
+	for index := range resp.Data {
+		item := &apifault.CircuitBreakerRule{}
+		_ = anypb.UnmarshalTo(resp.Data[index], item, proto.UnmarshalOptions{})
+		authCtx.SetAccessResources(map[security.ResourceType][]authcommon.ResourceEntry{
+			security.ResourceType_CircuitBreakerRules: {
+				{
+					Type:     apisecurity.ResourceType_CircuitBreakerRules,
+					ID:       item.GetId(),
+					Metadata: item.Metadata,
+				},
+			},
+		})
+
+		// 检查 write 操作权限
+		authCtx.SetMethod([]authcommon.ServerFunctionName{authcommon.UpdateCircuitBreakerRules, authcommon.EnableCircuitBreakerRules})
+		// 如果检查不通过，设置 editable 为 false
+		if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+			item.Editable = false
+		}
+
+		// 检查 delete 操作权限
+		authCtx.SetMethod([]authcommon.ServerFunctionName{authcommon.DeleteCircuitBreakerRules})
+		// 如果检查不通过，设置 editable 为 false
+		if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+			item.Deleteable = false
+		}
+		_ = anypb.MarshalFrom(resp.Data[index], item, proto.MarshalOptions{})
+	}
+	return resp
 }

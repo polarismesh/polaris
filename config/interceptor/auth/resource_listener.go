@@ -69,5 +69,5 @@ func (s *Server) onConfigGroupResource(ctx context.Context, res *config.Resource
 	authCtx.SetAttachment(auth.LinkGroupsKey, utils.StringSliceDeDuplication(groups))
 	authCtx.SetAttachment(auth.RemoveLinkGroupsKey, utils.StringSliceDeDuplication(removeGroups))
 
-	return s.policyMgr.AfterResourceOperation(authCtx)
+	return s.policySvr.AfterResourceOperation(authCtx)
 }

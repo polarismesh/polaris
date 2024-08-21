@@ -100,11 +100,11 @@ func buildCircuitBreakerRule(index int) *apifault.CircuitBreakerRule {
 			SleepWindow:        60,
 		},
 		FaultDetectConfig: &apifault.FaultDetectConfig{Enable: true},
-		FallbackConfig: &apimodel.FallbackConfig{
+		FallbackConfig: &apifault.FallbackConfig{
 			Enable: true,
-			Response: &apimodel.FallbackResponse{
+			Response: &apifault.FallbackResponse{
 				Code: 500,
-				Headers: []*apimodel.FallbackResponse_MessageHeader{
+				Headers: []*apifault.FallbackResponse_MessageHeader{
 					{
 						Key:   "x-redirect",
 						Value: "test.com",

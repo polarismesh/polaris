@@ -192,6 +192,8 @@ type RouterConfig struct {
 	ModifyTime time.Time `json:"mtime"`
 	// enabletime The last time the rules enabled
 	EnableTime time.Time `json:"etime"`
+	// Metadata.
+	Metadata map[string]string `json:"metadata"`
 }
 
 // GetRoutingPolicy Query routing rules type
@@ -307,6 +309,7 @@ func (r *RouterConfig) ParseRouteRuleFromAPI(routing *apitraffic.RouteRule) erro
 	r.Policy = routing.GetRoutingPolicy().String()
 	r.Priority = routing.Priority
 	r.Description = routing.Description
+	r.Metadata = routing.Metadata
 
 	// Priority range range [0, 10]
 	if r.Priority > 10 {

@@ -28,6 +28,7 @@ import (
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
@@ -82,36 +83,6 @@ func (s *Server) createCircuitBreakerRule(
 	return api.NewAnyDataResponse(apimodel.Code_ExecuteSuccess, request)
 }
 
-func checkCircuitBreakerRuleParams(
-	req *apifault.CircuitBreakerRule, idRequired bool, nameRequired bool) *apiservice.Response {
-	if req == nil {
-		return api.NewResponse(apimodel.Code_EmptyRequest)
-	}
-	if nameRequired && len(req.GetName()) == 0 {
-		return api.NewResponse(apimodel.Code_InvalidCircuitBreakerName)
-	}
-	if idRequired && len(req.GetId()) == 0 {
-		return api.NewResponse(apimodel.Code_InvalidCircuitBreakerID)
-	}
-	return nil
-}
-
-func circuitBreakerRuleRecordEntry(ctx context.Context, req *apifault.CircuitBreakerRule, md *model.CircuitBreakerRule,
-	opt model.OperationType) *model.RecordEntry {
-	marshaler := jsonpb.Marshaler{}
-	detail, _ := marshaler.MarshalToString(req)
-	entry := &model.RecordEntry{
-		ResourceType:  model.RCircuitBreakerRule,
-		ResourceName:  fmt.Sprintf("%s(%s)", md.Name, md.ID),
-		Namespace:     req.GetNamespace(),
-		OperationType: opt,
-		Operator:      utils.ParseOperator(ctx),
-		Detail:        detail,
-		HappenTime:    time.Now(),
-	}
-	return entry
-}
-
 // DeleteCircuitBreakerRules Delete current CircuitBreaker rules
 func (s *Server) DeleteCircuitBreakerRules(
 	ctx context.Context, request []*apifault.CircuitBreakerRule) *apiservice.BatchWriteResponse {
@@ -162,10 +133,6 @@ func (s *Server) EnableCircuitBreakerRules(
 
 func (s *Server) enableCircuitBreakerRule(
 	ctx context.Context, request *apifault.CircuitBreakerRule) *apiservice.Response {
-	requestID := utils.ParseRequestID(ctx)
-	if resp := checkCircuitBreakerRuleParams(request, true, false); resp != nil {
-		return resp
-	}
 	resp := s.checkCircuitBreakerRuleExists(ctx, request.GetId())
 	if resp != nil {
 		return resp
@@ -179,13 +146,13 @@ func (s *Server) enableCircuitBreakerRule(
 		Revision:  utils.NewUUID(),
 	}
 	if err := s.storage.EnableCircuitBreakerRule(cbRule); err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return storeError2AnyResponse(err, cbRuleId)
 	}
 
 	msg := fmt.Sprintf("enable circuitbreaker rule: id=%v, name=%v, namespace=%v",
 		request.GetId(), request.GetName(), request.GetNamespace())
-	log.Info(msg, utils.ZapRequestID(requestID))
+	log.Info(msg, utils.RequestID(ctx))
 
 	s.RecordHistory(ctx, circuitBreakerRuleRecordEntry(ctx, request, cbRule, model.OUpdate))
 	return api.NewAnyDataResponse(apimodel.Code_ExecuteSuccess, cbRuleId)
@@ -253,7 +220,7 @@ func (s *Server) GetCircuitBreakerRules(ctx context.Context, query map[string]st
 	offset, limit, _ := utils.ParseOffsetAndLimit(query)
 	total, cbRules, err := s.storage.GetCircuitBreakerRules(query, offset, limit)
 	if err != nil {
-		log.Errorf("get circuitbreaker rules store err: %s", err.Error())
+		log.Errorf("get circuitbreaker rules store", utils.RequestID(ctx), zap.Error(err))
 		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}
 	out := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
@@ -262,7 +229,7 @@ func (s *Server) GetCircuitBreakerRules(ctx context.Context, query map[string]st
 	for _, cbRule := range cbRules {
 		cbRuleProto, err := circuitBreakerRule2api(cbRule)
 		if nil != err {
-			log.Errorf("marshal circuitbreaker rule fail: %v", err)
+			log.Error("marshal circuitbreaker rule fail", utils.RequestID(ctx), zap.Error(err))
 			continue
 		}
 		if nil == cbRuleProto {
@@ -270,11 +237,27 @@ func (s *Server) GetCircuitBreakerRules(ctx context.Context, query map[string]st
 		}
 		err = api.AddAnyDataIntoBatchQuery(out, cbRuleProto)
 		if nil != err {
-			log.Errorf("add circuitbreaker rule as any data fail: %v", err)
+			log.Error("add circuitbreaker rule as any data fail", utils.RequestID(ctx), zap.Error(err))
 			continue
 		}
 	}
 	return out
+}
+
+func circuitBreakerRuleRecordEntry(ctx context.Context, req *apifault.CircuitBreakerRule, md *model.CircuitBreakerRule,
+	opt model.OperationType) *model.RecordEntry {
+	marshaler := jsonpb.Marshaler{}
+	detail, _ := marshaler.MarshalToString(req)
+	entry := &model.RecordEntry{
+		ResourceType:  model.RCircuitBreakerRule,
+		ResourceName:  fmt.Sprintf("%s(%s)", md.Name, md.ID),
+		Namespace:     req.GetNamespace(),
+		OperationType: opt,
+		Operator:      utils.ParseOperator(ctx),
+		Detail:        detail,
+		HappenTime:    time.Now(),
+	}
+	return entry
 }
 
 func marshalCircuitBreakerRuleV2(req *apifault.CircuitBreakerRule) (string, error) {

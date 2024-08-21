@@ -34,7 +34,7 @@ func (s *Server) PublishConfigFile(ctx context.Context,
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx,
 		[]*apiconfig.ConfigFileRelease{configFileRelease}, auth.Modify, "PublishConfigFile")
 
-	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigResponse(auth.ConvertToErrCode(err))
 	}
 
@@ -51,7 +51,7 @@ func (s *Server) GetConfigFileRelease(ctx context.Context,
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx,
 		[]*apiconfig.ConfigFileRelease{req}, auth.Read, auth.DescribeConfigFileRelease)
 
-	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigResponse(auth.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
@@ -65,7 +65,7 @@ func (s *Server) DeleteConfigFileReleases(ctx context.Context,
 
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx, reqs, auth.Delete, auth.DeleteConfigFileReleases)
 
-	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigBatchWriteResponse(auth.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
@@ -78,7 +78,7 @@ func (s *Server) GetConfigFileReleaseVersions(ctx context.Context,
 	filters map[string]string) *apiconfig.ConfigBatchQueryResponse {
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx, nil, auth.Read, auth.DescribeConfigFileReleaseVersions)
 
-	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigBatchQueryResponse(auth.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
@@ -92,7 +92,7 @@ func (s *Server) GetConfigFileReleases(ctx context.Context,
 
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx, nil, auth.Read, auth.DescribeConfigFileReleases)
 
-	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigBatchQueryResponse(auth.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
@@ -107,7 +107,7 @@ func (s *Server) RollbackConfigFileReleases(ctx context.Context,
 
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx, reqs, auth.Modify, auth.RollbackConfigFileReleases)
 
-	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigBatchWriteResponse(auth.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
@@ -120,7 +120,7 @@ func (s *Server) UpsertAndReleaseConfigFile(ctx context.Context,
 	req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigFilePublishAuthContext(ctx, []*apiconfig.ConfigFilePublishInfo{req},
 		auth.Modify, auth.UpsertAndReleaseConfigFile)
-	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigResponse(auth.ConvertToErrCode(err))
 	}
 
@@ -135,7 +135,7 @@ func (s *Server) StopGrayConfigFileReleases(ctx context.Context,
 
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx, reqs,
 		auth.Modify, auth.StopGrayConfigFileReleases)
-	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigBatchWriteResponse(auth.ConvertToErrCode(err))
 	}
 
