@@ -22,6 +22,7 @@ import (
 	"strconv"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	"github.com/polarismesh/specification/source/go/api/v1/security"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 
 	cachetypes "github.com/polarismesh/polaris/cache/api"
@@ -62,10 +63,23 @@ func (s *Server) QueryConfigFileGroups(ctx context.Context,
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	ctx = cachetypes.AppendConfigGroupPredicate(ctx, func(ctx context.Context, cfg *model.ConfigFileGroup) bool {
-		return s.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authcommon.ResourceEntry{
+		ok := s.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authcommon.ResourceEntry{
 			Type:     apisecurity.ResourceType_ConfigGroups,
 			ID:       strconv.FormatUint(cfg.Id, 10),
 			Metadata: cfg.Metadata,
+		})
+		if ok {
+			return true
+		}
+		saveNs := s.cacheMgr.Namespace().GetNamespace(cfg.Namespace)
+		if saveNs == nil {
+			return false
+		}
+		// 检查下是否可以访问对应的 namespace
+		return s.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authcommon.ResourceEntry{
+			Type:     security.ResourceType_Namespaces,
+			ID:       saveNs.Name,
+			Metadata: saveNs.Metadata,
 		})
 	})
 	authCtx.SetRequestContext(ctx)

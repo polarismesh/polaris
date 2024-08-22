@@ -592,6 +592,10 @@ func (s *Server) updateInstanceAttribute(
 }
 
 func instanceLocationNeedUpdate(req *apimodel.Location, old *apimodel.Location) bool {
+	// 如果没有带上，则不进行更新
+	if req == nil {
+		return false
+	}
 	if req.GetRegion().GetValue() != old.GetRegion().GetValue() {
 		return true
 	}

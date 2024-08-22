@@ -52,7 +52,6 @@ const (
 const (
 	CreateNamespace        ServerFunctionName = "CreateNamespace"
 	CreateNamespaces       ServerFunctionName = "CreateNamespaces"
-	DeleteNamespace        ServerFunctionName = "DeleteNamespace"
 	DeleteNamespaces       ServerFunctionName = "DeleteNamespaces"
 	UpdateNamespaces       ServerFunctionName = "UpdateNamespaces"
 	UpdateNamespaceToken   ServerFunctionName = "UpdateNamespaceToken"
@@ -263,23 +262,22 @@ var ServerFunctions = map[string][]ServerFunctionName{
 	"Namespace": []ServerFunctionName{
 		CreateNamespace,
 		CreateNamespaces,
-		DeleteNamespace,
 		DeleteNamespaces,
 		UpdateNamespaces,
-		UpdateNamespaceToken,
+		// UpdateNamespaceToken,
 		DescribeNamespaces,
-		DescribeNamespaceToken,
+		// DescribeNamespaceToken,
 	},
 	"Service": []ServerFunctionName{
 		CreateServices,
 		DeleteServices,
 		UpdateServices,
-		UpdateServiceToken,
+		// UpdateServiceToken,
 		DescribeAllServices,
 		DescribeServices,
 		DescribeServicesCount,
-		DescribeServiceToken,
-		DescribeServiceOwner,
+		// DescribeServiceToken,
+		// DescribeServiceOwner,
 		CreateServiceAlias,
 		DeleteServiceAliases,
 		UpdateServiceAlias,

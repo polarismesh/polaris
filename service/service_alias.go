@@ -253,6 +253,8 @@ func (s *Server) GetServiceAliases(ctx context.Context, query map[string]string)
 			Comment:        utils.NewStringValue(entry.Comment),
 			Ctime:          utils.NewStringValue(commontime.Time2String(entry.CreateTime)),
 			Mtime:          utils.NewStringValue(commontime.Time2String(entry.ModifyTime)),
+			Editable:       utils.NewBoolValue(true),
+			Deleteable:     utils.NewBoolValue(true),
 		}
 		resp.Aliases = append(resp.Aliases, item)
 	}

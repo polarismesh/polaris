@@ -110,20 +110,6 @@ func (svr *Server) CreateNamespaces(
 	return svr.nextSvr.CreateNamespaces(ctx, reqs)
 }
 
-// DeleteNamespace 删除命名空间，需要先走权限检查
-func (svr *Server) DeleteNamespace(ctx context.Context, req *apimodel.Namespace) *apiservice.Response {
-	authCtx := svr.collectNamespaceAuthContext(
-		ctx, []*apimodel.Namespace{req}, authcommon.Delete, authcommon.DeleteNamespace)
-	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewResponse(authcommon.ConvertToErrCode(err))
-	}
-
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
-	return svr.nextSvr.DeleteNamespace(ctx, req)
-}
-
 // DeleteNamespaces 删除命名空间，需要先走权限检查
 func (svr *Server) DeleteNamespaces(
 	ctx context.Context, reqs []*apimodel.Namespace) *apiservice.BatchWriteResponse {
@@ -207,7 +193,7 @@ func (svr *Server) GetNamespaces(
 		}
 
 		// 检查 delete 操作权限
-		authCtx.SetMethod([]authcommon.ServerFunctionName{authcommon.DeleteNamespace, authcommon.DeleteNamespaces})
+		authCtx.SetMethod([]authcommon.ServerFunctionName{authcommon.DeleteNamespaces})
 		// 如果检查不通过，设置 editable 为 false
 		if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 			item.Deleteable = utils.NewBoolValue(false)

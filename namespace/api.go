@@ -30,8 +30,6 @@ type NamespaceOperateServer interface {
 	CreateNamespace(ctx context.Context, req *apimodel.Namespace) *apiservice.Response
 	// CreateNamespaces Batch creation namespace
 	CreateNamespaces(ctx context.Context, req []*apimodel.Namespace) *apiservice.BatchWriteResponse
-	// DeleteNamespace Delete a single namespace
-	DeleteNamespace(ctx context.Context, req *apimodel.Namespace) *apiservice.Response
 	// DeleteNamespaces Batch delete namespace
 	DeleteNamespaces(ctx context.Context, req []*apimodel.Namespace) *apiservice.BatchWriteResponse
 	// UpdateNamespaces Batch update naming space

@@ -118,6 +118,7 @@ func (n *namespaceStore) UpdateNamespace(namespace *model.Namespace) error {
 	properties["Comment"] = namespace.Comment
 	properties["ModifyTime"] = time.Now()
 	properties["ServiceExportTo"] = utils.MustJson(namespace.ServiceExportTo)
+	properties["Metadata"] = namespace.Metadata
 	return n.handler.UpdateValue(tblNameNamespace, namespace.Name, properties)
 }
 
@@ -144,6 +145,9 @@ func (n *namespaceStore) GetNamespace(name string) (*model.Namespace, error) {
 		return nil, nil
 	}
 	ns := nsValue.(*Namespace)
+	if !ns.Valid {
+		return nil, nil
+	}
 	return n.toModel(ns), nil
 }
 
@@ -256,6 +260,9 @@ func (n *namespaceStore) toModel(data *Namespace) *model.Namespace {
 }
 
 func toModelNamespace(data *Namespace) *model.Namespace {
+	if !data.Valid {
+		return nil
+	}
 	export := make(map[string]struct{})
 	_ = json.Unmarshal([]byte(data.ServiceExportTo), &export)
 	return &model.Namespace{
@@ -267,6 +274,7 @@ func toModelNamespace(data *Namespace) *model.Namespace {
 		CreateTime:      data.CreateTime,
 		ModifyTime:      data.ModifyTime,
 		Valid:           data.Valid,
+		Metadata:        data.Metadata,
 	}
 }
 
@@ -280,6 +288,7 @@ func (n *namespaceStore) toStore(data *model.Namespace) *Namespace {
 		CreateTime:      data.CreateTime,
 		ModifyTime:      data.ModifyTime,
 		Valid:           data.Valid,
+		Metadata:        data.Metadata,
 	}
 }
 
@@ -294,4 +303,5 @@ type Namespace struct {
 	ServiceExportTo string
 	CreateTime      time.Time
 	ModifyTime      time.Time
+	Metadata        map[string]string
 }
