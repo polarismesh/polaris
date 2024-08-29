@@ -146,7 +146,7 @@ func (r *roleCache) dealPrincipalRoles(role *authcommon.Role, isDel bool) {
 	if isDel {
 		users := role.Users
 		for i := range users {
-			container, _ := r.principalRoles[authcommon.PrincipalUser].ComputeIfAbsent(users[i].SelfID(),
+			container, _ := r.principalRoles[authcommon.PrincipalUser].ComputeIfAbsent(users[i].PrincipalID,
 				func(k string) *utils.SyncSet[string] {
 					return utils.NewSyncSet[string]()
 				})
@@ -154,7 +154,7 @@ func (r *roleCache) dealPrincipalRoles(role *authcommon.Role, isDel bool) {
 		}
 		groups := role.UserGroups
 		for i := range groups {
-			container, _ := r.principalRoles[authcommon.PrincipalGroup].ComputeIfAbsent(groups[i].SelfID(),
+			container, _ := r.principalRoles[authcommon.PrincipalGroup].ComputeIfAbsent(groups[i].PrincipalID,
 				func(k string) *utils.SyncSet[string] {
 					return utils.NewSyncSet[string]()
 				})
@@ -164,7 +164,7 @@ func (r *roleCache) dealPrincipalRoles(role *authcommon.Role, isDel bool) {
 	}
 	users := role.Users
 	for i := range users {
-		container, _ := r.principalRoles[authcommon.PrincipalUser].ComputeIfAbsent(users[i].SelfID(),
+		container, _ := r.principalRoles[authcommon.PrincipalUser].ComputeIfAbsent(users[i].PrincipalID,
 			func(k string) *utils.SyncSet[string] {
 				return utils.NewSyncSet[string]()
 			})
@@ -172,7 +172,7 @@ func (r *roleCache) dealPrincipalRoles(role *authcommon.Role, isDel bool) {
 	}
 	groups := role.UserGroups
 	for i := range groups {
-		container, _ := r.principalRoles[authcommon.PrincipalGroup].ComputeIfAbsent(groups[i].SelfID(),
+		container, _ := r.principalRoles[authcommon.PrincipalGroup].ComputeIfAbsent(groups[i].PrincipalID,
 			func(k string) *utils.SyncSet[string] {
 				return utils.NewSyncSet[string]()
 			})

@@ -649,6 +649,7 @@ CREATE TABLE
         `strategy_id` VARCHAR(128) NOT NULL COMMENT 'Strategy ID',
         `principal_id` VARCHAR(128) NOT NULL COMMENT 'Principal ID',
         `principal_role` INT NOT NULL COMMENT 'PRINCIPAL type, 1 is User, 2 is Group, 3 is Role',
+        `extend_info` TEXT COMMENT 'link principal extend info',
         PRIMARY KEY (`strategy_id`, `principal_id`, `principal_role`)
     ) ENGINE = InnoDB;
 
@@ -688,6 +689,7 @@ CREATE TABLE
         `role_id` VARCHAR(128) NOT NULL COMMENT 'role id',
         `principal_id` VARCHAR(128) NOT NULL COMMENT 'principal id',
         `principal_role` INT NOT NULL COMMENT 'PRINCIPAL type, 1 is User, 2 is Group',
+        `extend_info` TEXT COMMENT 'link principal extend info',
         PRIMARY KEY (`role_id`, `principal_id`, `principal_role`)
     ) ENGINE = InnoDB;
 

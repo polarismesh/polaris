@@ -19,6 +19,7 @@ package sqldb
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -276,14 +277,14 @@ func (s *strategyStore) addPolicyPrincipals(tx *BaseTx, id string, principals []
 		return nil
 	}
 
-	savePrincipalSql := "INSERT IGNORE INTO auth_principal(strategy_id, principal_id, principal_role) VALUES "
+	savePrincipalSql := "INSERT IGNORE INTO auth_principal(strategy_id, principal_id, principal_role, extend_info) VALUES "
 	values := make([]string, 0)
 	args := make([]interface{}, 0)
 
 	for i := range principals {
 		principal := principals[i]
-		values = append(values, "(?,?,?)")
-		args = append(args, id, principal.PrincipalID, principal.PrincipalType)
+		values = append(values, "(?,?,?,?)")
+		args = append(args, id, principal.PrincipalID, principal.PrincipalType, utils.MustJson(principal.Extend))
 	}
 
 	savePrincipalSql += strings.Join(values, ",")
@@ -516,168 +517,6 @@ func (s *strategyStore) getStrategyDetail(row *sql.Row) (*authcommon.StrategyDet
 	return ret, nil
 }
 
-// GetStrategies 获取策略列表
-func (s *strategyStore) GetStrategies(filters map[string]string, offset uint32, limit uint32) (uint32,
-	[]*authcommon.StrategyDetail, error) {
-	showDetail := filters["show_detail"]
-	delete(filters, "show_detail")
-
-	filters["ag.flag"] = "0"
-
-	return s.listStrategies(filters, offset, limit, showDetail == "true")
-}
-
-// listStrategies
-func (s *strategyStore) listStrategies(filters map[string]string, offset uint32, limit uint32,
-	showDetail bool) (uint32, []*authcommon.StrategyDetail, error) {
-
-	querySql :=
-		`SELECT
-			 ag.id,
-			 ag.name,
-			 ag.action,
-			 ag.owner,
-			 ag.comment,
-			 ag.default,
-			 ag.revision,
-			 ag.flag,
-			 UNIX_TIMESTAMP(ag.ctime),
-			 UNIX_TIMESTAMP(ag.mtime)
-		   FROM
-			 (
-			   auth_strategy ag
-			   LEFT JOIN auth_strategy_resource ar ON ag.id = ar.strategy_id
-			 )
-			 LEFT JOIN auth_principal ap ON ag.id = ap.strategy_id `
-	countSql := `
-	 SELECT COUNT(DISTINCT ag.id)
-	 FROM
-	   (
-		 auth_strategy ag
-		 LEFT JOIN auth_strategy_resource ar ON ag.id = ar.strategy_id
-	   )
-	   LEFT JOIN auth_principal ap ON ag.id = ap.strategy_id
-	 `
-
-	return s.queryStrategies(s.master.Query, filters, RuleFilters, querySql, countSql,
-		offset, limit, showDetail)
-}
-
-// queryStrategies 通用的查询策略列表
-func (s *strategyStore) queryStrategies(
-	handler QueryHandler,
-	filters map[string]string, mapping map[string]string,
-	querySqlPrefix string, countSqlPrefix string,
-	offset uint32, limit uint32, showDetail bool) (uint32, []*authcommon.StrategyDetail, error) {
-	querySql := querySqlPrefix
-	countSql := countSqlPrefix
-
-	args := make([]interface{}, 0)
-	if len(filters) != 0 {
-		querySql += " WHERE "
-		countSql += " WHERE "
-		firstIndex := true
-		for k, v := range filters {
-			needLike := false
-			if !firstIndex {
-				querySql += " AND "
-				countSql += " AND "
-			}
-			firstIndex = false
-
-			if val, ok := mapping[k]; ok {
-				if _, exist := RuleNeedLikeFilters[k]; exist {
-					needLike = true
-				}
-				k = val
-			}
-
-			if needLike {
-				if utils.IsPrefixWildName(v) {
-					v = v[:len(v)-1]
-				}
-				querySql += (" " + k + " like ? ")
-				countSql += (" " + k + " like ? ")
-				args = append(args, "%"+v+"%")
-			} else if k == "ag.owner" {
-				querySql += " (ag.owner = ? OR (ap.principal_id = ? AND ap.principal_role = 1 )) "
-				countSql += " (ag.owner = ? OR (ap.principal_id = ? AND ap.principal_role = 1 )) "
-				args = append(args, v, v)
-			} else {
-				querySql += (" " + k + " = ? ")
-				countSql += (" " + k + " = ? ")
-				args = append(args, v)
-			}
-		}
-	}
-
-	count, err := queryEntryCount(s.master, countSql, args)
-	if err != nil {
-		return 0, nil, store.Error(err)
-	}
-
-	querySql += " GROUP BY ag.id ORDER BY ag.mtime LIMIT ?, ? "
-	args = append(args, offset, limit)
-
-	ret, err := s.collectStrategies(s.master.Query, querySql, args, showDetail)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	return count, ret, nil
-}
-
-// collectStrategies 执行真正的 sql 并从 rows 中获取策略列表
-func (s *strategyStore) collectStrategies(handler QueryHandler, querySql string,
-	args []interface{}, showDetail bool) ([]*authcommon.StrategyDetail, error) {
-	log.Debug("[Store][Strategy] get simple strategies", zap.String("query sql", querySql),
-		zap.Any("args", args))
-
-	rows, err := handler(querySql, args...)
-	if err != nil {
-		log.Error("[Store][Strategy] get simple strategies", zap.String("query sql", querySql),
-			zap.Any("args", args))
-		return nil, store.Error(err)
-	}
-	defer func() {
-		_ = rows.Close()
-	}()
-
-	idMap := make(map[string]struct{})
-
-	ret := make([]*authcommon.StrategyDetail, 0, 16)
-	for rows.Next() {
-		detail, err := fetchRown2StrategyDetail(rows)
-		if err != nil {
-			return nil, store.Error(err)
-		}
-
-		// 为了避免数据重复被加入到 slice 中，做一个 map 去重
-		if _, ok := idMap[detail.ID]; ok {
-			continue
-		}
-		idMap[detail.ID] = struct{}{}
-
-		if showDetail {
-			resArr, err := s.getStrategyResources(s.slave.Query, detail.ID)
-			if err != nil {
-				return nil, store.Error(err)
-			}
-			principals, err := s.getStrategyPrincipals(s.slave.Query, detail.ID)
-			if err != nil {
-				return nil, store.Error(err)
-			}
-
-			detail.Resources = resArr
-			detail.Principals = principals
-		}
-
-		ret = append(ret, detail)
-	}
-
-	return ret, nil
-}
-
 func (s *strategyStore) GetMoreStrategies(mtime time.Time, firstUpdate bool) ([]*authcommon.StrategyDetail, error) {
 	tx, err := s.slave.Begin()
 	if err != nil {
@@ -717,9 +556,19 @@ func (s *strategyStore) GetMoreStrategies(mtime time.Time, firstUpdate bool) ([]
 		if err != nil {
 			return nil, store.Error(err)
 		}
+		conditions, err := s.getStrategyConditions(s.slave.Query, detail.ID)
+		if err != nil {
+			return nil, store.Error(err)
+		}
+		functions, err := s.getStrategyFunctions(s.slave.Query, detail.ID)
+		if err != nil {
+			return nil, store.Error(err)
+		}
 
 		detail.Resources = resArr
 		detail.Principals = principals
+		detail.CalleeMethods = functions
+		detail.Conditions = conditions
 
 		ret = append(ret, detail)
 	}
@@ -764,7 +613,7 @@ func (s *strategyStore) GetStrategyResources(principalId string,
 
 func (s *strategyStore) getStrategyPrincipals(queryHander QueryHandler, id string) ([]authcommon.Principal, error) {
 
-	rows, err := queryHander("SELECT principal_id, principal_role FROM auth_principal WHERE strategy_id = ?", id)
+	rows, err := queryHander("SELECT principal_id, principal_role, extend_info FROM auth_principal WHERE strategy_id = ?", id)
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
@@ -780,13 +629,70 @@ func (s *strategyStore) getStrategyPrincipals(queryHander QueryHandler, id strin
 
 	for rows.Next() {
 		res := new(authcommon.Principal)
-		if err := rows.Scan(&res.PrincipalID, &res.PrincipalType); err != nil {
+		var extend string
+		if err := rows.Scan(&res.PrincipalID, &res.PrincipalType, &extend); err != nil {
 			return nil, store.Error(err)
 		}
+		res.Extend = map[string]string{}
+		_ = json.Unmarshal([]byte(extend), &res.Extend)
 		principals = append(principals, *res)
 	}
 
 	return principals, nil
+}
+
+func (s *strategyStore) getStrategyConditions(queryHander QueryHandler, id string) ([]authcommon.Condition, error) {
+
+	rows, err := queryHander("SELECT `key`, `value`, `compare_type` FROM auth_strategy_label WHERE strategy_id = ?", id)
+	if err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			log.Info("[Store][Strategy] not found link condition", zap.String("strategy-id", id))
+			return nil, nil
+		default:
+			return nil, store.Error(err)
+		}
+	}
+	defer rows.Close()
+
+	conditions := make([]authcommon.Condition, 0)
+
+	for rows.Next() {
+		res := new(authcommon.Condition)
+		if err := rows.Scan(&res.Key, &res.Value, &res.CompareFunc); err != nil {
+			return nil, store.Error(err)
+		}
+		conditions = append(conditions, *res)
+	}
+
+	return conditions, nil
+}
+
+func (s *strategyStore) getStrategyFunctions(queryHander QueryHandler, id string) ([]string, error) {
+
+	rows, err := queryHander("SELECT `function` FROM auth_strategy_label WHERE strategy_id = ?", id)
+	if err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			log.Info("[Store][Strategy] not found link functions", zap.String("strategy-id", id))
+			return nil, nil
+		default:
+			return nil, store.Error(err)
+		}
+	}
+	defer rows.Close()
+
+	functions := make([]string, 0)
+
+	for rows.Next() {
+		var item string
+		if err := rows.Scan(&item); err != nil {
+			return nil, store.Error(err)
+		}
+		functions = append(functions, item)
+	}
+
+	return functions, nil
 }
 
 func (s *strategyStore) getStrategyResources(queryHander QueryHandler, id string) ([]authcommon.StrategyResource, error) {

@@ -260,8 +260,8 @@ func newRoleData(r *authcommon.Role) *roleData {
 }
 
 func newRole(r *roleData) *authcommon.Role {
-	users := make([]*authcommon.User, 0, 32)
-	groups := make([]*authcommon.UserGroup, 0, 32)
+	users := make([]authcommon.Principal, 0, 32)
+	groups := make([]authcommon.Principal, 0, 32)
 
 	_ = json.Unmarshal([]byte(r.Users), &users)
 	_ = json.Unmarshal([]byte(r.UserGroups), &groups)

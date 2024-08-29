@@ -524,6 +524,27 @@ func (s StrategyResource) Key() string {
 	return strconv.Itoa(int(s.ResType)) + "/" + s.ResID
 }
 
+func forUserPrincipal(id string) Principal {
+	return Principal{
+		PrincipalID:   id,
+		PrincipalType: PrincipalUser,
+	}
+}
+
+func forUserGroupPrincipal(id string) Principal {
+	return Principal{
+		PrincipalID:   id,
+		PrincipalType: PrincipalGroup,
+	}
+}
+
+func forRolePrincipal(id string) Principal {
+	return Principal{
+		PrincipalID:   id,
+		PrincipalType: PrincipalRole,
+	}
+}
+
 // Principal 策略相关人
 type Principal struct {
 	StrategyID    string
@@ -531,6 +552,7 @@ type Principal struct {
 	Owner         string
 	PrincipalID   string
 	PrincipalType PrincipalType
+	Extend        map[string]string
 }
 
 func (p Principal) String() string {
@@ -558,8 +580,8 @@ type Role struct {
 	Comment    string
 	CreateTime time.Time
 	ModifyTime time.Time
-	Users      []*User
-	UserGroups []*UserGroup
+	Users      []Principal
+	UserGroups []Principal
 }
 
 func (r *Role) FromSpec(d *apisecurity.Role) {
@@ -569,17 +591,17 @@ func (r *Role) FromSpec(d *apisecurity.Role) {
 	r.Metadata = d.Metadata
 
 	if len(d.Users) != 0 {
-		users := make([]*User, 0, len(d.Users))
+		users := make([]Principal, 0, len(d.Users))
 		for i := range d.Users {
-			users = append(users, &User{ID: d.Users[i].GetId().GetValue()})
+			users = append(users, Principal{PrincipalID: d.Users[i].GetId().GetValue()})
 		}
 		r.Users = users
 	}
 
 	if len(d.UserGroups) != 0 {
-		groups := make([]*UserGroup, 0, len(d.UserGroups))
+		groups := make([]Principal, 0, len(d.UserGroups))
 		for i := range d.UserGroups {
-			groups = append(groups, &UserGroup{ID: d.UserGroups[i].GetId().GetValue()})
+			groups = append(groups, Principal{PrincipalID: d.UserGroups[i].GetId().GetValue()})
 		}
 		r.UserGroups = groups
 	}
@@ -596,7 +618,9 @@ func (r *Role) ToSpec() *apisecurity.Role {
 	if len(r.Users) != 0 {
 		users := make([]*apisecurity.User, 0, len(r.Users))
 		for i := range r.Users {
-			users = append(users, r.Users[i].ToSpec())
+			users = append(users, &apisecurity.User{
+				Id: utils.NewStringValue(r.Users[i].PrincipalID),
+			})
 		}
 		d.Users = users
 	}
@@ -604,7 +628,9 @@ func (r *Role) ToSpec() *apisecurity.Role {
 	if len(d.UserGroups) != 0 {
 		groups := make([]*apisecurity.UserGroup, 0, len(d.UserGroups))
 		for i := range r.UserGroups {
-			groups = append(groups, &apisecurity.UserGroup{Id: utils.NewStringValue(r.UserGroups[i].ID)})
+			groups = append(groups, &apisecurity.UserGroup{
+				Id: utils.NewStringValue(r.UserGroups[i].PrincipalID),
+			})
 		}
 		d.UserGroups = groups
 	}

@@ -98,9 +98,6 @@ type StrategyStore interface {
 		principalType authcommon.PrincipalType) (*authcommon.StrategyDetail, error)
 	// GetStrategyDetail Get strategy details
 	GetStrategyDetail(id string) (*authcommon.StrategyDetail, error)
-	// GetStrategies Get a list of strategies
-	GetStrategies(filters map[string]string, offset uint32, limit uint32) (uint32,
-		[]*authcommon.StrategyDetail, error)
 	// GetMoreStrategies Used to refresh policy cache
 	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetMoreStrategies(mtime time.Time, firstUpdate bool) ([]*authcommon.StrategyDetail, error)

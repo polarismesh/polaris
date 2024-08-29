@@ -19,6 +19,7 @@ package policy
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -167,24 +168,50 @@ func (d *DefaultAuthChecker) doCheckPermission(authCtx *authcommon.AcquireContex
 		return true, nil
 	}
 
-	allowPolicies := d.cacheMgr.AuthStrategy().GetPrincipalPolicies("allow", p)
-	denyPolicies := d.cacheMgr.AuthStrategy().GetPrincipalPolicies("deny", p)
+	principals := make([]authcommon.Principal, 0, 4)
+	principals = append(principals, p)
+	// 获取角色列表
+	roles := d.cacheMgr.Role().GetPrincipalRoles(p)
+	for i := range roles {
+		principals = append(principals, authcommon.Principal{
+			PrincipalID:   roles[i].ID,
+			PrincipalType: authcommon.PrincipalRole,
+		})
+	}
 
-	resources := authCtx.GetAccessResources()
-
-	// 先执行 deny 策略
-	for i := range denyPolicies {
-		item := denyPolicies[i]
-		if d.MatchPolicy(authCtx, item, p, resources) {
-			return false, ErrorNotPermission
+	// 如果是用户，获取所在的用户组列表
+	if p.PrincipalType == authcommon.PrincipalUser {
+		groups := d.cacheMgr.User().GetUserLinkGroupIds(p.PrincipalID)
+		for i := range groups {
+			principals = append(principals, authcommon.Principal{
+				PrincipalID:   groups[i],
+				PrincipalType: authcommon.PrincipalGroup,
+			})
 		}
 	}
 
-	// 处理 allow 策略，只要有一个放开，就可以认为通过
-	for i := range allowPolicies {
-		item := allowPolicies[i]
-		if d.MatchPolicy(authCtx, item, p, resources) {
-			return true, nil
+	// 遍历所有的 principal，检查是否有一个符合要求
+	for i := range principals {
+		principal := principals[i]
+		allowPolicies := d.cacheMgr.AuthStrategy().GetPrincipalPolicies("allow", principal)
+		denyPolicies := d.cacheMgr.AuthStrategy().GetPrincipalPolicies("deny", principal)
+
+		resources := authCtx.GetAccessResources()
+
+		// 先执行 deny 策略
+		for i := range denyPolicies {
+			item := denyPolicies[i]
+			if d.MatchPolicy(authCtx, item, principal, resources) {
+				return false, ErrorNotPermission
+			}
+		}
+
+		// 处理 allow 策略，只要有一个放开，就可以认为通过
+		for i := range allowPolicies {
+			item := allowPolicies[i]
+			if d.MatchPolicy(authCtx, item, principal, resources) {
+				return true, nil
+			}
 		}
 	}
 	return false, ErrorNotPermission
@@ -331,8 +358,17 @@ func (d *DefaultAuthChecker) MatchResourceOperateable(authCtx *authcommon.Acquir
 // MatchResourceConditions 检查操作资源所拥有的标签是否和策略匹配
 func (d *DefaultAuthChecker) MatchResourceConditions(authCtx *authcommon.AcquireContext,
 	principal authcommon.Principal, policy *authcommon.StrategyDetail) bool {
+
+	// 检查下 principal 有没有 condition 信息
+	principalCondition := make([]authcommon.Condition, 0, 4)
+	_ = json.Unmarshal([]byte(principal.Extend["condition"]), &principalCondition)
+
 	matchCheck := func(_ apisecurity.ResourceType, resources []authcommon.ResourceEntry) bool {
 		conditions := policy.Conditions
+		if len(conditions) == 0 {
+			conditions = principalCondition
+		}
+
 		for i := range resources {
 			allMatch := true
 			for j := range conditions {

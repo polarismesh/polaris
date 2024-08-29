@@ -69,16 +69,16 @@ func (s *roleStore) savePrincipals(tx *BaseTx, role *authcommon.Role) error {
 		return err
 	}
 
-	insertTpl := "INSERT INTO auth_role_principal(role_id, principal_id, principal_role) VALUES (?, ?, ?)"
+	insertTpl := "INSERT INTO auth_role_principal(role_id, principal_id, principal_role, extend_info) VALUES (?, ?, ?)"
 
 	for i := range role.Users {
-		args := []interface{}{role.ID, role.Users[i].ID, authcommon.PrincipalUser}
+		args := []interface{}{role.ID, role.Users[i].PrincipalID, authcommon.PrincipalUser, utils.MustJson(role.Users[i].Extend)}
 		if _, err := tx.Exec(insertTpl, args...); err != nil {
 			return err
 		}
 	}
 	for i := range role.UserGroups {
-		args := []interface{}{role.ID, role.UserGroups[i].ID, authcommon.PrincipalGroup}
+		args := []interface{}{role.ID, role.UserGroups[i].PrincipalID, authcommon.PrincipalGroup, utils.MustJson(role.UserGroups[i].Extend)}
 		if _, err := tx.Exec(insertTpl, args...); err != nil {
 			return err
 		}
@@ -181,8 +181,8 @@ func (s *roleStore) GetRole(id string) (*authcommon.Role, error) {
 	)
 	ret := &authcommon.Role{
 		Metadata:   map[string]string{},
-		Users:      make([]*authcommon.User, 0, 4),
-		UserGroups: make([]*authcommon.UserGroup, 0, 4),
+		Users:      make([]authcommon.Principal, 0, 4),
+		UserGroups: make([]authcommon.Principal, 0, 4),
 	}
 
 	if err := row.Scan(&ret.ID, &ret.Name, &ret.Owner, &ret.Source, &ret.Type, &ret.Comment,
@@ -240,8 +240,8 @@ func (s *roleStore) GetMoreRoles(firstUpdate bool, mtime time.Time) ([]*authcomm
 		)
 		ret := &authcommon.Role{
 			Metadata:   map[string]string{},
-			Users:      make([]*authcommon.User, 0, 4),
-			UserGroups: make([]*authcommon.UserGroup, 0, 4),
+			Users:      make([]authcommon.Principal, 0, 4),
+			UserGroups: make([]authcommon.Principal, 0, 4),
 		}
 
 		if err := rows.Scan(&ret.ID, &ret.Name, &ret.Owner, &ret.Source, &ret.Type, &ret.Comment,
@@ -266,7 +266,7 @@ func (s *roleStore) GetMoreRoles(firstUpdate bool, mtime time.Time) ([]*authcomm
 }
 
 func (s *roleStore) fetchRolePrincipals(tx *BaseTx, role *authcommon.Role) error {
-	rows, err := tx.Query("SELECT role_id, principal_id, principal_role FROM auth_role_principal WHERE rold_id = ?", role.ID)
+	rows, err := tx.Query("SELECT role_id, principal_id, principal_role, extend_info FROM auth_role_principal WHERE rold_id = ?", role.ID)
 	if err != nil {
 		log.Error("[store][role] fetch role principals", zap.String("name", role.Name), zap.Error(err))
 		return store.Error(err)
@@ -277,21 +277,28 @@ func (s *roleStore) fetchRolePrincipals(tx *BaseTx, role *authcommon.Role) error
 
 	for rows.Next() {
 		var (
-			roleID, principalID string
-			principalRole       int
+			roleID, principalID, extendStr string
+			principalRole                  int
 		)
-		if err := rows.Scan(&roleID, &principalID, &principalRole); err != nil {
+		if err := rows.Scan(&roleID, &principalID, &principalRole, &extendStr); err != nil {
 			log.Error("[store][role] fetch one record role principal", zap.String("name", role.Name), zap.Error(err))
 			return store.Error(err)
 		}
 
+		extend := map[string]string{}
+		_ = json.Unmarshal([]byte(extendStr), &extend)
+
 		if principalRole == int(authcommon.PrincipalUser) {
-			role.Users = append(role.Users, &authcommon.User{
-				ID: principalID,
+			role.Users = append(role.Users, authcommon.Principal{
+				PrincipalID:   principalID,
+				PrincipalType: authcommon.PrincipalUser,
+				Extend:        extend,
 			})
 		} else {
-			role.UserGroups = append(role.UserGroups, &authcommon.UserGroup{
-				ID: principalID,
+			role.UserGroups = append(role.UserGroups, authcommon.Principal{
+				PrincipalID:   principalID,
+				PrincipalType: authcommon.PrincipalGroup,
+				Extend:        extend,
 			})
 		}
 	}
