@@ -361,10 +361,12 @@ func (d *DefaultAuthChecker) MatchResourceConditions(authCtx *authcommon.Acquire
 
 	// 检查下 principal 有没有 condition 信息
 	principalCondition := make([]authcommon.Condition, 0, 4)
+	// 这里主要兼容一些内部特殊场景，可能在 role/user/group 关联某个策略时，会有一些额外的关系属性，这里在 extend 统一查找
 	_ = json.Unmarshal([]byte(principal.Extend["condition"]), &principalCondition)
 
 	matchCheck := func(_ apisecurity.ResourceType, resources []authcommon.ResourceEntry) bool {
 		conditions := policy.Conditions
+		// 如果策略没有，那就走 conditions 的机制查询
 		if len(conditions) == 0 {
 			conditions = principalCondition
 		}
