@@ -753,6 +753,8 @@ func service2Api(service *model.Service) *apiservice.Service {
 		Ctime:      utils.NewStringValue(commontime.Time2String(service.CreateTime)),
 		Mtime:      utils.NewStringValue(commontime.Time2String(service.ModifyTime)),
 		ExportTo:   service.ListExportTo(),
+		Editable:   utils.NewBoolValue(true),
+		Deleteable: utils.NewBoolValue(true),
 	}
 
 	return out

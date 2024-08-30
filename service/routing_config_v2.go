@@ -25,6 +25,7 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	"github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"go.uber.org/zap"
@@ -32,36 +33,14 @@ import (
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	apiv1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	commonstore "github.com/polarismesh/polaris/common/store"
 	"github.com/polarismesh/polaris/common/utils"
-)
-
-var (
-	// RoutingConfigV2FilterAttrs router config filter attrs
-	RoutingConfigV2FilterAttrs = map[string]bool{
-		"id":                    true,
-		"name":                  true,
-		"service":               true,
-		"namespace":             true,
-		"source_service":        true,
-		"destination_service":   true,
-		"source_namespace":      true,
-		"destination_namespace": true,
-		"enable":                true,
-		"offset":                true,
-		"limit":                 true,
-		"order_field":           true,
-		"order_type":            true,
-	}
 )
 
 // CreateRoutingConfigsV2 Create a routing configuration
 func (s *Server) CreateRoutingConfigsV2(
 	ctx context.Context, req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
-	if err := checkBatchRoutingConfigV2(req); err != nil {
-		return err
-	}
-
 	resp := apiv1.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for _, entry := range req {
 		apiv1.Collect(resp, s.createRoutingConfigV2(ctx, entry))
@@ -72,10 +51,6 @@ func (s *Server) CreateRoutingConfigsV2(
 
 // createRoutingConfigV2 Create a routing configuration
 func (s *Server) createRoutingConfigV2(ctx context.Context, req *apitraffic.RouteRule) *apiservice.Response {
-	if resp := checkRoutingConfigV2(req); resp != nil {
-		return resp
-	}
-
 	conf, err := Api2RoutingConfigV2(req)
 	if err != nil {
 		log.Error("[Routing][V2] parse routing config v2 from request for create",
@@ -90,7 +65,10 @@ func (s *Server) createRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 	}
 
 	s.RecordHistory(ctx, routingV2RecordEntry(ctx, req, conf, model.OCreate))
-
+	_ = s.afterRuleResource(ctx, model.RRouting, authcommon.ResourceEntry{
+		ID:   req.GetId(),
+		Type: security.ResourceType_RouteRules,
+	}, false)
 	req.Id = conf.ID
 	return apiv1.NewRouterResponse(apimodel.Code_ExecuteSuccess, req)
 }
@@ -98,10 +76,6 @@ func (s *Server) createRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 // DeleteRoutingConfigsV2 Batch delete routing configuration
 func (s *Server) DeleteRoutingConfigsV2(
 	ctx context.Context, req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
-	if err := checkBatchRoutingConfigV2(req); err != nil {
-		return err
-	}
-
 	out := apiv1.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for _, entry := range req {
 		resp := s.deleteRoutingConfigV2(ctx, entry)
@@ -113,10 +87,6 @@ func (s *Server) DeleteRoutingConfigsV2(
 
 // DeleteRoutingConfigV2 Delete a routing configuration
 func (s *Server) deleteRoutingConfigV2(ctx context.Context, req *apitraffic.RouteRule) *apiservice.Response {
-	if resp := checkRoutingConfigIDV2(req); resp != nil {
-		return resp
-	}
-
 	// Determine whether the current routing rules are only converted from the memory transmission in the V1 version
 	if _, ok := s.Cache().RoutingConfig().IsConvertFromV1(req.Id); ok {
 		resp := s.transferV1toV2OnModify(ctx, req)
@@ -135,16 +105,18 @@ func (s *Server) deleteRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 		ID:   req.GetId(),
 		Name: req.GetName(),
 	}, model.ODelete))
+
+	_ = s.afterRuleResource(ctx, model.RRouting, authcommon.ResourceEntry{
+		ID:   req.GetId(),
+		Type: security.ResourceType_RouteRules,
+	}, true)
+
 	return apiv1.NewRouterResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
 // UpdateRoutingConfigsV2 Batch update routing configuration
 func (s *Server) UpdateRoutingConfigsV2(
 	ctx context.Context, req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
-	if err := checkBatchRoutingConfigV2(req); err != nil {
-		return err
-	}
-
 	out := apiv1.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 	for _, entry := range req {
 		resp := s.updateRoutingConfigV2(ctx, entry)
@@ -166,11 +138,6 @@ func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 			return resp
 		}
 	}
-
-	if resp := checkUpdateRoutingConfigV2(req); resp != nil {
-		return resp
-	}
-
 	// Check whether the routing configuration exists
 	conf, err := s.storage.GetRoutingConfigV2WithID(req.Id)
 	if err != nil {
@@ -239,10 +206,6 @@ func (s *Server) EnableRoutings(ctx context.Context, req []*apitraffic.RouteRule
 }
 
 func (s *Server) enableRoutings(ctx context.Context, req *apitraffic.RouteRule) *apiservice.Response {
-	if resp := checkRoutingConfigIDV2(req); resp != nil {
-		return resp
-	}
-
 	if _, ok := s.Cache().RoutingConfig().IsConvertFromV1(req.Id); ok {
 		resp := s.transferV1toV2OnModify(ctx, req)
 		if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
@@ -331,21 +294,8 @@ func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apitraffic.Rou
 }
 
 // parseServiceArgs The query conditions of the analysis service
-func parseRoutingArgs(query map[string]string, ctx context.Context) (*cachetypes.RoutingArgs, *apiservice.Response) {
-	offset, limit, err := utils.ParseOffsetAndLimit(query)
-	if err != nil {
-		return nil, apiv1.NewResponse(apimodel.Code_InvalidParameter)
-	}
-
-	filter := make(map[string]string)
-	for key, value := range query {
-		if _, ok := RoutingConfigV2FilterAttrs[key]; !ok {
-			log.Errorf("[Routing][V2][Query] attribute(%s) is not allowed", key)
-			return nil, apiv1.NewResponse(apimodel.Code_InvalidParameter)
-		}
-		filter[key] = value
-	}
-
+func parseRoutingArgs(filter map[string]string, ctx context.Context) (*cachetypes.RoutingArgs, *apiservice.Response) {
+	offset, limit, _ := utils.ParseOffsetAndLimit(filter)
 	res := &cachetypes.RoutingArgs{
 		Filter:     filter,
 		Name:       filter["name"],
@@ -377,120 +327,6 @@ func parseRoutingArgs(query map[string]string, ctx context.Context) (*cachetypes
 	}
 	log.Infof("[Service][Routing][Query] routing query args: %+v", res)
 	return res, nil
-}
-
-// checkBatchRoutingConfig Check batch request
-func checkBatchRoutingConfigV2(req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
-	if len(req) == 0 {
-		return apiv1.NewBatchWriteResponse(apimodel.Code_EmptyRequest)
-	}
-
-	if len(req) > MaxBatchSize {
-		return apiv1.NewBatchWriteResponse(apimodel.Code_BatchSizeOverLimit)
-	}
-
-	return nil
-}
-
-// checkRoutingConfig Check the validity of the basic parameter of the routing configuration
-func checkRoutingConfigV2(req *apitraffic.RouteRule) *apiservice.Response {
-	if req == nil {
-		return apiv1.NewRouterResponse(apimodel.Code_EmptyRequest, req)
-	}
-
-	if err := checkRoutingNameAndNamespace(req); err != nil {
-		return err
-	}
-
-	if err := checkRoutingConfigPriorityV2(req); err != nil {
-		return err
-	}
-
-	if err := checkRoutingPolicyV2(req); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// checkUpdateRoutingConfigV2 Check the validity of the basic parameter of the routing configuration
-func checkUpdateRoutingConfigV2(req *apitraffic.RouteRule) *apiservice.Response {
-	if resp := checkRoutingConfigIDV2(req); resp != nil {
-		return resp
-	}
-
-	if err := checkRoutingNameAndNamespace(req); err != nil {
-		return err
-	}
-
-	if err := checkRoutingConfigPriorityV2(req); err != nil {
-		return err
-	}
-
-	if err := checkRoutingPolicyV2(req); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func checkRoutingNameAndNamespace(req *apitraffic.RouteRule) *apiservice.Response {
-	if err := utils.CheckDbStrFieldLen(utils.NewStringValue(req.GetName()), MaxDbRoutingName); err != nil {
-		return apiv1.NewRouterResponse(apimodel.Code_InvalidRoutingName, req)
-	}
-
-	if err := utils.CheckDbStrFieldLen(utils.NewStringValue(req.GetNamespace()),
-		MaxDbServiceNamespaceLength); err != nil {
-		return apiv1.NewRouterResponse(apimodel.Code_InvalidNamespaceName, req)
-	}
-
-	return nil
-}
-
-func checkRoutingConfigIDV2(req *apitraffic.RouteRule) *apiservice.Response {
-	if req == nil {
-		return apiv1.NewRouterResponse(apimodel.Code_EmptyRequest, req)
-	}
-
-	if req.Id == "" {
-		return apiv1.NewResponse(apimodel.Code_InvalidRoutingID)
-	}
-
-	return nil
-}
-
-func checkRoutingConfigPriorityV2(req *apitraffic.RouteRule) *apiservice.Response {
-	if req == nil {
-		return apiv1.NewRouterResponse(apimodel.Code_EmptyRequest, req)
-	}
-
-	if req.Priority > 10 {
-		return apiv1.NewResponse(apimodel.Code_InvalidRoutingPriority)
-	}
-
-	return nil
-}
-
-func checkRoutingPolicyV2(req *apitraffic.RouteRule) *apiservice.Response {
-	if req == nil {
-		return apiv1.NewRouterResponse(apimodel.Code_EmptyRequest, req)
-	}
-
-	if req.GetRoutingPolicy() != apitraffic.RoutingPolicy_RulePolicy {
-		return apiv1.NewRouterResponse(apimodel.Code_InvalidRoutingPolicy, req)
-	}
-
-	// Automatically supplement @Type attribute according to Policy
-	if req.RoutingConfig.TypeUrl == "" {
-		if req.GetRoutingPolicy() == apitraffic.RoutingPolicy_RulePolicy {
-			req.RoutingConfig.TypeUrl = model.RuleRoutingTypeUrl
-		}
-		if req.GetRoutingPolicy() == apitraffic.RoutingPolicy_MetadataPolicy {
-			req.RoutingConfig.TypeUrl = model.MetaRoutingTypeUrl
-		}
-	}
-
-	return nil
 }
 
 // Api2RoutingConfigV2 Convert the API parameter to internal data structure

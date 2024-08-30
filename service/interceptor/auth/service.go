@@ -126,10 +126,23 @@ func (svr *Server) GetAllServices(ctx context.Context,
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
 	ctx = cachetypes.AppendServicePredicate(ctx, func(ctx context.Context, cbr *model.Service) bool {
-		return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authcommon.ResourceEntry{
+		ok := svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authcommon.ResourceEntry{
 			Type:     security.ResourceType_Services,
 			ID:       cbr.ID,
 			Metadata: cbr.Meta,
+		})
+		if ok {
+			return true
+		}
+		saveNs := svr.Cache().Namespace().GetNamespace(cbr.Namespace)
+		if saveNs == nil {
+			return false
+		}
+		// 检查下是否可以访问对应的 namespace
+		return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authcommon.ResourceEntry{
+			Type:     security.ResourceType_Namespaces,
+			ID:       saveNs.Name,
+			Metadata: saveNs.Metadata,
 		})
 	})
 	authCtx.SetRequestContext(ctx)

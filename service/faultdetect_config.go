@@ -27,12 +27,14 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	"github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	commonstore "github.com/polarismesh/polaris/common/store"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -117,7 +119,10 @@ func (s *Server) createFaultDetectRule(ctx context.Context, request *apifault.Fa
 	log.Info(msg, utils.RequestID(ctx))
 
 	s.RecordHistory(ctx, faultDetectRuleRecordEntry(ctx, request, data, model.OCreate))
-
+	_ = s.afterRuleResource(ctx, model.RRouting, authcommon.ResourceEntry{
+		ID:   request.GetId(),
+		Type: security.ResourceType_FaultDetectRules,
+	}, false)
 	request.Id = data.ID
 	return api.NewAnyDataResponse(apimodel.Code_ExecuteSuccess, request)
 }
@@ -166,6 +171,10 @@ func (s *Server) deleteFaultDetectRule(ctx context.Context, request *apifault.Fa
 
 	cbRule := &model.FaultDetectRule{ID: request.GetId(), Name: request.GetName(), Namespace: request.GetNamespace()}
 	s.RecordHistory(ctx, faultDetectRuleRecordEntry(ctx, request, cbRule, model.ODelete))
+	_ = s.afterRuleResource(ctx, model.RRouting, authcommon.ResourceEntry{
+		ID:   request.GetId(),
+		Type: security.ResourceType_FaultDetectRules,
+	}, true)
 	return api.NewAnyDataResponse(apimodel.Code_ExecuteSuccess, cbRuleId)
 }
 

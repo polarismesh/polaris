@@ -26,6 +26,7 @@ import (
 
 	"github.com/gogo/protobuf/jsonpb"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	"github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"go.uber.org/zap"
@@ -33,6 +34,7 @@ import (
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	commonstore "github.com/polarismesh/polaris/common/store"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -84,7 +86,10 @@ func (s *Server) CreateRateLimit(ctx context.Context, req *apitraffic.Rule) *api
 	log.Info(msg, utils.RequestID(ctx))
 
 	s.RecordHistory(ctx, rateLimitRecordEntry(ctx, req, data, model.OCreate))
-
+	_ = s.afterRuleResource(ctx, model.RRouting, authcommon.ResourceEntry{
+		ID:   req.GetId().GetValue(),
+		Type: security.ResourceType_RateLimitRules,
+	}, false)
 	req.Id = utils.NewStringValue(data.ID)
 	return api.NewRateLimitResponse(apimodel.Code_ExecuteSuccess, req)
 }
@@ -125,6 +130,10 @@ func (s *Server) DeleteRateLimit(ctx context.Context, req *apitraffic.Rule) *api
 
 	s.RecordHistory(ctx,
 		rateLimitRecordEntry(ctx, req, rateLimit, model.ODelete))
+	_ = s.afterRuleResource(ctx, model.RRouting, authcommon.ResourceEntry{
+		ID:   req.GetId().GetValue(),
+		Type: security.ResourceType_RateLimitRules,
+	}, true)
 	return api.NewRateLimitResponse(apimodel.Code_ExecuteSuccess, req)
 }
 

@@ -20,10 +20,9 @@ package service
 import (
 	"context"
 
-	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
-
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 )
 
 // DiscoverServer Server discovered by the service
@@ -75,7 +74,9 @@ type ResourceHook interface {
 
 // ResourceEvent 资源事件
 type ResourceEvent struct {
-	ReqService *apiservice.Service
-	Service    *model.Service
-	IsRemove   bool
+	Resource authcommon.ResourceEntry
+
+	AddPrincipals []authcommon.Principal
+	DelPrincipals []authcommon.Principal
+	IsRemove      bool
 }

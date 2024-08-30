@@ -219,8 +219,7 @@ func (svr *Server) AfterResourceOperation(afterCtx *authcommon.AcquireContext) e
 
 	log.Info("[Auth][Server] add resource to principal default strategy",
 		zap.Any("resource", afterCtx.GetAttachments()[authcommon.ResourceAttachmentKey]),
-		zap.Any("add_user", addUserIds),
-		zap.Any("add_group", addGroupIds), zap.Any("remove_user", removeUserIds),
+		zap.Any("add_user", addUserIds), zap.Any("add_group", addGroupIds), zap.Any("remove_user", removeUserIds),
 		zap.Any("remove_group", removeGroupIds),
 	)
 
@@ -243,7 +242,6 @@ func (svr *Server) AfterResourceOperation(afterCtx *authcommon.AcquireContext) e
 		log.Error("[Auth][Server] remove group link resource", zap.Error(err))
 		return err
 	}
-
 	return nil
 }
 

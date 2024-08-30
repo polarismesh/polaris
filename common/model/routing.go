@@ -118,7 +118,7 @@ func (r *ExtendRouterConfig) ToApi() (*apitraffic.RouteRule, error) {
 	)
 
 	switch r.GetRoutingPolicy() {
-	case apitraffic.RoutingPolicy_RulePolicy:
+	case apitraffic.RoutingPolicy_NearbyPolicy:
 		anyValue, err = ptypes.MarshalAny(r.NearbyRouting)
 		if err != nil {
 			return nil, err
@@ -148,6 +148,8 @@ func (r *ExtendRouterConfig) ToApi() (*apitraffic.RouteRule, error) {
 		Etime:         commontime.Time2String(r.EnableTime),
 		Priority:      r.Priority,
 		Description:   r.Description,
+		Editable:      true,
+		Deleteable:    true,
 	}
 	if r.EnableTime.Year() > 2000 {
 		rule.Etime = commontime.Time2String(r.EnableTime)

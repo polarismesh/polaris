@@ -239,7 +239,11 @@ func (r *roleCache) toPage(total uint32, roles []*authcommon.Role, args types.Ro
 
 // GetPrincipalRoles implements api.RoleCache.
 func (r *roleCache) GetPrincipalRoles(p authcommon.Principal) []*authcommon.Role {
-	containers, ok := r.principalRoles[p.PrincipalType].Load(p.PrincipalID)
+	roleContainers, ok := r.principalRoles[p.PrincipalType]
+	if !ok {
+		return nil
+	}
+	containers, ok := roleContainers.Load(p.PrincipalID)
 	if !ok {
 		return nil
 	}

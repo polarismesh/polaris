@@ -107,7 +107,6 @@ func (svr *Server) QueryRoutingConfigsV2(ctx context.Context,
 	authCtx.SetRequestContext(ctx)
 
 	resp := svr.nextSvr.QueryRoutingConfigsV2(ctx, query)
-
 	for index := range resp.Data {
 		item := &apitraffic.RouteRule{}
 		_ = anypb.UnmarshalTo(resp.Data[index], item, proto.UnmarshalOptions{})
