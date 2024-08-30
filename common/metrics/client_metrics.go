@@ -18,9 +18,8 @@
 package metrics
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 func registerClientMetrics() {

@@ -110,7 +110,6 @@ func (s *Server) deleteRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 		ID:   req.GetId(),
 		Type: security.ResourceType_RouteRules,
 	}, true)
-
 	return apiv1.NewRouterResponse(apimodel.Code_ExecuteSuccess, req)
 }
 

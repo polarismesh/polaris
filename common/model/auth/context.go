@@ -15,33 +15,8 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package utils
+package auth
 
-import "sync/atomic"
-
-func NewAtomicValue[V any](v V) *AtomicValue[V] {
-	a := new(AtomicValue[V])
-	a.a = atomic.Value{}
-	a.Store(v)
-	return a
-}
-
-type AtomicValue[V any] struct {
-	a atomic.Value
-}
-
-func (a *AtomicValue[V]) HasValue() bool {
-	if a == nil {
-		return false
-	}
-	v := a.a.Load()
-	return v != nil
-}
-
-func (a *AtomicValue[V]) Store(val V) {
-	a.a.Store(val)
-}
-
-func (a *AtomicValue[V]) Load() V {
-	return a.a.Load().(V)
-}
+type (
+	ContextKeyConditions struct{}
+)

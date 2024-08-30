@@ -283,6 +283,9 @@ func checkRoutingPolicyV2(req *apitraffic.RouteRule) *apiservice.Response {
 		if req.GetRoutingPolicy() == apitraffic.RoutingPolicy_MetadataPolicy {
 			req.RoutingConfig.TypeUrl = model.MetaRoutingTypeUrl
 		}
+		if req.GetRoutingPolicy() == apitraffic.RoutingPolicy_NearbyPolicy {
+			req.RoutingConfig.TypeUrl = model.NearbyRoutingTypeUrl
+		}
 	}
 
 	return nil

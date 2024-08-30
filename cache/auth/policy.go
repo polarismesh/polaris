@@ -293,7 +293,8 @@ func (sc *policyCache) GetPolicyRule(id string) *authcommon.StrategyDetail {
 }
 
 // GetPrincipalResources 返回 principal 的资源信息，返回顺序为 (allow, deny)
-func (sc *policyCache) Hint(p authcommon.Principal, r *authcommon.ResourceEntry) apisecurity.AuthAction {
+func (sc *policyCache) Hint(ctx context.Context, p authcommon.Principal, r *authcommon.ResourceEntry) apisecurity.AuthAction {
+	// 先比较下资源是否存在于某些鉴权规则中
 	resources, ok := sc.principalResources[p.PrincipalType].Load(p.PrincipalID)
 	if !ok {
 		return apisecurity.AuthAction_DENY
@@ -304,28 +305,42 @@ func (sc *policyCache) Hint(p authcommon.Principal, r *authcommon.ResourceEntry)
 	}
 
 	// 如果没办法从直接的 resource 中判断出来，那就根据资源标签在确认下，注意，这里必须 allMatch 才可以
-	if sc.hintLabels(p, r, sc.GetPrincipalPolicies("deny", p)) {
+	if sc.hintLabels(ctx, p, r, sc.GetPrincipalPolicies("deny", p)) {
 		return apisecurity.AuthAction_DENY
 	}
-	if sc.hintLabels(p, r, sc.GetPrincipalPolicies("allow", p)) {
+	if sc.hintLabels(ctx, p, r, sc.GetPrincipalPolicies("allow", p)) {
 		return apisecurity.AuthAction_ALLOW
 	}
 	return apisecurity.AuthAction_DENY
 }
 
-func (sc *policyCache) hintLabels(p authcommon.Principal, r *authcommon.ResourceEntry, policies []*authcommon.StrategyDetail) bool {
+func (sc *policyCache) hintLabels(ctx context.Context, p authcommon.Principal, r *authcommon.ResourceEntry,
+	policies []*authcommon.StrategyDetail) bool {
+	var principalCondition []authcommon.Condition
+	if val, ok := ctx.Value(authcommon.ContextKeyConditions{}).([]authcommon.Condition); ok {
+		principalCondition = val
+	}
+
 	for i := range policies {
 		item := policies[i]
-		allMatch := len(item.Conditions) != 0
-		for j := range item.Conditions {
-			condition := item.Conditions[j]
+		conditions := item.Conditions
+		if len(conditions) == 0 {
+			conditions = principalCondition
+		}
+		allMatch := len(conditions) != 0
+		for j := range conditions {
+			condition := conditions[j]
 			val, ok := r.Metadata[condition.Key]
 			if !ok {
 				allMatch = false
 				break
 			}
-			compareFunc, ok := authcommon.ConditionCompareDict[condition.CompareFunc]
-			if allMatch = compareFunc(val, condition.Value); !allMatch {
+			if compareFunc, ok := authcommon.ConditionCompareDict[condition.CompareFunc]; ok {
+				if allMatch = compareFunc(val, condition.Value); !allMatch {
+					break
+				}
+			} else {
+				allMatch = false
 				break
 			}
 		}

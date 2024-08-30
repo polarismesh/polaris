@@ -103,7 +103,16 @@ func (d *DefaultAuthChecker) ResourcePredicate(ctx *authcommon.AcquireContext, r
 	if !ok {
 		return false
 	}
-	return d.cacheMgr.AuthStrategy().Hint(p.(authcommon.Principal), res) != apisecurity.AuthAction_DENY
+	policyCache := d.cacheMgr.AuthStrategy()
+
+	principals := d.listAllPrincipals(p.(authcommon.Principal))
+	for i := range principals {
+		ret := policyCache.Hint(ctx.GetRequestContext(), principals[i], res)
+		if ret != apisecurity.AuthAction_DENY {
+			return true
+		}
+	}
+	return false
 }
 
 // CheckClientPermission 执行检查客户端动作判断是否有权限，并且对 RequestContext 注入操作者数据
@@ -163,32 +172,11 @@ func (d *DefaultAuthChecker) resyncData(authCtx *authcommon.AcquireContext) erro
 
 // doCheckPermission 执行权限检查
 func (d *DefaultAuthChecker) doCheckPermission(authCtx *authcommon.AcquireContext) (bool, error) {
-	p, _ := authCtx.GetAttachments()[authcommon.PrincipalKey].(authcommon.Principal)
 	if d.IsCredible(authCtx) {
 		return true, nil
 	}
 
-	principals := make([]authcommon.Principal, 0, 4)
-	principals = append(principals, p)
-	// 获取角色列表
-	roles := d.cacheMgr.Role().GetPrincipalRoles(p)
-	for i := range roles {
-		principals = append(principals, authcommon.Principal{
-			PrincipalID:   roles[i].ID,
-			PrincipalType: authcommon.PrincipalRole,
-		})
-	}
-
-	// 如果是用户，获取所在的用户组列表
-	if p.PrincipalType == authcommon.PrincipalUser {
-		groups := d.cacheMgr.User().GetUserLinkGroupIds(p.PrincipalID)
-		for i := range groups {
-			principals = append(principals, authcommon.Principal{
-				PrincipalID:   groups[i],
-				PrincipalType: authcommon.PrincipalGroup,
-			})
-		}
-	}
+	principals := d.listAllPrincipals(authCtx.GetAttachments()[authcommon.PrincipalKey].(authcommon.Principal))
 
 	// 遍历所有的 principal，检查是否有一个符合要求
 	for i := range principals {
@@ -215,6 +203,31 @@ func (d *DefaultAuthChecker) doCheckPermission(authCtx *authcommon.AcquireContex
 		}
 	}
 	return false, ErrorNotPermission
+}
+
+func (d *DefaultAuthChecker) listAllPrincipals(p authcommon.Principal) []authcommon.Principal {
+	principals := make([]authcommon.Principal, 0, 4)
+	principals = append(principals, p)
+	// 获取角色列表
+	roles := d.cacheMgr.Role().GetPrincipalRoles(p)
+	for i := range roles {
+		principals = append(principals, authcommon.Principal{
+			PrincipalID:   roles[i].ID,
+			PrincipalType: authcommon.PrincipalRole,
+		})
+	}
+
+	// 如果是用户，获取所在的用户组列表
+	if p.PrincipalType == authcommon.PrincipalUser {
+		groups := d.cacheMgr.User().GetUserLinkGroupIds(p.PrincipalID)
+		for i := range groups {
+			principals = append(principals, authcommon.Principal{
+				PrincipalID:   groups[i],
+				PrincipalType: authcommon.PrincipalGroup,
+			})
+		}
+	}
+	return principals
 }
 
 // IsCredible 检查是否是可信的请求
@@ -251,11 +264,6 @@ func (d *DefaultAuthChecker) MatchPolicy(authCtx *authcommon.AcquireContext, pol
 	}
 	if !d.MatchResourceOperateable(authCtx, principal, policy) {
 		log.Error("access resource match policy fail", utils.RequestID(authCtx.GetRequestContext()),
-			zap.String("principal", principal.String()), zap.String("policy-id", policy.ID))
-		return false
-	}
-	if !d.MatchResourceConditions(authCtx, principal, policy) {
-		log.Error("resource label condition match policy fail", utils.RequestID(authCtx.GetRequestContext()),
 			zap.String("principal", principal.String()), zap.String("policy-id", policy.ID))
 		return false
 	}
@@ -332,9 +340,20 @@ var (
 // checkAction 检查操作资源是否和策略匹配
 func (d *DefaultAuthChecker) MatchResourceOperateable(authCtx *authcommon.AcquireContext,
 	principal authcommon.Principal, policy *authcommon.StrategyDetail) bool {
+
+	// 检查下 principal 有没有 condition 信息
+	principalCondition := make([]authcommon.Condition, 0, 4)
+	// 这里主要兼容一些内部特殊场景，可能在 role/user/group 关联某个策略时，会有一些额外的关系属性，这里在 extend 统一查找
+	_ = json.Unmarshal([]byte(principal.Extend["condition"]), &principalCondition)
+
+	ctx := context.Background()
+	if len(principalCondition) != 0 {
+		ctx = context.WithValue(context.Background(), authcommon.ContextKeyConditions{}, principalCondition)
+	}
+
 	matchCheck := func(resType apisecurity.ResourceType, resources []authcommon.ResourceEntry) bool {
 		for i := range resources {
-			actionResult := d.cacheMgr.AuthStrategy().Hint(principal, &resources[i])
+			actionResult := d.cacheMgr.AuthStrategy().Hint(ctx, principal, &resources[i])
 			if policy.IsMatchAction(actionResult.String()) {
 				return true
 			}
@@ -351,57 +370,6 @@ func (d *DefaultAuthChecker) MatchResourceOperateable(authCtx *authcommon.Acquir
 	for k, v := range reqRes {
 		subMatch := matchCheck(k, v)
 		isMatch = isMatch && subMatch
-	}
-	return isMatch
-}
-
-// MatchResourceConditions 检查操作资源所拥有的标签是否和策略匹配
-func (d *DefaultAuthChecker) MatchResourceConditions(authCtx *authcommon.AcquireContext,
-	principal authcommon.Principal, policy *authcommon.StrategyDetail) bool {
-
-	// 检查下 principal 有没有 condition 信息
-	principalCondition := make([]authcommon.Condition, 0, 4)
-	// 这里主要兼容一些内部特殊场景，可能在 role/user/group 关联某个策略时，会有一些额外的关系属性，这里在 extend 统一查找
-	_ = json.Unmarshal([]byte(principal.Extend["condition"]), &principalCondition)
-
-	matchCheck := func(_ apisecurity.ResourceType, resources []authcommon.ResourceEntry) bool {
-		conditions := policy.Conditions
-		// 如果策略没有，那就走 conditions 的机制查询
-		if len(conditions) == 0 {
-			conditions = principalCondition
-		}
-
-		for i := range resources {
-			allMatch := true
-			for j := range conditions {
-				condition := conditions[j]
-				resVal, ok := resources[i].Metadata[condition.Key]
-				if !ok {
-					allMatch = false
-					break
-				}
-				compareFunc, ok := authcommon.ConditionCompareDict[condition.CompareFunc]
-				if !ok {
-					allMatch = false
-					break
-				}
-				if allMatch = compareFunc(resVal, condition.Value); !allMatch {
-					break
-				}
-			}
-			if !allMatch {
-				return false
-			}
-		}
-		return true
-	}
-
-	reqRes := authCtx.GetAccessResources()
-	isMatch := len(reqRes) == 0
-	for k, v := range reqRes {
-		if isMatch = matchCheck(k, v); isMatch {
-			break
-		}
 	}
 	return isMatch
 }

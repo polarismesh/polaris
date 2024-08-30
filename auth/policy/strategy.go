@@ -528,8 +528,9 @@ func (svr *Server) updateAuthStrategyAttribute(ctx context.Context, strategy *ap
 			conditions := make([]authcommon.Condition, 0, len(strategy.GetResourceLabels()))
 			for index := range strategy.GetResourceLabels() {
 				conditions = append(conditions, authcommon.Condition{
-					Key:   strategy.GetResourceLabels()[index].GetKey(),
-					Value: strategy.GetResourceLabels()[index].GetValue(),
+					Key:         strategy.GetResourceLabels()[index].GetKey(),
+					Value:       strategy.GetResourceLabels()[index].GetValue(),
+					CompareFunc: strategy.GetResourceLabels()[index].GetCompareType(),
 				})
 			}
 			return conditions

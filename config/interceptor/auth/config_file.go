@@ -33,7 +33,7 @@ func (s *Server) CreateConfigFile(ctx context.Context,
 	authCtx := s.collectConfigFileAuthContext(
 		ctx, []*apiconfig.ConfigFile{configFile}, auth.Create, auth.CreateConfigFile)
 	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
+		return api.NewConfigResponse(auth.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -49,7 +49,7 @@ func (s *Server) GetConfigFileRichInfo(ctx context.Context,
 	authCtx := s.collectConfigFileAuthContext(
 		ctx, []*apiconfig.ConfigFile{req}, auth.Read, auth.DescribeConfigFileRichInfo)
 	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
+		return api.NewConfigResponse(auth.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
@@ -62,7 +62,7 @@ func (s *Server) SearchConfigFile(ctx context.Context,
 
 	authCtx := s.collectConfigFileAuthContext(ctx, nil, auth.Read, auth.DescribeConfigFiles)
 	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileBatchQueryResponseWithMessage(auth.ConvertToErrCode(err), err.Error())
+		return api.NewConfigBatchQueryResponse(auth.ConvertToErrCode(err))
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
@@ -76,7 +76,7 @@ func (s *Server) UpdateConfigFile(
 	authCtx := s.collectConfigFileAuthContext(
 		ctx, []*apiconfig.ConfigFile{configFile}, auth.Modify, auth.UpdateConfigFile)
 	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
+		return api.NewConfigResponse(auth.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -92,7 +92,7 @@ func (s *Server) DeleteConfigFile(ctx context.Context,
 	authCtx := s.collectConfigFileAuthContext(ctx,
 		[]*apiconfig.ConfigFile{req}, auth.Delete, auth.DeleteConfigFile)
 	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
+		return api.NewConfigResponse(auth.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -107,7 +107,7 @@ func (s *Server) BatchDeleteConfigFile(ctx context.Context,
 
 	authCtx := s.collectConfigFileAuthContext(ctx, req, auth.Delete, auth.BatchDeleteConfigFiles)
 	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
+		return api.NewConfigResponse(auth.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -128,7 +128,7 @@ func (s *Server) ExportConfigFile(ctx context.Context,
 	}
 	authCtx := s.collectConfigFileAuthContext(ctx, configFiles, auth.Read, auth.ExportConfigFiles)
 	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileExportResponseWithMessage(auth.ConvertToErrCode(err), err.Error())
+		return api.NewConfigFileExportResponse(auth.ConvertToErrCode(err), nil)
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
@@ -140,7 +140,7 @@ func (s *Server) ImportConfigFile(ctx context.Context,
 	configFiles []*apiconfig.ConfigFile, conflictHandling string) *apiconfig.ConfigImportResponse {
 	authCtx := s.collectConfigFileAuthContext(ctx, configFiles, auth.Create, auth.ImportConfigFiles)
 	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigFileImportResponseWithMessage(auth.ConvertToErrCode(err), err.Error())
+		return api.NewSimpleConfigFileImportResponse(auth.ConvertToErrCode(err))
 	}
 
 	ctx = authCtx.GetRequestContext()

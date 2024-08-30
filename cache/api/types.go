@@ -660,7 +660,7 @@ type (
 		// GetPrincipalPolicies 根据 effect 获取 principal 的策略信息
 		GetPrincipalPolicies(effect string, p authcommon.Principal) []*authcommon.StrategyDetail
 		// Hint 确认某个 principal 对于资源的访问权限
-		Hint(p authcommon.Principal, r *authcommon.ResourceEntry) apisecurity.AuthAction
+		Hint(ctx context.Context, p authcommon.Principal, r *authcommon.ResourceEntry) apisecurity.AuthAction
 		// Query .
 		Query(context.Context, PolicySearchArgs) (uint32, []*authcommon.StrategyDetail, error)
 	}

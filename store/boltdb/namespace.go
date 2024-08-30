@@ -26,6 +26,7 @@ import (
 
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
+	"go.uber.org/zap"
 )
 
 const (
@@ -101,7 +102,7 @@ func (n *namespaceStore) AddNamespace(namespace *model.Namespace) error {
 
 func (n *namespaceStore) cleanNamespace(name string) error {
 	if err := n.handler.DeleteValues(tblNameNamespace, []string{name}); err != nil {
-		log.Errorf("[Store][boltdb] delete invalid namespace error, %+v", err)
+		log.Error("[Store][boltdb] delete invalid namespace error", zap.Error(err))
 		return err
 	}
 
@@ -118,8 +119,12 @@ func (n *namespaceStore) UpdateNamespace(namespace *model.Namespace) error {
 	properties["Comment"] = namespace.Comment
 	properties["ModifyTime"] = time.Now()
 	properties["ServiceExportTo"] = utils.MustJson(namespace.ServiceExportTo)
-	properties["Metadata"] = namespace.Metadata
-	return n.handler.UpdateValue(tblNameNamespace, namespace.Name, properties)
+	properties["Metadata"] = utils.MustJson(namespace.Metadata)
+	if err := n.handler.UpdateValue(tblNameNamespace, namespace.Name, properties); err != nil {
+		log.Error("[Store][boltdb] update namespace error", zap.Error(err))
+		return err
+	}
+	return nil
 }
 
 // UpdateNamespaceToken update the token of a namespace
@@ -265,6 +270,9 @@ func toModelNamespace(data *Namespace) *model.Namespace {
 	}
 	export := make(map[string]struct{})
 	_ = json.Unmarshal([]byte(data.ServiceExportTo), &export)
+
+	metadata := make(map[string]string)
+	_ = json.Unmarshal([]byte(data.Metadata), &metadata)
 	return &model.Namespace{
 		Name:            data.Name,
 		Comment:         data.Comment,
@@ -274,7 +282,7 @@ func toModelNamespace(data *Namespace) *model.Namespace {
 		CreateTime:      data.CreateTime,
 		ModifyTime:      data.ModifyTime,
 		Valid:           data.Valid,
-		Metadata:        data.Metadata,
+		Metadata:        metadata,
 	}
 }
 
@@ -288,7 +296,7 @@ func (n *namespaceStore) toStore(data *model.Namespace) *Namespace {
 		CreateTime:      data.CreateTime,
 		ModifyTime:      data.ModifyTime,
 		Valid:           data.Valid,
-		Metadata:        data.Metadata,
+		Metadata:        utils.MustJson(data.Metadata),
 	}
 }
 
@@ -303,5 +311,5 @@ type Namespace struct {
 	ServiceExportTo string
 	CreateTime      time.Time
 	ModifyTime      time.Time
-	Metadata        map[string]string
+	Metadata        string
 }

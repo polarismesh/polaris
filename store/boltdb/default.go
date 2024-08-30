@@ -147,34 +147,45 @@ var (
 func (m *boltStore) initNamingStoreData() error {
 	for _, namespace := range namespacesToInit {
 		curTime := time.Now()
-		err := m.AddNamespace(&model.Namespace{
-			Name:       namespace,
-			Token:      utils.NewUUID(),
-			Owner:      ownerToInit,
-			Valid:      true,
-			CreateTime: curTime,
-			ModifyTime: curTime,
-		})
+		val, err := m.GetNamespace(namespace)
 		if err != nil {
 			return err
+		}
+		if val == nil {
+			if err := m.AddNamespace(&model.Namespace{
+				Name:       namespace,
+				Token:      utils.NewUUID(),
+				Owner:      ownerToInit,
+				Valid:      true,
+				CreateTime: curTime,
+				ModifyTime: curTime,
+			}); err != nil {
+				return err
+			}
 		}
 	}
 	for svc, id := range servicesToInit {
 		curTime := time.Now()
-		err := m.AddService(&model.Service{
-			ID:         id,
-			Name:       svc,
-			Namespace:  namespacePolaris,
-			Token:      utils.NewUUID(),
-			Owner:      ownerToInit,
-			Revision:   utils.NewUUID(),
-			Valid:      true,
-			CreateTime: curTime,
-			ModifyTime: curTime,
-		})
+		val, err := m.getServiceByNameAndNs(svc, namespacePolaris)
 		if err != nil {
 			return err
 		}
+		if val != nil {
+			if err := m.AddService(&model.Service{
+				ID:         id,
+				Name:       svc,
+				Namespace:  namespacePolaris,
+				Token:      utils.NewUUID(),
+				Owner:      ownerToInit,
+				Revision:   utils.NewUUID(),
+				Valid:      true,
+				CreateTime: curTime,
+				ModifyTime: curTime,
+			}); err != nil {
+				return err
+			}
+		}
+
 	}
 	return nil
 }

@@ -85,7 +85,6 @@ func (nsCache *namespaceCache) realUpdate() (map[string]time.Time, int64, error)
 }
 
 func (nsCache *namespaceCache) setNamespaces(nsSlice []*model.Namespace) map[string]time.Time {
-
 	lastMtime := nsCache.LastMtime(nsCache.Name()).Unix()
 
 	for index := range nsSlice {
