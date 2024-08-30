@@ -241,7 +241,7 @@ const (
 )
 
 var ServerFunctions = map[string][]ServerFunctionName{
-	"Client": []ServerFunctionName{
+	"Client": {
 		RegisterInstance,
 		DeregisterInstance,
 		ReportServiceContract,
@@ -259,7 +259,7 @@ var ServerFunctions = map[string][]ServerFunctionName{
 		DiscoverConfigFileNames,
 		DiscoverConfigGroups,
 	},
-	"Namespace": []ServerFunctionName{
+	"Namespace": {
 		CreateNamespace,
 		CreateNamespaces,
 		DeleteNamespaces,
@@ -268,7 +268,7 @@ var ServerFunctions = map[string][]ServerFunctionName{
 		DescribeNamespaces,
 		// DescribeNamespaceToken,
 	},
-	"Service": []ServerFunctionName{
+	"Service": {
 		CreateServices,
 		DeleteServices,
 		UpdateServices,
@@ -283,7 +283,7 @@ var ServerFunctions = map[string][]ServerFunctionName{
 		UpdateServiceAlias,
 		DescribeServiceAliases,
 	},
-	"ServiceContract": []ServerFunctionName{
+	"ServiceContract": {
 		CreateServiceContracts,
 		DescribeServiceContracts,
 		DescribeServiceContractVersions,
@@ -292,7 +292,7 @@ var ServerFunctions = map[string][]ServerFunctionName{
 		AppendServiceContractInterfaces,
 		DeleteServiceContractInterfaces,
 	},
-	"Instance": []ServerFunctionName{
+	"Instance": {
 		CreateInstances,
 		DeleteInstances,
 		DeleteInstancesByHost,
@@ -305,48 +305,48 @@ var ServerFunctions = map[string][]ServerFunctionName{
 		BatchCleanInstances,
 		DescribeInstanceLastHeartbeat,
 	},
-	"RouteRule": []ServerFunctionName{
+	"RouteRule": {
 		CreateRouteRules,
 		DeleteRouteRules,
 		UpdateRouteRules,
 		EnableRouteRules,
 		DescribeRouteRules,
 	},
-	"RateLimitRule": []ServerFunctionName{
+	"RateLimitRule": {
 		CreateRateLimitRules,
 		DeleteRateLimitRules,
 		UpdateRateLimitRules,
 		EnableRateLimitRules,
 		DescribeRateLimitRules,
 	},
-	"CircuitBreakerRule": []ServerFunctionName{
+	"CircuitBreakerRule": {
 		CreateCircuitBreakerRules,
 		DeleteCircuitBreakerRules,
 		EnableCircuitBreakerRules,
 		UpdateCircuitBreakerRules,
 		DescribeCircuitBreakerRules,
 	},
-	"FaultDetectRule": []ServerFunctionName{
+	"FaultDetectRule": {
 		CreateFaultDetectRules,
 		DeleteFaultDetectRules,
 		EnableFaultDetectRules,
 		UpdateFaultDetectRules,
 		DescribeFaultDetectRules,
 	},
-	"LaneRule": []ServerFunctionName{
+	"LaneRule": {
 		CreateLaneGroups,
 		DeleteLaneGroups,
 		EnableLaneGroups,
 		UpdateLaneGroups,
 		DescribeLaneGroups,
 	},
-	"ConfigGroup": []ServerFunctionName{
+	"ConfigGroup": {
 		CreateConfigFileGroup,
 		DeleteConfigFileGroup,
 		UpdateConfigFileGroup,
 		DescribeConfigFileGroups,
 	},
-	"ConfigFile": []ServerFunctionName{
+	"ConfigFile": {
 		PublishConfigFile,
 		CreateConfigFile,
 		UpdateConfigFile,
@@ -361,7 +361,7 @@ var ServerFunctions = map[string][]ServerFunctionName{
 		DescribeConfigFileTemplate,
 		CreateConfigFileTemplate,
 	},
-	"ConfigRelease": []ServerFunctionName{
+	"ConfigRelease": {
 		RollbackConfigFileReleases,
 		DeleteConfigFileReleases,
 		StopGrayConfigFileReleases,
@@ -370,7 +370,7 @@ var ServerFunctions = map[string][]ServerFunctionName{
 		DescribeConfigFileReleaseVersions,
 		UpsertAndReleaseConfigFile,
 	},
-	"User": []ServerFunctionName{
+	"User": {
 		CreateUsers,
 		DeleteUsers,
 		DescribeUsers,
@@ -380,7 +380,7 @@ var ServerFunctions = map[string][]ServerFunctionName{
 		UpdateUser,
 		UpdateUserPassword,
 	},
-	"UserGroup": []ServerFunctionName{
+	"UserGroup": {
 		CreateUserGroup,
 		UpdateUserGroups,
 		DeleteUserGroups,
@@ -390,7 +390,7 @@ var ServerFunctions = map[string][]ServerFunctionName{
 		EnableUserGroupToken,
 		ResetUserGroupToken,
 	},
-	"AuthPolicy": []ServerFunctionName{
+	"AuthPolicy": {
 		CreateAuthPolicy,
 		UpdateAuthPolicies,
 		DeleteAuthPolicies,
@@ -398,7 +398,7 @@ var ServerFunctions = map[string][]ServerFunctionName{
 		DescribeAuthPolicyDetail,
 		DescribePrincipalResources,
 	},
-	"AuthRole": []ServerFunctionName{
+	"AuthRole": {
 		CreateAuthRoles,
 		UpdateAuthRoles,
 		DeleteAuthRoles,

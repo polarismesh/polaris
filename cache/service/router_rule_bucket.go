@@ -223,7 +223,7 @@ func (c *ClientRouteRuleContainer) SearchRouteRuleV2(svc model.ServiceKey) []*mo
 	})
 
 	sort.Slice(ret, func(i, j int) bool {
-		return ret[i].Priority < ret[j].Priority	
+		return ret[i].Priority < ret[j].Priority
 	})
 	return ret
 }

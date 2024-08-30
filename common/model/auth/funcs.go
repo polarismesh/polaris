@@ -53,18 +53,14 @@ var (
 			return s1 != s2
 		},
 		// string_equal_ignore_case
-		"string_equal_ignore_case": func(s1, s2 string) bool {
-			return strings.ToLower(s1) == strings.ToLower(s2)
-		},
-		"for_any_value:string_equal_ignore_case": func(s1, s2 string) bool {
-			return strings.ToLower(s1) == strings.ToLower(s2)
-		},
+		"string_equal_ignore_case":               strings.EqualFold,
+		"for_any_value:string_equal_ignore_case": strings.EqualFold,
 		// string_not_equal_ignore_case
 		"string_not_equal_ignore_case": func(s1, s2 string) bool {
-			return strings.ToLower(s1) != strings.ToLower(s2)
+			return !strings.EqualFold(s1, s2)
 		},
 		"for_any_value:string_not_equal_ignore_case": func(s1, s2 string) bool {
-			return strings.ToLower(s1) != strings.ToLower(s2)
+			return !strings.EqualFold(s1, s2)
 		},
 	}
 )

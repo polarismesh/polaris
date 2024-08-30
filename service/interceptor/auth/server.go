@@ -217,9 +217,9 @@ func (svr *Server) collectRouteRuleV2AuthContext(ctx context.Context, req []*api
 	)
 }
 
-// collectCircuitBreakerRuleV2AuthContext 收集熔断v2规则
-func (svr *Server) collectCircuitBreakerRuleV2AuthContext(ctx context.Context,
-	req []*apifault.CircuitBreakerRule, resourceOp authcommon.ResourceOperation, methodName authcommon.ServerFunctionName) *authcommon.AcquireContext {
+// collectCircuitBreakerRuleV2 收集熔断v2规则
+func (svr *Server) collectCircuitBreakerRuleV2(ctx context.Context, req []*apifault.CircuitBreakerRule,
+	op authcommon.ResourceOperation, methodName authcommon.ServerFunctionName) *authcommon.AcquireContext {
 
 	resources := make([]authcommon.ResourceEntry, 0, len(req))
 	for i := range req {
@@ -235,7 +235,7 @@ func (svr *Server) collectCircuitBreakerRuleV2AuthContext(ctx context.Context,
 
 	return authcommon.NewAcquireContext(
 		authcommon.WithRequestContext(ctx),
-		authcommon.WithOperation(resourceOp),
+		authcommon.WithOperation(op),
 		authcommon.WithModule(authcommon.DiscoverModule),
 		authcommon.WithMethod(methodName),
 		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
@@ -245,8 +245,8 @@ func (svr *Server) collectCircuitBreakerRuleV2AuthContext(ctx context.Context,
 }
 
 // collectFaultDetectAuthContext 收集主动探测规则
-func (svr *Server) collectFaultDetectAuthContext(ctx context.Context,
-	req []*apifault.FaultDetectRule, resourceOp authcommon.ResourceOperation, methodName authcommon.ServerFunctionName) *authcommon.AcquireContext {
+func (svr *Server) collectFaultDetectAuthContext(ctx context.Context, req []*apifault.FaultDetectRule,
+	op authcommon.ResourceOperation, methodName authcommon.ServerFunctionName) *authcommon.AcquireContext {
 
 	resources := make([]authcommon.ResourceEntry, 0, len(req))
 	for i := range req {
@@ -262,7 +262,7 @@ func (svr *Server) collectFaultDetectAuthContext(ctx context.Context,
 
 	return authcommon.NewAcquireContext(
 		authcommon.WithRequestContext(ctx),
-		authcommon.WithOperation(resourceOp),
+		authcommon.WithOperation(op),
 		authcommon.WithModule(authcommon.DiscoverModule),
 		authcommon.WithMethod(methodName),
 		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{

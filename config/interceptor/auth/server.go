@@ -80,8 +80,8 @@ func (s *Server) collectClientConfigFileAuthContext(ctx context.Context, req []*
 	)
 }
 
-func (s *Server) collectClientWatchConfigFiles(ctx context.Context,
-	req *apiconfig.ClientWatchConfigFileRequest, op authcommon.ResourceOperation, methodName authcommon.ServerFunctionName) *authcommon.AcquireContext {
+func (s *Server) collectClientWatchConfigFiles(ctx context.Context, req *apiconfig.ClientWatchConfigFileRequest,
+	op authcommon.ResourceOperation, methodName authcommon.ServerFunctionName) *authcommon.AcquireContext {
 	return authcommon.NewAcquireContext(
 		authcommon.WithRequestContext(ctx),
 		authcommon.WithModule(authcommon.ConfigModule),
@@ -114,8 +114,8 @@ func (s *Server) collectConfigFilePublishAuthContext(ctx context.Context, req []
 	)
 }
 
-func (s *Server) collectClientConfigFileReleaseAuthContext(ctx context.Context,
-	req []*apiconfig.ConfigFileRelease, op authcommon.ResourceOperation, methodName authcommon.ServerFunctionName) *authcommon.AcquireContext {
+func (s *Server) collectClientConfigFileRelease(ctx context.Context, req []*apiconfig.ConfigFileRelease,
+	op authcommon.ResourceOperation, methodName authcommon.ServerFunctionName) *authcommon.AcquireContext {
 	return authcommon.NewAcquireContext(
 		authcommon.WithRequestContext(ctx),
 		authcommon.WithModule(authcommon.ConfigModule),
@@ -150,8 +150,8 @@ func (s *Server) collectConfigGroupAuthContext(ctx context.Context, req []*apico
 	)
 }
 
-func (s *Server) collectConfigFileTemplateAuthContext(ctx context.Context,
-	req []*apiconfig.ConfigFileTemplate, op authcommon.ResourceOperation, methodName authcommon.ServerFunctionName) *authcommon.AcquireContext {
+func (s *Server) collectConfigFileTemplateAuthContext(ctx context.Context, req []*apiconfig.ConfigFileTemplate,
+	op authcommon.ResourceOperation, methodName authcommon.ServerFunctionName) *authcommon.AcquireContext {
 	return authcommon.NewAcquireContext(
 		authcommon.WithRequestContext(ctx),
 		authcommon.WithModule(authcommon.ConfigModule),

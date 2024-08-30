@@ -159,8 +159,8 @@ func (svr *Server) GetInstanceLabels(ctx context.Context,
 		namespace = val
 	}
 
-	if service, ok := query["service"]; ok {
-		if svc := svr.Cache().Service().GetServiceByName(service, namespace); svc != nil {
+	if svcName, ok := query["service"]; ok {
+		if svc := svr.Cache().Service().GetServiceByName(svcName, namespace); svc != nil {
 			serviceId = svc.ID
 		}
 	}

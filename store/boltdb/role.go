@@ -21,12 +21,13 @@ import (
 	"encoding/json"
 	"time"
 
+	bolt "go.etcd.io/bbolt"
+	"go.uber.org/zap"
+
 	"github.com/polarismesh/polaris/common/model"
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
-	bolt "go.etcd.io/bbolt"
-	"go.uber.org/zap"
 )
 
 var _ store.RoleStore = (*roleStore)(nil)

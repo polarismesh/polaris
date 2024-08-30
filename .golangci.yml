@@ -167,7 +167,7 @@ linters-settings:
         disabled: false
       - name: max-public-structs
         severity: warning
-        disabled: false
+        disabled: true
         arguments: [35]
       - name: indent-error-flow
         severity: warning

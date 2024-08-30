@@ -21,10 +21,11 @@ import (
 	"encoding/json"
 	"time"
 
+	"go.uber.org/zap"
+
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
-	"go.uber.org/zap"
 )
 
 type roleStore struct {

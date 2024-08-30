@@ -106,7 +106,9 @@ func (svr *Server) Initialize(options *auth.Config, storage store.Store, cacheMg
 	checker := &DefaultAuthChecker{
 		policyMgr: svr,
 	}
-	checker.Initialize(svr.options, svr.storage, cacheMgr, userSvr)
+	if err := checker.Initialize(svr.options, svr.storage, cacheMgr, userSvr); err != nil {
+		return err
+	}
 	svr.checker = checker
 	return nil
 }

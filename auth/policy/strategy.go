@@ -942,9 +942,12 @@ var (
 		},
 	}
 
-	resourceConvert = map[apisecurity.ResourceType]func(context.Context, *Server, authcommon.StrategyResource) *apisecurity.StrategyResourceEntry{
+	resourceConvert = map[apisecurity.ResourceType]func(context.Context,
+		*Server, authcommon.StrategyResource) *apisecurity.StrategyResourceEntry{
+
 		// 注册、配置、治理
-		apisecurity.ResourceType_Namespaces: func(ctx context.Context, svr *Server, item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
+		apisecurity.ResourceType_Namespaces: func(ctx context.Context, svr *Server,
+			item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
 			user := svr.cacheMgr.Namespace().GetNamespace(item.ResID)
 			if user == nil {
 				log.Warn("[Auth][Strategy] not found namespace in fill-info",
@@ -957,7 +960,8 @@ var (
 				Name:      utils.NewStringValue(user.Name),
 			}
 		},
-		apisecurity.ResourceType_Services: func(ctx context.Context, svr *Server, item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
+		apisecurity.ResourceType_Services: func(ctx context.Context, svr *Server,
+			item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
 			user := svr.cacheMgr.Namespace().GetNamespace(item.ResID)
 			if user == nil {
 				log.Warn("[Auth][Strategy] not found namespace in fill-info",
@@ -970,7 +974,8 @@ var (
 				Name:      utils.NewStringValue(user.Name),
 			}
 		},
-		apisecurity.ResourceType_RouteRules: func(ctx context.Context, svr *Server, item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
+		apisecurity.ResourceType_RouteRules: func(ctx context.Context, svr *Server,
+			item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
 			user := svr.cacheMgr.RoutingConfig().GetRule(item.ResID)
 			if user == nil {
 				log.Warn("[Auth][Strategy] not found route_rule in fill-info",
@@ -983,7 +988,8 @@ var (
 				Name:      utils.NewStringValue(user.Name),
 			}
 		},
-		apisecurity.ResourceType_LaneRules: func(ctx context.Context, svr *Server, item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
+		apisecurity.ResourceType_LaneRules: func(ctx context.Context, svr *Server,
+			item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
 			user := svr.cacheMgr.LaneRule().GetRule(item.ResID)
 			if user == nil {
 				log.Warn("[Auth][Strategy] not found lane_rule in fill-info",
@@ -996,7 +1002,8 @@ var (
 				Name:      utils.NewStringValue(user.Name),
 			}
 		},
-		apisecurity.ResourceType_RateLimitRules: func(ctx context.Context, svr *Server, item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
+		apisecurity.ResourceType_RateLimitRules: func(ctx context.Context, svr *Server,
+			item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
 			user := svr.cacheMgr.RateLimit().GetRule(item.ResID)
 			if user == nil {
 				log.Warn("[Auth][Strategy] not found ratelimit_rule in fill-info",
@@ -1009,7 +1016,8 @@ var (
 				Name:      utils.NewStringValue(user.Name),
 			}
 		},
-		apisecurity.ResourceType_CircuitBreakerRules: func(ctx context.Context, svr *Server, item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
+		apisecurity.ResourceType_CircuitBreakerRules: func(ctx context.Context, svr *Server,
+			item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
 			user := svr.cacheMgr.CircuitBreaker().GetRule(item.ResID)
 			if user == nil {
 				log.Warn("[Auth][Strategy] not found circuitbreaker_rule in fill-info",
@@ -1022,7 +1030,8 @@ var (
 				Name:      utils.NewStringValue(user.Name),
 			}
 		},
-		apisecurity.ResourceType_FaultDetectRules: func(ctx context.Context, svr *Server, item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
+		apisecurity.ResourceType_FaultDetectRules: func(ctx context.Context, svr *Server,
+			item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
 			user := svr.cacheMgr.FaultDetector().GetRule(item.ResID)
 			if user == nil {
 				log.Warn("[Auth][Strategy] not found faultdetect_rule in fill-info",
@@ -1036,7 +1045,8 @@ var (
 			}
 		},
 		// 鉴权资源
-		apisecurity.ResourceType_Users: func(ctx context.Context, svr *Server, item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
+		apisecurity.ResourceType_Users: func(ctx context.Context, svr *Server,
+			item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
 			user := svr.cacheMgr.User().GetUserByID(item.ResID)
 			if user == nil {
 				log.Warn("[Auth][Strategy] not found user in fill-info",
@@ -1048,7 +1058,8 @@ var (
 				Name: utils.NewStringValue(user.Name),
 			}
 		},
-		apisecurity.ResourceType_UserGroups: func(ctx context.Context, svr *Server, item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
+		apisecurity.ResourceType_UserGroups: func(ctx context.Context, svr *Server,
+			item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
 			user := svr.cacheMgr.User().GetGroup(item.ResID)
 			if user == nil {
 				log.Warn("[Auth][Strategy] not found user_group in fill-info",
@@ -1060,7 +1071,8 @@ var (
 				Name: utils.NewStringValue(user.Name),
 			}
 		},
-		apisecurity.ResourceType_Roles: func(ctx context.Context, svr *Server, item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
+		apisecurity.ResourceType_Roles: func(ctx context.Context, svr *Server,
+			item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
 			user := svr.cacheMgr.Role().GetRole(item.ResID)
 			if user == nil {
 				log.Warn("[Auth][Strategy] not found role in fill-info",
@@ -1072,7 +1084,8 @@ var (
 				Name: utils.NewStringValue(user.Name),
 			}
 		},
-		apisecurity.ResourceType_PolicyRules: func(ctx context.Context, svr *Server, item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
+		apisecurity.ResourceType_PolicyRules: func(ctx context.Context, svr *Server,
+			item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
 			user := svr.cacheMgr.AuthStrategy().GetPolicyRule(item.ResID)
 			if user == nil {
 				log.Warn("[Auth][Strategy] not found auth_policy in fill-info",

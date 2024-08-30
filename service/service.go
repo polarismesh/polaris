@@ -332,7 +332,7 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *apis
 		inputInstMetaKeys, inputInstMetaValues string
 	)
 	for key, value := range query {
-		typ, _ := ServiceFilterAttributes[key]
+		typ := ServiceFilterAttributes[key]
 		switch {
 		case typ == serviceFilter:
 			serviceFilters[key] = value

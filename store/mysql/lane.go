@@ -295,8 +295,8 @@ func (l *laneStore) getLaneRulesByGroup(tx *BaseTx, names []string) (map[string]
 	}
 
 	querySql := `
-SELECT id, name, group_name, rule, revision, priority, description, enable, flag, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(etime), UNIX_TIMESTAMP(mtime)
-	FROM lane_rule WHERE flag = 0 AND group_name IN (%s)
+SELECT id, name, group_name, rule, revision, priority, description, enable, flag, UNIX_TIMESTAMP(ctime), 
+UNIX_TIMESTAMP(etime), UNIX_TIMESTAMP(mtime) FROM lane_rule WHERE flag = 0 AND group_name IN (%s)
 `
 	querySql = fmt.Sprintf(querySql, placeholders(len(names)))
 

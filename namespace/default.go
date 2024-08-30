@@ -75,7 +75,8 @@ func Initialize(ctx context.Context, nsOpt *Config, storage store.Store, cacheMg
 	return nil
 }
 
-func InitServer(ctx context.Context, nsOpt *Config, storage store.Store, cacheMgr *cache.CacheManager) (*Server, NamespaceOperateServer, error) {
+func InitServer(ctx context.Context, nsOpt *Config, storage store.Store,
+	cacheMgr *cache.CacheManager) (*Server, NamespaceOperateServer, error) {
 	if err := cacheMgr.OpenResourceCache(cachetypes.ConfigEntry{
 		Name: cachetypes.NamespaceName,
 	}); err != nil {

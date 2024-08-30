@@ -18,8 +18,9 @@
 package auth
 
 import (
-	"github.com/polarismesh/polaris/common/utils"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
+
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // PrincipalResourceContainer principal 资源容器

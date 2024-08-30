@@ -464,7 +464,8 @@ func (uc *userCache) QueryUserGroups(ctx context.Context, args types.UserGroupSe
 	return total, ret, nil
 }
 
-func (uc *userCache) listUserGroupsPage(groups []*authcommon.UserGroupDetail, args types.UserGroupSearchArgs) (uint32, []*authcommon.UserGroupDetail) {
+func (uc *userCache) listUserGroupsPage(groups []*authcommon.UserGroupDetail,
+	args types.UserGroupSearchArgs) (uint32, []*authcommon.UserGroupDetail) {
 	total := uint32(len(groups))
 	if args.Limit == 0 {
 		return total, nil

@@ -47,7 +47,8 @@ type Server struct {
 }
 
 // Initialize 初始化
-func (svr *Server) Initialize(authOpt *auth.Config, storage store.Store, policySvr auth.StrategyServer, cacheMgr cachetypes.CacheManager) error {
+func (svr *Server) Initialize(authOpt *auth.Config, storage store.Store, policySvr auth.StrategyServer,
+	cacheMgr cachetypes.CacheManager) error {
 	svr.policySvr = policySvr
 	return svr.nextSvr.Initialize(authOpt, storage, policySvr, cacheMgr)
 }

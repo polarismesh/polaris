@@ -229,7 +229,7 @@ func (s *Server) GetCircuitBreakerRules(ctx context.Context, query map[string]st
 	offset, limit, _ := utils.ParseOffsetAndLimit(query)
 	total, cbRules, err := s.storage.GetCircuitBreakerRules(query, offset, limit)
 	if err != nil {
-		log.Errorf("get circuitbreaker rules store", utils.RequestID(ctx), zap.Error(err))
+		log.Error("get circuitbreaker rules store", utils.RequestID(ctx), zap.Error(err))
 		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))
 	}
 	out := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)

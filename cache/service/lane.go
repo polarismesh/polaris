@@ -147,12 +147,8 @@ func (lc *LaneCache) processLaneRuleUpsert(old, item *model.LaneGroupProto, affe
 		waitDelServices[ns][svc] = struct{}{}
 	}
 	removeServiceIfExist := func(ns, svc string) {
-		if _, ok := waitDelServices[ns]; !ok {
-			waitDelServices[ns] = map[string]struct{}{}
-		}
-		if _, ok := waitDelServices[ns][svc]; ok {
-			delete(waitDelServices[ns], svc)
-		}
+		waitDelServices[ns] = map[string]struct{}{}
+		delete(waitDelServices[ns], svc)
 	}
 
 	handle := func(rule *model.LaneGroupProto, serviceOp func(ns, svc string), ruleOp func(string, string, *model.LaneGroupProto)) {

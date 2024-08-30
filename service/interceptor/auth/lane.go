@@ -20,17 +20,18 @@ package service_auth
 import (
 	"context"
 
-	cachetypes "github.com/polarismesh/polaris/cache/api"
-	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/model"
-	authcommon "github.com/polarismesh/polaris/common/model/auth"
-	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/specification/source/go/api/v1/security"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+
+	cachetypes "github.com/polarismesh/polaris/cache/api"
+	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
+	"github.com/polarismesh/polaris/common/utils"
 )
 
 // CreateLaneGroups 批量创建泳道组
@@ -119,8 +120,8 @@ func (svr *Server) GetLaneGroups(ctx context.Context, filter map[string]string) 
 }
 
 // collectLaneRuleAuthContext 收集全链路灰度规则
-func (svr *Server) collectLaneRuleAuthContext(ctx context.Context,
-	req []*apitraffic.LaneGroup, resourceOp authcommon.ResourceOperation, methodName authcommon.ServerFunctionName) *authcommon.AcquireContext {
+func (svr *Server) collectLaneRuleAuthContext(ctx context.Context, req []*apitraffic.LaneGroup,
+	op authcommon.ResourceOperation, methodName authcommon.ServerFunctionName) *authcommon.AcquireContext {
 
 	resources := make([]authcommon.ResourceEntry, 0, len(req))
 	for i := range req {
@@ -136,7 +137,7 @@ func (svr *Server) collectLaneRuleAuthContext(ctx context.Context,
 
 	return authcommon.NewAcquireContext(
 		authcommon.WithRequestContext(ctx),
-		authcommon.WithOperation(resourceOp),
+		authcommon.WithOperation(op),
 		authcommon.WithModule(authcommon.DiscoverModule),
 		authcommon.WithMethod(methodName),
 		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{

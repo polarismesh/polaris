@@ -96,7 +96,7 @@ func (s *Server) DeleteConfigFileFromClient(ctx context.Context,
 // PublishConfigFileFromClient 调用config_file_release的方法发布配置文件
 func (s *Server) PublishConfigFileFromClient(ctx context.Context,
 	fileInfo *apiconfig.ConfigFileRelease) *apiconfig.ConfigClientResponse {
-	authCtx := s.collectClientConfigFileReleaseAuthContext(ctx,
+	authCtx := s.collectClientConfigFileRelease(ctx,
 		[]*apiconfig.ConfigFileRelease{{
 			Namespace: fileInfo.Namespace,
 			Name:      fileInfo.FileName,
@@ -150,7 +150,7 @@ func (s *Server) LongPullWatchFile(ctx context.Context,
 func (s *Server) GetConfigFileNamesWithCache(ctx context.Context,
 	req *apiconfig.ConfigFileGroupRequest) *apiconfig.ConfigClientListResponse {
 
-	authCtx := s.collectClientConfigFileReleaseAuthContext(ctx, []*apiconfig.ConfigFileRelease{
+	authCtx := s.collectClientConfigFileRelease(ctx, []*apiconfig.ConfigFileRelease{
 		{
 			Namespace: req.GetConfigFileGroup().GetNamespace(),
 			Group:     req.GetConfigFileGroup().GetName(),
@@ -170,7 +170,7 @@ func (s *Server) GetConfigFileNamesWithCache(ctx context.Context,
 func (s *Server) GetConfigGroupsWithCache(ctx context.Context,
 	req *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigDiscoverResponse {
 
-	authCtx := s.collectClientConfigFileReleaseAuthContext(ctx, []*apiconfig.ConfigFileRelease{
+	authCtx := s.collectClientConfigFileRelease(ctx, []*apiconfig.ConfigFileRelease{
 		{
 			Namespace: req.GetNamespace(),
 		},

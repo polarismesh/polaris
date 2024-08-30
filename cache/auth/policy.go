@@ -362,9 +362,9 @@ func (sc *policyCache) Query(ctx context.Context, args types.PolicySearchArgs) (
 	searchOwner, hasOwner := args.Filters["owner"]
 	searchDefault, hasDefault := args.Filters["default"]
 	searchResType, hasResType := args.Filters["res_type"]
-	searchResID, _ := args.Filters["res_id"]
+	searchResID := args.Filters["res_id"]
 	searchPrincipalId, hasPrincipalId := args.Filters["principal_id"]
-	searchPrincipalType, _ := args.Filters["principal_type"]
+	searchPrincipalType := args.Filters["principal_type"]
 
 	predicates := types.LoadAuthPolicyPredicates(ctx)
 
