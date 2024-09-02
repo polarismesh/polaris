@@ -175,8 +175,9 @@ func (d *DefaultAuthChecker) doCheckPermission(authCtx *authcommon.AcquireContex
 	if d.IsCredible(authCtx) {
 		return true, nil
 	}
+	cur := authCtx.GetAttachments()[authcommon.PrincipalKey].(authcommon.Principal)
 
-	principals := d.listAllPrincipals(authCtx.GetAttachments()[authcommon.PrincipalKey].(authcommon.Principal))
+	principals := d.listAllPrincipals(cur)
 
 	// 遍历所有的 principal，检查是否有一个符合要求
 	for i := range principals {

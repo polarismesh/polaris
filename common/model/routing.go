@@ -385,16 +385,19 @@ func parseSubRouteRule(ruleRouting *apitraffic.RuleRoutingConfig) *RuleRoutingCo
 
 	for i := range ruleRouting.Rules {
 		item := ruleRouting.Rules[i]
-		source := item.Sources[0]
-		destination := item.Destinations[0]
-
-		wrapper.Caller = ServiceKey{
-			Namespace: source.Namespace,
-			Name:      source.Service,
+		if len(item.Sources) != 0 {
+			source := item.Sources[0]
+			wrapper.Caller = ServiceKey{
+				Namespace: source.Namespace,
+				Name:      source.Service,
+			}
 		}
-		wrapper.Callee = ServiceKey{
-			Namespace: destination.Namespace,
-			Name:      destination.Service,
+		if len(item.Destinations) != 0 {
+			destination := item.Destinations[0]
+			wrapper.Callee = ServiceKey{
+				Namespace: destination.Namespace,
+				Name:      destination.Service,
+			}
 		}
 		break
 	}

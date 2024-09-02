@@ -39,20 +39,19 @@ import (
 //	该层会对请求参数做一些调整，根据具体的请求发起人，设置为数据对应的 owner，不可为为别人进行创建资源
 type Server struct {
 	nextSvr   service.DiscoverServer
-	userMgn   auth.UserServer
+	userSvr   auth.UserServer
 	policySvr auth.StrategyServer
 }
 
-func NewServerAuthAbility(nextSvr service.DiscoverServer,
-	userMgn auth.UserServer, policySvr auth.StrategyServer) service.DiscoverServer {
+func NewServer(nextSvr service.DiscoverServer,
+	userSvr auth.UserServer, policySvr auth.StrategyServer) service.DiscoverServer {
 	proxy := &Server{
 		nextSvr:   nextSvr,
-		userMgn:   userMgn,
+		userSvr:   userSvr,
 		policySvr: policySvr,
 	}
 
-	actualSvr, ok := nextSvr.(*service.Server)
-	if ok {
+	if actualSvr, ok := nextSvr.(*service.Server); ok {
 		actualSvr.SetResourceHooks(proxy)
 	}
 	return proxy
@@ -228,7 +227,7 @@ func (svr *Server) collectCircuitBreakerRuleV2(ctx context.Context, req []*apifa
 			resources = append(resources, authcommon.ResourceEntry{
 				Type:     apisecurity.ResourceType_CircuitBreakerRules,
 				ID:       saveRule.ID,
-				Metadata: saveRule.Proto.Metadata,
+				Metadata: saveRule.Proto.GetMetadata(),
 			})
 		}
 	}
@@ -255,7 +254,7 @@ func (svr *Server) collectFaultDetectAuthContext(ctx context.Context, req []*api
 			resources = append(resources, authcommon.ResourceEntry{
 				Type:     apisecurity.ResourceType_FaultDetectRules,
 				ID:       saveRule.ID,
-				Metadata: saveRule.Proto.Metadata,
+				Metadata: saveRule.Proto.GetMetadata(),
 			})
 		}
 	}

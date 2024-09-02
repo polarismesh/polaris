@@ -465,15 +465,11 @@ func (f *faultDetectCache) toPage(total uint32, items []*model.FaultDetectRule,
 	if args.Limit == 0 {
 		return total, items
 	}
-	start := args.Limit * args.Offset
-	end := args.Limit * (args.Offset + 1)
-	if start > total {
-		return total, nil
+	endIdx := args.Offset + args.Limit
+	if endIdx > total {
+		endIdx = total
 	}
-	if end > total {
-		end = total
-	}
-	return total, items[start:end]
+	return total, items[args.Offset:endIdx]
 }
 
 // GetRule implements api.FaultDetectCache.

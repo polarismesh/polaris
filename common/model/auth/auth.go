@@ -555,6 +555,15 @@ type Principal struct {
 	Extend        map[string]string
 }
 
+func NewAnonymousPrincipal() Principal {
+	return Principal{
+		Name:          "__anonymous__",
+		PrincipalType: PrincipalUser,
+		PrincipalID:   "__anonymous__",
+		Extend:        map[string]string{},
+	}
+}
+
 func (p Principal) String() string {
 	return fmt.Sprintf("%s/%s", p.PrincipalType.String(), p.PrincipalID)
 }

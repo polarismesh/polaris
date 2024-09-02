@@ -78,10 +78,14 @@ func (sc *serviceCache) GetServicesByFilter(ctx context.Context, serviceFilters 
 	predicates := types.LoadServicePredicates(ctx)
 	ret := make([]*model.Service, 0, len(matchServices))
 	for i := range matchServices {
+		pass := true
 		for pi := range predicates {
 			if !predicates[pi](ctx, matchServices[i]) {
-				continue
+				pass = false
+				break
 			}
+		}
+		if pass {
 			ret = append(ret, matchServices[i])
 		}
 	}

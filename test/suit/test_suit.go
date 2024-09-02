@@ -221,6 +221,9 @@ func (d *DiscoverTestSuit) loadConfig() error {
 		fmt.Printf("[ERROR] %v\n", err)
 		return err
 	}
+	if os.Getenv("STORE_MODE") != "sqldb" {
+		d.cfg.Store.Option["loadFile"] = testdata.Path("bolt-data.yaml")
+	}
 	d.cfg.Naming.Interceptors = service.GetChainOrder()
 	d.cfg.Config.Interceptors = config.GetChainOrder()
 	return err
@@ -397,7 +400,7 @@ func TestNamespaceInitialize(ctx context.Context, nsOpt *namespace.Config, stora
 	userMgn auth.UserServer, strategyMgn auth.StrategyServer) (namespace.NamespaceOperateServer, error) {
 
 	ctx = context.WithValue(ctx, interceptor.ContextKeyUserSvr{}, userMgn)
-	ctx = context.WithValue(ctx, interceptor.ContextKeyPolicySvr{}, userMgn)
+	ctx = context.WithValue(ctx, interceptor.ContextKeyPolicySvr{}, strategyMgn)
 
 	_, proxySvr, err := namespace.InitServer(ctx, nsOpt, storage, cacheMgr)
 	if err != nil {

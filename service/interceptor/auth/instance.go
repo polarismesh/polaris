@@ -34,8 +34,7 @@ func (svr *Server) CreateInstances(ctx context.Context,
 	reqs []*apiservice.Instance) *apiservice.BatchWriteResponse {
 	authCtx := svr.collectInstanceAuthContext(ctx, reqs, authcommon.Create, authcommon.CreateInstances)
 
-	_, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx)
-	if err != nil {
+	if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		resp := api.NewResponseWithMsg(authcommon.ConvertToErrCode(err), err.Error())
 		batchResp := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
 		api.Collect(batchResp, resp)

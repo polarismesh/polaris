@@ -83,7 +83,7 @@ func (svr *Server) GetFaultDetectRules(
 		return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authcommon.ResourceEntry{
 			Type:     security.ResourceType_FaultDetectRules,
 			ID:       cbr.ID,
-			Metadata: cbr.Proto.Metadata,
+			Metadata: cbr.Proto.GetMetadata(),
 		})
 	})
 	authCtx.SetRequestContext(ctx)

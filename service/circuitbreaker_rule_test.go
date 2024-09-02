@@ -316,7 +316,7 @@ func TestUpdateCircuitBreakerRule(t *testing.T) {
 		testRule := cbRules[0]
 		testRule.Description = mockDescr
 		resp = discoverSuit.DiscoverServer().UpdateCircuitBreakerRules(discoverSuit.DefaultCtx, []*apifault.CircuitBreakerRule{testRule})
-		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue())
+		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), resp.GetCode().GetValue(), resp.GetInfo().GetValue())
 		qResp = queryCircuitBreakerRules(discoverSuit, map[string]string{"id": testRule.Id})
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), qResp.GetCode().GetValue())
 

@@ -465,7 +465,8 @@ func (svr *Server) CheckCredential(authCtx *authcommon.AcquireContext) error {
 		log.Warn("[Auth][Checker] parse operator info, downgrade to anonymous", utils.RequestID(authCtx.GetRequestContext()),
 			zap.Error(checkErr))
 		// 操作者信息解析失败，降级为匿名用户
-		authCtx.SetAttachment(authcommon.TokenDetailInfoKey, auth.NewAnonymous())
+		authCtx.SetAttachment(authcommon.PrincipalKey, authcommon.NewAnonymousPrincipal())
+		authCtx.SetAttachment(authcommon.TokenDetailInfoKey, auth.NewAnonymousOperatorInfo())
 	}
 	return nil
 }

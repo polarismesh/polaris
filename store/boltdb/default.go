@@ -120,6 +120,7 @@ func (m *boltStore) Initialize(c *store.Config) error {
 	}
 
 	if loadFile, ok := c.Option["loadFile"].(string); ok {
+		// 仅用于本地测试验证单机数据
 		loadFileName := os.Getenv("POLARIS_DEV_BOLT_INIT_DATA_FILA")
 		if loadFileName != "" {
 			loadFile = loadFileName

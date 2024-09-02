@@ -166,7 +166,7 @@ func TestCompatibleRoutingConfigV2AndV1(t *testing.T) {
 		if !respSuccess(out) {
 			t.Fatalf("error: %+v", out)
 		}
-		assert.Equal(t, int(3), int(out.GetAmount().GetValue()), "query routing size")
+		assert.Equal(t, int(6), int(out.GetAmount().GetValue()), "query routing size")
 
 		rulesV2, err := unmarshalRoutingV2toAnySlice(out.GetData())
 		assert.NoError(t, err)

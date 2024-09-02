@@ -194,7 +194,7 @@ type OperatorInfo struct {
 	Anonymous bool
 }
 
-func NewAnonymous() OperatorInfo {
+func NewAnonymousOperatorInfo() OperatorInfo {
 	return OperatorInfo{
 		Origin:     "",
 		OwnerID:    "",
