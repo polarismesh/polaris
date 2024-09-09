@@ -377,8 +377,9 @@ func (b *RouteRuleContainer) saveV2(conf *model.ExtendRouterConfig) {
 		defer container.lock.Unlock()
 
 		b.effect.Add(svcKey)
-		container.SaveRule(svcKey, conf)
+		// 先删除，再保存
 		container.CleanAllRule(conf.ID)
+		container.SaveRule(svcKey, conf)
 	}
 
 	switch conf.GetRoutingPolicy() {

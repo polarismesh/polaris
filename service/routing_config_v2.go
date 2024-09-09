@@ -19,8 +19,11 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"strconv"
+	"time"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -64,7 +67,7 @@ func (s *Server) createRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 		return apiv1.NewResponse(commonstore.StoreCode2APICode(err))
 	}
 
-	s.RecordHistory(ctx, routingV2RecordEntry(ctx, req, conf, model.OCreate))
+	s.RecordHistory(ctx, routeRuleRecordEntry(ctx, req, conf, model.OCreate))
 	_ = s.afterRuleResource(ctx, model.RRouting, authcommon.ResourceEntry{
 		ID:   req.GetId(),
 		Type: security.ResourceType_RouteRules,
@@ -87,21 +90,13 @@ func (s *Server) DeleteRoutingConfigsV2(
 
 // DeleteRoutingConfigV2 Delete a routing configuration
 func (s *Server) deleteRoutingConfigV2(ctx context.Context, req *apitraffic.RouteRule) *apiservice.Response {
-	// Determine whether the current routing rules are only converted from the memory transmission in the V1 version
-	if _, ok := s.Cache().RoutingConfig().IsConvertFromV1(req.Id); ok {
-		resp := s.transferV1toV2OnModify(ctx, req)
-		if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
-			return resp
-		}
-	}
-
 	if err := s.storage.DeleteRoutingConfigV2(req.Id); err != nil {
 		log.Error("[Routing][V2] delete routing config v2 store layer",
 			utils.RequestID(ctx), zap.Error(err))
 		return apiv1.NewResponse(commonstore.StoreCode2APICode(err))
 	}
 
-	s.RecordHistory(ctx, routingV2RecordEntry(ctx, req, &model.RouterConfig{
+	s.RecordHistory(ctx, routeRuleRecordEntry(ctx, req, &model.RouterConfig{
 		ID:   req.GetId(),
 		Name: req.GetName(),
 	}, model.ODelete))
@@ -127,16 +122,6 @@ func (s *Server) UpdateRoutingConfigsV2(
 
 // updateRoutingConfigV2 Update a single routing configuration
 func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apitraffic.RouteRule) *apiservice.Response {
-	// If V2 routing rules to be modified are from the V1 rule in the cache, need to do the following steps first
-	// step 1: Turn the V1 rule to the real V2 rule
-	// step 2: Find the corresponding route to the V2 rules to be modified in the V1 rules, set their rules ID
-	// step 3: Store persistence
-	if _, ok := s.Cache().RoutingConfig().IsConvertFromV1(req.Id); ok {
-		resp := s.transferV1toV2OnModify(ctx, req)
-		if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
-			return resp
-		}
-	}
 	// Check whether the routing configuration exists
 	conf, err := s.storage.GetRoutingConfigV2WithID(req.Id)
 	if err != nil {
@@ -162,7 +147,7 @@ func (s *Server) updateRoutingConfigV2(ctx context.Context, req *apitraffic.Rout
 		return apiv1.NewResponse(commonstore.StoreCode2APICode(err))
 	}
 
-	s.RecordHistory(ctx, routingV2RecordEntry(ctx, req, reqModel, model.OUpdate))
+	s.RecordHistory(ctx, routeRuleRecordEntry(ctx, req, reqModel, model.OUpdate))
 	return apiv1.NewResponse(apimodel.Code_ExecuteSuccess)
 }
 
@@ -205,13 +190,6 @@ func (s *Server) EnableRoutings(ctx context.Context, req []*apitraffic.RouteRule
 }
 
 func (s *Server) enableRoutings(ctx context.Context, req *apitraffic.RouteRule) *apiservice.Response {
-	if _, ok := s.Cache().RoutingConfig().IsConvertFromV1(req.Id); ok {
-		resp := s.transferV1toV2OnModify(ctx, req)
-		if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
-			return resp
-		}
-	}
-
 	conf, err := s.storage.GetRoutingConfigV2WithID(req.Id)
 	if err != nil {
 		log.Error("[Routing][V2] get routing config v2 store layer",
@@ -231,64 +209,7 @@ func (s *Server) enableRoutings(ctx context.Context, req *apitraffic.RouteRule) 
 		return apiv1.NewResponse(commonstore.StoreCode2APICode(err))
 	}
 
-	s.RecordHistory(ctx, routingV2RecordEntry(ctx, req, conf, model.OUpdate))
-	return apiv1.NewResponse(apimodel.Code_ExecuteSuccess)
-}
-
-// transferV1toV2OnModify When enabled or prohibited for the V2 rules, the V1 rules need to be converted to V2 rules
-// and execute persistent storage
-func (s *Server) transferV1toV2OnModify(ctx context.Context, req *apitraffic.RouteRule) *apiservice.Response {
-	svcId, _ := s.Cache().RoutingConfig().IsConvertFromV1(req.Id)
-	v1conf, err := s.storage.GetRoutingConfigWithID(svcId)
-	if err != nil {
-		log.Error("[Routing][V2] get routing config v1 store layer",
-			utils.RequestID(ctx), zap.Error(err))
-		return apiv1.NewResponse(commonstore.StoreCode2APICode(err))
-	}
-	if v1conf != nil {
-		svc, err := s.loadServiceByID(svcId)
-		if svc == nil {
-			log.Error("[Routing][V2] convert routing config v1 to v2 find svc",
-				utils.RequestID(ctx), zap.Error(err))
-			return apiv1.NewResponse(apimodel.Code_NotFoundService)
-		}
-
-		inV2, outV2, err := model.ConvertRoutingV1ToExtendV2(svc.Name, svc.Namespace, v1conf)
-		if err != nil {
-			log.Error("[Routing][V2] convert routing config v1 to v2",
-				utils.RequestID(ctx), zap.Error(err))
-			return apiv1.NewResponse(apimodel.Code_ExecuteException)
-		}
-
-		formatApi := func(rules []*model.ExtendRouterConfig) ([]*apitraffic.RouteRule, *apiservice.Response) {
-			ret := make([]*apitraffic.RouteRule, 0, len(rules))
-			for i := range rules {
-				item, err := rules[i].ToApi()
-				if err != nil {
-					log.Error("[Routing][V2] convert routing config v1 to v2, format v2 to api",
-						utils.RequestID(ctx), zap.Error(err))
-					return nil, apiv1.NewResponse(apimodel.Code_ExecuteException)
-				}
-				ret = append(ret, item)
-			}
-
-			return ret, nil
-		}
-
-		inDatas, resp := formatApi(inV2)
-		if resp != nil {
-			return resp
-		}
-		outDatas, resp := formatApi(outV2)
-		if resp != nil {
-			return resp
-		}
-
-		if resp := s.saveRoutingV1toV2(ctx, svcId, inDatas, outDatas); resp.GetCode().GetValue() != apiv1.ExecuteSuccess {
-			return apiv1.NewResponse(apimodel.Code(resp.GetCode().GetValue()))
-		}
-	}
-
+	s.RecordHistory(ctx, routeRuleRecordEntry(ctx, req, conf, model.OUpdate))
 	return apiv1.NewResponse(apimodel.Code_ExecuteSuccess)
 }
 
@@ -365,4 +286,23 @@ func marshalRoutingV2toAnySlice(routings []*model.ExtendRouterConfig) ([]*any.An
 	}
 
 	return ret, nil
+}
+
+// routeRuleRecordEntry Construction of RoutingConfig's record Entry
+func routeRuleRecordEntry(ctx context.Context, req *apitraffic.RouteRule, md *model.RouterConfig,
+	opt model.OperationType) *model.RecordEntry {
+
+	marshaler := jsonpb.Marshaler{}
+	detail, _ := marshaler.MarshalToString(req)
+
+	entry := &model.RecordEntry{
+		ResourceType:  model.RRouting,
+		ResourceName:  fmt.Sprintf("%s(%s)", md.Name, md.ID),
+		Namespace:     req.GetNamespace(),
+		OperationType: opt,
+		Operator:      utils.ParseOperator(ctx),
+		Detail:        detail,
+		HappenTime:    time.Now(),
+	}
+	return entry
 }
