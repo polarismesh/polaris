@@ -763,8 +763,8 @@ VALUES
         1,
         'fbca9bfa04ae4ead86e1ecf5811e32a9',
         0,
-        SYSDATE (),
-        SYSDATE ()
+        sysdate(),
+        sysdate()
     );
 
 -- Sport rules inserted into Polaris-Admin to access
@@ -781,22 +781,22 @@ VALUES
         'fbca9bfa04ae4ead86e1ecf5811e32a9',
         0,
         '*',
-        SYSDATE (),
-        SYSDATE ()
+        sysdate(),
+        sysdate()
     ),
     (
         'fbca9bfa04ae4ead86e1ecf5811e32a9',
         1,
         '*',
-        SYSDATE (),
-        SYSDATE ()
+        sysdate(),
+        sysdate()
     ),
     (
         'fbca9bfa04ae4ead86e1ecf5811e32a9',
         2,
         '*',
-        SYSDATE (),
-        SYSDATE ()
+        sysdate(),
+        sysdate()
     );
 
 -- Insert permission policies and association relationships for Polaris-Admin accounts
