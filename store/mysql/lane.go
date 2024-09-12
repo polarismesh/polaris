@@ -200,9 +200,9 @@ SELECT id, name, rule, description, revision, flag, UNIX_TIMESTAMP(ctime), UNIX_
 	for k, v := range filter {
 		switch k {
 		case "name":
-			if v, ok := utils.ParseWildName(v); ok {
+			if pv, ok := utils.ParseWildName(v); ok {
 				conditions = append(conditions, "name = ?")
-				args = append(args, v)
+				args = append(args, pv)
 			} else {
 				conditions = append(conditions, "name LIKE ?")
 				args = append(args, "%"+v+"%")

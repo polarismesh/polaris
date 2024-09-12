@@ -128,30 +128,30 @@ func (s *strategyStore) updateStrategy(strategy *authcommon.ModifyStrategyDetail
 	defer func() { _ = tx.Rollback() }()
 
 	// 调整 principal 信息
-	if err := s.addPolicyPrincipals(tx, strategy.ID, strategy.AddPrincipals); err != nil {
+	if err = s.addPolicyPrincipals(tx, strategy.ID, strategy.AddPrincipals); err != nil {
 		log.Errorf("[Store][Strategy] add strategy principal err: %s", err.Error())
 		return err
 	}
-	if err := s.deletePolicyPrincipals(tx, strategy.ID, strategy.RemovePrincipals); err != nil {
+	if err = s.deletePolicyPrincipals(tx, strategy.ID, strategy.RemovePrincipals); err != nil {
 		log.Errorf("[Store][Strategy] remove strategy principal err: %s", err.Error())
 		return err
 	}
 
 	// 调整鉴权资源信息
-	if err := s.addPolicyResources(tx, strategy.ID, strategy.AddResources); err != nil {
+	if err = s.addPolicyResources(tx, strategy.ID, strategy.AddResources); err != nil {
 		log.Errorf("[Store][Strategy] add strategy resource err: %s", err.Error())
 		return err
 	}
-	if err := s.deletePolicyResources(tx, strategy.ID, strategy.RemoveResources); err != nil {
+	if err = s.deletePolicyResources(tx, strategy.ID, strategy.RemoveResources); err != nil {
 		log.Errorf("[Store][Strategy] remove strategy resource err: %s", err.Error())
 		return err
 	}
 
-	if err := s.savePolicyFunctions(tx, strategy.ID, strategy.CalleeMethods); err != nil {
+	if err = s.savePolicyFunctions(tx, strategy.ID, strategy.CalleeMethods); err != nil {
 		log.Error("[Store][Strategy] save auth_strategy functions", zap.Error(err))
 		return err
 	}
-	if err := s.savePolicyConditions(tx, strategy.ID, strategy.Conditions); err != nil {
+	if err = s.savePolicyConditions(tx, strategy.ID, strategy.Conditions); err != nil {
 		log.Error("[Store][Strategy] save auth_strategy conditions", zap.Error(err))
 		return err
 	}
@@ -163,7 +163,7 @@ func (s *strategyStore) updateStrategy(strategy *authcommon.ModifyStrategyDetail
 		return err
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err = tx.Commit(); err != nil {
 		log.Errorf("[Store][Strategy] update auth_strategy tx commit err: %s", err.Error())
 		return err
 	}
@@ -420,7 +420,7 @@ func (s *strategyStore) RemoveStrategyResources(resources []authcommon.StrategyR
 			saveResSql = "DELETE FROM auth_strategy_resource WHERE res_id = ? AND res_type = ?"
 			args = append(args, resource.ResID, resource.ResType)
 		}
-		if _, err := tx.Exec(saveResSql, args...); err != nil {
+		if _, err = tx.Exec(saveResSql, args...); err != nil {
 			return err
 		}
 		// 主要是为了能够触发 StrategyCache 的刷新逻辑
@@ -430,7 +430,7 @@ func (s *strategyStore) RemoveStrategyResources(resources []authcommon.StrategyR
 		}
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err = tx.Commit(); err != nil {
 		log.Errorf("[Store][Strategy] add auth_strategy tx commit err: %s", err.Error())
 		return err
 	}
