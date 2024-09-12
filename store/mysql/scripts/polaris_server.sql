@@ -885,9 +885,9 @@ VALUES
     }',
         'json',
         'Spring Cloud Gateway  染色规则',
-        NOW (),
+        NOW(),
         'polaris',
-        NOW (),
+        NOW(),
         'polaris'
     );
 

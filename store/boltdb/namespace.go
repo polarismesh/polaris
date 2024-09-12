@@ -253,7 +253,7 @@ func (n *namespaceStore) GetMoreNamespaces(mtime time.Time) ([]*model.Namespace,
 			if !ok {
 				return false
 			}
-			return mTimeValue.(time.Time).After(mtime)
+			return !mTimeValue.(time.Time).Before(mtime)
 		})
 	if err != nil {
 		return nil, err

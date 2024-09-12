@@ -221,7 +221,7 @@ func (nsCache *namespaceCache) singleUpdate() (error, bool) {
 }
 
 func (nsCache *namespaceCache) Query(ctx context.Context, args *types.NamespaceArgs) (uint32, []*model.Namespace, error) {
-	if err := nsCache.Update(); err != nil {
+	if err := nsCache.forceQueryUpdate(); err != nil {
 		return 0, nil, err
 	}
 
