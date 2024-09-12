@@ -232,6 +232,6 @@ func (svr *Server) GetCMDBInfo(ctx context.Context) ([]model.LocationView, error
 }
 
 // GetServerFunctions 获取服务端支持的功能列表
-func (svr *Server) GetServerFunctions(ctx context.Context) map[string][]authcommon.ServerFunctionName {
+func (svr *Server) GetServerFunctions(ctx context.Context) []authcommon.ServerFunctionGroup {
 	return authcommon.ServerFunctions
 }

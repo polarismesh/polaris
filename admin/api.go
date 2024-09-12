@@ -57,5 +57,5 @@ type AdminOperateServer interface {
 	// InitMainUser
 	InitMainUser(ctx context.Context, user apisecurity.User) error
 	// GetServerFunctions Get server functions
-	GetServerFunctions(ctx context.Context) map[string][]authcommon.ServerFunctionName
+	GetServerFunctions(ctx context.Context) []authcommon.ServerFunctionGroup
 }

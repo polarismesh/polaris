@@ -238,6 +238,11 @@ func (s *Server) GetLaneGroups(ctx context.Context, filter map[string]string) *a
 	return rsp
 }
 
+// GetAllLaneGroups Query all router_rule rules
+func (s *Server) GetAllLaneGroups(ctx context.Context) *apiservice.BatchQueryResponse {
+	return nil
+}
+
 func updateLaneGroupAttribute(req *apitraffic.LaneGroup, saveData *model.LaneGroup) (bool, error) {
 	updateData := &model.LaneGroup{}
 	if err := updateData.FromSpec(req); err != nil {

@@ -960,6 +960,21 @@ var (
 				Name:      utils.NewStringValue(user.Name),
 			}
 		},
+		apisecurity.ResourceType_ConfigGroups: func(ctx context.Context, svr *Server,
+			item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
+			id, _ := strconv.ParseUint(item.ResID, 10, 64)
+			user := svr.cacheMgr.ConfigGroup().GetGroupByID(id)
+			if user == nil {
+				log.Warn("[Auth][Strategy] not found config_group in fill-info",
+					zap.String("id", item.StrategyID), zap.String("res-id", item.ResID), utils.RequestID(ctx))
+				return nil
+			}
+			return &apisecurity.StrategyResourceEntry{
+				Id:        utils.NewStringValue(item.ResID),
+				Namespace: utils.NewStringValue(user.Namespace),
+				Name:      utils.NewStringValue(user.Name),
+			}
+		},
 		apisecurity.ResourceType_Services: func(ctx context.Context, svr *Server,
 			item authcommon.StrategyResource) *apisecurity.StrategyResourceEntry {
 			user := svr.cacheMgr.Namespace().GetNamespace(item.ResID)

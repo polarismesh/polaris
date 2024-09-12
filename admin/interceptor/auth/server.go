@@ -209,6 +209,6 @@ func (svr *Server) GetCMDBInfo(ctx context.Context) ([]model.LocationView, error
 }
 
 // GetServerFunctions .
-func (svr *Server) GetServerFunctions(ctx context.Context) map[string][]authcommon.ServerFunctionName {
+func (svr *Server) GetServerFunctions(ctx context.Context) []authcommon.ServerFunctionGroup {
 	return svr.nextSvr.GetServerFunctions(ctx)
 }

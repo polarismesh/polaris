@@ -253,6 +253,11 @@ func (s *Server) GetCircuitBreakerRules(ctx context.Context, query map[string]st
 	return out
 }
 
+// GetAllCircuitBreakerRules Query all router_rule rules
+func (s *Server) GetAllCircuitBreakerRules(ctx context.Context) *apiservice.BatchQueryResponse {
+	return nil
+}
+
 func circuitBreakerRuleRecordEntry(ctx context.Context, req *apifault.CircuitBreakerRule, md *model.CircuitBreakerRule,
 	opt model.OperationType) *model.RecordEntry {
 	marshaler := jsonpb.Marshaler{}

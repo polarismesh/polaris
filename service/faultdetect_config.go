@@ -209,6 +209,11 @@ func (s *Server) GetFaultDetectRules(ctx context.Context, query map[string]strin
 	return out
 }
 
+// GetAllFaultDetectRules Query all router_rule rules
+func (s *Server) GetAllFaultDetectRules(ctx context.Context) *apiservice.BatchQueryResponse {
+	return nil
+}
+
 func marshalFaultDetectRule(req *apifault.FaultDetectRule) (string, error) {
 	r := &apifault.FaultDetectRule{
 		TargetService: req.TargetService,

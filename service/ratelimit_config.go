@@ -242,6 +242,11 @@ func (s *Server) GetRateLimits(ctx context.Context, query map[string]string) *ap
 	return out
 }
 
+// GetAllRateLimits Query all router_rule rules
+func (s *Server) GetAllRateLimits(ctx context.Context) *apiservice.BatchQueryResponse {
+	return nil
+}
+
 func parseRateLimitArgs(query map[string]string) (*cachetypes.RateLimitRuleArgs, *apiservice.BatchQueryResponse) {
 	for key := range query {
 		if _, ok := RateLimitFilters[key]; !ok {

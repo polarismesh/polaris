@@ -399,9 +399,7 @@ func parseSubRouteRule(ruleRouting *apitraffic.RuleRoutingConfig) *RuleRoutingCo
 				Name:      destination.Service,
 			}
 		}
-		break
 	}
-
 	return wrapper
 }
 

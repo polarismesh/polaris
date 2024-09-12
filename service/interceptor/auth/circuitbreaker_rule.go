@@ -98,13 +98,14 @@ func (svr *Server) GetCircuitBreakerRules(
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	ctx = cachetypes.AppendCircuitBreakerRulePredicate(ctx, func(ctx context.Context, cbr *model.CircuitBreakerRule) bool {
-		return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authcommon.ResourceEntry{
-			Type:     security.ResourceType_CircuitBreakerRules,
-			ID:       cbr.ID,
-			Metadata: cbr.Proto.Metadata,
+	ctx = cachetypes.AppendCircuitBreakerRulePredicate(ctx,
+		func(ctx context.Context, cbr *model.CircuitBreakerRule) bool {
+			return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authcommon.ResourceEntry{
+				Type:     security.ResourceType_CircuitBreakerRules,
+				ID:       cbr.ID,
+				Metadata: cbr.Proto.Metadata,
+			})
 		})
-	})
 	authCtx.SetRequestContext(ctx)
 
 	resp := svr.nextSvr.GetCircuitBreakerRules(ctx, query)
@@ -123,7 +124,10 @@ func (svr *Server) GetCircuitBreakerRules(
 		})
 
 		// 检查 write 操作权限
-		authCtx.SetMethod([]authcommon.ServerFunctionName{authcommon.UpdateCircuitBreakerRules, authcommon.EnableCircuitBreakerRules})
+		authCtx.SetMethod([]authcommon.ServerFunctionName{
+			authcommon.UpdateCircuitBreakerRules,
+			authcommon.EnableCircuitBreakerRules,
+		})
 		// 如果检查不通过，设置 editable 为 false
 		if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 			item.Editable = false

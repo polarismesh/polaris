@@ -178,6 +178,11 @@ func (s *Server) QueryRoutingConfigsV2(ctx context.Context, query map[string]str
 	return resp
 }
 
+// GetAllRouterRules Query all router_rule rules
+func (s *Server) GetAllRouterRules(ctx context.Context) *apiservice.BatchQueryResponse {
+	return nil
+}
+
 // EnableRoutings batch enable routing rules
 func (s *Server) EnableRoutings(ctx context.Context, req []*apitraffic.RouteRule) *apiservice.BatchWriteResponse {
 	out := apiv1.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
