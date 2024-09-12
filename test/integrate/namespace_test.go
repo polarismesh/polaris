@@ -29,6 +29,7 @@ import (
 
 	v1 "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/test/integrate/http"
 	"github.com/polarismesh/polaris/test/integrate/resource"
 )
@@ -56,7 +57,7 @@ func TestNamespace(t *testing.T) {
 	// 查询命名空间
 	_, err = client.GetNamespaces(namespaces)
 	if err != nil {
-		t.Fatalf("get namespaces fail: %s", err.Error())
+		t.Fatalf("get namespaces: %#v fail: %s", utils.MustJson(namespaces), err.Error())
 	}
 	t.Log("get namespaces success")
 

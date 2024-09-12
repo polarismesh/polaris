@@ -197,7 +197,7 @@ func (c *Client) GetNamespaces(namespaces []*apimodel.Namespace) ([]*apimodel.Na
 	namespacesSize := len(namespaces)
 
 	if ret.GetAmount() == nil || ret.GetAmount().GetValue() != uint32(namespacesSize) {
-		return nil, errors.New("invalid batch amount")
+		return nil, fmt.Errorf("invalid batch amount: %d %d", ret.GetAmount().GetValue(), namespacesSize)
 	}
 
 	if ret.GetSize() == nil || ret.GetSize().GetValue() != uint32(namespacesSize) {

@@ -345,10 +345,16 @@ func (sc *serviceCache) ListServices(ctx context.Context, ns string) (string, []
 	predicates := types.LoadServicePredicates(ctx)
 	ret := make([]*model.Service, 0, len(matchServices))
 	for i := range matchServices {
-		if !predicates[i](ctx, matchServices[i]) {
-			continue
+		allMatch := true
+		for j := range predicates {
+			if !predicates[j](ctx, matchServices[i]) {
+				allMatch = false
+				break
+			}
 		}
-		ret = append(ret, matchServices[i])
+		if allMatch {
+			ret = append(ret, matchServices[i])
+		}
 	}
 	matchServices = ret
 	return revision, matchServices

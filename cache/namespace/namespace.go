@@ -65,9 +65,7 @@ func (nsCache *namespaceCache) Initialize(c map[string]interface{}) error {
 // Update
 func (nsCache *namespaceCache) Update() error {
 	// 多个线程竞争，只有一个线程进行更新
-	_, err, _ := nsCache.updater.Do(nsCache.Name(), func() (interface{}, error) {
-		return nil, nsCache.DoCacheUpdate(nsCache.Name(), nsCache.realUpdate)
-	})
+	err, _ := nsCache.singleUpdate()
 	return err
 }
 
@@ -202,6 +200,26 @@ func (nsCache *namespaceCache) GetNamespaceList() []*model.Namespace {
 	return nsArr
 }
 
+// forceQueryUpdate 为了确保读取的数据是最新的，这里需要做一个强制 update 的动作进行数据读取处理
+func (nsCache *namespaceCache) forceQueryUpdate() error {
+	err, shared := nsCache.singleUpdate()
+	// shared == true，表示当前已经有正在 update 执行的任务，这个任务不一定能够读取到最新的数据
+	// 为了避免读取到脏数据，在发起一次 singleUpdate
+	if shared {
+		log.Debug("[Server][Instances][Query] force query update from store")
+		err, _ = nsCache.singleUpdate()
+	}
+	return err
+}
+
+func (nsCache *namespaceCache) singleUpdate() (error, bool) {
+	// 多个线程竞争，只有一个线程进行更新
+	_, err, shared := nsCache.updater.Do(nsCache.Name(), func() (interface{}, error) {
+		return nil, nsCache.DoCacheUpdate(nsCache.Name(), nsCache.realUpdate)
+	})
+	return err, shared
+}
+
 func (nsCache *namespaceCache) Query(ctx context.Context, args *types.NamespaceArgs) (uint32, []*model.Namespace, error) {
 	if err := nsCache.Update(); err != nil {
 		return 0, nil, err
@@ -222,18 +240,30 @@ func (nsCache *namespaceCache) Query(ctx context.Context, args *types.NamespaceA
 		}
 
 		if hasName {
+			matchOne := false
 			for i := range searchName {
-				if !utils.IsWildMatch(val.Name, searchName[i]) {
-					return
+				if utils.IsWildMatch(val.Name, searchName[i]) {
+					matchOne = true
+					break
 				}
+			}
+			// 如果没有匹配到，直接返回
+			if !matchOne {
+				return
 			}
 		}
 
 		if hasOwner {
+			matchOne := false
 			for i := range searchOwner {
-				if !utils.IsWildMatch(val.Owner, searchOwner[i]) {
-					return
+				if utils.IsWildMatch(val.Owner, searchOwner[i]) {
+					matchOne = true
+					break
 				}
+			}
+			// 如果没有匹配到，直接返回
+			if !matchOne {
+				return
 			}
 		}
 

@@ -94,8 +94,12 @@ func (d *DefaultAuthChecker) IsOpenAuth() bool {
 
 // AllowResourceOperate 是否允许资源的操作
 func (d *DefaultAuthChecker) ResourcePredicate(ctx *authcommon.AcquireContext, res *authcommon.ResourceEntry) bool {
-	// 如果鉴权能力没有开启，那就默认都可以进行操作
-	if !d.IsOpenAuth() {
+	// 如果是客户端请求，并且鉴权能力没有开启，那就默认都可以进行操作
+	if ctx.IsFromClient() && !d.IsOpenClientAuth() {
+		return true
+	}
+	// 如果是控制台请求，并且鉴权能力没有开启，那就默认都可以进行操作
+	if ctx.IsFromConsole() && !d.IsOpenConsoleAuth() {
 		return true
 	}
 
