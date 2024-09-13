@@ -111,7 +111,6 @@ func (s *Server) CreateNamespace(ctx context.Context, req *apimodel.Namespace) *
 		return api.NewNamespaceResponse(apimodel.Code_ExistedResource, req)
 	}
 
-	//
 	data := s.createNamespaceModel(req)
 
 	// 存储层操作

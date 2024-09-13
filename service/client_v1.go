@@ -226,12 +226,29 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, filter *apiservice.D
 	revisions := make([]string, 0, len(visibleServices)+1)
 	finalInstances := make(map[string]*apiservice.Instance, 128)
 	for _, svc := range visibleServices {
+		specSvc := &apiservice.Service{
+			Id:        utils.NewStringValue(svc.ID),
+			Name:      utils.NewStringValue(svc.Name),
+			Namespace: utils.NewStringValue(svc.Namespace),
+		}
+		ret := s.caches.Instance().DiscoverServiceInstances(specSvc.GetId().GetValue(), filter.GetOnlyHealthyInstance())
+		// 如果是空实例，则直接跳过，不处理实例列表以及 revision 信息
+		if len(ret) == 0 {
+			continue
+		}
 		revision := s.caches.Service().GetRevisionWorker().GetServiceInstanceRevision(svc.ID)
 		if revision == "" {
 			revision = utils.NewUUID()
 		}
 		revisions = append(revisions, revision)
+
+		for i := range ret {
+			copyIns := s.getInstance(specSvc, ret[i].Proto)
+			// 注意：这里的value是cache的，不修改cache的数据，通过getInstance，浅拷贝一份数据
+			finalInstances[copyIns.GetId().GetValue()] = copyIns
+		}
 	}
+
 	aggregateRevision, err := cachetypes.CompositeComputeRevision(revisions)
 	if err != nil {
 		log.Errorf("[Server][Service][Instance] compute multi revision service(%s) err: %s",
@@ -240,20 +257,6 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, filter *apiservice.D
 	}
 	if aggregateRevision == req.GetRevision().GetValue() {
 		return api.NewDiscoverInstanceResponse(apimodel.Code_DataNoChange, req)
-	}
-
-	for _, svc := range visibleServices {
-		specSvc := &apiservice.Service{
-			Id:        utils.NewStringValue(svc.ID),
-			Name:      utils.NewStringValue(svc.Name),
-			Namespace: utils.NewStringValue(svc.Namespace),
-		}
-		ret := s.caches.Instance().DiscoverServiceInstances(specSvc.GetId().GetValue(), filter.GetOnlyHealthyInstance())
-		for i := range ret {
-			copyIns := s.getInstance(specSvc, ret[i].Proto)
-			// 注意：这里的value是cache的，不修改cache的数据，通过getInstance，浅拷贝一份数据
-			finalInstances[copyIns.GetId().GetValue()] = copyIns
-		}
 	}
 
 	// 填充service数据
