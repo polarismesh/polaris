@@ -694,7 +694,7 @@ CREATE TABLE
     ) ENGINE = InnoDB;
 
 /* 鉴权策略中的资源标签关联信息 */
-CRAETE TABLE `auth_strategy_label` (
+CREATE TABLE `auth_strategy_label` (
     `strategy_id` VARCHAR(128) NOT NULL COMMENT 'strategy id',
     `key` VARCHAR(128) NOT NULL COMMENT 'tag key',
     `value` TEXT NOT NULL COMMENT 'tag value',
@@ -703,7 +703,7 @@ CRAETE TABLE `auth_strategy_label` (
 ) ENGINE = InnoDB;
 
 /* 鉴权策略中的资源标签关联信息 */
-CRAETE TABLE `auth_strategy_function` (
+CREATE TABLE `auth_strategy_function` (
     `strategy_id` VARCHAR(128) NOT NULL COMMENT 'strategy id',
     `function` VARCHAR(256) NOT NULL COMMENT 'server provider function name',
     PRIMARY KEY (`strategy_id`, `function`)
