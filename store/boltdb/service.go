@@ -676,10 +676,15 @@ func (ss *serviceStore) getServiceByNameAndNsIgnoreValid(name string, namespace 
 
 func (ss *serviceStore) getServiceByID(id string) (*model.Service, error) {
 
-	fields := []string{SvcFieldID}
+	fields := []string{SvcFieldID, svcFieldValid}
 
 	svc, err := ss.handler.LoadValuesByFilter(tblNameService, fields, &Service{},
 		func(m map[string]interface{}) bool {
+			valid, ok := m[SvcFieldValid]
+			if ok && !valid.(bool) {
+				return false
+			}
+
 			svcId, ok := m[SvcFieldID]
 			if !ok {
 				return false
@@ -696,6 +701,12 @@ func (ss *serviceStore) getServiceByID(id string) (*model.Service, error) {
 	if len(svc) > 1 {
 		log.Errorf("[Store][boltdb] multiple services found %v", svc)
 		return nil, ErrMultipleSvcFound
+	}
+	if len(svc) == 0 {
+		return nil, nil
+	}
+	if _, ok := svc[id]; !ok {
+		return nil, nil
 	}
 
 	svcRet := toModelService(svc[id].(*Service))
@@ -953,10 +964,9 @@ func getRealServicesList(originServices map[string]*model.Service, offset, limit
 			return true
 		} else if services[i].ModifyTime.Before(services[j].ModifyTime) {
 			return false
-		} else {
-			// compare id if modifyTime is the same
-			return services[i].ID < services[j].ID
 		}
+		// compare id if modifyTime is the same
+		return services[i].ID < services[j].ID
 	})
 
 	return services[beginIndex:endIndex]
@@ -988,10 +998,9 @@ func doPageAliasServices(originServices []*model.ServiceAlias, offset, limit uin
 			return true
 		} else if services[i].ModifyTime.Before(services[j].ModifyTime) {
 			return false
-		} else {
-			// compare id if modifyTime is the same
-			return services[i].ID < services[j].ID
 		}
+		// compare id if modifyTime is the same
+		return services[i].ID < services[j].ID
 	})
 
 	return services[beginIndex:endIndex]

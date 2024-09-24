@@ -120,6 +120,7 @@ func (h *HTTPServer) addDefaultAccess(ws *restful.WebService) {
 	ws.Route(docs.EnrichGetConfigFileReleaseApiDocs(ws.POST("/configfiles/releases/delete").To(h.DeleteConfigFileReleases)))
 	ws.Route(docs.EnrichGetConfigFileReleaseApiDocs(ws.GET("/configfiles/release/versions").To(h.GetConfigFileReleaseVersions)))
 	ws.Route(docs.EnrichUpsertAndReleaseConfigFileApiDocs(ws.POST("/configfiles/createandpub").To(h.UpsertAndReleaseConfigFile)))
+	ws.Route(docs.EnrichStopBetaReleaseConfigFileApiDocs(ws.POST("/configfiles/releases/stopbeta").To(h.StopGrayConfigFileReleases)))
 
 	// 配置文件发布历史
 	ws.Route(docs.EnrichGetConfigFileReleaseHistoryApiDocs(ws.GET("/configfiles/releasehistory").
@@ -151,6 +152,7 @@ func (h *HTTPServer) GetClientAccessServer(ws *restful.WebService, include []str
 }
 
 func (h *HTTPServer) addDiscover(ws *restful.WebService) {
+	ws.Route(docs.EnrichConfigDiscoverApiDocs(ws.POST("/ConfigDiscover").To(h.Discover)))
 	ws.Route(docs.EnrichGetConfigFileForClientApiDocs(ws.GET("/GetConfigFile").To(h.ClientGetConfigFile)))
 	ws.Route(docs.EnrichWatchConfigFileForClientApiDocs(ws.POST("/WatchConfigFile").To(h.ClientWatchConfigFile)))
 	ws.Route(docs.EnrichGetConfigFileMetadataList(ws.POST("/GetConfigFileMetadataList").To(h.GetConfigFileMetadataList)))

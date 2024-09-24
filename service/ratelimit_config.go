@@ -264,7 +264,7 @@ func (s *Server) GetRateLimits(ctx context.Context, query map[string]string) *ap
 		return errResp
 	}
 
-	total, extendRateLimits, err := s.Cache().RateLimit().QueryRateLimitRules(*args)
+	total, extendRateLimits, err := s.Cache().RateLimit().QueryRateLimitRules(ctx, *args)
 	if err != nil {
 		log.Errorf("get rate limits store err: %s", err.Error())
 		return api.NewBatchQueryResponse(commonstore.StoreCode2APICode(err))
@@ -350,10 +350,10 @@ func checkRateLimitParams(req *apitraffic.Rule) *apiservice.Response {
 	if req == nil {
 		return api.NewRateLimitResponse(apimodel.Code_EmptyRequest, req)
 	}
-	if err := checkResourceName(req.GetNamespace()); err != nil {
+	if err := utils.CheckResourceName(req.GetNamespace()); err != nil {
 		return api.NewRateLimitResponse(apimodel.Code_InvalidNamespaceName, req)
 	}
-	if err := checkResourceName(req.GetService()); err != nil {
+	if err := utils.CheckResourceName(req.GetService()); err != nil {
 		return api.NewRateLimitResponse(apimodel.Code_InvalidServiceName, req)
 	}
 	if resp := checkRateLimitParamsDbLen(req); nil != resp {
@@ -581,10 +581,10 @@ func rateLimitRecordEntry(ctx context.Context, req *apitraffic.Rule, md *model.R
 
 // wrapperRateLimitStoreResponse 封装路由存储层错误
 func wrapperRateLimitStoreResponse(rule *apitraffic.Rule, err error) *apiservice.Response {
-	resp := storeError2Response(err)
-	if resp == nil {
+	if err == nil {
 		return nil
 	}
+	resp := api.NewResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	resp.RateLimit = rule
 	return resp
 }

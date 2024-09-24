@@ -48,7 +48,7 @@ func (s *Server) checkAndStoreClient(ctx context.Context, req *apiservice.Client
 	if nil == client {
 		needStore = true
 	} else {
-		needStore = !clientEquals(client.Proto(), req)
+		needStore = !ClientEquals(client.Proto(), req)
 	}
 	if needStore {
 		client, resp = s.createClient(ctx, req)
@@ -155,7 +155,7 @@ func client2Api(client *model.Client) *apiservice.Client {
 	return out
 }
 
-func clientEquals(client1 *apiservice.Client, client2 *apiservice.Client) bool {
+func ClientEquals(client1 *apiservice.Client, client2 *apiservice.Client) bool {
 	if client1.GetId().GetValue() != client2.GetId().GetValue() {
 		return false
 	}

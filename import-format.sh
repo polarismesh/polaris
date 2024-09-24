@@ -17,6 +17,8 @@
 # 格式化 go.mod
 go mod tidy -compat=1.17
 
+docker run -t --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.55.2 golangci-lint run -v
+
 # 处理 go imports 的格式化
 rm -rf style_tool
 rm -rf goimports-reviser
@@ -25,7 +27,7 @@ mkdir -p style_tool
 
 cd style_tool
 
-is_arm=$(/usr/bin/uname -m | grep "arm|aarch64" | wc -l)
+is_arm=$(/usr/bin/uname -m | grep -E "arm|aarch64" | wc -l)
 goimports_target_file="goimports-reviser_3.3.1_linux_amd64.tar.gz"
 
 if [ "$(uname)" == "Darwin" ]; then

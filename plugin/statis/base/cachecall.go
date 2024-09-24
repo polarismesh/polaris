@@ -62,12 +62,12 @@ func (c *CacheStatics) Add(ac metrics.CallMetric) {
 	index := fmt.Sprintf("%v", ac.Protocol)
 	item, exist := c.statis[index]
 	if !exist {
-		c.statis[index] = &CacheCallStatisItem{
+		item = &CacheCallStatisItem{
 			cacheType: ac.Protocol,
 		}
+		c.statis[index] = item
 	}
 
-	item = c.statis[index]
 	if ac.Success {
 		item.hitCount += int64(ac.Times)
 	} else {

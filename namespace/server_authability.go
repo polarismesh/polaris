@@ -26,7 +26,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -36,15 +36,15 @@ import (
 type serverAuthAbility struct {
 	targetServer *Server
 	userMgn      auth.UserServer
-	strategyMgn  auth.StrategyServer
+	policySvr    auth.StrategyServer
 }
 
 func newServerAuthAbility(targetServer *Server,
-	userMgn auth.UserServer, strategyMgn auth.StrategyServer) NamespaceOperateServer {
+	userMgn auth.UserServer, policySvr auth.StrategyServer) NamespaceOperateServer {
 	proxy := &serverAuthAbility{
 		targetServer: targetServer,
 		userMgn:      userMgn,
-		strategyMgn:  strategyMgn,
+		policySvr:    policySvr,
 	}
 
 	targetServer.SetResourceHooks(proxy)
@@ -53,19 +53,19 @@ func newServerAuthAbility(targetServer *Server,
 
 // collectNamespaceAuthContext 对于命名空间的处理，收集所有的与鉴权的相关信息
 func (svr *serverAuthAbility) collectNamespaceAuthContext(ctx context.Context, req []*apimodel.Namespace,
-	resourceOp model.ResourceOperation, methodName string) *model.AcquireContext {
-	return model.NewAcquireContext(
-		model.WithRequestContext(ctx),
-		model.WithOperation(resourceOp),
-		model.WithModule(model.CoreModule),
-		model.WithMethod(methodName),
-		model.WithAccessResources(svr.queryNamespaceResource(req)),
+	resourceOp authcommon.ResourceOperation, methodName authcommon.ServerFunctionName) *authcommon.AcquireContext {
+	return authcommon.NewAcquireContext(
+		authcommon.WithRequestContext(ctx),
+		authcommon.WithOperation(resourceOp),
+		authcommon.WithModule(authcommon.CoreModule),
+		authcommon.WithMethod(methodName),
+		authcommon.WithAccessResources(svr.queryNamespaceResource(req)),
 	)
 }
 
 // queryNamespaceResource 根据所给的 namespace 信息，收集对应的 ResourceEntry 列表
 func (svr *serverAuthAbility) queryNamespaceResource(
-	req []*apimodel.Namespace) map[apisecurity.ResourceType][]model.ResourceEntry {
+	req []*apimodel.Namespace) map[apisecurity.ResourceType][]authcommon.ResourceEntry {
 	names := utils.NewSet[string]()
 	for index := range req {
 		names.Add(req[index].Name.GetValue())
@@ -73,17 +73,18 @@ func (svr *serverAuthAbility) queryNamespaceResource(
 	param := names.ToSlice()
 	nsArr := svr.targetServer.caches.Namespace().GetNamespacesByName(param)
 
-	temp := make([]model.ResourceEntry, 0, len(nsArr))
+	temp := make([]authcommon.ResourceEntry, 0, len(nsArr))
 
 	for index := range nsArr {
 		ns := nsArr[index]
-		temp = append(temp, model.ResourceEntry{
+		temp = append(temp, authcommon.ResourceEntry{
+			Type:  apisecurity.ResourceType_Namespaces,
 			ID:    ns.Name,
 			Owner: ns.Owner,
 		})
 	}
 
-	ret := map[apisecurity.ResourceType][]model.ResourceEntry{
+	ret := map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 		apisecurity.ResourceType_Namespaces: temp,
 	}
 	authLog.Debug("[Auth][Server] collect namespace access res", zap.Any("res", ret))
@@ -91,10 +92,10 @@ func (svr *serverAuthAbility) queryNamespaceResource(
 }
 
 func convertToErrCode(err error) apimodel.Code {
-	if errors.Is(err, model.ErrorTokenNotExist) {
+	if errors.Is(err, authcommon.ErrorTokenNotExist) {
 		return apimodel.Code_TokenNotExisted
 	}
-	if errors.Is(err, model.ErrorTokenDisabled) {
+	if errors.Is(err, authcommon.ErrorTokenDisabled) {
 		return apimodel.Code_TokenDisabled
 	}
 	return apimodel.Code_NotAllowedAccess

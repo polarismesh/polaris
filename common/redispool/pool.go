@@ -20,6 +20,7 @@ package redispool
 // Resp ckv任务结果
 type Resp struct {
 	Value       string
+	Values      []interface{}
 	Err         error
 	Exists      bool
 	Compatible  bool
@@ -37,22 +38,18 @@ type RedisObject interface {
 type Pool interface {
 	// Start 启动ckv连接池工作
 	Start()
-
 	// Sdd 使用连接池，向redis发起Sdd请求
 	Sdd(id string, members []string) *Resp
-
 	// Srem 使用连接池，向redis发起Srem请求
 	Srem(id string, members []string) *Resp
-
 	// Get 使用连接池，向redis发起Get请求
 	Get(id string) *Resp
-
+	// MGet 使用连接池，向redis发起MGet请求
+	MGet(keys []string) *Resp
 	// Set 使用连接池，向redis发起Set请求
 	Set(id string, redisObj RedisObject) *Resp
-
 	// Del 使用连接池，向redis发起Del请求
 	Del(id string) *Resp
-
 	// RecoverTimeSec the time second record when recover
 	RecoverTimeSec() int64
 }

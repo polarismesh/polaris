@@ -18,11 +18,137 @@ set -ex # Exit on error; debugging enabled.
 
 cur_dir=$(pwd)
 
+# apiserver 模块的包信息
+apiserver_pkg=(
+    "github.com/polarismesh/polaris/apiserver"
+    "github.com/polarismesh/polaris/apiserver/eurekaserver"
+    "github.com/polarismesh/polaris/apiserver/xdsserverv3"
+    "github.com/polarismesh/polaris/apiserver/nacosserver"
+    "github.com/polarismesh/polaris/apiserver/nacosserver/core"
+    "github.com/polarismesh/polaris/apiserver/nacosserver/v1"
+    "github.com/polarismesh/polaris/apiserver/nacosserver/v1/discover"
+    "github.com/polarismesh/polaris/apiserver/nacosserver/v1/config"
+    "github.com/polarismesh/polaris/apiserver/nacosserver/v2"
+    "github.com/polarismesh/polaris/apiserver/nacosserver/v2/discover"
+    "github.com/polarismesh/polaris/apiserver/nacosserver/v2/config"
+    "github.com/polarismesh/polaris/apiserver/nacosserver/v2/remote"
+)
+
+# 鉴权模块的包信息
+auth_pkg=(
+    "github.com/polarismesh/polaris/auth/user"
+    "github.com/polarismesh/polaris/auth/policy"
+)
+
+# cache 模块的包信息
+cache_pkg=(
+    "github.com/polarismesh/polaris/cache"
+    "github.com/polarismesh/polaris/cache/service"
+    "github.com/polarismesh/polaris/cache/config"
+    "github.com/polarismesh/polaris/cache/gray"
+    "github.com/polarismesh/polaris/cache/auth"
+    "github.com/polarismesh/polaris/cache/client"
+)
+
+# 注册发现模块的包信息
+discover_pkg=(
+    "github.com/polarismesh/polaris/service"
+    "github.com/polarismesh/polaris/service/batch"
+    "github.com/polarismesh/polaris/service/healthcheck"
+)
+
+# 配置模块
+config_pkg=(
+    "github.com/polarismesh/polaris/config"
+)
+
+# 存储模块
+store_pkg=(
+    "github.com/polarismesh/polaris/store/boltdb"
+    "github.com/polarismesh/polaris/store/mysql"
+)
+
+# 插件模块
+plugin_pkg=(
+    "github.com/polarismesh/polaris/plugin"
+    "github.com/polarismesh/polaris/plugin/healthchecker/leader"
+    "github.com/polarismesh/polaris/plugin/healthchecker/memory"
+    "github.com/polarismesh/polaris/plugin/healthchecker/redis"
+)
+
+# 普通包模块
+common_pkg=(
+    "github.com/polarismesh/polaris/common/eventhub"
+    "github.com/polarismesh/polaris/common/redispool"
+    "github.com/polarismesh/polaris/common/timewheel"
+)
+
+coverpkg=""
+
+for val in ${apiserver_pkg[@]}; do
+    if [ "${coverpkg}" == "" ]; then
+        coverpkg="${val}"
+    else
+        coverpkg="${coverpkg},${val}"
+    fi
+done
+for val in ${auth_pkg[@]}; do
+    if [ "${coverpkg}" == "" ]; then
+        coverpkg="${val}"
+    else
+        coverpkg="${coverpkg},${val}"
+    fi
+done
+for val in ${cache_pkg[@]}; do
+    if [ "${coverpkg}" == "" ]; then
+        coverpkg="${val}"
+    else
+        coverpkg="${coverpkg},${val}"
+    fi
+done
+for val in ${discover_pkg[@]}; do
+    if [ "${coverpkg}" == "" ]; then
+        coverpkg="${val}"
+    else
+        coverpkg="${coverpkg},${val}"
+    fi
+done
+for val in ${config_pkg[@]}; do
+    if [ "${coverpkg}" == "" ]; then
+        coverpkg="${val}"
+    else
+        coverpkg="${coverpkg},${val}"
+    fi
+done
+for val in ${store_pkg[@]}; do
+    if [ "${coverpkg}" == "" ]; then
+        coverpkg="${val}"
+    else
+        coverpkg="${coverpkg},${val}"
+    fi
+done
+for val in ${plugin_pkg[@]}; do
+    if [ "${coverpkg}" == "" ]; then
+        coverpkg="${val}"
+    else
+        coverpkg="${coverpkg},${val}"
+    fi
+done
+for val in ${common_pkg[@]}; do
+    if [ "${coverpkg}" == "" ]; then
+        coverpkg="${val}"
+    else
+        coverpkg="${coverpkg},${val}"
+    fi
+done
+
+echo "${coverpkg}"
+
 function test_standalone() {
     cd ${cur_dir}
     export STORE_MODE=""
     go mod vendor
-    go test -timeout 40m ./... -v -covermode=count -coverprofile=coverage_1.cover -coverpkg=github.com/polarismesh/polaris/apiserver,github.com/polarismesh/polaris/apiserver/eurekaserver,github.com/polarismesh/polaris/auth/defaultauth,github.com/polarismesh/polaris/service,github.com/polarismesh/polaris/service/batch,github.com/polarismesh/polaris/service/healthcheck,github.com/polarismesh/polaris/cache,github.com/polarismesh/polaris/store/boltdb,github.com/polarismesh/polaris/store/mysql,github.com/polarismesh/polaris/plugin,github.com/polarismesh/polaris/config,github.com/polarismesh/polaris/plugin/healthchecker/leader,github.com/polarismesh/polaris/plugin/healthchecker/memory,github.com/polarismesh/polaris/plugin/healthchecker/redis,github.com/polarismesh/polaris/common/batchjob,github.com/polarismesh/polaris/common/eventhub,github.com/polarismesh/polaris/common/redispool,github.com/polarismesh/polaris/common/timewheel
+    go test -timeout 40m ./... -v -covermode=count -coverprofile=coverage_1.cover -coverpkg=${coverpkg}
 }
 
 function prepare_cluster_env() {
@@ -39,13 +165,19 @@ function prepare_cluster_env() {
 }
 
 function test_cluster_auth() {
-    cd ${cur_dir}
     # 测试鉴权
     export STORE_MODE=sqldb
     echo "cur STORE MODE=${STORE_MODE}, MYSQL_DB_USER=${MYSQL_DB_USER}, MYSQL_DB_PWD=${MYSQL_DB_PWD}"
-    pushd ./auth/defaultauth
-    go mod vendor && go test -v -timeout 40m -v -covermode=count -coverprofile=coverage_sqldb_1.cover -coverpkg=github.com/polarismesh/polaris/apiserver,github.com/polarismesh/polaris/apiserver/eurekaserver,github.com/polarismesh/polaris/auth/defaultauth,github.com/polarismesh/polaris/service,github.com/polarismesh/polaris/service/batch,github.com/polarismesh/polaris/service/healthcheck,github.com/polarismesh/polaris/cache,github.com/polarismesh/polaris/store/boltdb,github.com/polarismesh/polaris/store/mysql,github.com/polarismesh/polaris/plugin,github.com/polarismesh/polaris/config,github.com/polarismesh/polaris/plugin/healthchecker/leader,github.com/polarismesh/polaris/plugin/healthchecker/memory,github.com/polarismesh/polaris/plugin/healthchecker/redis,github.com/polarismesh/polaris/common/batchjob,github.com/polarismesh/polaris/common/eventhub,github.com/polarismesh/polaris/common/redispool,github.com/polarismesh/polaris/common/timewheel
-    mv coverage_sqldb_1.cover ../../
+
+    cd ${cur_dir}
+    pushd ./auth/user
+    go mod vendor && go test -v -timeout 40m -v -covermode=count -coverprofile=user_coverage.cover -coverpkg=${coverpkg}
+    mv user_coverage.cover ../../
+
+    cd ${cur_dir}
+    pushd ./auth/policy
+    go mod vendor && go test -v -timeout 40m -v -covermode=count -coverprofile=policy_coverage.cover -coverpkg=${coverpkg}
+    mv policy_coverage.cover ../../
 }
 
 function test_cluster_config() {
@@ -54,7 +186,7 @@ function test_cluster_config() {
     export STORE_MODE=sqldb
     echo "cur STORE MODE=${STORE_MODE}, MYSQL_DB_USER=${MYSQL_DB_USER}, MYSQL_DB_PWD=${MYSQL_DB_PWD}"
     pushd ./config
-    go mod vendor && go test -v -timeout 40m -v -covermode=count -coverprofile=coverage_sqldb_2.cover -coverpkg=github.com/polarismesh/polaris/apiserver,github.com/polarismesh/polaris/apiserver/eurekaserver,github.com/polarismesh/polaris/auth/defaultauth,github.com/polarismesh/polaris/service,github.com/polarismesh/polaris/service/batch,github.com/polarismesh/polaris/service/healthcheck,github.com/polarismesh/polaris/cache,github.com/polarismesh/polaris/store/boltdb,github.com/polarismesh/polaris/store/mysql,github.com/polarismesh/polaris/plugin,github.com/polarismesh/polaris/config,github.com/polarismesh/polaris/plugin/healthchecker/leader,github.com/polarismesh/polaris/plugin/healthchecker/memory,github.com/polarismesh/polaris/plugin/healthchecker/redis,github.com/polarismesh/polaris/common/batchjob,github.com/polarismesh/polaris/common/eventhub,github.com/polarismesh/polaris/common/redispool,github.com/polarismesh/polaris/common/timewheel
+    go mod vendor && go test -v -timeout 40m -v -covermode=count -coverprofile=coverage_sqldb_2.cover -coverpkg=${coverpkg}
     mv coverage_sqldb_2.cover ../
 }
 
@@ -64,7 +196,7 @@ function test_cluster_discovery() {
     export STORE_MODE=sqldb
     echo "cur STORE MODE=${STORE_MODE}, MYSQL_DB_USER=${MYSQL_DB_USER}, MYSQL_DB_PWD=${MYSQL_DB_PWD}"
     pushd ./service
-    go mod vendor && go test -v -timeout 40m -v -covermode=count -coverprofile=coverage_sqldb_3.cover -coverpkg=github.com/polarismesh/polaris/apiserver,github.com/polarismesh/polaris/apiserver/eurekaserver,github.com/polarismesh/polaris/auth/defaultauth,github.com/polarismesh/polaris/service,github.com/polarismesh/polaris/service/batch,github.com/polarismesh/polaris/service/healthcheck,github.com/polarismesh/polaris/cache,github.com/polarismesh/polaris/store/boltdb,github.com/polarismesh/polaris/store/mysql,github.com/polarismesh/polaris/plugin,github.com/polarismesh/polaris/config,github.com/polarismesh/polaris/plugin/healthchecker/leader,github.com/polarismesh/polaris/plugin/healthchecker/memory,github.com/polarismesh/polaris/plugin/healthchecker/redis,github.com/polarismesh/polaris/common/batchjob,github.com/polarismesh/polaris/common/eventhub,github.com/polarismesh/polaris/common/redispool,github.com/polarismesh/polaris/common/timewheel
+    go mod vendor && go test -v -timeout 40m -v -covermode=count -coverprofile=coverage_sqldb_3.cover -coverpkg=${coverpkg}
     mv coverage_sqldb_3.cover ../
 }
 

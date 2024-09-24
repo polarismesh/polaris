@@ -19,6 +19,7 @@ package model
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -29,10 +30,26 @@ import (
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
 )
+
+var (
+	// ErrorNoNamespace 没有找到对应的命名空间
+	ErrorNoNamespace error = errors.New("no such namespace")
+	// ErrorNoService 没有找到对应的服务
+	ErrorNoService error = errors.New("no such service")
+)
+
+func ExportToMap(exportTo []*wrappers.StringValue) map[string]struct{} {
+	ret := make(map[string]struct{})
+	for _, v := range exportTo {
+		ret[v.Value] = struct{}{}
+	}
+	return ret
+}
 
 // Namespace 命名空间结构体
 type Namespace struct {
@@ -45,6 +62,8 @@ type Namespace struct {
 	ModifyTime time.Time
 	// ServiceExportTo 服务可见性设置
 	ServiceExportTo map[string]struct{}
+	// Metadata 命名空间元数据
+	Metadata map[string]string
 }
 
 func (n *Namespace) ListServiceExportTo() []*wrappers.StringValue {
@@ -88,6 +107,36 @@ type Service struct {
 	// ExportTo 服务可见性暴露设置
 	ExportTo    map[string]struct{}
 	OldExportTo map[string]struct{}
+}
+
+func (s *Service) ToSpec() *apiservice.Service {
+	return &apiservice.Service{
+		Name:       wrapperspb.String(s.Name),
+		Namespace:  wrapperspb.String(s.Namespace),
+		Metadata:   s.CopyMeta(),
+		Ports:      wrapperspb.String(s.Ports),
+		Business:   wrapperspb.String(s.Business),
+		Department: wrapperspb.String(s.Department),
+		CmdbMod1:   wrapperspb.String(s.CmdbMod1),
+		CmdbMod2:   wrapperspb.String(s.CmdbMod2),
+		CmdbMod3:   wrapperspb.String(s.CmdbMod3),
+		Comment:    wrapperspb.String(s.Comment),
+		Owners:     wrapperspb.String(s.Owner),
+		Token:      wrapperspb.String(s.Token),
+		Ctime:      wrapperspb.String(commontime.Time2String(s.CreateTime)),
+		Mtime:      wrapperspb.String(commontime.Time2String(s.ModifyTime)),
+		Revision:   wrapperspb.String(s.Revision),
+		Id:         wrapperspb.String(s.ID),
+		ExportTo:   s.ListExportTo(),
+	}
+}
+
+func (s *Service) CopyMeta() map[string]string {
+	ret := make(map[string]string)
+	for k, v := range s.Meta {
+		ret[k] = v
+	}
+	return ret
 }
 
 func (s *Service) ProtectThreshold() float32 {
@@ -134,6 +183,10 @@ func (s *ServiceKey) IsExact() bool {
 	return s.Namespace != "" && s.Namespace != MatchAll && s.Name != "" && s.Name != MatchAll
 }
 
+func (s *ServiceKey) Domain() string {
+	return s.Name + "." + s.Namespace
+}
+
 // IsAlias 便捷函数封装
 func (s *Service) IsAlias() bool {
 	return s.Reference != ""
@@ -152,6 +205,14 @@ type ServiceAlias struct {
 	CreateTime     time.Time
 	ModifyTime     time.Time
 	ExportTo       map[string]struct{}
+}
+
+func (s *ServiceAlias) ListExportTo() []*wrappers.StringValue {
+	ret := make([]*wrappers.StringValue, 0, len(s.ExportTo))
+	for i := range s.ExportTo {
+		ret = append(ret, &wrappers.StringValue{Value: i})
+	}
+	return ret
 }
 
 // WeightType 服务下实例的权重类型
@@ -847,6 +908,8 @@ const (
 	EventInstanceSendHeartbeat InstanceEventType = "InstanceSendHeartbeat"
 	// EventInstanceUpdate Instance metadata and info update event
 	EventInstanceUpdate InstanceEventType = "InstanceUpdate"
+	// EventClientOffline .
+	EventClientOffline InstanceEventType = "ClientOffline"
 )
 
 // CtxEventKeyMetadata 用于将metadata从Context中传入并取出
@@ -888,4 +951,9 @@ func (i *InstanceEvent) String() string {
 	hostPortStr := fmt.Sprintf("%s:%d", i.Instance.GetHost().GetValue(), i.Instance.GetPort().GetValue())
 	return fmt.Sprintf("InstanceEvent(id=%s, namespace=%s, svcId=%s, service=%s, type=%v, instance=%s, healthy=%v)",
 		i.Id, i.Namespace, i.SvcId, i.Service, i.EType, hostPortStr, i.Instance.GetHealthy().GetValue())
+}
+
+type ClientEvent struct {
+	EType InstanceEventType
+	Id    string
 }

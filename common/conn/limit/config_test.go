@@ -21,12 +21,12 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 )
 
 // TestParseConnLimitConfig 可以正常解析配置测试
 func TestParseConnLimitConfig(t *testing.T) {
-	Convey("可以正常解析配置", t, func() {
+	t.Run("可以正常解析配置", func(t *testing.T) {
 		options := map[interface{}]interface{}{
 			"openConnLimit":  true,
 			"maxConnPerHost": 16,
@@ -35,11 +35,11 @@ func TestParseConnLimitConfig(t *testing.T) {
 			"readTimeout":    "120s",
 		}
 		config, err := ParseConnLimitConfig(options)
-		So(err, ShouldBeNil)
-		So(config.OpenConnLimit, ShouldBeTrue)
-		So(config.MaxConnPerHost, ShouldEqual, 16)
-		So(config.MaxConnLimit, ShouldEqual, 128)
-		So(config.WhiteList, ShouldEqual, "127.0.0.1,127.0.0.2,127.0.0.3")
-		So(config.ReadTimeout, ShouldEqual, time.Second*120)
+		assert.Nil(t, err)
+		assert.True(t, config.OpenConnLimit)
+		assert.Equal(t, config.MaxConnPerHost, 16)
+		assert.Equal(t, config.MaxConnLimit, 128)
+		assert.Equal(t, config.WhiteList, "127.0.0.1,127.0.0.2,127.0.0.3")
+		assert.Equal(t, config.ReadTimeout, time.Second*120)
 	})
 }

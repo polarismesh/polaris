@@ -20,7 +20,6 @@ package healthcheck
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -47,21 +46,18 @@ var (
 
 // Server health checks the main server
 type Server struct {
-	hcOpt                *Config
-	storage              store.Store
-	defaultChecker       plugin.HealthChecker
-	checkers             map[int32]plugin.HealthChecker
-	cacheProvider        *CacheProvider
-	timeAdjuster         *TimeAdjuster
-	dispatcher           *Dispatcher
-	checkScheduler       *CheckScheduler
-	history              plugin.History
-	discoverEvent        plugin.DiscoverChannel
-	localHost            string
-	bc                   *batch.Controller
-	serviceCache         cachetypes.ServiceCache
-	instanceCache        cachetypes.InstanceCache
-	instanceEventChannel chan *model.InstanceEvent
+	hcOpt          *Config
+	storage        store.Store
+	defaultChecker plugin.HealthChecker
+	checkers       map[int32]plugin.HealthChecker
+	cacheProvider  *CacheProvider
+	timeAdjuster   *TimeAdjuster
+	dispatcher     *Dispatcher
+	checkScheduler *CheckScheduler
+	localHost      string
+	bc             *batch.Controller
+	serviceCache   cachetypes.ServiceCache
+	instanceCache  cachetypes.InstanceCache
 
 	subCtxs []*eventhub.SubscribtionContext
 }
@@ -97,10 +93,10 @@ func NewHealthServer(ctx context.Context, hcOpt *Config, options ...serverOption
 }
 
 // Initialize 初始化
-func Initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Controller) error {
+func Initialize(ctx context.Context, hcOpt *Config, bc *batch.Controller) error {
 	var err error
 	once.Do(func() {
-		err = initialize(ctx, hcOpt, cacheOpen, bc)
+		err = initialize(ctx, hcOpt, bc)
 	})
 
 	if err != nil {
@@ -111,10 +107,7 @@ func Initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 	return nil
 }
 
-func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Controller) error {
-	if !cacheOpen {
-		return fmt.Errorf("[healthcheck]cache not open")
-	}
+func initialize(ctx context.Context, hcOpt *Config, bc *batch.Controller) error {
 	hcOpt.SetDefault()
 	storage, err := store.GetStore()
 	if err != nil {
@@ -122,7 +115,6 @@ func initialize(ctx context.Context, hcOpt *Config, cacheOpen bool, bc *batch.Co
 	}
 
 	svr, err := NewHealthServer(ctx, hcOpt,
-		WithPlugins(),
 		WithStore(storage),
 		WithBatchController(bc),
 		WithTimeAdjuster(newTimeAdjuster(ctx, storage)),
@@ -145,6 +137,11 @@ func (s *Server) run(ctx context.Context) error {
 	s.timeAdjuster.doTimeAdjust(ctx)
 	s.dispatcher.startDispatchingJob(ctx)
 	return nil
+}
+
+// SelfService .
+func (s *Server) SelfService() string {
+	return s.cacheProvider.selfService
 }
 
 // Report heartbeat request
@@ -212,16 +209,13 @@ func (s *Server) ListCheckerServer() []*model.Instance {
 // RecordHistory server对外提供history插件的简单封装
 func (s *Server) RecordHistory(entry *model.RecordEntry) {
 	// 如果插件没有初始化，那么不记录history
-	if s.history == nil {
-		return
-	}
 	// 如果数据为空，则不需要打印了
 	if entry == nil {
 		return
 	}
 
 	// 调用插件记录history
-	s.history.Record(entry)
+	plugin.GetHistory().Record(entry)
 }
 
 // publishInstanceEvent 发布服务事件
@@ -270,37 +264,6 @@ func (s *Server) GetLastHeartbeat(req *apiservice.Instance) *apiservice.Response
 	req.Metadata["last-heartbeat-time"] = commontime.Time2String(time.Unix(queryResp.LastHeartbeatSec, 0))
 	req.Metadata["system-time"] = commontime.Time2String(time.Unix(s.currentTimeSec(), 0))
 	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
-}
-
-func (s *Server) handleInstanceEventWorker(ctx context.Context) {
-	for {
-		select {
-		case event := <-s.instanceEventChannel:
-			switch event.EType {
-			case model.EventInstanceOffline:
-				insCache := s.cacheProvider.GetInstance(event.Id)
-				if insCache == nil {
-					log.Errorf("[Health Check] cannot get instance from cache, instance id is %s", event.Id)
-					break
-				}
-				checker, ok := s.checkers[int32(insCache.HealthCheck().GetType())]
-				if !ok {
-					log.Errorf("[Health Check]heart beat type not found checkType %d",
-						int32(insCache.HealthCheck().GetType()))
-					break
-				}
-				log.Infof("[Health Check]delete instance heart beat information, id is %s", event.Id)
-				err := checker.Delete(context.Background(), event.Id)
-				if err != nil {
-					log.Errorf("[Health Check]addr is %s:%d, id is %s, delete err is %s",
-						insCache.Host(), insCache.Port(), insCache.ID(), err)
-				}
-			}
-		case <-ctx.Done():
-			log.Infof("[Health Check]instance event handler loop stopped")
-			return
-		}
-	}
 }
 
 // Checkers get all health checker, for test only

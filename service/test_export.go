@@ -26,6 +26,7 @@ import (
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/service/batch"
@@ -55,29 +56,27 @@ func TestNewServer(mockStore store.Store, nsSvr namespace.NamespaceOperateServer
 }
 
 // TestInitialize 初始化
-func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config, bc *batch.Controller,
-	cacheMgr *cache.CacheManager, storage store.Store, namespaceSvr namespace.NamespaceOperateServer,
+func TestInitialize(ctx context.Context, namingOpt *Config, cacheOpt *cache.Config,
+	cacheEntries []cachetypes.ConfigEntry, bc *batch.Controller, cacheMgr *cache.CacheManager,
+	storage store.Store, namespaceSvr namespace.NamespaceOperateServer,
 	healthSvr *healthcheck.Server,
 	userMgn auth.UserServer, strategyMgn auth.StrategyServer) (DiscoverServer, DiscoverServer, error) {
-	namingServer.healthServer = healthSvr
-	namingServer.storage = storage
-	// 注入命名空间管理模块
-	namingServer.namespaceSvr = namespaceSvr
-
-	// cache模块，可以不开启
-	// 对于控制台集群，只访问控制台接口的，可以不开启cache
-	if cacheOpt.Open {
-		log.Infof("[Naming][Server] cache is open, can access the client api function")
-		namingServer.caches = cacheMgr
+	entrites := []cachetypes.ConfigEntry{}
+	if len(cacheEntries) != 0 {
+		entrites = cacheEntries
+	} else {
+		entrites = GetAllCaches()
 	}
 
-	namingServer.bc = bc
-	// l5service
-	namingServer.l5service = &l5service{}
-	namingServer.createServiceSingle = &singleflight.Group{}
-	// 插件初始化
-	pluginInitialize()
-	return newServerAuthAbility(namingServer, userMgn, strategyMgn), namingServer, nil
+	actualSvr, proxySvr, err := InitServer(ctx, namingOpt,
+		WithBatchController(bc),
+		WithCacheManager(cacheOpt, cacheMgr, entrites...),
+		WithHealthCheckSvr(healthSvr),
+		WithNamespaceSvr(namespaceSvr),
+		WithStorage(storage),
+	)
+	namingServer = actualSvr
+	return proxySvr, namingServer, err
 }
 
 // TestSerialCreateInstance .
@@ -87,9 +86,9 @@ func (s *Server) TestSerialCreateInstance(
 	return s.serialCreateInstance(ctx, svcId, req, ins)
 }
 
-// TestCheckCreateInstance .
-func TestCheckCreateInstance(req *apiservice.Instance) (string, *apiservice.Response) {
-	return checkCreateInstance(req)
+// TestSetStore .
+func (s *Server) TestSetStore(storage store.Store) {
+	s.storage = storage
 }
 
 // TestIsEmptyLocation .

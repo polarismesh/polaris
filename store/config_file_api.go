@@ -86,12 +86,16 @@ type ConfigFileReleaseStore interface {
 	DeleteConfigFileReleaseTx(tx Tx, data *model.ConfigFileReleaseKey) error
 	// ActiveConfigFileReleaseTx 指定激活发布的配置文件（激活具有排他性，同一个配置文件的所有 release 中只能有一个处于 active == true 状态）
 	ActiveConfigFileReleaseTx(tx Tx, release *model.ConfigFileRelease) error
+	// InactiveConfigFileReleaseTx 指定失效发布的配置文件（失效具有排他性，同一个配置文件的所有 release 中能有多个处于 active == false 状态）
+	InactiveConfigFileReleaseTx(tx Tx, release *model.ConfigFileRelease) error
 	// CleanConfigFileReleasesTx 清空配置文件发布
 	CleanConfigFileReleasesTx(tx Tx, namespace, group, fileName string) error
 	// GetMoreReleaseFile 获取最近更新的配置文件发布, 此方法用于 cache 增量更新，需要注意 modifyTime 应为数据库时间戳
 	GetMoreReleaseFile(firstUpdate bool, modifyTime time.Time) ([]*model.ConfigFileRelease, error)
 	// CountConfigReleases 获取一个配置文件组下的文件数量
 	CountConfigReleases(namespace, group string, onlyActive bool) (uint64, error)
+	// GetConfigFileBetaReleaseTx 获取灰度发布的配置文件信息
+	GetConfigFileBetaReleaseTx(tx Tx, file *model.ConfigFileKey) (*model.ConfigFileRelease, error)
 }
 
 // ConfigFileReleaseHistoryStore 配置文件发布历史存储接口

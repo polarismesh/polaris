@@ -77,7 +77,7 @@ func (ns *namespaceStore) UpdateNamespace(namespace *model.Namespace) error {
 	return RetryTransaction("updateNamespace", func() error {
 		return ns.master.processWithTransaction("updateNamespace", func(tx *BaseTx) error {
 			str := "update namespace set owner = ?, comment = ?, service_export_to = ?, mtime = sysdate() where name = ?"
-			args := []interface{}{namespace.Owner, namespace.Comment, namespace.Name, utils.MustJson(namespace.ServiceExportTo)}
+			args := []interface{}{namespace.Owner, namespace.Comment, utils.MustJson(namespace.ServiceExportTo), namespace.Name}
 			if _, err := tx.Exec(str, args...); err != nil {
 				return store.Error(err)
 			}
@@ -254,7 +254,7 @@ func genNamespaceSelectSQL() string {
 	SELECT name, IFNULL(comment, ''), token
 	, owner, flag, UNIX_TIMESTAMP(ctime)
 	, UNIX_TIMESTAMP(mtime)
-	, IFNULL(service_export_to, '')
+	, IFNULL(service_export_to, '{}')
 FROM namespace
 	`
 	return str

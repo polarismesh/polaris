@@ -18,7 +18,9 @@
 package boltdb
 
 import (
+	"context"
 	"encoding/json"
+	"sort"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
@@ -34,13 +36,12 @@ const (
 	ContractFieldID         = "ID"
 	ContractFieldNamespace  = "Namespace"
 	ContractFieldService    = "Service"
-	ContractFieldName       = "Name"
+	ContractFieldType       = "Type"
 	ContractFieldProtocol   = "Protocol"
 	ContractFieldVersion    = "Version"
 	ContractFieldRevision   = "Revision"
 	ContractFieldContent    = "Content"
 	ContractFieldInterfaces = "Interfaces"
-	ContractFieldCreateTime = "CreateTime"
 	ContractFieldModifyTime = "ModifyTime"
 	ContractFieldValid      = "Valid"
 )
@@ -89,35 +90,6 @@ func (s *serviceContractStore) DeleteServiceContract(contract *model.ServiceCont
 		return err
 	}
 	return nil
-}
-
-// GetMoreServiceContracts 查询服务契约数据
-func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime time.Time) ([]*model.EnrichServiceContract, error) {
-	if firstUpdate {
-		mtime = time.Unix(0, 0)
-	}
-
-	fields := []string{ContractFieldValid, ContractFieldModifyTime}
-	values, err := s.handler.LoadValuesByFilter(tblServiceContract, fields, &ServiceContract{},
-		func(m map[string]interface{}) bool {
-			if firstUpdate {
-				valid, _ := m[ContractFieldValid].(bool)
-				if !valid {
-					return false
-				}
-			}
-			saveMtime, _ := m[ContractFieldModifyTime].(time.Time)
-			return !saveMtime.Before(mtime)
-		})
-	if err != nil {
-		return nil, store.Error(err)
-	}
-
-	ret := make([]*model.EnrichServiceContract, 0, len(values))
-	for _, v := range values {
-		ret = append(ret, s.toModel(v.(*ServiceContract)))
-	}
-	return ret, nil
 }
 
 // GetServiceContract .
@@ -233,15 +205,251 @@ func (s *serviceContractStore) DeleteServiceContractInterfaces(contract *model.E
 	})
 }
 
+var (
+	searchContractFields = []string{
+		ContractFieldType,
+		ContractFieldNamespace,
+		ContractFieldService,
+		ContractFieldVersion,
+		ContractFieldProtocol,
+		ContractFieldValid,
+	}
+
+	searchInterfaceFields = []string{
+		ContractFieldType,
+		ContractFieldNamespace,
+		ContractFieldService,
+		ContractFieldVersion,
+		ContractFieldProtocol,
+		ContractFieldValid,
+		ContractFieldInterfaces,
+	}
+)
+
+func (s *serviceContractStore) GetServiceContracts(ctx context.Context, filter map[string]string, offset,
+	limit uint32) (uint32, []*model.EnrichServiceContract, error) {
+
+	values, err := s.handler.LoadValuesByFilter(tblServiceContract, searchContractFields, &ServiceContract{},
+		func(m map[string]interface{}) bool {
+			valid, _ := m[ContractFieldValid].(bool)
+			if !valid {
+				return false
+			}
+			if searchNs, ok := filter["namespace"]; ok {
+				saveNs, _ := m[ContractFieldNamespace].(string)
+				if !utils.IsWildMatch(saveNs, searchNs) {
+					return false
+				}
+			}
+			if searchSvc, ok := filter["service"]; ok {
+				saveSvc, _ := m[ContractFieldService].(string)
+				if !utils.IsWildMatch(saveSvc, searchSvc) {
+					return false
+				}
+			}
+			if searchProtocol, ok := filter["protocol"]; ok {
+				saveProtocol, _ := m[ContractFieldProtocol].(string)
+				if !utils.IsWildMatch(saveProtocol, searchProtocol) {
+					return false
+				}
+			}
+			if searchVer, ok := filter["version"]; ok {
+				saveVer, _ := m[ContractFieldVersion].(string)
+				if !utils.IsWildMatch(saveVer, searchVer) {
+					return false
+				}
+			}
+			if searchType, ok := filter["type"]; ok {
+				saveType, _ := m[ContractFieldType].(string)
+				if !utils.IsWildMatch(saveType, searchType) {
+					return false
+				}
+			}
+			return true
+		})
+	if err != nil {
+		return 0, nil, store.Error(err)
+	}
+
+	ret := make([]*model.EnrichServiceContract, 0, len(values))
+	for _, v := range values {
+		ret = append(ret, s.toModel(v.(*ServiceContract)))
+	}
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[j].ModifyTime.Before(ret[i].ModifyTime)
+	})
+	return uint32(len(values)), toServiceContractPage(ret, offset, limit), nil
+}
+
+func toServiceContractPage(result []*model.EnrichServiceContract, offset, limit uint32) []*model.EnrichServiceContract {
+	// 所有符合条件的服务数量
+	amount := uint32(len(result))
+	// 判断 offset 和 limit 是否允许返回对应的服务
+	if offset >= amount || limit == 0 {
+		return nil
+	}
+
+	endIdx := offset + limit
+	if endIdx > amount {
+		endIdx = amount
+	}
+	return result[offset:endIdx]
+}
+
+// GetInterfaceDescriptors 查询服务接口列表
+func (s *serviceContractStore) GetInterfaceDescriptors(ctx context.Context, filter map[string]string, offset,
+	limit uint32) (uint32, []*model.InterfaceDescriptor, error) {
+
+	result := make([]*model.InterfaceDescriptor, 0, limit)
+	_, err := s.handler.LoadValuesByFilter(tblServiceContract, searchInterfaceFields, &ServiceContract{},
+		func(m map[string]interface{}) bool {
+			valid, _ := m[ContractFieldValid].(bool)
+			if !valid {
+				return false
+			}
+			if searchNs, ok := filter["namespace"]; ok {
+				saveNs, _ := m[ContractFieldNamespace].(string)
+				if saveNs != searchNs {
+					return false
+				}
+			}
+			if searchSvc, ok := filter["service"]; ok {
+				saveSvc, _ := m[ContractFieldService].(string)
+				if saveSvc != searchSvc {
+					return false
+				}
+			}
+			if searchProtocol, ok := filter["protocol"]; ok {
+				saveProtocol, _ := m[ContractFieldProtocol].(string)
+				if saveProtocol != searchProtocol {
+					return false
+				}
+			}
+			if searchVer, ok := filter["version"]; ok {
+				saveVer, _ := m[ContractFieldVersion].(string)
+				if searchVer != saveVer {
+					return false
+				}
+			}
+			interfaces := make([]*model.InterfaceDescriptor, 0, 4)
+			_ = json.Unmarshal([]byte(m[ContractFieldInterfaces].(string)), &interfaces)
+			for i := range interfaces {
+				if searchType, ok := filter["type"]; ok {
+					if searchType != interfaces[i].Type {
+						continue
+					}
+				}
+				if searchPath, ok := filter["path"]; ok {
+					if searchPath != interfaces[i].Path {
+						continue
+					}
+				}
+				if searchMethod, ok := filter["method"]; ok {
+					if searchMethod != interfaces[i].Method {
+						continue
+					}
+				}
+				if searchSource, ok := filter["source"]; ok {
+					if searchSource != interfaces[i].Source.String() {
+						continue
+					}
+				}
+				result = append(result, interfaces[i])
+			}
+
+			return true
+		})
+	if err != nil {
+		return 0, nil, store.Error(err)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[j].ModifyTime.Before(result[i].ModifyTime)
+	})
+	return uint32(len(result)), toServiceInterfacesPage(result, offset, limit), err
+}
+
+func toServiceInterfacesPage(result []*model.InterfaceDescriptor, offset, limit uint32) []*model.InterfaceDescriptor {
+	// 所有符合条件的服务数量
+	amount := uint32(len(result))
+	// 判断 offset 和 limit 是否允许返回对应的服务
+	if offset >= amount || limit == 0 {
+		return nil
+	}
+
+	endIdx := offset + limit
+	if endIdx > amount {
+		endIdx = amount
+	}
+	return result[offset:endIdx]
+}
+
+// ListVersions .
+func (s *serviceContractStore) ListVersions(ctx context.Context, service, namespace string) ([]*model.ServiceContract, error) {
+	fields := []string{ContractFieldValid, ContractFieldNamespace, ContractFieldService}
+	values, err := s.handler.LoadValuesByFilter(tblServiceContract, fields, &ServiceContract{},
+		func(m map[string]interface{}) bool {
+			valid, _ := m[ContractFieldValid].(bool)
+			if !valid {
+				return false
+			}
+
+			saveNs, _ := m[ContractFieldNamespace].(string)
+			saveSvc, _ := m[ContractFieldService].(string)
+
+			return saveNs == namespace && saveSvc == service
+		})
+	if err != nil {
+		return nil, store.Error(err)
+	}
+
+	ret := make([]*model.EnrichServiceContract, 0, len(values))
+	for _, v := range values {
+		data := s.toModel(v.(*ServiceContract))
+		data.Interfaces = nil
+		data.Content = ""
+		ret = append(ret, data)
+	}
+	return nil, nil
+}
+
+// GetMoreServiceContracts .
+func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime time.Time) ([]*model.EnrichServiceContract, error) {
+	if firstUpdate {
+		mtime = time.Unix(0, 0)
+	}
+
+	fields := []string{ContractFieldValid, ContractFieldModifyTime}
+	values, err := s.handler.LoadValuesByFilter(tblServiceContract, fields, &ServiceContract{},
+		func(m map[string]interface{}) bool {
+			if firstUpdate {
+				valid, _ := m[ContractFieldValid].(bool)
+				if !valid {
+					return false
+				}
+			}
+			saveMtime, _ := m[ContractFieldModifyTime].(time.Time)
+			return !saveMtime.Before(mtime)
+		})
+	if err != nil {
+		return nil, store.Error(err)
+	}
+
+	ret := make([]*model.EnrichServiceContract, 0, len(values))
+	for _, v := range values {
+		ret = append(ret, s.toModel(v.(*ServiceContract)))
+	}
+	return ret, nil
+}
+
 func (s *serviceContractStore) toModel(data *ServiceContract) *model.EnrichServiceContract {
 	interfaces := make([]*model.InterfaceDescriptor, 0, 4)
 	_ = json.Unmarshal([]byte(data.Interfaces), &interfaces)
-	return &model.EnrichServiceContract{
+	ret := &model.EnrichServiceContract{
 		ServiceContract: &model.ServiceContract{
 			ID:         data.ID,
 			Namespace:  data.Namespace,
 			Service:    data.Service,
-			Name:       data.Name,
+			Type:       data.Type,
 			Protocol:   data.Protocol,
 			Version:    data.Version,
 			Revision:   data.Revision,
@@ -252,6 +460,8 @@ func (s *serviceContractStore) toModel(data *ServiceContract) *model.EnrichServi
 		},
 		Interfaces: interfaces,
 	}
+	ret.Format()
+	return ret
 }
 
 func (s *serviceContractStore) toStore(data *model.EnrichServiceContract) *ServiceContract {
@@ -259,7 +469,7 @@ func (s *serviceContractStore) toStore(data *model.EnrichServiceContract) *Servi
 		ID:         data.ID,
 		Namespace:  data.Namespace,
 		Service:    data.Service,
-		Name:       data.Name,
+		Type:       data.Type,
 		Protocol:   data.Protocol,
 		Version:    data.Version,
 		Revision:   data.Revision,
@@ -278,7 +488,7 @@ type ServiceContract struct {
 	// 所属服务名称
 	Service string
 	// 契约名称
-	Name string
+	Type string
 	// 协议，http/grpc/dubbo/thrift
 	Protocol string
 	// 契约版本

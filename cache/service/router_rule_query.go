@@ -18,6 +18,7 @@
 package service
 
 import (
+	"context"
 	"sort"
 	"strings"
 
@@ -29,7 +30,7 @@ import (
 )
 
 // forceUpdate 更新配置
-func (rc *routingConfigCache) forceUpdate() error {
+func (rc *RouteRuleCache) forceUpdate() error {
 	if err := rc.Update(); err != nil {
 		return err
 	}
@@ -53,8 +54,8 @@ func queryRoutingRuleV2ByService(rule *model.ExtendRouterConfig, sourceNamespace
 	destService, isWildDestSvc := utils.ParseWildName(destService)
 	destNamespace, isWildDestNamespace := utils.ParseWildName(destNamespace)
 
-	for i := range rule.RuleRouting.Rules {
-		subRule := rule.RuleRouting.Rules[i]
+	for i := range rule.RuleRouting.RuleRouting.Rules {
+		subRule := rule.RuleRouting.RuleRouting.Rules[i]
 		sources := subRule.GetSources()
 		if hasSourceNamespace || hasSourceSvc {
 			for i := range sources {
@@ -119,12 +120,14 @@ func queryRoutingRuleV2ByService(rule *model.ExtendRouterConfig, sourceNamespace
 }
 
 // QueryRoutingConfigsV2 Query Route Configuration List
-func (rc *routingConfigCache) QueryRoutingConfigsV2(args *types.RoutingArgs) (uint32, []*model.ExtendRouterConfig, error) {
+func (rc *RouteRuleCache) QueryRoutingConfigsV2(ctx context.Context, args *types.RoutingArgs) (uint32, []*model.ExtendRouterConfig, error) {
 	if err := rc.forceUpdate(); err != nil {
 		return 0, nil, err
 	}
+	hasSvcQuery := len(args.Service) != 0 || len(args.Namespace) != 0
 	hasSourceQuery := len(args.SourceService) != 0 || len(args.SourceNamespace) != 0
 	hasDestQuery := len(args.DestinationService) != 0 || len(args.DestinationNamespace) != 0
+	needBoth := hasSourceQuery && hasDestQuery
 
 	res := make([]*model.ExtendRouterConfig, 0, 8)
 
@@ -134,16 +137,27 @@ func (rc *routingConfigCache) QueryRoutingConfigsV2(args *types.RoutingArgs) (ui
 		}
 
 		if routeRule.GetRoutingPolicy() == apitraffic.RoutingPolicy_RulePolicy {
-			if args.Namespace != "" && args.Service != "" {
-				if !queryRoutingRuleV2ByService(routeRule, args.Namespace, args.Service,
-					args.Namespace, args.Service, false) {
-					return
+			if args.Namespace != "" {
+				if args.SourceNamespace == "" {
+					args.SourceNamespace = args.Namespace
+				}
+				if args.DestinationNamespace == "" {
+					args.DestinationNamespace = args.Namespace
 				}
 			}
-
-			if hasSourceQuery || hasDestQuery {
-				if !queryRoutingRuleV2ByService(routeRule, args.SourceNamespace, args.SourceService, args.DestinationNamespace,
-					args.DestinationService, hasSourceQuery && hasDestQuery) {
+			if args.Service != "" {
+				if args.SourceService == "" {
+					args.SourceService = args.Service
+				}
+				if args.DestinationService == "" {
+					args.DestinationService = args.Service
+				}
+			}
+			if hasSvcQuery || hasSourceQuery || hasDestQuery {
+				if !queryRoutingRuleV2ByService(routeRule,
+					args.SourceNamespace, args.SourceService,
+					args.DestinationNamespace, args.DestinationService,
+					needBoth) {
 					return
 				}
 			}
@@ -175,7 +189,7 @@ func (rc *routingConfigCache) QueryRoutingConfigsV2(args *types.RoutingArgs) (ui
 	return amount, routings, nil
 }
 
-func (rc *routingConfigCache) sortBeforeTrim(routings []*model.ExtendRouterConfig,
+func (rc *RouteRuleCache) sortBeforeTrim(routings []*model.ExtendRouterConfig,
 	args *types.RoutingArgs) (uint32, []*model.ExtendRouterConfig) {
 	amount := uint32(len(routings))
 	if args.Offset >= amount || args.Limit == 0 {

@@ -49,19 +49,14 @@ var (
 
 // CreateServiceAlias 创建服务别名
 func (s *Server) CreateServiceAlias(ctx context.Context, req *apiservice.ServiceAlias) *apiservice.Response {
-	if resp := checkCreateServiceAliasReq(ctx, req); resp != nil {
-		return resp
-	}
-
-	rid := utils.ParseRequestID(ctx)
 	tx, err := s.storage.CreateTransaction()
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(rid))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewServiceAliasResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	defer func() { _ = tx.Commit() }()
 
-	service, response, done := s.checkPointServiceAlias(tx, req, rid)
+	service, response, done := s.checkPointServiceAlias(ctx, tx, req)
 	if done {
 		return response
 	}
@@ -71,7 +66,7 @@ func (s *Server) CreateServiceAlias(ctx context.Context, req *apiservice.Service
 		oldAlias, getErr := s.storage.GetService(req.GetAlias().GetValue(),
 			req.GetAliasNamespace().GetValue())
 		if getErr != nil {
-			log.Error(getErr.Error(), utils.ZapRequestID(rid))
+			log.Error(getErr.Error(), utils.RequestID(ctx))
 			return api.NewServiceAliasResponse(commonstore.StoreCode2APICode(err), req)
 		}
 		if oldAlias != nil {
@@ -85,12 +80,12 @@ func (s *Server) CreateServiceAlias(ctx context.Context, req *apiservice.Service
 		return resp
 	}
 	if err := s.storage.AddService(input); err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(rid))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewServiceAliasResponse(commonstore.StoreCode2APICode(err), req)
 	}
 
 	log.Info(fmt.Sprintf("create service alias, service(%s, %s), alias(%s, %s)",
-		req.Service.Value, req.Namespace.Value, input.Name, input.Namespace), utils.ZapRequestID(rid))
+		req.Service.Value, req.Namespace.Value, input.Name, input.Namespace), utils.RequestID(ctx))
 	out := &apiservice.ServiceAlias{
 		Service:        req.Service,
 		Namespace:      req.Namespace,
@@ -106,12 +101,12 @@ func (s *Server) CreateServiceAlias(ctx context.Context, req *apiservice.Service
 	return api.NewServiceAliasResponse(apimodel.Code_ExecuteSuccess, out)
 }
 
-func (s *Server) checkPointServiceAlias(
-	tx store.Transaction, req *apiservice.ServiceAlias, rid string) (*model.Service, *apiservice.Response, bool) {
+func (s *Server) checkPointServiceAlias(ctx context.Context,
+	tx store.Transaction, req *apiservice.ServiceAlias) (*model.Service, *apiservice.Response, bool) {
 	// 检查指向服务是否存在以及是否为别名
 	service, err := tx.LockService(req.GetService().GetValue(), req.GetNamespace().GetValue())
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(rid))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return nil, api.NewServiceAliasResponse(commonstore.StoreCode2APICode(err), req), true
 	}
 	if service == nil {
@@ -129,9 +124,6 @@ func (s *Server) checkPointServiceAlias(
 //	需要带上源服务name，namespace，token
 //	另外一种删除别名的方式，是直接调用删除服务的接口，也是可行的
 func (s *Server) DeleteServiceAlias(ctx context.Context, req *apiservice.ServiceAlias) *apiservice.Response {
-	if resp := checkDeleteServiceAliasReq(ctx, req); resp != nil {
-		return resp
-	}
 	rid := utils.ParseRequestID(ctx)
 	alias, err := s.storage.GetService(req.GetAlias().GetValue(),
 		req.GetAliasNamespace().GetValue())
@@ -183,22 +175,10 @@ func (s *Server) DeleteServiceAliases(
 
 // UpdateServiceAlias 修改服务别名
 func (s *Server) UpdateServiceAlias(ctx context.Context, req *apiservice.ServiceAlias) *apiservice.Response {
-	rid := utils.ParseRequestID(ctx)
-
-	// 检查请求参数
-	if resp := checkReviseServiceAliasReq(ctx, req); resp != nil {
-		return resp
-	}
-
-	// 检查别名负责人
-	// if err := checkResourceOwners(req.GetOwners()); err != nil {
-	//	return api.NewServiceAliasResponse(api.InvalidServiceAliasOwners, req)
-	// }
-
 	// 检查服务别名是否存在
 	alias, err := s.storage.GetService(req.GetAlias().GetValue(), req.GetAliasNamespace().GetValue())
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(rid))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewServiceAliasResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if alias == nil {
@@ -208,7 +188,7 @@ func (s *Server) UpdateServiceAlias(ctx context.Context, req *apiservice.Service
 	// 检查将要指向的服务是否存在
 	service, err := s.storage.GetService(req.GetService().GetValue(), req.GetNamespace().GetValue())
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(rid))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewServiceAliasResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if service == nil {
@@ -226,19 +206,19 @@ func (s *Server) UpdateServiceAlias(ctx context.Context, req *apiservice.Service
 	}
 
 	if !needUpdate {
-		log.Info("update service alias data no change, no need update", utils.ZapRequestID(rid),
+		log.Info("update service alias data no change, no need update", utils.RequestID(ctx),
 			zap.String("service alias", req.String()))
 		return api.NewServiceAliasResponse(apimodel.Code_NoNeedUpdate, req)
 	}
 
 	// 执行存储层操作
 	if err := s.storage.UpdateServiceAlias(alias, needUpdateOwner); err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(rid))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return wrapperServiceAliasResponse(req, err)
 	}
 
 	log.Info(fmt.Sprintf("update service alias, service(%s, %s), alias(%s)",
-		req.GetService().GetValue(), req.GetNamespace().GetValue(), req.GetAlias().GetValue()), utils.ZapRequestID(rid))
+		req.GetService().GetValue(), req.GetNamespace().GetValue(), req.GetAlias().GetValue()), utils.RequestID(ctx))
 
 	record := &apiservice.Service{Name: req.Alias, Namespace: req.Namespace}
 	s.RecordHistory(ctx, serviceRecordEntry(ctx, record, alias, model.OUpdate))
@@ -290,89 +270,6 @@ func (s *Server) GetServiceAliases(ctx context.Context, query map[string]string)
 	}
 
 	return resp
-}
-
-// checkCreateServiceAliasReq 检查别名请求
-func checkCreateServiceAliasReq(ctx context.Context, req *apiservice.ServiceAlias) *apiservice.Response {
-	response, done := preCheckAlias(req)
-	if done {
-		return response
-	}
-	// 检查字段长度是否大于DB中对应字段长
-	err, notOk := CheckDbServiceAliasFieldLen(req)
-	if notOk {
-		return err
-	}
-	return nil
-}
-
-func preCheckAlias(req *apiservice.ServiceAlias) (*apiservice.Response, bool) {
-	if req == nil {
-		return api.NewServiceAliasResponse(apimodel.Code_EmptyRequest, req), true
-	}
-
-	if err := checkResourceName(req.GetService()); err != nil {
-		return api.NewServiceAliasResponse(apimodel.Code_InvalidServiceName, req), true
-	}
-
-	if err := checkResourceName(req.GetNamespace()); err != nil {
-		return api.NewServiceAliasResponse(apimodel.Code_InvalidNamespaceName, req), true
-	}
-
-	if err := checkResourceName(req.GetAliasNamespace()); err != nil {
-		return api.NewServiceAliasResponse(apimodel.Code_InvalidNamespaceWithAlias, req), true
-	}
-
-	// 默认类型，需要检查alias是否为空
-	if req.GetType() == apiservice.AliasType_DEFAULT {
-		if err := checkResourceName(req.GetAlias()); err != nil {
-			return api.NewServiceAliasResponse(apimodel.Code_InvalidServiceAlias, req), true
-		}
-	}
-	return nil, false
-}
-
-// checkReviseServiceAliasReq 检查删除、修改别名请求
-func checkReviseServiceAliasReq(ctx context.Context, req *apiservice.ServiceAlias) *apiservice.Response {
-	resp := checkDeleteServiceAliasReq(ctx, req)
-	if resp != nil {
-		return resp
-	}
-	// 检查服务名
-	if err := checkResourceName(req.GetService()); err != nil {
-		return api.NewServiceAliasResponse(apimodel.Code_InvalidServiceName, req)
-	}
-
-	// 检查命名空间
-	if err := checkResourceName(req.GetNamespace()); err != nil {
-		return api.NewServiceAliasResponse(apimodel.Code_InvalidNamespaceName, req)
-	}
-	return nil
-}
-
-// checkDeleteServiceAliasReq 检查删除、修改别名请求
-func checkDeleteServiceAliasReq(ctx context.Context, req *apiservice.ServiceAlias) *apiservice.Response {
-	if req == nil {
-		return api.NewServiceAliasResponse(apimodel.Code_EmptyRequest, req)
-	}
-
-	// 检查服务别名
-	if err := checkResourceName(req.GetAlias()); err != nil {
-		return api.NewServiceAliasResponse(apimodel.Code_InvalidServiceAlias, req)
-	}
-
-	// 检查服务别名命名空间
-	if err := checkResourceName(req.GetAliasNamespace()); err != nil {
-		return api.NewServiceAliasResponse(apimodel.Code_InvalidNamespaceWithAlias, req)
-	}
-
-	// 检查字段长度是否大于DB中对应字段长
-	err, notOk := CheckDbServiceAliasFieldLen(req)
-	if notOk {
-		return err
-	}
-
-	return nil
 }
 
 // updateServiceAliasAttribute 修改服务别名属性
@@ -447,34 +344,10 @@ func (s *Server) createServiceAliasModel(req *apiservice.ServiceAlias, svcId str
 
 // wrapperServiceAliasResponse wrapper service alias error
 func wrapperServiceAliasResponse(alias *apiservice.ServiceAlias, err error) *apiservice.Response {
-	resp := storeError2Response(err)
-	if resp == nil {
+	if err == nil {
 		return nil
 	}
-
+	resp := api.NewResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	resp.Alias = alias
 	return resp
-}
-
-// CheckDbServiceAliasFieldLen 检查DB中service表对应的入参字段合法性
-func CheckDbServiceAliasFieldLen(req *apiservice.ServiceAlias) (*apiservice.Response, bool) {
-	if err := utils.CheckDbStrFieldLen(req.GetService(), MaxDbServiceNameLength); err != nil {
-		return api.NewServiceAliasResponse(apimodel.Code_InvalidServiceName, req), true
-	}
-	if err := utils.CheckDbStrFieldLen(req.GetNamespace(), MaxDbServiceNamespaceLength); err != nil {
-		return api.NewServiceAliasResponse(apimodel.Code_InvalidNamespaceName, req), true
-	}
-	if err := utils.CheckDbStrFieldLen(req.GetAlias(), MaxDbServiceNameLength); err != nil {
-		return api.NewServiceAliasResponse(apimodel.Code_InvalidServiceAlias, req), true
-	}
-	if err := utils.CheckDbStrFieldLen(req.GetAliasNamespace(), MaxDbServiceNamespaceLength); err != nil {
-		return api.NewServiceAliasResponse(apimodel.Code_InvalidNamespaceWithAlias, req), true
-	}
-	if err := utils.CheckDbStrFieldLen(req.GetComment(), MaxDbServiceCommentLength); err != nil {
-		return api.NewServiceAliasResponse(apimodel.Code_InvalidServiceAliasComment, req), true
-	}
-	if err := utils.CheckDbStrFieldLen(req.GetOwners(), MaxDbServiceOwnerLength); err != nil {
-		return api.NewServiceAliasResponse(apimodel.Code_InvalidServiceAliasOwners, req), true
-	}
-	return nil, false
 }

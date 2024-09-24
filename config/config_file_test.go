@@ -23,10 +23,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"reflect"
 	"testing"
 
-	. "github.com/agiledragon/gomonkey/v2"
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
@@ -600,13 +598,13 @@ func Test_encryptConfigFile(t *testing.T) {
 			hasDataKeyTag := false
 			hasAlgoTag := false
 			for tagKey, tagVal := range tt.args.configFile.Metadata {
-				if tagKey == utils.ConfigFileTagKeyDataKey {
+				if tagKey == model.MetaKeyConfigFileDataKey {
 					hasDataKeyTag = true
 					if tt.args.dataKey != "" {
 						assert.Equal(t, tt.args.dataKey, tagVal)
 					}
 				}
-				if tagKey == utils.ConfigFileTagKeyEncryptAlgo {
+				if tagKey == model.MetaKeyConfigFileEncryptAlgo {
 					hasAlgoTag = true
 					assert.Equal(t, tt.args.algorithm, tagVal)
 				}
@@ -650,8 +648,8 @@ func Test_decryptConfigFile(t *testing.T) {
 				configFile: &model.ConfigFile{
 					Content: "YnLZ0SYuujFBHjYHAZVN5A==",
 					Metadata: map[string]string{
-						utils.ConfigFileTagKeyDataKey:     base64.StdEncoding.EncodeToString(dataKey),
-						utils.ConfigFileTagKeyEncryptAlgo: "AES",
+						model.MetaKeyConfigFileDataKey:     base64.StdEncoding.EncodeToString(dataKey),
+						model.MetaKeyConfigFileEncryptAlgo: "AES",
 					},
 					CreateBy: "polaris",
 				},
@@ -666,8 +664,8 @@ func Test_decryptConfigFile(t *testing.T) {
 				configFile: &model.ConfigFile{
 					Content: "YnLZ0SYuujFBHjYHAZVN5A==",
 					Metadata: map[string]string{
-						utils.ConfigFileTagKeyDataKey:     base64.StdEncoding.EncodeToString(dataKey),
-						utils.ConfigFileTagKeyEncryptAlgo: "AES",
+						model.MetaKeyConfigFileDataKey:     base64.StdEncoding.EncodeToString(dataKey),
+						model.MetaKeyConfigFileEncryptAlgo: "AES",
 					},
 					CreateBy: "polaris",
 				},
@@ -683,7 +681,7 @@ func Test_decryptConfigFile(t *testing.T) {
 			assert.Equal(t, tt.wantErr, err, tt.name)
 			assert.Equal(t, tt.want, tt.args.configFile.Content, tt.name)
 			for tagKey := range tt.args.configFile.Metadata {
-				if tagKey == utils.ConfigFileTagKeyDataKey {
+				if tagKey == model.MetaKeyConfigFileDataKey {
 					t.Fatal("config tags has data key")
 				}
 			}
@@ -767,12 +765,6 @@ func Test_GetConfigFileRichInfo(t *testing.T) {
 	defer ctrl.Finish()
 
 	t.Run("获取配置文件基本信息-解密配置文件-返回error", func(t *testing.T) {
-		crypto := &aes.AESCrypto{}
-		encryptFunc := ApplyMethod(reflect.TypeOf(crypto), "Decrypt", func(_ *aes.AESCrypto, plaintext string, key []byte) (string, error) {
-			return "", errors.New("mock encrypt error")
-		})
-		defer encryptFunc.Reset()
-
 		configFile := assembleConfigFile()
 
 		storage := storemock.NewMockStore(ctrl)
@@ -787,7 +779,11 @@ func Test_GetConfigFileRichInfo(t *testing.T) {
 		svr.TestMockStore(storage)
 		svr.TestMockCryptoManager(&MockCryptoManager{
 			repos: map[string]plugin.Crypto{
-				crypto.Name(): crypto,
+				(&aes.AESCrypto{}).Name(): &MockCrypto{
+					mockDecrypt: func(cryptotext string, key []byte) (string, error) {
+						return "", errors.New("mock encrypt error")
+					},
+				},
 			},
 		})
 		got := testSuit.ConfigServer().GetConfigFileRichInfo(testSuit.DefaultCtx, configFile)
@@ -824,6 +820,7 @@ func (m *MockCryptoManager) GetCrypto(algo string) (plugin.Crypto, error) {
 }
 
 type MockCrypto struct {
+	mockDecrypt func(cryptotext string, key []byte) (string, error)
 }
 
 func (m *MockCrypto) Name() string {

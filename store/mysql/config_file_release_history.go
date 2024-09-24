@@ -61,7 +61,7 @@ func (rh *configFileReleaseHistoryStore) QueryConfigFileReleaseHistories(filter 
 
 	namespace := filter["namespace"]
 	group := filter["group"]
-	fileName := filter["name"]
+	fileName := filter["file_name"]
 	endId, _ := strconv.ParseUint(filter["endId"], 10, 64)
 
 	var queryParams []interface{}

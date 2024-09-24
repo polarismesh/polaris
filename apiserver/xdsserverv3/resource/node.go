@@ -20,14 +20,18 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	_struct "github.com/golang/protobuf/ptypes/struct"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"go.uber.org/zap"
+
+	"github.com/polarismesh/polaris/common/model"
 )
 
 type RunType string
@@ -58,7 +62,26 @@ const (
 	// SidecarRegisterService xds metadata key when node what register service from envoy healthcheck
 	// value example: [{"name":"","ports":{"TCP":[8080],"DUBBO":[28080]},"health_check_path":"","health_check_port":8080,"health_check_ttl":5}]
 	SidecarRegisterService = "sidecar.polarismesh.cn/registerServices"
+	// SidecarTLSModeTag .
+	SidecarTLSModeTag = "sidecar.polarismesh.cn/tlsMode"
+	// SidecarOpenOnDemandFeature .
+	SidecarOpenOnDemandFeature = "sidecar.polarismesh.cn/openOnDemand"
+	// SidecarOpenOnDemandServer .
+	SidecarOpenOnDemandServer = "sidecar.polarismesh.cn/demandServer"
 )
+
+type EnvoyNodeView struct {
+	ID           string
+	RunType      RunType
+	User         string
+	Namespace    string
+	IPAddr       string
+	PodIP        string
+	Metadata     map[string]string
+	Version      string
+	TLSMode      TLSMode
+	OpenOnDemand bool
+}
 
 func NewXDSNodeManager() *XDSNodeManager {
 	return &XDSNodeManager{
@@ -137,6 +160,27 @@ func (x *XDSNodeManager) GetNode(id string) *XDSClient {
 	return x.nodes[id]
 }
 
+func (x *XDSNodeManager) HasEnvoyNodes() bool {
+	x.lock.RLock()
+	defer x.lock.RUnlock()
+
+	return len(x.gatewayNodes) != 0 || len(x.sidecarNodes) != 0
+}
+
+func (x *XDSNodeManager) ListEnvoyNodes() []*XDSClient {
+	x.lock.RLock()
+	defer x.lock.RUnlock()
+
+	ret := make([]*XDSClient, 0, len(x.sidecarNodes))
+	for i := range x.sidecarNodes {
+		ret = append(ret, x.sidecarNodes[i])
+	}
+	for i := range x.gatewayNodes {
+		ret = append(ret, x.gatewayNodes[i])
+	}
+	return ret
+}
+
 func (x *XDSNodeManager) ListGatewayNodes() []*XDSClient {
 	x.lock.RLock()
 	defer x.lock.RUnlock()
@@ -159,57 +203,20 @@ func (x *XDSNodeManager) ListSidecarNodes() []*XDSClient {
 	return ret
 }
 
-// ID id 的格式是 ${sidecar|gateway}~namespace/uuid~hostIp
-// case 1: envoy 为 sidecar 模式时，则 NodeID 的格式为以下两种
-//
-//	eg 1. namespace/uuid~hostIp
-//	eg 2. sidecar~namespace/uuid-hostIp
-//	eg 3. envoy_node_id="${NAMESPACE}/${INSTANCE_IP}~${POD_NAME}"
-//
-// case 2: envoy 为 gateway 模式时，则 NodeID 的格式为： gateway~namespace/uuid~hostIp
-func (PolarisNodeHash) ID(node *core.Node) string {
-	if node == nil {
-		return ""
+func (x *XDSNodeManager) ListEnvoyNodesView(run RunType) []*EnvoyNodeView {
+	x.lock.RLock()
+	defer x.lock.RUnlock()
+
+	if run == RunTypeSidecar {
+		ret := make([]*EnvoyNodeView, 0, len(x.sidecarNodes))
+		for i := range x.sidecarNodes {
+			ret = append(ret, x.sidecarNodes[i].toView())
+		}
+		return ret
 	}
-
-	runType, ns, _, _ := ParseNodeID(node.Id)
-	if node.Metadata == nil || len(node.Metadata.Fields) == 0 {
-		return ns
-	}
-
-	// Gateway 类型直接按照 gateway_service 以及 gateway_namespace 纬度
-	if runType != string(RunTypeSidecar) {
-		gatewayNamespace := node.Metadata.Fields[GatewayNamespaceName].GetStringValue()
-		gatewayService := node.Metadata.Fields[GatewayServiceName].GetStringValue()
-		// 兼容老的 envoy gateway metadata 参数设置
-		if gatewayNamespace == "" {
-			gatewayNamespace = node.Metadata.Fields[OldGatewayNamespaceName].GetStringValue()
-		}
-		if gatewayService == "" {
-			gatewayService = node.Metadata.Fields[OldGatewayServiceName].GetStringValue()
-		}
-		if gatewayNamespace == "" {
-			gatewayNamespace = ns
-		}
-		return strings.Join([]string{runType, gatewayNamespace, gatewayService}, "/")
-	}
-	// 兼容老版本注入的 envoy, 默认获取 snapshot resource 粒度为 namespace 级别, 只能下发 OUTBOUND 规则
-	ret := ns
-
-	// 判断是否存在 sidecar_namespace 以及 sidecar_service
-	if node.Metadata != nil && node.Metadata.Fields != nil {
-		sidecarNamespace := node.Metadata.Fields[SidecarNamespaceName].GetStringValue()
-		sidecarService := node.Metadata.Fields[SidecarServiceName].GetStringValue()
-		// 如果存在, 则表示是由新版本 controller 注入的 envoy, 可以下发 INBOUND 规则
-		if sidecarNamespace != "" && sidecarService != "" {
-			ret = runType + "/" + sidecarNamespace + "/" + sidecarService
-		}
-
-		// 在判断是否设置了 TLS 相关参数
-		tlsMode := node.Metadata.Fields[TLSModeTag].GetStringValue()
-		if tlsMode == string(TLSModePermissive) || tlsMode == string(TLSModeStrict) {
-			return ret + "/" + tlsMode
-		}
+	ret := make([]*EnvoyNodeView, 0, len(x.gatewayNodes))
+	for i := range x.gatewayNodes {
+		ret = append(ret, x.gatewayNodes[i].toView())
 	}
 	return ret
 }
@@ -254,15 +261,41 @@ type RegisterService struct {
 
 // XDSClient 客户端代码结构体
 type XDSClient struct {
-	RunType   RunType
-	User      string
-	Namespace string
-	IPAddr    string
-	PodIP     string
-	Metadata  map[string]string
-	Version   string
-	Node      *core.Node
-	TLSMode   TLSMode
+	ID           string
+	RunType      RunType
+	User         string
+	Namespace    string
+	IPAddr       string
+	PodIP        string
+	Metadata     map[string]string
+	Version      string
+	Node         *core.Node
+	TLSMode      TLSMode
+	OpenOnDemand bool
+	DemandServer string
+}
+
+func (n *XDSClient) toView() *EnvoyNodeView {
+	return &EnvoyNodeView{
+		ID:           n.ID,
+		RunType:      n.RunType,
+		User:         n.User,
+		Namespace:    n.Namespace,
+		IPAddr:       n.IPAddr,
+		PodIP:        n.PodIP,
+		Metadata:     n.Metadata,
+		Version:      n.Version,
+		TLSMode:      n.TLSMode,
+		OpenOnDemand: n.OpenOnDemand,
+	}
+}
+
+func (n *XDSClient) GetNodeID() string {
+	return n.ID
+}
+
+func (n *XDSClient) ResourceKey() string {
+	return n.Namespace + "/" + string(n.TLSMode)
 }
 
 func (n *XDSClient) String() string {
@@ -291,6 +324,14 @@ func (n *XDSClient) GetRegisterServices() []*RegisterService {
 	ret := make([]*RegisterService, 0, 4)
 	_ = json.Unmarshal([]byte(val), &ret)
 	return ret
+}
+
+// GetSelfServiceKey 获取 envoy 对应的 service 信息
+func (n *XDSClient) GetSelfServiceKey() model.ServiceKey {
+	return model.ServiceKey{
+		Namespace: n.GetSelfNamespace(),
+		Name:      n.GetSelfService(),
+	}
 }
 
 // GetSelfService 获取 envoy 对应的 service 信息
@@ -333,6 +374,7 @@ func ParseXDSClient(node *core.Node) *XDSClient {
 func parseNodeProxy(node *core.Node) *XDSClient {
 	runType, polarisNamespace, _, hostIP := ParseNodeID(node.Id)
 	proxy := &XDSClient{
+		ID:        node.Id,
 		IPAddr:    hostIP,
 		PodIP:     hostIP,
 		RunType:   RunType(runType),
@@ -342,9 +384,7 @@ func parseNodeProxy(node *core.Node) *XDSClient {
 	}
 
 	if node.Metadata != nil {
-		fieldVal, ok := node.Metadata.Fields[TLSModeTag]
-		if ok {
-			tlsMode := fieldVal.GetStringValue()
+		if tlsMode, ok := getEnvoyMetaField(node.Metadata, TLSModeTag, ""); ok {
 			if tlsMode == string(TLSModePermissive) {
 				proxy.TLSMode = TLSModePermissive
 			}
@@ -352,10 +392,34 @@ func parseNodeProxy(node *core.Node) *XDSClient {
 				proxy.TLSMode = TLSModeStrict
 			}
 		}
+		if onDemand, ok := getEnvoyMetaField(node.Metadata, SidecarOpenOnDemandFeature, ""); ok {
+			proxy.OpenOnDemand = onDemand == "true"
+		}
 	}
 
 	proxy.Metadata = parseMetadata(node.GetMetadata())
 	return proxy
+}
+
+func GetEnvoyMetaField[T any](meta *_struct.Struct, fileName string, fType T) (T, bool) {
+	return getEnvoyMetaField[T](meta, fileName, fType)
+}
+
+func getEnvoyMetaField[T any](meta *_struct.Struct, fileName string, fType T) (T, bool) {
+	fieldVal, ok := meta.Fields[fileName]
+	if !ok {
+		return fType, false
+	}
+	v := reflect.ValueOf(fType)
+	var ret interface{}
+	switch v.Type().Kind() {
+	case reflect.Bool:
+		ret = fieldVal.GetBoolValue()
+		return ret.(T), true
+	default:
+		ret = fieldVal.GetStringValue()
+		return ret.(T), true
+	}
 }
 
 func parseMetadata(metaValues *structpb.Struct) map[string]string {

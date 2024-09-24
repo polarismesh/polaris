@@ -32,7 +32,7 @@ import (
 	routeservice "github.com/envoyproxy/go-control-plane/envoy/service/route/v3"
 	runtimeservice "github.com/envoyproxy/go-control-plane/envoy/service/runtime/v3"
 	secretservice "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
-	cachev3 "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/server/sotw/v3"
 	serverv3 "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/atomic"
@@ -41,11 +41,11 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/polarismesh/polaris/apiserver"
+	xdscache "github.com/polarismesh/polaris/apiserver/xdsserverv3/cache"
 	"github.com/polarismesh/polaris/apiserver/xdsserverv3/resource"
 	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	connlimit "github.com/polarismesh/polaris/common/conn/limit"
-	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/service"
@@ -53,7 +53,7 @@ import (
 )
 
 type ResourceServer interface {
-	Generate(versionLocal string, registryInfo map[string]map[model.ServiceKey]*resource.ServiceInfo)
+	Generate(versionLocal string, registryInfo ServiceInfos)
 }
 
 // XDSServer is the xDS server
@@ -66,34 +66,34 @@ type XDSServer struct {
 	exitCh          chan struct{}
 	namingServer    service.DiscoverServer
 	healthSvr       *healthcheck.Server
-	cache           cachev3.SnapshotCache
+	cache           *xdscache.ResourceCache
 	versionNum      *atomic.Uint64
 	server          *grpc.Server
 	connLimitConfig *connlimit.Config
 
 	nodeMgr           *resource.XDSNodeManager
-	registryInfo      map[string]map[model.ServiceKey]*resource.ServiceInfo
+	registryInfo      *utils.AtomicValue[ServiceInfos]
 	resourceGenerator *XdsResourceGenerator
 
-	active       *atomic.Bool
-	finishCtx    context.Context
-	singleFlight singleflight.Group
+	active         *atomic.Bool
+	finishCtx      context.Context
+	singleFlight   singleflight.Group
+	activeNotifier context.Context
+	activeFinish   context.CancelFunc
 }
 
 // Initialize 初始化
 func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{},
 	apiConf map[string]apiserver.APIConfig) error {
-	x.registryInfo = make(map[string]map[model.ServiceKey]*resource.ServiceInfo)
+	x.registryInfo = utils.NewAtomicValue[ServiceInfos](ServiceInfos{})
 	x.listenPort = uint32(option["listenPort"].(int))
 	x.listenIP = option["listenIP"].(string)
 	x.nodeMgr = resource.NewXDSNodeManager()
-	x.cache = NewSnapshotCache(cachev3.NewSnapshotCache(false, resource.PolarisNodeHash{
-		NodeMgr: x.nodeMgr,
-	}, commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName)), x)
+	x.cache = xdscache.NewResourceCache(x)
 	x.active = atomic.NewBool(false)
 	x.versionNum = atomic.NewUint64(0)
 	x.ctx = ctx
-
+	x.activeNotifier, x.activeFinish = context.WithCancel(context.Background())
 	var err error
 
 	x.namingServer, err = service.GetOriginServer()
@@ -115,11 +115,13 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 		x.connLimitConfig = connConfig
 	}
 	x.resourceGenerator = &XdsResourceGenerator{
-		namingServer: x.namingServer,
-		cache:        x.cache,
-		versionNum:   x.versionNum,
-		xdsNodesMgr:  x.nodeMgr,
+		namingServer:    x.namingServer,
+		cache:           x.cache,
+		versionNum:      x.versionNum,
+		xdsNodesMgr:     x.nodeMgr,
+		svcInfoProvider: x.fetchCurrentServices,
 	}
+	resource.Init()
 	return nil
 }
 
@@ -127,8 +129,8 @@ func (x *XDSServer) Initialize(ctx context.Context, option map[string]interface{
 func (x *XDSServer) Run(errCh chan error) {
 	// 启动 grpc server
 	ctx := context.Background()
-	cb := resource.NewCallback(commonlog.GetScopeOrDefaultByName(commonlog.XDSLoggerName), x.nodeMgr)
-	srv := serverv3.NewServer(ctx, x.cache, cb)
+	cb := xdscache.NewCallback(x.cache, x.nodeMgr)
+	srv := serverv3.NewServer(ctx, x.cache, cb, sotw.WithOrderedADS())
 	var grpcOptions []grpc.ServerOption
 	grpcOptions = append(grpcOptions, grpc.MaxConcurrentStreams(1000))
 	grpcServer := grpc.NewServer(grpcOptions...)
@@ -168,6 +170,7 @@ func registerServer(grpcServer *grpc.Server, server serverv3.Server, x *XDSServe
 	endpointservice.RegisterEndpointDiscoveryServiceServer(grpcServer, server)
 	clusterservice.RegisterClusterDiscoveryServiceServer(grpcServer, server)
 	routeservice.RegisterRouteDiscoveryServiceServer(grpcServer, server)
+	routeservice.RegisterVirtualHostDiscoveryServiceServer(grpcServer, server)
 	listenerservice.RegisterListenerDiscoveryServiceServer(grpcServer, server)
 	secretservice.RegisterSecretDiscoveryServiceServer(grpcServer, server)
 	runtimeservice.RegisterRuntimeDiscoveryServiceServer(grpcServer, server)
@@ -218,8 +221,10 @@ func (x *XDSServer) GetPort() uint32 {
 
 func (x *XDSServer) activeUpdateTask() {
 	if !x.active.CompareAndSwap(false, true) {
+		<-x.activeNotifier.Done()
 		return
 	}
+	defer x.activeFinish()
 	log.Info("active update xds resource snapshot task")
 
 	if err := x.initRegistryInfo(); err != nil {
@@ -227,58 +232,80 @@ func (x *XDSServer) activeUpdateTask() {
 		return
 	}
 
-	if err := x.getRegistryInfoWithCache(x.ctx, x.registryInfo); err != nil {
+	if err := x.getRegistryInfoWithCache(x.ctx, x.registryInfo.Load()); err != nil {
 		log.Errorf("getRegistryInfoWithCache %v", err)
 		return
 	}
-	x.Generate(x.registryInfo)
+	// 首次更新没有需要移除的 XDS 资源信息
+	x.Generate(x.registryInfo.Load(), nil)
 	go x.startSynTask(x.ctx)
 }
 
 func (x *XDSServer) startSynTask(ctx context.Context) {
 	// 读取 polaris 缓存数据
 	synXdsConfFunc := func() {
-		registryInfo := make(map[string]map[model.ServiceKey]*resource.ServiceInfo)
-
-		err := x.getRegistryInfoWithCache(ctx, registryInfo)
-		if err != nil {
+		curRegistryInfo := make(ServiceInfos)
+		if err := x.getRegistryInfoWithCache(ctx, curRegistryInfo); err != nil {
 			log.Error("get registry info from cache", zap.Error(err))
 			return
 		}
 
-		needPush := make(map[string]map[model.ServiceKey]*resource.ServiceInfo)
-
-		// 处理删除 ns 中最后一个 service
-		for ns, infos := range x.registryInfo {
-			_, ok := registryInfo[ns]
-			if !ok && len(infos) > 0 {
-				// 这一次轮询时，该命名空间下的最后一个服务已经被删除了，此时，当前的命名空间需要处理
-				needPush[ns] = map[model.ServiceKey]*resource.ServiceInfo{}
-				x.registryInfo[ns] = map[model.ServiceKey]*resource.ServiceInfo{}
-			}
-		}
+		needPush := make(ServiceInfos)
+		needRemove := make(ServiceInfos)
 
 		// 与本地缓存对比，是否发生了变化，对发生变化的命名空间，推送配置
-		for ns, infos := range registryInfo {
-			cacheServiceInfos, ok := x.registryInfo[ns]
-			if !ok {
-				// 新命名空间，需要处理
-				needPush[ns] = infos
-				x.registryInfo[ns] = infos
+		oldRegistryInfo := x.registryInfo.Load()
+
+		// step 1: 这里先生成需要删除 XDS 资源数据的资源信息
+		for ns, infos := range oldRegistryInfo {
+			// 如果当前整个命名空间都不存在，直接按照整个 namespace 级别进行数据删除
+			if _, exist := curRegistryInfo[ns]; !exist {
+				needRemove[ns] = infos
 				continue
 			}
 
-			// todo 不考虑命名空间删除的情况
-			// 判断当前这个空间，是否需要更新配置
-			if x.checkUpdate(infos, cacheServiceInfos) {
-				needPush[ns] = infos
-				x.registryInfo[ns] = infos
+			cacheServiceInfos := curRegistryInfo[ns]
+			// 命名空间存在，但是命名空间下的服务有删除情况，需要找出来
+			for _, info := range infos {
+				if _, ok := cacheServiceInfos[info.ServiceKey]; ok {
+					continue
+				}
+				if _, ok := needRemove[ns]; !ok {
+					needRemove[ns] = make(map[model.ServiceKey]*resource.ServiceInfo)
+				}
+				needRemove[ns][info.ServiceKey] = info
 			}
 		}
 
-		if len(needPush) > 0 {
-			log.Info("start update xds resource snapshot ticker task", zap.Int("need-push", len(needPush)))
-			x.Generate(needPush)
+		for ns, infos := range curRegistryInfo {
+			cacheServiceInfos, ok := oldRegistryInfo[ns]
+			if !ok {
+				// 新命名空间，需要处理
+				needPush[ns] = infos
+				continue
+			}
+			for _, info := range infos {
+				oldSvc, exist := cacheServiceInfos[info.ServiceKey]
+				// 如果原来的 cache 不存在，直接就是需要推送
+				showPush := !exist
+				if exist {
+					// 如果原来的 cache 存在，这需要在比对下数据是否出现变化
+					showPush = !info.Equal(oldSvc)
+				}
+				if showPush {
+					if _, ok := needPush[ns]; !ok {
+						needPush[ns] = make(map[model.ServiceKey]*resource.ServiceInfo)
+					}
+					needPush[ns][info.ServiceKey] = info
+				}
+			}
+		}
+
+		x.registryInfo.Store(curRegistryInfo)
+		if len(needPush) > 0 || len(needRemove) > 0 {
+			log.Info("start update xds resource snapshot ticker task", zap.Int("need-push", len(needPush)),
+				zap.Int("need-remove", len(needRemove)))
+			x.Generate(needPush, needRemove)
 		}
 	}
 
@@ -295,18 +322,24 @@ func (x *XDSServer) startSynTask(ctx context.Context) {
 	}
 }
 
+func (x *XDSServer) fetchCurrentServices() ServiceInfos {
+	return x.registryInfo.Load()
+}
+
 func (x *XDSServer) initRegistryInfo() error {
+	cur := map[string]map[model.ServiceKey]*resource.ServiceInfo{}
 	namespaces := x.namingServer.Cache().Namespace().GetNamespaceList()
 	// 启动时，获取全量的 namespace 信息，用来推送空配置
 	for _, n := range namespaces {
-		x.registryInfo[n.Name] = map[model.ServiceKey]*resource.ServiceInfo{}
+		cur[n.Name] = map[model.ServiceKey]*resource.ServiceInfo{}
 	}
+	x.registryInfo.Store(cur)
 	return nil
 }
 
 // syncPolarisServiceInfo 初始化本地 cache，初始化 xds cache
 func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
-	registryInfo map[string]map[model.ServiceKey]*resource.ServiceInfo) error {
+	registryInfo ServiceInfos) error {
 
 	// 从 cache 中获取全量的服务信息
 	serviceIterProc := func(key string, value *model.Service) (bool, error) {
@@ -332,7 +365,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 	}
 
 	if err := x.namingServer.Cache().Service().IteratorServices(serviceIterProc); err != nil {
-		log.Errorf("syn polaris services error %v", err)
+		log.Errorf("sync polaris services error %v", err)
 		return err
 	}
 
@@ -346,7 +379,7 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 			}
 
 			// 获取routing配置
-			routerRule, err := x.namingServer.Cache().RoutingConfig().GetRouterConfig("", svc.Name, svc.Namespace)
+			routerRule, err := x.namingServer.Cache().RoutingConfig().GetRouterConfigV2("", svc.Name, svc.Namespace)
 			if err != nil {
 				log.Errorf("error sync routing for namespace(%s) service(%s), info : %s", svc.Namespace,
 					svc.Name, err.Error())
@@ -409,44 +442,32 @@ func (x *XDSServer) getRegistryInfoWithCache(ctx context.Context,
 			}
 		}
 	}
+
+	// 清理 namespace 下没有数据的记录
+	for k, v := range registryInfo {
+		if len(v) == 0 {
+			delete(registryInfo, k)
+		}
+	}
 	return nil
 }
 
-func (x *XDSServer) Generate(needPush map[string]map[model.ServiceKey]*resource.ServiceInfo) {
+func (x *XDSServer) Generate(needPush, needRemove ServiceInfos) {
 	versionLocal := time.Now().Format(time.RFC3339) + "/" + strconv.FormatUint(x.versionNum.Inc(), 10)
-	x.resourceGenerator.Generate(versionLocal, needPush)
+	x.resourceGenerator.Generate(versionLocal, needPush, needRemove)
 }
 
-func (x *XDSServer) checkUpdate(curServiceInfo, cacheServiceInfo map[model.ServiceKey]*resource.ServiceInfo) bool {
-	if len(curServiceInfo) != len(cacheServiceInfo) {
-		return true
+func (x *XDSServer) DebugHandlers() []model.DebugHandler {
+	return []model.DebugHandler{
+		{
+			Path:    "/debug/apiserver/xds/envoy_nodes",
+			Desc:    "Query the list of Envoy nodes, query parameter name is 'type', value is [sidecar, gateway]",
+			Handler: x.listXDSNodes,
+		},
+		{
+			Path:    "/debug/apiserver/xds/resources",
+			Desc:    "Query the list of Envoy nodes, eg. /debug/apiserver/xds/resources?type=&nodeId=, type is [eds,cds,rds,vhds,lds]",
+			Handler: x.listXDSResource,
+		},
 	}
-	for _, info := range curServiceInfo {
-		find := false
-		for _, serviceInfo := range cacheServiceInfo {
-			if info.Name == serviceInfo.Name {
-				// 通过 revision 判断
-				if info.SvcInsRevision != serviceInfo.SvcInsRevision {
-					return true
-				}
-				if info.SvcRoutingRevision != serviceInfo.SvcRoutingRevision {
-					return true
-				}
-				if info.SvcRateLimitRevision != serviceInfo.SvcRateLimitRevision {
-					return true
-				}
-				if info.CircuitBreakerRevision != serviceInfo.CircuitBreakerRevision {
-					return true
-				}
-				if info.FaultDetectRevision != serviceInfo.FaultDetectRevision {
-					return true
-				}
-				find = true
-			}
-		}
-		if !find {
-			return true
-		}
-	}
-	return false
 }

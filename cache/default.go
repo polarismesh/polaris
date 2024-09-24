@@ -26,8 +26,10 @@ import (
 	cacheauth "github.com/polarismesh/polaris/cache/auth"
 	cacheclient "github.com/polarismesh/polaris/cache/client"
 	cacheconfig "github.com/polarismesh/polaris/cache/config"
+	cachegray "github.com/polarismesh/polaris/cache/gray"
 	cachens "github.com/polarismesh/polaris/cache/namespace"
 	cachesvc "github.com/polarismesh/polaris/cache/service"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -46,6 +48,9 @@ func init() {
 	RegisterCache(types.StrategyRuleName, types.CacheAuthStrategy)
 	RegisterCache(types.ClientName, types.CacheClient)
 	RegisterCache(types.ServiceContractName, types.CacheServiceContract)
+	RegisterCache(types.GrayName, types.CacheGray)
+	RegisterCache(types.LaneRuleName, types.CacheLaneRule)
+	RegisterCache(types.RolesName, types.CacheRole)
 }
 
 var (
@@ -71,10 +76,6 @@ func Initialize(ctx context.Context, cacheOpt *Config, storage store.Store) erro
 
 // initialize cache 初始化
 func initialize(ctx context.Context, cacheOpt *Config, storage store.Store) error {
-	if !cacheOpt.Open {
-		return nil
-	}
-
 	var err error
 	cacheMgn, err = newCacheManager(ctx, cacheOpt, storage)
 	return err
@@ -83,8 +84,9 @@ func initialize(ctx context.Context, cacheOpt *Config, storage store.Store) erro
 func newCacheManager(ctx context.Context, cacheOpt *Config, storage store.Store) (*CacheManager, error) {
 	SetCacheConfig(cacheOpt)
 	mgr := &CacheManager{
-		storage: storage,
-		caches:  make([]types.Cache, types.CacheLast),
+		storage:  storage,
+		caches:   make([]types.Cache, types.CacheLast),
+		needLoad: utils.NewSyncSet[string](),
 	}
 
 	// 命名空间缓存
@@ -92,20 +94,23 @@ func newCacheManager(ctx context.Context, cacheOpt *Config, storage store.Store)
 	// 注册发现 & 服务治理缓存
 	mgr.RegisterCacher(types.CacheService, cachesvc.NewServiceCache(storage, mgr))
 	mgr.RegisterCacher(types.CacheInstance, cachesvc.NewInstanceCache(storage, mgr))
-	mgr.RegisterCacher(types.CacheRoutingConfig, cachesvc.NewRoutingConfigCache(storage, mgr))
+	mgr.RegisterCacher(types.CacheRoutingConfig, cachesvc.NewRouteRuleCache(storage, mgr))
 	mgr.RegisterCacher(types.CacheRateLimit, cachesvc.NewRateLimitCache(storage, mgr))
 	mgr.RegisterCacher(types.CacheCircuitBreaker, cachesvc.NewCircuitBreakerCache(storage, mgr))
 	mgr.RegisterCacher(types.CacheFaultDetector, cachesvc.NewFaultDetectCache(storage, mgr))
 	mgr.RegisterCacher(types.CacheCL5, cachesvc.NewL5Cache(storage, mgr))
 	mgr.RegisterCacher(types.CacheServiceContract, cachesvc.NewServiceContractCache(storage, mgr))
+	mgr.RegisterCacher(types.CacheLaneRule, cachesvc.NewLaneCache(storage, mgr))
 	// 配置分组 & 配置发布缓存
 	mgr.RegisterCacher(types.CacheConfigFile, cacheconfig.NewConfigFileCache(storage, mgr))
 	mgr.RegisterCacher(types.CacheConfigGroup, cacheconfig.NewConfigGroupCache(storage, mgr))
 	// 用户/用户组 & 鉴权规则缓存
 	mgr.RegisterCacher(types.CacheUser, cacheauth.NewUserCache(storage, mgr))
 	mgr.RegisterCacher(types.CacheAuthStrategy, cacheauth.NewStrategyCache(storage, mgr))
+	mgr.RegisterCacher(types.CacheRole, cacheauth.NewRoleCache(storage, mgr))
 	// 北极星SDK Client
 	mgr.RegisterCacher(types.CacheClient, cacheclient.NewClientCache(storage, mgr))
+	mgr.RegisterCacher(types.CacheGray, cachegray.NewGrayCache(storage, mgr))
 
 	if len(mgr.caches) != int(types.CacheLast) {
 		return nil, errors.New("some Cache implement not loaded into CacheManager")

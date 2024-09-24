@@ -23,7 +23,6 @@ import (
 
 	"github.com/polarismesh/polaris/cache"
 	"github.com/polarismesh/polaris/common/eventhub"
-	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/service/batch"
 	"github.com/polarismesh/polaris/store"
@@ -78,15 +77,6 @@ func withChecker() serverOption {
 				svr.defaultChecker = checker
 			}
 		}
-		return nil
-	}
-}
-
-// WithPlugins .
-func WithPlugins() serverOption {
-	return func(svr *Server) error {
-		svr.history = plugin.GetHistory()
-		svr.discoverEvent = plugin.GetDiscoverEvent()
 		return nil
 	}
 }
@@ -151,9 +141,6 @@ func withSubscriber(ctx context.Context) serverOption {
 		}
 		svr.subCtxs = append(svr.subCtxs, subCtx)
 
-		svr.instanceEventChannel = make(chan *model.InstanceEvent, 1024)
-		go svr.handleInstanceEventWorker(ctx)
-
 		leaderChangeEventHandler := newLeaderChangeEventHandler(svr)
 		subCtx, err = eventhub.Subscribe(eventhub.LeaderChangeEventTopic, leaderChangeEventHandler)
 		if err != nil {
@@ -161,8 +148,16 @@ func withSubscriber(ctx context.Context) serverOption {
 		}
 		svr.subCtxs = append(svr.subCtxs, subCtx)
 
-		instanceEventHandler := newInstanceEventHealthCheckHandler(ctx, svr)
-		subCtx, err = eventhub.Subscribe(eventhub.InstanceEventTopic, instanceEventHandler)
+		resourceEventHandler := newResourceHealthCheckHandler(ctx, svr)
+		// 监听服务实例的删除事件，然后清理心跳 key 数据
+		subCtx, err = eventhub.Subscribe(eventhub.InstanceEventTopic, resourceEventHandler)
+		if err != nil {
+			return err
+		}
+		svr.subCtxs = append(svr.subCtxs, subCtx)
+
+		// 监听客户端实例的删除事件，然后清理心跳 key 数据
+		subCtx, err = eventhub.Subscribe(eventhub.ClientEventTopic, resourceEventHandler)
 		if err != nil {
 			return err
 		}

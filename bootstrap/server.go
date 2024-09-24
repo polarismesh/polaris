@@ -36,11 +36,13 @@ import (
 	"github.com/polarismesh/polaris/auth"
 	boot_config "github.com/polarismesh/polaris/bootstrap/config"
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/common/version"
 	config_center "github.com/polarismesh/polaris/config"
@@ -164,6 +166,11 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 		return err
 	}
 
+	// 开启灰度规则缓存
+	_ = cacheMgn.OpenResourceCache(cachetypes.ConfigEntry{
+		Name: cachetypes.GrayName,
+	})
+
 	// 初始化鉴权层
 	if err = auth.Initialize(ctx, &cfg.Auth, s, cacheMgn); err != nil {
 		return err
@@ -212,7 +219,6 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 	if err := cache.Run(cacheMgn, ctx); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -246,7 +252,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 	if len(cfg.HealthChecks.LocalHost) == 0 {
 		cfg.HealthChecks.LocalHost = utils.LocalHost // 补充healthCheck的配置
 	}
-	if err = healthcheck.Initialize(ctx, &cfg.HealthChecks, cfg.Cache.Open, bc); err != nil {
+	if err = healthcheck.Initialize(ctx, &cfg.HealthChecks, bc); err != nil {
 		return err
 	}
 	healthCheckServer, err := healthcheck.GetServer()
@@ -271,6 +277,7 @@ func StartDiscoverComponents(ctx context.Context, cfg *boot_config.Config, s sto
 		service.WithNamespaceSvr(namespaceSvr),
 	}
 
+	cfg.Naming.Interceptors = service.GetChainOrder()
 	// 初始化服务模块
 	if err = service.Initialize(ctx, &cfg.Naming, opts...); err != nil {
 		return err
@@ -298,8 +305,8 @@ func StartConfigCenterComponents(ctx context.Context, cfg *boot_config.Config, s
 	if err != nil {
 		return err
 	}
-
-	return config_center.Initialize(ctx, cfg.Config, s, cacheMgn, namespaceOperator, userMgn, strategyMgn)
+	cfg.Config.Interceptors = config_center.GetChainOrder()
+	return config_center.Initialize(ctx, cfg.Config, s, cacheMgn, namespaceOperator)
 }
 
 // StartServers 启动server
@@ -314,6 +321,10 @@ func StartServers(ctx context.Context, cfg *boot_config.Config, errCh chan error
 		if !exist {
 			log.Warn("[ERROR] apiserver slot not exists", zap.String("name", protocol.Name))
 			continue
+		}
+		// 如果是 http server, 注入所有的 apiserver 实例
+		if protocol.Name == "api-http" {
+			ctx = context.WithValue(ctx, utils.ContextAPIServerSlot{}, apiserver.Slots)
 		}
 
 		err := slot.Initialize(ctx, protocol.Option, protocol.API)
@@ -337,19 +348,7 @@ func RestartServers(errCh chan error) error {
 		return err
 	}
 	log.Infof("new config: %+v", cfg)
-
-	// 把配置的每个apiserver，进行重启
-	for _, protocol := range cfg.APIServers {
-		server, exist := apiserver.Slots[protocol.Name]
-		if !exist {
-			log.Errorf("api server slot %s not exists\n", protocol.Name)
-			return err
-		}
-		log.Infof("begin restarting server: %s", protocol.Name)
-		if err := server.Restart(protocol.Option, protocol.API, errCh); err != nil {
-			return err
-		}
-	}
+	// TODO: 配置的动态加载后续统一设计
 	return nil
 }
 
@@ -441,8 +440,11 @@ func genContext() context.Context {
 	ctx := context.Background()
 	reqCtx := context.WithValue(context.Background(), utils.ContextAuthTokenKey, "")
 	ctx = context.WithValue(ctx, utils.StringContext("request-id"), fmt.Sprintf("self-%d", time.Now().Nanosecond()))
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, model.NewAcquireContext(
-		model.WithOperation(model.Read), model.WithModule(model.BootstrapModule), model.WithRequestContext(reqCtx)))
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey,
+		authcommon.NewAcquireContext(
+			authcommon.WithOperation(authcommon.Read),
+			authcommon.WithModule(authcommon.BootstrapModule),
+			authcommon.WithRequestContext(reqCtx)))
 	return ctx
 }
 
@@ -559,7 +561,7 @@ func polarisServiceRegister(polarisService *boot_config.PolarisService, apiServe
 // selfRegister 服务自注册
 func selfRegister(
 	host string, port uint32, protocol string, isolated bool, polarisService *boot_config.Service, hbInterval int) error {
-	server, err := service.GetOriginServer()
+	server, err := service.GetServer()
 	if err != nil {
 		return err
 	}
@@ -599,7 +601,7 @@ func selfRegister(
 		Metadata: metadata,
 	}
 
-	resp := server.CreateInstance(genContext(), req)
+	resp := server.RegisterInstance(genContext(), req)
 	if api.CalcCode(resp) != 200 {
 		// 如果self之前注册过，那么可以忽略
 		if resp.GetCode().GetValue() != api.ExistedResource {

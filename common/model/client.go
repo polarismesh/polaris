@@ -131,3 +131,14 @@ type PrometheusTarget struct {
 	Targets []string          `json:"targets"`
 	Labels  map[string]string `json:"labels"`
 }
+
+const (
+	// ClientLabel_IP 客户端 IP
+	ClientLabel_IP = "CLIENT_IP"
+	// ClientLabel_ID 客户端 ID
+	ClientLabel_ID = "CLIENT_ID"
+	// ClientLabel_Version 客户端版本
+	ClientLabel_Version = "CLIENT_VERSION"
+	// ClientLabel_Language 客户端语言
+	ClientLabel_Language = "CLIENT_LANGUAGE"
+)

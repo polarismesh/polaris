@@ -25,7 +25,6 @@ import (
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
 	"github.com/polarismesh/polaris/auth"
-	_ "github.com/polarismesh/polaris/auth/defaultauth"
 	"github.com/polarismesh/polaris/cache"
 	_ "github.com/polarismesh/polaris/cache"
 	commonlog "github.com/polarismesh/polaris/common/log"

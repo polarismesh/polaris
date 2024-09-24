@@ -24,6 +24,7 @@ import (
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -66,13 +67,13 @@ func (svr *serverAuthAbility) After(ctx context.Context, resourceType model.Reso
 
 // onNamespaceResource
 func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *ResourceEvent) error {
-	authCtx, _ := ctx.Value(utils.ContextAuthContextKey).(*model.AcquireContext)
+	authCtx, _ := ctx.Value(utils.ContextAuthContextKey).(*authcommon.AcquireContext)
 	if authCtx == nil {
 		log.Warn("[Namespace][ResourceHook] get auth context is nil, ignore", utils.RequestID(ctx))
 		return nil
 	}
 
-	authCtx.SetAttachment(model.ResourceAttachmentKey, map[apisecurity.ResourceType][]model.ResourceEntry{
+	authCtx.SetAttachment(authcommon.ResourceAttachmentKey, map[apisecurity.ResourceType][]authcommon.ResourceEntry{
 		apisecurity.ResourceType_Namespaces: {
 			{
 				ID:    res.Namespace.Name,
@@ -87,11 +88,11 @@ func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *Reso
 	groups := utils.ConvertStringValuesToSlice(res.ReqNamespace.GroupIds)
 	removeGroups := utils.ConvertStringValuesToSlice(res.ReqNamespace.RemoveGroupIds)
 
-	authCtx.SetAttachment(model.LinkUsersKey, utils.StringSliceDeDuplication(users))
-	authCtx.SetAttachment(model.RemoveLinkUsersKey, utils.StringSliceDeDuplication(removeUses))
+	authCtx.SetAttachment(authcommon.LinkUsersKey, utils.StringSliceDeDuplication(users))
+	authCtx.SetAttachment(authcommon.RemoveLinkUsersKey, utils.StringSliceDeDuplication(removeUses))
 
-	authCtx.SetAttachment(model.LinkGroupsKey, utils.StringSliceDeDuplication(groups))
-	authCtx.SetAttachment(model.RemoveLinkGroupsKey, utils.StringSliceDeDuplication(removeGroups))
+	authCtx.SetAttachment(authcommon.LinkGroupsKey, utils.StringSliceDeDuplication(groups))
+	authCtx.SetAttachment(authcommon.RemoveLinkGroupsKey, utils.StringSliceDeDuplication(removeGroups))
 
-	return svr.strategyMgn.AfterResourceOperation(authCtx)
+	return svr.policySvr.AfterResourceOperation(authCtx)
 }

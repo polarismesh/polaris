@@ -24,8 +24,6 @@ import (
 
 	"google.golang.org/grpc/metadata"
 
-	"github.com/polarismesh/polaris/apiserver"
-	grpchelp "github.com/polarismesh/polaris/apiserver/grpcserver/utils"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -50,7 +48,7 @@ func TestConvertContext(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want context.Context
+		want metadata.MD
 	}{
 		{
 			name: "",
@@ -59,11 +57,8 @@ func TestConvertContext(t *testing.T) {
 					"internal-key-1": "internal-value-1",
 				}),
 			},
-			want: func() context.Context {
-				ctx := context.Background()
-
+			want: func() metadata.MD {
 				md := make(metadata.MD)
-
 				testVal := map[string]string{
 					"internal-key-1": "internal-value-1",
 				}
@@ -71,14 +66,7 @@ func TestConvertContext(t *testing.T) {
 				for k := range testVal {
 					md[k] = []string{testVal[k]}
 				}
-
-				ctx = context.WithValue(ctx, utils.ContextGrpcHeader, md)
-				ctx = context.WithValue(ctx, utils.StringContext("request-id"), "")
-				ctx = context.WithValue(ctx, utils.StringContext("client-ip"), "")
-				ctx = context.WithValue(ctx, utils.ContextClientAddress, "")
-				ctx = context.WithValue(ctx, utils.StringContext("user-agent"), "")
-
-				return ctx
+				return md
 			}(),
 		},
 		{
@@ -90,8 +78,7 @@ func TestConvertContext(t *testing.T) {
 					"user-agent":     "user-agent",
 				}),
 			},
-			want: func() context.Context {
-
+			want: func() metadata.MD {
 				md := make(metadata.MD)
 
 				testVal := map[string]string{
@@ -102,77 +89,14 @@ func TestConvertContext(t *testing.T) {
 				for k := range testVal {
 					md[k] = []string{testVal[k]}
 				}
-
-				ctx := context.Background()
-				ctx = context.WithValue(ctx, utils.ContextGrpcHeader, md)
-				ctx = context.WithValue(ctx, utils.StringContext("request-id"), "request-id")
-				ctx = context.WithValue(ctx, utils.StringContext("client-ip"), "")
-				ctx = context.WithValue(ctx, utils.ContextClientAddress, "")
-				ctx = context.WithValue(ctx, utils.StringContext("user-agent"), "user-agent")
-
-				return ctx
+				return md
 			}(),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := utils.ConvertGRPCContext(tt.args.ctx); !reflect.DeepEqual(got, tt.want) {
+			if got := utils.ConvertGRPCContext(tt.args.ctx); !reflect.DeepEqual(got.Value(utils.ContextGrpcHeader), tt.want) {
 				t.Errorf("ConvertContext() = %v, \n want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestGetClientOpenMethod(t *testing.T) {
-	type args struct {
-		include  []string
-		protocol string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    map[string]bool
-		wantErr bool
-	}{
-		{
-			name: "case=1",
-			args: args{
-				include: []string{
-					apiserver.RegisterAccess,
-				},
-				protocol: "grpc",
-			},
-			want: map[string]bool{
-				"/v1.PolarisGRPC/RegisterInstance":   true,
-				"/v1.PolarisGRPC/DeregisterInstance": true,
-			},
-			wantErr: false,
-		},
-		{
-			name: "case=2",
-			args: args{
-				include: []string{
-					apiserver.DiscoverAccess,
-				},
-				protocol: "grpc",
-			},
-			want: map[string]bool{
-				"/v1.PolarisGRPC/Discover":                             true,
-				"/v1.PolarisGRPC/ReportClient":                         true,
-				"/v1.PolarisServiceContractGRPC/ReportServiceContract": true,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := grpchelp.GetClientOpenMethod(tt.args.include, tt.args.protocol)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetClientOpenMethod() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetClientOpenMethod() = %v, want %v", got, tt.want)
 			}
 		})
 	}

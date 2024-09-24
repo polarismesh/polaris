@@ -26,10 +26,13 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
+	"go.uber.org/zap"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	commonstore "github.com/polarismesh/polaris/common/store"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/service"
 )
 
 func checkOrBuildNewInstanceId(appId string, instId string, generateUniqueInstId bool) string {
@@ -156,7 +159,7 @@ func buildStatus(instance *InstanceInfo, targetInstance *apiservice.Instance) {
 	// eureka实例非UP状态设置isolate为true，进行流量隔离
 	targetInstance.Healthy = &wrappers.BoolValue{Value: true}
 	targetInstance.Isolate = &wrappers.BoolValue{Value: false}
-	if instance.Status != "UP" {
+	if instance.Status != StatusUp {
 		targetInstance.Isolate = &wrappers.BoolValue{Value: true}
 	}
 }
@@ -205,7 +208,7 @@ func (h *EurekaServer) registerInstances(
 	ctx context.Context, namespace string, appId string, instance *InstanceInfo, replicated bool) uint32 {
 	ctx = context.WithValue(
 		ctx, model.CtxEventKeyMetadata, map[string]string{MetadataReplicate: strconv.FormatBool(replicated)})
-	ctx = context.WithValue(ctx, utils.ContextOpenAsyncRegis, true)
+	ctx = context.WithValue(ctx, utils.ContextOpenAsyncRegis, h.allowAsyncRegis)
 	appId = formatWriteName(appId)
 	// 1. 先转换数据结构
 	totalInstance := convertEurekaInstance(instance, namespace, h.namespace, appId, h.generateUniqueInstId)
@@ -254,9 +257,14 @@ func (h *EurekaServer) updateStatus(
 		})
 	instanceId = checkOrBuildNewInstanceIdByNamespace(namespace, h.namespace, appId, instanceId, h.generateUniqueInstId)
 
-	saveIns, err := h.originDiscoverSvr.Cache().GetStore().GetInstance(instanceId)
+	svr := h.originDiscoverSvr.(*service.Server)
+	saveIns, err := svr.Store().GetInstance(instanceId)
 	if err != nil {
-		return uint32(apimodel.Code_StoreLayerException)
+		eurekalog.Error("[EUREKA-SERVER] get instance from store when update status", zap.Error(err))
+		return uint32(commonstore.StoreCode2APICode(err))
+	}
+	if saveIns == nil {
+		return uint32(apimodel.Code_NotFoundInstance)
 	}
 
 	metadata := saveIns.Metadata()

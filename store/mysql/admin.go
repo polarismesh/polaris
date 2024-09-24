@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"github.com/polarismesh/polaris/common/eventhub"
-	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/model/admin"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
@@ -64,7 +64,7 @@ type LeaderElectionStore interface {
 	// CheckMtimeExpired check mtime expired
 	CheckMtimeExpired(key string, leaseTime int32) (string, bool, error)
 	// ListLeaderElections list all leaderelection
-	ListLeaderElections() ([]*model.LeaderElection, error)
+	ListLeaderElections() ([]*admin.LeaderElection, error)
 }
 
 // leaderElectionStore
@@ -148,7 +148,7 @@ func (l *leaderElectionStore) CheckMtimeExpired(key string, leaseTime int32) (st
 }
 
 // ListLeaderElections list the election records
-func (l *leaderElectionStore) ListLeaderElections() ([]*model.LeaderElection, error) {
+func (l *leaderElectionStore) ListLeaderElections() ([]*admin.LeaderElection, error) {
 	log.Info("[Store][database] list leader election")
 	mainStr := "select elect_key, leader, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) from leader_election"
 
@@ -161,16 +161,16 @@ func (l *leaderElectionStore) ListLeaderElections() ([]*model.LeaderElection, er
 	return fetchLeaderElectionRows(rows)
 }
 
-func fetchLeaderElectionRows(rows *sql.Rows) ([]*model.LeaderElection, error) {
+func fetchLeaderElectionRows(rows *sql.Rows) ([]*admin.LeaderElection, error) {
 	if rows == nil {
 		return nil, nil
 	}
 	defer rows.Close()
 
-	var out []*model.LeaderElection
+	var out []*admin.LeaderElection
 
 	for rows.Next() {
-		space := &model.LeaderElection{}
+		space := &admin.LeaderElection{}
 		if err := rows.Scan(&space.ElectKey, &space.Host, &space.Ctime, &space.Mtime); err != nil {
 			log.Errorf("[Store][database] fetch leader election rows scan err: %s", err.Error())
 			return nil, err
@@ -300,7 +300,7 @@ func (le *leaderElectionStateMachine) changeToLeader() {
 
 // changeToFollower
 func (le *leaderElectionStateMachine) changeToFollower(leader string) {
-	log.Infof("[Store][database] change from leader to follower (%s)", le.electKey)
+	log.Infof("[Store][database] change from leader(%s) to follower (%s)", leader, le.electKey)
 	atomic.StoreInt32(&le.leaderFlag, 0)
 	le.leader = leader
 	le.publishLeaderChangeEvent()
@@ -410,7 +410,7 @@ func (m *adminStore) IsLeader(key string) bool {
 }
 
 // ListLeaderElections list election records
-func (m *adminStore) ListLeaderElections() ([]*model.LeaderElection, error) {
+func (m *adminStore) ListLeaderElections() ([]*admin.LeaderElection, error) {
 	return m.leStore.ListLeaderElections()
 }
 
@@ -533,8 +533,7 @@ func (m *adminStore) BatchCleanDeletedClients(timeout time.Duration, batchSize u
 	log.Infof("[Store][database] batch clean soft deleted clients(%d)", batchSize)
 	var rows int64
 	err := m.master.processWithTransaction("batchCleanDeletedClients", func(tx *BaseTx) error {
-		mainStr := "delete from client where flag = 1 and " +
-			"mtime <= FROM_UNIXTIME(UNIX_TIMESTAMP(SYSDATE()) - ?) limit ?"
+		mainStr := "delete from client where flag = 1 limit ?"
 		result, err := tx.Exec(mainStr, int32(timeout.Seconds()), batchSize)
 		if err != nil {
 			log.Errorf("[Store][database] batch clean soft deleted clients(%d), err: %s", batchSize, err.Error())
@@ -558,4 +557,19 @@ func (m *adminStore) BatchCleanDeletedClients(timeout time.Duration, batchSize u
 		return nil
 	})
 	return uint32(rows), err
+}
+
+// BatchCleanDeletedServices batch clean soft deleted clients
+func (m *adminStore) BatchCleanDeletedServices(timeout time.Duration, batchSize uint32) (uint32, error) {
+	return 0, nil
+}
+
+// BatchCleanDeletedRules batch clean soft deleted clients
+func (m *adminStore) BatchCleanDeletedRules(rule string, timeout time.Duration, batchSize uint32) (uint32, error) {
+	return 0, nil
+}
+
+// BatchCleanDeletedConfigFiles batch clean soft deleted clients
+func (m *adminStore) BatchCleanDeletedConfigFiles(timeout time.Duration, batchSize uint32) (uint32, error) {
+	return 0, nil
 }

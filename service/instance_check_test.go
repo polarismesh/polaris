@@ -27,6 +27,8 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	"github.com/polarismesh/polaris/cache"
 )
 
 func TestInstanceCheck(t *testing.T) {
@@ -67,6 +69,7 @@ func TestInstanceCheck(t *testing.T) {
 		time.Sleep(1 * time.Second)
 	}
 
+	_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 	instance1 := discoverSuit.DiscoverServer().Cache().Instance().GetInstance(instanceId1)
 	assert.NotNil(t, instance1)
 	assert.Equal(t, true, instance1.Proto.GetHealthy().GetValue())

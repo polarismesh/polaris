@@ -19,10 +19,78 @@ package service
 
 import (
 	"github.com/polarismesh/polaris/cache"
+	cachetypes "github.com/polarismesh/polaris/cache/api"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/service/batch"
 	"github.com/polarismesh/polaris/service/healthcheck"
 	"github.com/polarismesh/polaris/store"
+)
+
+/*
+   - name: users # Load user and user group data
+   - name: strategyRule # Loading the rules of appraisal
+   - name: namespace # Load the naming space data
+   - name: client # Load Client-SDK instance data
+*/
+
+func GetRegisterCaches() []cachetypes.ConfigEntry {
+	ret := []cachetypes.ConfigEntry{}
+	// ret = append(ret, l5CacheEntry)
+	ret = append(ret, namingCacheEntries...)
+	return ret
+}
+
+func GetAllCaches() []cachetypes.ConfigEntry {
+	ret := []cachetypes.ConfigEntry{}
+	ret = append(ret, l5CacheEntry)
+	ret = append(ret, namingCacheEntries...)
+	ret = append(ret, governanceCacheEntries...)
+	return ret
+}
+
+var (
+	l5CacheEntry = cachetypes.ConfigEntry{
+		Name: cachetypes.L5Name,
+	}
+	namingCacheEntries = []cachetypes.ConfigEntry{
+		{
+			Name: cachetypes.ServiceName,
+			Option: map[string]interface{}{
+				"disableBusiness": false,
+				"needMeta":        true,
+			},
+		},
+		{
+			Name: cachetypes.InstanceName,
+			Option: map[string]interface{}{
+				"disableBusiness": false,
+				"needMeta":        true,
+			},
+		},
+		{
+			Name: cachetypes.ServiceContractName,
+		},
+		{
+			Name: cachetypes.ClientName,
+		},
+	}
+	governanceCacheEntries = []cachetypes.ConfigEntry{
+		{
+			Name: cachetypes.RoutingConfigName,
+		},
+		{
+			Name: cachetypes.RateLimitConfigName,
+		},
+		{
+			Name: cachetypes.CircuitBreakerName,
+		},
+		{
+			Name: cachetypes.FaultDetectRuleName,
+		},
+		{
+			Name: cachetypes.LaneRuleName,
+		},
+	}
 )
 
 type InitOption func(s *Server)
@@ -45,12 +113,19 @@ func WithStorage(storage store.Store) InitOption {
 	}
 }
 
-func WithCacheManager(cacheOpt *cache.Config, c *cache.CacheManager) InitOption {
+func WithCacheManager(cacheOpt *cache.Config, c cachetypes.CacheManager, entries ...cachetypes.ConfigEntry) InitOption {
 	return func(s *Server) {
-		if cacheOpt.Open {
-			log.Infof("[Naming][Server] cache is open, can access the client api function")
-			s.caches = c
+		log.Infof("[Naming][Server] cache is open, can access the client api function")
+		if len(entries) != 0 {
+			_ = c.OpenResourceCache(entries...)
+		} else {
+			_ = c.OpenResourceCache(namingCacheEntries...)
+			_ = c.OpenResourceCache(governanceCacheEntries...)
+			if s.isSupportL5() {
+				_ = c.OpenResourceCache(l5CacheEntry)
+			}
 		}
+		s.caches = c
 	}
 }
 

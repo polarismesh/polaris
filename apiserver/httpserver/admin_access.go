@@ -27,11 +27,10 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
-	"github.com/polarismesh/polaris/admin"
 	"github.com/polarismesh/polaris/apiserver/httpserver/docs"
 	httpcommon "github.com/polarismesh/polaris/apiserver/httpserver/utils"
 	api "github.com/polarismesh/polaris/common/api/v1"
-	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/model/admin"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -67,6 +66,7 @@ func (h *HTTPServer) GetAdminAccessServer() *restful.WebService {
 	ws.Route(docs.EnrichReleaseLeaderElectionApiDocs(ws.POST("/leaders/release").To(h.ReleaseLeaderElection)))
 	ws.Route(docs.EnrichGetCMDBInfoApiDocs(ws.GET("/cmdb/info").To(h.GetCMDBInfo)))
 	ws.Route(docs.EnrichGetReportClientsApiDocs(ws.GET("/report/clients").To(h.GetReportClients)))
+	ws.Route(docs.EnrichEnablePprofApiDocs(ws.POST("/pprof/enable").To(h.EnablePprof)))
 	return ws
 }
 
@@ -261,7 +261,7 @@ func (h *HTTPServer) ListLeaderElections(req *restful.Request, rsp *restful.Resp
 		return
 	}
 	if leaders == nil {
-		leaders = []*model.LeaderElection{}
+		leaders = []*admin.LeaderElection{}
 	}
 
 	_ = rsp.WriteAsJson(leaders)
@@ -292,6 +292,20 @@ func (h *HTTPServer) GetCMDBInfo(req *restful.Request, rsp *restful.Response) {
 		return
 	}
 	_ = rsp.WriteAsJson(ret)
+}
+
+func (h *HTTPServer) EnablePprof(req *restful.Request, rsp *restful.Response) {
+	var pprofEnable struct {
+		Enable bool `json:"enable"`
+	}
+
+	if err := httpcommon.ParseJsonBody(req, &pprofEnable); err != nil {
+		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	h.enablePprof.Store(pprofEnable.Enable)
+	_ = rsp.WriteEntity("ok")
 }
 
 func initContext(req *restful.Request) context.Context {

@@ -15,6 +15,7 @@
 
 server_name="polaris-server"
 cmdline="./polaris-server start"
+mac_os=$(uname -a | grep -E "Darwin|darwin" | wc -l)
 
 function log_date() {
     echo $(date "+%Y-%m-%dT%H:%M:%S")
@@ -48,8 +49,10 @@ function start() {
     fi
     set +e
     ulimit -n 409600
+    ulimit -c unlimited
     set -e
-    nohup $cmdline >>./log/stdout 2>&1 &
+    chmod +x $server_name
+    nohup $cmdline >>/dev/null 2>&1 &
 }
 
 function stop() {
@@ -60,4 +63,43 @@ function stop() {
 
         kill -15 $pid
     done
+}
+
+function add_cron() {
+    if [[ "${mac_os}" != "0" ]]; then
+        log_info "mac os not support crontab, skip add cron"
+        return
+    fi
+    set +e
+    item="bash $workdir/tool/check.sh >>$workdir/log/check.log 2>&1"
+    exist=$(crontab -l | grep "$item" | grep -v "#" | wc -l)
+    if [ "$exist" == "0" ]; then
+        log_info "add cron for $server_name"
+
+        cron=$(mktemp)
+        crontab -l >$cron
+        echo "*/1 * * * * $item" >>$cron
+        crontab $cron
+        rm -f $cron
+    fi
+    set -e
+}
+
+function del_cron() {
+    if [[ "${mac_os}" != "0" ]]; then
+        log_info "mac os not support crontab, skip del cron"
+        return
+    fi
+    set +e
+    item="bash $workdir/tool/check.sh >>$workdir/log/check.log 2>&1"
+    exist=$(crontab -l | grep "$item" | grep -v "#" | wc -l)
+    if [ "$exist" != "0" ]; then
+        log_info "del cron for $server_name"
+
+        cron=$(mktemp)
+        crontab -l | grep -v "$item" >$cron
+        crontab $cron
+        rm -f $cron
+    fi
+    set -e
 }

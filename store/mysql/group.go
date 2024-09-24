@@ -24,7 +24,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
@@ -57,29 +57,15 @@ type groupStore struct {
 }
 
 // AddGroup 创建一个用户组
-func (u *groupStore) AddGroup(group *model.UserGroupDetail) error {
+func (u *groupStore) AddGroup(tx store.Tx, group *authcommon.UserGroupDetail) error {
 	if group.ID == "" || group.Name == "" || group.Token == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"add usergroup missing some params, groupId is %s, name is %s", group.ID, group.Name))
 	}
-
-	err := RetryTransaction("addGroup", func() error {
-		return u.addGroup(group)
-	})
-
-	return store.Error(err)
-}
-
-func (u *groupStore) addGroup(group *model.UserGroupDetail) error {
-	tx, err := u.master.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer func() { _ = tx.Rollback() }()
+	dbTx := tx.GetDelegateTx().(*BaseTx)
 
 	// 先清理无效数据
-	if err := cleanInValidGroup(tx, group.Name, group.Owner); err != nil {
+	if err := cleanInValidGroup(dbTx, group.Name, group.Owner); err != nil {
 		return store.Error(err)
 	}
 
@@ -88,12 +74,17 @@ func (u *groupStore) addGroup(group *model.UserGroupDetail) error {
 	  VALUES (?, ?, ?, ?, ?, ?, ?, sysdate(), sysdate())
 	  `
 
-	if _, err = tx.Exec(addSql, []interface{}{
+	tokenEnable := 1
+	if !group.TokenEnable {
+		tokenEnable = 0
+	}
+
+	if _, err := dbTx.Exec(addSql, []interface{}{
 		group.ID,
 		group.Name,
 		group.Owner,
 		group.Token,
-		1,
+		tokenEnable,
 		group.Comment,
 		0,
 	}...); err != nil {
@@ -101,25 +92,15 @@ func (u *groupStore) addGroup(group *model.UserGroupDetail) error {
 		return err
 	}
 
-	if err := u.addGroupRelation(tx, group.ID, group.ToUserIdSlice()); err != nil {
+	if err := u.addGroupRelation(dbTx, group.ID, group.ToUserIdSlice()); err != nil {
 		log.Errorf("[Store][Group] add usergroup relation err: %s", err.Error())
-		return err
-	}
-
-	if err := createDefaultStrategy(tx, model.PrincipalGroup, group.ID, group.Name, group.Owner); err != nil {
-		log.Errorf("[Store][Group] add usergroup default strategy err: %s", err.Error())
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
-		log.Errorf("[Store][Group] add usergroup tx commit err: %s", err.Error())
 		return err
 	}
 	return nil
 }
 
 // UpdateGroup 更新用户组
-func (u *groupStore) UpdateGroup(group *model.ModifyUserGroup) error {
+func (u *groupStore) UpdateGroup(group *authcommon.ModifyUserGroup) error {
 	if group.ID == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"update usergroup missing some params, groupId is %s", group.ID))
@@ -132,7 +113,7 @@ func (u *groupStore) UpdateGroup(group *model.ModifyUserGroup) error {
 	return store.Error(err)
 }
 
-func (u *groupStore) updateGroup(group *model.ModifyUserGroup) error {
+func (u *groupStore) updateGroup(group *authcommon.ModifyUserGroup) error {
 	tx, err := u.master.Begin()
 	if err != nil {
 		return err
@@ -181,55 +162,32 @@ func (u *groupStore) updateGroup(group *model.ModifyUserGroup) error {
 }
 
 // DeleteGroup 删除用户组
-func (u *groupStore) DeleteGroup(group *model.UserGroupDetail) error {
+func (u *groupStore) DeleteGroup(tx store.Tx, group *authcommon.UserGroupDetail) error {
 	if group.ID == "" || group.Name == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"delete usergroup missing some params, groupId is %s", group.ID))
 	}
 
-	err := RetryTransaction("deleteUserGroup", func() error {
-		return u.deleteUserGroup(group)
-	})
+	dbTx := tx.GetDelegateTx().(*BaseTx)
 
-	return store.Error(err)
-}
-
-func (u *groupStore) deleteUserGroup(group *model.UserGroupDetail) error {
-	tx, err := u.master.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer func() { _ = tx.Rollback() }()
-
-	if _, err = tx.Exec("DELETE FROM user_group_relation WHERE group_id = ?", []interface{}{
+	if _, err := dbTx.Exec("DELETE FROM user_group_relation WHERE group_id = ?", []interface{}{
 		group.ID,
 	}...); err != nil {
 		log.Errorf("[Store][Group] clean usergroup relation err: %s", err.Error())
 		return err
 	}
 
-	if _, err = tx.Exec("UPDATE user_group SET flag = 1, mtime = sysdate() WHERE id = ?", []interface{}{
+	if _, err := dbTx.Exec("UPDATE user_group SET flag = 1, mtime = sysdate() WHERE id = ?", []interface{}{
 		group.ID,
 	}...); err != nil {
 		log.Errorf("[Store][Group] remove usergroup err: %s", err.Error())
-		return err
-	}
-
-	if err := cleanLinkStrategy(tx, model.PrincipalGroup, group.ID, group.Owner); err != nil {
-		log.Errorf("[Store][Group] clean usergroup default strategy err: %s", err.Error())
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
-		log.Errorf("[Store][Group] delete usergroupr tx commit err: %s", err.Error())
 		return err
 	}
 	return nil
 }
 
 // GetGroup 根据用户组ID获取用户组
-func (u *groupStore) GetGroup(groupId string) (*model.UserGroupDetail, error) {
+func (u *groupStore) GetGroup(groupId string) (*authcommon.UserGroupDetail, error) {
 	if groupId == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"get usergroup missing some params, groupId is %s", groupId))
@@ -244,8 +202,8 @@ func (u *groupStore) GetGroup(groupId string) (*model.UserGroupDetail, error) {
 	  `
 	row := u.master.QueryRow(getSql, groupId)
 
-	group := &model.UserGroupDetail{
-		UserGroup: &model.UserGroup{},
+	group := &authcommon.UserGroupDetail{
+		UserGroup: &authcommon.UserGroup{},
 	}
 	var (
 		ctime, mtime int64
@@ -275,7 +233,7 @@ func (u *groupStore) GetGroup(groupId string) (*model.UserGroupDetail, error) {
 }
 
 // GetGroupByName 根据 owner、name 获取用户组
-func (u *groupStore) GetGroupByName(name, owner string) (*model.UserGroup, error) {
+func (u *groupStore) GetGroupByName(name, owner string) (*authcommon.UserGroup, error) {
 	if name == "" || owner == "" {
 		return nil, store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"get usergroup missing some params, name=%s, owner=%s", name, owner))
@@ -293,7 +251,7 @@ func (u *groupStore) GetGroupByName(name, owner string) (*model.UserGroup, error
 	  `
 	row := u.master.QueryRow(getSql, name, owner)
 
-	group := new(model.UserGroup)
+	group := new(authcommon.UserGroup)
 
 	if err := row.Scan(&group.ID, &group.Name, &group.Owner, &group.Comment, &group.Token, &ctime, &mtime); err != nil {
 		switch err {
@@ -312,7 +270,7 @@ func (u *groupStore) GetGroupByName(name, owner string) (*model.UserGroup, error
 
 // GetGroups 根据不同的请求情况进行不同的用户组列表查询
 func (u *groupStore) GetGroups(filters map[string]string, offset uint32, limit uint32) (uint32,
-	[]*model.UserGroup, error) {
+	[]*authcommon.UserGroup, error) {
 
 	// 如果本次请求参数携带了 user_id，那么就是查询这个用户所关联的所有用户组
 	if _, ok := filters["user_id"]; ok {
@@ -324,7 +282,7 @@ func (u *groupStore) GetGroups(filters map[string]string, offset uint32, limit u
 
 // listSimpleGroups 正常的用户组查询
 func (u *groupStore) listSimpleGroups(filters map[string]string, offset uint32, limit uint32) (uint32,
-	[]*model.UserGroup, error) {
+	[]*authcommon.UserGroup, error) {
 
 	query := make(map[string]string)
 	if _, ok := filters["id"]; ok {
@@ -383,7 +341,7 @@ func (u *groupStore) listSimpleGroups(filters map[string]string, offset uint32, 
 
 // listGroupByUser 查询某个用户下所关联的用户组信息
 func (u *groupStore) listGroupByUser(filters map[string]string, offset uint32, limit uint32) (uint32,
-	[]*model.UserGroup, error) {
+	[]*authcommon.UserGroup, error) {
 	countSql := "SELECT COUNT(*) FROM user_group_relation ul LEFT JOIN user_group ug ON " +
 		" ul.group_id = ug.id WHERE ug.flag = 0 "
 	getSql := "SELECT ug.id, ug.name, ug.owner, ug.comment, ug.token, ug.token_enable, UNIX_TIMESTAMP(ug.ctime), " +
@@ -433,7 +391,7 @@ func (u *groupStore) listGroupByUser(filters map[string]string, offset uint32, l
 
 // collectGroupsFromRows 查询用户组列表
 func (u *groupStore) collectGroupsFromRows(handler QueryHandler, querySql string,
-	args []interface{}) ([]*model.UserGroup, error) {
+	args []interface{}) ([]*authcommon.UserGroup, error) {
 	rows, err := u.master.Query(querySql, args...)
 	if err != nil {
 		log.Error("[Store][Group] list group", zap.String("query sql", querySql), zap.Any("args", args))
@@ -441,7 +399,7 @@ func (u *groupStore) collectGroupsFromRows(handler QueryHandler, querySql string
 	}
 	defer rows.Close()
 
-	groups := make([]*model.UserGroup, 0)
+	groups := make([]*authcommon.UserGroup, 0)
 	for rows.Next() {
 		group, err := fetchRown2UserGroup(rows)
 		if err != nil {
@@ -455,7 +413,7 @@ func (u *groupStore) collectGroupsFromRows(handler QueryHandler, querySql string
 }
 
 // GetGroupsForCache .
-func (u *groupStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*model.UserGroupDetail, error) {
+func (u *groupStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*authcommon.UserGroupDetail, error) {
 	tx, err := u.slave.Begin()
 	if err != nil {
 		return nil, store.Error(err)
@@ -477,9 +435,9 @@ func (u *groupStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*mo
 	}
 	defer rows.Close()
 
-	ret := make([]*model.UserGroupDetail, 0)
+	ret := make([]*authcommon.UserGroupDetail, 0)
 	for rows.Next() {
-		detail := &model.UserGroupDetail{
+		detail := &authcommon.UserGroupDetail{
 			UserIds: make(map[string]struct{}, 0),
 		}
 		group, err := fetchRown2UserGroup(rows)
@@ -571,10 +529,10 @@ func (u *groupStore) getGroupLinkUserIds(groupId string) (map[string]struct{}, e
 	return ids, nil
 }
 
-func fetchRown2UserGroup(rows *sql.Rows) (*model.UserGroup, error) {
+func fetchRown2UserGroup(rows *sql.Rows) (*authcommon.UserGroup, error) {
 	var ctime, mtime int64
 	var flag, tokenEnable int
-	group := new(model.UserGroup)
+	group := new(authcommon.UserGroup)
 	if err := rows.Scan(&group.ID, &group.Name, &group.Owner, &group.Comment, &group.Token, &tokenEnable,
 		&ctime, &mtime, &flag); err != nil {
 		return nil, err

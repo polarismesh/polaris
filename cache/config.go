@@ -21,18 +21,10 @@ import "time"
 
 // Config 缓存配置
 type Config struct {
-	// Open 是否启用缓存
-	Open bool `yaml:"open"`
 	// DiffTime 设置拉取时间范围, [T1 - abs(DiffTime), T1]
 	DiffTime time.Duration `yaml:"diffTime"`
-	// Resources 设置那些资源需要使用缓存
-	Resources []ConfigEntry `yaml:"resources"`
-}
-
-// ConfigEntry 单个缓存资源配置
-type ConfigEntry struct {
-	Name   string                 `yaml:"name"`
-	Option map[string]interface{} `yaml:"option"`
+	// ReportInterval 监控数据上报周期
+	ReportInterval time.Duration `yaml:"reportInterval"`
 }
 
 var (

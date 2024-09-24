@@ -22,8 +22,6 @@ networks:
 volumes:
   vlm_data_mysql:
     external: true
-  vlm_data_redis:
-    external: true
 
 services:
   polaris-server:
@@ -38,20 +36,22 @@ services:
       - 8091    # service-grpc
       - 8093    # config-grpc
       - 8761    # service-eureka
+      - 8848    # nacos-http port
+      - 9848    # nacos-grpc port
       - 15010   # xds-v3
     ports: # 用于其他服务访问北极星
       - "8090:8090" # api-http
       - "8091:8091" # service-grpc
       - "8093:8093" # config-grpc
       - "8761:8761" # service-eureka
+      - "8848:8848" # nacos-http port
+      - "9848:9848" # nacos-grpc port
       - "15010:15010" # xds-v3
     networks:
       - backend
     links:
       - mysql
-      - redis
     depends_on:
-      - redis
       - mysql
   polaris-console:
     container_name: polaris-console
@@ -115,17 +115,6 @@ services:
       - 3306
     networks:
       - backend
-  redis:
-    image: 'bitnami/redis:latest'
-    restart: always
-    environment:
-      - REDIS_PASSWORD=polaris
-    volumes:
-      - vlm_data_redis:/data
-    networks:
-      - backend
-    expose:
-      - 6379
   prometheus:
     container_name: prometheus
     hostname: polaris-prometheus

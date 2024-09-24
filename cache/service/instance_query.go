@@ -212,12 +212,25 @@ func (ic *instanceCache) QueryInstances(filter, metaFilter map[string]string,
 		return true, nil
 	})
 
-	sort.Slice(tempInstances, func(i, j int) bool {
-		return tempInstances[i].ModifyTime.After(tempInstances[j].ModifyTime)
-	})
+	sortInstances(tempInstances)
 
 	total, ret := ic.doPage(tempInstances, offset, limit)
 	return total, ret, nil
+}
+
+func sortInstances(tempInstances []*model.Instance) {
+	sort.Slice(tempInstances, func(i, j int) bool {
+		aTime := tempInstances[i].ModifyTime
+		bTime := tempInstances[j].ModifyTime
+		if aTime.After(bTime) {
+			return true
+		}
+		if aTime.Before(bTime) {
+			return false
+		}
+		// 按照实例 ID 进行排序，确保排序结果的稳定性
+		return strings.Compare(tempInstances[i].ID(), tempInstances[j].ID()) == 1
+	})
 }
 
 func (ic *instanceCache) doPage(ins []*model.Instance, offset, limit uint32) (uint32, []*model.Instance) {

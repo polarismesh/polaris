@@ -27,6 +27,7 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
+	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/srand"
 	commonstore "github.com/polarismesh/polaris/common/store"
@@ -54,8 +55,7 @@ type CheckScheduler struct {
 	clientCheckIntervalSec int64
 	clientCheckTtlSec      int64
 
-	adoptInstancesChan chan AdoptEvent
-	ctx                context.Context
+	ctx context.Context
 }
 
 // AdoptEvent is the event for adopt
@@ -81,33 +81,67 @@ type itemValue struct {
 	checker           plugin.HealthChecker
 }
 
-type InstanceEventHealthCheckHandler struct {
+type ResourceHealthCheckHandler struct {
 	svr                  *Server
 	ctx                  context.Context
 	instanceEventChannel chan *model.InstanceEvent
 }
 
 // newLeaderChangeEventHandler
-func newInstanceEventHealthCheckHandler(ctx context.Context, svr *Server) *InstanceEventHealthCheckHandler {
-	return &InstanceEventHealthCheckHandler{
-		svr:                  svr,
-		ctx:                  ctx,
-		instanceEventChannel: svr.instanceEventChannel,
+func newResourceHealthCheckHandler(ctx context.Context, svr *Server) *ResourceHealthCheckHandler {
+	return &ResourceHealthCheckHandler{
+		svr: svr,
+		ctx: ctx,
 	}
 }
 
-func (handler *InstanceEventHealthCheckHandler) PreProcess(ctx context.Context, value any) any {
+func (handler *ResourceHealthCheckHandler) PreProcess(ctx context.Context, value any) any {
 	return value
 }
 
 // OnEvent event trigger
-func (handler *InstanceEventHealthCheckHandler) OnEvent(ctx context.Context, i interface{}) error {
-	e := i.(model.InstanceEvent)
-	select {
-	case handler.instanceEventChannel <- &e:
-		log.Debugf("[Health Check]get instance event, id is %s, type is %s", e.Id, e.EType)
-	default:
-		log.Errorf("[Health Check]instance event chan full, drop event, id is %s, type is %s", e.Id, e.EType)
+func (handler *ResourceHealthCheckHandler) OnEvent(ctx context.Context, i interface{}) error {
+	s := handler.svr
+	switch event := i.(type) {
+	case model.InstanceEvent:
+		log.Debugf("[Health Check]get instance event, id is %s, type is %s", event.Id, event.EType)
+		if event.EType != model.EventInstanceOffline {
+			return nil
+		}
+		insCache := s.cacheProvider.GetInstance(event.Id)
+		if insCache == nil {
+			log.Errorf("[Health Check] cannot get instance from cache, instance id is %s", event.Id)
+			break
+		}
+		checker, ok := s.checkers[int32(insCache.HealthCheck().GetType())]
+		if !ok {
+			log.Errorf("[Health Check]heart beat type not found checkType %d",
+				int32(insCache.HealthCheck().GetType()))
+			break
+		}
+		log.Infof("[Health Check]delete instance heart beat information, id is %s", event.Id)
+		if err := checker.Delete(context.Background(), event.Id); err != nil {
+			log.Errorf("[Health Check]addr is %s:%d, id is %s, delete err is %s",
+				insCache.Host(), insCache.Port(), insCache.ID(), err)
+		}
+	case model.ClientEvent:
+		if event.EType != model.EventInstanceOffline {
+			return nil
+		}
+		clientCache := s.cacheProvider.GetClient(event.Id)
+		if clientCache == nil {
+			log.Errorf("[Health Check] cannot get instance from cache, instance id is %s", event.Id)
+			break
+		}
+		checker, ok := s.checkers[int32(apiservice.HealthCheck_HEARTBEAT)]
+		if !ok {
+			log.Errorf("[Health Check]heart beat type not found checkType %d", int32(apiservice.HealthCheck_HEARTBEAT))
+			break
+		}
+		log.Infof("[Health Check]delete client heart beat information, id is %s", event.Id)
+		if err := checker.Delete(context.Background(), event.Id); err != nil {
+			log.Errorf("[Health Check] client id is %s, delete err is %+v", clientCache.Proto().GetId().Value, err)
+		}
 	}
 	return nil
 }
@@ -123,7 +157,6 @@ func newCheckScheduler(ctx context.Context, slotNum int, minCheckInterval time.D
 		maxCheckIntervalSec:    int64(maxCheckInterval.Seconds()),
 		clientCheckIntervalSec: int64(clientCheckInterval.Seconds()),
 		clientCheckTtlSec:      int64(clientCheckTtl.Seconds()),
-		adoptInstancesChan:     make(chan AdoptEvent, 1024),
 		ctx:                    ctx,
 	}
 	return scheduler
@@ -132,7 +165,6 @@ func newCheckScheduler(ctx context.Context, slotNum int, minCheckInterval time.D
 func (c *CheckScheduler) run(ctx context.Context) {
 	go c.doCheckInstances(ctx)
 	go c.doCheckClient(ctx)
-	go c.doAdopt(ctx)
 }
 
 func (c *CheckScheduler) doCheckInstances(ctx context.Context) {
@@ -142,84 +174,6 @@ func (c *CheckScheduler) doCheckInstances(ctx context.Context) {
 	<-ctx.Done()
 	c.timeWheel.Stop()
 	log.Infof("[Health Check][Check]timeWheel has been stopped")
-}
-
-const (
-	batchAdoptInterval = 30 * time.Millisecond
-	batchAdoptCount    = 30
-)
-
-func (c *CheckScheduler) doAdopt(ctx context.Context) {
-	instancesToAdd := make(map[string]bool)
-	instancesToRemove := make(map[string]bool)
-	var checker plugin.HealthChecker
-	ticker := time.NewTicker(batchAdoptInterval)
-	defer func() {
-		ticker.Stop()
-	}()
-	for {
-		select {
-		case event := <-c.adoptInstancesChan:
-			instanceId := event.InstanceId
-			if event.Add {
-				instancesToAdd[instanceId] = true
-				delete(instancesToRemove, instanceId)
-			} else {
-				instancesToRemove[instanceId] = true
-				delete(instancesToAdd, instanceId)
-			}
-			checker = event.Checker
-			if len(instancesToAdd) == batchAdoptCount {
-				instancesToAdd = c.processAdoptEvents(instancesToAdd, true, checker)
-			}
-			if len(instancesToRemove) == batchAdoptCount {
-				instancesToRemove = c.processAdoptEvents(instancesToRemove, false, checker)
-			}
-		case <-ticker.C:
-			if len(instancesToAdd) > 0 {
-				instancesToAdd = c.processAdoptEvents(instancesToAdd, true, checker)
-			}
-			if len(instancesToRemove) > 0 {
-				instancesToRemove = c.processAdoptEvents(instancesToRemove, false, checker)
-			}
-		case <-ctx.Done():
-			log.Infof("[Health Check][Check]adopting routine has been stopped")
-			return
-		}
-	}
-}
-
-func (c *CheckScheduler) processAdoptEvents(
-	instances map[string]bool, add bool, checker plugin.HealthChecker) map[string]bool {
-	instanceIds := make([]string, 0, len(instances))
-	for id := range instances {
-		instanceIds = append(instanceIds, id)
-	}
-	log.Debug("[Health Check][Check] adopt event", zap.Any("instances", instanceIds),
-		zap.String("server", c.svr.localHost), zap.Bool("add", add))
-	return instances
-}
-
-func (c *CheckScheduler) addAdopting(instanceId string, checker plugin.HealthChecker) {
-	select {
-	case c.adoptInstancesChan <- AdoptEvent{
-		InstanceId: instanceId,
-		Add:        true,
-		Checker:    checker}:
-	case <-c.ctx.Done():
-		return
-	}
-}
-
-func (c *CheckScheduler) removeAdopting(instanceId string, checker plugin.HealthChecker) {
-	select {
-	case c.adoptInstancesChan <- AdoptEvent{
-		InstanceId: instanceId,
-		Add:        false,
-		Checker:    checker}:
-	case <-c.ctx.Done():
-		return
-	}
 }
 
 func (c *CheckScheduler) upsertInstanceChecker(instanceWithChecker *InstanceWithChecker) (bool, *itemValue) {
@@ -308,7 +262,6 @@ func (c *CheckScheduler) UpsertInstance(instanceWithChecker *InstanceWithChecker
 	if firstadd {
 		return
 	}
-	c.addAdopting(instValue.id, instValue.checker)
 	instance := instanceWithChecker.instance
 	log.Infof("[Health Check][Check]add check instance is %s, host is %s:%d",
 		instance.ID(), instance.Host(), instance.Port())
@@ -317,11 +270,9 @@ func (c *CheckScheduler) UpsertInstance(instanceWithChecker *InstanceWithChecker
 
 // AddClient add client to check
 func (c *CheckScheduler) AddClient(clientWithChecker *ClientWithChecker) {
-	exists, instValue := c.putClientIfAbsent(clientWithChecker)
-	if exists {
+	if exists, _ := c.putClientIfAbsent(clientWithChecker); exists {
 		return
 	}
-	c.addAdopting(instValue.id, instValue.checker)
 	client := clientWithChecker.client
 	log.Infof("[Health Check][Check]add check client is %s, host is %s:%d",
 		client.Proto().GetId().GetValue(), client.Proto().GetHost(), 0)
@@ -494,9 +445,6 @@ func (c *CheckScheduler) DelClient(clientWithChecker *ClientWithChecker) {
 	exists := c.delClientIfPresent(clientId)
 	log.Infof("[Health Check][Check]remove check client is %s:%d, id is %s, exists is %v",
 		client.Proto().GetHost().GetValue(), 0, clientId, exists)
-	if exists {
-		c.removeAdopting(clientId, clientWithChecker.checker)
-	}
 }
 
 // DelInstance del instance from check
@@ -506,9 +454,6 @@ func (c *CheckScheduler) DelInstance(instanceWithChecker *InstanceWithChecker) {
 	exists := c.delInstanceIfPresent(instanceId)
 	log.Infof("[Health Check][Check]remove check instance is %s:%d, id is %s, exists is %v",
 		instance.Host(), instance.Port(), instanceId, exists)
-	if exists {
-		c.removeAdopting(instanceId, instanceWithChecker.checker)
-	}
 }
 
 func (c *CheckScheduler) delInstanceIfPresent(instanceId string) bool {
@@ -620,6 +565,10 @@ func asyncDeleteClient(svr *Server, client *apiservice.Client) apimodel.Code {
 		log.Error("[Health Check][Check] async delete client", zap.String("client-id", client.GetId().GetValue()),
 			zap.Error(err))
 	}
+	_ = eventhub.Publish(eventhub.ClientEventTopic, &model.ClientEvent{
+		EType: model.EventClientOffline,
+		Id:    client.GetId().GetValue(),
+	})
 	return future.Code()
 }
 

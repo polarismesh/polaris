@@ -31,7 +31,7 @@ import (
 	v1 "github.com/polarismesh/polaris/apiserver/grpcserver/discover/v1"
 	"github.com/polarismesh/polaris/apiserver/grpcserver/utils"
 	commonlog "github.com/polarismesh/polaris/common/log"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/healthcheck"
 )
@@ -108,7 +108,8 @@ func (g *GRPCServer) Run(errCh chan error) {
 					// 注册 v1 版本的 spec discover server
 					apiservice.RegisterPolarisGRPCServer(server, g.v1server)
 					apiservice.RegisterPolarisHeartbeatGRPCServer(server, g.v1server)
-					openMethod, getErr := utils.GetClientOpenMethod(config.Include, g.GetProtocol())
+					apiservice.RegisterPolarisServiceContractGRPCServer(server, g.v1server)
+					openMethod, getErr := utils.GetDiscoverClientOpenMethod(config.Include, g.GetProtocol())
 					if getErr != nil {
 						return getErr
 					}
@@ -152,7 +153,7 @@ func (g *GRPCServer) allowAccess(method string) bool {
 
 func (g *GRPCServer) buildInitOptions(option map[string]interface{}) []grpcserver.InitOption {
 	initOptions := []grpcserver.InitOption{
-		grpcserver.WithModule(model.DiscoverModule),
+		grpcserver.WithModule(authcommon.DiscoverModule),
 		grpcserver.WithProtocol(g.GetProtocol()),
 		grpcserver.WithLogger(commonlog.FindScope(commonlog.APIServerLoggerName)),
 		grpcserver.WithMessageToCacheObject(discoverCacheConvert),

@@ -24,10 +24,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 )
 
-func buildUserIds(users []*model.User) map[string]struct{} {
+func buildUserIds(users []*authcommon.User) map[string]struct{} {
 	ret := make(map[string]struct{}, len(users))
 
 	for i := range users {
@@ -38,14 +38,14 @@ func buildUserIds(users []*model.User) map[string]struct{} {
 	return ret
 }
 
-func createTestUserGroup(num int) []*model.UserGroupDetail {
-	ret := make([]*model.UserGroupDetail, 0, num)
+func createTestUserGroup(num int) []*authcommon.UserGroupDetail {
+	ret := make([]*authcommon.UserGroupDetail, 0, num)
 
 	users := createTestUsers(num)
 
 	for i := 0; i < num; i++ {
-		ret = append(ret, &model.UserGroupDetail{
-			UserGroup: &model.UserGroup{
+		ret = append(ret, &authcommon.UserGroupDetail{
+			UserGroup: &authcommon.UserGroup{
 				ID:          fmt.Sprintf("test_group_%d", i),
 				Name:        fmt.Sprintf("test_group_%d", i),
 				Owner:       "polaris",
@@ -69,9 +69,12 @@ func Test_groupStore_AddGroup(t *testing.T) {
 
 		groups := createTestUserGroup(1)
 
-		if err := gs.AddGroup(groups[0]); err != nil {
+		tx, err := handler.StartTx()
+		assert.NoError(t, err)
+		if err := gs.AddGroup(tx, groups[0]); err != nil {
 			t.Fatal(err)
 		}
+		assert.NoError(t, tx.Commit())
 
 		ret, err := gs.GetGroup(groups[0].ID)
 		if err != nil {
@@ -94,13 +97,16 @@ func Test_groupStore_UpdateGroup(t *testing.T) {
 
 		groups := createTestUserGroup(1)
 
-		if err := gs.AddGroup(groups[0]); err != nil {
+		tx, err := handler.StartTx()
+		assert.NoError(t, err)
+		if err := gs.AddGroup(tx, groups[0]); err != nil {
 			t.Fatal(err)
 		}
+		assert.NoError(t, tx.Commit())
 
 		groups[0].Comment = time.Now().String()
 
-		if err := gs.UpdateGroup(&model.ModifyUserGroup{
+		if err := gs.UpdateGroup(&authcommon.ModifyUserGroup{
 			ID:          groups[0].ID,
 			Owner:       groups[0].Owner,
 			Token:       groups[0].Token,
@@ -131,15 +137,21 @@ func Test_groupStore_DeleteGroup(t *testing.T) {
 
 		groups := createTestUserGroup(1)
 
-		if err := gs.AddGroup(groups[0]); err != nil {
+		tx, err := handler.StartTx()
+		assert.NoError(t, err)
+		if err := gs.AddGroup(tx, groups[0]); err != nil {
 			t.Fatal(err)
 		}
+		assert.NoError(t, tx.Commit())
 
 		groups[0].Comment = time.Now().String()
 
-		if err := gs.DeleteGroup(groups[0]); err != nil {
+		tx, err = handler.StartTx()
+		assert.NoError(t, err)
+		if err := gs.DeleteGroup(tx, groups[0]); err != nil {
 			t.Fatal(err)
 		}
+		assert.NoError(t, tx.Commit())
 
 		ret, err := gs.GetGroup(groups[0].ID)
 		if err != nil {
@@ -156,9 +168,12 @@ func Test_groupStore_GetGroupByName(t *testing.T) {
 
 		groups := createTestUserGroup(1)
 
-		if err := gs.AddGroup(groups[0]); err != nil {
+		tx, err := handler.StartTx()
+		assert.NoError(t, err)
+		if err := gs.AddGroup(tx, groups[0]); err != nil {
 			t.Fatal(err)
 		}
+		assert.NoError(t, tx.Commit())
 
 		ret, err := gs.GetGroupByName(groups[0].Name, groups[0].Owner)
 		if err != nil {
@@ -182,9 +197,12 @@ func Test_groupStore_GetGroups(t *testing.T) {
 		groups := createTestUserGroup(10)
 
 		for i := range groups {
-			if err := gs.AddGroup(groups[i]); err != nil {
+			tx, err := handler.StartTx()
+			assert.NoError(t, err)
+			if err := gs.AddGroup(tx, groups[i]); err != nil {
 				t.Fatal(err)
 			}
+			assert.NoError(t, tx.Commit())
 		}
 
 		total, ret, err := gs.GetGroups(map[string]string{

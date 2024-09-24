@@ -18,12 +18,23 @@
 package model
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
+)
+
+type ReleaseType string
+
+const (
+	// ReleaseTypeFull 全量类型
+	ReleaseTypeFull = ""
+	// ReleaseTypeGray 灰度类型
+	ReleaseTypeGray = "gray"
 )
 
 /** ----------- DataObject ------------- */
@@ -43,12 +54,17 @@ type ConfigFileGroup struct {
 	CreateBy   string
 	ModifyBy   string
 	Valid      bool
+	Revision   string
 }
 
 type ConfigFileKey struct {
 	Name      string
 	Namespace string
 	Group     string
+}
+
+func (c ConfigFileKey) String() string {
+	return c.Namespace + "@" + c.Group + "@" + c.Name
 }
 
 // ConfigFile 配置文件数据持久化对象
@@ -89,14 +105,14 @@ func (s *ConfigFile) KeyString() string {
 }
 
 func (s *ConfigFile) GetEncryptDataKey() string {
-	return s.Metadata[utils.ConfigFileTagKeyDataKey]
+	return s.Metadata[MetaKeyConfigFileDataKey]
 }
 
 func (s *ConfigFile) GetEncryptAlgo() string {
 	if s.EncryptAlgo != "" {
 		return s.EncryptAlgo
 	}
-	return s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
+	return s.Metadata[MetaKeyConfigFileEncryptAlgo]
 }
 
 func (s *ConfigFile) IsEncrypted() bool {
@@ -118,11 +134,12 @@ type ConfigFileRelease struct {
 }
 
 type ConfigFileReleaseKey struct {
-	Id        uint64
-	Name      string
-	Namespace string
-	Group     string
-	FileName  string
+	Id          uint64
+	Name        string
+	Namespace   string
+	Group       string
+	FileName    string
+	ReleaseType ReleaseType
 }
 
 func (c ConfigFileReleaseKey) ToFileKey() *ConfigFileKey {
@@ -133,16 +150,27 @@ func (c ConfigFileReleaseKey) ToFileKey() *ConfigFileKey {
 	}
 }
 
-func (c ConfigFileReleaseKey) OwnerKey() string {
+func (c *ConfigFileReleaseKey) OwnerKey() string {
 	return c.Namespace + "@" + c.Group
 }
 
+func (c ConfigFileReleaseKey) FileKey() string {
+	return fmt.Sprintf("%v@%v@%v", c.Namespace, c.Group, c.FileName)
+}
+
 func (c ConfigFileReleaseKey) ActiveKey() string {
-	return c.Namespace + "@" + c.Group + "@" + c.FileName
+	return fmt.Sprintf("%v@%v@%v@%v", c.Namespace, c.Group, c.FileName, c.ReleaseType)
 }
 
 func (c ConfigFileReleaseKey) ReleaseKey() string {
-	return c.Namespace + "@" + c.Group + "@" + c.FileName + "@" + c.Name
+	return fmt.Sprintf("%v@%v@%v@%v", c.Namespace, c.Group, c.FileName, c.Name)
+}
+
+// BuildKeyForClientConfigFileInfo 必须保证和 ConfigFileReleaseKey.FileKey 是一样的生成规则
+func BuildKeyForClientConfigFileInfo(info *config_manage.ClientConfigFileInfo) string {
+	key := info.GetNamespace().GetValue() + "@" +
+		info.GetGroup().GetValue() + "@" + info.GetFileName().GetValue()
+	return key
 }
 
 // SimpleConfigFileRelease 配置文件发布数据持久化对象
@@ -161,18 +189,30 @@ type SimpleConfigFileRelease struct {
 	ModifyTime         time.Time
 	ModifyBy           string
 	ReleaseDescription string
+	BetaLabels         []*apimodel.ClientLabel
 }
 
-func (s SimpleConfigFileRelease) GetEncryptDataKey() string {
-	return s.Metadata[utils.ConfigFileTagKeyDataKey]
+func (s *SimpleConfigFileRelease) GetEncryptDataKey() string {
+	return s.Metadata[MetaKeyConfigFileDataKey]
 }
 
-func (s SimpleConfigFileRelease) GetEncryptAlgo() string {
-	return s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
+func (s *SimpleConfigFileRelease) GetEncryptAlgo() string {
+	return s.Metadata[MetaKeyConfigFileEncryptAlgo]
 }
 
-func (s SimpleConfigFileRelease) IsEncrypted() bool {
+func (s *SimpleConfigFileRelease) IsEncrypted() bool {
 	return s.GetEncryptDataKey() != ""
+}
+
+func (s *SimpleConfigFileRelease) ToSpecNotifyClientRequest() *config_manage.ClientConfigFileInfo {
+	return &config_manage.ClientConfigFileInfo{
+		Namespace: utils.NewStringValue(s.Namespace),
+		Group:     utils.NewStringValue(s.Group),
+		FileName:  utils.NewStringValue(s.FileName),
+		Name:      utils.NewStringValue(s.Name),
+		Md5:       utils.NewStringValue(s.Md5),
+		Version:   utils.NewUInt64Value(s.Version),
+	}
 }
 
 // ConfigFileReleaseHistory 配置文件发布历史记录数据持久化对象
@@ -200,11 +240,11 @@ type ConfigFileReleaseHistory struct {
 }
 
 func (s ConfigFileReleaseHistory) GetEncryptDataKey() string {
-	return s.Metadata[utils.ConfigFileTagKeyDataKey]
+	return s.Metadata[MetaKeyConfigFileDataKey]
 }
 
 func (s ConfigFileReleaseHistory) GetEncryptAlgo() string {
-	return s.Metadata[utils.ConfigFileTagKeyEncryptAlgo]
+	return s.Metadata[MetaKeyConfigFileEncryptAlgo]
 }
 
 func (s ConfigFileReleaseHistory) IsEncrypted() bool {
@@ -259,7 +299,7 @@ func ToConfigFileStore(file *config_manage.ConfigFile) *ConfigFile {
 
 	metadata := ToTagMap(file.GetTags())
 	if file.GetEncryptAlgo().GetValue() != "" {
-		metadata[utils.ConfigFileTagKeyEncryptAlgo] = file.GetEncryptAlgo().GetValue()
+		metadata[MetaKeyConfigFileEncryptAlgo] = file.GetEncryptAlgo().GetValue()
 	}
 
 	return &ConfigFile{
@@ -325,6 +365,8 @@ func ToConfiogFileReleaseApi(release *ConfigFileRelease) *config_manage.ConfigFi
 		ReleaseDescription: utils.NewStringValue(release.ReleaseDescription),
 		Tags:               FromTagMap(release.Metadata),
 		Active:             utils.NewBoolValue(release.Active),
+		ReleaseType:        utils.NewStringValue(string(release.ReleaseType)),
+		BetaLabels:         release.BetaLabels,
 	}
 }
 
@@ -427,7 +469,7 @@ func FromTagMap(kvs map[string]string) []*config_manage.ConfigFileTag {
 func ToTagMap(tags []*config_manage.ConfigFileTag) map[string]string {
 	kvs := map[string]string{}
 	for i := range tags {
-		kvs[tags[i].GetKey().GetValue()] = tags[i].GetKey().GetValue()
+		kvs[tags[i].GetKey().GetValue()] = tags[i].GetValue().GetValue()
 	}
 
 	return kvs

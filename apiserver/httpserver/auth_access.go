@@ -43,7 +43,7 @@ func (h *HTTPServer) GetAuthServer(ws *restful.WebService) error {
 	ws.Route(docs.EnrichUpdateUserApiDocs(ws.PUT("/user").To(h.UpdateUser)))
 	ws.Route(docs.EnrichUpdateUserPasswordApiDocs(ws.PUT("/user/password").To(h.UpdateUserPassword)))
 	ws.Route(docs.EnrichGetUserTokenApiDocs(ws.GET("/user/token").To(h.GetUserToken)))
-	ws.Route(docs.EnrichUpdateUserTokenApiDocs(ws.PUT("/user/token/status").To(h.UpdateUserToken)))
+	ws.Route(docs.EnrichUpdateUserTokenApiDocs(ws.PUT("/user/token/status").To(h.EnableUserToken)))
 	ws.Route(docs.EnrichResetUserTokenApiDocs(ws.PUT("/user/token/refresh").To(h.ResetUserToken)))
 	//
 	ws.Route(docs.EnrichCreateGroupApiDocs(ws.POST("/usergroup").To(h.CreateGroup)))
@@ -52,7 +52,7 @@ func (h *HTTPServer) GetAuthServer(ws *restful.WebService) error {
 	ws.Route(docs.EnrichDeleteGroupsApiDocs(ws.POST("/usergroups/delete").To(h.DeleteGroups)))
 	ws.Route(docs.EnrichGetGroupApiDocs(ws.GET("/usergroup/detail").To(h.GetGroup)))
 	ws.Route(docs.EnrichGetGroupTokenApiDocs(ws.GET("/usergroup/token").To(h.GetGroupToken)))
-	ws.Route(docs.EnrichUpdateGroupTokenApiDocs(ws.PUT("/usergroup/token/status").To(h.UpdateGroupToken)))
+	ws.Route(docs.EnrichUpdateGroupTokenApiDocs(ws.PUT("/usergroup/token/status").To(h.EnableGroupToken)))
 	ws.Route(docs.EnrichResetGroupTokenApiDocs(ws.PUT("/usergroup/token/refresh").To(h.ResetGroupToken)))
 
 	ws.Route(docs.EnrichCreateStrategyApiDocs(ws.POST("/auth/strategy").To(h.CreateStrategy)))
@@ -213,8 +213,8 @@ func (h *HTTPServer) GetUserToken(req *restful.Request, rsp *restful.Response) {
 	handler.WriteHeaderAndProto(h.userMgn.GetUserToken(handler.ParseHeaderContext(), user))
 }
 
-// UpdateUserToken 更改用户的token
-func (h *HTTPServer) UpdateUserToken(req *restful.Request, rsp *restful.Response) {
+// EnableUserToken 更改用户的token
+func (h *HTTPServer) EnableUserToken(req *restful.Request, rsp *restful.Response) {
 	handler := &httpcommon.Handler{
 		Request:  req,
 		Response: rsp,
@@ -228,7 +228,7 @@ func (h *HTTPServer) UpdateUserToken(req *restful.Request, rsp *restful.Response
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.userMgn.UpdateUserToken(ctx, user))
+	handler.WriteHeaderAndProto(h.userMgn.EnableUserToken(ctx, user))
 }
 
 // ResetUserToken 重置用户 token
@@ -358,8 +358,8 @@ func (h *HTTPServer) GetGroupToken(req *restful.Request, rsp *restful.Response) 
 	handler.WriteHeaderAndProto(h.userMgn.GetGroupToken(ctx, group))
 }
 
-// UpdateGroupToken 更新用户组 token
-func (h *HTTPServer) UpdateGroupToken(req *restful.Request, rsp *restful.Response) {
+// EnableGroupToken 更新用户组 token
+func (h *HTTPServer) EnableGroupToken(req *restful.Request, rsp *restful.Response) {
 	handler := &httpcommon.Handler{
 		Request:  req,
 		Response: rsp,
@@ -373,7 +373,7 @@ func (h *HTTPServer) UpdateGroupToken(req *restful.Request, rsp *restful.Respons
 		return
 	}
 
-	handler.WriteHeaderAndProto(h.userMgn.UpdateGroupToken(ctx, group))
+	handler.WriteHeaderAndProto(h.userMgn.EnableGroupToken(ctx, group))
 }
 
 // ResetGroupToken 重置用户组 token

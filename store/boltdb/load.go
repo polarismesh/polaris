@@ -29,6 +29,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 )
 
 func (m *boltStore) loadByDefault() error {
@@ -46,7 +47,7 @@ func (m *boltStore) loadByDefault() error {
 // DefaultData 默认数据信息
 type DefaultData struct {
 	Namespaces []*model.Namespace `yaml:"namespaces"`
-	Users      []*model.User      `yaml:"users"`
+	Users      []*authcommon.User `yaml:"users"`
 }
 
 func (m *boltStore) loadByFile(loadFile string) error {
@@ -57,6 +58,7 @@ func (m *boltStore) loadByFile(loadFile string) error {
 	if err != nil {
 		return err
 	}
+	defer cf.Close()
 	data := &DefaultData{}
 	if err := yaml.NewDecoder(cf).Decode(data); err != nil {
 		fmt.Printf("[ERROR] %v\n", err)
@@ -89,16 +91,16 @@ func (m *boltStore) loadFromData(data *DefaultData) error {
 
 	tn := time.Now()
 	var (
-		superUser, mainUser *model.User
+		superUser, mainUser *authcommon.User
 	)
-	if len(users) >= 2 && users[0].Type == model.AdminUserRole && users[1].Type == model.OwnerUserRole {
+	if len(users) >= 2 && users[0].Type == authcommon.AdminUserRole && users[1].Type == authcommon.OwnerUserRole {
 		superUser = users[0]
 		superUser.CreateTime = tn
 		superUser.ModifyTime = tn
 		mainUser = users[1]
 		mainUser.CreateTime = tn
 		mainUser.ModifyTime = tn
-	} else if users[0].Type == model.OwnerUserRole {
+	} else if users[0].Type == authcommon.OwnerUserRole {
 		mainUser = users[0]
 		mainUser.CreateTime = tn
 		mainUser.ModifyTime = tn
@@ -107,7 +109,7 @@ func (m *boltStore) loadFromData(data *DefaultData) error {
 	}
 
 	if err := m.handler.Execute(true, func(tx *bolt.Tx) error {
-		saveFunc := func(user *model.User, rule *model.StrategyDetail) error {
+		saveFunc := func(user *authcommon.User, rule *authcommon.StrategyDetail) error {
 			rule.Owner = user.ID
 			rule.Principals[0].PrincipalID = user.ID
 			saveUser, err := m.getUser(tx, user.ID)
@@ -153,11 +155,18 @@ func (m *boltStore) loadFromData(data *DefaultData) error {
 		return err
 	}
 
+	tx, err := m.handle.StartTx()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
 	// 挨个处理其他用户数据信息
 	for i := 1; i < len(users); i++ {
-		if err := m.addUser(users[i]); err != nil {
+		if err := m.AddUser(tx, users[i]); err != nil {
 			return nil
 		}
 	}
-	return nil
+	return tx.Commit()
 }

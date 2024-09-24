@@ -20,13 +20,11 @@ package sqldb
 import (
 	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 
-	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	"go.uber.org/zap"
 
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
@@ -54,25 +52,23 @@ type userStore struct {
 }
 
 // AddUser 添加用户
-func (u *userStore) AddUser(user *model.User) error {
+func (u *userStore) AddUser(tx store.Tx, user *authcommon.User) error {
 	if user.ID == "" || user.Name == "" || user.Token == "" || user.Password == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"add user missing some params, id is %s, name is %s", user.ID, user.Name))
 	}
+	dbTx := tx.GetDelegateTx().(*BaseTx)
 
 	// 先清理无效数据
-	if err := u.cleanInValidUser(user.Name, user.Owner); err != nil {
+	if err := u.cleanInValidUser(dbTx, user.Name, user.Owner); err != nil {
 		return err
 	}
 
-	err := RetryTransaction("addUser", func() error {
-		return u.addUser(user)
-	})
-
+	err := u.addUser(dbTx, user)
 	return store.Error(err)
 }
 
-func (u *userStore) addUser(user *model.User) error {
+func (u *userStore) addUser(tx *BaseTx, user *authcommon.User) error {
 
 	tx, err := u.master.Begin()
 	if err != nil {
@@ -102,26 +98,11 @@ func (u *userStore) addUser(user *model.User) error {
 	if err != nil {
 		return store.Error(err)
 	}
-
-	owner := user.Owner
-	if owner == "" {
-		owner = user.ID
-	}
-
-	if err := createDefaultStrategy(tx, model.PrincipalUser, user.ID, user.Name, user.Owner); err != nil {
-		log.Error("[Auth][User] create default strategy", zap.Error(err))
-		return store.Error(err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		log.Errorf("[Store][User] add user tx commit err: %s", err.Error())
-		return store.Error(err)
-	}
 	return nil
 }
 
 // UpdateUser 更新用户信息
-func (u *userStore) UpdateUser(user *model.User) error {
+func (u *userStore) UpdateUser(user *authcommon.User) error {
 	if user.ID == "" || user.Name == "" || user.Token == "" || user.Password == "" {
 		return store.NewStatusError(store.EmptyParamsErr, fmt.Sprintf(
 			"update user missing some params, id is %s, name is %s", user.ID, user.Name))
@@ -134,7 +115,7 @@ func (u *userStore) UpdateUser(user *model.User) error {
 	return store.Error(err)
 }
 
-func (u *userStore) updateUser(user *model.User) error {
+func (u *userStore) updateUser(user *authcommon.User) error {
 
 	tx, err := u.master.Begin()
 	if err != nil {
@@ -174,63 +155,33 @@ func (u *userStore) updateUser(user *model.User) error {
 }
 
 // DeleteUser delete user by user id
-func (u *userStore) DeleteUser(user *model.User) error {
+func (u *userStore) DeleteUser(tx store.Tx, user *authcommon.User) error {
 	if user.ID == "" || user.Name == "" {
 		return store.NewStatusError(store.EmptyParamsErr, "delete user id parameter missing")
 	}
 
-	err := RetryTransaction("deleteUser", func() error {
-		return u.deleteUser(user)
-	})
+	dbTx := tx.GetDelegateTx().(*BaseTx)
 
-	return store.Error(err)
-}
-
-// deleteUser Specific deletion user steps
-// step 1. Delete the user-associated policy information
-//
-//	a. Delete the user's default policy
-//	b. Update the latest update time of related policies, make the Cache mechanism
-//	c. Delete the association relationship of the user and policy
-//
-// step 2. Delete the user group associated with this user
-func (u *userStore) deleteUser(user *model.User) error {
-	tx, err := u.master.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer func() { _ = tx.Rollback() }()
-
-	if err := cleanLinkStrategy(tx, model.PrincipalUser, user.ID, user.Owner); err != nil {
-		return err
-	}
-
-	if _, err = tx.Exec("UPDATE user SET flag = 1 WHERE id = ?", user.ID); err != nil {
+	if _, err := dbTx.Exec("UPDATE user SET flag = 1 WHERE id = ?", user.ID); err != nil {
 		log.Error("[Store][User] update set user flag", zap.Error(err))
 		return err
 	}
 
-	if _, err = tx.Exec("UPDATE user_group SET mtime = sysdate() WHERE id IN (SELECT DISTINCT group_id FROM "+
+	if _, err := dbTx.Exec("UPDATE user_group SET mtime = sysdate() WHERE id IN (SELECT DISTINCT group_id FROM "+
 		" user_group_relation WHERE user_id = ?)", user.ID); err != nil {
 		log.Error("[Store][User] update usergroup mtime", zap.Error(err))
 		return err
 	}
 
-	if _, err = tx.Exec("DELETE FROM user_group_relation WHERE user_id = ?", user.ID); err != nil {
+	if _, err := dbTx.Exec("DELETE FROM user_group_relation WHERE user_id = ?", user.ID); err != nil {
 		log.Error("[Store][User] delete usergroup relation", zap.Error(err))
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
-		log.Error("[Store][User] delete user tx commit", zap.Error(err))
 		return err
 	}
 	return nil
 }
 
 // GetSubCount get user's sub count
-func (u *userStore) GetSubCount(user *model.User) (uint32, error) {
+func (u *userStore) GetSubCount(user *authcommon.User) (uint32, error) {
 	var (
 		countSql   = "SELECT COUNT(*) FROM user WHERE owner = ? AND flag = 0"
 		count, err = queryEntryCount(u.master, countSql, []interface{}{user.ID})
@@ -244,7 +195,7 @@ func (u *userStore) GetSubCount(user *model.User) (uint32, error) {
 }
 
 // GetUser get user by user id
-func (u *userStore) GetUser(id string) (*model.User, error) {
+func (u *userStore) GetUser(id string) (*authcommon.User, error) {
 	var tokenEnable, userType int
 	getSql := `
 		 SELECT u.id, u.name, u.password, u.owner, u.comment, u.source, u.token, u.token_enable, 
@@ -254,7 +205,7 @@ func (u *userStore) GetUser(id string) (*model.User, error) {
 	  `
 	var (
 		row  = u.master.QueryRow(getSql, id)
-		user = new(model.User)
+		user = new(authcommon.User)
 	)
 
 	if err := row.Scan(&user.ID, &user.Name, &user.Password, &user.Owner, &user.Comment, &user.Source,
@@ -268,7 +219,7 @@ func (u *userStore) GetUser(id string) (*model.User, error) {
 	}
 
 	user.TokenEnable = tokenEnable == 1
-	user.Type = model.UserRoleType(userType)
+	user.Type = authcommon.UserRoleType(userType)
 	// 北极星后续不在保存用户的 mobile 以及 email 信息，这里针对原来保存的数据也不进行对外展示，强制屏蔽数据
 	user.Mobile = ""
 	user.Email = ""
@@ -276,7 +227,7 @@ func (u *userStore) GetUser(id string) (*model.User, error) {
 }
 
 // GetUserByName 根据用户名、owner 获取用户
-func (u *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
+func (u *userStore) GetUserByName(name, ownerId string) (*authcommon.User, error) {
 	getSql := `
 		 SELECT u.id, u.name, u.password, u.owner, u.comment, u.source, u.token, u.token_enable, 
 		 	u.user_type, u.mobile, u.email
@@ -288,7 +239,7 @@ func (u *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
 
 	var (
 		row                   = u.master.QueryRow(getSql, name, ownerId)
-		user                  = new(model.User)
+		user                  = new(authcommon.User)
 		tokenEnable, userType int
 	)
 
@@ -303,7 +254,7 @@ func (u *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
 	}
 
 	user.TokenEnable = tokenEnable == 1
-	user.Type = model.UserRoleType(userType)
+	user.Type = authcommon.UserRoleType(userType)
 	// 北极星后续不在保存用户的 mobile 以及 email 信息，这里针对原来保存的数据也不进行对外展示，强制屏蔽数据
 	user.Mobile = ""
 	user.Email = ""
@@ -311,7 +262,7 @@ func (u *userStore) GetUserByName(name, ownerId string) (*model.User, error) {
 }
 
 // GetUserByIds Get user list data according to user ID
-func (u *userStore) GetUserByIds(ids []string) ([]*model.User, error) {
+func (u *userStore) GetUserByIds(ids []string) ([]*authcommon.User, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
@@ -346,7 +297,7 @@ func (u *userStore) GetUserByIds(ids []string) ([]*model.User, error) {
 		_ = rows.Close()
 	}()
 
-	users := make([]*model.User, 0)
+	users := make([]*authcommon.User, 0)
 	for rows.Next() {
 		user, err := fetchRown2User(rows)
 		if err != nil {
@@ -363,7 +314,7 @@ func (u *userStore) GetUserByIds(ids []string) ([]*model.User, error) {
 // Case 1. From the user's perspective, normal query conditions
 // Case 2. From the perspective of the user group, query is the list of users involved under a user group.
 func (u *userStore) GetUsers(filters map[string]string, offset uint32, limit uint32) (uint32,
-	[]*model.User, error) {
+	[]*authcommon.User, error) {
 	if _, ok := filters["group_id"]; ok {
 		return u.listGroupUsers(filters, offset, limit)
 	}
@@ -372,7 +323,7 @@ func (u *userStore) GetUsers(filters map[string]string, offset uint32, limit uin
 
 // listUsers Query user list information
 func (u *userStore) listUsers(filters map[string]string, offset uint32, limit uint32) (uint32,
-	[]*model.User, error) {
+	[]*authcommon.User, error) {
 	countSql := "SELECT COUNT(*) FROM user WHERE flag = 0 "
 	getSql := `
 	  SELECT id, name, password, owner, comment, source
@@ -434,7 +385,7 @@ func (u *userStore) listUsers(filters map[string]string, offset uint32, limit ui
 
 // listGroupUsers Check the user information under a user group
 func (u *userStore) listGroupUsers(filters map[string]string, offset uint32, limit uint32) (uint32,
-	[]*model.User, error) {
+	[]*authcommon.User, error) {
 	if _, ok := filters[GroupIDAttribute]; !ok {
 		return 0, nil, store.NewStatusError(store.EmptyParamsErr, "group_id is missing")
 	}
@@ -498,7 +449,7 @@ func (u *userStore) listGroupUsers(filters map[string]string, offset uint32, lim
 }
 
 // GetUsersForCache Get user information, mainly for cache
-func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*model.User, error) {
+func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*authcommon.User, error) {
 	args := make([]interface{}, 0)
 	querySql := `
 	  SELECT u.id, u.name, u.password, u.owner, u.comment, u.source
@@ -521,7 +472,7 @@ func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*mode
 }
 
 // collectUsers General query user list
-func (u *userStore) collectUsers(handler QueryHandler, querySql string, args []interface{}) ([]*model.User, error) {
+func (u *userStore) collectUsers(handler QueryHandler, querySql string, args []interface{}) ([]*authcommon.User, error) {
 	rows, err := u.master.Query(querySql, args...)
 	if err != nil {
 		log.Error("[Store][User] list user ", zap.String("query sql", querySql), zap.Any("args", args), zap.Error(err))
@@ -530,7 +481,7 @@ func (u *userStore) collectUsers(handler QueryHandler, querySql string, args []i
 	defer func() {
 		_ = rows.Close()
 	}()
-	users := make([]*model.User, 0)
+	users := make([]*authcommon.User, 0)
 	for rows.Next() {
 		user, err := fetchRown2User(rows)
 		if err != nil {
@@ -543,51 +494,11 @@ func (u *userStore) collectUsers(handler QueryHandler, querySql string, args []i
 	return users, nil
 }
 
-func createDefaultStrategy(tx *BaseTx, role model.PrincipalType, id, name, owner string) error {
-	if strings.Compare(owner, "") == 0 {
-		owner = id
-	}
-
-	// Create the user's default weight policy
-	strategy := &model.StrategyDetail{
-		ID:        utils.NewUUID(),
-		Name:      model.BuildDefaultStrategyName(role, name),
-		Action:    apisecurity.AuthAction_READ_WRITE.String(),
-		Default:   true,
-		Owner:     owner,
-		Revision:  utils.NewUUID(),
-		Resources: []model.StrategyResource{},
-		Valid:     true,
-		Comment:   "Default Strategy",
-	}
-
-	// 需要清理过期的 auth_strategy
-	cleanInvalidRule := "DELETE FROM auth_strategy WHERE name = ? AND owner = ? AND flag = 1 AND `default` = ?"
-	if _, err := tx.Exec(cleanInvalidRule, []interface{}{strategy.Name, strategy.Owner,
-		strategy.Default}...); err != nil {
-		return err
-	}
-
-	// Save policy master information
-	saveMainSql := "INSERT INTO auth_strategy(`id`, `name`, `action`, `owner`, `comment`, `flag`, " +
-		" `default`, `revision`) VALUES (?,?,?,?,?,?,?,?)"
-	if _, err := tx.Exec(saveMainSql, []interface{}{strategy.ID, strategy.Name, strategy.Action,
-		strategy.Owner, strategy.Comment,
-		0, strategy.Default, strategy.Revision}...); err != nil {
-		return err
-	}
-
-	// Insert User / Group and Policy Association
-	savePrincipalSql := "INSERT INTO auth_principal(`strategy_id`, `principal_id`, `principal_role`) VALUES (?,?,?)"
-	_, err := tx.Exec(savePrincipalSql, []interface{}{strategy.ID, id, role}...)
-	return err
-}
-
-func fetchRown2User(rows *sql.Rows) (*model.User, error) {
+func fetchRown2User(rows *sql.Rows) (*authcommon.User, error) {
 	var (
 		ctime, mtime                int64
 		flag, tokenEnable, userType int
-		user                        = new(model.User)
+		user                        = new(authcommon.User)
 		err                         = rows.Scan(&user.ID, &user.Name, &user.Password, &user.Owner,
 			&user.Comment, &user.Source, &user.Token, &tokenEnable, &userType, &ctime, &mtime,
 			&flag, &user.Mobile, &user.Email)
@@ -601,7 +512,7 @@ func fetchRown2User(rows *sql.Rows) (*model.User, error) {
 	user.TokenEnable = tokenEnable == 1
 	user.CreateTime = time.Unix(ctime, 0)
 	user.ModifyTime = time.Unix(mtime, 0)
-	user.Type = model.UserRoleType(userType)
+	user.Type = authcommon.UserRoleType(userType)
 
 	// 北极星后续不在保存用户的 mobile 以及 email 信息，这里针对原来保存的数据也不进行对外展示，强制屏蔽数据
 	user.Mobile = ""
@@ -610,13 +521,12 @@ func fetchRown2User(rows *sql.Rows) (*model.User, error) {
 	return user, nil
 }
 
-func (u *userStore) cleanInValidUser(name, owner string) error {
+func (u *userStore) cleanInValidUser(tx *BaseTx, name, owner string) error {
 	log.Infof("[Store][User] clean user, name=(%s), owner=(%s)", name, owner)
 	str := "delete from user where name = ? and owner = ? and flag = 1"
-	if _, err := u.master.Exec(str, name, owner); err != nil {
+	if _, err := tx.Exec(str, name, owner); err != nil {
 		log.Errorf("[Store][User] clean user(%s) err: %s", name, err.Error())
 		return err
 	}
-
 	return nil
 }

@@ -19,13 +19,13 @@ package grpcserver
 
 import (
 	commonlog "github.com/polarismesh/polaris/common/log"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 )
 
 type InitOption func(svr *BaseGrpcServer)
 
 // WithModule set bz module
-func WithModule(bz model.BzModule) InitOption {
+func WithModule(bz authcommon.BzModule) InitOption {
 	return func(svr *BaseGrpcServer) {
 		svr.bz = bz
 	}

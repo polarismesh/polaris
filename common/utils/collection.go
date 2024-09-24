@@ -18,7 +18,9 @@
 // Package utils contains common utility functions
 package utils
 
-import "sync"
+import (
+	"sync"
+)
 
 // NewSet returns a new Set
 func NewSet[K comparable]() *Set[K] {
@@ -55,6 +57,90 @@ func (set *Set[K]) Range(fn func(val K)) {
 	}
 }
 
+// NewRefSyncSet returns a new Set
+func NewRefSyncSet[K comparable]() *RefSyncSet[K] {
+	return &RefSyncSet[K]{
+		container: make(map[K]int),
+	}
+}
+
+type RefSyncSet[K comparable] struct {
+	container map[K]int
+	lock      sync.RWMutex
+}
+
+// Add adds a string to the set
+func (set *RefSyncSet[K]) Add(val K) {
+	set.lock.Lock()
+	defer set.lock.Unlock()
+
+	ref, ok := set.container[val]
+	if ok {
+		ref++
+	}
+	set.container[val] = ref
+}
+
+// Remove removes a string from the set
+func (set *RefSyncSet[K]) Remove(val K) {
+	set.lock.Lock()
+	defer set.lock.Unlock()
+	ref, ok := set.container[val]
+	if ok {
+		ref--
+	}
+	if ref == 0 {
+		delete(set.container, val)
+	} else {
+		set.container[val] = ref
+	}
+}
+
+func (set *RefSyncSet[K]) ToSlice() []K {
+	set.lock.RLock()
+	defer set.lock.RUnlock()
+
+	ret := make([]K, 0, len(set.container))
+	for k := range set.container {
+		ret = append(ret, k)
+	}
+	return ret
+}
+
+func (set *RefSyncSet[K]) Range(fn func(val K)) {
+	set.lock.RLock()
+	snapshot := map[K]struct{}{}
+	for k := range set.container {
+		snapshot[k] = struct{}{}
+	}
+	set.lock.RUnlock()
+
+	for k := range snapshot {
+		fn(k)
+	}
+}
+
+func (set *RefSyncSet[K]) Len() int {
+	set.lock.RLock()
+	defer set.lock.RUnlock()
+
+	return len(set.container)
+}
+
+// Contains contains target value
+func (set *RefSyncSet[K]) Contains(val K) bool {
+	set.lock.Lock()
+	defer set.lock.Unlock()
+
+	_, exist := set.container[val]
+	return exist
+}
+
+func (set *RefSyncSet[K]) String() string {
+	ret := set.ToSlice()
+	return MustJson(ret)
+}
+
 // NewSyncSet returns a new Set
 func NewSyncSet[K comparable]() *SyncSet[K] {
 	return &SyncSet[K]{
@@ -73,6 +159,15 @@ func (set *SyncSet[K]) Add(val K) {
 	defer set.lock.Unlock()
 
 	set.container[val] = struct{}{}
+}
+
+// Add adds a string to the set
+func (set *SyncSet[K]) AddAll(vals *SyncSet[K]) {
+	vals.Range(func(val K) {
+		set.lock.Lock()
+		defer set.lock.Unlock()
+		set.container[val] = struct{}{}
+	})
 }
 
 // Remove removes a string from the set
@@ -121,6 +216,11 @@ func (set *SyncSet[K]) Contains(val K) bool {
 
 	_, exist := set.container[val]
 	return exist
+}
+
+func (set *SyncSet[K]) String() string {
+	ret := set.ToSlice()
+	return MustJson(ret)
 }
 
 func NewSegmentMap[K comparable, V any](soltNum int, hashFunc func(k K) int) *SegmentMap[K, V] {
@@ -315,11 +415,13 @@ func (s *SyncMap[K, V]) ReadRange(f func(key K, val V)) {
 }
 
 // Delete
-func (s *SyncMap[K, V]) Delete(key K) {
+func (s *SyncMap[K, V]) Delete(key K) (V, bool) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
+	v, exist := s.m[key]
 	delete(s.m, key)
+	return v, exist
 }
 
 // Len
@@ -328,6 +430,17 @@ func (s *SyncMap[K, V]) Len() int {
 	defer s.lock.RUnlock()
 
 	return len(s.m)
+}
+
+func (s *SyncMap[K, V]) ToMap() map[K]V {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	m := map[K]V{}
+	for k, v := range s.m {
+		m[k] = v
+	}
+	return m
 }
 
 // NewMap
@@ -368,4 +481,13 @@ func (s *Map[K, V]) Delete(key K) {
 // Len
 func (s *Map[K, V]) Len() int {
 	return len(s.m)
+}
+
+// Values .
+func (s *Map[K, V]) Values() []V {
+	ret := make([]V, 0, s.Len())
+	for _, v := range s.m {
+		ret = append(ret, v)
+	}
+	return ret
 }

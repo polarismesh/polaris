@@ -20,6 +20,7 @@ package v1
 import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -36,12 +37,31 @@ type ResponseMessage interface {
 	GetInfo() *wrappers.StringValue
 }
 
+type ResponseMessageV2 interface {
+	proto.Message
+	GetCode() uint32
+	GetInfo() string
+}
+
 /**
  * @brief 获取返回码前三位
  * @note 返回码前三位和HTTP返回码定义一致
  */
 func CalcCode(rm ResponseMessage) int {
 	return int(rm.GetCode().GetValue() / 1000)
+}
+
+/**
+ * @brief 获取返回码前三位
+ * @note 返回码前三位和HTTP返回码定义一致
+ */
+func CalcCodeV2(rm ResponseMessageV2) int {
+	return int(rm.GetCode() / 1000)
+}
+
+// IsSuccess .
+func IsSuccess(rsp ResponseMessage) bool {
+	return rsp.GetCode().GetValue() == uint32(apimodel.Code_ExecuteSuccess)
 }
 
 /**
@@ -58,6 +78,19 @@ func Collect(batchWriteResponse *apiservice.BatchWriteResponse, response *apiser
 
 	batchWriteResponse.Size.Value++
 	batchWriteResponse.Responses = append(batchWriteResponse.Responses, response)
+}
+
+/**
+ * @brief BatchWriteResponse添加Response
+ */
+func QueryCollect(resp *apiservice.BatchQueryResponse, response *apiservice.Response) {
+	// 非200的code，都归为异常
+	if CalcCode(response) != 200 {
+		if response.GetCode().GetValue() >= resp.GetCode().GetValue() {
+			resp.Code.Value = response.GetCode().GetValue()
+			resp.Info.Value = code2info[resp.GetCode().GetValue()]
+		}
+	}
 }
 
 // AddNamespace BatchQueryResponse添加命名空间
@@ -308,6 +341,16 @@ func NewDiscoverCircuitBreakerResponse(code apimodel.Code, service *apiservice.S
 	}
 }
 
+// NewDiscoverLaneResponse .
+func NewDiscoverLaneResponse(code apimodel.Code, service *apiservice.Service) *apiservice.DiscoverResponse {
+	return &apiservice.DiscoverResponse{
+		Code:    &wrappers.UInt32Value{Value: uint32(code)},
+		Info:    &wrappers.StringValue{Value: code2info[uint32(code)]},
+		Type:    apiservice.DiscoverResponse_LANE,
+		Service: service,
+	}
+}
+
 /**
  * @brief 创建查询探测规则回复
  */
@@ -317,6 +360,14 @@ func NewDiscoverFaultDetectorResponse(code apimodel.Code, service *apiservice.Se
 		Info:    &wrappers.StringValue{Value: code2info[uint32(code)]},
 		Type:    apiservice.DiscoverResponse_FAULT_DETECTOR,
 		Service: service,
+	}
+}
+
+// 创建一个空白的 ConfigDiscoverResponse
+func NewConfigDiscoverResponse(code apimodel.Code) *apiconfig.ConfigDiscoverResponse {
+	return &apiconfig.ConfigDiscoverResponse{
+		Code: uint32(code),
+		Info: code2info[uint32(code)],
 	}
 }
 

@@ -291,16 +291,12 @@ func (h *HTTPServer) PublishConfigFile(req *restful.Request, rsp *restful.Respon
 
 	configFile := &apiconfig.ConfigFileRelease{}
 	ctx, err := handler.Parse(configFile)
-	requestId := ctx.Value(utils.StringContext("request-id"))
-
 	if err != nil {
 		configLog.Error("[Config][HttpServer] parse config file release from request error.",
-			zap.String("requestId", requestId.(string)),
 			zap.String("error", err.Error()))
 		handler.WriteHeaderAndProto(api.NewConfigFileReleaseResponseWithMessage(apimodel.Code_ParseException, err.Error()))
 		return
 	}
-
 	handler.WriteHeaderAndProto(h.configServer.PublishConfigFile(ctx, configFile))
 }
 
@@ -478,4 +474,26 @@ func (h *HTTPServer) UpsertAndReleaseConfigFile(req *restful.Request, rsp *restf
 	}
 
 	handler.WriteHeaderAndProto(h.configServer.UpsertAndReleaseConfigFile(ctx, configFile))
+}
+
+// StopGrayConfigFileReleases .
+func (h *HTTPServer) StopGrayConfigFileReleases(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	var releases []*apiconfig.ConfigFileRelease
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &apiconfig.ConfigFileRelease{}
+		releases = append(releases, msg)
+		return msg
+	})
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+
+	response := h.configServer.StopGrayConfigFileReleases(ctx, releases)
+	handler.WriteHeaderAndProto(response)
 }

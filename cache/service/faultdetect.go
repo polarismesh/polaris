@@ -18,6 +18,7 @@
 package service
 
 import (
+	"context"
 	"crypto/sha1"
 	"fmt"
 	"sort"
@@ -347,4 +348,15 @@ func (f *faultDetectCache) GetFaultDetectRuleCount(fun func(k, v interface{}) bo
 			break
 		}
 	}
+}
+
+// Query implements api.FaultDetectCache.
+func (f *faultDetectCache) Query(context.Context, *types.FaultDetectArgs) (uint32, []*model.FaultDetectRule, error) {
+	panic("unimplemented")
+}
+
+// GetRule implements api.FaultDetectCache.
+func (f *faultDetectCache) GetRule(id string) *model.FaultDetectRule {
+	rule, _ := f.rules.Load(id)
+	return rule
 }

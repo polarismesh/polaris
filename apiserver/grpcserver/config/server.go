@@ -20,15 +20,15 @@ package config
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	"google.golang.org/grpc"
 
 	"github.com/polarismesh/polaris/apiserver"
 	"github.com/polarismesh/polaris/apiserver/grpcserver"
+	"github.com/polarismesh/polaris/apiserver/grpcserver/utils"
 	commonlog "github.com/polarismesh/polaris/common/log"
-	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/config"
 )
 
@@ -58,7 +58,7 @@ func (g *ConfigGRPCServer) Initialize(ctx context.Context, option map[string]int
 	apiConf map[string]apiserver.APIConfig) error {
 	g.openAPI = apiConf
 	return g.BaseGrpcServer.Initialize(ctx, option,
-		grpcserver.WithModule(model.ConfigModule),
+		grpcserver.WithModule(authcommon.ConfigModule),
 		grpcserver.WithProtocol(g.GetProtocol()),
 		grpcserver.WithLogger(commonlog.FindScope(commonlog.APIServerLoggerName)),
 	)
@@ -72,7 +72,7 @@ func (g *ConfigGRPCServer) Run(errCh chan error) {
 			case "client":
 				if apiConfig.Enable {
 					apiconfig.RegisterPolarisConfigGRPCServer(server, g)
-					openMethod, getErr := GetClientOpenMethod(g.GetProtocol())
+					openMethod, getErr := utils.GetConfigClientOpenMethod(g.GetProtocol())
 					if getErr != nil {
 						return getErr
 					}
@@ -124,19 +124,4 @@ func (g *ConfigGRPCServer) enterRateLimit(ip string, method string) uint32 {
 // allowAccess 限制访问
 func (g *ConfigGRPCServer) allowAccess(method string) bool {
 	return g.BaseGrpcServer.AllowAccess(method)
-}
-
-// GetClientOpenMethod .
-func GetClientOpenMethod(protocol string) (map[string]bool, error) {
-	openMethods := []string{"GetConfigFile", "CreateConfigFile",
-		"UpdateConfigFile", "PublishConfigFile", "WatchConfigFiles", "GetConfigFileMetadataList"}
-
-	openMethod := make(map[string]bool)
-
-	for _, item := range openMethods {
-		method := "/v1.PolarisConfig" + strings.ToUpper(protocol) + "/" + item
-		openMethod[method] = true
-	}
-
-	return openMethod, nil
 }

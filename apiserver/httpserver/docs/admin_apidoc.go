@@ -23,8 +23,8 @@ import (
 	"github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
-	"github.com/polarismesh/polaris/admin"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/model/admin"
 )
 
 var (
@@ -115,7 +115,7 @@ func EnrichListLeaderElectionsApiDocs(r *restful.RouteBuilder) *restful.RouteBui
 	return r.
 		Doc("获取选主的结果").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
-		Returns(0, "", []model.LeaderElection{})
+		Returns(0, "", []admin.LeaderElection{})
 }
 
 func EnrichReleaseLeaderElectionApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -139,4 +139,13 @@ func EnrichGetReportClientsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilde
 		Doc("查询SDK实例列表").
 		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
 		Returns(0, "", model.PrometheusDiscoveryResponse{})
+}
+
+func EnrichEnablePprofApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.
+		Doc("开启/关闭 golang 的 pprof 能力").
+		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
+		Reads(struct {
+			Enable bool `json:"enable"`
+		}{})
 }

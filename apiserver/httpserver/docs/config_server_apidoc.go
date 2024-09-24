@@ -92,6 +92,14 @@ func EnrichUpsertAndReleaseConfigFileApiDocs(r *restful.RouteBuilder) *restful.R
 		Returns(0, "", BaseResponse{})
 }
 
+func EnrichStopBetaReleaseConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.
+		Doc("停止灰度发布配置文件").
+		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
+		Reads(apiconfig.ConfigFileRelease{}).
+		Returns(0, "", BaseResponse{})
+}
+
 func EnrichGetConfigFileApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 	return r.
 		Doc("拉取配置").
@@ -254,6 +262,14 @@ func EnrichCreateConfigFileTemplateApiDocs(r *restful.RouteBuilder) *restful.Rou
 		Metadata(restfulspec.KeyOpenAPITags, configConsoleApiTags).
 		Reads(config_manage.ConfigFileTemplate{}).
 		Returns(0, "", BaseResponse{})
+}
+
+func EnrichConfigDiscoverApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.
+		Doc("配置数据发现").
+		Metadata(restfulspec.KeyOpenAPITags, configClientApiTags).
+		Reads(config_manage.ConfigDiscoverResponse{}).
+		Returns(0, "", apiconfig.ConfigDiscoverResponse{})
 }
 
 func EnrichGetConfigFileForClientApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {

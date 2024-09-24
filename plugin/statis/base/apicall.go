@@ -75,10 +75,14 @@ func NewComponentStatics(ctx context.Context, t metrics.CallMetricType, handler 
 // add 添加接口调用数据
 func (a *ComponentStatics) Add(ac *APICall) {
 	startTime := time.Now()
-	a.acc <- ac
-	passDuration := time.Since(startTime)
-	if passDuration >= MaxAddDuration {
-		log.Warnf("[APICall]add api call cost %s, exceed max %s", passDuration, MaxAddDuration)
+	select {
+	case a.acc <- ac:
+		passDuration := time.Since(startTime)
+		if passDuration >= MaxAddDuration {
+			log.Warnf("[APICall]add api call cost %s, exceed max %s", passDuration, MaxAddDuration)
+		}
+	default:
+		// quick return.
 	}
 }
 

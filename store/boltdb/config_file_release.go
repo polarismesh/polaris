@@ -19,12 +19,14 @@ package boltdb
 
 import (
 	"errors"
+	"sort"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -50,6 +52,7 @@ const (
 	FileReleaseFieldValid      string = "Valid"
 	FileReleaseFieldActive     string = "Active"
 	FileReleaseFieldMetadata   string = "Metadata"
+	FileReleaseFieldType       string = "Typ"
 )
 
 var (
@@ -75,8 +78,10 @@ func (cfr *configFileReleaseStore) CreateConfigFileReleaseTx(proxyTx store.Tx,
 		&ConfigFileRelease{}, values); err != nil {
 		return err
 	}
-	if len(values) != 0 {
-		return store.NewStatusError(store.DuplicateEntryErr, "exist record")
+	for i := range values {
+		if ret := cfr.toValisModelData(values[i].(*ConfigFileRelease)); ret != nil {
+			return store.NewStatusError(store.DuplicateEntryErr, "exist record")
+		}
 	}
 
 	table, err := tx.CreateBucketIfNotExists([]byte(tblConfigFileRelease))
@@ -100,6 +105,10 @@ func (cfr *configFileReleaseStore) CreateConfigFileReleaseTx(proxyTx store.Tx,
 
 	fileRelease.Active = true
 	fileRelease.Version = maxVersion + 1
+
+	log.Debug("[ConfigFileRelease] cur release version", utils.ZapNamespace(fileRelease.Namespace),
+		utils.ZapGroup(fileRelease.Group), utils.ZapFileName(fileRelease.FileName), utils.ZapVersion(fileRelease.Version))
+
 	err = saveValue(tx, tblConfigFileRelease, fileRelease.ReleaseKey(), cfr.toStoreData(fileRelease))
 	if err != nil {
 		log.Error("[ConfigFileRelease] save info", zap.Error(err))
@@ -117,7 +126,7 @@ func (cfr *configFileReleaseStore) GetConfigFileRelease(args *model.ConfigFileRe
 		return nil, err
 	}
 	for _, v := range values {
-		return cfr.toModelData(v.(*ConfigFileRelease)), nil
+		return cfr.toValisModelData(v.(*ConfigFileRelease)), nil
 	}
 	return nil, nil
 }
@@ -133,7 +142,7 @@ func (cfr *configFileReleaseStore) GetConfigFileReleaseTx(tx store.Tx,
 		return nil, err
 	}
 	for _, v := range values {
-		return cfr.toModelData(v.(*ConfigFileRelease)), nil
+		return cfr.toValisModelData(v.(*ConfigFileRelease)), nil
 	}
 	return nil, nil
 }
@@ -155,7 +164,7 @@ func (cfr *configFileReleaseStore) GetConfigFileActiveReleaseTx(tx store.Tx,
 	dbTx := tx.GetDelegateTx().(*bolt.Tx)
 
 	fields := []string{FileReleaseFieldActive, FileReleaseFieldNamespace, FileReleaseFieldGroup,
-		FileReleaseFieldFileName, FileReleaseFieldValid}
+		FileReleaseFieldFileName, FileReleaseFieldValid, FileReleaseFieldType}
 	values := make(map[string]interface{}, 1)
 	err := loadValuesByFilter(dbTx, tblConfigFileRelease, fields, &ConfigFileRelease{},
 		func(m map[string]interface{}) bool {
@@ -166,6 +175,9 @@ func (cfr *configFileReleaseStore) GetConfigFileActiveReleaseTx(tx store.Tx,
 			}
 			active, _ := m[FileReleaseFieldActive].(bool)
 			if !active {
+				return false
+			}
+			if relType, _ := m[FileReleaseFieldType].(string); relType != model.ReleaseTypeFull {
 				return false
 			}
 			saveNs, _ := m[FileReleaseFieldNamespace].(string)
@@ -179,7 +191,44 @@ func (cfr *configFileReleaseStore) GetConfigFileActiveReleaseTx(tx store.Tx,
 		return nil, err
 	}
 	for _, v := range values {
-		return cfr.toModelData(v.(*ConfigFileRelease)), nil
+		return cfr.toValisModelData(v.(*ConfigFileRelease)), nil
+	}
+	return nil, nil
+}
+
+func (cfr *configFileReleaseStore) GetConfigFileBetaReleaseTx(tx store.Tx,
+	file *model.ConfigFileKey) (*model.ConfigFileRelease, error) {
+	dbTx := tx.GetDelegateTx().(*bolt.Tx)
+
+	fields := []string{FileReleaseFieldActive, FileReleaseFieldNamespace, FileReleaseFieldGroup,
+		FileReleaseFieldFileName, FileReleaseFieldValid, FileReleaseFieldType}
+	values := make(map[string]interface{}, 1)
+	err := loadValuesByFilter(dbTx, tblConfigFileRelease, fields, &ConfigFileRelease{},
+		func(m map[string]interface{}) bool {
+			valid, _ := m[FileReleaseFieldValid].(bool)
+			// 已经删除的不管
+			if !valid {
+				return false
+			}
+			active, _ := m[FileReleaseFieldActive].(bool)
+			if !active {
+				return false
+			}
+			if relType, _ := m[FileReleaseFieldType].(string); relType != model.ReleaseTypeGray {
+				return false
+			}
+			saveNs, _ := m[FileReleaseFieldNamespace].(string)
+			saveGroup, _ := m[FileReleaseFieldGroup].(string)
+			saveFileName, _ := m[FileReleaseFieldFileName].(string)
+
+			expect := saveNs == file.Namespace && saveGroup == file.Group && saveFileName == file.Name
+			return expect
+		}, values)
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range values {
+		return cfr.toValisModelData(v.(*ConfigFileRelease)), nil
 	}
 	return nil, nil
 }
@@ -245,7 +294,9 @@ func (cfr *configFileReleaseStore) CleanConfigFileReleasesTx(tx store.Tx, namesp
 			expect := saveNs == namespace && saveGroup == group && saveFileName == fileName
 			return expect
 		}, values)
-
+	if err != nil {
+		return err
+	}
 	properties := map[string]interface{}{
 		FileReleaseFieldFlag:       1,
 		FileReleaseFieldValid:      false,
@@ -253,11 +304,10 @@ func (cfr *configFileReleaseStore) CleanConfigFileReleasesTx(tx store.Tx, namesp
 	}
 	for key := range values {
 		if err := updateValue(dbTx, tblConfigFileRelease, key, properties); err != nil {
-			return nil
+			return err
 		}
 	}
-
-	return err
+	return nil
 }
 
 // GetMoreReleaseFile Get the last update time more than a certain time point
@@ -266,7 +316,7 @@ func (cfr *configFileReleaseStore) GetMoreReleaseFile(firstUpdate bool,
 	modifyTime time.Time) ([]*model.ConfigFileRelease, error) {
 
 	if firstUpdate {
-		modifyTime = time.Time{}
+		modifyTime = time.Unix(0, 0)
 	}
 
 	fields := []string{FileReleaseFieldModifyTime}
@@ -284,6 +334,9 @@ func (cfr *configFileReleaseStore) GetMoreReleaseFile(firstUpdate bool,
 	for _, v := range ret {
 		releases = append(releases, cfr.toModelData(v.(*ConfigFileRelease)))
 	}
+	sort.Slice(releases, func(i, j int) bool {
+		return releases[i].Version > releases[j].Version
+	})
 	return releases, nil
 }
 
@@ -300,20 +353,27 @@ func (cfr *configFileReleaseStore) ActiveConfigFileReleaseTx(tx store.Tx, releas
 	return updateValue(dbTx, tblConfigFileRelease, release.ReleaseKey(), properties)
 }
 
+func (cfr *configFileReleaseStore) InactiveConfigFileReleaseTx(tx store.Tx, release *model.ConfigFileRelease) error {
+	dbTx := tx.GetDelegateTx().(*bolt.Tx)
+	properties := make(map[string]interface{})
+	properties[FileReleaseFieldActive] = false
+	properties[FileReleaseFieldModifyTime] = time.Now()
+	return updateValue(dbTx, tblConfigFileRelease, release.ReleaseKey(), properties)
+}
+
 func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *bolt.Tx,
 	release *model.ConfigFileRelease) (uint64, error) {
 
 	fields := []string{FileReleaseFieldNamespace, FileReleaseFieldGroup, FileReleaseFieldFileName,
-		FileReleaseFieldVersion, FileReleaseFieldFlag, FileReleaseFieldActive}
+		FileReleaseFieldVersion, FileReleaseFieldValid, FileReleaseFieldActive, FileReleaseFieldType}
 
 	values := map[string]interface{}{}
 	var maxVersion uint64
 	// 查询这个 release 相关的所有
 	if err := loadValuesByFilter(tx, tblConfigFileRelease, fields, &ConfigFileRelease{},
 		func(m map[string]interface{}) bool {
-			flag, _ := m[FileReleaseFieldFlag].(int)
 			// 已经删除的不管
-			if flag == 1 {
+			if valid, _ := m[FileReleaseFieldValid].(bool); !valid {
 				return false
 			}
 			isActive, _ := m[FileReleaseFieldActive].(bool)
@@ -323,6 +383,10 @@ func (cfr *configFileReleaseStore) inactiveConfigFileRelease(tx *bolt.Tx,
 			saveNs, _ := m[FileReleaseFieldNamespace].(string)
 			saveGroup, _ := m[FileReleaseFieldGroup].(string)
 			saveFileName, _ := m[FileReleaseFieldFileName].(string)
+			releaseType, _ := m[FileReleaseFieldType].(string)
+			if releaseType != string(release.ReleaseType) {
+				return false
+			}
 
 			expect := saveNs == release.Namespace && saveGroup == release.Group &&
 				saveFileName == release.FileName
@@ -387,17 +451,27 @@ type ConfigFileRelease struct {
 	ModifyTime time.Time
 	ModifyBy   string
 	Content    string
+	Typ        string
+}
+
+func (cfr *configFileReleaseStore) toValisModelData(data *ConfigFileRelease) *model.ConfigFileRelease {
+	saveData := cfr.toModelData(data)
+	if !saveData.Valid {
+		return nil
+	}
+	return saveData
 }
 
 func (cfr *configFileReleaseStore) toModelData(data *ConfigFileRelease) *model.ConfigFileRelease {
 	return &model.ConfigFileRelease{
 		SimpleConfigFileRelease: &model.SimpleConfigFileRelease{
 			ConfigFileReleaseKey: &model.ConfigFileReleaseKey{
-				Id:        data.Id,
-				Name:      data.Name,
-				Namespace: data.Namespace,
-				Group:     data.Group,
-				FileName:  data.FileName,
+				Id:          data.Id,
+				Name:        data.Name,
+				Namespace:   data.Namespace,
+				Group:       data.Group,
+				FileName:    data.FileName,
+				ReleaseType: model.ReleaseType(data.Typ),
 			},
 			Comment:    data.Comment,
 			Md5:        data.Md5,
@@ -436,5 +510,6 @@ func (cfr *configFileReleaseStore) toStoreData(data *model.ConfigFileRelease) *C
 		ModifyTime: data.ModifyTime,
 		ModifyBy:   data.ModifyBy,
 		Content:    data.Content,
+		Typ:        string(data.ConfigFileReleaseKey.ReleaseType),
 	}
 }

@@ -58,6 +58,7 @@ func (s *Server) CreateConfigFile(ctx context.Context, req *apiconfig.ConfigFile
 		log.Error("[Config][File] create config file commit tx.", utils.RequestID(ctx), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
+	s.RecordHistory(ctx, configFileRecordEntry(ctx, req, model.OCreate))
 	resp.ConfigFile = req
 	return resp
 }
@@ -88,15 +89,11 @@ func (s *Server) handleCreateConfigFile(ctx context.Context, tx store.Tx,
 			utils.ZapFileName(req.GetName().GetValue()), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
-	s.RecordHistory(ctx, configFileRecordEntry(ctx, req, model.OCreate))
 	return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
 }
 
 // UpdateConfigFile 更新配置文件
 func (s *Server) UpdateConfigFile(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-	if checkRsp := s.checkConfigFileParams(req); checkRsp != nil {
-		return checkRsp
-	}
 	tx, err := s.storage.StartTx()
 	if err != nil {
 		log.Error("[Config][File] update config file begin tx.", utils.RequestID(ctx), zap.Error(err))
@@ -184,8 +181,8 @@ func (s *Server) updateConfigFileAttribute(saveData, updateData *model.ConfigFil
 		if len(saveData.Metadata) == 0 {
 			saveData.Metadata = map[string]string{}
 		}
-		saveData.Metadata[utils.ConfigFileTagKeyDataKey] = oldMetadata[utils.ConfigFileTagKeyDataKey]
-		saveData.Metadata[utils.ConfigFileTagKeyEncryptAlgo] = oldMetadata[utils.ConfigFileTagKeyEncryptAlgo]
+		saveData.Metadata[model.MetaKeyConfigFileDataKey] = oldMetadata[model.MetaKeyConfigFileDataKey]
+		saveData.Metadata[model.MetaKeyConfigFileEncryptAlgo] = oldMetadata[model.MetaKeyConfigFileEncryptAlgo]
 	}
 
 	return saveData, needUpdate
@@ -227,10 +224,6 @@ func (s *Server) BatchDeleteConfigFile(ctx context.Context, req []*apiconfig.Con
 
 // DeleteConfigFile 删除配置文件，删除配置文件同时会通知客户端 Not_Found
 func (s *Server) DeleteConfigFile(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-	if errResp := checkReadFileParameter(req); errResp != nil {
-		return errResp
-	}
-
 	namespace := req.GetNamespace().GetValue()
 	group := req.GetGroup().GetValue()
 	fileName := req.GetName().GetValue()
@@ -253,6 +246,8 @@ func (s *Server) DeleteConfigFile(ctx context.Context, req *apiconfig.ConfigFile
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 	if file == nil {
+		log.Info("[Config][File] delete config file not found, so skip.", utils.RequestID(ctx),
+			utils.ZapNamespace(namespace), utils.ZapGroup(group), utils.ZapFileName(fileName), zap.Error(err))
 		return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)
 	}
 	// 1. 删除配置文件发布内容
@@ -280,10 +275,6 @@ func (s *Server) DeleteConfigFile(ctx context.Context, req *apiconfig.ConfigFile
 
 // GetConfigFileRichInfo 获取单个配置文件基础信息，包含发布状态等信息
 func (s *Server) GetConfigFileRichInfo(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-	if errResp := checkReadFileParameter(req); errResp != nil {
-		return errResp
-	}
-
 	namespace := req.GetNamespace().GetValue()
 	group := req.GetGroup().GetValue()
 	fileName := req.GetName().GetValue()
@@ -308,23 +299,8 @@ func (s *Server) GetConfigFileRichInfo(ctx context.Context, req *apiconfig.Confi
 }
 
 // SearchConfigFile 查询配置文件
-func (s *Server) SearchConfigFile(ctx context.Context, filter map[string]string) *apiconfig.ConfigBatchQueryResponse {
-	offset, limit, err := utils.ParseOffsetAndLimit(filter)
-	if err != nil {
-		out := api.NewConfigBatchQueryResponse(apimodel.Code_BadRequest)
-		out.Info = utils.NewStringValue(err.Error())
-		return out
-	}
-	searchFilters := map[string]string{}
-	for k, v := range filter {
-		// 无效查询参数自动忽略
-		if v == "" {
-			continue
-		}
-		if _, ok := availableSearch["config_file"][k]; ok {
-			searchFilters[k] = v
-		}
-	}
+func (s *Server) SearchConfigFile(ctx context.Context, searchFilters map[string]string) *apiconfig.ConfigBatchQueryResponse {
+	offset, limit, _ := utils.ParseOffsetAndLimit(searchFilters)
 	count, files, err := s.storage.QueryConfigFiles(searchFilters, offset, limit)
 	if err != nil {
 		log.Error("[Config][File] search config files.", utils.RequestID(ctx), zap.Error(err))
@@ -338,6 +314,8 @@ func (s *Server) SearchConfigFile(ctx context.Context, filter map[string]string)
 		return out
 	}
 
+	_ = s.caches.ConfigFile().Update()
+	_ = s.caches.Gray().Update()
 	ret := make([]*apiconfig.ConfigFile, 0, len(files))
 	for _, file := range files {
 		file, err := s.chains.AfterGetFile(ctx, file)
@@ -367,7 +345,7 @@ func (s *Server) ExportConfigFile(ctx context.Context,
 		names = append(names, name.GetValue())
 	}
 	// 检查参数
-	if err := CheckResourceName(configFileExport.Namespace); err != nil {
+	if err := utils.CheckResourceName(configFileExport.Namespace); err != nil {
 		return api.NewConfigFileExportResponse(apimodel.Code_InvalidNamespaceName, nil)
 	}
 	var (
@@ -432,9 +410,6 @@ func (s *Server) ImportConfigFile(ctx context.Context,
 	configFiles []*apiconfig.ConfigFile, conflictHandling string) *apiconfig.ConfigImportResponse {
 	// 预创建命名空间和分组
 	for _, configFile := range configFiles {
-		if checkRsp := s.checkConfigFileParams(configFile); checkRsp != nil {
-			return api.NewConfigFileImportResponse(apimodel.Code(checkRsp.Code.GetValue()), nil, nil, nil)
-		}
 		if rsp := s.prepareCreateConfigFile(ctx, configFile); rsp.Code.Value != api.ExecuteSuccess {
 			return api.NewConfigFileImportResponse(apimodel.Code(rsp.Code.GetValue()), nil, nil, nil)
 		}
@@ -522,29 +497,6 @@ func (s *Server) getGroupAllConfigFiles(namespace, group string) ([]*model.Confi
 	return configFiles, nil
 }
 
-func (s *Server) checkConfigFileParams(configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-	if configFile == nil {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidParameter, configFile)
-	}
-	if err := CheckFileName(configFile.Name); err != nil {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileName, configFile)
-	}
-	if err := CheckResourceName(configFile.Namespace); err != nil {
-		return api.NewConfigFileResponse(apimodel.Code_InvalidNamespaceName, configFile)
-	}
-	if err := CheckContentLength(configFile.Content.GetValue(), int(s.cfg.ContentMaxLength)); err != nil {
-		return api.NewConfigResponseWithInfo(apimodel.Code_InvalidConfigFileContentLength, err.Error())
-	}
-	if len(configFile.Tags) > 0 {
-		for _, tag := range configFile.Tags {
-			if tag.Key.GetValue() == "" || tag.Value.GetValue() == "" {
-				return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileTags, configFile)
-			}
-		}
-	}
-	return nil
-}
-
 // GetAllConfigEncryptAlgorithms 获取配置加密算法
 func (s *Server) GetAllConfigEncryptAlgorithms(ctx context.Context) *apiconfig.ConfigEncryptAlgorithmResponse {
 	if s.cryptoManager == nil {
@@ -575,17 +527,4 @@ func configFileRecordEntry(ctx context.Context, req *apiconfig.ConfigFile,
 	}
 
 	return entry
-}
-
-func checkReadFileParameter(req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-	if req.GetNamespace().GetValue() == "" {
-		return api.NewConfigResponse(apimodel.Code_InvalidNamespaceName)
-	}
-	if req.GetGroup().GetValue() == "" {
-		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileGroupName)
-	}
-	if req.GetName().GetValue() == "" {
-		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileName)
-	}
-	return nil
 }

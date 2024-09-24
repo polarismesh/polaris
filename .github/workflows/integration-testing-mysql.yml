@@ -78,7 +78,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
-          go-version: "1.20"
+          go-version: "1.21.5"
       # Checkout latest code
       - name: Checkout repo
         uses: actions/checkout@v2
@@ -145,8 +145,6 @@ jobs:
 
           sleep 120s
           ls -alR
-          cat ./log/stdout 2>&1
-
           cd ..
           ls -lstrh
           # 先测试普通的集成测试

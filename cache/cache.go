@@ -24,6 +24,7 @@ import (
 	"time"
 
 	types "github.com/polarismesh/polaris/cache/api"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -36,10 +37,15 @@ const (
 	UpdateCacheInterval = 1 * time.Second
 )
 
+var (
+	ReportInterval = 1 * time.Second
+)
+
 // CacheManager 名字服务缓存
 type CacheManager struct {
-	storage store.Store
-	caches  []types.Cache
+	storage  store.Store
+	caches   []types.Cache
+	needLoad *utils.SyncSet[string]
 }
 
 // Initialize 缓存对象初始化
@@ -50,10 +56,14 @@ func (nc *CacheManager) Initialize() error {
 	if types.DefaultTimeDiff > 0 {
 		return fmt.Errorf("cache diff time to pull store must negative number: %+v", types.DefaultTimeDiff)
 	}
+	return nil
+}
 
+// OpenResourceCache 开启资源缓存
+func (nc *CacheManager) OpenResourceCache(entries ...types.ConfigEntry) error {
 	for _, obj := range nc.caches {
-		var entryItem *ConfigEntry
-		for _, entry := range config.Resources {
+		var entryItem *types.ConfigEntry
+		for _, entry := range entries {
 			if obj.Name() == entry.Name {
 				entryItem = &entry
 				break
@@ -65,18 +75,20 @@ func (nc *CacheManager) Initialize() error {
 		if err := obj.Initialize(entryItem.Option); err != nil {
 			return err
 		}
+		nc.needLoad.Add(entryItem.Name)
 	}
-
 	return nil
 }
 
-// update 缓存更新
-func (nc *CacheManager) update() error {
+// warmUp 缓存更新
+func (nc *CacheManager) warmUp() error {
 	var wg sync.WaitGroup
-	for _, entry := range config.Resources {
-		index, exist := cacheSet[entry.Name]
+	entries := nc.needLoad.ToSlice()
+	for i := range entries {
+		name := entries[i]
+		index, exist := cacheSet[name]
 		if !exist {
-			return fmt.Errorf("cache resource %s not exists", entry.Name)
+			return fmt.Errorf("cache resource %s not exists", name)
 		}
 		wg.Add(1)
 		go func(c types.Cache) {
@@ -116,25 +128,33 @@ func (nc *CacheManager) Start(ctx context.Context) error {
 
 	// 启动的时候，先更新一版缓存
 	log.Infof("[Cache] cache update now first time")
-	if err := nc.update(); err != nil {
+	if err := nc.warmUp(); err != nil {
 		return err
 	}
 	log.Infof("[Cache] cache update done")
 
 	// 启动协程，开始定时更新缓存数据
-	go func() {
-		ticker := time.NewTicker(nc.GetUpdateCacheInterval())
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ticker.C:
-				_ = nc.update()
-			case <-ctx.Done():
-				return
-			}
+	entries := nc.needLoad.ToSlice()
+	for i := range entries {
+		name := entries[i]
+		index, exist := cacheSet[name]
+		if !exist {
+			return fmt.Errorf("cache resource %s not exists", name)
 		}
-	}()
+		// 每个缓存各自在自己的协程内部按照期望的缓存更新时间完成数据缓存刷新
+		go func(c types.Cache) {
+			ticker := time.NewTicker(nc.GetUpdateCacheInterval())
+			for {
+				select {
+				case <-ticker.C:
+					_ = c.Update()
+				case <-ctx.Done():
+					ticker.Stop()
+					return
+				}
+			}
+		}(nc.caches[index])
+	}
 
 	return nil
 }
@@ -147,6 +167,11 @@ func (nc *CacheManager) Clear() error {
 // GetUpdateCacheInterval 获取当前cache的更新间隔
 func (nc *CacheManager) GetUpdateCacheInterval() time.Duration {
 	return UpdateCacheInterval
+}
+
+// GetReportInterval 获取当前cache的更新间隔
+func (nc *CacheManager) GetReportInterval() time.Duration {
+	return ReportInterval
 }
 
 // Service 获取Service缓存信息
@@ -189,6 +214,11 @@ func (nc *CacheManager) ServiceContract() types.ServiceContractCache {
 	return nc.caches[types.CacheServiceContract].(types.ServiceContractCache)
 }
 
+// LaneRule 获取泳道规则缓存信息
+func (nc *CacheManager) LaneRule() types.LaneCache {
+	return nc.caches[types.CacheLaneRule].(types.LaneCache)
+}
+
 // User Get user information cache information
 func (nc *CacheManager) User() types.UserCache {
 	return nc.caches[types.CacheUser].(types.UserCache)
@@ -217,6 +247,16 @@ func (nc *CacheManager) ConfigFile() types.ConfigFileCache {
 // ConfigGroup get config group cache information
 func (nc *CacheManager) ConfigGroup() types.ConfigGroupCache {
 	return nc.caches[types.CacheConfigGroup].(types.ConfigGroupCache)
+}
+
+// Gray get Gray cache information
+func (nc *CacheManager) Gray() types.GrayCache {
+	return nc.caches[types.CacheGray].(types.GrayCache)
+}
+
+// Role get Role cache information
+func (nc *CacheManager) Role() types.RoleCache {
+	return nc.caches[types.CacheRole].(types.RoleCache)
 }
 
 // GetCacher get types.Cache impl

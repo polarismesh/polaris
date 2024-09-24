@@ -31,7 +31,9 @@ import (
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	apitraffic "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/polarismesh/polaris/cache"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -87,6 +89,17 @@ func (l *CacheListener) OnBatchDeleted(value interface{}) {
 	}
 }
 
+func Test_Echo(t *testing.T) {
+	data, _ := json.Marshal(&apitraffic.Rule{
+		Method: &apimodel.MatchString{
+			Type:      apimodel.MatchString_EXACT,
+			Value:     wrapperspb.String("*"),
+			ValueType: apimodel.MatchString_TEXT,
+		},
+	})
+	t.Logf("%s", string(data))
+}
+
 /**
  * @brief 测试创建限流规则
  */
@@ -103,7 +116,7 @@ func TestCreateRateLimit(t *testing.T) {
 	defer discoverSuit.cleanRateLimitRevision(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 
 	t.Run("正常创建限流规则", func(t *testing.T) {
-		_ = discoverSuit.DiscoverServer().Cache().Clear()
+		_ = discoverSuit.CacheMgr().Clear()
 
 		time.Sleep(5 * time.Second)
 
@@ -111,13 +124,13 @@ func TestCreateRateLimit(t *testing.T) {
 		defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 
 		// 等待缓存更新
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetRateLimitWithCache(context.Background(), serviceResp)
 		checkRateLimit(t, rateLimitReq, resp.GetRateLimit().GetRules()[0])
 	})
 
 	t.Run("创建限流规则，删除，再创建，可以正常创建", func(t *testing.T) {
-		_ = discoverSuit.DiscoverServer().Cache().Clear()
+		_ = discoverSuit.CacheMgr().Clear()
 		time.Sleep(5 * time.Second)
 
 		rateLimitReq, rateLimitResp := discoverSuit.createCommonRateLimit(t, serviceResp, 3)
@@ -128,7 +141,7 @@ func TestCreateRateLimit(t *testing.T) {
 		}
 
 		// 等待缓存更新
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.DiscoverServer().Cache().(*cache.CacheManager).TestUpdate()
 		resp := discoverSuit.DiscoverServer().GetRateLimitWithCache(context.Background(), serviceResp)
 		checkRateLimit(t, rateLimitReq, resp.GetRateLimit().GetRules()[0])
 		discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
@@ -317,11 +330,8 @@ func TestDeleteRateLimit(t *testing.T) {
 			discoverSuit.DefaultCtx = oldCtx
 		}()
 
-		if resp := discoverSuit.DiscoverServer().DeleteRateLimits(discoverSuit.DefaultCtx, []*apitraffic.Rule{rateLimitReq}); !respSuccess(resp) {
-			t.Logf("pass: %s", resp.GetInfo().GetValue())
-		} else {
-			t.Fatal("error")
-		}
+		resp := discoverSuit.DiscoverServer().DeleteRateLimits(discoverSuit.DefaultCtx, []*apitraffic.Rule{rateLimitReq})
+		assert.True(t, api.IsSuccess(resp), resp.GetInfo().GetValue())
 	})
 
 	t.Run("并发删除限流规则，可以正常删除", func(t *testing.T) {
@@ -361,7 +371,7 @@ func TestUpdateRateLimit(t *testing.T) {
 	_, rateLimitResp := discoverSuit.createCommonRateLimit(t, serviceResp, 1)
 	defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 
-	t.Run("更新单个限流规则，可以正常更新", func(t *testing.T) {
+	t.Run("01-更新单个限流规则，可以正常更新", func(t *testing.T) {
 		updateRateLimitContent(rateLimitResp, 2)
 		discoverSuit.updateRateLimit(t, rateLimitResp)
 		filters := map[string]string{
@@ -376,7 +386,7 @@ func TestUpdateRateLimit(t *testing.T) {
 		checkRateLimit(t, rateLimitResp, resp.GetRateLimits()[0])
 	})
 
-	t.Run("更新一个不存在的限流规则", func(t *testing.T) {
+	t.Run("02-更新一个不存在的限流规则", func(t *testing.T) {
 		discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 		if resp := discoverSuit.DiscoverServer().UpdateRateLimits(discoverSuit.DefaultCtx, []*apitraffic.Rule{rateLimitResp}); !respSuccess(resp) {
 			t.Logf("pass: %s", resp.GetInfo().GetValue())
@@ -385,7 +395,7 @@ func TestUpdateRateLimit(t *testing.T) {
 		}
 	})
 
-	t.Run("更新限流规则时，没有传递token，正常", func(t *testing.T) {
+	t.Run("03-更新限流规则时，没有传递token，正常", func(t *testing.T) {
 		oldCtx := discoverSuit.DefaultCtx
 		discoverSuit.DefaultCtx = context.Background()
 
@@ -401,31 +411,56 @@ func TestUpdateRateLimit(t *testing.T) {
 		}
 	})
 
-	t.Run("并发更新限流规则时，可以正常更新", func(t *testing.T) {
+	t.Run("04-并发更新限流规则时，可以正常更新", func(t *testing.T) {
 		var wg sync.WaitGroup
 		errs := make(chan error)
+
+		lock := &sync.RWMutex{}
+		waitDelSvcs := []*apiservice.Service{}
+		waitDelRules := []*apitraffic.Rule{}
+
+		t.Cleanup(func() {
+			for i := range waitDelSvcs {
+				serviceResp := waitDelSvcs[i]
+				discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
+			}
+			for i := range waitDelRules {
+				rateLimitResp := waitDelRules[i]
+				discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
+			}
+		})
+
 		for i := 1; i <= 50; i++ {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
 				_, serviceResp := discoverSuit.createCommonService(t, index)
-				defer discoverSuit.cleanServiceName(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 				discoverSuit.cleanRateLimitRevision(serviceResp.GetName().GetValue(), serviceResp.GetNamespace().GetValue())
 				_, rateLimitResp := discoverSuit.createCommonRateLimit(t, serviceResp, index)
-				defer discoverSuit.cleanRateLimit(rateLimitResp.GetId().GetValue())
 				updateRateLimitContent(rateLimitResp, index+1)
 				discoverSuit.updateRateLimit(t, rateLimitResp)
+
+				func() {
+					lock.Lock()
+					defer lock.Unlock()
+
+					waitDelSvcs = append(waitDelSvcs, serviceResp)
+					waitDelRules = append(waitDelRules, rateLimitResp)
+				}()
+
+				_ = discoverSuit.CacheMgr().TestUpdate()
+
 				filters := map[string]string{
 					"service":   serviceResp.GetName().GetValue(),
 					"namespace": serviceResp.GetNamespace().GetValue(),
 				}
-				_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
 				resp := discoverSuit.DiscoverServer().GetRateLimits(discoverSuit.DefaultCtx, filters)
 				if !respSuccess(resp) {
 					errs <- fmt.Errorf("error : %v", resp)
 				}
 				if len(resp.GetRateLimits()) == 0 {
 					errs <- errors.New("ratelimit rule count is zero")
+					return
 				}
 				checkRateLimit(t, rateLimitResp, resp.GetRateLimits()[0])
 			}(i)

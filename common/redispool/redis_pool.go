@@ -43,6 +43,8 @@ const (
 	Sadd
 	// Srem del method define
 	Srem
+	// MGet multi get keys method define
+	MGet
 )
 
 var (
@@ -52,6 +54,7 @@ var (
 		Del:  "DEL",
 		Sadd: "SADD",
 		Srem: "SREM",
+		MGet: "MGET",
 	}
 )
 
@@ -67,10 +70,23 @@ func toRedisKey(instanceID string, compatible bool) string {
 	return fmt.Sprintf("%s%s", keyPrefix, instanceID)
 }
 
+func toRedisKeys(instanceID []string, compatible bool) []string {
+	ret := make([]string, 0, len(instanceID))
+	for i := range instanceID {
+		if compatible {
+			ret = append(ret, instanceID[i])
+		} else {
+			ret = append(ret, fmt.Sprintf("%s%s", keyPrefix, instanceID[i]))
+		}
+	}
+	return ret
+}
+
 // Task ckv任务请求结构体
 type Task struct {
 	taskType int
 	id       string
+	ids      []string
 	value    string
 	members  []string
 	respChan chan *Resp
@@ -150,6 +166,18 @@ func (p *redisPool) Get(id string) *Resp {
 		id:       id,
 	}
 	return p.handleTask(task)
+}
+
+// MGet 使用连接池，向redis发起 MGet 请求
+func (p *redisPool) MGet(keys []string) *Resp {
+	if err := p.checkRedisDead(); err != nil {
+		return &Resp{Err: err}
+	}
+	task := &Task{
+		taskType: MGet,
+		ids:      keys,
+	}
+	return p.handleTaskWithRetries(task)
 }
 
 // Sdd 使用连接池，向redis发起Sdd请求
@@ -443,6 +471,8 @@ func (p *redisPool) doHandleTask(task *Task, piper redis.Pipeliner) redis.Cmder 
 		return piper.SAdd(context.Background(), task.id, task.members)
 	case Srem:
 		return piper.SRem(context.Background(), task.id, task.members)
+	case MGet:
+		return piper.MGet(context.Background(), toRedisKeys(task.ids, p.config.Compatible)...)
 	default:
 		return piper.Get(context.Background(), toRedisKey(task.id, p.config.Compatible))
 	}

@@ -23,7 +23,7 @@ bootstrap:
       rotationMaxSize: 100
       rotationMaxBackups: 10
       rotationMaxAge: 7
-      outputLevel: info
+      outputLevel: debug
       # outputPaths:
       # - stdout
       # errorOutputPaths:
@@ -369,6 +369,7 @@ healthcheck:
 config:
   # 是否启动配置模块
   open: true
+  contentMaxLength: 20000
 # 缓存配置
 cache:
   open: true
@@ -414,10 +415,9 @@ store:
       txIsolationLevel: 2 #LevelReadCommitted
 # 插件配置
 plugin:
-  # whitelist:
-  #   name: whitelist
-  #   option:
-  #     ip: [127.0.0.1]
+  crypto:
+    entries:
+      - name: AES
   cmdb:
     name: memory
     option:

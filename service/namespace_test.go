@@ -139,7 +139,7 @@ func TestRemoveNamespace(t *testing.T) {
 			reqs = append(reqs, resp)
 		}
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 		discoverSuit.removeCommonNamespaces(t, reqs)
 		t.Logf("pass")
 	})
@@ -178,7 +178,7 @@ func TestUpdateNamespace(t *testing.T) {
 		req, resp := discoverSuit.createCommonNamespace(t, 200)
 		defer discoverSuit.cleanNamespace(resp.GetName().GetValue())
 
-		_ = discoverSuit.DiscoverServer().Cache().TestUpdate()
+		_ = discoverSuit.CacheMgr().TestUpdate()
 
 		req.Token = resp.Token
 		req.Comment = utils.NewStringValue("new-comment")

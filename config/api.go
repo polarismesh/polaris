@@ -21,6 +21,8 @@ import (
 	"context"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+
+	"github.com/polarismesh/polaris/common/model"
 )
 
 type (
@@ -75,7 +77,7 @@ type ConfigFileReleaseOperate interface {
 	PublishConfigFile(ctx context.Context, configFileRelease *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse
 	// GetConfigFileRelease 获取配置文件发布
 	GetConfigFileRelease(ctx context.Context, req *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse
-	// DeleteConfigFileReleases 删除配置文件发布内容
+	// DeleteConfigFileReleases 批量删除配置文件发布内容
 	DeleteConfigFileReleases(ctx context.Context, reqs []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse
 	// RollbackConfigFileReleases 批量回滚配置到指定版本
 	RollbackConfigFileReleases(ctx context.Context, releases []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse
@@ -87,23 +89,33 @@ type ConfigFileReleaseOperate interface {
 	GetConfigFileReleaseHistories(ctx context.Context, filter map[string]string) *apiconfig.ConfigBatchQueryResponse
 	// UpsertAndReleaseConfigFile 创建/更新配置文件并发布
 	UpsertAndReleaseConfigFile(ctx context.Context, req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse
+	// StopGrayConfigFileReleases 停止所有的灰度发布配置
+	StopGrayConfigFileReleases(ctx context.Context, reqs []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse
 }
 
 // ConfigFileClientOperate 给客户端提供服务接口，不同的上层协议抽象的公共服务逻辑
 type ConfigFileClientOperate interface {
-	// GetConfigFileForClient 获取配置文件
-	GetConfigFileForClient(ctx context.Context, req *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse
 	// CreateConfigFileFromClient 调用config_file的方法创建配置文件
 	CreateConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse
 	// UpdateConfigFileFromClient 调用config_file的方法更新配置文件
 	UpdateConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigClientResponse
+	// DeleteConfigFileFromClient 调用config_file的方法更新配置文件
+	DeleteConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse
 	// PublishConfigFileFromClient 调用config_file_release的方法发布配置文件
 	PublishConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFileRelease) *apiconfig.ConfigClientResponse
-	// WatchConfigFiles 客户端监听配置文件
-	WatchConfigFiles(ctx context.Context, req *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error)
+	// UpsertAndReleaseConfigFile 创建/更新配置文件并发布
+	UpsertAndReleaseConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse
+	// CasUpsertAndReleaseConfigFileFromClient 创建/更新配置文件并发布
+	CasUpsertAndReleaseConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse
+	// LongPullWatchFile 客户端监听配置文件
+	LongPullWatchFile(ctx context.Context, req *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error)
 	// GetConfigFileNamesWithCache 获取某个配置分组下的配置文件
 	GetConfigFileNamesWithCache(ctx context.Context,
 		req *apiconfig.ConfigFileGroupRequest) *apiconfig.ConfigClientListResponse
+	// GetConfigFileWithCache 获取配置文件
+	GetConfigFileWithCache(ctx context.Context, req *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigClientResponse
+	// GetConfigGroupsWithCache 获取某个命名空间下的配置分组列表
+	GetConfigGroupsWithCache(ctx context.Context, req *apiconfig.ClientConfigFileInfo) *apiconfig.ConfigDiscoverResponse
 }
 
 // ConfigFileTemplateOperate config file template operate
@@ -123,4 +135,17 @@ type ConfigCenterServer interface {
 	ConfigFileReleaseOperate
 	ConfigFileClientOperate
 	ConfigFileTemplateOperate
+}
+
+// ResourceHook The listener is placed before and after the resource operation, only normal flow
+type ResourceHook interface {
+	// Before
+	Before(ctx context.Context, resourceType model.Resource)
+	// After
+	After(ctx context.Context, resourceType model.Resource, res *ResourceEvent) error
+}
+
+// ResourceEvent 资源事件
+type ResourceEvent struct {
+	ConfigGroup *apiconfig.ConfigFileGroup
 }

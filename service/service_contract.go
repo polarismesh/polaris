@@ -25,6 +25,7 @@ import (
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
@@ -36,15 +37,18 @@ import (
 
 var (
 	contractSearchFilters = map[string]string{
-		"id":        "id",
-		"namespace": "namespace",
-		"service":   "service",
-		"name":      "name",
-		"protocol":  "protocol",
-		"version":   "version",
-		"brief":     "brief",
-		"offset":    "offset",
-		"limit":     "limit",
+		"id":             "id",
+		"namespace":      "namespace",
+		"service":        "service",
+		"name":           "type",
+		"type":           "type",
+		"protocol":       "protocol",
+		"version":        "version",
+		"brief":          "brief",
+		"offset":         "offset",
+		"limit":          "limit",
+		"interface_name": "interface_name",
+		"interface_path": "interface_path",
 	}
 )
 
@@ -52,17 +56,21 @@ func (s *Server) CreateServiceContracts(ctx context.Context,
 	req []*apiservice.ServiceContract) *apiservice.BatchWriteResponse {
 
 	responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
-	for _, item := range req {
-		response := s.CreateServiceContract(ctx, item)
+	for i := range req {
+		response := s.CreateServiceContract(ctx, req[i])
 		api.Collect(responses, response)
 	}
 	return api.FormatBatchWriteResponse(responses)
 }
 
 func (s *Server) CreateServiceContract(ctx context.Context, contract *apiservice.ServiceContract) *apiservice.Response {
-	contractId, errRsp := utils.CheckContractTetrad(contract)
-	if errRsp != nil {
-		return errRsp
+	contractId := contract.GetId()
+	if contractId == "" {
+		tmpId, errRsp := utils.CheckContractTetrad(contract)
+		if errRsp != nil {
+			return errRsp
+		}
+		contractId = tmpId
 	}
 
 	existContract, err := s.storage.GetServiceContract(contractId)
@@ -73,7 +81,7 @@ func (s *Server) CreateServiceContract(ctx context.Context, contract *apiservice
 	}
 	if existContract != nil {
 		if existContract.Content == contract.Content {
-			return api.NewAnyDataResponse(apimodel.Code_ExecuteSuccess, nil)
+			return api.NewAnyDataResponse(apimodel.Code_NoNeedUpdate, nil)
 		}
 		existContract.Content = contract.Content
 		existContract.Revision = utils.NewUUID()
@@ -81,12 +89,15 @@ func (s *Server) CreateServiceContract(ctx context.Context, contract *apiservice
 			log.Error("[Service][Contract] do update to store", utils.RequestID(ctx), zap.Error(err))
 			return api.NewAnyDataResponse(store.StoreCode2APICode(err), contract)
 		}
+		s.RecordHistory(ctx, serviceContractRecordEntry(ctx, contract, &model.EnrichServiceContract{
+			ServiceContract: existContract.ServiceContract,
+		}, model.OUpdate))
 		return api.NewAnyDataResponse(apimodel.Code_ExecuteSuccess, nil)
 	}
 
 	saveData := &model.ServiceContract{
 		ID:        contractId,
-		Name:      contract.GetName(),
+		Type:      utils.DefaultString(contract.GetType(), contract.GetName()),
 		Namespace: contract.GetNamespace(),
 		Service:   contract.GetService(),
 		Protocol:  contract.GetProtocol(),
@@ -113,13 +124,14 @@ func (s *Server) GetServiceContracts(ctx context.Context, query map[string]strin
 
 	searchFilters := map[string]string{}
 	for k, v := range query {
-		if _, ok := contractSearchFilters[k]; !ok {
+		newK, ok := contractSearchFilters[k]
+		if !ok {
 			continue
 		}
 		if v == "" {
 			continue
 		}
-		searchFilters[k] = v
+		searchFilters[newK] = v
 	}
 	offset, limit, err := utils.ParseOffsetAndLimit(searchFilters)
 	if err != nil {
@@ -127,7 +139,7 @@ func (s *Server) GetServiceContracts(ctx context.Context, query map[string]strin
 		return out
 	}
 
-	ret, totalCount, err := s.caches.ServiceContract().Query(searchFilters, offset, limit)
+	totalCount, ret, err := s.storage.GetServiceContracts(ctx, searchFilters, offset, limit)
 	if err != nil {
 		out = api.NewBatchQueryResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 		return out
@@ -156,11 +168,11 @@ func (s *Server) GetServiceContracts(ctx context.Context, query map[string]strin
 				}
 			}
 		}
-		_ = status
 
 		contract := &apiservice.ServiceContract{
 			Id:         item.ID,
-			Name:       item.Name,
+			Name:       item.Type,
+			Type:       item.Type,
 			Namespace:  item.Namespace,
 			Service:    item.Service,
 			Protocol:   item.Protocol,
@@ -168,9 +180,9 @@ func (s *Server) GetServiceContracts(ctx context.Context, query map[string]strin
 			Revision:   item.Revision,
 			Content:    item.Content,
 			Interfaces: methods,
-			// Status:     status,
-			Ctime: commontime.Time2String(item.CreateTime),
-			Mtime: commontime.Time2String(item.ModifyTime),
+			Status:     status,
+			Ctime:      commontime.Time2String(item.CreateTime),
+			Mtime:      commontime.Time2String(item.ModifyTime),
 		}
 		if addErr := api.AddAnyDataIntoBatchQuery(out, contract); addErr != nil {
 			log.Error("[Service][Contract] add service_contract as any data fail",
@@ -189,8 +201,8 @@ func (s *Server) DeleteServiceContracts(ctx context.Context,
 	req []*apiservice.ServiceContract) *apiservice.BatchWriteResponse {
 
 	responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
-	for _, item := range req {
-		response := s.DeleteServiceContract(ctx, item)
+	for i := range req {
+		response := s.DeleteServiceContract(ctx, req[i])
 		api.Collect(responses, response)
 	}
 	return api.FormatBatchWriteResponse(responses)
@@ -200,20 +212,15 @@ func (s *Server) DeleteServiceContracts(ctx context.Context,
 func (s *Server) DeleteServiceContract(ctx context.Context,
 	contract *apiservice.ServiceContract) *apiservice.Response {
 
-	if errRsp := checkServiceContractParameter(contract); errRsp != nil {
-		return errRsp
-	}
-
-	contractID := contract.Id
-	if contractID == "" {
+	if contract.Id == "" {
 		id, errRsp := utils.CheckContractTetrad(contract)
 		if errRsp != nil {
 			return errRsp
 		}
-		contractID = id
+		contract.Id = id
 	}
 
-	saveData, err := s.storage.GetServiceContract(contractID)
+	saveData, err := s.storage.GetServiceContract(contract.Id)
 	if err != nil {
 		log.Error("[Service][Contract] get save service_contract when delete", utils.RequestID(ctx), zap.Error(err))
 		return api.NewAnyDataResponse(store.StoreCode2APICode(err), nil)
@@ -224,7 +231,7 @@ func (s *Server) DeleteServiceContract(ctx context.Context,
 
 	deleteData := &model.ServiceContract{
 		ID:        contract.Id,
-		Name:      contract.Name,
+		Type:      utils.DefaultString(contract.Type, contract.Name),
 		Namespace: contract.Namespace,
 		Service:   contract.Service,
 		Protocol:  contract.Protocol,
@@ -241,12 +248,54 @@ func (s *Server) DeleteServiceContract(ctx context.Context,
 	return api.NewAnyDataResponse(apimodel.Code_ExecuteSuccess, nil)
 }
 
+func (s *Server) GetServiceContractVersions(ctx context.Context, filter map[string]string) *apiservice.BatchQueryResponse {
+	serviceName := filter["service"]
+	namespace := filter["namespace"]
+	if namespace == "" {
+		return api.NewBatchQueryResponseWithMsg(apimodel.Code_InvalidParameter, "namespace is empty")
+	}
+
+	ret, err := s.storage.ListVersions(ctx, serviceName, namespace)
+	if err != nil {
+		log.Error("[Service][Contract] list save service_contract versions", utils.RequestID(ctx), zap.Error(err))
+		return api.NewBatchQueryResponse(store.StoreCode2APICode(err))
+	}
+
+	resp := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
+	resp.Data = make([]*anypb.Any, 0, len(ret))
+	for i := range ret {
+		item := ret[i]
+		if err := api.AddAnyDataIntoBatchQuery(resp, &apiservice.ServiceContract{
+			Id:        item.ID,
+			Name:      item.Type,
+			Type:      item.Type,
+			Namespace: item.Namespace,
+			Service:   item.Service,
+			Version:   item.Version,
+			Protocol:  item.Protocol,
+			Revision:  utils.NewUUID(),
+			Ctime:     commontime.Time2String(item.CreateTime),
+			Mtime:     commontime.Time2String(item.ModifyTime),
+		}); err != nil {
+			log.Error("[Service][Contract] list all versions fail", utils.RequestID(ctx), zap.String("namespace", namespace),
+				zap.String("service", serviceName), zap.Error(err))
+			return api.NewBatchQueryResponse(apimodel.Code_ExecuteException)
+		}
+	}
+	resp.Amount = utils.NewUInt32Value(uint32(len(ret)))
+	return resp
+}
+
 // CreateServiceContractInterfaces 添加服务契约详情
 func (s *Server) CreateServiceContractInterfaces(ctx context.Context,
 	contract *apiservice.ServiceContract, source apiservice.InterfaceDescriptor_Source) *apiservice.Response {
 
-	if errRsp := checkOperationServiceContractInterface(contract); errRsp != nil {
-		return errRsp
+	if contract.Id == "" {
+		id, errRsp := utils.CheckContractTetrad(contract)
+		if errRsp != nil {
+			return errRsp
+		}
+		contract.Id = id
 	}
 
 	createData := &model.EnrichServiceContract{
@@ -266,6 +315,7 @@ func (s *Server) CreateServiceContractInterfaces(ctx context.Context,
 		createData.Interfaces = append(createData.Interfaces, &model.InterfaceDescriptor{
 			ID:         interfaceId,
 			ContractID: contract.Id,
+			Type:       utils.DefaultString(item.Type, item.Name),
 			Method:     item.Method,
 			Path:       item.Path,
 			Content:    item.Content,
@@ -286,8 +336,21 @@ func (s *Server) CreateServiceContractInterfaces(ctx context.Context,
 func (s *Server) AppendServiceContractInterfaces(ctx context.Context,
 	contract *apiservice.ServiceContract, source apiservice.InterfaceDescriptor_Source) *apiservice.Response {
 
-	if errRsp := checkOperationServiceContractInterface(contract); errRsp != nil {
-		return errRsp
+	if contract.Id == "" {
+		id, errRsp := utils.CheckContractTetrad(contract)
+		if errRsp != nil {
+			return errRsp
+		}
+		contract.Id = id
+	}
+
+	saveData, err := s.storage.GetServiceContract(contract.Id)
+	if err != nil {
+		log.Error("[Service][Contract] get save service_contract when append interfaces", utils.RequestID(ctx), zap.Error(err))
+		return api.NewAnyDataResponse(store.StoreCode2APICode(err), nil)
+	}
+	if saveData == nil {
+		return api.NewResponse(apimodel.Code_NotFoundResource)
 	}
 
 	appendData := &model.EnrichServiceContract{
@@ -299,7 +362,7 @@ func (s *Server) AppendServiceContractInterfaces(ctx context.Context,
 	}
 
 	for _, item := range contract.Interfaces {
-		interfaceId, errRsp := utils.CheckContractInterfaceTetrad(appendData.ID, apiservice.InterfaceDescriptor_Manual, item)
+		interfaceId, errRsp := utils.CheckContractInterfaceTetrad(appendData.ID, source, item)
 		if errRsp != nil {
 			log.Error("[Service][Contract] check service_contract interface id", utils.RequestID(ctx),
 				zap.String("err", errRsp.GetInfo().GetValue()))
@@ -308,6 +371,7 @@ func (s *Server) AppendServiceContractInterfaces(ctx context.Context,
 		appendData.Interfaces = append(appendData.Interfaces, &model.InterfaceDescriptor{
 			ID:         interfaceId,
 			ContractID: contract.Id,
+			Type:       utils.DefaultString(item.Type, item.Name),
 			Method:     item.Method,
 			Path:       item.Path,
 			Content:    item.Content,
@@ -327,13 +391,26 @@ func (s *Server) AppendServiceContractInterfaces(ctx context.Context,
 func (s *Server) DeleteServiceContractInterfaces(ctx context.Context,
 	contract *apiservice.ServiceContract) *apiservice.Response {
 
-	if errRsp := checkOperationServiceContractInterface(contract); errRsp != nil {
-		return errRsp
+	if contract.Id == "" {
+		id, errRsp := utils.CheckContractTetrad(contract)
+		if errRsp != nil {
+			return errRsp
+		}
+		contract.Id = id
+	}
+
+	saveData, err := s.storage.GetServiceContract(contract.Id)
+	if err != nil {
+		log.Error("[Service][Contract] get save service_contract when delete interfaces", utils.RequestID(ctx), zap.Error(err))
+		return api.NewAnyDataResponse(store.StoreCode2APICode(err), nil)
+	}
+	if saveData == nil {
+		return api.NewResponse(apimodel.Code_NotFoundResource)
 	}
 
 	deleteData := &model.EnrichServiceContract{
 		ServiceContract: &model.ServiceContract{
-			ID:       contract.Id,
+			ID:       saveData.ID,
 			Revision: utils.NewUUID(),
 		},
 		Interfaces: make([]*model.InterfaceDescriptor, 0, len(contract.Interfaces)),
@@ -350,6 +427,7 @@ func (s *Server) DeleteServiceContractInterfaces(ctx context.Context,
 			ID:         interfaceId,
 			ContractID: contract.Id,
 			Method:     item.Method,
+			Type:       utils.DefaultString(item.Type, item.Name),
 			Path:       item.Path,
 		})
 	}
@@ -361,17 +439,6 @@ func (s *Server) DeleteServiceContractInterfaces(ctx context.Context,
 	return api.NewAnyDataResponse(apimodel.Code_ExecuteSuccess, nil)
 }
 
-func checkOperationServiceContractInterface(contract *apiservice.ServiceContract) *apiservice.Response {
-	if contract.Id == "" {
-		id, errRsp := utils.CheckContractTetrad(contract)
-		if errRsp != nil {
-			return errRsp
-		}
-		contract.Id = id
-	}
-	return nil
-}
-
 // serviceContractRecordEntry 生成服务的记录entry
 func serviceContractRecordEntry(ctx context.Context, req *apiservice.ServiceContract, data *model.EnrichServiceContract,
 	operationType model.OperationType) *model.RecordEntry {
@@ -381,7 +448,7 @@ func serviceContractRecordEntry(ctx context.Context, req *apiservice.ServiceCont
 
 	entry := &model.RecordEntry{
 		ResourceType:  model.RServiceContract,
-		ResourceName:  data.GetKey(),
+		ResourceName:  data.GetResourceName(),
 		Namespace:     req.GetNamespace(),
 		OperationType: operationType,
 		Operator:      utils.ParseOperator(ctx),
@@ -390,23 +457,4 @@ func serviceContractRecordEntry(ctx context.Context, req *apiservice.ServiceCont
 	}
 
 	return entry
-}
-
-func checkServiceContractParameter(req *apiservice.ServiceContract) *apiservice.Response {
-	if req.GetName() == "" {
-		return api.NewResponseWithMsg(apimodel.Code_InvalidParameter, "name is empty")
-	}
-	if req.GetProtocol() == "" {
-		return api.NewResponseWithMsg(apimodel.Code_InvalidParameter, "protocol is empty")
-	}
-	if req.GetVersion() == "" {
-		return api.NewResponseWithMsg(apimodel.Code_InvalidParameter, "version is empty")
-	}
-	if req.GetService() == "" {
-		return api.NewResponseWithMsg(apimodel.Code_InvalidParameter, "service is empty")
-	}
-	if req.GetNamespace() == "" {
-		return api.NewResponseWithMsg(apimodel.Code_InvalidParameter, "namespace is empty")
-	}
-	return nil
 }

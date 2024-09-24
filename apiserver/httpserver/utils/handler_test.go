@@ -27,6 +27,7 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/polarismesh/polaris/apiserver/httpserver/i18n"
 	api "github.com/polarismesh/polaris/common/api/v1"
@@ -99,4 +100,16 @@ func Test_ParseJsonBody(t *testing.T) {
 		t.Errorf("ParseJsonBody = %v, want %v", testResult.Text, expectText)
 	}
 
+}
+
+func TestParseQueryParams(t *testing.T) {
+	hreq, _ := http.NewRequest(http.MethodGet, "http://localhost:8090/naming/v1/instances?namespace=default&service=mysql&healthy=true&isolate=false&keys=region&values=cn&keys=zone&values=1a&keys=version&values=v1.0.0&keys=environment&values=prod", nil)
+	req := restful.NewRequest(hreq)
+	queryParams := ParseQueryParams(req)
+	assert.Equal(t, queryParams["namespace"], "default")
+	assert.Equal(t, queryParams["service"], "mysql")
+	assert.Equal(t, queryParams["healthy"], "true")
+	assert.Equal(t, queryParams["isolate"], "false")
+	assert.Equal(t, queryParams["keys"], "region,zone,version,environment")
+	assert.Equal(t, queryParams["values"], "cn,1a,v1.0.0,prod")
 }
