@@ -33,7 +33,6 @@ import (
 	commonlog "github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/model/admin"
-	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	commonstore "github.com/polarismesh/polaris/common/store"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/plugin"
@@ -167,11 +166,11 @@ func (s *Server) CleanInstance(ctx context.Context, req *apiservice.Instance) *a
 	}
 	if err := s.storage.CleanInstance(instanceID); err != nil {
 		log.Error("Clean instance",
-			zap.String("err", err.Error()), utils.RequestID(ctx))
+			zap.String("err", err.Error()), utils.ZapRequestID(utils.ParseRequestID(ctx)))
 		return api.NewInstanceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 
-	log.Info("Clean instance", utils.RequestID(ctx), utils.ZapInstanceID(instanceID))
+	log.Info("Clean instance", utils.ZapRequestID(utils.ParseRequestID(ctx)), utils.ZapInstanceID(instanceID))
 	return api.NewInstanceResponse(apimodel.Code_ExecuteSuccess, req)
 }
 
@@ -206,6 +205,7 @@ func (s *Server) ListLeaderElections(_ context.Context) ([]*admin.LeaderElection
 
 func (s *Server) ReleaseLeaderElection(_ context.Context, electKey string) error {
 	return s.storage.ReleaseLeaderElection(electKey)
+
 }
 
 func (svr *Server) GetCMDBInfo(ctx context.Context) ([]model.LocationView, error) {
@@ -229,9 +229,4 @@ func (svr *Server) GetCMDBInfo(ctx context.Context) ([]model.LocationView, error
 	})
 
 	return ret, nil
-}
-
-// GetServerFunctions 获取服务端支持的功能列表
-func (svr *Server) GetServerFunctions(ctx context.Context) []authcommon.ServerFunctionGroup {
-	return authcommon.ServerFunctions
 }

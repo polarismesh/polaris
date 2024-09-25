@@ -22,7 +22,6 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
@@ -351,125 +350,9 @@ func (f *faultDetectCache) GetFaultDetectRuleCount(fun func(k, v interface{}) bo
 	}
 }
 
-var (
-	ignoreFaultDetectRuleFilter = map[string]struct{}{
-		"brief":            {},
-		"service":          {},
-		"serviceNamespace": {},
-		"exactName":        {},
-		"excludeId":        {},
-	}
-
-	fdBlurSearchFields = map[string]func(*model.FaultDetectRule) string{
-		"name": func(cbr *model.FaultDetectRule) string {
-			return cbr.Name
-		},
-		"description": func(cbr *model.FaultDetectRule) string {
-			return cbr.Description
-		},
-		"dstservice": func(cbr *model.FaultDetectRule) string {
-			return cbr.DstService
-		},
-		"dstmethod": func(cbr *model.FaultDetectRule) string {
-			return cbr.DstMethod
-		},
-	}
-
-	faultDetectSort = map[string]func(asc bool, a, b *model.FaultDetectRule) bool{
-		"mtime": func(asc bool, a, b *model.FaultDetectRule) bool {
-			ret := a.ModifyTime.Before(b.ModifyTime)
-			return ret && asc
-		},
-		"id": func(asc bool, a, b *model.FaultDetectRule) bool {
-			ret := a.ID < b.ID
-			return ret && asc
-		},
-		"name": func(asc bool, a, b *model.FaultDetectRule) bool {
-			ret := a.Name < b.Name
-			return ret && asc
-		},
-	}
-)
-
 // Query implements api.FaultDetectCache.
-func (f *faultDetectCache) Query(ctx context.Context, args *types.FaultDetectArgs) (uint32, []*model.FaultDetectRule, error) {
-	if err := f.Update(); err != nil {
-		return 0, nil, err
-	}
-
-	results := make([]*model.FaultDetectRule, 0, 32)
-
-	predicates := types.LoadFaultDetectRulePredicates(ctx)
-
-	searchSvc, hasSvc := args.Filter["service"]
-	searchNs, hasSvcNs := args.Filter["serviceNamespace"]
-	exactNameValue, hasExactName := args.Filter["exactName"]
-	excludeIdValue, hasExcludeId := args.Filter["excludeId"]
-
-	lowerFilter := make(map[string]string, len(args.Filter))
-	for k, v := range args.Filter {
-		if _, ok := ignoreCircuitBreakerRuleFilter[k]; ok {
-			continue
-		}
-		lowerFilter[strings.ToLower(k)] = v
-	}
-
-	f.rules.ReadRange(func(key string, val *model.FaultDetectRule) {
-		if hasSvc && hasSvcNs {
-			dstServiceValue := val.DstService
-			dstNamespaceValue := val.DstNamespace
-			if !(dstServiceValue == searchSvc && dstNamespaceValue == searchNs) {
-				return
-			}
-		}
-		if hasExactName && exactNameValue != val.Name {
-			return
-		}
-		if hasExcludeId && excludeIdValue != val.ID {
-			return
-		}
-		for fieldKey, filterValue := range lowerFilter {
-			getter, isBlur := fdBlurSearchFields[fieldKey]
-			if isBlur {
-				if utils.IsWildMatch(getter(val), filterValue) {
-					return
-				}
-			} else {
-				// FIXME 暂时不知道还有什么字段查询需要适配，等待自测验证
-			}
-		}
-		for i := range predicates {
-			if !predicates[i](ctx, val) {
-				return
-			}
-		}
-
-		results = append(results, val)
-	})
-
-	sortFunc, ok := faultDetectSort[args.Filter["order_field"]]
-	if !ok {
-		sortFunc = faultDetectSort["mtime"]
-	}
-	asc := "asc" == strings.ToLower(args.Filter["order_type"])
-	sort.Slice(results, func(i, j int) bool {
-		return sortFunc(asc, results[i], results[j])
-	})
-
-	total, ret := f.toPage(uint32(len(results)), results, args)
-	return total, ret, nil
-}
-
-func (f *faultDetectCache) toPage(total uint32, items []*model.FaultDetectRule,
-	args *types.FaultDetectArgs) (uint32, []*model.FaultDetectRule) {
-	if args.Limit == 0 {
-		return total, items
-	}
-	endIdx := args.Offset + args.Limit
-	if endIdx > total {
-		endIdx = total
-	}
-	return total, items[args.Offset:endIdx]
+func (f *faultDetectCache) Query(context.Context, *types.FaultDetectArgs) (uint32, []*model.FaultDetectRule, error) {
+	panic("unimplemented")
 }
 
 // GetRule implements api.FaultDetectCache.

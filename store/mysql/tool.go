@@ -42,7 +42,7 @@ func (t *toolStore) GetUnixSecond(maxWait time.Duration) (int64, error) {
 	defer rows.Close()
 	timePass := time.Since(startTime)
 	if maxWait != 0 && timePass > maxWait {
-		log.Warnf("[Store][database] query now spend %s, exceed %s, skip", timePass, maxWait)
+		log.Infof("[Store][database] query now spend %s, exceed %s, skip", timePass, maxWait)
 		return 0, nil
 	}
 	var value int64

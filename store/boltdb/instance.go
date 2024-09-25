@@ -19,6 +19,7 @@ package boltdb
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -27,7 +28,6 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	bolt "go.etcd.io/bbolt"
-	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/polarismesh/polaris/common/model"
@@ -603,7 +603,8 @@ func (i *instanceStore) SetInstanceHealthStatus(instanceID string, flag int, rev
 		return err
 	}
 	if len(instances) == 0 {
-		log.Errorf("cant not find instance in kv, %s", instanceID)
+		msg := fmt.Sprintf("cant not find instance in kv, %s", instanceID)
+		log.Errorf(msg)
 		return nil
 	}
 
@@ -666,7 +667,8 @@ func (i *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, 
 		return err
 	}
 	if len(instances) == 0 {
-		log.Errorf("cant not find instance in kv, %v", ids)
+		msg := fmt.Sprintf("cant not find instance in kv, %v", ids)
+		log.Errorf(msg)
 		return nil
 	}
 
@@ -682,7 +684,7 @@ func (i *instanceStore) BatchSetInstanceIsolate(ids []interface{}, isolate int, 
 		instance.Mtime = &wrappers.StringValue{Value: commontime.Time2String(curr)}
 		err = i.handler.UpdateValue(tblNameInstance, id, properties)
 		if err != nil {
-			log.Error("[Store][boltdb] update instance in set instance isolate error", zap.Error(err))
+			log.Errorf("[Store][boltdb] update instance in set instance isolate error, %v", err)
 			return err
 		}
 	}

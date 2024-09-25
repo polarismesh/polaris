@@ -27,13 +27,19 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
+// forceUpdate 更新配置
+func (rlc *rateLimitCache) forceUpdate() error {
+	if err := rlc.Update(); err != nil {
+		return err
+	}
+	return nil
+}
+
 // QueryRateLimitRules
 func (rlc *rateLimitCache) QueryRateLimitRules(ctx context.Context, args types.RateLimitRuleArgs) (uint32, []*model.RateLimit, error) {
-	if err := rlc.Update(); err != nil {
+	if err := rlc.forceUpdate(); err != nil {
 		return 0, nil, err
 	}
-
-	predicates := types.LoadRatelimitRulePredicates(ctx)
 
 	hasService := len(args.Service) != 0
 	hasNamespace := len(args.Namespace) != 0
@@ -59,13 +65,6 @@ func (rlc *rateLimitCache) QueryRateLimitRules(ctx context.Context, args types.R
 		if args.Disable != nil && *args.Disable != rule.Disable {
 			return
 		}
-
-		for i := range predicates {
-			if !predicates[i](ctx, rule) {
-				return
-			}
-		}
-
 		res = append(res, rule)
 	}
 	rlc.IteratorRateLimit(process)

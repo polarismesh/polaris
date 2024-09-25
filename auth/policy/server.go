@@ -39,8 +39,6 @@ import (
 
 // AuthConfig 鉴权配置
 type AuthConfig struct {
-	// Compatible 兼容模式
-	Compatible bool `json:"compatible" xml:"compatible"`
 	// ConsoleOpen 控制台是否开启鉴权
 	ConsoleOpen bool `json:"consoleOpen" xml:"consoleOpen"`
 	// ClientOpen 是否开启客户端接口鉴权
@@ -54,13 +52,13 @@ type AuthConfig struct {
 	ClientStrict bool `json:"clientStrict"`
 	// CredibleHeaders 可信请求 Header
 	CredibleHeaders map[string]string
+	// OpenPrincipalDefaultPolicy 是否开启 principal 默认策略
+	OpenPrincipalDefaultPolicy bool `json:"openPrincipalDefaultPolicy"`
 }
 
 // DefaultAuthConfig 返回一个默认的鉴权配置
 func DefaultAuthConfig() *AuthConfig {
 	return &AuthConfig{
-		// 针对旧鉴权逻辑的兼容模式
-		Compatible: true,
 		// 针对控制台接口，默认开启鉴权操作
 		ConsoleOpen: true,
 		// 这里默认开启 OpenAPI 的强 Token 检查模式
@@ -106,9 +104,7 @@ func (svr *Server) Initialize(options *auth.Config, storage store.Store, cacheMg
 	checker := &DefaultAuthChecker{
 		policyMgr: svr,
 	}
-	if err := checker.Initialize(svr.options, svr.storage, cacheMgr, userSvr); err != nil {
-		return err
-	}
+	checker.Initialize(svr.options, svr.storage, cacheMgr, userSvr)
 	svr.checker = checker
 	return nil
 }
@@ -221,7 +217,8 @@ func (svr *Server) AfterResourceOperation(afterCtx *authcommon.AcquireContext) e
 
 	log.Info("[Auth][Server] add resource to principal default strategy",
 		zap.Any("resource", afterCtx.GetAttachments()[authcommon.ResourceAttachmentKey]),
-		zap.Any("add_user", addUserIds), zap.Any("add_group", addGroupIds), zap.Any("remove_user", removeUserIds),
+		zap.Any("add_user", addUserIds),
+		zap.Any("add_group", addGroupIds), zap.Any("remove_user", removeUserIds),
 		zap.Any("remove_group", removeGroupIds),
 	)
 
@@ -244,6 +241,7 @@ func (svr *Server) AfterResourceOperation(afterCtx *authcommon.AcquireContext) e
 		log.Error("[Auth][Server] remove group link resource", zap.Error(err))
 		return err
 	}
+
 	return nil
 }
 

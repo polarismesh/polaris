@@ -17,7 +17,7 @@
 # 格式化 go.mod
 go mod tidy -compat=1.17
 
-docker run -t --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.61.0 golangci-lint run -v --timeout 30m
+docker run -t --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.55.2 golangci-lint run -v
 
 # 处理 go imports 的格式化
 rm -rf style_tool

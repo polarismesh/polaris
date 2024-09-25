@@ -21,13 +21,12 @@ import (
 	"context"
 	"time"
 
-	"go.uber.org/zap"
-	"golang.org/x/sync/singleflight"
-
 	types "github.com/polarismesh/polaris/cache/api"
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
+	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
 )
 
 // NewRoleCache
@@ -147,7 +146,7 @@ func (r *roleCache) dealPrincipalRoles(role *authcommon.Role, isDel bool) {
 	if isDel {
 		users := role.Users
 		for i := range users {
-			container, _ := r.principalRoles[authcommon.PrincipalUser].ComputeIfAbsent(users[i].PrincipalID,
+			container, _ := r.principalRoles[authcommon.PrincipalUser].ComputeIfAbsent(users[i].SelfID(),
 				func(k string) *utils.SyncSet[string] {
 					return utils.NewSyncSet[string]()
 				})
@@ -155,7 +154,7 @@ func (r *roleCache) dealPrincipalRoles(role *authcommon.Role, isDel bool) {
 		}
 		groups := role.UserGroups
 		for i := range groups {
-			container, _ := r.principalRoles[authcommon.PrincipalGroup].ComputeIfAbsent(groups[i].PrincipalID,
+			container, _ := r.principalRoles[authcommon.PrincipalGroup].ComputeIfAbsent(groups[i].SelfID(),
 				func(k string) *utils.SyncSet[string] {
 					return utils.NewSyncSet[string]()
 				})
@@ -165,7 +164,7 @@ func (r *roleCache) dealPrincipalRoles(role *authcommon.Role, isDel bool) {
 	}
 	users := role.Users
 	for i := range users {
-		container, _ := r.principalRoles[authcommon.PrincipalUser].ComputeIfAbsent(users[i].PrincipalID,
+		container, _ := r.principalRoles[authcommon.PrincipalUser].ComputeIfAbsent(users[i].SelfID(),
 			func(k string) *utils.SyncSet[string] {
 				return utils.NewSyncSet[string]()
 			})
@@ -173,7 +172,7 @@ func (r *roleCache) dealPrincipalRoles(role *authcommon.Role, isDel bool) {
 	}
 	groups := role.UserGroups
 	for i := range groups {
-		container, _ := r.principalRoles[authcommon.PrincipalGroup].ComputeIfAbsent(groups[i].PrincipalID,
+		container, _ := r.principalRoles[authcommon.PrincipalGroup].ComputeIfAbsent(groups[i].SelfID(),
 			func(k string) *utils.SyncSet[string] {
 				return utils.NewSyncSet[string]()
 			})
@@ -227,8 +226,8 @@ func (r *roleCache) toPage(total uint32, roles []*authcommon.Role, args types.Ro
 	if args.Limit == 0 {
 		return total, roles
 	}
-	start := args.Limit * args.Offset
-	end := args.Limit * (args.Offset + 1)
+	start := args.Limit * (args.Offset - 1)
+	end := args.Limit * args.Offset
 	if start > total {
 		return total, nil
 	}
@@ -240,11 +239,7 @@ func (r *roleCache) toPage(total uint32, roles []*authcommon.Role, args types.Ro
 
 // GetPrincipalRoles implements api.RoleCache.
 func (r *roleCache) GetPrincipalRoles(p authcommon.Principal) []*authcommon.Role {
-	roleContainers, ok := r.principalRoles[p.PrincipalType]
-	if !ok {
-		return nil
-	}
-	containers, ok := roleContainers.Load(p.PrincipalID)
+	containers, ok := r.principalRoles[p.PrincipalType].Load(p.PrincipalID)
 	if !ok {
 		return nil
 	}

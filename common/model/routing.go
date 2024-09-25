@@ -44,8 +44,6 @@ const (
 const (
 	// V2RuleIDKey v2 版本的规则路由 ID
 	V2RuleIDKey = "__routing_v2_id__"
-	// V2RuleIDPriority v2 版本的规则路由优先级
-	V2RuleIDPriority = "__routing_v2_priority__"
 	// V1RuleIDKey v1 版本的路由规则 ID
 	V1RuleIDKey = "__routing_v1_id__"
 	// V1RuleRouteIndexKey v1 版本 route 规则在自己 route 链中的 index 信息
@@ -118,7 +116,7 @@ func (r *ExtendRouterConfig) ToApi() (*apitraffic.RouteRule, error) {
 	)
 
 	switch r.GetRoutingPolicy() {
-	case apitraffic.RoutingPolicy_NearbyPolicy:
+	case apitraffic.RoutingPolicy_RulePolicy:
 		anyValue, err = ptypes.MarshalAny(r.NearbyRouting)
 		if err != nil {
 			return nil, err
@@ -148,8 +146,6 @@ func (r *ExtendRouterConfig) ToApi() (*apitraffic.RouteRule, error) {
 		Etime:         commontime.Time2String(r.EnableTime),
 		Priority:      r.Priority,
 		Description:   r.Description,
-		Editable:      true,
-		Deleteable:    true,
 	}
 	if r.EnableTime.Year() > 2000 {
 		rule.Etime = commontime.Time2String(r.EnableTime)
@@ -194,8 +190,6 @@ type RouterConfig struct {
 	ModifyTime time.Time `json:"mtime"`
 	// enabletime The last time the rules enabled
 	EnableTime time.Time `json:"etime"`
-	// Metadata.
-	Metadata map[string]string `json:"metadata"`
 }
 
 // GetRoutingPolicy Query routing rules type
@@ -311,7 +305,6 @@ func (r *RouterConfig) ParseRouteRuleFromAPI(routing *apitraffic.RouteRule) erro
 	r.Policy = routing.GetRoutingPolicy().String()
 	r.Priority = routing.Priority
 	r.Description = routing.Description
-	r.Metadata = routing.Metadata
 
 	// Priority range range [0, 10]
 	if r.Priority > 10 {
@@ -385,21 +378,20 @@ func parseSubRouteRule(ruleRouting *apitraffic.RuleRoutingConfig) *RuleRoutingCo
 
 	for i := range ruleRouting.Rules {
 		item := ruleRouting.Rules[i]
-		if len(item.Sources) != 0 {
-			source := item.Sources[0]
-			wrapper.Caller = ServiceKey{
-				Namespace: source.Namespace,
-				Name:      source.Service,
-			}
+		source := item.Sources[0]
+		destination := item.Destinations[0]
+
+		wrapper.Caller = ServiceKey{
+			Namespace: source.Namespace,
+			Name:      source.Service,
 		}
-		if len(item.Destinations) != 0 {
-			destination := item.Destinations[0]
-			wrapper.Callee = ServiceKey{
-				Namespace: destination.Namespace,
-				Name:      destination.Service,
-			}
+		wrapper.Callee = ServiceKey{
+			Namespace: destination.Namespace,
+			Name:      destination.Service,
 		}
+		break
 	}
+
 	return wrapper
 }
 
@@ -611,15 +603,7 @@ func CompareRoutingV2(a, b *ExtendRouterConfig) bool {
 	if a.Priority != b.Priority {
 		return a.Priority < b.Priority
 	}
-	// 如果优先级相同，则比较规则 ID
-	return a.ID < b.ID
-}
-
-// CompareRoutingV1 Compare the priority of two routing.
-func CompareRoutingV1(a, b *apitraffic.Route) bool {
-	ap := a.ExtendInfo[V2RuleIDPriority]
-	bp := b.ExtendInfo[V2RuleIDPriority]
-	return ap < bp
+	return a.CreateTime.Before(b.CreateTime)
 }
 
 // ConvertRoutingV1ToExtendV2 The routing rules of the V1 version are converted to V2 version for storage
@@ -771,8 +755,7 @@ func BuildInBoundsRoute(item *ExtendRouterConfig) []*apitraffic.Route {
 			Sources:      v1sources,
 			Destinations: v1destinations,
 			ExtendInfo: map[string]string{
-				V2RuleIDKey:      item.ID,
-				V2RuleIDPriority: fmt.Sprintf("%04d", item.Priority),
+				V2RuleIDKey: item.ID,
 			},
 		})
 	}

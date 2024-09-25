@@ -110,7 +110,6 @@ func newCacheManager(ctx context.Context, cacheOpt *Config, storage store.Store)
 	mgr.RegisterCacher(types.CacheRole, cacheauth.NewRoleCache(storage, mgr))
 	// 北极星SDK Client
 	mgr.RegisterCacher(types.CacheClient, cacheclient.NewClientCache(storage, mgr))
-	// 灰度规则
 	mgr.RegisterCacher(types.CacheGray, cachegray.NewGrayCache(storage, mgr))
 
 	if len(mgr.caches) != int(types.CacheLast) {

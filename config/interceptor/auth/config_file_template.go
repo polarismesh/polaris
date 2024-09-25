@@ -28,10 +28,10 @@ import (
 )
 
 // GetAllConfigFileTemplates get all config file templates
-func (s *Server) GetAllConfigFileTemplates(ctx context.Context) *apiconfig.ConfigBatchQueryResponse {
+func (s *ServerAuthability) GetAllConfigFileTemplates(ctx context.Context) *apiconfig.ConfigBatchQueryResponse {
 	authCtx := s.collectConfigFileTemplateAuthContext(ctx,
 		[]*apiconfig.ConfigFileTemplate{}, auth.Read, auth.DescribeAllConfigFileTemplates)
-	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigFileBatchQueryResponseWithMessage(auth.ConvertToErrCode(err), err.Error())
 	}
 
@@ -41,10 +41,10 @@ func (s *Server) GetAllConfigFileTemplates(ctx context.Context) *apiconfig.Confi
 }
 
 // GetConfigFileTemplate get config file template
-func (s *Server) GetConfigFileTemplate(ctx context.Context, name string) *apiconfig.ConfigResponse {
+func (s *ServerAuthability) GetConfigFileTemplate(ctx context.Context, name string) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigFileTemplateAuthContext(ctx,
 		[]*apiconfig.ConfigFileTemplate{}, auth.Read, auth.DescribeConfigFileTemplate)
-	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
 	}
 
@@ -54,12 +54,12 @@ func (s *Server) GetConfigFileTemplate(ctx context.Context, name string) *apicon
 }
 
 // CreateConfigFileTemplate create config file template
-func (s *Server) CreateConfigFileTemplate(ctx context.Context,
+func (s *ServerAuthability) CreateConfigFileTemplate(ctx context.Context,
 	template *apiconfig.ConfigFileTemplate) *apiconfig.ConfigResponse {
 
 	authCtx := s.collectConfigFileTemplateAuthContext(ctx,
 		[]*apiconfig.ConfigFileTemplate{template}, auth.Create, auth.CreateConfigFileTemplate)
-	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
 	}
 

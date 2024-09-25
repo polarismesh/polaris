@@ -57,7 +57,6 @@ func createTestRateLimit(id string, createId bool) *model.RateLimit {
 		CreateTime: time.Now(),
 		ModifyTime: time.Now(),
 		EnableTime: time.Now(),
-		Metadata:   map[string]string{},
 	}
 }
 
@@ -78,7 +77,7 @@ func Test_rateLimitStore_CreateRateLimit(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		tN := time.Time{}
+		tN := time.Now()
 		tVal := testVal
 		tVal.ModifyTime = tN
 		tVal.CreateTime = tN
@@ -240,7 +239,7 @@ func Test_rateLimitStore_GetExtendRateLimits(t *testing.T) {
 			got1Limits = append(got1Limits, got1[i].RateLimit)
 		}
 
-		tN := time.Time{}
+		tN := time.Now()
 
 		sort.Slice(got1, func(i, j int) bool {
 			got1Limits[i].CreateTime = tN

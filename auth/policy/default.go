@@ -29,7 +29,7 @@ import (
 type ServerProxyFactory func(svr *Server, pre auth.StrategyServer) (auth.StrategyServer, error)
 
 var (
-	// serverProxyFactories auth.StrategyServer API 代理工厂
+	// serverProxyFactories auth.UserServer API 代理工厂
 	serverProxyFactories = map[string]ServerProxyFactory{}
 )
 

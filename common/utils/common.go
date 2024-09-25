@@ -87,9 +87,6 @@ const (
 	MaxDbCircuitbreakerOwner      = 1024
 	MaxDbCircuitbreakerVersion    = 32
 
-	// ratelimit表
-	MaxDbRateLimitName = MaxRuleName
-
 	MaxRuleName = 64
 
 	MaxPlatformIDLength     = 32

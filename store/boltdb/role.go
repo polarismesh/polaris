@@ -21,13 +21,12 @@ import (
 	"encoding/json"
 	"time"
 
-	bolt "go.etcd.io/bbolt"
-	"go.uber.org/zap"
-
 	"github.com/polarismesh/polaris/common/model"
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
+	bolt "go.etcd.io/bbolt"
+	"go.uber.org/zap"
 )
 
 var _ store.RoleStore = (*roleStore)(nil)
@@ -110,19 +109,22 @@ func (s *roleStore) UpdateRole(role *authcommon.Role) error {
 }
 
 // DeleteRole Delete a role
-func (s *roleStore) DeleteRole(tx store.Tx, role *authcommon.Role) error {
+func (s *roleStore) DeleteRole(role *authcommon.Role) error {
 	if role.ID == "" {
 		log.Error("[Store][role] delete role missing some params")
 		return ErrBadParam
 	}
-	dbTx := tx.GetDelegateTx().(*bolt.Tx)
 
 	data := newRoleData(role)
-	properties := map[string]interface{}{
-		CommonFieldValid:      false,
-		CommonFieldModifyTime: time.Now(),
-	}
-	if err := updateValue(dbTx, tblRole, data.ID, properties); err != nil {
+
+	err := s.handle.Execute(true, func(tx *bolt.Tx) error {
+		properties := map[string]interface{}{
+			CommonFieldValid:      false,
+			CommonFieldModifyTime: time.Now(),
+		}
+		return updateValue(tx, tblRole, data.ID, properties)
+	})
+	if err != nil {
 		log.Error("[Store][role] delete role failed", zap.String("name", role.Name), zap.Error(err))
 		return store.Error(err)
 	}
@@ -190,20 +192,6 @@ func (s *roleStore) CleanPrincipalRoles(tx store.Tx, p *authcommon.Principal) er
 	return nil
 }
 
-// GetRole get more role for cache update
-func (s *roleStore) GetRole(id string) (*authcommon.Role, error) {
-	ret, err := s.handle.LoadValues(tblRole, []string{id}, &model.RoutingConfig{})
-	if err != nil {
-		log.Errorf("[Store][role] get one role, %v", err)
-		return nil, store.Error(err)
-	}
-
-	for i := range ret {
-		return newRole(ret[i].(*roleData)), nil
-	}
-	return nil, nil
-}
-
 // GetMoreRoles get more role for cache update
 func (s *roleStore) GetMoreRoles(firstUpdate bool, mtime time.Time) ([]*authcommon.Role, error) {
 	fields := []string{CommonFieldModifyTime, CommonFieldValid}
@@ -261,8 +249,8 @@ func newRoleData(r *authcommon.Role) *roleData {
 }
 
 func newRole(r *roleData) *authcommon.Role {
-	users := make([]authcommon.Principal, 0, 32)
-	groups := make([]authcommon.Principal, 0, 32)
+	users := make([]*authcommon.User, 0, 32)
+	groups := make([]*authcommon.UserGroup, 0, 32)
 
 	_ = json.Unmarshal([]byte(r.Users), &users)
 	_ = json.Unmarshal([]byte(r.UserGroups), &groups)

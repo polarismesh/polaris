@@ -28,14 +28,14 @@ import (
 )
 
 // PublishConfigFile 发布配置文件
-func (s *Server) PublishConfigFile(ctx context.Context,
+func (s *ServerAuthability) PublishConfigFile(ctx context.Context,
 	configFileRelease *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
 
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx,
 		[]*apiconfig.ConfigFileRelease{configFileRelease}, auth.Modify, "PublishConfigFile")
 
-	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponse(auth.ConvertToErrCode(err))
+	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewConfigResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -45,14 +45,14 @@ func (s *Server) PublishConfigFile(ctx context.Context,
 }
 
 // GetConfigFileRelease 获取配置文件发布内容
-func (s *Server) GetConfigFileRelease(ctx context.Context,
+func (s *ServerAuthability) GetConfigFileRelease(ctx context.Context,
 	req *apiconfig.ConfigFileRelease) *apiconfig.ConfigResponse {
 
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx,
 		[]*apiconfig.ConfigFileRelease{req}, auth.Read, auth.DescribeConfigFileRelease)
 
-	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponse(auth.ConvertToErrCode(err))
+	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewConfigResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
@@ -60,13 +60,13 @@ func (s *Server) GetConfigFileRelease(ctx context.Context,
 }
 
 // DeleteConfigFileReleases implements ConfigCenterServer.
-func (s *Server) DeleteConfigFileReleases(ctx context.Context,
+func (s *ServerAuthability) DeleteConfigFileReleases(ctx context.Context,
 	reqs []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse {
 
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx, reqs, auth.Delete, auth.DeleteConfigFileReleases)
 
-	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigBatchWriteResponse(auth.ConvertToErrCode(err))
+	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewConfigBatchWriteResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
@@ -74,12 +74,13 @@ func (s *Server) DeleteConfigFileReleases(ctx context.Context,
 }
 
 // GetConfigFileReleaseVersions implements ConfigCenterServer.
-func (s *Server) GetConfigFileReleaseVersions(ctx context.Context,
+func (s *ServerAuthability) GetConfigFileReleaseVersions(ctx context.Context,
 	filters map[string]string) *apiconfig.ConfigBatchQueryResponse {
+
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx, nil, auth.Read, auth.DescribeConfigFileReleaseVersions)
 
-	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigBatchQueryResponse(auth.ConvertToErrCode(err))
+	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewConfigBatchQueryResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
@@ -87,28 +88,27 @@ func (s *Server) GetConfigFileReleaseVersions(ctx context.Context,
 }
 
 // GetConfigFileReleases implements ConfigCenterServer.
-func (s *Server) GetConfigFileReleases(ctx context.Context,
+func (s *ServerAuthability) GetConfigFileReleases(ctx context.Context,
 	filters map[string]string) *apiconfig.ConfigBatchQueryResponse {
 
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx, nil, auth.Read, auth.DescribeConfigFileReleases)
 
-	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigBatchQueryResponse(auth.ConvertToErrCode(err))
+	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewConfigBatchQueryResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
 	return s.nextServer.GetConfigFileReleases(ctx, filters)
 }
 
 // RollbackConfigFileReleases implements ConfigCenterServer.
-func (s *Server) RollbackConfigFileReleases(ctx context.Context,
+func (s *ServerAuthability) RollbackConfigFileReleases(ctx context.Context,
 	reqs []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse {
 
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx, reqs, auth.Modify, auth.RollbackConfigFileReleases)
 
-	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigBatchWriteResponse(auth.ConvertToErrCode(err))
+	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewConfigBatchWriteResponseWithInfo(auth.ConvertToErrCode(err), err.Error())
 	}
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
@@ -116,12 +116,12 @@ func (s *Server) RollbackConfigFileReleases(ctx context.Context,
 }
 
 // UpsertAndReleaseConfigFile .
-func (s *Server) UpsertAndReleaseConfigFile(ctx context.Context,
+func (s *ServerAuthability) UpsertAndReleaseConfigFile(ctx context.Context,
 	req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
 	authCtx := s.collectConfigFilePublishAuthContext(ctx, []*apiconfig.ConfigFilePublishInfo{req},
 		auth.Modify, auth.UpsertAndReleaseConfigFile)
-	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-		return api.NewConfigResponse(auth.ConvertToErrCode(err))
+	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+		return api.NewConfigFileResponse(auth.ConvertToErrCode(err), nil)
 	}
 
 	ctx = authCtx.GetRequestContext()
@@ -130,12 +130,12 @@ func (s *Server) UpsertAndReleaseConfigFile(ctx context.Context,
 	return s.nextServer.UpsertAndReleaseConfigFile(ctx, req)
 }
 
-func (s *Server) StopGrayConfigFileReleases(ctx context.Context,
+func (s *ServerAuthability) StopGrayConfigFileReleases(ctx context.Context,
 	reqs []*apiconfig.ConfigFileRelease) *apiconfig.ConfigBatchWriteResponse {
 
 	authCtx := s.collectConfigFileReleaseAuthContext(ctx, reqs,
 		auth.Modify, auth.StopGrayConfigFileReleases)
-	if _, err := s.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
+	if _, err := s.policyMgr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
 		return api.NewConfigBatchWriteResponse(auth.ConvertToErrCode(err))
 	}
 

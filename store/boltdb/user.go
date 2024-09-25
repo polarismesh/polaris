@@ -90,6 +90,7 @@ func (us *userStore) AddUser(tx store.Tx, user *authcommon.User) error {
 	if owner == "" {
 		owner = user.ID
 	}
+
 	// 添加用户信息
 	if err := saveValue(dbTx, tblUser, user.ID, converToUserStore(user)); err != nil {
 		log.Error("[Store][User] save user fail", zap.Error(err), zap.String("name", user.Name))
@@ -430,15 +431,8 @@ func (us *userStore) getGroupUsers(filters map[string]string, offset uint32, lim
 
 // GetUsersForCache 获取所有用户信息
 func (us *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*authcommon.User, error) {
-	fields := []string{UserFieldModifyTime, UserFieldValid}
-	ret, err := us.handler.LoadValuesByFilter(tblUser, fields, &userForStore{},
+	ret, err := us.handler.LoadValuesByFilter(tblUser, []string{UserFieldModifyTime}, &userForStore{},
 		func(m map[string]interface{}) bool {
-			if firstUpdate {
-				valid, _ := m[UserFieldValid].(bool)
-				if !valid {
-					return false
-				}
-			}
 			mt := m[UserFieldModifyTime].(time.Time)
 			isBefore := mt.Before(mtime)
 			return !isBefore

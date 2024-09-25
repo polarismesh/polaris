@@ -77,8 +77,8 @@ func (n *DiscoverServer) handleUpdate(ctx context.Context, namespace, serviceNam
 	return nil
 }
 
-func (n *DiscoverServer) handleDeregister(ctx context.Context, namespace, svcName string, ins *model.Instance) error {
-	specIns := model.PrepareSpecInstance(namespace, svcName, ins)
+func (n *DiscoverServer) handleDeregister(ctx context.Context, namespace, service string, ins *model.Instance) error {
+	specIns := model.PrepareSpecInstance(namespace, service, ins)
 	resp := n.discoverSvr.DeregisterInstance(ctx, specIns)
 	if apimodel.Code(resp.GetCode().GetValue()) != apimodel.Code_ExecuteSuccess {
 		return &model.NacosError{
@@ -90,19 +90,19 @@ func (n *DiscoverServer) handleDeregister(ctx context.Context, namespace, svcNam
 }
 
 // handleBeat com.alibaba.nacos.naming.core.InstanceOperatorClientImpl#handleBeat
-func (n *DiscoverServer) handleBeat(ctx context.Context, namespace, svcName string,
+func (n *DiscoverServer) handleBeat(ctx context.Context, namespace, service string,
 	clientBeat *model.ClientBeat) (map[string]interface{}, error) {
-	svcName = model.ReplaceNacosService(svcName)
-	svc := n.discoverSvr.Cache().Service().GetServiceByName(svcName, namespace)
+	service = model.ReplaceNacosService(service)
+	svc := n.discoverSvr.Cache().Service().GetServiceByName(service, namespace)
 	if svc == nil {
 		return nil, &model.NacosError{
 			ErrCode: int32(model.ExceptionCode_ServerError),
-			ErrMsg:  "service not found: " + svcName + "@" + namespace,
+			ErrMsg:  "service not found: " + service + "@" + namespace,
 		}
 	}
 
 	resp := n.healthSvr.Report(ctx, &apiservice.Instance{
-		Service:   utils.NewStringValue(model.ReplaceNacosService(svcName)),
+		Service:   utils.NewStringValue(model.ReplaceNacosService(service)),
 		Namespace: utils.NewStringValue(namespace),
 		Host:      utils.NewStringValue(clientBeat.Ip),
 		Port:      utils.NewUInt32Value(uint32(clientBeat.Port)),
@@ -136,7 +136,7 @@ func (n *DiscoverServer) handleBeat(ctx context.Context, namespace, svcName stri
 func (n *DiscoverServer) handleQueryInstances(ctx context.Context, params map[string]string) (interface{}, error) {
 	namespace := params[model.ParamNamespaceID]
 	group := model.GetGroupName(params[model.ParamServiceName])
-	svcName := model.GetServiceName(params[model.ParamServiceName])
+	service := model.GetServiceName(params[model.ParamServiceName])
 	clusters := params["clusters"]
 	clientIP := params["clientIP"]
 	udpPort, _ := strconv.ParseInt(params["udpPort"], 10, 32)
@@ -151,14 +151,14 @@ func (n *DiscoverServer) handleQueryInstances(ctx context.Context, params map[st
 			Port:        int(udpPort),
 			NamespaceId: namespace,
 			Group:       group,
-			Service:     svcName,
+			Service:     service,
 			Cluster:     clusters,
 			Type:        core.UDPCPush,
 		})
 	}
 
 	filterCtx := &core.FilterContext{
-		Service:     core.ToNacosService(n.discoverSvr.Cache(), namespace, svcName, group),
+		Service:     core.ToNacosService(n.discoverSvr.Cache(), namespace, service, group),
 		Clusters:    strings.Split(clusters, ","),
 		EnableOnly:  true,
 		HealthyOnly: healthyOnly,

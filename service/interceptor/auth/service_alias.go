@@ -21,7 +21,6 @@ import (
 	"context"
 
 	"github.com/polarismesh/specification/source/go/api/v1/security"
-	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	cachetypes "github.com/polarismesh/polaris/cache/api"
@@ -96,53 +95,13 @@ func (svr *Server) GetServiceAliases(ctx context.Context,
 	ctx = authCtx.GetRequestContext()
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 
-	ctx = cachetypes.AppendServicePredicate(ctx, func(ctx context.Context, cbr *model.Service) bool {
-		sourceSvc := svr.Cache().Service().GetServiceByID(cbr.Reference)
-		if sourceSvc == nil {
-			return false
-		}
+	cachetypes.AppendServicePredicate(ctx, func(ctx context.Context, cbr *model.Service) bool {
 		return svr.policySvr.GetAuthChecker().ResourcePredicate(authCtx, &authcommon.ResourceEntry{
 			Type:     security.ResourceType_Services,
-			ID:       sourceSvc.ID,
-			Metadata: sourceSvc.Meta,
+			ID:       cbr.ID,
+			Metadata: cbr.Meta,
 		})
 	})
 
-	authCtx.SetRequestContext(ctx)
-
-	resp := svr.nextSvr.GetServiceAliases(ctx, query)
-	for i := range resp.Aliases {
-		item := resp.Aliases[i]
-		sourceSvc := svr.Cache().Service().GetServiceByName(item.GetAlias().GetValue(), item.GetAliasNamespace().GetValue())
-		if sourceSvc == nil {
-			item.Editable = utils.NewBoolValue(false)
-			item.Deleteable = utils.NewBoolValue(false)
-			continue
-		}
-		authCtx.SetAccessResources(map[security.ResourceType][]authcommon.ResourceEntry{
-			security.ResourceType_Services: {
-				{
-					Type:     apisecurity.ResourceType_Services,
-					ID:       sourceSvc.ID,
-					Metadata: sourceSvc.Meta,
-				},
-			},
-		})
-
-		// 检查 write 操作权限
-		authCtx.SetMethod([]authcommon.ServerFunctionName{authcommon.UpdateRateLimitRules, authcommon.EnableRateLimitRules})
-		// 如果检查不通过，设置 editable 为 false
-		if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-			item.Editable = utils.NewBoolValue(false)
-		}
-
-		// 检查 delete 操作权限
-		authCtx.SetMethod([]authcommon.ServerFunctionName{authcommon.DeleteRateLimitRules})
-		// 如果检查不通过，设置 editable 为 false
-		if _, err := svr.policySvr.GetAuthChecker().CheckConsolePermission(authCtx); err != nil {
-			item.Deleteable = utils.NewBoolValue(false)
-		}
-	}
-
-	return resp
+	return svr.nextSvr.GetServiceAliases(ctx, query)
 }

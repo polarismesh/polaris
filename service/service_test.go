@@ -45,7 +45,6 @@ import (
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/store"
 	"github.com/polarismesh/polaris/store/mock"
-	testsuit "github.com/polarismesh/polaris/test/suit"
 )
 
 // 测试新增服务
@@ -1384,7 +1383,7 @@ func TestConcurrencyCreateSameService(t *testing.T) {
 		userMgn, strategyMgn, err := auth.TestInitialize(ctx, &auth.Config{}, mockStore, cacheMgr)
 		assert.NoError(t, err)
 
-		nsSvr, err = testsuit.TestNamespaceInitialize(ctx, &namespace.Config{
+		nsSvr, err = namespace.TestInitialize(ctx, &namespace.Config{
 			AutoCreate: true,
 		}, mockStore, cacheMgr, userMgn, strategyMgn)
 		assert.NoError(t, err)

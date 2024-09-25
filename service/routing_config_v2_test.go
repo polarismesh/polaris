@@ -120,6 +120,250 @@ func TestCreateRoutingConfigV2(t *testing.T) {
 	})
 }
 
+// TestCompatibleRoutingConfigV2AndV1 测试V2版本的路由规则和V1版本的路由规则
+func TestCompatibleRoutingConfigV2AndV1(t *testing.T) {
+
+	svc := &apiservice.Service{
+		Name:      utils.NewStringValue("compatible-routing"),
+		Namespace: utils.NewStringValue("compatible"),
+	}
+
+	initSuitFunc := func(t *testing.T) *DiscoverTestSuit {
+		discoverSuit := &DiscoverTestSuit{}
+		if err := discoverSuit.Initialize(); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			discoverSuit.Destroy()
+		})
+
+		createSvcResp := discoverSuit.DiscoverServer().CreateServices(discoverSuit.DefaultCtx, []*apiservice.Service{svc})
+		if !respSuccess(createSvcResp) {
+			t.Fatalf("error: %s", createSvcResp.GetInfo().GetValue())
+		}
+
+		_ = createSvcResp.Responses[0].GetService()
+		t.Cleanup(func() {
+			discoverSuit.cleanServices([]*apiservice.Service{svc})
+		})
+		return discoverSuit
+	}
+
+	t.Run("V1的存量规则-走V2接口可以查询到，ExtendInfo符合要求", func(t *testing.T) {
+		discoverSuit := initSuitFunc(t)
+		_, _ = discoverSuit.createCommonRoutingConfigV1IntoOldStore(t, svc, 3, 0)
+		t.Cleanup(func() {
+			discoverSuit.cleanCommonRoutingConfig(svc.GetName().GetValue(), svc.GetNamespace().GetValue())
+			discoverSuit.truncateCommonRoutingConfigV2()
+		})
+
+		_ = discoverSuit.CacheMgr().TestUpdate()
+		// 从缓存中查询应该查到 3+3 条 v2 的路由规则
+		out := discoverSuit.DiscoverServer().QueryRoutingConfigsV2(discoverSuit.DefaultCtx, map[string]string{
+			"limit":  "100",
+			"offset": "0",
+		})
+		if !respSuccess(out) {
+			t.Fatalf("error: %+v", out)
+		}
+		assert.Equal(t, int(3), int(out.GetAmount().GetValue()), "query routing size")
+
+		rulesV2, err := unmarshalRoutingV2toAnySlice(out.GetData())
+		assert.NoError(t, err)
+		for i := range rulesV2 {
+			item := rulesV2[i]
+			assert.True(t, item.Enable, "v1 to v2 need default open enable")
+			msg := &apitraffic.RuleRoutingConfig{}
+			err := ptypes.UnmarshalAny(item.GetRoutingConfig(), msg)
+			assert.NoError(t, err)
+			assert.True(t, len(msg.GetSources()) == 0, "RuleRoutingConfig.Sources len != 0")
+			assert.True(t, len(msg.GetDestinations()) == 0, "RuleRoutingConfig.Destinations len != 0")
+			assert.True(t, len(msg.GetRules()) != 0, "RuleRoutingConfig.Rules len == 0")
+		}
+	})
+
+	t.Run("V1的存量规则-走v2规则的启用可正常迁移v1规则", func(t *testing.T) {
+		discoverSuit := initSuitFunc(t)
+		_, _ = discoverSuit.createCommonRoutingConfigV1IntoOldStore(t, svc, 3, 0)
+		t.Cleanup(func() {
+			discoverSuit.cleanCommonRoutingConfig(svc.GetName().GetValue(), svc.GetNamespace().GetValue())
+			discoverSuit.truncateCommonRoutingConfigV2()
+		})
+
+		_ = discoverSuit.CacheMgr().TestUpdate()
+		// 从缓存中查询应该查到 3 条 v2 的路由规则
+		out := discoverSuit.DiscoverServer().QueryRoutingConfigsV2(discoverSuit.DefaultCtx, map[string]string{
+			"limit":  "100",
+			"offset": "0",
+		})
+		if !respSuccess(out) {
+			t.Fatalf("error: %+v", out)
+		}
+		assert.Equal(t, int(3), int(out.GetAmount().GetValue()), "query routing size")
+		rulesV2, err := unmarshalRoutingV2toAnySlice(out.GetData())
+		assert.NoError(t, err)
+
+		// 选择其中一条规则进行enable操作
+		v2resp := discoverSuit.DiscoverServer().EnableRoutings(discoverSuit.DefaultCtx, []*apitraffic.RouteRule{rulesV2[0]})
+		if !respSuccess(v2resp) {
+			t.Fatalf("error: %+v", v2resp)
+		}
+		// 直接查询存储无法查询到 v1 的路由规则
+		total, routingsV1, err := discoverSuit.Storage.GetRoutingConfigs(map[string]string{}, 0, 100)
+		assert.NoError(t, err, err)
+		assert.Equal(t, uint32(0), total, "v1 routing must delete and transfer to v1")
+		assert.Equal(t, 0, len(routingsV1), "v1 routing ret len need zero")
+
+		// 从缓存中查询应该查到 3 条 v2 的路由规则
+		out = discoverSuit.DiscoverServer().QueryRoutingConfigsV2(discoverSuit.DefaultCtx, map[string]string{
+			"limit":  "100",
+			"offset": "0",
+		})
+		if !respSuccess(out) {
+			t.Fatalf("error: %+v", out)
+		}
+		assert.Equal(t, int(3), int(out.GetAmount().GetValue()), "query routing size")
+		rulesV2, err = unmarshalRoutingV2toAnySlice(out.GetData())
+		assert.NoError(t, err)
+		for i := range rulesV2 {
+			item := rulesV2[i]
+			assert.True(t, item.Enable, "v1 to v2 need default open enable")
+			msg := &apitraffic.RuleRoutingConfig{}
+			err := ptypes.UnmarshalAny(item.GetRoutingConfig(), msg)
+			assert.NoError(t, err)
+			assert.True(t, len(msg.GetSources()) == 0, "RuleRoutingConfig.Sources len != 0")
+			assert.True(t, len(msg.GetDestinations()) == 0, "RuleRoutingConfig.Destinations len != 0")
+			assert.True(t, len(msg.GetRules()) != 0, "RuleRoutingConfig.Rules len == 0")
+		}
+	})
+
+	t.Run("V1的存量规则-走v2规则的删除可正常迁移v1规则", func(t *testing.T) {
+		discoverSuit := initSuitFunc(t)
+		_, _ = discoverSuit.createCommonRoutingConfigV1IntoOldStore(t, svc, 3, 0)
+		t.Cleanup(func() {
+			discoverSuit.cleanCommonRoutingConfig(svc.GetName().GetValue(), svc.GetNamespace().GetValue())
+			discoverSuit.truncateCommonRoutingConfigV2()
+		})
+
+		_ = discoverSuit.CacheMgr().TestUpdate()
+		// 从缓存中查询应该查到 3+3 条 v2 的路由规则
+		out := discoverSuit.DiscoverServer().QueryRoutingConfigsV2(discoverSuit.DefaultCtx, map[string]string{
+			"limit":  "100",
+			"offset": "0",
+		})
+		if !respSuccess(out) {
+			t.Fatalf("error: %+v", out)
+		}
+		assert.Equal(t, int(3), int(out.GetAmount().GetValue()), "query routing size")
+
+		rulesV2, err := unmarshalRoutingV2toAnySlice(out.GetData())
+		assert.NoError(t, err)
+
+		// 选择其中一条规则进行删除操作
+		v2resp := discoverSuit.DiscoverServer().DeleteRoutingConfigsV2(discoverSuit.DefaultCtx, []*apitraffic.RouteRule{rulesV2[0]})
+		if !respSuccess(v2resp) {
+			t.Fatalf("error: %+v", v2resp)
+		}
+		// 直接查询存储无法查询到 v1 的路由规则
+		total, routingsV1, err := discoverSuit.Storage.GetRoutingConfigs(map[string]string{}, 0, 100)
+		assert.NoError(t, err, err)
+		assert.Equal(t, uint32(0), total, "v1 routing must delete and transfer to v1")
+		assert.Equal(t, 0, len(routingsV1), "v1 routing ret len need zero")
+
+		// 查询对应的 v2 规则也查询不到
+		ruleV2, err := discoverSuit.Storage.GetRoutingConfigV2WithID(rulesV2[0].Id)
+		assert.NoError(t, err, err)
+		assert.Nil(t, ruleV2, "v2 routing must delete")
+
+		_ = discoverSuit.CacheMgr().TestUpdate()
+		// 从缓存中查询应该查到 2 条 v2 的路由规则
+		out = discoverSuit.DiscoverServer().QueryRoutingConfigsV2(discoverSuit.DefaultCtx, map[string]string{
+			"limit":  "100",
+			"offset": "0",
+		})
+		if !respSuccess(out) {
+			t.Fatalf("error: %+v", out)
+		}
+		assert.Equal(t, int(2), int(out.GetAmount().GetValue()), "query routing size")
+		rulesV2, err = unmarshalRoutingV2toAnySlice(out.GetData())
+		assert.NoError(t, err)
+		for i := range rulesV2 {
+			item := rulesV2[i]
+			assert.True(t, item.Enable, "v1 to v2 need default open enable")
+			msg := &apitraffic.RuleRoutingConfig{}
+			err := ptypes.UnmarshalAny(item.GetRoutingConfig(), msg)
+			assert.NoError(t, err)
+			assert.True(t, len(msg.GetSources()) == 0, "RuleRoutingConfig.Sources len != 0")
+			assert.True(t, len(msg.GetDestinations()) == 0, "RuleRoutingConfig.Destinations len != 0")
+			assert.True(t, len(msg.GetRules()) != 0, "RuleRoutingConfig.Rules len == 0")
+		}
+	})
+
+	t.Run("V1的存量规则-走v2规则的编辑可正常迁移v1规则", func(t *testing.T) {
+		discoverSuit := initSuitFunc(t)
+		_, _ = discoverSuit.createCommonRoutingConfigV1IntoOldStore(t, svc, 3, 0)
+		t.Cleanup(func() {
+			discoverSuit.cleanCommonRoutingConfig(svc.GetName().GetValue(), svc.GetNamespace().GetValue())
+			discoverSuit.truncateCommonRoutingConfigV2()
+		})
+
+		_ = discoverSuit.CacheMgr().TestUpdate()
+		// 从缓存中查询应该查到 3+3 条 v2 的路由规则
+		out := discoverSuit.DiscoverServer().QueryRoutingConfigsV2(discoverSuit.DefaultCtx, map[string]string{
+			"limit":  "100",
+			"offset": "0",
+		})
+		if !respSuccess(out) {
+			t.Fatalf("error: %+v", out)
+		}
+		assert.Equal(t, int(3), int(out.GetAmount().GetValue()), "query routing size")
+
+		rulesV2, err := unmarshalRoutingV2toAnySlice(out.GetData())
+		assert.NoError(t, err)
+
+		// 需要将 v2 规则的 extendInfo 规则清理掉
+		// 选择其中一条规则进行enable操作
+		rulesV2[0].Description = "update v2 rule and transfer v1 to v2"
+		v2resp := discoverSuit.DiscoverServer().UpdateRoutingConfigsV2(discoverSuit.DefaultCtx, []*apitraffic.RouteRule{rulesV2[0]})
+		if !respSuccess(v2resp) {
+			t.Fatalf("error: %+v", v2resp)
+		}
+		// 直接查询存储无法查询到 v1 的路由规则
+		total, routingsV1, err := discoverSuit.Storage.GetRoutingConfigs(map[string]string{}, 0, 100)
+		assert.NoError(t, err, err)
+		assert.Equal(t, uint32(0), total, "v1 routing must delete and transfer to v1")
+		assert.Equal(t, 0, len(routingsV1), "v1 routing ret len need zero")
+
+		// 查询对应的 v2 规则能够查询到
+		ruleV2, err := discoverSuit.Storage.GetRoutingConfigV2WithID(rulesV2[0].Id)
+		assert.NoError(t, err, err)
+		assert.NotNil(t, ruleV2, "v2 routing must exist")
+		assert.Equal(t, rulesV2[0].Description, ruleV2.Description)
+
+		_ = discoverSuit.CacheMgr().TestUpdate()
+		out = discoverSuit.DiscoverServer().QueryRoutingConfigsV2(discoverSuit.DefaultCtx, map[string]string{
+			"limit":  "100",
+			"offset": "0",
+		})
+		if !respSuccess(out) {
+			t.Fatalf("error: %+v", out)
+		}
+		assert.Equal(t, int(3), int(out.GetAmount().GetValue()), "query routing size")
+		rulesV2, err = unmarshalRoutingV2toAnySlice(out.GetData())
+		assert.NoError(t, err)
+		for i := range rulesV2 {
+			item := rulesV2[i]
+			assert.True(t, item.Enable, "v1 to v2 need default open enable")
+			msg := &apitraffic.RuleRoutingConfig{}
+			err := ptypes.UnmarshalAny(item.GetRoutingConfig(), msg)
+			assert.NoError(t, err)
+			assert.True(t, len(msg.GetSources()) == 0, "RuleRoutingConfig.Sources len != 0")
+			assert.True(t, len(msg.GetDestinations()) == 0, "RuleRoutingConfig.Destinations len != 0")
+			assert.True(t, len(msg.GetRules()) != 0, "RuleRoutingConfig.Rules len == 0")
+		}
+	})
+}
+
 // TestDeleteRoutingConfigV2 测试删除路由配置
 func TestDeleteRoutingConfigV2(t *testing.T) {
 

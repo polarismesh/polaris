@@ -24,8 +24,6 @@ import (
 	"sort"
 	"time"
 
-	"go.uber.org/zap"
-
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -103,7 +101,7 @@ func (n *namespaceStore) AddNamespace(namespace *model.Namespace) error {
 
 func (n *namespaceStore) cleanNamespace(name string) error {
 	if err := n.handler.DeleteValues(tblNameNamespace, []string{name}); err != nil {
-		log.Error("[Store][boltdb] delete invalid namespace error", zap.Error(err))
+		log.Errorf("[Store][boltdb] delete invalid namespace error, %+v", err)
 		return err
 	}
 
@@ -120,12 +118,7 @@ func (n *namespaceStore) UpdateNamespace(namespace *model.Namespace) error {
 	properties["Comment"] = namespace.Comment
 	properties["ModifyTime"] = time.Now()
 	properties["ServiceExportTo"] = utils.MustJson(namespace.ServiceExportTo)
-	properties["Metadata"] = utils.MustJson(namespace.Metadata)
-	if err := n.handler.UpdateValue(tblNameNamespace, namespace.Name, properties); err != nil {
-		log.Error("[Store][boltdb] update namespace error", zap.Error(err))
-		return err
-	}
-	return nil
+	return n.handler.UpdateValue(tblNameNamespace, namespace.Name, properties)
 }
 
 // UpdateNamespaceToken update the token of a namespace
@@ -151,9 +144,6 @@ func (n *namespaceStore) GetNamespace(name string) (*model.Namespace, error) {
 		return nil, nil
 	}
 	ns := nsValue.(*Namespace)
-	if !ns.Valid {
-		return nil, nil
-	}
 	return n.toModel(ns), nil
 }
 
@@ -253,7 +243,7 @@ func (n *namespaceStore) GetMoreNamespaces(mtime time.Time) ([]*model.Namespace,
 			if !ok {
 				return false
 			}
-			return !mTimeValue.(time.Time).Before(mtime)
+			return mTimeValue.(time.Time).After(mtime)
 		})
 	if err != nil {
 		return nil, err
@@ -266,14 +256,8 @@ func (n *namespaceStore) toModel(data *Namespace) *model.Namespace {
 }
 
 func toModelNamespace(data *Namespace) *model.Namespace {
-	if !data.Valid {
-		return nil
-	}
 	export := make(map[string]struct{})
 	_ = json.Unmarshal([]byte(data.ServiceExportTo), &export)
-
-	metadata := make(map[string]string)
-	_ = json.Unmarshal([]byte(data.Metadata), &metadata)
 	return &model.Namespace{
 		Name:            data.Name,
 		Comment:         data.Comment,
@@ -283,7 +267,6 @@ func toModelNamespace(data *Namespace) *model.Namespace {
 		CreateTime:      data.CreateTime,
 		ModifyTime:      data.ModifyTime,
 		Valid:           data.Valid,
-		Metadata:        metadata,
 	}
 }
 
@@ -297,7 +280,6 @@ func (n *namespaceStore) toStore(data *model.Namespace) *Namespace {
 		CreateTime:      data.CreateTime,
 		ModifyTime:      data.ModifyTime,
 		Valid:           data.Valid,
-		Metadata:        utils.MustJson(data.Metadata),
 	}
 }
 
@@ -312,5 +294,4 @@ type Namespace struct {
 	ServiceExportTo string
 	CreateTime      time.Time
 	ModifyTime      time.Time
-	Metadata        string
 }

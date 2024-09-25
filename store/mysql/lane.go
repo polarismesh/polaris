@@ -200,9 +200,9 @@ SELECT id, name, rule, description, revision, flag, UNIX_TIMESTAMP(ctime), UNIX_
 	for k, v := range filter {
 		switch k {
 		case "name":
-			if pv, ok := utils.ParseWildName(v); ok {
+			if v, ok := utils.ParseWildName(v); ok {
 				conditions = append(conditions, "name = ?")
-				args = append(args, pv)
+				args = append(args, v)
 			} else {
 				conditions = append(conditions, "name LIKE ?")
 				args = append(args, "%"+v+"%")
@@ -295,8 +295,8 @@ func (l *laneStore) getLaneRulesByGroup(tx *BaseTx, names []string) (map[string]
 	}
 
 	querySql := `
-SELECT id, name, group_name, rule, revision, priority, description, enable, flag, UNIX_TIMESTAMP(ctime), 
-UNIX_TIMESTAMP(etime), UNIX_TIMESTAMP(mtime) FROM lane_rule WHERE flag = 0 AND group_name IN (%s)
+SELECT id, name, group_name, rule, revision, priority, description, enable, flag, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(etime), UNIX_TIMESTAMP(mtime)
+	FROM lane_rule WHERE flag = 0 AND group_name IN (%s)
 `
 	querySql = fmt.Sprintf(querySql, placeholders(len(names)))
 
