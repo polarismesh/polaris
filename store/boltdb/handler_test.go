@@ -27,10 +27,8 @@ import (
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
-	"gopkg.in/yaml.v3"
 
 	"github.com/polarismesh/polaris/common/model"
-	authcommon "github.com/polarismesh/polaris/common/model/auth"
 )
 
 func CreateTableDBHandlerAndRun(t *testing.T, tableName string, tf func(t *testing.T, handler BoltHandler)) {
@@ -431,11 +429,4 @@ func TestBoltHandler_UpdateValue(t *testing.T) {
 		t.Fatalf("after comment not match")
 	}
 
-}
-
-func Test_PrintBoltInitData(t *testing.T) {
-	d, _ := yaml.Marshal(&authcommon.User{
-		TokenEnable: true,
-	})
-	t.Log(string(d))
 }

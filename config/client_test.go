@@ -792,10 +792,8 @@ func TestServer_GetConfigGroupsWithCache(t *testing.T) {
 	}
 	t.Cleanup(func() {
 		for k := range mockFiles {
-			testSuit.NamespaceServer().DeleteNamespaces(testSuit.DefaultCtx, []*apimodel.Namespace{
-				&apimodel.Namespace{
-					Name: wrapperspb.String(k),
-				},
+			testSuit.NamespaceServer().DeleteNamespace(testSuit.DefaultCtx, &apimodel.Namespace{
+				Name: wrapperspb.String(k),
 			})
 			items := mockFiles[k]
 			for _, item := range items {

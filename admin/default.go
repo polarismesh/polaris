@@ -20,9 +20,9 @@ package admin
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/polarismesh/polaris/admin/job"
+	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/healthcheck"
@@ -30,21 +30,10 @@ import (
 )
 
 var (
-	server               AdminOperateServer
-	maintainServer       = &Server{}
-	finishInit           bool
-	serverProxyFactories = map[string]ServerProxyFactory{}
+	server         AdminOperateServer
+	maintainServer = &Server{}
+	finishInit     bool
 )
-
-type ServerProxyFactory func(ctx context.Context, pre AdminOperateServer) (AdminOperateServer, error)
-
-func RegisterServerProxy(name string, factor ServerProxyFactory) error {
-	if _, ok := serverProxyFactories[name]; ok {
-		return fmt.Errorf("duplicate ServerProxyFactory, name(%s)", name)
-	}
-	serverProxyFactories[name] = factor
-	return nil
-}
 
 // Initialize 初始化
 func Initialize(ctx context.Context, cfg *Config, namingService service.DiscoverServer,
@@ -54,49 +43,40 @@ func Initialize(ctx context.Context, cfg *Config, namingService service.Discover
 		return nil
 	}
 
-	proxySvr, actualSvr, err := InitServer(ctx, cfg, namingService, healthCheckServer, cacheMgn, storage)
+	err := initialize(ctx, cfg, namingService, healthCheckServer, cacheMgn, storage)
 	if err != nil {
 		return err
 	}
 
-	server = proxySvr
-	maintainServer = actualSvr
 	finishInit = true
 	return nil
 }
 
-func InitServer(ctx context.Context, cfg *Config, namingService service.DiscoverServer,
-	healthCheckServer *healthcheck.Server, cacheMgn *cache.CacheManager, storage store.Store) (AdminOperateServer, *Server, error) {
+func initialize(_ context.Context, cfg *Config, namingService service.DiscoverServer,
+	healthCheckServer *healthcheck.Server, cacheMgn *cache.CacheManager, storage store.Store) error {
 
-	actualSvr := new(Server)
+	userMgn, err := auth.GetUserServer()
+	if err != nil {
+		return err
+	}
 
-	actualSvr.namingServer = namingService
-	actualSvr.healthCheckServer = healthCheckServer
-	actualSvr.cacheMgn = cacheMgn
-	actualSvr.storage = storage
+	strategyMgn, err := auth.GetStrategyServer()
+	if err != nil {
+		return err
+	}
+
+	maintainServer.namingServer = namingService
+	maintainServer.healthCheckServer = healthCheckServer
+	maintainServer.cacheMgn = cacheMgn
+	maintainServer.storage = storage
 
 	maintainJobs := job.NewMaintainJobs(namingService, cacheMgn, storage)
 	if err := maintainJobs.StartMaintianJobs(cfg.Jobs); err != nil {
-		return nil, nil, err
+		return err
 	}
 
-	var proxySvr AdminOperateServer
-	proxySvr = actualSvr
-	order := GetChainOrder()
-	for i := range order {
-		factory, exist := serverProxyFactories[order[i]]
-		if !exist {
-			return nil, nil, fmt.Errorf("name(%s) not exist in serverProxyFactories", order[i])
-		}
-
-		afterSvr, err := factory(ctx, proxySvr)
-		if err != nil {
-			return nil, nil, err
-		}
-		proxySvr = afterSvr
-	}
-
-	return proxySvr, actualSvr, nil
+	server = newServerAuthAbility(maintainServer, userMgn, strategyMgn)
+	return nil
 }
 
 // GetServer 获取已经初始化好的Server

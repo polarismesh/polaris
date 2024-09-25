@@ -492,8 +492,6 @@ func ToConfigGroupAPI(group *ConfigFileGroup) *config_manage.ConfigFileGroup {
 		Business:   utils.NewStringValue(group.Business),
 		Department: utils.NewStringValue(group.Department),
 		Metadata:   group.Metadata,
-		Editable:   utils.NewBoolValue(true),
-		Deleteable: utils.NewBoolValue(true),
 	}
 }
 

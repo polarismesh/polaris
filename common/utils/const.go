@@ -73,6 +73,6 @@ const (
 	ContextIsFromSystem = StringContext("from-system")
 	// ContextOperator operator info
 	ContextOperator = StringContext("operator")
-	// ContextRequestHeaders request headers, save value type is map[string][]string
+	// ContextRequestHeaders request headers
 	ContextRequestHeaders = StringContext("request-headers")
 )

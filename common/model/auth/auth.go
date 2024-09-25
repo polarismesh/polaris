@@ -371,8 +371,6 @@ type StrategyDetail struct {
 	Comment string
 	Default bool
 	Owner   string
-	// 来源
-	Source string
 	// CalleeMethods 允许访问的服务端接口
 	CalleeMethods []string
 	Resources     []StrategyResource
@@ -383,61 +381,6 @@ type StrategyDetail struct {
 	Metadata      map[string]string
 	CreateTime    time.Time
 	ModifyTime    time.Time
-}
-
-func (s *StrategyDetail) GetAction() apisecurity.AuthAction {
-	if s.Action == apisecurity.AuthAction_ALLOW.String() {
-		return apisecurity.AuthAction_ALLOW
-	}
-	if s.Action == apisecurity.AuthAction_READ_WRITE.String() {
-		return apisecurity.AuthAction_ALLOW
-	}
-	return apisecurity.AuthAction_DENY
-}
-
-func (s *StrategyDetail) FromSpec(req *apisecurity.AuthStrategy) {
-	s.ID = utils.NewUUID()
-	s.Name = req.Name.GetValue()
-	s.Action = req.GetAction().String()
-	s.Comment = req.Comment.GetValue()
-	s.Default = false
-	s.Owner = req.Owner.GetValue()
-	s.Valid = true
-	s.Source = req.GetSource().GetValue()
-	s.Revision = utils.NewUUID()
-	s.CreateTime = time.Now()
-	s.ModifyTime = time.Now()
-	s.CalleeMethods = req.GetFunctions()
-	s.Conditions = make([]Condition, 0, len(req.GetResourceLabels()))
-	for i := range req.GetResourceLabels() {
-		item := req.GetResourceLabels()[i]
-		s.Conditions = append(s.Conditions, Condition{
-			Key:         item.Key,
-			Value:       item.Value,
-			CompareFunc: item.CompareType,
-		})
-	}
-
-}
-
-func (s *StrategyDetail) IsMatchAction(a string) bool {
-	saveAction := s.Action
-	if isAllowAction(saveAction) {
-		saveAction = apisecurity.AuthAction_ALLOW.String()
-	}
-	if isAllowAction(a) {
-		a = apisecurity.AuthAction_ALLOW.String()
-	}
-	return saveAction == a
-}
-
-func isAllowAction(s string) bool {
-	switch s {
-	case apisecurity.AuthAction_ALLOW.String(), apisecurity.AuthAction_READ_WRITE.String():
-		return true
-	default:
-		return false
-	}
 }
 
 func (s *StrategyDetail) IsDeny() bool {
@@ -490,8 +433,6 @@ type ModifyStrategyDetail struct {
 	Action           string
 	Comment          string
 	Metadata         map[string]string
-	CalleeMethods    []string
-	Conditions       []Condition
 	AddPrincipals    []Principal
 	RemovePrincipals []Principal
 	AddResources     []StrategyResource
@@ -520,31 +461,6 @@ type StrategyResource struct {
 	ResID      string
 }
 
-func (s StrategyResource) Key() string {
-	return strconv.Itoa(int(s.ResType)) + "/" + s.ResID
-}
-
-func forUserPrincipal(id string) Principal {
-	return Principal{
-		PrincipalID:   id,
-		PrincipalType: PrincipalUser,
-	}
-}
-
-func forUserGroupPrincipal(id string) Principal {
-	return Principal{
-		PrincipalID:   id,
-		PrincipalType: PrincipalGroup,
-	}
-}
-
-func forRolePrincipal(id string) Principal {
-	return Principal{
-		PrincipalID:   id,
-		PrincipalType: PrincipalRole,
-	}
-}
-
 // Principal 策略相关人
 type Principal struct {
 	StrategyID    string
@@ -552,16 +468,6 @@ type Principal struct {
 	Owner         string
 	PrincipalID   string
 	PrincipalType PrincipalType
-	Extend        map[string]string
-}
-
-func NewAnonymousPrincipal() Principal {
-	return Principal{
-		Name:          "__anonymous__",
-		PrincipalType: PrincipalUser,
-		PrincipalID:   "__anonymous__",
-		Extend:        map[string]string{},
-	}
 }
 
 func (p Principal) String() string {
@@ -589,60 +495,6 @@ type Role struct {
 	Comment    string
 	CreateTime time.Time
 	ModifyTime time.Time
-	Users      []Principal
-	UserGroups []Principal
-}
-
-func (r *Role) FromSpec(d *apisecurity.Role) {
-	r.Name = d.Name
-	r.Owner = d.Owner
-	r.Source = d.Source
-	r.Metadata = d.Metadata
-
-	if len(d.Users) != 0 {
-		users := make([]Principal, 0, len(d.Users))
-		for i := range d.Users {
-			users = append(users, Principal{PrincipalID: d.Users[i].GetId().GetValue()})
-		}
-		r.Users = users
-	}
-
-	if len(d.UserGroups) != 0 {
-		groups := make([]Principal, 0, len(d.UserGroups))
-		for i := range d.UserGroups {
-			groups = append(groups, Principal{PrincipalID: d.UserGroups[i].GetId().GetValue()})
-		}
-		r.UserGroups = groups
-	}
-}
-
-func (r *Role) ToSpec() *apisecurity.Role {
-	d := &apisecurity.Role{}
-
-	d.Name = r.Name
-	d.Owner = r.Owner
-	d.Source = r.Source
-	d.Metadata = r.Metadata
-
-	if len(r.Users) != 0 {
-		users := make([]*apisecurity.User, 0, len(r.Users))
-		for i := range r.Users {
-			users = append(users, &apisecurity.User{
-				Id: utils.NewStringValue(r.Users[i].PrincipalID),
-			})
-		}
-		d.Users = users
-	}
-
-	if len(d.UserGroups) != 0 {
-		groups := make([]*apisecurity.UserGroup, 0, len(d.UserGroups))
-		for i := range r.UserGroups {
-			groups = append(groups, &apisecurity.UserGroup{
-				Id: utils.NewStringValue(r.UserGroups[i].PrincipalID),
-			})
-		}
-		d.UserGroups = groups
-	}
-
-	return d
+	Users      []*User
+	UserGroups []*UserGroup
 }

@@ -76,7 +76,7 @@ func Start(configFilePath string) {
 		fmt.Printf("[ERROR] config yaml marshal fail\n")
 		return
 	}
-	_, _ = fmt.Println(string(c))
+	fmt.Printf(string(c))
 
 	// 初始化日志打印
 	err = log.Configure(cfg.Bootstrap.Logger)

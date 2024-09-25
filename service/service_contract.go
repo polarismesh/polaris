@@ -117,6 +117,7 @@ func (s *Server) CreateServiceContract(ctx context.Context, contract *apiservice
 }
 
 func (s *Server) GetServiceContracts(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
+
 	out := api.NewBatchQueryResponse(apimodel.Code_ExecuteSuccess)
 	out.Amount = utils.NewUInt32Value(0)
 	out.Size = utils.NewUInt32Value(0)

@@ -71,13 +71,15 @@ func (h *Handler) ParseArrayByText(createMessage func() proto.Message, text stri
 func (h *Handler) parseArray(createMessage func() proto.Message, jsonDecoder *json.Decoder) (context.Context, error) {
 	requestID := h.Request.HeaderParameter("Request-Id")
 	// read open bracket
-	if _, err := jsonDecoder.Token(); err != nil {
+	_, err := jsonDecoder.Token()
+	if err != nil {
 		accesslog.Error(err.Error(), utils.ZapRequestID(requestID))
 		return nil, err
 	}
 	for jsonDecoder.More() {
 		protoMessage := createMessage()
-		if err := UnmarshalNext(jsonDecoder, protoMessage); err != nil {
+		err := UnmarshalNext(jsonDecoder, protoMessage)
+		if err != nil {
 			accesslog.Error(err.Error(), utils.ZapRequestID(requestID))
 			return nil, err
 		}
@@ -284,7 +286,7 @@ func (h *Handler) WriteHeaderAndProto(obj api.ResponseMessage) {
 	status := api.CalcCode(obj)
 
 	if status != http.StatusOK {
-		accesslog.Error(h.Request.Request.RequestURI+" "+obj.String(), utils.ZapRequestID(requestID))
+		accesslog.Error(obj.String(), utils.ZapRequestID(requestID))
 	}
 	if code := obj.GetCode().GetValue(); code != api.ExecuteSuccess {
 		h.Response.AddHeader(utils.PolarisCode, fmt.Sprintf("%d", code))
@@ -315,8 +317,9 @@ func (h *Handler) WriteHeaderAndProtoV2(obj api.ResponseMessageV2) {
 	h.Response.AddHeader(utils.PolarisRequestID, requestID)
 	h.Response.WriteHeader(status)
 
-	m := newJsonpbMarshaler()
-	if err := m.Marshal(h.Response, obj); err != nil {
+	m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
+	err := m.Marshal(h.Response, obj)
+	if err != nil {
 		accesslog.Error(err.Error(), utils.ZapRequestID(requestID))
 	}
 }
@@ -377,18 +380,14 @@ func ParseJsonBody(req *restful.Request, value interface{}) error {
 	return nil
 }
 
-func newJsonpbMarshaler() jsonpb.Marshaler {
-	return jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
-}
-
 func (h *Handler) handleResponse(obj api.ResponseMessage) error {
 	if !enableProtoCache {
-		m := newJsonpbMarshaler()
+		m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
 		return m.Marshal(h.Response, obj)
 	}
 	cacheVal := convert(obj)
 	if cacheVal == nil {
-		m := newJsonpbMarshaler()
+		m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
 		return m.Marshal(h.Response, obj)
 	}
 	if saveVal := protoCache.Get(cacheVal.CacheType, cacheVal.Key); saveVal != nil {
@@ -402,7 +401,7 @@ func (h *Handler) handleResponse(obj api.ResponseMessage) error {
 	if err := cacheVal.Marshal(obj); err != nil {
 		accesslog.Warn("[Api-http][ProtoCache] prepare message fail, direct send msg", zap.String("key", cacheVal.Key),
 			zap.Error(err))
-		m := newJsonpbMarshaler()
+		m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
 		return m.Marshal(h.Response, obj)
 	}
 
@@ -410,7 +409,7 @@ func (h *Handler) handleResponse(obj api.ResponseMessage) error {
 	if !ok || cacheVal == nil {
 		accesslog.Warn("[Api-http][ProtoCache] put cache ignore", zap.String("key", cacheVal.Key),
 			zap.String("cacheType", cacheVal.CacheType))
-		m := newJsonpbMarshaler()
+		m := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
 		return m.Marshal(h.Response, obj)
 	}
 	if len(cacheVal.GetBuf()) > 0 {

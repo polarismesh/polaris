@@ -41,9 +41,13 @@ type (
 
 		container *RouteRuleContainer
 
-		lastMtime time.Time
+		lastMtimeV1 time.Time
+		lastMtimeV2 time.Time
 
 		singleFlight singleflight.Group
+
+		// waitDealV1RuleIds Records need to be converted from V1 to V2 routing rules ID
+		waitDealV1RuleIds *utils.SyncMap[string, *model.RoutingConfig]
 	}
 )
 
@@ -57,7 +61,9 @@ func NewRouteRuleCache(s store.Store, cacheMgr types.CacheManager) types.Routing
 
 // initialize The function of implementing the cache interface
 func (rc *RouteRuleCache) Initialize(_ map[string]interface{}) error {
-	rc.lastMtime = time.Unix(0, 0)
+	rc.lastMtimeV1 = time.Unix(0, 0)
+	rc.lastMtimeV2 = time.Unix(0, 0)
+	rc.waitDealV1RuleIds = utils.NewSyncMap[string, *model.RoutingConfig]()
 	rc.container = newRouteRuleContainer()
 	rc.serviceCache = rc.BaseCache.CacheMgr.GetCacher(types.CacheService).(*serviceCache)
 	return nil
@@ -74,6 +80,12 @@ func (rc *RouteRuleCache) Update() error {
 
 // update The function of implementing the cache interface
 func (rc *RouteRuleCache) realUpdate() (map[string]time.Time, int64, error) {
+	outV1, err := rc.storage.GetRoutingConfigsForCache(rc.LastFetchTime(), rc.IsFirstUpdate())
+	if err != nil {
+		log.Errorf("[Cache] routing config v1 cache get from store err: %s", err.Error())
+		return nil, -1, err
+	}
+
 	outV2, err := rc.storage.GetRoutingConfigsV2ForCache(rc.LastFetchTime(), rc.IsFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache] routing config v2 cache get from store err: %s", err.Error())
@@ -81,16 +93,19 @@ func (rc *RouteRuleCache) realUpdate() (map[string]time.Time, int64, error) {
 	}
 
 	lastMtimes := map[string]time.Time{}
-	rc.setRouterRules(lastMtimes, outV2)
+	rc.setRoutingConfigV1(lastMtimes, outV1)
+	rc.setRoutingConfigV2(lastMtimes, outV2)
 	rc.container.reload()
-	return lastMtimes, int64(len(outV2)), err
+	return lastMtimes, int64(len(outV1) + len(outV2)), err
 }
 
 // Clear The function of implementing the cache interface
 func (rc *RouteRuleCache) Clear() error {
 	rc.BaseCache.Clear()
+	rc.waitDealV1RuleIds = utils.NewSyncMap[string, *model.RoutingConfig]()
 	rc.container = newRouteRuleContainer()
-	rc.lastMtime = time.Unix(0, 0)
+	rc.lastMtimeV1 = time.Unix(0, 0)
+	rc.lastMtimeV2 = time.Unix(0, 0)
 	return nil
 }
 
@@ -217,8 +232,50 @@ func (rc *RouteRuleCache) GetRule(id string) *model.ExtendRouterConfig {
 	return rule
 }
 
-// setRouterRules Store V2 Router Caches
-func (rc *RouteRuleCache) setRouterRules(lastMtimes map[string]time.Time, cs []*model.RouterConfig) {
+// setRoutingConfigV1 Update the data of the store to the cache and convert to v2 model
+func (rc *RouteRuleCache) setRoutingConfigV1(lastMtimes map[string]time.Time, cs []*model.RoutingConfig) {
+	if len(cs) == 0 {
+		return
+	}
+	lastMtimeV1 := rc.LastMtime(rc.Name()).Unix()
+	for _, entry := range cs {
+		if entry.ID == "" {
+			continue
+		}
+		if entry.ModifyTime.Unix() > lastMtimeV1 {
+			lastMtimeV1 = entry.ModifyTime.Unix()
+		}
+		if !entry.Valid {
+			// Delete the cache converted to V2
+			rc.container.deleteV1(entry.ID)
+			continue
+		}
+		rc.waitDealV1RuleIds.Store(entry.ID, entry)
+	}
+
+	rc.waitDealV1RuleIds.Range(func(key string, val *model.RoutingConfig) {
+		// Save to the new V2 cache
+		ok, rules, err := rc.convertV1toV2(val)
+		if err != nil {
+			log.Warn("[Cache] routing parse v1 => v2 fail, will try again next",
+				zap.String("rule-id", val.ID), zap.Error(err))
+			return
+		}
+		if !ok {
+			log.Warn("[Cache] routing parse v1 => v2 is nil, will try again next", zap.String("rule-id", val.ID))
+			return
+		}
+		if ok && len(rules) != 0 {
+			rc.waitDealV1RuleIds.Delete(key)
+			rc.container.saveV1(val, rules)
+		}
+	})
+	lastMtimes[rc.Name()] = time.Unix(lastMtimeV1, 0)
+	log.Infof("[Cache] convert routing parse v1 => v2 count : %d", rc.container.convertV2Size())
+}
+
+// setRoutingConfigV2 Store V2 Router Caches
+func (rc *RouteRuleCache) setRoutingConfigV2(lastMtimes map[string]time.Time, cs []*model.RouterConfig) {
 	if len(cs) == 0 {
 		return
 	}

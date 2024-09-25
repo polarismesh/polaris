@@ -28,7 +28,6 @@ import (
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/plugin"
-	"github.com/polarismesh/polaris/store"
 )
 
 const (
@@ -49,7 +48,7 @@ const (
 	DefaultTLL = 5
 )
 
-type ServerProxyFactory func(pre DiscoverServer, s store.Store) (DiscoverServer, error)
+type ServerProxyFactory func(pre DiscoverServer) (DiscoverServer, error)
 
 var (
 	server       DiscoverServer
@@ -136,17 +135,13 @@ func InitServer(ctx context.Context, namingOpt *Config, opts ...InitOption) (*Se
 			return nil, nil, fmt.Errorf("name(%s) not exist in serverProxyFactories", order[i])
 		}
 
-		afterSvr, err := factory(proxySvr, actualSvr.storage)
+		afterSvr, err := factory(proxySvr)
 		if err != nil {
 			return nil, nil, err
 		}
 		proxySvr = afterSvr
 	}
 	return actualSvr, proxySvr, nil
-}
-
-func (svr *Server) Initialize(context.Context, store.Store) error {
-	return nil
 }
 
 type PluginInstanceEventHandler struct {

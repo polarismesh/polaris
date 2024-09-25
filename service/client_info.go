@@ -80,9 +80,12 @@ func (s *Server) createClient(ctx context.Context, req *apiservice.Client) (*mod
 // req 原始请求
 // ins 包含了req数据与instanceID，serviceToken
 func (s *Server) asyncCreateClient(ctx context.Context, req *apiservice.Client) (*model.Client, *apiservice.Response) {
+	rid := utils.ParseRequestID(ctx)
+	pid := utils.ParsePlatformID(ctx)
 	future := s.bc.AsyncRegisterClient(req)
 	if err := future.Wait(); err != nil {
-		log.Error("[Server][ReportClient] async create client", zap.Error(err), utils.RequestID(ctx))
+		log.Error("[Server][ReportClient] async create client", zap.Error(err), utils.ZapRequestID(rid),
+			utils.ZapPlatformID(pid))
 		if future.Code() == apimodel.Code_ExistedResource {
 			req.Id = utils.NewStringValue(req.GetId().GetValue())
 		}

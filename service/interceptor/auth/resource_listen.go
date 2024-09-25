@@ -35,45 +35,40 @@ func (svr *Server) Before(ctx context.Context, resourceType model.Resource) {
 
 // After this function is called after the resource operation
 func (svr *Server) After(ctx context.Context, resourceType model.Resource, res *service.ResourceEvent) error {
-	// 资源删除，触发所有关联的策略进行一个 update 操作更新
-	return svr.onChangeResource(ctx, res)
+	switch resourceType {
+	case model.RService:
+		return svr.onServiceResource(ctx, res)
+	default:
+		return nil
+	}
 }
 
-// onChangeResource 服务资源的处理，只处理服务，namespace 只由 namespace 相关的进行处理，
-func (svr *Server) onChangeResource(ctx context.Context, res *service.ResourceEvent) error {
+// onServiceResource 服务资源的处理，只处理服务，namespace 只由 namespace 相关的进行处理，
+func (svr *Server) onServiceResource(ctx context.Context, res *service.ResourceEvent) error {
 	authCtx := ctx.Value(utils.ContextAuthContextKey).(*authcommon.AcquireContext)
+	ownerId := utils.ParseOwnerID(ctx)
 
 	authCtx.SetAttachment(authcommon.ResourceAttachmentKey, map[apisecurity.ResourceType][]authcommon.ResourceEntry{
-		res.Resource.Type: {
-			res.Resource,
+		apisecurity.ResourceType_Services: {
+			{
+				ID:       res.Service.ID,
+				Owner:    ownerId,
+				Metadata: res.Service.Meta,
+			},
 		},
 	})
 
-	var users, removeUsers []string
-	var groups, removeGroups []string
+	users := utils.ConvertStringValuesToSlice(res.ReqService.UserIds)
+	removeUses := utils.ConvertStringValuesToSlice(res.ReqService.RemoveUserIds)
 
-	for i := range res.AddPrincipals {
-		switch res.AddPrincipals[i].PrincipalType {
-		case authcommon.PrincipalUser:
-			users = append(users, res.AddPrincipals[i].PrincipalID)
-		case authcommon.PrincipalGroup:
-			groups = append(groups, res.AddPrincipals[i].PrincipalID)
-		}
-	}
-	for i := range res.DelPrincipals {
-		switch res.DelPrincipals[i].PrincipalType {
-		case authcommon.PrincipalUser:
-			removeUsers = append(removeUsers, res.DelPrincipals[i].PrincipalID)
-		case authcommon.PrincipalGroup:
-			removeGroups = append(removeGroups, res.DelPrincipals[i].PrincipalID)
-		}
-	}
+	groups := utils.ConvertStringValuesToSlice(res.ReqService.GroupIds)
+	removeGroups := utils.ConvertStringValuesToSlice(res.ReqService.RemoveGroupIds)
 
-	authCtx.SetAttachment(authcommon.LinkUsersKey, users)
-	authCtx.SetAttachment(authcommon.RemoveLinkUsersKey, removeUsers)
+	authCtx.SetAttachment(authcommon.LinkUsersKey, utils.StringSliceDeDuplication(users))
+	authCtx.SetAttachment(authcommon.RemoveLinkUsersKey, utils.StringSliceDeDuplication(removeUses))
 
-	authCtx.SetAttachment(authcommon.LinkGroupsKey, groups)
-	authCtx.SetAttachment(authcommon.RemoveLinkGroupsKey, removeGroups)
+	authCtx.SetAttachment(authcommon.LinkGroupsKey, utils.StringSliceDeDuplication(groups))
+	authCtx.SetAttachment(authcommon.RemoveLinkGroupsKey, utils.StringSliceDeDuplication(removeGroups))
 
 	return svr.policySvr.AfterResourceOperation(authCtx)
 }

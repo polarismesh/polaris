@@ -69,11 +69,19 @@ func (u *userStore) AddUser(tx store.Tx, user *authcommon.User) error {
 }
 
 func (u *userStore) addUser(tx *BaseTx, user *authcommon.User) error {
+
+	tx, err := u.master.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer func() { _ = tx.Rollback() }()
+
 	addSql := "INSERT INTO user(`id`, `name`, `password`, `owner`, `source`, `token`, " +
 		" `comment`, `flag`, `user_type`, " +
 		" `ctime`, `mtime`, `mobile`, `email`) VALUES (?,?,?,?,?,?,?,?,?,sysdate(),sysdate(),?,?)"
 
-	_, err := tx.Exec(addSql, []interface{}{
+	_, err = tx.Exec(addSql, []interface{}{
 		user.ID,
 		user.Name,
 		user.Password,

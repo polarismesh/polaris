@@ -167,7 +167,7 @@ linters-settings:
         disabled: false
       - name: max-public-structs
         severity: warning
-        disabled: true
+        disabled: false
         arguments: [35]
       - name: indent-error-flow
         severity: warning
@@ -281,7 +281,7 @@ linters-settings:
   govet:
     # Report about shadowed variables.
     # Default: false
-    shadow: false
+    check-shadowing: true
     # Settings per analyzer.
     settings:
       # Analyzer name, run `go tool vet help` to see all analyzers.

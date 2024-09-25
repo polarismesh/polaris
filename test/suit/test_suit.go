@@ -44,9 +44,7 @@ import (
 	"github.com/polarismesh/polaris/common/metrics"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/config"
-	"github.com/polarismesh/polaris/namespace"
 	ns "github.com/polarismesh/polaris/namespace"
-	"github.com/polarismesh/polaris/namespace/interceptor"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/batch"
@@ -221,9 +219,6 @@ func (d *DiscoverTestSuit) loadConfig() error {
 		fmt.Printf("[ERROR] %v\n", err)
 		return err
 	}
-	if os.Getenv("STORE_MODE") != "sqldb" {
-		d.cfg.Store.Option["loadFile"] = testdata.Path("bolt-data.yaml")
-	}
 	d.cfg.Naming.Interceptors = service.GetChainOrder()
 	d.cfg.Config.Interceptors = config.GetChainOrder()
 	return err
@@ -326,7 +321,7 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	}
 
 	// 初始化命名空间模块
-	namespaceSvr, err := TestNamespaceInitialize(ctx, &d.cfg.Namespace, d.Storage, cacheMgn, d.userMgn, d.strategyMgn)
+	namespaceSvr, err := ns.TestInitialize(ctx, &d.cfg.Namespace, d.Storage, cacheMgn, d.userMgn, d.strategyMgn)
 	if err != nil {
 		panic(err)
 	}
@@ -394,19 +389,6 @@ func (d *DiscoverTestSuit) initialize(opts ...options) error {
 	}
 	time.Sleep(5 * time.Second)
 	return nil
-}
-
-func TestNamespaceInitialize(ctx context.Context, nsOpt *namespace.Config, storage store.Store, cacheMgr *cache.CacheManager,
-	userMgn auth.UserServer, strategyMgn auth.StrategyServer) (namespace.NamespaceOperateServer, error) {
-
-	ctx = context.WithValue(ctx, interceptor.ContextKeyUserSvr{}, userMgn)
-	ctx = context.WithValue(ctx, interceptor.ContextKeyPolicySvr{}, strategyMgn)
-
-	_, proxySvr, err := namespace.InitServer(ctx, nsOpt, storage, cacheMgr)
-	if err != nil {
-		return nil, err
-	}
-	return proxySvr, nil
 }
 
 func (d *DiscoverTestSuit) Destroy() {

@@ -20,7 +20,6 @@ package paramcheck
 import (
 	"context"
 	"errors"
-	"strconv"
 	"strings"
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
@@ -175,14 +174,6 @@ func (svr *Server) GetServices(ctx context.Context, query map[string]string) *se
 				" length of instance_keys and instance_values are not equal")
 		}
 	}
-
-	// 判断offset和limit是否为int，并从filters清除offset/limit参数
-	offset, limit, err := utils.ParseOffsetAndLimit(query)
-	if err != nil {
-		return api.NewBatchQueryResponse(apimodel.Code_InvalidParameter)
-	}
-	query["offset"] = strconv.FormatUint(uint64(offset), 10)
-	query["limit"] = strconv.FormatUint(uint64(limit), 10)
 
 	return svr.nextSvr.GetServices(ctx, query)
 }

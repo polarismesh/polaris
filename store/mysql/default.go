@@ -272,15 +272,12 @@ func (s *stableStore) newStore() {
 	s.configFileTemplateStore = &configFileTemplateStore{master: s.master, slave: s.slave}
 	s.clientStore = &clientStore{master: s.master, slave: s.slave}
 
-	s.grayStore = &grayStore{master: s.master, slave: s.slave}
-
 	s.adminStore = newAdminStore(s.master)
 	s.toolStore = &toolStore{db: s.master}
-
 	s.userStore = &userStore{master: s.master, slave: s.slave}
 	s.groupStore = &groupStore{master: s.master, slave: s.slave}
 	s.strategyStore = &strategyStore{master: s.master, slave: s.slave}
-	s.roleStore = &roleStore{master: s.master, slave: s.slave}
+	s.grayStore = &grayStore{master: s.master, slave: s.slave}
 }
 
 func buildEtimeStr(enable bool) string {

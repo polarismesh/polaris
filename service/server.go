@@ -20,7 +20,6 @@ package service
 import (
 	"context"
 
-	"github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"golang.org/x/sync/singleflight"
 
@@ -28,7 +27,6 @@ import (
 	cacheservice "github.com/polarismesh/polaris/cache/service"
 	"github.com/polarismesh/polaris/common/eventhub"
 	"github.com/polarismesh/polaris/common/model"
-	"github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
@@ -159,62 +157,12 @@ func (s *Server) getLocation(host string) *model.Location {
 	return location
 }
 
-func (s *Server) afterRuleResource(ctx context.Context, r model.Resource, res auth.ResourceEntry, remove bool) error {
-	event := &ResourceEvent{
-		Resource: res,
-		IsRemove: remove,
-	}
-
-	for index := range s.hooks {
-		hook := s.hooks[index]
-		if err := hook.After(ctx, r, event); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (s *Server) afterServiceResource(ctx context.Context, req *apiservice.Service, save *model.Service,
 	remove bool) error {
 	event := &ResourceEvent{
-		Resource: auth.ResourceEntry{
-			Type:     security.ResourceType_Services,
-			ID:       save.ID,
-			Metadata: save.Meta,
-		},
-		AddPrincipals: func() []auth.Principal {
-			ret := make([]auth.Principal, 0, 4)
-			for i := range req.UserIds {
-				ret = append(ret, auth.Principal{
-					PrincipalType: auth.PrincipalUser,
-					PrincipalID:   req.UserIds[i].GetValue(),
-				})
-			}
-			for i := range req.GroupIds {
-				ret = append(ret, auth.Principal{
-					PrincipalType: auth.PrincipalGroup,
-					PrincipalID:   req.GroupIds[i].GetValue(),
-				})
-			}
-			return ret
-		}(),
-		DelPrincipals: func() []auth.Principal {
-			ret := make([]auth.Principal, 0, 4)
-			for i := range req.RemoveUserIds {
-				ret = append(ret, auth.Principal{
-					PrincipalType: auth.PrincipalUser,
-					PrincipalID:   req.RemoveUserIds[i].GetValue(),
-				})
-			}
-			for i := range req.RemoveGroupIds {
-				ret = append(ret, auth.Principal{
-					PrincipalType: auth.PrincipalGroup,
-					PrincipalID:   req.RemoveGroupIds[i].GetValue(),
-				})
-			}
-			return ret
-		}(),
-		IsRemove: remove,
+		ReqService: req,
+		Service:    save,
+		IsRemove:   remove,
 	}
 
 	for index := range s.hooks {
@@ -223,6 +171,7 @@ func (s *Server) afterServiceResource(ctx context.Context, req *apiservice.Servi
 			return err
 		}
 	}
+
 	return nil
 }
 

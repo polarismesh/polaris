@@ -93,7 +93,6 @@ func (h *HTTPServerV1) GetConsoleAccessServer(include []string) (*restful.WebSer
 			h.addCircuitBreakerRuleAccess(ws)
 		case routingAccess:
 			h.addRoutingRuleAccess(ws)
-			h.addLaneRuleAccess(ws)
 		case rateLimitAccess:
 			h.addRateLimitRuleAccess(ws)
 		}
@@ -140,7 +139,6 @@ func (h *HTTPServerV1) addDefaultAccess(ws *restful.WebService) {
 	// 管理端接口：增删改查请求全部操作存储层
 	h.addServiceAccess(ws)
 	h.addRoutingRuleAccess(ws)
-	h.addLaneRuleAccess(ws)
 	h.addRateLimitRuleAccess(ws)
 	h.addCircuitBreakerRuleAccess(ws)
 }
@@ -207,14 +205,6 @@ func (h *HTTPServerV1) addRoutingRuleAccess(ws *restful.WebService) {
 	ws.Route(ws.PUT("/routings").To(h.UpdateRoutings))
 	ws.Route(ws.GET("/routings").To(h.GetRoutings))
 	// Deprecate -- end
-}
-
-// addLaneRuleAccess 泳道规则
-func (h *HTTPServerV1) addLaneRuleAccess(ws *restful.WebService) {
-	ws.Route(ws.POST("/lane/groups").To(h.CreateLaneGroups))
-	ws.Route(ws.POST("/lane/groups/delete").To(h.DeleteLaneGroups))
-	ws.Route(ws.PUT("/lane/groups").To(h.UpdateLaneGroups))
-	ws.Route(ws.GET("/lane/groups").To(h.GetLaneGroups))
 }
 
 func (h *HTTPServerV1) addRateLimitRuleAccess(ws *restful.WebService) {

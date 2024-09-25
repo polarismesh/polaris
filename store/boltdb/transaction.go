@@ -18,8 +18,6 @@
 package boltdb
 
 import (
-	"time"
-
 	"github.com/polarismesh/polaris/common/model"
 )
 
@@ -61,12 +59,7 @@ func (t *transaction) RLockNamespace(name string) (*model.Namespace, error) {
 
 // DeleteNamespace 删除namespace
 func (t *transaction) DeleteNamespace(name string) error {
-	properties := map[string]interface{}{
-		CommonFieldValid:      false,
-		CommonFieldModifyTime: time.Now(),
-	}
-
-	return t.handler.UpdateValue(tblNameNamespace, name, properties)
+	return t.handler.DeleteValues(tblNameNamespace, []string{name})
 }
 
 const (
