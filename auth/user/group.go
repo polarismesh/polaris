@@ -282,8 +282,6 @@ func (svr *Server) EnableGroupToken(ctx context.Context, req *apisecurity.UserGr
 // ResetGroupToken 刷新用户组的token
 func (svr *Server) ResetGroupToken(ctx context.Context, req *apisecurity.UserGroup) *apiservice.Response {
 	var (
-		requestID      = utils.ParseRequestID(ctx)
-		platformID     = utils.ParsePlatformID(ctx)
 		group, errResp = svr.getGroupFromDB(req.Id.GetValue())
 	)
 
@@ -297,8 +295,7 @@ func (svr *Server) ResetGroupToken(ctx context.Context, req *apisecurity.UserGro
 
 	newToken, err := createGroupToken(group.ID, svr.authOpt.Salt)
 	if err != nil {
-		log.Error("reset group token", utils.ZapRequestID(requestID),
-			utils.ZapPlatformID(platformID), zap.Error(err))
+		log.Error("reset group token", utils.RequestID(ctx), zap.Error(err))
 		return api.NewAuthResponseWithMsg(apimodel.Code_ExecuteException, err.Error())
 	}
 
@@ -312,12 +309,12 @@ func (svr *Server) ResetGroupToken(ctx context.Context, req *apisecurity.UserGro
 	}
 
 	if err := svr.storage.UpdateGroup(modifyReq); err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewAuthResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
 
 	log.Info("reset group token", zap.String("group-id", req.Id.GetValue()),
-		utils.ZapRequestID(requestID), utils.ZapPlatformID(platformID))
+		utils.RequestID(ctx))
 	svr.RecordHistory(userGroupRecordEntry(ctx, req, group.UserGroup, model.OUpdate))
 
 	req.AuthToken = utils.NewStringValue(newToken)

@@ -649,6 +649,7 @@ CREATE TABLE
         `strategy_id` VARCHAR(128) NOT NULL COMMENT 'Strategy ID',
         `principal_id` VARCHAR(128) NOT NULL COMMENT 'Principal ID',
         `principal_role` INT NOT NULL COMMENT 'PRINCIPAL type, 1 is User, 2 is Group, 3 is Role',
+        `extend_info` TEXT COMMENT 'link principal extend info',
         PRIMARY KEY (`strategy_id`, `principal_id`, `principal_role`)
     ) ENGINE = InnoDB;
 
@@ -688,6 +689,7 @@ CREATE TABLE
         `role_id` VARCHAR(128) NOT NULL COMMENT 'role id',
         `principal_id` VARCHAR(128) NOT NULL COMMENT 'principal id',
         `principal_role` INT NOT NULL COMMENT 'PRINCIPAL type, 1 is User, 2 is Group',
+        `extend_info` TEXT COMMENT 'link principal extend info',
         PRIMARY KEY (`role_id`, `principal_id`, `principal_role`)
     ) ENGINE = InnoDB;
 
@@ -706,104 +708,6 @@ CREATE TABLE `auth_strategy_function` (
     `function` VARCHAR(256) NOT NULL COMMENT 'server provider function name',
     PRIMARY KEY (`strategy_id`, `function`)
 ) ENGINE = InnoDB;
-
--- Create a default master account, password is Polarismesh @ 2021
-INSERT INTO
-    `user` (
-        `id`,
-        `name`,
-        `password`,
-        `source`,
-        `token`,
-        `token_enable`,
-        `user_type`,
-        `comment`,
-        `mobile`,
-        `email`,
-        `owner`
-    )
-VALUES
-    (
-        '65e4789a6d5b49669adf1e9e8387549c',
-        'polaris',
-        '$2a$10$3izWuZtE5SBdAtSZci.gs.iZ2pAn9I8hEqYrC6gwJp1dyjqQnrrum',
-        'Polaris',
-        'nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=',
-        1,
-        20,
-        'default polaris admin account',
-        '12345678910',
-        '12345678910',
-        ''
-    );
-
--- Permissions policy inserted into Polaris-Admin
-INSERT INTO
-    `auth_strategy` (
-        `id`,
-        `name`,
-        `action`,
-        `owner`,
-        `comment`,
-        `default`,
-        `revision`,
-        `flag`,
-        `ctime`,
-        `mtime`
-    )
-VALUES
-    (
-        'fbca9bfa04ae4ead86e1ecf5811e32a9',
-        '(用户) polaris的默认策略',
-        'READ_WRITE',
-        '65e4789a6d5b49669adf1e9e8387549c',
-        'default admin',
-        1,
-        'fbca9bfa04ae4ead86e1ecf5811e32a9',
-        0,
-        SYSDATE (),
-        SYSDATE ()
-    );
-
--- Sport rules inserted into Polaris-Admin to access
-INSERT INTO
-    `auth_strategy_resource` (
-        `strategy_id`,
-        `res_type`,
-        `res_id`,
-        `ctime`,
-        `mtime`
-    )
-VALUES
-    (
-        'fbca9bfa04ae4ead86e1ecf5811e32a9',
-        0,
-        '*',
-        SYSDATE (),
-        SYSDATE ()
-    ),
-    (
-        'fbca9bfa04ae4ead86e1ecf5811e32a9',
-        1,
-        '*',
-        SYSDATE (),
-        SYSDATE ()
-    ),
-    (
-        'fbca9bfa04ae4ead86e1ecf5811e32a9',
-        2,
-        '*',
-        SYSDATE (),
-        SYSDATE ()
-    );
-
--- Insert permission policies and association relationships for Polaris-Admin accounts
-INSERT INTO
-    auth_principal (`strategy_id`, `principal_id`, `principal_role`) VALUE (
-        'fbca9bfa04ae4ead86e1ecf5811e32a9',
-        '65e4789a6d5b49669adf1e9e8387549c',
-        1
-    );
 
 -- v1.8.0, support client info storage
 CREATE TABLE
@@ -883,9 +787,9 @@ VALUES
     }',
         'json',
         'Spring Cloud Gateway  染色规则',
-        NOW (),
+        NOW(),
         'polaris',
-        NOW (),
+        NOW(),
         'polaris'
     );
 
@@ -1062,3 +966,439 @@ CREATE TABLE
         PRIMARY KEY (`id`),
         UNIQUE KEY `name` (`group_name`, `name`)
     ) ENGINE = InnoDB;
+
+
+/* 默认资源信息数据插入 */
+
+-- Create a default master account, password is Polarismesh @ 2021
+INSERT INTO
+    `user` (
+        `id`,
+        `name`,
+        `password`,
+        `source`,
+        `token`,
+        `token_enable`,
+        `user_type`,
+        `comment`,
+        `mobile`,
+        `email`,
+        `owner`
+    )
+VALUES
+    (
+        '65e4789a6d5b49669adf1e9e8387549c',
+        'polaris',
+        '$2a$10$3izWuZtE5SBdAtSZci.gs.iZ2pAn9I8hEqYrC6gwJp1dyjqQnrrum',
+        'Polaris',
+        'nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=',
+        1,
+        20,
+        'default polaris admin account',
+        '12345678910',
+        '12345678910',
+        ''
+    );
+
+-- Permissions policy inserted into Polaris-Admin
+INSERT INTO
+    `auth_strategy` (
+        `id`,
+        `name`,
+        `action`,
+        `owner`,
+        `comment`,
+        `default`,
+        `revision`,
+        `flag`,
+        `ctime`,
+        `mtime`
+    )
+VALUES
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        '(用户) polaris的默认策略',
+        'READ_WRITE',
+        '65e4789a6d5b49669adf1e9e8387549c',
+        'default admin',
+        1,
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        0,
+        sysdate(),
+        sysdate()
+    );
+
+-- Sport rules inserted into Polaris-Admin to access
+INSERT INTO
+    `auth_strategy_resource` (
+        `strategy_id`,
+        `res_type`,
+        `res_id`,
+        `ctime`,
+        `mtime`
+    )
+VALUES
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        0,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        1,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        2,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        3,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        4,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        5,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        6,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        7,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        20,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        21,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        22,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        23,
+        '*',
+        sysdate(),
+        sysdate()
+    );
+
+-- Insert permission policies and association relationships for Polaris-Admin accounts
+INSERT INTO
+    auth_principal (`strategy_id`, `principal_id`, `principal_role`) VALUES (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        '65e4789a6d5b49669adf1e9e8387549c',
+        1
+    );
+
+INSERT INTO
+    auth_strategy_function (`strategy_id`, `function`) VALUES (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        '*'
+    );
+
+/* 默认的全局只读策略 */
+INSERT INTO
+    `auth_strategy` (
+        `id`,
+        `name`,
+        `action`,
+        `owner`,
+        `comment`,
+        `default`,
+        `revision`,
+        `flag`,
+        `ctime`,
+        `mtime`
+    )
+VALUES
+    (
+        'bfa04ae1e32a94fbca9ead86e1ecf581',
+        '全局只读策略',
+        'ALLOW',
+        '65e4789a6d5b49669adf1e9e8387549c',
+        'global resources read onyly',
+        1,
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        0,
+        sysdate(),
+        sysdate()
+    );
+
+INSERT INTO
+    `auth_strategy_resource` (
+        `strategy_id`,
+        `res_type`,
+        `res_id`,
+        `ctime`,
+        `mtime`
+    )
+VALUES
+    (
+        'bfa04ae1e32a94fbca9ead86e1ecf581',
+        0,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'bfa04ae1e32a94fbca9ead86e1ecf581',
+        1,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'bfa04ae1e32a94fbca9ead86e1ecf581',
+        2,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'bfa04ae1e32a94fbca9ead86e1ecf581',
+        3,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'bfa04ae1e32a94fbca9ead86e1ecf581',
+        4,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'bfa04ae1e32a94fbca9ead86e1ecf581',
+        5,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'bfa04ae1e32a94fbca9ead86e1ecf581',
+        6,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'bfa04ae1e32a94fbca9ead86e1ecf581',
+        7,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'bfa04ae1e32a94fbca9ead86e1ecf581',
+        20,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'bfa04ae1e32a94fbca9ead86e1ecf581',
+        21,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'bfa04ae1e32a94fbca9ead86e1ecf581',
+        22,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'bfa04ae1e32a94fbca9ead86e1ecf581',
+        23,
+        '*',
+        sysdate(),
+        sysdate()
+    );
+
+INSERT INTO
+    auth_strategy_function (`strategy_id`, `function`) VALUES (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        'Describe*'
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        'List*'
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        'Get*'
+    );
+
+
+/* 默认的全局读写策略 */
+INSERT INTO
+    `auth_strategy` (
+        `id`,
+        `name`,
+        `action`,
+        `owner`,
+        `comment`,
+        `default`,
+        `revision`,
+        `flag`,
+        `ctime`,
+        `mtime`
+    )
+VALUES
+    (
+        'e3d86e1ecf5812bfa04ae1a94fbca9ea',
+        '全局读写策略',
+        'ALLOW',
+        '65e4789a6d5b49669adf1e9e8387549c',
+        'global resources read and write',
+        1,
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        0,
+        sysdate(),
+        sysdate()
+    );
+
+INSERT INTO
+    `auth_strategy_resource` (
+        `strategy_id`,
+        `res_type`,
+        `res_id`,
+        `ctime`,
+        `mtime`
+    )
+VALUES
+    (
+        'e3d86e1ecf5812bfa04ae1a94fbca9ea',
+        0,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'e3d86e1ecf5812bfa04ae1a94fbca9ea',
+        1,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'e3d86e1ecf5812bfa04ae1a94fbca9ea',
+        2,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'e3d86e1ecf5812bfa04ae1a94fbca9ea',
+        3,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'e3d86e1ecf5812bfa04ae1a94fbca9ea',
+        4,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'e3d86e1ecf5812bfa04ae1a94fbca9ea',
+        5,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'e3d86e1ecf5812bfa04ae1a94fbca9ea',
+        6,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'e3d86e1ecf5812bfa04ae1a94fbca9ea',
+        7,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'e3d86e1ecf5812bfa04ae1a94fbca9ea',
+        20,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'e3d86e1ecf5812bfa04ae1a94fbca9ea',
+        21,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'e3d86e1ecf5812bfa04ae1a94fbca9ea',
+        22,
+        '*',
+        sysdate(),
+        sysdate()
+    ),
+    (
+        'e3d86e1ecf5812bfa04ae1a94fbca9ea',
+        23,
+        '*',
+        sysdate(),
+        sysdate()
+    );
+
+INSERT INTO
+    auth_strategy_function (`strategy_id`, `function`) VALUES (
+        'e3d86e1ecf5812bfa04ae1a94fbca9ea',
+        '*'
+    );
+

@@ -23,7 +23,8 @@ import (
 
 // Config maintain configuration
 type Config struct {
-	Jobs []job.JobConfig `yaml:"jobs"`
+	Jobs         []job.JobConfig `yaml:"jobs"`
+	Interceptors []string        `yaml:"-"`
 }
 
 func DefaultConfig() *Config {

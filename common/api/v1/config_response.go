@@ -226,6 +226,13 @@ func NewConfigFileReleaseHistoryResponse(
 	}
 }
 
+func NewSimpleConfigFileImportResponse(code apimodel.Code) *apiconfig.ConfigImportResponse {
+	return &apiconfig.ConfigImportResponse{
+		Code: &wrappers.UInt32Value{Value: uint32(code)},
+		Info: &wrappers.StringValue{Value: code2info[uint32(code)]},
+	}
+}
+
 func NewConfigFileImportResponse(code apimodel.Code,
 	createConfigFiles, skipConfigFiles, overwriteConfigFiles []*apiconfig.ConfigFile) *apiconfig.ConfigImportResponse {
 	return &apiconfig.ConfigImportResponse{

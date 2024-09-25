@@ -29,14 +29,6 @@ import (
 	"github.com/polarismesh/polaris/common/utils"
 )
 
-// forceUpdate 更新配置
-func (rc *RouteRuleCache) forceUpdate() error {
-	if err := rc.Update(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func queryRoutingRuleV2ByService(rule *model.ExtendRouterConfig, sourceNamespace, sourceService,
 	destNamespace, destService string, both bool) bool {
 	var (
@@ -121,7 +113,7 @@ func queryRoutingRuleV2ByService(rule *model.ExtendRouterConfig, sourceNamespace
 
 // QueryRoutingConfigsV2 Query Route Configuration List
 func (rc *RouteRuleCache) QueryRoutingConfigsV2(ctx context.Context, args *types.RoutingArgs) (uint32, []*model.ExtendRouterConfig, error) {
-	if err := rc.forceUpdate(); err != nil {
+	if err := rc.Update(); err != nil {
 		return 0, nil, err
 	}
 	hasSvcQuery := len(args.Service) != 0 || len(args.Namespace) != 0
@@ -181,7 +173,14 @@ func (rc *RouteRuleCache) QueryRoutingConfigsV2(ctx context.Context, args *types
 		res = append(res, routeRule)
 	}
 
+	predicates := types.LoadRouterRulePredicates(ctx)
+
 	rc.IteratorRouterRule(func(key string, value *model.ExtendRouterConfig) {
+		for i := range predicates {
+			if !predicates[i](ctx, value) {
+				return
+			}
+		}
 		process(key, value)
 	})
 

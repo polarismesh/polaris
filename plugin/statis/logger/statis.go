@@ -97,7 +97,7 @@ func (s *StatisWorker) ReportConfigMetrics(metric ...metrics.ConfigMetrics) {
 
 // ReportDiscoverCall report discover service times
 func (s *StatisWorker) ReportDiscoverCall(metric metrics.ClientDiscoverMetric) {
-	discoverlog.Infof(metric.String())
+	discoverlog.Info(metric.String())
 }
 
 func (a *StatisWorker) metricsHandle(mt metrics.CallMetricType, start time.Time,

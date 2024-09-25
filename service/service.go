@@ -299,9 +299,9 @@ func (s *Server) GetAllServices(ctx context.Context, query map[string]string) *a
 	)
 
 	if ns, ok := query["namespace"]; ok && len(ns) > 0 {
-		_, svcs = s.Cache().Service().ListServices(ns)
+		_, svcs = s.Cache().Service().ListServices(ctx, ns)
 	} else {
-		_, svcs = s.Cache().Service().ListAllServices()
+		_, svcs = s.Cache().Service().ListAllServices(ctx)
 	}
 
 	ret := make([]*apiservice.Service, 0, len(svcs))
@@ -332,7 +332,7 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *apis
 		inputInstMetaKeys, inputInstMetaValues string
 	)
 	for key, value := range query {
-		typ, _ := ServiceFilterAttributes[key]
+		typ := ServiceFilterAttributes[key]
 		switch {
 		case typ == serviceFilter:
 			serviceFilters[key] = value
@@ -375,10 +375,7 @@ func (s *Server) GetServices(ctx context.Context, query map[string]string) *apis
 	}
 
 	// 判断offset和limit是否为int，并从filters清除offset/limit参数
-	offset, limit, err := utils.ParseOffsetAndLimit(serviceFilters)
-	if err != nil {
-		return api.NewBatchQueryResponse(apimodel.Code_InvalidParameter)
-	}
+	offset, limit, _ := utils.ParseOffsetAndLimit(serviceFilters)
 
 	serviceArgs := parseServiceArgs(serviceFilters, serviceMetas, ctx)
 	total, services, err := s.caches.Service().GetServicesByFilter(ctx, serviceArgs, instanceArgs, offset, limit)
@@ -756,6 +753,8 @@ func service2Api(service *model.Service) *apiservice.Service {
 		Ctime:      utils.NewStringValue(commontime.Time2String(service.CreateTime)),
 		Mtime:      utils.NewStringValue(commontime.Time2String(service.ModifyTime)),
 		ExportTo:   service.ListExportTo(),
+		Editable:   utils.NewBoolValue(true),
+		Deleteable: utils.NewBoolValue(true),
 	}
 
 	return out

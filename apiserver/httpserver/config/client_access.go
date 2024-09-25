@@ -168,7 +168,12 @@ func (h *HTTPServer) Discover(req *restful.Request, rsp *restful.Response) {
 	switch in.Type {
 	case apiconfig.ConfigDiscoverRequest_CONFIG_FILE:
 		action = metrics.ActionGetConfigFile
-		ret := h.configServer.GetConfigFileWithCache(ctx, &apiconfig.ClientConfigFileInfo{})
+		ret := h.configServer.GetConfigFileWithCache(ctx, &apiconfig.ClientConfigFileInfo{
+			Version:   in.GetConfigFile().Version,
+			Namespace: in.GetConfigFile().GetNamespace(),
+			Group:     in.GetConfigFile().GetGroup(),
+			FileName:  in.GetConfigFile().GetFileName(),
+		})
 		out = api.NewConfigDiscoverResponse(apimodel.Code(ret.GetCode().GetValue()))
 		out.ConfigFile = ret.GetConfigFile()
 		out.Type = apiconfig.ConfigDiscoverResponse_CONFIG_FILE

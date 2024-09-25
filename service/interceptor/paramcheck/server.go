@@ -35,9 +35,10 @@ type Server struct {
 	ratelimit plugin.Ratelimit
 }
 
-func NewServer(nextSvr service.DiscoverServer) service.DiscoverServer {
+func NewServer(nextSvr service.DiscoverServer, s store.Store) service.DiscoverServer {
 	proxy := &Server{
 		nextSvr: nextSvr,
+		storage: s,
 	}
 	// 获取限流插件
 	proxy.ratelimit = plugin.GetRatelimit()

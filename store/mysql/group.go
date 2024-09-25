@@ -128,14 +128,14 @@ func (u *groupStore) updateGroup(group *authcommon.ModifyUserGroup) error {
 
 	// 更新用户-用户组关联数据
 	if len(group.AddUserIds) != 0 {
-		if err := u.addGroupRelation(tx, group.ID, group.AddUserIds); err != nil {
+		if err = u.addGroupRelation(tx, group.ID, group.AddUserIds); err != nil {
 			log.Errorf("[Store][Group] add usergroup relation err: %s", err.Error())
 			return err
 		}
 	}
 
 	if len(group.RemoveUserIds) != 0 {
-		if err := u.removeGroupRelation(tx, group.ID, group.RemoveUserIds); err != nil {
+		if err = u.removeGroupRelation(tx, group.ID, group.RemoveUserIds); err != nil {
 			log.Errorf("[Store][Group] remove usergroup relation err: %s", err.Error())
 			return err
 		}
@@ -153,7 +153,7 @@ func (u *groupStore) updateGroup(group *authcommon.ModifyUserGroup) error {
 		return err
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err = tx.Commit(); err != nil {
 		log.Errorf("[Store][Group] update usergroup tx commit err: %s", err.Error())
 		return err
 	}

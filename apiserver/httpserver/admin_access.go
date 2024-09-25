@@ -67,6 +67,7 @@ func (h *HTTPServer) GetAdminAccessServer() *restful.WebService {
 	ws.Route(docs.EnrichGetCMDBInfoApiDocs(ws.GET("/cmdb/info").To(h.GetCMDBInfo)))
 	ws.Route(docs.EnrichGetReportClientsApiDocs(ws.GET("/report/clients").To(h.GetReportClients)))
 	ws.Route(docs.EnrichEnablePprofApiDocs(ws.POST("/pprof/enable").To(h.EnablePprof)))
+	ws.Route(docs.EnrichGetServerFunctionsApiDocs(ws.GET("/server/functions").To(h.GetServerFunctions)))
 	return ws
 }
 
@@ -306,6 +307,13 @@ func (h *HTTPServer) EnablePprof(req *restful.Request, rsp *restful.Response) {
 
 	h.enablePprof.Store(pprofEnable.Enable)
 	_ = rsp.WriteEntity("ok")
+}
+
+// GetServerFunctions .
+func (h *HTTPServer) GetServerFunctions(req *restful.Request, rsp *restful.Response) {
+	ctx := initContext(req)
+	ret := h.maintainServer.GetServerFunctions(ctx)
+	_ = rsp.WriteAsJson(ret)
 }
 
 func initContext(req *restful.Request) context.Context {

@@ -314,7 +314,7 @@ func AppendAuthPolicyPredicate(ctx context.Context, p AuthPolicyPredicate) conte
 func LoadAuthPolicyPredicates(ctx context.Context) []AuthPolicyPredicate {
 	var predicates []AuthPolicyPredicate
 
-	val := ctx.Value(userGroupPredicateCtxKey{})
+	val := ctx.Value(authPolicyPredicateCtxKey{})
 	if val != nil {
 		predicates, _ = val.([]AuthPolicyPredicate)
 	}

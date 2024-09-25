@@ -64,7 +64,7 @@ func (c *Client) CreateNamespaces(namespaces []*apimodel.Namespace) (*apiservice
 		return nil, err
 	}
 
-	response, err := c.SendRequest("POST", url, body)
+	response, err := c.SendRequestWithRequestID("CreateNamespaces", "POST", url, body)
 	if err != nil {
 		fmt.Printf("%v\n", err)
 		return nil, err
@@ -179,7 +179,7 @@ func (c *Client) GetNamespaces(namespaces []*apimodel.Namespace) ([]*apimodel.Na
 	}
 
 	url = c.CompleteURL(url, params)
-	response, err := c.SendRequest("GET", url, nil)
+	response, err := c.SendRequestWithRequestID("GetNamespaces", "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +197,7 @@ func (c *Client) GetNamespaces(namespaces []*apimodel.Namespace) ([]*apimodel.Na
 	namespacesSize := len(namespaces)
 
 	if ret.GetAmount() == nil || ret.GetAmount().GetValue() != uint32(namespacesSize) {
-		return nil, errors.New("invalid batch amount")
+		return nil, fmt.Errorf("invalid batch amount: %d %d", ret.GetAmount().GetValue(), namespacesSize)
 	}
 
 	if ret.GetSize() == nil || ret.GetSize().GetValue() != uint32(namespacesSize) {

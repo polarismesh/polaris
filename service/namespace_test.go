@@ -158,7 +158,7 @@ func TestRemoveNamespace(t *testing.T) {
 		}
 		defer discoverSuit.cleanServiceName(serviceReq.GetName().GetValue(), serviceReq.GetNamespace().GetValue())
 
-		resp := discoverSuit.NamespaceServer().DeleteNamespace(discoverSuit.DefaultCtx, namespaceResp)
+		resp := discoverSuit.NamespaceServer().DeleteNamespaces(discoverSuit.DefaultCtx, []*apimodel.Namespace{namespaceResp})
 		if resp.GetCode().GetValue() != uint32(apimodel.Code_NamespaceExistedServices) {
 			t.Fatalf("error: %s", resp.GetInfo().GetValue())
 		}

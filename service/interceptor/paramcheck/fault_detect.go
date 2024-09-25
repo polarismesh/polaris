@@ -119,7 +119,8 @@ func (svr *Server) CreateFaultDetectRules(ctx context.Context,
 }
 
 // UpdateFaultDetectRules implements service.DiscoverServer.
-func (svr *Server) UpdateFaultDetectRules(ctx context.Context, request []*fault_tolerance.FaultDetectRule) *service_manage.BatchWriteResponse {
+func (svr *Server) UpdateFaultDetectRules(ctx context.Context,
+	request []*fault_tolerance.FaultDetectRule) *service_manage.BatchWriteResponse {
 	if checkErr := checkBatchFaultDetectRules(request); checkErr != nil {
 		return checkErr
 	}

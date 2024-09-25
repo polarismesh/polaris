@@ -331,7 +331,7 @@ func TestDeleteRateLimit(t *testing.T) {
 		}()
 
 		resp := discoverSuit.DiscoverServer().DeleteRateLimits(discoverSuit.DefaultCtx, []*apitraffic.Rule{rateLimitReq})
-		assert.True(t, api.IsSuccess(resp), resp.GetInfo().GetValue())
+		assert.False(t, api.IsSuccess(resp), resp.GetInfo().GetValue())
 	})
 
 	t.Run("并发删除限流规则，可以正常删除", func(t *testing.T) {

@@ -15,48 +15,27 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package namespace
+package auth
 
 import (
 	"context"
 
-	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 
+	"github.com/polarismesh/polaris/common/log"
 	"github.com/polarismesh/polaris/common/model"
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
+	"github.com/polarismesh/polaris/namespace"
 )
 
-// ResourceHook The listener is placed before and after the resource operation, only normal flow
-type ResourceHook interface {
-
-	// Before
-	//  @param ctx
-	//  @param resourceType
-	Before(ctx context.Context, resourceType model.Resource)
-
-	// After
-	//  @param ctx
-	//  @param resourceType
-	//  @param res
-	After(ctx context.Context, resourceType model.Resource, res *ResourceEvent) error
-}
-
-// ResourceEvent 资源事件
-type ResourceEvent struct {
-	ReqNamespace *apimodel.Namespace
-	Namespace    *model.Namespace
-	IsRemove     bool
-}
-
 // Before this function is called before the resource operation
-func (svr *serverAuthAbility) Before(ctx context.Context, resourceType model.Resource) {
+func (svr *Server) Before(ctx context.Context, resourceType model.Resource) {
 	// do nothing
 }
 
 // After this function is called after the resource operation
-func (svr *serverAuthAbility) After(ctx context.Context, resourceType model.Resource, res *ResourceEvent) error {
+func (svr *Server) After(ctx context.Context, resourceType model.Resource, res *namespace.ResourceEvent) error {
 	switch resourceType {
 	case model.RNamespace:
 		return svr.onNamespaceResource(ctx, res)
@@ -66,7 +45,7 @@ func (svr *serverAuthAbility) After(ctx context.Context, resourceType model.Reso
 }
 
 // onNamespaceResource
-func (svr *serverAuthAbility) onNamespaceResource(ctx context.Context, res *ResourceEvent) error {
+func (svr *Server) onNamespaceResource(ctx context.Context, res *namespace.ResourceEvent) error {
 	authCtx, _ := ctx.Value(utils.ContextAuthContextKey).(*authcommon.AcquireContext)
 	if authCtx == nil {
 		log.Warn("[Namespace][ResourceHook] get auth context is nil, ignore", utils.RequestID(ctx))

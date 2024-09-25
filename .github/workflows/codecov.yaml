@@ -61,13 +61,25 @@ jobs:
         with:
           fetch-depth: 2
 
+      - uses: shogo82148/actions-setup-mysql@v1
+        with:
+          mysql-version: "5.7"
+          auto-start: true
+          my-cnf: |
+            innodb_log_file_size=256MB
+            innodb_buffer_pool_size=512MB
+            max_allowed_packet=16MB
+            max_connections=50
+            local_infile=1
+          root-password: root
+
+
       - name: Initialize database
         env:
           MYSQL_DB_USER: root
           MYSQL_DB_PWD: root
           MYSQL_DATABASE: polaris_server
         run: |
-          sudo systemctl start mysql.service
           mysql -e 'CREATE DATABASE ${{ env.MYSQL_DATABASE }};' -u${{ env.MYSQL_DB_USER }} -p${{ env.MYSQL_DB_PWD }}
           mysql -e "ALTER USER '${{ env.MYSQL_DB_USER }}'@'localhost' IDENTIFIED WITH mysql_native_password BY 'root';"  -u${{ env.MYSQL_DB_USER }} -p${{ env.MYSQL_DB_PWD }}
 
