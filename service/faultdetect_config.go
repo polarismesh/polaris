@@ -27,12 +27,14 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	apifault "github.com/polarismesh/specification/source/go/api/v1/fault_tolerance"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	"github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
 
 	cachetypes "github.com/polarismesh/polaris/cache/api"
 	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	authcommon "github.com/polarismesh/polaris/common/model/auth"
 	commonstore "github.com/polarismesh/polaris/common/store"
 	commontime "github.com/polarismesh/polaris/common/time"
 	"github.com/polarismesh/polaris/common/utils"
@@ -40,9 +42,9 @@ import (
 
 // CreateFaultDetectRules Create a FaultDetect rule
 func (s *Server) CreateFaultDetectRules(
-	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
+	ctx context.Context, reqs []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 	responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
-	for _, cbRule := range request {
+	for _, cbRule := range reqs {
 		response := s.createFaultDetectRule(ctx, cbRule)
 		api.Collect(responses, response)
 	}
@@ -51,10 +53,10 @@ func (s *Server) CreateFaultDetectRules(
 
 // DeleteFaultDetectRules Delete current Fault Detect rules
 func (s *Server) DeleteFaultDetectRules(
-	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
+	ctx context.Context, reqs []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 
 	responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
-	for _, cbRule := range request {
+	for _, cbRule := range reqs {
 		response := s.deleteFaultDetectRule(ctx, cbRule)
 		api.Collect(responses, response)
 	}
@@ -63,10 +65,10 @@ func (s *Server) DeleteFaultDetectRules(
 
 // UpdateFaultDetectRules Modify the FaultDetect rule
 func (s *Server) UpdateFaultDetectRules(
-	ctx context.Context, request []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
+	ctx context.Context, reqs []*apifault.FaultDetectRule) *apiservice.BatchWriteResponse {
 
 	responses := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
-	for _, cbRule := range request {
+	for _, cbRule := range reqs {
 		response := s.updateFaultDetectRule(ctx, cbRule)
 		api.Collect(responses, response)
 	}
@@ -117,7 +119,10 @@ func (s *Server) createFaultDetectRule(ctx context.Context, request *apifault.Fa
 	log.Info(msg, utils.RequestID(ctx))
 
 	s.RecordHistory(ctx, faultDetectRuleRecordEntry(ctx, request, data, model.OCreate))
-
+	_ = s.afterRuleResource(ctx, model.RRouting, authcommon.ResourceEntry{
+		ID:   request.GetId(),
+		Type: security.ResourceType_FaultDetectRules,
+	}, false)
 	request.Id = data.ID
 	return api.NewAnyDataResponse(apimodel.Code_ExecuteSuccess, request)
 }
@@ -154,54 +159,31 @@ func (s *Server) updateFaultDetectRule(ctx context.Context, request *apifault.Fa
 
 // deleteFaultDetectRule Delete a FaultDetect rule
 func (s *Server) deleteFaultDetectRule(ctx context.Context, request *apifault.FaultDetectRule) *apiservice.Response {
-	requestID := utils.ParseRequestID(ctx)
-	resp := s.checkFaultDetectRuleExists(request.GetId(), requestID)
-	if resp != nil {
-		if resp.GetCode().GetValue() == uint32(apimodel.Code_NotFoundResource) {
-			resp.Code = &wrappers.UInt32Value{Value: uint32(apimodel.Code_ExecuteSuccess)}
-		}
-		return resp
-	}
 	cbRuleId := &apifault.FaultDetectRule{Id: request.GetId()}
 	err := s.storage.DeleteFaultDetectRule(request.GetId())
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewAnyDataResponse(apimodel.Code_ParseException, cbRuleId)
 	}
 	msg := fmt.Sprintf("delete fault detect rule: id=%v, name=%v, namespace=%v",
 		request.GetId(), request.GetName(), request.GetNamespace())
-	log.Info(msg, utils.ZapRequestID(requestID))
+	log.Info(msg, utils.RequestID(ctx))
 
 	cbRule := &model.FaultDetectRule{ID: request.GetId(), Name: request.GetName(), Namespace: request.GetNamespace()}
 	s.RecordHistory(ctx, faultDetectRuleRecordEntry(ctx, request, cbRule, model.ODelete))
+	_ = s.afterRuleResource(ctx, model.RRouting, authcommon.ResourceEntry{
+		ID:   request.GetId(),
+		Type: security.ResourceType_FaultDetectRules,
+	}, true)
 	return api.NewAnyDataResponse(apimodel.Code_ExecuteSuccess, cbRuleId)
-}
-
-func (s *Server) checkFaultDetectRuleExists(id, requestID string) *apiservice.Response {
-	exists, err := s.storage.HasFaultDetectRule(id)
-	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(requestID))
-		return api.NewResponse(commonstore.StoreCode2APICode(err))
-	}
-	if !exists {
-		return api.NewResponse(apimodel.Code_NotFoundResource)
-	}
-	return nil
 }
 
 func (s *Server) GetFaultDetectRules(ctx context.Context, query map[string]string) *apiservice.BatchQueryResponse {
 	offset, limit, _ := utils.ParseOffsetAndLimit(query)
 	total, cbRules, err := s.caches.FaultDetector().Query(ctx, &cachetypes.FaultDetectArgs{
-		ID:               query["id"],
-		Name:             query["name"],
-		Namespace:        query["namespace"],
-		Service:          query["service"],
-		ServiceNamespace: query["serviceNamespace"],
-		DstNamespace:     query["dstNamespace"],
-		DstService:       query["dstService"],
-		DstMethod:        query["dstMethod"],
-		Offset:           offset,
-		Limit:            limit,
+		Filter: query,
+		Offset: offset,
+		Limit:  limit,
 	})
 	if err != nil {
 		log.Errorf("get fault detect rules store err: %s", err.Error())
@@ -219,13 +201,17 @@ func (s *Server) GetFaultDetectRules(ctx context.Context, query map[string]strin
 		if nil == cbRuleProto {
 			continue
 		}
-		err = api.AddAnyDataIntoBatchQuery(out, cbRuleProto)
-		if nil != err {
+		if err = api.AddAnyDataIntoBatchQuery(out, cbRuleProto); nil != err {
 			log.Error("add circuitbreaker rule as any data fail", utils.RequestID(ctx), zap.Error(err))
 			continue
 		}
 	}
 	return out
+}
+
+// GetAllFaultDetectRules Query all router_rule rules
+func (s *Server) GetAllFaultDetectRules(ctx context.Context) *apiservice.BatchQueryResponse {
+	return nil
 }
 
 func marshalFaultDetectRule(req *apifault.FaultDetectRule) (string, error) {
@@ -262,6 +248,7 @@ func api2FaultDetectRule(req *apifault.FaultDetectRule) (*model.FaultDetectRule,
 		DstMethod:    req.GetTargetService().GetMethod().GetValue().GetValue(),
 		Rule:         rule,
 		Revision:     utils.NewUUID(),
+		Metadata:     req.Metadata,
 	}
 	if out.Namespace == "" {
 		out.Namespace = DefaultNamespace
@@ -273,27 +260,29 @@ func faultDetectRule2api(fdRule *model.FaultDetectRule) (*apifault.FaultDetectRu
 	if fdRule == nil {
 		return nil, nil
 	}
-	fdRule.Proto = &apifault.FaultDetectRule{}
+	specData := &apifault.FaultDetectRule{}
 	if len(fdRule.Rule) > 0 {
-		if err := json.Unmarshal([]byte(fdRule.Rule), fdRule.Proto); err != nil {
+		if err := json.Unmarshal([]byte(fdRule.Rule), specData); err != nil {
 			return nil, err
 		}
 	} else {
 		// brief search, to display the services in list result
-		fdRule.Proto.TargetService = &apifault.FaultDetectRule_DestinationService{
+		specData.TargetService = &apifault.FaultDetectRule_DestinationService{
 			Service:   fdRule.DstService,
 			Namespace: fdRule.DstNamespace,
 			Method:    &apimodel.MatchString{Value: &wrappers.StringValue{Value: fdRule.DstMethod}},
 		}
 	}
-	fdRule.Proto.Id = fdRule.ID
-	fdRule.Proto.Name = fdRule.Name
-	fdRule.Proto.Namespace = fdRule.Namespace
-	fdRule.Proto.Description = fdRule.Description
-	fdRule.Proto.Revision = fdRule.Revision
-	fdRule.Proto.Ctime = commontime.Time2String(fdRule.CreateTime)
-	fdRule.Proto.Mtime = commontime.Time2String(fdRule.ModifyTime)
-	return fdRule.Proto, nil
+	specData.Id = fdRule.ID
+	specData.Name = fdRule.Name
+	specData.Namespace = fdRule.Namespace
+	specData.Description = fdRule.Description
+	specData.Revision = fdRule.Revision
+	specData.Ctime = commontime.Time2String(fdRule.CreateTime)
+	specData.Mtime = commontime.Time2String(fdRule.ModifyTime)
+	specData.Editable = true
+	specData.Deleteable = true
+	return specData, nil
 }
 
 // faultDetectRule2ClientAPI 把内部数据结构转化为客户端API参数

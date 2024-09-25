@@ -350,7 +350,7 @@ func (d *DiscoverTestSuit) createCommonRoutingConfig(
 	// TODO 是否应该先删除routing
 
 	resp := d.DiscoverServer().CreateRoutingConfigs(d.DefaultCtx, []*apitraffic.Routing{conf})
-	if !respSuccess(resp) {
+	if respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
 
@@ -400,7 +400,7 @@ func (d *DiscoverTestSuit) createCommonRoutingConfigV1IntoOldStore(t *testing.T,
 	}
 
 	resp := d.OriginDiscoverServer().(*service.Server).CreateRoutingConfig(d.DefaultCtx, conf)
-	if !respSuccess(resp) {
+	if respSuccess(resp) {
 		t.Fatalf("error: %+v", resp)
 	}
 

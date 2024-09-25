@@ -35,7 +35,7 @@ import (
 // GetAuthServer 运维接口
 func (h *HTTPServer) GetAuthServer(ws *restful.WebService) error {
 	ws.Route(docs.EnrichAuthStatusApiDocs(ws.GET("/auth/status").To(h.AuthStatus)))
-	//
+	// 用户
 	ws.Route(docs.EnrichLoginApiDocs(ws.POST("/user/login").To(h.Login)))
 	ws.Route(docs.EnrichGetUsersApiDocs(ws.GET("/users").To(h.GetUsers)))
 	ws.Route(docs.EnrichCreateUsersApiDocs(ws.POST("/users").To(h.CreateUsers)))
@@ -45,7 +45,8 @@ func (h *HTTPServer) GetAuthServer(ws *restful.WebService) error {
 	ws.Route(docs.EnrichGetUserTokenApiDocs(ws.GET("/user/token").To(h.GetUserToken)))
 	ws.Route(docs.EnrichUpdateUserTokenApiDocs(ws.PUT("/user/token/status").To(h.EnableUserToken)))
 	ws.Route(docs.EnrichResetUserTokenApiDocs(ws.PUT("/user/token/refresh").To(h.ResetUserToken)))
-	//
+
+	// 用户组
 	ws.Route(docs.EnrichCreateGroupApiDocs(ws.POST("/usergroup").To(h.CreateGroup)))
 	ws.Route(docs.EnrichUpdateGroupsApiDocs(ws.PUT("/usergroups").To(h.UpdateGroups)))
 	ws.Route(docs.EnrichGetGroupsApiDocs(ws.GET("/usergroups").To(h.GetGroups)))
@@ -55,12 +56,19 @@ func (h *HTTPServer) GetAuthServer(ws *restful.WebService) error {
 	ws.Route(docs.EnrichUpdateGroupTokenApiDocs(ws.PUT("/usergroup/token/status").To(h.EnableGroupToken)))
 	ws.Route(docs.EnrichResetGroupTokenApiDocs(ws.PUT("/usergroup/token/refresh").To(h.ResetGroupToken)))
 
+	// 鉴权策略
 	ws.Route(docs.EnrichCreateStrategyApiDocs(ws.POST("/auth/strategy").To(h.CreateStrategy)))
 	ws.Route(docs.EnrichGetStrategyApiDocs(ws.GET("/auth/strategy/detail").To(h.GetStrategy)))
 	ws.Route(docs.EnrichUpdateStrategiesApiDocs(ws.PUT("/auth/strategies").To(h.UpdateStrategies)))
 	ws.Route(docs.EnrichDeleteStrategiesApiDocs(ws.POST("/auth/strategies/delete").To(h.DeleteStrategies)))
 	ws.Route(docs.EnrichGetStrategiesApiDocs(ws.GET("/auth/strategies").To(h.GetStrategies)))
 	ws.Route(docs.EnrichGetPrincipalResourcesApiDocs(ws.GET("/auth/principal/resources").To(h.GetPrincipalResources)))
+
+	// 角色
+	ws.Route(docs.EnrichGetRolesApiDocs(ws.GET("/roles").To(h.GetRoles)))
+	ws.Route(docs.EnrichCreateRolesApiDocs(ws.POST("/roles").To(h.CreateRoles)))
+	ws.Route(docs.EnrichDeleteRolesApiDocs(ws.POST("/roles/delete").To(h.DeleteRoles)))
+	ws.Route(docs.EnrichUpdateRolesApiDocs(ws.PUT("/roles").To(h.UpdateRoles)))
 
 	return nil
 }
@@ -497,4 +505,80 @@ func (h *HTTPServer) GetPrincipalResources(req *restful.Request, rsp *restful.Re
 	ctx := handler.ParseHeaderContext()
 
 	handler.WriteHeaderAndProto(h.strategyMgn.GetPrincipalResources(ctx, queryParams))
+}
+
+// CreateRoles .
+func (h *HTTPServer) CreateRoles(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	roles := make([]*apisecurity.Role, 0, 4)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &apisecurity.Role{}
+		roles = append(roles, msg)
+		return msg
+	})
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+
+	handler.WriteHeaderAndProto(h.strategyMgn.CreateRoles(ctx, roles))
+}
+
+// UpdateRoles .
+func (h *HTTPServer) UpdateRoles(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	roles := make([]*apisecurity.Role, 0, 4)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &apisecurity.Role{}
+		roles = append(roles, msg)
+		return msg
+	})
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+
+	handler.WriteHeaderAndProto(h.strategyMgn.UpdateRoles(ctx, roles))
+}
+
+// DeleteRoles .
+func (h *HTTPServer) DeleteRoles(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	roles := make([]*apisecurity.Role, 0, 4)
+	ctx, err := handler.ParseArray(func() proto.Message {
+		msg := &apisecurity.Role{}
+		roles = append(roles, msg)
+		return msg
+	})
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewBatchWriteResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+
+	handler.WriteHeaderAndProto(h.strategyMgn.DeleteRoles(ctx, roles))
+}
+
+// GetRoles 查询角色列表
+func (h *HTTPServer) GetRoles(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	queryParams := httpcommon.ParseQueryParams(req)
+	ctx := handler.ParseHeaderContext()
+
+	handler.WriteHeaderAndProto(h.strategyMgn.GetRoles(ctx, queryParams))
 }

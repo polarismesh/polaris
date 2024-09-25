@@ -57,46 +57,52 @@ func (set *Set[K]) Range(fn func(val K)) {
 	}
 }
 
+type Reference[K, R comparable] struct {
+	Key        K
+	Referencer R
+}
+
 // NewRefSyncSet returns a new Set
-func NewRefSyncSet[K comparable]() *RefSyncSet[K] {
-	return &RefSyncSet[K]{
-		container: make(map[K]int),
+func NewRefSyncSet[K, R comparable]() *RefSyncSet[K, R] {
+	return &RefSyncSet[K, R]{
+		container: map[K]map[R]struct{}{},
 	}
 }
 
-type RefSyncSet[K comparable] struct {
-	container map[K]int
+type RefSyncSet[K, R comparable] struct {
+	container map[K]map[R]struct{}
 	lock      sync.RWMutex
 }
 
 // Add adds a string to the set
-func (set *RefSyncSet[K]) Add(val K) {
+func (set *RefSyncSet[K, R]) Add(val Reference[K, R]) {
 	set.lock.Lock()
 	defer set.lock.Unlock()
 
-	ref, ok := set.container[val]
-	if ok {
-		ref++
+	if _, ok := set.container[val.Key]; !ok {
+		set.container[val.Key] = map[R]struct{}{}
 	}
-	set.container[val] = ref
+	refs := set.container[val.Key]
+	refs[val.Referencer] = struct{}{}
 }
 
 // Remove removes a string from the set
-func (set *RefSyncSet[K]) Remove(val K) {
+func (set *RefSyncSet[K, R]) Remove(val Reference[K, R]) {
 	set.lock.Lock()
 	defer set.lock.Unlock()
-	ref, ok := set.container[val]
-	if ok {
-		ref--
+	if _, ok := set.container[val.Key]; !ok {
+		return
 	}
-	if ref == 0 {
-		delete(set.container, val)
+	refs := set.container[val.Key]
+	delete(refs, val.Referencer)
+	if len(refs) == 0 {
+		delete(set.container, val.Key)
 	} else {
-		set.container[val] = ref
+		set.container[val.Key] = refs
 	}
 }
 
-func (set *RefSyncSet[K]) ToSlice() []K {
+func (set *RefSyncSet[K, R]) ToSlice() []K {
 	set.lock.RLock()
 	defer set.lock.RUnlock()
 
@@ -107,7 +113,7 @@ func (set *RefSyncSet[K]) ToSlice() []K {
 	return ret
 }
 
-func (set *RefSyncSet[K]) Range(fn func(val K)) {
+func (set *RefSyncSet[K, R]) Range(fn func(val K)) {
 	set.lock.RLock()
 	snapshot := map[K]struct{}{}
 	for k := range set.container {
@@ -120,7 +126,7 @@ func (set *RefSyncSet[K]) Range(fn func(val K)) {
 	}
 }
 
-func (set *RefSyncSet[K]) Len() int {
+func (set *RefSyncSet[K, R]) Len() int {
 	set.lock.RLock()
 	defer set.lock.RUnlock()
 
@@ -128,7 +134,7 @@ func (set *RefSyncSet[K]) Len() int {
 }
 
 // Contains contains target value
-func (set *RefSyncSet[K]) Contains(val K) bool {
+func (set *RefSyncSet[K, R]) Contains(val K) bool {
 	set.lock.Lock()
 	defer set.lock.Unlock()
 
@@ -136,7 +142,7 @@ func (set *RefSyncSet[K]) Contains(val K) bool {
 	return exist
 }
 
-func (set *RefSyncSet[K]) String() string {
+func (set *RefSyncSet[K, R]) String() string {
 	ret := set.ToSlice()
 	return MustJson(ret)
 }

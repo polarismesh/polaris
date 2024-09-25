@@ -149,3 +149,10 @@ func EnrichEnablePprofApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
 			Enable bool `json:"enable"`
 		}{})
 }
+
+func EnrichGetServerFunctionsApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.
+		Doc("查询服务端的接口名称列表").
+		Metadata(restfulspec.KeyOpenAPITags, maintainApiTags).
+		Returns(0, "", map[string][]string{})
+}

@@ -40,12 +40,8 @@ func (svr *Server) CreateServiceAlias(ctx context.Context,
 // DeleteServiceAliases implements service.DiscoverServer.
 func (svr *Server) DeleteServiceAliases(ctx context.Context,
 	req []*service_manage.ServiceAlias) *service_manage.BatchWriteResponse {
-	if len(req) == 0 {
-		return api.NewBatchWriteResponse(apimodel.Code_EmptyRequest)
-	}
-
-	if len(req) > utils.MaxBatchSize {
-		return api.NewBatchWriteResponse(apimodel.Code_BatchSizeOverLimit)
+	if checkError := checkBatchAlias(req); checkError != nil {
+		return checkError
 	}
 
 	batchRsp := api.NewBatchWriteResponse(apimodel.Code_ExecuteSuccess)
@@ -72,6 +68,18 @@ func (svr *Server) UpdateServiceAlias(ctx context.Context, req *service_manage.S
 func (svr *Server) GetServiceAliases(ctx context.Context,
 	query map[string]string) *service_manage.BatchQueryResponse {
 	return svr.nextSvr.GetServiceAliases(ctx, query)
+}
+
+func checkBatchAlias(req []*apiservice.ServiceAlias) *apiservice.BatchWriteResponse {
+	if len(req) == 0 {
+		return api.NewBatchWriteResponse(apimodel.Code_EmptyRequest)
+	}
+
+	if len(req) > utils.MaxBatchSize {
+		return api.NewBatchWriteResponse(apimodel.Code_BatchSizeOverLimit)
+	}
+
+	return nil
 }
 
 // checkCreateServiceAliasReq 检查别名请求

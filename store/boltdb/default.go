@@ -18,11 +18,10 @@
 package boltdb
 
 import (
+	"os"
 	"time"
 
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
-	bolt "go.etcd.io/bbolt"
-	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/common/model"
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
@@ -121,11 +120,12 @@ func (m *boltStore) Initialize(c *store.Config) error {
 	}
 
 	if loadFile, ok := c.Option["loadFile"].(string); ok {
-		if err := m.loadByFile(loadFile); err != nil {
-			return err
+		// 仅用于本地测试验证单机数据
+		loadFileName := os.Getenv("POLARIS_DEV_BOLT_INIT_DATA_FILA")
+		if loadFileName != "" {
+			loadFile = loadFileName
 		}
-	} else {
-		if err := m.loadByDefault(); err != nil {
+		if err := m.loadByFile(loadFile); err != nil {
 			return err
 		}
 	}
@@ -143,166 +143,52 @@ var (
 	servicesToInit   = map[string]string{
 		"polaris.checker": "fbca9bfa04ae4ead86e1ecf5811e32a9",
 	}
-
-	mainUser = &authcommon.User{
-		ID:          "65e4789a6d5b49669adf1e9e8387549c",
-		Name:        "polaris",
-		Password:    "$2a$10$3izWuZtE5SBdAtSZci.gs.iZ2pAn9I8hEqYrC6gwJp1dyjqQnrrum",
-		Owner:       "",
-		Source:      "Polaris",
-		Mobile:      "",
-		Email:       "",
-		Type:        20,
-		Token:       "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=",
-		TokenEnable: true,
-		Valid:       true,
-		Comment:     "default polaris admin account",
-		CreateTime:  time.Now(),
-		ModifyTime:  time.Now(),
-	}
-
-	superDefaultStrategy = &authcommon.StrategyDetail{
-		ID:      "super_user_default_strategy",
-		Name:    "(用户) polarissys@admin的默认策略",
-		Action:  "READ_WRITE",
-		Comment: "default admin",
-		Principals: []authcommon.Principal{
-			{
-				StrategyID:    "super_user_default_strategy",
-				PrincipalID:   "",
-				PrincipalType: authcommon.PrincipalUser,
-			},
-		},
-		Default: true,
-		Owner:   "",
-		Resources: []authcommon.StrategyResource{
-			{
-				StrategyID: "super_user_default_strategy",
-				ResType:    int32(apisecurity.ResourceType_Namespaces),
-				ResID:      "*",
-			},
-			{
-				StrategyID: "super_user_default_strategy",
-				ResType:    int32(apisecurity.ResourceType_Services),
-				ResID:      "*",
-			},
-			{
-				StrategyID: "super_user_default_strategy",
-				ResType:    int32(apisecurity.ResourceType_ConfigGroups),
-				ResID:      "*",
-			},
-		},
-		Valid:      true,
-		Revision:   "fbca9bfa04ae4ead86e1ecf5811e32a9",
-		CreateTime: time.Now(),
-		ModifyTime: time.Now(),
-	}
-
-	mainDefaultStrategy = &authcommon.StrategyDetail{
-		ID:      "fbca9bfa04ae4ead86e1ecf5811e32a9",
-		Name:    "(用户) polaris的默认策略",
-		Action:  "READ_WRITE",
-		Comment: "default admin",
-		Principals: []authcommon.Principal{
-			{
-				StrategyID:    "fbca9bfa04ae4ead86e1ecf5811e32a9",
-				PrincipalID:   "65e4789a6d5b49669adf1e9e8387549c",
-				PrincipalType: authcommon.PrincipalUser,
-			},
-		},
-		Default: true,
-		Owner:   "65e4789a6d5b49669adf1e9e8387549c",
-		Resources: []authcommon.StrategyResource{
-			{
-				StrategyID: "fbca9bfa04ae4ead86e1ecf5811e32a9",
-				ResType:    int32(apisecurity.ResourceType_Namespaces),
-				ResID:      "*",
-			},
-			{
-				StrategyID: "fbca9bfa04ae4ead86e1ecf5811e32a9",
-				ResType:    int32(apisecurity.ResourceType_Services),
-				ResID:      "*",
-			},
-			{
-				StrategyID: "fbca9bfa04ae4ead86e1ecf5811e32a9",
-				ResType:    int32(apisecurity.ResourceType_ConfigGroups),
-				ResID:      "*",
-			},
-		},
-		Valid:      true,
-		Revision:   "fbca9bfa04ae4ead86e1ecf5811e32a9",
-		CreateTime: time.Now(),
-		ModifyTime: time.Now(),
-	}
 )
 
 func (m *boltStore) initNamingStoreData() error {
 	for _, namespace := range namespacesToInit {
 		curTime := time.Now()
-		err := m.AddNamespace(&model.Namespace{
-			Name:       namespace,
-			Token:      utils.NewUUID(),
-			Owner:      ownerToInit,
-			Valid:      true,
-			CreateTime: curTime,
-			ModifyTime: curTime,
-		})
+		val, err := m.GetNamespace(namespace)
 		if err != nil {
 			return err
+		}
+		if val == nil {
+			if err := m.AddNamespace(&model.Namespace{
+				Name:       namespace,
+				Token:      utils.NewUUID(),
+				Owner:      ownerToInit,
+				Valid:      true,
+				CreateTime: curTime,
+				ModifyTime: curTime,
+			}); err != nil {
+				return err
+			}
 		}
 	}
 	for svc, id := range servicesToInit {
 		curTime := time.Now()
-		err := m.AddService(&model.Service{
-			ID:         id,
-			Name:       svc,
-			Namespace:  namespacePolaris,
-			Token:      utils.NewUUID(),
-			Owner:      ownerToInit,
-			Revision:   utils.NewUUID(),
-			Valid:      true,
-			CreateTime: curTime,
-			ModifyTime: curTime,
-		})
+		val, err := m.getServiceByNameAndNs(svc, namespacePolaris)
 		if err != nil {
 			return err
 		}
+		if val != nil {
+			if err := m.AddService(&model.Service{
+				ID:         id,
+				Name:       svc,
+				Namespace:  namespacePolaris,
+				Token:      utils.NewUUID(),
+				Owner:      ownerToInit,
+				Revision:   utils.NewUUID(),
+				Valid:      true,
+				CreateTime: curTime,
+				ModifyTime: curTime,
+			}); err != nil {
+				return err
+			}
+		}
+
 	}
 	return nil
-}
-
-func (m *boltStore) initAuthStoreData() error {
-	return m.handler.Execute(true, func(tx *bolt.Tx) error {
-		user, err := m.getUser(tx, mainUser.ID)
-		if err != nil {
-			return err
-		}
-
-		if user == nil {
-			user = mainUser
-			// 添加主账户主体信息
-			if err := saveValue(tx, tblUser, user.ID, converToUserStore(user)); err != nil {
-				authLog.Error("[Store][User] save user fail", zap.Error(err), zap.String("name", user.Name))
-				return err
-			}
-		}
-
-		rule, err := m.getStrategyDetail(tx, mainDefaultStrategy.ID)
-		if err != nil {
-			return err
-		}
-
-		if rule == nil {
-			strategy := mainDefaultStrategy
-			// 添加主账户的默认鉴权策略信息
-			if err := saveValue(tx, tblStrategy, strategy.ID, convertForStrategyStore(strategy)); err != nil {
-				authLog.Error("[Store][Strategy] save auth_strategy", zap.Error(err),
-					zap.String("name", strategy.Name), zap.String("owner", strategy.Owner))
-				return err
-			}
-		}
-		return nil
-	})
 }
 
 func (m *boltStore) newStore() error {
@@ -341,6 +227,7 @@ func (m *boltStore) newAuthModuleStore() {
 	m.userStore = &userStore{handler: m.handler}
 	m.strategyStore = &strategyStore{handler: m.handler}
 	m.groupStore = &groupStore{handler: m.handler}
+	m.roleStore = &roleStore{handle: m.handler}
 }
 
 func (m *boltStore) newConfigModuleStore() {
@@ -381,4 +268,16 @@ func (m *boltStore) StartReadTx() (store.Tx, error) {
 func init() {
 	s := &boltStore{}
 	_ = store.RegisterStore(s)
+}
+
+func buildAllResAllow(id string) []authcommon.StrategyResource {
+	ret := make([]authcommon.StrategyResource, 0, 8)
+	for i := range apisecurity.ResourceType_value {
+		ret = append(ret, authcommon.StrategyResource{
+			StrategyID: id,
+			ResType:    apisecurity.ResourceType_value[i],
+			ResID:      "*",
+		})
+	}
+	return ret
 }

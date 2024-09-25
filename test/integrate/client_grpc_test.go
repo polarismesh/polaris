@@ -203,12 +203,12 @@ func TestClientGRPC_DiscoverServices(t *testing.T) {
 					},
 				})
 				if err != nil {
-					t.Fatalf("discover services fail")
+					t.Fatalf("discover services fail: %+v", err)
 				}
 
-				assert.False(t, len(resp.Services) == 0, "discover services response not empty")
-				assert.Truef(t, len(newSvcs) == len(resp.Services),
-					"discover services size not equal, expect : %d, actual : %s", len(newSvcs), len(resp.Services))
+				assert.False(t, len(resp.GetServices()) == 0, "discover services response not empty")
+				assert.Truef(t, len(newSvcs) == len(resp.GetServices()),
+					"discover services size not equal, expect : %d, actual : %s", len(newSvcs), len(resp.GetServices()))
 			})
 
 		})

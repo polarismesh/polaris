@@ -521,6 +521,7 @@ type FaultDetectRule struct {
 	DstMethod    string
 	Rule         string
 	Revision     string
+	Metadata     map[string]string
 	Valid        bool
 	CreateTime   time.Time
 	ModifyTime   time.Time

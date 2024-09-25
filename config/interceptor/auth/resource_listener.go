@@ -30,12 +30,12 @@ import (
 )
 
 // Before this function is called before the resource operation
-func (s *ServerAuthability) Before(ctx context.Context, resourceType model.Resource) {
+func (s *Server) Before(ctx context.Context, resourceType model.Resource) {
 	// do nothing
 }
 
 // After this function is called after the resource operation
-func (s *ServerAuthability) After(ctx context.Context, resourceType model.Resource, res *config.ResourceEvent) error {
+func (s *Server) After(ctx context.Context, resourceType model.Resource, res *config.ResourceEvent) error {
 	switch resourceType {
 	case model.RConfigGroup:
 		return s.onConfigGroupResource(ctx, res)
@@ -45,7 +45,7 @@ func (s *ServerAuthability) After(ctx context.Context, resourceType model.Resour
 }
 
 // onConfigGroupResource
-func (s *ServerAuthability) onConfigGroupResource(ctx context.Context, res *config.ResourceEvent) error {
+func (s *Server) onConfigGroupResource(ctx context.Context, res *config.ResourceEvent) error {
 	authCtx := ctx.Value(utils.ContextAuthContextKey).(*auth.AcquireContext)
 
 	authCtx.SetAttachment(auth.ResourceAttachmentKey, map[apisecurity.ResourceType][]auth.ResourceEntry{
@@ -69,5 +69,5 @@ func (s *ServerAuthability) onConfigGroupResource(ctx context.Context, res *conf
 	authCtx.SetAttachment(auth.LinkGroupsKey, utils.StringSliceDeDuplication(groups))
 	authCtx.SetAttachment(auth.RemoveLinkGroupsKey, utils.StringSliceDeDuplication(removeGroups))
 
-	return s.policyMgr.AfterResourceOperation(authCtx)
+	return s.policySvr.AfterResourceOperation(authCtx)
 }

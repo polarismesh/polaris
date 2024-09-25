@@ -166,10 +166,14 @@ type UserHelper interface {
 
 // PolicyHelper .
 type PolicyHelper interface {
+	// GetPolicyRule .
+	GetPolicyRule(id string) *authcommon.StrategyDetail
 	// CreatePrincipal 创建 principal 的默认 policy 资源
 	CreatePrincipal(ctx context.Context, tx store.Tx, p authcommon.Principal) error
 	// CleanPrincipal 清理 principal 所关联的 policy、role 资源
 	CleanPrincipal(ctx context.Context, tx store.Tx, p authcommon.Principal) error
+	// GetRole .
+	GetRole(id string) *authcommon.Role
 }
 
 // OperatorInfo 根据 token 解析出来的具体额外信息
@@ -190,7 +194,7 @@ type OperatorInfo struct {
 	Anonymous bool
 }
 
-func NewAnonymous() OperatorInfo {
+func NewAnonymousOperatorInfo() OperatorInfo {
 	return OperatorInfo{
 		Origin:     "",
 		OwnerID:    "",

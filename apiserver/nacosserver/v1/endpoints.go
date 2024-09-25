@@ -69,5 +69,5 @@ func (n *NacosV1Server) FetchNacosEndpoints(req *restful.Request, rsp *restful.R
 	}
 
 	rsp.WriteHeader(http.StatusOK)
-	rsp.Write([]byte(strings.Join(ips, "\n")))
+	_, _ = rsp.Write([]byte(strings.Join(ips, "\n")))
 }

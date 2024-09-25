@@ -324,15 +324,7 @@ func TestUpdateInstanceManyTimes(t *testing.T) {
 		go func(index int) {
 			defer wg.Done()
 			for c := 0; c < 16; c++ {
-				marshalVal, err := proto.Marshal(instanceReq)
-				if err != nil {
-					errs <- err
-					return
-				}
-
-				ret := &apiservice.Instance{}
-				proto.Unmarshal(marshalVal, ret)
-
+				ret := proto.Clone(instanceReq).(*apiservice.Instance)
 				ret.Weight = wrapperspb.UInt32(uint32(rand.Int() % 32767))
 				if updateResp := discoverSuit.DiscoverServer().UpdateInstances(discoverSuit.DefaultCtx, []*apiservice.Instance{instanceReq}); !respSuccess(updateResp) {
 					errs <- fmt.Errorf("error: %+v", updateResp)

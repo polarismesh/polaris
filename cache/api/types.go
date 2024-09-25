@@ -172,6 +172,15 @@ type CacheManager interface {
 type (
 	// NamespacePredicate .
 	NamespacePredicate func(context.Context, *model.Namespace) bool
+	// NamespaceArgs
+	NamespaceArgs struct {
+		// Filter extend filter params
+		Filter map[string][]string
+		// Offset
+		Offset int
+		// Limit
+		Limit int
+	}
 
 	// NamespaceCache 命名空间的 Cache 接口
 	NamespaceCache interface {
@@ -184,6 +193,8 @@ type (
 		GetNamespaceList() []*model.Namespace
 		// GetVisibleNamespaces list target namespace can visible other namespaces
 		GetVisibleNamespaces(namespace string) []*model.Namespace
+		// Query .
+		Query(context.Context, *NamespaceArgs) (uint32, []*model.Namespace, error)
 	}
 )
 
@@ -246,9 +257,9 @@ type (
 		GetServicesByFilter(ctx context.Context, serviceFilters *ServiceArgs,
 			instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.EnhancedService, error)
 		// ListServices get service list and revision by namespace
-		ListServices(ns string) (string, []*model.Service)
+		ListServices(ctx context.Context, ns string) (string, []*model.Service)
 		// ListAllServices get all service and revision
-		ListAllServices() (string, []*model.Service)
+		ListAllServices(ctx context.Context) (string, []*model.Service)
 		// ListServiceAlias list service link alias list
 		ListServiceAlias(namespace, name string) []*model.Service
 		// GetAliasFor get alias reference service info
@@ -317,30 +328,10 @@ type (
 	FaultDetectArgs struct {
 		// Filter extend filter params
 		Filter map[string]string
-		// ID route rule id
-		ID string
-		// Name route rule name
-		Name string
-		// Service service name
-		Service string
-		// Namespace namesapce
-		Namespace        string
-		ServiceNamespace string
-		DstNamespace     string
-		DstService       string
-		DstMethod        string
-		// Enable
-		Enable *bool
 		// Offset
 		Offset uint32
 		// Limit
 		Limit uint32
-		// OrderField Sort field
-		OrderField string
-		// OrderType Sorting rules
-		OrderType string
-		// Predicates 额外的数据检查
-		Predicates []FaultDetectPredicate
 	}
 
 	// FaultDetectCache  fault detect rule cache service
@@ -362,26 +353,10 @@ type (
 	LaneGroupArgs struct {
 		// Filter extend filter params
 		Filter map[string]string
-		// ID route rule id
-		ID string
-		// Name route rule name
-		Name string
-		// Service service name
-		Service string
-		// Namespace namesapce
-		Namespace string
-		// Enable
-		Enable *bool
 		// Offset
 		Offset uint32
 		// Limit
 		Limit uint32
-		// OrderField Sort field
-		OrderField string
-		// OrderType Sorting rules
-		OrderType string
-		// Predicates 额外的数据检查
-		Predicates []FaultDetectPredicate
 	}
 	// LaneCache .
 	LaneCache interface {
@@ -428,8 +403,6 @@ type (
 		OrderField string
 		// OrderType Sorting rules
 		OrderType string
-		// Predicates 额外的数据检查
-		Predicates []RouteRulePredicate
 	}
 
 	// RouterRuleIterProc Method definition of routing rules
@@ -484,8 +457,6 @@ type (
 		OrderField string
 		// OrderType Sorting rules
 		OrderType string
-		// Predicates .
-		Predicates []RateLimitRulePredicate
 	}
 
 	// RateLimitIterProc rate limit iter func
@@ -531,34 +502,10 @@ type (
 	CircuitBreakerRuleArgs struct {
 		// Filter extend filter params
 		Filter map[string]string
-		// ID route rule id
-		ID string
-		// Name route rule name
-		Name string
-		// Service service name
-		Service string
-		// Namespace namesapce
-		Namespace string
-		// SourceService source service name
-		SourceService string
-		// SourceNamespace source service namespace
-		SourceNamespace string
-		// DestinationService destination service name
-		DestinationService string
-		// DestinationNamespace destination service namespace
-		DestinationNamespace string
-		// Enable
-		Enable *bool
 		// Offset
 		Offset uint32
 		// Limit
 		Limit uint32
-		// OrderField Sort field
-		OrderField string
-		// OrderType Sorting rules
-		OrderType string
-		// Predicates 额外的数据检查
-		Predicates []CircuitBreakerPredicate
 	}
 	// CircuitBreakerCache  circuitBreaker配置的cache接口
 	CircuitBreakerCache interface {
@@ -708,10 +655,12 @@ type (
 	// StrategyCache is a cache for strategy rules.
 	StrategyCache interface {
 		Cache
+		// GetPolicyRule 获取策略信息
+		GetPolicyRule(id string) *authcommon.StrategyDetail
 		// GetPrincipalPolicies 根据 effect 获取 principal 的策略信息
 		GetPrincipalPolicies(effect string, p authcommon.Principal) []*authcommon.StrategyDetail
 		// Hint 确认某个 principal 对于资源的访问权限
-		Hint(p authcommon.Principal, r *authcommon.ResourceEntry) apisecurity.AuthAction
+		Hint(ctx context.Context, p authcommon.Principal, r *authcommon.ResourceEntry) apisecurity.AuthAction
 		// Query .
 		Query(context.Context, PolicySearchArgs) (uint32, []*authcommon.StrategyDetail, error)
 	}

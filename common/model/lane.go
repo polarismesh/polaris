@@ -49,6 +49,7 @@ type LaneGroup struct {
 	Revision    string
 	Description string
 	Valid       bool
+	Labels      map[string]string
 	CreateTime  time.Time
 	ModifyTime  time.Time
 	// LaneRules id -> *LaneRule

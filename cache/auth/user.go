@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"sort"
 	"sync/atomic"
 	"time"
 
@@ -376,7 +377,7 @@ func (uc *userCache) QueryUsers(ctx context.Context, args types.UserSearchArgs) 
 		if hasId && searchId != key {
 			return
 		}
-		if hasOwner && val.Owner != searchOwner {
+		if hasOwner && (val.Owner != searchOwner && val.ID != searchOwner) {
 			return
 		}
 		if hasName && !utils.IsWildMatch(val.Name, searchName) {
@@ -393,28 +394,31 @@ func (uc *userCache) QueryUsers(ctx context.Context, args types.UserSearchArgs) 
 		result = append(result, val)
 	})
 
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].ModifyTime.After(result[j].ModifyTime)
+	})
 	total, ret := uc.listUsersPage(result, args)
 	return total, ret, nil
 }
 
 func (uc *userCache) listUsersPage(users []*authcommon.User, args types.UserSearchArgs) (uint32, []*authcommon.User) {
 	total := uint32(len(users))
-	if args.Limit == 0 {
+	if args.Offset >= total || args.Limit == 0 {
 		return total, nil
 	}
-	start := args.Limit * (args.Offset - 1)
-	end := args.Limit * args.Offset
-	if start > total {
-		return total, nil
+	endIdx := args.Offset + args.Limit
+	if endIdx > total {
+		endIdx = total
 	}
-	if end > total {
-		end = total
-	}
-	return total, users[start:end]
+	return total, users[args.Offset:endIdx]
 }
 
 // QueryUserGroups .
 func (uc *userCache) QueryUserGroups(ctx context.Context, args types.UserGroupSearchArgs) (uint32, []*authcommon.UserGroupDetail, error) {
+	if err := uc.Update(); err != nil {
+		return 0, nil, err
+	}
+
 	searchId, hasId := args.Filters["id"]
 	searchName, hasName := args.Filters["name"]
 	searchOwner, hasOwner := args.Filters["owner"]
@@ -460,13 +464,14 @@ func (uc *userCache) QueryUserGroups(ctx context.Context, args types.UserGroupSe
 	return total, ret, nil
 }
 
-func (uc *userCache) listUserGroupsPage(groups []*authcommon.UserGroupDetail, args types.UserGroupSearchArgs) (uint32, []*authcommon.UserGroupDetail) {
+func (uc *userCache) listUserGroupsPage(groups []*authcommon.UserGroupDetail,
+	args types.UserGroupSearchArgs) (uint32, []*authcommon.UserGroupDetail) {
 	total := uint32(len(groups))
 	if args.Limit == 0 {
 		return total, nil
 	}
-	start := args.Limit * (args.Offset - 1)
-	end := args.Limit * args.Offset
+	start := args.Limit * args.Offset
+	end := args.Limit * (args.Offset + 1)
 	if start > total {
 		return total, nil
 	}

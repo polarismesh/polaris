@@ -18,7 +18,9 @@
 package namespace
 
 import (
+	"context"
 	"math"
+	"sort"
 	"time"
 
 	"go.uber.org/zap"
@@ -63,9 +65,7 @@ func (nsCache *namespaceCache) Initialize(c map[string]interface{}) error {
 // Update
 func (nsCache *namespaceCache) Update() error {
 	// 多个线程竞争，只有一个线程进行更新
-	_, err, _ := nsCache.updater.Do(nsCache.Name(), func() (interface{}, error) {
-		return nil, nsCache.DoCacheUpdate(nsCache.Name(), nsCache.realUpdate)
-	})
+	err, _ := nsCache.singleUpdate()
 	return err
 }
 
@@ -83,7 +83,6 @@ func (nsCache *namespaceCache) realUpdate() (map[string]time.Time, int64, error)
 }
 
 func (nsCache *namespaceCache) setNamespaces(nsSlice []*model.Namespace) map[string]time.Time {
-
 	lastMtime := nsCache.LastMtime(nsCache.Name()).Unix()
 
 	for index := range nsSlice {
@@ -199,4 +198,97 @@ func (nsCache *namespaceCache) GetNamespaceList() []*model.Namespace {
 	})
 
 	return nsArr
+}
+
+// forceQueryUpdate 为了确保读取的数据是最新的，这里需要做一个强制 update 的动作进行数据读取处理
+func (nsCache *namespaceCache) forceQueryUpdate() error {
+	err, shared := nsCache.singleUpdate()
+	// shared == true，表示当前已经有正在 update 执行的任务，这个任务不一定能够读取到最新的数据
+	// 为了避免读取到脏数据，在发起一次 singleUpdate
+	if shared {
+		log.Debug("[Cache][Namespace] force query update from store")
+		err, _ = nsCache.singleUpdate()
+	}
+	return err
+}
+
+func (nsCache *namespaceCache) singleUpdate() (error, bool) {
+	// 多个线程竞争，只有一个线程进行更新
+	_, err, shared := nsCache.updater.Do(nsCache.Name(), func() (interface{}, error) {
+		return nil, nsCache.DoCacheUpdate(nsCache.Name(), nsCache.realUpdate)
+	})
+	return err, shared
+}
+
+func (nsCache *namespaceCache) Query(ctx context.Context, args *types.NamespaceArgs) (uint32, []*model.Namespace, error) {
+	if err := nsCache.forceQueryUpdate(); err != nil {
+		return 0, nil, err
+	}
+
+	ret := make([]*model.Namespace, 0, 32)
+
+	predicates := types.LoadNamespacePredicates(ctx)
+
+	searchName, hasName := args.Filter["name"]
+	searchOwner, hasOwner := args.Filter["owner"]
+
+	nsCache.ids.ReadRange(func(key string, val *model.Namespace) {
+		for i := range predicates {
+			if !predicates[i](ctx, val) {
+				return
+			}
+		}
+
+		if hasName {
+			matchOne := false
+			for i := range searchName {
+				if utils.IsWildMatch(val.Name, searchName[i]) {
+					matchOne = true
+					break
+				}
+			}
+			// 如果没有匹配到，直接返回
+			if !matchOne {
+				return
+			}
+		}
+
+		if hasOwner {
+			matchOne := false
+			for i := range searchOwner {
+				if utils.IsWildMatch(val.Owner, searchOwner[i]) {
+					matchOne = true
+					break
+				}
+			}
+			// 如果没有匹配到，直接返回
+			if !matchOne {
+				return
+			}
+		}
+
+		ret = append(ret, val)
+	})
+
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].ModifyTime.After(ret[j].ModifyTime)
+	})
+
+	total, ret := nsCache.toPage(len(ret), ret, args)
+	return uint32(total), ret, nil
+}
+
+func (c *namespaceCache) toPage(total int, items []*model.Namespace,
+	args *types.NamespaceArgs) (int, []*model.Namespace) {
+	if len(items) == 0 {
+		return 0, []*model.Namespace{}
+	}
+	if args.Limit == 0 {
+		return total, items
+	}
+	endIdx := args.Offset + args.Limit
+	if endIdx > total {
+		endIdx = total
+	}
+	return total, items[args.Offset:endIdx]
 }

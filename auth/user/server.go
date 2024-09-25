@@ -76,7 +76,8 @@ func (svr *Server) Name() string {
 	return auth.DefaultUserMgnPluginName
 }
 
-func (svr *Server) Initialize(authOpt *auth.Config, storage store.Store, policySvr auth.StrategyServer, cacheMgr cachetypes.CacheManager) error {
+func (svr *Server) Initialize(authOpt *auth.Config, storage store.Store, policySvr auth.StrategyServer,
+	cacheMgr cachetypes.CacheManager) error {
 	svr.cacheMgr = cacheMgr
 	svr.storage = storage
 	svr.policySvr = policySvr
