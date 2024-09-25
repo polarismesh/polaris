@@ -142,7 +142,7 @@ func (n *ConfigServer) ConfigImport(req *restful.Request, rsp *restful.Response)
 	var metaDataItem *ZipItem
 	var items = make([]*ZipItem, 0, 32)
 
-	handler.ProcessZip(func(f *zip.File, data []byte) {
+	err := handler.ProcessZip(func(f *zip.File, data []byte) {
 		if (f.Name == ConfigExportMetadata || f.Name == ConfigExpotrMetadataV2) && metaDataItem == nil {
 			metaDataItem = &ZipItem{
 				Name: f.Name,
@@ -155,6 +155,10 @@ func (n *ConfigServer) ConfigImport(req *restful.Request, rsp *restful.Response)
 			Data: data,
 		})
 	})
+	if err != nil {
+		nacoshttp.WrirteNacosErrorResponse(err, rsp)
+		return
+	}
 
 	policy := req.QueryParameter("policy")
 

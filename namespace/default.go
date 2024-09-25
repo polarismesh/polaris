@@ -20,14 +20,13 @@ package namespace
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	"golang.org/x/sync/singleflight"
 
-	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
 	cachetypes "github.com/polarismesh/polaris/cache/api"
-	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -36,17 +35,36 @@ var (
 	namespaceServer = &Server{}
 	once            sync.Once
 	finishInit      bool
+	// serverProxyFactories Service Server API 代理工厂
+	serverProxyFactories = map[string]ServerProxyFactory{}
 )
 
+type ServerProxyFactory func(context.Context, NamespaceOperateServer, cachetypes.CacheManager) (NamespaceOperateServer, error)
+
+func RegisterServerProxy(name string, factor ServerProxyFactory) error {
+	if _, ok := serverProxyFactories[name]; ok {
+		return fmt.Errorf("duplicate ServerProxyFactory, name(%s)", name)
+	}
+	serverProxyFactories[name] = factor
+	return nil
+}
+
 type Config struct {
-	AutoCreate bool `yaml:"autoCreate"`
+	AutoCreate   bool     `yaml:"autoCreate"`
+	Interceptors []string `yaml:"-"`
 }
 
 // Initialize 初始化
-func Initialize(ctx context.Context, nsOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error {
+func Initialize(ctx context.Context, nsOpt *Config, storage store.Store, cacheMgr *cache.CacheManager) error {
 	var err error
 	once.Do(func() {
-		err = initialize(ctx, nsOpt, storage, cacheMgn)
+		actualSvr, proxySvr, err := InitServer(ctx, nsOpt, storage, cacheMgr)
+		if err != nil {
+			return
+		}
+		namespaceServer = actualSvr
+		server = proxySvr
+		return
 	})
 
 	if err != nil {
@@ -57,35 +75,36 @@ func Initialize(ctx context.Context, nsOpt *Config, storage store.Store, cacheMg
 	return nil
 }
 
-func initialize(_ context.Context, nsOpt *Config, storage store.Store, cacheMgn *cache.CacheManager) error {
-	if err := cacheMgn.OpenResourceCache(cachetypes.ConfigEntry{
+func InitServer(ctx context.Context, nsOpt *Config, storage store.Store,
+	cacheMgr *cache.CacheManager) (*Server, NamespaceOperateServer, error) {
+	if err := cacheMgr.OpenResourceCache(cachetypes.ConfigEntry{
 		Name: cachetypes.NamespaceName,
 	}); err != nil {
-		return err
-	}
-	namespaceServer.caches = cacheMgn
-	namespaceServer.storage = storage
-	namespaceServer.cfg = *nsOpt
-	namespaceServer.createNamespaceSingle = &singleflight.Group{}
-
-	// 获取History插件，注意：插件的配置在bootstrap已经设置好
-	namespaceServer.history = plugin.GetHistory()
-	if namespaceServer.history == nil {
-		log.Warn("Not Found History Log Plugin")
+		return nil, nil, err
 	}
 
-	userMgn, err := auth.GetUserServer()
-	if err != nil {
-		return err
-	}
+	actualSvr := new(Server)
+	actualSvr.caches = cacheMgr
+	actualSvr.storage = storage
+	actualSvr.cfg = *nsOpt
+	actualSvr.createNamespaceSingle = &singleflight.Group{}
 
-	strategyMgn, err := auth.GetStrategyServer()
-	if err != nil {
-		return err
-	}
+	var proxySvr NamespaceOperateServer
+	proxySvr = actualSvr
+	order := GetChainOrder()
+	for i := range order {
+		factory, exist := serverProxyFactories[order[i]]
+		if !exist {
+			return nil, nil, fmt.Errorf("name(%s) not exist in serverProxyFactories", order[i])
+		}
 
-	server = newServerAuthAbility(namespaceServer, userMgn, strategyMgn)
-	return nil
+		afterSvr, err := factory(ctx, proxySvr, cacheMgr)
+		if err != nil {
+			return nil, nil, err
+		}
+		proxySvr = afterSvr
+	}
+	return actualSvr, proxySvr, nil
 }
 
 // GetServer 获取已经初始化好的Server
@@ -104,4 +123,10 @@ func GetOriginServer() (*Server, error) {
 	}
 
 	return namespaceServer, nil
+}
+
+func GetChainOrder() []string {
+	return []string{
+		"auth",
+	}
 }

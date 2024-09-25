@@ -116,11 +116,11 @@ func (sc *ServiceContractCache) setContracts(values []*model.EnrichServiceContra
 		item := values[i]
 		if !item.Valid {
 			del++
-			sc.upsertValueCache(item, true)
+			_ = sc.upsertValueCache(item, true)
 			continue
 		}
 		upsert++
-		sc.upsertValueCache(item, false)
+		_ = sc.upsertValueCache(item, false)
 	}
 	return map[string]time.Time{
 		sc.Name(): lastMtime,

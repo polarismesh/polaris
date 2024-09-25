@@ -52,7 +52,7 @@ func (cfr *configFileReleaseStore) CreateConfigFileReleaseTx(tx store.Tx, data *
 	}
 
 	clean := "DELETE FROM config_file_release WHERE namespace = ? AND `group` = ? AND file_name = ? AND name = ? AND flag = 1"
-	if _, err := dbTx.Exec(clean, data.Namespace, data.Group, data.FileName, data.Name); err != nil {
+	if _, err = dbTx.Exec(clean, data.Namespace, data.Group, data.FileName, data.Name); err != nil {
 		return store.Error(err)
 	}
 

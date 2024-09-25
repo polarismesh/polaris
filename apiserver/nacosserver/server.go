@@ -148,7 +148,7 @@ func copyOption(m map[string]interface{}) map[string]interface{} {
 
 func (n *NacosServer) initPolarisResource() error {
 	var err error
-	n.namespaceSvr, err = namespace.GetServer()
+	n.namespaceSvr, err = namespace.GetOriginServer()
 	if err != nil {
 		return err
 	}

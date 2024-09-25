@@ -18,6 +18,7 @@
 package model
 
 import (
+	"context"
 	"strings"
 
 	"github.com/polarismesh/polaris/service"
@@ -43,7 +44,7 @@ type ServiceMetadata struct {
 
 func HandleServiceListRequest(discoverSvr service.DiscoverServer, namespace string, groupName string,
 	pageNo int, pageSize int) ([]string, int) {
-	_, services := discoverSvr.Cache().Service().ListServices(namespace)
+	_, services := discoverSvr.Cache().Service().ListServices(context.Background(), namespace)
 	offset := (pageNo - 1) * pageSize
 	limit := pageSize
 	if offset < 0 {

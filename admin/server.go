@@ -35,3 +35,9 @@ type Server struct {
 	cacheMgn          *cache.CacheManager
 	storage           store.Store
 }
+
+func GetChainOrder() []string {
+	return []string{
+		"auth",
+	}
+}

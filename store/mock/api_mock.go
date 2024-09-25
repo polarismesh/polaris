@@ -893,17 +893,17 @@ func (mr *MockStoreMockRecorder) DeleteRateLimit(limiting interface{}) *gomock.C
 }
 
 // DeleteRole mocks base method.
-func (m *MockStore) DeleteRole(role *auth.Role) error {
+func (m *MockStore) DeleteRole(tx store.Tx, role *auth.Role) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteRole", role)
+	ret := m.ctrl.Call(m, "DeleteRole", tx, role)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteRole indicates an expected call of DeleteRole.
-func (mr *MockStoreMockRecorder) DeleteRole(role interface{}) *gomock.Call {
+func (mr *MockStoreMockRecorder) DeleteRole(tx, role interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRole", reflect.TypeOf((*MockStore)(nil).DeleteRole), role)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRole", reflect.TypeOf((*MockStore)(nil).DeleteRole), tx, role)
 }
 
 // DeleteRoutingConfig mocks base method.
@@ -1889,6 +1889,21 @@ func (m *MockStore) GetRateLimitsForCache(mtime time.Time, firstUpdate bool) ([]
 func (mr *MockStoreMockRecorder) GetRateLimitsForCache(mtime, firstUpdate interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRateLimitsForCache", reflect.TypeOf((*MockStore)(nil).GetRateLimitsForCache), mtime, firstUpdate)
+}
+
+// GetRole mocks base method.
+func (m *MockStore) GetRole(id string) (*auth.Role, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRole", id)
+	ret0, _ := ret[0].(*auth.Role)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRole indicates an expected call of GetRole.
+func (mr *MockStoreMockRecorder) GetRole(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRole", reflect.TypeOf((*MockStore)(nil).GetRole), id)
 }
 
 // GetRoutingConfigV2WithID mocks base method.

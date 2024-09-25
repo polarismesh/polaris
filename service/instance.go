@@ -592,6 +592,10 @@ func (s *Server) updateInstanceAttribute(
 }
 
 func instanceLocationNeedUpdate(req *apimodel.Location, old *apimodel.Location) bool {
+	// 如果没有带上，则不进行更新
+	if req == nil {
+		return false
+	}
 	if req.GetRegion().GetValue() != old.GetRegion().GetValue() {
 		return true
 	}
@@ -863,7 +867,7 @@ func (s *Server) instanceAuth(ctx context.Context, req *apiservice.Instance, ser
 	*model.Service, *apiservice.Response) {
 	service, err := s.storage.GetServiceByID(serviceID)
 	if err != nil {
-		log.Error(err.Error(), utils.ZapRequestID(utils.ParseRequestID(ctx)))
+		log.Error(err.Error(), utils.RequestID(ctx))
 		return nil, api.NewInstanceResponse(commonstore.StoreCode2APICode(err), req)
 	}
 	if service == nil {

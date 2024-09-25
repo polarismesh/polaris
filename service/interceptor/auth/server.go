@@ -39,20 +39,19 @@ import (
 //	该层会对请求参数做一些调整，根据具体的请求发起人，设置为数据对应的 owner，不可为为别人进行创建资源
 type Server struct {
 	nextSvr   service.DiscoverServer
-	userMgn   auth.UserServer
+	userSvr   auth.UserServer
 	policySvr auth.StrategyServer
 }
 
-func NewServerAuthAbility(nextSvr service.DiscoverServer,
-	userMgn auth.UserServer, policySvr auth.StrategyServer) service.DiscoverServer {
+func NewServer(nextSvr service.DiscoverServer,
+	userSvr auth.UserServer, policySvr auth.StrategyServer) service.DiscoverServer {
 	proxy := &Server{
 		nextSvr:   nextSvr,
-		userMgn:   userMgn,
+		userSvr:   userSvr,
 		policySvr: policySvr,
 	}
 
-	actualSvr, ok := nextSvr.(*service.Server)
-	if ok {
+	if actualSvr, ok := nextSvr.(*service.Server); ok {
 		actualSvr.SetResourceHooks(proxy)
 	}
 	return proxy
@@ -203,20 +202,23 @@ func (svr *Server) collectRouteRuleV2AuthContext(ctx context.Context, req []*api
 		}
 	}
 
+	accessResources := map[apisecurity.ResourceType][]authcommon.ResourceEntry{}
+	if len(resources) != 0 {
+		accessResources[apisecurity.ResourceType_RouteRules] = resources
+	}
+
 	return authcommon.NewAcquireContext(
 		authcommon.WithRequestContext(ctx),
 		authcommon.WithOperation(resourceOp),
 		authcommon.WithModule(authcommon.DiscoverModule),
 		authcommon.WithMethod(methodName),
-		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
-			apisecurity.ResourceType_RouteRules: resources,
-		}),
+		authcommon.WithAccessResources(accessResources),
 	)
 }
 
-// collectCircuitBreakerRuleV2AuthContext 收集熔断v2规则
-func (svr *Server) collectCircuitBreakerRuleV2AuthContext(ctx context.Context,
-	req []*apifault.CircuitBreakerRule, resourceOp authcommon.ResourceOperation, methodName authcommon.ServerFunctionName) *authcommon.AcquireContext {
+// collectCircuitBreakerRuleV2 收集熔断v2规则
+func (svr *Server) collectCircuitBreakerRuleV2(ctx context.Context, req []*apifault.CircuitBreakerRule,
+	op authcommon.ResourceOperation, methodName authcommon.ServerFunctionName) *authcommon.AcquireContext {
 
 	resources := make([]authcommon.ResourceEntry, 0, len(req))
 	for i := range req {
@@ -225,14 +227,14 @@ func (svr *Server) collectCircuitBreakerRuleV2AuthContext(ctx context.Context,
 			resources = append(resources, authcommon.ResourceEntry{
 				Type:     apisecurity.ResourceType_CircuitBreakerRules,
 				ID:       saveRule.ID,
-				Metadata: saveRule.Proto.Metadata,
+				Metadata: saveRule.Proto.GetMetadata(),
 			})
 		}
 	}
 
 	return authcommon.NewAcquireContext(
 		authcommon.WithRequestContext(ctx),
-		authcommon.WithOperation(resourceOp),
+		authcommon.WithOperation(op),
 		authcommon.WithModule(authcommon.DiscoverModule),
 		authcommon.WithMethod(methodName),
 		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{
@@ -242,8 +244,8 @@ func (svr *Server) collectCircuitBreakerRuleV2AuthContext(ctx context.Context,
 }
 
 // collectFaultDetectAuthContext 收集主动探测规则
-func (svr *Server) collectFaultDetectAuthContext(ctx context.Context,
-	req []*apifault.FaultDetectRule, resourceOp authcommon.ResourceOperation, methodName authcommon.ServerFunctionName) *authcommon.AcquireContext {
+func (svr *Server) collectFaultDetectAuthContext(ctx context.Context, req []*apifault.FaultDetectRule,
+	op authcommon.ResourceOperation, methodName authcommon.ServerFunctionName) *authcommon.AcquireContext {
 
 	resources := make([]authcommon.ResourceEntry, 0, len(req))
 	for i := range req {
@@ -252,14 +254,14 @@ func (svr *Server) collectFaultDetectAuthContext(ctx context.Context,
 			resources = append(resources, authcommon.ResourceEntry{
 				Type:     apisecurity.ResourceType_FaultDetectRules,
 				ID:       saveRule.ID,
-				Metadata: saveRule.Proto.Metadata,
+				Metadata: saveRule.Proto.GetMetadata(),
 			})
 		}
 	}
 
 	return authcommon.NewAcquireContext(
 		authcommon.WithRequestContext(ctx),
-		authcommon.WithOperation(resourceOp),
+		authcommon.WithOperation(op),
 		authcommon.WithModule(authcommon.DiscoverModule),
 		authcommon.WithMethod(methodName),
 		authcommon.WithAccessResources(map[apisecurity.ResourceType][]authcommon.ResourceEntry{

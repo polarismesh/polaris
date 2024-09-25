@@ -22,4 +22,6 @@ type (
 	ContextKeyAutoCreateNamespace struct{}
 	// ContextKeyAutoCreateService .
 	ContextKeyAutoCreateService struct{}
+	// ContextKeyCompatible .
+	ContextKeyCompatible struct{}
 )

@@ -42,6 +42,26 @@ type RateLimit struct {
 	CreateTime time.Time
 	ModifyTime time.Time
 	EnableTime time.Time
+	Metadata   map[string]string
+}
+
+func (r *RateLimit) CopyNoProto() *RateLimit {
+	return &RateLimit{
+		ID:         r.ID,
+		ServiceID:  r.ServiceID,
+		Name:       r.Name,
+		Method:     r.Method,
+		Labels:     r.Labels,
+		Proto:      r.Proto,
+		Priority:   r.Priority,
+		Rule:       r.Rule,
+		Revision:   r.Revision,
+		Disable:    r.Disable,
+		Valid:      r.Valid,
+		CreateTime: r.CreateTime,
+		ModifyTime: r.ModifyTime,
+		EnableTime: r.EnableTime,
+	}
 }
 
 // Labels2Arguments 适配老的标签到新的参数列表

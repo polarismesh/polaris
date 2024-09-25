@@ -25,6 +25,7 @@ import (
 	"net/http"
 
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/google/uuid"
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 )
@@ -47,6 +48,10 @@ type Client struct {
 
 // SendRequest 发送请求 HTTP Post/Put
 func (c *Client) SendRequest(method string, url string, body *bytes.Buffer) (*http.Response, error) {
+	return c.SendRequestWithRequestID(uuid.New().String(), method, url, body)
+}
+
+func (c *Client) SendRequestWithRequestID(requestId, method string, url string, body *bytes.Buffer) (*http.Response, error) {
 	var request *http.Request
 	var err error
 
@@ -61,7 +66,7 @@ func (c *Client) SendRequest(method string, url string, body *bytes.Buffer) (*ht
 	}
 
 	request.Header.Add("Content-Type", "application/json")
-	request.Header.Add("Request-Id", "test")
+	request.Header.Add("Request-Id", requestId)
 	request.Header.Add("X-Polaris-Token", "nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=")
 
 	response, err := c.Worker.Do(request)

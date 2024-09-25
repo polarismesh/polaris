@@ -50,9 +50,6 @@ type policyCache struct {
 	// principalResources
 	principalResources map[authcommon.PrincipalType]*utils.SyncMap[string, *authcommon.PrincipalResourceContainer]
 
-	allowResourceLabels *utils.SyncMap[string, *utils.RefSyncSet[string]]
-	denyResourceLabels  *utils.SyncMap[string, *utils.RefSyncSet[string]]
-
 	singleFlight *singleflight.Group
 }
 
@@ -89,8 +86,6 @@ func (sc *policyCache) initContainers() {
 		authcommon.PrincipalUser:  utils.NewSyncMap[string, *authcommon.PrincipalResourceContainer](),
 		authcommon.PrincipalGroup: utils.NewSyncMap[string, *authcommon.PrincipalResourceContainer](),
 	}
-	sc.allowResourceLabels = utils.NewSyncMap[string, *utils.RefSyncSet[string]]()
-	sc.denyResourceLabels = utils.NewSyncMap[string, *utils.RefSyncSet[string]]()
 }
 
 func (sc *policyCache) Name() string {
@@ -133,7 +128,8 @@ func (sc *policyCache) setStrategys(strategies []*authcommon.StrategyDetail) (ma
 
 	for index := range strategies {
 		rule := strategies[index]
-		sc.handlePrincipalPolicies(rule)
+		cacheData := authcommon.NewPolicyDetailCache(rule)
+		sc.handlePrincipalPolicies(cacheData)
 		if !rule.Valid {
 			sc.rules.Delete(rule.ID)
 			remove++
@@ -143,17 +139,16 @@ func (sc *policyCache) setStrategys(strategies []*authcommon.StrategyDetail) (ma
 			} else {
 				update++
 			}
-			sc.rules.Store(rule.ID, authcommon.NewPolicyDetailCache(rule))
+			sc.rules.Store(rule.ID, cacheData)
 		}
 
 		lastMtime = int64(math.Max(float64(lastMtime), float64(rule.ModifyTime.Unix())))
 	}
-
 	return map[string]time.Time{sc.Name(): time.Unix(lastMtime, 0)}, add, update, remove
 }
 
 // handlePrincipalPolicies
-func (sc *policyCache) handlePrincipalPolicies(rule *authcommon.StrategyDetail) {
+func (sc *policyCache) handlePrincipalPolicies(rule *authcommon.PolicyDetailCache) {
 	// 计算 uid -> auth rule
 	principals := rule.Principals
 
@@ -192,7 +187,7 @@ func (sc *policyCache) handlePrincipalPolicies(rule *authcommon.StrategyDetail) 
 	}
 }
 
-func (sc *policyCache) writePrincipalLink(principal authcommon.Principal, rule *authcommon.StrategyDetail, del bool) {
+func (sc *policyCache) writePrincipalLink(principal authcommon.Principal, rule *authcommon.PolicyDetailCache, del bool) {
 	linkContainers := sc.allowPolicies[principal.PrincipalType]
 	if rule.Action == apisecurity.AuthAction_DENY.String() {
 		linkContainers = sc.denyPolicies[principal.PrincipalType]
@@ -210,27 +205,45 @@ func (sc *policyCache) writePrincipalLink(principal authcommon.Principal, rule *
 		values.Add(rule.ID)
 	}
 
-	principalResources, _ := sc.principalResources[principal.PrincipalType].ComputeIfAbsent(principal.PrincipalID, func(k string) *authcommon.PrincipalResourceContainer {
-		return authcommon.NewPrincipalResourceContainer()
-	})
+	principalResources, _ := sc.principalResources[principal.PrincipalType].ComputeIfAbsent(principal.PrincipalID,
+		func(k string) *authcommon.PrincipalResourceContainer {
+			return authcommon.NewPrincipalResourceContainer()
+		})
 
-	if rule.IsDeny() {
-		for i := range rule.Resources {
-			item := rule.Resources[i]
-			if rule.Valid {
-				principalResources.SaveDenyResource(item)
-			} else {
-				principalResources.DelDenyResource(item)
+	if oldRule, ok := sc.rules.Load(rule.ID); ok {
+		// 如果 action 不一致，则需要先清理掉之前的
+		if oldRule.GetAction() != rule.GetAction() {
+			for i := range oldRule.Resources {
+				principalResources.DelResource(oldRule.GetAction(), oldRule.Resources[i])
+			}
+		} else {
+			// 如果 action 一致，那么需要 diff 出移除的资源，然后移除
+			waitRemove := make([]*authcommon.StrategyResource, 0, 8)
+			for i := range oldRule.Resources {
+				item := oldRule.Resources[i]
+				resContainer, ok := rule.ResourceDict[apisecurity.ResourceType(item.ResType)]
+				if !ok {
+					waitRemove = append(waitRemove, &item)
+					continue
+				}
+				if ok := resContainer.Contains(item.ResID); !ok {
+					waitRemove = append(waitRemove, &item)
+				}
+			}
+			for i := range waitRemove {
+				item := waitRemove[i]
+				principalResources.DelResource(rule.GetAction(), *item)
 			}
 		}
-		return
 	}
+
+	// 处理新的资源
 	for i := range rule.Resources {
 		item := rule.Resources[i]
 		if rule.Valid {
-			principalResources.SaveAllowResource(item)
+			principalResources.SaveResource(rule.GetAction(), item)
 		} else {
-			principalResources.DelAllowResource(item)
+			principalResources.DelResource(rule.GetAction(), item)
 		}
 	}
 }
@@ -271,8 +284,17 @@ func (sc *policyCache) GetPrincipalPolicies(effect string, p authcommon.Principa
 	return result
 }
 
+func (sc *policyCache) GetPolicyRule(id string) *authcommon.StrategyDetail {
+	strategy, ok := sc.rules.Load(id)
+	if !ok {
+		return nil
+	}
+	return strategy.StrategyDetail
+}
+
 // GetPrincipalResources 返回 principal 的资源信息，返回顺序为 (allow, deny)
-func (sc *policyCache) Hint(p authcommon.Principal, r *authcommon.ResourceEntry) apisecurity.AuthAction {
+func (sc *policyCache) Hint(ctx context.Context, p authcommon.Principal, r *authcommon.ResourceEntry) apisecurity.AuthAction {
+	// 先比较下资源是否存在于某些鉴权规则中
 	resources, ok := sc.principalResources[p.PrincipalType].Load(p.PrincipalID)
 	if !ok {
 		return apisecurity.AuthAction_DENY
@@ -281,30 +303,52 @@ func (sc *policyCache) Hint(p authcommon.Principal, r *authcommon.ResourceEntry)
 	if ok {
 		return action
 	}
+
 	// 如果没办法从直接的 resource 中判断出来，那就根据资源标签在确认下，注意，这里必须 allMatch 才可以
-	if sc.hintLabels(p, r, sc.denyResourceLabels) {
+	if sc.hintLabels(ctx, p, r, sc.GetPrincipalPolicies("deny", p)) {
 		return apisecurity.AuthAction_DENY
 	}
-	if sc.hintLabels(p, r, sc.allowResourceLabels) {
+	if sc.hintLabels(ctx, p, r, sc.GetPrincipalPolicies("allow", p)) {
 		return apisecurity.AuthAction_ALLOW
 	}
 	return apisecurity.AuthAction_DENY
 }
 
-func (sc *policyCache) hintLabels(p authcommon.Principal, r *authcommon.ResourceEntry,
-	containers *utils.SyncMap[string, *utils.RefSyncSet[string]]) bool {
-	allMatch := true
-	for k, v := range r.Metadata {
-		labelVals, ok := sc.denyResourceLabels.Load(k)
-		if !ok {
-			allMatch = false
+func (sc *policyCache) hintLabels(ctx context.Context, p authcommon.Principal, r *authcommon.ResourceEntry,
+	policies []*authcommon.StrategyDetail) bool {
+	var principalCondition []authcommon.Condition
+	if val, ok := ctx.Value(authcommon.ContextKeyConditions{}).([]authcommon.Condition); ok {
+		principalCondition = val
+	}
+
+	for i := range policies {
+		item := policies[i]
+		conditions := item.Conditions
+		if len(conditions) == 0 {
+			conditions = principalCondition
 		}
-		allMatch = labelVals.Contains(v)
-		if !allMatch {
-			break
+		allMatch := len(conditions) != 0
+		for j := range conditions {
+			condition := conditions[j]
+			val, ok := r.Metadata[condition.Key]
+			if !ok {
+				allMatch = false
+				break
+			}
+			if compareFunc, ok := authcommon.ConditionCompareDict[condition.CompareFunc]; ok {
+				if allMatch = compareFunc(val, condition.Value); !allMatch {
+					break
+				}
+			} else {
+				allMatch = false
+				break
+			}
+		}
+		if allMatch {
+			return true
 		}
 	}
-	return allMatch
+	return false
 }
 
 // Query implements api.StrategyCache.
@@ -318,9 +362,9 @@ func (sc *policyCache) Query(ctx context.Context, args types.PolicySearchArgs) (
 	searchOwner, hasOwner := args.Filters["owner"]
 	searchDefault, hasDefault := args.Filters["default"]
 	searchResType, hasResType := args.Filters["res_type"]
-	searchResID, _ := args.Filters["res_id"]
+	searchResID := args.Filters["res_id"]
 	searchPrincipalId, hasPrincipalId := args.Filters["principal_id"]
-	searchPrincipalType, _ := args.Filters["principal_type"]
+	searchPrincipalType := args.Filters["principal_type"]
 
 	predicates := types.LoadAuthPolicyPredicates(ctx)
 
@@ -380,32 +424,21 @@ func (sc *policyCache) Query(ctx context.Context, args types.PolicySearchArgs) (
 		}
 		rules = append(rules, val.StrategyDetail)
 	})
-
+	sort.Slice(rules, func(i, j int) bool {
+		return rules[i].ModifyTime.After(rules[j].ModifyTime)
+	})
 	total, ret := sc.toPage(rules, args)
 	return total, ret, nil
 }
 
 func (sc *policyCache) toPage(rules []*authcommon.StrategyDetail, args types.PolicySearchArgs) (uint32, []*authcommon.StrategyDetail) {
-	beginIndex := args.Offset
-	endIndex := beginIndex + args.Limit
-	totalCount := uint32(len(rules))
-
-	if totalCount == 0 {
-		return totalCount, []*authcommon.StrategyDetail{}
+	total := uint32(len(rules))
+	if args.Offset >= total || args.Limit == 0 {
+		return total, nil
 	}
-	if beginIndex >= endIndex {
-		return totalCount, []*authcommon.StrategyDetail{}
+	endIdx := args.Offset + args.Limit
+	if endIdx > total {
+		endIdx = total
 	}
-	if beginIndex >= totalCount {
-		return totalCount, []*authcommon.StrategyDetail{}
-	}
-	if endIndex > totalCount {
-		endIndex = totalCount
-	}
-
-	sort.Slice(rules, func(i, j int) bool {
-		return rules[i].ModifyTime.After(rules[j].ModifyTime)
-	})
-
-	return totalCount, rules[beginIndex:endIndex]
+	return total, rules[args.Offset:endIdx]
 }

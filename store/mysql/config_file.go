@@ -300,7 +300,7 @@ func (cf *configFileStore) QueryConfigFiles(filter map[string]string, offset, li
 	err = cf.slave.processWithTransaction("batch-load-file-tags", func(tx *BaseTx) error {
 		for i := range files {
 			item := files[i]
-			if err := cf.loadFileTags(tx, item); err != nil {
+			if err = cf.loadFileTags(tx, item); err != nil {
 				return err
 			}
 		}

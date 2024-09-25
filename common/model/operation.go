@@ -62,12 +62,15 @@ const (
 	RUserGroup          Resource = "UserGroup"
 	RUserGroupRelation  Resource = "UserGroupRelation"
 	RAuthStrategy       Resource = "AuthStrategy"
+	RAuthRole           Resource = "Role"
 	RConfigGroup        Resource = "ConfigGroup"
 	RConfigFile         Resource = "ConfigFile"
 	RConfigFileRelease  Resource = "ConfigFileRelease"
 	RCircuitBreakerRule Resource = "CircuitBreakerRule"
 	RFaultDetectRule    Resource = "FaultDetectRule"
 	RServiceContract    Resource = "ServiceContract"
+	RLaneGroup          Resource = "LaneGroup"
+	RLaneRule           Resource = "LaneRule"
 )
 
 // RecordEntry Operation records

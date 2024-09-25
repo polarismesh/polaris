@@ -26,7 +26,8 @@ import (
 var (
 	authApiTags      = []string{"AuthRule"}
 	usersApiTags     = []string{"Users"}
-	userGroupApiTags = []string{"Users"}
+	userGroupApiTags = []string{"UserGroups"}
+	roleApiTags      = []string{"Roles"}
 )
 
 func EnrichAuthStatusApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
@@ -348,5 +349,45 @@ func EnrichResetGroupTokenApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder
 		Returns(0, "", struct {
 			BaseResponse
 			UserGroup apisecurity.UserGroup `json:"userGroup"`
+		}{})
+}
+
+func EnrichCreateRolesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.
+		Doc("批量创建角色").
+		Metadata(restfulspec.KeyOpenAPITags, roleApiTags).
+		Reads([]apisecurity.Role{}, "batch create role").
+		Returns(0, "", struct {
+			BaseResponse
+		}{})
+}
+
+func EnrichUpdateRolesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.
+		Doc("批量更新角色").
+		Metadata(restfulspec.KeyOpenAPITags, roleApiTags).
+		Reads([]apisecurity.Role{}, "batch update role").
+		Returns(0, "", struct {
+			BaseResponse
+		}{})
+}
+
+func EnrichDeleteRolesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.
+		Doc("批量删除角色").
+		Metadata(restfulspec.KeyOpenAPITags, roleApiTags).
+		Reads([]apisecurity.Role{}, "batch delete role").
+		Returns(0, "", struct {
+			BaseResponse
+		}{})
+}
+
+func EnrichGetRolesApiDocs(r *restful.RouteBuilder) *restful.RouteBuilder {
+	return r.
+		Doc("查询角色列表").
+		Metadata(restfulspec.KeyOpenAPITags, roleApiTags).
+		Reads([]apisecurity.Role{}, "query roles").
+		Returns(0, "", struct {
+			BaseResponse
 		}{})
 }

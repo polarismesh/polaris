@@ -197,7 +197,7 @@ func (n *NacosDataStorage) syncTask() {
 
 	// 计算需要 refresh 的服务信息列表
 	for _, ns := range nsList {
-		_, svcs := n.cacheMgr.Service().ListServices(ns.Name)
+		_, svcs := n.cacheMgr.Service().ListServices(context.Background(), ns.Name)
 		for _, svc := range svcs {
 			revision := n.cacheMgr.Service().GetRevisionWorker().GetServiceInstanceRevision(svc.ID)
 			oldRevision, ok := n.revisions[svc.ID]
