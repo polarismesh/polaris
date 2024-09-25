@@ -280,20 +280,13 @@ func (s *Server) findVisibleServices(serviceName, namespaceName string, req *api
 	visibleServices := make([]*model.Service, 0, 4)
 	// 数据源都来自Cache，这里拿到的service，已经是源服务
 	aliasFor := s.getServiceCache(serviceName, namespaceName)
-	if aliasFor == nil {
-		aliasFor = &model.Service{
-			Name:      serviceName,
-			Namespace: namespaceName,
-		}
-		ret := s.caches.Service().GetVisibleServicesInOtherNamespace(serviceName, namespaceName)
-		if len(ret) == 0 {
-			return nil, nil
-		}
-		visibleServices = append(visibleServices, ret...)
-	} else {
+	if aliasFor != nil {
 		visibleServices = append(visibleServices, aliasFor)
 	}
-
+	ret := s.caches.Service().GetVisibleServicesInOtherNamespace(serviceName, namespaceName)
+	if len(ret) > 0 {
+		visibleServices = append(visibleServices, ret...)
+	}
 	return aliasFor, visibleServices
 }
 
