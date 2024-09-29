@@ -277,7 +277,7 @@ func (s *strategyStore) addPolicyPrincipals(tx *BaseTx, id string, principals []
 		return nil
 	}
 
-	savePrincipalSql := "INSERT IGNORE INTO auth_principal(strategy_id, principal_id, principal_role, extend_info) VALUES "
+	savePrincipalSql := "INSERT IGNORE INTO auth_principal(strategy_id, principal_id, principal_role, IFNULL(extend_info, '')) VALUES "
 	values := make([]string, 0)
 	args := make([]interface{}, 0)
 
@@ -613,7 +613,7 @@ func (s *strategyStore) GetStrategyResources(principalId string,
 
 func (s *strategyStore) getStrategyPrincipals(queryHander QueryHandler, id string) ([]authcommon.Principal, error) {
 
-	rows, err := queryHander("SELECT principal_id, principal_role, extend_info FROM auth_principal WHERE strategy_id = ?", id)
+	rows, err := queryHander("SELECT principal_id, principal_role, IFNULL(extend_info, '') FROM auth_principal WHERE strategy_id = ?", id)
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
@@ -670,7 +670,7 @@ func (s *strategyStore) getStrategyConditions(queryHander QueryHandler, id strin
 
 func (s *strategyStore) getStrategyFunctions(queryHander QueryHandler, id string) ([]string, error) {
 
-	rows, err := queryHander("SELECT `function` FROM auth_strategy_label WHERE strategy_id = ?", id)
+	rows, err := queryHander("SELECT `function` FROM auth_strategy_function WHERE strategy_id = ?", id)
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
