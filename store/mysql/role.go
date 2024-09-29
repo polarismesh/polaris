@@ -70,7 +70,7 @@ func (s *roleStore) savePrincipals(tx *BaseTx, role *authcommon.Role) error {
 		return err
 	}
 
-	insertTpl := "INSERT INTO auth_role_principal(role_id, principal_id, principal_role, extend_info) VALUES (?, ?, ?)"
+	insertTpl := "INSERT INTO auth_role_principal(role_id, principal_id, principal_role, IFNULL(extend_info, '')) VALUES (?, ?, ?)"
 
 	for i := range role.Users {
 		args := []interface{}{role.ID, role.Users[i].PrincipalID, authcommon.PrincipalUser, utils.MustJson(role.Users[i].Extend)}
@@ -267,7 +267,8 @@ func (s *roleStore) GetMoreRoles(firstUpdate bool, mtime time.Time) ([]*authcomm
 }
 
 func (s *roleStore) fetchRolePrincipals(tx *BaseTx, role *authcommon.Role) error {
-	rows, err := tx.Query("SELECT role_id, principal_id, principal_role, extend_info FROM auth_role_principal WHERE rold_id = ?", role.ID)
+	rows, err := tx.Query("SELECT role_id, principal_id, principal_role, IFNULL(extend_info, '') FROM "+
+		" auth_role_principal WHERE rold_id = ?", role.ID)
 	if err != nil {
 		log.Error("[store][role] fetch role principals", zap.String("name", role.Name), zap.Error(err))
 		return store.Error(err)

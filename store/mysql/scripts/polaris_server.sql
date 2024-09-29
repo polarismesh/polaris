@@ -1026,6 +1026,7 @@ INSERT INTO
         `owner`,
         `comment`,
         `default`,
+        `source`,
         `revision`,
         `flag`,
         `ctime`,
@@ -1039,6 +1040,7 @@ VALUES
         '65e4789a6d5b49669adf1e9e8387549c',
         'default admin',
         1,
+        'Polaris',
         'fbca9bfa04ae4ead86e1ecf5811e32a9',
         0,
         sysdate(),
@@ -1163,6 +1165,7 @@ INSERT INTO
         `owner`,
         `comment`,
         `default`,
+        `source`,
         `revision`,
         `flag`,
         `ctime`,
@@ -1176,6 +1179,7 @@ VALUES
         '65e4789a6d5b49669adf1e9e8387549c',
         'global resources read onyly',
         1,
+        'Polaris',
         'fbca9bfa04ae4ead86e1ecf5811e32a9',
         0,
         sysdate(),
@@ -1278,15 +1282,15 @@ VALUES
 
 INSERT INTO
     auth_strategy_function (`strategy_id`, `function`) VALUES (
-        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        'bfa04ae1e32a94fbca9ead86e1ecf581',
         'Describe*'
     ),
     (
-        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        'bfa04ae1e32a94fbca9ead86e1ecf581',
         'List*'
     ),
     (
-        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        'bfa04ae1e32a94fbca9ead86e1ecf581',
         'Get*'
     );
 
@@ -1300,6 +1304,7 @@ INSERT INTO
         `owner`,
         `comment`,
         `default`,
+        `source`,
         `revision`,
         `flag`,
         `ctime`,
@@ -1313,6 +1318,7 @@ VALUES
         '65e4789a6d5b49669adf1e9e8387549c',
         'global resources read and write',
         1,
+        'Polaris',
         'fbca9bfa04ae4ead86e1ecf5811e32a9',
         0,
         sysdate(),
