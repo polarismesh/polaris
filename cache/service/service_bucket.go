@@ -165,8 +165,10 @@ func (s *serviceNamespaceBucket) ListAllServices() (string, []*model.Service) {
 
 	ret := make([]*model.Service, 0, 32)
 	for namespace := range s.names {
-		_, val := s.ListServices(namespace)
-		ret = append(ret, val...)
+		if val, ok := s.names[namespace]; ok {
+			_, svcs := val.listServices()
+			ret = append(ret, svcs...)
+		}
 	}
 
 	return s.revision, ret
@@ -217,13 +219,12 @@ func (s *serviceNameBucket) listServices() (string, []*model.Service) {
 }
 
 func (s *serviceNameBucket) reloadRevision() {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
+	s.lock.RLock()
 	revisions := make([]string, 0, len(s.names))
 	for i := range s.names {
 		revisions = append(revisions, s.names[i].Revision)
 	}
+	s.lock.RUnlock()
 
 	sort.Strings(revisions)
 
@@ -235,5 +236,7 @@ func (s *serviceNameBucket) reloadRevision() {
 		}
 	}
 
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	s.revisions = hex.EncodeToString(h.Sum(nil))
 }

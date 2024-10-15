@@ -120,7 +120,7 @@ func (svr *Server) createUser(ctx context.Context, req *apisecurity.User) *apise
 		return api.NewAuthResponse(commonstore.StoreCode2APICode(err))
 	}
 
-	if err := svr.policySvr.PolicyHelper().CreatePrincipal(ctx, tx, authcommon.Principal{
+	if err := svr.policySvr.PolicyHelper().CreatePrincipalPolicy(ctx, tx, authcommon.Principal{
 		PrincipalID:   data.ID,
 		PrincipalType: authcommon.PrincipalUser,
 		Owner:         data.Owner,

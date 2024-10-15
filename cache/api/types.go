@@ -318,6 +318,8 @@ type (
 		QueryInstances(filter, metaFilter map[string]string, offset, limit uint32) (uint32, []*model.Instance, error)
 		// DiscoverServiceInstances 服务发现获取实例
 		DiscoverServiceInstances(serviceID string, onlyHealthy bool) []*model.Instance
+		// RemoveService 
+		RemoveService(serviceID string)
 	}
 )
 

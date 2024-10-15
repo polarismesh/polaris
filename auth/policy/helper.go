@@ -45,7 +45,7 @@ func (h *DefaultPolicyHelper) GetPolicyRule(id string) *authcommon.StrategyDetai
 }
 
 // CreatePrincipal 创建 principal 的默认 policy 资源
-func (h *DefaultPolicyHelper) CreatePrincipal(ctx context.Context, tx store.Tx, p authcommon.Principal) error {
+func (h *DefaultPolicyHelper) CreatePrincipalPolicy(ctx context.Context, tx store.Tx, p authcommon.Principal) error {
 	if err := h.storage.AddStrategy(tx, defaultPrincipalPolicy(p)); err != nil {
 		return err
 	}
@@ -57,25 +57,22 @@ func defaultPrincipalPolicy(p authcommon.Principal) *authcommon.StrategyDetail {
 	ruleId := utils.NewUUID()
 
 	resources := []authcommon.StrategyResource{}
+	calleeMethods := []string{
+		// 用户操作权限
+		string(authcommon.DescribeUsers),
+		// 鉴权策略
+		string(authcommon.DescribeAuthPolicies),
+		string(authcommon.DescribeAuthPolicyDetail),
+		// 角色
+		string(authcommon.DescribeAuthRoles),
+	}
 	if p.PrincipalType == authcommon.PrincipalUser {
 		resources = append(resources, authcommon.StrategyResource{
 			StrategyID: ruleId,
 			ResType:    int32(apisecurity.ResourceType_Users),
 			ResID:      p.PrincipalID,
 		})
-	}
-
-	return &authcommon.StrategyDetail{
-		ID:         ruleId,
-		Name:       authcommon.BuildDefaultStrategyName(authcommon.PrincipalUser, p.Name),
-		Action:     apisecurity.AuthAction_ALLOW.String(),
-		Default:    true,
-		Owner:      p.Owner,
-		Revision:   utils.NewUUID(),
-		Source:     "Polaris",
-		Resources:  resources,
-		Principals: []authcommon.Principal{p},
-		CalleeMethods: []string{
+		calleeMethods = []string{
 			// 用户操作权限
 			string(authcommon.DescribeUsers),
 			string(authcommon.DescribeUserToken),
@@ -88,9 +85,22 @@ func defaultPrincipalPolicy(p authcommon.Principal) *authcommon.StrategyDetail {
 			string(authcommon.DescribeAuthPolicyDetail),
 			// 角色
 			string(authcommon.DescribeAuthRoles),
-		},
-		Valid:   true,
-		Comment: "default principal auth policy rule",
+		}
+	}
+
+	return &authcommon.StrategyDetail{
+		ID:            ruleId,
+		Name:          authcommon.BuildDefaultStrategyName(p.PrincipalType, p.Name),
+		Action:        apisecurity.AuthAction_ALLOW.String(),
+		Default:       true,
+		Owner:         p.Owner,
+		Revision:      utils.NewUUID(),
+		Source:        "Polaris",
+		Resources:     resources,
+		Principals:    []authcommon.Principal{p},
+		CalleeMethods: calleeMethods,
+		Valid:         true,
+		Comment:       "default principal auth policy rule",
 	}
 }
 

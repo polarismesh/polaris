@@ -69,8 +69,6 @@ type GroupStore interface {
 	GetGroup(id string) (*authcommon.UserGroupDetail, error)
 	// GetGroupByName Get user groups according to Name and Owner
 	GetGroupByName(name, owner string) (*authcommon.UserGroup, error)
-	// GetGroups Get a list of user groups
-	GetGroups(filters map[string]string, offset uint32, limit uint32) (uint32, []*authcommon.UserGroup, error)
 	// GetUserGroupsForCache Refresh of getting user groups for cache
 	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
 	GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*authcommon.UserGroupDetail, error)

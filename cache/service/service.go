@@ -409,6 +409,8 @@ func (sc *serviceCache) removeServices(service *model.Service) {
 	sc.alias.cleanServiceAlias(service)
 	// delete pending count service task
 	sc.pendingServices.Delete(service.ID)
+	// delete instance link service info
+	sc.instCache.RemoveService(service.ID)
 
 	// Delete the index of servicename
 	spaceName := service.Namespace

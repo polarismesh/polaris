@@ -168,8 +168,8 @@ type UserHelper interface {
 type PolicyHelper interface {
 	// GetPolicyRule .
 	GetPolicyRule(id string) *authcommon.StrategyDetail
-	// CreatePrincipal 创建 principal 的默认 policy 资源
-	CreatePrincipal(ctx context.Context, tx store.Tx, p authcommon.Principal) error
+	// CreatePrincipalPolicy 创建 principal 的默认 policy 资源
+	CreatePrincipalPolicy(ctx context.Context, tx store.Tx, p authcommon.Principal) error
 	// CleanPrincipal 清理 principal 所关联的 policy、role 资源
 	CleanPrincipal(ctx context.Context, tx store.Tx, p authcommon.Principal) error
 	// GetRole .

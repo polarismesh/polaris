@@ -78,7 +78,7 @@ policies:
     name: 全局只读策略
     action: ALLOW
     comment: global resources read onyly
-    default: false
+    default: true
     owner: 65e4789a6d5b49669adf1e9e8387549c
     calleemethods: ["Describe*", "List*", "Get*"]
     resources:
@@ -127,7 +127,7 @@ policies:
     name: 全局读写策略
     action: ALLOW
     comment: global resources read and write
-    default: false
+    default: true
     owner: 65e4789a6d5b49669adf1e9e8387549c
     calleemethods: ["*"]
     resources:

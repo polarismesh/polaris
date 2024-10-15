@@ -80,7 +80,7 @@ func (svr *Server) CreateGroup(ctx context.Context, req *apisecurity.UserGroup) 
 		log.Error(err.Error(), utils.RequestID(ctx))
 		return api.NewAuthResponseWithMsg(commonstore.StoreCode2APICode(err), err.Error())
 	}
-	if err := svr.policySvr.PolicyHelper().CreatePrincipal(ctx, tx, authcommon.Principal{
+	if err := svr.policySvr.PolicyHelper().CreatePrincipalPolicy(ctx, tx, authcommon.Principal{
 		PrincipalID:   data.ID,
 		PrincipalType: authcommon.PrincipalGroup,
 		Owner:         data.Owner,
@@ -182,6 +182,11 @@ func (svr *Server) DeleteGroup(ctx context.Context, req *apisecurity.UserGroup) 
 	}); err != nil {
 		log.Error("[Auth][User] delete user_group from policy server", utils.RequestID(ctx), zap.Error(err))
 		return api.NewAuthResponse(commonstore.StoreCode2APICode(err))
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Error("[Auth][User] delete user_group commit storage tx", utils.RequestID(ctx), zap.Error(err))
+		return api.NewAuthResponse(apimodel.Code_ExecuteException)
 	}
 
 	log.Info("delete group", utils.RequestID(ctx), zap.String("name", req.Name.GetValue()))
