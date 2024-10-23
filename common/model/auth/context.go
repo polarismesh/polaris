@@ -17,6 +17,16 @@
 
 package auth
 
+import "context"
+
 type (
-	ContextKeyConditions struct{}
+	ContextKeyConditions   struct{}
+	ContextKeyInitMainUser struct{}
 )
+
+// IsInitMainUser .
+func IsInitMainUser(ctx context.Context) bool {
+	val := ctx.Value(ContextKeyInitMainUser{})
+	ret, _ := val.(bool)
+	return ret
+}

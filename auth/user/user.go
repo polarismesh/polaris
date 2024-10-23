@@ -68,7 +68,11 @@ func (svr *Server) CreateUser(ctx context.Context, req *apisecurity.User) *apise
 
 	// 如果创建的目标账户类型是非子账户，则 ownerId 需要设置为 “”
 	if convertCreateUserRole(authcommon.ParseUserRole(ctx)) != authcommon.SubAccountUserRole {
-		ownerID = ""
+		// 如果创建的不是子帐户，需要判断是否来自内部的 InitMainUser 请求
+		if !authcommon.IsInitMainUser(ctx) {
+			log.Error("[auth][user] can't create user which role is not sub-account", utils.RequestID(ctx))
+			return api.NewUserResponse(apimodel.Code_OperationRoleForbidden, req)
+		}
 	}
 
 	if ownerID != "" {

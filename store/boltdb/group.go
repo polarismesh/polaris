@@ -264,8 +264,8 @@ func (gs *groupStore) GetGroupByName(name, owner string) (*authcommon.UserGroup,
 	return ret.UserGroup, nil
 }
 
-// GetGroupsForCache 查询用户分组数据，主要用于Cache更新
-func (gs *groupStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*authcommon.UserGroupDetail, error) {
+// GetMoreGroups 查询用户分组数据，主要用于Cache更新
+func (gs *groupStore) GetMoreGroups(mtime time.Time, firstUpdate bool) ([]*authcommon.UserGroupDetail, error) {
 	ret, err := gs.handler.LoadValuesByFilter(tblGroup, []string{GroupFieldModifyTime}, &groupForStore{},
 		func(m map[string]interface{}) bool {
 			mt := m[GroupFieldModifyTime].(time.Time)

@@ -25,6 +25,7 @@ import (
 
 	"github.com/emicklei/go-restful/v3"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	"github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 
 	"github.com/polarismesh/polaris/apiserver/httpserver/docs"
@@ -48,7 +49,7 @@ func (h *HTTPServer) index(_ *restful.Request, rsp *restful.Response) {
 	_, _ = rsp.Write([]byte("Polaris Server"))
 }
 
-// GetMaintainAccessServer 运维接口
+// GetAdminAccessServer 运维接口
 func (h *HTTPServer) GetAdminAccessServer() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.Path("/maintain/v1").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
@@ -68,6 +69,8 @@ func (h *HTTPServer) GetAdminAccessServer() *restful.WebService {
 	ws.Route(docs.EnrichGetReportClientsApiDocs(ws.GET("/report/clients").To(h.GetReportClients)))
 	ws.Route(docs.EnrichEnablePprofApiDocs(ws.POST("/pprof/enable").To(h.EnablePprof)))
 	ws.Route(docs.EnrichGetServerFunctionsApiDocs(ws.GET("/server/functions").To(h.GetServerFunctions)))
+	ws.Route(ws.GET("/mainuser/exist").To(h.HasMainUser))
+	ws.Route(ws.GET("/mainuser/create").To(h.InitMainUser))
 	return ws
 }
 
@@ -306,6 +309,36 @@ func (h *HTTPServer) EnablePprof(req *restful.Request, rsp *restful.Response) {
 	}
 
 	h.enablePprof.Store(pprofEnable.Enable)
+	_ = rsp.WriteEntity("ok")
+}
+
+func (h *HTTPServer) HasMainUser(req *restful.Request, rsp *restful.Response) {
+	ctx := initContext(req)
+	ret, err := h.maintainServer.HasMainUser(ctx)
+	if err != nil {
+		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
+		return
+	}
+	_ = rsp.WriteAsJson(ret)
+}
+
+func (h *HTTPServer) InitMainUser(req *restful.Request, rsp *restful.Response) {
+	handler := &httpcommon.Handler{
+		Request:  req,
+		Response: rsp,
+	}
+
+	user := &security.User{}
+	ctx, err := handler.Parse(user)
+	if err != nil {
+		handler.WriteHeaderAndProto(api.NewAuthResponseWithMsg(apimodel.Code_ParseException, err.Error()))
+		return
+	}
+
+	if err := h.maintainServer.InitMainUser(ctx, *user); err != nil {
+		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
+		return
+	}
 	_ = rsp.WriteEntity("ok")
 }
 

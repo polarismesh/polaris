@@ -266,8 +266,8 @@ func (u *groupStore) GetGroupByName(name, owner string) (*authcommon.UserGroup, 
 	return group, nil
 }
 
-// GetGroupsForCache .
-func (u *groupStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*authcommon.UserGroupDetail, error) {
+// GetMoreGroups .
+func (u *groupStore) GetMoreGroups(mtime time.Time, firstUpdate bool) ([]*authcommon.UserGroupDetail, error) {
 	tx, err := u.slave.Begin()
 	if err != nil {
 		return nil, store.Error(err)

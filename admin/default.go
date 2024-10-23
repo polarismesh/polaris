@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	"github.com/polarismesh/polaris/admin/job"
+	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/healthcheck"
@@ -48,13 +49,15 @@ func RegisterServerProxy(name string, factor ServerProxyFactory) error {
 
 // Initialize 初始化
 func Initialize(ctx context.Context, cfg *Config, namingService service.DiscoverServer,
-	healthCheckServer *healthcheck.Server, cacheMgn *cache.CacheManager, storage store.Store) error {
+	healthCheckServer *healthcheck.Server, cacheMgn *cache.CacheManager, storage store.Store,
+	userSvr auth.UserServer, policySvr auth.StrategyServer) error {
 
 	if finishInit {
 		return nil
 	}
 
-	proxySvr, actualSvr, err := InitServer(ctx, cfg, namingService, healthCheckServer, cacheMgn, storage)
+	proxySvr, actualSvr, err := InitServer(ctx, cfg, namingService, healthCheckServer, cacheMgn,
+		storage, userSvr, policySvr)
 	if err != nil {
 		return err
 	}
@@ -66,13 +69,16 @@ func Initialize(ctx context.Context, cfg *Config, namingService service.Discover
 }
 
 func InitServer(ctx context.Context, cfg *Config, namingService service.DiscoverServer,
-	healthCheckServer *healthcheck.Server, cacheMgn *cache.CacheManager, storage store.Store) (AdminOperateServer, *Server, error) {
+	healthCheckServer *healthcheck.Server, cacheMgn *cache.CacheManager, storage store.Store,
+	userSvr auth.UserServer, policySvr auth.StrategyServer) (AdminOperateServer, *Server, error) {
 
 	actualSvr := new(Server)
 
+	actualSvr.userSvr = userSvr
+	actualSvr.policySvr = policySvr
 	actualSvr.namingServer = namingService
 	actualSvr.healthCheckServer = healthCheckServer
-	actualSvr.cacheMgn = cacheMgn
+	actualSvr.cacheMgr = cacheMgn
 	actualSvr.storage = storage
 
 	maintainJobs := job.NewMaintainJobs(namingService, cacheMgn, storage)

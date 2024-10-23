@@ -211,7 +211,8 @@ func StartComponents(ctx context.Context, cfg *boot_config.Config) error {
 	}
 
 	// 初始化运维操作模块
-	if err := admin.Initialize(ctx, &cfg.Maintain, namingSvr, healthCheckServer, cacheMgn, s); err != nil {
+	if err := admin.Initialize(ctx, &cfg.Maintain, namingSvr, healthCheckServer, cacheMgn, s,
+		userMgn, strategyMgn); err != nil {
 		return err
 	}
 

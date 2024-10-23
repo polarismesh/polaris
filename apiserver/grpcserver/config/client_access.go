@@ -201,7 +201,14 @@ func (g *ConfigGRPCServer) Discover(svr apiconfig.PolarisConfigGRPC_DiscoverServ
 		switch in.Type {
 		case apiconfig.ConfigDiscoverRequest_CONFIG_FILE:
 			action = metrics.ActionGetConfigFile
-			ret := g.configServer.GetConfigFileWithCache(ctx, &apiconfig.ClientConfigFileInfo{})
+			version, _ := strconv.ParseUint(in.GetRevision(), 10, 64)
+			ret := g.configServer.GetConfigFileWithCache(ctx, &apiconfig.ClientConfigFileInfo{
+				Namespace: in.GetConfigFile().GetNamespace(),
+				Group:     in.GetConfigFile().GetGroup(),
+				FileName:  in.GetConfigFile().GetFileName(),
+				Version:   wrapperspb.UInt64(version),
+				PublicKey: in.GetConfigFile().GetPublicKey(),
+			})
 			out = api.NewConfigDiscoverResponse(apimodel.Code(ret.GetCode().GetValue()))
 			out.ConfigFile = ret.GetConfigFile()
 			out.Type = apiconfig.ConfigDiscoverResponse_CONFIG_FILE

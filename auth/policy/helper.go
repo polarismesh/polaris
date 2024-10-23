@@ -46,10 +46,118 @@ func (h *DefaultPolicyHelper) GetPolicyRule(id string) *authcommon.StrategyDetai
 
 // CreatePrincipal 创建 principal 的默认 policy 资源
 func (h *DefaultPolicyHelper) CreatePrincipalPolicy(ctx context.Context, tx store.Tx, p authcommon.Principal) error {
-	if err := h.storage.AddStrategy(tx, defaultPrincipalPolicy(p)); err != nil {
-		return err
+	if p.PrincipalType == authcommon.PrincipalUser && authcommon.IsInitMainUser(ctx) {
+		// 创建的是管理员帐户策略
+		if err := h.storage.AddStrategy(tx, mainUserPrincipalPolicy(p)); err != nil {
+			return err
+		}
+		// 创建默认策略
+		policies := []*authcommon.StrategyDetail{defaultReadWritePolicy(p), defaultReadOnlyPolicy(p)}
+		for i := range policies {
+			if err := h.storage.AddStrategy(tx, policies[i]); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
-	return nil
+	return h.storage.AddStrategy(tx, defaultPrincipalPolicy(p))
+}
+
+func mainUserPrincipalPolicy(p authcommon.Principal) *authcommon.StrategyDetail {
+	// Create the user's default weight policy
+	ruleId := utils.NewUUID()
+
+	resources := []authcommon.StrategyResource{}
+
+	for _, v := range apisecurity.ResourceType_value {
+		resources = append(resources, authcommon.StrategyResource{
+			StrategyID: ruleId,
+			ResType:    v,
+			ResID:      "*",
+		})
+	}
+
+	calleeMethods := []string{"*"}
+	return &authcommon.StrategyDetail{
+		ID:            ruleId,
+		Name:          authcommon.BuildDefaultStrategyName(p.PrincipalType, p.Name),
+		Action:        apisecurity.AuthAction_ALLOW.String(),
+		Default:       true,
+		Owner:         p.Owner,
+		Revision:      utils.NewUUID(),
+		Source:        "Polaris",
+		Resources:     resources,
+		Principals:    []authcommon.Principal{p},
+		CalleeMethods: calleeMethods,
+		Valid:         true,
+		Comment:       "default main user auth policy rule",
+	}
+}
+
+func defaultReadWritePolicy(p authcommon.Principal) *authcommon.StrategyDetail {
+	// Create the user's default weight policy
+	ruleId := utils.NewUUID()
+
+	resources := []authcommon.StrategyResource{}
+
+	for _, v := range apisecurity.ResourceType_value {
+		resources = append(resources, authcommon.StrategyResource{
+			StrategyID: ruleId,
+			ResType:    v,
+			ResID:      "*",
+		})
+	}
+
+	calleeMethods := []string{"*"}
+	return &authcommon.StrategyDetail{
+		ID:            ruleId,
+		Name:          "全局读写策略",
+		Action:        apisecurity.AuthAction_ALLOW.String(),
+		Default:       true,
+		Owner:         p.Owner,
+		Revision:      utils.NewUUID(),
+		Source:        "Polaris",
+		Resources:     resources,
+		Principals:    []authcommon.Principal{p},
+		CalleeMethods: calleeMethods,
+		Valid:         true,
+		Comment:       "global resources read and write",
+	}
+}
+
+func defaultReadOnlyPolicy(p authcommon.Principal) *authcommon.StrategyDetail {
+	// Create the user's default weight policy
+	ruleId := utils.NewUUID()
+
+	resources := []authcommon.StrategyResource{}
+
+	for _, v := range apisecurity.ResourceType_value {
+		resources = append(resources, authcommon.StrategyResource{
+			StrategyID: ruleId,
+			ResType:    v,
+			ResID:      "*",
+		})
+	}
+
+	calleeMethods := []string{
+		"Describe*",
+		"List*",
+		"Get*",
+	}
+	return &authcommon.StrategyDetail{
+		ID:            ruleId,
+		Name:          "全局只读策略",
+		Action:        apisecurity.AuthAction_ALLOW.String(),
+		Default:       true,
+		Owner:         p.Owner,
+		Revision:      utils.NewUUID(),
+		Source:        "Polaris",
+		Resources:     resources,
+		Principals:    []authcommon.Principal{p},
+		CalleeMethods: calleeMethods,
+		Valid:         true,
+		Comment:       "global resources read only policy rule",
+	}
 }
 
 func defaultPrincipalPolicy(p authcommon.Principal) *authcommon.StrategyDetail {

@@ -150,8 +150,8 @@ func TestUserCache_UpdateNormal(t *testing.T) {
 			copyGroup.UserIds = newUserIds
 			copyGroups = append(copyGroups, &copyGroup)
 		}
-		store.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).Return(copyUsers, nil).Times(1)
-		store.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).Return(copyGroups, nil).Times(1)
+		store.EXPECT().GetMoreUsers(gomock.Any(), gomock.Any()).Return(copyUsers, nil).Times(1)
+		store.EXPECT().GetMoreGroups(gomock.Any(), gomock.Any()).Return(copyGroups, nil).Times(1)
 
 		assert.NoError(t, uc.Update())
 
@@ -217,8 +217,8 @@ func TestUserCache_UpdateNormal(t *testing.T) {
 			copyGroups = append(copyGroups, &copyGroup)
 		}
 
-		store.EXPECT().GetUsersForCache(gomock.Any(), gomock.Any()).Return(copyUsers, nil).Times(1)
-		store.EXPECT().GetGroupsForCache(gomock.Any(), gomock.Any()).Return(copyGroups, nil).Times(1)
+		store.EXPECT().GetMoreUsers(gomock.Any(), gomock.Any()).Return(copyUsers, nil).Times(1)
+		store.EXPECT().GetMoreGroups(gomock.Any(), gomock.Any()).Return(copyGroups, nil).Times(1)
 
 		assert.NoError(t, uc.Update())
 

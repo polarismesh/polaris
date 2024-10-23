@@ -27,6 +27,7 @@ import (
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
 	connlimit "github.com/polarismesh/polaris/common/conn/limit"
@@ -39,11 +40,27 @@ import (
 	"github.com/polarismesh/polaris/plugin"
 )
 
-func (s *Server) HasMainUser(ctx context.Context, user apisecurity.User) (bool, error) {
-	return false, nil
+// HasMainUser 判断是否存在主用户
+func (s *Server) HasMainUser(ctx context.Context) (*apisecurity.User, error) {
+	mainUser, err := s.storage.GetMainUser()
+	if err != nil {
+		log.Error("check hash main user", zap.Error(err), utils.RequestID(ctx))
+		return nil, err
+	}
+	ret := mainUser.ToSpec()
+	ret.AuthToken = wrapperspb.String("")
+	return ret, nil
 }
 
-func (s *Server) InitMainUser(ctx context.Context, user apisecurity.User) error {
+// InitMainUser 初始化主用户
+func (s *Server) InitMainUser(_ context.Context, user apisecurity.User) error {
+	ctx := context.WithValue(context.Background(), authcommon.ContextKeyInitMainUser{}, true)
+	rsp := s.userSvr.CreateUsers(ctx, []*apisecurity.User{
+		&user,
+	})
+	if !api.IsSuccess(rsp) {
+		return errors.New(rsp.GetInfo().GetValue())
+	}
 	return nil
 }
 

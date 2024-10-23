@@ -237,9 +237,6 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, filter *apiservice.D
 			continue
 		}
 		revision := s.caches.Service().GetRevisionWorker().GetServiceInstanceRevision(svc.ID)
-		if revision == "" {
-			revision = utils.NewUUID()
-		}
 		revisions = append(revisions, revision)
 
 		for i := range ret {
