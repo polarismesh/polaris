@@ -31,7 +31,9 @@ import (
 // CreateConfigFile 创建配置文件
 func (s *Server) CreateConfigFile(ctx context.Context,
 	configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-
+	if checkRsp := s.checkConfigFileParams(configFile); checkRsp != nil {
+		return api.NewConfigFileResponse(apimodel.Code(checkRsp.Code.GetValue()), configFile)
+	}
 	return s.nextServer.CreateConfigFile(ctx, configFile)
 }
 
@@ -73,7 +75,9 @@ func (s *Server) SearchConfigFile(ctx context.Context,
 // UpdateConfigFile 更新配置文件
 func (s *Server) UpdateConfigFile(
 	ctx context.Context, configFile *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-
+	if checkRsp := s.checkConfigFileParams(configFile); checkRsp != nil {
+		return api.NewConfigFileResponse(apimodel.Code(checkRsp.Code.GetValue()), configFile)
+	}
 	return s.nextServer.UpdateConfigFile(ctx, configFile)
 }
 
