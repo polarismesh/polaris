@@ -604,24 +604,48 @@ func (s *Server) UpsertAndReleaseConfigFile(ctx context.Context,
 
 	tx, err := s.storage.StartTx()
 	if err != nil {
-		log.Error("[Config][File] upsert config file when begin tx.", utils.RequestID(ctx), zap.Error(err))
+		log.Error("[Config][File] upsert config file when begin tx.", utils.RequestID(ctx),
+			zap.String("namespace", req.GetNamespace().GetValue()), zap.String("group", req.GetGroup().GetValue()),
+			zap.String("fileName", req.GetFileName().GetValue()), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 
 	defer func() {
 		_ = tx.Rollback()
 	}()
+	saveFile, err := s.storage.LockConfigFile(tx, &model.ConfigFileKey{
+		Namespace: req.GetNamespace().GetValue(),
+		Group:     req.GetGroup().GetValue(),
+		Name:      req.GetFileName().GetValue(),
+	})
+	if err != nil {
+		log.Error("[Config][File] lock config file when begin tx.", utils.RequestID(ctx),
+			zap.String("namespace", req.GetNamespace().GetValue()), zap.String("group", req.GetGroup().GetValue()),
+			zap.String("fileName", req.GetFileName().GetValue()), zap.Error(err))
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
+	}
 
 	historyRecords := []func(){}
-	upsertResp := s.handleCreateConfigFile(ctx, tx, upsertFileReq)
-	if upsertResp.GetCode().GetValue() == uint32(apimodel.Code_ExistedResource) {
+
+	var upsertResp *apiconfig.ConfigResponse
+	if saveFile == nil {
+		upsertResp = s.handleCreateConfigFile(ctx, tx, upsertFileReq)
+		historyRecords = append(historyRecords, func() {
+			s.RecordHistory(ctx, configFileRecordEntry(ctx, upsertFileReq, model.OCreate))
+		})
+	} else {
+		actualMd5 := CalMd5(saveFile.Content)
+		// 只有显示设置了 md5 字段值才会进入 CAS 发布流程
+		if req.GetMd5().GetValue() != "" && req.GetMd5().GetValue() != actualMd5 {
+			log.Error("[Config][File] cas compare config file.", utils.RequestID(ctx),
+				zap.String("namespace", req.GetNamespace().GetValue()), zap.String("group", req.GetGroup().GetValue()),
+				zap.String("fileName", req.GetFileName().GetValue()),
+				zap.String("expect", req.GetMd5().GetValue()), zap.String("actual", actualMd5))
+			return api.NewConfigResponse(apimodel.Code_DataConflict)
+		}
 		upsertResp = s.handleUpdateConfigFile(ctx, tx, upsertFileReq)
 		historyRecords = append(historyRecords, func() {
 			s.RecordHistory(ctx, configFileRecordEntry(ctx, upsertFileReq, model.OUpdate))
-		})
-	} else {
-		historyRecords = append(historyRecords, func() {
-			s.RecordHistory(ctx, configFileRecordEntry(ctx, upsertFileReq, model.OCreate))
 		})
 	}
 	if upsertResp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {

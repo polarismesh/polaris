@@ -91,7 +91,7 @@ func (g *ConfigGRPCServer) PublishConfigFile(ctx context.Context,
 func (g *ConfigGRPCServer) UpsertAndPublishConfigFile(ctx context.Context,
 	req *apiconfig.ConfigFilePublishInfo) (*apiconfig.ConfigClientResponse, error) {
 	ctx = utils.ConvertGRPCContext(ctx)
-	response := g.configServer.CasUpsertAndReleaseConfigFileFromClient(ctx, req)
+	response := g.configServer.UpsertAndReleaseConfigFileFromClient(ctx, req)
 	return &apiconfig.ConfigClientResponse{
 		Code: response.Code,
 		Info: response.Info,

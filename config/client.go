@@ -327,9 +327,3 @@ func (s *Server) PublishConfigFileFromClient(ctx context.Context,
 	configResponse := s.PublishConfigFile(ctx, client)
 	return api.NewConfigClientResponseFromConfigResponse(configResponse)
 }
-
-// CasUpsertAndReleaseConfigFileFromClient 创建/更新配置文件并发布
-func (s *Server) CasUpsertAndReleaseConfigFileFromClient(ctx context.Context,
-	req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
-	return s.CasUpsertAndReleaseConfigFile(ctx, req)
-}
