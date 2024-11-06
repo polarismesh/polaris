@@ -70,7 +70,7 @@ func (h *HTTPServer) GetAdminAccessServer() *restful.WebService {
 	ws.Route(docs.EnrichEnablePprofApiDocs(ws.POST("/pprof/enable").To(h.EnablePprof)))
 	ws.Route(docs.EnrichGetServerFunctionsApiDocs(ws.GET("/server/functions").To(h.GetServerFunctions)))
 	ws.Route(ws.GET("/mainuser/exist").To(h.HasMainUser))
-	ws.Route(ws.GET("/mainuser/create").To(h.InitMainUser))
+	ws.Route(ws.POST("/mainuser/create").To(h.InitMainUser))
 	return ws
 }
 

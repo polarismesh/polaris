@@ -47,6 +47,9 @@ func (s *Server) HasMainUser(ctx context.Context) (*apisecurity.User, error) {
 		log.Error("check hash main user", zap.Error(err), utils.RequestID(ctx))
 		return nil, err
 	}
+	if mainUser == nil {
+		return nil, nil
+	}
 	ret := mainUser.ToSpec()
 	ret.AuthToken = wrapperspb.String("")
 	return ret, nil
