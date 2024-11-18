@@ -96,8 +96,7 @@ func (us *userStore) AddUser(tx store.Tx, user *authcommon.User) error {
 
 	initUser(user)
 
-	if user.ID == "" || user.Name == "" || user.Source == "" ||
-		user.Owner == "" || user.Token == "" {
+	if user.ID == "" || user.Name == "" || user.Source == "" || user.Token == "" {
 		return store.NewStatusError(store.EmptyParamsErr, "add user missing some params")
 	}
 

@@ -48,6 +48,47 @@ var cleanFuncMapping = map[string]func(timeout time.Duration, job *cleanDeletedR
 	"config_file_release": cleanDeletedConfigFiles,
 }
 
+var defaultCleanDeletedResourceConfig = CleandeletedResourceConf{
+	Resources: []CleanDeletedResource{
+		{
+			Resource: "instance",
+			Enable:   true,
+		},
+		{
+			Resource: "service",
+			Enable:   true,
+		},
+		{
+			Resource: "clients",
+			Enable:   true,
+		},
+		{
+			Resource: "circuitbreaker_rule",
+			Enable:   true,
+		},
+		{
+			Resource: "ratelimit_rule",
+			Enable:   true,
+		},
+		{
+			Resource: "router_rule",
+			Enable:   true,
+		},
+		{
+			Resource: "faultdetect_rule",
+			Enable:   true,
+		},
+		{
+			Resource: "lane_rule",
+			Enable:   true,
+		},
+		{
+			Resource: "config_file_release",
+			Enable:   true,
+		},
+	},
+}
+
 type CleanDeletedResource struct {
 	// Resource 记录需要清理的资源类型
 	Resource string `mapstructure:"resource"`
@@ -59,7 +100,7 @@ type CleanDeletedResource struct {
 
 type CleandeletedResourceConf struct {
 	// ResourceTimeout 记录资源的额外超时时间，用户可自定义
-	Resources []CleanDeletedResource `json:"resourceTimeout"`
+	Resources []CleanDeletedResource `json:"resources" mapstructure:"resources"`
 	// Timeout 记录清理资源的超时时间，默认20分钟
 	Timeout time.Duration `mapstructure:"timeout"`
 }
@@ -90,6 +131,16 @@ func (job *cleanDeletedResourceJob) init(raw map[string]interface{}) error {
 		cfg.Timeout = 2 * time.Minute
 	}
 	job.cfg = cfg
+
+	if len(cfg.Resources) == 0 {
+		job.cfg.Resources = defaultCleanDeletedResourceConfig.Resources
+		for i := range job.cfg.Resources {
+			if job.cfg.Resources[i].Timeout == nil {
+				job.cfg.Resources[i].Timeout = &job.cfg.Timeout
+			}
+		}
+	}
+
 	return nil
 }
 

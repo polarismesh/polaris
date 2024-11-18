@@ -140,6 +140,10 @@ func (d *DefaultAuthChecker) CheckConsolePermission(preCtx *authcommon.AcquireCo
 	if d.IsOpenConsoleAuth() && !d.conf.ConsoleStrict {
 		preCtx.SetAllowAnonymous(true)
 	}
+	// 如果是初始化主用户的请求，直接放行
+	if authcommon.IsInitMainUser(preCtx.GetRequestContext()) {
+		return true, nil
+	}
 	return d.CheckPermission(preCtx)
 }
 

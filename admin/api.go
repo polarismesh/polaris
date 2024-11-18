@@ -55,9 +55,9 @@ type AdminOperateServer interface {
 	// GetCMDBInfo get cmdb info
 	GetCMDBInfo(ctx context.Context) ([]model.LocationView, error)
 	// HasMainUser .
-	HasMainUser(ctx context.Context) (*apisecurity.User, error)
+	HasMainUser(ctx context.Context) *apiservice.Response
 	// InitMainUser .
-	InitMainUser(ctx context.Context, user apisecurity.User) error
+	InitMainUser(ctx context.Context, user *apisecurity.User) *apiservice.Response
 	// GetServerFunctions Get server functions
 	GetServerFunctions(ctx context.Context) []authcommon.ServerFunctionGroup
 }

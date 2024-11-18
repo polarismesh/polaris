@@ -62,17 +62,8 @@ func (svr *Server) CreateUser(ctx context.Context, req *apisecurity.User) *apise
 	ownerID := utils.ParseOwnerID(ctx)
 	req.Owner = utils.NewStringValue(ownerID)
 
-	if checkErrResp := checkCreateUser(req); checkErrResp != nil {
+	if checkErrResp := checkCreateUser(ctx, req); checkErrResp != nil {
 		return checkErrResp
-	}
-
-	// 如果创建的目标账户类型是非子账户，则 ownerId 需要设置为 “”
-	if convertCreateUserRole(authcommon.ParseUserRole(ctx)) != authcommon.SubAccountUserRole {
-		// 如果创建的不是子帐户，需要判断是否来自内部的 InitMainUser 请求
-		if !authcommon.IsInitMainUser(ctx) {
-			log.Error("[auth][user] can't create user which role is not sub-account", utils.RequestID(ctx))
-			return api.NewUserResponse(apimodel.Code_OperationRoleForbidden, req)
-		}
 	}
 
 	if ownerID != "" {
@@ -579,7 +570,7 @@ func userRecordEntry(ctx context.Context, req *apisecurity.User, md *authcommon.
 }
 
 // checkCreateUser 检查创建用户的请求
-func checkCreateUser(req *apisecurity.User) *apiservice.Response {
+func checkCreateUser(ctx context.Context, req *apisecurity.User) *apiservice.Response {
 	if req == nil {
 		return api.NewUserResponse(apimodel.Code_EmptyRequest, req)
 	}
@@ -592,8 +583,15 @@ func checkCreateUser(req *apisecurity.User) *apiservice.Response {
 		return api.NewUserResponse(apimodel.Code_InvalidUserPassword, req)
 	}
 
-	if err := CheckOwner(req.Owner); err != nil {
-		return api.NewUserResponse(apimodel.Code_InvalidUserOwners, req)
+	if !authcommon.IsInitMainUser(ctx) {
+		if err := CheckOwner(req.Owner); err != nil {
+			return api.NewUserResponse(apimodel.Code_InvalidUserOwners, req)
+		}
+		// 如果创建的目标账户类型是非子账户，则 ownerId 需要设置为 “”
+		if convertCreateUserRole(authcommon.ParseUserRole(ctx)) != authcommon.SubAccountUserRole {
+			log.Error("[auth][user] can't create user which role is not sub-account", utils.RequestID(ctx))
+			return api.NewUserResponse(apimodel.Code_OperationRoleForbidden, req)
+		}
 	}
 	return nil
 }

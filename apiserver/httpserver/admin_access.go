@@ -24,6 +24,7 @@ import (
 	"strconv"
 
 	"github.com/emicklei/go-restful/v3"
+	"github.com/golang/protobuf/jsonpb"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"github.com/polarismesh/specification/source/go/api/v1/security"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -314,12 +315,9 @@ func (h *HTTPServer) EnablePprof(req *restful.Request, rsp *restful.Response) {
 
 func (h *HTTPServer) HasMainUser(req *restful.Request, rsp *restful.Response) {
 	ctx := initContext(req)
-	ret, err := h.maintainServer.HasMainUser(ctx)
-	if err != nil {
-		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
-		return
-	}
-	_ = rsp.WriteAsJson(ret)
+	ret := h.maintainServer.HasMainUser(ctx)
+	marshaler := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
+	_ = marshaler.Marshal(rsp, ret)
 }
 
 func (h *HTTPServer) InitMainUser(req *restful.Request, rsp *restful.Response) {
@@ -335,11 +333,9 @@ func (h *HTTPServer) InitMainUser(req *restful.Request, rsp *restful.Response) {
 		return
 	}
 
-	if err := h.maintainServer.InitMainUser(ctx, *user); err != nil {
-		_ = rsp.WriteErrorString(http.StatusBadRequest, err.Error())
-		return
-	}
-	_ = rsp.WriteEntity("ok")
+	ret := h.maintainServer.InitMainUser(ctx, user)
+	marshaler := jsonpb.Marshaler{Indent: " ", EmitDefaults: true}
+	_ = marshaler.Marshal(rsp, ret)
 }
 
 // GetServerFunctions .

@@ -41,30 +41,30 @@ import (
 )
 
 // HasMainUser 判断是否存在主用户
-func (s *Server) HasMainUser(ctx context.Context) (*apisecurity.User, error) {
+func (s *Server) HasMainUser(ctx context.Context) *apiservice.Response {
 	mainUser, err := s.storage.GetMainUser()
 	if err != nil {
 		log.Error("check hash main user", zap.Error(err), utils.RequestID(ctx))
-		return nil, err
+		return api.NewResponse(apimodel.Code_ExecuteException)
 	}
 	if mainUser == nil {
-		return nil, nil
+		return api.NewResponse(apimodel.Code_NotFoundResource)
 	}
 	ret := mainUser.ToSpec()
 	ret.AuthToken = wrapperspb.String("")
-	return ret, nil
+	return api.NewUserResponse(apimodel.Code_ExecuteSuccess, ret)
 }
 
 // InitMainUser 初始化主用户
-func (s *Server) InitMainUser(_ context.Context, user apisecurity.User) error {
+func (s *Server) InitMainUser(_ context.Context, user *apisecurity.User) *apiservice.Response {
+	if user.GetSource().GetValue() == "" {
+		user.Source = utils.NewStringValue("Polaris")
+	}
 	ctx := context.WithValue(context.Background(), authcommon.ContextKeyInitMainUser{}, true)
 	rsp := s.userSvr.CreateUsers(ctx, []*apisecurity.User{
-		&user,
+		user,
 	})
-	if !api.IsSuccess(rsp) {
-		return errors.New(rsp.GetInfo().GetValue())
-	}
-	return nil
+	return rsp.Responses[0]
 }
 
 func (s *Server) GetServerConnections(_ context.Context, req *admin.ConnReq) (*admin.ConnCountResp, error) {

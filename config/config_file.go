@@ -80,6 +80,7 @@ func (s *Server) handleCreateConfigFile(ctx context.Context, tx store.Tx,
 	return s._handleCreateConfigFile(ctx, tx, savaData)
 }
 
+// _handleCreateConfigFile 不推荐直接调用，需统一通过 (*Server) handleCreateConfigFile 调用
 func (s *Server) _handleCreateConfigFile(ctx context.Context, tx store.Tx,
 	saveData *model.ConfigFile) *apiconfig.ConfigResponse {
 

@@ -433,18 +433,11 @@ maintain:
       option:
         # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
         serviceDeleteTimeout: 30m
-    # Clean soft deleted instances
-    - name: CleanDeletedInstances
+    # Clean soft deleted resources
+    - name: CleanDeletedResources
       enable: true
       option:
-        # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
-        # instanceCleanTimeout: 10m
-    # Clean soft deleted clients
-    - name: CleanDeletedClients
-      enable: true
-      option:
-        # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
-        # clientCleanTimeout: 10m
+        timeout: 1h
 # Storage configuration
 store:
   # # Standalone file storage plugin

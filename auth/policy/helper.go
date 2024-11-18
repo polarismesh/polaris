@@ -83,7 +83,7 @@ func mainUserPrincipalPolicy(p authcommon.Principal) *authcommon.StrategyDetail 
 		Name:          authcommon.BuildDefaultStrategyName(p.PrincipalType, p.Name),
 		Action:        apisecurity.AuthAction_ALLOW.String(),
 		Default:       true,
-		Owner:         p.Owner,
+		Owner:         p.PrincipalID,
 		Revision:      utils.NewUUID(),
 		Source:        "Polaris",
 		Resources:     resources,
@@ -114,14 +114,16 @@ func defaultReadWritePolicy(p authcommon.Principal) *authcommon.StrategyDetail {
 		Name:          "全局读写策略",
 		Action:        apisecurity.AuthAction_ALLOW.String(),
 		Default:       true,
-		Owner:         p.Owner,
+		Owner:         p.PrincipalID,
 		Revision:      utils.NewUUID(),
 		Source:        "Polaris",
 		Resources:     resources,
-		Principals:    []authcommon.Principal{p},
 		CalleeMethods: calleeMethods,
 		Valid:         true,
 		Comment:       "global resources read and write",
+		Metadata: map[string]string{
+			authcommon.MetadKeySystemDefaultPolicy: "true",
+		},
 	}
 }
 
@@ -149,14 +151,16 @@ func defaultReadOnlyPolicy(p authcommon.Principal) *authcommon.StrategyDetail {
 		Name:          "全局只读策略",
 		Action:        apisecurity.AuthAction_ALLOW.String(),
 		Default:       true,
-		Owner:         p.Owner,
+		Owner:         p.PrincipalID,
 		Revision:      utils.NewUUID(),
 		Source:        "Polaris",
 		Resources:     resources,
-		Principals:    []authcommon.Principal{p},
 		CalleeMethods: calleeMethods,
 		Valid:         true,
 		Comment:       "global resources read only policy rule",
+		Metadata: map[string]string{
+			authcommon.MetadKeySystemDefaultPolicy: "true",
+		},
 	}
 }
 

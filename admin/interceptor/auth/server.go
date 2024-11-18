@@ -62,11 +62,11 @@ func (svr *Server) collectMaintainAuthContext(ctx context.Context, resourceOp au
 	)
 }
 
-func (s *Server) HasMainUser(ctx context.Context) (*apisecurity.User, error) {
+func (s *Server) HasMainUser(ctx context.Context) *apiservice.Response {
 	return s.nextSvr.HasMainUser(ctx)
 }
 
-func (s *Server) InitMainUser(ctx context.Context, user apisecurity.User) error {
+func (s *Server) InitMainUser(ctx context.Context, user *apisecurity.User) *apiservice.Response {
 	return s.nextSvr.InitMainUser(ctx, user)
 }
 
