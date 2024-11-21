@@ -27,9 +27,10 @@ import (
 )
 
 var cleanFuncMapping = map[string]func(timeout time.Duration, job *cleanDeletedResourceJob){
-	"instance": cleanDeletedInstances,
-	"service":  cleanDeletedServices,
-	"clients":  cleanDeletedClients,
+	"instance":         cleanDeletedInstances,
+	"service":          cleanDeletedServices,
+	"clients":          cleanDeletedClients,
+	"service_contract": cleanDeletedServiceContracts,
 	"circuitbreaker_rule": func(timeout time.Duration, job *cleanDeletedResourceJob) {
 		cleanDeletedRules("circuitbreaker_rule", timeout, job)
 	},
@@ -56,6 +57,10 @@ var defaultCleanDeletedResourceConfig = CleandeletedResourceConf{
 		},
 		{
 			Resource: "service",
+			Enable:   true,
+		},
+		{
+			Resource: "service_contract",
 			Enable:   true,
 		},
 		{
@@ -227,6 +232,21 @@ func cleanDeletedInstances(timeout time.Duration, job *cleanDeletedResourceJob) 
 		}
 
 		log.Infof("[Maintain][Job][CleanDeletedInstances] clean deleted instance count %d", count)
+		if count < batchSize {
+			break
+		}
+	}
+}
+
+func cleanDeletedServiceContracts(timeout time.Duration, job *cleanDeletedResourceJob) {
+	batchSize := uint32(100)
+	for {
+		count, err := job.storage.BatchCleanDeletedClients(timeout, batchSize)
+		if err != nil {
+			log.Errorf("[Maintain][Job][CleanDeletedClients] batch clean deleted client, err: %v", err)
+			break
+		}
+		log.Infof("[Maintain][Job][CleanDeletedClients] clean deleted client count %d", count)
 		if count < batchSize {
 			break
 		}
