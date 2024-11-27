@@ -206,41 +206,6 @@ func (s *Server) GetConfigGroupsWithCache(ctx context.Context, req *apiconfig.Cl
 	return out
 }
 
-func CompareByVersion(clientInfo *apiconfig.ClientConfigFileInfo, file *model.ConfigFileRelease) bool {
-	return clientInfo.GetVersion().GetValue() < file.Version
-}
-
-// only for unit test
-func (s *Server) checkClientConfigFile(ctx context.Context, files []*apiconfig.ClientConfigFileInfo,
-	compartor CompareFunction) (*apiconfig.ConfigClientResponse, bool) {
-	if len(files) == 0 {
-		return api.NewConfigClientResponse(apimodel.Code_InvalidWatchConfigFileFormat, nil), false
-	}
-	for _, configFile := range files {
-		namespace := configFile.GetNamespace().GetValue()
-		group := configFile.GetGroup().GetValue()
-		fileName := configFile.GetFileName().GetValue()
-
-		if namespace == "" || group == "" || fileName == "" {
-			return api.NewConfigClientResponseWithInfo(apimodel.Code_BadRequest,
-				"namespace & group & fileName can not be empty"), false
-		}
-		// 从缓存中获取最新的配置文件信息
-		release := s.fileCache.GetActiveRelease(namespace, group, fileName)
-		if release != nil && compartor(configFile, release) {
-			ret := &apiconfig.ClientConfigFileInfo{
-				Namespace: utils.NewStringValue(namespace),
-				Group:     utils.NewStringValue(group),
-				FileName:  utils.NewStringValue(fileName),
-				Version:   utils.NewUInt64Value(release.Version),
-				Md5:       utils.NewStringValue(release.Md5),
-			}
-			return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, ret), false
-		}
-	}
-	return api.NewConfigClientResponse(apimodel.Code_DataNoChange, nil), true
-}
-
 func toClientInfo(client *apiconfig.ClientConfigFileInfo,
 	release *model.ConfigFileRelease) (*apiconfig.ClientConfigFileInfo, error) {
 
@@ -326,4 +291,14 @@ func (s *Server) PublishConfigFileFromClient(ctx context.Context,
 	client *apiconfig.ConfigFileRelease) *apiconfig.ConfigClientResponse {
 	configResponse := s.PublishConfigFile(ctx, client)
 	return api.NewConfigClientResponseFromConfigResponse(configResponse)
+}
+
+// GetConfigSubscribers 根据配置视角获取订阅者列表
+func (s *Server) GetConfigSubscribers(ctx context.Context, filter map[string]string) *model.CommonResponse {
+	return nil
+}
+
+// GetConfigSubscribers 根据客户端视角获取订阅的配置文件列表
+func (s *Server) GetClientSubscribers(ctx context.Context, filter map[string]string) *model.CommonResponse {
+	return nil
 }

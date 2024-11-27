@@ -29,3 +29,9 @@ type DebugHandler struct {
 	Path    string
 	Handler http.HandlerFunc
 }
+
+type CommonResponse struct {
+	Code uint32      `json:"code"`
+	Info string      `json:"info"`
+	Data interface{} `json:"data"`
+}
