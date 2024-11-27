@@ -23,8 +23,10 @@ import (
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/utils"
 )
 
@@ -114,4 +116,32 @@ func (s *Server) ImportConfigFile(ctx context.Context,
 func (s *Server) GetAllConfigEncryptAlgorithms(
 	ctx context.Context) *apiconfig.ConfigEncryptAlgorithmResponse {
 	return s.nextServer.GetAllConfigEncryptAlgorithms(ctx)
+}
+
+// GetClientSubscribers 获取客户端订阅者
+func (s *Server) GetClientSubscribers(ctx context.Context, filter map[string]string) *model.CommonResponse {
+	clientId := filter["client_id"]
+	if clientId == "" {
+		return model.NewCommonResponse(uint32(apimodel.Code_BadRequest))
+	}
+	return s.nextServer.GetClientSubscribers(ctx, filter)
+}
+
+// GetConfigSubscribers 获取配置订阅者
+func (s *Server) GetConfigSubscribers(ctx context.Context, filter map[string]string) *model.CommonResponse {
+	namespace := filter["namespace"]
+	group := filter["group"]
+	fileName := filter["file_name"]
+
+	if err := CheckFileName(wrapperspb.String(fileName)); err != nil {
+		return model.NewCommonResponse(uint32(apimodel.Code_InvalidConfigFileName))
+	}
+	if err := utils.CheckResourceName(wrapperspb.String(group)); err != nil {
+		return model.NewCommonResponse(uint32(apimodel.Code_InvalidConfigFileGroupName))
+	}
+	if err := utils.CheckResourceName(wrapperspb.String(namespace)); err != nil {
+		return model.NewCommonResponse(uint32(apimodel.Code_InvalidNamespaceName))
+	}
+
+	return s.nextServer.GetConfigSubscribers(ctx, filter)
 }

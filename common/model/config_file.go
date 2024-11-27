@@ -565,17 +565,18 @@ type Subscriber struct {
 // ConfigSubscribers 以文件视角的监听数据
 type ConfigSubscribers struct {
 	// key
-	key ConfigFileKey
+	Key ConfigFileKey
 	// VersionClients 版本对应的客户端
-	VersionClients []*struct {
-		Versoin     uint64       `json:"versoin"`
-		Subscribers []Subscriber `json:"subscribers"`
-	} `json:"clients"`
+	VersionClients []*VersionClient `json:"clients"`
+}
+
+type VersionClient struct {
+	Versoin     uint64        `json:"versoin"`
+	Subscribers []*Subscriber `json:"subscribers"`
 }
 
 // FileReleaseSubscribeInfo 文件订阅信息
 type FileReleaseSubscribeInfo struct {
-	Id          uint64      `json:"id"`
 	Name        string      `json:"name"`
 	Namespace   string      `json:"namespace"`
 	Group       string      `json:"group"`

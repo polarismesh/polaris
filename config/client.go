@@ -295,10 +295,103 @@ func (s *Server) PublishConfigFileFromClient(ctx context.Context,
 
 // GetConfigSubscribers 根据配置视角获取订阅者列表
 func (s *Server) GetConfigSubscribers(ctx context.Context, filter map[string]string) *model.CommonResponse {
-	return nil
+	namespace := filter["namespace"]
+	group := filter["group"]
+	fileName := filter["file_name"]
+
+	key := utils.GenFileId(namespace, group, fileName)
+	clientIds, _ := s.watchCenter.watchers.Load(key)
+	if clientIds == nil {
+		return model.NewCommonResponse(uint32(apimodel.Code_NotFoundResource))
+	}
+
+	versionClients := map[uint64][]*model.Subscriber{}
+	clientIds.Range(func(val string) {
+		watchCtx, ok := s.watchCenter.clients.Load(val)
+		if !ok {
+			return
+		}
+		curVer := watchCtx.CurWatchVersion(key)
+		if _, ok := versionClients[curVer]; !ok {
+			versionClients[curVer] = []*model.Subscriber{}
+		}
+
+		watchCtx.ClientLabels()
+
+		versionClients[curVer] = append(versionClients[curVer], &model.Subscriber{
+			ID:         watchCtx.ClientID(),
+			Host:       watchCtx.ClientLabels()[model.ClientLabel_Host],
+			Version:    watchCtx.ClientLabels()[model.ClientLabel_Version],
+			ClientType: watchCtx.ClientLabels()[model.ClientLabel_Language],
+		})
+	})
+
+	rsp := model.NewCommonResponse(uint32(apimodel.Code_ExecuteSuccess))
+	rsp.Data = &model.ConfigSubscribers{
+		Key: model.ConfigFileKey{
+			Namespace: namespace,
+			Group:     group,
+			Name:      fileName,
+		},
+		VersionClients: func() []*model.VersionClient {
+			ret := make([]*model.VersionClient, 0, len(versionClients))
+			for ver, clients := range versionClients {
+				ret = append(ret, &model.VersionClient{
+					Versoin:     ver,
+					Subscribers: clients,
+				})
+			}
+			return ret
+		}(),
+	}
+	return rsp
 }
 
-// GetConfigSubscribers 根据客户端视角获取订阅的配置文件列表
+// GetClientSubscribers 根据客户端视角获取订阅的配置文件列表
 func (s *Server) GetClientSubscribers(ctx context.Context, filter map[string]string) *model.CommonResponse {
-	return nil
+	clientId := filter["client_id"]
+	watchCtx, ok := s.watchCenter.clients.Load(clientId)
+	if !ok {
+		return model.NewCommonResponse(uint32(apimodel.Code_NotFoundResource))
+	}
+
+	watchFiles := watchCtx.ListWatchFiles()
+	data := &model.ClientSubscriber{
+		Subscriber: model.Subscriber{
+			ID:         watchCtx.ClientID(),
+			Host:       watchCtx.ClientLabels()[model.ClientLabel_Host],
+			Version:    watchCtx.ClientLabels()[model.ClientLabel_Version],
+			ClientType: watchCtx.ClientLabels()[model.ClientLabel_Language],
+		},
+		Files: []model.FileReleaseSubscribeInfo{},
+	}
+
+	for _, file := range watchFiles {
+		key := model.BuildKeyForClientConfigFileInfo(file)
+		curVer := watchCtx.CurWatchVersion(key)
+
+		ns := file.GetNamespace().GetValue()
+		group := file.GetGroup().GetValue()
+		filename := file.GetFileName().GetValue()
+
+		data.Files = append(data.Files, model.FileReleaseSubscribeInfo{
+			Name:      file.GetName().GetValue(),
+			Namespace: ns,
+			Group:     group,
+			FileName:  filename,
+			ReleaseType: func() model.ReleaseType {
+				if gray := s.fileCache.GetActiveGrayRelease(ns, group, filename); gray != nil {
+					if gray.Version == curVer {
+						return model.ReleaseTypeGray
+					}
+				}
+				return model.ReleaseTypeFull
+			}(),
+			Version: curVer,
+		})
+	}
+
+	rsp := model.NewCommonResponse(uint32(apimodel.Code_ExecuteSuccess))
+	rsp.Data = data
+	return rsp
 }

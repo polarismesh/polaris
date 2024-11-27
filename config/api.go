@@ -69,6 +69,10 @@ type ConfigFileOperate interface {
 		configFiles []*apiconfig.ConfigFile, conflictHandling string) *apiconfig.ConfigImportResponse
 	// GetAllConfigEncryptAlgorithms 获取配置加密算法
 	GetAllConfigEncryptAlgorithms(ctx context.Context) *apiconfig.ConfigEncryptAlgorithmResponse
+	// GetClientSubscribers 获取客户端订阅者
+	GetClientSubscribers(ctx context.Context, filter map[string]string) *model.CommonResponse
+	// GetConfigSubscribers 获取配置订阅者
+	GetConfigSubscribers(ctx context.Context, filter map[string]string) *model.CommonResponse
 }
 
 // ConfigFileReleaseOperate 配置文件发布接口

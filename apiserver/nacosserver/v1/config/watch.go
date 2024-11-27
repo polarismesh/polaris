@@ -29,6 +29,7 @@ import (
 )
 
 type LongPollWatchContext struct {
+	lock             sync.RWMutex
 	clientId         string
 	labels           map[string]string
 	once             sync.Once
@@ -76,6 +77,9 @@ func (c *LongPollWatchContext) ClientID() string {
 
 // ShouldNotify .
 func (c *LongPollWatchContext) ShouldNotify(event *model.SimpleConfigFileRelease) bool {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
 	key := event.FileKey()
 	watchFile, ok := c.watchConfigFiles[key]
 	if !ok {
@@ -90,6 +94,9 @@ func (c *LongPollWatchContext) ShouldNotify(event *model.SimpleConfigFileRelease
 }
 
 func (c *LongPollWatchContext) ListWatchFiles() []*config_manage.ClientConfigFileInfo {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
 	ret := make([]*config_manage.ClientConfigFileInfo, 0, len(c.watchConfigFiles))
 	for _, v := range c.watchConfigFiles {
 		ret = append(ret, v)
@@ -97,14 +104,27 @@ func (c *LongPollWatchContext) ListWatchFiles() []*config_manage.ClientConfigFil
 	return ret
 }
 
+func (c *LongPollWatchContext) CurWatchVersion(k string) uint64 {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	return c.watchConfigFiles[k].GetVersion().GetValue()
+}
+
 // AppendInterest .
 func (c *LongPollWatchContext) AppendInterest(item *config_manage.ClientConfigFileInfo) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	key := model.BuildKeyForClientConfigFileInfo(item)
 	c.watchConfigFiles[key] = item
 }
 
 // RemoveInterest .
 func (c *LongPollWatchContext) RemoveInterest(item *config_manage.ClientConfigFileInfo) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	key := model.BuildKeyForClientConfigFileInfo(item)
 	delete(c.watchConfigFiles, key)
 }

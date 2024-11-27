@@ -71,12 +71,15 @@ type (
 		ShouldExpire(now time.Time) bool
 		// ListWatchFiles 列举出当前订阅的所有配置文件
 		ListWatchFiles() []*apiconfig.ClientConfigFileInfo
+		// CurWatchVersion 获取当前订阅的配置文件的版本
+		CurWatchVersion(k string) uint64
 		// IsOnce 是不是只能被通知一次
 		IsOnce() bool
 	}
 )
 
 type LongPollWatchContext struct {
+	lock             sync.RWMutex
 	clientId         string
 	labels           map[string]string
 	once             sync.Once
@@ -120,6 +123,9 @@ func (c *LongPollWatchContext) ClientID() string {
 }
 
 func (c *LongPollWatchContext) ShouldNotify(event *model.SimpleConfigFileRelease) bool {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
 	if event.ReleaseType == model.ReleaseTypeGray && !c.betaMatcher(c.ClientLabels(), event) {
 		return false
 	}
@@ -133,6 +139,9 @@ func (c *LongPollWatchContext) ShouldNotify(event *model.SimpleConfigFileRelease
 }
 
 func (c *LongPollWatchContext) ListWatchFiles() []*apiconfig.ClientConfigFileInfo {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
 	ret := make([]*apiconfig.ClientConfigFileInfo, 0, len(c.watchConfigFiles))
 	for _, v := range c.watchConfigFiles {
 		ret = append(ret, v)
@@ -140,14 +149,27 @@ func (c *LongPollWatchContext) ListWatchFiles() []*apiconfig.ClientConfigFileInf
 	return ret
 }
 
+func (c *LongPollWatchContext) CurWatchVersion(k string) uint64 {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	return c.watchConfigFiles[k].GetVersion().GetValue()
+}
+
 // AppendInterest .
 func (c *LongPollWatchContext) AppendInterest(item *apiconfig.ClientConfigFileInfo) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	key := model.BuildKeyForClientConfigFileInfo(item)
 	c.watchConfigFiles[key] = item
 }
 
 // RemoveInterest .
 func (c *LongPollWatchContext) RemoveInterest(item *apiconfig.ClientConfigFileInfo) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	key := model.BuildKeyForClientConfigFileInfo(item)
 	delete(c.watchConfigFiles, key)
 }
