@@ -183,6 +183,8 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Servic
 		for i := range visibleSvcs {
 			revisions = append(revisions, visibleSvcs[i].Revision)
 		}
+		svcs = append(svcs, visibleSvcs...)
+		// 需要重新计算 revison
 		if rever, err := cachetypes.CompositeComputeRevision(revisions); err != nil {
 			log.Error("[Server][Discover] list services compute multi revision",
 				zap.String("namespace", req.GetNamespace().GetValue()), zap.Error(err))
@@ -190,8 +192,6 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Servic
 		} else {
 			revision = rever
 		}
-		svcs = append(svcs, visibleSvcs...)
-		// 需要重新计算 revison
 	} else {
 		// 这里拉的是全部服务实例列表，如果客户端可以发起这个请求，应该是不需要
 		revision, svcs = s.Cache().Service().ListAllServices(ctx)
