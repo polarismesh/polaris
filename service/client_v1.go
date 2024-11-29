@@ -184,7 +184,7 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Servic
 			revisions = append(revisions, visibleSvcs[i].Revision)
 		}
 		if rever, err := cachetypes.CompositeComputeRevision(revisions); err != nil {
-			log.Errorf("[Server][Discover] list services compute multi revision",
+			log.Error("[Server][Discover] list services compute multi revision",
 				zap.String("namespace", req.GetNamespace().GetValue()), zap.Error(err))
 			return api.NewDiscoverInstanceResponse(apimodel.Code_ExecuteException, req)
 		} else {
