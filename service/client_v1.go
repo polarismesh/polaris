@@ -176,7 +176,23 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Servic
 
 	if req.GetNamespace().GetValue() != "" {
 		revision, svcs = s.Cache().Service().ListServices(ctx, req.GetNamespace().GetValue())
+		// 需要加上服务可见性处理
+		visibleSvcs := s.caches.Service().GetVisibleServicesInOtherNamespace(ctx, utils.MatchAll, req.GetNamespace().GetValue())
+		revisions := make([]string, 0, len(visibleSvcs)+1)
+		revisions = append(revisions, revision)
+		for i := range visibleSvcs {
+			revisions = append(revisions, visibleSvcs[i].Revision)
+		}
+		if rever, err := cachetypes.CompositeComputeRevision(revisions); err != nil {
+			// 如果计算失败，直接返回一个新的revision
+			revision = utils.NewUUID()
+		} else {
+			revision = rever
+		}
+		svcs = append(svcs, visibleSvcs...)
+		// 需要重新计算 revison
 	} else {
+		// 这里拉的是全部服务实例列表，如果客户端可以发起这个请求，应该是不需要
 		revision, svcs = s.Cache().Service().ListAllServices(ctx)
 	}
 	if revision == "" {
@@ -212,14 +228,14 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, filter *apiservice.D
 	req *apiservice.Service) *apiservice.DiscoverResponse {
 
 	resp := createCommonDiscoverResponse(req, apiservice.DiscoverResponse_INSTANCE)
-	serviceName := req.GetName().GetValue()
-	namespaceName := req.GetNamespace().GetValue()
+	svcName := req.GetName().GetValue()
+	nsName := req.GetNamespace().GetValue()
 
 	// 数据源都来自Cache，这里拿到的service，已经是源服务
-	aliasFor, visibleServices := s.findVisibleServices(serviceName, namespaceName, req)
+	aliasFor, visibleServices := s.findVisibleServices(ctx, svcName, nsName, req)
 	if len(visibleServices) == 0 {
 		log.Infof("[Server][Service][Instance] not found name(%s) namespace(%s) service",
-			serviceName, namespaceName)
+			svcName, nsName)
 		return api.NewDiscoverInstanceResponse(apimodel.Code_NotFoundResource, req)
 	}
 
@@ -273,14 +289,15 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, filter *apiservice.D
 	return resp
 }
 
-func (s *Server) findVisibleServices(serviceName, namespaceName string, req *apiservice.Service) (*model.Service, []*model.Service) {
+func (s *Server) findVisibleServices(ctx context.Context, serviceName, namespaceName string,
+	req *apiservice.Service) (*model.Service, []*model.Service) {
 	visibleServices := make([]*model.Service, 0, 4)
 	// 数据源都来自Cache，这里拿到的service，已经是源服务
 	aliasFor := s.getServiceCache(serviceName, namespaceName)
 	if aliasFor != nil {
 		visibleServices = append(visibleServices, aliasFor)
 	}
-	ret := s.caches.Service().GetVisibleServicesInOtherNamespace(serviceName, namespaceName)
+	ret := s.caches.Service().GetVisibleServicesInOtherNamespace(ctx, serviceName, namespaceName)
 	if len(ret) > 0 {
 		visibleServices = append(visibleServices, ret...)
 	}

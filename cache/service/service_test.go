@@ -650,7 +650,7 @@ func Test_serviceCache_GetVisibleServicesInOtherNamespace(t *testing.T) {
 		})
 
 		_, _, _ = svcCache.setServices(serviceList)
-		visibles := svcCache.GetVisibleServicesInOtherNamespace("service-1", "ns-2")
+		visibles := svcCache.GetVisibleServicesInOtherNamespace(context.Background(), "service-1", "ns-2")
 		assert.Equal(t, 1, len(visibles))
 		assert.Equal(t, "ns-1", visibles[0].Namespace)
 	})
@@ -707,15 +707,15 @@ func Test_serviceCache_GetVisibleServicesInOtherNamespace(t *testing.T) {
 			},
 		})
 
-		visibles := svcCache.GetVisibleServicesInOtherNamespace("service-1", "ns-2")
+		visibles := svcCache.GetVisibleServicesInOtherNamespace(context.Background(), "service-1", "ns-2")
 		assert.Equal(t, 1, len(visibles))
 		assert.Equal(t, "ns-1", visibles[0].Namespace)
 
-		visibles = svcCache.GetVisibleServicesInOtherNamespace("service-1", "ns-3")
+		visibles = svcCache.GetVisibleServicesInOtherNamespace(context.Background(), "service-1", "ns-3")
 		assert.Equal(t, 1, len(visibles))
 		assert.Equal(t, "ns-1", visibles[0].Namespace)
 
-		visibles = svcCache.GetVisibleServicesInOtherNamespace("service-1", "ns-4")
+		visibles = svcCache.GetVisibleServicesInOtherNamespace(context.Background(), "service-1", "ns-4")
 		assert.Equal(t, 0, len(visibles))
 	})
 
