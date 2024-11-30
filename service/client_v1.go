@@ -168,32 +168,54 @@ func (s *Server) GetPrometheusTargets(ctx context.Context,
 
 // GetServiceWithCache 查询服务列表
 func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+	if s.caches == nil {
+		return api.NewDiscoverServiceResponse(apimodel.Code_ClientAPINotOpen, req)
+	}
+	if req == nil {
+		return api.NewDiscoverServiceResponse(apimodel.Code_EmptyRequest, req)
+	}
+
 	resp := api.NewDiscoverServiceResponse(apimodel.Code_ExecuteSuccess, req)
 	var (
 		revision string
-		svcs     []*model.Service
+		services []*model.Service
+		err      error
 	)
 
 	if req.GetNamespace().GetValue() != "" {
-		revision, svcs = s.Cache().Service().ListServices(ctx, req.GetNamespace().GetValue())
+		revision, services = s.Cache().Service().ListServices(ctx, req.GetNamespace().GetValue())
+		// 需要加上服务可见性处理
+		visibleServices := s.caches.Service().GetVisibleServices(ctx, req.GetNamespace().GetValue())
+		revisions := make([]string, 0, len(visibleServices)+1)
+		revisions = append(revisions, revision)
+		for _, visibleService := range visibleServices {
+			revisions = append(revisions, visibleService.Revision)
+		}
+		if revision, err = cachetypes.CompositeComputeRevision(revisions); err != nil {
+			log.Error("[Server][Discover] list services compute multi revision",
+				zap.String("namespace", req.GetNamespace().GetValue()), zap.Error(err))
+			return api.NewDiscoverInstanceResponse(apimodel.Code_ExecuteException, req)
+		}
+		services = append(services, visibleServices...)
 	} else {
-		revision, svcs = s.Cache().Service().ListAllServices(ctx)
+		revision, services = s.Cache().Service().ListAllServices(ctx)
 	}
 	if revision == "" {
 		return resp
 	}
 
-	log.Debug("[Service][Discover] list servies", zap.Int("size", len(svcs)), zap.String("revision", revision))
+	log.Debug("[Service][Discover] list services", zap.Int("size", len(services)),
+		zap.String("revision", revision))
 	if revision == req.GetRevision().GetValue() {
 		return api.NewDiscoverServiceResponse(apimodel.Code_DataNoChange, req)
 	}
 
-	ret := make([]*apiservice.Service, 0, len(svcs))
-	for i := range svcs {
+	ret := make([]*apiservice.Service, 0, len(services))
+	for _, svc := range services {
 		ret = append(ret, &apiservice.Service{
-			Namespace: utils.NewStringValue(svcs[i].Namespace),
-			Name:      utils.NewStringValue(svcs[i].Name),
-			Metadata:  svcs[i].Meta,
+			Namespace: utils.NewStringValue(svc.Namespace),
+			Name:      utils.NewStringValue(svc.Name),
+			Metadata:  svc.Meta,
 		})
 	}
 

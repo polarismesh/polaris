@@ -268,6 +268,8 @@ type (
 		GetRevisionWorker() ServiceRevisionWorker
 		// GetVisibleSameNameServices get same service in other namespace and it's visible
 		GetVisibleSameNameServices(name string, namespace string) []*model.Service
+		// GetVisibleServices get all services in other namespace and it's visible
+		GetVisibleServices(ctx context.Context, namespace string) []*model.Service
 	}
 
 	// ServiceRevisionWorker
@@ -881,36 +883,3 @@ type (
 		HitGrayRule(name string, labels map[string]string) bool
 	}
 )
-
-func NewExpireEntry[T any](t T, maxAlive time.Duration) *ExpireEntry[T] {
-	return &ExpireEntry[T]{
-		data:     t,
-		maxAlive: maxAlive,
-	}
-}
-
-func EmptyExpireEntry[T any](t T, maxAlive time.Duration) *ExpireEntry[T] {
-	return &ExpireEntry[T]{
-		empty:    true,
-		maxAlive: maxAlive,
-	}
-}
-
-type ExpireEntry[T any] struct {
-	empty      bool
-	data       T
-	lastAccess time.Time
-	maxAlive   time.Duration
-}
-
-func (e *ExpireEntry[T]) Get() T {
-	if e.empty {
-		return e.data
-	}
-	e.lastAccess = time.Now()
-	return e.data
-}
-
-func (e *ExpireEntry[T]) IsExpire() bool {
-	return time.Since(e.lastAccess) > e.maxAlive
-}
