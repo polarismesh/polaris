@@ -58,6 +58,10 @@ var (
 	CreateBeatClientFunc = createBeatClient
 )
 
+var (
+	DefaultRequestTimeout = time.Second * 5
+)
+
 func newLocalPeer() Peer {
 	return &LocalPeer{}
 }
@@ -189,10 +193,12 @@ func (p *RemotePeer) Ping() error {
 	if err != nil {
 		return err
 	}
-	_, err = client.BatchGetHeartbeat(context.Background(), &apiservice.GetHeartbeatsRequest{},
-		grpc.Header(&metadata.MD{
-			sendResource: []string{utils.LocalHost},
-		}))
+
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultRequestTimeout)
+	defer cancel()
+
+	ctx = metadata.AppendToOutgoingContext(ctx, sendResource, utils.LocalHost)
+	_, err = client.BatchGetHeartbeat(ctx, &apiservice.GetHeartbeatsRequest{})
 	return err
 }
 
@@ -213,9 +219,12 @@ func (p *RemotePeer) GetFunc(req *apiservice.GetHeartbeatsRequest) (*apiservice.
 	if err != nil {
 		return nil, err
 	}
-	resp, err := client.BatchGetHeartbeat(context.Background(), req, grpc.Header(&metadata.MD{
-		sendResource: []string{utils.LocalHost},
-	}))
+
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultRequestTimeout)
+	defer cancel()
+
+	ctx = metadata.AppendToOutgoingContext(ctx, sendResource, utils.LocalHost)
+	resp, err := client.BatchGetHeartbeat(ctx, req)
 	if err != nil {
 		code = "-1"
 		plog.Error("[HealthCheck][Leader] send get record request", zap.String("host", p.Host()),
@@ -268,9 +277,11 @@ func (p *RemotePeer) DelFunc(req *apiservice.DelHeartbeatsRequest) error {
 	if err != nil {
 		return err
 	}
-	if _, err := client.BatchDelHeartbeat(context.Background(), req, grpc.Header(&metadata.MD{
-		sendResource: []string{utils.LocalHost},
-	})); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultRequestTimeout)
+	defer cancel()
+
+	ctx = metadata.AppendToOutgoingContext(ctx, sendResource, utils.LocalHost)
+	if _, err := client.BatchDelHeartbeat(ctx, req); err != nil {
 		code = "-1"
 		plog.Error("send del record request", zap.String("host", p.Host()),
 			zap.Uint32("port", p.port), zap.Error(err))
@@ -460,9 +471,8 @@ func doConnect(p *RemotePeer) error {
 
 func newBeatSender(index int, conn *grpc.ClientConn, p *RemotePeer) (*beatSender, error) {
 	client := apiservice.NewPolarisHeartbeatGRPCClient(conn)
-	puter, err := client.BatchHeartbeat(context.Background(), grpc.Header(&metadata.MD{
-		sendResource: []string{utils.LocalHost},
-	}))
+	ctx := metadata.AppendToOutgoingContext(context.Background(), sendResource, utils.LocalHost)
+	puter, err := client.BatchHeartbeat(ctx)
 	if err != nil {
 		return nil, err
 	}
