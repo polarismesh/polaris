@@ -635,7 +635,7 @@ func (sc *serviceCache) updateCl5SidAndNames(service *model.Service) {
 }
 
 // GetVisibleServicesInOtherNamespace 查询是否存在别的命名空间下存在名称相同且可见的服务
-func (sc *serviceCache) GetVisibleServicesInOtherNamespace(svcName, namespace string) []*model.Service {
+func (sc *serviceCache) GetVisibleSameNameServices(svcName, namespace string) []*model.Service {
 	ret := make(map[string]*model.Service)
 	// 根据服务级别的可见性进行查询, 先查询精确匹配
 	sc.exportServices.ReadRange(func(exportToNs string, services *utils.SyncMap[string, *model.Service]) {

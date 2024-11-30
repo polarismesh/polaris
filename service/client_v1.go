@@ -215,6 +215,15 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, filter *apiservice.D
 	serviceName := req.GetName().GetValue()
 	namespaceName := req.GetNamespace().GetValue()
 
+	// 消费服务为了兼容，可以不带namespace，server端使用默认的namespace
+	if namespaceName == "" {
+		namespaceName = DefaultNamespace
+		req.Namespace = utils.NewStringValue(namespaceName)
+	}
+	if !s.commonCheckDiscoverRequest(req, resp) {
+		return resp
+	}
+
 	// 数据源都来自Cache，这里拿到的service，已经是源服务
 	aliasFor, visibleServices := s.findVisibleServices(serviceName, namespaceName, req)
 	if len(visibleServices) == 0 {
@@ -226,22 +235,26 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, filter *apiservice.D
 	revisions := make([]string, 0, len(visibleServices)+1)
 	finalInstances := make(map[string]*apiservice.Instance, 128)
 	for _, svc := range visibleServices {
+		revision := s.caches.Service().GetRevisionWorker().GetServiceInstanceRevision(svc.ID)
+		revisions = append(revisions, revision)
+	}
+	aggregateRevision, err := cachetypes.CompositeComputeRevision(revisions)
+	if err != nil {
+		log.Errorf("[Server][Service][Instance] compute multi revision service(%s:%s) err: %s",
+			serviceName, namespaceName, err.Error())
+		return api.NewDiscoverInstanceResponse(apimodel.Code_ExecuteException, req)
+	}
+	if aggregateRevision == req.GetRevision().GetValue() {
+		return api.NewDiscoverInstanceResponse(apimodel.Code_DataNoChange, req)
+	}
+
+	for _, svc := range visibleServices {
 		specSvc := &apiservice.Service{
 			Id:        utils.NewStringValue(svc.ID),
 			Name:      utils.NewStringValue(svc.Name),
 			Namespace: utils.NewStringValue(svc.Namespace),
 		}
 		ret := s.caches.Instance().DiscoverServiceInstances(specSvc.GetId().GetValue(), filter.GetOnlyHealthyInstance())
-		// 如果是空实例，则直接跳过，不处理实例列表以及 revision 信息
-		if len(ret) == 0 {
-			continue
-		}
-		revision := s.caches.Service().GetRevisionWorker().GetServiceInstanceRevision(svc.ID)
-		if revision == "" {
-			revision = utils.NewUUID()
-		}
-		revisions = append(revisions, revision)
-
 		for i := range ret {
 			copyIns := s.getInstance(specSvc, ret[i].Proto)
 			// 注意：这里的value是cache的，不修改cache的数据，通过getInstance，浅拷贝一份数据
@@ -249,16 +262,11 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, filter *apiservice.D
 		}
 	}
 
-	aggregateRevision, err := cachetypes.CompositeComputeRevision(revisions)
-	if err != nil {
-		log.Errorf("[Server][Service][Instance] compute multi revision service(%s) err: %s",
-			aliasFor.ID, err.Error())
-		return api.NewDiscoverInstanceResponse(apimodel.Code_ExecuteException, req)
+	if aliasFor == nil {
+		// 这里只会出现，查询的目标服务和命名空间不存在，但是可见性的服务存在
+		// 所以这里需要用入口的服务名和命名空间填充服务数据结构，以便返回最终的应答服务名和命名空间
+		aliasFor = &model.Service{Name: serviceName, Namespace: namespaceName}
 	}
-	if aggregateRevision == req.GetRevision().GetValue() {
-		return api.NewDiscoverInstanceResponse(apimodel.Code_DataNoChange, req)
-	}
-
 	// 填充service数据
 	resp.Service = service2Api(aliasFor)
 	// 这里需要把服务信息改为用户请求的服务名以及命名空间
@@ -281,9 +289,15 @@ func (s *Server) findVisibleServices(serviceName, namespaceName string, req *api
 	// 数据源都来自Cache，这里拿到的service，已经是源服务
 	aliasFor := s.getServiceCache(serviceName, namespaceName)
 	if aliasFor != nil {
+		// 获取到实际的服务，则将查询的服务名替换成实际的服务名和命名空间
+		serviceName = aliasFor.Name
+		namespaceName = aliasFor.Namespace
+		// 先把自己放进去
 		visibleServices = append(visibleServices, aliasFor)
 	}
-	ret := s.caches.Service().GetVisibleServicesInOtherNamespace(serviceName, namespaceName)
+	// 根据服务名和命名空间获取可见的服务列表
+	// 这里的serviceName和namespaceName，可能是传入的服务名和命名空间，也可能是通过别名查询后获取的匹配的服务名和命名空间
+	ret := s.caches.Service().GetVisibleSameNameServices(serviceName, namespaceName)
 	if len(ret) > 0 {
 		visibleServices = append(visibleServices, ret...)
 	}
@@ -555,4 +569,34 @@ func (s *Server) getServiceCache(name string, namespace string) *model.Service {
 		service.Meta = make(map[string]string)
 	}
 	return service
+}
+
+func (s *Server) commonCheckDiscoverRequest(req *apiservice.Service, resp *apiservice.DiscoverResponse) bool {
+	if s.caches == nil {
+		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_ClientAPINotOpen))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
+		resp.Service = req
+		return false
+	}
+	if req == nil {
+		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_EmptyRequest))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
+		resp.Service = req
+		return false
+	}
+
+	if req.GetName().GetValue() == "" {
+		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidServiceName))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
+		resp.Service = req
+		return false
+	}
+	if req.GetNamespace().GetValue() == "" {
+		resp.Code = utils.NewUInt32Value(uint32(apimodel.Code_InvalidNamespaceName))
+		resp.Info = utils.NewStringValue(api.Code2Info(resp.GetCode().GetValue()))
+		resp.Service = req
+		return false
+	}
+
+	return true
 }

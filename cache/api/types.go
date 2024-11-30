@@ -266,8 +266,8 @@ type (
 		GetAliasFor(name string, namespace string) *model.Service
 		// GetRevisionWorker .
 		GetRevisionWorker() ServiceRevisionWorker
-		// GetVisibleServicesInOtherNamespace get same service in other namespace and it's visible
-		GetVisibleServicesInOtherNamespace(name string, namespace string) []*model.Service
+		// GetVisibleSameNameServices get same service in other namespace and it's visible
+		GetVisibleSameNameServices(name string, namespace string) []*model.Service
 	}
 
 	// ServiceRevisionWorker

@@ -145,7 +145,7 @@ func InitServer(ctx context.Context, namingOpt *Config, opts ...InitOption) (*Se
 	return actualSvr, proxySvr, nil
 }
 
-func (svr *Server) Initialize(context.Context, store.Store) error {
+func (s *Server) Initialize(context.Context, store.Store) error {
 	return nil
 }
 
@@ -161,16 +161,16 @@ func (p *PluginInstanceEventHandler) OnEvent(ctx context.Context, any2 any) erro
 }
 
 // 插件初始化
-func (svr *Server) pluginInitialize() {
+func (s *Server) pluginInitialize() {
 	// 获取CMDB插件
-	svr.cmdb = plugin.GetCMDB()
-	if svr.cmdb == nil {
+	s.cmdb = plugin.GetCMDB()
+	if s.cmdb == nil {
 		log.Warnf("Not Found CMDB Plugin")
 	}
 
 	// 获取History插件，注意：插件的配置在bootstrap已经设置好
-	svr.history = plugin.GetHistory()
-	if svr.history == nil {
+	s.history = plugin.GetHistory()
+	if s.history == nil {
 		log.Warnf("Not Found History Log Plugin")
 	}
 
@@ -181,14 +181,14 @@ func (svr *Server) pluginInitialize() {
 	}
 
 	eventHandler := &PluginInstanceEventHandler{
-		BaseInstanceEventHandler: NewBaseInstanceEventHandler(svr),
+		BaseInstanceEventHandler: NewBaseInstanceEventHandler(s),
 		subscriber:               subscriber,
 	}
 	subCtx, err := eventhub.Subscribe(eventhub.InstanceEventTopic, eventHandler)
 	if err != nil {
 		log.Warnf("register DiscoverEvent into eventhub:%s %v", subscriber.Name(), err)
 	}
-	svr.subCtxs = append(svr.subCtxs, subCtx)
+	s.subCtxs = append(s.subCtxs, subCtx)
 }
 
 func GetChainOrder() []string {

@@ -803,9 +803,9 @@ func (mr *MockServiceCacheMockRecorder) GetServicesCount() *gomock.Call {
 }
 
 // GetVisibleServicesInOtherNamespace mocks base method.
-func (m *MockServiceCache) GetVisibleServicesInOtherNamespace(name, namespace string) []*model.Service {
+func (m *MockServiceCache) GetVisibleSameNameServices(name, namespace string) []*model.Service {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetVisibleServicesInOtherNamespace", name, namespace)
+	ret := m.ctrl.Call(m, "GetVisibleSameNameServices", name, namespace)
 	ret0, _ := ret[0].([]*model.Service)
 	return ret0
 }
@@ -813,7 +813,7 @@ func (m *MockServiceCache) GetVisibleServicesInOtherNamespace(name, namespace st
 // GetVisibleServicesInOtherNamespace indicates an expected call of GetVisibleServicesInOtherNamespace.
 func (mr *MockServiceCacheMockRecorder) GetVisibleServicesInOtherNamespace(name, namespace interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVisibleServicesInOtherNamespace", reflect.TypeOf((*MockServiceCache)(nil).GetVisibleServicesInOtherNamespace), name, namespace)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVisibleSameNameServices", reflect.TypeOf((*MockServiceCache)(nil).GetVisibleSameNameServices), name, namespace)
 }
 
 // Initialize mocks base method.
