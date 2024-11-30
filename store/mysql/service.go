@@ -1050,7 +1050,6 @@ func callFetchServiceRows(rows *sql.Rows, callback func(entry *model.Service) (b
 	}
 	defer rows.Close()
 
-	var ctime, mtime int64
 	var flag int
 	progress := 0
 	for rows.Next() {
@@ -1063,7 +1062,7 @@ func callFetchServiceRows(rows *sql.Rows, callback func(entry *model.Service) (b
 		var exportTo string
 		err := rows.Scan(
 			&item.ID, &item.Name, &item.Namespace, &item.Business, &item.Comment,
-			&item.Token, &item.Revision, &item.Owner, &flag, &ctime, &mtime, &item.Ports,
+			&item.Token, &item.Revision, &item.Owner, &flag, &item.Ctime, &item.Mtime, &item.Ports,
 			&item.Department, &item.CmdbMod1, &item.CmdbMod2, &item.CmdbMod3,
 			&item.Reference, &item.ReferFilter, &item.PlatformID, &exportTo)
 
@@ -1072,8 +1071,8 @@ func callFetchServiceRows(rows *sql.Rows, callback func(entry *model.Service) (b
 			return err
 		}
 
-		item.CreateTime = time.Unix(ctime, 0)
-		item.ModifyTime = time.Unix(mtime, 0)
+		item.CreateTime = time.Unix(item.Ctime, 0)
+		item.ModifyTime = time.Unix(item.Mtime, 0)
 		item.ExportTo = map[string]struct{}{}
 		_ = json.Unmarshal([]byte(exportTo), &item.ExportTo)
 		item.Valid = true

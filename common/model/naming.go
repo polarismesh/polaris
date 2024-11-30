@@ -549,6 +549,8 @@ type Instance struct {
 	Valid bool
 	// ModifyTime Update time of instance
 	ModifyTime time.Time
+	// CreateTime Create time of instance
+	CreateTime time.Time
 }
 
 // ID get id
