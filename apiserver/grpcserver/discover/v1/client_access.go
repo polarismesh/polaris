@@ -164,6 +164,9 @@ func (g *DiscoverServer) handleDiscoverRequest(ctx context.Context, in *apiservi
 	case apiservice.DiscoverRequest_ROUTING:
 		action = metrics.ActionDiscoverRouterRule
 		out = g.namingServer.GetRoutingConfigWithCache(ctx, in.Service)
+	case apiservice.DiscoverRequest_CUSTOM_ROUTE_RULE:
+		action = metrics.ActionDiscoverRouterRule
+		out = g.namingServer.GetRoutingConfigWithCache(ctx, in.Service)
 	case apiservice.DiscoverRequest_RATE_LIMIT:
 		action = metrics.ActionDiscoverRateLimit
 		out = g.namingServer.GetRateLimitWithCache(ctx, in.Service)

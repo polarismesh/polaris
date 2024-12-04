@@ -499,6 +499,36 @@ func (s *Server) GetLaneRuleWithCache(ctx context.Context, req *apiservice.Servi
 	return resp
 }
 
+// GetRouterRuleWithCache fetch lane rules by client
+func (s *Server) GetRouterRuleWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+	resp := createCommonDiscoverResponse(req, apiservice.DiscoverResponse_CUSTOM_ROUTE_RULE)
+	aliasFor := s.findServiceAlias(req)
+
+	out, err := s.caches.RoutingConfig().GetRouterConfigV2(aliasFor.ID, aliasFor.Name, aliasFor.Namespace)
+	if err != nil {
+		log.Error("[Server][Service][Routing] discover routing", utils.RequestID(ctx), zap.Error(err))
+		return api.NewDiscoverRoutingResponse(apimodel.Code_ExecuteException, req)
+	}
+	if out == nil {
+		return resp
+	}
+
+	// 获取路由数据，并对比revision
+	if out.GetRevision().GetValue() == req.GetRevision().GetValue() {
+		return api.NewDiscoverRoutingResponse(apimodel.Code_DataNoChange, req)
+	}
+
+	// 数据不一致，发生了改变
+	// 数据格式转换，service只需要返回二元组与routing的revision
+	resp.Service.Revision = out.GetRevision()
+	resp.CustomRouteRules = out.Rules
+	resp.AliasFor = &apiservice.Service{
+		Name:      utils.NewStringValue(aliasFor.Name),
+		Namespace: utils.NewStringValue(aliasFor.Namespace),
+	}
+	return resp
+}
+
 func (s *Server) findServiceAlias(req *apiservice.Service) *model.Service {
 	// 获取源服务
 	aliasFor := s.getServiceCache(req.GetName().GetValue(), req.GetNamespace().GetValue())
