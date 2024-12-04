@@ -69,6 +69,10 @@ type ConfigFileOperate interface {
 		configFiles []*apiconfig.ConfigFile, conflictHandling string) *apiconfig.ConfigImportResponse
 	// GetAllConfigEncryptAlgorithms 获取配置加密算法
 	GetAllConfigEncryptAlgorithms(ctx context.Context) *apiconfig.ConfigEncryptAlgorithmResponse
+	// GetClientSubscribers 获取客户端订阅者
+	GetClientSubscribers(ctx context.Context, filter map[string]string) *model.CommonResponse
+	// GetConfigSubscribers 获取配置订阅者
+	GetConfigSubscribers(ctx context.Context, filter map[string]string) *model.CommonResponse
 }
 
 // ConfigFileReleaseOperate 配置文件发布接口
@@ -105,8 +109,6 @@ type ConfigFileClientOperate interface {
 	PublishConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFileRelease) *apiconfig.ConfigClientResponse
 	// UpsertAndReleaseConfigFile 创建/更新配置文件并发布
 	UpsertAndReleaseConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse
-	// CasUpsertAndReleaseConfigFileFromClient 创建/更新配置文件并发布
-	CasUpsertAndReleaseConfigFileFromClient(ctx context.Context, req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse
 	// LongPullWatchFile 客户端监听配置文件
 	LongPullWatchFile(ctx context.Context, req *apiconfig.ClientWatchConfigFileRequest) (WatchCallback, error)
 	// GetConfigFileNamesWithCache 获取某个配置分组下的配置文件

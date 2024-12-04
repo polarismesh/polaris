@@ -43,6 +43,8 @@ type AdminStore interface {
 	GetUnHealthyInstances(timeout time.Duration, limit uint32) ([]string, error)
 	// BatchCleanDeletedClients batch clean soft deleted clients
 	BatchCleanDeletedClients(timeout time.Duration, batchSize uint32) (uint32, error)
+	// BatchCleanDeletedServiceContracts batch clean soft deleted service_contract
+	BatchCleanDeletedServiceContracts(timeout time.Duration, batchSize uint32) (uint32, error)
 	// BatchCleanDeletedServices batch clean soft deleted clients
 	BatchCleanDeletedServices(timeout time.Duration, batchSize uint32) (uint32, error)
 	// BatchCleanDeletedRules batch clean soft deleted clients

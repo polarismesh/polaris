@@ -56,6 +56,7 @@ const (
 	CommonFieldNamespace   = "Namespace"
 	CommonFieldDescription = "Description"
 	CommonFieldEnable      = "Enable"
+	CommonFieldMetadata    = "Metadata"
 )
 
 type boltStore struct {

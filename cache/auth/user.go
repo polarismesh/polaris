@@ -100,13 +100,13 @@ func (uc *userCache) Update() error {
 func (uc *userCache) realUpdate() (map[string]time.Time, int64, error) {
 	// Get all data before a few seconds
 	start := time.Now()
-	users, err := uc.storage.GetUsersForCache(uc.LastFetchTime(), uc.IsFirstUpdate())
+	users, err := uc.storage.GetMoreUsers(uc.LastFetchTime(), uc.IsFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache][User] update user err: %s", err.Error())
 		return nil, -1, err
 	}
 
-	groups, err := uc.storage.GetGroupsForCache(uc.LastFetchTime(), uc.IsFirstUpdate())
+	groups, err := uc.storage.GetMoreGroups(uc.LastFetchTime(), uc.IsFirstUpdate())
 	if err != nil {
 		log.Errorf("[Cache][Group] update group err: %s", err.Error())
 		return nil, -1, err

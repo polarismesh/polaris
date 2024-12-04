@@ -20,15 +20,12 @@ package boltdb
 import (
 	"errors"
 	"fmt"
-	"sort"
-	"strings"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
 
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
-	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -267,148 +264,12 @@ func (gs *groupStore) GetGroupByName(name, owner string) (*authcommon.UserGroup,
 	return ret.UserGroup, nil
 }
 
-// GetGroups get groups
-func (gs *groupStore) GetGroups(filters map[string]string, offset uint32,
-	limit uint32) (uint32, []*authcommon.UserGroup, error) {
-
-	// 如果本次请求参数携带了 user_id，那么就是查询这个用户所关联的所有用户组
-	if _, ok := filters["user_id"]; ok {
-		return gs.listGroupByUser(filters, offset, limit)
-	}
-	// 正常查询用户组信息
-	return gs.listSimpleGroups(filters, offset, limit)
-}
-
-// listSimpleGroups Normal user group query
-func (gs *groupStore) listSimpleGroups(filters map[string]string, offset uint32, limit uint32) (uint32,
-	[]*authcommon.UserGroup, error) {
-	fields := []string{GroupFieldID, GroupFieldOwner, GroupFieldName, GroupFieldValid}
-	values, err := gs.handler.LoadValuesByFilter(tblGroup, fields, &groupForStore{},
-		func(m map[string]interface{}) bool {
-			valid, ok := m[GroupFieldValid].(bool)
-			if ok && !valid {
-				return false
-			}
-
-			saveId, _ := m[GroupFieldID].(string)
-			saveName, _ := m[GroupFieldName].(string)
-			saveOwner, _ := m[GroupFieldOwner].(string)
-
-			if sId, ok := filters["id"]; ok && sId != saveId {
-				return false
-			}
-			if sName, ok := filters["name"]; ok {
-				if utils.IsPrefixWildName(sName) {
-					sName = sName[:len(sName)-1]
-				}
-				if !strings.Contains(saveName, sName) {
-					return false
-				}
-			}
-
-			if sOwner, ok := filters["owner"]; ok && sOwner != saveOwner {
-				return false
-			}
-
-			return true
-		})
-
-	if err != nil {
-		return 0, nil, err
-	}
-
-	total := uint32(len(values))
-
-	return total, doGroupPage(values, offset, limit), nil
-}
-
-// listGroupByUser 查询某个用户下所关联的用户组信息
-func (gs *groupStore) listGroupByUser(filters map[string]string, offset uint32,
-	limit uint32) (uint32, []*authcommon.UserGroup, error) {
-
-	var (
-		userID            = filters["user_id"]
-		owner, existOwner = filters["owner"]
-		fields            = []string{GroupFieldUserIds, GroupFieldOwner, GroupFieldValid}
-	)
-
-	values, err := gs.handler.LoadValuesByFilter(tblGroup, fields, &groupForStore{},
-		func(m map[string]interface{}) bool {
-			valid, ok := m[GroupFieldValid].(bool)
-			if ok && !valid {
-				return false
-			}
-			saveOwner := m[GroupFieldOwner]
-			if existOwner && saveOwner != owner {
-				return false
-			}
-
-			if sName, ok := filters["name"]; ok {
-				saveName, _ := m[GroupFieldName].(string)
-				if utils.IsPrefixWildName(sName) {
-					sName = sName[:len(sName)-1]
-				}
-				if !strings.Contains(saveName, sName) {
-					return false
-				}
-			}
-
-			saveVal, ok := m[GroupFieldUserIds]
-			if !ok {
-				return false
-			}
-
-			saveUserIds := saveVal.(map[string]string)
-			_, exist := saveUserIds[userID]
-			return exist
-		})
-
-	if err != nil {
-		return 0, nil, err
-	}
-
-	total := uint32(len(values))
-
-	return total, doGroupPage(values, offset, limit), nil
-}
-
-func doGroupPage(ret map[string]interface{}, offset uint32, limit uint32) []*authcommon.UserGroup {
-
-	groups := make([]*authcommon.UserGroup, 0, len(ret))
-
-	beginIndex := offset
-	endIndex := beginIndex + limit
-	totalCount := uint32(len(ret))
-
-	if totalCount == 0 {
-		return groups
-	}
-	if beginIndex >= endIndex {
-		return groups
-	}
-	if beginIndex >= totalCount {
-		return groups
-	}
-	if endIndex > totalCount {
-		endIndex = totalCount
-	}
-	for k := range ret {
-		groups = append(groups, convertForGroupDetail(ret[k].(*groupForStore)).UserGroup)
-	}
-
-	sort.Slice(groups, func(i, j int) bool {
-		return groups[i].ModifyTime.After(groups[j].ModifyTime)
-	})
-
-	return groups[beginIndex:endIndex]
-}
-
-// GetGroupsForCache 查询用户分组数据，主要用于Cache更新
-func (gs *groupStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*authcommon.UserGroupDetail, error) {
+// GetMoreGroups 查询用户分组数据，主要用于Cache更新
+func (gs *groupStore) GetMoreGroups(mtime time.Time, firstUpdate bool) ([]*authcommon.UserGroupDetail, error) {
 	ret, err := gs.handler.LoadValuesByFilter(tblGroup, []string{GroupFieldModifyTime}, &groupForStore{},
 		func(m map[string]interface{}) bool {
 			mt := m[GroupFieldModifyTime].(time.Time)
-			isAfter := mt.After(mtime)
+			isAfter := !mt.Before(mtime)
 			return isAfter
 		})
 	if err != nil {

@@ -141,4 +141,6 @@ const (
 	ClientLabel_Version = "CLIENT_VERSION"
 	// ClientLabel_Language 客户端语言
 	ClientLabel_Language = "CLIENT_LANGUAGE"
+	// ClientLabel_Host 客户端主机名
+	ClientLabel_Host = "CLIENT_HOST"
 )

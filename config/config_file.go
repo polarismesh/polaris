@@ -37,6 +37,11 @@ import (
 
 // CreateConfigFile 创建配置文件
 func (s *Server) CreateConfigFile(ctx context.Context, req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
+	savaData := model.ToConfigFileStore(req)
+	if errResp := s.chains.BeforeCreateFile(ctx, savaData); errResp != nil {
+		return errResp
+	}
+
 	if rsp := s.prepareCreateConfigFile(ctx, req); rsp.Code.Value != api.ExecuteSuccess {
 		return rsp
 	}
@@ -50,7 +55,7 @@ func (s *Server) CreateConfigFile(ctx context.Context, req *apiconfig.ConfigFile
 		_ = tx.Rollback()
 	}()
 
-	resp := s.handleCreateConfigFile(ctx, tx, req)
+	resp := s._handleCreateConfigFile(ctx, tx, savaData)
 	if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 		return resp
 	}
@@ -63,30 +68,38 @@ func (s *Server) CreateConfigFile(ctx context.Context, req *apiconfig.ConfigFile
 	return resp
 }
 
+// handleCreateConfigFile .
 func (s *Server) handleCreateConfigFile(ctx context.Context, tx store.Tx,
 	req *apiconfig.ConfigFile) *apiconfig.ConfigResponse {
-
-	data, err := s.storage.GetConfigFileTx(tx, req.GetNamespace().GetValue(), req.GetGroup().GetValue(),
-		req.GetName().GetValue())
-	if err != nil {
-		log.Error("[Config][File] create config file when get save data.", utils.RequestID(ctx),
-			utils.ZapNamespace(req.GetNamespace().GetValue()), utils.ZapGroup(req.GetGroup().GetValue()),
-			utils.ZapFileName(req.GetName().GetValue()), zap.Error(err))
-		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
-	}
-	if data != nil {
-		return api.NewConfigResponse(apimodel.Code_ExistedResource)
-	}
 
 	savaData := model.ToConfigFileStore(req)
 	if errResp := s.chains.BeforeCreateFile(ctx, savaData); errResp != nil {
 		return errResp
 	}
+
+	return s._handleCreateConfigFile(ctx, tx, savaData)
+}
+
+// _handleCreateConfigFile 不推荐直接调用，需统一通过 (*Server) handleCreateConfigFile 调用
+func (s *Server) _handleCreateConfigFile(ctx context.Context, tx store.Tx,
+	saveData *model.ConfigFile) *apiconfig.ConfigResponse {
+
+	data, err := s.storage.GetConfigFileTx(tx, saveData.Namespace, saveData.Group,
+		saveData.Name)
+	if err != nil {
+		log.Error("[Config][File] create config file when get save data.", utils.RequestID(ctx),
+			utils.ZapNamespace(saveData.Namespace), utils.ZapGroup(saveData.Group),
+			utils.ZapFileName(saveData.Name), zap.Error(err))
+		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
+	}
+	if data != nil {
+		return api.NewConfigResponse(apimodel.Code_ExistedResource)
+	}
 	// 创建配置文件
-	if err := s.storage.CreateConfigFileTx(tx, savaData); err != nil {
+	if err := s.storage.CreateConfigFileTx(tx, saveData); err != nil {
 		log.Error("[Config][File] create config file error.", utils.RequestID(ctx),
-			utils.ZapNamespace(req.GetNamespace().GetValue()), utils.ZapGroup(req.GetGroup().GetValue()),
-			utils.ZapFileName(req.GetName().GetValue()), zap.Error(err))
+			utils.ZapNamespace(saveData.Namespace), utils.ZapGroup(saveData.Group),
+			utils.ZapFileName(saveData.Name), zap.Error(err))
 		return api.NewConfigResponse(commonstore.StoreCode2APICode(err))
 	}
 	return api.NewConfigResponse(apimodel.Code_ExecuteSuccess)

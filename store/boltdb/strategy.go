@@ -361,7 +361,7 @@ func (ss *strategyStore) GetDefaultStrategyDetailByPrincipal(principalId string,
 	fields := []string{StrategyFieldValid, StrategyFieldDefault, StrategyFieldUsersPrincipal}
 
 	if principalType == authcommon.PrincipalGroup {
-		fields = []string{StrategyFieldValid, StrategyFieldDefault, StrategyFieldGroupsPrincipal}
+		fields = []string{StrategyFieldValid, StrategyFieldDefault, StrategyFieldGroupsPrincipal, CommonFieldMetadata}
 	}
 
 	values, err := ss.handler.LoadValuesByFilter(tblStrategy, fields, &strategyData{},
@@ -383,10 +383,15 @@ func (ss *strategyStore) GetDefaultStrategyDetailByPrincipal(principalId string,
 			} else {
 				principals, _ = m[StrategyFieldGroupsPrincipal].(map[string]string)
 			}
+			if _, exist := principals[principalId]; !exist {
+				return false
+			}
 
-			_, exist := principals[principalId]
-
-			return exist
+			metadata, _ := m[CommonFieldMetadata].(map[string]string)
+			if val, exist := metadata[authcommon.MetadKeySystemDefaultPolicy]; exist && val == "true" {
+				return false
+			}
+			return true
 		})
 
 	if err != nil {

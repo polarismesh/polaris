@@ -557,6 +557,12 @@ func (ic *instanceCache) GetServicePorts(serviceID string) []*model.ServicePort 
 	return ic.instancePorts.listPort(serviceID)
 }
 
+// RemoveService .
+func (ic *instanceCache) RemoveService(serviceID string) {
+	ic.instancePorts.removeService(serviceID)
+	ic.services.Delete(serviceID)
+}
+
 // iteratorInstancesProc 迭代指定的instance数据，id->instance
 func iteratorInstancesProc(data *utils.SyncMap[string, *model.Instance], iterProc types.InstanceIterProc) error {
 	var err error
@@ -588,6 +594,13 @@ func (b *instancePorts) reset() {
 	defer b.lock.Unlock()
 
 	b.ports = make(map[string]map[string]*model.ServicePort)
+}
+
+func (b *instancePorts) removeService(serviceID string) {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+
+	delete(b.ports, serviceID)
 }
 
 func (b *instancePorts) appendPort(serviceID string, protocol string, port uint32) {

@@ -206,41 +206,6 @@ func (s *Server) GetConfigGroupsWithCache(ctx context.Context, req *apiconfig.Cl
 	return out
 }
 
-func CompareByVersion(clientInfo *apiconfig.ClientConfigFileInfo, file *model.ConfigFileRelease) bool {
-	return clientInfo.GetVersion().GetValue() < file.Version
-}
-
-// only for unit test
-func (s *Server) checkClientConfigFile(ctx context.Context, files []*apiconfig.ClientConfigFileInfo,
-	compartor CompareFunction) (*apiconfig.ConfigClientResponse, bool) {
-	if len(files) == 0 {
-		return api.NewConfigClientResponse(apimodel.Code_InvalidWatchConfigFileFormat, nil), false
-	}
-	for _, configFile := range files {
-		namespace := configFile.GetNamespace().GetValue()
-		group := configFile.GetGroup().GetValue()
-		fileName := configFile.GetFileName().GetValue()
-
-		if namespace == "" || group == "" || fileName == "" {
-			return api.NewConfigClientResponseWithInfo(apimodel.Code_BadRequest,
-				"namespace & group & fileName can not be empty"), false
-		}
-		// 从缓存中获取最新的配置文件信息
-		release := s.fileCache.GetActiveRelease(namespace, group, fileName)
-		if release != nil && compartor(configFile, release) {
-			ret := &apiconfig.ClientConfigFileInfo{
-				Namespace: utils.NewStringValue(namespace),
-				Group:     utils.NewStringValue(group),
-				FileName:  utils.NewStringValue(fileName),
-				Version:   utils.NewUInt64Value(release.Version),
-				Md5:       utils.NewStringValue(release.Md5),
-			}
-			return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, ret), false
-		}
-	}
-	return api.NewConfigClientResponse(apimodel.Code_DataNoChange, nil), true
-}
-
 func toClientInfo(client *apiconfig.ClientConfigFileInfo,
 	release *model.ConfigFileRelease) (*apiconfig.ClientConfigFileInfo, error) {
 
@@ -328,8 +293,105 @@ func (s *Server) PublishConfigFileFromClient(ctx context.Context,
 	return api.NewConfigClientResponseFromConfigResponse(configResponse)
 }
 
-// CasUpsertAndReleaseConfigFileFromClient 创建/更新配置文件并发布
-func (s *Server) CasUpsertAndReleaseConfigFileFromClient(ctx context.Context,
-	req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
-	return s.CasUpsertAndReleaseConfigFile(ctx, req)
+// GetConfigSubscribers 根据配置视角获取订阅者列表
+func (s *Server) GetConfigSubscribers(ctx context.Context, filter map[string]string) *model.CommonResponse {
+	namespace := filter["namespace"]
+	group := filter["group"]
+	fileName := filter["file_name"]
+
+	key := utils.GenFileId(namespace, group, fileName)
+	clientIds, _ := s.watchCenter.watchers.Load(key)
+	if clientIds == nil {
+		return model.NewCommonResponse(uint32(apimodel.Code_NotFoundResource))
+	}
+
+	versionClients := map[uint64][]*model.Subscriber{}
+	clientIds.Range(func(val string) {
+		watchCtx, ok := s.watchCenter.clients.Load(val)
+		if !ok {
+			return
+		}
+		curVer := watchCtx.CurWatchVersion(key)
+		if _, ok := versionClients[curVer]; !ok {
+			versionClients[curVer] = []*model.Subscriber{}
+		}
+
+		watchCtx.ClientLabels()
+
+		versionClients[curVer] = append(versionClients[curVer], &model.Subscriber{
+			ID:         watchCtx.ClientID(),
+			Host:       watchCtx.ClientLabels()[model.ClientLabel_Host],
+			Version:    watchCtx.ClientLabels()[model.ClientLabel_Version],
+			ClientType: watchCtx.ClientLabels()[model.ClientLabel_Language],
+		})
+	})
+
+	rsp := model.NewCommonResponse(uint32(apimodel.Code_ExecuteSuccess))
+	rsp.Data = &model.ConfigSubscribers{
+		Key: model.ConfigFileKey{
+			Namespace: namespace,
+			Group:     group,
+			Name:      fileName,
+		},
+		VersionClients: func() []*model.VersionClient {
+			ret := make([]*model.VersionClient, 0, len(versionClients))
+			for ver, clients := range versionClients {
+				ret = append(ret, &model.VersionClient{
+					Versoin:     ver,
+					Subscribers: clients,
+				})
+			}
+			return ret
+		}(),
+	}
+	return rsp
+}
+
+// GetClientSubscribers 根据客户端视角获取订阅的配置文件列表
+func (s *Server) GetClientSubscribers(ctx context.Context, filter map[string]string) *model.CommonResponse {
+	clientId := filter["client_id"]
+	watchCtx, ok := s.watchCenter.clients.Load(clientId)
+	if !ok {
+		return model.NewCommonResponse(uint32(apimodel.Code_NotFoundResource))
+	}
+
+	watchFiles := watchCtx.ListWatchFiles()
+	data := &model.ClientSubscriber{
+		Subscriber: model.Subscriber{
+			ID:         watchCtx.ClientID(),
+			Host:       watchCtx.ClientLabels()[model.ClientLabel_Host],
+			Version:    watchCtx.ClientLabels()[model.ClientLabel_Version],
+			ClientType: watchCtx.ClientLabels()[model.ClientLabel_Language],
+		},
+		Files: []model.FileReleaseSubscribeInfo{},
+	}
+
+	for _, file := range watchFiles {
+		key := model.BuildKeyForClientConfigFileInfo(file)
+		curVer := watchCtx.CurWatchVersion(key)
+
+		ns := file.GetNamespace().GetValue()
+		group := file.GetGroup().GetValue()
+		filename := file.GetFileName().GetValue()
+
+		data.Files = append(data.Files, model.FileReleaseSubscribeInfo{
+			Name:      file.GetName().GetValue(),
+			Namespace: ns,
+			Group:     group,
+			FileName:  filename,
+			ReleaseType: func() model.ReleaseType {
+				if gray := s.fileCache.GetActiveGrayRelease(ns, group, filename); gray != nil {
+					if gray.Version == curVer {
+						return model.ReleaseTypeGray
+					}
+				}
+				return model.ReleaseTypeFull
+			}(),
+			Version: curVer,
+		})
+	}
+
+	rsp := model.NewCommonResponse(uint32(apimodel.Code_ExecuteSuccess))
+	rsp.Data = data
+	return rsp
 }

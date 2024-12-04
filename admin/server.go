@@ -20,6 +20,7 @@ package admin
 import (
 	"sync"
 
+	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
 	"github.com/polarismesh/polaris/service"
 	"github.com/polarismesh/polaris/service/healthcheck"
@@ -32,8 +33,10 @@ type Server struct {
 	mu                sync.Mutex
 	namingServer      service.DiscoverServer
 	healthCheckServer *healthcheck.Server
-	cacheMgn          *cache.CacheManager
+	cacheMgr          *cache.CacheManager
 	storage           store.Store
+	userSvr           auth.UserServer
+	policySvr         auth.StrategyServer
 }
 
 func GetChainOrder() []string {

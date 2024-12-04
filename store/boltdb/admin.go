@@ -157,37 +157,22 @@ func (m *adminStore) getUnHealthyInstancesBefore(mtime time.Time, limit uint32) 
 	fields := []string{insFieldProto, insFieldValid}
 	instances, err := m.handler.LoadValuesByFilter(tblNameInstance, fields, &model.Instance{},
 		func(m map[string]interface{}) bool {
-
-			valid, ok := m[insFieldValid]
-			if ok && !valid.(bool) {
+			if valid, ok := m[insFieldValid]; ok && !valid.(bool) {
 				return false
 			}
-
 			insProto, ok := m[insFieldProto]
 			if !ok {
 				return false
 			}
-
 			ins := insProto.(*apiservice.Instance)
-
 			insMtime, err := time.Parse("2006-01-02 15:04:05", ins.GetMtime().GetValue())
 			if err != nil {
 				log.Errorf("[Store][boltdb] parse instance mtime error, %v", err)
 				return false
 			}
-
-			if insMtime.Before(mtime) {
+			if insMtime.Before(mtime) || !ins.GetEnableHealthCheck().GetValue() || ins.GetHealthy().GetValue() {
 				return false
 			}
-
-			if !ins.GetEnableHealthCheck().GetValue() {
-				return false
-			}
-
-			if ins.GetHealthy().GetValue() {
-				return false
-			}
-
 			return true
 		})
 
@@ -255,7 +240,49 @@ func (m *adminStore) BatchCleanDeletedClients(timeout time.Duration, batchSize u
 
 // BatchCleanDeletedServices batch clean soft deleted clients
 func (m *adminStore) BatchCleanDeletedServices(timeout time.Duration, batchSize uint32) (uint32, error) {
-	return 0, nil
+	mtime := time.Now().Add(-timeout)
+	fields := []string{svcFieldValid, SvcFieldModifyTime}
+	values, err := m.handler.LoadValuesByFilter(tblNameService, fields, &model.Service{},
+		func(m map[string]interface{}) bool {
+			valid, ok := m[svcFieldValid]
+			if !ok {
+				return false
+			}
+			if valid.(bool) {
+				return false
+			}
+
+			modifyTime, ok := m[SvcFieldModifyTime]
+			if !ok {
+				return false
+			}
+			if modifyTime.(time.Time).After(mtime) {
+				return false
+			}
+
+			return true
+		})
+	if err != nil {
+		return 0, err
+	}
+	if len(values) == 0 {
+		return 0, nil
+	}
+
+	var count uint32 = 0
+	keys := make([]string, 0, batchSize)
+	for k := range values {
+		keys = append(keys, k)
+		count++
+		if count >= batchSize {
+			break
+		}
+	}
+	err = m.handler.DeleteValues(tblNameService, keys)
+	if err != nil {
+		return count, err
+	}
+	return count, nil
 }
 
 // BatchCleanDeletedRules batch clean soft deleted clients
@@ -266,4 +293,50 @@ func (m *adminStore) BatchCleanDeletedRules(rule string, timeout time.Duration, 
 // BatchCleanDeletedConfigFiles batch clean soft deleted clients
 func (m *adminStore) BatchCleanDeletedConfigFiles(timeout time.Duration, batchSize uint32) (uint32, error) {
 	return 0, nil
+}
+
+func (m *adminStore) BatchCleanDeletedServiceContracts(timeout time.Duration, batchSize uint32) (uint32, error) {
+	mtime := time.Now().Add(-timeout)
+	fields := []string{ContractFieldValid, ContractFieldModifyTime}
+	values, err := m.handler.LoadValuesByFilter(tblServiceContract, fields, &serviceContractStore{},
+		func(m map[string]interface{}) bool {
+			valid, ok := m[ContractFieldValid]
+			if !ok {
+				return false
+			}
+			if valid.(bool) {
+				return false
+			}
+
+			modifyTime, ok := m[ContractFieldModifyTime]
+			if !ok {
+				return false
+			}
+			if modifyTime.(time.Time).After(mtime) {
+				return false
+			}
+
+			return true
+		})
+	if err != nil {
+		return 0, err
+	}
+	if len(values) == 0 {
+		return 0, nil
+	}
+
+	var count uint32 = 0
+	keys := make([]string, 0, batchSize)
+	for k := range values {
+		keys = append(keys, k)
+		count++
+		if count >= batchSize {
+			break
+		}
+	}
+	err = m.handler.DeleteValues(tblServiceContract, keys)
+	if err != nil {
+		return count, err
+	}
+	return count, nil
 }

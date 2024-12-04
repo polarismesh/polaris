@@ -21,6 +21,10 @@ import (
 	apisecurity "github.com/polarismesh/specification/source/go/api/v1/security"
 )
 
+const (
+	MetadKeySystemDefaultPolicy = "internal-polaris-system-policy"
+)
+
 type ServerFunctionName string
 
 // SDK 接口

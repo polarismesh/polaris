@@ -744,7 +744,7 @@ func TestServer_CasUpsertAndReleaseConfigFile(t *testing.T) {
 
 	t.Run("publish_cas", func(t *testing.T) {
 		// 第一次配置发布，就算带了 MD5，也是可以发布成功
-		pubResp := testSuit.ConfigServer().CasUpsertAndReleaseConfigFileFromClient(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
+		pubResp := testSuit.ConfigServer().UpsertAndReleaseConfigFileFromClient(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
 			Namespace:   utils.NewStringValue(mockNamespace),
 			Group:       utils.NewStringValue(mockGroup),
 			FileName:    utils.NewStringValue(mockFileName),
@@ -756,7 +756,7 @@ func TestServer_CasUpsertAndReleaseConfigFile(t *testing.T) {
 		assert.Equal(t, uint32(apimodel.Code_ExecuteSuccess), pubResp.GetCode().GetValue(), pubResp.GetInfo().GetValue())
 
 		// MD5 不一致，直接发布失败
-		pubResp = testSuit.ConfigServer().CasUpsertAndReleaseConfigFileFromClient(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
+		pubResp = testSuit.ConfigServer().UpsertAndReleaseConfigFileFromClient(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
 			Namespace:   utils.NewStringValue(mockNamespace),
 			Group:       utils.NewStringValue(mockGroup),
 			FileName:    utils.NewStringValue(mockFileName),
@@ -779,7 +779,7 @@ func TestServer_CasUpsertAndReleaseConfigFile(t *testing.T) {
 		assert.Equal(t, config.CalMd5(mockContent), queryRsp.GetConfigFileRelease().GetMd5().GetValue())
 
 		t.Run("md5_不匹配", func(t *testing.T) {
-			pubResp := testSuit.ConfigServer().CasUpsertAndReleaseConfigFileFromClient(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
+			pubResp := testSuit.ConfigServer().UpsertAndReleaseConfigFileFromClient(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
 				Namespace:   utils.NewStringValue(mockNamespace),
 				Group:       utils.NewStringValue(mockGroup),
 				FileName:    utils.NewStringValue(mockFileName),
@@ -792,7 +792,7 @@ func TestServer_CasUpsertAndReleaseConfigFile(t *testing.T) {
 		})
 
 		t.Run("md5_匹配", func(t *testing.T) {
-			pubResp := testSuit.ConfigServer().CasUpsertAndReleaseConfigFileFromClient(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
+			pubResp := testSuit.ConfigServer().UpsertAndReleaseConfigFileFromClient(testSuit.DefaultCtx, &config_manage.ConfigFilePublishInfo{
 				Namespace: utils.NewStringValue(mockNamespace),
 				Group:     utils.NewStringValue(mockGroup),
 				FileName:  utils.NewStringValue(mockFileName),

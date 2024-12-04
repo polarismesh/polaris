@@ -123,6 +123,14 @@ func (c *StreamWatchContext) ListWatchFiles() []*apiconfig.ClientConfigFileInfo 
 	return c.watchConfigFiles.Values()
 }
 
+func (c *StreamWatchContext) CurWatchVersion(k string) uint64 {
+	val, ok := c.watchConfigFiles.Load(k)
+	if !ok {
+		return 0
+	}
+	return val.GetVersion().GetValue()
+}
+
 // AppendInterest .
 func (c *StreamWatchContext) AppendInterest(item *apiconfig.ClientConfigFileInfo) {
 	key := model.BuildKeyForClientConfigFileInfo(item)

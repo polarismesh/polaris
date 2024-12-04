@@ -22,11 +22,14 @@ import (
 	"fmt"
 
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
+	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	"go.uber.org/zap"
 
 	"github.com/polarismesh/polaris/auth"
 	"github.com/polarismesh/polaris/cache"
+	api "github.com/polarismesh/polaris/common/api/v1"
 	"github.com/polarismesh/polaris/common/model"
+	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/namespace"
 	"github.com/polarismesh/polaris/plugin"
 	"github.com/polarismesh/polaris/store"
@@ -67,11 +70,36 @@ func TestInitialize(ctx context.Context, config Config, s store.Store, cacheMgn 
 
 func (s *Server) TestCheckClientConfigFile(ctx context.Context, files []*apiconfig.ClientConfigFileInfo,
 	compartor CompareFunction) (*apiconfig.ConfigClientResponse, bool) {
-	return s.checkClientConfigFile(ctx, files, compartor)
+	if len(files) == 0 {
+		return api.NewConfigClientResponse(apimodel.Code_InvalidWatchConfigFileFormat, nil), false
+	}
+	for _, configFile := range files {
+		namespace := configFile.GetNamespace().GetValue()
+		group := configFile.GetGroup().GetValue()
+		fileName := configFile.GetFileName().GetValue()
+
+		if namespace == "" || group == "" || fileName == "" {
+			return api.NewConfigClientResponseWithInfo(apimodel.Code_BadRequest,
+				"namespace & group & fileName can not be empty"), false
+		}
+		// 从缓存中获取最新的配置文件信息
+		release := s.fileCache.GetActiveRelease(namespace, group, fileName)
+		if release != nil && compartor(configFile, release) {
+			ret := &apiconfig.ClientConfigFileInfo{
+				Namespace: utils.NewStringValue(namespace),
+				Group:     utils.NewStringValue(group),
+				FileName:  utils.NewStringValue(fileName),
+				Version:   utils.NewUInt64Value(release.Version),
+				Md5:       utils.NewStringValue(release.Md5),
+			}
+			return api.NewConfigClientResponse(apimodel.Code_ExecuteSuccess, ret), false
+		}
+	}
+	return api.NewConfigClientResponse(apimodel.Code_DataNoChange, nil), true
 }
 
 func TestCompareByVersion(clientInfo *apiconfig.ClientConfigFileInfo, file *model.ConfigFileRelease) bool {
-	return CompareByVersion(clientInfo, file)
+	return clientInfo.GetVersion().GetValue() < file.Version
 }
 
 // TestDecryptConfigFile 解密配置文件

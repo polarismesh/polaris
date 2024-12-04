@@ -176,7 +176,24 @@ func (s *Server) GetServiceWithCache(ctx context.Context, req *apiservice.Servic
 
 	if req.GetNamespace().GetValue() != "" {
 		revision, svcs = s.Cache().Service().ListServices(ctx, req.GetNamespace().GetValue())
+		// 需要加上服务可见性处理
+		visibleSvcs := s.caches.Service().GetVisibleServicesInOtherNamespace(ctx, utils.MatchAll, req.GetNamespace().GetValue())
+		revisions := make([]string, 0, len(visibleSvcs)+1)
+		revisions = append(revisions, revision)
+		for i := range visibleSvcs {
+			revisions = append(revisions, visibleSvcs[i].Revision)
+		}
+		svcs = append(svcs, visibleSvcs...)
+		// 需要重新计算 revison
+		if rever, err := cachetypes.CompositeComputeRevision(revisions); err != nil {
+			log.Error("[Server][Discover] list services compute multi revision",
+				zap.String("namespace", req.GetNamespace().GetValue()), zap.Error(err))
+			return api.NewDiscoverInstanceResponse(apimodel.Code_ExecuteException, req)
+		} else {
+			revision = rever
+		}
 	} else {
+		// 这里拉的是全部服务实例列表，如果客户端可以发起这个请求，应该是不需要
 		revision, svcs = s.Cache().Service().ListAllServices(ctx)
 	}
 	if revision == "" {
@@ -212,14 +229,14 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, filter *apiservice.D
 	req *apiservice.Service) *apiservice.DiscoverResponse {
 
 	resp := createCommonDiscoverResponse(req, apiservice.DiscoverResponse_INSTANCE)
-	serviceName := req.GetName().GetValue()
-	namespaceName := req.GetNamespace().GetValue()
+	svcName := req.GetName().GetValue()
+	nsName := req.GetNamespace().GetValue()
 
 	// 数据源都来自Cache，这里拿到的service，已经是源服务
-	aliasFor, visibleServices := s.findVisibleServices(serviceName, namespaceName, req)
+	aliasFor, visibleServices := s.findVisibleServices(ctx, svcName, nsName, req)
 	if len(visibleServices) == 0 {
 		log.Infof("[Server][Service][Instance] not found name(%s) namespace(%s) service",
-			serviceName, namespaceName)
+			svcName, nsName)
 		return api.NewDiscoverInstanceResponse(apimodel.Code_NotFoundResource, req)
 	}
 
@@ -237,9 +254,6 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, filter *apiservice.D
 			continue
 		}
 		revision := s.caches.Service().GetRevisionWorker().GetServiceInstanceRevision(svc.ID)
-		if revision == "" {
-			revision = utils.NewUUID()
-		}
 		revisions = append(revisions, revision)
 
 		for i := range ret {
@@ -276,14 +290,15 @@ func (s *Server) ServiceInstancesCache(ctx context.Context, filter *apiservice.D
 	return resp
 }
 
-func (s *Server) findVisibleServices(serviceName, namespaceName string, req *apiservice.Service) (*model.Service, []*model.Service) {
+func (s *Server) findVisibleServices(ctx context.Context, serviceName, namespaceName string,
+	req *apiservice.Service) (*model.Service, []*model.Service) {
 	visibleServices := make([]*model.Service, 0, 4)
 	// 数据源都来自Cache，这里拿到的service，已经是源服务
 	aliasFor := s.getServiceCache(serviceName, namespaceName)
 	if aliasFor != nil {
 		visibleServices = append(visibleServices, aliasFor)
 	}
-	ret := s.caches.Service().GetVisibleServicesInOtherNamespace(serviceName, namespaceName)
+	ret := s.caches.Service().GetVisibleServicesInOtherNamespace(ctx, serviceName, namespaceName)
 	if len(ret) > 0 {
 		visibleServices = append(visibleServices, ret...)
 	}
@@ -480,6 +495,36 @@ func (s *Server) GetLaneRuleWithCache(ctx context.Context, req *apiservice.Servi
 	resp.Lanes = make([]*apitraffic.LaneGroup, 0, len(out))
 	for i := range out {
 		resp.Lanes = append(resp.Lanes, out[i].Proto)
+	}
+	return resp
+}
+
+// GetRouterRuleWithCache fetch lane rules by client
+func (s *Server) GetRouterRuleWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+	resp := createCommonDiscoverResponse(req, apiservice.DiscoverResponse_CUSTOM_ROUTE_RULE)
+	aliasFor := s.findServiceAlias(req)
+
+	out, err := s.caches.RoutingConfig().GetRouterConfigV2(aliasFor.ID, aliasFor.Name, aliasFor.Namespace)
+	if err != nil {
+		log.Error("[Server][Service][Routing] discover routing", utils.RequestID(ctx), zap.Error(err))
+		return api.NewDiscoverRoutingResponse(apimodel.Code_ExecuteException, req)
+	}
+	if out == nil {
+		return resp
+	}
+
+	// 获取路由数据，并对比revision
+	if out.GetRevision().GetValue() == req.GetRevision().GetValue() {
+		return api.NewDiscoverRoutingResponse(apimodel.Code_DataNoChange, req)
+	}
+
+	// 数据不一致，发生了改变
+	// 数据格式转换，service只需要返回二元组与routing的revision
+	resp.Service.Revision = out.GetRevision()
+	resp.CustomRouteRules = out.Rules
+	resp.AliasFor = &apiservice.Service{
+		Name:      utils.NewStringValue(aliasFor.Name),
+		Namespace: utils.NewStringValue(aliasFor.Namespace),
 	}
 	return resp
 }

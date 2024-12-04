@@ -477,8 +477,23 @@ func (s *strategyStore) GetDefaultStrategyDetailByPrincipal(principalId string,
 		 )
 	 `
 
-	row := s.master.QueryRow(querySql, principalId, int(principalType))
-	return s.getStrategyDetail(row)
+	rows, err := s.master.Query(querySql, principalId, int(principalType))
+	if err != nil {
+		return nil, store.Error(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		detail, err := fetchRown2StrategyDetail(rows)
+		if err != nil {
+			return nil, store.Error(err)
+		}
+		if detail.Metadata[authcommon.MetadKeySystemDefaultPolicy] == "true" {
+			continue
+		}
+		return detail, nil
+	}
+	return nil, nil
 }
 
 // getStrategyDetail

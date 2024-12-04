@@ -91,7 +91,7 @@ func (g *ConfigGRPCServer) PublishConfigFile(ctx context.Context,
 func (g *ConfigGRPCServer) UpsertAndPublishConfigFile(ctx context.Context,
 	req *apiconfig.ConfigFilePublishInfo) (*apiconfig.ConfigClientResponse, error) {
 	ctx = utils.ConvertGRPCContext(ctx)
-	response := g.configServer.CasUpsertAndReleaseConfigFileFromClient(ctx, req)
+	response := g.configServer.UpsertAndReleaseConfigFileFromClient(ctx, req)
 	return &apiconfig.ConfigClientResponse{
 		Code: response.Code,
 		Info: response.Info,
@@ -182,55 +182,67 @@ func (g *ConfigGRPCServer) Discover(svr apiconfig.PolarisConfigGRPC_DiscoverServ
 			continue
 		}
 
-		var out *apiconfig.ConfigDiscoverResponse
-		var action string
-		startTime := commontime.CurrentMillisecond()
-		defer func() {
-			plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
-				Action:    action,
-				ClientIP:  utils.ParseClientAddress(ctx),
-				Namespace: in.GetConfigFile().GetNamespace().GetValue(),
-				Resource:  metrics.ResourceOfConfigFile(in.GetConfigFile().GetGroup().GetValue(), in.GetConfigFile().GetFileName().GetValue()),
-				Timestamp: startTime,
-				CostTime:  commontime.CurrentMillisecond() - startTime,
-				Revision:  out.GetRevision(),
-				Success:   out.GetCode() > uint32(apimodel.Code_DataNoChange),
-			})
-		}()
-
-		switch in.Type {
-		case apiconfig.ConfigDiscoverRequest_CONFIG_FILE:
-			action = metrics.ActionGetConfigFile
-			ret := g.configServer.GetConfigFileWithCache(ctx, &apiconfig.ClientConfigFileInfo{})
-			out = api.NewConfigDiscoverResponse(apimodel.Code(ret.GetCode().GetValue()))
-			out.ConfigFile = ret.GetConfigFile()
-			out.Type = apiconfig.ConfigDiscoverResponse_CONFIG_FILE
-			out.Revision = strconv.Itoa(int(out.GetConfigFile().GetVersion().GetValue()))
-		case apiconfig.ConfigDiscoverRequest_CONFIG_FILE_Names:
-			action = metrics.ActionListConfigFiles
-			ret := g.configServer.GetConfigFileNamesWithCache(ctx, &apiconfig.ConfigFileGroupRequest{
-				Revision: wrapperspb.String(in.GetRevision()),
-				ConfigFileGroup: &apiconfig.ConfigFileGroup{
-					Namespace: in.GetConfigFile().GetNamespace(),
-					Name:      in.GetConfigFile().GetGroup(),
-				},
-			})
-			out = api.NewConfigDiscoverResponse(apimodel.Code(ret.GetCode().GetValue()))
-			out.ConfigFileNames = ret.GetConfigFileInfos()
-			out.Type = apiconfig.ConfigDiscoverResponse_CONFIG_FILE_Names
-			out.Revision = ret.GetRevision().GetValue()
-		case apiconfig.ConfigDiscoverRequest_CONFIG_FILE_GROUPS:
-			action = metrics.ActionListConfigGroups
-			req := in.GetConfigFile()
-			req.Md5 = wrapperspb.String(in.GetRevision())
-			out = g.configServer.GetConfigGroupsWithCache(ctx, req)
-			out.Type = apiconfig.ConfigDiscoverResponse_CONFIG_FILE_GROUPS
-		default:
-			out = api.NewConfigDiscoverResponse(apimodel.Code_InvalidDiscoverResource)
-		}
-
+		out := g.handleDiscoverRequest(ctx, in)
 		if err := svr.Send(out); err != nil {
 			return err
 		}
 	}
+}
+
+func (g *ConfigGRPCServer) handleDiscoverRequest(ctx context.Context, in *apiconfig.ConfigDiscoverRequest) *apiconfig.ConfigDiscoverResponse {
+	var out *apiconfig.ConfigDiscoverResponse
+	var action string
+	startTime := commontime.CurrentMillisecond()
+	defer func() {
+		plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+			Action:    action,
+			ClientIP:  utils.ParseClientAddress(ctx),
+			Namespace: in.GetConfigFile().GetNamespace().GetValue(),
+			Resource:  metrics.ResourceOfConfigFile(in.GetConfigFile().GetGroup().GetValue(), in.GetConfigFile().GetFileName().GetValue()),
+			Timestamp: startTime,
+			CostTime:  commontime.CurrentMillisecond() - startTime,
+			Revision:  out.GetRevision(),
+			Success:   out.GetCode() > uint32(apimodel.Code_DataNoChange),
+		})
+	}()
+
+	switch in.Type {
+	case apiconfig.ConfigDiscoverRequest_CONFIG_FILE:
+		action = metrics.ActionGetConfigFile
+		version, _ := strconv.ParseUint(in.GetRevision(), 10, 64)
+		ret := g.configServer.GetConfigFileWithCache(ctx, &apiconfig.ClientConfigFileInfo{
+			Namespace: in.GetConfigFile().GetNamespace(),
+			Group:     in.GetConfigFile().GetGroup(),
+			FileName:  in.GetConfigFile().GetFileName(),
+			Version:   wrapperspb.UInt64(version),
+			PublicKey: in.GetConfigFile().GetPublicKey(),
+		})
+		out = api.NewConfigDiscoverResponse(apimodel.Code(ret.GetCode().GetValue()))
+		out.ConfigFile = ret.GetConfigFile()
+		out.Type = apiconfig.ConfigDiscoverResponse_CONFIG_FILE
+		out.Revision = strconv.Itoa(int(out.GetConfigFile().GetVersion().GetValue()))
+	case apiconfig.ConfigDiscoverRequest_CONFIG_FILE_Names:
+		action = metrics.ActionListConfigFiles
+		ret := g.configServer.GetConfigFileNamesWithCache(ctx, &apiconfig.ConfigFileGroupRequest{
+			Revision: wrapperspb.String(in.GetRevision()),
+			ConfigFileGroup: &apiconfig.ConfigFileGroup{
+				Namespace: in.GetConfigFile().GetNamespace(),
+				Name:      in.GetConfigFile().GetGroup(),
+			},
+		})
+		out = api.NewConfigDiscoverResponse(apimodel.Code(ret.GetCode().GetValue()))
+		out.ConfigFileNames = ret.GetConfigFileInfos()
+		out.Type = apiconfig.ConfigDiscoverResponse_CONFIG_FILE_Names
+		out.Revision = ret.GetRevision().GetValue()
+	case apiconfig.ConfigDiscoverRequest_CONFIG_FILE_GROUPS:
+		action = metrics.ActionListConfigGroups
+		req := in.GetConfigFile()
+		req.Md5 = wrapperspb.String(in.GetRevision())
+		out = g.configServer.GetConfigGroupsWithCache(ctx, req)
+		out.Type = apiconfig.ConfigDiscoverResponse_CONFIG_FILE_GROUPS
+	default:
+		out = api.NewConfigDiscoverResponse(apimodel.Code_InvalidDiscoverResource)
+	}
+
+	return out
 }

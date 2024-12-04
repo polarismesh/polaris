@@ -202,18 +202,3 @@ func (s *Server) GetConfigGroupsWithCache(ctx context.Context,
 
 	return s.nextServer.GetConfigGroupsWithCache(ctx, req)
 }
-
-// CasUpsertAndReleaseConfigFileFromClient 创建/更新配置文件并发布
-func (s *Server) CasUpsertAndReleaseConfigFileFromClient(ctx context.Context,
-	req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
-	if err := CheckFileName(req.GetFileName()); err != nil {
-		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileName)
-	}
-	if err := utils.CheckResourceName(req.GetNamespace()); err != nil {
-		return api.NewConfigResponse(apimodel.Code_InvalidNamespaceName)
-	}
-	if err := utils.CheckResourceName(req.GetGroup()); err != nil {
-		return api.NewConfigResponse(apimodel.Code_InvalidConfigFileGroupName)
-	}
-	return s.nextServer.CasUpsertAndReleaseConfigFileFromClient(ctx, req)
-}

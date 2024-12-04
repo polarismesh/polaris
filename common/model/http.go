@@ -17,7 +17,11 @@
 
 package model
 
-import "net/http"
+import (
+	"net/http"
+
+	api "github.com/polarismesh/polaris/common/api/v1"
+)
 
 type DebugHandlerGroup struct {
 	Name     string
@@ -28,4 +32,17 @@ type DebugHandler struct {
 	Desc    string
 	Path    string
 	Handler http.HandlerFunc
+}
+
+type CommonResponse struct {
+	Code uint32      `json:"code"`
+	Info string      `json:"info"`
+	Data interface{} `json:"data"`
+}
+
+func NewCommonResponse(code uint32) *CommonResponse {
+	return &CommonResponse{
+		Code: code,
+		Info: api.Code2Info(code),
+	}
 }

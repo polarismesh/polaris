@@ -194,6 +194,11 @@ func (svr *Server) GetStrategies(ctx context.Context, filters map[string]string)
 	// 透传兼容模式信息数据
 	ctx = context.WithValue(ctx, model.ContextKeyCompatible{}, svr.options.Compatible)
 
+	// 这里需要框定大体的数据查询范围
+	if authcommon.ParseUserRole(ctx) != authcommon.AdminUserRole {
+		filters["owner"] = utils.ParseOwnerID(ctx)
+	}
+
 	total, strategies, err := svr.cacheMgr.AuthStrategy().Query(ctx, cachetypes.PolicySearchArgs{
 		Filters: filters,
 		Offset:  offset,

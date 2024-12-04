@@ -222,6 +222,8 @@ type ClientServer interface {
 	ReportServiceContract(ctx context.Context, req *apiservice.ServiceContract) *apiservice.Response
 	// GetLaneRuleWithCache fetch lane rules by client
 	GetLaneRuleWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse
+	// GetRouterRuleWithCache fetch lane rules by client
+	GetRouterRuleWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse
 }
 
 // L5OperateServer L5 related operations

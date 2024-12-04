@@ -19,6 +19,7 @@ package service
 
 import (
 	"context"
+	"sort"
 
 	apimodel "github.com/polarismesh/specification/source/go/api/v1/model"
 	apiservice "github.com/polarismesh/specification/source/go/api/v1/service_manage"
@@ -177,6 +178,26 @@ func ClientEquals(client1 *apiservice.Client, client2 *apiservice.Client) bool {
 	if len(client1.Stat) != len(client2.Stat) {
 		return false
 	}
+
+	sortStat := func(stat []*apiservice.StatInfo) {
+		sort.Slice(stat, func(i, j int) bool {
+			if client1.Stat[i].GetTarget().GetValue() != client1.Stat[j].GetTarget().GetValue() {
+				return client1.Stat[i].GetTarget().GetValue() < client1.Stat[j].GetTarget().GetValue()
+			}
+			if client1.Stat[i].GetPort().GetValue() != client1.Stat[j].GetPort().GetValue() {
+				return client1.Stat[i].GetPort().GetValue() < client1.Stat[j].GetPort().GetValue()
+			}
+			if client1.Stat[i].GetPath().GetValue() != client1.Stat[j].GetPath().GetValue() {
+				return client1.Stat[i].GetPath().GetValue() < client1.Stat[j].GetPath().GetValue()
+			}
+			return client1.Stat[i].GetProtocol().GetValue() < client1.Stat[j].GetProtocol().GetValue()
+		})
+	}
+
+	// 针对 client1 和 client2 的 stat 进行排序
+	sortStat(client1.Stat)
+	sortStat(client2.Stat)
+
 	for i := 0; i < len(client1.Stat); i++ {
 		if client1.Stat[i].GetTarget().GetValue() != client2.Stat[i].GetTarget().GetValue() {
 			return false

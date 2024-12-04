@@ -184,19 +184,3 @@ func (s *Server) GetConfigGroupsWithCache(ctx context.Context,
 	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
 	return s.nextServer.GetConfigGroupsWithCache(ctx, req)
 }
-
-// CasUpsertAndReleaseConfigFileFromClient 创建/更新配置文件并发布
-func (s *Server) CasUpsertAndReleaseConfigFileFromClient(ctx context.Context,
-	req *apiconfig.ConfigFilePublishInfo) *apiconfig.ConfigResponse {
-
-	authCtx := s.collectConfigFilePublishAuthContext(ctx, []*apiconfig.ConfigFilePublishInfo{req},
-		auth.Modify, auth.UpsertAndReleaseConfigFile)
-	if _, err := s.policySvr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
-		return api.NewConfigFileResponse(auth.ConvertToErrCode(err), nil)
-	}
-
-	ctx = authCtx.GetRequestContext()
-	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
-
-	return s.nextServer.CasUpsertAndReleaseConfigFileFromClient(ctx, req)
-}

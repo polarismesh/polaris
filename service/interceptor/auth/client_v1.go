@@ -236,3 +236,16 @@ func (svr *Server) GetLaneRuleWithCache(ctx context.Context, req *apiservice.Ser
 
 	return svr.nextSvr.GetLaneRuleWithCache(ctx, req)
 }
+
+// GetRouterRuleWithCache .
+func (svr *Server) GetRouterRuleWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+	authCtx := svr.collectServiceAuthContext(
+		ctx, []*apiservice.Service{req}, authcommon.Read, authcommon.DiscoverRouterRule)
+	if _, err := svr.policySvr.GetAuthChecker().CheckClientPermission(authCtx); err != nil {
+		return api.NewDiscoverResponse(authcommon.ConvertToErrCode(err))
+	}
+	ctx = authCtx.GetRequestContext()
+	ctx = context.WithValue(ctx, utils.ContextAuthContextKey, authCtx)
+
+	return svr.nextSvr.GetRouterRuleWithCache(ctx, req)
+}

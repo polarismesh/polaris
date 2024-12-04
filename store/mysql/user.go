@@ -25,7 +25,6 @@ import (
 	"go.uber.org/zap"
 
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
-	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -49,6 +48,36 @@ var (
 type userStore struct {
 	master *BaseDB
 	slave  *BaseDB
+}
+
+// GetMainUser .
+func (u *userStore) GetMainUser() (*authcommon.User, error) {
+	var tokenEnable, userType int
+	getSql := `
+		 SELECT u.id, u.name, u.password, u.owner, u.comment, u.source, u.token, u.token_enable, 
+		 	u.user_type, u.mobile, u.email
+		 FROM user u
+		 WHERE u.flag = 0 AND u.type = ? 
+	  `
+	row := u.master.QueryRow(getSql, authcommon.OwnerUserRole)
+
+	user := &authcommon.User{}
+	if err := row.Scan(&user.ID, &user.Name, &user.Password, &user.Owner, &user.Comment, &user.Source,
+		&user.Token, &tokenEnable, &userType, &user.Mobile, &user.Email); err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			return nil, nil
+		default:
+			return nil, store.Error(err)
+		}
+	}
+
+	user.TokenEnable = tokenEnable == 1
+	user.Type = authcommon.UserRoleType(userType)
+	// 北极星后续不在保存用户的 mobile 以及 email 信息，这里针对原来保存的数据也不进行对外展示，强制屏蔽数据
+	user.Mobile = ""
+	user.Email = ""
+	return user, nil
 }
 
 // AddUser 添加用户
@@ -302,146 +331,8 @@ func (u *userStore) GetUserByIds(ids []string) ([]*authcommon.User, error) {
 	return users, nil
 }
 
-// GetUsers Query user list information
-// Case 1. From the user's perspective, normal query conditions
-// Case 2. From the perspective of the user group, query is the list of users involved under a user group.
-func (u *userStore) GetUsers(filters map[string]string, offset uint32, limit uint32) (uint32,
-	[]*authcommon.User, error) {
-	if _, ok := filters["group_id"]; ok {
-		return u.listGroupUsers(filters, offset, limit)
-	}
-	return u.listUsers(filters, offset, limit)
-}
-
-// listUsers Query user list information
-func (u *userStore) listUsers(filters map[string]string, offset uint32, limit uint32) (uint32,
-	[]*authcommon.User, error) {
-	countSql := "SELECT COUNT(*) FROM user WHERE flag = 0 "
-	getSql := `
-	  SELECT id, name, password, owner, comment, source
-		  , token, token_enable, user_type, UNIX_TIMESTAMP(ctime)
-		  , UNIX_TIMESTAMP(mtime), flag, mobile, email
-	  FROM user
-	  WHERE flag = 0 
-	  `
-
-	if val, ok := filters["hide_admin"]; ok && val == "true" {
-		delete(filters, "hide_admin")
-		countSql += "  AND user_type != 0 "
-		getSql += "  AND user_type != 0 "
-	}
-
-	args := make([]interface{}, 0)
-
-	if len(filters) != 0 {
-		for k, v := range filters {
-			getSql += " AND "
-			countSql += " AND "
-			if k == NameAttribute {
-				if utils.IsPrefixWildName(v) {
-					getSql += " " + k + " like ? "
-					countSql += " " + k + " like ? "
-					args = append(args, "%"+v[:len(v)-1]+"%")
-				} else {
-					getSql += " " + k + " = ? "
-					countSql += " " + k + " = ? "
-					args = append(args, v)
-				}
-			} else if k == OwnerAttribute {
-				getSql += " (id = ? OR owner = ?) "
-				countSql += " (id = ? OR owner = ?) "
-				args = append(args, v, v)
-				continue
-			} else {
-				getSql += " " + k + " = ? "
-				countSql += " " + k + " = ? "
-				args = append(args, v)
-			}
-		}
-	}
-
-	count, err := queryEntryCount(u.master, countSql, args)
-	if err != nil {
-		return 0, nil, store.Error(err)
-	}
-
-	getSql += " ORDER BY mtime LIMIT ? , ?"
-	getArgs := append(args, offset, limit)
-
-	users, err := u.collectUsers(u.master.Query, getSql, getArgs)
-	if err != nil {
-		return 0, nil, err
-	}
-	return count, users, nil
-}
-
-// listGroupUsers Check the user information under a user group
-func (u *userStore) listGroupUsers(filters map[string]string, offset uint32, limit uint32) (uint32,
-	[]*authcommon.User, error) {
-	if _, ok := filters[GroupIDAttribute]; !ok {
-		return 0, nil, store.NewStatusError(store.EmptyParamsErr, "group_id is missing")
-	}
-
-	args := make([]interface{}, 0, len(filters))
-	querySql := `
-		  SELECT u.id, name, password, owner, u.comment, source
-			  , token, token_enable, user_type, UNIX_TIMESTAMP(u.ctime)
-			  , UNIX_TIMESTAMP(u.mtime), u.flag, u.mobile, u.email
-		  FROM user_group_relation ug
-			  LEFT JOIN user u ON ug.user_id = u.id AND u.flag = 0
-		  WHERE 1=1 
-	  `
-	countSql := `
-		  SELECT COUNT(*)
-		  FROM user_group_relation ug
-			  LEFT JOIN user u ON ug.user_id = u.id AND u.flag = 0 
-		  WHERE 1=1 
-	  `
-
-	if val, ok := filters["hide_admin"]; ok && val == "true" {
-		delete(filters, "hide_admin")
-		countSql += " AND u.user_type != 0 "
-		querySql += " AND u.user_type != 0 "
-	}
-
-	for k, v := range filters {
-		if newK, ok := userLinkGroupAttributeMapping[k]; ok {
-			k = newK
-		}
-
-		if k == "ug.owner" {
-			k = "u.owner"
-		}
-
-		if utils.IsPrefixWildName(v) {
-			querySql += " AND " + k + " like ?"
-			countSql += " AND " + k + " like ?"
-			args = append(args, v[:len(v)-1]+"%")
-		} else {
-			querySql += " AND " + k + " = ?"
-			countSql += " AND " + k + " = ?"
-			args = append(args, v)
-		}
-	}
-
-	count, err := queryEntryCount(u.slave, countSql, args)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	querySql += " ORDER BY u.mtime LIMIT ? , ?"
-	args = append(args, offset, limit)
-
-	users, err := u.collectUsers(u.master.Query, querySql, args)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	return count, users, nil
-}
-
-// GetUsersForCache Get user information, mainly for cache
-func (u *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*authcommon.User, error) {
+// GetMoreUsers Get user information, mainly for cache
+func (u *userStore) GetMoreUsers(mtime time.Time, firstUpdate bool) ([]*authcommon.User, error) {
 	args := make([]interface{}, 0)
 	querySql := `
 	  SELECT u.id, u.name, u.password, u.owner, u.comment, u.source

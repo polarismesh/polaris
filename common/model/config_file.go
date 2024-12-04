@@ -550,3 +550,44 @@ func ToConfigFileTemplateStore(template *config_manage.ConfigFileTemplate) *Conf
 		ModifyBy: template.ModifyBy.GetValue(),
 	}
 }
+
+type Subscriber struct {
+	// 客户端 ID 信息
+	ID string `json:"id"`
+	// 客户端 Host 信息
+	Host string `json:"host"`
+	// 客户端版本
+	Version string `json:"version"`
+	// 客户端类型
+	ClientType string `json:"client_type"`
+}
+
+// ConfigSubscribers 以文件视角的监听数据
+type ConfigSubscribers struct {
+	// key
+	Key ConfigFileKey
+	// VersionClients 版本对应的客户端
+	VersionClients []*VersionClient `json:"clients"`
+}
+
+type VersionClient struct {
+	Versoin     uint64        `json:"versoin"`
+	Subscribers []*Subscriber `json:"subscribers"`
+}
+
+// FileReleaseSubscribeInfo 文件订阅信息
+type FileReleaseSubscribeInfo struct {
+	Name        string      `json:"name"`
+	Namespace   string      `json:"namespace"`
+	Group       string      `json:"group"`
+	FileName    string      `json:"file_name"`
+	ReleaseType ReleaseType `json:"release_type"`
+	Version     uint64      `json:"version"`
+}
+
+// ClientSubscriber 以客户端视角的监听数据
+type ClientSubscriber struct {
+	Subscriber Subscriber `json:"subscriber"`
+	// Files
+	Files []FileReleaseSubscribeInfo `json:"files"`
+}
