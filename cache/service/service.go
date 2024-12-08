@@ -727,7 +727,7 @@ func (sc *serviceCache) postProcessServiceExports(services map[string]*model.Ser
 	for i := range services {
 		svc := services[i]
 		if !svc.Valid {
-			//服务被删除了，把所有的可见性都取消
+			// 服务被删除了，把所有的可见性都取消
 			// delete export services cache
 			sc.exportServices.ReadRange(func(key string, val *utils.SyncMap[string, *model.Service]) {
 				val.Delete(svc.ID)
