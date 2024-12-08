@@ -57,3 +57,8 @@ CRAETE TABLE `auth_strategy_function` (
     `function` VARCHAR(256) NOT NULL COMMENT 'server provider function name',
     PRIMARY KEY (`strategy_id`, `function`)
 ) ENGINE = InnoDB;
+
+/* 服务契约元数据及摘要 */
+ALTER TABLE `service_contract` ADD COLUMN `metadata`  TEXT COMMENT 'service_contract metadata';
+ALTER TABLE `service_contract` ADD COLUMN `content_digest` VARCHAR(128) NOT NULL DEFAULT '' COMMENT '当前服务契约的内容摘要，用于比较内容';
+ALTER TABLE `service_contract_detail` ADD COLUMN `content_digest` VARCHAR(128) NOT NULL DEFAULT '' COMMENT '当前服务接口的内容摘要，用于比较内容';

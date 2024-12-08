@@ -446,17 +446,18 @@ func (s *serviceContractStore) toModel(data *ServiceContract) *model.EnrichServi
 	_ = json.Unmarshal([]byte(data.Interfaces), &interfaces)
 	ret := &model.EnrichServiceContract{
 		ServiceContract: &model.ServiceContract{
-			ID:         data.ID,
-			Namespace:  data.Namespace,
-			Service:    data.Service,
-			Type:       data.Type,
-			Protocol:   data.Protocol,
-			Version:    data.Version,
-			Revision:   data.Revision,
-			Content:    data.Content,
-			CreateTime: data.CreateTime,
-			ModifyTime: data.ModifyTime,
-			Valid:      data.Valid,
+			ID:            data.ID,
+			Namespace:     data.Namespace,
+			Service:       data.Service,
+			Type:          data.Type,
+			Protocol:      data.Protocol,
+			Version:       data.Version,
+			Revision:      data.Revision,
+			Content:       data.Content,
+			ContentDigest: data.ContentDigest,
+			CreateTime:    data.CreateTime,
+			ModifyTime:    data.ModifyTime,
+			Valid:         data.Valid,
 		},
 		Interfaces: interfaces,
 	}
@@ -466,18 +467,19 @@ func (s *serviceContractStore) toModel(data *ServiceContract) *model.EnrichServi
 
 func (s *serviceContractStore) toStore(data *model.EnrichServiceContract) *ServiceContract {
 	return &ServiceContract{
-		ID:         data.ID,
-		Namespace:  data.Namespace,
-		Service:    data.Service,
-		Type:       data.Type,
-		Protocol:   data.Protocol,
-		Version:    data.Version,
-		Revision:   data.Revision,
-		Content:    data.Content,
-		Interfaces: utils.MustJson(data.Interfaces),
-		CreateTime: data.CreateTime,
-		ModifyTime: data.ModifyTime,
-		Valid:      data.Valid,
+		ID:            data.ID,
+		Namespace:     data.Namespace,
+		Service:       data.Service,
+		Type:          data.Type,
+		Protocol:      data.Protocol,
+		Version:       data.Version,
+		Revision:      data.Revision,
+		Content:       data.Content,
+		ContentDigest: data.ContentDigest,
+		Interfaces:    utils.MustJson(data.Interfaces),
+		CreateTime:    data.CreateTime,
+		ModifyTime:    data.ModifyTime,
+		Valid:         data.Valid,
 	}
 }
 
@@ -497,6 +499,8 @@ type ServiceContract struct {
 	Revision string
 	// 额外描述
 	Content string
+	// 内容摘要
+	ContentDigest string
 	// 接口描述信息
 	Interfaces string
 	// 创建时间

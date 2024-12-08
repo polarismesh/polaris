@@ -455,7 +455,7 @@ func (c *LeaderHealthChecker) skipCheck(key string, expireDurationSec int64) boo
 		localCurTimeSec-leaderChangeTimeSec < expireDurationSec {
 		log.Infof("[Health Check][Leader] health check peers on refresh, "+
 			"refreshPeerTimeSec is %d, localCurTimeSec is %d, expireDurationSec is %d, id %s",
-			suspendTimeSec, localCurTimeSec, expireDurationSec, key)
+			leaderChangeTimeSec, localCurTimeSec, expireDurationSec, key)
 		return true
 	}
 	return false
@@ -492,11 +492,16 @@ func (c *LeaderHealthChecker) DebugHandlers() []model.DebugHandler {
 	}
 }
 
+// isSendFromPeer 从ctx中解析请求header信息，检查请求是否来自于远端
 func isSendFromPeer(ctx context.Context) bool {
-	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		if _, exist := md[sendResource]; exist {
-			return true
-		}
+	md, ok := ctx.Value(utils.ContextGrpcHeader).(metadata.MD)
+	if !ok {
+		return false
 	}
+	// log.Info("[Health Check][leader] get ContextGrpcHeader from remote", zap.Any("md", md))
+	if _, exist := md[sendResource]; exist {
+		return true
+	}
+
 	return false
 }

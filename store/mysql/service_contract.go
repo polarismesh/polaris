@@ -40,8 +40,8 @@ type serviceContractStore struct {
 // CreateServiceContract 创建服务契约
 func (s *serviceContractStore) CreateServiceContract(contract *model.ServiceContract) error {
 	addSql := "INSERT INTO service_contract(`id`,`type`, `namespace`, `service`, `protocol`,`version`, " +
-		" `revision`, `flag`, `content`, `ctime`, `mtime`" +
-		") VALUES (?,?,?,?,?,?,?,0,?,sysdate(),sysdate())"
+		" `revision`, `flag`, `content`, `content_digest`, `metadata`, `ctime`, `mtime`" +
+		") VALUES (?,?,?,?,?,?,?,0,?,?,?,sysdate(),sysdate())"
 
 	_, err := s.master.Exec(addSql, []interface{}{
 		contract.ID,
@@ -52,14 +52,18 @@ func (s *serviceContractStore) CreateServiceContract(contract *model.ServiceCont
 		contract.Version,
 		contract.Revision,
 		contract.Content,
+		contract.ContentDigest,
+		contract.MetadataStr,
 	}...)
 	return store.Error(err)
 }
 
 // UpdateServiceContract 更新服务契约信息
 func (s *serviceContractStore) UpdateServiceContract(contract *model.ServiceContract) error {
-	updateSql := "UPDATE service_contract SET content = ?, revision = ?, mtime = sysdate() WHERE id = ?"
-	_, err := s.master.Exec(updateSql, contract.Content, contract.Revision, contract.ID)
+	updateSql := "UPDATE service_contract SET content = ?, content_digest = ?, metadata = ?, revision = ?, " +
+		"mtime = sysdate() WHERE id = ?"
+	_, err := s.master.Exec(updateSql, contract.Content, contract.ContentDigest, contract.MetadataStr,
+		contract.Revision, contract.ID)
 	if err != nil {
 		return err
 	}
@@ -91,8 +95,8 @@ func (s *serviceContractStore) DeleteServiceContract(contract *model.ServiceCont
 
 // GetServiceContract 通过ID查询服务契约数据
 func (s *serviceContractStore) GetServiceContract(id string) (*model.EnrichServiceContract, error) {
-	querySql := "SELECT id, type, namespace, service, protocol, version, revision, flag, content, " +
-		" UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM service_contract WHERE flag = 0 AND id = ?"
+	querySql := "SELECT id, type, namespace, service, protocol, version, revision, flag, content, content_digest, " +
+		"  IFNULL(metadata, ''), UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM service_contract WHERE flag = 0 AND id = ?"
 
 	args := []interface{}{id}
 
@@ -113,8 +117,8 @@ func (s *serviceContractStore) GetServiceContract(id string) (*model.EnrichServi
 
 		for i := range list {
 			contract := list[i]
-			queryDetailSql := "SELECT id, contract_id, namespace, service, protocol, version, type, method, path, content, revision, " +
-				" UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime), IFNULL(source, 1) " +
+			queryDetailSql := "SELECT id, contract_id, namespace, service, protocol, version, type, method, path, content, " +
+				"content_digest, revision, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime), IFNULL(source, 1) " +
 				" FROM service_contract_detail " +
 				" WHERE contract_id = ?"
 
@@ -150,14 +154,15 @@ func transferEnrichServiceContract(rows *sql.Rows, consumer func(contract *model
 		}
 		if scanErr := rows.Scan(&contract.ID, &contract.Type, &contract.Namespace, &contract.Service,
 			&contract.Protocol, &contract.Version, &contract.Revision, &flag,
-			&contract.Content, &ctime, &mtime); scanErr != nil {
+			&contract.Content, &contract.ContentDigest, &contract.MetadataStr, &ctime, &mtime); scanErr != nil {
 			log.Errorf("[Store][Contract] fetch contract rows scan err: %s", scanErr.Error())
 			return scanErr
 		}
 
 		contract.Valid = flag == 0
-		contract.CreateTime = time.Unix(0, ctime)
-		contract.ModifyTime = time.Unix(0, mtime)
+		contract.CreateTime = time.Unix(ctime, 0)
+		contract.ModifyTime = time.Unix(mtime, 0)
+		contract.Metadata, _ = utils.ConvertStringValueToMetadata(contract.MetadataStr)
 		consumer(&contract)
 	}
 	return nil
@@ -172,11 +177,18 @@ func (s *serviceContractStore) AddServiceContractInterfaces(contract *model.Enri
 			return err
 		}
 
+		deleteSql := "DELETE FROM service_contract_detail WHERE contract_id = ?"
+		if _, err := tx.Exec(deleteSql, []interface{}{contract.ID}...); err != nil {
+			log.Errorf("[Store][database] delete service contract detail for contract %s revision err: %s",
+				contract.ID, err.Error())
+			return err
+		}
+
 		// 新增批量数据
 		for _, item := range contract.Interfaces {
 			addSql := "REPLACE INTO service_contract_detail (id, contract_id, namespace, service, protocol, " +
-				" version, method, path, type, content, revision, flag, ctime, mtime, source) " +
-				" VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, sysdate(), sysdate(), ?)"
+				" version, method, path, type, content, content_digest, revision, flag, ctime, mtime, source) " +
+				" VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, sysdate(), sysdate(), ?)"
 			if _, err := tx.Exec(addSql, []interface{}{
 				item.ID,
 				contract.ID,
@@ -188,6 +200,7 @@ func (s *serviceContractStore) AddServiceContractInterfaces(contract *model.Enri
 				item.Path,
 				item.Type,
 				item.Content,
+				item.ContentDigest,
 				item.Revision,
 				0,
 				int(item.Source),
@@ -210,9 +223,9 @@ func (s *serviceContractStore) AppendServiceContractInterfaces(contract *model.E
 		}
 		for _, item := range contract.Interfaces {
 			addSql := "REPLACE INTO service_contract_detail(`id`,`contract_id`, `namespace`, `service`, " +
-				" `protocol`, `version`, `method`, `path`, `type` ,`content`,`revision`" +
+				" `protocol`, `version`, `method`, `path`, `type` ,`content`, `content_digest`, `revision`" +
 				",`flag`,`ctime`, `mtime`,`source`" +
-				") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,sysdate(),sysdate(),?)"
+				") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,sysdate(),sysdate(),?)"
 
 			if _, err := tx.Exec(addSql, []interface{}{
 				item.ID,
@@ -225,6 +238,7 @@ func (s *serviceContractStore) AppendServiceContractInterfaces(contract *model.E
 				item.Path,
 				item.Type,
 				item.Content,
+				item.ContentDigest,
 				item.Revision,
 				0,
 				int(item.Source),
@@ -247,13 +261,21 @@ func (s *serviceContractStore) DeleteServiceContractInterfaces(contract *model.E
 		}
 		for _, item := range contract.Interfaces {
 			addSql := "UPDATE service_contract_detail SET flag = 1 WHERE contract_id = ? AND method = ? AND path = ? AND type = ?"
-
-			if _, err := tx.Exec(addSql, []interface{}{
+			args := []interface{}{
 				item.ContractID,
 				item.Method,
 				item.Path,
 				item.Type,
-			}...); err != nil {
+			}
+			if item.ID != "" {
+				addSql = "UPDATE service_contract_detail SET flag = 1 WHERE contract_id = ? AND id = ?"
+				args = []interface{}{
+					item.ContractID,
+					item.ID,
+				}
+			}
+
+			if _, err := tx.Exec(addSql, args...); err != nil {
 				log.Errorf("[Store][database] delete service contract detail err: %s", err.Error())
 				return err
 			}
@@ -273,16 +295,17 @@ func (s *serviceContractStore) GetServiceContracts(ctx context.Context, filter m
 	}
 
 	querySql := `
- SELECT id, type, namespace, service, protocol
-	 , version, revision, flag, content
-	 , UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime)
- FROM service_contract
- WHERE flag = 0 
- `
+SELECT id, type, namespace, service, protocol
+	, version, revision, flag, content, content_digest, IFNULL(metadata, '')
+	, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime)
+FROM service_contract
+WHERE flag = 0 
+`
 
 	countSql := "SELECT COUNT(*) FROM service_contract WHERE flag = 0 "
 
 	brief := filter[briefSearch] == "true"
+	delete(filter, briefSearch)
 	args := make([]interface{}, 0, len(filter))
 	conditions := make([]string, 0, len(filter))
 	for k, v := range filter {
@@ -315,6 +338,7 @@ func (s *serviceContractStore) GetServiceContracts(ctx context.Context, filter m
 		}
 
 		args = append(args, offset, limit)
+		// NOCA:yunding/go/sql-injection(非SQL注入问题)
 		rows, err := tx.Query(querySql, args...)
 		if err != nil {
 			log.Error("[Store][Contract] list service_contracts", zap.String("query", querySql), zap.Any("args", args), zap.Error(err))
@@ -324,7 +348,7 @@ func (s *serviceContractStore) GetServiceContracts(ctx context.Context, filter m
 			_ = rows.Close()
 		}()
 
-		contractIds := make([]interface{}, 0, 32)
+		contractIds := make([]interface{}, 0, limit)
 		err = transferEnrichServiceContract(rows, func(contract *model.EnrichServiceContract) {
 			list = append(list, contract)
 			contractIds = append(contractIds, contract.ID)
@@ -337,7 +361,7 @@ func (s *serviceContractStore) GetServiceContracts(ctx context.Context, filter m
 		if !brief && len(contractIds) > 0 {
 			// 加载 interfaces 列表
 			queryDetailSql := fmt.Sprintf("SELECT id, contract_id, namespace, service, protocol, version, "+
-				" type, method, path, content, revision, "+
+				" type, method, path, content, content_digest, revision, "+
 				" UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime), IFNULL(source, 1) "+
 				" FROM service_contract_detail "+
 				" WHERE contract_id IN (%s)", placeholders(len(contractIds)))
@@ -376,13 +400,13 @@ func (s *serviceContractStore) GetInterfaceDescriptors(ctx context.Context, filt
 
 	// 加载 interfaces 列表
 	querySql := `
- SELECT id, contract_id, namespace, service, protocol, version
-	 , type, method, path, content, revision
-	 , UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime)
-	 , IFNULL(source, 1)
- FROM service_contract_detail
- WHERE flag = 0
- `
+SELECT id, contract_id, namespace, service, protocol, version
+	, type, method, path, content, content_digest, revision
+	, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime)
+	, IFNULL(source, 1)
+FROM service_contract_detail
+WHERE flag = 0
+`
 
 	args := make([]interface{}, 0, len(filter))
 	conditions := make([]string, 0, len(filter))
@@ -391,7 +415,12 @@ func (s *serviceContractStore) GetInterfaceDescriptors(ctx context.Context, filt
 		if k == "order_field" || k == "order_type" {
 			continue
 		}
-		conditions = append(conditions, k+" = ? ")
+		if utils.IsWildName(v) {
+			conditions = append(conditions, k+" LIKE ? ")
+			v = utils.ParseWildNameForSql(v)
+		} else {
+			conditions = append(conditions, k+" = ? ")
+		}
 		args = append(args, v)
 	}
 
@@ -440,11 +469,11 @@ func (s *serviceContractStore) loadContractInterfaces(tx *BaseTx, query string, 
 		if scanErr := rows.Scan(
 			&detailItem.ID, &detailItem.ContractID, &detailItem.Namespace, &detailItem.Service, &detailItem.Protocol,
 			&detailItem.Version, &detailItem.Type, &detailItem.Method,
-			&detailItem.Path, &detailItem.Content, &detailItem.Revision,
+			&detailItem.Path, &detailItem.Content, &detailItem.ContentDigest, &detailItem.Revision,
 			&ctime, &mtime, &source,
 		); scanErr != nil {
 			log.Error("[Store][Contract] load service_contract interface rows scan", zap.Error(scanErr))
-			return nil, err
+			return nil, scanErr
 		}
 
 		detailItem.Valid = flag == 0
@@ -467,12 +496,12 @@ func (s *serviceContractStore) ListVersions(ctx context.Context, service, namesp
 	list := make([]*model.ServiceContract, 0, 4)
 
 	querySql := `
- SELECT id, type, namespace, service, protocol
-	 , version, revision, flag, content
-	 , UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime)
- FROM service_contract
- WHERE flag = 0 AND namespace = ? AND service = ?
- `
+SELECT id, type, namespace, service, protocol
+	, version, revision, flag, content, content_digest, IFNULL(metadata, '')
+	, UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime)
+FROM service_contract
+WHERE flag = 0 AND namespace = ? AND service = ?
+`
 
 	rows, err := s.slave.Query(querySql, namespace, service)
 	if err != nil {
@@ -493,8 +522,8 @@ func (s *serviceContractStore) ListVersions(ctx context.Context, service, namesp
 
 // GetMoreServiceContracts .
 func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime time.Time) ([]*model.EnrichServiceContract, error) {
-	querySql := "SELECT id, type, namespace, service, protocol, version, revision, flag, content, " +
-		" UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM service_contract WHERE mtime >= ? "
+	querySql := "SELECT id, type, namespace, service, protocol, version, revision, flag, content, content_digest, " +
+		"IFNULL(metadata, ''), UNIX_TIMESTAMP(ctime), UNIX_TIMESTAMP(mtime) FROM service_contract WHERE mtime >= ? "
 	if firstUpdate {
 		mtime = time.Unix(0, 1)
 		querySql += " AND flag = 0 "
@@ -524,7 +553,7 @@ func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime t
 		contract := &model.ServiceContract{}
 		if scanErr := rows.Scan(&contract.ID, &contract.Type, &contract.Namespace, &contract.Service,
 			&contract.Protocol, &contract.Version, &contract.Revision, &flag,
-			&contract.Content, &ctime, &mtime); scanErr != nil {
+			&contract.Content, &contract.ContentDigest, &contract.MetadataStr, &ctime, &mtime); scanErr != nil {
 			log.Error("[Store][Contract] fetch contract rows scan err: %s", zap.Error(err))
 			return nil, store.Error(err)
 		}
@@ -532,6 +561,7 @@ func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime t
 		contract.Valid = flag == 0
 		contract.CreateTime = time.Unix(ctime, 0)
 		contract.ModifyTime = time.Unix(mtime, 0)
+		contract.Metadata, _ = utils.ConvertStringValueToMetadata(contract.MetadataStr)
 
 		list = append(list, &model.EnrichServiceContract{
 			ServiceContract: contract,
@@ -540,8 +570,8 @@ func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime t
 
 	contractDetailMap := map[string][]*model.InterfaceDescriptor{}
 	if len(list) > 0 {
-		queryDetailSql := "SELECT sd.id, sd.contract_id, sd.type, sd.method, sd.path, sd.content, sd.revision, " +
-			" UNIX_TIMESTAMP(sd.ctime), UNIX_TIMESTAMP(sd.mtime), IFNULL(sd.source, 1) " +
+		queryDetailSql := "SELECT sd.id, sd.contract_id, sd.type, sd.method, sd.path, sd.content, sd.content_digest, " +
+			"sd.revision, UNIX_TIMESTAMP(sd.ctime), UNIX_TIMESTAMP(sd.mtime), IFNULL(sd.source, 1) " +
 			" FROM service_contract_detail sd  LEFT JOIN service_contract sc ON sd.contract_id = sc.id " +
 			" WHERE sc.mtime >= ?"
 		detailRows, err := tx.Query(queryDetailSql, mtime)
@@ -557,7 +587,7 @@ func (s *serviceContractStore) GetMoreServiceContracts(firstUpdate bool, mtime t
 			detailItem := &model.InterfaceDescriptor{}
 			if scanErr := detailRows.Scan(
 				&detailItem.ID, &detailItem.ContractID, &detailItem.Type, &detailItem.Method,
-				&detailItem.Path, &detailItem.Content, &detailItem.Revision,
+				&detailItem.Path, &detailItem.Content, &detailItem.ContentDigest, &detailItem.Revision,
 				&ctime, &mtime, &source,
 			); scanErr != nil {
 				log.Error("[Store][Contract] fetch contract detail rows scan", zap.Error(scanErr))

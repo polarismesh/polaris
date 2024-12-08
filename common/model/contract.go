@@ -42,6 +42,12 @@ type ServiceContract struct {
 	Revision string
 	// 额外描述
 	Content string
+	// 内容摘要
+	ContentDigest string
+	// 服务接口标签信息
+	Metadata map[string]string
+	// 服务接口标签序列化的字符串
+	MetadataStr string
 	// 创建时间
 	CreateTime time.Time
 	// 更新时间
@@ -57,6 +63,14 @@ type EnrichServiceContract struct {
 	Interfaces       []*InterfaceDescriptor
 	ClientInterfaces map[string]*InterfaceDescriptor
 	ManualInterfaces map[string]*InterfaceDescriptor
+}
+
+// IsManual 是否手动添加的契约
+func (e *EnrichServiceContract) IsManual() bool {
+	if len(e.ClientInterfaces) == 0 && len(e.ManualInterfaces) == 0 {
+		return false
+	}
+	return len(e.ManualInterfaces) > 0
 }
 
 func (e *EnrichServiceContract) Format() {
@@ -89,9 +103,6 @@ func (e *EnrichServiceContract) Format() {
 		}
 		e.Interfaces = append(e.Interfaces, e.ClientInterfaces[k])
 	}
-	// 格式化完毕之后，清空暂存的 ClientInterface 以及 ManualInterface 数据
-	e.ClientInterfaces = nil
-	e.ManualInterfaces = nil
 }
 
 func (e *EnrichServiceContract) ToSpec() *apiservice.ServiceContract {
@@ -135,6 +146,12 @@ func (s *ServiceContract) GetCacheKey() string {
 	return fmt.Sprintf("%s/%s/%s/%s/%s", s.Namespace, s.Service, s.Type, s.Protocol, s.Version)
 }
 
+// GetServiceContractCacheKey 生成契约唯一KEY
+func GetServiceContractCacheKey(contract *apiservice.ServiceContract) string {
+	return fmt.Sprintf("%s/%s/%s/%s/%s", contract.Namespace, contract.Service, contract.Type,
+		contract.Protocol, contract.Version)
+}
+
 type InterfaceDescriptor struct {
 	// ID
 	ID string
@@ -156,6 +173,8 @@ type InterfaceDescriptor struct {
 	Path string
 	// 接口描述信息
 	Content string
+	// 接口内容摘要
+	ContentDigest string
 	// 接口信息摘要
 	Revision string
 	// 创建来源
@@ -166,4 +185,24 @@ type InterfaceDescriptor struct {
 	ModifyTime time.Time
 	// Valid
 	Valid bool
+}
+
+func (i *InterfaceDescriptor) ToSpec() *apiservice.InterfaceDescriptor {
+	return &apiservice.InterfaceDescriptor{
+		Id:            i.ID,
+		Method:        i.Method,
+		Path:          i.Path,
+		Content:       i.Content,
+		ContentDigest: i.ContentDigest,
+		Source:        i.Source,
+		Revision:      i.Revision,
+		Ctime:         commontime.Time2String(i.CreateTime),
+		Mtime:         commontime.Time2String(i.CreateTime),
+		Name:          i.Type,
+		Namespace:     i.Namespace,
+		Service:       i.Service,
+		Protocol:      i.Protocol,
+		Version:       i.Version,
+		Type:          i.Type,
+	}
 }

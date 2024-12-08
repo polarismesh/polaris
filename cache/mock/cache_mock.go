@@ -6,9 +6,6 @@ package mock
 
 import (
 	context "context"
-	reflect "reflect"
-	time "time"
-
 	gomock "github.com/golang/mock/gomock"
 	api "github.com/polarismesh/polaris/cache/api"
 	model "github.com/polarismesh/polaris/common/model"
@@ -18,60 +15,34 @@ import (
 	security "github.com/polarismesh/specification/source/go/api/v1/security"
 	service_manage "github.com/polarismesh/specification/source/go/api/v1/service_manage"
 	traffic_manage "github.com/polarismesh/specification/source/go/api/v1/traffic_manage"
+	reflect "reflect"
+	time "time"
 )
 
-// MockCache is a mock of Cache interface.
+// MockCache is a mock of Cache interface
 type MockCache struct {
 	ctrl     *gomock.Controller
 	recorder *MockCacheMockRecorder
 }
 
-// MockCacheMockRecorder is the mock recorder for MockCache.
+// MockCacheMockRecorder is the mock recorder for MockCache
 type MockCacheMockRecorder struct {
 	mock *MockCache
 }
 
-// NewMockCache creates a new mock instance.
+// NewMockCache creates a new mock instance
 func NewMockCache(ctrl *gomock.Controller) *MockCache {
 	mock := &MockCache{ctrl: ctrl}
 	mock.recorder = &MockCacheMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockCache) EXPECT() *MockCacheMockRecorder {
 	return m.recorder
 }
 
-// Clear mocks base method.
-func (m *MockCache) Clear() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Clear")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Clear indicates an expected call of Clear.
-func (mr *MockCacheMockRecorder) Clear() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockCache)(nil).Clear))
-}
-
-// Close mocks base method.
-func (m *MockCache) Close() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Close")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Close indicates an expected call of Close.
-func (mr *MockCacheMockRecorder) Close() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockCache)(nil).Close))
-}
-
-// Initialize mocks base method.
+// Initialize mocks base method
 func (m *MockCache) Initialize(c map[string]interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Initialize", c)
@@ -79,27 +50,13 @@ func (m *MockCache) Initialize(c map[string]interface{}) error {
 	return ret0
 }
 
-// Initialize indicates an expected call of Initialize.
+// Initialize indicates an expected call of Initialize
 func (mr *MockCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockCache)(nil).Initialize), c)
 }
 
-// Name mocks base method.
-func (m *MockCache) Name() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Name")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// Name indicates an expected call of Name.
-func (mr *MockCacheMockRecorder) Name() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockCache)(nil).Name))
-}
-
-// Update mocks base method.
+// Update mocks base method
 func (m *MockCache) Update() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update")
@@ -107,162 +64,78 @@ func (m *MockCache) Update() error {
 	return ret0
 }
 
-// Update indicates an expected call of Update.
+// Update indicates an expected call of Update
 func (mr *MockCacheMockRecorder) Update() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockCache)(nil).Update))
 }
 
-// MockCacheManager is a mock of CacheManager interface.
+// Clear mocks base method
+func (m *MockCache) Clear() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Clear")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Clear indicates an expected call of Clear
+func (mr *MockCacheMockRecorder) Clear() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockCache)(nil).Clear))
+}
+
+// Name mocks base method
+func (m *MockCache) Name() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Name")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Name indicates an expected call of Name
+func (mr *MockCacheMockRecorder) Name() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockCache)(nil).Name))
+}
+
+// Close mocks base method
+func (m *MockCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close
+func (mr *MockCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockCache)(nil).Close))
+}
+
+// MockCacheManager is a mock of CacheManager interface
 type MockCacheManager struct {
 	ctrl     *gomock.Controller
 	recorder *MockCacheManagerMockRecorder
 }
 
-// MockCacheManagerMockRecorder is the mock recorder for MockCacheManager.
+// MockCacheManagerMockRecorder is the mock recorder for MockCacheManager
 type MockCacheManagerMockRecorder struct {
 	mock *MockCacheManager
 }
 
-// NewMockCacheManager creates a new mock instance.
+// NewMockCacheManager creates a new mock instance
 func NewMockCacheManager(ctrl *gomock.Controller) *MockCacheManager {
 	mock := &MockCacheManager{ctrl: ctrl}
 	mock.recorder = &MockCacheManagerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockCacheManager) EXPECT() *MockCacheManagerMockRecorder {
 	return m.recorder
 }
 
-// AuthStrategy mocks base method.
-func (m *MockCacheManager) AuthStrategy() api.StrategyCache {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AuthStrategy")
-	ret0, _ := ret[0].(api.StrategyCache)
-	return ret0
-}
-
-// AuthStrategy indicates an expected call of AuthStrategy.
-func (mr *MockCacheManagerMockRecorder) AuthStrategy() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthStrategy", reflect.TypeOf((*MockCacheManager)(nil).AuthStrategy))
-}
-
-// CL5 mocks base method.
-func (m *MockCacheManager) CL5() api.L5Cache {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CL5")
-	ret0, _ := ret[0].(api.L5Cache)
-	return ret0
-}
-
-// CL5 indicates an expected call of CL5.
-func (mr *MockCacheManagerMockRecorder) CL5() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CL5", reflect.TypeOf((*MockCacheManager)(nil).CL5))
-}
-
-// CircuitBreaker mocks base method.
-func (m *MockCacheManager) CircuitBreaker() api.CircuitBreakerCache {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CircuitBreaker")
-	ret0, _ := ret[0].(api.CircuitBreakerCache)
-	return ret0
-}
-
-// CircuitBreaker indicates an expected call of CircuitBreaker.
-func (mr *MockCacheManagerMockRecorder) CircuitBreaker() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CircuitBreaker", reflect.TypeOf((*MockCacheManager)(nil).CircuitBreaker))
-}
-
-// Client mocks base method.
-func (m *MockCacheManager) Client() api.ClientCache {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Client")
-	ret0, _ := ret[0].(api.ClientCache)
-	return ret0
-}
-
-// Client indicates an expected call of Client.
-func (mr *MockCacheManagerMockRecorder) Client() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Client", reflect.TypeOf((*MockCacheManager)(nil).Client))
-}
-
-// ConfigFile mocks base method.
-func (m *MockCacheManager) ConfigFile() api.ConfigFileCache {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ConfigFile")
-	ret0, _ := ret[0].(api.ConfigFileCache)
-	return ret0
-}
-
-// ConfigFile indicates an expected call of ConfigFile.
-func (mr *MockCacheManagerMockRecorder) ConfigFile() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigFile", reflect.TypeOf((*MockCacheManager)(nil).ConfigFile))
-}
-
-// ConfigGroup mocks base method.
-func (m *MockCacheManager) ConfigGroup() api.ConfigGroupCache {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ConfigGroup")
-	ret0, _ := ret[0].(api.ConfigGroupCache)
-	return ret0
-}
-
-// ConfigGroup indicates an expected call of ConfigGroup.
-func (mr *MockCacheManagerMockRecorder) ConfigGroup() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigGroup", reflect.TypeOf((*MockCacheManager)(nil).ConfigGroup))
-}
-
-// FaultDetector mocks base method.
-func (m *MockCacheManager) FaultDetector() api.FaultDetectCache {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FaultDetector")
-	ret0, _ := ret[0].(api.FaultDetectCache)
-	return ret0
-}
-
-// FaultDetector indicates an expected call of FaultDetector.
-func (mr *MockCacheManagerMockRecorder) FaultDetector() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FaultDetector", reflect.TypeOf((*MockCacheManager)(nil).FaultDetector))
-}
-
-// GetCacher mocks base method.
-func (m *MockCacheManager) GetCacher(cacheIndex api.CacheIndex) api.Cache {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCacher", cacheIndex)
-	ret0, _ := ret[0].(api.Cache)
-	return ret0
-}
-
-// GetCacher indicates an expected call of GetCacher.
-func (mr *MockCacheManagerMockRecorder) GetCacher(cacheIndex interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCacher", reflect.TypeOf((*MockCacheManager)(nil).GetCacher), cacheIndex)
-}
-
-// GetReportInterval mocks base method.
-func (m *MockCacheManager) GetReportInterval() time.Duration {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetReportInterval")
-	ret0, _ := ret[0].(time.Duration)
-	return ret0
-}
-
-// GetReportInterval indicates an expected call of GetReportInterval.
-func (mr *MockCacheManagerMockRecorder) GetReportInterval() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReportInterval", reflect.TypeOf((*MockCacheManager)(nil).GetReportInterval))
-}
-
-// GetUpdateCacheInterval mocks base method.
+// GetUpdateCacheInterval mocks base method
 func (m *MockCacheManager) GetUpdateCacheInterval() time.Duration {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUpdateCacheInterval")
@@ -270,69 +143,53 @@ func (m *MockCacheManager) GetUpdateCacheInterval() time.Duration {
 	return ret0
 }
 
-// GetUpdateCacheInterval indicates an expected call of GetUpdateCacheInterval.
+// GetUpdateCacheInterval indicates an expected call of GetUpdateCacheInterval
 func (mr *MockCacheManagerMockRecorder) GetUpdateCacheInterval() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpdateCacheInterval", reflect.TypeOf((*MockCacheManager)(nil).GetUpdateCacheInterval))
 }
 
-// Gray mocks base method.
-func (m *MockCacheManager) Gray() api.GrayCache {
+// GetReportInterval mocks base method
+func (m *MockCacheManager) GetReportInterval() time.Duration {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Gray")
-	ret0, _ := ret[0].(api.GrayCache)
+	ret := m.ctrl.Call(m, "GetReportInterval")
+	ret0, _ := ret[0].(time.Duration)
 	return ret0
 }
 
-// Gray indicates an expected call of Gray.
-func (mr *MockCacheManagerMockRecorder) Gray() *gomock.Call {
+// GetReportInterval indicates an expected call of GetReportInterval
+func (mr *MockCacheManagerMockRecorder) GetReportInterval() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Gray", reflect.TypeOf((*MockCacheManager)(nil).Gray))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReportInterval", reflect.TypeOf((*MockCacheManager)(nil).GetReportInterval))
 }
 
-// Instance mocks base method.
-func (m *MockCacheManager) Instance() api.InstanceCache {
+// GetCacher mocks base method
+func (m *MockCacheManager) GetCacher(cacheIndex api.CacheIndex) api.Cache {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Instance")
-	ret0, _ := ret[0].(api.InstanceCache)
+	ret := m.ctrl.Call(m, "GetCacher", cacheIndex)
+	ret0, _ := ret[0].(api.Cache)
 	return ret0
 }
 
-// Instance indicates an expected call of Instance.
-func (mr *MockCacheManagerMockRecorder) Instance() *gomock.Call {
+// GetCacher indicates an expected call of GetCacher
+func (mr *MockCacheManagerMockRecorder) GetCacher(cacheIndex interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Instance", reflect.TypeOf((*MockCacheManager)(nil).Instance))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCacher", reflect.TypeOf((*MockCacheManager)(nil).GetCacher), cacheIndex)
 }
 
-// LaneRule mocks base method.
-func (m *MockCacheManager) LaneRule() api.LaneCache {
+// RegisterCacher mocks base method
+func (m *MockCacheManager) RegisterCacher(cacheIndex api.CacheIndex, item api.Cache) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LaneRule")
-	ret0, _ := ret[0].(api.LaneCache)
-	return ret0
+	m.ctrl.Call(m, "RegisterCacher", cacheIndex, item)
 }
 
-// LaneRule indicates an expected call of LaneRule.
-func (mr *MockCacheManagerMockRecorder) LaneRule() *gomock.Call {
+// RegisterCacher indicates an expected call of RegisterCacher
+func (mr *MockCacheManagerMockRecorder) RegisterCacher(cacheIndex, item interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LaneRule", reflect.TypeOf((*MockCacheManager)(nil).LaneRule))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterCacher", reflect.TypeOf((*MockCacheManager)(nil).RegisterCacher), cacheIndex, item)
 }
 
-// Namespace mocks base method.
-func (m *MockCacheManager) Namespace() api.NamespaceCache {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Namespace")
-	ret0, _ := ret[0].(api.NamespaceCache)
-	return ret0
-}
-
-// Namespace indicates an expected call of Namespace.
-func (mr *MockCacheManagerMockRecorder) Namespace() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Namespace", reflect.TypeOf((*MockCacheManager)(nil).Namespace))
-}
-
-// OpenResourceCache mocks base method.
+// OpenResourceCache mocks base method
 func (m *MockCacheManager) OpenResourceCache(entries ...api.ConfigEntry) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{}
@@ -344,67 +201,13 @@ func (m *MockCacheManager) OpenResourceCache(entries ...api.ConfigEntry) error {
 	return ret0
 }
 
-// OpenResourceCache indicates an expected call of OpenResourceCache.
+// OpenResourceCache indicates an expected call of OpenResourceCache
 func (mr *MockCacheManagerMockRecorder) OpenResourceCache(entries ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OpenResourceCache", reflect.TypeOf((*MockCacheManager)(nil).OpenResourceCache), entries...)
 }
 
-// RateLimit mocks base method.
-func (m *MockCacheManager) RateLimit() api.RateLimitCache {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RateLimit")
-	ret0, _ := ret[0].(api.RateLimitCache)
-	return ret0
-}
-
-// RateLimit indicates an expected call of RateLimit.
-func (mr *MockCacheManagerMockRecorder) RateLimit() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RateLimit", reflect.TypeOf((*MockCacheManager)(nil).RateLimit))
-}
-
-// RegisterCacher mocks base method.
-func (m *MockCacheManager) RegisterCacher(cacheIndex api.CacheIndex, item api.Cache) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "RegisterCacher", cacheIndex, item)
-}
-
-// RegisterCacher indicates an expected call of RegisterCacher.
-func (mr *MockCacheManagerMockRecorder) RegisterCacher(cacheIndex, item interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterCacher", reflect.TypeOf((*MockCacheManager)(nil).RegisterCacher), cacheIndex, item)
-}
-
-// Role mocks base method.
-func (m *MockCacheManager) Role() api.RoleCache {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Role")
-	ret0, _ := ret[0].(api.RoleCache)
-	return ret0
-}
-
-// Role indicates an expected call of Role.
-func (mr *MockCacheManagerMockRecorder) Role() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Role", reflect.TypeOf((*MockCacheManager)(nil).Role))
-}
-
-// RoutingConfig mocks base method.
-func (m *MockCacheManager) RoutingConfig() api.RoutingConfigCache {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RoutingConfig")
-	ret0, _ := ret[0].(api.RoutingConfigCache)
-	return ret0
-}
-
-// RoutingConfig indicates an expected call of RoutingConfig.
-func (mr *MockCacheManagerMockRecorder) RoutingConfig() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RoutingConfig", reflect.TypeOf((*MockCacheManager)(nil).RoutingConfig))
-}
-
-// Service mocks base method.
+// Service mocks base method
 func (m *MockCacheManager) Service() api.ServiceCache {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Service")
@@ -412,13 +215,97 @@ func (m *MockCacheManager) Service() api.ServiceCache {
 	return ret0
 }
 
-// Service indicates an expected call of Service.
+// Service indicates an expected call of Service
 func (mr *MockCacheManagerMockRecorder) Service() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Service", reflect.TypeOf((*MockCacheManager)(nil).Service))
 }
 
-// ServiceContract mocks base method.
+// Instance mocks base method
+func (m *MockCacheManager) Instance() api.InstanceCache {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Instance")
+	ret0, _ := ret[0].(api.InstanceCache)
+	return ret0
+}
+
+// Instance indicates an expected call of Instance
+func (mr *MockCacheManagerMockRecorder) Instance() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Instance", reflect.TypeOf((*MockCacheManager)(nil).Instance))
+}
+
+// RoutingConfig mocks base method
+func (m *MockCacheManager) RoutingConfig() api.RoutingConfigCache {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RoutingConfig")
+	ret0, _ := ret[0].(api.RoutingConfigCache)
+	return ret0
+}
+
+// RoutingConfig indicates an expected call of RoutingConfig
+func (mr *MockCacheManagerMockRecorder) RoutingConfig() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RoutingConfig", reflect.TypeOf((*MockCacheManager)(nil).RoutingConfig))
+}
+
+// CL5 mocks base method
+func (m *MockCacheManager) CL5() api.L5Cache {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CL5")
+	ret0, _ := ret[0].(api.L5Cache)
+	return ret0
+}
+
+// CL5 indicates an expected call of CL5
+func (mr *MockCacheManagerMockRecorder) CL5() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CL5", reflect.TypeOf((*MockCacheManager)(nil).CL5))
+}
+
+// RateLimit mocks base method
+func (m *MockCacheManager) RateLimit() api.RateLimitCache {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RateLimit")
+	ret0, _ := ret[0].(api.RateLimitCache)
+	return ret0
+}
+
+// RateLimit indicates an expected call of RateLimit
+func (mr *MockCacheManagerMockRecorder) RateLimit() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RateLimit", reflect.TypeOf((*MockCacheManager)(nil).RateLimit))
+}
+
+// CircuitBreaker mocks base method
+func (m *MockCacheManager) CircuitBreaker() api.CircuitBreakerCache {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CircuitBreaker")
+	ret0, _ := ret[0].(api.CircuitBreakerCache)
+	return ret0
+}
+
+// CircuitBreaker indicates an expected call of CircuitBreaker
+func (mr *MockCacheManagerMockRecorder) CircuitBreaker() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CircuitBreaker", reflect.TypeOf((*MockCacheManager)(nil).CircuitBreaker))
+}
+
+// FaultDetector mocks base method
+func (m *MockCacheManager) FaultDetector() api.FaultDetectCache {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FaultDetector")
+	ret0, _ := ret[0].(api.FaultDetectCache)
+	return ret0
+}
+
+// FaultDetector indicates an expected call of FaultDetector
+func (mr *MockCacheManagerMockRecorder) FaultDetector() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FaultDetector", reflect.TypeOf((*MockCacheManager)(nil).FaultDetector))
+}
+
+// ServiceContract mocks base method
 func (m *MockCacheManager) ServiceContract() api.ServiceContractCache {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ServiceContract")
@@ -426,13 +313,27 @@ func (m *MockCacheManager) ServiceContract() api.ServiceContractCache {
 	return ret0
 }
 
-// ServiceContract indicates an expected call of ServiceContract.
+// ServiceContract indicates an expected call of ServiceContract
 func (mr *MockCacheManagerMockRecorder) ServiceContract() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServiceContract", reflect.TypeOf((*MockCacheManager)(nil).ServiceContract))
 }
 
-// User mocks base method.
+// LaneRule mocks base method
+func (m *MockCacheManager) LaneRule() api.LaneCache {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LaneRule")
+	ret0, _ := ret[0].(api.LaneCache)
+	return ret0
+}
+
+// LaneRule indicates an expected call of LaneRule
+func (mr *MockCacheManagerMockRecorder) LaneRule() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LaneRule", reflect.TypeOf((*MockCacheManager)(nil).LaneRule))
+}
+
+// User mocks base method
 func (m *MockCacheManager) User() api.UserCache {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "User")
@@ -440,120 +341,134 @@ func (m *MockCacheManager) User() api.UserCache {
 	return ret0
 }
 
-// User indicates an expected call of User.
+// User indicates an expected call of User
 func (mr *MockCacheManagerMockRecorder) User() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "User", reflect.TypeOf((*MockCacheManager)(nil).User))
 }
 
-// MockNamespaceCache is a mock of NamespaceCache interface.
+// AuthStrategy mocks base method
+func (m *MockCacheManager) AuthStrategy() api.StrategyCache {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AuthStrategy")
+	ret0, _ := ret[0].(api.StrategyCache)
+	return ret0
+}
+
+// AuthStrategy indicates an expected call of AuthStrategy
+func (mr *MockCacheManagerMockRecorder) AuthStrategy() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthStrategy", reflect.TypeOf((*MockCacheManager)(nil).AuthStrategy))
+}
+
+// Namespace mocks base method
+func (m *MockCacheManager) Namespace() api.NamespaceCache {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Namespace")
+	ret0, _ := ret[0].(api.NamespaceCache)
+	return ret0
+}
+
+// Namespace indicates an expected call of Namespace
+func (mr *MockCacheManagerMockRecorder) Namespace() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Namespace", reflect.TypeOf((*MockCacheManager)(nil).Namespace))
+}
+
+// Client mocks base method
+func (m *MockCacheManager) Client() api.ClientCache {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Client")
+	ret0, _ := ret[0].(api.ClientCache)
+	return ret0
+}
+
+// Client indicates an expected call of Client
+func (mr *MockCacheManagerMockRecorder) Client() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Client", reflect.TypeOf((*MockCacheManager)(nil).Client))
+}
+
+// ConfigFile mocks base method
+func (m *MockCacheManager) ConfigFile() api.ConfigFileCache {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ConfigFile")
+	ret0, _ := ret[0].(api.ConfigFileCache)
+	return ret0
+}
+
+// ConfigFile indicates an expected call of ConfigFile
+func (mr *MockCacheManagerMockRecorder) ConfigFile() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigFile", reflect.TypeOf((*MockCacheManager)(nil).ConfigFile))
+}
+
+// ConfigGroup mocks base method
+func (m *MockCacheManager) ConfigGroup() api.ConfigGroupCache {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ConfigGroup")
+	ret0, _ := ret[0].(api.ConfigGroupCache)
+	return ret0
+}
+
+// ConfigGroup indicates an expected call of ConfigGroup
+func (mr *MockCacheManagerMockRecorder) ConfigGroup() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigGroup", reflect.TypeOf((*MockCacheManager)(nil).ConfigGroup))
+}
+
+// Gray mocks base method
+func (m *MockCacheManager) Gray() api.GrayCache {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Gray")
+	ret0, _ := ret[0].(api.GrayCache)
+	return ret0
+}
+
+// Gray indicates an expected call of Gray
+func (mr *MockCacheManagerMockRecorder) Gray() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Gray", reflect.TypeOf((*MockCacheManager)(nil).Gray))
+}
+
+// Role mocks base method
+func (m *MockCacheManager) Role() api.RoleCache {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Role")
+	ret0, _ := ret[0].(api.RoleCache)
+	return ret0
+}
+
+// Role indicates an expected call of Role
+func (mr *MockCacheManagerMockRecorder) Role() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Role", reflect.TypeOf((*MockCacheManager)(nil).Role))
+}
+
+// MockNamespaceCache is a mock of NamespaceCache interface
 type MockNamespaceCache struct {
 	ctrl     *gomock.Controller
 	recorder *MockNamespaceCacheMockRecorder
 }
 
-// MockNamespaceCacheMockRecorder is the mock recorder for MockNamespaceCache.
+// MockNamespaceCacheMockRecorder is the mock recorder for MockNamespaceCache
 type MockNamespaceCacheMockRecorder struct {
 	mock *MockNamespaceCache
 }
 
-// NewMockNamespaceCache creates a new mock instance.
+// NewMockNamespaceCache creates a new mock instance
 func NewMockNamespaceCache(ctrl *gomock.Controller) *MockNamespaceCache {
 	mock := &MockNamespaceCache{ctrl: ctrl}
 	mock.recorder = &MockNamespaceCacheMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockNamespaceCache) EXPECT() *MockNamespaceCacheMockRecorder {
 	return m.recorder
 }
 
-// Clear mocks base method.
-func (m *MockNamespaceCache) Clear() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Clear")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Clear indicates an expected call of Clear.
-func (mr *MockNamespaceCacheMockRecorder) Clear() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockNamespaceCache)(nil).Clear))
-}
-
-// Close mocks base method.
-func (m *MockNamespaceCache) Close() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Close")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Close indicates an expected call of Close.
-func (mr *MockNamespaceCacheMockRecorder) Close() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockNamespaceCache)(nil).Close))
-}
-
-// GetNamespace mocks base method.
-func (m *MockNamespaceCache) GetNamespace(id string) *model.Namespace {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetNamespace", id)
-	ret0, _ := ret[0].(*model.Namespace)
-	return ret0
-}
-
-// GetNamespace indicates an expected call of GetNamespace.
-func (mr *MockNamespaceCacheMockRecorder) GetNamespace(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNamespace", reflect.TypeOf((*MockNamespaceCache)(nil).GetNamespace), id)
-}
-
-// GetNamespaceList mocks base method.
-func (m *MockNamespaceCache) GetNamespaceList() []*model.Namespace {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetNamespaceList")
-	ret0, _ := ret[0].([]*model.Namespace)
-	return ret0
-}
-
-// GetNamespaceList indicates an expected call of GetNamespaceList.
-func (mr *MockNamespaceCacheMockRecorder) GetNamespaceList() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNamespaceList", reflect.TypeOf((*MockNamespaceCache)(nil).GetNamespaceList))
-}
-
-// GetNamespacesByName mocks base method.
-func (m *MockNamespaceCache) GetNamespacesByName(names []string) []*model.Namespace {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetNamespacesByName", names)
-	ret0, _ := ret[0].([]*model.Namespace)
-	return ret0
-}
-
-// GetNamespacesByName indicates an expected call of GetNamespacesByName.
-func (mr *MockNamespaceCacheMockRecorder) GetNamespacesByName(names interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNamespacesByName", reflect.TypeOf((*MockNamespaceCache)(nil).GetNamespacesByName), names)
-}
-
-// GetVisibleNamespaces mocks base method.
-func (m *MockNamespaceCache) GetVisibleNamespaces(namespace string) []*model.Namespace {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetVisibleNamespaces", namespace)
-	ret0, _ := ret[0].([]*model.Namespace)
-	return ret0
-}
-
-// GetVisibleNamespaces indicates an expected call of GetVisibleNamespaces.
-func (mr *MockNamespaceCacheMockRecorder) GetVisibleNamespaces(namespace interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVisibleNamespaces", reflect.TypeOf((*MockNamespaceCache)(nil).GetVisibleNamespaces), namespace)
-}
-
-// Initialize mocks base method.
+// Initialize mocks base method
 func (m *MockNamespaceCache) Initialize(c map[string]interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Initialize", c)
@@ -561,13 +476,41 @@ func (m *MockNamespaceCache) Initialize(c map[string]interface{}) error {
 	return ret0
 }
 
-// Initialize indicates an expected call of Initialize.
+// Initialize indicates an expected call of Initialize
 func (mr *MockNamespaceCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockNamespaceCache)(nil).Initialize), c)
 }
 
-// Name mocks base method.
+// Update mocks base method
+func (m *MockNamespaceCache) Update() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update
+func (mr *MockNamespaceCacheMockRecorder) Update() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockNamespaceCache)(nil).Update))
+}
+
+// Clear mocks base method
+func (m *MockNamespaceCache) Clear() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Clear")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Clear indicates an expected call of Clear
+func (mr *MockNamespaceCacheMockRecorder) Clear() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockNamespaceCache)(nil).Clear))
+}
+
+// Name mocks base method
 func (m *MockNamespaceCache) Name() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Name")
@@ -575,13 +518,83 @@ func (m *MockNamespaceCache) Name() string {
 	return ret0
 }
 
-// Name indicates an expected call of Name.
+// Name indicates an expected call of Name
 func (mr *MockNamespaceCacheMockRecorder) Name() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockNamespaceCache)(nil).Name))
 }
 
-// Query mocks base method.
+// Close mocks base method
+func (m *MockNamespaceCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close
+func (mr *MockNamespaceCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockNamespaceCache)(nil).Close))
+}
+
+// GetNamespace mocks base method
+func (m *MockNamespaceCache) GetNamespace(id string) *model.Namespace {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNamespace", id)
+	ret0, _ := ret[0].(*model.Namespace)
+	return ret0
+}
+
+// GetNamespace indicates an expected call of GetNamespace
+func (mr *MockNamespaceCacheMockRecorder) GetNamespace(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNamespace", reflect.TypeOf((*MockNamespaceCache)(nil).GetNamespace), id)
+}
+
+// GetNamespacesByName mocks base method
+func (m *MockNamespaceCache) GetNamespacesByName(names []string) []*model.Namespace {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNamespacesByName", names)
+	ret0, _ := ret[0].([]*model.Namespace)
+	return ret0
+}
+
+// GetNamespacesByName indicates an expected call of GetNamespacesByName
+func (mr *MockNamespaceCacheMockRecorder) GetNamespacesByName(names interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNamespacesByName", reflect.TypeOf((*MockNamespaceCache)(nil).GetNamespacesByName), names)
+}
+
+// GetNamespaceList mocks base method
+func (m *MockNamespaceCache) GetNamespaceList() []*model.Namespace {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNamespaceList")
+	ret0, _ := ret[0].([]*model.Namespace)
+	return ret0
+}
+
+// GetNamespaceList indicates an expected call of GetNamespaceList
+func (mr *MockNamespaceCacheMockRecorder) GetNamespaceList() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNamespaceList", reflect.TypeOf((*MockNamespaceCache)(nil).GetNamespaceList))
+}
+
+// GetVisibleNamespaces mocks base method
+func (m *MockNamespaceCache) GetVisibleNamespaces(namespace string) []*model.Namespace {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVisibleNamespaces", namespace)
+	ret0, _ := ret[0].([]*model.Namespace)
+	return ret0
+}
+
+// GetVisibleNamespaces indicates an expected call of GetVisibleNamespaces
+func (mr *MockNamespaceCacheMockRecorder) GetVisibleNamespaces(namespace interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVisibleNamespaces", reflect.TypeOf((*MockNamespaceCache)(nil).GetVisibleNamespaces), namespace)
+}
+
+// Query mocks base method
 func (m *MockNamespaceCache) Query(arg0 context.Context, arg1 *api.NamespaceArgs) (uint32, []*model.Namespace, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Query", arg0, arg1)
@@ -591,62 +604,64 @@ func (m *MockNamespaceCache) Query(arg0 context.Context, arg1 *api.NamespaceArgs
 	return ret0, ret1, ret2
 }
 
-// Query indicates an expected call of Query.
+// Query indicates an expected call of Query
 func (mr *MockNamespaceCacheMockRecorder) Query(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Query", reflect.TypeOf((*MockNamespaceCache)(nil).Query), arg0, arg1)
 }
 
-// Update mocks base method.
-func (m *MockNamespaceCache) Update() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Update indicates an expected call of Update.
-func (mr *MockNamespaceCacheMockRecorder) Update() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockNamespaceCache)(nil).Update))
-}
-
-// MockServiceCache is a mock of ServiceCache interface.
+// MockServiceCache is a mock of ServiceCache interface
 type MockServiceCache struct {
 	ctrl     *gomock.Controller
 	recorder *MockServiceCacheMockRecorder
 }
 
-// MockServiceCacheMockRecorder is the mock recorder for MockServiceCache.
+// MockServiceCacheMockRecorder is the mock recorder for MockServiceCache
 type MockServiceCacheMockRecorder struct {
 	mock *MockServiceCache
 }
 
-// NewMockServiceCache creates a new mock instance.
+// NewMockServiceCache creates a new mock instance
 func NewMockServiceCache(ctrl *gomock.Controller) *MockServiceCache {
 	mock := &MockServiceCache{ctrl: ctrl}
 	mock.recorder = &MockServiceCacheMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockServiceCache) EXPECT() *MockServiceCacheMockRecorder {
 	return m.recorder
 }
 
-// CleanNamespace mocks base method.
-func (m *MockServiceCache) CleanNamespace(namespace string) {
+// Initialize mocks base method
+func (m *MockServiceCache) Initialize(c map[string]interface{}) error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "CleanNamespace", namespace)
+	ret := m.ctrl.Call(m, "Initialize", c)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// CleanNamespace indicates an expected call of CleanNamespace.
-func (mr *MockServiceCacheMockRecorder) CleanNamespace(namespace interface{}) *gomock.Call {
+// Initialize indicates an expected call of Initialize
+func (mr *MockServiceCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanNamespace", reflect.TypeOf((*MockServiceCache)(nil).CleanNamespace), namespace)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockServiceCache)(nil).Initialize), c)
 }
 
-// Clear mocks base method.
+// Update mocks base method
+func (m *MockServiceCache) Update() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update
+func (mr *MockServiceCacheMockRecorder) Update() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockServiceCache)(nil).Update))
+}
+
+// Clear mocks base method
 func (m *MockServiceCache) Clear() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Clear")
@@ -654,13 +669,27 @@ func (m *MockServiceCache) Clear() error {
 	return ret0
 }
 
-// Clear indicates an expected call of Clear.
+// Clear indicates an expected call of Clear
 func (mr *MockServiceCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockServiceCache)(nil).Clear))
 }
 
-// Close mocks base method.
+// Name mocks base method
+func (m *MockServiceCache) Name() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Name")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Name indicates an expected call of Name
+func (mr *MockServiceCacheMockRecorder) Name() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockServiceCache)(nil).Name))
+}
+
+// Close mocks base method
 func (m *MockServiceCache) Close() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Close")
@@ -668,41 +697,13 @@ func (m *MockServiceCache) Close() error {
 	return ret0
 }
 
-// Close indicates an expected call of Close.
+// Close indicates an expected call of Close
 func (mr *MockServiceCacheMockRecorder) Close() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockServiceCache)(nil).Close))
 }
 
-// GetAliasFor mocks base method.
-func (m *MockServiceCache) GetAliasFor(name, namespace string) *model.Service {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAliasFor", name, namespace)
-	ret0, _ := ret[0].(*model.Service)
-	return ret0
-}
-
-// GetAliasFor indicates an expected call of GetAliasFor.
-func (mr *MockServiceCacheMockRecorder) GetAliasFor(name, namespace interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAliasFor", reflect.TypeOf((*MockServiceCache)(nil).GetAliasFor), name, namespace)
-}
-
-// GetAllNamespaces mocks base method.
-func (m *MockServiceCache) GetAllNamespaces() []string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAllNamespaces")
-	ret0, _ := ret[0].([]string)
-	return ret0
-}
-
-// GetAllNamespaces indicates an expected call of GetAllNamespaces.
-func (mr *MockServiceCacheMockRecorder) GetAllNamespaces() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllNamespaces", reflect.TypeOf((*MockServiceCache)(nil).GetAllNamespaces))
-}
-
-// GetNamespaceCntInfo mocks base method.
+// GetNamespaceCntInfo mocks base method
 func (m *MockServiceCache) GetNamespaceCntInfo(namespace string) model.NamespaceServiceCount {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetNamespaceCntInfo", namespace)
@@ -710,41 +711,27 @@ func (m *MockServiceCache) GetNamespaceCntInfo(namespace string) model.Namespace
 	return ret0
 }
 
-// GetNamespaceCntInfo indicates an expected call of GetNamespaceCntInfo.
+// GetNamespaceCntInfo indicates an expected call of GetNamespaceCntInfo
 func (mr *MockServiceCacheMockRecorder) GetNamespaceCntInfo(namespace interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNamespaceCntInfo", reflect.TypeOf((*MockServiceCache)(nil).GetNamespaceCntInfo), namespace)
 }
 
-// GetRevisionWorker mocks base method.
-func (m *MockServiceCache) GetRevisionWorker() api.ServiceRevisionWorker {
+// GetAllNamespaces mocks base method
+func (m *MockServiceCache) GetAllNamespaces() []string {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRevisionWorker")
-	ret0, _ := ret[0].(api.ServiceRevisionWorker)
+	ret := m.ctrl.Call(m, "GetAllNamespaces")
+	ret0, _ := ret[0].([]string)
 	return ret0
 }
 
-// GetRevisionWorker indicates an expected call of GetRevisionWorker.
-func (mr *MockServiceCacheMockRecorder) GetRevisionWorker() *gomock.Call {
+// GetAllNamespaces indicates an expected call of GetAllNamespaces
+func (mr *MockServiceCacheMockRecorder) GetAllNamespaces() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRevisionWorker", reflect.TypeOf((*MockServiceCache)(nil).GetRevisionWorker))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllNamespaces", reflect.TypeOf((*MockServiceCache)(nil).GetAllNamespaces))
 }
 
-// GetServiceByCl5Name mocks base method.
-func (m *MockServiceCache) GetServiceByCl5Name(cl5Name string) *model.Service {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetServiceByCl5Name", cl5Name)
-	ret0, _ := ret[0].(*model.Service)
-	return ret0
-}
-
-// GetServiceByCl5Name indicates an expected call of GetServiceByCl5Name.
-func (mr *MockServiceCacheMockRecorder) GetServiceByCl5Name(cl5Name interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServiceByCl5Name", reflect.TypeOf((*MockServiceCache)(nil).GetServiceByCl5Name), cl5Name)
-}
-
-// GetServiceByID mocks base method.
+// GetServiceByID mocks base method
 func (m *MockServiceCache) GetServiceByID(id string) *model.Service {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetServiceByID", id)
@@ -752,13 +739,13 @@ func (m *MockServiceCache) GetServiceByID(id string) *model.Service {
 	return ret0
 }
 
-// GetServiceByID indicates an expected call of GetServiceByID.
+// GetServiceByID indicates an expected call of GetServiceByID
 func (mr *MockServiceCacheMockRecorder) GetServiceByID(id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServiceByID", reflect.TypeOf((*MockServiceCache)(nil).GetServiceByID), id)
 }
 
-// GetServiceByName mocks base method.
+// GetServiceByName mocks base method
 func (m *MockServiceCache) GetServiceByName(name, namespace string) *model.Service {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetServiceByName", name, namespace)
@@ -766,13 +753,67 @@ func (m *MockServiceCache) GetServiceByName(name, namespace string) *model.Servi
 	return ret0
 }
 
-// GetServiceByName indicates an expected call of GetServiceByName.
+// GetServiceByName indicates an expected call of GetServiceByName
 func (mr *MockServiceCacheMockRecorder) GetServiceByName(name, namespace interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServiceByName", reflect.TypeOf((*MockServiceCache)(nil).GetServiceByName), name, namespace)
 }
 
-// GetServicesByFilter mocks base method.
+// IteratorServices mocks base method
+func (m *MockServiceCache) IteratorServices(iterProc api.ServiceIterProc) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IteratorServices", iterProc)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// IteratorServices indicates an expected call of IteratorServices
+func (mr *MockServiceCacheMockRecorder) IteratorServices(iterProc interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IteratorServices", reflect.TypeOf((*MockServiceCache)(nil).IteratorServices), iterProc)
+}
+
+// CleanNamespace mocks base method
+func (m *MockServiceCache) CleanNamespace(namespace string) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "CleanNamespace", namespace)
+}
+
+// CleanNamespace indicates an expected call of CleanNamespace
+func (mr *MockServiceCacheMockRecorder) CleanNamespace(namespace interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanNamespace", reflect.TypeOf((*MockServiceCache)(nil).CleanNamespace), namespace)
+}
+
+// GetServicesCount mocks base method
+func (m *MockServiceCache) GetServicesCount() int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetServicesCount")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// GetServicesCount indicates an expected call of GetServicesCount
+func (mr *MockServiceCacheMockRecorder) GetServicesCount() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesCount", reflect.TypeOf((*MockServiceCache)(nil).GetServicesCount))
+}
+
+// GetServiceByCl5Name mocks base method
+func (m *MockServiceCache) GetServiceByCl5Name(cl5Name string) *model.Service {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetServiceByCl5Name", cl5Name)
+	ret0, _ := ret[0].(*model.Service)
+	return ret0
+}
+
+// GetServiceByCl5Name indicates an expected call of GetServiceByCl5Name
+func (mr *MockServiceCacheMockRecorder) GetServiceByCl5Name(cl5Name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServiceByCl5Name", reflect.TypeOf((*MockServiceCache)(nil).GetServiceByCl5Name), cl5Name)
+}
+
+// GetServicesByFilter mocks base method
 func (m *MockServiceCache) GetServicesByFilter(ctx context.Context, serviceFilters *api.ServiceArgs, instanceFilters *store.InstanceArgs, offset, limit uint32) (uint32, []*model.EnhancedService, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetServicesByFilter", ctx, serviceFilters, instanceFilters, offset, limit)
@@ -782,98 +823,13 @@ func (m *MockServiceCache) GetServicesByFilter(ctx context.Context, serviceFilte
 	return ret0, ret1, ret2
 }
 
-// GetServicesByFilter indicates an expected call of GetServicesByFilter.
+// GetServicesByFilter indicates an expected call of GetServicesByFilter
 func (mr *MockServiceCacheMockRecorder) GetServicesByFilter(ctx, serviceFilters, instanceFilters, offset, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesByFilter", reflect.TypeOf((*MockServiceCache)(nil).GetServicesByFilter), ctx, serviceFilters, instanceFilters, offset, limit)
 }
 
-// GetServicesCount mocks base method.
-func (m *MockServiceCache) GetServicesCount() int {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetServicesCount")
-	ret0, _ := ret[0].(int)
-	return ret0
-}
-
-// GetServicesCount indicates an expected call of GetServicesCount.
-func (mr *MockServiceCacheMockRecorder) GetServicesCount() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicesCount", reflect.TypeOf((*MockServiceCache)(nil).GetServicesCount))
-}
-
-// GetVisibleServicesInOtherNamespace mocks base method.
-func (m *MockServiceCache) GetVisibleServicesInOtherNamespace(name, namespace string) []*model.Service {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetVisibleServicesInOtherNamespace", name, namespace)
-	ret0, _ := ret[0].([]*model.Service)
-	return ret0
-}
-
-// GetVisibleServicesInOtherNamespace indicates an expected call of GetVisibleServicesInOtherNamespace.
-func (mr *MockServiceCacheMockRecorder) GetVisibleServicesInOtherNamespace(name, namespace interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVisibleServicesInOtherNamespace", reflect.TypeOf((*MockServiceCache)(nil).GetVisibleServicesInOtherNamespace), name, namespace)
-}
-
-// Initialize mocks base method.
-func (m *MockServiceCache) Initialize(c map[string]interface{}) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Initialize", c)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Initialize indicates an expected call of Initialize.
-func (mr *MockServiceCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockServiceCache)(nil).Initialize), c)
-}
-
-// IteratorServices mocks base method.
-func (m *MockServiceCache) IteratorServices(iterProc api.ServiceIterProc) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IteratorServices", iterProc)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// IteratorServices indicates an expected call of IteratorServices.
-func (mr *MockServiceCacheMockRecorder) IteratorServices(iterProc interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IteratorServices", reflect.TypeOf((*MockServiceCache)(nil).IteratorServices), iterProc)
-}
-
-// ListAllServices mocks base method.
-func (m *MockServiceCache) ListAllServices(ctx context.Context) (string, []*model.Service) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAllServices", ctx)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].([]*model.Service)
-	return ret0, ret1
-}
-
-// ListAllServices indicates an expected call of ListAllServices.
-func (mr *MockServiceCacheMockRecorder) ListAllServices(ctx interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllServices", reflect.TypeOf((*MockServiceCache)(nil).ListAllServices), ctx)
-}
-
-// ListServiceAlias mocks base method.
-func (m *MockServiceCache) ListServiceAlias(namespace, name string) []*model.Service {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListServiceAlias", namespace, name)
-	ret0, _ := ret[0].([]*model.Service)
-	return ret0
-}
-
-// ListServiceAlias indicates an expected call of ListServiceAlias.
-func (mr *MockServiceCacheMockRecorder) ListServiceAlias(namespace, name interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceAlias", reflect.TypeOf((*MockServiceCache)(nil).ListServiceAlias), namespace, name)
-}
-
-// ListServices mocks base method.
+// ListServices mocks base method
 func (m *MockServiceCache) ListServices(ctx context.Context, ns string) (string, []*model.Service) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListServices", ctx, ns)
@@ -882,78 +838,133 @@ func (m *MockServiceCache) ListServices(ctx context.Context, ns string) (string,
 	return ret0, ret1
 }
 
-// ListServices indicates an expected call of ListServices.
+// ListServices indicates an expected call of ListServices
 func (mr *MockServiceCacheMockRecorder) ListServices(ctx, ns interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServices", reflect.TypeOf((*MockServiceCache)(nil).ListServices), ctx, ns)
 }
 
-// Name mocks base method.
-func (m *MockServiceCache) Name() string {
+// ListAllServices mocks base method
+func (m *MockServiceCache) ListAllServices(ctx context.Context) (string, []*model.Service) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Name")
+	ret := m.ctrl.Call(m, "ListAllServices", ctx)
 	ret0, _ := ret[0].(string)
-	return ret0
+	ret1, _ := ret[1].([]*model.Service)
+	return ret0, ret1
 }
 
-// Name indicates an expected call of Name.
-func (mr *MockServiceCacheMockRecorder) Name() *gomock.Call {
+// ListAllServices indicates an expected call of ListAllServices
+func (mr *MockServiceCacheMockRecorder) ListAllServices(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockServiceCache)(nil).Name))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllServices", reflect.TypeOf((*MockServiceCache)(nil).ListAllServices), ctx)
 }
 
-// Update mocks base method.
-func (m *MockServiceCache) Update() error {
+// ListServiceAlias mocks base method
+func (m *MockServiceCache) ListServiceAlias(namespace, name string) []*model.Service {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update")
-	ret0, _ := ret[0].(error)
+	ret := m.ctrl.Call(m, "ListServiceAlias", namespace, name)
+	ret0, _ := ret[0].([]*model.Service)
 	return ret0
 }
 
-// Update indicates an expected call of Update.
-func (mr *MockServiceCacheMockRecorder) Update() *gomock.Call {
+// ListServiceAlias indicates an expected call of ListServiceAlias
+func (mr *MockServiceCacheMockRecorder) ListServiceAlias(namespace, name interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockServiceCache)(nil).Update))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceAlias", reflect.TypeOf((*MockServiceCache)(nil).ListServiceAlias), namespace, name)
 }
 
-// MockServiceRevisionWorker is a mock of ServiceRevisionWorker interface.
+// GetAliasFor mocks base method
+func (m *MockServiceCache) GetAliasFor(name, namespace string) *model.Service {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAliasFor", name, namespace)
+	ret0, _ := ret[0].(*model.Service)
+	return ret0
+}
+
+// GetAliasFor indicates an expected call of GetAliasFor
+func (mr *MockServiceCacheMockRecorder) GetAliasFor(name, namespace interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAliasFor", reflect.TypeOf((*MockServiceCache)(nil).GetAliasFor), name, namespace)
+}
+
+// GetRevisionWorker mocks base method
+func (m *MockServiceCache) GetRevisionWorker() api.ServiceRevisionWorker {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRevisionWorker")
+	ret0, _ := ret[0].(api.ServiceRevisionWorker)
+	return ret0
+}
+
+// GetRevisionWorker indicates an expected call of GetRevisionWorker
+func (mr *MockServiceCacheMockRecorder) GetRevisionWorker() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRevisionWorker", reflect.TypeOf((*MockServiceCache)(nil).GetRevisionWorker))
+}
+
+// GetVisibleSameNameServices mocks base method
+func (m *MockServiceCache) GetVisibleSameNameServices(name, namespace string) []*model.Service {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVisibleSameNameServices", name, namespace)
+	ret0, _ := ret[0].([]*model.Service)
+	return ret0
+}
+
+// GetVisibleSameNameServices indicates an expected call of GetVisibleSameNameServices
+func (mr *MockServiceCacheMockRecorder) GetVisibleSameNameServices(name, namespace interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVisibleSameNameServices", reflect.TypeOf((*MockServiceCache)(nil).GetVisibleSameNameServices), name, namespace)
+}
+
+// GetVisibleServices mocks base method
+func (m *MockServiceCache) GetVisibleServices(ctx context.Context, namespace string) []*model.Service {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVisibleServices", ctx, namespace)
+	ret0, _ := ret[0].([]*model.Service)
+	return ret0
+}
+
+// GetVisibleServices indicates an expected call of GetVisibleServices
+func (mr *MockServiceCacheMockRecorder) GetVisibleServices(ctx, namespace interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVisibleServices", reflect.TypeOf((*MockServiceCache)(nil).GetVisibleServices), ctx, namespace)
+}
+
+// MockServiceRevisionWorker is a mock of ServiceRevisionWorker interface
 type MockServiceRevisionWorker struct {
 	ctrl     *gomock.Controller
 	recorder *MockServiceRevisionWorkerMockRecorder
 }
 
-// MockServiceRevisionWorkerMockRecorder is the mock recorder for MockServiceRevisionWorker.
+// MockServiceRevisionWorkerMockRecorder is the mock recorder for MockServiceRevisionWorker
 type MockServiceRevisionWorkerMockRecorder struct {
 	mock *MockServiceRevisionWorker
 }
 
-// NewMockServiceRevisionWorker creates a new mock instance.
+// NewMockServiceRevisionWorker creates a new mock instance
 func NewMockServiceRevisionWorker(ctrl *gomock.Controller) *MockServiceRevisionWorker {
 	mock := &MockServiceRevisionWorker{ctrl: ctrl}
 	mock.recorder = &MockServiceRevisionWorkerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockServiceRevisionWorker) EXPECT() *MockServiceRevisionWorkerMockRecorder {
 	return m.recorder
 }
 
-// GetServiceInstanceRevision mocks base method.
-func (m *MockServiceRevisionWorker) GetServiceInstanceRevision(serviceID string) string {
+// Notify mocks base method
+func (m *MockServiceRevisionWorker) Notify(serviceID string, valid bool) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetServiceInstanceRevision", serviceID)
-	ret0, _ := ret[0].(string)
-	return ret0
+	m.ctrl.Call(m, "Notify", serviceID, valid)
 }
 
-// GetServiceInstanceRevision indicates an expected call of GetServiceInstanceRevision.
-func (mr *MockServiceRevisionWorkerMockRecorder) GetServiceInstanceRevision(serviceID interface{}) *gomock.Call {
+// Notify indicates an expected call of Notify
+func (mr *MockServiceRevisionWorkerMockRecorder) Notify(serviceID, valid interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServiceInstanceRevision", reflect.TypeOf((*MockServiceRevisionWorker)(nil).GetServiceInstanceRevision), serviceID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Notify", reflect.TypeOf((*MockServiceRevisionWorker)(nil).Notify), serviceID, valid)
 }
 
-// GetServiceRevisionCount mocks base method.
+// GetServiceRevisionCount mocks base method
 func (m *MockServiceRevisionWorker) GetServiceRevisionCount() int {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetServiceRevisionCount")
@@ -961,90 +972,50 @@ func (m *MockServiceRevisionWorker) GetServiceRevisionCount() int {
 	return ret0
 }
 
-// GetServiceRevisionCount indicates an expected call of GetServiceRevisionCount.
+// GetServiceRevisionCount indicates an expected call of GetServiceRevisionCount
 func (mr *MockServiceRevisionWorkerMockRecorder) GetServiceRevisionCount() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServiceRevisionCount", reflect.TypeOf((*MockServiceRevisionWorker)(nil).GetServiceRevisionCount))
 }
 
-// Notify mocks base method.
-func (m *MockServiceRevisionWorker) Notify(serviceID string, valid bool) {
+// GetServiceInstanceRevision mocks base method
+func (m *MockServiceRevisionWorker) GetServiceInstanceRevision(serviceID string) string {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Notify", serviceID, valid)
+	ret := m.ctrl.Call(m, "GetServiceInstanceRevision", serviceID)
+	ret0, _ := ret[0].(string)
+	return ret0
 }
 
-// Notify indicates an expected call of Notify.
-func (mr *MockServiceRevisionWorkerMockRecorder) Notify(serviceID, valid interface{}) *gomock.Call {
+// GetServiceInstanceRevision indicates an expected call of GetServiceInstanceRevision
+func (mr *MockServiceRevisionWorkerMockRecorder) GetServiceInstanceRevision(serviceID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Notify", reflect.TypeOf((*MockServiceRevisionWorker)(nil).Notify), serviceID, valid)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServiceInstanceRevision", reflect.TypeOf((*MockServiceRevisionWorker)(nil).GetServiceInstanceRevision), serviceID)
 }
 
-// MockServiceContractCache is a mock of ServiceContractCache interface.
+// MockServiceContractCache is a mock of ServiceContractCache interface
 type MockServiceContractCache struct {
 	ctrl     *gomock.Controller
 	recorder *MockServiceContractCacheMockRecorder
 }
 
-// MockServiceContractCacheMockRecorder is the mock recorder for MockServiceContractCache.
+// MockServiceContractCacheMockRecorder is the mock recorder for MockServiceContractCache
 type MockServiceContractCacheMockRecorder struct {
 	mock *MockServiceContractCache
 }
 
-// NewMockServiceContractCache creates a new mock instance.
+// NewMockServiceContractCache creates a new mock instance
 func NewMockServiceContractCache(ctrl *gomock.Controller) *MockServiceContractCache {
 	mock := &MockServiceContractCache{ctrl: ctrl}
 	mock.recorder = &MockServiceContractCacheMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockServiceContractCache) EXPECT() *MockServiceContractCacheMockRecorder {
 	return m.recorder
 }
 
-// Clear mocks base method.
-func (m *MockServiceContractCache) Clear() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Clear")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Clear indicates an expected call of Clear.
-func (mr *MockServiceContractCacheMockRecorder) Clear() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockServiceContractCache)(nil).Clear))
-}
-
-// Close mocks base method.
-func (m *MockServiceContractCache) Close() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Close")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Close indicates an expected call of Close.
-func (mr *MockServiceContractCacheMockRecorder) Close() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockServiceContractCache)(nil).Close))
-}
-
-// Get mocks base method.
-func (m *MockServiceContractCache) Get(ctx context.Context, req *model.ServiceContract) *model.EnrichServiceContract {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", ctx, req)
-	ret0, _ := ret[0].(*model.EnrichServiceContract)
-	return ret0
-}
-
-// Get indicates an expected call of Get.
-func (mr *MockServiceContractCacheMockRecorder) Get(ctx, req interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockServiceContractCache)(nil).Get), ctx, req)
-}
-
-// Initialize mocks base method.
+// Initialize mocks base method
 func (m *MockServiceContractCache) Initialize(c map[string]interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Initialize", c)
@@ -1052,27 +1023,13 @@ func (m *MockServiceContractCache) Initialize(c map[string]interface{}) error {
 	return ret0
 }
 
-// Initialize indicates an expected call of Initialize.
+// Initialize indicates an expected call of Initialize
 func (mr *MockServiceContractCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockServiceContractCache)(nil).Initialize), c)
 }
 
-// Name mocks base method.
-func (m *MockServiceContractCache) Name() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Name")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// Name indicates an expected call of Name.
-func (mr *MockServiceContractCacheMockRecorder) Name() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockServiceContractCache)(nil).Name))
-}
-
-// Update mocks base method.
+// Update mocks base method
 func (m *MockServiceContractCache) Update() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update")
@@ -1080,176 +1037,92 @@ func (m *MockServiceContractCache) Update() error {
 	return ret0
 }
 
-// Update indicates an expected call of Update.
+// Update indicates an expected call of Update
 func (mr *MockServiceContractCacheMockRecorder) Update() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockServiceContractCache)(nil).Update))
 }
 
-// MockInstanceCache is a mock of InstanceCache interface.
-type MockInstanceCache struct {
-	ctrl     *gomock.Controller
-	recorder *MockInstanceCacheMockRecorder
-}
-
-// MockInstanceCacheMockRecorder is the mock recorder for MockInstanceCache.
-type MockInstanceCacheMockRecorder struct {
-	mock *MockInstanceCache
-}
-
-// NewMockInstanceCache creates a new mock instance.
-func NewMockInstanceCache(ctrl *gomock.Controller) *MockInstanceCache {
-	mock := &MockInstanceCache{ctrl: ctrl}
-	mock.recorder = &MockInstanceCacheMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockInstanceCache) EXPECT() *MockInstanceCacheMockRecorder {
-	return m.recorder
-}
-
-// Clear mocks base method.
-func (m *MockInstanceCache) Clear() error {
+// Clear mocks base method
+func (m *MockServiceContractCache) Clear() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Clear")
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Clear indicates an expected call of Clear.
-func (mr *MockInstanceCacheMockRecorder) Clear() *gomock.Call {
+// Clear indicates an expected call of Clear
+func (mr *MockServiceContractCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockInstanceCache)(nil).Clear))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockServiceContractCache)(nil).Clear))
 }
 
-// Close mocks base method.
-func (m *MockInstanceCache) Close() error {
+// Name mocks base method
+func (m *MockServiceContractCache) Name() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Name")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Name indicates an expected call of Name
+func (mr *MockServiceContractCacheMockRecorder) Name() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockServiceContractCache)(nil).Name))
+}
+
+// Close mocks base method
+func (m *MockServiceContractCache) Close() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Close")
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Close indicates an expected call of Close.
-func (mr *MockInstanceCacheMockRecorder) Close() *gomock.Call {
+// Close indicates an expected call of Close
+func (mr *MockServiceContractCacheMockRecorder) Close() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockInstanceCache)(nil).Close))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockServiceContractCache)(nil).Close))
 }
 
-// DiscoverServiceInstances mocks base method.
-func (m *MockInstanceCache) DiscoverServiceInstances(serviceID string, onlyHealthy bool) []*model.Instance {
+// Get mocks base method
+func (m *MockServiceContractCache) Get(ctx context.Context, req *model.ServiceContract) *model.EnrichServiceContract {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DiscoverServiceInstances", serviceID, onlyHealthy)
-	ret0, _ := ret[0].([]*model.Instance)
+	ret := m.ctrl.Call(m, "Get", ctx, req)
+	ret0, _ := ret[0].(*model.EnrichServiceContract)
 	return ret0
 }
 
-// DiscoverServiceInstances indicates an expected call of DiscoverServiceInstances.
-func (mr *MockInstanceCacheMockRecorder) DiscoverServiceInstances(serviceID, onlyHealthy interface{}) *gomock.Call {
+// Get indicates an expected call of Get
+func (mr *MockServiceContractCacheMockRecorder) Get(ctx, req interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiscoverServiceInstances", reflect.TypeOf((*MockInstanceCache)(nil).DiscoverServiceInstances), serviceID, onlyHealthy)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockServiceContractCache)(nil).Get), ctx, req)
 }
 
-// GetInstance mocks base method.
-func (m *MockInstanceCache) GetInstance(instanceID string) *model.Instance {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInstance", instanceID)
-	ret0, _ := ret[0].(*model.Instance)
-	return ret0
+// MockInstanceCache is a mock of InstanceCache interface
+type MockInstanceCache struct {
+	ctrl     *gomock.Controller
+	recorder *MockInstanceCacheMockRecorder
 }
 
-// GetInstance indicates an expected call of GetInstance.
-func (mr *MockInstanceCacheMockRecorder) GetInstance(instanceID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstance", reflect.TypeOf((*MockInstanceCache)(nil).GetInstance), instanceID)
+// MockInstanceCacheMockRecorder is the mock recorder for MockInstanceCache
+type MockInstanceCacheMockRecorder struct {
+	mock *MockInstanceCache
 }
 
-// GetInstanceLabels mocks base method.
-func (m *MockInstanceCache) GetInstanceLabels(serviceID string) *service_manage.InstanceLabels {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInstanceLabels", serviceID)
-	ret0, _ := ret[0].(*service_manage.InstanceLabels)
-	return ret0
+// NewMockInstanceCache creates a new mock instance
+func NewMockInstanceCache(ctrl *gomock.Controller) *MockInstanceCache {
+	mock := &MockInstanceCache{ctrl: ctrl}
+	mock.recorder = &MockInstanceCacheMockRecorder{mock}
+	return mock
 }
 
-// GetInstanceLabels indicates an expected call of GetInstanceLabels.
-func (mr *MockInstanceCacheMockRecorder) GetInstanceLabels(serviceID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstanceLabels", reflect.TypeOf((*MockInstanceCache)(nil).GetInstanceLabels), serviceID)
+// EXPECT returns an object that allows the caller to indicate expected use
+func (m *MockInstanceCache) EXPECT() *MockInstanceCacheMockRecorder {
+	return m.recorder
 }
 
-// GetInstances mocks base method.
-func (m *MockInstanceCache) GetInstances(serviceID string) *model.ServiceInstances {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInstances", serviceID)
-	ret0, _ := ret[0].(*model.ServiceInstances)
-	return ret0
-}
-
-// GetInstances indicates an expected call of GetInstances.
-func (mr *MockInstanceCacheMockRecorder) GetInstances(serviceID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstances", reflect.TypeOf((*MockInstanceCache)(nil).GetInstances), serviceID)
-}
-
-// GetInstancesByServiceID mocks base method.
-func (m *MockInstanceCache) GetInstancesByServiceID(serviceID string) []*model.Instance {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInstancesByServiceID", serviceID)
-	ret0, _ := ret[0].([]*model.Instance)
-	return ret0
-}
-
-// GetInstancesByServiceID indicates an expected call of GetInstancesByServiceID.
-func (mr *MockInstanceCacheMockRecorder) GetInstancesByServiceID(serviceID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstancesByServiceID", reflect.TypeOf((*MockInstanceCache)(nil).GetInstancesByServiceID), serviceID)
-}
-
-// GetInstancesCount mocks base method.
-func (m *MockInstanceCache) GetInstancesCount() int {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInstancesCount")
-	ret0, _ := ret[0].(int)
-	return ret0
-}
-
-// GetInstancesCount indicates an expected call of GetInstancesCount.
-func (mr *MockInstanceCacheMockRecorder) GetInstancesCount() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstancesCount", reflect.TypeOf((*MockInstanceCache)(nil).GetInstancesCount))
-}
-
-// GetInstancesCountByServiceID mocks base method.
-func (m *MockInstanceCache) GetInstancesCountByServiceID(serviceID string) model.InstanceCount {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInstancesCountByServiceID", serviceID)
-	ret0, _ := ret[0].(model.InstanceCount)
-	return ret0
-}
-
-// GetInstancesCountByServiceID indicates an expected call of GetInstancesCountByServiceID.
-func (mr *MockInstanceCacheMockRecorder) GetInstancesCountByServiceID(serviceID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstancesCountByServiceID", reflect.TypeOf((*MockInstanceCache)(nil).GetInstancesCountByServiceID), serviceID)
-}
-
-// GetServicePorts mocks base method.
-func (m *MockInstanceCache) GetServicePorts(serviceID string) []*model.ServicePort {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetServicePorts", serviceID)
-	ret0, _ := ret[0].([]*model.ServicePort)
-	return ret0
-}
-
-// GetServicePorts indicates an expected call of GetServicePorts.
-func (mr *MockInstanceCacheMockRecorder) GetServicePorts(serviceID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicePorts", reflect.TypeOf((*MockInstanceCache)(nil).GetServicePorts), serviceID)
-}
-
-// Initialize mocks base method.
+// Initialize mocks base method
 func (m *MockInstanceCache) Initialize(c map[string]interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Initialize", c)
@@ -1257,41 +1130,41 @@ func (m *MockInstanceCache) Initialize(c map[string]interface{}) error {
 	return ret0
 }
 
-// Initialize indicates an expected call of Initialize.
+// Initialize indicates an expected call of Initialize
 func (mr *MockInstanceCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockInstanceCache)(nil).Initialize), c)
 }
 
-// IteratorInstances mocks base method.
-func (m *MockInstanceCache) IteratorInstances(iterProc api.InstanceIterProc) error {
+// Update mocks base method
+func (m *MockInstanceCache) Update() error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IteratorInstances", iterProc)
+	ret := m.ctrl.Call(m, "Update")
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// IteratorInstances indicates an expected call of IteratorInstances.
-func (mr *MockInstanceCacheMockRecorder) IteratorInstances(iterProc interface{}) *gomock.Call {
+// Update indicates an expected call of Update
+func (mr *MockInstanceCacheMockRecorder) Update() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IteratorInstances", reflect.TypeOf((*MockInstanceCache)(nil).IteratorInstances), iterProc)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockInstanceCache)(nil).Update))
 }
 
-// IteratorInstancesWithService mocks base method.
-func (m *MockInstanceCache) IteratorInstancesWithService(serviceID string, iterProc api.InstanceIterProc) error {
+// Clear mocks base method
+func (m *MockInstanceCache) Clear() error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IteratorInstancesWithService", serviceID, iterProc)
+	ret := m.ctrl.Call(m, "Clear")
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// IteratorInstancesWithService indicates an expected call of IteratorInstancesWithService.
-func (mr *MockInstanceCacheMockRecorder) IteratorInstancesWithService(serviceID, iterProc interface{}) *gomock.Call {
+// Clear indicates an expected call of Clear
+func (mr *MockInstanceCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IteratorInstancesWithService", reflect.TypeOf((*MockInstanceCache)(nil).IteratorInstancesWithService), serviceID, iterProc)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockInstanceCache)(nil).Clear))
 }
 
-// Name mocks base method.
+// Name mocks base method
 func (m *MockInstanceCache) Name() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Name")
@@ -1299,13 +1172,153 @@ func (m *MockInstanceCache) Name() string {
 	return ret0
 }
 
-// Name indicates an expected call of Name.
+// Name indicates an expected call of Name
 func (mr *MockInstanceCacheMockRecorder) Name() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockInstanceCache)(nil).Name))
 }
 
-// QueryInstances mocks base method.
+// Close mocks base method
+func (m *MockInstanceCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close
+func (mr *MockInstanceCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockInstanceCache)(nil).Close))
+}
+
+// GetInstance mocks base method
+func (m *MockInstanceCache) GetInstance(instanceID string) *model.Instance {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstance", instanceID)
+	ret0, _ := ret[0].(*model.Instance)
+	return ret0
+}
+
+// GetInstance indicates an expected call of GetInstance
+func (mr *MockInstanceCacheMockRecorder) GetInstance(instanceID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstance", reflect.TypeOf((*MockInstanceCache)(nil).GetInstance), instanceID)
+}
+
+// GetInstancesByServiceID mocks base method
+func (m *MockInstanceCache) GetInstancesByServiceID(serviceID string) []*model.Instance {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstancesByServiceID", serviceID)
+	ret0, _ := ret[0].([]*model.Instance)
+	return ret0
+}
+
+// GetInstancesByServiceID indicates an expected call of GetInstancesByServiceID
+func (mr *MockInstanceCacheMockRecorder) GetInstancesByServiceID(serviceID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstancesByServiceID", reflect.TypeOf((*MockInstanceCache)(nil).GetInstancesByServiceID), serviceID)
+}
+
+// GetInstances mocks base method
+func (m *MockInstanceCache) GetInstances(serviceID string) *model.ServiceInstances {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstances", serviceID)
+	ret0, _ := ret[0].(*model.ServiceInstances)
+	return ret0
+}
+
+// GetInstances indicates an expected call of GetInstances
+func (mr *MockInstanceCacheMockRecorder) GetInstances(serviceID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstances", reflect.TypeOf((*MockInstanceCache)(nil).GetInstances), serviceID)
+}
+
+// IteratorInstances mocks base method
+func (m *MockInstanceCache) IteratorInstances(iterProc api.InstanceIterProc) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IteratorInstances", iterProc)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// IteratorInstances indicates an expected call of IteratorInstances
+func (mr *MockInstanceCacheMockRecorder) IteratorInstances(iterProc interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IteratorInstances", reflect.TypeOf((*MockInstanceCache)(nil).IteratorInstances), iterProc)
+}
+
+// IteratorInstancesWithService mocks base method
+func (m *MockInstanceCache) IteratorInstancesWithService(serviceID string, iterProc api.InstanceIterProc) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IteratorInstancesWithService", serviceID, iterProc)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// IteratorInstancesWithService indicates an expected call of IteratorInstancesWithService
+func (mr *MockInstanceCacheMockRecorder) IteratorInstancesWithService(serviceID, iterProc interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IteratorInstancesWithService", reflect.TypeOf((*MockInstanceCache)(nil).IteratorInstancesWithService), serviceID, iterProc)
+}
+
+// GetInstancesCount mocks base method
+func (m *MockInstanceCache) GetInstancesCount() int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstancesCount")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// GetInstancesCount indicates an expected call of GetInstancesCount
+func (mr *MockInstanceCacheMockRecorder) GetInstancesCount() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstancesCount", reflect.TypeOf((*MockInstanceCache)(nil).GetInstancesCount))
+}
+
+// GetInstancesCountByServiceID mocks base method
+func (m *MockInstanceCache) GetInstancesCountByServiceID(serviceID string) model.InstanceCount {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstancesCountByServiceID", serviceID)
+	ret0, _ := ret[0].(model.InstanceCount)
+	return ret0
+}
+
+// GetInstancesCountByServiceID indicates an expected call of GetInstancesCountByServiceID
+func (mr *MockInstanceCacheMockRecorder) GetInstancesCountByServiceID(serviceID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstancesCountByServiceID", reflect.TypeOf((*MockInstanceCache)(nil).GetInstancesCountByServiceID), serviceID)
+}
+
+// GetServicePorts mocks base method
+func (m *MockInstanceCache) GetServicePorts(serviceID string) []*model.ServicePort {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetServicePorts", serviceID)
+	ret0, _ := ret[0].([]*model.ServicePort)
+	return ret0
+}
+
+// GetServicePorts indicates an expected call of GetServicePorts
+func (mr *MockInstanceCacheMockRecorder) GetServicePorts(serviceID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServicePorts", reflect.TypeOf((*MockInstanceCache)(nil).GetServicePorts), serviceID)
+}
+
+// GetInstanceLabels mocks base method
+func (m *MockInstanceCache) GetInstanceLabels(serviceID string) *service_manage.InstanceLabels {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstanceLabels", serviceID)
+	ret0, _ := ret[0].(*service_manage.InstanceLabels)
+	return ret0
+}
+
+// GetInstanceLabels indicates an expected call of GetInstanceLabels
+func (mr *MockInstanceCacheMockRecorder) GetInstanceLabels(serviceID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstanceLabels", reflect.TypeOf((*MockInstanceCache)(nil).GetInstanceLabels), serviceID)
+}
+
+// QueryInstances mocks base method
 func (m *MockInstanceCache) QueryInstances(filter, metaFilter map[string]string, offset, limit uint32) (uint32, []*model.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "QueryInstances", filter, metaFilter, offset, limit)
@@ -1315,106 +1328,50 @@ func (m *MockInstanceCache) QueryInstances(filter, metaFilter map[string]string,
 	return ret0, ret1, ret2
 }
 
-// QueryInstances indicates an expected call of QueryInstances.
+// QueryInstances indicates an expected call of QueryInstances
 func (mr *MockInstanceCacheMockRecorder) QueryInstances(filter, metaFilter, offset, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryInstances", reflect.TypeOf((*MockInstanceCache)(nil).QueryInstances), filter, metaFilter, offset, limit)
 }
 
-// Update mocks base method.
-func (m *MockInstanceCache) Update() error {
+// DiscoverServiceInstances mocks base method
+func (m *MockInstanceCache) DiscoverServiceInstances(serviceID string, onlyHealthy bool) []*model.Instance {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update")
-	ret0, _ := ret[0].(error)
+	ret := m.ctrl.Call(m, "DiscoverServiceInstances", serviceID, onlyHealthy)
+	ret0, _ := ret[0].([]*model.Instance)
 	return ret0
 }
 
-// Update indicates an expected call of Update.
-func (mr *MockInstanceCacheMockRecorder) Update() *gomock.Call {
+// DiscoverServiceInstances indicates an expected call of DiscoverServiceInstances
+func (mr *MockInstanceCacheMockRecorder) DiscoverServiceInstances(serviceID, onlyHealthy interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockInstanceCache)(nil).Update))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiscoverServiceInstances", reflect.TypeOf((*MockInstanceCache)(nil).DiscoverServiceInstances), serviceID, onlyHealthy)
 }
 
-// MockFaultDetectCache is a mock of FaultDetectCache interface.
+// MockFaultDetectCache is a mock of FaultDetectCache interface
 type MockFaultDetectCache struct {
 	ctrl     *gomock.Controller
 	recorder *MockFaultDetectCacheMockRecorder
 }
 
-// MockFaultDetectCacheMockRecorder is the mock recorder for MockFaultDetectCache.
+// MockFaultDetectCacheMockRecorder is the mock recorder for MockFaultDetectCache
 type MockFaultDetectCacheMockRecorder struct {
 	mock *MockFaultDetectCache
 }
 
-// NewMockFaultDetectCache creates a new mock instance.
+// NewMockFaultDetectCache creates a new mock instance
 func NewMockFaultDetectCache(ctrl *gomock.Controller) *MockFaultDetectCache {
 	mock := &MockFaultDetectCache{ctrl: ctrl}
 	mock.recorder = &MockFaultDetectCacheMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockFaultDetectCache) EXPECT() *MockFaultDetectCacheMockRecorder {
 	return m.recorder
 }
 
-// Clear mocks base method.
-func (m *MockFaultDetectCache) Clear() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Clear")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Clear indicates an expected call of Clear.
-func (mr *MockFaultDetectCacheMockRecorder) Clear() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockFaultDetectCache)(nil).Clear))
-}
-
-// Close mocks base method.
-func (m *MockFaultDetectCache) Close() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Close")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Close indicates an expected call of Close.
-func (mr *MockFaultDetectCacheMockRecorder) Close() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockFaultDetectCache)(nil).Close))
-}
-
-// GetFaultDetectConfig mocks base method.
-func (m *MockFaultDetectCache) GetFaultDetectConfig(svcName, namespace string) *model.ServiceWithFaultDetectRules {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetFaultDetectConfig", svcName, namespace)
-	ret0, _ := ret[0].(*model.ServiceWithFaultDetectRules)
-	return ret0
-}
-
-// GetFaultDetectConfig indicates an expected call of GetFaultDetectConfig.
-func (mr *MockFaultDetectCacheMockRecorder) GetFaultDetectConfig(svcName, namespace interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFaultDetectConfig", reflect.TypeOf((*MockFaultDetectCache)(nil).GetFaultDetectConfig), svcName, namespace)
-}
-
-// GetRule mocks base method.
-func (m *MockFaultDetectCache) GetRule(id string) *model.FaultDetectRule {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRule", id)
-	ret0, _ := ret[0].(*model.FaultDetectRule)
-	return ret0
-}
-
-// GetRule indicates an expected call of GetRule.
-func (mr *MockFaultDetectCacheMockRecorder) GetRule(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRule", reflect.TypeOf((*MockFaultDetectCache)(nil).GetRule), id)
-}
-
-// Initialize mocks base method.
+// Initialize mocks base method
 func (m *MockFaultDetectCache) Initialize(c map[string]interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Initialize", c)
@@ -1422,13 +1379,41 @@ func (m *MockFaultDetectCache) Initialize(c map[string]interface{}) error {
 	return ret0
 }
 
-// Initialize indicates an expected call of Initialize.
+// Initialize indicates an expected call of Initialize
 func (mr *MockFaultDetectCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockFaultDetectCache)(nil).Initialize), c)
 }
 
-// Name mocks base method.
+// Update mocks base method
+func (m *MockFaultDetectCache) Update() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update
+func (mr *MockFaultDetectCacheMockRecorder) Update() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockFaultDetectCache)(nil).Update))
+}
+
+// Clear mocks base method
+func (m *MockFaultDetectCache) Clear() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Clear")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Clear indicates an expected call of Clear
+func (mr *MockFaultDetectCacheMockRecorder) Clear() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockFaultDetectCache)(nil).Clear))
+}
+
+// Name mocks base method
 func (m *MockFaultDetectCache) Name() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Name")
@@ -1436,13 +1421,27 @@ func (m *MockFaultDetectCache) Name() string {
 	return ret0
 }
 
-// Name indicates an expected call of Name.
+// Name indicates an expected call of Name
 func (mr *MockFaultDetectCacheMockRecorder) Name() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockFaultDetectCache)(nil).Name))
 }
 
-// Query mocks base method.
+// Close mocks base method
+func (m *MockFaultDetectCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close
+func (mr *MockFaultDetectCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockFaultDetectCache)(nil).Close))
+}
+
+// Query mocks base method
 func (m *MockFaultDetectCache) Query(arg0 context.Context, arg1 *api.FaultDetectArgs) (uint32, []*model.FaultDetectRule, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Query", arg0, arg1)
@@ -1452,107 +1451,64 @@ func (m *MockFaultDetectCache) Query(arg0 context.Context, arg1 *api.FaultDetect
 	return ret0, ret1, ret2
 }
 
-// Query indicates an expected call of Query.
+// Query indicates an expected call of Query
 func (mr *MockFaultDetectCacheMockRecorder) Query(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Query", reflect.TypeOf((*MockFaultDetectCache)(nil).Query), arg0, arg1)
 }
 
-// Update mocks base method.
-func (m *MockFaultDetectCache) Update() error {
+// GetFaultDetectConfig mocks base method
+func (m *MockFaultDetectCache) GetFaultDetectConfig(svcName, namespace string) *model.ServiceWithFaultDetectRules {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update")
-	ret0, _ := ret[0].(error)
+	ret := m.ctrl.Call(m, "GetFaultDetectConfig", svcName, namespace)
+	ret0, _ := ret[0].(*model.ServiceWithFaultDetectRules)
 	return ret0
 }
 
-// Update indicates an expected call of Update.
-func (mr *MockFaultDetectCacheMockRecorder) Update() *gomock.Call {
+// GetFaultDetectConfig indicates an expected call of GetFaultDetectConfig
+func (mr *MockFaultDetectCacheMockRecorder) GetFaultDetectConfig(svcName, namespace interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockFaultDetectCache)(nil).Update))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFaultDetectConfig", reflect.TypeOf((*MockFaultDetectCache)(nil).GetFaultDetectConfig), svcName, namespace)
 }
 
-// MockLaneCache is a mock of LaneCache interface.
+// GetRule mocks base method
+func (m *MockFaultDetectCache) GetRule(id string) *model.FaultDetectRule {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRule", id)
+	ret0, _ := ret[0].(*model.FaultDetectRule)
+	return ret0
+}
+
+// GetRule indicates an expected call of GetRule
+func (mr *MockFaultDetectCacheMockRecorder) GetRule(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRule", reflect.TypeOf((*MockFaultDetectCache)(nil).GetRule), id)
+}
+
+// MockLaneCache is a mock of LaneCache interface
 type MockLaneCache struct {
 	ctrl     *gomock.Controller
 	recorder *MockLaneCacheMockRecorder
 }
 
-// MockLaneCacheMockRecorder is the mock recorder for MockLaneCache.
+// MockLaneCacheMockRecorder is the mock recorder for MockLaneCache
 type MockLaneCacheMockRecorder struct {
 	mock *MockLaneCache
 }
 
-// NewMockLaneCache creates a new mock instance.
+// NewMockLaneCache creates a new mock instance
 func NewMockLaneCache(ctrl *gomock.Controller) *MockLaneCache {
 	mock := &MockLaneCache{ctrl: ctrl}
 	mock.recorder = &MockLaneCacheMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockLaneCache) EXPECT() *MockLaneCacheMockRecorder {
 	return m.recorder
 }
 
-// Clear mocks base method.
-func (m *MockLaneCache) Clear() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Clear")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Clear indicates an expected call of Clear.
-func (mr *MockLaneCacheMockRecorder) Clear() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockLaneCache)(nil).Clear))
-}
-
-// Close mocks base method.
-func (m *MockLaneCache) Close() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Close")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Close indicates an expected call of Close.
-func (mr *MockLaneCacheMockRecorder) Close() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockLaneCache)(nil).Close))
-}
-
-// GetLaneRules mocks base method.
-func (m *MockLaneCache) GetLaneRules(serviceKey *model.Service) ([]*model.LaneGroupProto, string) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetLaneRules", serviceKey)
-	ret0, _ := ret[0].([]*model.LaneGroupProto)
-	ret1, _ := ret[1].(string)
-	return ret0, ret1
-}
-
-// GetLaneRules indicates an expected call of GetLaneRules.
-func (mr *MockLaneCacheMockRecorder) GetLaneRules(serviceKey interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLaneRules", reflect.TypeOf((*MockLaneCache)(nil).GetLaneRules), serviceKey)
-}
-
-// GetRule mocks base method.
-func (m *MockLaneCache) GetRule(id string) *model.LaneGroup {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRule", id)
-	ret0, _ := ret[0].(*model.LaneGroup)
-	return ret0
-}
-
-// GetRule indicates an expected call of GetRule.
-func (mr *MockLaneCacheMockRecorder) GetRule(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRule", reflect.TypeOf((*MockLaneCache)(nil).GetRule), id)
-}
-
-// Initialize mocks base method.
+// Initialize mocks base method
 func (m *MockLaneCache) Initialize(c map[string]interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Initialize", c)
@@ -1560,13 +1516,41 @@ func (m *MockLaneCache) Initialize(c map[string]interface{}) error {
 	return ret0
 }
 
-// Initialize indicates an expected call of Initialize.
+// Initialize indicates an expected call of Initialize
 func (mr *MockLaneCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockLaneCache)(nil).Initialize), c)
 }
 
-// Name mocks base method.
+// Update mocks base method
+func (m *MockLaneCache) Update() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update
+func (mr *MockLaneCacheMockRecorder) Update() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockLaneCache)(nil).Update))
+}
+
+// Clear mocks base method
+func (m *MockLaneCache) Clear() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Clear")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Clear indicates an expected call of Clear
+func (mr *MockLaneCacheMockRecorder) Clear() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockLaneCache)(nil).Clear))
+}
+
+// Name mocks base method
 func (m *MockLaneCache) Name() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Name")
@@ -1574,13 +1558,27 @@ func (m *MockLaneCache) Name() string {
 	return ret0
 }
 
-// Name indicates an expected call of Name.
+// Name indicates an expected call of Name
 func (mr *MockLaneCacheMockRecorder) Name() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockLaneCache)(nil).Name))
 }
 
-// Query mocks base method.
+// Close mocks base method
+func (m *MockLaneCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close
+func (mr *MockLaneCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockLaneCache)(nil).Close))
+}
+
+// Query mocks base method
 func (m *MockLaneCache) Query(arg0 context.Context, arg1 *api.LaneGroupArgs) (uint32, []*model.LaneGroupProto, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Query", arg0, arg1)
@@ -1590,50 +1588,93 @@ func (m *MockLaneCache) Query(arg0 context.Context, arg1 *api.LaneGroupArgs) (ui
 	return ret0, ret1, ret2
 }
 
-// Query indicates an expected call of Query.
+// Query indicates an expected call of Query
 func (mr *MockLaneCacheMockRecorder) Query(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Query", reflect.TypeOf((*MockLaneCache)(nil).Query), arg0, arg1)
 }
 
-// Update mocks base method.
-func (m *MockLaneCache) Update() error {
+// GetLaneRules mocks base method
+func (m *MockLaneCache) GetLaneRules(serviceKey *model.Service) ([]*model.LaneGroupProto, string) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update")
-	ret0, _ := ret[0].(error)
+	ret := m.ctrl.Call(m, "GetLaneRules", serviceKey)
+	ret0, _ := ret[0].([]*model.LaneGroupProto)
+	ret1, _ := ret[1].(string)
+	return ret0, ret1
+}
+
+// GetLaneRules indicates an expected call of GetLaneRules
+func (mr *MockLaneCacheMockRecorder) GetLaneRules(serviceKey interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLaneRules", reflect.TypeOf((*MockLaneCache)(nil).GetLaneRules), serviceKey)
+}
+
+// GetRule mocks base method
+func (m *MockLaneCache) GetRule(id string) *model.LaneGroup {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRule", id)
+	ret0, _ := ret[0].(*model.LaneGroup)
 	return ret0
 }
 
-// Update indicates an expected call of Update.
-func (mr *MockLaneCacheMockRecorder) Update() *gomock.Call {
+// GetRule indicates an expected call of GetRule
+func (mr *MockLaneCacheMockRecorder) GetRule(id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockLaneCache)(nil).Update))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRule", reflect.TypeOf((*MockLaneCache)(nil).GetRule), id)
 }
 
-// MockRoutingConfigCache is a mock of RoutingConfigCache interface.
+// MockRoutingConfigCache is a mock of RoutingConfigCache interface
 type MockRoutingConfigCache struct {
 	ctrl     *gomock.Controller
 	recorder *MockRoutingConfigCacheMockRecorder
 }
 
-// MockRoutingConfigCacheMockRecorder is the mock recorder for MockRoutingConfigCache.
+// MockRoutingConfigCacheMockRecorder is the mock recorder for MockRoutingConfigCache
 type MockRoutingConfigCacheMockRecorder struct {
 	mock *MockRoutingConfigCache
 }
 
-// NewMockRoutingConfigCache creates a new mock instance.
+// NewMockRoutingConfigCache creates a new mock instance
 func NewMockRoutingConfigCache(ctrl *gomock.Controller) *MockRoutingConfigCache {
 	mock := &MockRoutingConfigCache{ctrl: ctrl}
 	mock.recorder = &MockRoutingConfigCacheMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockRoutingConfigCache) EXPECT() *MockRoutingConfigCacheMockRecorder {
 	return m.recorder
 }
 
-// Clear mocks base method.
+// Initialize mocks base method
+func (m *MockRoutingConfigCache) Initialize(c map[string]interface{}) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Initialize", c)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Initialize indicates an expected call of Initialize
+func (mr *MockRoutingConfigCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockRoutingConfigCache)(nil).Initialize), c)
+}
+
+// Update mocks base method
+func (m *MockRoutingConfigCache) Update() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update
+func (mr *MockRoutingConfigCacheMockRecorder) Update() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockRoutingConfigCache)(nil).Update))
+}
+
+// Clear mocks base method
 func (m *MockRoutingConfigCache) Clear() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Clear")
@@ -1641,13 +1682,27 @@ func (m *MockRoutingConfigCache) Clear() error {
 	return ret0
 }
 
-// Clear indicates an expected call of Clear.
+// Clear indicates an expected call of Clear
 func (mr *MockRoutingConfigCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockRoutingConfigCache)(nil).Clear))
 }
 
-// Close mocks base method.
+// Name mocks base method
+func (m *MockRoutingConfigCache) Name() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Name")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Name indicates an expected call of Name
+func (mr *MockRoutingConfigCacheMockRecorder) Name() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockRoutingConfigCache)(nil).Name))
+}
+
+// Close mocks base method
 func (m *MockRoutingConfigCache) Close() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Close")
@@ -1655,13 +1710,43 @@ func (m *MockRoutingConfigCache) Close() error {
 	return ret0
 }
 
-// Close indicates an expected call of Close.
+// Close indicates an expected call of Close
 func (mr *MockRoutingConfigCacheMockRecorder) Close() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockRoutingConfigCache)(nil).Close))
 }
 
-// GetNearbyRouteRule mocks base method.
+// GetRouterConfig mocks base method
+func (m *MockRoutingConfigCache) GetRouterConfig(id, service, namespace string) (*traffic_manage.Routing, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRouterConfig", id, service, namespace)
+	ret0, _ := ret[0].(*traffic_manage.Routing)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRouterConfig indicates an expected call of GetRouterConfig
+func (mr *MockRoutingConfigCacheMockRecorder) GetRouterConfig(id, service, namespace interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRouterConfig", reflect.TypeOf((*MockRoutingConfigCache)(nil).GetRouterConfig), id, service, namespace)
+}
+
+// GetRouterConfigV2 mocks base method
+func (m *MockRoutingConfigCache) GetRouterConfigV2(id, service, namespace string) (*traffic_manage.Routing, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRouterConfigV2", id, service, namespace)
+	ret0, _ := ret[0].(*traffic_manage.Routing)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRouterConfigV2 indicates an expected call of GetRouterConfigV2
+func (mr *MockRoutingConfigCacheMockRecorder) GetRouterConfigV2(id, service, namespace interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRouterConfigV2", reflect.TypeOf((*MockRoutingConfigCache)(nil).GetRouterConfigV2), id, service, namespace)
+}
+
+// GetNearbyRouteRule mocks base method
 func (m *MockRoutingConfigCache) GetNearbyRouteRule(service, namespace string) ([]*traffic_manage.RouteRule, string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetNearbyRouteRule", service, namespace)
@@ -1671,43 +1756,13 @@ func (m *MockRoutingConfigCache) GetNearbyRouteRule(service, namespace string) (
 	return ret0, ret1, ret2
 }
 
-// GetNearbyRouteRule indicates an expected call of GetNearbyRouteRule.
+// GetNearbyRouteRule indicates an expected call of GetNearbyRouteRule
 func (mr *MockRoutingConfigCacheMockRecorder) GetNearbyRouteRule(service, namespace interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNearbyRouteRule", reflect.TypeOf((*MockRoutingConfigCache)(nil).GetNearbyRouteRule), service, namespace)
 }
 
-// GetRouterConfig mocks base method.
-func (m *MockRoutingConfigCache) GetRouterConfig(id, service, namespace string) (*traffic_manage.Routing, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRouterConfig", id, service, namespace)
-	ret0, _ := ret[0].(*traffic_manage.Routing)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetRouterConfig indicates an expected call of GetRouterConfig.
-func (mr *MockRoutingConfigCacheMockRecorder) GetRouterConfig(id, service, namespace interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRouterConfig", reflect.TypeOf((*MockRoutingConfigCache)(nil).GetRouterConfig), id, service, namespace)
-}
-
-// GetRouterConfigV2 mocks base method.
-func (m *MockRoutingConfigCache) GetRouterConfigV2(id, service, namespace string) (*traffic_manage.Routing, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRouterConfigV2", id, service, namespace)
-	ret0, _ := ret[0].(*traffic_manage.Routing)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetRouterConfigV2 indicates an expected call of GetRouterConfigV2.
-func (mr *MockRoutingConfigCacheMockRecorder) GetRouterConfigV2(id, service, namespace interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRouterConfigV2", reflect.TypeOf((*MockRoutingConfigCache)(nil).GetRouterConfigV2), id, service, namespace)
-}
-
-// GetRoutingConfigCount mocks base method.
+// GetRoutingConfigCount mocks base method
 func (m *MockRoutingConfigCache) GetRoutingConfigCount() int {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRoutingConfigCount")
@@ -1715,96 +1770,13 @@ func (m *MockRoutingConfigCache) GetRoutingConfigCount() int {
 	return ret0
 }
 
-// GetRoutingConfigCount indicates an expected call of GetRoutingConfigCount.
+// GetRoutingConfigCount indicates an expected call of GetRoutingConfigCount
 func (mr *MockRoutingConfigCacheMockRecorder) GetRoutingConfigCount() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRoutingConfigCount", reflect.TypeOf((*MockRoutingConfigCache)(nil).GetRoutingConfigCount))
 }
 
-// GetRule mocks base method.
-func (m *MockRoutingConfigCache) GetRule(id string) *model.ExtendRouterConfig {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRule", id)
-	ret0, _ := ret[0].(*model.ExtendRouterConfig)
-	return ret0
-}
-
-// GetRule indicates an expected call of GetRule.
-func (mr *MockRoutingConfigCacheMockRecorder) GetRule(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRule", reflect.TypeOf((*MockRoutingConfigCache)(nil).GetRule), id)
-}
-
-// Initialize mocks base method.
-func (m *MockRoutingConfigCache) Initialize(c map[string]interface{}) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Initialize", c)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Initialize indicates an expected call of Initialize.
-func (mr *MockRoutingConfigCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockRoutingConfigCache)(nil).Initialize), c)
-}
-
-// IsConvertFromV1 mocks base method.
-func (m *MockRoutingConfigCache) IsConvertFromV1(id string) (string, bool) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsConvertFromV1", id)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(bool)
-	return ret0, ret1
-}
-
-// IsConvertFromV1 indicates an expected call of IsConvertFromV1.
-func (mr *MockRoutingConfigCacheMockRecorder) IsConvertFromV1(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsConvertFromV1", reflect.TypeOf((*MockRoutingConfigCache)(nil).IsConvertFromV1), id)
-}
-
-// IteratorRouterRule mocks base method.
-func (m *MockRoutingConfigCache) IteratorRouterRule(iterProc api.RouterRuleIterProc) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "IteratorRouterRule", iterProc)
-}
-
-// IteratorRouterRule indicates an expected call of IteratorRouterRule.
-func (mr *MockRoutingConfigCacheMockRecorder) IteratorRouterRule(iterProc interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IteratorRouterRule", reflect.TypeOf((*MockRoutingConfigCache)(nil).IteratorRouterRule), iterProc)
-}
-
-// ListRouterRule mocks base method.
-func (m *MockRoutingConfigCache) ListRouterRule(service, namespace string) []*model.ExtendRouterConfig {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListRouterRule", service, namespace)
-	ret0, _ := ret[0].([]*model.ExtendRouterConfig)
-	return ret0
-}
-
-// ListRouterRule indicates an expected call of ListRouterRule.
-func (mr *MockRoutingConfigCacheMockRecorder) ListRouterRule(service, namespace interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRouterRule", reflect.TypeOf((*MockRoutingConfigCache)(nil).ListRouterRule), service, namespace)
-}
-
-// Name mocks base method.
-func (m *MockRoutingConfigCache) Name() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Name")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// Name indicates an expected call of Name.
-func (mr *MockRoutingConfigCacheMockRecorder) Name() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockRoutingConfigCache)(nil).Name))
-}
-
-// QueryRoutingConfigsV2 mocks base method.
+// QueryRoutingConfigsV2 mocks base method
 func (m *MockRoutingConfigCache) QueryRoutingConfigsV2(arg0 context.Context, arg1 *api.RoutingArgs) (uint32, []*model.ExtendRouterConfig, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "QueryRoutingConfigsV2", arg0, arg1)
@@ -1814,50 +1786,119 @@ func (m *MockRoutingConfigCache) QueryRoutingConfigsV2(arg0 context.Context, arg
 	return ret0, ret1, ret2
 }
 
-// QueryRoutingConfigsV2 indicates an expected call of QueryRoutingConfigsV2.
+// QueryRoutingConfigsV2 indicates an expected call of QueryRoutingConfigsV2
 func (mr *MockRoutingConfigCacheMockRecorder) QueryRoutingConfigsV2(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryRoutingConfigsV2", reflect.TypeOf((*MockRoutingConfigCache)(nil).QueryRoutingConfigsV2), arg0, arg1)
 }
 
-// Update mocks base method.
-func (m *MockRoutingConfigCache) Update() error {
+// ListRouterRule mocks base method
+func (m *MockRoutingConfigCache) ListRouterRule(service, namespace string) []*model.ExtendRouterConfig {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update")
-	ret0, _ := ret[0].(error)
+	ret := m.ctrl.Call(m, "ListRouterRule", service, namespace)
+	ret0, _ := ret[0].([]*model.ExtendRouterConfig)
 	return ret0
 }
 
-// Update indicates an expected call of Update.
-func (mr *MockRoutingConfigCacheMockRecorder) Update() *gomock.Call {
+// ListRouterRule indicates an expected call of ListRouterRule
+func (mr *MockRoutingConfigCacheMockRecorder) ListRouterRule(service, namespace interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockRoutingConfigCache)(nil).Update))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRouterRule", reflect.TypeOf((*MockRoutingConfigCache)(nil).ListRouterRule), service, namespace)
 }
 
-// MockRateLimitCache is a mock of RateLimitCache interface.
+// IsConvertFromV1 mocks base method
+func (m *MockRoutingConfigCache) IsConvertFromV1(id string) (string, bool) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsConvertFromV1", id)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(bool)
+	return ret0, ret1
+}
+
+// IsConvertFromV1 indicates an expected call of IsConvertFromV1
+func (mr *MockRoutingConfigCacheMockRecorder) IsConvertFromV1(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsConvertFromV1", reflect.TypeOf((*MockRoutingConfigCache)(nil).IsConvertFromV1), id)
+}
+
+// IteratorRouterRule mocks base method
+func (m *MockRoutingConfigCache) IteratorRouterRule(iterProc api.RouterRuleIterProc) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "IteratorRouterRule", iterProc)
+}
+
+// IteratorRouterRule indicates an expected call of IteratorRouterRule
+func (mr *MockRoutingConfigCacheMockRecorder) IteratorRouterRule(iterProc interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IteratorRouterRule", reflect.TypeOf((*MockRoutingConfigCache)(nil).IteratorRouterRule), iterProc)
+}
+
+// GetRule mocks base method
+func (m *MockRoutingConfigCache) GetRule(id string) *model.ExtendRouterConfig {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRule", id)
+	ret0, _ := ret[0].(*model.ExtendRouterConfig)
+	return ret0
+}
+
+// GetRule indicates an expected call of GetRule
+func (mr *MockRoutingConfigCacheMockRecorder) GetRule(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRule", reflect.TypeOf((*MockRoutingConfigCache)(nil).GetRule), id)
+}
+
+// MockRateLimitCache is a mock of RateLimitCache interface
 type MockRateLimitCache struct {
 	ctrl     *gomock.Controller
 	recorder *MockRateLimitCacheMockRecorder
 }
 
-// MockRateLimitCacheMockRecorder is the mock recorder for MockRateLimitCache.
+// MockRateLimitCacheMockRecorder is the mock recorder for MockRateLimitCache
 type MockRateLimitCacheMockRecorder struct {
 	mock *MockRateLimitCache
 }
 
-// NewMockRateLimitCache creates a new mock instance.
+// NewMockRateLimitCache creates a new mock instance
 func NewMockRateLimitCache(ctrl *gomock.Controller) *MockRateLimitCache {
 	mock := &MockRateLimitCache{ctrl: ctrl}
 	mock.recorder = &MockRateLimitCacheMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockRateLimitCache) EXPECT() *MockRateLimitCacheMockRecorder {
 	return m.recorder
 }
 
-// Clear mocks base method.
+// Initialize mocks base method
+func (m *MockRateLimitCache) Initialize(c map[string]interface{}) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Initialize", c)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Initialize indicates an expected call of Initialize
+func (mr *MockRateLimitCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockRateLimitCache)(nil).Initialize), c)
+}
+
+// Update mocks base method
+func (m *MockRateLimitCache) Update() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update
+func (mr *MockRateLimitCacheMockRecorder) Update() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockRateLimitCache)(nil).Update))
+}
+
+// Clear mocks base method
 func (m *MockRateLimitCache) Clear() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Clear")
@@ -1865,13 +1906,27 @@ func (m *MockRateLimitCache) Clear() error {
 	return ret0
 }
 
-// Clear indicates an expected call of Clear.
+// Clear indicates an expected call of Clear
 func (mr *MockRateLimitCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockRateLimitCache)(nil).Clear))
 }
 
-// Close mocks base method.
+// Name mocks base method
+func (m *MockRateLimitCache) Name() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Name")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Name indicates an expected call of Name
+func (mr *MockRateLimitCacheMockRecorder) Name() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockRateLimitCache)(nil).Name))
+}
+
+// Close mocks base method
 func (m *MockRateLimitCache) Close() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Close")
@@ -1879,13 +1934,25 @@ func (m *MockRateLimitCache) Close() error {
 	return ret0
 }
 
-// Close indicates an expected call of Close.
+// Close indicates an expected call of Close
 func (mr *MockRateLimitCacheMockRecorder) Close() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockRateLimitCache)(nil).Close))
 }
 
-// GetRateLimitRules mocks base method.
+// IteratorRateLimit mocks base method
+func (m *MockRateLimitCache) IteratorRateLimit(rateLimitIterProc api.RateLimitIterProc) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "IteratorRateLimit", rateLimitIterProc)
+}
+
+// IteratorRateLimit indicates an expected call of IteratorRateLimit
+func (mr *MockRateLimitCacheMockRecorder) IteratorRateLimit(rateLimitIterProc interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IteratorRateLimit", reflect.TypeOf((*MockRateLimitCache)(nil).IteratorRateLimit), rateLimitIterProc)
+}
+
+// GetRateLimitRules mocks base method
 func (m *MockRateLimitCache) GetRateLimitRules(serviceKey model.ServiceKey) ([]*model.RateLimit, string) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRateLimitRules", serviceKey)
@@ -1894,81 +1961,13 @@ func (m *MockRateLimitCache) GetRateLimitRules(serviceKey model.ServiceKey) ([]*
 	return ret0, ret1
 }
 
-// GetRateLimitRules indicates an expected call of GetRateLimitRules.
+// GetRateLimitRules indicates an expected call of GetRateLimitRules
 func (mr *MockRateLimitCacheMockRecorder) GetRateLimitRules(serviceKey interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRateLimitRules", reflect.TypeOf((*MockRateLimitCache)(nil).GetRateLimitRules), serviceKey)
 }
 
-// GetRateLimitsCount mocks base method.
-func (m *MockRateLimitCache) GetRateLimitsCount() int {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRateLimitsCount")
-	ret0, _ := ret[0].(int)
-	return ret0
-}
-
-// GetRateLimitsCount indicates an expected call of GetRateLimitsCount.
-func (mr *MockRateLimitCacheMockRecorder) GetRateLimitsCount() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRateLimitsCount", reflect.TypeOf((*MockRateLimitCache)(nil).GetRateLimitsCount))
-}
-
-// GetRule mocks base method.
-func (m *MockRateLimitCache) GetRule(id string) *model.RateLimit {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRule", id)
-	ret0, _ := ret[0].(*model.RateLimit)
-	return ret0
-}
-
-// GetRule indicates an expected call of GetRule.
-func (mr *MockRateLimitCacheMockRecorder) GetRule(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRule", reflect.TypeOf((*MockRateLimitCache)(nil).GetRule), id)
-}
-
-// Initialize mocks base method.
-func (m *MockRateLimitCache) Initialize(c map[string]interface{}) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Initialize", c)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Initialize indicates an expected call of Initialize.
-func (mr *MockRateLimitCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockRateLimitCache)(nil).Initialize), c)
-}
-
-// IteratorRateLimit mocks base method.
-func (m *MockRateLimitCache) IteratorRateLimit(rateLimitIterProc api.RateLimitIterProc) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "IteratorRateLimit", rateLimitIterProc)
-}
-
-// IteratorRateLimit indicates an expected call of IteratorRateLimit.
-func (mr *MockRateLimitCacheMockRecorder) IteratorRateLimit(rateLimitIterProc interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IteratorRateLimit", reflect.TypeOf((*MockRateLimitCache)(nil).IteratorRateLimit), rateLimitIterProc)
-}
-
-// Name mocks base method.
-func (m *MockRateLimitCache) Name() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Name")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// Name indicates an expected call of Name.
-func (mr *MockRateLimitCacheMockRecorder) Name() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockRateLimitCache)(nil).Name))
-}
-
-// QueryRateLimitRules mocks base method.
+// QueryRateLimitRules mocks base method
 func (m *MockRateLimitCache) QueryRateLimitRules(arg0 context.Context, arg1 api.RateLimitRuleArgs) (uint32, []*model.RateLimit, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "QueryRateLimitRules", arg0, arg1)
@@ -1978,148 +1977,64 @@ func (m *MockRateLimitCache) QueryRateLimitRules(arg0 context.Context, arg1 api.
 	return ret0, ret1, ret2
 }
 
-// QueryRateLimitRules indicates an expected call of QueryRateLimitRules.
+// QueryRateLimitRules indicates an expected call of QueryRateLimitRules
 func (mr *MockRateLimitCacheMockRecorder) QueryRateLimitRules(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryRateLimitRules", reflect.TypeOf((*MockRateLimitCache)(nil).QueryRateLimitRules), arg0, arg1)
 }
 
-// Update mocks base method.
-func (m *MockRateLimitCache) Update() error {
+// GetRateLimitsCount mocks base method
+func (m *MockRateLimitCache) GetRateLimitsCount() int {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update")
-	ret0, _ := ret[0].(error)
+	ret := m.ctrl.Call(m, "GetRateLimitsCount")
+	ret0, _ := ret[0].(int)
 	return ret0
 }
 
-// Update indicates an expected call of Update.
-func (mr *MockRateLimitCacheMockRecorder) Update() *gomock.Call {
+// GetRateLimitsCount indicates an expected call of GetRateLimitsCount
+func (mr *MockRateLimitCacheMockRecorder) GetRateLimitsCount() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockRateLimitCache)(nil).Update))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRateLimitsCount", reflect.TypeOf((*MockRateLimitCache)(nil).GetRateLimitsCount))
 }
 
-// MockL5Cache is a mock of L5Cache interface.
+// GetRule mocks base method
+func (m *MockRateLimitCache) GetRule(id string) *model.RateLimit {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRule", id)
+	ret0, _ := ret[0].(*model.RateLimit)
+	return ret0
+}
+
+// GetRule indicates an expected call of GetRule
+func (mr *MockRateLimitCacheMockRecorder) GetRule(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRule", reflect.TypeOf((*MockRateLimitCache)(nil).GetRule), id)
+}
+
+// MockL5Cache is a mock of L5Cache interface
 type MockL5Cache struct {
 	ctrl     *gomock.Controller
 	recorder *MockL5CacheMockRecorder
 }
 
-// MockL5CacheMockRecorder is the mock recorder for MockL5Cache.
+// MockL5CacheMockRecorder is the mock recorder for MockL5Cache
 type MockL5CacheMockRecorder struct {
 	mock *MockL5Cache
 }
 
-// NewMockL5Cache creates a new mock instance.
+// NewMockL5Cache creates a new mock instance
 func NewMockL5Cache(ctrl *gomock.Controller) *MockL5Cache {
 	mock := &MockL5Cache{ctrl: ctrl}
 	mock.recorder = &MockL5CacheMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockL5Cache) EXPECT() *MockL5CacheMockRecorder {
 	return m.recorder
 }
 
-// CheckRouteExisted mocks base method.
-func (m *MockL5Cache) CheckRouteExisted(ip, modID, cmdID uint32) bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckRouteExisted", ip, modID, cmdID)
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// CheckRouteExisted indicates an expected call of CheckRouteExisted.
-func (mr *MockL5CacheMockRecorder) CheckRouteExisted(ip, modID, cmdID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckRouteExisted", reflect.TypeOf((*MockL5Cache)(nil).CheckRouteExisted), ip, modID, cmdID)
-}
-
-// Clear mocks base method.
-func (m *MockL5Cache) Clear() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Clear")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Clear indicates an expected call of Clear.
-func (mr *MockL5CacheMockRecorder) Clear() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockL5Cache)(nil).Clear))
-}
-
-// Close mocks base method.
-func (m *MockL5Cache) Close() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Close")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Close indicates an expected call of Close.
-func (mr *MockL5CacheMockRecorder) Close() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockL5Cache)(nil).Close))
-}
-
-// GetIPConfig mocks base method.
-func (m *MockL5Cache) GetIPConfig(ip uint32) *model.IPConfig {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetIPConfig", ip)
-	ret0, _ := ret[0].(*model.IPConfig)
-	return ret0
-}
-
-// GetIPConfig indicates an expected call of GetIPConfig.
-func (mr *MockL5CacheMockRecorder) GetIPConfig(ip interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIPConfig", reflect.TypeOf((*MockL5Cache)(nil).GetIPConfig), ip)
-}
-
-// GetPolicy mocks base method.
-func (m *MockL5Cache) GetPolicy(modID uint32) *model.Policy {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPolicy", modID)
-	ret0, _ := ret[0].(*model.Policy)
-	return ret0
-}
-
-// GetPolicy indicates an expected call of GetPolicy.
-func (mr *MockL5CacheMockRecorder) GetPolicy(modID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPolicy", reflect.TypeOf((*MockL5Cache)(nil).GetPolicy), modID)
-}
-
-// GetRouteByIP mocks base method.
-func (m *MockL5Cache) GetRouteByIP(ip uint32) []*model.Route {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRouteByIP", ip)
-	ret0, _ := ret[0].([]*model.Route)
-	return ret0
-}
-
-// GetRouteByIP indicates an expected call of GetRouteByIP.
-func (mr *MockL5CacheMockRecorder) GetRouteByIP(ip interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRouteByIP", reflect.TypeOf((*MockL5Cache)(nil).GetRouteByIP), ip)
-}
-
-// GetSection mocks base method.
-func (m *MockL5Cache) GetSection(modeID uint32) []*model.Section {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSection", modeID)
-	ret0, _ := ret[0].([]*model.Section)
-	return ret0
-}
-
-// GetSection indicates an expected call of GetSection.
-func (mr *MockL5CacheMockRecorder) GetSection(modeID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSection", reflect.TypeOf((*MockL5Cache)(nil).GetSection), modeID)
-}
-
-// Initialize mocks base method.
+// Initialize mocks base method
 func (m *MockL5Cache) Initialize(c map[string]interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Initialize", c)
@@ -2127,27 +2042,13 @@ func (m *MockL5Cache) Initialize(c map[string]interface{}) error {
 	return ret0
 }
 
-// Initialize indicates an expected call of Initialize.
+// Initialize indicates an expected call of Initialize
 func (mr *MockL5CacheMockRecorder) Initialize(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockL5Cache)(nil).Initialize), c)
 }
 
-// Name mocks base method.
-func (m *MockL5Cache) Name() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Name")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// Name indicates an expected call of Name.
-func (mr *MockL5CacheMockRecorder) Name() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockL5Cache)(nil).Name))
-}
-
-// Update mocks base method.
+// Update mocks base method
 func (m *MockL5Cache) Update() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update")
@@ -2155,92 +2056,148 @@ func (m *MockL5Cache) Update() error {
 	return ret0
 }
 
-// Update indicates an expected call of Update.
+// Update indicates an expected call of Update
 func (mr *MockL5CacheMockRecorder) Update() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockL5Cache)(nil).Update))
 }
 
-// MockCircuitBreakerCache is a mock of CircuitBreakerCache interface.
-type MockCircuitBreakerCache struct {
-	ctrl     *gomock.Controller
-	recorder *MockCircuitBreakerCacheMockRecorder
-}
-
-// MockCircuitBreakerCacheMockRecorder is the mock recorder for MockCircuitBreakerCache.
-type MockCircuitBreakerCacheMockRecorder struct {
-	mock *MockCircuitBreakerCache
-}
-
-// NewMockCircuitBreakerCache creates a new mock instance.
-func NewMockCircuitBreakerCache(ctrl *gomock.Controller) *MockCircuitBreakerCache {
-	mock := &MockCircuitBreakerCache{ctrl: ctrl}
-	mock.recorder = &MockCircuitBreakerCacheMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockCircuitBreakerCache) EXPECT() *MockCircuitBreakerCacheMockRecorder {
-	return m.recorder
-}
-
-// Clear mocks base method.
-func (m *MockCircuitBreakerCache) Clear() error {
+// Clear mocks base method
+func (m *MockL5Cache) Clear() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Clear")
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Clear indicates an expected call of Clear.
-func (mr *MockCircuitBreakerCacheMockRecorder) Clear() *gomock.Call {
+// Clear indicates an expected call of Clear
+func (mr *MockL5CacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockCircuitBreakerCache)(nil).Clear))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockL5Cache)(nil).Clear))
 }
 
-// Close mocks base method.
-func (m *MockCircuitBreakerCache) Close() error {
+// Name mocks base method
+func (m *MockL5Cache) Name() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Name")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Name indicates an expected call of Name
+func (mr *MockL5CacheMockRecorder) Name() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockL5Cache)(nil).Name))
+}
+
+// Close mocks base method
+func (m *MockL5Cache) Close() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Close")
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Close indicates an expected call of Close.
-func (mr *MockCircuitBreakerCacheMockRecorder) Close() *gomock.Call {
+// Close indicates an expected call of Close
+func (mr *MockL5CacheMockRecorder) Close() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockCircuitBreakerCache)(nil).Close))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockL5Cache)(nil).Close))
 }
 
-// GetCircuitBreakerConfig mocks base method.
-func (m *MockCircuitBreakerCache) GetCircuitBreakerConfig(svcName, namespace string) *model.ServiceWithCircuitBreakerRules {
+// GetRouteByIP mocks base method
+func (m *MockL5Cache) GetRouteByIP(ip uint32) []*model.Route {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCircuitBreakerConfig", svcName, namespace)
-	ret0, _ := ret[0].(*model.ServiceWithCircuitBreakerRules)
+	ret := m.ctrl.Call(m, "GetRouteByIP", ip)
+	ret0, _ := ret[0].([]*model.Route)
 	return ret0
 }
 
-// GetCircuitBreakerConfig indicates an expected call of GetCircuitBreakerConfig.
-func (mr *MockCircuitBreakerCacheMockRecorder) GetCircuitBreakerConfig(svcName, namespace interface{}) *gomock.Call {
+// GetRouteByIP indicates an expected call of GetRouteByIP
+func (mr *MockL5CacheMockRecorder) GetRouteByIP(ip interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreakerConfig", reflect.TypeOf((*MockCircuitBreakerCache)(nil).GetCircuitBreakerConfig), svcName, namespace)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRouteByIP", reflect.TypeOf((*MockL5Cache)(nil).GetRouteByIP), ip)
 }
 
-// GetRule mocks base method.
-func (m *MockCircuitBreakerCache) GetRule(id string) *model.CircuitBreakerRule {
+// CheckRouteExisted mocks base method
+func (m *MockL5Cache) CheckRouteExisted(ip, modID, cmdID uint32) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRule", id)
-	ret0, _ := ret[0].(*model.CircuitBreakerRule)
+	ret := m.ctrl.Call(m, "CheckRouteExisted", ip, modID, cmdID)
+	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
-// GetRule indicates an expected call of GetRule.
-func (mr *MockCircuitBreakerCacheMockRecorder) GetRule(id interface{}) *gomock.Call {
+// CheckRouteExisted indicates an expected call of CheckRouteExisted
+func (mr *MockL5CacheMockRecorder) CheckRouteExisted(ip, modID, cmdID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRule", reflect.TypeOf((*MockCircuitBreakerCache)(nil).GetRule), id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckRouteExisted", reflect.TypeOf((*MockL5Cache)(nil).CheckRouteExisted), ip, modID, cmdID)
 }
 
-// Initialize mocks base method.
+// GetPolicy mocks base method
+func (m *MockL5Cache) GetPolicy(modID uint32) *model.Policy {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPolicy", modID)
+	ret0, _ := ret[0].(*model.Policy)
+	return ret0
+}
+
+// GetPolicy indicates an expected call of GetPolicy
+func (mr *MockL5CacheMockRecorder) GetPolicy(modID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPolicy", reflect.TypeOf((*MockL5Cache)(nil).GetPolicy), modID)
+}
+
+// GetSection mocks base method
+func (m *MockL5Cache) GetSection(modeID uint32) []*model.Section {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSection", modeID)
+	ret0, _ := ret[0].([]*model.Section)
+	return ret0
+}
+
+// GetSection indicates an expected call of GetSection
+func (mr *MockL5CacheMockRecorder) GetSection(modeID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSection", reflect.TypeOf((*MockL5Cache)(nil).GetSection), modeID)
+}
+
+// GetIPConfig mocks base method
+func (m *MockL5Cache) GetIPConfig(ip uint32) *model.IPConfig {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIPConfig", ip)
+	ret0, _ := ret[0].(*model.IPConfig)
+	return ret0
+}
+
+// GetIPConfig indicates an expected call of GetIPConfig
+func (mr *MockL5CacheMockRecorder) GetIPConfig(ip interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIPConfig", reflect.TypeOf((*MockL5Cache)(nil).GetIPConfig), ip)
+}
+
+// MockCircuitBreakerCache is a mock of CircuitBreakerCache interface
+type MockCircuitBreakerCache struct {
+	ctrl     *gomock.Controller
+	recorder *MockCircuitBreakerCacheMockRecorder
+}
+
+// MockCircuitBreakerCacheMockRecorder is the mock recorder for MockCircuitBreakerCache
+type MockCircuitBreakerCacheMockRecorder struct {
+	mock *MockCircuitBreakerCache
+}
+
+// NewMockCircuitBreakerCache creates a new mock instance
+func NewMockCircuitBreakerCache(ctrl *gomock.Controller) *MockCircuitBreakerCache {
+	mock := &MockCircuitBreakerCache{ctrl: ctrl}
+	mock.recorder = &MockCircuitBreakerCacheMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use
+func (m *MockCircuitBreakerCache) EXPECT() *MockCircuitBreakerCacheMockRecorder {
+	return m.recorder
+}
+
+// Initialize mocks base method
 func (m *MockCircuitBreakerCache) Initialize(c map[string]interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Initialize", c)
@@ -2248,13 +2205,41 @@ func (m *MockCircuitBreakerCache) Initialize(c map[string]interface{}) error {
 	return ret0
 }
 
-// Initialize indicates an expected call of Initialize.
+// Initialize indicates an expected call of Initialize
 func (mr *MockCircuitBreakerCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockCircuitBreakerCache)(nil).Initialize), c)
 }
 
-// Name mocks base method.
+// Update mocks base method
+func (m *MockCircuitBreakerCache) Update() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update
+func (mr *MockCircuitBreakerCacheMockRecorder) Update() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockCircuitBreakerCache)(nil).Update))
+}
+
+// Clear mocks base method
+func (m *MockCircuitBreakerCache) Clear() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Clear")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Clear indicates an expected call of Clear
+func (mr *MockCircuitBreakerCacheMockRecorder) Clear() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockCircuitBreakerCache)(nil).Clear))
+}
+
+// Name mocks base method
 func (m *MockCircuitBreakerCache) Name() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Name")
@@ -2262,13 +2247,27 @@ func (m *MockCircuitBreakerCache) Name() string {
 	return ret0
 }
 
-// Name indicates an expected call of Name.
+// Name indicates an expected call of Name
 func (mr *MockCircuitBreakerCacheMockRecorder) Name() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockCircuitBreakerCache)(nil).Name))
 }
 
-// Query mocks base method.
+// Close mocks base method
+func (m *MockCircuitBreakerCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close
+func (mr *MockCircuitBreakerCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockCircuitBreakerCache)(nil).Close))
+}
+
+// Query mocks base method
 func (m *MockCircuitBreakerCache) Query(arg0 context.Context, arg1 *api.CircuitBreakerRuleArgs) (uint32, []*model.CircuitBreakerRule, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Query", arg0, arg1)
@@ -2278,106 +2277,64 @@ func (m *MockCircuitBreakerCache) Query(arg0 context.Context, arg1 *api.CircuitB
 	return ret0, ret1, ret2
 }
 
-// Query indicates an expected call of Query.
+// Query indicates an expected call of Query
 func (mr *MockCircuitBreakerCacheMockRecorder) Query(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Query", reflect.TypeOf((*MockCircuitBreakerCache)(nil).Query), arg0, arg1)
 }
 
-// Update mocks base method.
-func (m *MockCircuitBreakerCache) Update() error {
+// GetCircuitBreakerConfig mocks base method
+func (m *MockCircuitBreakerCache) GetCircuitBreakerConfig(svcName, namespace string) *model.ServiceWithCircuitBreakerRules {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update")
-	ret0, _ := ret[0].(error)
+	ret := m.ctrl.Call(m, "GetCircuitBreakerConfig", svcName, namespace)
+	ret0, _ := ret[0].(*model.ServiceWithCircuitBreakerRules)
 	return ret0
 }
 
-// Update indicates an expected call of Update.
-func (mr *MockCircuitBreakerCacheMockRecorder) Update() *gomock.Call {
+// GetCircuitBreakerConfig indicates an expected call of GetCircuitBreakerConfig
+func (mr *MockCircuitBreakerCacheMockRecorder) GetCircuitBreakerConfig(svcName, namespace interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockCircuitBreakerCache)(nil).Update))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCircuitBreakerConfig", reflect.TypeOf((*MockCircuitBreakerCache)(nil).GetCircuitBreakerConfig), svcName, namespace)
 }
 
-// MockConfigGroupCache is a mock of ConfigGroupCache interface.
+// GetRule mocks base method
+func (m *MockCircuitBreakerCache) GetRule(id string) *model.CircuitBreakerRule {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRule", id)
+	ret0, _ := ret[0].(*model.CircuitBreakerRule)
+	return ret0
+}
+
+// GetRule indicates an expected call of GetRule
+func (mr *MockCircuitBreakerCacheMockRecorder) GetRule(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRule", reflect.TypeOf((*MockCircuitBreakerCache)(nil).GetRule), id)
+}
+
+// MockConfigGroupCache is a mock of ConfigGroupCache interface
 type MockConfigGroupCache struct {
 	ctrl     *gomock.Controller
 	recorder *MockConfigGroupCacheMockRecorder
 }
 
-// MockConfigGroupCacheMockRecorder is the mock recorder for MockConfigGroupCache.
+// MockConfigGroupCacheMockRecorder is the mock recorder for MockConfigGroupCache
 type MockConfigGroupCacheMockRecorder struct {
 	mock *MockConfigGroupCache
 }
 
-// NewMockConfigGroupCache creates a new mock instance.
+// NewMockConfigGroupCache creates a new mock instance
 func NewMockConfigGroupCache(ctrl *gomock.Controller) *MockConfigGroupCache {
 	mock := &MockConfigGroupCache{ctrl: ctrl}
 	mock.recorder = &MockConfigGroupCacheMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockConfigGroupCache) EXPECT() *MockConfigGroupCacheMockRecorder {
 	return m.recorder
 }
 
-// Clear mocks base method.
-func (m *MockConfigGroupCache) Clear() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Clear")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Clear indicates an expected call of Clear.
-func (mr *MockConfigGroupCacheMockRecorder) Clear() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockConfigGroupCache)(nil).Clear))
-}
-
-// Close mocks base method.
-func (m *MockConfigGroupCache) Close() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Close")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Close indicates an expected call of Close.
-func (mr *MockConfigGroupCacheMockRecorder) Close() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockConfigGroupCache)(nil).Close))
-}
-
-// GetGroupByID mocks base method.
-func (m *MockConfigGroupCache) GetGroupByID(id uint64) *model.ConfigFileGroup {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetGroupByID", id)
-	ret0, _ := ret[0].(*model.ConfigFileGroup)
-	return ret0
-}
-
-// GetGroupByID indicates an expected call of GetGroupByID.
-func (mr *MockConfigGroupCacheMockRecorder) GetGroupByID(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroupByID", reflect.TypeOf((*MockConfigGroupCache)(nil).GetGroupByID), id)
-}
-
-// GetGroupByName mocks base method.
-func (m *MockConfigGroupCache) GetGroupByName(namespace, name string) *model.ConfigFileGroup {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetGroupByName", namespace, name)
-	ret0, _ := ret[0].(*model.ConfigFileGroup)
-	return ret0
-}
-
-// GetGroupByName indicates an expected call of GetGroupByName.
-func (mr *MockConfigGroupCacheMockRecorder) GetGroupByName(namespace, name interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroupByName", reflect.TypeOf((*MockConfigGroupCache)(nil).GetGroupByName), namespace, name)
-}
-
-// Initialize mocks base method.
+// Initialize mocks base method
 func (m *MockConfigGroupCache) Initialize(c map[string]interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Initialize", c)
@@ -2385,13 +2342,97 @@ func (m *MockConfigGroupCache) Initialize(c map[string]interface{}) error {
 	return ret0
 }
 
-// Initialize indicates an expected call of Initialize.
+// Initialize indicates an expected call of Initialize
 func (mr *MockConfigGroupCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockConfigGroupCache)(nil).Initialize), c)
 }
 
-// ListGroups mocks base method.
+// Update mocks base method
+func (m *MockConfigGroupCache) Update() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update
+func (mr *MockConfigGroupCacheMockRecorder) Update() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockConfigGroupCache)(nil).Update))
+}
+
+// Clear mocks base method
+func (m *MockConfigGroupCache) Clear() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Clear")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Clear indicates an expected call of Clear
+func (mr *MockConfigGroupCacheMockRecorder) Clear() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockConfigGroupCache)(nil).Clear))
+}
+
+// Name mocks base method
+func (m *MockConfigGroupCache) Name() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Name")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Name indicates an expected call of Name
+func (mr *MockConfigGroupCacheMockRecorder) Name() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockConfigGroupCache)(nil).Name))
+}
+
+// Close mocks base method
+func (m *MockConfigGroupCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close
+func (mr *MockConfigGroupCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockConfigGroupCache)(nil).Close))
+}
+
+// GetGroupByName mocks base method
+func (m *MockConfigGroupCache) GetGroupByName(namespace, name string) *model.ConfigFileGroup {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGroupByName", namespace, name)
+	ret0, _ := ret[0].(*model.ConfigFileGroup)
+	return ret0
+}
+
+// GetGroupByName indicates an expected call of GetGroupByName
+func (mr *MockConfigGroupCacheMockRecorder) GetGroupByName(namespace, name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroupByName", reflect.TypeOf((*MockConfigGroupCache)(nil).GetGroupByName), namespace, name)
+}
+
+// GetGroupByID mocks base method
+func (m *MockConfigGroupCache) GetGroupByID(id uint64) *model.ConfigFileGroup {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGroupByID", id)
+	ret0, _ := ret[0].(*model.ConfigFileGroup)
+	return ret0
+}
+
+// GetGroupByID indicates an expected call of GetGroupByID
+func (mr *MockConfigGroupCacheMockRecorder) GetGroupByID(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroupByID", reflect.TypeOf((*MockConfigGroupCache)(nil).GetGroupByID), id)
+}
+
+// ListGroups mocks base method
 func (m *MockConfigGroupCache) ListGroups(namespace string) ([]*model.ConfigFileGroup, string) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListGroups", namespace)
@@ -2400,27 +2441,13 @@ func (m *MockConfigGroupCache) ListGroups(namespace string) ([]*model.ConfigFile
 	return ret0, ret1
 }
 
-// ListGroups indicates an expected call of ListGroups.
+// ListGroups indicates an expected call of ListGroups
 func (mr *MockConfigGroupCacheMockRecorder) ListGroups(namespace interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListGroups", reflect.TypeOf((*MockConfigGroupCache)(nil).ListGroups), namespace)
 }
 
-// Name mocks base method.
-func (m *MockConfigGroupCache) Name() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Name")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// Name indicates an expected call of Name.
-func (mr *MockConfigGroupCacheMockRecorder) Name() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockConfigGroupCache)(nil).Name))
-}
-
-// Query mocks base method.
+// Query mocks base method
 func (m *MockConfigGroupCache) Query(args *api.ConfigGroupArgs) (uint32, []*model.ConfigFileGroup, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Query", args)
@@ -2430,50 +2457,64 @@ func (m *MockConfigGroupCache) Query(args *api.ConfigGroupArgs) (uint32, []*mode
 	return ret0, ret1, ret2
 }
 
-// Query indicates an expected call of Query.
+// Query indicates an expected call of Query
 func (mr *MockConfigGroupCacheMockRecorder) Query(args interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Query", reflect.TypeOf((*MockConfigGroupCache)(nil).Query), args)
 }
 
-// Update mocks base method.
-func (m *MockConfigGroupCache) Update() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Update indicates an expected call of Update.
-func (mr *MockConfigGroupCacheMockRecorder) Update() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockConfigGroupCache)(nil).Update))
-}
-
-// MockConfigFileCache is a mock of ConfigFileCache interface.
+// MockConfigFileCache is a mock of ConfigFileCache interface
 type MockConfigFileCache struct {
 	ctrl     *gomock.Controller
 	recorder *MockConfigFileCacheMockRecorder
 }
 
-// MockConfigFileCacheMockRecorder is the mock recorder for MockConfigFileCache.
+// MockConfigFileCacheMockRecorder is the mock recorder for MockConfigFileCache
 type MockConfigFileCacheMockRecorder struct {
 	mock *MockConfigFileCache
 }
 
-// NewMockConfigFileCache creates a new mock instance.
+// NewMockConfigFileCache creates a new mock instance
 func NewMockConfigFileCache(ctrl *gomock.Controller) *MockConfigFileCache {
 	mock := &MockConfigFileCache{ctrl: ctrl}
 	mock.recorder = &MockConfigFileCacheMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockConfigFileCache) EXPECT() *MockConfigFileCacheMockRecorder {
 	return m.recorder
 }
 
-// Clear mocks base method.
+// Initialize mocks base method
+func (m *MockConfigFileCache) Initialize(c map[string]interface{}) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Initialize", c)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Initialize indicates an expected call of Initialize
+func (mr *MockConfigFileCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockConfigFileCache)(nil).Initialize), c)
+}
+
+// Update mocks base method
+func (m *MockConfigFileCache) Update() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update
+func (mr *MockConfigFileCacheMockRecorder) Update() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockConfigFileCache)(nil).Update))
+}
+
+// Clear mocks base method
 func (m *MockConfigFileCache) Clear() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Clear")
@@ -2481,13 +2522,27 @@ func (m *MockConfigFileCache) Clear() error {
 	return ret0
 }
 
-// Clear indicates an expected call of Clear.
+// Clear indicates an expected call of Clear
 func (mr *MockConfigFileCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockConfigFileCache)(nil).Clear))
 }
 
-// Close mocks base method.
+// Name mocks base method
+func (m *MockConfigFileCache) Name() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Name")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Name indicates an expected call of Name
+func (mr *MockConfigFileCacheMockRecorder) Name() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockConfigFileCache)(nil).Name))
+}
+
+// Close mocks base method
 func (m *MockConfigFileCache) Close() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Close")
@@ -2495,41 +2550,13 @@ func (m *MockConfigFileCache) Close() error {
 	return ret0
 }
 
-// Close indicates an expected call of Close.
+// Close indicates an expected call of Close
 func (mr *MockConfigFileCacheMockRecorder) Close() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockConfigFileCache)(nil).Close))
 }
 
-// GetActiveGrayRelease mocks base method.
-func (m *MockConfigFileCache) GetActiveGrayRelease(namespace, group, fileName string) *model.ConfigFileRelease {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetActiveGrayRelease", namespace, group, fileName)
-	ret0, _ := ret[0].(*model.ConfigFileRelease)
-	return ret0
-}
-
-// GetActiveGrayRelease indicates an expected call of GetActiveGrayRelease.
-func (mr *MockConfigFileCacheMockRecorder) GetActiveGrayRelease(namespace, group, fileName interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActiveGrayRelease", reflect.TypeOf((*MockConfigFileCache)(nil).GetActiveGrayRelease), namespace, group, fileName)
-}
-
-// GetActiveRelease mocks base method.
-func (m *MockConfigFileCache) GetActiveRelease(namespace, group, fileName string) *model.ConfigFileRelease {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetActiveRelease", namespace, group, fileName)
-	ret0, _ := ret[0].(*model.ConfigFileRelease)
-	return ret0
-}
-
-// GetActiveRelease indicates an expected call of GetActiveRelease.
-func (mr *MockConfigFileCacheMockRecorder) GetActiveRelease(namespace, group, fileName interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActiveRelease", reflect.TypeOf((*MockConfigFileCache)(nil).GetActiveRelease), namespace, group, fileName)
-}
-
-// GetGroupActiveReleases mocks base method.
+// GetGroupActiveReleases mocks base method
 func (m *MockConfigFileCache) GetGroupActiveReleases(namespace, group string) ([]*model.ConfigFileRelease, string) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGroupActiveReleases", namespace, group)
@@ -2538,13 +2565,41 @@ func (m *MockConfigFileCache) GetGroupActiveReleases(namespace, group string) ([
 	return ret0, ret1
 }
 
-// GetGroupActiveReleases indicates an expected call of GetGroupActiveReleases.
+// GetGroupActiveReleases indicates an expected call of GetGroupActiveReleases
 func (mr *MockConfigFileCacheMockRecorder) GetGroupActiveReleases(namespace, group interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroupActiveReleases", reflect.TypeOf((*MockConfigFileCache)(nil).GetGroupActiveReleases), namespace, group)
 }
 
-// GetRelease mocks base method.
+// GetActiveRelease mocks base method
+func (m *MockConfigFileCache) GetActiveRelease(namespace, group, fileName string) *model.ConfigFileRelease {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetActiveRelease", namespace, group, fileName)
+	ret0, _ := ret[0].(*model.ConfigFileRelease)
+	return ret0
+}
+
+// GetActiveRelease indicates an expected call of GetActiveRelease
+func (mr *MockConfigFileCacheMockRecorder) GetActiveRelease(namespace, group, fileName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActiveRelease", reflect.TypeOf((*MockConfigFileCache)(nil).GetActiveRelease), namespace, group, fileName)
+}
+
+// GetActiveGrayRelease mocks base method
+func (m *MockConfigFileCache) GetActiveGrayRelease(namespace, group, fileName string) *model.ConfigFileRelease {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetActiveGrayRelease", namespace, group, fileName)
+	ret0, _ := ret[0].(*model.ConfigFileRelease)
+	return ret0
+}
+
+// GetActiveGrayRelease indicates an expected call of GetActiveGrayRelease
+func (mr *MockConfigFileCacheMockRecorder) GetActiveGrayRelease(namespace, group, fileName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActiveGrayRelease", reflect.TypeOf((*MockConfigFileCache)(nil).GetActiveGrayRelease), namespace, group, fileName)
+}
+
+// GetRelease mocks base method
 func (m *MockConfigFileCache) GetRelease(key model.ConfigFileReleaseKey) *model.ConfigFileRelease {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRelease", key)
@@ -2552,41 +2607,13 @@ func (m *MockConfigFileCache) GetRelease(key model.ConfigFileReleaseKey) *model.
 	return ret0
 }
 
-// GetRelease indicates an expected call of GetRelease.
+// GetRelease indicates an expected call of GetRelease
 func (mr *MockConfigFileCacheMockRecorder) GetRelease(key interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRelease", reflect.TypeOf((*MockConfigFileCache)(nil).GetRelease), key)
 }
 
-// Initialize mocks base method.
-func (m *MockConfigFileCache) Initialize(c map[string]interface{}) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Initialize", c)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Initialize indicates an expected call of Initialize.
-func (mr *MockConfigFileCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockConfigFileCache)(nil).Initialize), c)
-}
-
-// Name mocks base method.
-func (m *MockConfigFileCache) Name() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Name")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// Name indicates an expected call of Name.
-func (mr *MockConfigFileCacheMockRecorder) Name() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockConfigFileCache)(nil).Name))
-}
-
-// QueryReleases mocks base method.
+// QueryReleases mocks base method
 func (m *MockConfigFileCache) QueryReleases(args *api.ConfigReleaseArgs) (uint32, []*model.SimpleConfigFileRelease, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "QueryReleases", args)
@@ -2596,148 +2623,36 @@ func (m *MockConfigFileCache) QueryReleases(args *api.ConfigReleaseArgs) (uint32
 	return ret0, ret1, ret2
 }
 
-// QueryReleases indicates an expected call of QueryReleases.
+// QueryReleases indicates an expected call of QueryReleases
 func (mr *MockConfigFileCacheMockRecorder) QueryReleases(args interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryReleases", reflect.TypeOf((*MockConfigFileCache)(nil).QueryReleases), args)
 }
 
-// Update mocks base method.
-func (m *MockConfigFileCache) Update() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Update indicates an expected call of Update.
-func (mr *MockConfigFileCacheMockRecorder) Update() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockConfigFileCache)(nil).Update))
-}
-
-// MockUserCache is a mock of UserCache interface.
+// MockUserCache is a mock of UserCache interface
 type MockUserCache struct {
 	ctrl     *gomock.Controller
 	recorder *MockUserCacheMockRecorder
 }
 
-// MockUserCacheMockRecorder is the mock recorder for MockUserCache.
+// MockUserCacheMockRecorder is the mock recorder for MockUserCache
 type MockUserCacheMockRecorder struct {
 	mock *MockUserCache
 }
 
-// NewMockUserCache creates a new mock instance.
+// NewMockUserCache creates a new mock instance
 func NewMockUserCache(ctrl *gomock.Controller) *MockUserCache {
 	mock := &MockUserCache{ctrl: ctrl}
 	mock.recorder = &MockUserCacheMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockUserCache) EXPECT() *MockUserCacheMockRecorder {
 	return m.recorder
 }
 
-// Clear mocks base method.
-func (m *MockUserCache) Clear() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Clear")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Clear indicates an expected call of Clear.
-func (mr *MockUserCacheMockRecorder) Clear() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockUserCache)(nil).Clear))
-}
-
-// Close mocks base method.
-func (m *MockUserCache) Close() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Close")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Close indicates an expected call of Close.
-func (mr *MockUserCacheMockRecorder) Close() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockUserCache)(nil).Close))
-}
-
-// GetAdmin mocks base method.
-func (m *MockUserCache) GetAdmin() *auth.User {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAdmin")
-	ret0, _ := ret[0].(*auth.User)
-	return ret0
-}
-
-// GetAdmin indicates an expected call of GetAdmin.
-func (mr *MockUserCacheMockRecorder) GetAdmin() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAdmin", reflect.TypeOf((*MockUserCache)(nil).GetAdmin))
-}
-
-// GetGroup mocks base method.
-func (m *MockUserCache) GetGroup(id string) *auth.UserGroupDetail {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetGroup", id)
-	ret0, _ := ret[0].(*auth.UserGroupDetail)
-	return ret0
-}
-
-// GetGroup indicates an expected call of GetGroup.
-func (mr *MockUserCacheMockRecorder) GetGroup(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroup", reflect.TypeOf((*MockUserCache)(nil).GetGroup), id)
-}
-
-// GetUserByID mocks base method.
-func (m *MockUserCache) GetUserByID(id string) *auth.User {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserByID", id)
-	ret0, _ := ret[0].(*auth.User)
-	return ret0
-}
-
-// GetUserByID indicates an expected call of GetUserByID.
-func (mr *MockUserCacheMockRecorder) GetUserByID(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByID", reflect.TypeOf((*MockUserCache)(nil).GetUserByID), id)
-}
-
-// GetUserByName mocks base method.
-func (m *MockUserCache) GetUserByName(name, ownerName string) *auth.User {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserByName", name, ownerName)
-	ret0, _ := ret[0].(*auth.User)
-	return ret0
-}
-
-// GetUserByName indicates an expected call of GetUserByName.
-func (mr *MockUserCacheMockRecorder) GetUserByName(name, ownerName interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByName", reflect.TypeOf((*MockUserCache)(nil).GetUserByName), name, ownerName)
-}
-
-// GetUserLinkGroupIds mocks base method.
-func (m *MockUserCache) GetUserLinkGroupIds(id string) []string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserLinkGroupIds", id)
-	ret0, _ := ret[0].([]string)
-	return ret0
-}
-
-// GetUserLinkGroupIds indicates an expected call of GetUserLinkGroupIds.
-func (mr *MockUserCacheMockRecorder) GetUserLinkGroupIds(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserLinkGroupIds", reflect.TypeOf((*MockUserCache)(nil).GetUserLinkGroupIds), id)
-}
-
-// Initialize mocks base method.
+// Initialize mocks base method
 func (m *MockUserCache) Initialize(c map[string]interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Initialize", c)
@@ -2745,41 +2660,41 @@ func (m *MockUserCache) Initialize(c map[string]interface{}) error {
 	return ret0
 }
 
-// Initialize indicates an expected call of Initialize.
+// Initialize indicates an expected call of Initialize
 func (mr *MockUserCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockUserCache)(nil).Initialize), c)
 }
 
-// IsOwner mocks base method.
-func (m *MockUserCache) IsOwner(id string) bool {
+// Update mocks base method
+func (m *MockUserCache) Update() error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsOwner", id)
-	ret0, _ := ret[0].(bool)
+	ret := m.ctrl.Call(m, "Update")
+	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// IsOwner indicates an expected call of IsOwner.
-func (mr *MockUserCacheMockRecorder) IsOwner(id interface{}) *gomock.Call {
+// Update indicates an expected call of Update
+func (mr *MockUserCacheMockRecorder) Update() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsOwner", reflect.TypeOf((*MockUserCache)(nil).IsOwner), id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockUserCache)(nil).Update))
 }
 
-// IsUserInGroup mocks base method.
-func (m *MockUserCache) IsUserInGroup(userId, groupId string) bool {
+// Clear mocks base method
+func (m *MockUserCache) Clear() error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsUserInGroup", userId, groupId)
-	ret0, _ := ret[0].(bool)
+	ret := m.ctrl.Call(m, "Clear")
+	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// IsUserInGroup indicates an expected call of IsUserInGroup.
-func (mr *MockUserCacheMockRecorder) IsUserInGroup(userId, groupId interface{}) *gomock.Call {
+// Clear indicates an expected call of Clear
+func (mr *MockUserCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsUserInGroup", reflect.TypeOf((*MockUserCache)(nil).IsUserInGroup), userId, groupId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockUserCache)(nil).Clear))
 }
 
-// Name mocks base method.
+// Name mocks base method
 func (m *MockUserCache) Name() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Name")
@@ -2787,29 +2702,125 @@ func (m *MockUserCache) Name() string {
 	return ret0
 }
 
-// Name indicates an expected call of Name.
+// Name indicates an expected call of Name
 func (mr *MockUserCacheMockRecorder) Name() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockUserCache)(nil).Name))
 }
 
-// QueryUserGroups mocks base method.
-func (m *MockUserCache) QueryUserGroups(arg0 context.Context, arg1 api.UserGroupSearchArgs) (uint32, []*auth.UserGroupDetail, error) {
+// Close mocks base method
+func (m *MockUserCache) Close() error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "QueryUserGroups", arg0, arg1)
-	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].([]*auth.UserGroupDetail)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// QueryUserGroups indicates an expected call of QueryUserGroups.
-func (mr *MockUserCacheMockRecorder) QueryUserGroups(arg0, arg1 interface{}) *gomock.Call {
+// Close indicates an expected call of Close
+func (mr *MockUserCacheMockRecorder) Close() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryUserGroups", reflect.TypeOf((*MockUserCache)(nil).QueryUserGroups), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockUserCache)(nil).Close))
 }
 
-// QueryUsers mocks base method.
+// GetAdmin mocks base method
+func (m *MockUserCache) GetAdmin() *auth.User {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAdmin")
+	ret0, _ := ret[0].(*auth.User)
+	return ret0
+}
+
+// GetAdmin indicates an expected call of GetAdmin
+func (mr *MockUserCacheMockRecorder) GetAdmin() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAdmin", reflect.TypeOf((*MockUserCache)(nil).GetAdmin))
+}
+
+// GetUserByID mocks base method
+func (m *MockUserCache) GetUserByID(id string) *auth.User {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserByID", id)
+	ret0, _ := ret[0].(*auth.User)
+	return ret0
+}
+
+// GetUserByID indicates an expected call of GetUserByID
+func (mr *MockUserCacheMockRecorder) GetUserByID(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByID", reflect.TypeOf((*MockUserCache)(nil).GetUserByID), id)
+}
+
+// GetUserByName mocks base method
+func (m *MockUserCache) GetUserByName(name, ownerName string) *auth.User {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserByName", name, ownerName)
+	ret0, _ := ret[0].(*auth.User)
+	return ret0
+}
+
+// GetUserByName indicates an expected call of GetUserByName
+func (mr *MockUserCacheMockRecorder) GetUserByName(name, ownerName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByName", reflect.TypeOf((*MockUserCache)(nil).GetUserByName), name, ownerName)
+}
+
+// GetGroup mocks base method
+func (m *MockUserCache) GetGroup(id string) *auth.UserGroupDetail {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGroup", id)
+	ret0, _ := ret[0].(*auth.UserGroupDetail)
+	return ret0
+}
+
+// GetGroup indicates an expected call of GetGroup
+func (mr *MockUserCacheMockRecorder) GetGroup(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroup", reflect.TypeOf((*MockUserCache)(nil).GetGroup), id)
+}
+
+// IsUserInGroup mocks base method
+func (m *MockUserCache) IsUserInGroup(userId, groupId string) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsUserInGroup", userId, groupId)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsUserInGroup indicates an expected call of IsUserInGroup
+func (mr *MockUserCacheMockRecorder) IsUserInGroup(userId, groupId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsUserInGroup", reflect.TypeOf((*MockUserCache)(nil).IsUserInGroup), userId, groupId)
+}
+
+// IsOwner mocks base method
+func (m *MockUserCache) IsOwner(id string) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsOwner", id)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsOwner indicates an expected call of IsOwner
+func (mr *MockUserCacheMockRecorder) IsOwner(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsOwner", reflect.TypeOf((*MockUserCache)(nil).IsOwner), id)
+}
+
+// GetUserLinkGroupIds mocks base method
+func (m *MockUserCache) GetUserLinkGroupIds(id string) []string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserLinkGroupIds", id)
+	ret0, _ := ret[0].([]string)
+	return ret0
+}
+
+// GetUserLinkGroupIds indicates an expected call of GetUserLinkGroupIds
+func (mr *MockUserCacheMockRecorder) GetUserLinkGroupIds(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserLinkGroupIds", reflect.TypeOf((*MockUserCache)(nil).GetUserLinkGroupIds), id)
+}
+
+// QueryUsers mocks base method
 func (m *MockUserCache) QueryUsers(arg0 context.Context, arg1 api.UserSearchArgs) (uint32, []*auth.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "QueryUsers", arg0, arg1)
@@ -2819,120 +2830,52 @@ func (m *MockUserCache) QueryUsers(arg0 context.Context, arg1 api.UserSearchArgs
 	return ret0, ret1, ret2
 }
 
-// QueryUsers indicates an expected call of QueryUsers.
+// QueryUsers indicates an expected call of QueryUsers
 func (mr *MockUserCacheMockRecorder) QueryUsers(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryUsers", reflect.TypeOf((*MockUserCache)(nil).QueryUsers), arg0, arg1)
 }
 
-// Update mocks base method.
-func (m *MockUserCache) Update() error {
+// QueryUserGroups mocks base method
+func (m *MockUserCache) QueryUserGroups(arg0 context.Context, arg1 api.UserGroupSearchArgs) (uint32, []*auth.UserGroupDetail, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update")
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret := m.ctrl.Call(m, "QueryUserGroups", arg0, arg1)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].([]*auth.UserGroupDetail)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
-// Update indicates an expected call of Update.
-func (mr *MockUserCacheMockRecorder) Update() *gomock.Call {
+// QueryUserGroups indicates an expected call of QueryUserGroups
+func (mr *MockUserCacheMockRecorder) QueryUserGroups(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockUserCache)(nil).Update))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryUserGroups", reflect.TypeOf((*MockUserCache)(nil).QueryUserGroups), arg0, arg1)
 }
 
-// MockStrategyCache is a mock of StrategyCache interface.
+// MockStrategyCache is a mock of StrategyCache interface
 type MockStrategyCache struct {
 	ctrl     *gomock.Controller
 	recorder *MockStrategyCacheMockRecorder
 }
 
-// MockStrategyCacheMockRecorder is the mock recorder for MockStrategyCache.
+// MockStrategyCacheMockRecorder is the mock recorder for MockStrategyCache
 type MockStrategyCacheMockRecorder struct {
 	mock *MockStrategyCache
 }
 
-// NewMockStrategyCache creates a new mock instance.
+// NewMockStrategyCache creates a new mock instance
 func NewMockStrategyCache(ctrl *gomock.Controller) *MockStrategyCache {
 	mock := &MockStrategyCache{ctrl: ctrl}
 	mock.recorder = &MockStrategyCacheMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockStrategyCache) EXPECT() *MockStrategyCacheMockRecorder {
 	return m.recorder
 }
 
-// Clear mocks base method.
-func (m *MockStrategyCache) Clear() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Clear")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Clear indicates an expected call of Clear.
-func (mr *MockStrategyCacheMockRecorder) Clear() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockStrategyCache)(nil).Clear))
-}
-
-// Close mocks base method.
-func (m *MockStrategyCache) Close() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Close")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Close indicates an expected call of Close.
-func (mr *MockStrategyCacheMockRecorder) Close() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockStrategyCache)(nil).Close))
-}
-
-// GetPolicyRule mocks base method.
-func (m *MockStrategyCache) GetPolicyRule(id string) *auth.StrategyDetail {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPolicyRule", id)
-	ret0, _ := ret[0].(*auth.StrategyDetail)
-	return ret0
-}
-
-// GetPolicyRule indicates an expected call of GetPolicyRule.
-func (mr *MockStrategyCacheMockRecorder) GetPolicyRule(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPolicyRule", reflect.TypeOf((*MockStrategyCache)(nil).GetPolicyRule), id)
-}
-
-// GetPrincipalPolicies mocks base method.
-func (m *MockStrategyCache) GetPrincipalPolicies(effect string, p auth.Principal) []*auth.StrategyDetail {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPrincipalPolicies", effect, p)
-	ret0, _ := ret[0].([]*auth.StrategyDetail)
-	return ret0
-}
-
-// GetPrincipalPolicies indicates an expected call of GetPrincipalPolicies.
-func (mr *MockStrategyCacheMockRecorder) GetPrincipalPolicies(effect, p interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPrincipalPolicies", reflect.TypeOf((*MockStrategyCache)(nil).GetPrincipalPolicies), effect, p)
-}
-
-// Hint mocks base method.
-func (m *MockStrategyCache) Hint(p auth.Principal, r *auth.ResourceEntry) security.AuthAction {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Hint", p, r)
-	ret0, _ := ret[0].(security.AuthAction)
-	return ret0
-}
-
-// Hint indicates an expected call of Hint.
-func (mr *MockStrategyCacheMockRecorder) Hint(p, r interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Hint", reflect.TypeOf((*MockStrategyCache)(nil).Hint), p, r)
-}
-
-// Initialize mocks base method.
+// Initialize mocks base method
 func (m *MockStrategyCache) Initialize(c map[string]interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Initialize", c)
@@ -2940,13 +2883,41 @@ func (m *MockStrategyCache) Initialize(c map[string]interface{}) error {
 	return ret0
 }
 
-// Initialize indicates an expected call of Initialize.
+// Initialize indicates an expected call of Initialize
 func (mr *MockStrategyCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockStrategyCache)(nil).Initialize), c)
 }
 
-// Name mocks base method.
+// Update mocks base method
+func (m *MockStrategyCache) Update() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update
+func (mr *MockStrategyCacheMockRecorder) Update() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockStrategyCache)(nil).Update))
+}
+
+// Clear mocks base method
+func (m *MockStrategyCache) Clear() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Clear")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Clear indicates an expected call of Clear
+func (mr *MockStrategyCacheMockRecorder) Clear() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockStrategyCache)(nil).Clear))
+}
+
+// Name mocks base method
 func (m *MockStrategyCache) Name() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Name")
@@ -2954,13 +2925,69 @@ func (m *MockStrategyCache) Name() string {
 	return ret0
 }
 
-// Name indicates an expected call of Name.
+// Name indicates an expected call of Name
 func (mr *MockStrategyCacheMockRecorder) Name() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockStrategyCache)(nil).Name))
 }
 
-// Query mocks base method.
+// Close mocks base method
+func (m *MockStrategyCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close
+func (mr *MockStrategyCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockStrategyCache)(nil).Close))
+}
+
+// GetPolicyRule mocks base method
+func (m *MockStrategyCache) GetPolicyRule(id string) *auth.StrategyDetail {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPolicyRule", id)
+	ret0, _ := ret[0].(*auth.StrategyDetail)
+	return ret0
+}
+
+// GetPolicyRule indicates an expected call of GetPolicyRule
+func (mr *MockStrategyCacheMockRecorder) GetPolicyRule(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPolicyRule", reflect.TypeOf((*MockStrategyCache)(nil).GetPolicyRule), id)
+}
+
+// GetPrincipalPolicies mocks base method
+func (m *MockStrategyCache) GetPrincipalPolicies(effect string, p auth.Principal) []*auth.StrategyDetail {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPrincipalPolicies", effect, p)
+	ret0, _ := ret[0].([]*auth.StrategyDetail)
+	return ret0
+}
+
+// GetPrincipalPolicies indicates an expected call of GetPrincipalPolicies
+func (mr *MockStrategyCacheMockRecorder) GetPrincipalPolicies(effect, p interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPrincipalPolicies", reflect.TypeOf((*MockStrategyCache)(nil).GetPrincipalPolicies), effect, p)
+}
+
+// Hint mocks base method
+func (m *MockStrategyCache) Hint(ctx context.Context, p auth.Principal, r *auth.ResourceEntry) security.AuthAction {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Hint", ctx, p, r)
+	ret0, _ := ret[0].(security.AuthAction)
+	return ret0
+}
+
+// Hint indicates an expected call of Hint
+func (mr *MockStrategyCacheMockRecorder) Hint(ctx, p, r interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Hint", reflect.TypeOf((*MockStrategyCache)(nil).Hint), ctx, p, r)
+}
+
+// Query mocks base method
 func (m *MockStrategyCache) Query(arg0 context.Context, arg1 api.PolicySearchArgs) (uint32, []*auth.StrategyDetail, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Query", arg0, arg1)
@@ -2970,106 +2997,36 @@ func (m *MockStrategyCache) Query(arg0 context.Context, arg1 api.PolicySearchArg
 	return ret0, ret1, ret2
 }
 
-// Query indicates an expected call of Query.
+// Query indicates an expected call of Query
 func (mr *MockStrategyCacheMockRecorder) Query(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Query", reflect.TypeOf((*MockStrategyCache)(nil).Query), arg0, arg1)
 }
 
-// Update mocks base method.
-func (m *MockStrategyCache) Update() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Update indicates an expected call of Update.
-func (mr *MockStrategyCacheMockRecorder) Update() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockStrategyCache)(nil).Update))
-}
-
-// MockRoleCache is a mock of RoleCache interface.
+// MockRoleCache is a mock of RoleCache interface
 type MockRoleCache struct {
 	ctrl     *gomock.Controller
 	recorder *MockRoleCacheMockRecorder
 }
 
-// MockRoleCacheMockRecorder is the mock recorder for MockRoleCache.
+// MockRoleCacheMockRecorder is the mock recorder for MockRoleCache
 type MockRoleCacheMockRecorder struct {
 	mock *MockRoleCache
 }
 
-// NewMockRoleCache creates a new mock instance.
+// NewMockRoleCache creates a new mock instance
 func NewMockRoleCache(ctrl *gomock.Controller) *MockRoleCache {
 	mock := &MockRoleCache{ctrl: ctrl}
 	mock.recorder = &MockRoleCacheMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockRoleCache) EXPECT() *MockRoleCacheMockRecorder {
 	return m.recorder
 }
 
-// Clear mocks base method.
-func (m *MockRoleCache) Clear() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Clear")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Clear indicates an expected call of Clear.
-func (mr *MockRoleCacheMockRecorder) Clear() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockRoleCache)(nil).Clear))
-}
-
-// Close mocks base method.
-func (m *MockRoleCache) Close() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Close")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Close indicates an expected call of Close.
-func (mr *MockRoleCacheMockRecorder) Close() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockRoleCache)(nil).Close))
-}
-
-// GetPrincipalRoles mocks base method.
-func (m *MockRoleCache) GetPrincipalRoles(arg0 auth.Principal) []*auth.Role {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPrincipalRoles", arg0)
-	ret0, _ := ret[0].([]*auth.Role)
-	return ret0
-}
-
-// GetPrincipalRoles indicates an expected call of GetPrincipalRoles.
-func (mr *MockRoleCacheMockRecorder) GetPrincipalRoles(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPrincipalRoles", reflect.TypeOf((*MockRoleCache)(nil).GetPrincipalRoles), arg0)
-}
-
-// GetRole mocks base method.
-func (m *MockRoleCache) GetRole(id string) *auth.Role {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRole", id)
-	ret0, _ := ret[0].(*auth.Role)
-	return ret0
-}
-
-// GetRole indicates an expected call of GetRole.
-func (mr *MockRoleCacheMockRecorder) GetRole(id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRole", reflect.TypeOf((*MockRoleCache)(nil).GetRole), id)
-}
-
-// Initialize mocks base method.
+// Initialize mocks base method
 func (m *MockRoleCache) Initialize(c map[string]interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Initialize", c)
@@ -3077,13 +3034,41 @@ func (m *MockRoleCache) Initialize(c map[string]interface{}) error {
 	return ret0
 }
 
-// Initialize indicates an expected call of Initialize.
+// Initialize indicates an expected call of Initialize
 func (mr *MockRoleCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockRoleCache)(nil).Initialize), c)
 }
 
-// Name mocks base method.
+// Update mocks base method
+func (m *MockRoleCache) Update() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update
+func (mr *MockRoleCacheMockRecorder) Update() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockRoleCache)(nil).Update))
+}
+
+// Clear mocks base method
+func (m *MockRoleCache) Clear() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Clear")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Clear indicates an expected call of Clear
+func (mr *MockRoleCacheMockRecorder) Clear() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockRoleCache)(nil).Clear))
+}
+
+// Name mocks base method
 func (m *MockRoleCache) Name() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Name")
@@ -3091,13 +3076,41 @@ func (m *MockRoleCache) Name() string {
 	return ret0
 }
 
-// Name indicates an expected call of Name.
+// Name indicates an expected call of Name
 func (mr *MockRoleCacheMockRecorder) Name() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockRoleCache)(nil).Name))
 }
 
-// Query mocks base method.
+// Close mocks base method
+func (m *MockRoleCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close
+func (mr *MockRoleCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockRoleCache)(nil).Close))
+}
+
+// GetRole mocks base method
+func (m *MockRoleCache) GetRole(id string) *auth.Role {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRole", id)
+	ret0, _ := ret[0].(*auth.Role)
+	return ret0
+}
+
+// GetRole indicates an expected call of GetRole
+func (mr *MockRoleCacheMockRecorder) GetRole(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRole", reflect.TypeOf((*MockRoleCache)(nil).GetRole), id)
+}
+
+// Query mocks base method
 func (m *MockRoleCache) Query(arg0 context.Context, arg1 api.RoleSearchArgs) (uint32, []*auth.Role, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Query", arg0, arg1)
@@ -3107,50 +3120,78 @@ func (m *MockRoleCache) Query(arg0 context.Context, arg1 api.RoleSearchArgs) (ui
 	return ret0, ret1, ret2
 }
 
-// Query indicates an expected call of Query.
+// Query indicates an expected call of Query
 func (mr *MockRoleCacheMockRecorder) Query(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Query", reflect.TypeOf((*MockRoleCache)(nil).Query), arg0, arg1)
 }
 
-// Update mocks base method.
-func (m *MockRoleCache) Update() error {
+// GetPrincipalRoles mocks base method
+func (m *MockRoleCache) GetPrincipalRoles(arg0 auth.Principal) []*auth.Role {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update")
-	ret0, _ := ret[0].(error)
+	ret := m.ctrl.Call(m, "GetPrincipalRoles", arg0)
+	ret0, _ := ret[0].([]*auth.Role)
 	return ret0
 }
 
-// Update indicates an expected call of Update.
-func (mr *MockRoleCacheMockRecorder) Update() *gomock.Call {
+// GetPrincipalRoles indicates an expected call of GetPrincipalRoles
+func (mr *MockRoleCacheMockRecorder) GetPrincipalRoles(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockRoleCache)(nil).Update))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPrincipalRoles", reflect.TypeOf((*MockRoleCache)(nil).GetPrincipalRoles), arg0)
 }
 
-// MockClientCache is a mock of ClientCache interface.
+// MockClientCache is a mock of ClientCache interface
 type MockClientCache struct {
 	ctrl     *gomock.Controller
 	recorder *MockClientCacheMockRecorder
 }
 
-// MockClientCacheMockRecorder is the mock recorder for MockClientCache.
+// MockClientCacheMockRecorder is the mock recorder for MockClientCache
 type MockClientCacheMockRecorder struct {
 	mock *MockClientCache
 }
 
-// NewMockClientCache creates a new mock instance.
+// NewMockClientCache creates a new mock instance
 func NewMockClientCache(ctrl *gomock.Controller) *MockClientCache {
 	mock := &MockClientCache{ctrl: ctrl}
 	mock.recorder = &MockClientCacheMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockClientCache) EXPECT() *MockClientCacheMockRecorder {
 	return m.recorder
 }
 
-// Clear mocks base method.
+// Initialize mocks base method
+func (m *MockClientCache) Initialize(c map[string]interface{}) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Initialize", c)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Initialize indicates an expected call of Initialize
+func (mr *MockClientCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockClientCache)(nil).Initialize), c)
+}
+
+// Update mocks base method
+func (m *MockClientCache) Update() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update
+func (mr *MockClientCacheMockRecorder) Update() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockClientCache)(nil).Update))
+}
+
+// Clear mocks base method
 func (m *MockClientCache) Clear() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Clear")
@@ -3158,13 +3199,27 @@ func (m *MockClientCache) Clear() error {
 	return ret0
 }
 
-// Clear indicates an expected call of Clear.
+// Clear indicates an expected call of Clear
 func (mr *MockClientCacheMockRecorder) Clear() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockClientCache)(nil).Clear))
 }
 
-// Close mocks base method.
+// Name mocks base method
+func (m *MockClientCache) Name() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Name")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Name indicates an expected call of Name
+func (mr *MockClientCacheMockRecorder) Name() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockClientCache)(nil).Name))
+}
+
+// Close mocks base method
 func (m *MockClientCache) Close() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Close")
@@ -3172,13 +3227,13 @@ func (m *MockClientCache) Close() error {
 	return ret0
 }
 
-// Close indicates an expected call of Close.
+// Close indicates an expected call of Close
 func (mr *MockClientCacheMockRecorder) Close() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockClientCache)(nil).Close))
 }
 
-// GetClient mocks base method.
+// GetClient mocks base method
 func (m *MockClientCache) GetClient(id string) *model.Client {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetClient", id)
@@ -3186,13 +3241,25 @@ func (m *MockClientCache) GetClient(id string) *model.Client {
 	return ret0
 }
 
-// GetClient indicates an expected call of GetClient.
+// GetClient indicates an expected call of GetClient
 func (mr *MockClientCacheMockRecorder) GetClient(id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClient", reflect.TypeOf((*MockClientCache)(nil).GetClient), id)
 }
 
-// GetClientsByFilter mocks base method.
+// IteratorClients mocks base method
+func (m *MockClientCache) IteratorClients(iterProc api.ClientIterProc) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "IteratorClients", iterProc)
+}
+
+// IteratorClients indicates an expected call of IteratorClients
+func (mr *MockClientCacheMockRecorder) IteratorClients(iterProc interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IteratorClients", reflect.TypeOf((*MockClientCache)(nil).IteratorClients), iterProc)
+}
+
+// GetClientsByFilter mocks base method
 func (m *MockClientCache) GetClientsByFilter(filters map[string]string, offset, limit uint32) (uint32, []*model.Client, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetClientsByFilter", filters, offset, limit)
@@ -3202,146 +3269,36 @@ func (m *MockClientCache) GetClientsByFilter(filters map[string]string, offset, 
 	return ret0, ret1, ret2
 }
 
-// GetClientsByFilter indicates an expected call of GetClientsByFilter.
+// GetClientsByFilter indicates an expected call of GetClientsByFilter
 func (mr *MockClientCacheMockRecorder) GetClientsByFilter(filters, offset, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClientsByFilter", reflect.TypeOf((*MockClientCache)(nil).GetClientsByFilter), filters, offset, limit)
 }
 
-// Initialize mocks base method.
-func (m *MockClientCache) Initialize(c map[string]interface{}) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Initialize", c)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Initialize indicates an expected call of Initialize.
-func (mr *MockClientCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockClientCache)(nil).Initialize), c)
-}
-
-// IteratorClients mocks base method.
-func (m *MockClientCache) IteratorClients(iterProc api.ClientIterProc) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "IteratorClients", iterProc)
-}
-
-// IteratorClients indicates an expected call of IteratorClients.
-func (mr *MockClientCacheMockRecorder) IteratorClients(iterProc interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IteratorClients", reflect.TypeOf((*MockClientCache)(nil).IteratorClients), iterProc)
-}
-
-// Name mocks base method.
-func (m *MockClientCache) Name() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Name")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// Name indicates an expected call of Name.
-func (mr *MockClientCacheMockRecorder) Name() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockClientCache)(nil).Name))
-}
-
-// Update mocks base method.
-func (m *MockClientCache) Update() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Update indicates an expected call of Update.
-func (mr *MockClientCacheMockRecorder) Update() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockClientCache)(nil).Update))
-}
-
-// MockGrayCache is a mock of GrayCache interface.
+// MockGrayCache is a mock of GrayCache interface
 type MockGrayCache struct {
 	ctrl     *gomock.Controller
 	recorder *MockGrayCacheMockRecorder
 }
 
-// MockGrayCacheMockRecorder is the mock recorder for MockGrayCache.
+// MockGrayCacheMockRecorder is the mock recorder for MockGrayCache
 type MockGrayCacheMockRecorder struct {
 	mock *MockGrayCache
 }
 
-// NewMockGrayCache creates a new mock instance.
+// NewMockGrayCache creates a new mock instance
 func NewMockGrayCache(ctrl *gomock.Controller) *MockGrayCache {
 	mock := &MockGrayCache{ctrl: ctrl}
 	mock.recorder = &MockGrayCacheMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockGrayCache) EXPECT() *MockGrayCacheMockRecorder {
 	return m.recorder
 }
 
-// Clear mocks base method.
-func (m *MockGrayCache) Clear() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Clear")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Clear indicates an expected call of Clear.
-func (mr *MockGrayCacheMockRecorder) Clear() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockGrayCache)(nil).Clear))
-}
-
-// Close mocks base method.
-func (m *MockGrayCache) Close() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Close")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Close indicates an expected call of Close.
-func (mr *MockGrayCacheMockRecorder) Close() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockGrayCache)(nil).Close))
-}
-
-// GetGrayRule mocks base method.
-func (m *MockGrayCache) GetGrayRule(name string) []*model0.ClientLabel {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetGrayRule", name)
-	ret0, _ := ret[0].([]*model0.ClientLabel)
-	return ret0
-}
-
-// GetGrayRule indicates an expected call of GetGrayRule.
-func (mr *MockGrayCacheMockRecorder) GetGrayRule(name interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGrayRule", reflect.TypeOf((*MockGrayCache)(nil).GetGrayRule), name)
-}
-
-// HitGrayRule mocks base method.
-func (m *MockGrayCache) HitGrayRule(name string, labels map[string]string) bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HitGrayRule", name, labels)
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// HitGrayRule indicates an expected call of HitGrayRule.
-func (mr *MockGrayCacheMockRecorder) HitGrayRule(name, labels interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HitGrayRule", reflect.TypeOf((*MockGrayCache)(nil).HitGrayRule), name, labels)
-}
-
-// Initialize mocks base method.
+// Initialize mocks base method
 func (m *MockGrayCache) Initialize(c map[string]interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Initialize", c)
@@ -3349,27 +3306,13 @@ func (m *MockGrayCache) Initialize(c map[string]interface{}) error {
 	return ret0
 }
 
-// Initialize indicates an expected call of Initialize.
+// Initialize indicates an expected call of Initialize
 func (mr *MockGrayCacheMockRecorder) Initialize(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockGrayCache)(nil).Initialize), c)
 }
 
-// Name mocks base method.
-func (m *MockGrayCache) Name() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Name")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// Name indicates an expected call of Name.
-func (mr *MockGrayCacheMockRecorder) Name() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockGrayCache)(nil).Name))
-}
-
-// Update mocks base method.
+// Update mocks base method
 func (m *MockGrayCache) Update() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update")
@@ -3377,8 +3320,78 @@ func (m *MockGrayCache) Update() error {
 	return ret0
 }
 
-// Update indicates an expected call of Update.
+// Update indicates an expected call of Update
 func (mr *MockGrayCacheMockRecorder) Update() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockGrayCache)(nil).Update))
+}
+
+// Clear mocks base method
+func (m *MockGrayCache) Clear() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Clear")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Clear indicates an expected call of Clear
+func (mr *MockGrayCacheMockRecorder) Clear() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockGrayCache)(nil).Clear))
+}
+
+// Name mocks base method
+func (m *MockGrayCache) Name() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Name")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Name indicates an expected call of Name
+func (mr *MockGrayCacheMockRecorder) Name() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockGrayCache)(nil).Name))
+}
+
+// Close mocks base method
+func (m *MockGrayCache) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close
+func (mr *MockGrayCacheMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockGrayCache)(nil).Close))
+}
+
+// GetGrayRule mocks base method
+func (m *MockGrayCache) GetGrayRule(name string) []*model0.ClientLabel {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGrayRule", name)
+	ret0, _ := ret[0].([]*model0.ClientLabel)
+	return ret0
+}
+
+// GetGrayRule indicates an expected call of GetGrayRule
+func (mr *MockGrayCacheMockRecorder) GetGrayRule(name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGrayRule", reflect.TypeOf((*MockGrayCache)(nil).GetGrayRule), name)
+}
+
+// HitGrayRule mocks base method
+func (m *MockGrayCache) HitGrayRule(name string, labels map[string]string) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HitGrayRule", name, labels)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// HitGrayRule indicates an expected call of HitGrayRule
+func (mr *MockGrayCacheMockRecorder) HitGrayRule(name, labels interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HitGrayRule", reflect.TypeOf((*MockGrayCache)(nil).HitGrayRule), name, labels)
 }

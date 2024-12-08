@@ -516,7 +516,7 @@ func (i *instanceStore) GetMoreInstances(tx store.Tx, mtime time.Time, firstUpda
 
 	dbTx, _ := tx.GetDelegateTx().(*bolt.Tx)
 
-	fields := []string{insFieldProto, insFieldServiceID, insFieldValid}
+	fields := []string{insFieldProto, insFieldServiceID, insFieldValid, insFieldModifyTime}
 	svcIdMap := make(map[string]bool)
 	for _, s := range serviceID {
 		svcIdMap[s] = true
@@ -532,25 +532,23 @@ func (i *instanceStore) GetMoreInstances(tx store.Tx, mtime time.Time, firstUpda
 					return false
 				}
 			}
-
-			insProto, ok := m[insFieldProto]
-			if !ok {
-				return false
-			}
 			svcId, ok := m[insFieldServiceID]
 			if !ok {
 				return false
 			}
-			ins := insProto.(*apiservice.Instance)
-			serviceId := svcId.(string)
 
-			insMtime, err := time.Parse("2006-01-02 15:04:05", ins.GetMtime().GetValue())
-			if err != nil {
-				log.Errorf("[Store][boltdb] parse instance mtime error, %v", err)
+			serviceId := svcId.(string)
+			modifyTime, ok := m[insFieldModifyTime]
+			if !ok {
 				return false
 			}
 
-			if insMtime.Before(mtime) {
+			if t, ok := modifyTime.(time.Time); ok {
+				if t.Before(mtime) {
+					return false
+				}
+			} else {
+				log.Errorf("modifyTime is not a time.Time,modifyTime is %+v", modifyTime)
 				return false
 			}
 
@@ -873,6 +871,7 @@ func initInstance(instance []*model.Instance) {
 			}
 			ins.Valid = true
 			ins.ModifyTime = currT
+			ins.CreateTime = currT
 		}
 	}
 }

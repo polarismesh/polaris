@@ -188,6 +188,15 @@ func NewRoutingResponse(code apimodel.Code, routing *apitraffic.Routing) *apiser
 	}
 }
 
+// NewServiceContractResponse create the response with data with any type
+func NewServiceContractResponse(code apimodel.Code, contract *apiservice.ServiceContract) *apiservice.Response {
+	return &apiservice.Response{
+		Code:            &wrappers.UInt32Value{Value: uint32(code)},
+		Info:            &wrappers.StringValue{Value: code2info[uint32(code)]},
+		ServiceContract: contract,
+	}
+}
+
 // NewAnyDataResponse create the response with data with any type
 func NewAnyDataResponse(code apimodel.Code, msg proto.Message) *apiservice.Response {
 	ret, err := anypb.New(proto.MessageV2(msg))

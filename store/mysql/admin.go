@@ -134,7 +134,8 @@ func (l *leaderElectionStore) CompareAndSwapVersion(key string, curVersion int64
 // CheckMtimeExpired check last modify time expired
 func (l *leaderElectionStore) CheckMtimeExpired(key string, leaseTime int32) (string, bool, error) {
 	log.Debugf("[Store][database] check mtime expired (%s, %d)", key, leaseTime)
-	mainStr := "select leader, FROM_UNIXTIME(UNIX_TIMESTAMP(SYSDATE())) - mtime from leader_election where elect_key = ?"
+	mainStr := `select leader, UNIX_TIMESTAMP(SYSDATE()) - UNIX_TIMESTAMP(mtime) 
+					from leader_election where elect_key = ?`
 
 	var (
 		leader   string
