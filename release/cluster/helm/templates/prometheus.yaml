@@ -16,7 +16,7 @@ spec:
       targetPort: {{ .Values.monitor.port }}
   selector:
     app: polaris-prometheus
-  type: LoadBalancer
+  type: {{ .Values.service.type }}
 ---
 apiVersion: apps/v1
 kind: Deployment

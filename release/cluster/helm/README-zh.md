@@ -15,14 +15,14 @@
 您可以修改 `values.yaml` ，将 `global.mode` 设置为 `standalone` ，然后使用下面的命令安装，将 `${release_name}` 替换为您需要的 release 名。
 
 ```shell
-$ cd deploy/helm
+$ cd release/cluster/helm
 $ helm install ${release_name} . 
 ```
 
 您可以可以直接使用下面的命令启动：
 
 ```shell
-$ cd deploy/helm
+$ cd release/cluster/helm
 $ helm install ${release_name} . --set global.mode=standalone
 ```
 
@@ -38,7 +38,7 @@ mysql -u $db_user -p $db_pwd -h $db_host < store/sqldb/polaris_server.sql
 设置好后，使用下面的命令安装 chart：
 
 ```shell
-$ cd deploy/helm
+$ cd release/cluster/helm
 $ helm install ${release_name} . 
 ```
 
