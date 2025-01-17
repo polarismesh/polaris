@@ -16,14 +16,14 @@ You can modify `values.yaml` , set `global.mode` to `standalone` , then install 
 replacing `${release_name}` with your desired release name.
 
 ```shell
-$ cd deploy/helm
+$ cd release/cluster/helm
 $ helm install ${release_name} . 
 ```
 
 You can start directly with the following command:
 
 ```shell
-$ cd deploy/helm
+$ cd release/cluster/helm
 $ helm install ${release_name} . --set global.mode=standalone
 ```
 
@@ -39,7 +39,7 @@ mysql -u $db_user -p $db_pwd -h $db_host < store/sqldb/polaris_server.sql
 Once set up, install the chart with the following command.
 
 ```shell
-$ cd deploy/helm
+$ cd release/cluster/helm
 $ helm install ${release_name} . 
 ```
 
