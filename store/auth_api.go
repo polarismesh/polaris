@@ -36,6 +36,8 @@ type AuthStore interface {
 
 // UserStore User-related operation interface
 type UserStore interface {
+	// GetMainUser Get the main account
+	GetMainUser() (*authcommon.User, error)
 	// AddUser Create a user
 	AddUser(tx Tx, user *authcommon.User) error
 	// UpdateUser Update user
@@ -50,11 +52,9 @@ type UserStore interface {
 	GetUserByName(name, ownerId string) (*authcommon.User, error)
 	// GetUserByIDS Get users according to USER IDS batch
 	GetUserByIds(ids []string) ([]*authcommon.User, error)
-	// GetUsers Query user list
-	GetUsers(filters map[string]string, offset uint32, limit uint32) (uint32, []*authcommon.User, error)
-	// GetUsersForCache Used to refresh user cache
+	// GetMoreUsers Used to refresh user cache
 	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
-	GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*authcommon.User, error)
+	GetMoreUsers(mtime time.Time, firstUpdate bool) ([]*authcommon.User, error)
 }
 
 // GroupStore User group storage operation interface
@@ -69,11 +69,9 @@ type GroupStore interface {
 	GetGroup(id string) (*authcommon.UserGroupDetail, error)
 	// GetGroupByName Get user groups according to Name and Owner
 	GetGroupByName(name, owner string) (*authcommon.UserGroup, error)
-	// GetGroups Get a list of user groups
-	GetGroups(filters map[string]string, offset uint32, limit uint32) (uint32, []*authcommon.UserGroup, error)
-	// GetUserGroupsForCache Refresh of getting user groups for cache
+	// GetMoreGroups Refresh of getting user groups for cache
 	// 此方法用于 cache 增量更新，需要注意 mtime 应为数据库时间戳
-	GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*authcommon.UserGroupDetail, error)
+	GetMoreGroups(mtime time.Time, firstUpdate bool) ([]*authcommon.UserGroupDetail, error)
 }
 
 // StrategyStore Authentication policy related storage operation interface

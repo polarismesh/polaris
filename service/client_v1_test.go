@@ -15,18 +15,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package auth
+package service
 
-import "context"
-
-type (
-	ContextKeyConditions   struct{}
-	ContextKeyInitMainUser struct{}
+import (
+	"testing"
 )
 
-// IsInitMainUser .
-func IsInitMainUser(ctx context.Context) bool {
-	val := ctx.Value(ContextKeyInitMainUser{})
-	ret, _ := val.(bool)
-	return ret
+func TestServer_GetServiceWithCache(t *testing.T) {
+	// TODO
 }

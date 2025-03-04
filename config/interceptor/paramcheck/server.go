@@ -118,7 +118,7 @@ func (s *Server) checkConfigFileParams(configFile *apiconfig.ConfigFile) *apicon
 	}
 	if len(configFile.Tags) > 0 {
 		for _, tag := range configFile.Tags {
-			if tag.Key.GetValue() == "" || tag.Value.GetValue() == "" {
+			if tag.Key.GetValue() == "" {
 				return api.NewConfigFileResponse(apimodel.Code_InvalidConfigFileTags, configFile)
 			}
 		}

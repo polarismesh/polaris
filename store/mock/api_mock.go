@@ -295,6 +295,21 @@ func (mr *MockStoreMockRecorder) BatchCleanDeletedRules(rule, timeout, batchSize
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchCleanDeletedRules", reflect.TypeOf((*MockStore)(nil).BatchCleanDeletedRules), rule, timeout, batchSize)
 }
 
+// BatchCleanDeletedServiceContracts mocks base method.
+func (m *MockStore) BatchCleanDeletedServiceContracts(timeout time.Duration, batchSize uint32) (uint32, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchCleanDeletedServiceContracts", timeout, batchSize)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BatchCleanDeletedServiceContracts indicates an expected call of BatchCleanDeletedServiceContracts.
+func (mr *MockStoreMockRecorder) BatchCleanDeletedServiceContracts(timeout, batchSize interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchCleanDeletedServiceContracts", reflect.TypeOf((*MockStore)(nil).BatchCleanDeletedServiceContracts), timeout, batchSize)
+}
+
 // BatchCleanDeletedServices mocks base method.
 func (m *MockStore) BatchCleanDeletedServices(timeout time.Duration, batchSize uint32) (uint32, error) {
 	m.ctrl.T.Helper()
@@ -1349,37 +1364,6 @@ func (mr *MockStoreMockRecorder) GetGroupByName(name, owner interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroupByName", reflect.TypeOf((*MockStore)(nil).GetGroupByName), name, owner)
 }
 
-// GetGroups mocks base method.
-func (m *MockStore) GetGroups(filters map[string]string, offset, limit uint32) (uint32, []*auth.UserGroup, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetGroups", filters, offset, limit)
-	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].([]*auth.UserGroup)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// GetGroups indicates an expected call of GetGroups.
-func (mr *MockStoreMockRecorder) GetGroups(filters, offset, limit interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroups", reflect.TypeOf((*MockStore)(nil).GetGroups), filters, offset, limit)
-}
-
-// GetGroupsForCache mocks base method.
-func (m *MockStore) GetGroupsForCache(mtime time.Time, firstUpdate bool) ([]*auth.UserGroupDetail, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetGroupsForCache", mtime, firstUpdate)
-	ret0, _ := ret[0].([]*auth.UserGroupDetail)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetGroupsForCache indicates an expected call of GetGroupsForCache.
-func (mr *MockStoreMockRecorder) GetGroupsForCache(mtime, firstUpdate interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroupsForCache", reflect.TypeOf((*MockStore)(nil).GetGroupsForCache), mtime, firstUpdate)
-}
-
 // GetInstance mocks base method.
 func (m *MockStore) GetInstance(instanceID string) (*model.Instance, error) {
 	m.ctrl.T.Helper()
@@ -1547,6 +1531,21 @@ func (mr *MockStoreMockRecorder) GetLaneRuleMaxPriority() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLaneRuleMaxPriority", reflect.TypeOf((*MockStore)(nil).GetLaneRuleMaxPriority))
 }
 
+// GetMainUser mocks base method.
+func (m *MockStore) GetMainUser() (*auth.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMainUser")
+	ret0, _ := ret[0].(*auth.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMainUser indicates an expected call of GetMainUser.
+func (mr *MockStoreMockRecorder) GetMainUser() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMainUser", reflect.TypeOf((*MockStore)(nil).GetMainUser))
+}
+
 // GetMoreClients mocks base method.
 func (m *MockStore) GetMoreClients(mtime time.Time, firstUpdate bool) (map[string]*model.Client, error) {
 	m.ctrl.T.Helper()
@@ -1590,6 +1589,21 @@ func (m *MockStore) GetMoreGrayResouces(firstUpdate bool, mtime time.Time) ([]*m
 func (mr *MockStoreMockRecorder) GetMoreGrayResouces(firstUpdate, mtime interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreGrayResouces", reflect.TypeOf((*MockStore)(nil).GetMoreGrayResouces), firstUpdate, mtime)
+}
+
+// GetMoreGroups mocks base method.
+func (m *MockStore) GetMoreGroups(mtime time.Time, firstUpdate bool) ([]*auth.UserGroupDetail, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMoreGroups", mtime, firstUpdate)
+	ret0, _ := ret[0].([]*auth.UserGroupDetail)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMoreGroups indicates an expected call of GetMoreGroups.
+func (mr *MockStoreMockRecorder) GetMoreGroups(mtime, firstUpdate interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreGroups", reflect.TypeOf((*MockStore)(nil).GetMoreGroups), mtime, firstUpdate)
 }
 
 // GetMoreInstances mocks base method.
@@ -1785,6 +1799,21 @@ func (m *MockStore) GetMoreStrategies(mtime time.Time, firstUpdate bool) ([]*aut
 func (mr *MockStoreMockRecorder) GetMoreStrategies(mtime, firstUpdate interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreStrategies", reflect.TypeOf((*MockStore)(nil).GetMoreStrategies), mtime, firstUpdate)
+}
+
+// GetMoreUsers mocks base method.
+func (m *MockStore) GetMoreUsers(mtime time.Time, firstUpdate bool) ([]*auth.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMoreUsers", mtime, firstUpdate)
+	ret0, _ := ret[0].([]*auth.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMoreUsers indicates an expected call of GetMoreUsers.
+func (mr *MockStoreMockRecorder) GetMoreUsers(mtime, firstUpdate interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreUsers", reflect.TypeOf((*MockStore)(nil).GetMoreUsers), mtime, firstUpdate)
 }
 
 // GetNamespace mocks base method.
@@ -2107,22 +2136,6 @@ func (mr *MockStoreMockRecorder) GetSourceServiceToken(name, namespace interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSourceServiceToken", reflect.TypeOf((*MockStore)(nil).GetSourceServiceToken), name, namespace)
 }
 
-// GetStrategies mocks base method.
-func (m *MockStore) GetStrategies(filters map[string]string, offset, limit uint32) (uint32, []*auth.StrategyDetail, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStrategies", filters, offset, limit)
-	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].([]*auth.StrategyDetail)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// GetStrategies indicates an expected call of GetStrategies.
-func (mr *MockStoreMockRecorder) GetStrategies(filters, offset, limit interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStrategies", reflect.TypeOf((*MockStore)(nil).GetStrategies), filters, offset, limit)
-}
-
 // GetStrategyDetail mocks base method.
 func (m *MockStore) GetStrategyDetail(id string) (*auth.StrategyDetail, error) {
 	m.ctrl.T.Helper()
@@ -2256,37 +2269,6 @@ func (m *MockStore) GetUserByName(name, ownerId string) (*auth.User, error) {
 func (mr *MockStoreMockRecorder) GetUserByName(name, ownerId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByName", reflect.TypeOf((*MockStore)(nil).GetUserByName), name, ownerId)
-}
-
-// GetUsers mocks base method.
-func (m *MockStore) GetUsers(filters map[string]string, offset, limit uint32) (uint32, []*auth.User, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUsers", filters, offset, limit)
-	ret0, _ := ret[0].(uint32)
-	ret1, _ := ret[1].([]*auth.User)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// GetUsers indicates an expected call of GetUsers.
-func (mr *MockStoreMockRecorder) GetUsers(filters, offset, limit interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUsers", reflect.TypeOf((*MockStore)(nil).GetUsers), filters, offset, limit)
-}
-
-// GetUsersForCache mocks base method.
-func (m *MockStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*auth.User, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUsersForCache", mtime, firstUpdate)
-	ret0, _ := ret[0].([]*auth.User)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUsersForCache indicates an expected call of GetUsersForCache.
-func (mr *MockStoreMockRecorder) GetUsersForCache(mtime, firstUpdate interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUsersForCache", reflect.TypeOf((*MockStore)(nil).GetUsersForCache), mtime, firstUpdate)
 }
 
 // HasCircuitBreakerRule mocks base method.

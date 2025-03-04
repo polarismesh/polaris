@@ -62,11 +62,7 @@ func (h *ConfigServer) handlePublishConfigRequest(ctx context.Context, req nacos
 		})
 	}()
 
-	if configReq.CasMd5 != "" {
-		resp = h.configSvr.CasUpsertAndReleaseConfigFileFromClient(ctx, configReq.ToSpec())
-	} else {
-		resp = h.configSvr.UpsertAndReleaseConfigFileFromClient(ctx, configReq.ToSpec())
-	}
+	resp = h.configSvr.UpsertAndReleaseConfigFileFromClient(ctx, configReq.ToSpec())
 	if resp.GetCode().GetValue() != uint32(apimodel.Code_ExecuteSuccess) {
 		nacoslog.Error("[NACOS-V2][Config] publish config file fail", zap.String("tenant", configReq.Tenant),
 			utils.ZapGroup(configReq.Group), utils.ZapFileName(configReq.DataId),

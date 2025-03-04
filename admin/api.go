@@ -54,8 +54,10 @@ type AdminOperateServer interface {
 	ReleaseLeaderElection(ctx context.Context, electKey string) error
 	// GetCMDBInfo get cmdb info
 	GetCMDBInfo(ctx context.Context) ([]model.LocationView, error)
-	// InitMainUser
-	InitMainUser(ctx context.Context, user apisecurity.User) error
+	// HasMainUser .
+	HasMainUser(ctx context.Context) *apiservice.Response
+	// InitMainUser .
+	InitMainUser(ctx context.Context, user *apisecurity.User) *apiservice.Response
 	// GetServerFunctions Get server functions
 	GetServerFunctions(ctx context.Context) []authcommon.ServerFunctionGroup
 }

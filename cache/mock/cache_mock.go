@@ -1321,6 +1321,18 @@ func (mr *MockInstanceCacheMockRecorder) QueryInstances(filter, metaFilter, offs
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryInstances", reflect.TypeOf((*MockInstanceCache)(nil).QueryInstances), filter, metaFilter, offset, limit)
 }
 
+// RemoveService mocks base method.
+func (m *MockInstanceCache) RemoveService(serviceID string) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "RemoveService", serviceID)
+}
+
+// RemoveService indicates an expected call of RemoveService.
+func (mr *MockInstanceCacheMockRecorder) RemoveService(serviceID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveService", reflect.TypeOf((*MockInstanceCache)(nil).RemoveService), serviceID)
+}
+
 // Update mocks base method.
 func (m *MockInstanceCache) Update() error {
 	m.ctrl.T.Helper()
@@ -2919,17 +2931,17 @@ func (mr *MockStrategyCacheMockRecorder) GetPrincipalPolicies(effect, p interfac
 }
 
 // Hint mocks base method.
-func (m *MockStrategyCache) Hint(p auth.Principal, r *auth.ResourceEntry) security.AuthAction {
+func (m *MockStrategyCache) Hint(ctx context.Context, p auth.Principal, r *auth.ResourceEntry) security.AuthAction {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Hint", p, r)
+	ret := m.ctrl.Call(m, "Hint", ctx, p, r)
 	ret0, _ := ret[0].(security.AuthAction)
 	return ret0
 }
 
 // Hint indicates an expected call of Hint.
-func (mr *MockStrategyCacheMockRecorder) Hint(p, r interface{}) *gomock.Call {
+func (mr *MockStrategyCacheMockRecorder) Hint(ctx, p, r interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Hint", reflect.TypeOf((*MockStrategyCache)(nil).Hint), p, r)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Hint", reflect.TypeOf((*MockStrategyCache)(nil).Hint), ctx, p, r)
 }
 
 // Initialize mocks base method.

@@ -162,6 +162,15 @@ func (s *Server) GetLaneRuleWithCache(ctx context.Context, req *apiservice.Servi
 	return s.nextSvr.GetLaneRuleWithCache(ctx, req)
 }
 
+// GetRouterRuleWithCache .
+func (s *Server) GetRouterRuleWithCache(ctx context.Context, req *apiservice.Service) *apiservice.DiscoverResponse {
+	resp := service.CreateCommonDiscoverResponse(req, apiservice.DiscoverResponse_CUSTOM_ROUTE_RULE)
+	if !s.commonCheckDiscoverRequest(req, resp) {
+		return resp
+	}
+	return s.nextSvr.GetRouterRuleWithCache(ctx, req)
+}
+
 // UpdateInstance update one instance by client
 func (s *Server) UpdateInstance(ctx context.Context, req *apiservice.Instance) *apiservice.Response {
 	// 参数检查

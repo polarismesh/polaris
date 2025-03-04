@@ -63,9 +63,7 @@ type serviceCache struct {
 	// namespace -> model.NamespaceServiceCount
 	namespaceServiceCnt *utils.SyncMap[string, *model.NamespaceServiceCount]
 
-	lastMtimeLogged int64
-
-	serviceCount     int64
+	lastMtimeLogged  int64
 	lastCheckAllTime int64
 
 	revisionWorker *ServiceRevisionWorker
@@ -166,12 +164,12 @@ func (sc *serviceCache) checkAll() {
 		log.Errorf("[Cache][Service] get service count from storage err: %s", err.Error())
 		return
 	}
-	if sc.serviceCount == int64(count) {
+	if int64(sc.ids.Len()) == int64(count) {
 		return
 	}
 	log.Infof(
 		"[Cache][Service] service count not match, expect %d, actual %d, fallback to load all",
-		count, sc.serviceCount)
+		count, sc.ids.Len())
 	sc.ResetLastMtime(sc.Name())
 }
 
@@ -409,6 +407,8 @@ func (sc *serviceCache) removeServices(service *model.Service) {
 	sc.alias.cleanServiceAlias(service)
 	// delete pending count service task
 	sc.pendingServices.Delete(service.ID)
+	// delete instance link service info
+	sc.instCache.RemoveService(service.ID)
 
 	// Delete the index of servicename
 	spaceName := service.Namespace
@@ -439,7 +439,7 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 
 	// 这里要记录 ns 的变动情况，避免由于 svc delete 之后，命名空间的服务计数无法更新
 	changeNs := make(map[string]struct{})
-	svcCount := sc.serviceCount
+	svcCount := sc.ids.Len()
 
 	aliases := make([]*model.Service, 0, 32)
 
@@ -457,7 +457,7 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 		if service.IsAlias() {
 			aliases = append(aliases, service)
 		}
-		oldVal, exist := sc.ids.Load(service.ID)
+		oldVal, _ := sc.ids.Load(service.ID)
 		if oldVal != nil {
 			service.OldExportTo = oldVal.ExportTo
 		}
@@ -469,14 +469,10 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 			sc.removeServices(service)
 			sc.notifyRevisionWorker(service.ID, false)
 			del++
-			svcCount--
 			continue
 		}
 
 		update++
-		if !exist {
-			svcCount++
-		}
 
 		sc.ids.Store(service.ID, service)
 		sc.serviceList.addService(service)
@@ -494,10 +490,8 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 		/******兼容cl5******/
 	}
 
-	if sc.serviceCount != svcCount {
-		log.Infof("[Cache][Service] service count update from %d to %d",
-			sc.serviceCount, svcCount)
-		sc.serviceCount = svcCount
+	if sc.ids.Len() != svcCount {
+		log.Infof("[Cache][Service] service count update from %d to %d", svcCount, sc.ids.Len())
 	}
 
 	sc.postProcessServiceAlias(aliases)
@@ -635,7 +629,7 @@ func (sc *serviceCache) updateCl5SidAndNames(service *model.Service) {
 }
 
 // GetVisibleServicesInOtherNamespace 查询是否存在别的命名空间下存在名称相同且可见的服务
-func (sc *serviceCache) GetVisibleServicesInOtherNamespace(svcName, namespace string) []*model.Service {
+func (sc *serviceCache) GetVisibleServicesInOtherNamespace(ctx context.Context, svcName, namespace string) []*model.Service {
 	ret := make(map[string]*model.Service)
 	// 根据服务级别的可见性进行查询, 先查询精确匹配
 	sc.exportServices.ReadRange(func(exportToNs string, services *utils.SyncMap[string, *model.Service]) {
@@ -643,7 +637,7 @@ func (sc *serviceCache) GetVisibleServicesInOtherNamespace(svcName, namespace st
 			return
 		}
 		services.ReadRange(func(_ string, svc *model.Service) {
-			if svc.Name == svcName && svc.Namespace != namespace {
+			if (svc.Name == svcName || utils.IsMatchAll(svcName)) && svc.Namespace != namespace {
 				ret[svc.ID] = svc
 			}
 		})
@@ -656,11 +650,38 @@ func (sc *serviceCache) GetVisibleServicesInOtherNamespace(svcName, namespace st
 		if !exactMatch && !allMatch {
 			return
 		}
-		svc := sc.GetServiceByName(svcName, exportNs)
-		if svc == nil {
-			return
+		if utils.IsMatchAll(svcName) {
+			// 如果是全匹配，那就看下这个命名空间下的所有服务
+			_, svcs := sc.ListServices(ctx, exportNs)
+			for i := range svcs {
+				if len(svcs[i].ExportTo) != 0 {
+					// 需要在额外判断下 svc 自己可见性设置
+					_, exactMatch := svcs[i].ExportTo[namespace]
+					_, allMatch := svcs[i].ExportTo[types.AllMatched]
+					if !exactMatch && !allMatch {
+						continue
+					}
+				}
+
+				ret[svcs[i].ID] = svcs[i]
+			}
+		} else {
+			svc := sc.GetServiceByName(svcName, exportNs)
+			if svc == nil {
+				return
+			}
+			// 可能 svc 有自己的可见性设置，此处优先级高于 namespace 的可见性设置
+			if len(svc.ExportTo) != 0 {
+				// 需要在额外判断下 svc 自己可见性设置
+				_, exactMatch := svc.ExportTo[namespace]
+				_, allMatch := svc.ExportTo[namespace]
+				if !exactMatch && !allMatch {
+					return
+				}
+			}
+
+			ret[svc.ID] = svc
 		}
-		ret[svc.ID] = svc
 	})
 
 	visibleServices := make([]*model.Service, 0, len(ret))

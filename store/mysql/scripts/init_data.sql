@@ -14,49 +14,183 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-/* 角色数据 */
-CREATE TABLE
-    `auth_role` (
-        `id` VARCHAR(128) NOT NULL COMMENT 'role id',
-        `name` VARCHAR(100) NOT NULL COMMENT 'role name',
-        `owner` VARCHAR(128) NOT NULL COMMENT 'Main account ID',
-        `source` VARCHAR(32) NOT NULL COMMENT 'role source',
-        `role_type` INT NOT NULL DEFAULT 20 COMMENT 'role type',
-        `comment` VARCHAR(255) NOT NULL COMMENT 'describe',
-        `flag` TINYINT (4) NOT NULL DEFAULT '0' COMMENT 'Whether the rules are valid, 0 is valid, 1 is invalid, it is deleted',
-        `ctime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
-        `mtime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last updated time',
-        `metadata` TEXT COMMENT 'user metadata',
-        PRIMARY KEY (`id`),
-        UNIQUE KEY (`name`, `owner`),
-        KEY `owner` (`owner`),
-        KEY `mtime` (`mtime`)
-    ) ENGINE = InnoDB;
+SET
+    SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 
-/* 角色关联用户/用户组关系表 */
-CREATE TABLE
-    `auth_role_principal` (
-        `role_id` VARCHAR(128) NOT NULL COMMENT 'role id',
-        `principal_id` VARCHAR(128) NOT NULL COMMENT 'principal id',
-        `principal_role` INT NOT NULL COMMENT 'PRINCIPAL type, 1 is User, 2 is Group',
-        PRIMARY KEY (`role_id`, `principal_id`, `principal_role`)
-    ) ENGINE = InnoDB;
+SET
+    time_zone = "+00:00";
 
-/* 鉴权策略中的资源标签关联信息 */
-CRAETE TABLE `auth_strategy_label` (
-    `strategy_id` VARCHAR(128) NOT NULL COMMENT 'strategy id',
-    `key` VARCHAR(128) NOT NULL COMMENT 'tag key',
-    `value` TEXT NOT NULL COMMENT 'tag value',
-    `compare_type` VARCHAR(128) NOT NULL COMMENT 'tag kv compare func',
-    PRIMARY KEY (`strategy_id`, `key`)
-) ENGINE = InnoDB;
+USE `polaris_server`;
 
-/* 鉴权策略中的资源标签关联信息 */
-CRAETE TABLE `auth_strategy_function` (
-    `strategy_id` VARCHAR(128) NOT NULL COMMENT 'strategy id',
-    `function` VARCHAR(256) NOT NULL COMMENT 'server provider function name',
-    PRIMARY KEY (`strategy_id`, `function`)
-) ENGINE = InnoDB;
+-- Create a default master account, password is Polarismesh @ 2021
+INSERT INTO
+    `user` (
+        `id`,
+        `name`,
+        `password`,
+        `source`,
+        `token`,
+        `token_enable`,
+        `user_type`,
+        `comment`,
+        `mobile`,
+        `email`,
+        `owner`
+    )
+VALUES
+    (
+        '65e4789a6d5b49669adf1e9e8387549c',
+        'polaris',
+        '$2a$10$3izWuZtE5SBdAtSZci.gs.iZ2pAn9I8hEqYrC6gwJp1dyjqQnrrum',
+        'Polaris',
+        'nu/0WRA4EqSR1FagrjRj0fZwPXuGlMpX+zCuWu4uMqy8xr1vRjisSbA25aAC3mtU8MeeRsKhQiDAynUR09I=',
+        1,
+        20,
+        'default polaris admin account',
+        '12345678910',
+        '12345678910',
+        ''
+    );
+
+-- Permissions policy inserted into Polaris-Admin
+INSERT INTO
+    `auth_strategy` (
+        `id`,
+        `name`,
+        `action`,
+        `owner`,
+        `comment`,
+        `default`,
+        `source`,
+        `revision`,
+        `flag`,
+        `ctime`,
+        `mtime`
+    )
+VALUES
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        '(用户) polaris的默认策略',
+        'READ_WRITE',
+        '65e4789a6d5b49669adf1e9e8387549c',
+        'default admin',
+        1,
+        'Polaris',
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        0,
+        sysdate (),
+        sysdate ()
+    );
+
+-- Sport rules inserted into Polaris-Admin to access
+INSERT INTO
+    `auth_strategy_resource` (
+        `strategy_id`,
+        `res_type`,
+        `res_id`,
+        `ctime`,
+        `mtime`
+    )
+VALUES
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        0,
+        '*',
+        sysdate (),
+        sysdate ()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        1,
+        '*',
+        sysdate (),
+        sysdate ()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        2,
+        '*',
+        sysdate (),
+        sysdate ()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        3,
+        '*',
+        sysdate (),
+        sysdate ()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        4,
+        '*',
+        sysdate (),
+        sysdate ()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        5,
+        '*',
+        sysdate (),
+        sysdate ()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        6,
+        '*',
+        sysdate (),
+        sysdate ()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        7,
+        '*',
+        sysdate (),
+        sysdate ()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        20,
+        '*',
+        sysdate (),
+        sysdate ()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        21,
+        '*',
+        sysdate (),
+        sysdate ()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        22,
+        '*',
+        sysdate (),
+        sysdate ()
+    ),
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        23,
+        '*',
+        sysdate (),
+        sysdate ()
+    );
+
+-- Insert permission policies and association relationships for Polaris-Admin accounts
+INSERT INTO
+    auth_principal (`strategy_id`, `principal_id`, `principal_role`)
+VALUES
+    (
+        'fbca9bfa04ae4ead86e1ecf5811e32a9',
+        '65e4789a6d5b49669adf1e9e8387549c',
+        1
+    );
+
+INSERT INTO
+    auth_strategy_function (`strategy_id`, `function`)
+VALUES
+    ('fbca9bfa04ae4ead86e1ecf5811e32a9', '*');
 
 /* 默认全局读写以及全局只读策略 */
 -- Insert permission policies and association relationships for Polaris-Admin accounts
@@ -100,8 +234,8 @@ VALUES
         'Polaris',
         'fbca9bfa04ae4ead86e1ecf5811e32a9',
         0,
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     );
 
 INSERT INTO
@@ -117,85 +251,85 @@ VALUES
         'bfa04ae1e32a94fbca9ead86e1ecf581',
         0,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'bfa04ae1e32a94fbca9ead86e1ecf581',
         1,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'bfa04ae1e32a94fbca9ead86e1ecf581',
         2,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'bfa04ae1e32a94fbca9ead86e1ecf581',
         3,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'bfa04ae1e32a94fbca9ead86e1ecf581',
         4,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'bfa04ae1e32a94fbca9ead86e1ecf581',
         5,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'bfa04ae1e32a94fbca9ead86e1ecf581',
         6,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'bfa04ae1e32a94fbca9ead86e1ecf581',
         7,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'bfa04ae1e32a94fbca9ead86e1ecf581',
         20,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'bfa04ae1e32a94fbca9ead86e1ecf581',
         21,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'bfa04ae1e32a94fbca9ead86e1ecf581',
         22,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'bfa04ae1e32a94fbca9ead86e1ecf581',
         23,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     );
 
 INSERT INTO
@@ -231,8 +365,8 @@ VALUES
         'Polaris',
         'fbca9bfa04ae4ead86e1ecf5811e32a9',
         0,
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     );
 
 INSERT INTO
@@ -248,85 +382,85 @@ VALUES
         'e3d86e1ecf5812bfa04ae1a94fbca9ea',
         0,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'e3d86e1ecf5812bfa04ae1a94fbca9ea',
         1,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'e3d86e1ecf5812bfa04ae1a94fbca9ea',
         2,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'e3d86e1ecf5812bfa04ae1a94fbca9ea',
         3,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'e3d86e1ecf5812bfa04ae1a94fbca9ea',
         4,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'e3d86e1ecf5812bfa04ae1a94fbca9ea',
         5,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'e3d86e1ecf5812bfa04ae1a94fbca9ea',
         6,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'e3d86e1ecf5812bfa04ae1a94fbca9ea',
         7,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'e3d86e1ecf5812bfa04ae1a94fbca9ea',
         20,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'e3d86e1ecf5812bfa04ae1a94fbca9ea',
         21,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'e3d86e1ecf5812bfa04ae1a94fbca9ea',
         22,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     ),
     (
         'e3d86e1ecf5812bfa04ae1a94fbca9ea',
         23,
         '*',
-        sysdate(),
-        sysdate()
+        sysdate (),
+        sysdate ()
     );
 
 INSERT INTO

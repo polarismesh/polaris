@@ -20,14 +20,12 @@ package boltdb
 import (
 	"errors"
 	"sort"
-	"strings"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
 
 	authcommon "github.com/polarismesh/polaris/common/model/auth"
-	"github.com/polarismesh/polaris/common/utils"
 	"github.com/polarismesh/polaris/store"
 )
 
@@ -75,13 +73,30 @@ type userStore struct {
 	handler BoltHandler
 }
 
+// GetMainUser .
+func (u *userStore) GetMainUser() (*authcommon.User, error) {
+	users, err := u.handler.LoadValuesAll(tblUser, &userForStore{})
+	if err != nil {
+		log.Error("[Store][User] get main user", zap.Error(err))
+		return nil, store.Error(err)
+	}
+
+	for i := range users {
+		user := users[i].(*userForStore)
+		if user.Type == int(authcommon.OwnerUserRole) {
+			return converToUserModel(user), nil
+		}
+	}
+
+	return nil, nil
+}
+
 // AddUser 添加用户
 func (us *userStore) AddUser(tx store.Tx, user *authcommon.User) error {
 
 	initUser(user)
 
-	if user.ID == "" || user.Name == "" || user.Source == "" ||
-		user.Owner == "" || user.Token == "" {
+	if user.ID == "" || user.Name == "" || user.Source == "" || user.Token == "" {
 		return store.NewStatusError(store.EmptyParamsErr, "add user missing some params")
 	}
 
@@ -271,165 +286,8 @@ func (us *userStore) GetSubCount(user *authcommon.User) (uint32, error) {
 	return uint32(len(ret)), nil
 }
 
-// GetUsers 获取用户列表
-func (us *userStore) GetUsers(filters map[string]string, offset uint32, limit uint32) (uint32, []*authcommon.User, error) {
-	if _, ok := filters["group_id"]; ok {
-		return us.getGroupUsers(filters, offset, limit)
-	}
-
-	return us.getUsers(filters, offset, limit)
-}
-
-// getUsers
-// "name":   1,
-// "owner":  1,
-// "source": 1,
-func (us *userStore) getUsers(filters map[string]string, offset uint32, limit uint32) (uint32, []*authcommon.User, error) {
-	fields := []string{UserFieldID, UserFieldName, UserFieldOwner, UserFieldSource, UserFieldValid, UserFieldType}
-	ret, err := us.handler.LoadValuesByFilter(tblUser, fields, &userForStore{},
-		func(m map[string]interface{}) bool {
-
-			valid, ok := m[UserFieldValid].(bool)
-			if ok && !valid {
-				return false
-			}
-
-			saveId, _ := m[UserFieldID].(string)
-			saveName, _ := m[UserFieldName].(string)
-			saveOwner, _ := m[UserFieldOwner].(string)
-			saveSource, _ := m[UserFieldSource].(string)
-			saveType, _ := m[UserFieldType].(int64)
-
-			// 超级账户不做展示
-			if authcommon.UserRoleType(saveType) == authcommon.AdminUserRole &&
-				strings.Compare("true", filters["hide_admin"]) == 0 {
-				return false
-			}
-
-			if name, ok := filters["name"]; ok {
-				if utils.IsPrefixWildName(name) {
-					if !strings.Contains(saveName, name[:len(name)-1]) {
-						return false
-					}
-				} else {
-					if saveName != name {
-						return false
-					}
-				}
-			}
-
-			if owner, ok := filters["owner"]; ok {
-				if owner != saveOwner && saveId != owner {
-					return false
-				}
-			}
-
-			if source, ok := filters["source"]; ok {
-				if source != saveSource {
-					return false
-				}
-			}
-
-			if queryId, ok := filters["id"]; ok {
-				if queryId != saveId {
-					return false
-				}
-			}
-
-			return true
-		})
-
-	if err != nil {
-		log.Error("[Store][User] get users", zap.Error(err), zap.Any("filters", filters))
-		return 0, nil, err
-	}
-	if len(ret) == 0 {
-		return 0, nil, nil
-	}
-
-	return uint32(len(ret)), doUserPage(ret, offset, limit), nil
-}
-
-// getGroupUsers 获取某个用户组下的所有用户列表数据信息
-func (us *userStore) getGroupUsers(filters map[string]string, offset uint32, limit uint32) (uint32,
-	[]*authcommon.User, error) {
-
-	groupId := filters["group_id"]
-	delete(filters, "group_id")
-
-	ret, err := us.handler.LoadValues(tblGroup, []string{groupId}, &groupForStore{})
-	if err != nil {
-		log.Error("[Store][User] get user groups", zap.Error(err), zap.Any("filters", filters))
-		return 0, nil, err
-	}
-	if len(ret) == 0 {
-		return 0, nil, nil
-	}
-	if len(ret) > 1 {
-		return 0, nil, ErrorMultipleGroupFound
-	}
-	group := ret[groupId].(*groupForStore)
-
-	userIds := make([]string, 0, len(group.UserIds))
-	for k := range group.UserIds {
-		userIds = append(userIds, k)
-	}
-
-	ret, err = us.handler.LoadValues(tblUser, userIds, &userForStore{})
-	if err != nil {
-		log.Error("[Store][User] get all users", zap.Error(err))
-		return 0, nil, err
-	}
-
-	predicate := func(user *userForStore) bool {
-		if !user.Valid {
-			return false
-		}
-
-		if authcommon.UserRoleType(user.Type) == authcommon.AdminUserRole {
-			return false
-		}
-
-		if name, ok := filters["name"]; ok {
-			if utils.IsPrefixWildName(name) {
-				if !strings.Contains(user.Name, name[:len(name)-1]) {
-					return false
-				}
-			} else {
-				if user.Name != name {
-					return false
-				}
-			}
-		}
-
-		if owner, ok := filters["owner"]; ok {
-			if owner != user.Owner {
-				return false
-			}
-		}
-
-		if source, ok := filters["source"]; ok {
-			if source != user.Source {
-				return false
-			}
-		}
-
-		return true
-	}
-
-	users := make(map[string]interface{})
-	for k := range ret {
-		val := ret[k]
-		if predicate(val.(*userForStore)) {
-			users[k] = val.(*userForStore)
-		}
-	}
-
-	return uint32(len(ret)), doUserPage(users, offset, limit), err
-}
-
-// GetUsersForCache 获取所有用户信息
-func (us *userStore) GetUsersForCache(mtime time.Time, firstUpdate bool) ([]*authcommon.User, error) {
+// GetMoreUsers 获取所有用户信息
+func (us *userStore) GetMoreUsers(mtime time.Time, firstUpdate bool) ([]*authcommon.User, error) {
 	fields := []string{UserFieldModifyTime, UserFieldValid}
 	ret, err := us.handler.LoadValuesByFilter(tblUser, fields, &userForStore{},
 		func(m map[string]interface{}) bool {

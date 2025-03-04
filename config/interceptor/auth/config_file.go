@@ -23,6 +23,7 @@ import (
 	apiconfig "github.com/polarismesh/specification/source/go/api/v1/config_manage"
 
 	api "github.com/polarismesh/polaris/common/api/v1"
+	"github.com/polarismesh/polaris/common/model"
 	"github.com/polarismesh/polaris/common/model/auth"
 	"github.com/polarismesh/polaris/common/utils"
 )
@@ -151,4 +152,14 @@ func (s *Server) ImportConfigFile(ctx context.Context,
 func (s *Server) GetAllConfigEncryptAlgorithms(
 	ctx context.Context) *apiconfig.ConfigEncryptAlgorithmResponse {
 	return s.nextServer.GetAllConfigEncryptAlgorithms(ctx)
+}
+
+// GetClientSubscribers 获取客户端订阅者
+func (s *Server) GetClientSubscribers(ctx context.Context, filter map[string]string) *model.CommonResponse {
+	return s.nextServer.GetClientSubscribers(ctx, filter)
+}
+
+// GetConfigSubscribers 获取配置订阅者
+func (s *Server) GetConfigSubscribers(ctx context.Context, filter map[string]string) *model.CommonResponse {
+	return s.nextServer.GetConfigSubscribers(ctx, filter)
 }

@@ -44,6 +44,10 @@ func (m *boltStore) loadByFile(loadFile string) error {
 	}
 	cf, err := os.Open(loadFile)
 	if err != nil {
+		// 如果文件不存在，则需要用户首次调用接口进行管理员帐户的初始化操作
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
 		return err
 	}
 	defer cf.Close()

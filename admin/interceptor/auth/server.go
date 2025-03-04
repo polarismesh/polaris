@@ -62,12 +62,12 @@ func (svr *Server) collectMaintainAuthContext(ctx context.Context, resourceOp au
 	)
 }
 
-func (s *Server) HasMainUser(ctx context.Context) (bool, error) {
-	return false, nil
+func (s *Server) HasMainUser(ctx context.Context) *apiservice.Response {
+	return s.nextSvr.HasMainUser(ctx)
 }
 
-func (s *Server) InitMainUser(ctx context.Context, user apisecurity.User) error {
-	return nil
+func (s *Server) InitMainUser(ctx context.Context, user *apisecurity.User) *apiservice.Response {
+	return s.nextSvr.InitMainUser(ctx, user)
 }
 
 func (svr *Server) GetServerConnections(ctx context.Context, req *admincommon.ConnReq) (*admincommon.ConnCountResp, error) {

@@ -267,7 +267,9 @@ type (
 		// GetRevisionWorker .
 		GetRevisionWorker() ServiceRevisionWorker
 		// GetVisibleServicesInOtherNamespace get same service in other namespace and it's visible
-		GetVisibleServicesInOtherNamespace(name string, namespace string) []*model.Service
+		// 如果 name == *，表示返回所有对 namespace 可见的服务
+		// 如果 name 是具体服务，表示返回对 name + namespace 设置了可见的服务
+		GetVisibleServicesInOtherNamespace(ctx context.Context, name string, namespace string) []*model.Service
 	}
 
 	// ServiceRevisionWorker
@@ -318,6 +320,8 @@ type (
 		QueryInstances(filter, metaFilter map[string]string, offset, limit uint32) (uint32, []*model.Instance, error)
 		// DiscoverServiceInstances 服务发现获取实例
 		DiscoverServiceInstances(serviceID string, onlyHealthy bool) []*model.Instance
+		// RemoveService
+		RemoveService(serviceID string)
 	}
 )
 

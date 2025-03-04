@@ -561,15 +561,159 @@ func (m *adminStore) BatchCleanDeletedClients(timeout time.Duration, batchSize u
 
 // BatchCleanDeletedServices batch clean soft deleted clients
 func (m *adminStore) BatchCleanDeletedServices(timeout time.Duration, batchSize uint32) (uint32, error) {
-	return 0, nil
+	log.Infof("[Store][database] batch clean soft deleted services(%d)", batchSize)
+	var rowsAffected int64
+	err := m.master.processWithTransaction("batchCleanDeletedServices", func(tx *BaseTx) error {
+		// 查询出需要清理的实例 ID 信息
+		loadWaitDel := "SELECT id FROM service WHERE flag = 1 AND " +
+			"mtime <= FROM_UNIXTIME(UNIX_TIMESTAMP(SYSDATE()) - ?) LIMIT ?"
+		rows, err := tx.Query(loadWaitDel, int32(timeout.Seconds()), batchSize)
+		if err != nil {
+			log.Errorf("[Store][database] batch clean soft deleted services(%d), err: %s", batchSize, err.Error())
+			return store.Error(err)
+		}
+		waitDelIds := make([]interface{}, 0, batchSize)
+		defer func() {
+			_ = rows.Close()
+		}()
+
+		placeholders := make([]string, 0, batchSize)
+		for rows.Next() {
+			var id string
+			if err := rows.Scan(&id); err != nil {
+				log.Errorf("[Store][database] scan deleted services id, err: %s", err.Error())
+				return store.Error(err)
+			}
+			waitDelIds = append(waitDelIds, id)
+			placeholders = append(placeholders, "?")
+		}
+
+		if len(waitDelIds) == 0 {
+			return nil
+		}
+		inSql := strings.Join(placeholders, ",")
+
+		cleanMetaStr := fmt.Sprintf("delete from service_metadata where id in (%s)", inSql)
+		if _, err := tx.Exec(cleanMetaStr, waitDelIds...); err != nil {
+			log.Errorf("[Store][database] batch clean soft deleted services(%d), err: %s", batchSize, err.Error())
+			return store.Error(err)
+		}
+
+		cleanInsStr := fmt.Sprintf("delete from service where flag = 1 and id in (%s)", inSql)
+		result, err := tx.Exec(cleanInsStr, waitDelIds...)
+		if err != nil {
+			log.Errorf("[Store][database] batch clean soft deleted services(%d), err: %s", batchSize, err.Error())
+			return store.Error(err)
+		}
+
+		tRows, err := result.RowsAffected()
+		if err != nil {
+			log.Warnf("[Store][database] batch clean soft deleted services(%d), get RowsAffected err: %s",
+				batchSize, err.Error())
+			return store.Error(err)
+		}
+
+		if err = tx.Commit(); err != nil {
+			log.Errorf("[Store][database] batch clean soft deleted services(%d) commit tx err: %s",
+				batchSize, err.Error())
+			return err
+		}
+
+		rowsAffected = tRows
+		return nil
+	})
+	return uint32(rowsAffected), err
 }
 
 // BatchCleanDeletedRules batch clean soft deleted clients
 func (m *adminStore) BatchCleanDeletedRules(rule string, timeout time.Duration, batchSize uint32) (uint32, error) {
-	return 0, nil
+	log.Infof("[Store][database] batch clean soft deleted %s(%d)", rule, batchSize)
+	var rows int64
+	err := m.master.processWithTransaction("batchCleanDeleted"+rule, func(tx *BaseTx) error {
+		mainStr := "delete from " + rule + " where flag = 1 limit ?"
+		result, err := tx.Exec(mainStr, int32(timeout.Seconds()), batchSize)
+		if err != nil {
+			log.Errorf("[Store][database] batch clean soft deleted %s(%d), err: %s", rule, batchSize, err.Error())
+			return store.Error(err)
+		}
+
+		tRows, err := result.RowsAffected()
+		if err != nil {
+			log.Warnf("[Store][database] batch clean soft deleted %s(%d), get RowsAffected err: %s",
+				rule, batchSize, err.Error())
+			return store.Error(err)
+		}
+
+		if err := tx.Commit(); err != nil {
+			log.Errorf("[Store][database] batch clean soft deleted %s(%d) commit tx err: %s",
+				rule, batchSize, err.Error())
+			return err
+		}
+
+		rows = tRows
+		return nil
+	})
+	return uint32(rows), err
 }
 
 // BatchCleanDeletedConfigFiles batch clean soft deleted clients
 func (m *adminStore) BatchCleanDeletedConfigFiles(timeout time.Duration, batchSize uint32) (uint32, error) {
-	return 0, nil
+	log.Infof("[Store][database] batch clean soft deleted config_files(%d)", batchSize)
+	var rows int64
+	err := m.master.processWithTransaction("batchCleanDeletedConfigFiles", func(tx *BaseTx) error {
+		mainStr := "delete from config_file where flag = 1 limit ?"
+		result, err := tx.Exec(mainStr, int32(timeout.Seconds()), batchSize)
+		if err != nil {
+			log.Errorf("[Store][database] batch clean soft deleted config_files(%d), err: %s", batchSize, err.Error())
+			return store.Error(err)
+		}
+
+		tRows, err := result.RowsAffected()
+		if err != nil {
+			log.Warnf("[Store][database] batch clean soft deleted config_files(%d), get RowsAffected err: %s",
+				batchSize, err.Error())
+			return store.Error(err)
+		}
+
+		if err := tx.Commit(); err != nil {
+			log.Errorf("[Store][database] batch clean soft deleted config_files(%d) commit tx err: %s",
+				batchSize, err.Error())
+			return err
+		}
+
+		rows = tRows
+		return nil
+	})
+	return uint32(rows), err
+}
+
+// BatchCleanDeletedServiceContracts batch clean soft deleted service_contract
+func (m *adminStore) BatchCleanDeletedServiceContracts(timeout time.Duration, batchSize uint32) (uint32, error) {
+	log.Infof("[Store][database] batch clean soft deleted service_contract(%d)", batchSize)
+	var rows int64
+	err := m.master.processWithTransaction("batchCleanDeletedServiceContracts", func(tx *BaseTx) error {
+		mainStr := "delete from service_contract sc join service_contract_detail sd ON sc.id = sd.contract_id where sc.flag = 1 limit ?"
+		result, err := tx.Exec(mainStr, int32(timeout.Seconds()), batchSize)
+		if err != nil {
+			log.Errorf("[Store][database] batch clean soft deleted service_contract(%d), err: %s", batchSize, err.Error())
+			return store.Error(err)
+		}
+
+		tRows, err := result.RowsAffected()
+		if err != nil {
+			log.Warnf("[Store][database] batch clean soft deleted service_contract(%d), get RowsAffected err: %s",
+				batchSize, err.Error())
+			return store.Error(err)
+		}
+
+		if err := tx.Commit(); err != nil {
+			log.Errorf("[Store][database] batch clean soft deleted service_contract(%d) commit tx err: %s",
+				batchSize, err.Error())
+			return err
+		}
+
+		rows = tRows
+		return nil
+	})
+	return uint32(rows), err
 }

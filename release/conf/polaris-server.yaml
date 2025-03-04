@@ -31,7 +31,7 @@ bootstrap:
       # The maximum preservation days of a single log file, default 7
       rotationMaxAge: 7
       # Log output level，debug/info/warn/error
-      outputLevel: debug
+      outputLevel: info
       # Open the log file compression
       compress: true
       # onlyContent just print log content, not print log timestamp
@@ -433,18 +433,11 @@ maintain:
       option:
         # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
         serviceDeleteTimeout: 30m
-    # Clean soft deleted instances
-    - name: CleanDeletedInstances
+    # Clean soft deleted resources
+    - name: CleanDeletedResources
       enable: true
       option:
-        # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
-        # instanceCleanTimeout: 10m
-    # Clean soft deleted clients
-    - name: CleanDeletedClients
-      enable: true
-      option:
-        # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
-        # clientCleanTimeout: 10m
+        timeout: 1h
 # Storage configuration
 store:
   # # Standalone file storage plugin
