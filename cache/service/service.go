@@ -63,9 +63,7 @@ type serviceCache struct {
 	// namespace -> model.NamespaceServiceCount
 	namespaceServiceCnt *utils.SyncMap[string, *model.NamespaceServiceCount]
 
-	lastMtimeLogged int64
-
-	serviceCount     int64
+	lastMtimeLogged  int64
 	lastCheckAllTime int64
 
 	revisionWorker *ServiceRevisionWorker
@@ -166,12 +164,12 @@ func (sc *serviceCache) checkAll() {
 		log.Errorf("[Cache][Service] get service count from storage err: %s", err.Error())
 		return
 	}
-	if sc.serviceCount == int64(count) {
+	if int64(sc.ids.Len()) == int64(count) {
 		return
 	}
 	log.Infof(
 		"[Cache][Service] service count not match, expect %d, actual %d, fallback to load all",
-		count, sc.serviceCount)
+		count, sc.ids.Len())
 	sc.ResetLastMtime(sc.Name())
 }
 
@@ -441,7 +439,7 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 
 	// 这里要记录 ns 的变动情况，避免由于 svc delete 之后，命名空间的服务计数无法更新
 	changeNs := make(map[string]struct{})
-	svcCount := sc.serviceCount
+	svcCount := sc.ids.Len()
 
 	aliases := make([]*model.Service, 0, 32)
 
@@ -459,7 +457,7 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 		if service.IsAlias() {
 			aliases = append(aliases, service)
 		}
-		oldVal, exist := sc.ids.Load(service.ID)
+		oldVal, _ := sc.ids.Load(service.ID)
 		if oldVal != nil {
 			service.OldExportTo = oldVal.ExportTo
 		}
@@ -471,14 +469,10 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 			sc.removeServices(service)
 			sc.notifyRevisionWorker(service.ID, false)
 			del++
-			svcCount--
 			continue
 		}
 
 		update++
-		if !exist {
-			svcCount++
-		}
 
 		sc.ids.Store(service.ID, service)
 		sc.serviceList.addService(service)
@@ -496,10 +490,8 @@ func (sc *serviceCache) setServices(services map[string]*model.Service) (map[str
 		/******兼容cl5******/
 	}
 
-	if sc.serviceCount != svcCount {
-		log.Infof("[Cache][Service] service count update from %d to %d",
-			sc.serviceCount, svcCount)
-		sc.serviceCount = svcCount
+	if sc.ids.Len() != svcCount {
+		log.Infof("[Cache][Service] service count update from %d to %d", svcCount, sc.ids.Len())
 	}
 
 	sc.postProcessServiceAlias(aliases)
