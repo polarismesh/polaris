@@ -86,6 +86,12 @@ spec:
             - mountPath: /root/polaris-console.yaml
               name: polaris-console-config
               subPath: polaris-console.yaml
+          env:
+            - name: JWT_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}
+                  key: JWT_KEY
       restartPolicy: Always
       volumes:
         - configMap:
