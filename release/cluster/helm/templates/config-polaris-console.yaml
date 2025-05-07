@@ -16,7 +16,7 @@ data:
       listenIP: "0.0.0.0"
       listenPort: {{ .Values.service.webPort }}
       jwt:
-        secretKey: "polarismesh@2021"
+        secretKey: "${JWT_KEY}"
         expired: 1800
       namingV1URL: "/naming/v1"
       namingV2URL: "/naming/v2"
