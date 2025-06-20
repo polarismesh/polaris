@@ -116,17 +116,6 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 			if sendErr := server.Send(resp); sendErr != nil {
 				return sendErr
 			}
-			// 上报失败调用
-			plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
-				Action:    "deny-access",
-				ClientIP:  utils.ParseClientAddress(ctx),
-				Namespace: in.GetService().GetNamespace().GetValue(),
-				Resource:  in.GetType().String() + ":" + in.GetService().GetName().GetValue(),
-				Timestamp: commontime.CurrentMillisecond(),
-				CostTime:  0,
-				Revision:  "",
-				Success:   false,
-			})
 			continue
 		}
 
@@ -136,16 +125,6 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 			if err = server.Send(resp); err != nil {
 				return err
 			}
-			plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
-				Action:    "rate-limit",
-				ClientIP:  utils.ParseClientAddress(ctx),
-				Namespace: in.GetService().GetNamespace().GetValue(),
-				Resource:  in.GetType().String() + ":" + in.GetService().GetName().GetValue(),
-				Timestamp: commontime.CurrentMillisecond(),
-				CostTime:  0,
-				Revision:  "",
-				Success:   false,
-			})
 			continue
 		}
 
