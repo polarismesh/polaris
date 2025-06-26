@@ -43,6 +43,7 @@ polaris:
       name: polaris_server
       user: root
       password: polaris@123456
+  env: []
 
 prometheus:
   image:
@@ -57,6 +58,8 @@ prometheus:
 
 service:
   type: LoadBalancer
+  labels: {}
+  annotations: {}
   webPort: 8080
   eurekaPort: 8761
   nacosPort: 8848
