@@ -148,7 +148,7 @@ func (d *Dispatcher) reloadSelfContinuum() bool {
 func (d *Dispatcher) reloadManagedClients() {
 	nextClients := make(map[string]*ClientWithChecker)
 
-	if d.continuum != nil {
+	if d.continuum != nil && d.continuum.ContainsHost(d.svr.localHost) {
 		d.svr.cacheProvider.RangeHealthCheckClients(func(itemChecker ItemWithChecker, client *model.Client) {
 			clientId := client.Proto().GetId().GetValue()
 			host := d.continuum.Hash(itemChecker.GetHashValue())
@@ -187,7 +187,7 @@ func (d *Dispatcher) reloadManagedClients() {
 
 func (d *Dispatcher) reloadManagedInstances() {
 	nextInstances := make(map[string]*InstanceWithChecker)
-	if d.continuum != nil {
+	if d.continuum != nil && d.continuum.ContainsHost(d.svr.localHost) {
 		d.svr.cacheProvider.RangeHealthCheckInstances(func(itemChecker ItemWithChecker, instance *model.Instance) {
 			instanceId := instance.ID()
 			host := d.continuum.Hash(itemChecker.GetHashValue())
