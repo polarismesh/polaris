@@ -572,6 +572,31 @@ func (i *instanceStore) GetMoreInstances(tx store.Tx, mtime time.Time, firstUpda
 	return toInstance(instances), nil
 }
 
+// GetMoreInstancesConsoles 获取增量修改数据
+func (ins *instanceStore) GetMoreInstanceConsoles(tx store.Tx, mtime time.Time, firstUpdate, needMeta bool,
+	serviceID []string) (map[string]*model.InstanceConsole, error) {
+	//Todo: get from boltdb
+	return nil, nil
+}
+
+// DeleteInstanceConsole 逻辑删除instanceConsole
+func (ins *instanceStore) DeleteInstanceConsole(instanceConsoleID string) error {
+	//Todo: delete from boltdb
+	return nil
+}
+
+// CleanInstanceConsole 物理删除instanceConsole
+func (ins *instanceStore) CleanInstanceConsole(instanceConsoleID string) error {
+	//Todo: clean from boltdb
+	return nil
+}
+
+// UpdateInstanceConsole 更新instanceConsole
+func (ins *instanceStore) UpdateInstanceConsole(instanceConsole *model.InstanceConsole) error {
+	//Todo: update from boltdb
+	return nil
+}
+
 // BatchSetInstanceHealthStatus 批量设置实例的健康状态
 func (i *instanceStore) BatchSetInstanceHealthStatus(ids []interface{}, healthy int, revision string) error {
 	for _, id := range ids {

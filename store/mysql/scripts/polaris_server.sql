@@ -63,6 +63,23 @@ CREATE TABLE
 
 -- --------------------------------------------------------
 --
+-- Table structure `instance_console`
+--
+CREATE TABLE `instance_console`
+(
+    `id`                  VARCHAR(128)                  NOT NULL COMMENT 'Unique ID',
+    `isolate`             TINYINT(4)                    DEFAULT NULL COMMENT 'Example isolation status flag, 0 is not isolated, 1 is isolated',
+    `weight`              SMALLINT(6)                   DEFAULT NULL COMMENT 'The weight of the instance is mainly used for LoadBalance, default is 100',
+    `metadata`            LONGTEXT COLLATE utf8_bin     DEFAULT NULL COMMENT 'Instance metadata',
+    `flag`                TINYINT(4)                    NOT NULL DEFAULT '0' COMMENT 'Logic delete flag, 0 means visible, 1 means that it has been logically deleted',
+    `ctime`               TIMESTAMP                     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+    `mtime`               TIMESTAMP                     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last updated time',
+    PRIMARY KEY (`id`),
+    KEY `mtime` (`mtime`)
+) ENGINE = InnoDB;
+
+-- --------------------------------------------------------
+--
 -- Table structure `health_check`
 --
 CREATE TABLE

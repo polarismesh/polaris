@@ -451,6 +451,20 @@ func (mr *MockStoreMockRecorder) CleanInstance(instanceID interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanInstance", reflect.TypeOf((*MockStore)(nil).CleanInstance), instanceID)
 }
 
+// CleanInstanceConsole mocks base method.
+func (m *MockStore) CleanInstanceConsole(instanceConsoleID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CleanInstanceConsole", instanceConsoleID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CleanInstanceConsole indicates an expected call of CleanInstanceConsole.
+func (mr *MockStoreMockRecorder) CleanInstanceConsole(instanceConsoleID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanInstanceConsole", reflect.TypeOf((*MockStore)(nil).CleanInstanceConsole), instanceConsoleID)
+}
+
 // CleanPrincipalPolicies mocks base method.
 func (m *MockStore) CleanPrincipalPolicies(tx store.Tx, p auth.Principal) error {
 	m.ctrl.T.Helper()
@@ -834,6 +848,20 @@ func (m *MockStore) DeleteInstance(instanceID string) error {
 func (mr *MockStoreMockRecorder) DeleteInstance(instanceID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInstance", reflect.TypeOf((*MockStore)(nil).DeleteInstance), instanceID)
+}
+
+// DeleteInstanceConsole mocks base method.
+func (m *MockStore) DeleteInstanceConsole(instanceConsoleID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteInstanceConsole", instanceConsoleID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteInstanceConsole indicates an expected call of DeleteInstanceConsole.
+func (mr *MockStoreMockRecorder) DeleteInstanceConsole(instanceConsoleID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInstanceConsole", reflect.TypeOf((*MockStore)(nil).DeleteInstanceConsole), instanceConsoleID)
 }
 
 // DeleteLaneGroup mocks base method.
@@ -1575,6 +1603,21 @@ func (m *MockStore) GetMoreConfigGroup(firstUpdate bool, mtime time.Time) ([]*mo
 func (mr *MockStoreMockRecorder) GetMoreConfigGroup(firstUpdate, mtime interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreConfigGroup", reflect.TypeOf((*MockStore)(nil).GetMoreConfigGroup), firstUpdate, mtime)
+}
+
+// GetMoreInstanceConsoles mocks base method.
+func (m *MockStore) GetMoreInstanceConsoles(tx store.Tx, mtime time.Time, firstUpdate, needMeta bool, serviceID []string) (map[string]*model.InstanceConsole, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMoreInstanceConsoles", tx, mtime, firstUpdate, needMeta, serviceID)
+	ret0, _ := ret[0].(map[string]*model.InstanceConsole)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMoreInstanceConsoles indicates an expected call of GetMoreInstanceConsoles.
+func (mr *MockStoreMockRecorder) GetMoreInstanceConsoles(tx, mtime, firstUpdate, needMeta, serviceID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMoreInstanceConsoles", reflect.TypeOf((*MockStore)(nil).GetMoreInstanceConsoles), tx, mtime, firstUpdate, needMeta, serviceID)
 }
 
 // GetMoreGrayResouces mocks base method.
@@ -2739,6 +2782,20 @@ func (m *MockStore) UpdateInstance(instance *model.Instance) error {
 func (mr *MockStoreMockRecorder) UpdateInstance(instance interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInstance", reflect.TypeOf((*MockStore)(nil).UpdateInstance), instance)
+}
+
+// UpdateInstanceConsole mocks base method.
+func (m *MockStore) UpdateInstanceConsole(instanceConsole *model.InstanceConsole) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateInstanceConsole", instanceConsole)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateInstanceConsole indicates an expected call of UpdateInstanceConsole.
+func (mr *MockStoreMockRecorder) UpdateInstanceConsole(instanceConsole interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInstanceConsole", reflect.TypeOf((*MockStore)(nil).UpdateInstanceConsole), instanceConsole)
 }
 
 // UpdateLaneGroup mocks base method.

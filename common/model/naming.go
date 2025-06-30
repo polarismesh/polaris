@@ -928,6 +928,14 @@ type InstanceEvent struct {
 	MetaData   map[string]string
 }
 
+// instance info from console
+type InstanceConsole struct {
+	Id       string
+	Isolate  bool
+	Weight   int8
+	Metadata string
+}
+
 // InjectMetadata 从context中获取metadata并注入到事件对象
 func (i *InstanceEvent) InjectMetadata(ctx context.Context) {
 	value := ctx.Value(CtxEventKeyMetadata)

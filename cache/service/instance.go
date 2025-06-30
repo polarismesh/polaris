@@ -51,7 +51,9 @@ type instanceCache struct {
 	// service id -> [instanceid ->instance]
 	services *utils.SyncMap[string, *model.ServiceInstances]
 	// service id -> [instanceCount]
-	instanceCounts   *utils.SyncMap[string, *model.InstanceCount]
+	instanceCounts *utils.SyncMap[string, *model.InstanceCount]
+	// service id -> [instanceConsole]
+	instanceConsoles *utils.SyncMap[string, *model.InstanceConsole]
 	instancePorts    *instancePorts
 	disableBusiness  bool
 	needMeta         bool
@@ -78,6 +80,7 @@ func (ic *instanceCache) Initialize(opt map[string]interface{}) error {
 	ic.ids = utils.NewSyncMap[string, *model.Instance]()
 	ic.services = utils.NewSyncMap[string, *model.ServiceInstances]()
 	ic.instanceCounts = utils.NewSyncMap[string, *model.InstanceCount]()
+	ic.instanceConsoles = utils.NewSyncMap[string, *model.InstanceConsole]()
 	ic.instancePorts = newInstancePorts()
 	if opt == nil {
 		return nil
@@ -192,6 +195,17 @@ func (ic *instanceCache) handleUpdate(start time.Time, tx store.Tx) ([]*eventhub
 		return nil, nil, -1, err
 	}
 
+	instanceConsoles, err := ic.storage.GetMoreInstanceConsoles(tx, ic.LastFetchTime(), ic.IsFirstUpdate(),
+		ic.needMeta, ic.systemServiceID)
+	if err != nil {
+		log.Error("[Cache][InstanceConsole] update get storage more", zap.Error(err))
+		return nil, nil, -1, err
+	}
+	for _, item := range instanceConsoles {
+		//Todo: check validation
+		ic.instanceConsoles.Store(item.Id, item)
+	}
+
 	events, lastMtimes, update, del := ic.setInstances(instances)
 	log.Info("[Cache][Instance] get more instances",
 		zap.Int("pull-from-store", len(instances)), zap.Int("update", update), zap.Int("delete", del),
@@ -205,6 +219,7 @@ func (ic *instanceCache) Clear() error {
 	ic.ids = utils.NewSyncMap[string, *model.Instance]()
 	ic.services = utils.NewSyncMap[string, *model.ServiceInstances]()
 	ic.instanceCounts = utils.NewSyncMap[string, *model.InstanceCount]()
+	ic.instanceConsoles = utils.NewSyncMap[string, *model.InstanceConsole]()
 	ic.instancePorts.reset()
 	ic.instanceCount = 0
 	return nil
@@ -427,6 +442,20 @@ func (ic *instanceCache) GetInstance(instanceID string) *model.Instance {
 	}
 
 	value, ok := ic.ids.Load(instanceID)
+	if !ok {
+		return nil
+	}
+
+	return value
+}
+
+// GetInstanceConsole 根据实例ID获取实例数据
+func (ic *instanceCache) GetInstanceConsole(instanceConsoleID string) *model.InstanceConsole {
+	if instanceConsoleID == "" {
+		return nil
+	}
+
+	value, ok := ic.instanceConsoles.Load(instanceConsoleID)
 	if !ok {
 		return nil
 	}

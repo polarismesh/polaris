@@ -406,6 +406,7 @@ func TestServiceCache_GetServicesByFilter(t *testing.T) {
 		mockStore.EXPECT().GetInstancesCountTx(gomock.Any()).Return(uint32(len(instances)), nil).AnyTimes()
 		mockStore.EXPECT().GetMoreServices(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(services, nil).AnyTimes()
 		mockStore.EXPECT().GetMoreInstances(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(instances, nil).AnyTimes()
+		mockStore.EXPECT().GetMoreInstanceConsoles(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 		ic.setInstances(instances)
 
 		hostToService := make(map[string]string)
