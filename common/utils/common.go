@@ -21,9 +21,11 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -579,6 +581,19 @@ func CheckContractTetrad(req *apiservice.ServiceContract) (string, *apiservice.R
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
+// BuildSha1Digest 构建SHA1摘要
+func BuildSha1Digest(value string) (string, error) {
+	if len(value) == 0 {
+		return "", nil
+	}
+	h := sha1.New()
+	if _, err := io.WriteString(h, value); err != nil {
+		return "", err
+	}
+	out := hex.EncodeToString(h.Sum(nil))
+	return out, nil
+}
+
 func CheckContractInterfaceTetrad(contractId string, source apiservice.InterfaceDescriptor_Source,
 	req *apiservice.InterfaceDescriptor) (string, *apiservice.Response) {
 	if contractId == "" {
@@ -610,4 +625,40 @@ func CalculateContractID(namespace, service, name, protocol, version string) (st
 
 	out := hex.EncodeToString(h.Sum(nil))
 	return out, nil
+}
+
+// ConvertMetadataToStringValue 将Metadata转换为可序列化字符串
+func ConvertMetadataToStringValue(metadata map[string]string) (string, error) {
+	if metadata == nil {
+		return "", nil
+	}
+	v, err := json.Marshal(metadata)
+	if err != nil {
+		return "", err
+	}
+	return string(v), nil
+}
+
+// ConvertStringValueToMetadata 将字符串反序列为metadata
+func ConvertStringValueToMetadata(str string) (map[string]string, error) {
+	if str == "" {
+		return nil, nil
+	}
+	v := make(map[string]string)
+	err := json.Unmarshal([]byte(str), &v)
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// NeedUpdateMetadata 判断是否出现了metadata的变更
+func NeedUpdateMetadata(metadata map[string]string, inMetadata map[string]string) bool {
+	if inMetadata == nil {
+		return false
+	}
+	if len(metadata) != len(inMetadata) {
+		return true
+	}
+	return !reflect.DeepEqual(metadata, inMetadata)
 }

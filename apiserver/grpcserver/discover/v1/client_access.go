@@ -161,6 +161,16 @@ func (g *DiscoverServer) Discover(server apiservice.PolarisGRPC_DiscoverServer) 
 		}
 
 		err = server.Send(out)
+		plugin.GetStatis().ReportDiscoverCall(metrics.ClientDiscoverMetric{
+			Action:    action,
+			ClientIP:  utils.ParseClientAddress(ctx),
+			Namespace: in.GetService().GetNamespace().GetValue(),
+			Resource:  in.GetType().String() + ":" + in.GetService().GetName().GetValue(),
+			Timestamp: startTime,
+			CostTime:  commontime.CurrentMillisecond() - startTime,
+			Revision:  out.GetService().GetRevision().GetValue(),
+			Success:   out.GetCode().GetValue() > uint32(apimodel.Code_DataNoChange),
+		})
 		if err != nil {
 			return err
 		}

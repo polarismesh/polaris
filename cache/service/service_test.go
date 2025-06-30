@@ -467,16 +467,16 @@ func TestServiceCache_NamespaceCount(t *testing.T) {
 		sc.setServices(services)
 		time.Sleep(time.Duration(5 * time.Second))
 
-		acutalNsCount := make(map[string]int)
+		actualNsCount := make(map[string]int)
 		for i := range nsList {
 			ns := nsList[i]
-			acutalNsCount[ns] = int(sc.GetNamespaceCntInfo(ns).InstanceCnt.TotalInstanceCount)
+			actualNsCount[ns] = int(sc.GetNamespaceCntInfo(ns).InstanceCnt.TotalInstanceCount)
 		}
 
 		fmt.Printf("expect ns count : %#v\n", expectNsCount)
-		fmt.Printf("acutal ns count : %#v\n", acutalNsCount)
+		fmt.Printf("acutal ns count : %#v\n", actualNsCount)
 
-		if !reflect.DeepEqual(expectNsCount, acutalNsCount) {
+		if !reflect.DeepEqual(expectNsCount, actualNsCount) {
 			t.Fatal("namespace count is no currect")
 		}
 	})
@@ -650,9 +650,9 @@ func Test_serviceCache_GetVisibleServicesInOtherNamespace(t *testing.T) {
 		})
 
 		_, _, _ = svcCache.setServices(serviceList)
-		visibles := svcCache.GetVisibleServicesInOtherNamespace("service-1", "ns-2")
-		assert.Equal(t, 1, len(visibles))
-		assert.Equal(t, "ns-1", visibles[0].Namespace)
+		visibleServices := svcCache.GetVisibleSameNameServices("service-1", "ns-2")
+		assert.Equal(t, 1, len(visibleServices))
+		assert.Equal(t, "ns-1", visibleServices[0].Namespace)
 	})
 
 	t.Run("服务可见性查询判断", func(t *testing.T) {
@@ -707,15 +707,15 @@ func Test_serviceCache_GetVisibleServicesInOtherNamespace(t *testing.T) {
 			},
 		})
 
-		visibles := svcCache.GetVisibleServicesInOtherNamespace("service-1", "ns-2")
+		visibles := svcCache.GetVisibleSameNameServices("service-1", "ns-2")
 		assert.Equal(t, 1, len(visibles))
 		assert.Equal(t, "ns-1", visibles[0].Namespace)
 
-		visibles = svcCache.GetVisibleServicesInOtherNamespace("service-1", "ns-3")
+		visibles = svcCache.GetVisibleSameNameServices("service-1", "ns-3")
 		assert.Equal(t, 1, len(visibles))
 		assert.Equal(t, "ns-1", visibles[0].Namespace)
 
-		visibles = svcCache.GetVisibleServicesInOtherNamespace("service-1", "ns-4")
+		visibles = svcCache.GetVisibleSameNameServices("service-1", "ns-4")
 		assert.Equal(t, 0, len(visibles))
 	})
 
