@@ -60,6 +60,7 @@ type HTTPServer struct {
 	connLimitConfig *connlimit.Config
 	tlsInfo         *secure.TLSInfo
 	option          map[string]interface{}
+	corsDomains     []string
 	openAPI         map[string]apiserver.APIConfig
 	start           bool
 	restart         bool
@@ -140,6 +141,19 @@ func (h *HTTPServer) Initialize(_ context.Context, option map[string]interface{}
 			KeyFile:       tlsConfig.KeyFile,
 			TrustedCAFile: tlsConfig.TrustedCAFile,
 		}
+	}
+
+	// cors domain
+	if corsDomains, ok := option["corsDomains"].([]interface{}); ok && len(corsDomains) > 0 {
+		log.Infof("[HTTPServer] option cors allow domains: %+v", corsDomains)
+		h.corsDomains = make([]string, 0, len(corsDomains))
+		for _, item := range corsDomains {
+			domain, _ := item.(string)
+			if domain != "" {
+				h.corsDomains = append(h.corsDomains, domain)
+			}
+		}
+		log.Infof("[HTTPServer] cors allow domains: %+v", h.corsDomains)
 	}
 
 	metrics.SetMetricsPort(int32(h.listenPort))
@@ -331,6 +345,9 @@ func (h *HTTPServer) createRestfulContainer() (*restful.Container, error) {
 		AllowedMethods: []string{"GET", "POST", "PUT"},
 		CookiesAllowed: false,
 		Container:      wsContainer}
+	if len(h.corsDomains) > 0 {
+		cors.AllowedDomains = h.corsDomains
+	}
 	wsContainer.Filter(cors.Filter)
 
 	// Incr container filter to respond to OPTIONS
