@@ -6,6 +6,9 @@ metadata:
   namespace: {{ .Values.installation.namespace }}
   labels:
     app: polaris
+    {{- toYaml .Values.service.labels | nindent 4 }}
+  annotations:
+    {{- toYaml .Values.service.annotations| nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -69,10 +72,27 @@ spec:
               memory: {{ .Values.polaris.limit.memory }}
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
+          ports:
+            - containerPort: {{ .Values.service.httpPort }}
+              name: http
+            - containerPort: {{ .Values.service.serviceGrpcPort }}
+              name: grpc
+            - containerPort: {{ .Values.service.xdsv3Port }}
+              name: xds-v3
+            - containerPort: {{ .Values.service.configGrpcPort }}
+              name: config-grpc
+            - containerPort: {{ .Values.service.eurekaPort }}
+              name: eureka
+            - containerPort: {{ .Values.service.nacosPort }}
+              name: nacos-http
+            - containerPort: {{ add .Values.service.nacosPort 1000 }}
+              name: nacos-grpc
           volumeMounts:
             - mountPath: /root/conf/polaris-server.yaml
               name: polaris-server-config
               subPath: polaris-server.yaml
+          env:
+            {{- toYaml .Values.polaris.env | nindent 10 }}
         - image: {{.Values.polaris.console.image.repository}}:{{.Values.polaris.console.image.tag}}
           imagePullPolicy: {{ .Values.polaris.console.image.pullPolicy }}
           name: polaris-console
@@ -86,6 +106,9 @@ spec:
             - mountPath: /root/polaris-console.yaml
               name: polaris-console-config
               subPath: polaris-console.yaml
+          ports:
+            - containerPort: {{ .Values.service.webPort }}
+              name: web-server
       restartPolicy: Always
       volumes:
         - configMap:
