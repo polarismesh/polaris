@@ -232,7 +232,7 @@ func batchCleanClientStats(tx *BaseTx, ids []string) error {
 }
 
 func (cs *clientStore) GetClientStat(clientID string) ([]*model.ClientStatStore, error) {
-	str := "select `target`, `port`, `protocol`, `path` from client_stat where client.id = ?"
+	str := "select `target`, `port`, `protocol`, `path` from client_stat where client_id = ?"
 	rows, err := cs.master.Query(str, clientID)
 	if err != nil {
 		log.Errorf("[Store][database] query client stat err: %s", err.Error())
@@ -455,7 +455,7 @@ func updateClientMain(tx *BaseTx, client *model.Client) error {
 
 // updateClientStat 更新client的stat表
 func updateClientStat(tx *BaseTx, client *model.Client) error {
-	deleteStr := "delete from client_stat where cliend_id = ?"
+	deleteStr := "delete from client_stat where client_id = ?"
 	if _, err := tx.Exec(deleteStr, client.Proto().GetId().GetValue()); err != nil {
 		return err
 	}

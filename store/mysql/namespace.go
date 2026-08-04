@@ -49,12 +49,12 @@ func (ns *namespaceStore) AddNamespace(namespace *model.Namespace) error {
 
 			str := `
 			INSERT INTO namespace (name, comment, token, owner, ctime
-				, mtime, service_export_to)
+				, mtime, service_export_to, metadata)
 			VALUES (?, ?, ?, ?, sysdate()
-				, sysdate(), ?)
+				, sysdate(), ?, ?)
 			`
 			args := []interface{}{namespace.Name, namespace.Comment, namespace.Token, namespace.Owner,
-				utils.MustJson(namespace.ServiceExportTo)}
+				utils.MustJson(namespace.ServiceExportTo), utils.MustJson(namespace.Metadata)}
 			if _, err := tx.Exec(str, args...); err != nil {
 				return store.Error(err)
 			}
@@ -76,8 +76,10 @@ func (ns *namespaceStore) UpdateNamespace(namespace *model.Namespace) error {
 	}
 	return RetryTransaction("updateNamespace", func() error {
 		return ns.master.processWithTransaction("updateNamespace", func(tx *BaseTx) error {
-			str := "update namespace set owner = ?, comment = ?, service_export_to = ?, mtime = sysdate() where name = ?"
-			args := []interface{}{namespace.Owner, namespace.Comment, utils.MustJson(namespace.ServiceExportTo), namespace.Name}
+			str := "update namespace set owner = ?, comment = ?, service_export_to = ?, metadata = ?," +
+				" mtime = sysdate() where name = ?"
+			args := []interface{}{namespace.Owner, namespace.Comment, utils.MustJson(namespace.ServiceExportTo),
+				utils.MustJson(namespace.Metadata), namespace.Name}
 			if _, err := tx.Exec(str, args...); err != nil {
 				return store.Error(err)
 			}
@@ -254,7 +256,7 @@ func genNamespaceSelectSQL() string {
 	SELECT name, IFNULL(comment, ''), token
 	, owner, flag, UNIX_TIMESTAMP(ctime)
 	, UNIX_TIMESTAMP(mtime)
-	, IFNULL(service_export_to, '{}')
+	, IFNULL(service_export_to, '{}'), IFNULL(metadata, '{}')
 FROM namespace
 	`
 	return str
@@ -270,7 +272,7 @@ func namespaceFetchRows(rows *sql.Rows) ([]*model.Namespace, error) {
 	var out []*model.Namespace
 	var ctime, mtime int64
 	var flag int
-	var serviceExportTo string
+	var serviceExportTo, metadata string
 
 	for rows.Next() {
 		space := &model.Namespace{}
@@ -283,6 +285,7 @@ func namespaceFetchRows(rows *sql.Rows) ([]*model.Namespace, error) {
 			&ctime,
 			&mtime,
 			&serviceExportTo,
+			&metadata,
 		)
 		if err != nil {
 			log.Errorf("[Store][database] fetch namespace rows scan err: %s", err.Error())
@@ -293,6 +296,8 @@ func namespaceFetchRows(rows *sql.Rows) ([]*model.Namespace, error) {
 		space.ModifyTime = time.Unix(mtime, 0)
 		space.ServiceExportTo = map[string]struct{}{}
 		_ = json.Unmarshal([]byte(serviceExportTo), &space.ServiceExportTo)
+		space.Metadata = map[string]string{}
+		_ = json.Unmarshal([]byte(metadata), &space.Metadata)
 		space.Valid = true
 		if flag == 1 {
 			space.Valid = false

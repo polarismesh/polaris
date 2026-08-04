@@ -65,12 +65,15 @@ VALUES (?, ?, ?, ?, ?
 }
 
 func (s *roleStore) savePrincipals(tx *BaseTx, role *authcommon.Role) error {
-	if _, err := tx.Exec("DELETE FROM auth_role_principal WHERE id = ?", role.ID); err != nil {
+	// auth_role_principal 的关联列是 role_id，表中没有 id 列
+	if _, err := tx.Exec("DELETE FROM auth_role_principal WHERE role_id = ?", role.ID); err != nil {
 		log.Error("[store][role] clean role principal info", zap.String("name", role.Name), zap.Error(err))
 		return err
 	}
 
-	insertTpl := "INSERT INTO auth_role_principal(role_id, principal_id, principal_role, IFNULL(extend_info, '')) VALUES (?, ?, ?)"
+	// 原实现的列列表里写了 IFNULL(extend_info, '')（函数不能出现在列列表中），
+	// 且四个列只给了三个占位符，与实际传入的四个参数不匹配
+	insertTpl := "INSERT INTO auth_role_principal(role_id, principal_id, principal_role, extend_info) VALUES (?, ?, ?, ?)"
 
 	for i := range role.Users {
 		args := []interface{}{role.ID, role.Users[i].PrincipalID, authcommon.PrincipalUser, utils.MustJson(role.Users[i].Extend)}

@@ -428,6 +428,10 @@ func (lc *LaneCache) toPage(total uint32, items []*model.LaneGroupProto,
 
 // GetRule implements api.LaneCache.
 func (lc *LaneCache) GetRule(id string) *model.LaneGroup {
-	rule, _ := lc.rules.Load(id)
+	// id 不存在时 Load 返回零值 nil，调用方按返回 nil 处理，这里必须判空
+	rule, ok := lc.rules.Load(id)
+	if !ok || rule == nil {
+		return nil
+	}
 	return rule.LaneGroup
 }
