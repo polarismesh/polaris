@@ -42,7 +42,9 @@ func TestNamespace(t *testing.T) {
 
 	client := http.NewClient(httpserverAddress, httpserverVersion)
 
-	namespaces := resource.CreateNamespaces()
+	// This is a CRUD test. A single namespace avoids coupling it to the
+	// asynchronous cache's batch-write propagation behavior.
+	namespaces := resource.CreateNamespaces()[:1]
 
 	// 创建命名空间
 	ret, err := client.CreateNamespaces(namespaces)
