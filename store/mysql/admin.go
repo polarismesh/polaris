@@ -528,13 +528,43 @@ func (m *adminStore) GetUnHealthyInstances(timeout time.Duration, limit uint32) 
 	return instanceIds, nil
 }
 
-// BatchCleanDeletedClients batch clean soft deleted clients
-func (m *adminStore) BatchCleanDeletedClients(timeout time.Duration, batchSize uint32) (uint32, error) {
+// BatchCleanDeletedClients batch clean soft deleted clients and return their IDs.
+func (m *adminStore) BatchCleanDeletedClients(timeout time.Duration, batchSize uint32) ([]string, error) {
 	log.Infof("[Store][database] batch clean soft deleted clients(%d)", batchSize)
-	var rows int64
+	clientIDs := make([]string, 0, batchSize)
 	err := m.master.processWithTransaction("batchCleanDeletedClients", func(tx *BaseTx) error {
-		mainStr := "delete from client where flag = 1 limit ?"
-		result, err := tx.Exec(mainStr, int32(timeout.Seconds()), batchSize)
+		selectSQL := "select id from client where flag = 1 and " +
+			"mtime <= FROM_UNIXTIME(UNIX_TIMESTAMP(SYSDATE()) - ?) limit ?"
+		rows, err := tx.Query(selectSQL, int32(timeout.Seconds()), batchSize)
+		if err != nil {
+			log.Errorf("[Store][database] batch clean soft deleted clients(%d), err: %s", batchSize, err.Error())
+			return store.Error(err)
+		}
+		defer rows.Close()
+
+		placeholders := make([]string, 0, batchSize)
+		for rows.Next() {
+			var id string
+			if err := rows.Scan(&id); err != nil {
+				log.Errorf("[Store][database] scan deleted client id, err: %s", err.Error())
+				return store.Error(err)
+			}
+			clientIDs = append(clientIDs, id)
+			placeholders = append(placeholders, "?")
+		}
+		if err := rows.Err(); err != nil {
+			return store.Error(err)
+		}
+		if len(clientIDs) == 0 {
+			return nil
+		}
+
+		deleteSQL := fmt.Sprintf("delete from client where flag = 1 and id in (%s)", strings.Join(placeholders, ","))
+		args := make([]interface{}, len(clientIDs))
+		for i := range clientIDs {
+			args[i] = clientIDs[i]
+		}
+		result, err := tx.Exec(deleteSQL, args...)
 		if err != nil {
 			log.Errorf("[Store][database] batch clean soft deleted clients(%d), err: %s", batchSize, err.Error())
 			return store.Error(err)
@@ -553,10 +583,15 @@ func (m *adminStore) BatchCleanDeletedClients(timeout time.Duration, batchSize u
 			return err
 		}
 
-		rows = tRows
+		if int64(len(clientIDs)) != tRows {
+			return fmt.Errorf("deleted client count mismatch: selected %d, deleted %d", len(clientIDs), tRows)
+		}
 		return nil
 	})
-	return uint32(rows), err
+	if err != nil {
+		return nil, err
+	}
+	return clientIDs, nil
 }
 
 // BatchCleanDeletedServices batch clean soft deleted clients

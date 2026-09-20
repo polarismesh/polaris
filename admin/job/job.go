@@ -40,9 +40,13 @@ type MaintainJobs struct {
 	cancel      context.CancelFunc
 }
 
+type clientHeartbeatCleaner interface {
+	DeleteClientHeartbeat(ctx context.Context, clientID string) error
+}
+
 // NewMaintainJobs
 func NewMaintainJobs(namingServer service.DiscoverServer, cacheMgn *cache.CacheManager,
-	storage store.Store) *MaintainJobs {
+	storage store.Store, clientCleaner clientHeartbeatCleaner) *MaintainJobs {
 	return &MaintainJobs{
 		jobs: map[string]maintainJob{
 			"DeleteUnHealthyInstance": &deleteUnHealthyInstanceJob{
@@ -52,7 +56,7 @@ func NewMaintainJobs(namingServer service.DiscoverServer, cacheMgn *cache.CacheM
 			"CleanConfigReleaseHistory": &cleanConfigFileHistoryJob{
 				storage: storage},
 			"CleanDeletedResources": &cleanDeletedResourceJob{
-				storage: storage},
+				storage: storage, clientCleaner: clientCleaner},
 		},
 		startedJobs: map[string]maintainJob{},
 		storage:     storage,

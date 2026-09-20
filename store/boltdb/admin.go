@@ -209,8 +209,8 @@ func (m *adminStore) getUnHealthyInstancesBefore(mtime time.Time, limit uint32) 
 	return instanceIds, nil
 }
 
-// BatchCleanDeletedClients
-func (m *adminStore) BatchCleanDeletedClients(timeout time.Duration, batchSize uint32) (uint32, error) {
+// BatchCleanDeletedClients batch clean soft deleted clients and return their IDs.
+func (m *adminStore) BatchCleanDeletedClients(timeout time.Duration, batchSize uint32) ([]string, error) {
 	mtime := time.Now().Add(-timeout)
 	fields := []string{ClientFieldValid, ClientFieldMtime}
 	values, err := m.handler.LoadValuesByFilter(tblClient, fields, &clientObject{},
@@ -234,10 +234,10 @@ func (m *adminStore) BatchCleanDeletedClients(timeout time.Duration, batchSize u
 			return true
 		})
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	if len(values) == 0 {
-		return 0, nil
+		return nil, nil
 	}
 
 	keys := make([]string, 0, batchSize)
@@ -248,9 +248,9 @@ func (m *adminStore) BatchCleanDeletedClients(timeout time.Duration, batchSize u
 		}
 	}
 	if err = m.handler.DeleteValues(tblClient, keys); err != nil {
-		return 0, err
+		return nil, err
 	}
-	return uint32(len(keys)), nil
+	return keys, nil
 }
 
 // BatchCleanDeletedServices batch clean soft deleted clients

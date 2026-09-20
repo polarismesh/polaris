@@ -75,7 +75,7 @@ func InitServer(ctx context.Context, cfg *Config, namingService service.Discover
 	actualSvr.cacheMgn = cacheMgn
 	actualSvr.storage = storage
 
-	maintainJobs := job.NewMaintainJobs(namingService, cacheMgn, storage)
+	maintainJobs := job.NewMaintainJobs(namingService, cacheMgn, storage, healthCheckServer)
 	if err := maintainJobs.StartMaintianJobs(cfg.Jobs); err != nil {
 		return nil, nil, err
 	}

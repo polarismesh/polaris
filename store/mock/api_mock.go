@@ -236,10 +236,10 @@ func (mr *MockStoreMockRecorder) BatchAppendInstanceMetadata(requests interface{
 }
 
 // BatchCleanDeletedClients mocks base method.
-func (m *MockStore) BatchCleanDeletedClients(timeout time.Duration, batchSize uint32) (uint32, error) {
+func (m *MockStore) BatchCleanDeletedClients(timeout time.Duration, batchSize uint32) ([]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BatchCleanDeletedClients", timeout, batchSize)
-	ret0, _ := ret[0].(uint32)
+	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
