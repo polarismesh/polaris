@@ -34,15 +34,7 @@ func toClientId(instanceId string) string {
 	return clientPrefix + instanceId
 }
 
-// DeleteClientHeartbeat removes the heartbeat record for an SDK client.
-func (s *Server) DeleteClientHeartbeat(ctx context.Context, clientID string) error {
-	checker, ok := s.checkers[int32(apiservice.HealthCheck_HEARTBEAT)]
-	if !ok {
-		return nil
-	}
-	return checker.Delete(ctx, toClientId(clientID))
-}
-
+// doReportByClient，由 polaris-go sdk 的 ReportByClient 调用，上报 client id
 func (s *Server) doReportByClient(ctx context.Context, client *apiservice.Client) *apiservice.Response {
 	if len(s.checkers) == 0 {
 		return api.NewResponse(apimodel.Code_HealthCheckNotOpen)
@@ -66,4 +58,13 @@ func (s *Server) doReportByClient(ctx context.Context, client *apiservice.Client
 		return api.NewClientResponse(apimodel.Code_HeartbeatException, client)
 	}
 	return api.NewClientResponse(apimodel.Code_ExecuteSuccess, client)
+}
+
+// DeleteClientHeartbeat removes the heartbeat record for an SDK client.
+func (s *Server) DeleteClientHeartbeat(ctx context.Context, clientID string) error {
+	checker, ok := s.checkers[int32(apiservice.HealthCheck_HEARTBEAT)]
+	if !ok {
+		return nil
+	}
+	return checker.Delete(ctx, toClientId(clientID))
 }
