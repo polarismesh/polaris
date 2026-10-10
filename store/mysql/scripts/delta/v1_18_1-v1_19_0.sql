@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations under the License.
  */
 /* 角色数据 */
-CREATE TABLE
+CREATE TABLE IF NOT EXISTS
     `auth_role` (
         `id` VARCHAR(128) NOT NULL COMMENT 'role id',
         `name` VARCHAR(100) NOT NULL COMMENT 'role name',
@@ -34,7 +34,7 @@ CREATE TABLE
     ) ENGINE = InnoDB;
 
 /* 角色关联用户/用户组关系表 */
-CREATE TABLE
+CREATE TABLE IF NOT EXISTS
     `auth_role_principal` (
         `role_id` VARCHAR(128) NOT NULL COMMENT 'role id',
         `principal_id` VARCHAR(128) NOT NULL COMMENT 'principal id',
@@ -43,7 +43,7 @@ CREATE TABLE
     ) ENGINE = InnoDB;
 
 /* 鉴权策略中的资源标签关联信息 */
-CRAETE TABLE `auth_strategy_label` (
+CREATE TABLE IF NOT EXISTS `auth_strategy_label` (
     `strategy_id` VARCHAR(128) NOT NULL COMMENT 'strategy id',
     `key` VARCHAR(128) NOT NULL COMMENT 'tag key',
     `value` TEXT NOT NULL COMMENT 'tag value',
@@ -52,7 +52,7 @@ CRAETE TABLE `auth_strategy_label` (
 ) ENGINE = InnoDB;
 
 /* 鉴权策略中的资源标签关联信息 */
-CRAETE TABLE `auth_strategy_function` (
+CREATE TABLE IF NOT EXISTS `auth_strategy_function` (
     `strategy_id` VARCHAR(128) NOT NULL COMMENT 'strategy id',
     `function` VARCHAR(256) NOT NULL COMMENT 'server provider function name',
     PRIMARY KEY (`strategy_id`, `function`)
