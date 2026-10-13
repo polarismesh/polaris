@@ -174,9 +174,11 @@ func (c *Client) GetNamespaces(namespaces []*apimodel.Namespace) ([]*apimodel.Na
 
 	url := fmt.Sprintf("http://%v/naming/%v/namespaces", c.Address, c.Version)
 
-	params := map[string][]interface{}{
-		"name": {namespaces[0].GetName().GetValue(), namespaces[1].GetName().GetValue()},
+	names := make([]interface{}, 0, len(namespaces))
+	for _, namespace := range namespaces {
+		names = append(names, namespace.GetName().GetValue())
 	}
+	params := map[string][]interface{}{"name": names}
 
 	url = c.CompleteURL(url, params)
 	response, err := c.SendRequestWithRequestID("GetNamespaces", "GET", url, nil)

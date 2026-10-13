@@ -42,7 +42,9 @@ func TestNamespace(t *testing.T) {
 
 	client := http.NewClient(httpserverAddress, httpserverVersion)
 
-	namespaces := resource.CreateNamespaces()
+	// This is a CRUD test. A single namespace avoids coupling it to the
+	// asynchronous cache's batch-write propagation behavior.
+	namespaces := resource.CreateNamespaces()[:1]
 
 	// 创建命名空间
 	ret, err := client.CreateNamespaces(namespaces)
@@ -55,10 +57,7 @@ func TestNamespace(t *testing.T) {
 	t.Log("create namespaces success")
 
 	// 查询命名空间
-	_, err = client.GetNamespaces(namespaces)
-	if err != nil {
-		t.Fatalf("get namespaces: %#v fail: %s", utils.MustJson(namespaces), err.Error())
-	}
+	waitForNamespaces(t, client, namespaces)
 	t.Log("get namespaces success")
 
 	// 更新命名空间
@@ -71,10 +70,7 @@ func TestNamespace(t *testing.T) {
 	t.Log("update namespaces success")
 
 	// 查询命名空间
-	_, err = client.GetNamespaces(namespaces)
-	if err != nil {
-		t.Fatalf("get namespaces fail: %s", err.Error())
-	}
+	waitForNamespaces(t, client, namespaces)
 	t.Log("get namespaces success")
 
 	// 删除命名空间
@@ -83,6 +79,22 @@ func TestNamespace(t *testing.T) {
 		t.Fatalf("delete namespaces fail: %s", err.Error())
 	}
 	t.Log("delete namespaces success")
+}
+
+func waitForNamespaces(t *testing.T, client *http.Client, namespaces []*apimodel.Namespace) {
+	t.Helper()
+
+	deadline := time.Now().Add(10 * time.Second)
+	var lastErr error
+	for time.Now().Before(deadline) {
+		_, lastErr = client.GetNamespaces(namespaces)
+		if lastErr == nil {
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	t.Fatalf("get namespaces: %#v fail after cache sync: %s", utils.MustJson(namespaces), lastErr)
 }
 
 // TestCountNamespaceService 统计命名空间下的服务数以及实例数

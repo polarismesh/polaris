@@ -20,7 +20,6 @@ package service_test
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"sync"
 	"testing"
@@ -413,7 +412,6 @@ func TestUpdateRateLimit(t *testing.T) {
 
 	t.Run("04-并发更新限流规则时，可以正常更新", func(t *testing.T) {
 		var wg sync.WaitGroup
-		errs := make(chan error)
 
 		lock := &sync.RWMutex{}
 		waitDelSvcs := []*apiservice.Service{}
@@ -448,32 +446,27 @@ func TestUpdateRateLimit(t *testing.T) {
 					waitDelRules = append(waitDelRules, rateLimitResp)
 				}()
 
-				_ = discoverSuit.CacheMgr().TestUpdate()
-
-				filters := map[string]string{
-					"service":   serviceResp.GetName().GetValue(),
-					"namespace": serviceResp.GetNamespace().GetValue(),
-				}
-				resp := discoverSuit.DiscoverServer().GetRateLimits(discoverSuit.DefaultCtx, filters)
-				if !respSuccess(resp) {
-					errs <- fmt.Errorf("error : %v", resp)
-				}
-				if len(resp.GetRateLimits()) == 0 {
-					errs <- errors.New("ratelimit rule count is zero")
-					return
-				}
-				checkRateLimit(t, rateLimitResp, resp.GetRateLimits()[0])
 			}(i)
 		}
-		go func() {
-			wg.Wait()
-			close(errs)
-		}()
+		wg.Wait()
 
-		for err := range errs {
-			if err != nil {
-				t.Fatal(err)
+		if err := discoverSuit.CacheMgr().TestUpdate(); err != nil {
+			t.Fatal(err)
+		}
+
+		for _, rateLimitResp := range waitDelRules {
+			filters := map[string]string{
+				"service":   rateLimitResp.GetService().GetValue(),
+				"namespace": rateLimitResp.GetNamespace().GetValue(),
 			}
+			resp := discoverSuit.DiscoverServer().GetRateLimits(discoverSuit.DefaultCtx, filters)
+			if !respSuccess(resp) {
+				t.Fatalf("get rate limits: %v", resp)
+			}
+			if len(resp.GetRateLimits()) == 0 {
+				t.Fatalf("rate limit rule count is zero for service %s", rateLimitResp.GetService().GetValue())
+			}
+			checkRateLimit(t, rateLimitResp, resp.GetRateLimits()[0])
 		}
 
 		t.Log("pass")
