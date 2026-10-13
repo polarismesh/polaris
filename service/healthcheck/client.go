@@ -34,7 +34,6 @@ func toClientId(instanceId string) string {
 	return clientPrefix + instanceId
 }
 
-// doReportByClient，由 polaris-go sdk 的 ReportByClient 调用，上报 client id
 func (s *Server) doReportByClient(ctx context.Context, client *apiservice.Client) *apiservice.Response {
 	if len(s.checkers) == 0 {
 		return api.NewResponse(apimodel.Code_HealthCheckNotOpen)
