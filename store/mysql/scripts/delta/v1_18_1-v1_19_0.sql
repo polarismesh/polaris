@@ -14,8 +14,12 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
+/* 鉴权策略关联主体的扩展信息 */
+ALTER TABLE `auth_principal`
+    ADD COLUMN `extend_info` TEXT COMMENT 'link principal extend info' AFTER `principal_role`;
+
 /* 角色数据 */
-CREATE TABLE
+CREATE TABLE IF NOT EXISTS
     `auth_role` (
         `id` VARCHAR(128) NOT NULL COMMENT 'role id',
         `name` VARCHAR(100) NOT NULL COMMENT 'role name',
@@ -34,16 +38,17 @@ CREATE TABLE
     ) ENGINE = InnoDB;
 
 /* 角色关联用户/用户组关系表 */
-CREATE TABLE
+CREATE TABLE IF NOT EXISTS
     `auth_role_principal` (
         `role_id` VARCHAR(128) NOT NULL COMMENT 'role id',
         `principal_id` VARCHAR(128) NOT NULL COMMENT 'principal id',
         `principal_role` INT NOT NULL COMMENT 'PRINCIPAL type, 1 is User, 2 is Group',
+        `extend_info` TEXT COMMENT 'link principal extend info',
         PRIMARY KEY (`role_id`, `principal_id`, `principal_role`)
     ) ENGINE = InnoDB;
 
 /* 鉴权策略中的资源标签关联信息 */
-CRAETE TABLE `auth_strategy_label` (
+CREATE TABLE IF NOT EXISTS `auth_strategy_label` (
     `strategy_id` VARCHAR(128) NOT NULL COMMENT 'strategy id',
     `key` VARCHAR(128) NOT NULL COMMENT 'tag key',
     `value` TEXT NOT NULL COMMENT 'tag value',
@@ -52,8 +57,21 @@ CRAETE TABLE `auth_strategy_label` (
 ) ENGINE = InnoDB;
 
 /* 鉴权策略中的资源标签关联信息 */
-CRAETE TABLE `auth_strategy_function` (
+CREATE TABLE IF NOT EXISTS `auth_strategy_function` (
     `strategy_id` VARCHAR(128) NOT NULL COMMENT 'strategy id',
     `function` VARCHAR(256) NOT NULL COMMENT 'server provider function name',
     PRIMARY KEY (`strategy_id`, `function`)
 ) ENGINE = InnoDB;
+
+/* 补全 polaris 用户的权限*/
+INSERT IGNORE INTO auth_strategy_resource (strategy_id, res_type, res_id)
+VALUES
+  ('fbca9bfa04ae4ead86e1ecf5811e32a9', 3, '*'),
+  ('fbca9bfa04ae4ead86e1ecf5811e32a9', 4, '*'),
+  ('fbca9bfa04ae4ead86e1ecf5811e32a9', 5, '*'),
+  ('fbca9bfa04ae4ead86e1ecf5811e32a9', 6, '*'),
+  ('fbca9bfa04ae4ead86e1ecf5811e32a9', 7, '*'),
+  ('fbca9bfa04ae4ead86e1ecf5811e32a9', 20, '*'),
+  ('fbca9bfa04ae4ead86e1ecf5811e32a9', 21, '*'),
+  ('fbca9bfa04ae4ead86e1ecf5811e32a9', 22, '*'),
+  ('fbca9bfa04ae4ead86e1ecf5811e32a9', 23, '*');

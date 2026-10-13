@@ -18,6 +18,7 @@
 package job
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -65,8 +66,9 @@ type CleandeletedResourceConf struct {
 }
 
 type cleanDeletedResourceJob struct {
-	cfg     *CleandeletedResourceConf
-	storage store.Store
+	cfg           *CleandeletedResourceConf
+	storage       store.Store
+	clientCleaner clientHeartbeatCleaner
 }
 
 func (job *cleanDeletedResourceJob) init(raw map[string]interface{}) error {
@@ -154,13 +156,21 @@ func cleanDeletedServices(timeout time.Duration, job *cleanDeletedResourceJob) {
 func cleanDeletedClients(timeout time.Duration, job *cleanDeletedResourceJob) {
 	batchSize := uint32(100)
 	for {
-		count, err := job.storage.BatchCleanDeletedClients(timeout, batchSize)
+		clientIDs, err := job.storage.BatchCleanDeletedClients(timeout, batchSize)
 		if err != nil {
 			log.Errorf("[Maintain][Job][CleanDeletedClients] batch clean deleted client, err: %v", err)
 			break
 		}
-		log.Infof("[Maintain][Job][CleanDeletedClients] clean deleted client count %d", count)
-		if count < batchSize {
+		for _, clientID := range clientIDs {
+			if job.clientCleaner == nil {
+				break
+			}
+			if err := job.clientCleaner.DeleteClientHeartbeat(context.Background(), clientID); err != nil {
+				log.Errorf("[Maintain][Job][CleanDeletedClients] delete heartbeat for client %s, err: %v", clientID, err)
+			}
+		}
+		log.Infof("[Maintain][Job][CleanDeletedClients] clean deleted client count %d", len(clientIDs))
+		if uint32(len(clientIDs)) < batchSize {
 			break
 		}
 	}

@@ -67,12 +67,12 @@ func TestAdminStore_BatchCleanDeletedClients(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	count, err := store.BatchCleanDeletedClients(0, 2)
+	clientIDs, err := store.BatchCleanDeletedClients(0, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if count != 2 {
-		t.Fatalf("count not match, expect cnt=%d, actual cnt=%d", 2, count)
+	if len(clientIDs) != 2 {
+		t.Fatalf("count not match, expect cnt=%d, actual cnt=%d", 2, len(clientIDs))
 	}
 
 	remainClients, err := cStore.GetMoreClients(time.Time{}, false)
